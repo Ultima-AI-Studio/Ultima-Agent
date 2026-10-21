@@ -31,7 +31,9 @@ if text_state == 'frozen':
     stage = '阶段一 v0.1 已冻结；v0.3 文本闭环W4通过、版本待Owner审批；v0.2 仅已有音频离线复验'
 if (ROOT / 'tasks/queue/gates/v0.3-frozen.json').is_file():
     check_version_gates({'card_path': str(ROOT / 'tasks/cards/s1-window-dsl-schema/task.md')}, ROOT / 'tasks')
-    stage = '阶段一 v0.1/v0.3 已冻结；v0.4待语音四IO依赖就绪；v0.2仅已有音频离线复验'
+    window_state = next(r['state'] for r in rows if r['id'] == 'wo-s1-composite-window')
+    voice_state = next(r['state'] for r in rows if r['id'] == 'wo-s1-voice-poc')
+    stage = '阶段一 v0.1/v0.3 已冻结；v0.4工单' + labels[window_state] + '；语音工单' + labels[voice_state]
 if data.get('work_orders') == orders and data.get('stage') == stage:
     print('UNCHANGED')
     raise SystemExit(0)
