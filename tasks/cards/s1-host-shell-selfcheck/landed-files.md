@@ -18,3 +18,10 @@
 - `scripts/tests/test_host_selfcheck_entry.py`：监控不可用与结束故障的结构化FAIL回归。
 - `logs/w1-delivered-selfcheck-verified-path-positive-20261021T0324/`、`logs/w1-delivered-selfcheck-verified-path-negative-20261021T0325/`：最终正负向绑定证据。
 - `docs/reports/w1-root-followup-20261021.md`、`docs/reports/w1-independent-acceptance-20261021.md`第三轮：续修与独立判断，整单系统清理门仍阻塞。
+
+
+## 重启后最终证据
+
+- `docs/reports/evidence/w1-post-reboot-closeout-20261021/`：维护、正负向、源/产物绑定及清理证据副本。
+- `docs/reports/evidence/w1-independent-20261021/round4-post-reboot/`：独立验收。
+- 本任务产品实现未在本轮变更，旧文件和失败证据保留。

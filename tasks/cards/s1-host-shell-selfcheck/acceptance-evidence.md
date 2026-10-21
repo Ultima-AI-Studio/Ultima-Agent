@@ -31,3 +31,8 @@
 正式Python/C#入口的正向 `logs/w1-delivered-selfcheck-verified-path-positive-20261021T0324/entry-result.json` 为PASS/exit0，缺Runtime负向 `logs/w1-delivered-selfcheck-verified-path-negative-20261021T0325/entry-result.json` 为FAIL/exit1，均意外窗口0。`source-before.json`与运行后源码清单逐字节一致；实际进程路径经QueryFullProcessImageNameW读回，启动EXE/DLL哈希与产物一致。监控异常2项故障回归由独立审计者重跑通过。
 
 独立结论见 `docs/reports/evidence/w1-independent-20261021/round3-final/result.json`：U01-U05功能PASS；整单BLOCKED。旧pwsh59328仍wait258/exitTime0、精确终止AccessDenied5；没有将工具返回成功或exitCode1解释为真实终止。旧PowerShell历史PASS及本轮挂起记录均保留。
+
+
+## 2026-10-21 维护重启后独立收口
+
+Owner授权维护重启已实际完成；原59328创建身份已不存在，原生枚举与直接内核查询交叉确认，系统清理门解除。正式入口新正向PASS/exit0、缺Runtime负向FAIL/exit1，0警告/0错误、额外窗口0、当前开机后的后台身份保留。独立第四轮验收允许工单内部收口；最终证据见 `docs/reports/evidence/w1-post-reboot-closeout-20261021/` 与 `docs/reports/w1-independent-acceptance-20261021.md`。旧派发exit125/BLOCKED和历次失败保留。内部tag为wo-s1-host-shell-done；v0.1仍待Owner单独审批。

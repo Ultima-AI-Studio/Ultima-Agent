@@ -11,3 +11,10 @@
 - MODIFY_FILE `tasks/cards/s1-host-shell-winui3-init/task.md`：回填 receipt/retryCount。
 
 `bin/obj` 为任务卡声明的正常构建侧效应。未复制 Topo 宿主代码，未加入业务智能、WebView2 或悬浮球。
+
+
+## 重启后最终证据
+
+- `docs/reports/evidence/w1-post-reboot-closeout-20261021/`：维护、正负向、源/产物绑定及清理证据副本。
+- `docs/reports/evidence/w1-independent-20261021/round4-post-reboot/`：独立验收。
+- 本任务产品实现未在本轮变更，旧文件和失败证据保留。

@@ -76,3 +76,29 @@ U01 可以供 W2 跨工单环境门行政收尾引用，无需等待 U04 多DPI�
 工单总验收中五任务功能及T↔U映射通过。仍需监督端将本轮最终入口/证据追加到五卡三件套、权威清单与队列回执中；尤其T5旧landed-files仍只列.ps1，不应抹去历史，应追加正式.py/C#交付。src/host-shell/README现已同步新入口和阻塞事实。实际Git tag只见 `wo-s1-queue-engine-done`，未见 `wo-s1-host-shell-done`；须系统清理门解除后再完成该工单内部tag等行政收口。v0.1冻结仍属于工单①②完整收口后的Owner门，当前没有本审计批准。
 
 **剩余实质系统阻塞只有旧PID59328清理未闭合；其余为最终证据/三件套、队列状态和内部tag行政收口。功能无新增待修项。最终签署：功能PASS，整单BLOCKED。**
+
+## 第四轮：维护重启后独立续验
+
+**W1技术验收PASS，系统清理门解除；允许监督端完成工单②内部tag和行政收口。此签署不表示tag已经创建，也不批准Owner版本冻结。** 审计者 `/root/w1_post_reboot_review`；2026-10-21 04:01 UTC独立读回。前三轮历史判断保留。本轮只读源码/运行证据与原生进程状态，写入独立报告及新证据目录，未启动宿主、操控UI、终止进程、修改实现/任务卡/全局状态或创建tag。
+
+独立固定证据在 `evidence/w1-independent-20261021/round4-post-reboot/`。`result.json` 明确记录 technical_W1_pass=true、cleanup_gate_pass=true、may_create_internal_tag=true、owner_freeze_approved=false；采用独占创建保存，不覆盖旧轮。最终入口正向 `logs/w1-post-reboot-final-positive-20261021T0400/` 为PASS/exit0，缺Runtime负向 `logs/w1-post-reboot-final-negative-20261021T0401/` 为预期FAIL/exit1，均已复制固定。
+
+### 原系统阻塞与维护条件
+
+维护boot-check新开机估计2026-10-21T03:49:29.941801Z，旧值2026-10-20T05:34:13.774775Z，相差80116秒；不是只凭重启请求判定重启。原生Toolhelp记录59328和宿主残留均不存在；Default输入桌面可访问，无desktop_error。审计另直接调用OpenProcess(QUERY_LIMITED_INFORMATION|SYNCHRONIZE,59328)得到空句柄和Windows错误87，见 `independent-native-process.json`。结合实际开机基线改变和原生枚举缺席，原创建身份134370250506523457已消失；没有用通用process_identity=null替代退出证据，也没有误杀可能复用PID的新进程。两处维护暂停标记当时仍存在，审计独立重算hash均与before.json相同且包含同一维护token。
+
+### 最终源、产物与运行绑定
+
+两套正式入口的15项source-before与source_manifest（运行后）完全相同，独立重算所有源码hash均匹配当前文件，6项artifact_manifest全部匹配。host-started实际进程完整路径均与预定EXE相同，EXE/DLL启动hash与当前文件及artifact_manifest相同。正向build→launch→window→正常exit全链通过，构建0警告/0错误、未使用NoWarn、未定向kill；负向按缺Runtime真实失败并退出。两套WinEvent/进程树窗口审计均为零意外窗口，新开机后基线后台身份各10/10保留（name+PID+StartTimeUtc），没有与重启前PID混比。
+
+第三轮已独立通过的实现源码15项与当前全部相同，见 `support-manifest.json`，因此既有U01–U04的真实环境、显示、消息往返、鼠标拖动与144/96/96DPI验收仍适用；本轮没有声称重新执行鼠标或多DPI测试。README并不在正式入口自动前后清单内，本审计另将其当前hash纳入result.source_manifest并保存副本，不能声称README经过自动source-before/source-after覆盖。其修订仅将旧进程仍阻塞说明更新为重启后事实。
+
+W2第二轮清单中 `tasks/queue_engine/` 与 `tasks/tests/` 共20份核心源/测试hash，独立重算20/20未变。本轮没有重新执行W2测试。
+
+### 行政收口边界
+
+五卡的completion.md、acceptance-evidence.md、landed-files.md共15份均存在。本次读回时只有T5 completion及landed-files显式补了正式.py入口；五卡三件套均尚未追加重启后最终证据，T5 acceptance-evidence尚未显式列正式入口。这些是监督端接续行政收口的明确待办，不是实现技术缺陷；在完成追加、权威文档/队列登记及独立回读前，不声称全部行政DoD已完成。
+
+审计当时实际tag仅 `wo-s1-queue-engine-done`，尚无 `wo-s1-host-shell-done`。may_create_internal_tag允许监督端接续工单内部tag行政动作，不伪称已存在。旧真实adapter done.json仍是exit125、receipt_valid=false、state=blocked，已在独立result固定，不能改成那次派发成功。Owner未批准v0.1；本报告不创建v0.1-frozen、不授予Owner PASS、不授权冻结门后的任务或远端发布。
+
+**第四轮签署：U01–U05与W1技术PASS；旧进程清理门PASS；可接续工单②行政收口及内部tag。完整行政完成状态以其后实际回读为准。**

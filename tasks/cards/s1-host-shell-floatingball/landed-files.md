@@ -10,3 +10,10 @@
 - MODIFY_FILE `tasks/cards/s1-host-shell-floatingball/task.md`：回填 receipt/retryCount。
 
 未加入四状态动画、语音交互、小组件或业务智能。
+
+
+## 重启后最终证据
+
+- `docs/reports/evidence/w1-post-reboot-closeout-20261021/`：维护、正负向、源/产物绑定及清理证据副本。
+- `docs/reports/evidence/w1-independent-20261021/round4-post-reboot/`：独立验收。
+- 本任务产品实现未在本轮变更，旧文件和失败证据保留。

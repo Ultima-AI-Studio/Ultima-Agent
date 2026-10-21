@@ -61,3 +61,8 @@
 - `logs/w1-host-resume-20261021T024845Z/t3-webview/t3-webview-webview.json`：Runtime `155.0.4283.62`、离线渲染成功、`web-ready → host-ping → web-received:host-ping`、externalRequests=0。
 - `t3-webview-render.png` 仅为 WebView2 `CapturePreview` 组件证据；本轮未执行桌面截图，也不据此宣称桌面视觉通过。
 - 宿主 PID 58236 原生 exit 0，见同目录 `host-result.json`。
+
+
+## 2026-10-21 维护重启后独立收口
+
+Owner授权维护重启已实际完成；原59328创建身份已不存在，原生枚举与直接内核查询交叉确认，系统清理门解除。正式入口新正向PASS/exit0、缺Runtime负向FAIL/exit1，0警告/0错误、额外窗口0、当前开机后的后台身份保留。独立第四轮验收允许工单内部收口；最终证据见 `docs/reports/evidence/w1-post-reboot-closeout-20261021/` 与 `docs/reports/w1-independent-acceptance-20261021.md`。旧派发exit125/BLOCKED和历次失败保留。内部tag为wo-s1-host-shell-done；v0.1仍待Owner单独审批。

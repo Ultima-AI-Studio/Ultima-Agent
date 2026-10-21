@@ -10,3 +10,10 @@
 - MODIFY_FILE `tasks/cards/s1-host-shell-webview2/task.md`：回填 receipt/retryCount。
 
 未实现业务页面、UI DSL、意图/编排/记忆/模型推理或 T4 悬浮球行为。
+
+
+## 重启后最终证据
+
+- `docs/reports/evidence/w1-post-reboot-closeout-20261021/`：维护、正负向、源/产物绑定及清理证据副本。
+- `docs/reports/evidence/w1-independent-20261021/round4-post-reboot/`：独立验收。
+- 本任务产品实现未在本轮变更，旧文件和失败证据保留。
