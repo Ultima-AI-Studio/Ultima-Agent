@@ -332,4 +332,4 @@ v0.1 环境基线（工单① ∥ 工单② 并行，各自 W2/W1 验收）─�
 
 ## 2026-10-21 当前验收状态
 
-W2独立35项/62回归通过；W1维护后独立第四轮通过，两个内部工单tag已建立。v0.1-frozen仍待Owner实际批准，未据此启动后续版本工单。证据见docs/reports/w1-independent-acceptance-20261021.md及w2-independent-acceptance-20261021.md。
+W2独立35项/62回归通过；W1维护后独立第四轮通过，两个内部工单tag已建立。Owner已明确批准v0.1冻结，实际v0.1-frozen固定43ce130，批准凭据tasks/queue/gates/v0.1-frozen.json已登记；后续版本工单尚未启动。证据见docs/reports/w1-independent-acceptance-20261021.md及w2-independent-acceptance-20261021.md。
