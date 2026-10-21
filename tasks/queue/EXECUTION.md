@@ -29,7 +29,7 @@ $cli = 'H:\UltimaAI\UltimaAgent\tasks\queue_engine\cli.py'
 
 `tasks.json` 当前空数组表示尚未逐任务登记生产运行，不表示8张开发工单已经完成。历史独立 Codex 执行回执位于 `tasks/queue/runs/` 与 `docs/reports/`；本次测试全部在隔离临时目录执行，不注入生产任务库。
 
-当前工单事实以 `stage1-unit-queue.md`、工单总卡和全局逐工单登记为准。W2已独立通过35项技术验收与62项回归，并结合独立U01环境门建立内部tag `wo-s1-queue-engine-done`；W1已在维护重启后独立验收并内部收口。Owner已明确批准，v0.1冻结门已通过；v0.2/v0.3可进入派发前检查，本次未启动后续工单。语音与文本同依赖 v0.1；文本不额外等待语音工单完成。
+当前工单事实以 `stage1-unit-queue.md`、工单总卡和全局逐工单登记为准。W2已独立通过35项技术验收与62项回归，并结合独立U01环境门建立内部tag `wo-s1-queue-engine-done`；W1已在维护重启后独立验收并内部收口。Owner已明确批准，v0.1冻结门已通过。2026-10-21已实际派发工单④文本闭环，开发及修复均真实退出0，独立W4纠正核对通过，尚未批准v0.3冻结。语音与文本同依赖 v0.1；文本不额外等待语音工单完成。Owner选择先仅已有音频离线验证、继续文本；不播放、不录音、不采集麦克风，语音工单及真机门尚未完成。
 
 ## 真实工程工单派发适配器
 
@@ -37,7 +37,7 @@ $cli = 'H:\UltimaAI\UltimaAgent\tasks\queue_engine\cli.py'
 
 一次只执行一单，保留before/session/out/err/final/done证据。进程退出且结构化READY_FOR_REVIEW回执可核对时，最多进入audit；审计槽被占、失败或缺回执时保持blocked，不自动完成、批准或续派。父进程失联会降级停止后续派发。产品内部任务库不会因此被伪造填充。
 
-当前真实接入轮为 `runs/wo-s1-host-shell-20261021T023427316731Z/`。新CLI的stdout JSON可能漏列MCP工具活动，`scripts/read-dispatch-progress.py <绝对run路径>`交叉核对持久会话，只输出进度摘要；不得仅凭stdout停更判僵死并中断任务。该适配器是主脑调用入口，不是持续自动批准的后台守护器。
+旧宿主真实派发失败回执 `runs/wo-s1-host-shell-20261021T023427316731Z/` 原样保留（退出125、未通过）。维护后短派发预检 `runs/wo-s1-voice-poc-20261021T041728559262Z/` 已实际退出0、仅阶段预检通过；文本开发首轮 `runs/wo-s1-task-text-loop-20261021T042417690879Z/` 已实际退出0、结构化回执有效。新CLI的stdout JSON可能漏列MCP工具活动，`scripts/read-dispatch-progress.py <绝对run路径>`交叉核对持久会话，只输出进度摘要；不得仅凭stdout停更判僵死并中断任务。该适配器是主脑调用入口，不是持续自动批准的后台守护器。
 
 ## 计划和状态校验
 

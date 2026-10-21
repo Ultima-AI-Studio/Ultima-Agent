@@ -1,0 +1,73 @@
+COMMAND H:\UltimaAI\UltimaAgent\tools\python31313\python.exe -B -X utf8 src\brain\tests\test_queue_source.py QueueSourceTests.test_incomplete_library_read_preserves_tree_and_bytes -v
+RETURN_CODE 1
+STDOUT
+READONLY_TREE {"label": "empty", "before": ["tasks.json:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"], "after": ["archive/", "cards/", "events/", "queue/", "runs/", "tasks.json:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"]}
+READONLY_TREE {"label": "corrupt", "before": ["tasks.json:be302461cda285db3ed2d45fb767b23e08ca8808b35a638009937df22b332d73"], "after": ["archive/", "cards/", "events/", "queue/", "runs/", "tasks.json:be302461cda285db3ed2d45fb767b23e08ca8808b35a638009937df22b332d73"]}
+
+STDERR
+test_incomplete_library_read_preserves_tree_and_bytes (__main__.QueueSourceTests.test_incomplete_library_read_preserves_tree_and_bytes) ... 
+  test_incomplete_library_read_preserves_tree_and_bytes (__main__.QueueSourceTests.test_incomplete_library_read_preserves_tree_and_bytes) (label='empty') ... FAIL
+  test_incomplete_library_read_preserves_tree_and_bytes (__main__.QueueSourceTests.test_incomplete_library_read_preserves_tree_and_bytes) (label='corrupt') ... FAIL
+
+======================================================================
+FAIL: test_incomplete_library_read_preserves_tree_and_bytes (__main__.QueueSourceTests.test_incomplete_library_read_preserves_tree_and_bytes) (label='empty')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "H:\UltimaAI\UltimaAgent\src\brain\tests\test_queue_source.py", line 194, in test_incomplete_library_read_preserves_tree_and_bytes
+    self.assertEqual(before, after)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+AssertionError: Lists differ: ['tasks.json:4f53cda18c2baa0c0354bb5f9a3ecb[31 chars]945'] != ['archive/', 'cards/', 'events/', 'queue/',[83 chars]945']
+
+First differing element 0:
+'tasks.json:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945'
+'archive/'
+
+Second list contains 5 additional elements.
+First extra element 1:
+'cards/'
+
++ ['archive/',
++  'cards/',
++  'events/',
++  'queue/',
++  'runs/',
+- ['tasks.json:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945']
+? ^
+
++  'tasks.json:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945']
+? ^
+
+
+======================================================================
+FAIL: test_incomplete_library_read_preserves_tree_and_bytes (__main__.QueueSourceTests.test_incomplete_library_read_preserves_tree_and_bytes) (label='corrupt')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "H:\UltimaAI\UltimaAgent\src\brain\tests\test_queue_source.py", line 194, in test_incomplete_library_read_preserves_tree_and_bytes
+    self.assertEqual(before, after)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+AssertionError: Lists differ: ['tasks.json:be302461cda285db3ed2d45fb767b2[31 chars]d73'] != ['archive/', 'cards/', 'events/', 'queue/',[83 chars]d73']
+
+First differing element 0:
+'tasks.json:be302461cda285db3ed2d45fb767b23e08ca8808b35a638009937df22b332d73'
+'archive/'
+
+Second list contains 5 additional elements.
+First extra element 1:
+'cards/'
+
++ ['archive/',
++  'cards/',
++  'events/',
++  'queue/',
++  'runs/',
+- ['tasks.json:be302461cda285db3ed2d45fb767b23e08ca8808b35a638009937df22b332d73']
+? ^
+
++  'tasks.json:be302461cda285db3ed2d45fb767b23e08ca8808b35a638009937df22b332d73']
+? ^
+
+
+----------------------------------------------------------------------
+Ran 1 test in 0.052s
+
+FAILED (failures=2)
