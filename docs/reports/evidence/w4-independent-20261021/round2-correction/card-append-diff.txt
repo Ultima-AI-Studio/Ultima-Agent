@@ -1,0 +1,38 @@
+--- old/s1-task-intent-parse
++++ current/s1-task-intent-parse
+@@ -56,3 +56,10 @@
+ | IN-01 意图识别 | "查任务状态"类意图识别 | 识别率 ≥90% | 用例测试 |
+ | IN-02 默认不打断 | 无明确指令不主动插话 | 行为正确 | 场景测试 |
+ | IN-03 用例集落盘 | 测试输出 logs/intent-parse-test-<date>.md | 报告存在 | 文件核对 |
++
++## W4 打回同单修复（2026-10-21）
++
++- 修复否定、已完成历史、转述/日志引用、功能讨论句型被子串规则误判的问题；不是三句白名单。
++- 原 16 条正例仍为 16/16；独立脚本正例 19/20（95%）；新增同类负例与端到端不读库回归均通过。
++- RED/GREEN 与独立脚本复跑证据：`logs/text-loop-w4-repair-20261021/`。
++- 当前仍为开发方 `READY_FOR_REVIEW`，`independent_w4_completed=false`；未签独立 PASS。
+--- old/s1-task-queue-source
++++ current/s1-task-queue-source
+@@ -57,3 +57,10 @@
+ | QS-02 真实状态读取 | 从队列引擎读真实状态 | 非硬编码 | 读取核对 |
+ | QS-03 字段口径对齐 | 字段同 queue-spec §10 | 无漂移 | 对照核对 |
+ | QS-04 M7 合规 | legacy-topo 只读引用 | 仅参考不拷贝 | 代码核对 |
++
++## W4 打回同单修复（2026-10-21）
++
++- 在新增 brain 层以只读 `QueueStorage` 适配器覆写布局初始化，仍调用冻结引擎真实 `load_tasks()` 读取和验证索引；未修改冻结源。
++- 仅有 `tasks.json` 的空库和损坏库读取前后目录树、文件内容哈希完全相同；缺失、损坏、非法内容仍明确失败且不伪装空库。
++- RED/GREEN 与独立脚本复跑证据：`logs/text-loop-w4-repair-20261021/`。
++- 当前仍为开发方 `READY_FOR_REVIEW`，`independent_w4_completed=false`；未签独立 PASS。
+--- old/s1-task-aggregate-report
++++ current/s1-task-aggregate-report
+@@ -55,3 +55,9 @@
+ | AR-01 编排 | 任务域按逻辑编排 | 编排合理 | 代码核对 |
+ | AR-02 聚合汇报 | 20 任务 1 失败→只报异常并总结 | 不逐条念 | 场景实测 |
+ | AR-03 可下钻 | 异常项可展开详情 | 下钻可用 | 场景测试 |
++
++## W4 打回同单修复（2026-10-21）
++
++- 聚合与下钻实现未改；新增端到端回归确认否定、历史、转述和功能讨论不进入 reporter，且实际读库次数为 0。
++- 20/1、正常/失败下钻、错误闭合与 CLI 全部继续通过；证据位于 `logs/text-loop-w4-repair-20261021/`。
++- 当前仍为开发方 `READY_FOR_REVIEW`，`independent_w4_completed=false`；未签独立 PASS。

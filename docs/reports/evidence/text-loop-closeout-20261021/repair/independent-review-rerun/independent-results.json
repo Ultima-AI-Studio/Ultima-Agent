@@ -1,0 +1,631 @@
+{
+  "runs": [
+    {
+      "name": "developer-text-tests",
+      "returncode": 0
+    },
+    {
+      "name": "frozen-baseline-before",
+      "returncode": 0
+    },
+    {
+      "name": "queue-engine-independent-regression",
+      "returncode": 0
+    },
+    {
+      "name": "frozen-baseline-after",
+      "returncode": 0
+    }
+  ],
+  "positive_holdout": [
+    {
+      "text": "请查询任务状态",
+      "matched": true
+    },
+    {
+      "text": "麻烦查看任务进展",
+      "matched": true
+    },
+    {
+      "text": "帮忙看看任务完成情况",
+      "matched": true
+    },
+    {
+      "text": "报告一下任务执行情况",
+      "matched": false
+    },
+    {
+      "text": "告诉我队列状态",
+      "matched": true
+    },
+    {
+      "text": "任务进度怎么样",
+      "matched": true
+    },
+    {
+      "text": "任务执行得怎么样了",
+      "matched": true
+    },
+    {
+      "text": "看一下任务队列",
+      "matched": true
+    },
+    {
+      "text": "查下任务状态",
+      "matched": true
+    },
+    {
+      "text": "查一查任务进度",
+      "matched": true
+    },
+    {
+      "text": "请汇报所有任务的进展",
+      "matched": true
+    },
+    {
+      "text": "现在任务什么情况",
+      "matched": true
+    },
+    {
+      "text": "有哪些任务失败了",
+      "matched": true
+    },
+    {
+      "text": "帮我看哪些任务被冻结",
+      "matched": true
+    },
+    {
+      "text": "请查看队列中排队情况",
+      "matched": true
+    },
+    {
+      "text": "能帮忙查查任务状态吗",
+      "matched": true
+    },
+    {
+      "text": "我需要查看任务执行进度",
+      "matched": true
+    },
+    {
+      "text": "请告诉我哪些任务卡住了",
+      "matched": true
+    },
+    {
+      "text": "帮忙看一下所有任务的情况",
+      "matched": true
+    },
+    {
+      "text": "查询队列目前情况",
+      "matched": true
+    }
+  ],
+  "positive_rate": 0.95,
+  "checks": [
+    {
+      "name": "独立明确查询识别率≥90%",
+      "passed": true,
+      "expected": true,
+      "actual": true
+    },
+    {
+      "name": "无明确指令不读库：先不查任务状态",
+      "passed": true,
+      "expected": {
+        "matched": false,
+        "handled": false,
+        "reads": 0
+      },
+      "actual": {
+        "matched": false,
+        "handled": false,
+        "reads": 0
+      }
+    },
+    {
+      "name": "无明确指令不读库：不需要查任务状态",
+      "passed": true,
+      "expected": {
+        "matched": false,
+        "handled": false,
+        "reads": 0
+      },
+      "actual": {
+        "matched": false,
+        "handled": false,
+        "reads": 0
+      }
+    },
+    {
+      "name": "无明确指令不读库：我看过任务状态了",
+      "passed": true,
+      "expected": {
+        "matched": false,
+        "handled": false,
+        "reads": 0
+      },
+      "actual": {
+        "matched": false,
+        "handled": false,
+        "reads": 0
+      }
+    },
+    {
+      "name": "无明确指令不读库：暂时不查任务状态",
+      "passed": true,
+      "expected": {
+        "matched": false,
+        "handled": false,
+        "reads": 0
+      },
+      "actual": {
+        "matched": false,
+        "handled": false,
+        "reads": 0
+      }
+    },
+    {
+      "name": "无明确指令不读库：我已经查看任务进度了",
+      "passed": true,
+      "expected": {
+        "matched": false,
+        "handled": false,
+        "reads": 0
+      },
+      "actual": {
+        "matched": false,
+        "handled": false,
+        "reads": 0
+      }
+    },
+    {
+      "name": "无明确指令不读库：任务状态我看过了",
+      "passed": true,
+      "expected": {
+        "matched": false,
+        "handled": false,
+        "reads": 0
+      },
+      "actual": {
+        "matched": false,
+        "handled": false,
+        "reads": 0
+      }
+    },
+    {
+      "name": "无明确指令不读库：无需查询任务状态",
+      "passed": true,
+      "expected": {
+        "matched": false,
+        "handled": false,
+        "reads": 0
+      },
+      "actual": {
+        "matched": false,
+        "handled": false,
+        "reads": 0
+      }
+    },
+    {
+      "name": "无明确指令不读库：别查看任务状态",
+      "passed": true,
+      "expected": {
+        "matched": false,
+        "handled": false,
+        "reads": 0
+      },
+      "actual": {
+        "matched": false,
+        "handled": false,
+        "reads": 0
+      }
+    },
+    {
+      "name": "无明确指令不读库：不要汇报任务执行情况",
+      "passed": true,
+      "expected": {
+        "matched": false,
+        "handled": false,
+        "reads": 0
+      },
+      "actual": {
+        "matched": false,
+        "handled": false,
+        "reads": 0
+      }
+    },
+    {
+      "name": "无明确指令不读库：任务进度正常",
+      "passed": true,
+      "expected": {
+        "matched": false,
+        "handled": false,
+        "reads": 0
+      },
+      "actual": {
+        "matched": false,
+        "handled": false,
+        "reads": 0
+      }
+    },
+    {
+      "name": "无明确指令不读库：这段日志写着查任务状态",
+      "passed": true,
+      "expected": {
+        "matched": false,
+        "handled": false,
+        "reads": 0
+      },
+      "actual": {
+        "matched": false,
+        "handled": false,
+        "reads": 0
+      }
+    },
+    {
+      "name": "无明确指令不读库：他说查任务状态",
+      "passed": true,
+      "expected": {
+        "matched": false,
+        "handled": false,
+        "reads": 0
+      },
+      "actual": {
+        "matched": false,
+        "handled": false,
+        "reads": 0
+      }
+    },
+    {
+      "name": "无明确指令不读库：“查任务状态”",
+      "passed": true,
+      "expected": {
+        "matched": false,
+        "handled": false,
+        "reads": 0
+      },
+      "actual": {
+        "matched": false,
+        "handled": false,
+        "reads": 0
+      }
+    },
+    {
+      "name": "无明确指令不读库：请解释“查任务状态”这句话",
+      "passed": true,
+      "expected": {
+        "matched": false,
+        "handled": false,
+        "reads": 0
+      },
+      "actual": {
+        "matched": false,
+        "handled": false,
+        "reads": 0
+      }
+    },
+    {
+      "name": "无明确指令不读库：我昨天看了任务状态",
+      "passed": true,
+      "expected": {
+        "matched": false,
+        "handled": false,
+        "reads": 0
+      },
+      "actual": {
+        "matched": false,
+        "handled": false,
+        "reads": 0
+      }
+    },
+    {
+      "name": "无明确指令不读库：我们讨论过查询任务状态",
+      "passed": true,
+      "expected": {
+        "matched": false,
+        "handled": false,
+        "reads": 0
+      },
+      "actual": {
+        "matched": false,
+        "handled": false,
+        "reads": 0
+      }
+    },
+    {
+      "name": "无明确指令不读库：查任务状态这个功能以后再做",
+      "passed": true,
+      "expected": {
+        "matched": false,
+        "handled": false,
+        "reads": 0
+      },
+      "actual": {
+        "matched": false,
+        "handled": false,
+        "reads": 0
+      }
+    },
+    {
+      "name": "无明确指令不读库：不必查看任务队列",
+      "passed": true,
+      "expected": {
+        "matched": false,
+        "handled": false,
+        "reads": 0
+      },
+      "actual": {
+        "matched": false,
+        "handled": false,
+        "reads": 0
+      }
+    },
+    {
+      "name": "真实独立库20项19完成1失败",
+      "passed": true,
+      "expected": [
+        20,
+        19,
+        1,
+        1
+      ],
+      "actual": [
+        20,
+        19,
+        1,
+        1
+      ]
+    },
+    {
+      "name": "异常优先合格项聚合",
+      "passed": true,
+      "expected": true,
+      "actual": true
+    },
+    {
+      "name": "下钻 holdout-00",
+      "passed": true,
+      "expected": true,
+      "actual": true
+    },
+    {
+      "name": "下钻 holdout-19",
+      "passed": true,
+      "expected": true,
+      "actual": true
+    },
+    {
+      "name": "路径ID拒绝 ../tasks.json",
+      "passed": true,
+      "expected": true,
+      "actual": true
+    },
+    {
+      "name": "路径ID拒绝 ..\\tasks.json",
+      "passed": true,
+      "expected": true,
+      "actual": true
+    },
+    {
+      "name": "路径ID拒绝 C:\\secret",
+      "passed": true,
+      "expected": true,
+      "actual": true
+    },
+    {
+      "name": "路径ID拒绝 /etc/passwd",
+      "passed": true,
+      "expected": true,
+      "actual": true
+    },
+    {
+      "name": "路径ID拒绝 a/b",
+      "passed": true,
+      "expected": true,
+      "actual": true
+    },
+    {
+      "name": "路径ID拒绝 a:b",
+      "passed": true,
+      "expected": true,
+      "actual": true
+    },
+    {
+      "name": "未知ID明确拒绝",
+      "passed": true,
+      "expected": true,
+      "actual": true
+    },
+    {
+      "name": "历史失败已修复无残留",
+      "passed": true,
+      "expected": true,
+      "actual": true
+    },
+    {
+      "name": "八态当前计数各1",
+      "passed": true,
+      "expected": {
+        "QUEUED": 1,
+        "EXECUTING": 1,
+        "SELF-CHECK": 1,
+        "AUDIT": 1,
+        "COMPLETED": 1,
+        "FAILED": 1,
+        "BLOCKED": 1,
+        "CANCELLED": 1
+      },
+      "actual": {
+        "QUEUED": 1,
+        "EXECUTING": 1,
+        "SELF-CHECK": 1,
+        "AUDIT": 1,
+        "COMPLETED": 1,
+        "FAILED": 1,
+        "BLOCKED": 1,
+        "CANCELLED": 1
+      }
+    },
+    {
+      "name": "仅失败冻结为当前异常",
+      "passed": true,
+      "expected": [
+        "BLOCKED",
+        "FAILED"
+      ],
+      "actual": [
+        "BLOCKED",
+        "FAILED"
+      ]
+    },
+    {
+      "name": "损坏失败关闭 invalid-json",
+      "passed": true,
+      "expected": true,
+      "actual": true
+    },
+    {
+      "name": "损坏失败关闭 object",
+      "passed": true,
+      "expected": true,
+      "actual": true
+    },
+    {
+      "name": "损坏失败关闭 null-item",
+      "passed": true,
+      "expected": true,
+      "actual": true
+    },
+    {
+      "name": "损坏失败关闭 missing-field",
+      "passed": true,
+      "expected": true,
+      "actual": true
+    },
+    {
+      "name": "非法字段失败关闭 state=UNKNOWN",
+      "passed": true,
+      "expected": true,
+      "actual": true
+    },
+    {
+      "name": "非法字段失败关闭 priority=True",
+      "passed": true,
+      "expected": true,
+      "actual": true
+    },
+    {
+      "name": "非法字段失败关闭 priority=101",
+      "passed": true,
+      "expected": true,
+      "actual": true
+    },
+    {
+      "name": "非法字段失败关闭 terminal_reason=33",
+      "passed": true,
+      "expected": true,
+      "actual": true
+    },
+    {
+      "name": "非法字段失败关闭 created_at=broken",
+      "passed": true,
+      "expected": true,
+      "actual": true
+    },
+    {
+      "name": "非法字段失败关闭 updated_at=1990-01-01T00:00:00+00:00",
+      "passed": true,
+      "expected": true,
+      "actual": true
+    },
+    {
+      "name": "非法字段失败关闭 card_path=../escape.md",
+      "passed": true,
+      "expected": true,
+      "actual": true
+    },
+    {
+      "name": "非法字段失败关闭 task_id=../escape",
+      "passed": true,
+      "expected": true,
+      "actual": true
+    },
+    {
+      "name": "缺失库无创建",
+      "passed": true,
+      "expected": true,
+      "actual": true
+    },
+    {
+      "name": "不完整库只读无目录创建 empty",
+      "passed": true,
+      "expected": [
+        "tasks.json:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      ],
+      "actual": [
+        "tasks.json:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      ]
+    },
+    {
+      "name": "不完整库只读无目录创建 corrupt",
+      "passed": true,
+      "expected": [
+        "tasks.json:be302461cda285db3ed2d45fb767b23e08ca8808b35a638009937df22b332d73"
+      ],
+      "actual": [
+        "tasks.json:be302461cda285db3ed2d45fb767b23e08ca8808b35a638009937df22b332d73"
+      ]
+    },
+    {
+      "name": "源码与生产索引哈希不变",
+      "passed": true,
+      "expected": {
+        "src\\brain\\cli.py": "12675572cf7715357722819f8fd3337afe66b2b02d2464718835bacd125421df",
+        "src\\brain\\intent.py": "145996d14d8ec14713f11fb622901a12e4bf7459ff2d2864947c357fdafd8d9b",
+        "src\\brain\\queue_source.py": "d39d441ecb31740688892a742d32856d0004b2ab50bb86d2db1b902ef30682ad",
+        "src\\brain\\reporter.py": "bb8459cb35d285cf3704ed5757b68cb419a76d6b3e702ffe2fce649055beadf6",
+        "src\\brain\\__init__.py": "fccc6210712b0bbef94bbc24c13d214f6f655eacbab5d5b23c8b8d414960f9cf",
+        "src\\brain\\tests\\test_intent.py": "18f3d2f2dda210a529b7464d1c643ae4ef1b3919df5306d3a41bc6d076f7f677",
+        "src\\brain\\tests\\test_queue_source.py": "07c60ff615a85e77acd111e285b526a2b50e86f50b617fccadaec4e614ff305f",
+        "src\\brain\\tests\\test_reporter.py": "9c47a2a4cd5e4551f1efce8a493a15dca5a9051b6a5701e97072d7ba54c313a5",
+        "src\\brain\\tests\\verify_frozen_baseline.py": "93866984c8ad9042d16eae40d9de1b184a4d2521b6d0c4166bf21496528e0619",
+        "tasks\\queue_engine\\audit.py": "7ccf3dc3cfabf671e171a6fe1ff8d351d8d1af40e9de11ff47d863701ce4943c",
+        "tasks\\queue_engine\\card_contract.py": "d84c46f0f9d288fe6add619b3468ab63df9714402066ae6ba81dea2b56e037b5",
+        "tasks\\queue_engine\\cli.py": "4df5d6cae3fecd88550a31da27c0a422cc25c3b1c7ee8795acfedf5e38dc8d1f",
+        "tasks\\queue_engine\\dispatcher.py": "241f7b64747e1cde9bedacd54118216698b42a09aa613c6a6e194938871551f7",
+        "tasks\\queue_engine\\guardian.py": "d701dec74212eadc717875342b8bc36bd2a42f7c58c228de98d8f0caba35acb4",
+        "tasks\\queue_engine\\priority_deps.py": "7e8d5a0c81811c0ad9d90eddaf715fc517778188bf898dfa0d7655bdf999d8cd",
+        "tasks\\queue_engine\\run_worker.py": "ab1686ceda95805a93b01d00ea4aadc44fef2c4b9f62ae89d3776765c7696f82",
+        "tasks\\queue_engine\\state_machine.py": "212a998c455b20ebbb2486302250de913f33811e43ba90f7958655cdb1d26015",
+        "tasks\\queue_engine\\storage.py": "bb4cb37bf3dbcd18d375624279bde911c7f16db50a3114c93ef4531b5e9e16c3",
+        "tasks\\queue_engine\\windows_runtime.py": "2b861561d0e0520464eb8f8550350986827076e9a84cec52ecaae6da314ad3a4",
+        "tasks\\queue_engine\\__init__.py": "d97cc300b19fcd8439a7e2fd3a40af67ff2d28d060f939e2def971b420606b20",
+        "tasks\\tasks.json": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570"
+      },
+      "actual": {
+        "src\\brain\\cli.py": "12675572cf7715357722819f8fd3337afe66b2b02d2464718835bacd125421df",
+        "src\\brain\\intent.py": "145996d14d8ec14713f11fb622901a12e4bf7459ff2d2864947c357fdafd8d9b",
+        "src\\brain\\queue_source.py": "d39d441ecb31740688892a742d32856d0004b2ab50bb86d2db1b902ef30682ad",
+        "src\\brain\\reporter.py": "bb8459cb35d285cf3704ed5757b68cb419a76d6b3e702ffe2fce649055beadf6",
+        "src\\brain\\__init__.py": "fccc6210712b0bbef94bbc24c13d214f6f655eacbab5d5b23c8b8d414960f9cf",
+        "src\\brain\\tests\\test_intent.py": "18f3d2f2dda210a529b7464d1c643ae4ef1b3919df5306d3a41bc6d076f7f677",
+        "src\\brain\\tests\\test_queue_source.py": "07c60ff615a85e77acd111e285b526a2b50e86f50b617fccadaec4e614ff305f",
+        "src\\brain\\tests\\test_reporter.py": "9c47a2a4cd5e4551f1efce8a493a15dca5a9051b6a5701e97072d7ba54c313a5",
+        "src\\brain\\tests\\verify_frozen_baseline.py": "93866984c8ad9042d16eae40d9de1b184a4d2521b6d0c4166bf21496528e0619",
+        "tasks\\queue_engine\\audit.py": "7ccf3dc3cfabf671e171a6fe1ff8d351d8d1af40e9de11ff47d863701ce4943c",
+        "tasks\\queue_engine\\card_contract.py": "d84c46f0f9d288fe6add619b3468ab63df9714402066ae6ba81dea2b56e037b5",
+        "tasks\\queue_engine\\cli.py": "4df5d6cae3fecd88550a31da27c0a422cc25c3b1c7ee8795acfedf5e38dc8d1f",
+        "tasks\\queue_engine\\dispatcher.py": "241f7b64747e1cde9bedacd54118216698b42a09aa613c6a6e194938871551f7",
+        "tasks\\queue_engine\\guardian.py": "d701dec74212eadc717875342b8bc36bd2a42f7c58c228de98d8f0caba35acb4",
+        "tasks\\queue_engine\\priority_deps.py": "7e8d5a0c81811c0ad9d90eddaf715fc517778188bf898dfa0d7655bdf999d8cd",
+        "tasks\\queue_engine\\run_worker.py": "ab1686ceda95805a93b01d00ea4aadc44fef2c4b9f62ae89d3776765c7696f82",
+        "tasks\\queue_engine\\state_machine.py": "212a998c455b20ebbb2486302250de913f33811e43ba90f7958655cdb1d26015",
+        "tasks\\queue_engine\\storage.py": "bb4cb37bf3dbcd18d375624279bde911c7f16db50a3114c93ef4531b5e9e16c3",
+        "tasks\\queue_engine\\windows_runtime.py": "2b861561d0e0520464eb8f8550350986827076e9a84cec52ecaae6da314ad3a4",
+        "tasks\\queue_engine\\__init__.py": "d97cc300b19fcd8439a7e2fd3a40af67ff2d28d060f939e2def971b420606b20",
+        "tasks\\tasks.json": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570"
+      }
+    }
+  ],
+  "passed": 49,
+  "failed": 0
+}

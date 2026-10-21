@@ -1,0 +1,21 @@
+# 落地文件清单
+
+- NEW_FILE `src/brain/reporter.py`
+- NEW_FILE `src/brain/cli.py`
+- NEW_FILE `src/brain/README.md`
+- NEW_FILE `src/brain/tests/test_reporter.py`
+- NEW_FILE `src/brain/tests/verify_frozen_baseline.py`
+- NEW_FILE `logs/aggregate-report-test-2026-10-21-failing.txt`
+- NEW_FILE `logs/aggregate-report-test-2026-10-21.md`
+- NEW_FILE `logs/text-loop-all-tests-2026-10-21.txt`
+- NEW_FILE `logs/queue-engine-regression-2026-10-21.txt`
+- NEW_FILE `logs/queue-engine-regression-targeted-retry-2026-10-21.txt`
+- NEW_FILE `logs/queue-engine-regression-retry-2026-10-21.txt`
+- NEW_FILE `logs/frozen-baseline-verification-20261021.json`
+- NEW_FILE `logs/cli-production-empty-2026-10-21.txt`
+- MODIFY_FILE `tasks/cards/s1-task-aggregate-report/task.md`
+- NEW_FILE `tasks/cards/s1-task-aggregate-report/completion.md`
+- NEW_FILE `tasks/cards/s1-task-aggregate-report/landed-files.md`
+- NEW_FILE `tasks/cards/s1-task-aggregate-report/acceptance-evidence.md`
+- NEW_FILE `logs/execution-reports/s1-task-aggregate-report/summary.json`
+- NEW_FILE `logs/execution-reports/wo-s1-task-text-loop/summary.json`

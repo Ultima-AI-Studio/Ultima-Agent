@@ -1,0 +1,204 @@
+--- original/src\brain\intent.py
++++ current/src\brain\intent.py
+@@ -13,9 +13,26 @@
+ _STATUS_ASPECT = re.compile(r"状态|进度|进展|情况|执行|完成|失败|卡住|冻结|排队")
+ _IMPLICIT_STATUS = re.compile(r"队列|任务.{0,6}(?:怎么样|什么情况)")
+ _REQUEST = re.compile(r"查(?:询|看|查)?|查看|看(?:看|下|一下)?|汇报|告诉|怎么样|什么情况|有哪些")
++_REQUEST_ACTION = r"(?:查(?:询|看|查)?|查看|看(?:看|下|一下)?|汇报|告诉)"
+ _NEGATED_REQUEST = re.compile(
+-    r"(?:不是要|不想|不要|不用|无需|别|别再|不必).{0,8}"
+-    r"(?:查|查询|查看|看|汇报|告诉)"
++    r"(?:(?:先|暂时|目前|现在)?(?<!能)(?<!可)(?<!要)"
++    r"不(?:需要|用|必|想|要)?(?:再)?|无需|别(?:再)?|不要|不用|不必|不想|不是要)"
++    rf".{{0,8}}{_REQUEST_ACTION}"
++)
++_COMPLETED_REQUEST = re.compile(
++    rf"(?:已经|曾经|刚才|之前|昨天|前天|上次|过去).{{0,12}}"
++    rf"{_REQUEST_ACTION}.{{0,8}}(?:过|完|了)|"
++    rf"{_REQUEST_ACTION}(?:过|完|了).{{0,12}}(?:任务|队列)|"
++    rf"(?:任务|队列).{{0,12}}{_REQUEST_ACTION}(?:过|完|了)|"
++    rf"(?:讨论|提到|说)(?:过|了).{{0,12}}{_REQUEST_ACTION}"
++)
++_REPORTED_REQUEST = re.compile(
++    rf"(?:他说|她说|他们说|有人说|(?:日志|记录|文档).{{0,6}}(?:写着|写了|提到)|"
++    rf"提到|转述|引用).{{0,12}}{_REQUEST_ACTION}"
++)
++_FEATURE_DISCUSSION = re.compile(
++    rf"{_REQUEST_ACTION}.{{0,12}}(?:任务|队列).{{0,8}}(?:这个|该)?功能"
++    r".{0,8}(?:以后|之后|后续).{0,8}(?:再做|实现|处理)"
+ )
+ _REFERENCE_ONLY = re.compile(
+     r"(?:如果|假如).{0,18}(?:查|查询|查看|看).{0,12}(?:怎么|如何)|"
+@@ -46,6 +63,12 @@
+         return _no_match("空输入")
+     if _NEGATED_REQUEST.search(normalized):
+         return _no_match("明确否定")
++    if _COMPLETED_REQUEST.search(normalized):
++        return _no_match("已完成的历史陈述")
++    if _REPORTED_REQUEST.search(normalized):
++        return _no_match("转述而非当前请求")
++    if _FEATURE_DISCUSSION.search(normalized):
++        return _no_match("讨论功能而非当前请求")
+     if _REFERENCE_ONLY.search(normalized):
+         return _no_match("引用或讨论命令")
+     if _looks_like_quoted_command(normalized):
+--- original/src\brain\queue_source.py
++++ current/src\brain\queue_source.py
+@@ -29,6 +29,14 @@
+ 
+ class QueueReadError(ValueError):
+     """A persisted queue cannot be represented safely."""
++
++
++class _ReadOnlyQueueStorage(QueueStorage):
++    """Reuse frozen index parsing without its layout-creation side effect."""
++
++    def ensure_layout(self) -> None:
++        if not self.index_path.is_file():
++            raise StorageError("task index does not exist")
+ 
+ 
+ @dataclass(frozen=True, slots=True)
+@@ -64,7 +72,7 @@
+ 
+ def read_queue_status(root: str | Path, *, now: datetime | None = None) -> QueueSnapshot:
+     """Load current task values through ``QueueStorage`` without reading events."""
+-    storage = QueueStorage(root)
++    storage = _ReadOnlyQueueStorage(root)
+     if not storage.index_path.is_file():
+         return _failure("tasks.json 不存在")
+     try:
+--- original/src\brain\README.md
++++ current/src\brain\README.md
+@@ -5,7 +5,7 @@
+ ## 模块边界
+ 
+ - `intent.py`：离线、确定性的窄规则识别。覆盖本场景的礼貌问法、中文标点和显式请求；否定、引用命令、陈述、空输入保持静默。它不是通用自然语言分类器。
+-- `queue_source.py`：先确认 `tasks.json` 存在，再通过冻结队列引擎的 `QueueStorage.load_tasks()` 读取。当前状态只来自索引，不把历史失败事件混入当前异常。任务标题只允许从任务库 `cards/<task_id>/task.md` 读取。
++- `queue_source.py`：先确认 `tasks.json` 存在，再通过 brain 层只读适配器调用冻结队列引擎的 `QueueStorage.load_tasks()` 读取和验证索引。适配器只覆写会创建目录的 `ensure_layout()`，不修改冻结引擎；读取前后目录树与文件字节保持不变。当前状态只来自索引，不把历史失败事件混入当前异常。任务标题只允许从任务库 `cards/<task_id>/task.md` 读取。
+ - `reporter.py`：仅在意图明确命中后读取队列。失败和冻结优先；其他任务聚合，不逐条列出。下钻 ID 只接受队列引擎同口径的安全 task_id。
+ - `cli.py`：文字 CLI。正常查询退出码为 `0`；状态读取失败、未知或非法下钻 ID 退出码为 `2`；未命中不输出内容且退出码为 `0`。
+ 
+--- original/src\brain\tests\test_intent.py
++++ current/src\brain\tests\test_intent.py
+@@ -44,6 +44,27 @@
+     "刚才已经查过任务状态",
+ )
+ 
++W4_NEGATIVE_CASES = (
++    "先不查任务状态",
++    "不需要查任务状态",
++    "暂时不查任务状态",
++    "现在不用查看任务进度",
++    "目前不必汇报任务情况",
++    "先别看任务队列",
++    "我看过任务状态了",
++    "我已经查看任务进度了",
++    "任务状态我看过了",
++    "我昨天看了任务状态",
++    "上次已经查询过任务队列",
++    "我们讨论过查询任务状态",
++    "这段日志写着查任务状态",
++    "他说查任务状态",
++    "她提到查看任务进度",
++    "文档里写着请查询任务状态",
++    "查任务状态这个功能以后再做",
++    "查询任务进度的功能后续再实现",
++)
++
+ 
+ class TaskStatusIntentTests(unittest.TestCase):
+     def test_positive_examples_reach_ninety_percent(self) -> None:
+@@ -61,6 +82,13 @@
+                 self.assertFalse(result.matched)
+                 self.assertFalse(result.should_interrupt)
+ 
++    def test_w4_negation_history_and_reported_speech_stay_silent(self) -> None:
++        for text in W4_NEGATIVE_CASES:
++            with self.subTest(text=text):
++                result = parse_task_status_intent(text)
++                self.assertFalse(result.matched)
++                self.assertFalse(result.should_interrupt)
++
+     def test_match_has_fixed_scope_and_no_external_inference(self) -> None:
+         result = parse_task_status_intent("请查一下任务状态")
+         self.assertEqual(TASK_STATUS_INTENT, result.intent)
+--- original/src\brain\tests\test_queue_source.py
++++ current/src\brain\tests\test_queue_source.py
+@@ -73,6 +73,17 @@
+             )
+     tasks[index] = current
+     storage.save_tasks(tasks)
++
++
++def tree_signature(root: Path) -> list[str]:
++    return sorted(
++        path.relative_to(root).as_posix() + (
++            "/"
++            if path.is_dir()
++            else ":" + hashlib.sha256(path.read_bytes()).hexdigest()
++        )
++        for path in root.rglob("*")
++    )
+ 
+ 
+ class QueueSourceTests(unittest.TestCase):
+@@ -162,6 +173,26 @@
+         self.assertFalse(illegal.ok)
+         self.assertEqual("状态读取失败", illegal.status)
+ 
++    def test_incomplete_library_read_preserves_tree_and_bytes(self) -> None:
++        scenarios = (("empty", "[]", True), ("corrupt", "{broken", False))
++        for label, payload, expected_ok in scenarios:
++            with self.subTest(label=label):
++                library = self.root / f"incomplete-{label}"
++                library.mkdir()
++                (library / "tasks.json").write_text(payload, encoding="utf-8")
++                before = tree_signature(library)
++                result = read_queue_status(library)
++                after = tree_signature(library)
++                print(
++                    "READONLY_TREE "
++                    + json.dumps(
++                        {"label": label, "before": before, "after": after},
++                        ensure_ascii=False,
++                    )
++                )
++                self.assertEqual(expected_ok, result.ok)
++                self.assertEqual(before, after)
++
+ 
+ if __name__ == "__main__":
+     unittest.main()
+--- original/src\brain\tests\test_reporter.py
++++ current/src\brain\tests\test_reporter.py
+@@ -140,6 +140,29 @@
+         self.assertTrue(response.ok)
+         self.assertEqual("", response.text)
+ 
++    def test_w4_non_requests_never_read_or_interrupt(self) -> None:
++        non_requests = (
++            "先不查任务状态",
++            "不需要查任务状态",
++            "先别看任务队列",
++            "我看过任务状态了",
++            "任务状态我看过了",
++            "我昨天看了任务状态",
++            "我们讨论过查询任务状态",
++            "这段日志写着查任务状态",
++            "他说查任务状态",
++            "查任务状态这个功能以后再做",
++        )
++        for text in non_requests:
++            with self.subTest(text=text), patch(
++                "src.brain.reporter.read_queue_status"
++            ) as read_status:
++                response = respond_to_text(text, queue_root=self.root)
++                self.assertFalse(response.handled)
++                self.assertTrue(response.ok)
++                self.assertEqual("", response.text)
++                read_status.assert_not_called()
++
+     def test_storage_failure_is_not_reported_as_an_empty_queue(self) -> None:
+         missing = self.root / "missing"
+         missing.mkdir()
