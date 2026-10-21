@@ -62,3 +62,8 @@
 - 最终完整 Release/`win-x64` 构建（未使用 `NoWarn`）：`logs/w1-host-resume-20261021T024845Z/t3-final-build-attempt2/build.log`，编译器 0 warning / 0 error。
 - 原生窗口全链复验：`t3-selfcheck-equivalent-attempt2/result.json`，宿主 PID 49364、HWND 3809162、原生 exit 0。
 - root 已有宿主自身窗口捕获证明深色背景、标题及“宿主壳已就绪”；本轮未重做桌面截图，最终显示仍留 root 复核。
+
+
+## 2026-10-21 维护重启后独立收口
+
+Owner授权维护重启已实际完成；原59328创建身份已不存在，原生枚举与直接内核查询交叉确认，系统清理门解除。正式入口新正向PASS/exit0、缺Runtime负向FAIL/exit1，0警告/0错误、额外窗口0、当前开机后的后台身份保留。独立第四轮验收允许工单内部收口；最终证据见 `docs/reports/evidence/w1-post-reboot-closeout-20261021/` 与 `docs/reports/w1-independent-acceptance-20261021.md`。旧派发exit125/BLOCKED和历次失败保留。内部tag为wo-s1-host-shell-done；v0.1仍待Owner单独审批。

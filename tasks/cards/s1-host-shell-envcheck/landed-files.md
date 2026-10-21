@@ -14,3 +14,10 @@
 - NEW_FILE `docs/reports/stage1-host-shell-20261021.md`：本工单阶段报告（T1 先行落盘）。
 
 未修改 `_shared`、`docs/INDEX.md`、全局队列、冻结架构/ADR/语音方案或其他工单。
+
+
+## 重启后最终证据
+
+- `docs/reports/evidence/w1-post-reboot-closeout-20261021/`：维护、正负向、源/产物绑定及清理证据副本。
+- `docs/reports/evidence/w1-independent-20261021/round4-post-reboot/`：独立验收。
+- 本任务产品实现未在本轮变更，旧文件和失败证据保留。

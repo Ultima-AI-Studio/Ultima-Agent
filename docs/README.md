@@ -14,8 +14,8 @@
 
 ## 2026-10-21 执行证据登记
 
-- 工单①：`tasks/queue/wo-s1-queue-engine.md`；实现 `tasks/queue_engine/`；当前独立验收 `reports/w2-independent-acceptance-20261021.md` 第二轮，35项技术验收与62项回归全部通过，真实T1卡及修正子任务→父任务闭环已独立审计；证据 `reports/evidence/w2-20261021/round2/`。交叉环境门U01见 `reports/w1-independent-acceptance-20261021.md` 第一轮（宿主阶段PASS）。内部tag `wo-s1-queue-engine-done`已创建，全局工单已闭环；版本冻结仍待W1与Owner审批，旧42项记录保留作历史证据。
-- 工单②：`reports/w1-host-resume-20261021.md` 与 `reports/w1-independent-acceptance-20261021.md`；真实144/96/96DPI、原生显示、鼠标拖动及正式Python自检正负向证据已补齐，旧PowerShell59328内核残留未解除，整单W1仍阻塞。正式入口 `../scripts/selfcheck-host-shell.py`，原`.ps1`保留历史。
+- 工单①：`tasks/queue/wo-s1-queue-engine.md`；实现 `tasks/queue_engine/`；当前独立验收 `reports/w2-independent-acceptance-20261021.md` 第二轮，35项技术验收与62项回归全部通过，真实T1卡及修正子任务→父任务闭环已独立审计；证据 `reports/evidence/w2-20261021/round2/`。交叉环境门U01见 `reports/w1-independent-acceptance-20261021.md` 第一轮（宿主阶段PASS）。内部tag `wo-s1-queue-engine-done`已创建，全局工单已闭环；W1/W2已收口，版本冻结待Owner审批，旧42项记录保留作历史证据。
+- 工单②：`reports/w1-host-resume-20261021.md` 与 `reports/w1-independent-acceptance-20261021.md`；真实144/96/96DPI、原生显示、鼠标拖动及正式Python自检正负向证据已补齐，维护重启后旧PowerShell59328已清除，第四轮独立W1通过，内部tag `wo-s1-host-shell-done`建立；版本冻结待Owner审批。正式入口 `../scripts/selfcheck-host-shell.py`，原`.ps1`保留历史。
 - 本轮目标修复：`reports/goal-repair-20261021.md`；补登记/执行/回收入口、修复计划依赖与状态漂移；操作说明 `../tasks/queue/EXECUTION.md`，完整验证见报告证据路径。
 
 ## 文档体系状态与缺口（对照 dev-conductor 标准 18 项 + Ultima 特有）
@@ -88,3 +88,5 @@
 | v2.9 | 2026-10-16 | 登记工单⑦ 系列（N7 文档同步修正）：① 工单⑦ 远程更新与发布通道（tasks/queue/wo-s1-remote-update.md + 3 张任务卡 + 队列 v1.2 094-105 单元 + 验收清单 v1.6→v1.8）② 报告 reports/stage1-simulation-l1-w7-20261016.md（工单⑦ 12 单元模拟：10 通过/2 阻塞环境前置，F5/N4-N7）③ 规范 specs/update-manifest-schema.md（manifest 单一权威，N5 落地）；④ 修正目录职责表计数（paradigms 11 / plans 7 / specs 20 / references 5 / reports 10 个文件，替换过时数字 10/5/17/4/3） |
 | v3.0 | 2026-10-16 | 工单⑦⑧ 顺延重编号登记（用户决定：工程封装与安装包独立为工单⑦，原工单⑦ 远程更新顺延为工单⑧）：① 新工单⑦ 工程封装（tasks/queue/wo-s1-engineering-packaging.md + cards/s1-engineering-packaging/task.md，U21，PK-01~05，094-098）② 原工单⑦ 顺延工单⑧（wo-s1-remote-update.md v1.1：U22-U24，RU-01~12，099-110，依赖工单⑦ 安装包）③ 队列 v1.3→v1.4（8 工单/25 卡/110 单元/W1-W8）④ 验收清单 v1.9→v2.0（24 U/110 L1，v1.0 门=⑥+⑦+⑧）⑤ build-release.md v1.0→v1.1 补工程封装规范 §2.1 |
 | v3.1 | 2026-10-21 | 更新工单①当前证据为W2第二轮35项/62回归及真实卡闭环，登记U01独立宿主环境门结论；保留旧报告，不代作版本审批。 |
+
+当前维护后证据登记：`reports/evidence/w1-post-reboot-closeout-20261021/`；冻结审查材料 `reports/v01-freeze-approval-request-20261021.md`（待Owner决定）。

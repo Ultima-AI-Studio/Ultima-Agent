@@ -70,3 +70,8 @@
 - 修改前源码、脚本、五卡副本及 SHA-256：`logs/w1-host-resume-20261021T024845Z/before/`。
 - 修改前后台进程 PID、创建时间、命令行基线：`before/process-baseline.json`；本轮未重启或终止其他开发任务。
 - 本节只追加 W1 恢复证据，不改变原环境门结论，不表示 W1 或 Owner 冻结。
+
+
+## 2026-10-21 维护重启后独立收口
+
+Owner授权维护重启已实际完成；原59328创建身份已不存在，原生枚举与直接内核查询交叉确认，系统清理门解除。正式入口新正向PASS/exit0、缺Runtime负向FAIL/exit1，0警告/0错误、额外窗口0、当前开机后的后台身份保留。独立第四轮验收允许工单内部收口；最终证据见 `docs/reports/evidence/w1-post-reboot-closeout-20261021/` 与 `docs/reports/w1-independent-acceptance-20261021.md`。旧派发exit125/BLOCKED和历次失败保留。内部tag为wo-s1-host-shell-done；v0.1仍待Owner单独审批。

@@ -65,3 +65,8 @@
 - 固定缓存 `pwsh.exe -NoProfile -NonInteractive` 实际启动后在脚本读取前挂起；仅定向终止本轮 PID 55476→59328 进程树，失败及终止回执保留于 `logs/w1-host-resume-20261021T024845Z/t3-selfcheck-*.json`。
 - 未覆盖失败事实；改用本轮证据目录内 .NET 等价探针执行真实 build→launch→window→exit。最终 `t3-selfcheck-equivalent-attempt2/result.json` 为 PASS：0 warning/0 error、宿主 exit 0、本轮进程树额外可见窗口 0、后台创建身份 30/30 不变。
 - 探针未截取桌面、未发送鼠标键盘输入；悬浮球图像只用允许的 WebView2 `CapturePreview`。最终鼠标拖动和原生窗口显示仍由 root 独立复核。
+
+
+## 2026-10-21 维护重启后独立收口
+
+Owner授权维护重启已实际完成；原59328创建身份已不存在，原生枚举与直接内核查询交叉确认，系统清理门解除。正式入口新正向PASS/exit0、缺Runtime负向FAIL/exit1，0警告/0错误、额外窗口0、当前开机后的后台身份保留。独立第四轮验收允许工单内部收口；最终证据见 `docs/reports/evidence/w1-post-reboot-closeout-20261021/` 与 `docs/reports/w1-independent-acceptance-20261021.md`。旧派发exit125/BLOCKED和历次失败保留。内部tag为wo-s1-host-shell-done；v0.1仍待Owner单独审批。

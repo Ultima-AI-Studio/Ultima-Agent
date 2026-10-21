@@ -41,19 +41,19 @@
 
 ## 3. 总验收（工单 DoD，非版本冻结）
 
-- [ ] 全部 5 任务 PASS（T1-T5）
-- [ ] T↔U 映射核对：U01-U05 全部覆盖
-- [ ] 壳自检端到端 PASS（build → launch → window → exit）
-- [ ] 关联文档同步（docs/README 权威清单登记工单②）
-- [ ] 冻结基线标记：工单② 内部 tag `wo-s1-host-shell-done`（版本 tag v0.1-frozen 待工单①+② 全过后由版本级触发）
+- [x] 全部 5 任务 PASS（T1-T5）
+- [x] T↔U 映射核对：U01-U05 全部覆盖
+- [x] 壳自检端到端 PASS（build → launch → window → exit）
+- [x] 关联文档同步（docs/README 权威清单登记工单②）
+- [x] 冻结基线标记：工单② 内部 tag `wo-s1-host-shell-done`（版本 tag v0.1-frozen 待工单①+② 全过后由版本级触发）
 
 ## 4. 验收要点（打勾清单）
 
-- [ ] 前置：宿主阶段环境门全绿（U01；environment-spec §7.1，Owner 已批准阶段拆分）
-- [ ] 每任务回执三件套（I1）
-- [ ] 提交前自核闭环（§8）
-- [ ] 失败回执结构化（I3）；证据不明确 fail-closed（B1）
-- [ ] 开发与审计技能分离
+- [x] 前置：宿主阶段环境门全绿（U01；environment-spec §7.1，Owner 已批准阶段拆分）
+- [x] 每任务回执三件套（I1）
+- [x] 提交前自核闭环（§8）
+- [x] 失败回执结构化（I3）；证据不明确 fail-closed（B1）
+- [x] 开发与审计技能分离
 
 ## 变更登记
 
@@ -62,3 +62,8 @@
 | v1.1 | 2026-10-20 | AUDIT-S1-FIX：工单①/②依赖口径统一为同属 v0.1 并行、互不阻塞 |
 | v1.0 | 2026-10-16 | 初版：工单② 宿主壳 5 任务 + T↔U 映射 + 依赖图 + 总验收 |
 | v1.2 | 2026-10-21 | Owner 直接批准按阶段拆分 T1：WinUI/.NET/WebView2 为宿主开工门；语音和任务管线验收留在原工单，不改变其 Gate。 |
+
+
+## 2026-10-21 维护重启后独立收口
+
+Owner授权维护重启已实际完成；原59328创建身份已不存在，原生枚举与直接内核查询交叉确认，系统清理门解除。正式入口新正向PASS/exit0、缺Runtime负向FAIL/exit1，0警告/0错误、额外窗口0、当前开机后的后台身份保留。独立第四轮验收允许工单内部收口；最终证据见 `docs/reports/evidence/w1-post-reboot-closeout-20261021/` 与 `docs/reports/w1-independent-acceptance-20261021.md`。旧派发exit125/BLOCKED和历次失败保留。内部tag为wo-s1-host-shell-done；v0.1仍待Owner单独审批。
