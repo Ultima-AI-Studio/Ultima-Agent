@@ -21,7 +21,7 @@ $cli = 'H:\UltimaAI\UltimaAgent\tasks\queue_engine\cli.py'
 
 ## 版本冻结凭据
 
-派发器按任务卡版本核对：v0.2/v0.3 等待 v0.1，v0.4 等待 v0.3，v1.0 等待 v0.2 与 v0.4。各前置须同时存在实际 Git 冻结 tag 和 `tasks/queue/gates/<tag>.json`。审批回执必须包含 `gate`（tag 名）、`decision: PASS`、`approved_by: owner`、非空 `approved_at`、非空 `evidence` 数组（每项含证据 `path` 与 `sha256`）。这是主脑在用户实际批准后登记的凭据，本轮未生成任何冻结审批或 tag。缺项或证据变化均拒绝派发。
+派发器按任务卡版本核对：v0.2/v0.3 等待 v0.1，v0.4 等待 v0.3，v1.0 等待 v0.2 与 v0.4。各前置须同时存在实际 Git 冻结 tag 和 `tasks/queue/gates/<tag>.json`。审批回执必须包含 `gate`（tag 名）、`decision: PASS`、`approved_by: owner`、非空 `approved_at`、非空 `evidence` 数组（每项含证据 `path` 与 `sha256`）。这是主脑在用户实际批准后登记的凭据。2026-10-21 Owner已明确批准v0.1，实际tag `v0.1-frozen`固定43ce130，凭据为 `tasks/queue/gates/v0.1-frozen.json`；后续版本仍分别检查其前置。缺项或证据变化均拒绝派发。
 
 ## 工程调度与产品队列是两层
 
