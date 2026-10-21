@@ -1,5 +1,7 @@
 # 验收证据
 
+现行正式入口：`scripts/selfcheck-host-shell.py`，实际工具源码位于 `scripts/HostSelfcheck/`。维护后最终证据及独立判断见本文件末尾追加记录；历史PowerShell轮次保留。
+
 ## Gate
 
 - Decision: `PASS`
