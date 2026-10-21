@@ -20,7 +20,8 @@ labels = {'frozen': '已完成', 'pending': '待派发', 'executing': '执行中
 target = ROOT / 'sync/product.json'
 original = target.read_bytes()
 data = json.loads(original.decode('utf-8-sig'))
-assert data['version_freeze']['baseline_commit'] == '43ce13021f16f191bb36615ebb6c68465bf201fa'
+v01 = data.get('version_freezes', {}).get('v0.1', data['version_freeze'])
+assert v01['baseline_commit'] == '43ce13021f16f191bb36615ebb6c68465bf201fa'
 orders = [{'id': r['id'], 'title': r['id'], 'status': labels[r['state']],
            'acceptance': '已审计闭环' if r['state'] == 'frozen' else '未验收',
            'note': r['reason'], 'audit_ref': '_shared/queue/global-queue-index.md'} for r in rows]
@@ -28,6 +29,9 @@ text_state = next(r['state'] for r in rows if r['id'] == 'wo-s1-task-text-loop')
 stage = '阶段一 v0.1 已冻结；v0.3 文本闭环' + labels[text_state] + '；v0.2 仅已有音频离线复验'
 if text_state == 'frozen':
     stage = '阶段一 v0.1 已冻结；v0.3 文本闭环W4通过、版本待Owner审批；v0.2 仅已有音频离线复验'
+if (ROOT / 'tasks/queue/gates/v0.3-frozen.json').is_file():
+    check_version_gates({'card_path': str(ROOT / 'tasks/cards/s1-window-dsl-schema/task.md')}, ROOT / 'tasks')
+    stage = '阶段一 v0.1/v0.3 已冻结；v0.4待语音四IO依赖就绪；v0.2仅已有音频离线复验'
 if data.get('work_orders') == orders and data.get('stage') == stage:
     print('UNCHANGED')
     raise SystemExit(0)
@@ -41,7 +45,7 @@ data['summary']['blocker'] = '；'.join(r['id'] + '：' + labels[r['state']] + '
 data['summary']['progress_basis'] = 'progress/score为历史值，不作本轮完成率凭据；实际以逐单证据和Owner冻结门为准'
 assert target.read_bytes() == original and (SHARED / 'global-queue-index.md').read_bytes() == register_before
 temp = target.with_name('product.supervised.tmp')
-temp.write_text(json.dumps(data, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
+temp.write_text(json.dumps(data, ensure_ascii=False, indent=2) + '\n', encoding='utf-8', newline='\n')
 temp.replace(target)
 assert json.loads(target.read_text(encoding='utf-8')) == data
 (out / 'receipt.json').write_text(json.dumps({'stage': stage, 'orders': len(orders), 'readback': True}, ensure_ascii=False, indent=2), encoding='utf-8')

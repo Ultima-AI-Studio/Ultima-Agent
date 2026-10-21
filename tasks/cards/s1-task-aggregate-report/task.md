@@ -66,3 +66,7 @@
 ## W4 独立技术验收收口（2026-10-21）
 
 两项独立发现修正后通过：文本16/16、原独立检查49/49、额外正例95%；以 docs/reports/evidence/w4-independent-20261021/round2-correction/result-final.json 为最终裁决。本卡对应执行单元已独立验收；前文开发/修复待审记录作为历史保留。Owner尚未批准v0.3版本冻结，无v0.3-frozen；不启动后续工单。
+
+## Owner版本决定（2026-10-21）
+
+用户对候选731710a明确回复“批准”。v0.3-frozen固定731710a80358b062d1064ccaf08f758483a9d958；凭据tasks/queue/gates/v0.3-frozen.json。前文待审批段落为历史记录。

@@ -17,7 +17,7 @@
 - 工单①：`tasks/queue/wo-s1-queue-engine.md`；实现 `tasks/queue_engine/`；当前独立验收 `reports/w2-independent-acceptance-20261021.md` 第二轮，35项技术验收与62项回归全部通过，真实T1卡及修正子任务→父任务闭环已独立审计；证据 `reports/evidence/w2-20261021/round2/`。交叉环境门U01见 `reports/w1-independent-acceptance-20261021.md` 第一轮（宿主阶段PASS）。内部tag `wo-s1-queue-engine-done`已创建，全局工单已闭环；W1/W2已收口，Owner已批准v0.1冻结，tag `v0.1-frozen`固定43ce130，旧42项记录保留作历史证据。
 - 工单②：`reports/w1-host-resume-20261021.md` 与 `reports/w1-independent-acceptance-20261021.md`；真实144/96/96DPI、原生显示、鼠标拖动及正式Python自检正负向证据已补齐，维护重启后旧PowerShell59328已清除，第四轮独立W1通过，内部tag `wo-s1-host-shell-done`建立；Owner已批准v0.1冻结。正式入口 `../scripts/selfcheck-host-shell.py`，原`.ps1`保留历史。
 - 本轮目标修复：`reports/goal-repair-20261021.md`；补登记/执行/回收入口、修复计划依赖与状态漂移；操作说明 `../tasks/queue/EXECUTION.md`，完整验证见报告证据路径。
-- 工单④：`reports/w4-text-loop-acceptance-20261021.md`；两项独立发现修正后，文本16项测试及独立49项检查全部通过；最终独立裁决 `reports/evidence/w4-independent-20261021/round2-correction/result-final.json`，第一轮失败原样保留。v0.3冻结申请 `reports/v03-freeze-approval-request-20261021.md`，待Owner批准。已有音频仅离线识别复验，不代表完整语音工单或v0.2通过。
+- 工单④：`reports/w4-text-loop-acceptance-20261021.md`；两项独立发现修正后，文本16项测试及独立49项检查全部通过；最终独立裁决 `reports/evidence/w4-independent-20261021/round2-correction/result-final.json`，第一轮失败原样保留。v0.3冻结申请 `reports/v03-freeze-approval-request-20261021.md` 已获Owner批准，实际v0.3-frozen固定731710a；工单⑤版本门已过，仍待语音四IO依赖。已有音频仅离线识别复验，不代表完整语音工单或v0.2通过。
 
 ## 文档体系状态与缺口（对照 dev-conductor 标准 18 项 + Ultima 特有）
 
