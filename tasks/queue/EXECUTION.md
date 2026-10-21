@@ -29,7 +29,7 @@ $cli = 'H:\UltimaAI\UltimaAgent\tasks\queue_engine\cli.py'
 
 `tasks.json` 当前空数组表示尚未逐任务登记生产运行，不表示8张开发工单已经完成。历史独立 Codex 执行回执位于 `tasks/queue/runs/` 与 `docs/reports/`；本次测试全部在隔离临时目录执行，不注入生产任务库。
 
-当前工单事实以 `stage1-unit-queue.md`、工单总卡和全局逐工单登记为准。W2已独立通过35项技术验收与62项回归，并结合独立U01环境门建立内部tag `wo-s1-queue-engine-done`；W1已在维护重启后独立验收并内部收口。Owner实际审批前，不越过 v0.1 冻结门。语音与文本同依赖 v0.1；文本不额外等待语音工单完成。
+当前工单事实以 `stage1-unit-queue.md`、工单总卡和全局逐工单登记为准。W2已独立通过35项技术验收与62项回归，并结合独立U01环境门建立内部tag `wo-s1-queue-engine-done`；W1已在维护重启后独立验收并内部收口。Owner已明确批准，v0.1冻结门已通过；v0.2/v0.3可进入派发前检查，本次未启动后续工单。语音与文本同依赖 v0.1；文本不额外等待语音工单完成。
 
 ## 真实工程工单派发适配器
 

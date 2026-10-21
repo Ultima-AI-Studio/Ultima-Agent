@@ -1,4 +1,4 @@
-# v0.1 冻结审批材料（待Owner审批，尚未批准）
+# v0.1 冻结审批材料（Owner已批准，已冻结）
 
 本次提交范围：阶段一v0.1环境与承载底座，即工单①队列引擎与工单②宿主壳。不包含后续语音/文本/组合窗口/安装更新完成声明。
 
@@ -18,4 +18,4 @@
 
 审批证据入口：`w1-independent-acceptance-20261021.md`第四轮、`w2-independent-acceptance-20261021.md`第二轮、`evidence/w1-post-reboot-closeout-20261021/`及两个实际内部tag。
 
-请Owner决定是否批准v0.1冻结。只有收到明确批准后，才登记Owner PASS凭据并创建v0.1-frozen；当前不创建这些、不派发依赖冻结门的后续工单、不远端发布。维护重启授权不作为版本冻结授权。
+Owner于2026-10-21明确批准：“批准按当前基线冻结 v0.1”。已登记tasks/queue/gates/v0.1-frozen.json并创建v0.1-frozen，固定获批基线43ce13021f16f191bb36615ebb6c68465bf201fa。原提交材料已独占保存于evidence/v01-freeze-20261021/approved-request.md；本次是版本冻结授权，后续工单尚未派发，未远端发布。
