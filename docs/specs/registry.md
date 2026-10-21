@@ -43,7 +43,7 @@
 
 | 组件 ID | 类型 | 规格依据 | 状态 | 落点 |
 |---|---|---|---|---|
-| `task-queue-engine` | 任务队列引擎 | specs/codex-task-queue-spec.md v1.3 | 已实现，W2 独立复验中，未冻结 | tasks/queue_engine/（存储/状态/派发/守护/进程树观测/审计/修正）；tasks/queue_engine/cli.py（操作入口）；execution/server 的 L7 接线尚未实现 |
+| `task-queue-engine` | 任务队列引擎 | specs/codex-task-queue-spec.md v1.3 | W2独立35项/62回归及U01已通过，内部工单闭环；版本未冻结 | tasks/queue_engine/（存储/状态/派发/守护/进程树观测/审计/修正）；tasks/queue_engine/cli.py（操作入口）；execution/server 的 L7 接线尚未实现 |
 | （待 ui-kit 冻结后登记：窗口/按钮/开关/滑块/进度条/列表卡片/输入框/弹窗/悬浮球/播放器/传感器卡片…） | | | | |
 
 ## 四、登记与查询规则

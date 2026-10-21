@@ -14,8 +14,8 @@
 
 ## 2026-10-21 执行证据登记
 
-- 工单①：`tasks/queue/wo-s1-queue-engine.md`；实现 `tasks/queue_engine/`；当前独立验收 `reports/w2-independent-acceptance-20261021.md` 第二轮，35项技术验收与62项回归全部通过，真实T1卡及修正子任务→父任务闭环已独立审计；证据 `reports/evidence/w2-20261021/round2/`。交叉环境门U01见 `reports/w1-independent-acceptance-20261021.md` 第一轮（宿主阶段PASS）。工单内部标记待行政收口，版本冻结仍待W1与Owner审批；旧42项记录保留作历史证据。
-- 工单②：`reports/stage1-host-shell-20261021.md`；环境与自检通过，桌面/DPI和W1待验收。
+- 工单①：`tasks/queue/wo-s1-queue-engine.md`；实现 `tasks/queue_engine/`；当前独立验收 `reports/w2-independent-acceptance-20261021.md` 第二轮，35项技术验收与62项回归全部通过，真实T1卡及修正子任务→父任务闭环已独立审计；证据 `reports/evidence/w2-20261021/round2/`。交叉环境门U01见 `reports/w1-independent-acceptance-20261021.md` 第一轮（宿主阶段PASS）。内部tag `wo-s1-queue-engine-done`已创建，全局工单已闭环；版本冻结仍待W1与Owner审批，旧42项记录保留作历史证据。
+- 工单②：`reports/w1-host-resume-20261021.md` 与 `reports/w1-independent-acceptance-20261021.md`；真实144/96/96DPI、原生显示、鼠标拖动及正式Python自检正负向证据已补齐，旧PowerShell59328内核残留未解除，整单W1仍阻塞。正式入口 `../scripts/selfcheck-host-shell.py`，原`.ps1`保留历史。
 - 本轮目标修复：`reports/goal-repair-20261021.md`；补登记/执行/回收入口、修复计划依赖与状态漂移；操作说明 `../tasks/queue/EXECUTION.md`，完整验证见报告证据路径。
 
 ## 文档体系状态与缺口（对照 dev-conductor 标准 18 项 + Ultima 特有）
