@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>UltimaAgent 更新设置</title>
+<style>
+  :root {
+    --bg: #0d1117; --panel: #161b22; --line: #30363d;
+    --text: #e6edf3; --muted: #8b949e; --accent: #2f81f7;
+    --ok: #3fb950; --warn: #d29922; --err: #f85149;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg); color: var(--text);
+    font-family: "Segoe UI", "Microsoft YaHei", sans-serif;
+    min-height: 100vh; padding: 24px;
+  }
+  .card {
+    background: var(--panel); border: 1px solid var(--line);
+    border-radius: 10px; padding: 20px 24px; max-width: 480px;
+    margin: 0 auto;
+  }
+  h1 { font-size: 18px; margin-bottom: 16px; font-weight: 600; }
+  .row { display: flex; align-items: center; justify-content: space-between; margin: 10px 0; }
+  .label { color: var(--muted); font-size: 13px; }
+  .value { font-size: 14px; font-weight: 500; }
+  .status-pill { display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: 12px; }
+  .pill-idle { background: #21262d; color: var(--muted); }
+  .pill-checking { background: rgba(210,153,34,.15); color: var(--warn); }
+  .pill-available { background: rgba(47,129,247,.15); color: var(--accent); }
+  .pill-updating { background: rgba(210,153,34,.15); color: var(--warn); }
+  .pill-updated { background: rgba(63,185,80,.15); color: var(--ok); }
+  .pill-failed { background: rgba(248,81,73,.15); color: var(--err); }
+  .actions { display: flex; gap: 10px; margin-top: 18px; }
+  button {
+    flex: 1; background: var(--accent); color: #fff; border: 0;
+    border-radius: 8px; padding: 10px 0; font-size: 14px; cursor: pointer;
+  }
+  button.secondary { background: #21262d; color: var(--text); border: 1px solid var(--line); }
+  button:disabled { opacity: .5; cursor: not-allowed; }
+  .error { color: var(--err); font-size: 12px; margin-top: 12px; white-space: pre-wrap; }
+  .meta { font-size: 12px; color: var(--muted); margin-top: 12px; line-height: 1.6; }
+</style>
+</head>
+<body>
+<div class="card">
+  <h1>更新设置</h1>
+  <div class="row"><span class="label">当前版本</span><span class="value" id="cur">-</span></div>
+  <div class="row"><span class="label">目标版本</span><span class="value" id="tgt">-</span></div>
+  <div class="row"><span class="label">状态</span><span id="status"></span></div>
+  <div class="row"><span class="label">上次检查</span><span class="value" id="last">-</span></div>
+  <div class="actions">
+    <button id="btn-check" onclick="manualCheck()">检查更新</button>
+    <button id="btn-force" class="secondary" onclick="applyUpdate()">静默更新</button>
+  </div>
+  <div class="error" id="err"></div>
+  <div class="meta" id="meta"></div>
+</div>
+<script>
+(function () {
+  "use strict";
+  var STATE_URL = "/update-state.json";
+  var ERR = document.getElementById("err");
+  var META = document.getElementById("meta");
+
+  function pill(state) {
+    return '<span class="status-pill pill-' + (state || "idle") + '">' + (state || "idle") + "</span>";
+  }
+
+  function fmt(ts) {
+    if (!ts) return "-";
+    var d = new Date(ts * 1000);
+    return d.toLocaleString("zh-CN");
+  }
+
+  function loadState() {
+    fetch(STATE_URL, { cache: "no-store" })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (s) {
+        if (!s) { META.textContent = "未找到状态文件（更新引擎未运行）"; return; }
+        document.getElementById("cur").textContent = s.current_version || "-";
+        document.getElementById("tgt").textContent = s.target_version || "-";
+        document.getElementById("status").innerHTML = pill(s.status);
+        document.getElementById("last").textContent = fmt(s.last_checked_at);
+        ERR.textContent = s.error || "";
+        META.textContent = "状态文件: " + STATE_URL + (s.force ? "（服务端强制更新）" : "");
+      })
+      .catch(function () { META.textContent = "状态读取失败"; });
+  }
+
+  function manualCheck() { post("/update/check"); }
+  function applyUpdate() { post("/update/apply"); }
+
+  function post(path) {
+    fetch(path, { method: "POST", cache: "no-store" })
+      .then(function (r) { return r.ok ? r.json() : Promise.reject(r.status); })
+      .then(function () { loadState(); })
+      .catch(function () { ERR.textContent = "触发失败（引擎未运行或网络异常）"; });
+  }
+
+  window.__loadState = loadState;
+  document.addEventListener("DOMContentLoaded", loadState);
+  loadState();
+})();
+</script>
+</body>
+</html>
