@@ -74,8 +74,8 @@
 - [x] **零弹窗下钻单元（N4）**：RU-02/04/07 单元验收含运行期窗口枚举计数 0；发布工具（RU-09/12）窗口纪律口径 = 工程端工具可带控制台，但更新链路产物/宣告不得弹窗 ✅ 发布工具全程 CREATE_NO_WINDOW，无弹窗（T1/T2 客户端侧实现零窗口创建）
 - [x] **manifest schema 单一权威（N5）**：T1 校验侧与 T3 生成侧统一引用 specs/update-manifest-schema.md ✅ 2026-10-28 冒烟 RU-03 manifest 字段（version/package/force_update/release_url/published_at）与 schema v1.0 核对一致
 - [x] **查询失败/无网络降级（N6）**：RU-01/05/06/07 验收含 fail-closed 静默降级（不打扰、记日志、不误报新版）✅ 2026-10-28 单测覆盖（_safe_check 兜底 + 通道异常静默降级用例）
-- [ ] 项目级四信号（product-plan §8）：闭环率 ≥80% / 覆盖 ≥90% / 越界拦截 100% / 诚实边界 100% ⏳ 待版本级联合评估
-- [ ] 关联文档同步（docs/README 登记工单⑧ 与本报告，修正 reports/ 计数）⏳
+- [x] 项目级四信号（product-plan §8）：闭环率 ≥80% / 覆盖 ≥90% / 越界拦截 100% / 诚实边界 100% ✅ 2026-10-28 版本级联合评估全绿（reports/stage1-v1.0-signals-20261028.md）；冻结 tag 仍待 PK-03 净机补验后版本级触发
+- [x] 关联文档同步（docs/README 登记工单⑧ 与本报告，修正 reports/ 计数）✅ 2026-10-28 docs/README 新增"2026-10-28 版本收口执行证据登记"段，含工单⑧ 摘要
 - [ ] 冻结基线标记：与工单⑥、工单⑦ 共同 tag `stage1-v1.0-frozen` ⏳ 版本级触发：工单⑥⑦⑧ 全部 DoD PASS + 四信号全绿后打
 
 ## 4. 验收要点（打勾清单）

@@ -7,10 +7,26 @@
 | 目录 | 职责 | 现有文件 |
 |---|---|---|
 | paradigms/ | 强制范式（MUST，不可违反） | 11 篇 |
-| plans/ | 规划（能力/平台/路线/决策） | 7 篇（含 scenarios/ 子目录） |
-| specs/ | 技术规格（环境/注册表/契约/任务队列） | 20 篇 |
-| references/ | 调研借鉴（工具链/竞品/动画/教训） | 5 篇 |
-| reports/ | 审计/复盘报告 | 23 个顶层Markdown文件（含本轮冻结申请；evidence子目录另计） |
+| plans/ | 规划（能力/平台/路线/决策/技术推进） | 11 篇（含 scenarios/ 子目录） |
+| specs/ | 技术规格（环境/注册表/契约/任务队列/执行参数契约） | 22 篇 |
+| research/ | 调研资料库（竞品/工具链/动效/多端形态/机器人与具身/Agent 对照拆解/OpenJarvis 底座） | 16 篇 |
+| references/ | 引用库（教训/沟通汇集/方案文档） | 3 篇 |
+| reports/ | 审计/复盘报告 | 53 个顶层Markdown文件（含本轮冻结申请；evidence子目录另计） |
+
+- KWS 语音唤醒落地（voice-kws-wake，P0，2026-10-27）：src/brain/voice/kws_listener.py（sherpa-onnx KeywordSpotter 流式唤醒「贾维斯/ULTIMA」→ VAD 对话回合 → TTS 回放 → 回到待唤醒；灵敏度 KWS_THRESHOLD 可调；单实例锁）；验收 	asks/cards/voice-kws-wake/acceptance-evidence.md + 
+eceipt.json；tasks.json 37 项（32 COMPLETED + 5 TERMINATED）；真机听测登记为统一真机回归项（最后统一一点点测）。
+## 2026-10-27 s7 记忆热度分层 + 整体审计登记
+
+- s7-memory-temperature（主脑直接执行，2026-10-27）：`docs/plans/memory-temperature-tiering-20261027.md` 设计落盘（热/温/冷三档 + 短期/中期/长期时间三层映射 + 打断单元入记忆层，ADR-008 增量不推翻）；代码 `src/brain/memory/layers.py|vectors.py` + `src/brain/loop/brain_loop.py`；单测 `src/brain/tests/test_temperature_s7.py` 25/25 OK；验收 `tasks/cards/s7-memory-temperature/acceptance-evidence.md` + `receipt.json`；冻结参数零差异核对通过。
+- 整体审计：`reports/audit-s7-20261027.md`（三态：通过，无 P0；P1=4 项既有测试失败已登记 + git 288 项未提交待拍板粒度；tasks.json 补登/queue.md 清理已闭环）。
+- B 类修复：`reports/fix-b-audit-20261027.md`（4 项既有测试失败 + queue_source 缺 TERMINATED 产品缺陷 + 4 条 s4 任务时间倒置数据缺陷，全量 221 项测试全绿）。
+
+## 2026-10-28 版本收口执行证据登记（工单⑥⑦⑧）
+
+- 工单⑥（MVP 冻结）：`tasks/queue/wo-s1-mvp-freeze.md`；三卡 confirm-loop（L7 征询闭环 3/3）/ credential-gate（L8 凭证中心 4/4）/ queue-adjust（队列调整 3/3）验收全绿回填，专项测试（test_interaction/test_interaction_orb/test_queue_source/test_credential_s3）全绿；总卡 §3 T1-T3 PASS 勾选。内部 tag `wo-s1-mvp-freeze-done` 待版本级联合收口时打。
+- 工单⑦（工程封装）：`tasks/queue/wo-s1-engineering-packaging.md`；PK-01 EXE 封装、PK-02 安装包、PK-04 真实签名（Ed25519，篡改拒绝）、PK-05 对接更新通道（RU-12 真实发布 + T1 客户端拉取校验闭环一次成功）全 PASS；PK-03 依赖引导检测层真机闭环 + 模拟缺失分支 PASS，缺失分支真机净机静默引导待净机环境（本机无 VM/ISO，环境约束非代码缺陷）。证据 `reports/evidence/wo-s1-engineering-packaging/` + `dist/release-artifact-inventory.json`。
+- 工单⑧（远程更新）：`tasks/queue/wo-s1-remote-update.md`；T1 通道库（RU-01~04：查版本/下载 SHA256/Ed25519 双签名验签/篡改拒绝）、T2 三触发+更新 UI（RU-05~08，25/25 单测全绿）、T3 发布端（RU-12 真实发布 GitHub Release v0.1.0 id 426454992，4 资产）。真实远端冒烟 `reports/evidence/wo-s1-remote-update-trigger/smoke-t1-t2-20261028.json` SMOKE_RESULT=PASS；实现 `src/update/`（channel/triggers/ui_server）+ `src/ui/update_page.html`。T1/T2 由主脑直做闭环（用户指令不派 Codex）。
+- 版本级冻结门：工单⑥⑦⑧ 三方 DoD 中，⑥ 全绿、⑧ 全绿、⑦ 剩 PK-03 缺失分支真机净机验证（环境约束）；`stage1-v1.0-frozen` 共同 tag 待 PK-03 净机补验 + 四信号联合评估 + 文档同步齐备后由版本级触发。
 
 ## 2026-10-21 执行证据登记
 
@@ -89,5 +105,19 @@
 | v2.9 | 2026-10-16 | 登记工单⑦ 系列（N7 文档同步修正）：① 工单⑦ 远程更新与发布通道（tasks/queue/wo-s1-remote-update.md + 3 张任务卡 + 队列 v1.2 094-105 单元 + 验收清单 v1.6→v1.8）② 报告 reports/stage1-simulation-l1-w7-20261016.md（工单⑦ 12 单元模拟：10 通过/2 阻塞环境前置，F5/N4-N7）③ 规范 specs/update-manifest-schema.md（manifest 单一权威，N5 落地）；④ 修正目录职责表计数（paradigms 11 / plans 7 / specs 20 / references 5 / reports 10 个文件，替换过时数字 10/5/17/4/3） |
 | v3.0 | 2026-10-16 | 工单⑦⑧ 顺延重编号登记（用户决定：工程封装与安装包独立为工单⑦，原工单⑦ 远程更新顺延为工单⑧）：① 新工单⑦ 工程封装（tasks/queue/wo-s1-engineering-packaging.md + cards/s1-engineering-packaging/task.md，U21，PK-01~05，094-098）② 原工单⑦ 顺延工单⑧（wo-s1-remote-update.md v1.1：U22-U24，RU-01~12，099-110，依赖工单⑦ 安装包）③ 队列 v1.3→v1.4（8 工单/25 卡/110 单元/W1-W8）④ 验收清单 v1.9→v2.0（24 U/110 L1，v1.0 门=⑥+⑦+⑧）⑤ build-release.md v1.0→v1.1 补工程封装规范 §2.1 |
 | v3.1 | 2026-10-21 | 更新工单①当前证据为W2第二轮35项/62回归及真实卡闭环，登记U01独立宿主环境门结论；保留旧报告，不代作版本审批。 |
+| v3.3 | 2026-10-24 | 四轮调研统一落盘：新增 5 篇详细调研（state-machine-thinking / audio-visualizer-spec / desktop-companion / ar-vr-hud / robotics-embodied，均含架构/技术栈/参数/实施方法/来源）；research/ 3→8 篇；README 索引 v1.0→v1.1（补 5 篇 + 后续调研方向登记表 6 项） |
+| v3.4 | 2026-10-24 | 新增形态拓展分阶段方案：docs/plans/form-expansion-plan-20261024.md（1.0 五大能力底座 + 阶段二羁绊系统[可配置距离档位] + 阶段三多设备联动 L0-L4 + 阶段四具身延展 OpenGo 路线；Owner 确认）；plans/ 7→8 篇 |
+| v3.5 | 2026-10-24 | 执行状态综合分析后队列调整（Owner 确认）：① queue.md 重写为调整后派发顺序（composite-window 待 Manager 接管→v0.4→engineering-packaging→mvp-freeze→remote-update→ORB w1-w5→1.0 能力底座四单）② voice-poc 登记为受限验收（文本侧通过、语音真机/W3 后置）③ 新增 4 张 1.0 能力底座工单申请（数据形态/子智能体调用/Skill 学习/插件接入 MCP，request-ultimaagent-capability-*.md，后置不插队）④ work-order-naming-plan 补充 4 条映射 |
+| v3.6 | 2026-10-25 | 新增能力插件总线规格并冻结：① specs/plugin-bus-spec.md v1.0（ADR-011，L1-L10 能力插件热插拔总线，v0.1 审计打回→v0.2 修订→复审通过→Owner 拍板）② tech-decisions v1.3 登记 ADR-011 ③ registry v1.8 登记 ultima-plugin-bus 组件 ④ 工单待排不占队列（queue.md 未动）；specs/ 20→21 篇 |
+| v3.7 | 2026-10-25 | Agent 对照拆解 + 执行参数契约落盘：① 新增调研 docs/research/agent-loop-param-benchmark-20261025.md（Japlos 视频任务逻辑/UIUX + OpenJarvis 源码参数级拆解，结论=四个结构性缺口）；research/ 8→9 篇 ② 新增规格 docs/specs/execution-param-contract.md v0.1-draft（同一契约两场景：开发时静态工单 + 运行时 14B 调用外部模型下发/回传参数；四段输出协议；验收机检化；落盘映射待派工单）；specs/ 21→22 篇 ③ research README v1.1→v1.2 |
+| v3.8 | 2026-10-25 | OpenJarvis 底座方案落盘（TD-06 已采纳）：① 新增调研 docs/research/openjarvis-base-adoption-20261025.md（五原语事实基线/与 L1-L10 映射/缺口六方向可拔插模块清单/底座偏移评估）；research/ 9→10 篇 ② 新增方案 docs/plans/base-adoption-plan-20261025.md（拿来即用→卡住才改→全通全绿→适配调校四阶段 + 插拔纪律 + 工单规划）；plans/ 8→9 篇 ③ tech-decisions v1.4→v1.5（TD-06）④ registry v1.9→v2.0 ⑤ research README v1.2→v1.3 ⑥ 工单已整理未派发（待审计 + Manager 接管） |
+| v3.9 | 2026-10-25 | 底座审计留档：① 新增审计报告 docs/reports/base-adoption-audit-20261025.md（11 份产物 Gate 判定全 PASS·P0 清零·待派发）；reports/ 顶层文件 23→24 ② 5 张工单申请卡全部就位 tasks/queue/（walking-skeleton/guardrail/memory/verify/polish），等 Manager 接管 |
+| v4.0 | 2026-10-25 | 技术推进方案落盘：新增 docs/plans/tech-progression-plan-20261025.md（拼装全景+接线范式+里程碑 M0-M6+调试纪律+风险对策）；plans/ 9→10 篇 |
+| v4.1 | 2026-10-27 | 记忆热度分层补设计落盘（Owner 拍板）：① 新增 docs/plans/memory-temperature-tiering-20261027.md（热/温/冷三档 + 短期/中期/长期时间三层映射 + 升降级规则 + 打断单元入记忆层；ADR-008 增量不推翻）；plans/ 10→11 篇 ② 排工单 s7-memory-temperature（cards/s7-memory-temperature/task.md + queue/wo-s7-memory-temperature.md，P1，队列登记） |
+| v4.2 | 2026-10-27 | 完整审计 + 10-27 后期产物登记：① 完整审计 docs/reports/audit-full-20261027.md（53 文件 184 项测试 OK、无 P0、P1=权威清单登记已闭环、KWS 锁修复两项[atexit 仅删自己锁+心跳]）② 补登报告：reports/capability-vs-jarvis-20261027.md（能力清单 vs 贾维斯目标对比）、reports/audit-codex-plugin-20261027.md（GrokBot Codex 插件抄入审计）、reports/product-alignment-s5-20261027.md（S5 产品目标对齐，含待办路由）③ 计数校正：reports 顶层 24→53、research 10→16 ④ 调研（research/README 已登记）：venom-symbiote-research-20261025、grok-bot-orb-reconstructed-20261027、grok-bot-codex-architecture-20261027 |
 
 当前维护后证据登记：`reports/evidence/w1-post-reboot-closeout-20261021/`；冻结审查材料 `reports/v01-freeze-approval-request-20261021.md`（Owner已批准）。
+
+## 2026-10-27
+- ASR 主链路切换 SenseVoice（docs/reports/asr-sensevoice-switch-20261027.md）
+- 性能/死机问题审计与修复：三处跨进程单实例守卫（daemon/agent_server/watchdog）+ kws 预热后台化，实测单实例守卫生效、daemon_asr 归零（docs/reports/performance-process-audit-20261027.md）

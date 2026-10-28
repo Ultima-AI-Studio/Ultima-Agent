@@ -43,9 +43,9 @@
 
 ## receipt（完成时由 CodeX 回填）
 
-- reviewReason: 主脑直做（用户指令"由你完成，不需要我参与"），不派 Codex；三触发状态机 + 零弹窗纪律经单测与冒烟核验
-- stdoutText: 25/25 单测全绿（含 T2 触发 10 用例 + UI 服务桥 4 用例）；真实 Release 冒烟 PASS；更新 UI 页 src/ui/update_page.html + 服务桥 src/update/ui_server.py 可运行
-- evidence: 三触发场景实测 + 更新 UI 状态展示（tests/test_update_triggers.py、test_update_ui_server.py、smoke JSON）
+- reviewReason: 主脑直做（用户指令"由你完成，不需要我参与"），不派 Codex；三触发状态机 + 零弹窗纪律经单测与冒烟核验；2026-10-28 补宿主壳接线：agent_server 主链路启动后后台线程静默执行 startup_check（N6 静默降级，链路实测 current=0.1.0==发布版 → idle 不误报）
+- stdoutText: 25/25 单测全绿（含 T2 触发 10 用例 + UI 服务桥 4 用例）；真实 Release 冒烟 PASS；更新 UI 页 src/ui/update_page.html + 服务桥 src/update/ui_server.py 可运行；RU-05 宿主接线 py_compile + 引擎链路实测 PASS
+- evidence: 三触发场景实测 + 更新 UI 状态展示（tests/test_update_triggers.py、test_update_ui_server.py、smoke JSON）+ agent_server.py 启动自检接线
 - acceptance 逐项核对: 5/5 全绿（见上）
 
 ## retryCount
