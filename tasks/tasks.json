@@ -1,0 +1,680 @@
+[
+  {
+    "task_id": "voice-01",
+    "state": "TERMINATED",
+    "priority": 80,
+    "dependsOn": [],
+    "parallelGroup": null,
+    "fileDomain": [
+      "H:/UltimaAI/UltimaAgent"
+    ],
+    "reasoningEffort": "low",
+    "created_at": "2026-10-26T14:44:19.725+08:00",
+    "updated_at": "2026-10-27T03:00:00+08:00",
+    "terminal_reason": "已终止：整链路回归语音测试已由 s3-voice-fullchain + DEFECT-001/002 修复 + 真机多轮听测完成（用户真机验收通过），本卡为旧批次回归占位",
+    "card_path": "cards/voice-01/task.md"
+  },
+  {
+    "task_id": "voice-02",
+    "state": "TERMINATED",
+    "priority": 50,
+    "dependsOn": [],
+    "parallelGroup": null,
+    "fileDomain": [
+      "H:/UltimaAI/UltimaAgent"
+    ],
+    "reasoningEffort": "low",
+    "created_at": "2026-10-26T14:44:19.725+08:00",
+    "updated_at": "2026-10-27T03:00:00+08:00",
+    "terminal_reason": "已终止：同上，语音整链路回归已由后续批次覆盖",
+    "card_path": "cards/voice-02/task.md"
+  },
+  {
+    "task_id": "voice-03",
+    "state": "COMPLETED",
+    "priority": 90,
+    "dependsOn": [],
+    "parallelGroup": null,
+    "fileDomain": [
+      "H:/UltimaAI/UltimaAgent"
+    ],
+    "reasoningEffort": "low",
+    "created_at": "2026-10-26T14:44:19.725+08:00",
+    "updated_at": "2026-10-26T14:44:19.986688+08:00",
+    "terminal_reason": "回归演示",
+    "card_path": "cards/voice-03/task.md"
+  },
+  {
+    "task_id": "s2-tool-extend",
+    "parallelGroup": null,
+    "terminal_reason": "Codex 执行 + 豆包独立审计 PASS（docs/reports/s2-tool-extend-audit-20261026.md）",
+    "created_at": "2026-10-26T18:50:51.882+08:00",
+    "fileDomain": [
+      "H:/UltimaAI/UltimaAgent"
+    ],
+    "reasoningEffort": "medium",
+    "updated_at": "2026-10-26T19:47:08.089+08:00",
+    "card_path": "cards/s2-tool-extend/task.md",
+    "state": "COMPLETED",
+    "dependsOn": [],
+    "priority": 90
+  },
+  {
+    "task_id": "s2-combo-window",
+    "parallelGroup": null,
+    "terminal_reason": "豆包主脑直接真机验收 8/8 PASS（docs/reports/evidence/s2-combo-window/acceptance-20261026.md，Codex r1/r2/r3 折戟后收尾）",
+    "created_at": "2026-10-26T18:50:51.882+08:00",
+    "fileDomain": [
+      "H:/UltimaAI/UltimaAgent"
+    ],
+    "reasoningEffort": "medium",
+    "updated_at": "2026-10-26T21:54:47.399+08:00",
+    "card_path": "cards/s2-combo-window/task.md",
+    "state": "COMPLETED",
+    "dependsOn": [],
+    "priority": 85
+  },
+  {
+    "task_id": "s2-persist",
+    "parallelGroup": null,
+    "terminal_reason": "已终止：智能体服务器常驻已由 s3-watchdog 实现并验收（计划任务 UltimaAgent-Watchdog 已注册、自动拉起、防死循环、零弹窗，ACCEPT-1~8 PASS）",
+    "created_at": "2026-10-26T18:50:51.882+08:00",
+    "fileDomain": [
+      "H:/UltimaAI/UltimaAgent"
+    ],
+    "reasoningEffort": "low",
+    "updated_at": "2026-10-27T03:00:00+08:00",
+    "card_path": "cards/s2-persist/task.md",
+    "state": "TERMINATED",
+    "dependsOn": [],
+    "priority": 80
+  },
+  {
+    "task_id": "s2-voice-agent-audit",
+    "parallelGroup": null,
+    "terminal_reason": "已终止：语音兜底 Agent 循环真机听测已由 s3-voice-fullchain + 真机联调（用户验收：真机测试通过、听到播报）+ DEFECT-001/002 修复闭环覆盖",
+    "created_at": "2026-10-26T18:50:51.882+08:00",
+    "fileDomain": [
+      "H:/UltimaAI/UltimaAgent"
+    ],
+    "reasoningEffort": "low",
+    "updated_at": "2026-10-27T03:00:00+08:00",
+    "card_path": "cards/s2-voice-agent-audit/task.md",
+    "state": "TERMINATED",
+    "dependsOn": [],
+    "priority": 70
+  },
+  {
+    "task_id": "s2-capability-overview",
+    "parallelGroup": null,
+    "terminal_reason": "已终止：能力总览与技能学习入口已被 s6-capability-page 取代（能力清单指令页 29 项可用能力，双界面线同源呈现，验收 11/11）",
+    "created_at": "2026-10-26T18:50:51.882+08:00",
+    "fileDomain": [
+      "H:/UltimaAI/UltimaAgent"
+    ],
+    "reasoningEffort": "low",
+    "updated_at": "2026-10-27T03:00:00+08:00",
+    "card_path": "cards/s2-capability-overview/task.md",
+    "state": "TERMINATED",
+    "dependsOn": [
+      "s2-tool-extend"
+    ],
+    "priority": 60
+  },
+  {
+    "terminal_reason": "主脑独立验收通过：ACCEPT-1~8 全 PASS；bus status healthy、三插件 routing@0.1.0；12 关键落地文件抽查全在；intent 适配 49/49、冻结意图 16/16",
+    "card_path": "cards/s3-bus-kernel/task.md",
+    "priority": 90,
+    "parallelGroup": null,
+    "state": "COMPLETED",
+    "dependsOn": [],
+    "created_at": "2026-10-27T07:44:24.308+08:00",
+    "fileDomain": [
+      "H:/UltimaAI/UltimaAgent"
+    ],
+    "updated_at": "2026-10-27T08:56:45.559039+08:00",
+    "reasoningEffort": "medium",
+    "task_id": "s3-bus-kernel"
+  },
+  {
+    "terminal_reason": "主脑直接补做验收通过：ACCEPT-1~8 全 PASS，Codex 通道网络层死路留档（r1-r6）。",
+    "card_path": "cards/s3-watchdog/task.md",
+    "priority": 85,
+    "parallelGroup": null,
+    "state": "COMPLETED",
+    "dependsOn": [
+      "s3-bus-kernel"
+    ],
+    "created_at": "2026-10-27T07:44:24.308+08:00",
+    "fileDomain": [
+      "H:/UltimaAI/UltimaAgent"
+    ],
+    "updated_at": "2026-10-27T09:36:00+08:00",
+    "reasoningEffort": "low",
+    "task_id": "s3-watchdog"
+  },
+  {
+    "terminal_reason": "ACCEPT-1~4 全部 PASS：权限闸门 M19（ScopePolicy+AdjudicationTable 三级裁决）+ 范式闸门 M26（ParadigmGate 7 环）迁入总线驻留 fail-closed（boot_check+对外服务硬闸），s3 测试 31/31，M2 回归 19/19。",
+    "card_path": "cards/s3-guard-resident/task.md",
+    "priority": 85,
+    "parallelGroup": null,
+    "state": "COMPLETED",
+    "dependsOn": [
+      "s3-bus-kernel"
+    ],
+    "created_at": "2026-10-27T07:44:24.308+08:00",
+    "fileDomain": [
+      "H:/UltimaAI/UltimaAgent"
+    ],
+    "updated_at": "2026-10-27T07:44:24.308+08:00",
+    "reasoningEffort": "medium",
+    "task_id": "s3-guard-resident"
+  },
+  {
+    "terminal_reason": "ACCEPT-1~5 全部 PASS：凭证中心总线对接完成（inject memory_only/keyId 引用/零明文落盘/三类凭证），契约受控扩展（MODULE_RE+PERMISSION_RE+DOMAIN_EXPOSES+INTERFACE_SIGNATURES 新增 credential 域），基线保持 24/24+19/19+31/31，新增 17/17。",
+    "card_path": "cards/s3-credential-bus/task.md",
+    "priority": 80,
+    "parallelGroup": null,
+    "state": "COMPLETED",
+    "dependsOn": [
+      "s3-bus-kernel"
+    ],
+    "created_at": "2026-10-27T07:44:24.308+08:00",
+    "fileDomain": [
+      "H:/UltimaAI/UltimaAgent"
+    ],
+    "updated_at": "2026-10-27T07:44:24.308+08:00",
+    "reasoningEffort": "medium",
+    "task_id": "s3-credential-bus"
+  },
+  {
+    "terminal_reason": "ACCEPT-1~5 全部 PASS：AppendOnlyAuditLog 追加式 hash 链日志（可检索+改写被拒+legacy 兼容）；ReceiptValidator 四字段+证据路径校验；IndependentReviewer 角色分离（eng.audit/eng.security）blocker 清零过门；违规直连/未声明调用/热插拔三类事件真实触发记审计（顺带修复 _audit_imports 直连检测缺陷）；回归 31/19/17/24/18 全绿；回执落盘自校验通过。",
+    "card_path": "cards/s3-audit-trail/task.md",
+    "priority": 80,
+    "parallelGroup": null,
+    "state": "COMPLETED",
+    "dependsOn": [
+      "s3-bus-kernel"
+    ],
+    "created_at": "2026-10-27T07:44:24.308+08:00",
+    "fileDomain": [
+      "H:/UltimaAI/UltimaAgent"
+    ],
+    "updated_at": "2026-10-27T07:44:24.308+08:00",
+    "reasoningEffort": "medium",
+    "task_id": "s3-audit-trail"
+  },
+  {
+    "terminal_reason": "ACCEPT-1~6 全部 PASS：白名单登记未登记拒绝；License GPL 拒绝样例验证；CVE 扫描高危阻断（版本判定正确）；第三方准入 Owner 批准+独立安全审查留痕；版本锁定 vendor 落地+持久化；测试 6/6 全绿。",
+    "card_path": "cards/s3-supply-chain/task.md",
+    "priority": 75,
+    "parallelGroup": null,
+    "state": "COMPLETED",
+    "dependsOn": [
+      "s3-bus-kernel"
+    ],
+    "created_at": "2026-10-27T07:44:24.308+08:00",
+    "fileDomain": [
+      "H:/UltimaAI/UltimaAgent"
+    ],
+    "updated_at": "2026-10-27T07:44:24.308+08:00",
+    "reasoningEffort": "low",
+    "task_id": "s3-supply-chain"
+  },
+  {
+    "terminal_reason": "ACCEPT-1~6 全部 PASS：四层记忆底座（working/declarative/procedural+设备环境档案）写入检索回溯全通；onnx 向量检索真实可用（bge-small-zh-v1.5 512 维）+PoC 结论落档；反思与遗忘边界生效留驱逐审计；写入闸门拦截不可信+事实/建议分离+敏感拦截；真实总线 memory.write/read 契约全通；回归 31/19/17/8/14/12/24 全绿；回执落盘自校验通过。",
+    "card_path": "cards/s3-memory-base/task.md",
+    "priority": 75,
+    "parallelGroup": null,
+    "state": "COMPLETED",
+    "dependsOn": [
+      "s3-bus-kernel",
+      "s3-guard-resident"
+    ],
+    "created_at": "2026-10-27T07:44:24.308+08:00",
+    "fileDomain": [
+      "H:/UltimaAI/UltimaAgent"
+    ],
+    "updated_at": "2026-10-27T07:44:24.308+08:00",
+    "reasoningEffort": "medium",
+    "task_id": "s3-memory-base"
+  },
+  {
+    "terminal_reason": "ACCEPT-1~5 全部 PASS：五类扫描（硬件/磁盘/应用/网络/进程）结构化产出；基线比对（应用增减+磁盘变化）+档案持久化（profiles/目录+latest.json 可检索）；体检汇报链路结论先行异常优先；既有 capture_snapshot v1.0.0 不倒退；测试 4/4 全绿（真实扫描 27s）。",
+    "card_path": "cards/s3-env-cognition/task.md",
+    "priority": 70,
+    "parallelGroup": null,
+    "state": "COMPLETED",
+    "dependsOn": [
+      "s3-bus-kernel"
+    ],
+    "created_at": "2026-10-27T07:44:24.308+08:00",
+    "fileDomain": [
+      "H:/UltimaAI/UltimaAgent"
+    ],
+    "updated_at": "2026-10-27T07:44:24.308+08:00",
+    "reasoningEffort": "low",
+    "task_id": "s3-env-cognition"
+  },
+  {
+    "terminal_reason": "ACCEPT-1~6 全部 PASS：任务闭环状态机（立项→排队→派发→执行→自检→审计→回执）端到端通过且阶段不可跳迁；子代理权限继承受限（越权被拒）；失败重规划触发并留痕（预算 3 次封顶）；队列视图宿主端一致（高优在前）；7 环范式前置检查串接复用 L10 ParadigmGate（未走完拒交付）；测试 6/6 全绿。",
+    "card_path": "cards/s3-orchestrator/task.md",
+    "priority": 75,
+    "parallelGroup": null,
+    "state": "COMPLETED",
+    "dependsOn": [
+      "s3-bus-kernel",
+      "s3-guard-resident"
+    ],
+    "created_at": "2026-10-27T07:44:24.308+08:00",
+    "fileDomain": [
+      "H:/UltimaAI/UltimaAgent"
+    ],
+    "updated_at": "2026-10-27T07:44:24.308+08:00",
+    "reasoningEffort": "medium",
+    "task_id": "s3-orchestrator"
+  },
+  {
+    "terminal_reason": "ACCEPT-1~7 全部 PASS：VAD 能量断句（合成音频验证长句静音断句为两句）；barge-in 打断标志线程安全生效；三态节拍状态机（idle/listening/thinking/speaking）订阅者联动+重复转移抑制；语音/文字同入口结果一致（同一意图路由）；Pipecat 评估落档结论为按 TD-03 降级自研编排（理由：需更换 ASR/TTS 供应商与冻结基线冲突）；现状链路零改动不倒退；测试 5/5 全绿。",
+    "card_path": "cards/s3-voice-fullchain/task.md",
+    "priority": 70,
+    "parallelGroup": null,
+    "state": "COMPLETED",
+    "dependsOn": [
+      "s3-bus-kernel"
+    ],
+    "created_at": "2026-10-27T07:44:24.308+08:00",
+    "fileDomain": [
+      "H:/UltimaAI/UltimaAgent"
+    ],
+    "updated_at": "2026-10-27T07:44:24.308+08:00",
+    "reasoningEffort": "medium",
+    "task_id": "s3-voice-fullchain"
+  },
+  {
+    "terminal_reason": "ACCEPT-1~6 全部 PASS：心跳/思考/聆听三态可视化映射（任务/语音/编排状态事件全量覆盖+未知事件兜底）；记忆可视化节点/关联点亮（去重计数）；组合窗口多场景编排（对话/任务/环境/长内容组件树）+既有场景回归不倒退；主题令牌对齐（idle/thinking/listening/speaking glow 与令牌一致）；AR/VR 接口预留登记（全部预留未实现）；测试 5/5 全绿。",
+    "card_path": "cards/s3-behavior-layer/task.md",
+    "priority": 70,
+    "parallelGroup": null,
+    "state": "COMPLETED",
+    "dependsOn": [
+      "s3-bus-kernel"
+    ],
+    "created_at": "2026-10-27T07:44:24.308+08:00",
+    "fileDomain": [
+      "H:/UltimaAI/UltimaAgent"
+    ],
+    "updated_at": "2026-10-27T07:44:24.308+08:00",
+    "reasoningEffort": "medium",
+    "task_id": "s3-behavior-layer"
+  },
+  {
+    "terminal_reason": "ACCEPT-1~5 全部 PASS：托管浏览器/CDP 双轨接口（导航/观察/操作，白名单站点桩验证+CDP 接入点预留）；会话隔离（每会话独立 profile 不共享登录态）；只读红线闸门（发帖/评论/点赞/私信/代登录/索要密码全拒+非白名单站点拒）；动作审计 JSONL 留痕（拒绝动作带 reason）；测试 4/4 全绿。",
+    "card_path": "cards/s3-browser-channel/task.md",
+    "priority": 60,
+    "parallelGroup": null,
+    "state": "COMPLETED",
+    "dependsOn": [
+      "s3-bus-kernel",
+      "s3-guard-resident"
+    ],
+    "created_at": "2026-10-27T07:44:24.308+08:00",
+    "fileDomain": [
+      "H:/UltimaAI/UltimaAgent"
+    ],
+    "updated_at": "2026-10-27T07:44:24.308+08:00",
+    "reasoningEffort": "medium",
+    "task_id": "s3-browser-channel"
+  },
+  {
+    "terminal_reason": "ACCEPT-1~4 全部 PASS：多引擎编排（primary→fallback 链式降级）；来源标记（每条结果带 engine/url/时效）；降级标记（degraded+原因）；SSRF 防护（内网/回环/云元数据地址 DNS 解析后拦截，检索中命中目标被剔除）；测试 4/4 全绿。",
+    "card_path": "cards/s3-websearch-upgrade/task.md",
+    "priority": 60,
+    "parallelGroup": null,
+    "state": "COMPLETED",
+    "dependsOn": [
+      "s3-bus-kernel"
+    ],
+    "created_at": "2026-10-27T07:44:24.308+08:00",
+    "fileDomain": [
+      "H:/UltimaAI/UltimaAgent"
+    ],
+    "updated_at": "2026-10-27T07:44:24.308+08:00",
+    "reasoningEffort": "low",
+    "task_id": "s3-websearch-upgrade"
+  },
+  {
+    "terminal_reason": "ACCEPT-1~5 全部 PASS：SOUL/MEMORY/USER 档案组织（SOUL 基线落地，状态轴供各形态共享）；默认档=专业距离，亲密档仅用户显式开放（system 授权被拒）；称呼/口吻变更需亲密档+持久化（重建读回）+关系事实可回溯；疲劳/无聊模拟边界固化禁止；跨形态共享单一状态轴预留；测试 5/5 全绿。",
+    "card_path": "cards/s3-bond-system/task.md",
+    "priority": 55,
+    "parallelGroup": null,
+    "state": "COMPLETED",
+    "dependsOn": [
+      "s3-memory-base"
+    ],
+    "created_at": "2026-10-27T07:44:24.308+08:00",
+    "fileDomain": [
+      "H:/UltimaAI/UltimaAgent"
+    ],
+    "updated_at": "2026-10-27T07:44:24.308+08:00",
+    "reasoningEffort": "low",
+    "task_id": "s3-bond-system"
+  },
+  {
+    "terminal_reason": "ACCEPT-1~5 全部 PASS：TICK 周期调度（固定周期轮询+动作）；消息抢占（新消息让位心跳）；空闲思考预算封顶（2 次后静默，不无限自转）；主动发言边界（仅空闲态发声，speaking/listening 等待）+忙态预算复位；测试 5/5 全绿。",
+    "card_path": "cards/s3-heartbeat/task.md",
+    "priority": 55,
+    "parallelGroup": null,
+    "state": "COMPLETED",
+    "dependsOn": [
+      "s3-orchestrator"
+    ],
+    "created_at": "2026-10-27T07:44:24.308+08:00",
+    "fileDomain": [
+      "H:/UltimaAI/UltimaAgent"
+    ],
+    "updated_at": "2026-10-27T07:44:24.308+08:00",
+    "reasoningEffort": "low",
+    "task_id": "s3-heartbeat"
+  },
+  {
+    "terminal_reason": "ACCEPT-1~5 全部 PASS：IM 适配器（飞书/微信渠道入站 WAL+出站 Outbox 追加式可恢复）；审批两端同弹（IM+桌面双票，超时/拒绝 fail-safe 取消）；只读红线（ask_password/login_as/collect_credential 全拒+事件留痕）；经总线事件流挂接主脑回路（inbound/action/approval 事件）；测试 4/4 全绿。",
+    "card_path": "cards/s3-ime-bridge/task.md",
+    "priority": 55,
+    "parallelGroup": null,
+    "state": "COMPLETED",
+    "dependsOn": [
+      "s3-guard-resident"
+    ],
+    "created_at": "2026-10-27T07:44:24.308+08:00",
+    "fileDomain": [
+      "H:/UltimaAI/UltimaAgent"
+    ],
+    "updated_at": "2026-10-27T07:44:24.308+08:00",
+    "reasoningEffort": "low",
+    "task_id": "s3-ime-bridge"
+  },
+  {
+    "terminal_reason": "ACCEPT-1~6 全部 PASS：四实体档案模型（DeviceProfile/Controlability/DeviceCred/Reading）可读写持久化；可控性三独立判定（可读/可写/可控制分别判定，不可达全拒、无凭证不可控、sensor 防误控）；MCP 适配器框架（插件不直连，换 server 只改配置）；前置检查链（发现→档案→凭证→可控性）分阶段拒绝；单协议试点（matter 试点，不可达设备如实报告）；测试 5/5 全绿。",
+    "card_path": "cards/s3-device-profile/task.md",
+    "priority": 50,
+    "parallelGroup": null,
+    "state": "COMPLETED",
+    "dependsOn": [
+      "s3-env-cognition"
+    ],
+    "created_at": "2026-10-27T07:44:24.308+08:00",
+    "fileDomain": [
+      "H:/UltimaAI/UltimaAgent"
+    ],
+    "updated_at": "2026-10-27T07:44:24.308+08:00",
+    "reasoningEffort": "low",
+    "task_id": "s3-device-profile"
+  },
+  {
+    "reasoningEffort": "medium",
+    "terminal_reason": "ACCEPT-1~7 PASS；11/11 测试全绿；回归 37/37 全绿；ReceiptValidator 0 issues",
+    "updated_at": "2026-10-27T11:26:15.82+08:00",
+    "state": "COMPLETED",
+    "task_id": "s4-brain-loop",
+    "dependsOn": [
+      "s3-bus-kernel",
+      "s3-guard-resident",
+      "s3-orchestrator",
+      "s3-audit-trail"
+    ],
+    "fileDomain": [
+      "H:/UltimaAI/UltimaAgent"
+    ],
+    "priority": 90,
+    "parallelGroup": null,
+    "card_path": "cards/s4-brain-loop/task.md",
+    "created_at": "2026-10-27T11:26:15.82+08:00"
+  },
+  {
+    "reasoningEffort": "medium",
+    "terminal_reason": "ACCEPT-1~6 PASS；6/6 测试全绿；ReceiptValidator 0 issues",
+    "updated_at": "2026-10-27T11:26:15.82+08:00",
+    "state": "COMPLETED",
+    "task_id": "s4-local-exec",
+    "dependsOn": [
+      "s3-guard-resident",
+      "s3-bus-kernel"
+    ],
+    "fileDomain": [
+      "H:/UltimaAI/UltimaAgent"
+    ],
+    "priority": 70,
+    "parallelGroup": null,
+    "card_path": "cards/s4-local-exec/task.md",
+    "created_at": "2026-10-27T11:26:15.82+08:00"
+  },
+  {
+    "reasoningEffort": "low",
+    "terminal_reason": "ACCEPT-1~6 PASS；7/7 测试全绿；回归 21/21 全绿；ReceiptValidator 0 issues",
+    "updated_at": "2026-10-27T11:26:15.82+08:00",
+    "state": "COMPLETED",
+    "task_id": "s4-state-axis",
+    "dependsOn": [
+      "s3-bond-system",
+      "s3-device-profile",
+      "s3-orchestrator",
+      "s3-behavior-layer"
+    ],
+    "fileDomain": [
+      "H:/UltimaAI/UltimaAgent"
+    ],
+    "priority": 65,
+    "parallelGroup": null,
+    "card_path": "cards/s4-state-axis/task.md",
+    "created_at": "2026-10-27T11:26:15.82+08:00"
+  },
+  {
+    "reasoningEffort": "low",
+    "terminal_reason": "ACCEPT-1~6 PASS：控件5+Ultima7 renderer active 化，8/8 测试绿，回归67/68，registry 回填，回执0 issues",
+    "updated_at": "2026-10-27T11:26:15.82+08:00",
+    "state": "COMPLETED",
+    "task_id": "s4-a2ui-renderer",
+    "dependsOn": [],
+    "fileDomain": [
+      "H:/UltimaAI/UltimaAgent"
+    ],
+    "priority": 50,
+    "parallelGroup": null,
+    "card_path": "cards/s4-a2ui-renderer/task.md",
+    "created_at": "2026-10-27T11:26:15.82+08:00"
+  },
+  {
+    "task_id": "s5-external-executor",
+    "state": "COMPLETED",
+    "priority": 90,
+    "dependsOn": [],
+    "parallelGroup": null,
+    "fileDomain": [
+      "H:/UltimaAI/UltimaAgent"
+    ],
+    "reasoningEffort": "medium",
+    "created_at": "2026-10-27T00:00:00+08:00",
+    "updated_at": "2026-10-27T00:00:00+08:00",
+    "terminal_reason": "ACCEPT-1~6 PASS：真实外部模型路由接线，10/10 测试绿，回归11/11绿，真实冒烟 approved（deepseek-flash 514 tokens 四查PASS），回执0 issues",
+    "card_path": "cards/s5-external-executor/task.md"
+  },
+  {
+    "task_id": "s6-capability-page",
+    "state": "COMPLETED",
+    "priority": 80,
+    "dependsOn": [],
+    "parallelGroup": null,
+    "fileDomain": [
+      "H:/UltimaAI/UltimaAgent"
+    ],
+    "reasoningEffort": "medium",
+    "created_at": "2026-10-27T00:00:00+08:00",
+    "updated_at": "2026-10-27T00:00:00+08:00",
+    "terminal_reason": "ACCEPT-1~7 PASS，34 条测试全绿，回执 0 issues",
+    "card_path": "cards/s6-capability-page/task.md"
+  },
+  {
+    "task_id": "s7-bond-deepen",
+    "state": "COMPLETED",
+    "priority": 80,
+    "dependsOn": [],
+    "parallelGroup": null,
+    "fileDomain": [
+      "H:/UltimaAI/UltimaAgent"
+    ],
+    "reasoningEffort": "medium",
+    "created_at": "2026-10-27T00:00:00+08:00",
+    "updated_at": "2026-10-27T00:00:00+08:00",
+    "terminal_reason": "羁绊深化验收通过（11/11 绿）",
+    "card_path": "cards/s7-bond-deepen/task.md"
+  },
+  {
+    "task_id": "s8-proactive-scenes",
+    "state": "COMPLETED",
+    "priority": 80,
+    "dependsOn": [],
+    "parallelGroup": null,
+    "fileDomain": [
+      "H:/UltimaAI/UltimaAgent"
+    ],
+    "reasoningEffort": "medium",
+    "created_at": "2026-10-27T00:00:00+08:00",
+    "updated_at": "2026-10-27T00:00:00+08:00",
+    "terminal_reason": "主动调度铺开验收通过（14/14 绿）",
+    "card_path": "cards/s8-proactive-scenes/task.md"
+  },
+  {
+    "task_id": "s9-channel-breadth",
+    "state": "COMPLETED",
+    "priority": 80,
+    "dependsOn": [],
+    "parallelGroup": null,
+    "fileDomain": [
+      "H:/UltimaAI/UltimaAgent"
+    ],
+    "reasoningEffort": "medium",
+    "created_at": "2026-10-27T00:00:00+08:00",
+    "updated_at": "2026-10-27T00:00:00+08:00",
+    "terminal_reason": "渠道铺开验收通过（12/12 绿）",
+    "card_path": "cards/s9-channel-breadth/task.md"
+  },
+  {
+    "task_id": "s10-device-mcp",
+    "state": "COMPLETED",
+    "priority": 80,
+    "dependsOn": [],
+    "parallelGroup": null,
+    "fileDomain": [
+      "H:/UltimaAI/UltimaAgent"
+    ],
+    "reasoningEffort": "medium",
+    "created_at": "2026-10-27T00:00:00+08:00",
+    "updated_at": "2026-10-27T00:00:00+08:00",
+    "terminal_reason": "设备MCP实操验收通过（13/13 绿）",
+    "card_path": "cards/s10-device-mcp/task.md"
+  },
+  {
+    "task_id": "s7-memory-temperature",
+    "state": "COMPLETED",
+    "priority": 80,
+    "dependsOn": [],
+    "parallelGroup": null,
+    "fileDomain": [
+      "H:/UltimaAI/UltimaAgent"
+    ],
+    "reasoningEffort": "medium",
+    "created_at": "2026-10-27T00:00:00+08:00",
+    "updated_at": "2026-10-27T00:00:00+08:00",
+    "terminal_reason": "ACCEPT-1~7 全部 PASS：热度三档按层默认打标（working=hot/declarative=warm/env_profile=cold）+touch 召回计数会话内≥2次升热；升降级四动作状态迁移正确+冷归档 gz 留痕可回溯；三级检索热→温→冷命中即停+冷档解冻回温；中期层=declarative 温档无独立存储；打断单元 pending_interrupt 写入/检索/闭环转温档；brain_loop 四钩子就位；s7 单测 25/25 OK；全量 217 项 213 过+4 项既有基线失败（均未引用本工单改动，零回归）；回执完整。",
+    "card_path": "cards/s7-memory-temperature/task.md"
+  },
+  {
+    "task_id": "voice-kws-wake",
+    "state": "COMPLETED",
+    "priority": 90,
+    "dependsOn": [
+      "s3-voice-fullchain"
+    ],
+    "parallelGroup": null,
+    "fileDomain": [
+      "H:/UltimaAI/UltimaAgent"
+    ],
+    "reasoningEffort": "low",
+    "created_at": "2026-10-27T16:10:00+08:00",
+    "updated_at": "2026-10-27T16:10:00+08:00",
+    "card_path": "cards/voice-kws-wake/task.md",
+    "terminal_reason": "唤醒词真机调参完成（voice-kws-wake COMPLETED，补录残缺字段）"
+  },
+  {
+    "task_id": "kws-siri-style",
+    "state": "COMPLETED",
+    "priority": 85,
+    "dependsOn": [],
+    "parallelGroup": null,
+    "fileDomain": [
+      "H:/UltimaAI/UltimaAgent"
+    ],
+    "reasoningEffort": "medium",
+    "created_at": "2026-10-28T10:30:46+08:00",
+    "updated_at": "2026-10-28T11:05:00+08:00",
+    "terminal_reason": "Codex(ChatGPT账号OAuth登录)执行交付，主脑独立验收8/8 PASS：VAD静音门控(60s静音零推理/CPU 0.094s)+2.5s环形缓冲REARM二次确认+自适应阈值(实际传入create_stream)+能量过零率预筛；单实例锁/预热/KWS_READY保留；真机口述唤醒未现场验证(WAV注入替代)",
+    "card_path": "H:\\UltimaAI\\UltimaAgent\\tasks\\cards\\kws-siri-style\\task.md"
+  },
+  {
+    "task_id": "s11-learning-loop",
+    "state": "COMPLETED",
+    "priority": 70,
+    "dependsOn": [
+      "s3-audit-trail",
+      "s4-brain-loop",
+      "s7-memory-temperature"
+    ],
+    "parallelGroup": null,
+    "fileDomain": [
+      "H:/UltimaAI/UltimaAgent"
+    ],
+    "reasoningEffort": "medium",
+    "created_at": "2026-10-28T18:45:11.836+08:00",
+    "updated_at": "2026-10-28T18:45:11.836+08:00",
+    "terminal_reason": "PASS 6/6：学习闭环三段（轨迹采集/评测/改进）落地，单测15/15全绿，全量236仅1环境性error（ollama不在PATH，无关）；验收回执 docs/reports/evidence/wo-s11-learning-loop/receipt-20261024.md",
+    "card_path": "cards/s11-learning-loop/task.md"
+  },
+  {
+    "task_id": "s12-health-repair",
+    "state": "COMPLETED",
+    "priority": 70,
+    "dependsOn": [
+      "s3-env-cognition",
+      "s3-guard-resident"
+    ],
+    "parallelGroup": null,
+    "fileDomain": [
+      "H:/UltimaAI/UltimaAgent"
+    ],
+    "reasoningEffort": "medium",
+    "created_at": "2026-10-28T18:49:18.04+08:00",
+    "updated_at": "2026-10-28T18:49:18.04+08:00",
+    "terminal_reason": "PASS 6/6：系统体检自动修复闭环（分级→提案→审批门→执行→复检→回执）落地，单测18/18全绿；验收回执 docs/reports/evidence/wo-s12-health-repair/receipt-20261024.md",
+    "card_path": "cards/s12-health-repair/task.md"
+  },
+  {
+    "task_id": "s13-host-abstraction",
+    "state": "COMPLETED",
+    "priority": 70,
+    "dependsOn": [
+      "ADR-001",
+      "ADR-004",
+      "s3-env-cognition"
+    ],
+    "parallelGroup": null,
+    "fileDomain": [
+      "H:/UltimaAI/UltimaAgent"
+    ],
+    "reasoningEffort": "medium",
+    "created_at": "2026-10-28T18:52:38.842+08:00",
+    "updated_at": "2026-10-28T18:52:38.842+08:00",
+    "terminal_reason": "PASS 6/6：宿主抽象层（HostIO/Renderer/Events Protocol + Windows 文件契约适配 + CompositeHost）落地，单测18/18全绿；验收回执 docs/reports/evidence/wo-s13-host-abstraction/receipt-20261024.md",
+    "card_path": "cards/s13-host-abstraction/task.md"
+  }
+]
