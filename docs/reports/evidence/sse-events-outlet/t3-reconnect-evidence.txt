@@ -1,0 +1,14 @@
+Browser: Chrome 156 headless via DevTools Protocol, 1440x900
+Endpoint: http://127.0.0.1:8756/events
+
+Before controlled server stop:
+{"mode":"真实模式","connection":"Token 流","lastEventId":"47","l1":1,"chat":1,"hb":5}
+
+The controlled 8756 server was stopped. The project watchdog restarted the same
+src/brain/agent_server.py on PID 28460. Four seconds after restart:
+{"mode":"真实模式","connection":"Token 流","lastEventId":"47","l1":1,"chat":1,"hb":5}
+
+Result: EventSource reconnected, retained cursor 47, and did not duplicate any
+rendered L1/chat/action entries. The protocol-level cursor test in
+t1-sse-live-output.txt additionally proves that the first non-sticky event after
+reconnect has the new ID after the cursor.

@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-canvas-width="1440" data-canvas-height="900">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark">
+<title>Ultima HUD · 四角壳（白龙马功能对齐版）</title>
+<link rel="preconnect" href="https://miaoda.feishu.cn">
+<link rel="stylesheet" href="https://miaoda.feishu.cn/fonts/css2?family=Orbitron:wght@400;600;700&family=Rajdhani:wght@400;500;600&family=Share+Tech+Mono&display=swap">
+<style>
+/* ============ 白龙马对齐版 HUD 四角壳 ============
+   内容对齐 bailongma-hud-feature-alignment-20261029.md：
+   w-agent ← 左栏「AI 活动 + L1 流」派生（tool_call 分组统计，60s 窗口）
+   w-sys   ← 右栏「心跳监视器」（状态/波形/心跳计数/tok/s/召回抽取）
+   w-msg   ← 中栏「聊天 + 紧凑语音条」（对话 + 语音识别）
+   w-hb    ← 右栏「行动日志 + 思考工具」（工具/命令/文件动作流）
+   ---- 交互形态沿用 hud-edge-widget-preview 定稿：吸附/透明度/AR 字号 ---- */
+* { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --hd-cyan: #0ea5e9; --hd-green: #34d399; --hd-warn: #fbbf24; --hd-coral: #fb7185;
+  --hd-muted: #cbd5e1; --hd-purple: #a78bfa; --hd-dim: #64748b;
+  --hd-mono: 'Share Tech Mono', ui-monospace, monospace;
+  --hd-display: 'Orbitron', 'Rajdhani', system-ui, sans-serif;
+  --edge-alpha: 0.55; --edge-blur: 8px;
+}
+html, body { height: 100%; overflow: hidden; background: #04060c; font-family: 'Rajdhani', system-ui, sans-serif; }
+body { background: radial-gradient(1100px 650px at 70% 20%, rgba(14,165,233,.14), transparent 60%), radial-gradient(800px 550px at 25% 80%, rgba(59,130,246,.10), transparent 60%), linear-gradient(160deg,#050a16,#020617 55%,#060b18); }
+body::after { content:''; position: fixed; inset:0; pointer-events:none;
+  background-image: linear-gradient(rgba(14,165,233,.04) 1px, transparent 1px), linear-gradient(90deg, rgba(14,165,233,.04) 1px, transparent 1px);
+  background-size: 40px 40px; }
+
+.widget { position: fixed; z-index: 10; width: 372px; max-height: 340px;
+  background: rgba(8,12,24,calc(var(--edge-alpha)*1.0));
+  backdrop-filter: blur(var(--edge-blur)); -webkit-backdrop-filter: blur(var(--edge-blur));
+  border: 1px solid rgba(14,165,233,.4);
+  box-shadow: 0 0 22px rgba(6,182,212,.18), inset 0 0 40px rgba(2,6,23,.5);
+  transition: left .22s cubic-bezier(.2,.8,.3,1), top .22s cubic-bezier(.2,.8,.3,1);
+  font-family: var(--hd-mono); overflow: hidden; display: flex; flex-direction: column; }
+.widget.dragging { transition: none; box-shadow: 0 0 30px rgba(14,165,233,.45); }
+.widget.hidden { display: none; }
+
+.whead { display:flex; align-items:center; gap:10px; padding:9px 14px; cursor:grab; user-select:none; flex:0 0 auto;
+  border-bottom:1px solid rgba(14,165,233,.25); background:linear-gradient(180deg,rgba(14,165,233,.12),transparent);
+  letter-spacing:.18em; font-size:13px; color:var(--hd-cyan); text-shadow:0 0 8px rgba(14,165,233,.5); }
+.whead:active { cursor:grabbing; }
+.whead .grip { color:rgba(148,163,184,.6); letter-spacing:.05em; font-size:16px; }
+.whead .wtag { margin-left:auto; color:var(--hd-muted); letter-spacing:.12em; font-size:11px; }
+
+.wcorner { position:absolute; width:18px; height:18px; pointer-events:none; opacity:.9; }
+.wcorner svg { position:absolute; inset:0; width:100%; height:100%; overflow:visible; }
+.wcorner.tl{top:4px;left:4px}.wcorner.tr{top:4px;right:4px}
+.wcorner.bl{bottom:4px;left:4px}.wcorner.br{bottom:4px;right:4px}
+
+.wbody { padding:11px 14px 12px; font-size:15px; color:var(--hd-muted); letter-spacing:.05em; line-height:1.6; overflow-y:auto; flex:1 1 auto; min-height:0; }
+.wbody::-webkit-scrollbar{width:3px}.wbody::-webkit-scrollbar-thumb{background:rgba(80,191,232,.3);border-radius:3px}
+.wrow { display:flex; align-items:center; gap:9px; margin-top:5px; }
+.wrow:first-child { margin-top:0; }
+.wrow .val { color:#f1f5f9; }
+.wrow .cyan { color:#7dd3fc; text-shadow:0 0 8px rgba(14,165,233,.6); }
+.wrow .green { color:#6ee7b7; text-shadow:0 0 8px rgba(52,211,153,.6); }
+.wrow .warn { color:#fcd34d; }
+.wrow .coral { color:#fda4af; }
+.big { font-size:22px; line-height:1.2; }
+.led { width:9px; height:9px; border-radius:50%; display:inline-block; flex:none; }
+.led.g { background:var(--hd-green); box-shadow:0 0 8px var(--hd-green); }
+.led.c { background:var(--hd-cyan); box-shadow:0 0 8px var(--hd-cyan); animation:pulse 1.6s ease-in-out infinite; }
+.led.w { background:var(--hd-warn); box-shadow:0 0 8px rgba(251,191,36,.8); }
+.kick { font-size:11px; letter-spacing:.2em; color:var(--hd-muted); flex:none; }
+
+/* ---- L1 流 / 行动日志 / 思考流 共用条目 ---- */
+.flow { margin-top:8px; display:flex; flex-direction:column; gap:6px; }
+.flow-item { border-left:2px solid rgba(14,165,233,.45); padding:4px 8px; background:rgba(14,165,233,.06); }
+.flow-item .ft { font-size:10px; letter-spacing:.14em; color:var(--hd-dim); display:flex; gap:8px; }
+.flow-item .ft b { color:#7dd3fc; font-weight:600; }
+.flow-item .fc { font-size:14px; color:#e2e8f0; margin-top:2px; line-height:1.5; word-break:break-all; }
+.flow-item.err { border-color:var(--hd-coral); background:rgba(251,113,133,.07); }
+.flow-item.err .fc { color:#fda4af; }
+.flow-item.ok { border-color:var(--hd-green); background:rgba(52,211,153,.06); }
+.flow-item .tool { display:inline-block; font-size:11px; color:#0ea5e9; border:1px solid rgba(14,165,233,.4); padding:0 6px; border-radius:3px; }
+
+/* ---- 心跳波形 ---- */
+.hb { height:58px; border:1px solid rgba(14,165,233,.22); background:rgba(2,6,23,.4); position:relative; overflow:hidden; margin-top:8px; }
+.hb svg { position:absolute; inset:0; width:100%; height:100%; }
+.hb .sweep { position:absolute; top:0; bottom:0; width:2px; background:linear-gradient(180deg,transparent,var(--hd-cyan),transparent); box-shadow:0 0 8px var(--hd-cyan); animation:sweep 2.2s linear infinite; }
+.hb-stat { display:flex; gap:14px; margin-top:7px; font-size:12px; color:var(--hd-muted); flex-wrap:wrap; }
+.hb-stat b { color:#f1f5f9; font-weight:600; }
+
+/* ---- 聊天气泡（AR 大字） ---- */
+.bubble { padding:8px 12px; border-left:3px solid; margin-top:8px; }
+.bubble.user { border-color:var(--hd-cyan); background:rgba(14,165,233,.10); }
+.bubble.ai { border-color:var(--hd-green); background:rgba(52,211,153,.08); }
+.bubble.ext { border-color:var(--hd-purple); background:rgba(167,139,250,.08); }
+.bubble .who { font-size:11px; letter-spacing:.18em; opacity:.75; margin-bottom:2px; }
+.bubble .txt { font-size:16px; color:#f1f5f9; line-height:1.5; word-break:break-all; }
+.bubble.ai .txt { color:#d1fae5; }
+.bubble.ext .txt { color:#e9d5ff; }
+
+/* ---- 语音条（紧凑） ---- */
+.voice-strip { display:flex; align-items:center; gap:9px; margin-top:10px; padding:7px 10px; border:1px solid rgba(52,211,153,.25); background:rgba(52,211,153,.06); }
+.voice-strip .dot { width:8px; height:8px; border-radius:50%; background:var(--hd-green); box-shadow:0 0 8px var(--hd-green); flex:none; }
+.voice-strip .vt { font-size:13px; color:#d1fae5; flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.voice-strip .vhint { font-size:11px; color:var(--hd-dim); flex:none; }
+
+/* ---- AI 活动（派生徽标） ---- */
+.ai-act { display:flex; align-items:center; gap:9px; margin-top:8px; padding:8px 10px; border:1px solid rgba(14,165,233,.3); background:rgba(14,165,233,.08); }
+.ai-act .al { font-size:14px; color:#7dd3fc; letter-spacing:.08em; flex:1; }
+.ai-act .ad { font-size:12px; color:var(--hd-muted); }
+
+/* ---- 控制条 / 页脚 ---- */
+.controls { position:fixed; top:14px; left:50%; transform:translateX(-50%); z-index:40;
+  display:flex; align-items:center; gap:14px; flex-wrap:wrap; justify-content:center;
+  background:rgba(8,12,24,.94); border:1px solid rgba(14,165,233,.4); backdrop-filter:blur(10px);
+  padding:9px 16px; font-family:var(--hd-mono); font-size:13px; color:var(--hd-muted); letter-spacing:.08em; }
+.controls .grp{display:flex;align-items:center;gap:6px}
+.controls .sep{width:1px;height:18px;background:rgba(148,163,184,.25)}
+.controls label{display:flex;align-items:center;gap:6px;cursor:pointer}
+.controls input[type=checkbox]{accent-color:var(--hd-cyan);width:15px;height:15px}
+.controls button{font-family:var(--hd-mono);font-size:12px;letter-spacing:.1em;cursor:pointer;color:var(--hd-muted);background:transparent;border:1px solid rgba(148,163,184,.35);padding:5px 12px}
+.controls button.on{color:var(--hd-cyan);border-color:rgba(14,165,233,.6);box-shadow:0 0 10px rgba(14,165,233,.3);text-shadow:0 0 6px rgba(14,165,233,.5)}
+.legend { position:fixed; left:50%; transform:translateX(-50%); bottom:60px; z-index:40; max-width:640px;
+  font-family:var(--hd-mono); font-size:11px; line-height:1.9; color:rgba(203,213,225,.85); letter-spacing:.04em;
+  background:rgba(8,12,24,.88); border-left:3px solid rgba(14,165,233,.55); padding:9px 14px; }
+.snap-hint{position:fixed;z-index:6;pointer-events:none;display:none;border:1px dashed rgba(14,165,233,.6);box-shadow:0 0 14px rgba(14,165,233,.2);background:rgba(14,165,233,.06)}
+
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+@keyframes sweep{from{left:0}to{left:100%}}
+@media (prefers-reduced-motion: reduce){.led.c,.hb .sweep{animation:none}}
+@media (max-width:900px){.widget{width:312px}.wbody{font-size:13px}.big{font-size:19px}.bubble .txt{font-size:14px}.controls{font-size:11px}}
+</style>
+</head>
+<body>
+
+<div class="snap-hint" id="snapHint"></div>
+
+<!-- ===== 左上 w-agent：对齐白龙马左栏「AI 活动 + L1 流」 ===== -->
+<div class="widget" id="w-agent" style="left:22px; top:22px;">
+  <div class="whead" data-w="w-agent"><span class="grip">≡</span><span>AGENT</span><span class="wtag">吸附:左上</span></div>
+  <div class="wcorner tl"><svg viewBox="0 0 14 14" fill="none"><path d="M1 14 V1 H14" stroke="#0ea5e9" stroke-width="2"/></svg></div>
+  <div class="wcorner br"><svg viewBox="0 0 14 14" fill="none"><path d="M13 0 V13 H0" stroke="#0ea5e9" stroke-width="2"/></svg></div>
+  <div class="wbody">
+    <div class="wrow"><span class="led c"></span><span class="kick">WAKE</span><span class="val cyan">KWS 活跃</span><span class="kick" style="margin-left:auto">VOICE</span><span class="val green">ASR 就绪</span></div>
+    <div class="ai-act" id="ai-act"><span class="led g" id="ai-dot"></span><span class="al" id="ai-label">空闲</span><span class="ad" id="ai-detail"></span></div>
+    <div class="flow" id="flow-l1">
+      <div class="flow-item"><div class="ft"><span>12:18:04</span><b>message_in</b></div><div class="fc">「查一下沈阳天气」</div></div>
+      <div class="flow-item"><div class="ft"><span>12:18:05</span><b>stream_start</b></div><div class="fc">LONGMA 正在回复…</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 右上 w-sys：对齐白龙马右栏「心跳监视器」 ===== -->
+<div class="widget" id="w-sys" style="right:22px; top:22px;">
+  <div class="whead" data-w="w-sys"><span class="grip">≡</span><span>SYSTEM</span><span class="wtag">吸附:右上</span></div>
+  <div class="wcorner tr"><svg viewBox="0 0 14 14" fill="none"><path d="M13 14 V1 H0" stroke="#0ea5e9" stroke-width="2"/></svg></div>
+  <div class="wcorner bl"><svg viewBox="0 0 14 14" fill="none"><path d="M1 0 V13 H14" stroke="#0ea5e9" stroke-width="2"/></svg></div>
+  <div class="wbody">
+    <div class="wrow"><span class="led g" id="hb-dot"></span><span class="kick">CONN</span><span class="val green" id="conn-state">Token 流</span><span class="kick" style="margin-left:auto">TICK</span><span class="val cyan big" id="hb-count">0</span><span class="kick">次</span></div>
+    <div class="hb">
+      <svg viewBox="0 0 340 58" preserveAspectRatio="none" aria-hidden="true">
+        <path d="M0 29 H340" stroke="rgba(14,165,233,.15)" stroke-width="1"></path>
+        <path id="hb-path" d="M0 29 H340" fill="none" stroke="#0ea5e9" stroke-width="2.5" style="filter:drop-shadow(0 0 5px rgba(14,165,233,.8))"></path>
+      </svg>
+      <span class="sweep"></span>
+    </div>
+    <div class="hb-stat">
+      <span>tok/s <b id="s-tok">—</b></span>
+      <span>节点 <b id="s-node">0</b></span>
+      <span>连线 <b id="s-link">0</b></span>
+      <span>召回/h <b id="s-recall">—</b></span>
+      <span>抽取/h <b id="s-extract">—</b></span>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 左下 w-msg：对齐白龙马中栏「聊天 + 紧凑语音条」 ===== -->
+<div class="widget" id="w-msg" style="left:22px; bottom:76px;">
+  <div class="whead" data-w="w-msg"><span class="grip">≡</span><span>MESSAGE</span><span class="wtag">吸附:左下</span></div>
+  <div class="wcorner bl"><svg viewBox="0 0 14 14" fill="none"><path d="M1 0 V13 H14" stroke="#0ea5e9" stroke-width="2"/></svg></div>
+  <div class="wcorner tr"><svg viewBox="0 0 14 14" fill="none"><path d="M13 14 V1 H0" stroke="#0ea5e9" stroke-width="2"/></svg></div>
+  <div class="wbody">
+    <div id="chat-feed">
+      <div class="bubble user"><div class="who">USER</div><div class="txt">帮我查一下今天沈阳的天气</div></div>
+      <div class="bubble ai"><div class="who">LONGMA</div><div class="txt">沈阳多云转晴，13~22℃，东北风 3 级。</div></div>
+    </div>
+    <div class="voice-strip"><span class="dot"></span><span class="vt" id="vt-text">按住空格键开始说话</span><span class="vhint">SPACE</span></div>
+  </div>
+</div>
+
+<!-- ===== 右下 w-hb：对齐白龙马右栏「行动日志 + 思考工具」 ===== -->
+<div class="widget" id="w-hb" style="right:22px; bottom:76px;">
+  <div class="whead" data-w="w-hb"><span class="grip">≡</span><span>HEARTBEAT</span><span class="wtag">吸附:右下</span></div>
+  <div class="wcorner br"><svg viewBox="0 0 14 14" fill="none"><path d="M13 0 V13 H0" stroke="#0ea5e9" stroke-width="2"/></svg></div>
+  <div class="wcorner tl"><svg viewBox="0 0 14 14" fill="none"><path d="M1 14 V1 H14" stroke="#0ea5e9" stroke-width="2"/></svg></div>
+  <div class="wbody">
+    <div class="wrow"><span class="led c"></span><span class="kick">COG</span><span class="val" id="cog-state">L3 待命 · 空闲</span><span class="kick" style="margin-left:auto">TOOL</span><span class="val cyan" id="cur-tool">—</span></div>
+    <div class="flow" id="flow-hb">
+      <div class="flow-item"><div class="ft"><span>12:18:06</span><b>tool_executing</b></div><div class="fc"><span class="tool">weather.query</span> 查询沈阳天气</div></div>
+      <div class="flow-item ok"><div class="ft"><span>12:18:07</span><b>command_run</b></div><div class="fc"><span class="tool">shell</span> python scripts/weather.py --city shenyang</div></div>
+      <div class="flow-item ok"><div class="ft"><span>12:18:08</span><b>tool_call</b></div><div class="fc">天气数据已返回（OK）</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- 控制条 -->
+<div class="controls">
+  <span class="grp">透明度</span>
+  <button id="alphaSafe">安全 0.14</button><button id="alphaStd" class="on">标准 0.55</button><button id="alphaBold">醒目 0.85</button>
+  <span class="sep"></span>
+  <label><input type="checkbox" id="cAgent" checked> AGENT</label>
+  <label><input type="checkbox" id="cSys" checked> SYSTEM</label>
+  <label><input type="checkbox" id="cMsg" checked> MESSAGE</label>
+  <label><input type="checkbox" id="cHb" checked> HEARTBEAT</label>
+  <span class="sep"></span>
+  <button id="demoBtn" class="on">真实模式</button>
+  <span class="hint">拖把手移动 · 松手吸附边缘</span>
+</div>
+<div class="legend">
+  HUD 四角壳 · 内容对齐白龙马 brain-ui 真实功能区（bailongma-hud-feature-alignment-20261029.md）<br>
+  左上=AI活动+L1流(60s窗口派生) · 右上=心跳监视器(tick波形/tok/节点) · 左下=聊天+语音条 · 右下=行动日志+思考工具<br>
+  组件宽 372px · 正文 15px · 关键值 22px · 气泡 16px · 吸附 8 点位 · 透明度三档 · 落地=Win32 透明分层窗口
+</div>
+
+<script>
+(function () {
+  // ============ 吸附（沿用定稿：8 点位） ============
+  var snapHint = document.getElementById('snapHint');
+  function snapPoints() { var w=innerWidth,h=innerHeight,M=22; return [
+    {x:M,y:M,n:'左上'},{x:w-M,y:M,n:'右上'},{x:M,y:h-M,n:'左下'},{x:w-M,y:h-M,n:'右下'},
+    {x:w/2,y:M,n:'顶边'},{x:w/2,y:h-M,n:'底边'},{x:M,y:h/2,n:'左边'},{x:w-M,y:h/2,n:'右边'}]; }
+  var active=null;
+  document.addEventListener('mousedown',function(e){var head=e.target.closest('.whead');if(!head)return;
+    var wid=document.getElementById(head.getAttribute('data-w'));var r=wid.getBoundingClientRect();
+    active={wid:wid,dx:e.clientX-r.left,dy:e.clientY-r.top};e.preventDefault();});
+  document.addEventListener('mousemove',function(e){if(!active)return;
+    active.wid.classList.add('dragging');
+    active.wid.style.left=(e.clientX-active.dx)+'px';active.wid.style.top=(e.clientY-active.dy)+'px';
+    active.wid.style.right='auto';active.wid.style.bottom='auto';
+    var r=active.wid.getBoundingClientRect(),best=null,bd=1e9;
+    snapPoints().forEach(function(p){var cx=r.left+r.width/2,cy=r.top+r.height/2,d=Math.hypot(cx-p.x,cy-p.y);if(d<bd){bd=d;best=p;}});
+    snapHint.style.display='block';snapHint.style.width=r.width+'px';snapHint.style.height=r.height+'px';
+    snapHint.style.left=(best.x-r.width/2)+'px';snapHint.style.top=(best.y-r.height/2)+'px';});
+  document.addEventListener('mouseup',function(){if(!active)return;var wid=active.wid,r=wid.getBoundingClientRect(),best=null,bd=1e9;
+    snapPoints().forEach(function(p){var cx=r.left+r.width/2,cy=r.top+r.height/2,d=Math.hypot(cx-p.x,cy-p.y);if(d<bd){bd=d;best=p;}});
+    snapHint.style.display='none';
+    if(best&&bd<=160){var M=22,nw=r.width,nh=r.height;
+      var map={左上:{left:M,top:M},右上:{right:M,top:M},左下:{left:M,bottom:M},右下:{right:M,bottom:M},顶边:{left:best.x-nw/2,top:M},底边:{left:best.x-nw/2,bottom:M},左边:{left:M,top:best.y-nh/2},右边:{right:M,top:best.y-nh/2}};
+      var s=map[best.n];Object.keys(s).forEach(function(k){wid.style[k]=s[k]+'px';});
+      ['left','top','right','bottom'].forEach(function(k){if(!(k in s))wid.style[k]='auto';});
+      wid.querySelector('.wtag').textContent='吸附:'+best.n;}
+    wid.classList.remove('dragging');active=null;});
+
+  // ============ 透明度 / 开关 ============
+  var alphas={alphaSafe:0.14,alphaStd:0.55,alphaBold:0.85};
+  Object.keys(alphas).forEach(function(id){document.getElementById(id).addEventListener('click',function(){
+    document.documentElement.style.setProperty('--edge-alpha',alphas[id]);
+    [alphaSafe,alphaStd,alphaBold].forEach(function(b){b.classList.remove('on');});this.classList.add('on');});});
+  var toggles={cAgent:'w-agent',cSys:'w-sys',cMsg:'w-msg',cHb:'w-hb'};
+  Object.keys(toggles).forEach(function(id){document.getElementById(id).addEventListener('change',function(){
+    document.getElementById(toggles[id]).classList.toggle('hidden',!this.checked);});});
+
+  // ============ 数据层：真实 SSE（默认）/ 演示模式（离线预览） ============
+  var demo=false, evSeq=0,evTimer=null,eventSource=null,reconnectTimer=null;
+  var LAST_EVENT_KEY='ultima_hud_last_event_id';
+  var EVENT_CORNERS={
+    message_in:'w-agent',message_received:'w-agent',stream_start:'w-agent',memories_written:'w-agent',
+    tick:'w-sys',command_run:'w-sys',error:'w-sys',
+    message:'w-msg',stream_chunk:'w-msg',tts_reply:'w-msg',
+    tool_executing:'w-hb',tool_call:'w-hb',task_advance:'w-hb',audit_record:'w-hb',processing_preempted:'w-hb'
+  };
+  var AI_TOOL_GROUPS={browser:new Set(['browser_press_key','browser_tabs','browser_snapshot']),shell:new Set(['shell_exec','command_run']),memory:new Set(['memories_written','memory_recall']),knowledge:new Set(['knowledge_query']),media:new Set(['media_capture'])};
+  var actLog=[],actFirst=0,actTimer=null,lastActTs=0;
+  function classify(name){for(var k in AI_TOOL_GROUPS){if(AI_TOOL_GROUPS[k].has(name))return k;}return 'general';}
+  function recordAct(name){var now=Date.now();if(!actLog.length)actFirst=now;lastActTs=now;actLog.push({name:name,ts:now,group:classify(name)});refreshAct();}
+  function refreshAct(){var now=Date.now();
+    while(actLog.length&&now-actLog[0].ts>60000)actLog.shift();
+    if(!actLog.length){setAct('idle','空闲','');return;}
+    if(now-lastActTs>8000){setAct('idle','刚完成',''+Math.round((now-lastActTs)/1000)+'秒前');return;}
+    var counts={};actLog.forEach(function(e){counts[e.group]=(counts[e.group]||0)+1;});
+    var dom='general',dc=0;for(var g in counts){if(counts[g]>dc){dc=counts[g];dom=g;}}
+    setAct('busy','正在 '+dom,''+actLog.length+' 次活动 · '+Math.round((now-actFirst)/1000)+'s');}
+  function setAct(state,label,detail){var el=document.getElementById('ai-act'),dot=document.getElementById('ai-dot');
+    el.style.borderColor=state==='busy'?'rgba(251,191,36,.5)':'rgba(14,165,233,.3)';
+    dot.className='led '+(state==='busy'?'w':'g');
+    document.getElementById('ai-label').textContent=label;document.getElementById('ai-detail').textContent=detail;}
+  actTimer=setInterval(refreshAct,1000);
+
+  // 心跳波形：64 采样环形缓冲（对齐白龙马 HEARTBEAT_PULSE_SHAPE）
+  var PULSE=[0.02,0.08,-0.08,0.2,0.92,-0.4,0.34,0.1,0.02],buf=[],hbCount=0;
+  function pushPulse(amp){PULSE.forEach(function(v,i){buf.push(amp*(i===4?1.0:0.62)*v);});while(buf.length>64)buf.shift();renderHb();}
+  function renderHb(){var pts=[];for(var i=0;i<64;i++){var x=i*340/63,y=29-buf[i]*26;pts.push(x+','+y);}
+    document.getElementById('hb-path').setAttribute('d','M0 29 L'+pts.join(' L')+' L340 29');}
+  for(var i=0;i<64;i++)buf.push(0);renderHb();
+
+  // 工具名中文化（对齐 friendlyToolName 形状）
+  var TOOL_ZH={weather_query:'weather.query',shell_exec:'shell',browser_press_key:'browser',memories_written:'memory',knowledge_query:'knowledge',media_capture:'media'};
+  function toolName(n){var r=String(n||'').trim();if(r.startsWith('mcp__'))r=r.split('__').pop();return TOOL_ZH[r]||r;}
+
+  function stamp(){var d=new Date(),p=function(n){return(n<10?'0':'')+n;};return p(d.getHours())+':'+p(d.getMinutes())+':'+p(d.getSeconds());}
+  function flowItem(kind,title,body){var it=document.createElement('div');it.className='flow-item'+(kind==='ok'?' ok':(kind==='err'?' err':''));
+    var ft=document.createElement('div');ft.className='ft';ft.innerHTML='<span>'+stamp()+'</span><b>'+title+'</b>';
+    var fc=document.createElement('div');fc.className='fc';fc.innerHTML=body;
+    it.appendChild(ft);it.appendChild(fc);return it;}
+  function pushFlow(el,item){var feed=document.getElementById(el);feed.insertBefore(item,feed.firstChild);while(feed.children.length>5)feed.removeChild(feed.lastChild);}
+
+  function escapeHtml(value){return String(value==null?'':value).replace(/[&<>"']/g,function(ch){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch];});}
+  function firstText(data){return data.text||data.content||data.message||data.query||data.reason||data.title||'';}
+  function toolFrom(data){return data.tool||data.name||(data.task&&data.task.title)||data.event_type||'tool';}
+  function addChat(data){var text=firstText(data);if(!text)return;var role=String(data.role||data.speaker||'jarvis').toLowerCase();
+    var b=document.createElement('div');b.className='bubble '+(role==='user'?'user':'ai');
+    var who=document.createElement('div');who.className='who';who.textContent=role==='user'?'USER':'JARVIS';
+    var body=document.createElement('div');body.className='txt';body.textContent=text;b.appendChild(who);b.appendChild(body);
+    var feed=document.getElementById('chat-feed');feed.appendChild(b);while(feed.children.length>3)feed.removeChild(feed.firstChild);}
+  function eventSummary(type,data){
+    if(type==='task_advance')return (data.task_id||'task')+' → '+(data.phase||'');
+    if(type==='audit_record')return (data.source||data.node||'audit')+' · '+(data.event_type||data.decision||'recorded');
+    if(type==='tool_call'&&data.report)return (data.report.model||toolFrom(data))+' · '+((data.report.self_check||{}).gate||'done');
+    return firstText(data)||toolFrom(data);}
+  function handleEvent(type,data){
+    var corner=EVENT_CORNERS[type];if(!corner)return;
+    if(corner==='w-agent')pushFlow('flow-l1',flowItem(type==='error'?'err':'',type,escapeHtml(firstText(data)||JSON.stringify(data))));
+    if(type==='tick'){
+      pushPulse(1.0);hbCount++;document.getElementById('hb-count').textContent=hbCount;
+      if(data.tok_s!=null)document.getElementById('s-tok').textContent=data.tok_s;
+      if(data.nodes!=null)document.getElementById('s-node').textContent=data.nodes;
+      if(data.links!=null)document.getElementById('s-link').textContent=data.links;
+    }
+    if(corner==='w-sys'&&type!=='tick'){
+      document.getElementById('conn-state').textContent=type==='error'?('错误 · '+firstText(data)):type;
+      document.getElementById('hb-dot').className='led '+(type==='error'?'w':'g');
+    }
+    if(corner==='w-msg')addChat({role:data.role||'jarvis',text:firstText(data)});
+    if(type==='tool_executing'||type==='tool_call'||type==='task_advance'){
+      var tool=toolFrom(data);if(type.indexOf('tool_')===0)recordAct(tool);
+      document.getElementById('cur-tool').textContent=toolName(tool);
+      document.getElementById('cog-state').textContent=type==='tool_executing'?'思考中':'L3 待命 · 空闲';
+      pushFlow('flow-hb',flowItem(type==='tool_call'?'ok':'',type,'<span class="tool">'+escapeHtml(toolName(tool))+'</span> '+escapeHtml(eventSummary(type,data))));
+    }else if(type==='audit_record'||type==='processing_preempted'){
+      pushFlow('flow-hb',flowItem(type==='processing_preempted'?'err':'',type,escapeHtml(eventSummary(type,data))));
+    }
+  }
+  function handleSSE(evt){
+    var envelope;try{envelope=JSON.parse(evt.data);}catch(_){return;}
+    if(evt.lastEventId)sessionStorage.setItem(LAST_EVENT_KEY,evt.lastEventId);
+    handleEvent(envelope.type||evt.type,envelope.data||{});
+  }
+  function setConnection(label,ok){document.getElementById('conn-state').textContent=label;document.getElementById('hb-dot').className='led '+(ok?'g':'w');}
+  function clearDemoContent(){
+    document.getElementById('flow-l1').innerHTML='';document.getElementById('chat-feed').innerHTML='';document.getElementById('flow-hb').innerHTML='';
+    document.getElementById('cur-tool').textContent='—';document.getElementById('cog-state').textContent='L3 待命 · 空闲';
+  }
+  function stopReal(){if(reconnectTimer){clearTimeout(reconnectTimer);reconnectTimer=null;}if(eventSource){eventSource.close();eventSource=null;}}
+  function connectSSE(){
+    if(demo)return;stopReal();setConnection('连接中',false);
+    var cursor=sessionStorage.getItem(LAST_EVENT_KEY)||'';
+    var m=(location.search||'').match(/[?&]sse=(\d{4,5})/);var port=m?m[1]:'8756';
+    var eventsUrl='http://127.0.0.1:'+port+'/events?client_id=hud-corner&last_event_id='+encodeURIComponent(cursor);
+    eventSource=new EventSource(eventsUrl);
+    eventSource.addEventListener('connected',function(evt){setConnection('Token 流',true);handleSSE(evt);});
+    eventSource.addEventListener('ping',function(){setConnection('Token 流',true);});
+    Object.keys(EVENT_CORNERS).forEach(function(type){eventSource.addEventListener(type,handleSSE);});
+    eventSource.onerror=function(){if(demo)return;stopReal();setConnection('3s 后重连',false);reconnectTimer=setTimeout(connectSSE,3000);};
+  }
+
+  var demoTools=['weather.query','shell.exec','browser.press_key','memories.written','knowledge.query','media.capture'];
+  var demoMsgs=[['user','帮我查一下今天沈阳的天气'],['ai','沈阳多云转晴，13~22℃，东北风 3 级。'],['user','今天的待办队列状态如何？'],['ai','队列正常，3 项待执行、2 项已完成。']];
+  var mi=0;
+  function demoStep(){
+    if(!demo)return;
+    evSeq++;
+    var tool=demoTools[evSeq%demoTools.length];
+    // 1) 记录 AI 活动（tool_call 派生）
+    recordAct(tool);
+    // 2) L1 流：每 4 拍一条用户消息进流
+    if(evSeq%4===1){var u='用户消息 #'+evSeq;pushFlow('flow-l1',flowItem('','message_in',u));}
+    else if(evSeq%4===2){pushFlow('flow-l1',flowItem('','stream_start','LONGMA 正在回复…'));}
+    // 3) 行动日志 + 思考流（右下）
+    var r=evSeq%6;
+    if(r===0){pushFlow('flow-hb',flowItem('ok','command_run','<span class="tool">shell</span> python scripts/task_'+evSeq+'.py'));}
+    else if(r===3){pushFlow('flow-hb',flowItem('','tool_executing','<span class="tool">'+tool+'</span> 正在执行'));}
+    else if(r===4){pushFlow('flow-hb',flowItem('ok','tool_call','<span class="tool">'+tool+'</span> 结果 OK（'+evSeq+'ms）'));}
+    // 4) 心跳波形：收到消息 major=1.0 / 工具执行 minor=0.8
+    pushPulse(r===0||r===3?1.0:0.8);hbCount++;
+    document.getElementById('hb-count').textContent=hbCount;
+    document.getElementById('s-tok').textContent=(120+evSeq*3%180);
+    document.getElementById('s-node').textContent=(26+evSeq%7);
+    document.getElementById('s-link').textContent=(41+evSeq%11);
+    document.getElementById('s-recall').textContent=(evSeq%20)+'·1.3';
+    document.getElementById('s-extract').textContent=(evSeq%15)+'·2.1';
+    // 5) 聊天：交替 user/ai 气泡（最多 3 条）
+    if(evSeq%3===0){var m=demoMsgs[mi%demoMsgs.length];mi++;
+      var b=document.createElement('div');b.className='bubble '+(m[0]==='user'?'user':'ai');
+      b.innerHTML='<div class="who">'+(m[0]==='user'?'USER':'JARVIS')+'</div><div class="txt">'+m[1]+'</div>';
+      var feed=document.getElementById('chat-feed');feed.appendChild(b);
+      while(feed.children.length>3)feed.removeChild(feed.firstChild);}
+    // 6) 认知状态 + 当前工具
+    document.getElementById('cog-state').textContent=(r===0?'思考中':'L3 待命 · 空闲');
+    document.getElementById('cur-tool').textContent=(r===3?'':tool);
+  }
+  document.getElementById('demoBtn').addEventListener('click',function(){
+    demo=!demo;this.textContent=demo?'演示模式':'真实模式';
+    if(demo){stopReal();setConnection('演示模式',false);evTimer=setInterval(demoStep,2600);demoStep();}
+    else{if(evTimer){clearInterval(evTimer);evTimer=null;}clearDemoContent();connectSSE();}});
+
+  clearDemoContent();connectSSE();
+
+  // 时钟（右上角暂并入 SYSTEM 无独立时钟，控制条下方保持简洁）
+})();
+</script>
+</body>
+</html>
