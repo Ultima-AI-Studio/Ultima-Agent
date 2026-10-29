@@ -18,6 +18,15 @@
 | L9 | 记忆与自学习 | 工作/声明式/程序式 + 反思、设备档案与环境档案 | 待建 |
 | L10 | 范式引擎 | 7 环流程强制、范式检查（交互前完整走流程） | 已建（LangGraph 底座） |
 | L10+ | **任务工作流范式（G-TASKFLOW-001）** | **所有任务统一走「登记→计划评审→执行→独立审计→有界修复→验收→冻结」；执行端无关（Codex/DeepSeek/未来模型=可替换执行适配器）；规划/开发/独立审查分离；越界 fail-closed；缺 tag=闭环未完成** | **2026-10-29 已登记为标准基础能力（m28）** |
+| L10+ | **UltimaManager 任务控制面（m29）** | **全系任务管控：工单编号核发（G-WO-NAME-001）、全局队列主表登记（G-DISPATCH-001 自主推进版下为可选监督/审计工具）、接管/来源/授权与前置核验** | **2026-10-29 已登记为标准基础能力（m29）** |
+
+## UltimaManager 任务控制面登记（2026-10-29，m29）
+
+- **权威源**：`H:\UltimaAI\UltimaManager\docs\INDEX.md` + `sync/product.json` + `tasks/queue/index.md` + 全局主表 `_shared/queue/global-queue-index.md`
+- **性质**：UltimaAgent 标准基础能力之一（组件注册表 `ultima-manager` + 能力清单 m29）——全系任务控制面工具，不是唯一派发中枢（G-DISPATCH-001 自主推进版生效后为可选监督/审计工具）
+- **状态**：wo-manager-v01 已冻结（OWNER_RELEASED_AND_FROZEN，tag `wo-manager-v01-frozen-20261029`），不阻塞产品推进
+- **职责边界**：编号核发（G-WO-NAME-001）/ 全局主表登记 / 接管·来源·授权·前置核验 / 正式编号核重登记
+- **Agent 侧承载**：`src/brain/orchestration/`（L10 范式引擎）+ `src/brain/loop/`（m01 派发/接续回路）+ `src/brain/guardrails/`（m19 越界闸门）
 
 ## 任务工作流范式登记（2026-10-29，G-TASKFLOW-001）
 
