@@ -16,11 +16,16 @@
 from __future__ import annotations
 
 import json
+import importlib
+import os
+import queue
 import sys
 import threading
+import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any
+from urllib.parse import parse_qs, urlparse
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
@@ -29,8 +34,10 @@ if str(PROJECT_ROOT) not in sys.path:
 from openjarvis import Jarvis  # noqa: E402
 from openjarvis.core.registry import ToolRegistry  # noqa: E402
 
-# 触发 Ultima 自定义工具注册（@ToolRegistry.register 装饰器）
-import agent_tools_ultima  # noqa: F401,E402
+try:  # 包导入用于测试；脚本入口走 fallback
+    from .events import get_event_bus  # type: ignore[attr-defined] # noqa: E402
+except ImportError:  # pragma: no cover - 脚本入口
+    from events import get_event_bus  # type: ignore[no-redef] # noqa: E402
 
 HOST = "127.0.0.1"
 PORT = 8756
@@ -51,9 +58,23 @@ TOOLS = [
 ]
 DEFAULT_MAX_TOKENS = 1024
 MAX_BODY_BYTES = 1024 * 1024  # 请求体上限 1MB（本地接口防异常大包）
+SSE_PING_SECONDS = 15.0
+EVENT_BUS = get_event_bus()
 
 _jars: Jarvis | None = None
 _ask_lock = threading.Lock()  # Jarvis 单例非线程安全，串行化并发推理
+
+
+def _ensure_tools_registered() -> None:
+    """只加载一次工具注册模块，并兼容脚本/包两种模块身份。"""
+    if "agent_tools_ultima" in sys.modules:
+        return
+    package_name = f"{__package__}.agent_tools_ultima" if __package__ else ""
+    if package_name and package_name in sys.modules:
+        sys.modules["agent_tools_ultima"] = sys.modules[package_name]
+        return
+    module = importlib.import_module(".agent_tools_ultima", __package__) if __package__ else importlib.import_module("agent_tools_ultima")
+    sys.modules.setdefault("agent_tools_ultima", module)
 
 
 # ---------------------------------------------------------------------------
@@ -84,6 +105,7 @@ def _startup_update_check() -> None:
 def get_jarvis() -> Jarvis:
     global _jars
     if _jars is None:
+        _ensure_tools_registered()
         _jars = Jarvis(engine_key=ENGINE_KEY, model=MODEL)
     return _jars
 
@@ -118,11 +140,12 @@ def ask_once(query: str, max_tokens: int | None = None) -> dict[str, Any]:
 
 class _Handler(BaseHTTPRequestHandler):
     server_version = "UltimaAgentServer/0.1"
+    protocol_version = "HTTP/1.1"
 
     def log_message(self, fmt: str, *args: Any) -> None:
         sys.stderr.write(f"[agent-server] {fmt % args}\n")
 
-    def _send_json(self, status: int, payload: dict[str, Any]) -> None:
+    def _send_json(self, status: int, payload: Any) -> None:
         try:
             body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
         except (TypeError, ValueError) as exc:  # 载荷不可序列化：返回可读 500
@@ -133,13 +156,110 @@ class _Handler(BaseHTTPRequestHandler):
         self.send_response(status)
         self.send_header("Content-Type", "application/json; charset=utf-8")
         self.send_header("Content-Length", str(len(body)))
+        self.send_header("Access-Control-Allow-Origin", "*")
         self.end_headers()
         self.wfile.write(body)
 
+    def _write_sse(self, event_type: str, payload: dict[str, Any], event_id: str = "") -> None:
+        lines = []
+        if event_id:
+            lines.append(f"id: {event_id}")
+        lines.append(f"event: {event_type}")
+        lines.append(
+            "data: "
+            + json.dumps(payload, ensure_ascii=False, separators=(",", ":"))
+        )
+        self.wfile.write(("\n".join(lines) + "\n\n").encode("utf-8"))
+        self.wfile.flush()
+
+    def _serve_events(self, query: dict[str, list[str]]) -> None:
+        client_id = (query.get("client_id") or [""])[0] or "anonymous"
+        last_event_id = (query.get("last_event_id") or [""])[0]
+        if not last_event_id:
+            last_event_id = self.headers.get("Last-Event-ID", "")
+
+        pending: queue.Queue[dict[str, Any]] = queue.Queue()
+        unsubscribe = EVENT_BUS.subscribe(pending.put)
+        try:
+            self.send_response(200)
+            self.send_header("Content-Type", "text/event-stream")
+            self.send_header("Cache-Control", "no-cache")
+            self.send_header("Connection", "keep-alive")
+            self.send_header("Access-Control-Allow-Origin", "*")
+            self.send_header("X-Accel-Buffering", "no")
+            self.end_headers()
+
+            history = EVENT_BUS.history()
+            latest_event_id = history[-1]["id"] if history else ""
+            connected = {
+                "type": "connected",
+                "data": {
+                    "client_id": client_id,
+                    "service_time": time.time(),
+                    "resumed_from_event_id": last_event_id,
+                    "latest_event_id": latest_event_id,
+                },
+                "ts": time.time(),
+            }
+            self._write_sse("connected", connected)
+
+            sent_ids: set[str] = set()
+            for event in EVENT_BUS.get_sticky().values():
+                self._write_sse(event["type"], event, event["id"])
+                sent_ids.add(event["id"])
+
+            replay = EVENT_BUS.get_after(last_event_id) if last_event_id else history
+            for event in replay:
+                if event["id"] in sent_ids:
+                    continue
+                self._write_sse(event["type"], event, event["id"])
+                sent_ids.add(event["id"])
+
+            while True:
+                try:
+                    event = pending.get(timeout=SSE_PING_SECONDS)
+                except queue.Empty:
+                    ping = {
+                        "type": "ping",
+                        "data": {"service_time": time.time()},
+                        "ts": time.time(),
+                    }
+                    self._write_sse("ping", ping)
+                    continue
+                if event["id"] in sent_ids:
+                    continue
+                self._write_sse(event["type"], event, event["id"])
+                sent_ids.add(event["id"])
+        except (BrokenPipeError, ConnectionResetError, OSError):
+            return
+        finally:
+            unsubscribe()
+
+    def _serve_event_history(self, query: dict[str, list[str]]) -> None:
+        path = (query.get("path") or ["all"])[0].lower()
+        try:
+            requested_limit = int((query.get("limit") or ["240"])[0])
+            if requested_limit < 0:
+                raise ValueError
+            payload = EVENT_BUS.history(path=path, limit=min(requested_limit, 240))
+        except ValueError:
+            self._send_json(400, {"ok": False, "error": "path 或 limit 参数无效。"})
+            return
+        self._send_json(200, payload)
+
     def do_GET(self) -> None:  # noqa: N802
-        if self.path.rstrip("/") == "/health":
+        parsed = urlparse(self.path)
+        route = parsed.path.rstrip("/") or "/"
+        query = parse_qs(parsed.query)
+        if route == "/health":
             # 返回 14B 实际可调用的工具白名单，而非全部注册工具
             self._send_json(200, {"ok": True, "model": MODEL, "agent": AGENT, "tools": TOOLS})
+            return
+        if route == "/events":
+            self._serve_events(query)
+            return
+        if route == "/events/history":
+            self._serve_event_history(query)
             return
         self._send_json(404, {"ok": False, "error": "未找到该路径。"})
 

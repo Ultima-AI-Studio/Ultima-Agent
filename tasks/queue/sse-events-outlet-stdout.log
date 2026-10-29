@@ -1,0 +1,30 @@
+工单号：`wo-ultimaagent-20261029-0002`
+
+执行端：Codex
+
+完成状态：已完成，T0→T4 Gate 全绿，技术验收通过；尚待独立审计、Owner 验收及 frozen tag。
+
+根因结论：既有 8756 服务缺少事件 journal、SSE 路由、真实源打点及 HUD EventSource 数据层，四角壳只能显示演示数据。现已补齐完整链路。
+
+任务回执：
+
+- T0 事件总线：8 passed；递增 ID、240 条缓冲、sticky、续传、并发及路径过滤通过。
+- T1 `/events`：connected→sticky→历史→实时通过；15.01 秒 ping、断点续传及既有路由回归通过。
+- T2 真实源：ticker、brain_loop、queue、audit、audit_log 五源验证完成，`sources_verified=5`。
+- T3 HUD：真实模式、3 秒重连、sessionStorage 游标、演示模式均完成；冻结样式哈希未变。
+- T4 总验收：`699 passed, 36 warnings, 120 subtests passed`；8756 的 `/health`、`/events`、`/events/history` 均实测 200。
+
+产出路径：
+
+- [阶段报告](/H:/UltimaAI/UltimaAgent/docs/reports/stage-sse-events-outlet-20261029.md)
+- [证据目录](/H:/UltimaAI/UltimaAgent/docs/reports/evidence/sse-events-outlet/)
+- [前端真实模式截图](/H:/UltimaAI/UltimaAgent/docs/reports/evidence/sse-events-outlet/t3-hud-real-mode.png)
+- [工单回填](/H:/UltimaAI/UltimaAgent/tasks/queue/wo-ultimaagent-20261029-0002--sse-events-outlet.md)
+- [EventBus](/H:/UltimaAI/UltimaAgent/src/brain/events/bus.py)
+- [agent_server](/H:/UltimaAI/UltimaAgent/src/brain/agent_server.py)
+
+验收证据：全量测试输出见 `t4-full-pytest.txt`；真端口结果见 `t4-8756-final.txt`；重连证据见 `t3-reconnect-evidence.txt`。
+
+越界声明：无。未修改或激活白龙马；未复制其源码；未动大飞鱼源码、Win32 壳本体、8756 端口配置、全局主表语义、第三方依赖及发布范围。
+
+环境声明：Windows 真机实测，专用 Python 3.13.16、127.0.0.1:8756、Chrome 156 headless；非“仅预期”。

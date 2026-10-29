@@ -22,6 +22,10 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Optional
 
+try:
+    from ..events import emit_event
+except ImportError:  # pragma: no cover - 顶层 orchestration 的既有兼容入口
+    from events import emit_event
 from ..guardrails.paradigm import ParadigmGate, FLOW_RINGS
 
 PHASES = ("立项", "排队", "派发", "执行", "自检", "审计", "回执")
@@ -30,6 +34,13 @@ PROJECT_KEY_RE = re.compile(r"^[a-z]+$")
 DEFAULT_GLOBAL_QUEUE_PATH = Path(r"H:\UltimaAI\_shared\queue\global-queue-index.md")
 QUEUE_STATES = ("frozen", "pending", "executing", "audit", "blocked", "cancelled")
 LOGGER = logging.getLogger(__name__)
+
+
+def _emit_safely(event_type: str, data: dict[str, Any]) -> None:
+    try:
+        emit_event(event_type, data)
+    except Exception as exc:  # noqa: BLE001 - 可观测性不得阻断队列流转
+        LOGGER.warning("event emission failed: %s", exc)
 
 
 def _now_iso() -> str:
@@ -338,6 +349,7 @@ class TaskQueue:
         rec.history.append({"ts": _now_iso(), "phase": phase})
         self._touch(rec)
         self._register(rec, phase)
+        _emit_safely("task_advance", rec.as_dict())
 
     def _register(self, rec: TaskRecord, phase: str) -> None:
         if self.registrar is not None:
