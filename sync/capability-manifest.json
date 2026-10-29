@@ -1,0 +1,331 @@
+{
+  "version": "1.2",
+  "generated_at": "2026-10-29T12:00:00+08:00",
+  "source": "product-alignment-s4-20261027.md §二矩阵 + registry.md + tasks/tasks.json（已完成状态）+ G-TASKFLOW-001 任务工作流范式（2026-10-29 登记 m28）",
+  "surface": [
+    "悬浮球（语音呼唤）",
+    "组合窗口（Jarvis 式界面）"
+  ],
+  "capabilities": [
+    {
+      "id": "m01-brain-loop",
+      "name": "主脑决策回路",
+      "status": "可用",
+      "description": "受理→意图→领域→范式→规划→派发→闸门→执行→审计→编排→表达→呈现→记忆归档 全链；下发执行参数、四查三态审计校正。",
+      "voice_call": "处理这件事 / 执行任务",
+      "command": "执行任务：<目标描述>（带执行参数下发）",
+      "module": "src/brain/loop/brain_loop.py",
+      "evidence": "s4-brain-loop 11/11；s5-external-executor 真冒烟 approved"
+    },
+    {
+      "id": "m02-bus-kernel",
+      "name": "能力插件总线",
+      "status": "可用",
+      "description": "能力清单/注册表/生命周期/依赖/事件/日志/CLI/回滚/驻留。",
+      "voice_call": "（被动支撑，无需呼唤）",
+      "command": "总线管理（内部机制）",
+      "module": "execution/server/ultima_bus/",
+      "evidence": "s3-bus-kernel ACCEPT-1~8（9/9）"
+    },
+    {
+      "id": "m03-msg-bus",
+      "name": "统一消息总线",
+      "status": "可用",
+      "description": "同步/异步/派发/回传三流路由，超时熔断。",
+      "voice_call": "（被动支撑）",
+      "command": "消息路由（内部机制）",
+      "module": "execution/server/ultima_bus/",
+      "evidence": "s3-bus-kernel KP-001~006"
+    },
+    {
+      "id": "m04-state-axis",
+      "name": "状态与记忆共享轴",
+      "status": "可用",
+      "description": "会话/身份关系/设备档案/任务队列四类全局状态统一供读，跨形态同步。",
+      "voice_call": "（被动支撑）",
+      "command": "状态快照（悬浮球/组合窗口同源）",
+      "module": "src/brain/state/axis.py",
+      "evidence": "s4-state-axis 7/7"
+    },
+    {
+      "id": "m05-voice-in",
+      "name": "语音输入",
+      "status": "可用",
+      "description": "唤醒词→断句→识别→同入口，支持打断（BargeIn）。",
+      "voice_call": "（说话即输入）",
+      "command": "对悬浮球说话 / 唤醒词呼唤",
+      "module": "src/brain/voice/",
+      "evidence": "s3-voice-fullchain；DEFECT-002 已修复"
+    },
+    {
+      "id": "m06-voice-out",
+      "name": "语音输出",
+      "status": "可用",
+      "description": "TTS 流式播报、三态节拍、近静音兜底。",
+      "voice_call": "播报结果 / 念一下",
+      "command": "语音播报（自动）",
+      "module": "src/brain/voice/tts.py",
+      "evidence": "s3-voice-fullchain；DEFECT-001 已修复"
+    },
+    {
+      "id": "m07-orb",
+      "name": "悬浮球形态",
+      "status": "可用",
+      "description": "毒液/黑液双层渲染，六态+emotionId，可拖拽，语音入口。",
+      "voice_call": "打开悬浮球",
+      "command": "悬浮球（常驻形态）",
+      "module": "libs/orb-render/ + src/host-shell/",
+      "evidence": "ORB-N1~N3；behavior-layer 事件映射"
+    },
+    {
+      "id": "m08-combo-window",
+      "name": "组合窗口",
+      "status": "可用",
+      "description": "A2UI 组件树/schema 校验/主题令牌/流式渲染，WebView2 上壳，控件+Ultima 组件 active 渲染。",
+      "voice_call": "打开组合窗口",
+      "command": "组合窗口（Jarvis 式完整界面）",
+      "module": "src/window/ + src/host-shell/",
+      "evidence": "s4-a2ui-renderer 8/8；s2-combo-window"
+    },
+    {
+      "id": "m10-task-queue",
+      "name": "任务队列与编排",
+      "status": "可用",
+      "description": "任务卡/优先级/派发锁/超时重试/回执/失败重规划。",
+      "voice_call": "查询任务状态 / 调整任务优先级",
+      "command": "查询任务状态；调整任务优先级：<任务><数值>",
+      "module": "src/brain/orchestration/ + tasks/queue_engine/",
+      "evidence": "s3-orchestrator；ultima_task_query/ultima_task_adjust"
+    },
+    {
+      "id": "m11-subagent",
+      "name": "子智能体调度",
+      "status": "可用",
+      "description": "派发/分片/结果回收/权限继承受控（子任务权限必须是主任务子集）。",
+      "voice_call": "派个子任务 / 交给子智能体",
+      "command": "派个子任务：<任务描述>",
+      "module": "src/brain/orchestration/",
+      "evidence": "s3-orchestrator；ultima_subagent"
+    },
+    {
+      "id": "m12-local-exec",
+      "name": "本机执行通道",
+      "status": "可用",
+      "description": "桌面窗口只读探测、控制动作三层闸门（白名单+征询+已注册实现）、操作后重新观察。",
+      "voice_call": "操作本机 / 打开软件",
+      "command": "本机操作（控制动作需登记+征询）",
+      "module": "src/brain/exec/channel.py",
+      "evidence": "s4-local-exec 6/6"
+    },
+    {
+      "id": "m13-browser",
+      "name": "浏览器自动化",
+      "status": "可用",
+      "description": "CDP 双轨、会话隔离、只读红线（发帖/评论/点赞/私信/登录全拒）。",
+      "voice_call": "打开网页 / 帮我浏览",
+      "command": "浏览/检索类只读操作",
+      "module": "src/brain/browser/channel.py",
+      "evidence": "s3-browser-channel"
+    },
+    {
+      "id": "m14-websearch",
+      "name": "联网检索",
+      "status": "可用",
+      "description": "多引擎 primary→fallback 降级标记、SSRF 防护。",
+      "voice_call": "搜索一下 / 查一下资料",
+      "command": "搜索：<关键词>",
+      "module": "src/brain/search/upgrade.py",
+      "evidence": "s3-websearch-upgrade"
+    },
+    {
+      "id": "m15-device-profile",
+      "name": "设备档案",
+      "status": "可用",
+      "description": "设备发现→凭证→可控性三独立判定；MCP 实操阶段后置。",
+      "voice_call": "查设备档案",
+      "command": "设备档案查询",
+      "module": "src/brain/iot/device_profile.py",
+      "evidence": "s3-device-profile"
+    },
+    {
+      "id": "m16-env-cognition",
+      "name": "环境认知",
+      "status": "可用",
+      "description": "硬件/磁盘/网络/进程扫描、基线比对、档案持久化。",
+      "voice_call": "环境怎么样 / 系统状态",
+      "command": "环境快照：<项>",
+      "module": "src/brain/environment_upgrade.py",
+      "evidence": "s3-env-cognition；ultima_env_snapshot"
+    },
+    {
+      "id": "m17-memory",
+      "name": "分层记忆",
+      "status": "可用",
+      "description": "四层+本地向量，检索/写入/遗忘边界。",
+      "voice_call": "记住这个 / 记一下",
+      "command": "记忆写入/检索（内部机制）",
+      "module": "src/brain/memory/",
+      "evidence": "s3-memory-base"
+    },
+    {
+      "id": "m18-bond",
+      "name": "关系记忆与人格",
+      "status": "可用",
+      "description": "默认贾维斯式管家，档位/称呼/口吻，诚实边界固定。",
+      "voice_call": "你叫什么 / 你的身份",
+      "command": "身份/称呼（羁绊档位控制）",
+      "module": "src/brain/persona/bond.py",
+      "evidence": "s3-bond-system"
+    },
+    {
+      "id": "m19-guard",
+      "name": "行为约束与权限闸门",
+      "status": "可用",
+      "description": "策略判定/越界拦截/权限矩阵/高危征询，驻留 fail-closed。",
+      "voice_call": "（被动防护）",
+      "command": "（自动拦截越界）",
+      "module": "src/brain/guardrails/",
+      "evidence": "s3-guard-resident"
+    },
+    {
+      "id": "m20-credential",
+      "name": "凭证中心",
+      "status": "可用",
+      "description": "DPAPI 加密、四层凭证层、轮换、keyId 引用、明文零出现。",
+      "voice_call": "存个密钥 / 保存凭证",
+      "command": "凭证存取（高危征询）",
+      "module": "src/brain/guardrails/credentials.py",
+      "evidence": "s3-credential-bus"
+    },
+    {
+      "id": "m21-audit",
+      "name": "审计与轨迹留痕",
+      "status": "可用",
+      "description": "只追加审计日志、独立复核、回执机检。",
+      "voice_call": "（被动留痕）",
+      "command": "（每次执行自动留痕）",
+      "module": "src/brain/guardrails/audit_log.py",
+      "evidence": "s3-audit-trail"
+    },
+    {
+      "id": "m22-watchdog",
+      "name": "看门狗与循环防护",
+      "status": "可用",
+      "description": "重复/乒乓/超时判定、进程守护、资源上限、熔断降级。",
+      "voice_call": "（被动守护）",
+      "command": "（自动防护）",
+      "module": "scripts/watchdog-loopguard.py",
+      "evidence": "s3-watchdog"
+    },
+    {
+      "id": "m23-supply-chain",
+      "name": "供应链与插件信任闸门",
+      "status": "可用",
+      "description": "白名单/License/CVE/版本锁定/入库前置审查。",
+      "voice_call": "（被动审查）",
+      "command": "（插件/依赖入库自动审查）",
+      "module": "src/brain/guardrails/supply_chain.py",
+      "evidence": "s3-supply-chain"
+    },
+    {
+      "id": "m24-channel",
+      "name": "渠道连接器",
+      "status": "可用",
+      "description": "IM 桥接、WAL/Outbox、审批两端、红线（不代登录/不索密码）。",
+      "voice_call": "发条消息到<渠道>",
+      "command": "消息外发（需审批）",
+      "module": "src/brain/channel/ime_bridge.py",
+      "evidence": "s3-ime-bridge"
+    },
+    {
+      "id": "m26-paradigm",
+      "name": "范式引擎",
+      "status": "可用",
+      "description": "7 环流程强制、不可跨环、驻留校验。",
+      "voice_call": "（被动流程约束）",
+      "command": "（交互前完整走流程）",
+      "module": "src/brain/guardrails/paradigm.py",
+      "evidence": "s3-guard-resident + LangGraph 接线"
+    },
+    {
+      "id": "m27-heartbeat",
+      "name": "主动心跳与调度",
+      "status": "可用",
+      "description": "TICK 30s、空闲思考边界、主动发言提案、抢占让位；场景引擎：定时提醒/异常巡检（防重复轰炸，持久化）",
+      "voice_call": "（主动提醒）",
+      "command": "主动提醒：<事项>；巡检任务异常",
+      "module": "src/brain/heartbeat/",
+      "evidence": "s3-heartbeat + s8-proactive-scenes 14/14"
+    },
+    {
+      "id": "m01-ext-model",
+      "name": "外部深度模型路由",
+      "status": "可用",
+      "description": "本地主脑下发执行参数→外部大模型（DeepSeek）深度执行→返回参数明细→四查审计。",
+      "voice_call": "（深度任务自动外发）",
+      "command": "复杂任务自动路由外部模型",
+      "module": "src/brain/loop/external_executor.py",
+      "evidence": "s5-external-executor 真冒烟 approved"
+    },
+    {
+      "id": "m18-bond-deepen",
+      "name": "羁绊系统（阶段二）",
+      "status": "可用",
+      "description": "关系记忆沉淀（偏好/互动史可查询）、距离档位显式开放可回退、跨形态共享状态轴；不做疲劳无聊模拟。",
+      "voice_call": "开放亲密档 / 记住我喜欢 <事项> / 查询关系记忆",
+      "command": "开放亲密档 / 记住：<偏好> / 回退亲密档",
+      "module": "src/brain/persona/bond.py",
+      "evidence": "s7-bond-deepen 11/11"
+    },
+    {
+      "id": "m24-channel-breadth",
+      "name": "渠道连接器（铺开）",
+      "status": "可用",
+      "description": "渠道注册表 + 统一入站/出站（WAL/Outbox）、本地通知与邮件占位通道、高危两端审批超时 fail-safe、只读红线。",
+      "voice_call": "（渠道调度内部机制）",
+      "command": "渠道调度（内部机制）",
+      "module": "src/brain/channel/channel_breadth.py",
+      "evidence": "s9-channel-breadth 12/12"
+    },
+    {
+      "id": "m15-device-mcp",
+      "name": "设备接入（MCP 实操框架）",
+      "status": "可用",
+      "description": "MCP JSON-RPC stdio 运行时 + 设备档案可控性三判定过滤工具 + FakeMcpServer 冒烟；真实设备接线待配 server。",
+      "voice_call": "查询设备状态 / 控制设备（经征询）",
+      "command": "设备：<动作>（走档案/凭证/可控性链）",
+      "module": "src/brain/iot/mcp_runtime.py",
+      "evidence": "s10-device-mcp 13/13"
+    },
+    {
+      "id": "m28-task-workflow",
+      "name": "任务工作流范式（G-TASKFLOW-001）",
+      "status": "可用",
+      "description": "所有任务统一工作流：登记→计划评审→执行→独立审计→有界修复→验收→冻结；执行端无关（Codex/DeepSeek/未来模型为可替换执行适配器，替换入口不改变工作流本体）；规划/开发/独立审查分离；越界 fail-closed；缺 tag=闭环未完成。",
+      "voice_call": "派个任务（走标准任务工作流）",
+      "command": "执行任务：<目标>（自动按任务工作流登记→评审→执行→审计→验收→冻结）",
+      "module": "范式权威源 _shared/paradigms/UltimaAI-任务工作流范式.md + src/brain/orchestration/（L10）+ src/brain/loop/（m01）",
+      "evidence": "UltimaManager 实战验证（plan→review→develop→audit→repair→approval→frozen）+ 2026-10-29 全量 239+120 复绿；tag gtaskflow-001-registered-20261029"
+    }
+  ],
+  "planned": [
+    {
+      "id": "m09-multimodal",
+      "name": "多模态呈现扩展",
+      "status": "规划中",
+      "phase": "阶段三"
+    },
+    {
+      "id": "m25-multiend",
+      "name": "多端形态配置",
+      "status": "规划中",
+      "phase": "阶段三"
+    },
+    {
+      "id": "m28-embodied",
+      "name": "具身机器人接入",
+      "status": "规划中",
+      "phase": "阶段四"
+    }
+  ]
+}
