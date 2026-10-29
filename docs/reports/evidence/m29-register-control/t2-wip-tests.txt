@@ -1,0 +1,27 @@
+Interpreter: H:\UltimaAI\UltimaAgent\tools\venv-openjarvis\Scripts\python.exe
+
+Command:
+python.exe -m pytest src/brain/orchestration/tests/test_register_control_m29.py -q --disable-warnings
+
+T2 checkpoint result:
+............                                                             [100%]
+12 passed in 2.53s
+
+Command:
+python.exe -m pytest src/brain/orchestration/tests -q --disable-warnings
+
+T2 directory regression result:
+................................                                         [100%]
+32 passed in 2.60s
+
+Observed refusal structures:
+1. Global execution capacity
+   {"allowed": false, "reason": "全项目执行中已达上限 3", "current_executing": 3, "max_executing": 3}
+2. Per-project execution capacity
+   {"allowed": false, "reason": "UltimaAgent 执行中已达上限 1", "current_executing": 1, "max_executing": 1}
+3. Global audit capacity
+   {"allowed": false, "reason": "全项目审计中已达上限 1", "current_executing": 1, "max_executing": 1}
+4. Below limits
+   {"allowed": true, "reason": "WIP 容量可用", "current_executing": 1, "max_executing": 3}
+
+All rejection tests assert that the local phase remains unchanged.
