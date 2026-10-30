@@ -1,6 +1,6 @@
 # Codex 工单 · UltimaAgent｜架构｜0003 T4 阻塞清理（HUD 冻结哈希重冻结 + 队列读取容缺）
 
-> 版本：v1.0 ｜ 状态：执行完成（T0-T2 PASS；待主脑复核 0003 T4 与冻结门，2026-10-30）｜ 适用工具：Codex（`codex exec`，`-m gpt-5.6-sol`）
+> 版本：v1.1 ｜ 状态：**已完成**（T0-T2 全 PASS；主脑复核通过，0003 T4 转绿；2026-10-30 冻结 commit 12330ea + tag wo-ultimaagent-20261030-0003-frozen-20261030）｜ 适用工具：Codex（`codex exec`，`-m gpt-5.6-sol`）
 > 用法：按 T0→T2 顺序逐条执行，Gate 全绿才过，再进下一条。
 > 范围依据：`H:\UltimaAI\INDEX.md` + `H:\UltimaAI\_shared\paradigms\UltimaAI-任务工作流范式.md` + `docs/INDEX.md`
 > 阻塞依据：`wo-ultimaagent-20261030-0003` T4 全量回归 2 个范围外既有失败（2026-10-30 Codex 回执，未越界修复）

@@ -1,6 +1,6 @@
 # Codex 工单 · UltimaAgent｜架构｜多层级覆盖 voice-profile（人设/唤醒词/回答风格/输入设备统一配置）
 
-> 版本：v1.0 ｜ 状态：执行阻塞（T0-T3 PASS；T4 最新全量回归 2 个范围外既有失败，2026-10-30）｜ 适用工具：Codex（`codex exec`，`-m gpt-5.6-sol`）
+> 版本：v1.1 ｜ 状态：**已冻结**（T0-T3 PASS、T4 阻塞经 0006 清障转绿；2026-10-30 冻结 commit 12330ea + tag wo-ultimaagent-20261030-0003-frozen-20261030）｜ 适用工具：Codex（`codex exec`，`-m gpt-5.6-sol`）
 > 用法：按 T0→T4 顺序逐条执行，Gate 全绿才过，再进下一条。
 > 范围依据：`H:\UltimaAI\INDEX.md` + `H:\UltimaAI\_shared\paradigms\UltimaAI-任务工作流范式.md` + `H:\UltimaAI\_shared\paradigms\UltimaAI-全局工单命名标准.md` + `docs/INDEX.md`
 > 调研依据：`docs/research/jarvis-persona-research-20261030.md`（贾维斯人设现成方案调研）+ `docs/specs/kws-wakeup-params-baseline.md`（KWS/ASR 参数冻结基线）
@@ -161,7 +161,7 @@ T0 voice-profile.json+装载模块：已完成，Gate T0 全绿（8 passed：回
 T1 唤醒词热重载：已完成，Gate T1 全绿（6 passed；中文 custom 经指定 ASR 解释器转换；同 PID custom→keywords.txt→spotter 重建；新词与原词 WAV 均命中）
 T2 jarvis 人设+三硬约束：已完成，Gate T2 全绿（19 passed，含 T0/T1 回归；本地 agent_server 实测无营销话术、≤2 句、回退 jarvis）
 T3 回答后过滤：已完成，Gate T3 全绿（29 passed；banned 拦截/超句截断/事实性表述不误杀）
-T4 总验收：阻塞；专项回归 51 passed，但最新 `pytest src` 为 725 passed + 120 subtests passed / 2 failed，失败均在冻结写域外，未越界修复；证据已落盘
+T4 总验收：已通过（经 0006 清障转绿：HUD 冻结哈希重冻结 f336fd77、队列读取容缺；全量 731 passed + 120 subtests / 0 failed，修复前 2 failed 清零）；2026-10-30 冻结 commit 12330ea + tag wo-ultimaagent-20261030-0003-frozen-20261030；清障证据 docs/reports/stage-0003-t4-clear-20261030.md + evidence/t4-clear/
 ```
 
 ---
