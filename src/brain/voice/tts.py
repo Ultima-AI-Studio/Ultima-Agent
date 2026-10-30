@@ -29,12 +29,61 @@ from src.brain.voice.resources import (
     CV3_RUNTIME_PYTHON,
     all_cv3_resources_ready,
 )
+from src.brain.voice.voice_profile import (
+    DEFAULT_PROFILE,
+    ROOT,
+    is_usable_reference_audio,
+    load_profile,
+)
 
 # 写域 vendor（pkg_resources shim），注入推理子进程 PYTHONPATH
 _VENDOR_DIR = Path(__file__).resolve().parent / "_vendor"
 
-# CosyVoice 源码自带参考音频（zero-shot 音色参考，只读）
-PROMPT_WAV = COSYVOICE_SOURCE / "asset" / "zero_shot_prompt.wav"
+DEFAULT_PROMPT_TEXT = "希望你以后能够做的比我还好呦。<|endofprompt|>"
+DEFAULT_JARVIS_PROMPT_TEXT = (
+    "Hello, Mr. Stark. I am Jarvis. And may I say, your suit is on fire."
+    "<|endofprompt|>"
+)
+
+
+def resolve_prompt_wav(profile: dict | None = None) -> Path:
+    """Resolve the configured zero-shot reference, falling back to CosyVoice."""
+    loaded = load_profile() if profile is None else profile
+    voice = loaded.get("voice", {}) if isinstance(loaded, dict) else {}
+    configured = voice.get("ref_audio") if isinstance(voice, dict) else None
+    if isinstance(configured, str) and configured.strip():
+        candidate = Path(configured.strip()).expanduser()
+        if not candidate.is_absolute():
+            candidate = ROOT / candidate
+        if is_usable_reference_audio(candidate):
+            return candidate
+    return COSYVOICE_SOURCE / "asset" / "zero_shot_prompt.wav"
+
+
+def _same_file(left: Path, right: Path) -> bool:
+    try:
+        return left.samefile(right)
+    except OSError:
+        return left.resolve(strict=False) == right.resolve(strict=False)
+
+
+def resolve_prompt_pair(profile: dict | None = None) -> tuple[Path, str]:
+    """Resolve one internally consistent prompt WAV/transcript pair."""
+    loaded = load_profile() if profile is None else profile
+    voice = loaded.get("voice", {}) if isinstance(loaded, dict) else {}
+    configured = voice.get("prompt_text") if isinstance(voice, dict) else None
+    prompt_wav = resolve_prompt_wav(loaded)
+    if isinstance(configured, str) and configured.strip():
+        return prompt_wav, configured.strip()
+    default_jarvis = ROOT / DEFAULT_PROFILE["voice"]["ref_audio"]
+    if _same_file(prompt_wav, default_jarvis):
+        return prompt_wav, DEFAULT_JARVIS_PROMPT_TEXT
+    return prompt_wav, DEFAULT_PROMPT_TEXT
+
+
+def resolve_prompt_text(profile: dict | None = None) -> str:
+    """Resolve the transcript paired with the selected zero-shot reference."""
+    return resolve_prompt_pair(profile)[1]
 
 # 推理脚本（写入 write-domain 临时目录，随调用创建）
 _INLINE_SCRIPT = r"""
@@ -46,9 +95,9 @@ os.environ.setdefault("TRANSFORMERS_OFFLINE", "1")
 os.environ.setdefault("HF_HUB_DISABLE_TELEMETRY", "1")
 os.environ.setdefault("PYTHONNOUSERSITE", "1")
 
-source = Path(r"{source}")
-model = Path(r"{model}")
-prompt_wav = Path(r"{prompt_wav}")
+source = Path({source})
+model = Path({model})
+prompt_wav = Path({prompt_wav})
 sys.path.insert(0, str(source))
 sys.path.insert(0, str(source / "third_party" / "Matcha-TTS"))
 
@@ -67,7 +116,7 @@ else:
     os.environ["CUDA_VISIBLE_DEVICES"] = ""
 
 cosy = AutoModel(model_dir=str(model), load_trt=False, load_vllm=False, fp16=True)
-prompt_text = "希望你以后能够做的比我还好呦。<|endofprompt|>"
+prompt_text = {prompt_text}
 
 speech = None
 for block in cosy.inference_zero_shot(text, prompt_text, str(prompt_wav), stream=False, speed=1.0):
@@ -84,7 +133,8 @@ if _peak > 0.0:
         pcm = np.clip(pcm * _gain, -1, 1)
 sf.write(out_wav, pcm, cosy.sample_rate, subtype="PCM_16")
 print(json.dumps({"ok": True, "wav": out_wav, "rate": cosy.sample_rate,
-                  "seconds": len(pcm) / cosy.sample_rate, "device": device}))
+                  "seconds": len(pcm) / cosy.sample_rate, "device": device,
+                  "engine": "cv3"}))
 """
 
 
@@ -234,16 +284,18 @@ def _synthesize_sherpa(text: str, out_wav: Path) -> dict:
             "engine": "sherpa-melo-tts"}
 
 
-def _render_script() -> Path:
+def _render_script(profile: dict | None = None) -> Path:
     """将推理脚本渲染并写入写域临时目录，返回路径。"""
     import tempfile
 
     tmp = Path(tempfile.gettempdir()) / "ultima-voice"
     tmp.mkdir(parents=True, exist_ok=True)
     script = tmp / "tts_inline.py"
-    content = _INLINE_SCRIPT.replace("{source}", str(COSYVOICE_SOURCE))
-    content = content.replace("{model}", str(CV3_MODEL_ROOT))
-    content = content.replace("{prompt_wav}", str(PROMPT_WAV))
+    prompt_wav, prompt_text = resolve_prompt_pair(profile)
+    content = _INLINE_SCRIPT.replace("{source}", json.dumps(str(COSYVOICE_SOURCE)))
+    content = content.replace("{model}", json.dumps(str(CV3_MODEL_ROOT)))
+    content = content.replace("{prompt_wav}", json.dumps(str(prompt_wav)))
+    content = content.replace("{prompt_text}", json.dumps(prompt_text, ensure_ascii=False))
     script.write_text(content, encoding="utf-8")
     return script
 
@@ -256,9 +308,9 @@ os.environ.setdefault("HF_HUB_OFFLINE", "1")
 os.environ.setdefault("TRANSFORMERS_OFFLINE", "1")
 os.environ.setdefault("PYTHONNOUSERSITE", "1")
 
-source = Path(r"{source}")
-model = Path(r"{model}")
-prompt_wav = Path(r"{prompt_wav}")
+source = Path({source})
+model = Path({model})
+prompt_wav = Path({prompt_wav})
 sys.path.insert(0, str(source))
 sys.path.insert(0, str(source / "third_party" / "Matcha-TTS"))
 
@@ -292,9 +344,11 @@ def tts_probe(timeout: int = 120) -> dict:
     tmp = Path(__import__("tempfile").gettempdir()) / "ultima-voice"
     tmp.mkdir(parents=True, exist_ok=True)
     script = tmp / "tts_probe.py"
-    content = _PROBE_SCRIPT.replace("{source}", str(COSYVOICE_SOURCE))
-    content = content.replace("{model}", str(CV3_MODEL_ROOT))
-    content = content.replace("{prompt_wav}", str(PROMPT_WAV))
+    content = _PROBE_SCRIPT.replace("{source}", json.dumps(str(COSYVOICE_SOURCE)))
+    content = content.replace("{model}", json.dumps(str(CV3_MODEL_ROOT)))
+    content = content.replace(
+        "{prompt_wav}", json.dumps(str(resolve_prompt_wav()))
+    )
     script.write_text(content, encoding="utf-8")
 
     env = dict(os.environ)
@@ -493,7 +547,7 @@ def tts_synthesize(text: str, out_wav: str | Path, timeout: int = 300) -> dict:
         result = _synthesize_once(candidate, out, timeout)
         result["attempt"] = idx + 1
         result["attempt_text"] = candidate
-        attempts.append(result)
+        attempts.append(dict(result))
         if result.get("ok") and not tts_output_is_near_silent(out):
             result["attempts"] = attempts
             return _finalize_synthesized(result, out, text, expanded, effective_text)
@@ -548,44 +602,13 @@ def _synthesize_edge(text: str, out_wav: Path) -> dict:
             "device": "cloud", "engine": "edge-tts"}
 
 
-def _synthesize_once(text: str, out_wav: Path, timeout: int) -> dict:
-    """单次合成（edge-tts 联网首选 → Piper 本地 → sherpa-Melo 本地 → daemon → 冷启动兜底）。"""
-    # edge-tts 首选：微软神经网络语音，音质干净无混响（对话玩具/设备主流方案）；失败回退本地
-    try:
-        edge_result = _synthesize_edge(text, out_wav)
-        if edge_result.get("ok") and Path(edge_result["wav"]).is_file():
-            return edge_result
-    except Exception as exc:
-        print(f"TTS edge unavailable, fallback local: {exc}")
-    # Piper 次选（本地干净音质）；失败回退 Melo
-    if _piper_available():
-        try:
-            piper_result = _synthesize_piper(text, out_wav)
-            if piper_result.get("ok") and Path(out_wav).is_file():
-                return piper_result
-        except Exception as exc:
-            print(f"TTS piper unavailable, fallback melo: {exc}")
-    # sherpa-onnx Melo 次选（离线 44100Hz）；失败回退原链路
-    if _sherpa_tts_available():
-        try:
-            sherpa_result = _synthesize_sherpa(text, out_wav)
-            if sherpa_result.get("ok") and Path(out_wav).is_file():
-                return sherpa_result
-        except Exception as exc:
-            print(f"TTS sherpa unavailable, fallback original: {exc}")
-    # T2 调校：优先常驻服务（模型只加载一次，秒级推理）
-    try:
-        from src.brain.voice.daemon import daemon_tts_synthesize
-
-        daemon_result = daemon_tts_synthesize(text, out_wav, timeout=timeout)
-        if daemon_result is not None and daemon_result.get("ok"):
-            return daemon_result
-        if daemon_result is not None and not daemon_result.get("ok"):
-            # 常驻已起但本次失败：显式记录，回退冷启动
-            print(f"TTS daemon synthesize failed, fallback cold-start: {daemon_result.get('error')}")
-    except Exception as exc:  # 常驻通道任何异常均回退冷启动，不影响主链路
-        print(f"TTS daemon unavailable, fallback cold-start: {exc}")
-
+def _synthesize_cv3_cold(
+    text: str,
+    out_wav: Path,
+    timeout: int,
+    profile: dict | None = None,
+) -> dict:
+    """Run one offline CV3 cold-start synthesis with the resolved voice profile."""
     if not all_cv3_resources_ready():
         missing = [
             k for k, v in {
@@ -596,10 +619,11 @@ def _synthesize_once(text: str, out_wav: Path, timeout: int) -> dict:
             if not v
         ]
         raise RuntimeError(f"CV3 资源未就绪，缺: {missing}")
-    if not PROMPT_WAV.is_file():
-        raise RuntimeError(f"参考音频缺失: {PROMPT_WAV}")
+    prompt_wav = resolve_prompt_wav(profile)
+    if not prompt_wav.is_file():
+        raise RuntimeError(f"参考音频缺失: {prompt_wav}")
 
-    script = _render_script()
+    script = _render_script(profile)
     env = dict(os.environ)
     env["PYTHONPATH"] = str(_VENDOR_DIR) + (
         os.pathsep + env["PYTHONPATH"] if env.get("PYTHONPATH") else ""
@@ -617,7 +641,9 @@ def _synthesize_once(text: str, out_wav: Path, timeout: int) -> dict:
     last = out_lines[-1] if out_lines else ""
     if last.startswith("{"):
         try:
-            return json.loads(last)
+            result = json.loads(last)
+            result.setdefault("engine", "cv3")
+            return result
         except json.JSONDecodeError:
             pass
     raise RuntimeError(
@@ -625,6 +651,77 @@ def _synthesize_once(text: str, out_wav: Path, timeout: int) -> dict:
         f"stdout尾: {out_lines[-3:] if out_lines else '空'}\n"
         f"stderr尾: {(proc.stderr or '').strip().splitlines()[-3:] if (proc.stderr or '').strip() else '空'}"
     )
+
+
+def _synthesize_once(text: str, out_wav: Path, timeout: int) -> dict:
+    """单次合成（daemon CV3 → 冷启动 CV3 → Piper → Melo → 可选 edge）。"""
+    profile = load_profile()
+    voice = profile.get("voice", {})
+    configured_engine = voice.get("engine", "cv3")
+    failures: list[str] = []
+
+    if all_cv3_resources_ready():
+        try:
+            from src.brain.voice.daemon import daemon_tts_synthesize
+
+            daemon_result = daemon_tts_synthesize(
+                text, out_wav, timeout=timeout, profile=profile
+            )
+            if daemon_result is not None and daemon_result.get("ok"):
+                daemon_result.setdefault("engine", "cv3")
+                return daemon_result
+            if daemon_result is not None:
+                failures.append(f"daemon={daemon_result.get('error', 'failed')}")
+            else:
+                failures.append("daemon=unavailable")
+        except Exception as exc:
+            failures.append(f"daemon={exc}")
+
+        try:
+            cold_result = _synthesize_cv3_cold(text, out_wav, timeout, profile)
+            if cold_result.get("ok"):
+                cold_result.setdefault("engine", "cv3")
+                return cold_result
+            failures.append(f"cv3-cold={cold_result.get('error', 'failed')}")
+        except Exception as exc:
+            failures.append(f"cv3-cold={exc}")
+    else:
+        failures.append("cv3=resources-unavailable")
+
+    if _piper_available():
+        try:
+            piper_result = _synthesize_piper(text, out_wav)
+            if piper_result.get("ok") and Path(out_wav).is_file():
+                return piper_result
+            failures.append(f"piper={piper_result.get('error', 'failed')}")
+        except Exception as exc:
+            failures.append(f"piper={exc}")
+    else:
+        failures.append("piper=unavailable")
+
+    if _sherpa_tts_available():
+        try:
+            sherpa_result = _synthesize_sherpa(text, out_wav)
+            if sherpa_result.get("ok") and Path(out_wav).is_file():
+                return sherpa_result
+            failures.append(f"melo={sherpa_result.get('error', 'failed')}")
+        except Exception as exc:
+            failures.append(f"melo={exc}")
+    else:
+        failures.append("melo=unavailable")
+
+    if configured_engine == "edge":
+        try:
+            edge_result = _synthesize_edge(text, out_wav)
+            if edge_result.get("ok") and Path(edge_result["wav"]).is_file():
+                return edge_result
+            failures.append(f"edge={edge_result.get('error', 'failed')}")
+        except Exception as exc:
+            failures.append(f"edge={exc}")
+    else:
+        failures.append("edge=disabled-by-profile")
+
+    raise RuntimeError("本地 TTS 链路不可用: " + "; ".join(failures))
 
 
 def _finalize_synthesized(result: dict, out_wav: str | Path,

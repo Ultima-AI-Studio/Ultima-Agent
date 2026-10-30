@@ -1,0 +1,38 @@
+{
+  "verifier": {
+    "python": "tools/venv-asr/Scripts/python.exe",
+    "model": "faster-whisper-large-v3-offline",
+    "network": false,
+    "microphone": false,
+    "playback": false,
+    "language_detection": "automatic",
+    "domain_prompt": null
+  },
+  "zh": {
+    "expected": "先生，有什么可以为您效劳？",
+    "text": "先生,有什么可以为您效劳?",
+    "language": "zh",
+    "language_probability": 0.93505859375,
+    "pass": true
+  },
+  "en": {
+    "expected": "At your service, sir.",
+    "text": "At your service, sir.",
+    "language": "en",
+    "language_probability": 0.970703125,
+    "pass": true
+  },
+  "diagnosis": {
+    "initial_failure": "The default Jarvis WAV is English but null prompt_text initially resolved to the legacy CosyVoice Chinese transcript, so zero-shot conditioning reproduced prompt content instead of the target sentence.",
+    "sensevoice_results_before_fix": {
+      "zh": "一块。",
+      "en": "And the."
+    },
+    "generic_large_v3_results_before_fix": {
+      "zh": "你能够做的比国爱好",
+      "en": "And BPL. Me. How."
+    },
+    "reference_transcript": "Hello, Mr. Stark. I am Jarvis. And may I say, your suit is on fire.",
+    "resolution": "Keep profile prompt_text null and select the built-in transcript paired with the built-in Jarvis reference; explicit L2 prompt_text still overrides it."
+  }
+}

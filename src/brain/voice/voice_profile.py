@@ -12,6 +12,7 @@ import json
 import logging
 import re
 import subprocess
+import wave
 from pathlib import Path
 from typing import Any
 
@@ -55,6 +56,11 @@ DEFAULT_PROFILE: dict[str, Any] = {
         "banned_phrases": ["关注", "点赞", "订阅", "点个关注"],
         "max_sentences": 2,
     },
+    "voice": {
+        "engine": "cv3",
+        "ref_audio": "data/voice/jarvis-ref/jarvis_voice_ref_pcm16.wav",
+        "prompt_text": None,
+    },
     "input": {
         "mode": "auto",
         "device_index": None,
@@ -66,8 +72,32 @@ _L2_FIELDS = {
     "persona": {"override"},
     "wakeword": {"custom"},
     "style": {"mode", "banned_phrases", "max_sentences"},
+    "voice": {"engine", "ref_audio", "prompt_text"},
     "input": {"mode", "device_index", "prefer_wasapi48k"},
 }
+
+_AUDIO_SUFFIXES = {".wav", ".flac", ".mp3", ".ogg", ".m4a", ".aac", ".opus"}
+
+
+def is_usable_reference_audio(path: Path) -> bool:
+    """Return whether *path* is a non-empty supported audio reference."""
+    try:
+        if not path.is_file() or path.stat().st_size <= 0:
+            return False
+        suffix = path.suffix.lower()
+        if suffix not in _AUDIO_SUFFIXES:
+            return False
+        if suffix != ".wav":
+            return True
+        with wave.open(str(path), "rb") as reader:
+            return (
+                reader.getnchannels() > 0
+                and reader.getsampwidth() > 0
+                and reader.getframerate() > 0
+                and reader.getnframes() > 0
+            )
+    except (EOFError, OSError, wave.Error):
+        return False
 
 
 def _merge_known(target: dict[str, Any], source: dict[str, Any]) -> None:
@@ -120,6 +150,35 @@ def validate_profile(profile: object) -> dict[str, Any]:
     max_sentences = style.get("max_sentences")
     if isinstance(max_sentences, bool) or not isinstance(max_sentences, int) or not 1 <= max_sentences <= 10:
         style["max_sentences"] = DEFAULT_PROFILE["style"]["max_sentences"]
+
+    voice = result["voice"]
+    if not isinstance(voice, dict):
+        voice = copy.deepcopy(DEFAULT_PROFILE["voice"])
+        result["voice"] = voice
+    engine = voice.get("engine")
+    if not isinstance(engine, str) or engine not in {"cv3", "edge"}:
+        voice["engine"] = DEFAULT_PROFILE["voice"]["engine"]
+    ref_audio = voice.get("ref_audio")
+    if not isinstance(ref_audio, str) or not ref_audio.strip():
+        voice["ref_audio"] = DEFAULT_PROFILE["voice"]["ref_audio"]
+    else:
+        ref_audio = ref_audio.strip()
+        ref_path = Path(ref_audio).expanduser()
+        if not ref_path.is_absolute():
+            ref_path = ROOT / ref_path
+        if is_usable_reference_audio(ref_path):
+            voice["ref_audio"] = ref_audio
+        else:
+            LOGGER.warning(
+                "voice reference audio unavailable or invalid; using L1 Jarvis reference: %s",
+                ref_path,
+            )
+            voice["ref_audio"] = DEFAULT_PROFILE["voice"]["ref_audio"]
+    prompt_text = voice.get("prompt_text")
+    if prompt_text is not None and (
+        not isinstance(prompt_text, str) or not prompt_text.strip()
+    ):
+        voice["prompt_text"] = None
 
     input_config = result["input"]
     if input_config.get("mode") not in {"auto", "manual"}:

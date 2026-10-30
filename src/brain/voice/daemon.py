@@ -41,7 +41,6 @@ os.environ.setdefault("PYTHONNOUSERSITE", "1")
 
 source = Path(r"{source}")
 model = Path(r"{model}")
-prompt_wav = Path(r"{prompt_wav}")
 sys.path.insert(0, str(source))
 sys.path.insert(0, str(source / "third_party" / "Matcha-TTS"))
 
@@ -57,10 +56,9 @@ if device == "cpu":
 print(json.dumps({"ready": True, "device": device}), flush=True)
 
 cosy = AutoModel(model_dir=str(model), load_trt=False, load_vllm=False, fp16=True)
-prompt_text = "希望你以后能够做的比我还好呦。<|endofprompt|>"
 print(json.dumps({"loaded": True}), flush=True)
 
-def synthesize(text: str, out_wav: str) -> dict:
+def synthesize(text: str, out_wav: str, prompt_wav: str, prompt_text: str) -> dict:
     speech = None
     for block in cosy.inference_zero_shot(text, prompt_text, str(prompt_wav),
                                           stream=False, speed=1.0):
@@ -71,7 +69,8 @@ def synthesize(text: str, out_wav: str) -> dict:
     pcm = np.clip(speech.detach().cpu().numpy().reshape(-1), -1, 1)
     sf.write(out_wav, pcm, cosy.sample_rate, subtype="PCM_16")
     return {"ok": True, "wav": out_wav, "rate": cosy.sample_rate,
-            "seconds": len(pcm) / cosy.sample_rate, "device": device}
+            "seconds": len(pcm) / cosy.sample_rate, "device": device,
+            "engine": "cv3"}
 
 for line in sys.stdin:
     line = line.strip()
@@ -80,7 +79,9 @@ for line in sys.stdin:
     try:
         req = json.loads(line)
         if req.get("op") == "synthesize":
-            result = synthesize(req["text"], req["out"])
+            result = synthesize(
+                req["text"], req["out"], req["prompt_wav"], req["prompt_text"]
+            )
             print(json.dumps(result), flush=True)
         elif req.get("op") == "ping":
             print(json.dumps({"ok": True, "pong": True}), flush=True)
@@ -319,12 +320,11 @@ def _tts_daemon() -> VoiceDaemon | None:
             CV3_MODEL_ROOT,
             CV3_RUNTIME_PYTHON,
         )
-        from src.brain.voice.tts import PROMPT_WAV, _VENDOR_DIR
+        from src.brain.voice.tts import _VENDOR_DIR
 
         env = {"PYTHONPATH": str(_VENDOR_DIR)}
         script = _TTS_DAEMON_SCRIPT.replace("{source}", str(COSYVOICE_SOURCE))
         script = script.replace("{model}", str(CV3_MODEL_ROOT))
-        script = script.replace("{prompt_wav}", str(PROMPT_WAV))
         _TTS_DAEMON = VoiceDaemon("tts", script, CV3_RUNTIME_PYTHON, [], env=env)
     return _TTS_DAEMON
 
@@ -348,16 +348,34 @@ def _asr_daemon() -> VoiceDaemon | None:
     return _ASR_DAEMON
 
 
-def daemon_tts_synthesize(text: str, out_wav: str | Path, timeout: float = 300.0) -> dict | None:
+def daemon_tts_synthesize(
+    text: str,
+    out_wav: str | Path,
+    timeout: float = 300.0,
+    profile: dict | None = None,
+) -> dict | None:
     """经常驻服务合成；服务不可用返回 None（调用方走冷启动兜底）。"""
     daemon = _tts_daemon()
     if daemon is None:
         return None
     try:
+        from src.brain.voice.tts import resolve_prompt_pair
+        from src.brain.voice.voice_profile import load_profile
+
+        loaded = load_profile() if profile is None else profile
+        prompt_wav, prompt_text = resolve_prompt_pair(loaded)
         if not daemon.ensure_started():
             return None
-        result = daemon.request({"op": "synthesize", "text": text, "out": str(out_wav)},
-                                timeout=timeout)
+        result = daemon.request(
+            {
+                "op": "synthesize",
+                "text": text,
+                "out": str(out_wav),
+                "prompt_wav": str(prompt_wav),
+                "prompt_text": prompt_text,
+            },
+            timeout=timeout,
+        )
         if result.get("ok"):
             result["daemon"] = True
         return result
