@@ -20,7 +20,7 @@
 
 **禁止（硬红线）**：
 - 禁止引入真流式 ASR 模型（P2 延伸：sherpa streaming transducer / Paraformer 本地版，另立项）；
-- 禁止改动 #132/#133/#134 已冻结参数：`keywords_threshold=0.08`、`keywords_score=2.0`、`num_trailing_blanks=8`、`QUIET_AFTER_SPEECH=1.2`（能量兜底）、`BEEP_SETTLE_SEC=1.2`、sinc 重采样（441:160 / 48k 3:1 整数 sinc）、VAD `min_silence=0.5s`、门控 0.4s/0.005、`MIC_DEVICE/DEV_IN=1`（惠普麦）——零漂移核对；
+- 禁止改动 #132/#133/#134 已冻结参数：`keywords_threshold=0.08`、`keywords_score=2.0`、`num_trailing_blanks=8`、`QUIET_AFTER_SPEECH=1.2`（能量兜底）、`BEEP_SETTLE_SEC=1.2`、sinc 重采样（441:160 / 48k 3:1 整数 sinc）、VAD `min_silence=0.5s`、门控 0.4s/0.002（块峰值 0.01）、`MIC_DEVICE/DEV_IN=1`（惠普麦）——零漂移核对；
 - 禁止触碰 TTS 链路（CV3 克隆音色强项不动、不云化）；
 - 禁止重构 wait_wakeup（唤醒态保持单线程流式 KWS）；
 - 伪流式重跑整段须控制频率（如每 1s 一次），不得让识别线程抢占采集线程导致卡顿；
@@ -45,7 +45,7 @@
 ## 任务明细
 
 ### T0 · 基线核对（Gate 前置）
-**写什么**：只读核对 `docs/specs/kws-wakeup-params-baseline.md` 与 `data/logs/voice-listen-daemon.py` 常量（keywords_threshold/score/num_trailing_blanks/DEV_IN/QUIET_AFTER_SPEECH/BEEP_SETTLE_SEC/VAD min_silence/sinc 重采样/门控 0.4s/0.005）一致，零漂移才开工。
+**写什么**：只读核对 `docs/specs/kws-wakeup-params-baseline.md` 与 `data/logs/voice-listen-daemon.py` 常量（keywords_threshold/score/num_trailing_blanks/DEV_IN/QUIET_AFTER_SPEECH/BEEP_SETTLE_SEC/VAD min_silence/sinc 重采样/门控 0.4s/0.002 块峰值 0.01）一致，零漂移才开工。**T0 已裁定基线（2026-10-30 主脑）：score=2.0、BEEP_SETTLE_SEC=1.2、门控 0.4s/rms 0.002 块峰值 0.01，基线文档第七节变更记录已追加 #136 前置裁定，以基线文档汇总为准。**
 **验收（Gate）**：核对表落盘（T0-gate.md）。
 
 ### T1 · 双线程骨架
