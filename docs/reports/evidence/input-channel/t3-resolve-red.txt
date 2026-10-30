@@ -1,0 +1,50 @@
+.......FF                                                                [100%]
+================================== FAILURES ===================================
+__________ test_resolve_input_uses_fallback_metadata_and_source_log ___________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000164A5BA9040>
+
+    def test_resolve_input_uses_fallback_metadata_and_source_log(monkeypatch: pytest.MonkeyPatch) -> None:
+        logs: list[str] = []
+        monkeypatch.setattr(input_probe, "auto_select", lambda profile, log_fn=None: None)
+>       monkeypatch.setattr(
+            input_probe,
+            "describe_input",
+            lambda index: {
+                "index": index,
+                "name": "Fallback mic",
+                "hostapi": "MME",
+                "hostapi_index": 0,
+                "max_input_channels": 1,
+                "default_samplerate": 44100.0,
+            },
+        )
+E       AttributeError: <module 'src.brain.voice.input_probe' from 'H:\\UltimaAI\\UltimaAgent\\src\\brain\\voice\\input_probe.py'> has no attribute 'describe_input'
+
+src\brain\tests\test_input_probe.py:199: AttributeError
+_______ test_resolve_input_keeps_l2_source_and_describes_direct_device ________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000164C4ED14F0>
+
+    def test_resolve_input_keeps_l2_source_and_describes_direct_device(monkeypatch: pytest.MonkeyPatch) -> None:
+        monkeypatch.setattr(input_probe, "auto_select", lambda profile, log_fn=None: 9)
+        monkeypatch.setattr(input_probe, "get_cached_selection", lambda: {"index": 9, "source": "l2"})
+>       monkeypatch.setattr(
+            input_probe,
+            "describe_input",
+            lambda index: {
+                "index": index,
+                "name": "Manual mic",
+                "hostapi": "Windows WASAPI",
+                "hostapi_index": 2,
+                "max_input_channels": 2,
+                "default_samplerate": 48000.0,
+            },
+        )
+E       AttributeError: <module 'src.brain.voice.input_probe' from 'H:\\UltimaAI\\UltimaAgent\\src\\brain\\voice\\input_probe.py'> has no attribute 'describe_input'
+
+src\brain\tests\test_input_probe.py:224: AttributeError
+=========================== short test summary info ===========================
+FAILED src/brain/tests/test_input_probe.py::test_resolve_input_uses_fallback_metadata_and_source_log
+FAILED src/brain/tests/test_input_probe.py::test_resolve_input_keeps_l2_source_and_describes_direct_device
+2 failed, 7 passed in 0.45s

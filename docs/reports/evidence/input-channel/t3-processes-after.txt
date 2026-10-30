@@ -1,0 +1,44 @@
+
+ProcessId       : 11000
+ParentProcessId : 2492
+Name            : pythonw.exe
+CreationDate    : 2026/10/29 7:34:49
+CommandLine     : "H:\UltimaAI\UltimaAgent\tools\venv-openjarvis\Scripts\pythonw.exe" "H:\UltimaAI\UltimaAgent\scripts\watchdog-loopguard.py"
+
+ProcessId       : 11896
+ParentProcessId : 11000
+Name            : pythonw.exe
+CreationDate    : 2026/10/29 7:34:49
+CommandLine     : "H:\UltimaAI\UltimaAgent\tools\venv-openjarvis\Scripts\pythonw.exe" "H:\UltimaAI\UltimaAgent\scripts\watchdog-loopguard.py"
+
+ProcessId       : 39892
+ParentProcessId : 33752
+Name            : python.exe
+CreationDate    : 2026/10/29 20:05:24
+CommandLine     : "H:\UltimaAI\UltimaAgent\tools\venv-openjarvis\Scripts\python.exe" -X utf8 H:\UltimaAI\UltimaAgent\src\brain\agent_server.py 
+
+ProcessId       : 29260
+ParentProcessId : 39892
+Name            : python.exe
+CreationDate    : 2026/10/29 20:05:24
+CommandLine     : "H:\UltimaAI\UltimaAgent\tools\venv-openjarvis\Scripts\python.exe" -X utf8 H:\UltimaAI\UltimaAgent\src\brain\agent_server.py 
+
+ProcessId       : 22844
+ParentProcessId : 28024
+Name            : pythonw.exe
+CreationDate    : 2026/10/30 12:24:38
+CommandLine     : "H:\UltimaAI\UltimaAgent\tools\venv-asr\Scripts\pythonw.exe" -X utf8 H:\UltimaAI\UltimaAgent\data\logs\voice-listen-daemon.py
+
+ProcessId       : 27528
+ParentProcessId : 22844
+Name            : pythonw.exe
+CreationDate    : 2026/10/30 12:24:38
+CommandLine     : "H:\UltimaAI\UltimaAgent\tools\venv-asr\Scripts\pythonw.exe" -X utf8 H:\UltimaAI\UltimaAgent\data\logs\voice-listen-daemon.py
+
+ProcessId       : 37288
+ParentProcessId : 39728
+Name            : pwsh.exe
+CreationDate    : 2026/10/30 12:25:15
+CommandLine     : "C:\Users\Administrator\AppData\Local\Doubao\User Data\sandbox_runtime\bases\772984f6fd3a8ae0ae7d2422cd7c2bfa\pwsh\pwsh.exe" -Command "try { [Console]::OutputEncoding=[System.Text.Encoding]::UTF8 } catch {}
+                  $after = Get-CimInstance Win32_Process | Where-Object { $_.ProcessId -in 11000,11896,39892,29260 -or $_.CommandLine -match 'voice-listen-daemon.py' } | Select-Object ProcessId,ParentProcessId,Name,CreationDate,CommandLine; $after | Format-List | Tee-Object -FilePath 'docs/reports/evidence/input-channel/t3-processes-after.txt'; Get-Content 'data/logs/voice-listen.log' | Select-String '2026-10-30 12:24:(38|41|43|44)' | ForEach-Object { $_.Line } | Tee-Object -FilePath 'docs/reports/evidence/input-channel/t3-daemon-startup.txt'; 'LOCK:'; Get-Content 'data/logs/voice-listen-daemon.lock'"
+

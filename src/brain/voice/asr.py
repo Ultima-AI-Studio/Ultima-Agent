@@ -23,6 +23,7 @@ if __package__ in (None, ""):
     sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
 
 from src.brain.voice.resources import CV3_RUNTIME_PYTHON
+from src.brain.voice._resample import resample_to_16k
 
 # 写域 vendor（pkg_resources shim），注入推理子进程 PYTHONPATH
 _VENDOR_DIR = Path(__file__).resolve().parent / "_vendor"
@@ -160,31 +161,6 @@ def _load_sherpa_asr():
     return rec, vad
 
 
-def _resample_16k_sinc(f32, fr):
-    """任意采样率 → 16k 窗口 sinc 多相滤波重采样（等效 scipy.signal.resample_poly，纯 numpy）。
-
-    2026-10-29 冻结（与 voice-listen-daemon._resample_16k 同款）：
-    up=160/down=441、Blackman 窗 half=32、cutoff=8k/44.1k。参数冻结，不得来回突变。
-    44.1k→16k 时与 daemon 实现等价；其他源采样率按统一 sinc 插值处理。
-    """
-    import numpy as np
-
-    n_in = len(f32)
-    n_out = int(round(n_in * _SHERPA_SR / fr))
-    t = np.arange(n_out, dtype=np.float64) * (fr / _SHERPA_SR)
-    half = 32
-    k = np.arange(-half, half + 1, dtype=np.int64)
-    base = np.floor(t)[:, None].astype(np.int64) + k[None, :]
-    idx = np.clip(base, 0, n_in - 1)
-    dist = t[:, None] - base.astype(np.float64)
-    cutoff = (_SHERPA_SR / 2.0) / fr
-    d = dist * cutoff
-    sinc = np.where(np.abs(d) < 1e-9, 1.0, np.sin(np.pi * d) / (np.pi * d))
-    n = dist + half
-    win = 0.42 - 0.5 * np.cos(2 * np.pi * n / (2 * half)) + 0.08 * np.cos(4 * np.pi * n / (2 * half))
-    return (f32[idx] * sinc * win).sum(axis=1).astype(np.float32)
-
-
 def _run_sherpa(wav: Path) -> dict:
     """sherpa 通道：WAV → VAD 精切语音段 → SenseVoice 离线识别。
 
@@ -208,9 +184,9 @@ def _run_sherpa(wav: Path) -> dict:
     if fr != _SHERPA_SR:
         # 2026-10-29 降采样算法修复（L20 同源）：原 np.interp 线性插值频谱混叠，
         # 44.1k 弱信号下 SenseVoice 把"查一下珠海天气"识别成"查一下庭。"（天气路由 miss）。
-        # 改窗口 sinc 多相滤波（与 voice-listen-daemon _resample_16k 同款冻结实现），
+        # 统一走 voice._resample 单一窗口 sinc 多相滤波实现（daemon 同源），
         # 离线 A/B：sinc→"查一下武海天气。"（含关键词可命中路由）vs linear→"查一下庭。"。
-        pcm = _resample_16k_sinc(pcm, fr)
+        pcm = resample_to_16k(pcm, fr)
 
     # VAD 精切语音段（2026-10-30）：弱信号指令必须先去掉前导静音/残响再识别。
     # 参数来自 asr-fine-ab-20261030.py 最优组：threshold=0.35、min_silence=0.25、

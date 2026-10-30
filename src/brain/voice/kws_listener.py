@@ -25,6 +25,9 @@ import sherpa_onnx
 from src.brain.voice_loop import VoiceInteractionLoop
 from src.brain.voice.tts import tts_synthesize
 from src.brain.voice.asr import asr_transcribe
+from src.brain.voice._resample import mix_to_mono, resample_to_16k
+from src.brain.voice.input_probe import resolve_input
+from src.brain.voice.voice_profile import load_profile
 
 # ── 路径/设备（与 live_mic.py 一致，真机已验证） ──────────────────
 REAL_QUEUE = ROOT / "tasks"
@@ -33,8 +36,8 @@ REPLY_DIR = ROOT / "data" / "voice"
 MIC_DIR = ROOT / "data" / "voice" / "mic"
 MIC_DIR.mkdir(parents=True, exist_ok=True)
 
-SR = 16000            # ASR/KWS 采样率
-MIC_DEVICE = 1        # 输入：1=惠普 USB 麦克风（系统名 USBAudio2.0，MME index=1）。2026-10-29 摄像头(Razer Kiyo=3)拔除后切换；实测 6s 录音 peak=0.1173 且 ASR 完整识别"贾维斯查一下今天的天气"，拾音正常
+SR = 16000            # ASR/KWS 模型采样率；设备始终按 44.1/48k 原生能力打开
+MIC_DEVICE = 1        # 仅作探测失败/全静音时的内置回退；正常入口必须走 voice-profile + 自动探测
 PLAY_DEVICE = 26      # 输出：26=耳机 (POISON M@LOFREE)（sounddevice WASAPI 索引）
 GAIN = 30.0           # 对话回合录音增益
 MIN_LEN = 0.5         # 最短有效语音（秒）
@@ -263,23 +266,45 @@ class KwsListener:
         return None
 
 
-def _record_utterance(thr: float):
+def select_input_config(log_fn=print) -> dict:
+    """Resolve the L2 profile or bounded automatic probe once at startup."""
+    profile = load_profile()
+    return resolve_input(profile.get("input"), MIC_DEVICE, log_fn=log_fn)
+
+
+def _capture_format(input_config: dict) -> tuple[int, int]:
+    rate = int(round(float(input_config.get("default_samplerate") or 44100.0)))
+    rate = 48000 if rate == 48000 else 44100
+    channels = 2 if rate == 48000 and int(input_config.get("max_input_channels", 0)) >= 2 else 1
+    return rate, channels
+
+
+def _record_utterance(thr: float, input_config: dict):
     """能量 VAD 录音一段语音（对话回合用），返回 WAV 路径。"""
     print("LISTENING_UTTERANCE ...", flush=True)
     frames = []
     talking = False
     sil = 0.0
     peak = 0.0
+    capture_rate, channels = _capture_format(input_config)
+    device_index = int(input_config["index"])
     while True:
-        block = sd.rec(int(SR * CHUNK), samplerate=SR, channels=1, dtype="float32", device=MIC_DEVICE)
+        block = sd.rec(
+            int(capture_rate * CHUNK),
+            samplerate=capture_rate,
+            channels=channels,
+            dtype="float32",
+            device=device_index,
+        )
         sd.wait()
-        rms = float(np.sqrt(np.mean(block ** 2)))
+        mono = mix_to_mono(block)
+        rms = float(np.sqrt(np.mean(mono ** 2)))
         peak = max(peak, rms)
         if not talking and rms > thr:
             talking = True
-            frames.append(block)
+            frames.append(mono)
         elif talking:
-            frames.append(block)
+            frames.append(mono)
             if rms > thr * 0.4:
                 sil = 0.0
             else:
@@ -290,10 +315,11 @@ def _record_utterance(thr: float):
         return None
     if len(frames) * CHUNK > MAX_LEN:
         frames = frames[: int(MAX_LEN / CHUNK)]
-    data = np.concatenate(frames)
-    if len(data) < SR * MIN_LEN:
+    data_native = np.concatenate(frames)
+    if len(data_native) < capture_rate * MIN_LEN:
         print(f"TOO_SHORT peak={peak:.4f}", flush=True)
         return None
+    data = resample_to_16k(data_native, capture_rate)
     data = np.clip(data * GAIN, -1.0, 1.0)
     pcm = (data.flatten() * 32767).astype(np.int16)
     wav = MIC_DIR / f"kws-{int(time.time())}.wav"
@@ -306,16 +332,25 @@ def _record_utterance(thr: float):
     return wav
 
 
-def _calibrate_threshold() -> float:
+def _calibrate_threshold(input_config: dict) -> float:
     """采集 2 秒背景噪声基线，阈值=基线×3 且不低于 _MIN_THR。"""
     levels = []
+    capture_rate, channels = _capture_format(input_config)
+    device_index = int(input_config["index"])
     for _ in range(_BASELINE_FRAMES):
-        blk = sd.rec(int(SR * CHUNK), samplerate=SR, channels=1, dtype="float32", device=MIC_DEVICE)
+        blk = sd.rec(
+            int(capture_rate * CHUNK),
+            samplerate=capture_rate,
+            channels=channels,
+            dtype="float32",
+            device=device_index,
+        )
         sd.wait()
-        levels.append(float(np.sqrt(np.mean(blk ** 2))))
+        mono = mix_to_mono(blk)
+        levels.append(float(np.sqrt(np.mean(mono ** 2))))
     base = float(np.percentile(levels, 40))
     thr = max(base * 3.0, _MIN_THR)
-    print(f"CALIBRATE baseline={base:.4f} thr={thr:.4f} device={sd.default.device}", flush=True)
+    print(f"CALIBRATE baseline={base:.4f} thr={thr:.4f} device={device_index}", flush=True)
     return thr
 
 
@@ -395,6 +430,9 @@ def _heartbeat() -> None:
 
 def main() -> None:
     _single_instance()
+    input_config = select_input_config()
+    capture_rate, channels = _capture_format(input_config)
+    device_index = int(input_config["index"])
     if "--no-warmup" not in sys.argv:
         # 预热放后台线程：TTS/ASR 模型加载不阻塞进入监听态（启动峰值削峰）
         threading.Thread(target=warmup, daemon=True).start()
@@ -404,11 +442,18 @@ def main() -> None:
     while True:
         try:
             # 待唤醒态：持续流 InputStream（daemon 10-26 验证结构），命中后退出流
-            with sd.InputStream(device=MIC_DEVICE, samplerate=SR, channels=1, dtype="int16") as mic:
+            with sd.InputStream(
+                device=device_index,
+                samplerate=capture_rate,
+                channels=channels,
+                dtype="int16",
+            ) as mic:
+                capture_chunk = int(round(capture_rate * 0.2))
                 while True:
                     listener.maybe_reload_keywords()
-                    data, _ = mic.read(listener._chunk)
-                    f32 = data.astype(np.float32).reshape(-1) / 32768.0
+                    data, _ = mic.read(capture_chunk)
+                    mono = mix_to_mono(data.astype(np.float32)) / 32768.0
+                    f32 = resample_to_16k(mono, capture_rate)
                     _heartbeat()
                     hit = listener.feed(f32)
                     if hit:
@@ -416,8 +461,8 @@ def main() -> None:
                         break
             # 唤醒后（已退出采集流）：校准（安静期）→ 录对话 → ASR → 桥接 → 回放
             time.sleep(0.3)
-            thr = _calibrate_threshold()
-            wav = _record_utterance(thr)
+            thr = _calibrate_threshold(input_config)
+            wav = _record_utterance(thr, input_config)
             if wav is None:
                 print("WAKE_NO_UTTERANCE", flush=True)
                 continue
