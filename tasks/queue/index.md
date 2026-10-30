@@ -23,5 +23,5 @@
 | wo-ultimaagent-20261029-0002 | 已冻结 | SSE /events 事件出口（HUD 四角壳真实数据源）；T0-T4；2026-10-29 登记，用户明确要求补 SSE 出口；2026-10-29 派发 codex gpt-5.6-sol PID 10892；独立验收复核 PASS + 四角壳真数据模式端到端演示验收通过 + Owner 确认冻结；tag wo-ultimaagent-20261029-0002-frozen-20261029 |
 | wo-ultimaagent-20261030-0003 | 阻塞 | 多层级覆盖 voice-profile（L1 内置默认=贾维斯 / L2 voice-profile.json / L3 运行期覆盖；唤醒词热重载；回答风格三硬约束）；T0-T3 PASS、T4 BLOCKED（2 个范围外既有失败：HUD 冻结哈希漂移 + tasks.json QUEUED 缺 terminal_reason 致 fail-closed）；2026-10-30 登记；派发 codex gpt-5.6-sol PID 18480（已结束）；工单卡 tasks/queue/wo-ultimaagent-20261030-0003--voice-profile.md；清障交 0006 |
 | wo-ultimaagent-20261030-0006 | 待派发 | 0003 T4 阻塞清理（HUD 冻结哈希重冻结 + 队列读取容缺）；T0-T2；2026-10-30 登记；优先派发（清障后再推 0004/0005）；工单卡 tasks/queue/wo-ultimaagent-20261030-0006--t4-clear.md |
-| wo-ultimaagent-20261030-0004 | 待派发 | 语音输入通道升级（设备自动探测 + 48k WASAPI A/B）；T0-T4；2026-10-30 登记；串行在 0006 后；工单卡 tasks/queue/wo-ultimaagent-20261030-0004--input-channel.md |
+| wo-ultimaagent-20261030-0004 | frozen | 语音输入通道升级（设备自动探测 + 48k WASAPI A/B）；T0-T4；2026-10-30 登记；冻结 tag wo-ultimaagent-20261030-0004-frozen-20261030；工单卡 tasks/queue/wo-ultimaagent-20261030-0004--input-channel.md |
 | wo-ultimaagent-20261030-0005 | 待派发 | CV3 贾维斯音色（voice 段 + TTS 本地优先）；T0-T4；2026-10-30 登记；串行在 0004 后；工单卡 tasks/queue/wo-ultimaagent-20261030-0005--cv3-jarvis-voice.md |

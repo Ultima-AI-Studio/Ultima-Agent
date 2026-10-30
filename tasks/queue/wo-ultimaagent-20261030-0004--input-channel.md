@@ -1,6 +1,6 @@
 # Codex 工单 · UltimaAgent｜功能｜语音输入通道升级（设备自动探测 + 48k WASAPI A/B）
 
-> 版本：v1.0 ｜ 状态：执行完成，T0→T4 全绿，待主脑复核/冻结（2026-10-30）｜ 适用工具：Codex（`codex exec`，`-m gpt-5.6-sol`）
+> 版本：v1.1 ｜ 状态：已冻结（2026-10-30）｜ 适用工具：Codex（`codex exec`，`-m gpt-5.6-sol`）
 > 用法：按 T0→T4 顺序逐条执行，Gate 全绿才过，再进下一条。
 > 范围依据：`H:\UltimaAI\INDEX.md` + `H:\UltimaAI\_shared\paradigms\UltimaAI-任务工作流范式.md` + `docs/INDEX.md`
 > 调研依据：`docs/specs/kws-wakeup-params-baseline.md`（设备/降采样冻结基线）+ 10-30 真机音频端点探测（`data/logs/probe_audio_endpoints_20261030.py`：USBAudio2.0 有 MME 44.1k/1ch、WASAPI 48k/2ch、WDM-KS 48k/1ch 四端点）
@@ -155,6 +155,6 @@ T4 总验收：已完成，专用解释器全量 749 passed + 120 subtests passe
 - [x] 范围冻结内逐项完成（无越界：未动 UI 设备页/KWS 参数基线/TTS/第三方音频库）
 - [x] 每 T 验收清单全绿 + 自证完整
 - [x] 关联文档同步（A/B 结论登记 kws-wakeup-params-baseline.md 第七节；resample 共享模块注释同步 asr.py）
-- [ ] 阶段报告产出 → 主脑复核 → 冻结 tag（`wo-ultimaagent-20261030-0004-frozen-<date>`）
+- [x] 阶段报告产出 → 主脑复核 → 冻结 tag（`wo-ultimaagent-20261030-0004-frozen-20261030`）
 
-阶段报告已产出；主脑复核与 frozen tag 属 Owner gate，本执行端未越权代做。
+主脑复核通过：T0-T4 全绿（749 passed + 120 subtests）；A/B 判据满足（44.1k=7/8、48k=7/8，负样本 0/8）；越界声明无；阶段报告/证据 60 项 manifest/基线第七节登记均已核验。冻结 commit `13c697e` + tag `wo-ultimaagent-20261030-0004-frozen-20261030`。
