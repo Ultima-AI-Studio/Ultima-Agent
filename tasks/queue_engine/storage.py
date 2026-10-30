@@ -39,6 +39,10 @@ INDEX_FIELDS = (
     "terminal_reason",
     "card_path",
 )
+REQUIRED_FIELDS = tuple(field for field in INDEX_FIELDS if field != "terminal_reason")
+TERMINAL_REASON_REQUIRED_STATES = frozenset(
+    {"COMPLETED", "FAILED", "BLOCKED", "CANCELLED", "TERMINATED"}
+)
 RUN_PARTS = ("before", "out", "err", "done", "session", "progress")
 TERMINAL_ARCHIVE_STATES = frozenset({"COMPLETED", "CANCELLED"})
 _TASK_ID_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._~-]*$")
@@ -101,10 +105,13 @@ class QueueStorage:
         if not isinstance(task, dict):
             raise StorageError("each task index item must be an object")
         actual = set(task)
-        expected = set(INDEX_FIELDS)
-        if actual != expected:
-            missing = sorted(expected - actual)
-            extra = sorted(actual - expected)
+        required = set(REQUIRED_FIELDS)
+        allowed = set(INDEX_FIELDS)
+        if task.get("state") in TERMINAL_REASON_REQUIRED_STATES:
+            required.add("terminal_reason")
+        missing = sorted(required - actual)
+        extra = sorted(actual - allowed)
+        if missing or extra:
             raise StorageError(f"task index fields mismatch: missing={missing}, extra={extra}")
         QueueStorage._validate_task_id(task["task_id"])
         if not isinstance(task["dependsOn"], list) or not isinstance(task["fileDomain"], list):

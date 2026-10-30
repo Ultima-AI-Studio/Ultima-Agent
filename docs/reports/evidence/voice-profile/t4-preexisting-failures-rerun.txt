@@ -1,0 +1,38 @@
+FF                                                                       [100%]
+================================== FAILURES ===================================
+________ test_hud_uses_real_sse_with_resume_and_preserves_frozen_style ________
+
+    def test_hud_uses_real_sse_with_resume_and_preserves_frozen_style() -> None:
+        page = Path("docs/previews/hud-live-four-corner/hud-live-four-corner.html").read_text(
+            encoding="utf-8"
+        )
+        style = re.search(r"<style>(.*?)</style>", page, re.S)
+    
+        assert style is not None
+>       assert hashlib.sha256(style.group(1).encode("utf-8")).hexdigest() == (
+            "79c8490de2960777db96b763e183159e3e2041e572ef7cb18897a0981908528d"
+        )
+E       AssertionError: assert 'f336fd77a4cb...bb5ef5ba97ab1' == '79c8490de296...7a0981908528d'
+E         
+E         - 79c8490de2960777db96b763e183159e3e2041e572ef7cb18897a0981908528d
+E         + f336fd77a4cbdfd963ee2305bae28181565cc364f78cf69b94ebb5ef5ba97ab1
+
+src\brain\tests\test_agent_server_sse.py:164: AssertionError
+_____ QueueSourceTests.test_production_library_readable_without_mutation ______
+
+self = <test_queue_source.QueueSourceTests testMethod=test_production_library_readable_without_mutation>
+
+    def test_production_library_readable_without_mutation(self) -> None:
+        # 生产库回归：可读（含 TERMINATED 终态，缺陷修复验证）且只读不改动
+        production = PROJECT_ROOT / "tasks"
+        before = hashlib.sha256((production / "tasks.json").read_bytes()).hexdigest()
+        snapshot = read_queue_status(production)
+        after = hashlib.sha256((production / "tasks.json").read_bytes()).hexdigest()
+>       self.assertTrue(snapshot.ok)
+E       AssertionError: False is not true
+
+src\brain\tests\test_queue_source.py:158: AssertionError
+=========================== short test summary info ===========================
+FAILED src/brain/tests/test_agent_server_sse.py::test_hud_uses_real_sse_with_resume_and_preserves_frozen_style
+FAILED src/brain/tests/test_queue_source.py::QueueSourceTests::test_production_library_readable_without_mutation
+2 failed in 1.87s

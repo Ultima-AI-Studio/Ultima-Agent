@@ -21,9 +21,10 @@ STATE_ZH = {
     "FAILED": "失败",
     "BLOCKED": "冻结",
     "CANCELLED": "已取消",
+    "TERMINATED": "已终止",
 }
 ANOMALY_STATES = frozenset({"FAILED", "BLOCKED"})
-_TERMINAL_STATES = frozenset({"COMPLETED", "FAILED", "BLOCKED", "CANCELLED"})
+_TERMINAL_STATES = frozenset({"COMPLETED", "FAILED", "BLOCKED", "CANCELLED", "TERMINATED"})
 _TITLE = re.compile(r"^\s*-\s*\*\*标题\*\*\s*[：:]\s*(.+?)\s*$", re.M)
 
 
@@ -85,7 +86,7 @@ def read_queue_status(root: str | Path, *, now: datetime | None = None) -> Queue
             raise QueueReadError("task_id 重复")
         counts = {state: 0 for state in QUEUE_STATES}
         for item in tasks:
-            counts[item.state] += 1
+            counts[item.state] = counts.get(item.state, 0) + 1
         anomalies = tuple(item for item in tasks if item.state in ANOMALY_STATES)
         return QueueSnapshot(True, "读取成功", "任务状态读取成功", len(tasks), counts, tasks, anomalies)
     except (OSError, StorageError, QueueReadError, TypeError, ValueError) as exc:
@@ -99,7 +100,7 @@ def _project(storage: QueueStorage, record: dict[str, Any], now: datetime) -> Ta
     priority = record["priority"]
     if not isinstance(priority, int) or isinstance(priority, bool) or not 0 <= priority <= 100:
         raise QueueReadError(f"非法优先级：{priority!r}")
-    terminal_reason = record["terminal_reason"]
+    terminal_reason = record.get("terminal_reason")
     if terminal_reason is not None and not isinstance(terminal_reason, str):
         raise QueueReadError("terminal_reason 必须为文字或空值")
     created = _timestamp(record["created_at"], "created_at")

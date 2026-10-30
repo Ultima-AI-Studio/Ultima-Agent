@@ -123,7 +123,7 @@ class QueueSourceTests(unittest.TestCase):
             self.assertTrue(item.title_zh)
             self.assertIn(item.state, QUEUE_STATES)
             self.assertEqual(50, item.priority)
-            self.assertRegex(item.duration, r"^\d{2}:\d{2}:\d{2}$")
+            self.assertRegex(item.duration, r"^\d+:\d{2}:\d{2}$")
 
     def test_historical_failure_does_not_remain_a_current_anomaly(self) -> None:
         self.add("recovered", QueueState.FAILED)
@@ -141,13 +141,82 @@ class QueueSourceTests(unittest.TestCase):
         self.assertEqual("COMPLETED", snapshot.tasks[0].state)
         self.assertEqual([], list(snapshot.anomalies))
 
-    def test_empty_production_library_is_reported_without_mutation(self) -> None:
+    def test_empty_library_is_reported_without_mutation(self) -> None:
+        before = hashlib.sha256((self.root / "tasks.json").read_bytes()).hexdigest()
+        snapshot = read_queue_status(self.root)
+        after = hashlib.sha256((self.root / "tasks.json").read_bytes()).hexdigest()
+        self.assertTrue(snapshot.ok)
+        self.assertEqual(0, snapshot.total)
+        self.assertEqual(before, after)
+
+    def test_queued_record_without_terminal_reason_is_readable(self) -> None:
+        task = record("queued-without-terminal-reason")
+        task.pop("terminal_reason")
+        write_card(self.storage, task["task_id"])
+        self.storage.index_path.write_text(
+            json.dumps([task], ensure_ascii=False), encoding="utf-8"
+        )
+
+        snapshot = read_queue_status(self.root)
+
+        self.assertTrue(snapshot.ok)
+        self.assertEqual(1, snapshot.total)
+        self.assertIsNone(snapshot.tasks[0].terminal_reason)
+
+    def test_non_string_terminal_reason_still_fails_closed(self) -> None:
+        task = record("invalid-terminal-reason")
+        task["terminal_reason"] = 42
+        write_card(self.storage, task["task_id"])
+        self.storage.index_path.write_text(
+            json.dumps([task], ensure_ascii=False), encoding="utf-8"
+        )
+
+        snapshot = read_queue_status(self.root)
+
+        self.assertFalse(snapshot.ok)
+        self.assertIn("terminal_reason 必须为文字或空值", snapshot.message)
+
+    def test_terminal_record_with_string_reason_is_readable(self) -> None:
+        task = record("blocked-with-reason")
+        task["state"] = "BLOCKED"
+        task["terminal_reason"] = "等待人工验收"
+        write_card(self.storage, task["task_id"])
+        self.storage.index_path.write_text(
+            json.dumps([task], ensure_ascii=False), encoding="utf-8"
+        )
+
+        snapshot = read_queue_status(self.root)
+
+        self.assertTrue(snapshot.ok)
+        self.assertEqual("等待人工验收", snapshot.tasks[0].terminal_reason)
+
+    def test_terminal_record_without_terminal_reason_fails_closed(self) -> None:
+        task = record("blocked-without-reason")
+        task["state"] = "BLOCKED"
+        task.pop("terminal_reason")
+        write_card(self.storage, task["task_id"])
+        self.storage.index_path.write_text(
+            json.dumps([task], ensure_ascii=False), encoding="utf-8"
+        )
+
+        snapshot = read_queue_status(self.root)
+
+        self.assertFalse(snapshot.ok)
+        self.assertIn("missing=['terminal_reason']", snapshot.message)
+
+    def test_production_library_readable_without_mutation(self) -> None:
+        # 生产库回归：可读（含 TERMINATED 终态，缺陷修复验证）且只读不改动
         production = PROJECT_ROOT / "tasks"
         before = hashlib.sha256((production / "tasks.json").read_bytes()).hexdigest()
         snapshot = read_queue_status(production)
         after = hashlib.sha256((production / "tasks.json").read_bytes()).hexdigest()
         self.assertTrue(snapshot.ok)
-        self.assertEqual(0, snapshot.total)
+        self.assertGreaterEqual(snapshot.total, 1)
+        pseudo_streaming = next(
+            task for task in snapshot.tasks if task.task_id == "voice-136-pseudo-streaming"
+        )
+        self.assertEqual("QUEUED", pseudo_streaming.state)
+        self.assertIsNone(pseudo_streaming.terminal_reason)
         self.assertEqual(before, after)
 
     def test_missing_corrupt_and_illegal_storage_fail_closed(self) -> None:

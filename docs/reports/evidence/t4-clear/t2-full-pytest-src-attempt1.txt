@@ -1,0 +1,21 @@
+captured_at=2026-10-30T10:52:26.8267768+08:00
+command=H:\UltimaAI\UltimaAgent\tools\venv-openjarvis\Scripts\python.exe -m pytest src -q --disable-warnings
+exit_code=1
+================================== FAILURES ===================================
+_________________ TestPreferenceStore.test_upsert_idempotent __________________
+
+self = <test_preference_p2.TestPreferenceStore testMethod=test_upsert_idempotent>
+
+    def test_upsert_idempotent(self):
+        first = self.store.set("report", "style", "结论先行", source="user", priority=1)
+        second = self.store.set("report", "style", "结论先行+异常优先", source="user", priority=2)
+        self.assertEqual(first.created_at, second.created_at)
+>       self.assertNotEqual(first.updated_at, second.updated_at)
+E       AssertionError: '2026-10-30T02:47:56.325+00:00' == '2026-10-30T02:47:56.325+00:00'
+
+src\brain\memory\tests\test_preference_p2.py:52: AssertionError
+=========================== short test summary info ===========================
+FAILED src/brain/memory/tests/test_preference_p2.py::TestPreferenceStore::test_upsert_idempotent
+1 failed, 730 passed, 36 warnings, 120 subtests passed in 153.91s (0:02:33)
+classification=known millisecond timestamp flake previously recorded by wo-0003; outside this work order; no code change made
+

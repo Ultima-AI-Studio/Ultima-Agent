@@ -1,0 +1,21 @@
+Python interpreters:
+Python 3.13.16
+Python 3.13.16
+KWS parameter lines:
+src\brain\voice\kws_listener.py:56:    max_active_paths=8,
+src\brain\voice\kws_listener.py:57:    keywords_score=1.0,
+src\brain\voice\kws_listener.py:59:    num_trailing_blanks=0,
+data\logs\voice-listen-daemon.py:57:        max_active_paths=8,
+data\logs\voice-listen-daemon.py:58:        keywords_score=2.0,  # 2026-10-30 #133 提级 3.0 → 10-30 真机回归 08:09~08:10 五次强信号未命中（score 3.0 对「贾维斯」偏严，白龙马 3.0 系"小白龙"实测不适用），回退 2.0；离线 A/B 2.0/3.0 正负样本无差异（probe_kws_variant_ab2.py）
+data\logs\voice-listen-daemon.py:59:        keywords_threshold=0.08,  # 2026-10-30 #132 回正基线红线（10-29 19:2x 曾调低 0.04 补快语速召回；灵敏度改由 keywords_score 提级承担，见 #133）
+data\logs\voice-listen-daemon.py:60:        num_trailing_blanks=8,  # 2026-10-30 10-30 真机回归：score 2.0 下 08:21~08:22 三次强信号未命中（peak 0.0347~0.0432）才命中，间歇性漏唤醒。keywords.txt 6 个「贾维斯」变体 token 高度重叠（贾四声/贾一声/维轻声/斯轻声/吞尾音），sherpa-onnx 文档明确「keywords 有重叠 token 时应调大该值（如 8）」；0→8 按官方建议补变体间区分（见 kws-wakeup-params-baseline.md 第七节 2026-10-30 登记第 4 条）
+NO_LITERAL_WAKE_ROOTS_IN_INTERACTION
+Protected live process identities:
+ProcessId ParentProcessId CreationDate        Name
+--------- --------------- ------------        ----
+    39892           33752 2026/10/29 20:05:24 python.exe
+    29260           39892 2026/10/29 20:05:24 python.exe
+    16636           18088 2026/10/30 8:42:35  pythonw.exe
+    36388           16636 2026/10/30 8:42:35  pythonw.exe
+Real keywords SHA256:
+7D1457EF61EE1D450351926F707A2CFECAAD300FF7155835FDF56AD8A218EA5E

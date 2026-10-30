@@ -25,9 +25,8 @@
 }
 html, body { height: 100%; overflow: hidden; background: #04060c; font-family: 'Rajdhani', system-ui, sans-serif; }
 body { background: radial-gradient(1100px 650px at 70% 20%, rgba(14,165,233,.14), transparent 60%), radial-gradient(800px 550px at 25% 80%, rgba(59,130,246,.10), transparent 60%), linear-gradient(160deg,#050a16,#020617 55%,#060b18); }
-body::after { content:''; position: fixed; inset:0; pointer-events:none;
-  background-image: linear-gradient(rgba(14,165,233,.04) 1px, transparent 1px), linear-gradient(90deg, rgba(14,165,233,.04) 1px, transparent 1px);
-  background-size: 40px 40px; }
+html.native-hud, html.native-hud body, body.native-hud, body.native-hud::before { background: transparent !important; }
+html.native-hud body::after, body.native-hud::after { background-image: none !important; }
 
 .widget { position: fixed; z-index: 10; width: 372px; max-height: 340px;
   background: rgba(8,12,24,calc(var(--edge-alpha)*1.0));
@@ -221,6 +220,13 @@ body::after { content:''; position: fixed; inset:0; pointer-events:none;
 
 <script>
 (function () {
+  // ============ 原生壳模式（?native=1）：body 背景透明，仅显示四角面板 ============
+  try {
+    if (/[?&]native=1/.test(location.search)) {
+      document.documentElement.classList.add('native-hud');
+      document.body.classList.add('native-hud');
+    }
+  } catch (e) {}
   // ============ 吸附（沿用定稿：8 点位） ============
   var snapHint = document.getElementById('snapHint');
   function snapPoints() { var w=innerWidth,h=innerHeight,M=22; return [

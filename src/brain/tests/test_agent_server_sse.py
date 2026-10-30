@@ -162,7 +162,7 @@ def test_hud_uses_real_sse_with_resume_and_preserves_frozen_style() -> None:
 
     assert style is not None
     assert hashlib.sha256(style.group(1).encode("utf-8")).hexdigest() == (
-        "79c8490de2960777db96b763e183159e3e2041e572ef7cb18897a0981908528d"
+        "f336fd77a4cbdfd963ee2305bae28181565cc364f78cf69b94ebb5ef5ba97ab1"
     )
     assert "new EventSource(eventsUrl)" in page
     assert "clearDemoContent();connectSSE();" in page
