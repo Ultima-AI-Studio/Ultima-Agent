@@ -35,6 +35,8 @@
 
 存放：`H:\UltimaAI\UltimaAgent\docs\previews\hud-live-four-corner\assets\weather\`
 
+### 3.1 核心天气（6）
+
 | 文件 | 条件 | 大小 | 动画校验 | 配色 |
 |---|---|---|---|---|
 | clear-day.svg | 晴（白天） | 1898 B | ✅（太阳辉光旋转） | 继承父级（可染 cyan） |
@@ -44,9 +46,30 @@
 | thunderstorms.svg | 雷暴 | 2097 B | ✅（闪电闪烁） | 继承父级（可染 cyan） |
 | fog.svg | 雾 | 2401 B | ✅（雾气流动） | 继承父级（可染 cyan） |
 
+### 3.2 降水/风雪细分（雨量分级 + 复合条件）
+
+| 图标 | 语义 | 覆盖场景 |
+|---|---|---|
+| drizzle.svg | 毛毛雨 | 小雨（最弱降水） |
+| rain.svg | 雨 | 中雨（默认雨） |
+| extreme-rain.svg | 极端降雨 | **暴雨/大雨**（最强降水） |
+| partly-cloudy-day-rain.svg | 阵雨（多云日） | 间歇性降雨 |
+| partly-cloudy-day-drizzle.svg | 毛毛雨（多云日） | 阴天小雨 |
+| sleet.svg | 雨夹雪 | 冬季混合降水 |
+| hail.svg | 冰雹 | 强对流冰雹 |
+| partly-cloudy-day-snow.svg | 阵雪（多云日） | 间歇性降雪 |
+| thunderstorms-rain.svg | 雷阵雨 | 雷暴+雨 |
+| thunderstorms-day-rain.svg | 雷阵雨（白天） | 日间雷雨 |
+
+> 分级口径：Meteocons 用条件名分级（drizzle=小雨 → rain=中雨 → extreme-rain=暴雨），组件映射时可按此三档细分。
+
+### 3.3 昼夜/天空状态（8）
+
+clear-night / partly-cloudy-night / cloudy / overcast / thunderstorms-day / thunderstorms-night / haze / mist / dust / smoke（共 10）
+
 来源：jsDelivr `@meteocons/svg@0.1.0/monochrome/<condition>.svg`（MIT）。**Monochrome 版无硬编码色值**，SVG 根 `fill="none"`、路径继承父级颜色——CSS 侧统一 `fill`/`stroke` 即可染成 cyan 辉光色系（建议 #22d3ee 主色 / #67e8f9 高光 / #0ea5e9 次色）。
 
-**扩充清单（随时可补）**：clear-night、partly-cloudy-night、overcast、drizzle、sleet、hail、haze、dust、smoke、mist、tornado、hurricane、moon-*（月相）、wind、humidity、uv-index、barometer、compass、sunrise/sunset、thermometer-* 等（完整 140+ 见 Meteocons 目录，同样取 monochrome 版）。
+**扩充清单（后续需要再补）**：moon-*（8 月相）、wind、humidity、uv-index、barometer、compass、sunrise/sunset、thermometer-*、tornado、hurricane、falling-stars、starry-night、pressure-* 等（完整 140+ 见 Meteocons 目录，同样取 monochrome 版）。
 
 ## 四、落地工单规划（G-PLAN-001）
 
