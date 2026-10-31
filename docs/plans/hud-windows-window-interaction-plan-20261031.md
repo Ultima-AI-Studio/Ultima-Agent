@@ -1,7 +1,7 @@
 # HUD Windows 桌面交互方案 hud-windows-window-interaction-plan-20261031
 
-> 版本：v0.2（纠正 v0.1"区域级穿透"方向，改为 Windows 常规窗口交互定稿）｜ 状态：Owner 拍板定稿 ｜ 日期：2026-10-31
-> 依据：Owner 讨论（2026-10-31）：**Windows 桌面环境下 HUD = 普通可拖动窗口，不做穿透点击；穿透/透传是 AR 环境逻辑**
+> 版本：v0.3（v0.2 基础 + 置顶策略定稿）｜ 状态：Owner 拍板定稿 ｜ 日期：2026-10-31
+> 依据：Owner 讨论（2026-10-31）：**Windows 桌面环境下 HUD = 普通可拖动窗口，不做穿透点击；默认不置顶可被其它窗口覆盖，置顶为显式按钮；穿透/透传是 AR 环境逻辑**
 > 关联：`docs/previews/hud-layout-zone-plan-20261031.md`（8 锚点布局 v0.2 定稿）、工单 0011、`docs/previews/hologram-avatar-plan-20261031.md`
 
 ---
@@ -38,6 +38,7 @@ v0.1（`docs/plans/hud-clickthrough-zone-plan-20261031.md`）曾提出"区域级
 | 鼠标在锚位区 | 正常交互：点击天气/消息/任务队列/反馈区等 |
 | 鼠标在窗口空白/透明区 | 属窗口本体——不穿透；但**拖动窗口**即移开（拖动手柄/锚位壳任意处） |
 | 想操作下方桌面 | 把窗口拖走（拖动到屏幕其他位置/边缘），下方即露出可操作 |
+| **置顶策略** | **默认不置顶**——其它普通窗口可正常覆盖四角壳；每个视角窗口提供**置顶小按钮**（对应最早 Agent 方案功能），点击后该窗口置顶（Topmost），再点取消；托盘同步提供"窗口置顶"菜单项 |
 | 与 8 锚点布局关系 | 布局仍为 8 锚位（统一范式），窗口可整体移位；无任务/静默时锚位自动隐去，窗口自然"变空"不挡视线 |
 | 托盘总控 | 保留窗口显隐（显示/隐藏）开关；不再有"穿透"开关（Windows 场景无此概念） |
 
@@ -48,10 +49,11 @@ v0.1（`docs/plans/hud-clickthrough-zone-plan-20261031.md`）曾提出"区域级
 ## 四、改动范围与边界
 
 **写域**：
-- `src/host-shell/UltimaAgent.Hud/HudWindow.xaml.cs`（窗口拖动交互、透明区不穿透、托盘显隐）
-- `src/host-shell/UltimaAgent.Hud/TrayManager.cs`（穿透开关→显隐开关语义）
+- `src/host-shell/UltimaAgent.Hud/HudWindow.xaml`（**去掉硬编码 Topmost="True"**，默认不置顶）
+- `src/host-shell/UltimaAgent.Hud/HudWindow.xaml.cs`（窗口拖动交互、透明区不穿透、托盘显隐、**置顶切换 SetTopmost(bool)**）
+- `src/host-shell/UltimaAgent.Hud/TrayManager.cs`（穿透开关→显隐开关语义，**新增"窗口置顶"菜单项**）
 - `src/host-shell/UltimaAgent.Hud/Native.cs`（如需：去除 WS_EX_TRANSPARENT 依赖/仅保留 AR 模式预留）
-- HUD HTML 侧：锚位内容与交互（hud-live-four-corner.html，0011 改造后接入）
+- HUD HTML 侧：锚位内容与交互、**每个视角窗口的置顶小按钮**（hud-live-four-corner.html，0011 改造后接入）
 
 **禁止**：不动 Manager 内核 / agent_server 结构路由 / 8 锚点布局结构 / 全息人物资产。
 
@@ -63,6 +65,8 @@ v0.1（`docs/plans/hud-clickthrough-zone-plan-20261031.md`）曾提出"区域级
 
 - [ ] Windows 桌面：窗口可整体拖动，锚位区可正常点击交互
 - [ ] 鼠标在窗口透明区 = 窗口本体（不穿透下方），拖动即可移开露出桌面
+- [ ] **默认不置顶**：打开其它普通窗口可正常覆盖四角壳
+- [ ] **置顶小按钮**：点击后窗口置顶（Topmost），再点取消；托盘"窗口置顶"菜单项同步生效
 - [ ] 无任务/静默时锚位隐去，窗口不挡视线
 - [ ] 托盘"显隐"开关正常；无穿透开关残留概念
 - [ ] AR 模式预留不回归（透明度三档/中央透传逻辑不受影响）
@@ -75,4 +79,6 @@ v0.1（`docs/plans/hud-clickthrough-zone-plan-20261031.md`）曾提出"区域级
 - [x] ② 穿透/透传 = AR 环境逻辑，两套环境不混用（2026-10-31）
 - [x] ③ 想操作窗口下方内容 = 拖走窗口（2026-10-31）
 - [x] ④ 托盘穿透开关语义 → 显隐开关（2026-10-31）
-- [ ] ⑤ 工单排期（待 0011 验收后派发，按 G-PLAN-001 落盘）
+- [x] ⑤ **默认不置顶**，其它普通窗口可覆盖四角壳（2026-10-31）
+- [x] ⑥ **置顶为显式按钮**：每个视角窗口置顶小按钮 + 托盘"窗口置顶"菜单项，对应最早 Agent 方案功能（2026-10-31）
+- [ ] ⑦ 工单排期（待 0011 验收后派发，按 G-PLAN-001 落盘）

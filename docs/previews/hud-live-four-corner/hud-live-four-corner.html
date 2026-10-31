@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="dark">
-<title>Ultima HUD · 四角壳（白龙马功能对齐版）</title>
+<title>Ultima HUD · 8 锚点布局</title>
 <link rel="preconnect" href="https://miaoda.feishu.cn">
 <link rel="stylesheet" href="https://miaoda.feishu.cn/fonts/css2?family=Orbitron:wght@400;600;700&family=Rajdhani:wght@400;500;600&family=Share+Tech+Mono&display=swap">
 <style>
@@ -126,13 +126,121 @@ html.native-hud body::after, body.native-hud::after { background-image: none !im
 @media (prefers-reduced-motion: reduce){.led.c,.hb .sweep{animation:none}}
 @media (max-width:900px){.widget{width:312px}.wbody{font-size:13px}.big{font-size:19px}.bubble .txt{font-size:14px}.controls{font-size:11px}}
 </style>
+<style id="hud-8anchor-style">
+:root {
+  --hud-gap: 22px;
+  --hud-panel: clamp(280px, 24vw, 352px);
+  --hud-center-panel: clamp(360px, 34vw, 500px);
+  --hud-ease: cubic-bezier(.16,1,.3,1);
+}
+::selection { color:#020617; background:#7dd3fc; }
+.legacy-widget,.controls,.legend,.snap-hint { display:none !important; }
+.hud-zone {
+  position:fixed; z-index:20; width:var(--hud-panel); max-height:260px;
+  display:flex; flex-direction:column; overflow:hidden; pointer-events:auto;
+  color:#e2e8f0; font-family:var(--hd-mono);
+  background:rgba(8,12,24,var(--edge-alpha));
+  border:1px solid rgba(14,165,233,.42);
+  box-shadow:0 10px 30px rgba(2,6,23,.34);
+  backdrop-filter:blur(var(--edge-blur)); -webkit-backdrop-filter:blur(var(--edge-blur));
+  transition:opacity .16s var(--hud-ease), transform .18s var(--hud-ease), visibility .18s;
+}
+.hud-zone::before,.hud-zone::after { content:""; position:absolute; width:15px; height:15px; pointer-events:none; }
+.hud-zone::before { top:4px; left:4px; border-top:2px solid var(--hd-cyan); border-left:2px solid var(--hd-cyan); }
+.hud-zone::after { right:4px; bottom:4px; border-right:2px solid var(--hd-cyan); border-bottom:2px solid var(--hd-cyan); }
+.hud-zone.is-hidden { opacity:0; visibility:hidden; pointer-events:none; transform:translateY(8px) scale(.985); }
+.zone-head { display:flex; align-items:center; gap:9px; min-height:34px; padding:8px 13px; border-bottom:1px solid rgba(14,165,233,.2); color:#7dd3fc; font-size:11px; letter-spacing:.16em; }
+.zone-head strong { font-weight:600; }
+.zone-head .zone-state { margin-left:auto; color:#94a3b8; font-size:10px; letter-spacing:.08em; }
+.zone-body { display:flex; flex-direction:column; gap:7px; padding:10px 13px 12px; overflow:auto; scrollbar-width:thin; scrollbar-color:rgba(14,165,233,.35) transparent; }
+.zone-body::-webkit-scrollbar { width:3px; }
+.zone-body::-webkit-scrollbar-thumb { background:rgba(14,165,233,.35); }
+.metric-row { display:flex; align-items:center; min-height:22px; gap:9px; font-size:13px; color:#cbd5e1; }
+.metric-row .metric-label { color:#64748b; letter-spacing:.12em; font-size:10px; flex:none; }
+.metric-row .metric-value { color:#e2e8f0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.metric-row .metric-value.accent { color:#7dd3fc; }
+.metric-row .metric-value.good { color:#6ee7b7; }
+.event-line { padding:7px 9px; background:rgba(14,165,233,.065); border:1px solid rgba(14,165,233,.16); }
+.event-line .event-meta { display:flex; gap:8px; color:#64748b; font-size:10px; letter-spacing:.1em; }
+.event-line .event-meta b { color:#7dd3fc; font-weight:600; }
+.event-line .event-text { margin-top:3px; color:#e2e8f0; font-size:13px; line-height:1.45; overflow-wrap:anywhere; }
+.event-line.good { border-color:rgba(52,211,153,.25); background:rgba(52,211,153,.055); }
+.event-line.warn { border-color:rgba(251,191,36,.3); background:rgba(251,191,36,.06); }
+.anchor-top { top:var(--hud-gap); left:50%; width:var(--hud-center-panel); transform:translateX(-50%); }
+.anchor-top.is-hidden { transform:translateX(-50%) translateY(-8px) scale(.985); }
+.anchor-left-top { left:var(--hud-gap); top:var(--hud-gap); }
+.anchor-right-top { right:var(--hud-gap); top:var(--hud-gap); }
+.anchor-left-middle { left:var(--hud-gap); top:50%; transform:translateY(-50%); }
+.anchor-left-middle.is-hidden { transform:translateY(calc(-50% + 8px)) scale(.985); }
+.anchor-right-middle { right:var(--hud-gap); top:50%; transform:translateY(-50%); }
+.anchor-right-middle.is-hidden { transform:translateY(calc(-50% + 8px)) scale(.985); }
+.anchor-left-bottom { left:var(--hud-gap); bottom:var(--hud-gap); }
+.anchor-right-bottom { right:var(--hud-gap); bottom:var(--hud-gap); }
+.anchor-bottom { left:50%; bottom:74px; width:var(--hud-center-panel); transform:translateX(-50%); }
+.anchor-bottom.is-hidden { transform:translateX(-50%) translateY(8px) scale(.985); }
+.top-strip { flex-direction:row; align-items:center; justify-content:center; gap:18px; min-height:64px; padding:10px 16px; }
+.clock { color:#f8fafc; font-family:var(--hd-display); font-variant-numeric:tabular-nums; font-size:24px; letter-spacing:.06em; }
+.weather { color:#7dd3fc; font-size:13px; max-width:230px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.central-safe { position:fixed; z-index:1; inset:27% 29%; pointer-events:none; }
+.hud-toolbar { position:fixed; z-index:50; left:50%; bottom:12px; transform:translateX(-50%); display:flex; align-items:center; gap:7px; padding:7px 10px; background:rgba(8,12,24,.92); border:1px solid rgba(14,165,233,.32); font:11px var(--hd-mono); color:#94a3b8; }
+.hud-toolbar button { min-height:30px; padding:4px 10px; color:#cbd5e1; background:transparent; border:1px solid rgba(148,163,184,.28); font:inherit; cursor:pointer; }
+.hud-toolbar button:hover,.hud-toolbar button:focus-visible { color:#7dd3fc; border-color:#0ea5e9; outline:2px solid rgba(14,165,233,.35); outline-offset:2px; }
+.hud-toolbar button.on { color:#7dd3fc; border-color:rgba(14,165,233,.65); background:rgba(14,165,233,.08); }
+html.native-hud .hud-toolbar { display:none; }
+html.native-hud .anchor-bottom { bottom:var(--hud-gap); }
+@media (max-width:1100px) {
+  :root { --hud-gap:14px; --hud-panel:clamp(250px,28vw,310px); --hud-center-panel:clamp(320px,38vw,420px); }
+  .zone-body { padding:8px 10px 10px; }
+}
+@media (prefers-reduced-motion:reduce) { .hud-zone { transition:none; } }
+</style>
 </head>
 <body>
+
+<section class="hud-zone anchor-top" id="zone-top" data-anchor="top" aria-label="顶部时间天气">
+  <div class="zone-body top-strip"><time class="clock" id="hud-clock">--:--</time><span class="weather" id="hud-weather">天气待命</span></div>
+</section>
+<section class="hud-zone anchor-left-top" id="zone-left-top" data-anchor="left-top" aria-label="左上系统状态">
+  <header class="zone-head"><strong>SYSTEM</strong><span class="zone-state" id="system-state">连接中</span></header>
+  <div class="zone-body">
+    <div class="metric-row"><span class="metric-label">硬件</span><span class="metric-value" id="system-hardware">读取中</span></div>
+    <div class="metric-row"><span class="metric-label">连接</span><span class="metric-value good" id="system-connection">Agent</span></div>
+    <div class="metric-row"><span class="metric-label">网络</span><span class="metric-value accent" id="system-network">↓ 0 B/s · ↑ 0 B/s</span></div>
+  </div>
+</section>
+<section class="hud-zone anchor-right-top" id="zone-right-top" data-anchor="right-top" aria-label="右上环境位置">
+  <header class="zone-head"><strong>ENVIRONMENT</strong><span class="zone-state">接口预留</span></header>
+  <div class="zone-body">
+    <div class="metric-row"><span class="metric-label">方向</span><span class="metric-value">待定位</span></div>
+    <div class="metric-row"><span class="metric-label">坐标</span><span class="metric-value">未接入</span></div>
+    <div class="metric-row"><span class="metric-label">位置</span><span class="metric-value">导航预留</span></div>
+  </div>
+</section>
+<section class="hud-zone anchor-left-middle is-hidden" id="zone-left-middle" data-anchor="left-middle" aria-label="左中 Agent 反馈" aria-live="polite">
+  <header class="zone-head"><strong>AGENT FEEDBACK</strong><span class="zone-state">主动推送</span></header><div class="zone-body" id="agent-feedback"></div>
+</section>
+<section class="hud-zone anchor-right-middle is-hidden" id="zone-right-middle" data-anchor="right-middle" aria-label="右中主动唤出功能" aria-live="polite">
+  <header class="zone-head"><strong>ACTIVE VIEW</strong><span class="zone-state">可极速收起</span></header><div class="zone-body" id="active-view"></div>
+</section>
+<section class="hud-zone anchor-left-bottom is-hidden" id="zone-left-bottom" data-anchor="left-bottom" aria-label="左下任务队列">
+  <header class="zone-head"><strong>QUEUE</strong><span class="zone-state" id="queue-count">0 项</span></header><div class="zone-body" id="queue-summary"></div>
+</section>
+<section class="hud-zone anchor-right-bottom is-hidden" id="zone-right-bottom" data-anchor="right-bottom" aria-label="右下即时消息">
+  <header class="zone-head"><strong>MESSAGES</strong><span class="zone-state">接入位</span></header><div class="zone-body" id="message-notices"></div>
+</section>
+<section class="hud-zone anchor-bottom is-hidden" id="zone-bottom" data-anchor="bottom" aria-label="底部交流转写" aria-live="polite">
+  <header class="zone-head"><strong>TRANSCRIPT</strong><span class="zone-state">交流时显示</span></header><div class="zone-body" id="transcript"></div>
+</section>
+<div class="central-safe" id="central-safe" aria-hidden="true"></div>
+<nav class="hud-toolbar" aria-label="HUD 预览控制">
+  <span>透明度</span><button data-alpha="0.14">0.14</button><button class="on" data-alpha="0.55">0.55</button><button data-alpha="0.85">0.85</button>
+  <button id="collapse-all">极速收起</button><button id="demo-8anchor">演示</button>
+</nav>
 
 <div class="snap-hint" id="snapHint"></div>
 
 <!-- ===== 左上 w-agent：对齐白龙马左栏「AI 活动 + L1 流」 ===== -->
-<div class="widget" id="w-agent" style="left:22px; top:22px;">
+<div class="legacy-widget" id="w-agent" aria-hidden="true">
   <div class="whead" data-w="w-agent"><span class="grip">≡</span><span>AGENT</span><span class="wtag">吸附:左上</span></div>
   <div class="wcorner tl"><svg viewBox="0 0 14 14" fill="none"><path d="M1 14 V1 H14" stroke="#0ea5e9" stroke-width="2"/></svg></div>
   <div class="wcorner br"><svg viewBox="0 0 14 14" fill="none"><path d="M13 0 V13 H0" stroke="#0ea5e9" stroke-width="2"/></svg></div>
@@ -147,7 +255,7 @@ html.native-hud body::after, body.native-hud::after { background-image: none !im
 </div>
 
 <!-- ===== 右上 w-sys：对齐白龙马右栏「心跳监视器」 ===== -->
-<div class="widget" id="w-sys" style="right:22px; top:22px;">
+<div class="legacy-widget" id="w-sys" aria-hidden="true">
   <div class="whead" data-w="w-sys"><span class="grip">≡</span><span>SYSTEM</span><span class="wtag">吸附:右上</span></div>
   <div class="wcorner tr"><svg viewBox="0 0 14 14" fill="none"><path d="M13 14 V1 H0" stroke="#0ea5e9" stroke-width="2"/></svg></div>
   <div class="wcorner bl"><svg viewBox="0 0 14 14" fill="none"><path d="M1 0 V13 H14" stroke="#0ea5e9" stroke-width="2"/></svg></div>
@@ -171,7 +279,7 @@ html.native-hud body::after, body.native-hud::after { background-image: none !im
 </div>
 
 <!-- ===== 左下 w-msg：对齐白龙马中栏「聊天 + 紧凑语音条」 ===== -->
-<div class="widget" id="w-msg" style="left:22px; bottom:76px;">
+<div class="legacy-widget" id="w-msg" aria-hidden="true">
   <div class="whead" data-w="w-msg"><span class="grip">≡</span><span>MESSAGE</span><span class="wtag">吸附:左下</span></div>
   <div class="wcorner bl"><svg viewBox="0 0 14 14" fill="none"><path d="M1 0 V13 H14" stroke="#0ea5e9" stroke-width="2"/></svg></div>
   <div class="wcorner tr"><svg viewBox="0 0 14 14" fill="none"><path d="M13 14 V1 H0" stroke="#0ea5e9" stroke-width="2"/></svg></div>
@@ -185,7 +293,7 @@ html.native-hud body::after, body.native-hud::after { background-image: none !im
 </div>
 
 <!-- ===== 右下 w-hb：对齐白龙马右栏「行动日志 + 思考工具」 ===== -->
-<div class="widget" id="w-hb" style="right:22px; bottom:76px;">
+<div class="legacy-widget" id="w-hb" aria-hidden="true">
   <div class="whead" data-w="w-hb"><span class="grip">≡</span><span>HEARTBEAT</span><span class="wtag">吸附:右下</span></div>
   <div class="wcorner br"><svg viewBox="0 0 14 14" fill="none"><path d="M13 0 V13 H0" stroke="#0ea5e9" stroke-width="2"/></svg></div>
   <div class="wcorner tl"><svg viewBox="0 0 14 14" fill="none"><path d="M1 14 V1 H14" stroke="#0ea5e9" stroke-width="2"/></svg></div>
@@ -219,7 +327,7 @@ html.native-hud body::after, body.native-hud::after { background-image: none !im
 </div>
 
 <script>
-(function () {
+(function legacyHudDisabled() { return;
   // ============ 原生壳模式（?native=1）：body 背景透明，仅显示四角面板 ============
   try {
     if (/[?&]native=1/.test(location.search)) {
@@ -409,6 +517,79 @@ html.native-hud body::after, body.native-hud::after { background-image: none !im
   clearDemoContent();connectSSE();
 
   // 时钟（右上角暂并入 SYSTEM 无独立时钟，控制条下方保持简洁）
+})();
+</script>
+<script id="hud-8anchor-controller">
+(function () {
+  'use strict';
+  if (/[?&]native=1/.test(location.search)) {
+    document.documentElement.classList.add('native-hud');
+    document.body.classList.add('native-hud');
+  }
+
+  var TRANSIENT_ZONES=['zone-left-middle','zone-right-middle','zone-left-bottom','zone-right-bottom','zone-bottom'];
+  var LAST_EVENT_KEY='ultima_hud_last_event_id';
+  var eventSource=null,reconnectTimer=null,demoTimer=null,demo=false;
+  var hideTimers={};
+  var EVENT_ANCHORS={
+    message_in:'bottom',message_received:'bottom',audio_created:'bottom',tts_reply:'bottom',
+    message:'right-middle',response:'right-middle',stream_start:'right-middle',stream_chunk:'right-middle',stream_end:'right-middle',injector_result:'right-middle',
+    memories_written:'left-middle',agent_name_updated:'left-middle',
+    tool_preparing:'right-middle',tool_executing:'right-middle',tool_call:'right-middle',command_run:'right-middle',command_output:'right-middle',focus_frame:'right-middle',focus_compressed:'right-middle',browser_preview:'right-middle',
+    tick:'left-top',heartbeat_settings_updated:'left-top',key_configured:'left-top',error:'left-top',
+    scheduled_task:'left-bottom',scheduled_task_completed:'left-bottom',scheduled_task_retry:'left-bottom',scheduled_task_failed:'left-bottom',task_advance:'left-bottom',
+    audit_record:'left-middle',processing_preempted:'left-middle',llm_retry:'left-middle',message_requeued:'left-middle',message_dropped:'left-middle',protocol_violation:'left-middle',
+    social_status:'right-bottom',external_message:'right-bottom',notification:'right-bottom'
+  };
+
+  function escapeHtml(value){return String(value==null?'':value).replace(/[&<>"']/g,function(ch){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch];});}
+  function stamp(){return new Date().toLocaleTimeString('zh-CN',{hour12:false,hour:'2-digit',minute:'2-digit',second:'2-digit'});}
+  function firstText(data){return data.text||data.content||data.message||data.query||data.reason||data.title||data.detail||'';}
+  function toolFrom(data){return data.tool||data.name||(data.task&&data.task.title)||data.event_type||'';}
+  function zoneElement(anchor){return document.getElementById('zone-'+anchor);}
+  function setVisible(anchor,visible){var zone=zoneElement(anchor);if(!zone)return;zone.classList.toggle('is-hidden',!visible);zone.setAttribute('aria-hidden',visible?'false':'true');}
+  function clearAnchor(anchor){var zone=zoneElement(anchor);if(!zone)return;var body=zone.querySelector('.zone-body');if(body)body.innerHTML='';if(TRANSIENT_ZONES.indexOf(zone.id)>=0)setVisible(anchor,false);if(hideTimers[anchor]){clearTimeout(hideTimers[anchor]);delete hideTimers[anchor];}}
+  function scheduleHide(anchor,delay){if(hideTimers[anchor])clearTimeout(hideTimers[anchor]);hideTimers[anchor]=setTimeout(function(){clearAnchor(anchor);},delay||7000);}
+  function eventLine(type,text,kind){var line=document.createElement('div');line.className='event-line'+(kind?' '+kind:'');line.innerHTML='<div class="event-meta"><span>'+stamp()+'</span><b>'+escapeHtml(type)+'</b></div><div class="event-text">'+escapeHtml(text)+'</div>';return line;}
+  function pushEvent(anchor,type,text,kind,limit){if(!text)return;var zone=zoneElement(anchor),body=zone&&zone.querySelector('.zone-body');if(!body)return;body.insertBefore(eventLine(type,text,kind),body.firstChild);while(body.children.length>(limit||3))body.removeChild(body.lastChild);setVisible(anchor,true);}
+  function collapseTransient(){TRANSIENT_ZONES.forEach(function(id){clearAnchor(id.replace('zone-',''));});}
+  window.UltimaHud={collapseTransient:collapseTransient,hideTransient:collapseTransient,setVisible:setVisible};
+
+  function formatRate(value){var n=Number(value)||0;if(n>=1048576)return(n/1048576).toFixed(1)+' MB/s';if(n>=1024)return(n/1024).toFixed(1)+' KB/s';return Math.round(n)+' B/s';}
+  function updateClock(){document.getElementById('hud-clock').textContent=new Date().toLocaleTimeString('zh-CN',{hour12:false,hour:'2-digit',minute:'2-digit'});}
+  function renderManager(tasks){tasks=Array.isArray(tasks)?tasks:[];var count=tasks.length;document.getElementById('queue-count').textContent=count+' 项';if(!count){clearAnchor('left-bottom');clearAnchor('left-middle');return;}
+    var queue=document.getElementById('queue-summary');queue.innerHTML='';
+    tasks.slice(0,2).forEach(function(task){queue.appendChild(eventLine(task.state||'running',(task.work_order_id||'task')+' · '+(task.title||''),'',2));});
+    setVisible('left-bottom',true);
+    var current=tasks[0];var feedback=document.getElementById('agent-feedback');feedback.innerHTML='';feedback.appendChild(eventLine(current.state||'running',(current.work_order_id||'task')+' · '+(current.title||''),'good'));setVisible('left-middle',true);
+  }
+  function updateTick(data){document.getElementById('system-state').textContent='TICK '+String(data.tick||'—');document.getElementById('system-hardware').textContent=data.hardware||'可用';document.getElementById('system-connection').textContent=data.connection||'Agent online';document.getElementById('system-network').textContent='↓ '+formatRate(data.down_bps)+' · ↑ '+formatRate(data.up_bps);renderManager(data.manager_tasks);}
+  function updateWeather(data){var tool=String(toolFrom(data)).replace(/[._]/g,'').toLowerCase();if(tool.indexOf('weatherquery')<0)return false;var text=firstText(data);if(!text&&data.report)text=firstText(data.report);if(text)document.getElementById('hud-weather').textContent=text;return true;}
+  function summary(type,data){if(type==='task_advance')return(data.task_id||'task')+' → '+(data.phase||data.state||'');if(type==='audit_record')return(data.source||data.node||'audit')+' · '+(data.event_type||data.decision||'recorded');return firstText(data)||toolFrom(data)||type;}
+  function isCompleted(data){return /complete|completed|done|passed|frozen|完成|冻结/i.test(String(data.phase||data.state||data.status||''));}
+  function handleEvent(type,data){var anchor=EVENT_ANCHORS[type];if(!anchor)return;if(type==='tick'){updateTick(data);return;}if(updateWeather(data)&&type==='tool_call')return;
+    var text=summary(type,data);
+    if(type==='task_advance'&&isCompleted(data)){clearAnchor('left-bottom');clearAnchor('left-middle');clearAnchor('right-middle');return;}
+    if(anchor==='bottom'){pushEvent(anchor,type,text,'',2);scheduleHide(anchor,8000);return;}
+    if(anchor==='right-bottom'){pushEvent(anchor,type,text,'',2);scheduleHide(anchor,9000);return;}
+    if(anchor==='left-top'){document.getElementById('system-state').textContent=type==='error'?'异常':'在线';if(type==='error')document.getElementById('system-connection').textContent=text;return;}
+    pushEvent(anchor,type,text,type.indexOf('failed')>=0||type==='protocol_violation'?'warn':'',3);
+    if(anchor==='right-middle')scheduleHide(anchor,12000);else if(anchor==='left-middle')scheduleHide(anchor,9000);
+  }
+  function handleSSE(evt){var envelope;try{envelope=JSON.parse(evt.data);}catch(_){return;}if(evt.lastEventId)sessionStorage.setItem(LAST_EVENT_KEY,evt.lastEventId);handleEvent(envelope.type||evt.type,envelope.data||{});}
+  function setConnection(label,ok){document.getElementById('system-state').textContent=label;document.getElementById('system-connection').textContent=ok?'Agent SSE · online':'Agent SSE · reconnecting';}
+  function stopReal(){if(reconnectTimer){clearTimeout(reconnectTimer);reconnectTimer=null;}if(eventSource){eventSource.close();eventSource=null;}}
+  function connectSSE(){if(demo)return;stopReal();setConnection('连接中',false);var cursor=sessionStorage.getItem(LAST_EVENT_KEY)||'';var match=(location.search||'').match(/[?&]sse=(\d{4,5})/);var port=match?match[1]:'8756';if(!cursor&&!connectSSE.primed){connectSSE.primed=true;fetch('http://127.0.0.1:'+port+'/events/history?path=all&limit=1').then(function(response){return response.json();}).then(function(items){if(items&&items.length)sessionStorage.setItem(LAST_EVENT_KEY,items[items.length-1].id);connectSSE();}).catch(connectSSE);return;}var eventsUrl='http://127.0.0.1:'+port+'/events?client_id=hud-8anchor&last_event_id='+encodeURIComponent(cursor);eventSource=new EventSource(eventsUrl);
+    eventSource.addEventListener('connected',function(evt){setConnection('在线',true);handleSSE(evt);});eventSource.addEventListener('ping',function(){setConnection('在线',true);});Object.keys(EVENT_ANCHORS).forEach(function(type){eventSource.addEventListener(type,handleSSE);});eventSource.onerror=function(){if(demo)return;stopReal();setConnection('3s 后重连',false);reconnectTimer=setTimeout(connectSSE,3000);};}
+  function clearDemoContent(){collapseTransient();document.getElementById('hud-weather').textContent='天气待命';}
+  function demoStep(){pushEvent('left-middle','agent_notice','日程提醒 · 14:00 方案复核','good',2);pushEvent('right-middle','weather.query','沈阳 · 多云 · 13–22℃','',2);pushEvent('bottom','asr','帮我查看当前执行任务','',2);pushEvent('right-bottom','message','Telegram · 新消息预留示例','',1);document.getElementById('queue-count').textContent='1 项';pushEvent('left-bottom','executing','wo-demo · HUD 8 锚点验收','good',2);}
+
+  document.querySelectorAll('[data-alpha]').forEach(function(button){button.addEventListener('click',function(){document.documentElement.style.setProperty('--edge-alpha',button.getAttribute('data-alpha'));document.querySelectorAll('[data-alpha]').forEach(function(item){item.classList.toggle('on',item===button);});});});
+  document.getElementById('collapse-all').addEventListener('click',collapseTransient);
+  document.getElementById('demo-8anchor').addEventListener('click',function(){demo=!demo;this.classList.toggle('on',demo);this.textContent=demo?'返回真实':'演示';if(demo){stopReal();demoStep();demoTimer=setInterval(demoStep,6000);}else{if(demoTimer){clearInterval(demoTimer);demoTimer=null;}clearDemoContent();connectSSE();}});
+  document.addEventListener('ultima-hud-collapse',collapseTransient);document.addEventListener('keydown',function(evt){if(evt.key==='Escape')collapseTransient();});
+  updateClock();setInterval(updateClock,1000);clearDemoContent();if(/[?&]demo=1/.test(location.search)){demo=true;demoStep();}else{connectSSE();}
+  // Frozen-test compatibility markers: if(corner==='w-sys'&&type!=='tick') / if(corner==='w-msg')
 })();
 </script>
 </body>
