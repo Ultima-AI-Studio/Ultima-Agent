@@ -58,8 +58,20 @@ Gate：**PASS**
 
 ## T3 收口与基线核对
 
-Gate：待执行。
+Gate：**PASS**
+
+| 检查项 | 结果 | 证据 |
+|---|---|---|
+| C1 参数基线零漂移 | PASS | 四个保护对象的 T0/T3 Git blob ID 完全一致；`t3-baseline-review.txt` |
+| C2 commit + tag | PASS | 实现提交 `c971171fbd4af60e750921f01da82da6f7d7919c`；tag `ultimaagent-kws-wakeword-reconfig-20261031` 指向包含最终报告的 closeout commit |
+| C3 阶段报告 | PASS | 本文件；T0-T3 Gate、真实 CLI、同 PID 日志、测试与独立审查均已记录 |
+
+独立只读审查初结论为 REVISE（无 Critical）：发现保留 profile 变体时显式参数未逐行应用，以及替换测试依赖预配置现网词表。两项均按 RED→GREEN 修复：参数覆盖回归通过；替换测试改为隔离词表 add→同 WAV 命中→replace→同 WAV 不命中。证据陈旧与 hash 术语也已收敛。
+
+最终词表：6 个“贾维斯”变体均显式 `:2.0 #0.08`、新词“查天气”显式 `:2.0 #0.08`、ULTIMA 保留。最终真实热重载时间 11:28:34，前/日志/后 PID 均为 14068。
+
+最终验收：KWS 专项 `19 passed`；工程全量 `786 passed, 120 subtests passed`，零失败；36 条既有第三方警告已落证。
 
 ## 越界声明
 
-截至 T2：未修改模型权重、ONNX、`tokens.txt`、KWS 全局参数、`voice_profile.py`、daemon 既有逻辑或 W6 UI；未杀死或重启守护进程。热重载前后 PID 均为 14068。T2 后保护哈希与 T0 完全一致。
+最终：未修改模型权重、ONNX、`tokens.txt`、KWS 全局参数、`voice_profile.py`、daemon 既有逻辑或 W6 UI；未杀死或重启守护进程。热重载前后 PID 均为 14068。T3 保护 Git blob ID 与 T0 完全一致。
