@@ -17,15 +17,20 @@ from __future__ import annotations
 
 import json
 import importlib
+import importlib.util
 import os
 import queue
+import re
+import subprocess
 import sys
 import threading
 import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any
+from urllib.error import HTTPError, URLError
 from urllib.parse import parse_qs, urlparse
+from urllib.request import Request, urlopen
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
@@ -63,6 +68,145 @@ EVENT_BUS = get_event_bus()
 
 _jars: Jarvis | None = None
 _ask_lock = threading.Lock()  # Jarvis 单例非线程安全，串行化并发推理
+_manager_token: str | None = None
+
+
+def _hardware_summary() -> str:
+    """Return a compact, dependency-free hardware summary for the HUD tick."""
+    memory_gb = 0
+    try:
+        import ctypes
+
+        class _MemoryStatus(ctypes.Structure):
+            _fields_ = [
+                ("length", ctypes.c_ulong),
+                ("memory_load", ctypes.c_ulong),
+                ("total_physical", ctypes.c_ulonglong),
+                ("available_physical", ctypes.c_ulonglong),
+                ("total_page_file", ctypes.c_ulonglong),
+                ("available_page_file", ctypes.c_ulonglong),
+                ("total_virtual", ctypes.c_ulonglong),
+                ("available_virtual", ctypes.c_ulonglong),
+                ("available_extended_virtual", ctypes.c_ulonglong),
+            ]
+
+        status = _MemoryStatus()
+        status.length = ctypes.sizeof(status)
+        if ctypes.windll.kernel32.GlobalMemoryStatusEx(ctypes.byref(status)):
+            memory_gb = round(status.total_physical / (1024**3))
+    except (AttributeError, OSError):
+        pass
+    memory = f" · {memory_gb}GB" if memory_gb else ""
+    return f"{os.cpu_count() or 0}C{memory}"
+
+
+def _network_totals() -> tuple[int, int]:
+    """Read Windows interface byte totals without adding a runtime dependency."""
+    try:
+        completed = subprocess.run(
+            ["netstat", "-e"],
+            capture_output=True,
+            text=True,
+            encoding="mbcs",
+            errors="ignore",
+            timeout=2,
+            check=False,
+            creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
+        )
+        for line in (completed.stdout or "").splitlines():
+            values = re.findall(r"\d+", line)
+            if len(values) == 2 and max(map(int, values)) > 1024:
+                return int(values[0]), int(values[1])
+    except (OSError, subprocess.SubprocessError):
+        pass
+    return 0, 0
+
+
+def _read_manager_token() -> str:
+    global _manager_token
+    if _manager_token is not None:
+        return _manager_token
+    security_path = PROJECT_ROOT.parent / "UltimaManager" / "src" / "manager" / "security.py"
+    spec = importlib.util.spec_from_file_location("ultima_manager_security", security_path)
+    if spec is None or spec.loader is None:
+        raise RuntimeError("Manager credential module is unavailable")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    _manager_token = str(module.CredentialStore().read())
+    return _manager_token
+
+
+def _manager_active_tasks() -> list[dict[str, str]]:
+    """Read the authenticated Manager task view; never expose its capability."""
+    request = Request(
+        "http://127.0.0.1:18766/api/v1/tasks?project_id=UltimaAgent",
+        headers={"Authorization": "Bearer " + _read_manager_token()},
+    )
+    with urlopen(request, timeout=3) as response:
+        payload = json.load(response)
+    active_states = {"executing", "in_progress", "running", "develop", "plan", "plan_review", "audit"}
+    tasks: list[dict[str, str]] = []
+    for item in payload.get("items", []):
+        state = str(item.get("state", "")).lower()
+        if state in active_states:
+            tasks.append(
+                {
+                    "work_order_id": str(item.get("work_order_id", "")),
+                    "title": str(item.get("title", ""))[:120],
+                    "state": state,
+                }
+            )
+    for item in payload.get("legacy", []):
+        state = str(item.get("registry_state", "")).lower()
+        if state in active_states:
+            tasks.append(
+                {
+                    "work_order_id": str(item.get("work_order_id", "")),
+                    "title": str(item.get("registry_detail", ""))[:120],
+                    "state": state,
+                }
+            )
+    return tasks
+
+
+def _hud_tick_loop() -> None:
+    """Publish sticky system/Manager fields consumed by the eight-anchor HUD."""
+    previous_rx, previous_tx = _network_totals()
+    previous_time = time.monotonic()
+    manager_tasks: list[dict[str, str]] = []
+    manager_ok = False
+    next_manager_read = 0.0
+    tick = 0
+    while True:
+        tick += 1
+        now = time.monotonic()
+        rx, tx = _network_totals()
+        elapsed = max(now - previous_time, 0.001)
+        down_bps = max(0, round((rx - previous_rx) / elapsed)) if previous_rx else 0
+        up_bps = max(0, round((tx - previous_tx) / elapsed)) if previous_tx else 0
+        previous_rx, previous_tx, previous_time = rx, tx, now
+        if now >= next_manager_read:
+            try:
+                manager_tasks = _manager_active_tasks()
+                manager_ok = True
+            except (HTTPError, URLError, OSError, RuntimeError, ValueError):
+                manager_tasks = []
+                manager_ok = False
+            next_manager_read = now + 10.0
+        EVENT_BUS.set_sticky(
+            "tick",
+            {
+                "tick": tick,
+                "hardware": _hardware_summary(),
+                "connection": "Agent + Manager" if manager_ok else "Agent online",
+                "down_bps": down_bps,
+                "up_bps": up_bps,
+                "manager_ok": manager_ok,
+                "manager_tasks": manager_tasks,
+                "queue_count": len(manager_tasks),
+            },
+        )
+        time.sleep(2.0)
 
 
 def _ensure_tools_registered() -> None:
@@ -361,6 +505,7 @@ def main() -> int:
     sys.stderr.write(
         f"[agent-server] 启动：http://{HOST}:{PORT} model={MODEL} agent={AGENT} tools={TOOLS}\n"
     )
+    threading.Thread(target=_hud_tick_loop, daemon=True).start()
     # RU-05 启动自检：后台静默线程，失败不阻断主链路（N6/N7）
     threading.Thread(target=_startup_update_check, daemon=True).start()
     try:
