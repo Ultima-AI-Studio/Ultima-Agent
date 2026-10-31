@@ -10,12 +10,15 @@
 
 | 候选 | 说明 | 结论 |
 |---|---|---|
-| **Meteocons**（Bas Milius） | 500+ 手绘动画天气图标；4 风格（Fill/Flat/Line/Monochrome）；2 输出（动画 SVG / Lottie JSON）；**MIT 可商用**；npm `@meteocons/svg`/`@meteocons/lottie`；旧版包 `@bybas/weather-icons@2.0.0` jsDelivr CDN 直取 | ✅ **选用** |
+| **Meteocons Monochrome 版**（`@meteocons/svg@0.1.0/monochrome/`） | 500+ 手绘动画天气图标；4 风格（Fill/Flat/Line/**Monochrome**）；2 输出（动画 SVG / Lottie JSON）；**MIT 可商用**；**Monochrome 版零硬编码颜色（继承父级 fill/stroke），可任意染色适配科幻风** | ✅ **选用** |
+| Meteocons Fill/Line 版 | 自带暖色/彩色（琥珀黄太阳、宝蓝天、浅蓝雪） | ❌ 不符科幻风（卡通感、高饱和、暖色） |
 | weather-animations（npm） | Canvas 驱动天气背景 + duotone SVG 图标（20 条件） | 备选（背景场景用） |
 | weather-icons-animated（npm） | React + emotion 动画图标（Home Assistant 生态） | 不选（引 React 运行时，违反原生落地原则） |
 | QWeather Icons（MIT 507） | 另一套 MIT 天气图标集 | 备选（需要更多条件时扩充） |
 
-**选型理由**：Meteocons 满足全部约束——①带动画（SVG 内嵌 `<animate>`，零依赖零运行时）；②MIT 可商用；③4 风格适配 HUD 透明深色底（**Monochrome 单色最适合 cyan 辉光哲学**）；④CDN/npm 可直取、可本地化；⑤图标覆盖面全（晴/多云/雨/雪/雷暴/雾/霾/尘/冰雹/月相/风向/湿度/UV 等 140+）。
+**选型理由**：Monochrome 版满足全部约束——①带动画（SVG 内嵌 `<animate>`，零依赖零运行时）；②MIT 可商用；③**零硬编码色值**，可统一染成 cyan 辉光色系（深空 #020617 底 + #22d3ee/#67e8f9 辉光），**完美契合 Ultima 科幻风 UI 哲学**；④CDN/npm 可直取、可本地化；⑤图标覆盖面全（晴/多云/雨/雪/雷暴/雾/霾/尘/冰雹/月相/风向/湿度/UV 等 140+）。
+
+> 注：初版曾取 Fill 风格（暖色扁平卡通），经 Owner 质询配色后发现不符科幻风，已**全部替换为 Monochrome 版**（v0.1→修正）。
 
 ## 二、组件化路径（对接 react-bits 模式）
 
@@ -32,18 +35,18 @@
 
 存放：`H:\UltimaAI\UltimaAgent\docs\previews\hud-live-four-corner\assets\weather\`
 
-| 文件 | 条件 | 大小 | 动画校验 |
-|---|---|---|---|
-| clear-day.svg | 晴（白天） | 783 B | ✅（太阳辉光旋转） |
-| partly-cloudy-day.svg | 多云（白天） | 1237 B | ✅（云飘移） |
-| rain.svg | 雨 | 2048 B | ✅（雨滴下落） |
-| snow.svg | 雪 | 3201 B | ✅（雪花飘落） |
-| thunderstorms.svg | 雷暴 | 1024 B | ✅（闪电闪烁） |
-| fog.svg | 雾 | 1373 B | ✅（雾气流动） |
+| 文件 | 条件 | 大小 | 动画校验 | 配色 |
+|---|---|---|---|---|
+| clear-day.svg | 晴（白天） | 1898 B | ✅（太阳辉光旋转） | 继承父级（可染 cyan） |
+| partly-cloudy-day.svg | 多云（白天） | 5448 B | ✅（云飘移） | 继承父级（可染 cyan） |
+| rain.svg | 雨 | 3009 B | ✅（雨滴下落） | 继承父级（可染 cyan） |
+| snow.svg | 雪 | 10448 B | ✅（雪花飘落） | 继承父级（可染 cyan） |
+| thunderstorms.svg | 雷暴 | 2097 B | ✅（闪电闪烁） | 继承父级（可染 cyan） |
+| fog.svg | 雾 | 2401 B | ✅（雾气流动） | 继承父级（可染 cyan） |
 
-来源：jsDelivr `@bybas/weather-icons@2.0.0/production/fill/all/<condition>.svg`（MIT）。当前采用 **Fill 风格**；后续如需 cyan 单色辉光可切换 Monochrome 风格（`@meteocons/svg` 提供）。
+来源：jsDelivr `@meteocons/svg@0.1.0/monochrome/<condition>.svg`（MIT）。**Monochrome 版无硬编码色值**，SVG 根 `fill="none"`、路径继承父级颜色——CSS 侧统一 `fill`/`stroke` 即可染成 cyan 辉光色系（建议 #22d3ee 主色 / #67e8f9 高光 / #0ea5e9 次色）。
 
-**扩充清单（随时可补）**：clear-night、partly-cloudy-night、overcast、drizzle、sleet、hail、haze、dust、smoke、mist、tornado、hurricane、moon-*（月相）、wind、humidity、uv-index、barometer、compass、sunrise/sunset、thermometer-* 等（完整 140+ 见 Meteocons 目录）。
+**扩充清单（随时可补）**：clear-night、partly-cloudy-night、overcast、drizzle、sleet、hail、haze、dust、smoke、mist、tornado、hurricane、moon-*（月相）、wind、humidity、uv-index、barometer、compass、sunrise/sunset、thermometer-* 等（完整 140+ 见 Meteocons 目录，同样取 monochrome 版）。
 
 ## 四、落地工单规划（G-PLAN-001）
 
@@ -62,3 +65,4 @@
 2. ✅ 只取气泡/浮窗元素，无背景卡片（沿用布局方案 v0.5 视觉样式提炼结论）。
 3. ✅ 组件化=react-bits 模式（原生落地、自包含、不引 React 运行时、动效可降级）。
 4. ✅ 首批 6 个核心天气图标已收集入 HUD 资产目录（已校验带动画）。
+5. ✅ **风格修正：Fill 版（暖色卡通）→ Monochrome 版（零硬编码色值，可染 cyan 辉光）**——经 Owner 质询配色后替换，符合深空 #020617 + cyan 辉光科幻风（2026-10-31）。
