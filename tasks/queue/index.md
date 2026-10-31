@@ -15,6 +15,11 @@
 | wo-ultimaagent-20261030-0004 | 5 | 1 | 0 | 0 | 0 | 0 |
 | wo-ultimaagent-20261030-0005 | 5 | 0 | 0 | 0 | 0 | 1 |
 | wo-ultimaagent-20261030-0007 | 5 | 0 | 1 | 0 | 0 | 0 |
+| wo-ultimaagent-20261031-0008 | 6 | 0 | 1 | 0 | 0 | 0 |
+| wo-ultimaagent-20261031-0009 | 5 | 0 | 0 | 0 | 0 | 1 |
+| wo-ultimaagent-20261031-0010 | 5 | 0 | 0 | 0 | 0 | 1 |
+| wo-ultimaagent-20261031-0011 | 4 | 0 | 0 | 0 | 0 | 1 |
+| wo-ultimaagent-20261031-0012 | 4 | 0 | 1 | 0 | 0 | 0 |
 
 ## 二、明细
 
@@ -27,3 +32,8 @@
 | wo-ultimaagent-20261030-0004 | frozen | 语音输入通道升级（设备自动探测 + 48k WASAPI A/B）；T0-T4；2026-10-30 登记；冻结 tag wo-ultimaagent-20261030-0004-frozen-20261030；工单卡 tasks/queue/wo-ultimaagent-20261030-0004--input-channel.md |
 | wo-ultimaagent-20261030-0005 | frozen | CV3 贾维斯音色（voice 段 + TTS 本地优先）；T0-T4；2026-10-30 登记；三派 PID 21828 收尾（首派 11764 网络失败留证、二派 26236 T4 收尾 OOM 留证）；主脑复核 906/0 + 真机中英转写命中 + 4 Important 一次修复；冻结 tag wo-ultimaagent-20261030-0005-frozen-20261030；工单卡 tasks/queue/wo-ultimaagent-20261030-0005--cv3-jarvis-voice.md |
 | wo-ultimaagent-20261030-0007 | executing | 双线程伪流式（采集∥识别，1s 重跑节流 + 说完终跑 + 异常回退）；T0-T4；2026-10-30 登记；源任务卡 voice-136-pseudo-streaming（tasks.json QUEUED）；写域 data/logs/voice-listen-daemon.py + 基线变更记录追加 #136（不改值）；工单卡 tasks/queue/wo-ultimaagent-20261030-0007--pseudo-streaming.md；首派 26832 受阻 T0 → 主脑裁定收敛（门控 0.01/0.002、score 2.0、BEEP 1.2）→ 二派 7264 T4 硬件回放 OOM 留证 → 三派 17132 T0-T3 全绿、T4 物理耦合受阻（async-play 竞态 L26）→ Owner 拍板物理耦合+竞态修复进冻结门 → 四派 39480：A 竞态修复完成（_LOG_LOCK）、C 记录更新完成，T4 耦合标定 0 命中受阻；主脑复核纠偏：根因为运行 daemon 23588 MME 采集退化（16:36 起环境电平恒 0 + CPU 满载，L25 同型）非物理距离 → 五派修复重测中 |
+| wo-ultimaagent-20261031-0008 | executing | GPT-SoVITS V3 few-shot 微调训练（杨幂 MOV 音色，LoRA 路线）；T0-T5；2026-10-31 登记；多轮重派（T1 人工听读定稿 A/C 段 → T2 重入 PASS → T3 TCPStore 端口 10013 → MASTER_ADDR/PORT 固定绕随机端口）执行中；冻结门=tag ultimaagent-gptsovits-v3-fewshot-20261031 |
+| wo-ultimaagent-20261031-0009 | completed | KWS 唤醒词动态改词自动化验证闭环（scripts/kws_reconfig.py 四子命令）；T0-T3 全 PASS；commit e6ee286 + tag ultimaagent-kws-wakeword-reconfig-20261031 已推远端 |
+| wo-ultimaagent-20261031-0010 | completed | 主脑模型降档 qwen2.5:14b → qwen3-8b 无审查版（内存实降 4.1GB）；T0-T3 全 PASS；commit 69d46c0+09a7abc + tag ultimaagent-mainbrain-qwen3-8b-20261031 已推远端 |
+| wo-ultimaagent-20261031-0011 | completed | HUD 四角壳 8 锚点布局改造；T0/T1/T2-C1~C5/C7 全 PASS；commit 5cdfca3 + 报告 e00d927 + tag ultimaagent-hud-8anchor-20261031（本地=远端）；T3 八字段回执已交 |
+| wo-ultimaagent-20261031-0012 | executing | HUD 天气组件接入（#hud-weather 纯文本占位 → 官方 Meteocons Monochrome 动画图标 + cyan 辉光 + 降水细分映射）；T0-T3；2026-10-31 登记；工单卡 tasks/queue/wo-ultimaagent-20261031-0012--hud-weather-component.md；派发载荷 dispatch-wo-ultimaagent-20261031-0012-prompt.txt；2026-10-31 派发 codex gpt-5.6-sol PID 24736（静默后台）；冻结门=tag ultimaagent-weather-component-20261031 |
