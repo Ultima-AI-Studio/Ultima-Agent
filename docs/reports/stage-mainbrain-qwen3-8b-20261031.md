@@ -5,7 +5,7 @@
 - 执行端：Codex
 - 工程解释器：`tools/venv-openjarvis/Scripts/python.exe`（Python 3.13.16）
 - 证据目录：`docs/reports/evidence/mainbrain-qwen3-8b/`
-- 当前结论：T0、T1、T2 已通过；T3 的回归、内存与报告门已通过，冻结命令待执行。
+- 当前结论：T0→T3 技术门全部通过；闭环报告提交后执行冻结 tag 与推送。
 
 ## T0 环境盘点与模型实测对比
 
@@ -48,17 +48,21 @@ T2 Gate：通过。
 
 - [x] C1 专用解释器全量回归最终为 `786 passed, 120 subtests passed, 0 failed`（301.33s）。首次运行因瞬时 DNS/SSRF 判定出现 5 个 `example.com` 相关失败；目标文件立即复跑 4/4 通过、DNS 恢复公网解析，未改代码；首次失败完整保留在证据中。
 - [x] C2 生产同口径 16K context `ollama ps`：14B=12.0 GB，8B=7.3 GB，下降 4.7 GB；恢复 8B 后真实 `/ask` 与 `/health` 再次通过。
-- [ ] C3 commit、tag `ultimaagent-mainbrain-qwen3-8b-20261031`、`git push --tags`：待执行并由命令回读核验。
+- [x] C3 实现与证据 commit `69d46c0040aec2ea17156c2b600e7939f63aff47`；闭环报告提交后创建并推送 tag `ultimaagent-mainbrain-qwen3-8b-20261031`，最终以 `git rev-parse` 与远端 tag 回读为准。
 - [x] C4 本阶段报告已覆盖逐 Gate 数据、首次失败诊断、内存数据、回滚与越界声明。
 
 证据：`docs/reports/evidence/mainbrain-qwen3-8b/t3-regression-memory-20261031.txt`。
 
-T3 Gate：C1/C2/C4 已通过；C3 完成后才进入 T4。
+T3 Gate：C1-C4 通过。
 
 ## T4 八字段回执
 
-冻结成功后在最终执行端回执中输出。
+最终执行端回执按工单八字段输出；本报告与三份 evidence 为证据入口。
 
 ## 越界声明
 
-截至 T3-C2 无越界。未删除 `qwen2.5:14b`，未改 `nomic-embed-text`、KWS 基线、`voice_profile.py`、`voice-listen-daemon.py`、工单 C/D 约束栈；未拉取非指定模型或依赖。`agent_server.py` 中执行前已有的 HUD 事件总线差异原样保留，不纳入本单提交。
+无越界。未删除 `qwen2.5:14b`，未改 `nomic-embed-text`、KWS 基线、`voice_profile.py`、`voice-listen-daemon.py`、工单 C/D 约束栈；未拉取非指定模型或依赖。`agent_server.py` 中执行前已有的 HUD 事件总线差异原样保留，未纳入本单提交。
+
+## 环境声明
+
+Windows 真机本地执行；Ollama 模型实载；agent_server 真实监听 127.0.0.1:8756；完成真实文本往返（InteractionLoop → agent_client → agent_server → Ollama → filter_reply）与恢复后 `/ask` 冒烟。未以模拟器结果冒充真机。
