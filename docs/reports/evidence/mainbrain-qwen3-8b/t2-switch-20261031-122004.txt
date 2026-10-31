@@ -1,0 +1,49 @@
+UltimaAgent qwen3-8b T2 switch evidence
+Work order: wo-ultimaagent-20261031-0010
+Timestamp: 2026-10-31 12:20 +08:00
+
+T2-C1 exact constants after change:
+  42 HOST = "127.0.0.1"
+  43 PORT = 8756
+  45 ENGINE_KEY = "ollama"
+  46 MODEL = "qwen3-8b-uncensored"
+  47 AGENT = "native_react"
+  48 TOOLS = [ nine frozen tools unchanged ]
+Command: tools\venv-openjarvis\Scripts\python.exe -m py_compile src\brain\agent_server.py
+Result: exit 0.
+Only work-order change in agent_server.py: line 46 model value. Pre-existing
+uncommitted HUD event-bus changes after line 124 were observed before this work
+order and preserved without modification.
+
+T2-C2 startup reference synchronization:
+  scripts/start-ultima-agent.ps1:21 comment changed from
+  qwen2.5:14b / 11434 to qwen3-8b-uncensored / 11434.
+No executable prewarm command hard-coded the 14B name.
+
+T2-C3 restart and health:
+Command: scripts\start-agent-server.ps1 -Restart
+Result: exit 0; model=qwen3-8b-uncensored; agent=native_react; tools=9.
+GET http://127.0.0.1:8756/health:
+  ok=true
+  model=qwen3-8b-uncensored
+  agent=native_react
+  tools=calculator,think,ultima_subagent,ultima_skill_manage,ultima_memory,
+        ultima_web_search,ultima_task_query,ultima_task_adjust,ultima_env_snapshot
+TCP listener: 127.0.0.1:8756, PID 38600.
+Startup log contains the new model and no RU-05 startup-check failure line.
+
+T2-C4 real-machine text round trip:
+Command: tools\venv-openjarvis\Scripts\python.exe
+         docs\reports\evidence\voice-profile\t2_live_agent_probe.py
+Path: InteractionLoop -> agent_client -> local agent_server:8756 -> Ollama
+      qwen3-8b-uncensored -> frozen filter_reply -> InteractionResponse.
+Result: exit 0.
+  ok=true
+  transport=127.0.0.1 local agent_server
+  reason=Agent 回答
+  reply=查天气吗？目前没有天气数据，我无法提供相关信息。
+  sentence_count=2
+  banned_hits=[]
+Agent log confirms POST /ask HTTP/1.1 200.
+
+T2 Gate: C1-C4 PASS.

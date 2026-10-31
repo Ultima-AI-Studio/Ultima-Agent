@@ -1,0 +1,65 @@
+UltimaAgent qwen3-8b T3 regression and memory evidence
+Work order: wo-ultimaagent-20261031-0010
+Date: 2026-10-31 Asia/Shanghai
+Interpreter: tools\venv-openjarvis\Scripts\python.exe (Python 3.13.16)
+
+=== T3-C1 full regression, first run ===
+Command: tools\venv-openjarvis\Scripts\python.exe -m pytest src -q
+Result: exit 1; 5 failed, 781 passed, 36 warnings, 120 subtests passed;
+duration 383.13s.
+All failures shared the same WebSearch/SSRF path and expected example.com to
+be accepted:
+  src/brain/search/tests/test_websearch_s3.py (4 failures)
+  src/brain/tests/test_integration_s3.py (1 failure)
+No failure referenced agent_server.py, Ollama, or the selected model.
+
+Systematic read-only diagnosis:
+  - src/brain/search/upgrade.py and both failing test files had no git diff.
+  - Immediate targeted rerun of test_websearch_s3.py: 4 passed in 0.26s.
+  - socket.getaddrinfo('example.com',443) then returned public addresses
+    172.66.147.243 and 104.20.23.154.
+  - SSRFGuard().validate('https://example.com/page') returned (True,'允许').
+Conclusion: the first run was a transient DNS/SSRF environmental failure;
+no source change was justified or made.
+
+=== T3-C1 full regression, required fresh rerun ===
+Command: tools\venv-openjarvis\Scripts\python.exe -m pytest src -q
+Result: exit 0.
+  786 passed
+  120 subtests passed
+  0 failed
+  36 warnings (existing dependency deprecation/serialization warnings)
+  duration 301.33s (0:05:01)
+T3-C1 final gate: PASS, with first-run transient retained above.
+
+=== T3-C2 same-context production memory comparison ===
+Method: each model loaded alone via the same local Ollama service with
+context=16384; ollama ps captured after load. 14B was then stopped and 8B
+was restored through the real agent_server /ask path.
+
+14B ollama ps:
+  NAME=qwen2.5:14b
+  ID=7cdf5a0187d5
+  SIZE=12 GB
+  PROCESSOR=15%/85% CPU/GPU
+  CONTEXT=16384
+
+8B ollama ps:
+  NAME=qwen3-8b-uncensored:latest
+  ID=6d7230a92342
+  SIZE=7.3 GB
+  PROCESSOR=100% GPU
+  CONTEXT=16384
+
+Measured decrease: 12.0 - 7.3 = 4.7 GB (requirement >=3 GB): PASS.
+The earlier T0 same-context-4096 measurement was 9.5 GB vs 5.4 GB,
+also a 4.1 GB decrease.
+
+Restore verification:
+POST http://127.0.0.1:8756/ask query='只回答：好' -> HTTP success,
+content='好', tool_results=[], ok=true.
+GET /health -> ok=true, model=qwen3-8b-uncensored, agent=native_react,
+tools=9.
+
+Rollback verification: qwen2.5:14b remains installed; it was only stopped
+after measurement, never deleted. nomic-embed-text remains installed.

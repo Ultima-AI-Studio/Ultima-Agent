@@ -43,7 +43,7 @@ HOST = "127.0.0.1"
 PORT = 8756
 
 ENGINE_KEY = "ollama"
-MODEL = "qwen2.5:14b"
+MODEL = "qwen3-8b-uncensored"
 AGENT = "native_react"
 TOOLS = [
     "calculator",

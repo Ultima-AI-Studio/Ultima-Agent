@@ -1,0 +1,124 @@
+UltimaAgent mainbrain qwen3-8b T0 probe evidence
+Work order: wo-ultimaagent-20261031-0010
+Timestamp: 2026-10-31 12:17:41 +08:00
+Executor: Codex; cwd=H:\UltimaAI\UltimaAgent
+Python: tools\venv-openjarvis\Scripts\python.exe = Python 3.13.16
+Ollama: 0.32.15; local API http://127.0.0.1:11434
+
+=== T0-C1 baseline ===
+ollama list before pull:
+  nomic-embed-text:latest                          274 MB
+  qwen2.5-14b-opencode:8k                          9.0 GB
+  huihui_ai/qwen2.5-1m-abliterated:14b-instruct    9.0 GB
+  qwen2.5:14b                                      9.0 GB
+ollama ps before probe: no loaded model.
+Rollback model qwen2.5:14b present: PASS.
+
+=== T0-C2 pull and short alias ===
+Command: ollama pull richardyoung/qwen3-8b-abliterated:Q4_K_M
+Result: exit 0; sha256 verified; manifest written; success.
+Command: ollama cp richardyoung/qwen3-8b-abliterated:Q4_K_M qwen3-8b-uncensored
+Result: copied successfully.
+ollama list after copy:
+  qwen3-8b-uncensored:latest                       6d7230a92342  5.0 GB
+  richardyoung/qwen3-8b-abliterated:Q4_K_M         6d7230a92342  5.0 GB
+The identical ID proves the alias shares the same model artifact.
+
+=== T0-C3 shared-script methodology ===
+Both models were tested sequentially by the exact same Python 3.13.16 probe,
+same Ollama /api/chat endpoint, temperature=0, think=false, num_predict=256,
+same frozen Jarvis persona text, same nine real tool schemas, and same prompts.
+No tool was executed: native tool-call selection and arguments were inspected,
+so task adjustment/skill/memory tests caused no project or external side effect.
+Sample counts per model: persona=5; <=2 sentences=5; banned=5;
+tools=9 tools x 3 prompts=27; JSON=10.
+
+=== Aggregate comparison and T1 threshold ===
+Metric                 qwen2.5:14b       qwen3-8b-uncensored   90% baseline   Result
+Persona five           5/5  100.00%      5/5  100.00%          90.00%        PASS
+<=2 sentences          5/5  100.00%      5/5  100.00%          90.00%        PASS
+Banned absence         3/5   60.00%      3/5   60.00%          54.00%        PASS
+Nine-tool aggregate   17/27  62.96%     23/27  85.19%          56.66%        PASS
+JSON exact parse      10/10 100.00%     10/10 100.00%          90.00%        PASS
+
+Banned scoring is deliberately raw-model output (before the frozen engineering
+filter), so it measures model adherence rather than giving both models automatic
+credit for the same post-filter. Production filter_reply remains unchanged.
+
+=== Persona cases ===
+Case       14B   8B   Representative 8B output
+identity   PASS  PASS  我是Jarvis，你的本地AI助手。
+facts      PASS  PASS  当前没有传感器数据，因此无法提供房间的精确温度。
+efficient  PASS  PASS  2加2等于4。
+calm       PASS  PASS  系统运行正常。一切准备就绪。
+spoken     PASS  PASS  任务已经完成。无需进一步行动。
+
+=== Short-answer cases (sentence count) ===
+Case       14B   8B
+1          2     2
+2          1     1
+3          2     2
+4          1     2
+5          1     2
+All cases <=2: PASS for both models.
+
+=== Banned raw-model cases ===
+Case       14B                         8B
+1          FAIL: contains 关注          PASS
+2          PASS                        PASS
+3          FAIL: contains 订阅          PASS
+4          PASS                        FAIL: contains 点个关注/关注
+5          PASS                        FAIL: contains 关注/点赞/订阅
+Aggregate: 14B=3/5; 8B=3/5. 8B equals baseline and clears 90% threshold.
+
+=== Native tool-call selection, three samples per tool ===
+Tool                   14B pass/3       8B pass/3
+calculator             3               3
+think                  1               3
+ultima_subagent        2               0
+ultima_skill_manage    1               3
+ultima_memory          1               2
+ultima_web_search      1               3
+ultima_task_query      2               3
+ultima_task_adjust     3               3
+ultima_env_snapshot    3               3
+Aggregate              17/27           23/27
+Observed 8B subagent misses selected the direct underlying task/environment
+tool instead of ultima_subagent. This is a real per-tool weakness, but the
+closed T1 rule grades the nine-tool category aggregate; aggregate 85.19% is
+above the required 56.66% and above 14B by 22.23 percentage points.
+
+=== JSON structured output ===
+Ten exact-object samples were all json.loads-parseable and exactly matched
+their requested object for both models: 10/10 vs 10/10.
+
+=== First response and generation timing ===
+14B persona first-response seconds: 25.979 cold; 0.365,0.263,0.395,0.521 hot.
+14B reported mean including cold=5.504s; hot mean=0.386s.
+8B persona first-response seconds: 64.861 cold; 0.071,0.064,0.067,0.080 hot.
+8B reported mean including cold=13.029s; hot mean=0.071s.
+The one-off 8B initial load was slower; warmed first response was faster.
+
+=== ollama ps memory ===
+14B loaded:
+  qwen2.5:14b                    7cdf5a0187d5  9.5 GB  100% GPU  context 4096
+8B loaded:
+  qwen3-8b-uncensored:latest     6d7230a92342  5.4 GB  100% GPU  context 4096
+Measured decrease: 9.5 - 5.4 = 4.1 GB (requirement >=3 GB): PASS.
+
+=== T0-C4 startup/prewarm hard-coded reference inventory ===
+Executable prewarm command hard-coded to qwen2.5:14b: none found.
+Startup script textual reference found:
+  scripts/start-ultima-agent.ps1:21 comment
+  "Ollama LLM（qwen2.5:14b / 11434）"
+This non-executable startup reference is scheduled for T2 synchronization.
+Historical task cards, logs, tests, orchestration baselines, memory defaults,
+and other source references are outside this work order and were not changed.
+
+=== T0 Gate ===
+C1 baseline/rollback present: PASS
+C2 specified pull + ASCII short alias: PASS
+C3 same-script parallel measurement complete: PASS
+C4 prewarm/startup inventory complete: PASS
+C5 evidence persisted at this file: PASS
+T0 Gate: PASS -> T1 authorized.
