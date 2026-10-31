@@ -1,0 +1,64 @@
+wo-ultimaagent-20261031-0009 / T0 环境盘点与工具链核验
+执行时间：2026-10-31（Asia/Shanghai）
+工作目录：H:\UltimaAI\UltimaAgent
+
+[C1] PASS - sherpa-onnx 运行时
+命令：tools\venv-asr\Scripts\python.exe -c "import sherpa_onnx; print(sherpa_onnx.__version__)"
+输出：2.0.0
+pip show：Name=sherpa_onnx, Version=2.0.0
+
+[C2] PASS - 官方 text2token 工具链
+可执行文件：tools\venv-asr\Scripts\sherpa-onnx-cli.exe（108353 bytes）
+命令：tools\venv-asr\Scripts\sherpa-onnx-cli.exe text2token --help
+关键输出：Usage: sherpa-onnx-cli text2token [OPTIONS] INPUT OUTPUT
+tokens-type：cjkchar|bpe|cjkchar+bpe|fpinyin|ppinyin|phone+ppinyin
+调用契约：INPUT/OUTPUT 为位置参数；--tokens 与 --tokens-type ppinyin 为必需选项。
+
+[C3] PASS - KWS 模型与现网词表
+tokens.txt：models\sherpa\kws\sherpa-onnx-kws-zipformer-zh-en-3M-2025-12-20\tokens.txt
+tokens.txt bytes：1928
+tokens.txt 基线 SHA-1：1d0c44fce10a39ad38f4b7e73ba046cf95eb1552
+keywords.txt 基线 SHA-1：2ba8f623e577ebfeb7f5a4dd4d7c231e85ba73a8
+keywords.txt：7 行（6 个“贾维斯”变体 + ULTIMA）
+keywords_raw.txt：在位
+keywords-bak-jarvis.txt：在位
+现网 keywords.txt：
+  j iǎ w éi s ī @贾维斯
+  j ià w éi s ī @贾维斯
+  j iā w éi s ī @贾维斯
+  j iǎ w ei s ī @贾维斯
+  j iǎ w éi s i @贾维斯
+  j iǎ w éi s @贾维斯
+  AH1 L T IH0 M AH0 @ULTIMA
+
+[C4] PASS - daemon 热重载与 voice_profile 公开接口（只读）
+data/logs/voice-listen-daemon.py::HotReloadSpotter.maybe_reload：比较 keywords.txt st_mtime_ns；
+变化时先完整构造 replacement 并 create_stream，成功后替换 spotter，失败则保留旧实例；
+成功日志格式：KWS keywords 热重载成功 pid=<同一进程> mtime_ns=<值>。
+src/brain/voice/voice_profile.py 公开签名：
+  load_profile(runtime_overrides: dict[str, Any] | None = None) -> dict[str, Any]
+  apply_to_daemon(profile: dict[str, Any] | None = None, *, listener: object | None = None) -> bool
+接口语义核验：apply_to_daemon 会从 profile 生成并原子替换 keywords.txt；无 listener 时 mtime 即跨进程信号。
+实现裁定：自定义多词 CLI 不在写后直接调用无参 apply_to_daemon（会覆盖新词）；复用相同原子替换/mtime 公开机制触发现有 HotReloadSpotter。
+现网 daemon：宿主 PID=22848；沙箱运行 PID/日志 PID=14068；创建时间均为 2026-10-30 22:50:44+08:00。
+历史同 PID 热重载证据：2026-10-30 19:59:42，pid=22824，随后“KWS 流已切换到热重载 spotter”。
+本单禁止杀死或重启 daemon；T1 将记录改词前后同一组进程身份。
+
+[C5] PASS - 证据落盘
+本文件：docs/reports/evidence/kws-reconfig/t0-env-probe.txt
+
+[保护文件基线]
+docs/specs/kws-wakeup-params-baseline.md SHA-1：90f2d1f5aa62a2ce270a95a5ac8f3c2c42eb3eb1
+src/brain/voice/voice_profile.py SHA-1：4824709bb99123926575aa68689be5911f725ada
+data/logs/voice-listen-daemon.py SHA-1：68a24b6781bbc9885fcb09f9c97ffb362787adff
+说明：上述文件在本单开始前已有用户工作树改动；本单只保存当前内容哈希，不修改、不回滚。
+
+[规范与工作区裁定]
+全局主表已登记 wo-ultimaagent-20261031-0009 为 executing。
+前置 tag wo-ultimaagent-20261030-0003-frozen-20261030 存在。
+项目 INDEX 指向的 docs/shared/paradigms/UltimaAI-任务工作流范式.md 不存在；已改读唯一权威
+H:\UltimaAI\_shared\paradigms\UltimaAI-任务工作流范式.md，未修改共享范式。
+仓库位于 main 且工作树已有大量用户改动；因用户指定原工作目录且运行资产 models/data 未跟踪，
+本单原地执行并严格限制到工单写域，不建立会丢失现网资产的独立 worktree。
+
+T0 Gate：C1-C5 全部 PASS，可进入 T1。

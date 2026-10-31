@@ -1,0 +1,32 @@
+命令：tools\venv-asr\Scripts\python.exe -m pytest scripts\test_kws_reconfig.py -q -s
+退出码：0
+结果：19 passed in 29.69s
+
+C1 新词命中：PASS
+音频：new-word.wav（本地 sherpa-melo-tts，文本“查天气”，44100 Hz，0.778 s）
+离线 KWS：16000 Hz；score=2.0；threshold=0.08；trailing_blanks=8
+命中：['查天气']
+结构化证据：new-word.json
+
+C2 保留词回归：PASS
+音频：retained-jarvis.wav（本地 sherpa-melo-tts，自然呼叫语句“你好贾维斯”，44100 Hz，0.940 s）
+离线 KWS 命中：['贾维斯']
+说明：孤立三字 TTS 韵律不代表真实呼叫；使用包含保留词的自然本地 TTS 语句，仍为本轮新合成音频。
+结构化证据：retained-jarvis.json
+
+C3 替换语义：PASS
+临时隔离词表先执行 --add 星期五，再对本地 TTS“今天星期五”喂离线 KWS，命中 ['星期五']；
+随后对同一临时词表执行 --replace 贾维斯 查天气，再将完全相同的 WAV 喂同一参数 KWS，命中 []。
+同音频前后唯一变量是词表：before keywords_sha1=a208af303dfc5754aeaa57e9447fdde85908c2ce，
+after keywords_sha1=382614005b73c217016e7967f59a254a03659918。
+音频：replaced-word-before.wav（44100 Hz，0.961 s）
+结构化证据：replaced-word-before.json / replaced-word-after.json
+
+C4 非法输入拒绝：PASS
+空词：exit=2，错误“唤醒词不能为空”，keywords 不变、无备份。
+含空格词：exit=2，错误“唤醒词不能含空格；需要分隔时请使用下划线 _”，keywords 不变、无备份。
+threshold=1.0：exit=2，错误“触发阈值必须大于 0 且小于 1”，keywords 不变、无备份。
+
+专项覆盖还包括：官方 ppinyin、默认参数格式、add/replace/list/validate、直接入口导入、
+单实例锁同 PID 判断、中文帮助、原子写、备份、raw 同步、ULTIMA 保留、公开 profile 变体保留，
+以及显式 --score/--threshold 对每个保留变体生效。

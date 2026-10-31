@@ -1,0 +1,64 @@
+wo-ultimaagent-20261031-0009 / T1 CLI 实现与真实热重载证据
+执行环境：tools\venv-asr\Scripts\python.exe；sherpa-onnx 2.0.0
+
+[测试先行]
+RED-1：脚本不存在，pytest 收集报 ImportError: cannot import name 'kws_reconfig'，exit=1。
+RED-2：首版把默认 score 2.0 输出成 :2，4 条断言失败；修正为冻结要求 :2.0。
+RED-3：直接运行 scripts/kws_reconfig.py 时 sys.path 仅含 scripts，真实 --add 在备份后、写入前
+报 ModuleNotFoundError: No module named 'src'；补直接入口回归测试后修正项目根导入路径。
+RED-4：沙箱跨边界 os.kill(pid, 0) 无法探测 daemon，尽管日志已出现 pid=14068 成功；
+改用 daemon 单实例锁前值 = 成功日志 PID = 锁后值判定同 PID。
+T1 非音频专项命令：tools\venv-asr\Scripts\python.exe -m pytest scripts\test_kws_reconfig.py -q -k "not tts_"
+最终输出：16 passed, 3 deselected in 4.69s；exit=0。
+
+[四种操作]
+1) --help，exit=0
+命令：tools\venv-asr\Scripts\python.exe scripts\kws_reconfig.py --help
+输出关键项：用法；--add；--replace；--list；--validate；--score 加分值；--threshold 阈值；
+帮助正文为中文，不含 usage/options/show this help。
+
+2) --list，exit=0
+命令：tools\venv-asr\Scripts\python.exe scripts\kws_reconfig.py --list
+输出：JSON，逐行含 word/token_line/score/threshold；查看操作 backup_path=null、hot_reload=null。
+
+3) --validate，exit=0 且不写文件
+命令：tools\venv-asr\Scripts\python.exe scripts\kws_reconfig.py --validate 查天气
+官方 ppinyin 输出：ch á t iān q ì :2.0 #0.08 @查天气
+输出：valid=true、backup_path=null、hot_reload=null。
+
+4) --add，exit=0
+命令：tools\venv-asr\Scripts\python.exe scripts\kws_reconfig.py --add 查天气 星期五
+结果：保留原 6 个“贾维斯”变体和 ULTIMA，追加：
+  ch á t iān q ì :2.0 #0.08 @查天气
+  x īng q ī w ǔ :2.0 #0.08 @星期五
+备份：models\sherpa\kws\keywords-bak-20261031111111.txt
+热重载 JSON：success=true, pid_before=14068, pid_after=14068, log_pid=14068, same_pid=true,
+mtime_ns=1793416271511105600。
+daemon 日志：2026-10-31 11:11:13 KWS keywords 热重载成功 pid=14068
+随后：KWS 流已切换到热重载 spotter。
+
+5) --replace，exit=0
+命令：tools\venv-asr\Scripts\python.exe scripts\kws_reconfig.py --replace 贾维斯 查天气
+结果：测试词“星期五”被整体替换移除；ULTIMA 自动保留；公开 profile 中“贾维斯”6 个
+已验证发音变体全部保留，并逐行应用本次 --score/--threshold。最终生效词表 8 行：
+  j iǎ w éi s ī :2.0 #0.08 @贾维斯
+  j ià w éi s ī :2.0 #0.08 @贾维斯
+  j iā w éi s ī :2.0 #0.08 @贾维斯
+  j iǎ w ei s ī :2.0 #0.08 @贾维斯
+  j iǎ w éi s i :2.0 #0.08 @贾维斯
+  j iǎ w éi s :2.0 #0.08 @贾维斯
+  ch á t iān q ì :2.0 #0.08 @查天气
+  AH1 L T IH0 M AH0 @ULTIMA
+最终修复后备份：models\sherpa\kws\keywords-bak-20261031112832.txt
+热重载 JSON：success=true, pid_before=14068, pid_after=14068, log_pid=14068, same_pid=true,
+mtime_ns=1793417312627337500。
+daemon 日志：2026-10-31 11:28:34 KWS keywords 热重载成功 pid=14068
+随后：KWS 流已切换到热重载 spotter。
+
+[现网最终状态]
+keywords.txt Git blob ID（git hash-object）：cb4124547cd3b4c678453a6f80d47feb7165c82f
+keywords_raw.txt Git blob ID（git hash-object）：1b08e6a2debf5b1e53eb54d20e1c2e2ae28c8ae2
+daemon 锁 PID：14068；创建时间仍为 2026-10-30 22:50:44+08:00；未杀死、未重启。
+自动备份均保留；keywords-bak-jarvis.txt 未覆盖；无 .tmp 残留。
+
+T1 Gate：四种操作可用；add/replace 语义、官方 ppinyin、原子写、备份、同 PID 热重载和 JSON 输出全部 PASS。

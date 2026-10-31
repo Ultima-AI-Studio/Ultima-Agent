@@ -1,0 +1,43 @@
+wo-ultimaagent-20261031-0009 / T3 基线、独立审查与收口证据
+
+[C1 参数基线零漂移]
+比较方法：T0 开始时与 T3 收口时分别执行 git hash-object；比较 Git blob ID。
+docs/specs/kws-wakeup-params-baseline.md：
+  T0 = 90f2d1f5aa62a2ce270a95a5ac8f3c2c42eb3eb1
+  T3 = 90f2d1f5aa62a2ce270a95a5ac8f3c2c42eb3eb1
+src/brain/voice/voice_profile.py：
+  T0 = 4824709bb99123926575aa68689be5911f725ada
+  T3 = 4824709bb99123926575aa68689be5911f725ada
+data/logs/voice-listen-daemon.py：
+  T0 = 68a24b6781bbc9885fcb09f9c97ffb362787adff
+  T3 = 68a24b6781bbc9885fcb09f9c97ffb362787adff
+模型 tokens.txt：
+  T0 = 1d0c44fce10a39ad38f4b7e73ba046cf95eb1552
+  T3 = 1d0c44fce10a39ad38f4b7e73ba046cf95eb1552
+结论：四项逐字节零漂移；未向基线文档追加记录，避免混入用户既有未提交修改。
+
+[独立只读审查]
+审查端：fresh reviewer / gpt-6-astra high；未编辑文件。
+初审：REVISE，无 Critical；1 项 Important 参数覆盖缺失，另将替换测试状态依赖重定级为 Important。
+修复 1：保留 profile 发音变体时，逐行应用显式 --score/--threshold。
+  RED：test_replace_applies_requested_settings_to_every_retained_variant 失败（6 行均未含 :4.0 #0.2）。
+  GREEN：同测试 1 passed；最终非音频专项 16 passed。
+修复 2：替换语义测试改为临时隔离词表，真实执行 add→同 WAV 命中→replace→同 WAV 不命中。
+  RED：初版正对照未可靠建立；改用自然 TTS“今天星期五”并复用同一 WAV。
+  GREEN：专项全套 19 passed in 29.69s。
+证据陈旧与哈希术语问题同步修正：T1 更新为最终 8 行词表/11:28:34 reload；所有 hash-object 值明确标为 Git blob ID。
+
+[最终验证]
+tools\venv-asr\Scripts\python.exe -m pytest scripts\test_kws_reconfig.py -q -s
+  19 passed in 29.69s；exit=0。
+tools\venv-openjarvis\Scripts\python.exe -m pytest src -q
+  786 passed, 36 warnings, 120 subtests passed in 266.28s；exit=0。
+tools\venv-asr\Scripts\python.exe -m py_compile scripts\kws_reconfig.py scripts\test_kws_reconfig.py
+  exit=0。
+
+[同 PID 终态]
+最终真实改词：2026-10-31 11:28:34；pid_before=14068；log_pid=14068；pid_after=14068；same_pid=true。
+daemon 日志随后出现“KWS 流已切换到热重载 spotter”。未杀死、未重启 daemon。
+
+[C2/C3]
+阶段报告已更新。commit、tag 与 push 结果在实际执行后写入阶段报告并以最终 tag 指向的提交为准。
