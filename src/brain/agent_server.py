@@ -36,8 +36,66 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
+JARVIS_PERSONA_PATH = (
+    PROJECT_ROOT
+    / "libs"
+    / "base"
+    / "openjarvis"
+    / "configs"
+    / "openjarvis"
+    / "prompts"
+    / "personas"
+    / "jarvis.md"
+)
+MAINBRAIN_RULES_PATH = PROJECT_ROOT / "docs" / "specs" / "mainbrain-rules-baseline.md"
+
+
+def _read_required_prompt(path: Path, label: str) -> str:
+    try:
+        content = path.read_text(encoding="utf-8").strip()
+    except OSError as exc:
+        raise RuntimeError(f"{label} prompt source unavailable: {path}") from exc
+    if not content:
+        raise RuntimeError(f"{label} prompt source is empty: {path}")
+    return content
+
+
+def _load_mainbrain_system_prompt() -> str:
+    """Load jarvis.md and the v1.0 authoritative rule block once at startup."""
+    persona = _read_required_prompt(JARVIS_PERSONA_PATH, "Jarvis persona")
+    baseline = _read_required_prompt(MAINBRAIN_RULES_PATH, "mainbrain rules")
+    if "v1.0" not in baseline:
+        raise RuntimeError("mainbrain rules baseline is not v1.0")
+    block = re.search(r"```\s*\r?\n(.*?)\r?\n```", baseline, re.DOTALL)
+    if block is None or not block.group(1).strip():
+        raise RuntimeError("mainbrain rules baseline has no embeddable rule block")
+    return f"{persona}\n\n{block.group(1).strip()}"
+
+
+MAINBRAIN_SYSTEM_PROMPT = _load_mainbrain_system_prompt()
+
 from openjarvis import Jarvis  # noqa: E402
 from openjarvis.core.registry import ToolRegistry  # noqa: E402
+
+
+def _install_mainbrain_system_prompt() -> str:
+    """Append the cached mainbrain block to native_react's real SYSTEM prompt."""
+    from openjarvis.agents import native_react
+
+    original_loader = native_react.load_system_prompt_override
+    react_prompt = original_loader("native_react") or native_react.REACT_SYSTEM_PROMPT
+    assembled = f"{react_prompt}\n\n{MAINBRAIN_SYSTEM_PROMPT}"
+
+    def load_with_mainbrain(agent_name: str) -> str | None:
+        if agent_name == "native_react":
+            return assembled
+        return original_loader(agent_name)
+
+    native_react.load_system_prompt_override = load_with_mainbrain
+    return assembled
+
+
+NATIVE_REACT_SYSTEM_PROMPT = _install_mainbrain_system_prompt()
 
 try:  # 包导入用于测试；脚本入口走 fallback
     from .events import get_event_bus  # type: ignore[attr-defined] # noqa: E402

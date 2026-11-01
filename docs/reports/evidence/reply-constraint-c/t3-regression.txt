@@ -1,0 +1,36 @@
+Work order: wo-ultimaagent-20261101-0016
+Gate: T3 regression
+Interpreter: tools/venv-openjarvis/Scripts/python.exe
+Interpreter version: Python 3.13.16
+
+[Full source regression - final code]
+Command: tools/venv-openjarvis/Scripts/python.exe -m pytest src -q
+Exit code: 0
+Result: 816 passed, 36 warnings, 120 subtests passed in 154.00s (0:02:34)
+
+[0003 voice-profile regression]
+Command: tools/venv-openjarvis/Scripts/python.exe -m pytest src/brain/tests/test_voice_profile.py src/brain/tests/test_persona_constraints.py -q
+Exit code: 0
+Result: 13 passed in 4.44s
+
+[0016 routing suite]
+Command: tools/venv-openjarvis/Scripts/python.exe -m pytest src/brain/routing/tests -q
+Exit code: 0
+Result: 22 passed in 1.10s
+
+[Exact staged-tree validation]
+- Built a temporary commit from git write-tree so concurrent unstaged edits were excluded.
+- Command in the staged tree: pytest src/brain/routing/tests src/brain/tests/test_voice_profile.py src/brain/tests/test_persona_constraints.py -q
+- Exit code: 0
+- Result: 36 passed in 7.86s
+- Temporary checkout was removed; no worktree registration remains.
+
+[Transparent flaky observation outside 0016 scope]
+- Earlier full-suite attempts exposed an existing untracked memory test race:
+  src/brain/memory/tests/test_preference_p2.py::TestPreferenceStore::test_upsert_idempotent.
+- Cause: two immediate writes can share the same millisecond timestamp in the pre-existing untracked
+  src/brain/memory/preference.py implementation.
+- The memory files predated 0016, are outside its write scope, and were not modified or staged.
+- A later identical full command exited 0 with the final 0016 code, as recorded above.
+
+T3-C1 Gate: PASS

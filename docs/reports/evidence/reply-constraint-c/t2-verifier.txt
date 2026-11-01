@@ -1,0 +1,39 @@
+Work order: wo-ultimaagent-20261101-0016
+Gate: T2 reply verifier
+Interpreter: tools/venv-openjarvis/Scripts/python.exe (Python 3.13.16)
+Profile input: banned_phrases=[关注, 点赞, 订阅, 点个关注], max_sentences=2
+Semantic channel: local Ollama / nomic-embed-text
+Semantic threshold: 0.84
+
+[Rule banned]
+input='天气晴朗。请关注我。'
+accepted=False issues=('banned_rule',) grounded_checked=False
+
+[Semantic banned]
+input='欢迎持续留意我的频道。'
+accepted=False issues=('banned_semantic',) semantic_similarity=0.9912249106833686 grounded_checked=False
+
+[Sentence hard limit]
+input='第一句。第二句！第三句？'
+accepted=True issues=('sentence_limit_truncated',)
+output='第一句。第二句！'
+
+[Bounded retry]
+first='请关注我。' -> rejected banned_rule
+retry='天气晴朗。' -> accepted
+calls=2 reason='Agent 回答重试' output='天气晴朗。'
+
+[Retry exhaustion fallback]
+first='请关注我。' -> rejected banned_rule
+retry='请订阅我。' -> rejected banned_rule
+calls=2 reason='Agent 回答兜底' output='收到。'
+
+[Grounded schema reservation]
+ReplySchema fields: reply_text, confidence, grounded
+grounded_checked=False by default in work order C; enforce_grounded=True is covered by unit test for work order D activation.
+
+[Tests]
+tools/venv-openjarvis/Scripts/python.exe -m pytest src/brain/routing/tests/test_reply_verifier.py src/brain/routing/tests/test_intent_gate.py src/brain/tests/test_persona_constraints.py -q
+19 passed in 4.31s
+
+T2 Gate: PASS

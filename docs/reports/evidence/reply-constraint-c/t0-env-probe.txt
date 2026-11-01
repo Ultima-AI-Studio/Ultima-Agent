@@ -1,0 +1,35 @@
+Work order: wo-ultimaagent-20261101-0016
+Gate: T0 environment probe
+Date: 2026-11-01 Asia/Shanghai
+
+[C1 interaction chain]
+- src/brain/interaction.py handle() receives ASR final text at line 81 and currently normalizes it before routing.
+- The pre-existing _normalize_utterance() near-homophone map rewrites "水量天听" to "天气"; therefore the new trust gate must inspect the raw text before normalization.
+- Existing deterministic handlers (wake echo, queue adjustment/query, weather) run before _try_agent_fallback().
+- _try_agent_fallback() is the only Agent entry and applies the 0003 profile filter after ask_agent().
+- _respond() is the common response exit and reapplies the frozen 0003 filter_reply() compatibility guard.
+
+[C2 embedding channel]
+- ollama list includes nomic-embed-text:latest, id 0a109f422b47, size 274 MB.
+- src/brain/memory/backend.py configures provider=ollama, model=nomic-embed-text, ollama_base_url=http://localhost:11434, dimensions=768.
+- Routing will reuse that same local Ollama/nomic channel without modifying memory/backend.py and without any cloud API.
+
+[C3 0003 baseline]
+- config/voice-profile.json style.banned_phrases: 关注, 点赞, 订阅, 点个关注.
+- config/voice-profile.json style.max_sentences: 2.
+- Frozen implementation: src/brain/voice/voice_profile.py filter_reply(); this file is read-only for work order 0016.
+- Baseline command: tools/venv-openjarvis/Scripts/python.exe -m pytest src/brain/tests/test_voice_profile.py src/brain/tests/test_persona_constraints.py -q
+- Result: 13 passed in 0.27s.
+
+[C4 mainbrain prompt]
+- src/brain/agent_server.py ask_once() calls Jarvis.ask_full() for every turn.
+- The current native_react SDK does not expose a system_prompt argument at ask_full(); agent_server.py therefore needs a startup-loaded prompt assembly block that prefixes every submitted Agent prompt with jarvis.md plus the runtime-read rules baseline.
+- Authoritative rules source: docs/specs/mainbrain-rules-baseline.md v1.0, tag ultimaagent-mainbrain-rules-20261101 -> 38551c234e295b31328ef4c826c9c527f9344b48.
+- Rule text will not be copied into a Python constant.
+
+[C5 environment and worktree protection]
+- Acceptance interpreter: Python 3.13.16 at tools/venv-openjarvis/Scripts/python.exe.
+- Existing unrelated modifications were present in interaction.py and agent_server.py before this work order.
+- A private temporary index snapshot (.git/codex-0016-preindex) records those pre-work contents so only 0016 deltas can be staged; unrelated changes will remain unstaged.
+
+T0 Gate: PASS (C1-C5)

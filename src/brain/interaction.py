@@ -20,6 +20,8 @@ from tasks.queue_engine import QueuePlanner, QueueStorage
 from tasks.queue_engine.priority_deps import QueuePlanningError
 
 from .queue_source import read_queue_status
+from .routing.intent_gate import RouteState, get_intent_gate
+from .routing.reply_verifier import ReplySchema, get_reply_verifier
 
 _TASK_ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._~-]*$")
 _PRIORITY = re.compile(r"^[0-9]{1,3}$")
@@ -83,6 +85,8 @@ class InteractionLoop:
         text: str | None,
         *,
         detail_task_id: str | None = None,
+        asr_confidence: float | None = None,
+        asr_corrected: bool = False,
     ) -> InteractionResponse:
         """Route one utterance through the interaction state machine."""
         normalized = _normalize_utterance(text)
@@ -99,6 +103,16 @@ class InteractionLoop:
         #    不进入 14B 兜底（否则干等 30s+ 后静默，体验=喊了没反应）。
         if _WAKE_ECHO_ONLY.match(normalized):
             return self._respond(True, True, "在呢，请说。", "唤醒确认", self.phase)
+
+        # 不可信 ASR / 域外输入必须在近音归一化生效前判定；否则诸如
+        # "水量天听"会被改写成"天气"并绕过入口门。DENY/ABSTAIN 均不进 Agent。
+        routed = self._route_before_agent(
+            text,
+            asr_confidence=asr_confidence,
+            asr_corrected=asr_corrected,
+        )
+        if routed is not None:
+            return routed
 
         # 1. 具体调整指令优先（插队 / 改优先级）——防被泛意图吞掉
         adjusted = self._try_adjust_command(normalized)
@@ -154,7 +168,7 @@ class InteractionLoop:
 
         # 6. 规则表全部未命中 → 转本地 Agent 循环（agent_server，14B 自主回答/调工具）。
         #    服务不可达或返回空时降级静默（不语音搭话，保持 L7 验收现状）。
-        agent_reply = self._try_agent_fallback(normalized)
+        agent_reply = self._try_agent_fallback(normalized, route_input=False)
         if agent_reply is not None:
             return agent_reply
 
@@ -163,8 +177,39 @@ class InteractionLoop:
         return self._respond(False, True, "", "未命中", self.phase)
 
     # ── Agent 循环兜底（主链路接入底座，P0）─────────────────────
-    def _try_agent_fallback(self, text: str) -> InteractionResponse | None:
+    def _route_before_agent(
+        self,
+        text: str | None,
+        *,
+        asr_confidence: float | None = None,
+        asr_corrected: bool = False,
+    ) -> InteractionResponse | None:
+        decision = get_intent_gate().route(
+            text,
+            asr_confidence=asr_confidence,
+            asr_corrected=asr_corrected,
+        )
+        if decision.state is RouteState.ALLOW:
+            return None
+        return self._respond(
+            True,
+            True,
+            decision.reply,
+            f"routing:{decision.state}:{decision.reason}:{decision.confidence:.4f}",
+            self.phase,
+        )
+
+    def _try_agent_fallback(
+        self,
+        text: str,
+        *,
+        route_input: bool = True,
+    ) -> InteractionResponse | None:
         """规则表未命中的输入交给本地 14B 自主对话循环；服务异常返回 None 保持静默。"""
+        if route_input:
+            routed = self._route_before_agent(text)
+            if routed is not None:
+                return routed
         try:
             from .agent_client import ask_agent, agent_healthy
             from .voice.voice_profile import (
@@ -183,11 +228,30 @@ class InteractionLoop:
             return None
         if not content or not content.strip():
             return None
-        content = filter_reply(content, profile)
+        style = profile["style"]
+        verifier = get_reply_verifier(style["banned_phrases"], style["max_sentences"])
+        checked = verifier.verify(ReplySchema(reply_text=content))
+        reason = "Agent 回答"
+        if not checked.accepted:
+            retry_prompt = compose_agent_query(text, persona) + (
+                "\n上一回答未通过本地安全校验。只重答一次：不得含营销或诱导话术，"
+                "不得超过两句，不确定就明确说不确定。"
+            )
+            try:
+                retried = ask_agent(retry_prompt)
+                checked = verifier.verify(ReplySchema(reply_text=retried))
+            except Exception:
+                checked = verifier.verify(ReplySchema(reply_text=""))
+            if checked.accepted:
+                reason = "Agent 回答重试"
+            else:
+                checked = verifier.verify(ReplySchema(reply_text=verifier.config.verifier_fallback_reply))
+                reason = "Agent 回答兜底"
+        content = filter_reply(checked.text, profile)
         self.last_summary = content
         self.adjusted = False
         self.phase = _PENDING_CONFIRM
-        return self._respond(True, True, content, "Agent 回答", self.phase)
+        return self._respond(True, True, content, reason, self.phase)
 
     # ── 天气直达（2026-10-29 新增）─────────────────────────────
     # 识别"查天气"意图 → 直查天气服务 → 一句话秒答。

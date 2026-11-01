@@ -1,0 +1,39 @@
+Work order: wo-ultimaagent-20261101-0016
+Gate: T2.5 mainbrain rules integration
+Interpreter: tools/venv-openjarvis/Scripts/python.exe (Python 3.13.16)
+
+[Runtime sources]
+jarvis_path=libs/base/openjarvis/configs/openjarvis/prompts/personas/jarvis.md
+rules_path=docs/specs/mainbrain-rules-baseline.md
+jarvis_sha256=61699c4f39f5bf496ad4ad488a34187690a83842ffbed6602b2a5fdc87b42cad
+rules_source_sha256=e9bcae8e4deef754f58e2c0ff60f91f4799776a984b27e7013a371aa0ec37fce
+
+[Assembled prompt summary]
+mainbrain_chars=1677
+mainbrain_sha256=4b7f250424db22e5b9f14ec9f28051c7633dbf207ab4f7a3a1c52ace0d3ed357
+native_react_system_chars=3226
+native_react_system_sha256=85b5434803826900323e381cb0d71494da49f18665797133b748454d29a9d370
+marker='CONSTRAINTS:' present=True
+marker='【角色】' present=True
+marker='【回答规则】' present=True
+marker='【行为规则】' present=True
+marker='【对齐】' present=True
+
+[Load-once / every-turn assertion]
+- MAINBRAIN_SYSTEM_PROMPT is assembled once during agent_server module startup.
+- Two NativeReActAgent turns were executed while Path.read_text was patched to fail if called.
+- turns=2 system_rules_in_turns=True per_turn_file_reads=0
+- The captured messages contain role=SYSTEM with the mainbrain block on both turns.
+- The user messages remain separate and equal to 第一问 / 第二问.
+
+[Boundary]
+- The v1.0 rule text is extracted at runtime from the authoritative Markdown code block.
+- No rule body is copied into a Python constant.
+- jarvis.md is read-only and unchanged.
+- MODEL, AGENT, inference parameters, and OpenJarvis stack are unchanged.
+
+[Tests]
+tools/venv-openjarvis/Scripts/python.exe -m pytest src/brain/routing/tests/test_mainbrain_rules_prompt.py src/brain/routing/tests/test_reply_verifier.py src/brain/routing/tests/test_intent_gate.py src/brain/routing/tests/test_routing_integration.py src/brain/tests/test_agent_server_sse.py src/brain/tests/test_persona_constraints.py -q
+34 passed in 8.99s
+
+T2.5 Gate: PASS
