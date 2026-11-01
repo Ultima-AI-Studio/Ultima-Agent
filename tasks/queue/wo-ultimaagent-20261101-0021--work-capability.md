@@ -95,3 +95,8 @@ r3方案7fe32a4b独立PASS，设计检查点c6bcc3c/ultimaagent-work-t2-r4-plan-
 ## 源码修复5（最后有界轮）
 
 针对review-r4-30b6b14的I1—I3，按fix-round-5/controller-release.json和同一r3设计修正调用声明判别、引用坐标及同一响应快照。不是重置原单或增加模型/权限，不自动开启真实运行。旧源码30b6b14及code-revise tag已推送。fresh执行者/root/implement_work_capability_t2_r5，完成后仅fresh scoped复核。
+
+
+## 源码5真实门收口
+
+b6ab85b代码独审通过，217唯一测试通过；唯一当前8B原题E02机械和语义FAIL，无合格文件。报告见docs/reports/jarvis-work-t2-r5-result-20261102.md。累计源码5/控制器上限5已到，T2真实状态机收门BLOCKED，其他45条记录不变。只读结构裁定继续，源码/模型推理/后续阶段未放行；原单与失败历史保持。

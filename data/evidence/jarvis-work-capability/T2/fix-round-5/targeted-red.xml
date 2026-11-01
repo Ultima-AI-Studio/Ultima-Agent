@@ -1,0 +1,191 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="13" skipped="0" tests="22" time="2.395" timestamp="2026-11-02T03:23:32.272660+08:00" hostname="DESKTOP-B366PQ9"><testcase classname="src.brain.tests.test_work_research" name="test_r4b_late_report[r5_between_snapshots]" time="1.146"><failure message="AssertionError: assert [] == ['c0289695-c9...6abef112c6f1']&#10;  &#10;  Right contains one more item: 'c0289695-c9b1-49d6-a21c-6abef112c6f1'&#10;  Use -v to get more diff">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/fix-round-5/targeted-red-tmp/test_r4b_late_report_r5_betwee0')
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x000002009D59B8C0&gt;, [('search', 'Research a subject'), ('get', '...'https://example.com/source/3'), ('get', 'https://example.com/source/4'), ('get', 'https://example.com/source/5')], {})
+mock_jar = (&lt;openjarvis.sdk.Jarvis object at 0x000002009F755010&gt;, &lt;function _run_work_agent at 0x000002009F5E5800&gt;, [{'model': 'q...: False, 'options': {'temperature': 0.7, 'num_predict': 2048, 'num_ctx': 16384}, ...}], ['{"final_answer":"no file"}'])
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000002005525C2B0&gt;
+stage = 'r5_between_snapshots'
+
+    @pytest.mark.parametrize('stage',['before_intent','after_intent','r5_between_snapshots'])
+    def test_r4b_late_report(tmp_path,sdk_io,mock_jar,monkeypatch,stage):
+        import concurrent.futures
+        import threading
+        from openjarvis.tools import _stubs
+        from openjarvis.tools.file_write import FileWriteTool
+        from src.brain.work_tools import WorkResearchWriteTool
+        _,runner,bodies,replies=mock_jar
+        entered=threading.Event()
+        release=threading.Event()
+        target=FileWriteTool if stage=='after_intent' else WorkResearchWriteTool
+        name='execute' if stage=='after_intent' else 'run'
+        real=getattr(target,name)
+        def delayed(*args,**kw):
+            entered.set()
+            assert release.wait(10)
+            return real(*args,**kw)
+        monkeypatch.setattr(target,name,delayed)
+        real_submit=_stubs._TOOL_RUNNER.submit
+        actual=[]
+        def dispatch(function,**kw):
+            future=real_submit(function,**kw)
+            if function.__self__.tool_id!='ultima_work_research_write': return future
+            actual.append(future)
+            class Expired:
+                def result(self,timeout):
+                    assert entered.wait(3)
+                    raise concurrent.futures.TimeoutError()
+                def cancel(self): return future.cancel()
+            return Expired()
+        monkeypatch.setattr(_stubs._TOOL_RUNNER,'submit',dispatch)
+        if stage=='r5_between_snapshots':
+            # Deliver the actual SDK timeout response. On reading the compose error,
+            # allow the original worker to finish before the service handles it.
+            original_runner=runner
+            class TimeoutResponse(dict):
+                def __getitem__(self,key):
+                    if key=='compose_error':
+                        release.set()
+                        actual[0].result(timeout=5)
+                    return super().__getitem__(key)
+            def runner(*args,**kwargs):
+                return TimeoutResponse(original_runner(*args,**kwargs))
+        replies.extend([action(report_payload()),'{"final_answer":"no file"}'])
+        try:
+            r=submit(tmp_path,sdk_io[0],runner)
+            assert r['status']=='needs_attention' and len(bodies)==1
+            effect=r['research_effects'][0]
+            assert effect['state']=='timed_out'
+            if stage=='r5_between_snapshots':
+                assert actual[0].done() and Path(effect['path']).is_file()
+                terminal=[x for x in r['tool_results'] if x.get('call_id') and x.get('tool_name')=='ultima_work_file_write']
+&gt;               assert [x['call_id'] for x in terminal]==([effect['file_call_id']] if effect.get('file_call_id') else [])
+E               AssertionError: assert [] == ['c0289695-c9...6abef112c6f1']
+E                 
+E                 Right contains one more item: 'c0289695-c9b1-49d6-a21c-6abef112c6f1'
+E                 Use -v to get more diff
+
+src\brain\tests\test_work_research.py:538: AssertionError</failure></testcase><testcase classname="src.brain.tests.test_work_research" name="test_r5_method_header_is_not_a_call[class Queue {-js]" time="0.014"><failure message="Failed: DID NOT RAISE ValueError">suffix = 'js', opening = 'class Queue {'
+
+    @pytest.mark.parametrize('suffix',['js','mjs','cjs','ts'])
+    @pytest.mark.parametrize('opening',['class Queue {','const queue = {'])
+    def test_r5_method_header_is_not_a_call(suffix,opening):
+&gt;       with pytest.raises(ValueError):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+src\brain\tests\test_work_research.py:643: Failed</failure></testcase><testcase classname="src.brain.tests.test_work_research" name="test_r5_method_header_is_not_a_call[class Queue {-mjs]" time="0.001"><failure message="Failed: DID NOT RAISE ValueError">suffix = 'mjs', opening = 'class Queue {'
+
+    @pytest.mark.parametrize('suffix',['js','mjs','cjs','ts'])
+    @pytest.mark.parametrize('opening',['class Queue {','const queue = {'])
+    def test_r5_method_header_is_not_a_call(suffix,opening):
+&gt;       with pytest.raises(ValueError):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+src\brain\tests\test_work_research.py:643: Failed</failure></testcase><testcase classname="src.brain.tests.test_work_research" name="test_r5_method_header_is_not_a_call[class Queue {-cjs]" time="0.001"><failure message="Failed: DID NOT RAISE ValueError">suffix = 'cjs', opening = 'class Queue {'
+
+    @pytest.mark.parametrize('suffix',['js','mjs','cjs','ts'])
+    @pytest.mark.parametrize('opening',['class Queue {','const queue = {'])
+    def test_r5_method_header_is_not_a_call(suffix,opening):
+&gt;       with pytest.raises(ValueError):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+src\brain\tests\test_work_research.py:643: Failed</failure></testcase><testcase classname="src.brain.tests.test_work_research" name="test_r5_method_header_is_not_a_call[class Queue {-ts]" time="0.006" /><testcase classname="src.brain.tests.test_work_research" name="test_r5_method_header_is_not_a_call[const queue = {-js]" time="0.001"><failure message="Failed: DID NOT RAISE ValueError">suffix = 'js', opening = 'const queue = {'
+
+    @pytest.mark.parametrize('suffix',['js','mjs','cjs','ts'])
+    @pytest.mark.parametrize('opening',['class Queue {','const queue = {'])
+    def test_r5_method_header_is_not_a_call(suffix,opening):
+&gt;       with pytest.raises(ValueError):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+src\brain\tests\test_work_research.py:643: Failed</failure></testcase><testcase classname="src.brain.tests.test_work_research" name="test_r5_method_header_is_not_a_call[const queue = {-mjs]" time="0.001"><failure message="Failed: DID NOT RAISE ValueError">suffix = 'mjs', opening = 'const queue = {'
+
+    @pytest.mark.parametrize('suffix',['js','mjs','cjs','ts'])
+    @pytest.mark.parametrize('opening',['class Queue {','const queue = {'])
+    def test_r5_method_header_is_not_a_call(suffix,opening):
+&gt;       with pytest.raises(ValueError):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+src\brain\tests\test_work_research.py:643: Failed</failure></testcase><testcase classname="src.brain.tests.test_work_research" name="test_r5_method_header_is_not_a_call[const queue = {-cjs]" time="0.001"><failure message="Failed: DID NOT RAISE ValueError">suffix = 'cjs', opening = 'const queue = {'
+
+    @pytest.mark.parametrize('suffix',['js','mjs','cjs','ts'])
+    @pytest.mark.parametrize('opening',['class Queue {','const queue = {'])
+    def test_r5_method_header_is_not_a_call(suffix,opening):
+&gt;       with pytest.raises(ValueError):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+src\brain\tests\test_work_research.py:643: Failed</failure></testcase><testcase classname="src.brain.tests.test_work_research" name="test_r5_method_header_is_not_a_call[const queue = {-ts]" time="0.001" /><testcase classname="src.brain.tests.test_work_research" name="test_r5_incomplete_statement[interface Queue {\n  dispatch(item)\n  : void;\n}-dispatch]" time="0.000" /><testcase classname="src.brain.tests.test_work_research" name="test_r5_incomplete_statement[const run = () =&gt; {\n  return queue.dispatch(item)\n    .then(done);\n}-queue.dispatch]" time="0.001"><failure message="Failed: DID NOT RAISE ValueError">body = 'const run = () =&gt; {\n  return queue.dispatch(item)\n    .then(done);\n}'
+symbol = 'queue.dispatch'
+
+    @pytest.mark.parametrize('body,symbol',[
+        ('interface Queue {\n  dispatch(item)\n  : void;\n}', 'dispatch'),
+        ('const run = () =&gt; {\n  return queue.dispatch(item)\n    .then(done);\n}', 'queue.dispatch'),
+        ('function run() {\n  queue.dispatch(item)\n    (other);\n}', 'queue.dispatch'),
+    ])
+    def test_r5_incomplete_statement(body,symbol):
+&gt;       with pytest.raises(ValueError):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+src\brain\tests\test_work_research.py:653: Failed</failure></testcase><testcase classname="src.brain.tests.test_work_research" name="test_r5_incomplete_statement[function run() {\n  queue.dispatch(item)\n    (other);\n}-queue.dispatch]" time="0.001"><failure message="Failed: DID NOT RAISE ValueError">body = 'function run() {\n  queue.dispatch(item)\n    (other);\n}'
+symbol = 'queue.dispatch'
+
+    @pytest.mark.parametrize('body,symbol',[
+        ('interface Queue {\n  dispatch(item)\n  : void;\n}', 'dispatch'),
+        ('const run = () =&gt; {\n  return queue.dispatch(item)\n    .then(done);\n}', 'queue.dispatch'),
+        ('function run() {\n  queue.dispatch(item)\n    (other);\n}', 'queue.dispatch'),
+    ])
+    def test_r5_incomplete_statement(body,symbol):
+&gt;       with pytest.raises(ValueError):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+src\brain\tests\test_work_research.py:653: Failed</failure></testcase><testcase classname="src.brain.tests.test_work_research" name="test_r5_comment_cannot_prove_call_on_different_line[py-# head\x0c# note\nx = queue.dispatch(item)]" time="0.001"><failure message="Failed: DID NOT RAISE ValueError">suffix = 'py', body = '# head\x0c# note\nx = queue.dispatch(item)'
+
+    @pytest.mark.parametrize('suffix,body',[
+        ('py','# head\f# note\nx = queue.dispatch(item)'),
+        ('js','// heading\u2028// note\nconst x = queue.dispatch(item);'),
+    ])
+    def test_r5_comment_cannot_prove_call_on_different_line(suffix,body):
+&gt;       with pytest.raises(ValueError):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+src\brain\tests\test_work_research.py:662: Failed</failure></testcase><testcase classname="src.brain.tests.test_work_research" name="test_r5_comment_cannot_prove_call_on_different_line[js-// heading\u2028// note\nconst x = queue.dispatch(item);]" time="0.001"><failure message="Failed: DID NOT RAISE ValueError">suffix = 'js', body = '// heading\u2028// note\nconst x = queue.dispatch(item);'
+
+    @pytest.mark.parametrize('suffix,body',[
+        ('py','# head\f# note\nx = queue.dispatch(item)'),
+        ('js','// heading\u2028// note\nconst x = queue.dispatch(item);'),
+    ])
+    def test_r5_comment_cannot_prove_call_on_different_line(suffix,body):
+&gt;       with pytest.raises(ValueError):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+src\brain\tests\test_work_research.py:662: Failed</failure></testcase><testcase classname="src.brain.tests.test_work_research" name="test_r5_extracted_html_text_cannot_prove_a_source_statement" time="0.000"><failure message="Failed: DID NOT RAISE ValueError">def test_r5_extracted_html_text_cannot_prove_a_source_statement():
+&gt;       with pytest.raises(ValueError):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+src\brain\tests\test_work_research.py:667: Failed</failure></testcase><testcase classname="src.brain.tests.test_work_research" name="test_r5_complete_statement_and_raw_identity[js-lines0-lf]" time="0.001" /><testcase classname="src.brain.tests.test_work_research" name="test_r5_complete_statement_and_raw_identity[js-lines0-crlf]" time="0.001" /><testcase classname="src.brain.tests.test_work_research" name="test_r5_complete_statement_and_raw_identity[ts-lines1-lf]" time="0.001" /><testcase classname="src.brain.tests.test_work_research" name="test_r5_complete_statement_and_raw_identity[ts-lines1-crlf]" time="0.001" /><testcase classname="src.brain.tests.test_work_research" name="test_r5_complete_statement_and_raw_identity[py-lines2-lf]" time="0.001" /><testcase classname="src.brain.tests.test_work_research" name="test_r5_complete_statement_and_raw_identity[py-lines2-crlf]" time="0.001" /><testcase classname="src.brain.tests.test_work_research" name="test_r5_completed_report_includes_sdk_result_and_effect" time="0.245"><failure message="KeyError: 'research_effects'">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/fix-round-5/targeted-red-tmp/test_r5_completed_report_inclu0')
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x000002009F69B390&gt;, [('search', 'Research a subject'), ('get', '...'https://example.com/source/3'), ('get', 'https://example.com/source/4'), ('get', 'https://example.com/source/5')], {})
+mock_jar = (&lt;openjarvis.sdk.Jarvis object at 0x000002009FFD0E10&gt;, &lt;function _run_work_agent at 0x000002009F5E5800&gt;, [{'model': 'q...-8c76088e269c"}'}], 'stream': False, 'options': {'temperature': 0.7, 'num_predict': 2048, 'num_ctx': 16384}, ...}], [])
+
+    def test_r5_completed_report_includes_sdk_result_and_effect(tmp_path,sdk_io,mock_jar):
+        _,runner,bodies,replies=mock_jar
+        replies.extend([action(report_payload()),'{"final_answer":"done"}'])
+        returned_sdk=[]
+        def observe(*args,**kwargs):
+            response=runner(*args,**kwargs)
+            returned_sdk.extend(response['tool_results'])
+            return response
+        r=submit(tmp_path,sdk_io[0],observe)
+        assert r['status']=='succeeded' and len(bodies)==2
+        assert returned_sdk and [t for t in r['tool_results'] if not t.get('call_id')]==returned_sdk
+&gt;       effect,=r['research_effects']
+                ^^^^^^^^^^^^^^^^^^^^^
+E       KeyError: 'research_effects'
+
+src\brain\tests\test_work_research.py:698: KeyError</failure></testcase></testsuite></testsuites>

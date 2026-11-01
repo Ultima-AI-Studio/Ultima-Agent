@@ -1,0 +1,1124 @@
+{
+  "order": "wo-ultimaagent-20261101-0021",
+  "stage": "T2",
+  "candidate": "b6ab85b54f638594ccd7adcd792362bd4ff0a8fe",
+  "source_repair": 5,
+  "gate": "actual E02 live round1 independent readback",
+  "created_utc": "2026-11-01T19:42:26.946792+00:00",
+  "mechanical_verdict": "FAIL",
+  "semantic_verdict": "FAIL",
+  "overall_verdict": "FAIL_STOP",
+  "model": "qwen3-8b-uncensored",
+  "model_digest": "6d7230a923426bc1933879eb08a7dafc18e5fc0e7606c459ce98f16e0c7f9330",
+  "inference_count": 1,
+  "report_dispatch_count": 1,
+  "cli_exit": 2,
+  "harness_exit": 2,
+  "first_mechanical_rejection": {
+    "source_id": "S1",
+    "first_line": 10,
+    "last_line": 23,
+    "inclusive_length": 14,
+    "max_inclusive_length": 8,
+    "all_lines_visible": true,
+    "error": "Invalid or omitted evidence lines"
+  },
+  "claim_assessments": [
+    {
+      "id": "S1.1",
+      "source_id": "S1",
+      "fact": {
+        "claim": "Jarvis AI Assistant is a voice dictation app that provides a seamless experience for users.",
+        "first_line": 10,
+        "kind": "documented",
+        "last_line": 23
+      },
+      "semantic_disposition": "UNSUPPORTED_BY_CITED_LINES",
+      "semantic_reason": "Badges, attachment URL and video link do not state voice dictation or substantiate seamless experience.",
+      "additional_mechanical_issues": "14 lines exceeds 8.",
+      "cited_lines": [
+        [
+          10,
+          "<p align=\"center\">"
+        ],
+        [
+          11,
+          "  <a href=\"https://jarvis.ceo\"><img src=\"https://img.shields.io/badge/website-jarvis.ceo-0066FF?style=for-the-badge\" /></a>"
+        ],
+        [
+          12,
+          "  <a href=\"https://github.com/akshayaggarwal99/jarvis-ai-assistant/releases/latest\"><img src=\"https://img.shields.io/github/v/release/akshayaggarwal99/jarvis-ai-assistant?style=for-the-badge&logo=apple&label=Download&color=0066FF\" /></a>"
+        ],
+        [
+          13,
+          "  <a href=\"https://github.com/akshayaggarwal99/jarvis-ai-assistant/stargazers\"><img src=\"https://img.shields.io/github/stars/akshayaggarwal99/jarvis-ai-assistant?style=for-the-badge&color=FFD700\" /></a>"
+        ],
+        [
+          14,
+          "</p>"
+        ],
+        [
+          15,
+          ""
+        ],
+        [
+          16,
+          "<p align=\"center\">"
+        ],
+        [
+          17,
+          ""
+        ],
+        [
+          18,
+          "https://github.com/user-attachments/assets/763ea6aa-87d5-4e0a-9f05-a2bdaa82f40f"
+        ],
+        [
+          19,
+          ""
+        ],
+        [
+          20,
+          "</p>"
+        ],
+        [
+          21,
+          ""
+        ],
+        [
+          22,
+          "<p align=\"center\"><a href=\"https://www.youtube.com/watch?v=TnNf300Bbxg\">▶ Watch full 2-min demo on YouTube</a></p>"
+        ],
+        [
+          23,
+          ""
+        ]
+      ],
+      "missing_lines": []
+    },
+    {
+      "id": "S1.2",
+      "source_id": "S1",
+      "fact": {
+        "claim": "Jarvis is open-source, local-capable, and free forever.",
+        "first_line": 7,
+        "kind": "documented",
+        "last_line": 8
+      },
+      "semantic_disposition": "SUPPORTED_AS_DOCUMENTED_SELF_DESCRIPTION",
+      "semantic_reason": "L7 expressly advertises open-source, local-capable and free forever. Treat this as the README claim, not independent verification.",
+      "additional_mechanical_issues": "Valid documented source type and 2-line span.",
+      "cited_lines": [
+        [
+          7,
+          "  <em>100% open-source • 100% local-capable • 100% free forever</em>"
+        ],
+        [
+          8,
+          "</p>"
+        ]
+      ],
+      "missing_lines": []
+    },
+    {
+      "id": "S1.3",
+      "source_id": "S1",
+      "fact": {
+        "claim": "Jarvis supports both local and cloud-based AI models for efficient performance.",
+        "first_line": 45,
+        "kind": "documented",
+        "last_line": 48
+      },
+      "semantic_disposition": "SUBSTANTIALLY_SUPPORTED_AS_DOCUMENTED_SELF_DESCRIPTION",
+      "semantic_reason": "L45-47 describe offline local transcription, Ollama local LLMs and Deepgram/Gemini cloud speed. Efficiency is marketing language rather than measured performance.",
+      "additional_mechanical_issues": "Valid documented source type and 4-line span.",
+      "cited_lines": [
+        [
+          45,
+          "- **Fully offline** with local **Whisper** or **NVIDIA Parakeet** (via Sherpa-ONNX)"
+        ],
+        [
+          46,
+          "- **100% Private, Blazingly Fast** support for local LLMs via [Ollama](https://ollama.com)"
+        ],
+        [
+          47,
+          "- Or use cloud speed with Deepgram + Gemini (1M tokens/day free) — Deepgram requests default to `mip_opt_out=true`"
+        ],
+        [
+          48,
+          ""
+        ]
+      ],
+      "missing_lines": []
+    },
+    {
+      "id": "S2.1",
+      "source_id": "S2",
+      "fact": {
+        "claim": "The AgentManager class initializes and manages the UnifiedAgent with different LLM providers such as Ollama and Gemini.",
+        "first_line": 18,
+        "kind": "code",
+        "last_line": 65
+      },
+      "semantic_disposition": "PARTIALLY_SUPPORTED",
+      "semantic_reason": "L44-59 instantiate OllamaProvider or GeminiProvider and then UnifiedAgent. This supports initialization with alternative providers; broad management is not independently demonstrated by the whole selected block.",
+      "additional_mechanical_issues": "Missing required symbol; 48 lines exceeds 8; broad multi-statement block is not a single eligible call witness.",
+      "cited_lines": [
+        [
+          18,
+          "  static getInstance(): AgentManager {"
+        ],
+        [
+          19,
+          "    if (!AgentManager.instance) {"
+        ],
+        [
+          20,
+          "      AgentManager.instance = new AgentManager();"
+        ],
+        [
+          21,
+          "    }"
+        ],
+        [
+          22,
+          "    return AgentManager.instance;"
+        ],
+        [
+          23,
+          "  }"
+        ],
+        [
+          24,
+          ""
+        ],
+        [
+          25,
+          "  async initialize("
+        ],
+        [
+          26,
+          "    openaiKey: string | undefined,"
+        ],
+        [
+          27,
+          "    geminiKey?: string,"
+        ],
+        [
+          28,
+          "    ollamaSettings?: { useOllama?: boolean, ollamaUrl?: string, ollamaModel?: string }"
+        ],
+        [
+          29,
+          "  ): Promise<void> {"
+        ],
+        [
+          30,
+          "    if (this.isInitialized) {"
+        ],
+        [
+          31,
+          "      Logger.debug('🤖 Agent already initialized, skipping...');"
+        ],
+        [
+          32,
+          "      return;"
+        ],
+        [
+          33,
+          "    }"
+        ],
+        [
+          34,
+          ""
+        ],
+        [
+          35,
+          "    try {"
+        ],
+        [
+          36,
+          "      let provider: LLMProvider | null = null;"
+        ],
+        [
+          37,
+          ""
+        ],
+        [
+          38,
+          "      // Priority: Ollama (currently only fully implemented provider)"
+        ],
+        [
+          39,
+          "      // TODO: Add OpenAI and Gemini providers when implemented"
+        ],
+        [
+          40,
+          ""
+        ],
+        [
+          41,
+          "      if (ollamaSettings?.useOllama) {"
+        ],
+        [
+          42,
+          "        console.log(`[DEBUG] AgentManager: Creating OllamaProvider (${ollamaSettings.ollamaModel})`);"
+        ],
+        [
+          43,
+          "        Logger.info(`🦙 Initializing with Ollama provider (${ollamaSettings.ollamaModel})...`);"
+        ],
+        [
+          44,
+          "        provider = new OllamaProvider("
+        ],
+        [
+          45,
+          "          ollamaSettings.ollamaUrl || 'http://127.0.0.1:11434',"
+        ],
+        [
+          46,
+          "          ollamaSettings.ollamaModel || 'llama3.2:latest'"
+        ],
+        [
+          47,
+          "        );"
+        ],
+        [
+          48,
+          "      } else if (geminiKey) {"
+        ],
+        [
+          49,
+          "        console.log(`[DEBUG] AgentManager: Creating GeminiProvider`);"
+        ],
+        [
+          50,
+          "        Logger.info('💎 Initializing with Gemini provider...');"
+        ],
+        [
+          51,
+          "        provider = new GeminiProvider(geminiKey);"
+        ],
+        [
+          52,
+          "      } else if (openaiKey) {"
+        ],
+        [
+          53,
+          "        // TODO: Create OpenAIProvider when implemented"
+        ],
+        [
+          54,
+          "        Logger.warning('⚠️ OpenAI provider not yet implemented, falling back...');"
+        ],
+        [
+          55,
+          "      }"
+        ],
+        [
+          56,
+          ""
+        ],
+        [
+          57,
+          "      if (provider) {"
+        ],
+        [
+          58,
+          "        console.log(`[DEBUG] AgentManager: Creating UnifiedAgent with ${provider.name} provider`);"
+        ],
+        [
+          59,
+          "        this.agent = new UnifiedAgent(provider);"
+        ],
+        [
+          60,
+          "        this.isInitialized = true;"
+        ],
+        [
+          61,
+          "        Logger.info('✅ UnifiedAgent initialized and ready');"
+        ],
+        [
+          62,
+          "      } else {"
+        ],
+        [
+          63,
+          "        console.log(`[DEBUG] AgentManager: No provider available!`);"
+        ],
+        [
+          64,
+          "        Logger.warning('⚠️ No AI providers available for AgentManager initialization');"
+        ],
+        [
+          65,
+          "      }"
+        ]
+      ],
+      "missing_lines": []
+    },
+    {
+      "id": "S2.2",
+      "source_id": "S2",
+      "fact": {
+        "claim": "The UnifiedAgent class processes user queries using a combination of function calling and text generation.",
+        "first_line": 18,
+        "kind": "code",
+        "last_line": 101
+      },
+      "semantic_disposition": "UNSUPPORTED_WRONG_SOURCE_SPAN",
+      "semantic_reason": "The selected file implements AgentManager initialization/accessors, not UnifiedAgent query routing. It ends at L90; requested L91-101 do not exist. The described combined tool/text routing is not proved by this citation.",
+      "additional_mechanical_issues": "Missing required symbol; 84 lines exceeds 8; 11 nonexistent/nonvisible lines; no eligible exact call statement.",
+      "cited_lines": [
+        [
+          18,
+          "  static getInstance(): AgentManager {"
+        ],
+        [
+          19,
+          "    if (!AgentManager.instance) {"
+        ],
+        [
+          20,
+          "      AgentManager.instance = new AgentManager();"
+        ],
+        [
+          21,
+          "    }"
+        ],
+        [
+          22,
+          "    return AgentManager.instance;"
+        ],
+        [
+          23,
+          "  }"
+        ],
+        [
+          24,
+          ""
+        ],
+        [
+          25,
+          "  async initialize("
+        ],
+        [
+          26,
+          "    openaiKey: string | undefined,"
+        ],
+        [
+          27,
+          "    geminiKey?: string,"
+        ],
+        [
+          28,
+          "    ollamaSettings?: { useOllama?: boolean, ollamaUrl?: string, ollamaModel?: string }"
+        ],
+        [
+          29,
+          "  ): Promise<void> {"
+        ],
+        [
+          30,
+          "    if (this.isInitialized) {"
+        ],
+        [
+          31,
+          "      Logger.debug('🤖 Agent already initialized, skipping...');"
+        ],
+        [
+          32,
+          "      return;"
+        ],
+        [
+          33,
+          "    }"
+        ],
+        [
+          34,
+          ""
+        ],
+        [
+          35,
+          "    try {"
+        ],
+        [
+          36,
+          "      let provider: LLMProvider | null = null;"
+        ],
+        [
+          37,
+          ""
+        ],
+        [
+          38,
+          "      // Priority: Ollama (currently only fully implemented provider)"
+        ],
+        [
+          39,
+          "      // TODO: Add OpenAI and Gemini providers when implemented"
+        ],
+        [
+          40,
+          ""
+        ],
+        [
+          41,
+          "      if (ollamaSettings?.useOllama) {"
+        ],
+        [
+          42,
+          "        console.log(`[DEBUG] AgentManager: Creating OllamaProvider (${ollamaSettings.ollamaModel})`);"
+        ],
+        [
+          43,
+          "        Logger.info(`🦙 Initializing with Ollama provider (${ollamaSettings.ollamaModel})...`);"
+        ],
+        [
+          44,
+          "        provider = new OllamaProvider("
+        ],
+        [
+          45,
+          "          ollamaSettings.ollamaUrl || 'http://127.0.0.1:11434',"
+        ],
+        [
+          46,
+          "          ollamaSettings.ollamaModel || 'llama3.2:latest'"
+        ],
+        [
+          47,
+          "        );"
+        ],
+        [
+          48,
+          "      } else if (geminiKey) {"
+        ],
+        [
+          49,
+          "        console.log(`[DEBUG] AgentManager: Creating GeminiProvider`);"
+        ],
+        [
+          50,
+          "        Logger.info('💎 Initializing with Gemini provider...');"
+        ],
+        [
+          51,
+          "        provider = new GeminiProvider(geminiKey);"
+        ],
+        [
+          52,
+          "      } else if (openaiKey) {"
+        ],
+        [
+          53,
+          "        // TODO: Create OpenAIProvider when implemented"
+        ],
+        [
+          54,
+          "        Logger.warning('⚠️ OpenAI provider not yet implemented, falling back...');"
+        ],
+        [
+          55,
+          "      }"
+        ],
+        [
+          56,
+          ""
+        ],
+        [
+          57,
+          "      if (provider) {"
+        ],
+        [
+          58,
+          "        console.log(`[DEBUG] AgentManager: Creating UnifiedAgent with ${provider.name} provider`);"
+        ],
+        [
+          59,
+          "        this.agent = new UnifiedAgent(provider);"
+        ],
+        [
+          60,
+          "        this.isInitialized = true;"
+        ],
+        [
+          61,
+          "        Logger.info('✅ UnifiedAgent initialized and ready');"
+        ],
+        [
+          62,
+          "      } else {"
+        ],
+        [
+          63,
+          "        console.log(`[DEBUG] AgentManager: No provider available!`);"
+        ],
+        [
+          64,
+          "        Logger.warning('⚠️ No AI providers available for AgentManager initialization');"
+        ],
+        [
+          65,
+          "      }"
+        ],
+        [
+          66,
+          "    } catch (error) {"
+        ],
+        [
+          67,
+          "      Logger.error('❌ Failed to initialize agent:', error);"
+        ],
+        [
+          68,
+          "      throw error;"
+        ],
+        [
+          69,
+          "    }"
+        ],
+        [
+          70,
+          "  }"
+        ],
+        [
+          71,
+          ""
+        ],
+        [
+          72,
+          "  getAgent(): UnifiedAgent {"
+        ],
+        [
+          73,
+          "    if (!this.agent || !this.isInitialized) {"
+        ],
+        [
+          74,
+          "      throw new Error('Agent not initialized. Call initialize() first.');"
+        ],
+        [
+          75,
+          "    }"
+        ],
+        [
+          76,
+          "    return this.agent;"
+        ],
+        [
+          77,
+          "  }"
+        ],
+        [
+          78,
+          ""
+        ],
+        [
+          79,
+          "  updateKeys(openaiKey: string, geminiKey?: string): void {"
+        ],
+        [
+          80,
+          "    // With the new architecture, we'd need to recreate the agent with new providers"
+        ],
+        [
+          81,
+          "    Logger.debug('🔑 Agent key update requested - would require re-initialization');"
+        ],
+        [
+          82,
+          "  }"
+        ],
+        [
+          83,
+          ""
+        ],
+        [
+          84,
+          "  isReady(): boolean {"
+        ],
+        [
+          85,
+          "    return this.isInitialized && this.agent !== null;"
+        ],
+        [
+          86,
+          "  }"
+        ],
+        [
+          87,
+          "}"
+        ],
+        [
+          88,
+          ""
+        ],
+        [
+          89,
+          "// Export singleton instance"
+        ],
+        [
+          90,
+          "export const agentManager = AgentManager.getInstance();"
+        ]
+      ],
+      "missing_lines": [
+        91,
+        92,
+        93,
+        94,
+        95,
+        96,
+        97,
+        98,
+        99,
+        100,
+        101
+      ]
+    },
+    {
+      "id": "S2.3",
+      "source_id": "S2",
+      "fact": {
+        "claim": "The AgentManager supports Ollama as the primary provider, with Gemini and OpenAI as additional options.",
+        "first_line": 41,
+        "kind": "documented",
+        "last_line": 55
+      },
+      "semantic_disposition": "CONTRADICTED_IN_PART",
+      "semantic_reason": "Ollama preference and Gemini branch are visible. L53-54 explicitly say OpenAIProvider is TODO/not yet implemented, so presenting OpenAI as a supported additional option is materially wrong.",
+      "additional_mechanical_issues": "15 lines exceeds 8; .ts source is not allowed as documented evidence.",
+      "cited_lines": [
+        [
+          41,
+          "      if (ollamaSettings?.useOllama) {"
+        ],
+        [
+          42,
+          "        console.log(`[DEBUG] AgentManager: Creating OllamaProvider (${ollamaSettings.ollamaModel})`);"
+        ],
+        [
+          43,
+          "        Logger.info(`🦙 Initializing with Ollama provider (${ollamaSettings.ollamaModel})...`);"
+        ],
+        [
+          44,
+          "        provider = new OllamaProvider("
+        ],
+        [
+          45,
+          "          ollamaSettings.ollamaUrl || 'http://127.0.0.1:11434',"
+        ],
+        [
+          46,
+          "          ollamaSettings.ollamaModel || 'llama3.2:latest'"
+        ],
+        [
+          47,
+          "        );"
+        ],
+        [
+          48,
+          "      } else if (geminiKey) {"
+        ],
+        [
+          49,
+          "        console.log(`[DEBUG] AgentManager: Creating GeminiProvider`);"
+        ],
+        [
+          50,
+          "        Logger.info('💎 Initializing with Gemini provider...');"
+        ],
+        [
+          51,
+          "        provider = new GeminiProvider(geminiKey);"
+        ],
+        [
+          52,
+          "      } else if (openaiKey) {"
+        ],
+        [
+          53,
+          "        // TODO: Create OpenAIProvider when implemented"
+        ],
+        [
+          54,
+          "        Logger.warning('⚠️ OpenAI provider not yet implemented, falling back...');"
+        ],
+        [
+          55,
+          "      }"
+        ]
+      ],
+      "missing_lines": []
+    },
+    {
+      "id": "S3.1",
+      "source_id": "S3",
+      "fact": {
+        "claim": "The UnifiedAgent class uses a system prompt to guide its behavior and supports both function calling and text generation.",
+        "first_line": 10,
+        "kind": "documented",
+        "last_line": 15
+      },
+      "semantic_disposition": "PARTIALLY_SUPPORTED",
+      "semantic_reason": "L10-15 show a prompt instructing tool use or direct text. They do not demonstrate actual function-calling implementation, runtime prompt binding or both execution paths.",
+      "additional_mechanical_issues": "The .ts source is incorrectly marked documented; a prompt literal is not an executed call witness.",
+      "cited_lines": [
+        [
+          10,
+          "// System prompt for the agent"
+        ],
+        [
+          11,
+          "const SYSTEM_PROMPT = `You are Jarvis, a helpful AI assistant. You have access to tools to help the user."
+        ],
+        [
+          12,
+          ""
+        ],
+        [
+          13,
+          "When the user asks you to do something that requires a tool, use the appropriate tool."
+        ],
+        [
+          14,
+          "When the user asks a general question or wants text content, respond directly without using tools."
+        ],
+        [
+          15,
+          ""
+        ]
+      ],
+      "missing_lines": []
+    },
+    {
+      "id": "S3.2",
+      "source_id": "S3",
+      "fact": {
+        "claim": "The processQuery method in UnifiedAgent uses function calling to determine if a tool should be used.",
+        "first_line": 32,
+        "kind": "code",
+        "last_line": 51
+      },
+      "semantic_disposition": "PARTIALLY_SUPPORTED_IMPRECISE",
+      "semantic_reason": "L43 checks the provider supportsToolCalling capability and L44 delegates to processWithTools; L48 falls back to processTextOnly. This is capability-based routing, not a function-call decision here about whether a particular tool should be used.",
+      "additional_mechanical_issues": "Missing required symbol; 20 lines exceeds 8; a signature plus branching block is not a single exact call witness.",
+      "cited_lines": [
+        [
+          32,
+          "    async processQuery("
+        ],
+        [
+          33,
+          "        query: string,"
+        ],
+        [
+          34,
+          "        sessionId?: string,"
+        ],
+        [
+          35,
+          "        userContext?: { userId?: string; displayName?: string; email?: string }"
+        ],
+        [
+          36,
+          "    ): Promise<string> {"
+        ],
+        [
+          37,
+          "        const startTime = Date.now();"
+        ],
+        [
+          38,
+          ""
+        ],
+        [
+          39,
+          "        try {"
+        ],
+        [
+          40,
+          "            Logger.info(`📥 [UnifiedAgent] Processing query: \"${query.substring(0, 50)}...\"`);"
+        ],
+        [
+          41,
+          ""
+        ],
+        [
+          42,
+          "            // If the provider supports tool calling, use it"
+        ],
+        [
+          43,
+          "            if (this.provider.supportsToolCalling()) {"
+        ],
+        [
+          44,
+          "                return await this.processWithTools(query, startTime);"
+        ],
+        [
+          45,
+          "            }"
+        ],
+        [
+          46,
+          ""
+        ],
+        [
+          47,
+          "            // Fallback to text generation for providers without tool support"
+        ],
+        [
+          48,
+          "            return await this.processTextOnly(query, startTime);"
+        ],
+        [
+          49,
+          "        } catch (error) {"
+        ],
+        [
+          50,
+          "            Logger.error('❌ [UnifiedAgent] Query processing failed:', error);"
+        ],
+        [
+          51,
+          "            return 'I encountered an error processing your request. Please try again.';"
+        ]
+      ],
+      "missing_lines": []
+    },
+    {
+      "id": "S3.3",
+      "source_id": "S3",
+      "fact": {
+        "claim": "The UnifiedAgent supports multiple tools and can be extended with additional functionalities.",
+        "first_line": 22,
+        "kind": "documented",
+        "last_line": 25
+      },
+      "semantic_disposition": "PARTIALLY_SUPPORTED",
+      "semantic_reason": "L22-25 show an injectable/default tool registry and log its size. This supports configurable registry construction but does not establish actual multiple tools or an extension API in the cited span.",
+      "additional_mechanical_issues": "The .ts source is incorrectly marked documented.",
+      "cited_lines": [
+        [
+          22,
+          "    constructor(provider: LLMProvider, toolRegistry?: ToolRegistry) {"
+        ],
+        [
+          23,
+          "        this.provider = provider;"
+        ],
+        [
+          24,
+          "        this.toolRegistry = toolRegistry || createDefaultToolRegistry();"
+        ],
+        [
+          25,
+          "        Logger.info(`🤖 [UnifiedAgent] Initialized with ${this.provider.name} provider and ${this.toolRegistry.size} tools`);"
+        ]
+      ],
+      "missing_lines": []
+    },
+    {
+      "id": "S4.1",
+      "source_id": "S4",
+      "fact": {
+        "claim": "The NativeReActAgent implements a thought-action-observation loop for efficient task execution.",
+        "first_line": 1,
+        "kind": "documented",
+        "last_line": 5
+      },
+      "semantic_disposition": "SUPPORTED_CORE_AS_SOURCE_SELF_DESCRIPTION_ONLY",
+      "semantic_reason": "The module docstring describes a Thought-Action-Observation loop. It does not demonstrate efficient execution or the loop implementation.",
+      "additional_mechanical_issues": "The .py source is not an allowed documented source under the protocol, even when the selected text is a docstring.",
+      "cited_lines": [
+        [
+          1,
+          "\"\"\"NativeReActAgent -- Thought-Action-Observation loop agent."
+        ],
+        [
+          2,
+          ""
+        ],
+        [
+          3,
+          "Renamed from ``ReActAgent`` to clarify this is OpenJarvis's native"
+        ],
+        [
+          4,
+          "implementation, not an integration with an external project."
+        ],
+        [
+          5,
+          "\"\"\""
+        ]
+      ],
+      "missing_lines": []
+    },
+    {
+      "id": "S4.2",
+      "source_id": "S4",
+      "fact": {
+        "claim": "The ReAct agent supports both computed results and procedural instructions for task execution.",
+        "first_line": 37,
+        "kind": "documented",
+        "last_line": 43
+      },
+      "semantic_disposition": "PARTIALLY_SUPPORTED_MISSING_SECOND_FORM",
+      "semantic_reason": "L38-43 announce two skill response forms and describe only computed results. Procedural instructions are outside the cited span, so the full two-part claim is not supported by these lines alone.",
+      "additional_mechanical_issues": "The .py source is incorrectly marked documented; selected prompt text is not an executed operation.",
+      "cited_lines": [
+        [
+          37,
+          ""
+        ],
+        [
+          38,
+          "Tools whose names begin with `skill_` are SKILLS. When you call a skill tool,"
+        ],
+        [
+          39,
+          "the response can take one of two forms:"
+        ],
+        [
+          40,
+          ""
+        ],
+        [
+          41,
+          "- **Computed result**: The skill ran a deterministic pipeline and returned a"
+        ],
+        [
+          42,
+          "  value (number, string, JSON, etc.). Use the value directly in your answer."
+        ],
+        [
+          43,
+          ""
+        ]
+      ],
+      "missing_lines": []
+    },
+    {
+      "id": "S4.3",
+      "source_id": "S4",
+      "fact": {
+        "claim": "The NativeReActAgent uses a system prompt to guide its behavior and supports multiple tools for task execution.",
+        "first_line": 25,
+        "kind": "documented",
+        "last_line": 30
+      },
+      "semantic_disposition": "PARTIALLY_SUPPORTED",
+      "semantic_reason": "L25-30 show Thought/Action/Action Input response grammar. They do not prove that this prompt is bound to the agent or that multiple tools are configured/used.",
+      "additional_mechanical_issues": "The .py source is incorrectly marked documented; prompt grammar is not implementation evidence.",
+      "cited_lines": [
+        [
+          25,
+          "You are a ReAct agent. For each step, respond with exactly one of:"
+        ],
+        [
+          26,
+          ""
+        ],
+        [
+          27,
+          "1. To think and act:"
+        ],
+        [
+          28,
+          "Thought: <your reasoning>"
+        ],
+        [
+          29,
+          "Action: <tool_name>"
+        ],
+        [
+          30,
+          "Action Input: <json arguments>"
+        ]
+      ],
+      "missing_lines": []
+    }
+  ],
+  "enlarging_eight_line_bound_sufficient": false,
+  "counterfactual_reason": "Increasing the bound alone cannot repair missing symbols, forbidden documented classifications of .ts/.py, nonexistent S2 lines91-101, non-statement code spans, unsupported citations or the OpenAI contradiction. No counterfactual output was executed.",
+  "no_further_round_or_successful_write_observed": true,
+  "effects": [
+    {
+      "dispatch_id": "9afa5794-baf2-4251-abcd-dd1e5cccad19",
+      "path": "H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\20261102-b6ab85b\\e02-round-1\\outputs\\fda8d6ee-88fd-4953-b028-f14721d08eba\\research.md",
+      "state": "rejected",
+      "request_id": "e02-round-1",
+      "session_id": "e02-round-1",
+      "task_id": "fda8d6ee-88fd-4953-b028-f14721d08eba",
+      "report_call_id": "13823df8-227e-46ed-96b3-41149dbca228"
+    }
+  ],
+  "artifacts": [],
+  "evidence_verified": {
+    "raw_file_hashes": 14,
+    "current_input_hashes": 20,
+    "before_after_inputs_equal": true,
+    "release_bound_to_prior_code_review": true,
+    "source_model_identity_unchanged": true,
+    "protected_pids": [
+      492,
+      37880,
+      32856,
+      18068
+    ],
+    "own_six_pid_identities_matched_and_cleanup_absence_recorded": true,
+    "isolated_dead_owner_pidfile_removed_and_currently_absent": true,
+    "source_body_hashes": 4,
+    "displayed_pack_chars": 21229,
+    "actual_claims_assessed": 12,
+    "code_facts_missing_symbol": 3,
+    "documented_facts_from_code_suffix": 6,
+    "overlong_facts": 5,
+    "nonexistent_cited_lines": 11
+  },
+  "evidence_paths": {
+    "single-round-result.json": "H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\20261102-b6ab85b\\single-round-result.json",
+    "e02-round-1/receipt.json": "H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\20261102-b6ab85b\\e02-round-1\\receipt.json",
+    "e02-round-1/first-rejection.json": "H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\20261102-b6ab85b\\e02-round-1\\first-rejection.json",
+    "inputs-before.json": "H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\20261102-b6ab85b\\inputs-before.json",
+    "inputs-after.json": "H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\20261102-b6ab85b\\inputs-after.json",
+    "protected-before.json": "H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\20261102-b6ab85b\\protected-before.json",
+    "protected-after.json": "H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\20261102-b6ab85b\\protected-after.json",
+    "identity-before.json": "H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\20261102-b6ab85b\\identity-before.json",
+    "identity-after.json": "H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\20261102-b6ab85b\\identity-after.json",
+    "own-process-identities-during.json": "H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\20261102-b6ab85b\\own-process-identities-during.json",
+    "own-processes-after.json": "H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\20261102-b6ab85b\\own-processes-after.json",
+    "isolated-lock-cleanup.json": "H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\20261102-b6ab85b\\isolated-lock-cleanup.json"
+  },
+  "raw_file_sha256": {
+    "candidate.json": "3b93800d17f5b3ffb0777c0f72096189d72560ed4bc81c57c57a05907848cd86",
+    "candidate-after.json": "5197d41d1e58c95a67f85309dad204303de1ed80f61132ea1679b7f54f091ef5",
+    "argv.json": "4a1c1713f5afaf1f774da4bd13b651eb102d80961eadd2b35c3eb734b9b4305a",
+    "cli.stdout": "e5286e33708859a26376525920d04c957edab7f4e9fda0185af81581ed9d76af",
+    "cli.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "server.stdout": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "server.stderr": "f4d4f92df7c2d6c9fa18e96d8ce59ca6f64035f78d81dd8c8daf99e75dfc5fea",
+    "receipt.json": "135f2896d857dccf16c969977eb797075831e2289057d53a76d1ff984145b7b6",
+    "trace.jsonl": "ad5e042e417ceb16e88b08b0ff699bc19bd32e5877411a25930b45680964cdb8",
+    "sources.json": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "external-artifacts.json": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "external-failed-artifacts.json": "786d307234acef1bd2485dc989d00bf5f0004cb585f92e10298e0ac98817c14c",
+    "first-rejection.json": "a7b850616480f7bb6d69a5ed27cc376c9b8006191f41b75dd25bf7946fb42a73",
+    "cleanup.json": "776d91959639db911451cea89418a4108427e8ad21636d77a7210d23a927aa50"
+  },
+  "limits": [
+    "Review reads retained evidence, with current local input hash and isolated pidfile absence checks; no fresh process or model/network query.",
+    "Only one released response is assessed; this does not establish that 8B models categorically cannot perform the task.",
+    "No requested artifact path probe or output directory scan; no successful write, write intent or unresolved dispatch exists in the retained ledger.",
+    "No source changes, model calls, network/UI/audio, suites or additional rounds executed."
+  ],
+  "release": false,
+  "t2_acceptance": false,
+  "owner_freeze": false
+}
