@@ -37,6 +37,7 @@ class WorkLedger:
     def __init__(self):
         self._lock = threading.RLock()
         self._records = []
+        self._report_effects = {}
 
     def record(self, item):
         with self._lock:
@@ -45,6 +46,52 @@ class WorkLedger:
     def snapshot(self):
         with self._lock:
             return [dict(x) for x in self._records]
+
+    def report_start(self, binding, path):
+        dispatch = str(uuid.uuid4())
+        try:
+            path = str(checked_path(binding, path))
+        except (OSError, ValueError, TypeError):
+            path = None
+        with self._lock:
+            self._report_effects[dispatch] = dict(dispatch_id=dispatch, path=path, state='pending',
+                request_id=binding.request_id, session_id=binding.session_id, task_id=binding.task_id)
+        return dispatch
+
+    def report_adapter(self, call_id):
+        # One serial SDK report dispatch per originating request, even if its
+        # worker wakes after the request has returned. No process-wide lookup.
+        with self._lock:
+            if self._report_effects:
+                effect = next(reversed(self._report_effects.values()))
+                if effect['state'] in ('pending','timed_out') and 'report_call_id' not in effect:
+                    effect['report_call_id'] = call_id
+                    return effect['dispatch_id']
+        return None
+
+    def write_intent(self, binding, path, report_id, file_id, dispatch):
+        with self._lock:
+            # Direct bound tool invocation has no SDK outer START.
+            effect = self._report_effects.setdefault(dispatch or report_id, dict(
+                request_id=binding.request_id, session_id=binding.session_id, task_id=binding.task_id))
+            effect.update(path=str(path), report_call_id=report_id, file_call_id=file_id)
+            if effect.get('state') != 'timed_out':
+                effect['state'] = 'write_attempted'
+
+    def report_end(self, dispatch, *, timeout=False, success=False):
+        with self._lock:
+            effect = self._report_effects[dispatch]
+            if timeout:
+                effect['state'] = 'timed_out'
+            elif effect['state'] != 'timed_out':
+                if success:
+                    effect['state'] = 'completed'
+                elif 'file_call_id' not in effect:
+                    effect['state'] = 'rejected'
+
+    def outcome_snapshot(self):
+        with self._lock:
+            return copy.deepcopy(self._records), copy.deepcopy(list(self._report_effects.values()))
 
 _ACTIVE = ContextVar('ultima_work_binding', default=None)
 
@@ -108,6 +155,11 @@ class _WorkFileTool(BaseTool):
                 raise ValueError('Only write mode is supported')
             sdk = FileWriteTool(allowed_dirs=[str(self._binding.root)]) if self.writing else FileReadTool(allowed_dirs=[str(self._binding.root)])
             args = dict(params, path=str(path))
+            if self.writing and getattr(self, '_report_parent', None):
+                report_id, dispatch = self._report_parent
+                self._ledger.write_intent(self._binding,path,report_id,call_id,dispatch)
+                record.update(path=str(path),request_id=self._binding.request_id,
+                              session_id=self._binding.session_id,task_id=self._binding.task_id)
             result = sdk.execute(**args)
             record.update(path=str(path), content=params.get('content'), success=bool(result.success), result=result.content,
                           request_id=self._binding.request_id, session_id=self._binding.session_id, task_id=self._binding.task_id)
@@ -148,6 +200,8 @@ class _CapabilityTool(BaseTool):
             result=self.run(params,record)
             record.update(success=True,result=result)
             view=dict(result)
+            if self.tool_id=='ultima_work_research_write':
+                view = {k:result[k] for k in ('path','cited_source_ids','file_call_id')}
             if self.tool_id=='ultima_work_http_get':
                 view.pop('body',None)
                 view['text']=view['text'][:12000]
@@ -216,11 +270,15 @@ class WorkResearchWriteTool(_CapabilityTool):
         self._writer=WorkWriteTool()
         sources=json.loads(self.caps.research_json or '[]') if self.caps else []
         text=lambda limit:{'type':'string','minLength':1,'maxLength':limit}
+        fact={'type':'object','additionalProperties':False,'required':['kind','claim','first_line','last_line'],
+              'properties':{'kind':{'enum':['documented','code','limitation']},'claim':text(2000),
+                            'first_line':{'type':'integer','minimum':1},'last_line':{'type':'integer','minimum':1},
+                            'symbol':dict(text(200),description='Exact qualified operation; required only for code.')}}
         self.parameters={'type':'object','additionalProperties':False,'required':['path','title','sections'],
             'properties':{'path':text(2048),'title':text(200),'sections':{'type':'array','minItems':3,'maxItems':5,
                 'items':{'type':'object','additionalProperties':False,'required':['source_id','heading','facts'],
                     'properties':{'source_id':{'type':'string','enum':[s['source_id'] for s in sources]},
-                        'heading':text(200),'facts':{'type':'array','minItems':1,'maxItems':6,'items':text(2000)}}}}}}
+                        'heading':text(200),'facts':{'type':'array','minItems':1,'maxItems':6,'items':fact}}}}}}
         self.description=(type(self).description
             + '\nFull argument schema (JSON):\n'
             + json.dumps(self.parameters,ensure_ascii=False,sort_keys=True)
@@ -228,9 +286,12 @@ class WorkResearchWriteTool(_CapabilityTool):
 
     def run(self,params,record):
         from .work_research import bound_sources,render_research_report
+        dispatch = self.ledger.report_adapter(record['call_id'])
         bound_sources(self.caps.research_json,self.binding)
         rendered=render_research_report(params,self.caps.research_json)
+        self._writer._report_parent = (record['call_id'], dispatch)
         result=self._writer.execute(path=params['path'],content=rendered.content)
         if not result.success: raise ValueError(result.content)
         return dict(path=result.metadata['path'],file_call_id=result.metadata['call_id'],
-                    payload_json=json.dumps(params,ensure_ascii=False),cited_source_ids=list(rendered.cited_source_ids))
+                    payload_json=json.dumps(params,ensure_ascii=False),cited_source_ids=list(rendered.cited_source_ids),
+                    evidence=list(rendered.evidence))

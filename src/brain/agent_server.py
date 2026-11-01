@@ -170,20 +170,116 @@ _runtime_root: Path | None = None
 _isolated = False
 
 
+class _ResearchEngineView:
+    """Borrow the secured SDK engine for one composition; never own or close it."""
+    def __init__(self, inner, binding, ledger):
+        self.inner = inner
+        self.binding = binding
+        self.ledger = ledger
+        self.dispatch = None
+        self.expected = None
+        self.started = False
+        self.confirmed = False
+        self.failure = None
+        self.final = False
+
+    def __getattr__(self, name):
+        return getattr(self.inner, name)
+
+    def observe(self, event):
+        kind = event.event_type.value
+        if event.data.get('tool') != self.expected or self.expected is None:
+            return
+        if kind == 'tool_call_start' and not self.started:
+            self.started = True
+            if self.expected == 'ultima_work_research_write':
+                self.dispatch = self.ledger.report_start(self.binding,event.data['arguments'].get('path'))
+        elif kind == 'tool_call_end' and self.started and not self.confirmed:
+            self.confirmed = event.data.get('success') is True
+            if self.dispatch:
+                self.ledger.report_end(self.dispatch,success=self.confirmed)
+            if not self.confirmed:
+                self.failure = self.failure or event.data.get('result') or 'Research tool failed'
+        else:
+            if self.dispatch and kind == 'tool_timeout':
+                self.ledger.report_end(self.dispatch,timeout=True)
+            self.failure = self.failure or 'Unexpected or timed-out research dispatch'
+
+    def check_dispatch(self, observation=''):
+        if self.failure or (self.expected and not self.confirmed):
+            raise ValueError(self.failure or 'Unconfirmed research tool dispatch. ' + observation)
+
+    def generate(self, messages, **kwargs):
+        from dataclasses import replace
+        from openjarvis.agents.native_react import _unique_json_object, _reject_json_constant
+        self.check_dispatch((messages[-1].content or '') if messages else '')
+        if not messages or messages[0].role.value != 'system':
+            raise ValueError('Missing research system message')
+        protocol = ('\nFor this request the wire format overrides the text format above. Return exactly one JSON '
+                    'object: {"action":"registered tool","action_input":{...}} or {"final_answer":"text"}.')
+        outgoing = [replace(messages[0], content=messages[0].content + protocol), *messages[1:]]
+        result = self.inner.generate(outgoing, response_format={'type':'json_object'}, **kwargs)
+        value = json.loads(result['content'], object_pairs_hook=_unique_json_object,
+                           parse_constant=_reject_json_constant)
+        if not isinstance(value, dict) or not isinstance(value.get('thought', ''), str):
+            raise ValueError('Invalid research JSON envelope')
+        keys = value.keys() - {'thought'}
+        if keys == {'final_answer'} and isinstance(value['final_answer'], str) and value['final_answer'].strip():
+            self.final = True
+            self.expected = None
+        elif (keys == {'action', 'action_input'} and isinstance(value['action'], str)
+              and value['action'].strip() and isinstance(value['action_input'], dict)):
+            self.expected = value['action'].strip()
+            self.dispatch = None
+            self.started = self.confirmed = False
+        else:
+            raise ValueError('Invalid research action or final envelope')
+        return result
+
+
 def _run_work_agent(query, *, binding, tools, max_tokens=None):
     with _ask_lock:
         from openjarvis.core.events import EventType
+        from .work_tools import _ACTIVE
+        from copy import copy
         jars = get_jarvis()
+        bound = _ACTIVE.get()
+        view = None
+        if bound and bound[0] is binding and bound[2] and bound[2].research_json:
+            jars._ensure_engine()
+            if (jars._resolved_engine_key != 'ollama' or AGENT != 'native_react'
+                    or jars._model_override != 'qwen3-8b-uncensored'):
+                raise ValueError('Unsupported structured research engine, agent or model')
+            jars = copy(jars)
+            view = _ResearchEngineView(jars._engine,binding,bound[1])
+            jars._engine = view
         trace = []
+        caller = threading.get_ident()
         def collect(event):
+            if threading.get_ident() != caller or _ACTIVE.get() is not bound:
+                return
             trace.append(dict(type=event.event_type.value, timestamp=event.timestamp, data=event.data))
+            if view and event.event_type != EventType.INFERENCE_END:
+                view.observe(event)
         kinds = (EventType.INFERENCE_END, EventType.TOOL_CALL_START, EventType.TOOL_CALL_END)
+        if view:
+            kinds += (EventType.TOOL_TIMEOUT,)
         for kind in kinds:
             jars._bus.subscribe(kind, collect)
+        result = {}
         try:
             result = jars.ask_full(query, agent=AGENT, tools=tools, context=False,
                                    max_tokens=max_tokens or 2048)
+            if view:
+                view.check_dispatch()
+                if not view.final:
+                    result['compose_error'] = 'Research stopped without a final envelope'
             result['trace'] = trace
+            return result
+        except Exception as exc:
+            if not view:
+                raise
+            result.update(compose_error=str(exc), trace=trace)
             return result
         finally:
             for kind in kinds:

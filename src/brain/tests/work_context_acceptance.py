@@ -118,7 +118,9 @@ def round_case(case,folder):
     task_files=['work_context.py','work_tools.py','work_service.py','work_research.py','work_verifier.py','environment.py','exec/channel.py','browser/channel.py','agent_server.py','agent_client.py','cli.py','tests/test_work_context.py','tests/test_work_research.py','tests/test_work_delivery.py','tests/work_context_acceptance.py']
     manifest={name:hashlib.sha256((ROOT/'src/brain'/name).read_bytes()).hexdigest() for name in task_files}
     commit=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip()
-    save(folder/'candidate.json',dict(commit=commit,source_sha256=manifest,spec_sha256=hashlib.sha256((ROOT/'docs/specs/jarvis-work-capability-contract-20261101.md').read_bytes()).hexdigest(),research_supplement_sha256=hashlib.sha256((ROOT/'docs/specs/jarvis-work-research-execution-contract-20261102.md').read_bytes()).hexdigest(),cases_sha256=hashlib.sha256((Path(__file__).parent/'fixtures/work_capability/acceptance-cases.json').read_bytes()).hexdigest()))
+    protocol = ROOT/'docs/specs/jarvis-work-research-evidence-protocol-20261102.md'
+    protocol_sha256 = hashlib.sha256(protocol.read_bytes()).hexdigest()
+    save(folder/'candidate.json',dict(commit=commit,source_sha256=manifest,research_protocol_sha256=protocol_sha256,spec_sha256=hashlib.sha256((ROOT/'docs/specs/jarvis-work-capability-contract-20261101.md').read_bytes()).hexdigest(),research_supplement_sha256=hashlib.sha256((ROOT/'docs/specs/jarvis-work-research-execution-contract-20261102.md').read_bytes()).hexdigest(),cases_sha256=hashlib.sha256((Path(__file__).parent/'fixtures/work_capability/acceptance-cases.json').read_bytes()).hexdigest()))
     env=dict(os.environ,NO_PROXY='localhost,127.0.0.1',PYTHONIOENCODING='utf-8')
     children=[]; logs=[]; result={}
     try:
@@ -208,7 +210,8 @@ def round_case(case,folder):
         save(folder/'harness-error.json',dict(error=str(exc),case=case,result=result))
         return dict(case=case,status='harness_error',error=str(exc),folder=str(folder))
     finally:
-        save(folder/'candidate-after.json',{'source_unchanged':all(hashlib.sha256((ROOT/'src/brain'/name).read_bytes()).hexdigest()==sha for name,sha in manifest.items())})
+        protocol_after = hashlib.sha256(protocol.read_bytes()).hexdigest()
+        save(folder/'candidate-after.json',{'research_protocol_sha256':protocol_after,'source_unchanged':protocol_sha256==protocol_after and all(hashlib.sha256((ROOT/'src/brain'/name).read_bytes()).hexdigest()==sha for name,sha in manifest.items())})
         if case in ('e03','e03-negative'): (folder/'stop').touch()
         cleanup=[]
         for p in reversed(children):

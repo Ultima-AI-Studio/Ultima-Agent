@@ -1,9 +1,13 @@
 """Bounded research collection/rendering around installed SDK tools, not an Agent."""
 from dataclasses import dataclass
+import ast
 import hashlib
+import io
 import json
+from pathlib import PurePosixPath
 import re
 import time
+import tokenize
 from urllib.parse import urlsplit, urlunsplit
 import uuid
 
@@ -24,7 +28,7 @@ def canonical_url(value):
     return urlunsplit((p.scheme.lower(),host,p.path or '/',p.query,''))
 
 
-URL_PATTERN=re.compile(r'https?://[^\s<>"\x27]+')
+URL_PATTERN=re.compile(r'https?://[^\s<>"\x27，。；：！？、）】》」』”’]+')
 
 
 def candidate_inputs(query,source_urls):
@@ -158,6 +162,163 @@ def _escape(text):
 class RenderedReport:
     content: str
     cited_source_ids: tuple[str,...]
+    evidence: tuple[dict,...]
+
+
+def _compact(value):
+    return json.dumps(value, ensure_ascii=False, separators=(',', ':'))
+
+
+def _source_view(source, count):
+    lines = list(enumerate(source['text'].splitlines(), 1))
+    view = dict(source_id=source['source_id'], lines=lines, omitted=False)
+    budget = min(8000, (24000 - count - 1) // count)
+    if len(_compact(view)) <= budget:
+        return view
+    view.update(lines=[], omitted=True)
+    half = (budget - len(_compact(view))) // 2
+
+    def take(rows):
+        used = 0
+        selected = []
+        for row in rows:
+            used += len(_compact(row)) + 1
+            if used > half:
+                break
+            selected.append(row)
+        return selected
+
+    view['lines'] = take(lines) + list(reversed(take(reversed(lines))))
+    return view
+
+
+def source_pack(sources):
+    return _compact([_source_view(source, len(sources)) for source in sources])
+
+
+def _python_support(body, first, last, kind, symbol):
+    if kind == 'limitation':
+        for token in tokenize.generate_tokens(io.StringIO(body).readline):
+            if (token.type == tokenize.COMMENT and first <= token.start[0] <= last
+                    and re.search(r'\b(?:TODO|FIXME|unimplemented)\b', token.string, re.I)):
+                return True
+    for node in ast.walk(ast.parse(body)):
+        if not (isinstance(node, ast.stmt) and first <= node.lineno <= node.end_lineno <= last):
+            continue
+        if kind == 'limitation' and isinstance(node, ast.Raise):
+            return True
+        if not isinstance(node, (ast.Assign, ast.AnnAssign, ast.Expr, ast.Return)):
+            continue
+        call = node.value
+        if isinstance(call, ast.Await):
+            call = call.value
+        if isinstance(call, ast.Call):
+            callee = ast.unparse(call.func)
+            if kind == 'code' and callee == symbol:
+                return True
+            if kind == 'limitation' and callee.split('.')[-1] in ('warn', 'warning'):
+                return True
+    return False
+
+
+def _js_support(body, first, last, kind, symbol, suffix):
+    from pygments.lexers.javascript import JavascriptLexer, TypeScriptLexer
+    from pygments.token import Comment, Error, Name, String
+    lexer = TypeScriptLexer() if suffix == '.ts' else JavascriptLexer()
+    tokens = []
+    line = 1
+    previous = None
+    for _, family, value in lexer.get_tokens_unprocessed(body):
+        end = line + value.count('\n')
+        if line > last:
+            break
+        if end < first and value.strip() and family not in Comment:
+            previous = value
+        if line <= last and end >= first and value.strip():
+            if family in Comment:
+                if (kind == 'limitation' and first <= line and end <= last
+                        and re.search(r'\b(?:TODO|FIXME|unimplemented)\b', value, re.I)):
+                    return True
+            elif family in Error or line < first or end > last:
+                return False
+            elif family in String:
+                tokens.append(('@literal', family))
+            else:
+                tokens.append((value, family))
+        line = end
+    # Match only a single complete call statement. Token offsets and classes
+    # come from the full source, so text in literals cannot become a callee.
+    words = [v for v, _ in tokens]
+    if previous not in (None, ';', '{', '}'):
+        return False
+    throwing = kind == 'limitation' and words[:2] == ['throw','new']
+    if throwing:
+        words = words[1:]
+        tokens = tokens[1:]
+    header = re.fullmatch(
+        r'(?:(?:return |(?:(?:const|let|var) )?(?:[\w$]+ \. )*[\w$]+ = ))?'
+        r'(?:await )?(?:new )?(?P<callee>[\w$]+(?: \. [\w$]+)*)',
+        ' '.join(words[:words.index('(')]) if '(' in words else '')
+    if not header:
+        return False
+    opening = words.index('(')
+    callee = header['callee'].replace(' ', '')
+    # An unqualified bare expression can also be a TS interface signature.
+    if suffix == '.ts' and '.' not in callee and opening == 1:
+        return False
+    if tokens[opening-1][1] not in Name:
+        return False
+    stack = []
+    for i, word in enumerate(words[opening:], opening):
+        if word in ('(', '[', '{'):
+            stack.append(word)
+        elif word in (')', ']', '}'):
+            if not stack or stack.pop() != {')':'(', ']':'[', '}':'{'}[word]:
+                return False
+            if not stack:
+                if words[i+1:] not in ([], [';']):
+                    return False
+                return callee == symbol if kind == 'code' else throwing or callee.split('.')[-1] in ('warn','warning')
+    return False
+
+
+def _fact_evidence(fact, source, visible):
+    if not isinstance(fact, dict):
+        raise ValueError('A fact needs a claim, evidence kind and visible line range')
+    kind = fact.get('kind')
+    fields = {'claim','kind','first_line','last_line'}
+    if kind == 'code':
+        fields.add('symbol')
+    if set(fact) != fields or kind not in ('documented','code','limitation'):
+        raise ValueError('Invalid fact fields or kind')
+    claim = _text(fact['claim'], 2000)
+    first, last = fact['first_line'], fact['last_line']
+    if (type(first) is not int or type(last) is not int or not 1 <= first <= last < first+8
+            or any(i not in visible for i in range(first,last+1))):
+        raise ValueError('Invalid or omitted evidence lines')
+    excerpt = '\n'.join(visible[i] for i in range(first,last+1))
+    if not excerpt.strip():
+        raise ValueError('Empty evidence span')
+    suffix = PurePosixPath(urlsplit(source['final_url']).path).suffix.lower()
+    if kind == 'documented':
+        if suffix not in ('','.md','.rst','.txt','.htm','.html','.adoc'):
+            raise ValueError('Code cannot serve as documentation of implemented behavior')
+    else:
+        symbol = fact.get('symbol')
+        if kind == 'code' and (not isinstance(symbol,str) or len(symbol)>200 or
+                not re.fullmatch(r'[A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*)*',symbol) or
+                not re.search(r'(?<![A-Za-z0-9_$.])'+re.escape(symbol)+r'(?![A-Za-z0-9_$]|\.[A-Za-z_$])',claim)):
+            raise ValueError('A code claim must name its exact operation')
+        if suffix == '.py':
+            supported = _python_support(source['text'],first,last,kind,symbol)
+        elif suffix in ('.js','.ts','.mjs','.cjs'):
+            supported = _js_support(source['text'],first,last,kind,symbol,suffix)
+        else:
+            supported = False
+        if not supported:
+            raise ValueError('Selected code span does not witness this operation or limitation')
+    keys = ('source_id','final_url','decoded_body_sha256','read_call_id','request_id','session_id','task_id')
+    return dict(fact, text=excerpt, **{k:source[k] for k in keys})
 
 
 def render_research_report(payload,sources_json):
@@ -169,6 +330,7 @@ def render_research_report(payload,sources_json):
     if not isinstance(sections,list) or not 3<=len(sections)<=5:
         raise ValueError('Report needs three to five source sections')
     lines=['# '+_escape(title),'']; cited=[]
+    evidence = []
     for section in sections:
         if not isinstance(section,dict) or set(section)!={'source_id','heading','facts'}:
             raise ValueError('A source section requires only source_id, heading and facts')
@@ -178,11 +340,16 @@ def render_research_report(payload,sources_json):
         facts=section['facts']
         if not isinstance(facts,list) or not 1<=len(facts)<=6: raise ValueError('Source section requires one to six facts')
         lines+=['## '+_escape(_text(section['heading'],200)),sources[source_id]['final_url'],'']
-        lines+=['- '+_escape(_text(fact,2000)) for fact in facts]
+        visible = dict(_source_view(sources[source_id],len(sources))['lines'])
+        for fact in facts:
+            support = _fact_evidence(fact, sources[source_id], visible)
+            evidence.append(support)
+            label = {'documented':'文档说明','code':'代码观察','limitation':'该处标注'}[support['kind']]
+            lines.append(f"- {label}（L{support['first_line']}–L{support['last_line']}）"+_escape(support['claim']))
         lines.append(''); cited.append(source_id)
     if len({sources[s]['dedupe_url'] for s in cited})<3 or len({sources[s]['decoded_body_sha256'] for s in cited})<3:
         raise ValueError('Report requires three distinct cited source URL/body identities')
-    return RenderedReport('\n'.join(lines),tuple(cited))
+    return RenderedReport('\n'.join(lines),tuple(cited),tuple(evidence))
 
 
 def verify_research_artifacts(binding,artifacts,report_records,sources_json):
@@ -201,6 +368,8 @@ def verify_research_artifacts(binding,artifacts,report_records,sources_json):
             raise ValueError('Research rendered report independent readback mismatch')
         if list(rendered.cited_source_ids)!=record['result']['cited_source_ids']:
             raise ValueError('Research citation receipt mismatch')
+        if list(rendered.evidence)!=record['result']['evidence']:
+            raise ValueError('Research fact evidence mismatch')
         cited.update(rendered.cited_source_ids)
     if len(cited)<3: raise ValueError('Research has fewer than three actually cited fetched sources')
     return [source_map[s] for s in source_map if s in cited]
