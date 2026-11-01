@@ -46,13 +46,14 @@
 
 - C1 PASS：指定 Python 3.13.16 全量 `pytest src -q` 最终退出 0，`816 passed + 120 subtests passed`；0003 专项 `13 passed`。
 - C2 PASS：注入链路 `4 passed`；“水量天听”→ ABSTAIN、诱导编造→ DENY，均断言 Agent 未调用；天气走原确定性路径，时间正常进入 Agent。
-- C3 待提交后验证：精确暂存本单增量，提交信息含“工单 0016 意图路由门+校验器+主脑规则接入”，创建并推送 tag `ultimaagent-reply-constraint-routing-20261101`。
+- C3 PASS：精确暂存 18 个本单文件；实现 commit `a3fca7c3751e8a2f3227c29b6eb3c09455ae0490`；tag `ultimaagent-reply-constraint-routing-20261101` 与远端 `main` 独立读回均解析到该 commit。
 - C4 PASS：阶段报告与 T0/T1/T2/T2.5/T3 证据齐备。
 
 证据：
 
 - `docs/reports/evidence/reply-constraint-c/t3-regression.txt`
 - `docs/reports/evidence/reply-constraint-c/t3-injection.txt`
+- `docs/reports/evidence/reply-constraint-c/t3-git.txt`
 
 ### 已知但未越界修复
 
