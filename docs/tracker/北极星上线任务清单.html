@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>北极星上线任务清单</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 2l2.4 7.6L22 12l-7.6 2.4L12 22l-2.4-7.6L2 12l7.6-2.4z' fill='%23D9A441'/%3E%3C/svg%3E">
+<style>
+  :root{
+    --bg:#0F1418; --panel:#161D24; --line:#232D36;
+    --text:#E8EDF2; --sub:#93A1AD; --faint:#5E6B77;
+    --gold:#D9A441; --green:#4C9E6D; --amber:#D9A441; --gray:#93A1AD;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html{-webkit-text-size-adjust:100%;}
+  body{
+    background:var(--bg); color:var(--text);
+    font-family:"Microsoft YaHei","PingFang SC","Segoe UI",sans-serif;
+    line-height:1.6; padding:24px 16px 64px;
+  }
+  .wrap{max-width:960px; margin:0 auto;}
+  /* ===== 头部 ===== */
+  header{padding:8px 0 20px;}
+  .kicker{font-size:12px; letter-spacing:.22em; color:var(--faint);}
+  h1{font-size:26px; font-weight:700; margin:2px 0 2px; letter-spacing:.02em;}
+  .subtitle{font-size:13px; color:var(--sub);}
+  .progress-head{display:flex; align-items:baseline; gap:12px; margin-top:16px;}
+  .big-num{font-size:44px; font-weight:800; color:var(--gold); line-height:1;}
+  .big-label{font-size:12px; color:var(--sub);}
+  .bar{height:8px; background:var(--panel); border-radius:4px; overflow:hidden; margin-top:10px; border:1px solid var(--line);}
+  .bar-fill{height:100%; width:0; background:var(--gold); transition:width .3s ease;}
+  /* ===== 筛选 ===== */
+  .filters{display:flex; gap:8px; margin:18px 0 6px; flex-wrap:wrap;}
+  .filter{
+    appearance:none; border:1px solid var(--line); background:var(--panel); color:var(--sub);
+    padding:7px 14px; border-radius:4px; font-size:13px; cursor:pointer; min-height:36px;
+  }
+  .filter:hover{color:var(--text); border-color:var(--faint);}
+  .filter[aria-pressed="true"]{color:var(--gold); border-color:var(--gold);}
+  /* ===== 分组 ===== */
+  .group{margin-top:22px; border-top:1px solid var(--line);}
+  .group-head{
+    display:flex; align-items:center; gap:10px; padding:14px 0 10px; cursor:pointer;
+    min-height:44px; user-select:none;
+  }
+  .g-no{font-size:12px; color:var(--gold); font-weight:700; width:28px;}
+  .g-name{font-size:17px; font-weight:700;}
+  .g-sub{font-size:12px; color:var(--faint); margin-left:auto;}
+  .g-bar{width:110px; height:4px; background:var(--panel); border-radius:2px; overflow:hidden; border:1px solid var(--line);}
+  .g-bar-fill{height:100%; width:0; background:var(--gold);}
+  .chev{color:var(--faint); font-size:11px; transition:transform .2s; width:14px;}
+  .group.collapsed .chev{transform:rotate(-90deg);}
+  .group.collapsed .tasks{display:none;}
+  /* ===== 任务行 ===== */
+  .tasks{list-style:none;}
+  .task{border-bottom:1px solid var(--line); padding:10px 0 10px 38px; position:relative;}
+  .task .cb{position:absolute; left:0; top:12px;}
+  .cb input{width:19px; height:19px; accent-color:var(--gold); cursor:pointer;}
+  .task-top{display:flex; align-items:center; gap:8px; flex-wrap:wrap;}
+  .t-name{font-size:14px; font-weight:600;}
+  .chip{font-size:11px; padding:2px 8px; border-radius:3px; line-height:1.5; border:1px solid transparent;}
+  .chip.done{color:#BFE6CE; background:rgba(76,158,109,.14); border-color:rgba(76,158,109,.35);}
+  .chip.wip{color:#F2D9A0; background:rgba(217,164,65,.12); border-color:rgba(217,164,65,.35);}
+  .chip.todo{color:var(--sub); background:rgba(94,107,119,.14); border-color:var(--line);}
+  .t-desc{font-size:12px; color:var(--sub); margin-top:3px;}
+  .t-accept{margin-top:8px; font-size:12px; color:var(--faint); background:var(--panel);
+    border-left:2px solid var(--gold); padding:6px 10px; display:none; border-radius:0 3px 3px 0;}
+  .t-accept.open{display:block;}
+  .t-toggle{display:inline-block; font-size:11px; color:var(--faint); cursor:pointer; margin-top:6px; min-height:24px; line-height:24px;}
+  .t-toggle:hover{color:var(--gold);}
+  .task.done .t-name{color:var(--faint);}
+  /* ===== 已知问题 ===== */
+  .known{margin-top:34px; border-top:1px solid var(--line); padding-top:16px;}
+  .known h2{font-size:15px; margin-bottom:8px; color:var(--sub);}
+  .known ul{list-style:none;}
+  .known li{font-size:12px; color:var(--faint); padding:3px 0 3px 16px; position:relative;}
+  .known li::before{content:""; position:absolute; left:2px; top:9px; width:6px; height:6px; background:var(--amber); border-radius:1px;}
+  .reset{margin-top:16px; appearance:none; border:1px solid var(--line); background:var(--panel); color:var(--sub);
+    padding:8px 16px; border-radius:4px; font-size:13px; cursor:pointer; min-height:40px;}
+  .reset:hover{color:#E0A6A6; border-color:#8A4A4A;}
+  footer{margin-top:30px; font-size:11px; color:var(--faint);}
+  @media (max-width:560px){
+    body{padding:18px 12px 48px;}
+    h1{font-size:22px;}
+    .g-bar{width:70px;}
+    .task{padding-left:34px;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="kicker">ULTIMA AGENT · NORTH STAR</div>
+    <h1>北极星上线任务清单</h1>
+    <div class="subtitle">贾维斯形态 · 逐项推进 · 完成一项勾一项，防跑偏</div>
+    <div class="progress-head">
+      <div class="big-num" id="bigNum">0</div>
+      <div class="big-label" id="bigLabel">/ 0 已完成</div>
+    </div>
+    <div class="bar"><div class="bar-fill" id="barFill"></div></div>
+  </header>
+
+  <div class="filters" id="filters" role="tablist" aria-label="状态筛选">
+    <button class="filter" data-f="all" aria-pressed="true">全部</button>
+    <button class="filter" data-f="todo" aria-pressed="false">待办</button>
+    <button class="filter" data-f="wip" aria-pressed="false">进行中</button>
+    <button class="filter" data-f="done" aria-pressed="false">已完成</button>
+  </div>
+
+  <div id="groups"></div>
+
+  <section class="known">
+    <h2>当前已知问题（随冻结版本发布，不再无限深挖）</h2>
+    <ul id="knownList"></ul>
+    <button class="reset" id="resetBtn">重置所有勾选</button>
+  </section>
+
+  <footer>数据保存在本机浏览器（localStorage）· 版本 2026-11-01</footer>
+</div>
+
+<script>
+const GROUPS = [
+  {key:"g1", no:"01", name:"感知层 · 随时在场（耳）", sub:"唤醒 / 听清 / 出声"},
+  {key:"g2", no:"02", name:"大脑层 · 听懂你（理解）", sub:"主脑 / 意图 / 记忆"},
+  {key:"g3", no:"03", name:"表达层 · 替你做事（行动）", sub:"工具 / 界面 / 双端"},
+  {key:"g4", no:"04", name:"架构对齐 · 不跑偏（基线）", sub:"对标 / 参考 / 能力池"},
+  {key:"g5", no:"05", name:"发布治理 · 推得动（闭环）", sub:"冻结 / 清单 / 落盘"}
+];
+
+const TASKS = [
+  {id:"kws",   g:"g1", name:"KWS 唤醒基线冻结", st:"done", desc:"threshold=0.08 / score=2.0 已按权威基线文档冻结（kws-wakeup-params-baseline.md），参数改动先读文档", accept:"唤醒词命中率稳定；改参必须同步权威基线文档并记录变更"},
+  {id:"asr",   g:"g1", name:"ASR 近音误识收窄", st:"done", desc:"“水量天听→天气”等近音映射已上线（L33），探针 5 例 + 单测 28 全绿", accept:"“水量天听”类输入归一化为天气查询，回归探针全绿"},
+  {id:"tts",   g:"g1", name:"TTS 音色同源", st:"done", desc:"sherpa MeloTTS 44100Hz，与 KWS 提示音同源同率（L30），CV3 克隆音色已撤下非默认", accept:"提示音与回复同引擎同采样率，真机听感一致"},
+  {id:"audio", g:"g1", name:"音频端点自愈", st:"done", desc:"端点音量探针恢复 1.0 + 播放/采集互斥收口（L27/L32）", accept:"音量漂移开机自动恢复；播放期 KWS 暂停、播完即恢复"},
+  {id:"cold",  g:"g1", name:"冷启动优化", st:"wip", desc:"三段预热已做（ASR/Agent/TTS），冷启动 68s → 热机 18s，目标继续压", accept:"热机首轮响应 ≤18s；冷启动有完整预热日志可查"},
+  {id:"brain", g:"g2", name:"主脑切换 qwen3-8b-uncensored", st:"done", desc:"本地 ollama，2026-11-01 代码（agent_server.py MODEL）+ ollama list 双重核实", accept:"MODEL=qwen3-8b-uncensored；工具调用链路可用"},
+  {id:"route", g:"g2", name:"意图路由门（工单 C）", st:"todo", desc:"域外/模糊/不可信输入在入口拦截，走兜底话术，不进 8B 自由发挥", accept:"注入“水量天听”类输入被拦截并标记 routing；查天气正常回答；pytest 全绿"},
+  {id:"constr",g:"g2", name:"回答约束栈三层（工单 C+D）", st:"todo", desc:"约束解码强制 {reply_text,confidence,grounded} 结构 + 校验器升级 + banned 语义化", accept:"输出结构合法；grounded 真实性校验；失败走有界重试+兜底话术"},
+  {id:"mem",   g:"g2", name:"记忆分层", st:"done", desc:"mem0 + nomic-embed + FAISS 已接，偏好/上下文可召回", accept:"跨轮偏好与上下文正常引用"},
+  {id:"bench", g:"g2", name:"双模型约束基准实测", st:"todo", desc:"8B vs 14B 同一组对抗性输入（正常/错误输入/域外/诱导编造），与工单 D 前置实测合并", accept:"产出两模型约束遵守率 + 工具调用成功率对比数据"},
+  {id:"tools", g:"g3", name:"工具调用白名单", st:"done", desc:"agent_server.py 只暴露实际可调工具，接口宜精不宜多", accept:"工具选择正确率达标；白名单可审计"},
+  {id:"task",  g:"g3", name:"天气/时间/记忆工具链路", st:"done", desc:"真机验证通过（L30/L33）：“沈阳现在多云，气温8度”类回复正确", accept:"“查天气 / 现在几点”回复正确且 grounded"},
+  {id:"hud",   g:"g3", name:"HUD 桌面形态", st:"wip", desc:"UltimaAgent.Hud 进程运行中；状态灯 13pt 雅黑与文字中线对齐标准已定", accept:"桌面常驻无窗后台；状态灯渲染偏移修正达标"},
+  {id:"ui",    g:"g3", name:"双屏平移 UI 范式", st:"todo", desc:"所有关联入口同层右滑入（语音管理⇄声音训练），关闭滑回", accept:"入口跳转均为右侧滑入范式，关闭即滑回原页面"},
+  {id:"mobile",g:"g3", name:"手机端复用", st:"todo", desc:"UltimaWallet 原生库/SDK 形态复用，PC + 移动端", accept:"同一能力双端可复用，移动端不另起炉灶"},
+  {id:"harness",g:"g4", name:"Agent 架构对标盘点", st:"todo", desc:"harness 10 模式逐条对照：有界迭代/上下文压缩/可恢复会话/轨迹保留/工具权限范围化等", accept:"产出缺失项清单 + 补强优先级"},
+  {id:"openclaw",g:"g4", name:"OpenClaw 参考架构 POC", st:"todo", desc:"半天实测其网关/工具/ACP 协议，决定可借鉴点（只借鉴不整体替换）", accept:"产出可嫁接模块清单 + 不采用的明确理由"},
+  {id:"pool",  g:"g4", name:"外部能力池规划", st:"todo", desc:"视频/小说/图像等专用模型按任务路由（未来演进）", accept:"能力路由表草案落盘"},
+  {id:"keep14",g:"g4", name:"14B 留库备用", st:"done", desc:"qwen2.5:14b 保留不删，留分层路由与回退空间", accept:"库内可查、可随时回退切换"},
+  {id:"v1",    g:"g5", name:"第一冻结版本", st:"wip", desc:"最小闭环 KWS→ASR→8B→工具→TTS 锁定；已知问题列表化 + 打 tag 发布（当前焦点）", accept:"冻结门通过，tag 推送，已知问题清单随版本发布"},
+  {id:"issues",g:"g5", name:"已知问题清单维护", st:"wip", desc:"#133 唤醒两遍 / 端点音量漂移 / 冷启动 68s / 跨轮 last_summary 残留", accept:"清单可查、复发有记录、修复有登记（lessons-log）"},
+  {id:"log",   g:"g5", name:"审计与经验落盘", st:"done", desc:"lessons-log L24-L34 + 本轮北极星对齐审计已落盘", accept:"每次沟通结论即时落盘，不拖到之后"},
+  {id:"flow",  g:"g5", name:"版本冻结门 + 打 tag 推送", st:"done", desc:"G-TASKFLOW-001 流程已建（登记→评审→执行→审计→修复→验收→冻结）", accept:"关键更新自动打 tag 并推送"}
+];
+
+const KNOWN = [
+  "KWS 唤醒两遍（#133，score=2.0 间歇项，基线冻结待专项 A/B）",
+  "端点音量漂移（探针自愈，复发观察中）",
+  "冷启动 68s（三段预热后热机 18s，目标继续压）",
+  "跨轮 last_summary 残留（2b 已挡大部分，待收敛）"
+];
+
+const KEY = "ua-northstar-checklist-v1";
+let filter = "all";
+let doneSet = new Set(
+  TASKS.filter(t => t.st === "done").map(t => t.id)
+);
+try{
+  const saved = JSON.parse(localStorage.getItem(KEY) || "null");
+  if (saved && Array.isArray(saved)) doneSet = new Set(saved.filter(id => TASKS.some(t => t.id === id)));
+}catch(e){}
+
+function save(){
+  try{ localStorage.setItem(KEY, JSON.stringify([...doneSet])); }catch(e){}
+}
+
+function render(){
+  const total = TASKS.length, done = doneSet.size, pct = total ? Math.round(done*100/total) : 0;
+  document.getElementById("bigNum").textContent = done;
+  document.getElementById("bigLabel").textContent = "/ " + total + " 已完成 · " + pct + "%";
+  document.getElementById("barFill").style.width = pct + "%";
+
+  const knownUl = document.getElementById("knownList");
+  knownUl.innerHTML = KNOWN.map(k => "<li>" + k + "</li>").join("");
+
+  const groupsEl = document.getElementById("groups");
+  groupsEl.innerHTML = GROUPS.map(g => {
+    const items = TASKS.filter(t => t.g === g.key);
+    const gd = items.filter(t => doneSet.has(t.id)).length;
+    const visible = items.filter(t => filter === "all" || (filter === "done" ? doneSet.has(t.id) : t.st === filter));
+    return '<section class="group" data-g="' + g.key + '">' +
+      '<div class="group-head" role="button" tabindex="0" aria-expanded="true">' +
+        '<span class="g-no">' + g.no + '</span>' +
+        '<span class="g-name">' + g.name + '</span>' +
+        '<span class="g-sub">' + g.sub + '</span>' +
+        '<span class="g-bar"><span class="g-bar-fill" style="width:' + Math.round(gd*100/items.length) + '%"></span></span>' +
+        '<span class="chev">▼</span>' +
+      '</div>' +
+      '<ul class="tasks">' + visible.map(t => {
+        const isDone = doneSet.has(t.id);
+        const chip = isDone ? "已完成" : (t.st === "wip" ? "进行中" : "待办");
+        const chipCls = isDone ? "done" : t.st;
+        return '<li class="task' + (isDone ? " done" : "") + '" data-id="' + t.id + '">' +
+          '<label class="cb"><input type="checkbox"' + (isDone ? " checked" : "") + ' aria-label="' + t.name + '"></label>' +
+          '<div class="task-top">' +
+            '<span class="t-name">' + t.name + '</span>' +
+            '<span class="chip ' + chipCls + '">' + chip + '</span>' +
+          '</div>' +
+          '<div class="t-desc">' + t.desc + '</div>' +
+          '<div class="t-accept">验收口径：' + t.accept + '</div>' +
+          '<span class="t-toggle" role="button" tabindex="0">验收口径</span>' +
+        '</li>';
+      }).join("") + '</ul></section>';
+  }).join("");
+
+  document.querySelectorAll(".group-head").forEach(h => {
+    h.addEventListener("click", () => {
+      const g = h.closest(".group");
+      g.classList.toggle("collapsed");
+      h.setAttribute("aria-expanded", !g.classList.contains("collapsed"));
+    });
+  });
+  document.querySelectorAll(".t-toggle").forEach(b => {
+    b.addEventListener("click", e => {
+      e.stopPropagation();
+      const li = b.closest(".task");
+      li.querySelector(".t-accept").classList.toggle("open");
+    });
+  });
+  document.querySelectorAll(".task .cb input").forEach(cb => {
+    cb.addEventListener("change", () => {
+      const id = cb.closest(".task").dataset.id;
+      if (cb.checked) doneSet.add(id); else doneSet.delete(id);
+      save(); render();
+    });
+  });
+}
+
+document.querySelectorAll(".filter").forEach(f => {
+  f.addEventListener("click", () => {
+    filter = f.dataset.f;
+    document.querySelectorAll(".filter").forEach(x => x.setAttribute("aria-pressed", x === f));
+    render();
+  });
+});
+
+document.getElementById("resetBtn").addEventListener("click", () => {
+  if (confirm("确定重置所有勾选吗？进度数据将清空。")){
+    doneSet = new Set(); save(); render();
+  }
+});
+
+render();
+</script>
+</body>
+</html>
