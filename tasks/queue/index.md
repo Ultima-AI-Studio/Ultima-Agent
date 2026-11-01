@@ -20,6 +20,11 @@
 | wo-ultimaagent-20261031-0010 | 5 | 0 | 0 | 0 | 0 | 1 |
 | wo-ultimaagent-20261031-0011 | 4 | 0 | 0 | 0 | 0 | 1 |
 | wo-ultimaagent-20261031-0012 | 4 | 0 | 1 | 0 | 0 | 0 |
+| wo-ultimaagent-20261101-0013 | 5 | 0 | 1 | 0 | 0 | 0 |
+| wo-ultimaagent-20261101-0014 | 5 | 1 | 0 | 0 | 0 | 0 |
+| wo-ultimaagent-20261101-0015 | 5 | 1 | 0 | 0 | 0 | 0 |
+| wo-ultimaagent-20261101-0016 | 6 | 1 | 0 | 0 | 0 | 0 |
+| wo-ultimaagent-20261101-0017 | 5 | 1 | 0 | 0 | 0 | 0 |
 
 ## 二、明细
 
@@ -37,3 +42,8 @@
 | wo-ultimaagent-20261031-0010 | completed | 主脑模型降档 qwen2.5:14b → qwen3-8b 无审查版（内存实降 4.1GB）；T0-T3 全 PASS；commit 69d46c0+09a7abc + tag ultimaagent-mainbrain-qwen3-8b-20261031 已推远端 |
 | wo-ultimaagent-20261031-0011 | completed | HUD 四角壳 8 锚点布局改造；T0/T1/T2-C1~C5/C7 全 PASS；commit 5cdfca3 + 报告 e00d927 + tag ultimaagent-hud-8anchor-20261031（本地=远端）；T3 八字段回执已交 |
 | wo-ultimaagent-20261031-0012 | executing | HUD 天气组件接入（#hud-weather 纯文本占位 → 官方 Meteocons Monochrome 动画图标 + cyan 辉光 + 降水细分映射）；T0-T3；2026-10-31 登记；工单卡 tasks/queue/wo-ultimaagent-20261031-0012--hud-weather-component.md；派发载荷 dispatch-wo-ultimaagent-20261031-0012-prompt.txt；2026-10-31 派发 codex gpt-5.6-sol PID 24736（静默后台）；冻结门=tag ultimaagent-weather-component-20261031 |
+| wo-ultimaagent-20261101-0013 | executing | 8B 切换残留引用清理（做干净）：前置 0010 写域外的 5 文件 7 处非测试引用（子智能体工厂/记忆提取/路由键/bootstrap/注释）+ 5 个测试文件断言同步 + 全量回归 + tag；T0-T4；2026-11-01 登记；工单卡 tasks/queue/wo-ultimaagent-20261101-0013--qwen3-8b-cleanup.md；派发载荷 dispatch-wo-ultimaagent-20261101-0013-prompt.txt；2026-11-01 派发 codex gpt-5.6-sol PID 19172（静默后台）；冻结门=tag ultimaagent-mainbrain-qwen3-8b-cleanup-20261101 |
+| wo-ultimaagent-20261101-0014 | 待派发 | KWS 唤醒词用户入口+持久化（工单 E）：语音"把唤醒词改成XX"→ 改词+热重载+播报确认+写回 profile（save_user_override）+ 一致性收敛；T0-T4；2026-11-01 登记；方案 docs/plans/plan-voice-three-issues-20261101.md；工单卡 tasks/queue/wo-ultimaagent-20261101-0014--kws-user-entry.md；派发载荷 dispatch-wo-ultimaagent-20261101-0014-prompt.txt；冻结门=tag ultimaagent-kws-user-entry-20261101 |
+| wo-ultimaagent-20261101-0015 | 待派发 | ASR 纠错系统化（工单 F）：initial_prompt 扩充天气/时间高频词 + 近音映射独立化 config/asr-normalize.json + "水天"类扩充；T0-T4；2026-11-01 登记；方案 docs/plans/plan-voice-three-issues-20261101.md；工单卡 tasks/queue/wo-ultimaagent-20261101-0015--asr-correction.md；派发载荷 dispatch-wo-ultimaagent-20261101-0015-prompt.txt；冻结门=tag ultimaagent-asr-correction-20261101 |
+| wo-ultimaagent-20261101-0016 | 待派发 | 意图路由门+回答校验器+主脑规则接入（工单 C）：三态判定 ALLOW/DENY/ABSTAIN + banned 语义化/≤2 句/grounded 接口 + agent_server 规则块恒加载；T0-T4（含 T2.5）；2026-11-01 登记；方案 docs/plans/reply-constraint-implementation-plan-20261031.md（8B 引用+规则接入已更新）；工单卡 tasks/queue/wo-ultimaagent-20261101-0016--reply-constraint-routing.md；派发载荷 dispatch-wo-ultimaagent-20261101-0016-prompt.txt；冻结门=tag ultimaagent-reply-constraint-routing-20261101 |
+| wo-ultimaagent-20261101-0017 | 待派发 | 约束解码结构化输出（工单 D）：ollama format/grammar 实测 qwen3-8b → {reply_text,confidence,grounded} schema + 校验器启用 grounded/confidence；T0-T4；2026-11-01 登记；依赖 0016 出口稳定后派发；方案 docs/plans/reply-constraint-implementation-plan-20261031.md；工单卡 tasks/queue/wo-ultimaagent-20261101-0017--reply-constraint-structured.md；派发载荷 dispatch-wo-ultimaagent-20261101-0017-prompt.txt；冻结门=tag ultimaagent-reply-constraint-structured-20261101 |
