@@ -1,0 +1,603 @@
+{
+  "schema_version": 1,
+  "review_type": "T0 independent plan review",
+  "revision": 2,
+  "work_order_id": "wo-ultimaagent-20261101-0021",
+  "chain_id": "wo-ultimaagent-20261101-0021/T0/independent-plan-review-r2",
+  "reviewer": "/root/review_work_capability_t0_r2",
+  "execution_end": "Codex independent review session; read-only artifact and source inspection",
+  "reviewed_at": "2026-11-01T15:31:27.786Z",
+  "decision": "PASS",
+  "decision_meaning": "本结论仅批准已绑定精确字节的 r2 计划作为 T1 开工契约；不表示工作能力已实现、E01 已通过、T0 全流程已冻结、原单完成或 Owner 验收/冻结/发布。",
+  "reviewed_input_digests": [
+    {
+      "path": "H:/UltimaAI/UltimaAgent/docs/plans/jarvis-work-capability-delivery-plan-20261101.md",
+      "bytes": 18118,
+      "sha256": "78d6d0e2584d47894a8e84fbf419b1c7ea8df818996124b63e05459e3ce69ae4",
+      "algorithm": "SHA256",
+      "input": "raw file bytes"
+    },
+    {
+      "path": "H:/UltimaAI/UltimaAgent/docs/specs/jarvis-work-capability-contract-20261101.md",
+      "bytes": 9404,
+      "sha256": "99ebc2de134683d986b62799b70814a9f336f7813f03725687fe469a8edf7047",
+      "algorithm": "SHA256",
+      "input": "raw file bytes"
+    },
+    {
+      "path": "H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T0/acceptance-cases-r2.json",
+      "bytes": 1927,
+      "sha256": "e8d8c0e75a54d8f04221f54aabaec94a36fe6398a00d5745f6ae746e66038225",
+      "algorithm": "SHA256",
+      "input": "raw file bytes"
+    }
+  ],
+  "digest_checks": {
+    "matches_review_inputs_r2": true,
+    "final_inputs_rechecked_immediately_before_receipt": true,
+    "lf_normalization_update": "评审中收到 plan/cases 换行归一通知，重新读取三文件及 review-inputs-r2.json。最终文本逐行与此前所读 r2 相同，回执仅绑定上述最终字节。",
+    "candidate_plan_and_spec_match_authority": true,
+    "candidate_acceptance_fixture": {
+      "path": "C:/Users/Administrator/.codex/worktrees/jarvis-work-capability-longpaths/UltimaAgent/src/brain/tests/fixtures/work_capability/acceptance-cases.json",
+      "sha256": "e8d8c0e75a54d8f04221f54aabaec94a36fe6398a00d5745f6ae746e66038225",
+      "matches_reviewed_cases": true
+    }
+  },
+  "strengths": [
+    "可信启动根、服务端 UUID 请求子目录和身份字段的权限边界已固定；T1 四工具白名单避免继承真实队列、记忆、技能和子代理副作用。",
+    "SDK 名称注册、无参构造、工具线程和 metadata 丢失均已落到可实施的适配契约；不需要修改 vendor 或另造 Agent 核心。",
+    "本轮真实写入与独立重新打开文件构成机械核验；E01 事实质量由独立 oracle 和连续三轮真实产品产物审查判定，职责和失败口径清楚。"
+  ],
+  "resolved_r1_findings": [
+    {
+      "id": "F01",
+      "previous_severity": "Important",
+      "status": "RESOLVED_FOR_T1_PLAN",
+      "conclusion": "WorkService 输出根只来自可信服务启动配置；未配置立即失败。服务端生成 UUID 请求子目录，request_id/session_id 只作标识，HTTP/query/context/model 不可扩大权限。回执记录配置根与请求目录。",
+      "r2_evidence": [
+        {
+          "path": "H:/UltimaAI/UltimaAgent/docs/plans/jarvis-work-capability-delivery-plan-20261101.md",
+          "lines": [
+            41,
+            50
+          ]
+        },
+        {
+          "path": "H:/UltimaAI/UltimaAgent/docs/plans/jarvis-work-capability-delivery-plan-20261101.md",
+          "lines": [
+            54,
+            54
+          ]
+        },
+        {
+          "path": "H:/UltimaAI/UltimaAgent/docs/specs/jarvis-work-capability-contract-20261101.md",
+          "lines": [
+            32,
+            36
+          ]
+        },
+        {
+          "path": "H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T0/acceptance-cases-r2.json",
+          "lines": [
+            3,
+            19
+          ]
+        }
+      ],
+      "source_check": "SDK FileWriteTool/FileReadTool 的空 allowed_dirs 实际代表不限制目录，因此两个工作别名必须显式传入绑定请求根；r2 已作此要求。",
+      "source_evidence": [
+        {
+          "path": "H:/UltimaAI/UltimaAgent/libs/base/openjarvis/src/openjarvis/tools/file_write.py",
+          "lines": [
+            22,
+            26
+          ]
+        },
+        {
+          "path": "H:/UltimaAI/UltimaAgent/libs/base/openjarvis/src/openjarvis/tools/file_write.py",
+          "lines": [
+            66,
+            73
+          ]
+        },
+        {
+          "path": "H:/UltimaAI/UltimaAgent/libs/base/openjarvis/src/openjarvis/tools/file_read.py",
+          "lines": [
+            22,
+            26
+          ]
+        },
+        {
+          "path": "H:/UltimaAI/UltimaAgent/libs/base/openjarvis/src/openjarvis/tools/file_read.py",
+          "lines": [
+            50,
+            57
+          ]
+        }
+      ],
+      "verification_due_at_T1": "无根、身份注入、额外 root 扩权、穿越、绝对越界、相邻前缀及越界重解析目标失败；正常空格/Unicode/合法大小写路径通过。"
+    },
+    {
+      "id": "F02",
+      "previous_severity": "Important",
+      "status": "RESOLVED_FOR_T1_PLAN",
+      "conclusion": "唯一工具别名的无参构造器在 SDK 构造线程捕获不可变 WorkBinding 和请求内线程安全 ledger；execute 使用实例绑定，不到 SDK 工作线程才读取调用线程 ContextVar。无绑定拒绝。真实执行同时写入 ledger 并返回 ToolResult；核验器不依赖 SDK 返回字典传输 metadata。",
+      "r2_evidence": [
+        {
+          "path": "H:/UltimaAI/UltimaAgent/docs/plans/jarvis-work-capability-delivery-plan-20261101.md",
+          "lines": [
+            47,
+            49
+          ]
+        },
+        {
+          "path": "H:/UltimaAI/UltimaAgent/docs/plans/jarvis-work-capability-delivery-plan-20261101.md",
+          "lines": [
+            85,
+            90
+          ]
+        }
+      ],
+      "source_check": "ask_full 只接收工具名称；_run_agent 同步 _build_tools，别名进入 tool_cls()。工具 execute 被提交给进程级工作线程，SDK 最终只返回 tool_name/content/success。r2 的构造时捕获加请求内 ledger 能跨过这些真实接口限制。",
+      "source_evidence": [
+        {
+          "path": "H:/UltimaAI/UltimaAgent/libs/base/openjarvis/src/openjarvis/sdk.py",
+          "lines": [
+            271,
+            281
+          ]
+        },
+        {
+          "path": "H:/UltimaAI/UltimaAgent/libs/base/openjarvis/src/openjarvis/sdk.py",
+          "lines": [
+            443,
+            480
+          ]
+        },
+        {
+          "path": "H:/UltimaAI/UltimaAgent/libs/base/openjarvis/src/openjarvis/cli/ask.py",
+          "lines": [
+            286,
+            344
+          ]
+        },
+        {
+          "path": "H:/UltimaAI/UltimaAgent/libs/base/openjarvis/src/openjarvis/tools/_stubs.py",
+          "lines": [
+            47,
+            85
+          ]
+        },
+        {
+          "path": "H:/UltimaAI/UltimaAgent/libs/base/openjarvis/src/openjarvis/tools/_stubs.py",
+          "lines": [
+            389,
+            428
+          ]
+        },
+        {
+          "path": "H:/UltimaAI/UltimaAgent/libs/base/openjarvis/src/openjarvis/sdk.py",
+          "lines": [
+            584,
+            599
+          ]
+        }
+      ],
+      "verification_due_at_T1": "实际 NativeReAct、实际别名和 SDK 文件工具集成；两个请求经真实工具工作线程不串绑定/ledger；无绑定不得退为 SDK 无限制实例。"
+    },
+    {
+      "id": "F03",
+      "previous_severity": "Important",
+      "status": "RESOLVED_FOR_T1_PLAN",
+      "conclusion": "成果只能来自本轮 ledger 内真实受限写入，绑定 request/session/task/call。服务端重新打开文件并对照本次写入内容；只归一 CRLF/LF，SHA256 基于读回原始字节。旧产物、纯保存文本、假成功、缺候选、读回异常及写后篡改均不得提升为 succeeded。",
+      "r2_evidence": [
+        {
+          "path": "H:/UltimaAI/UltimaAgent/docs/plans/jarvis-work-capability-delivery-plan-20261101.md",
+          "lines": [
+            44,
+            50
+          ]
+        },
+        {
+          "path": "H:/UltimaAI/UltimaAgent/docs/plans/jarvis-work-capability-delivery-plan-20261101.md",
+          "lines": [
+            56,
+            67
+          ]
+        },
+        {
+          "path": "H:/UltimaAI/UltimaAgent/docs/plans/jarvis-work-capability-delivery-plan-20261101.md",
+          "lines": [
+            87,
+            96
+          ]
+        },
+        {
+          "path": "H:/UltimaAI/UltimaAgent/docs/specs/jarvis-work-capability-contract-20261101.md",
+          "lines": [
+            34,
+            36
+          ]
+        },
+        {
+          "path": "H:/UltimaAI/UltimaAgent/docs/specs/jarvis-work-capability-contract-20261101.md",
+          "lines": [
+            46,
+            46
+          ]
+        }
+      ],
+      "source_check": "SDK 文件写工具返回成功内容和 path/size metadata，但 SDK 出口丢 metadata；返回文本或自报摘要均不能单独证明本轮成果。r2 已固定独立 ledger 和重新打开机制。",
+      "source_evidence": [
+        {
+          "path": "H:/UltimaAI/UltimaAgent/libs/base/openjarvis/src/openjarvis/tools/file_write.py",
+          "lines": [
+            154,
+            203
+          ]
+        },
+        {
+          "path": "H:/UltimaAI/UltimaAgent/libs/base/openjarvis/src/openjarvis/sdk.py",
+          "lines": [
+            584,
+            595
+          ]
+        }
+      ],
+      "semantic_acceptance": "三事实完整和无新增事实由独立 E01 样本 oracle/实际产物审查；不在产品 verifier 硬编码松林、Markdown 或日期，不引入通用语义验证器研究。机械 succeeded 不替代 E01 验收，模型语义失败仍记 E01 失败。"
+    },
+    {
+      "id": "F04",
+      "previous_severity": "Important",
+      "status": "RESOLVED_FOR_T1_PLAN",
+      "conclusion": "显式 mode=work 与无 mode 的旧 /ask 分开，ask_agent 字符串接口保留。工作路径不走纯云聊兜底、不因呈现/风格校验重新运行 Agent；未支持的工作模型明确不可用。真实 CLI --work 和候选服务 --port/--runtime-root/--work-output-root/--isolated 已列入 T1 精确写域及三轮验收。",
+      "r2_evidence": [
+        {
+          "path": "H:/UltimaAI/UltimaAgent/docs/plans/jarvis-work-capability-delivery-plan-20261101.md",
+          "lines": [
+            45,
+            54
+          ]
+        },
+        {
+          "path": "H:/UltimaAI/UltimaAgent/docs/plans/jarvis-work-capability-delivery-plan-20261101.md",
+          "lines": [
+            83,
+            96
+          ]
+        },
+        {
+          "path": "H:/UltimaAI/UltimaAgent/docs/specs/jarvis-work-capability-contract-20261101.md",
+          "lines": [
+            23,
+            25
+          ]
+        },
+        {
+          "path": "H:/UltimaAI/UltimaAgent/docs/specs/jarvis-work-capability-contract-20261101.md",
+          "lines": [
+            55,
+            68
+          ]
+        }
+      ],
+      "source_check": "现有 CLI --agent 仅打印 ask_agent 字符串；客户端仅发 query/max_tokens。旧 interaction 先云聊再本地，风格失败会再次 ask_agent；服务当前固定生产端口/PID 锁并启动 HUD/update。r2 明确要求修改这些既有入口点，拟接口并未被当作现有能力。",
+      "source_evidence": [
+        {
+          "path": "C:/Users/Administrator/.codex/worktrees/jarvis-work-capability-longpaths/UltimaAgent/src/brain/agent_client.py",
+          "lines": [
+            20,
+            36
+          ]
+        },
+        {
+          "path": "C:/Users/Administrator/.codex/worktrees/jarvis-work-capability-longpaths/UltimaAgent/src/brain/cli.py",
+          "lines": [
+            17,
+            52
+          ]
+        },
+        {
+          "path": "C:/Users/Administrator/.codex/worktrees/jarvis-work-capability-longpaths/UltimaAgent/src/brain/interaction.py",
+          "lines": [
+            207,
+            217
+          ]
+        },
+        {
+          "path": "C:/Users/Administrator/.codex/worktrees/jarvis-work-capability-longpaths/UltimaAgent/src/brain/interaction.py",
+          "lines": [
+            295,
+            335
+          ]
+        },
+        {
+          "path": "C:/Users/Administrator/.codex/worktrees/jarvis-work-capability-longpaths/UltimaAgent/src/brain/agent_server.py",
+          "lines": [
+            695,
+            725
+          ]
+        },
+        {
+          "path": "C:/Users/Administrator/.codex/worktrees/jarvis-work-capability-longpaths/UltimaAgent/src/brain/agent_server.py",
+          "lines": [
+            728,
+            795
+          ]
+        }
+      ],
+      "verification_due_at_T1": "旧 /ask、ask_agent、SSE 和原工具兼容；work 失败不云聊、不风格重执行；隔离启动使用独立锁/运行存储，不启动生产 HUD/update，不复用/删除生产锁或重启现有语音进程。"
+    },
+    {
+      "id": "F05",
+      "previous_severity": "Moderate",
+      "status": "RESOLVED_FOR_T1_PLAN",
+      "conclusion": "r2 状态已改为原单登记、r1 REVISE 保留、T1 尚未开始。代码检查点与规划提交区分，运行输入还绑定 T0 快照/补充清单；实施 cwd 明确为 C 盘隔离工作区，所有测试使用 H 盘共享解释器绝对路径。",
+      "r2_evidence": [
+        {
+          "path": "H:/UltimaAI/UltimaAgent/docs/plans/jarvis-work-capability-delivery-plan-20261101.md",
+          "lines": [
+            11,
+            11
+          ]
+        },
+        {
+          "path": "H:/UltimaAI/UltimaAgent/docs/plans/jarvis-work-capability-delivery-plan-20261101.md",
+          "lines": [
+            41,
+            41
+          ]
+        },
+        {
+          "path": "H:/UltimaAI/UltimaAgent/docs/plans/jarvis-work-capability-delivery-plan-20261101.md",
+          "lines": [
+            88,
+            96
+          ]
+        },
+        {
+          "path": "H:/UltimaAI/UltimaAgent/docs/plans/jarvis-work-capability-delivery-plan-20261101.md",
+          "lines": [
+            155,
+            155
+          ]
+        },
+        {
+          "path": "H:/UltimaAI/UltimaAgent/docs/specs/jarvis-work-capability-contract-20261101.md",
+          "lines": [
+            3,
+            9
+          ]
+        }
+      ],
+      "independent_readback": {
+        "candidate_branch": "codex/jarvis-work-capability",
+        "candidate_head": "f6eb808348302cec55bddcf44ee03f5b5736c4d9",
+        "candidate_source_files_match_input_baseline": true,
+        "candidate_plan_spec_fixture_match_final_reviewed_inputs": true,
+        "shared_interpreter": "H:/UltimaAI/UltimaAgent/tools/venv-openjarvis/Scripts/python.exe",
+        "shared_interpreter_exists_as_file": true,
+        "environment_not_reinstalled_or_modified": true
+      },
+      "supporting_evidence": [
+        "H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T0/input-baseline.json",
+        "H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T0/baseline-required-supplement.json",
+        "H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T0/workspace-hydration.json",
+        "H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T0/registration-receipt.json"
+      ]
+    }
+  ],
+  "remaining_findings": [],
+  "scope": {
+    "purpose": "仅检查 T0 r2 是否仍有阻塞 T1 开工的关键缺口，并独立复核 r1 F01-F05 的最小闭合。",
+    "method": "按 requesting-code-review 及 code-reviewer 模板，只读方案、契约、夹具、指定源码与必要基线收据；按 verification-before-completion 重新读最终字节并核对摘要。",
+    "authority_reads": [
+      "H:/UltimaAI/AGENTS.md",
+      "H:/UltimaAI/INDEX.md",
+      "H:/UltimaAI/UltimaAgent/docs/INDEX.md",
+      "H:/UltimaAI/UltimaAgent/tasks/queue/wo-ultimaagent-20261101-0021--work-capability.md",
+      "H:/UltimaAI/_shared/paradigms/UltimaAI-任务工作流范式.md",
+      "H:/UltimaAI/_shared/paradigms/Codex-外部执行端调用范式.md",
+      "H:/UltimaAI/_shared/paradigms/UltimaAI-全局工单命名标准.md"
+    ],
+    "candidate_workspace": "C:/Users/Administrator/.codex/worktrees/jarvis-work-capability-longpaths/UltimaAgent",
+    "source_review": [
+      {
+        "path": "H:/UltimaAI/UltimaAgent/libs/base/openjarvis/src/openjarvis/sdk.py",
+        "sha256": "48f199e5aec9876fc255b1ca013734e80524625011b08c3d8b773af3c5479de3",
+        "reviewed_ranges": [
+          [
+            246,
+            335
+          ],
+          [
+            443,
+            480
+          ],
+          [
+            482,
+            600
+          ]
+        ]
+      },
+      {
+        "path": "H:/UltimaAI/UltimaAgent/libs/base/openjarvis/src/openjarvis/cli/ask.py",
+        "sha256": "839b88266aedb0c73d44e57e1183b33399f5580fdf0fb9f9a7943604a9694717",
+        "reviewed_ranges": [
+          [
+            275,
+            348
+          ]
+        ]
+      },
+      {
+        "path": "H:/UltimaAI/UltimaAgent/libs/base/openjarvis/src/openjarvis/tools/_stubs.py",
+        "sha256": "c1d63099b8ee867b3d82f48308e22951ca210f70cc1943e80477878919ca4e1e",
+        "reviewed_ranges": [
+          [
+            20,
+            110
+          ],
+          [
+            112,
+            171
+          ],
+          [
+            337,
+            432
+          ]
+        ]
+      },
+      {
+        "path": "H:/UltimaAI/UltimaAgent/libs/base/openjarvis/src/openjarvis/tools/file_write.py",
+        "sha256": "7b2eb204e40af451225cd7d99de8de57040a7e006c62df0c77e13decc71a942b",
+        "reviewed_ranges": [
+          [
+            1,
+            208
+          ]
+        ]
+      },
+      {
+        "path": "H:/UltimaAI/UltimaAgent/libs/base/openjarvis/src/openjarvis/tools/file_read.py",
+        "sha256": "776152b10742d432b3e0f5abbb1c4c775692a24dbf820f6b475068dfefba42e4",
+        "reviewed_ranges": [
+          [
+            1,
+            139
+          ]
+        ]
+      },
+      {
+        "path": "C:/Users/Administrator/.codex/worktrees/jarvis-work-capability-longpaths/UltimaAgent/src/brain/agent_server.py",
+        "sha256": "b4c2d6468976b433d1edae862dd0d01983f06fe48b8136c690e9851873e582d9",
+        "reviewed_ranges": [
+          [
+            1,
+            170
+          ],
+          [
+            345,
+            402
+          ],
+          [
+            461,
+            570
+          ],
+          [
+            688,
+            809
+          ]
+        ]
+      },
+      {
+        "path": "C:/Users/Administrator/.codex/worktrees/jarvis-work-capability-longpaths/UltimaAgent/src/brain/agent_client.py",
+        "sha256": "3a37de818b0f49d686c90436dce6d92c8d1ae68057ebb9141e6089941e31f0ab",
+        "reviewed_ranges": [
+          [
+            1,
+            51
+          ]
+        ]
+      },
+      {
+        "path": "C:/Users/Administrator/.codex/worktrees/jarvis-work-capability-longpaths/UltimaAgent/src/brain/cli.py",
+        "sha256": "9d31fdb00799f6bdec4379b6940b6e39d5208d113692b0ddecc6c2eef037a186",
+        "reviewed_ranges": [
+          [
+            1,
+            73
+          ]
+        ]
+      },
+      {
+        "path": "C:/Users/Administrator/.codex/worktrees/jarvis-work-capability-longpaths/UltimaAgent/src/brain/interaction.py",
+        "sha256": "f8ca2c9d2bef5236083704acc326e4939a444242337918252f23fb17c34c80af",
+        "reviewed_ranges": [
+          [
+            141,
+            234
+          ],
+          [
+            284,
+            342
+          ],
+          [
+            366,
+            427
+          ]
+        ]
+      }
+    ],
+    "sdk_runtime_readback": {
+      "installed_package_root": "H:/UltimaAI/UltimaAgent/tools/venv-openjarvis/Lib/site-packages/openjarvis",
+      "installed_version": "1.0.4",
+      "files": [
+        {
+          "relative_path": "sdk.py",
+          "vendor_sha256": "48f199e5aec9876fc255b1ca013734e80524625011b08c3d8b773af3c5479de3",
+          "installed_sha256": "48f199e5aec9876fc255b1ca013734e80524625011b08c3d8b773af3c5479de3",
+          "equal": true
+        },
+        {
+          "relative_path": "cli/ask.py",
+          "vendor_sha256": "839b88266aedb0c73d44e57e1183b33399f5580fdf0fb9f9a7943604a9694717",
+          "installed_sha256": "839b88266aedb0c73d44e57e1183b33399f5580fdf0fb9f9a7943604a9694717",
+          "equal": true
+        },
+        {
+          "relative_path": "tools/_stubs.py",
+          "vendor_sha256": "c1d63099b8ee867b3d82f48308e22951ca210f70cc1943e80477878919ca4e1e",
+          "installed_sha256": "c1d63099b8ee867b3d82f48308e22951ca210f70cc1943e80477878919ca4e1e",
+          "equal": true
+        },
+        {
+          "relative_path": "tools/file_write.py",
+          "vendor_sha256": "7b2eb204e40af451225cd7d99de8de57040a7e006c62df0c77e13decc71a942b",
+          "installed_sha256": "7b2eb204e40af451225cd7d99de8de57040a7e006c62df0c77e13decc71a942b",
+          "equal": true
+        },
+        {
+          "relative_path": "tools/file_read.py",
+          "vendor_sha256": "776152b10742d432b3e0f5abbb1c4c775692a24dbf820f6b475068dfefba42e4",
+          "installed_sha256": "776152b10742d432b3e0f5abbb1c4c775692a24dbf820f6b475068dfefba42e4",
+          "equal": true
+        }
+      ],
+      "comparison": "raw bytes; all five specified SDK files independently match vendor"
+    },
+    "permitted_write": "H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T0/independent-plan-review-r2.json"
+  },
+  "limits": [
+    "本轮未运行 pytest、产品 CLI、候选服务或模型推理；未播放、录音、调用麦克风或截图，也未启动子代理。",
+    "已只读检查现有 baseline-tests.xml：14 tests、0 failures、0 errors、0 skipped；这是已有改造前基线证据，不是本审查新跑测试或新工作能力通过。",
+    "T1 的 work_service/work_tools/work_verifier/test_work_delivery 尚不存在；本轮评审判断计划可实施，产品实现及实际行为须由 T1 新鲜证据验证。",
+    "未独立探测 Manager HTTP、WIP 或受保护后台进程。登记状态读取现有 registration-receipt.json；本轮没有修改队列、锁、环境、分支、标签或后台进程。",
+    "本审查仅写自己的 JSON 评审回执；没有修改方案、契约、夹具、源码、SDK/vendor、真实记忆或用户文件。"
+  ],
+  "declined_to_judge": [
+    {
+      "behavior": "T2-T5 尚未实现的上下文、会话持久化、取消、恢复、进度与语音宿主功能",
+      "reason": "属于后续阶段出口；T0 仅检查不阻塞 T1 的接口边界，T1 不宣称取消或持久恢复。"
+    },
+    {
+      "behavior": "真实模型的 E01 摘要语义质量及连续三轮成功",
+      "reason": "本轮禁止运行模型；T1 必须从实际产品文字入口完成，独立 oracle 和外部读回决定 E01 是否通过。"
+    },
+    {
+      "behavior": "KWS 现场指标、Owner 体验、整单验收、冻结和发布",
+      "reason": "受保护基线及独立后续人工门；本次计划 PASS 不授予或替代这些结论。"
+    }
+  ],
+  "next_gate": {
+    "phase": "T1",
+    "allowed_action": "在同一原单内，按本回执绑定的 r2 契约和 T1 精确文件清单开始文件交付链实现；先建立失败测试并确认失败源于缺失工作链。",
+    "mandatory_checks": [
+      "T1 新鲜失败测试、确定性 NativeReAct/SDK 文件工具集成、请求隔离及所有指定旧行为回归；记录实际 argv/cwd/退出码/JUnit。",
+      "同一候选与既定 qwen3-8b-uncensored/native_react 配置，经隔离服务和真实 cli --work 连续三轮 E01；保留全部请求、轨迹、响应、产物和失败。",
+      "服务端机械核验与外部独立文件读回交叉核对；E01 三事实和无新增事实独立审查，语义失败不能以 status=succeeded 掩盖。",
+      "独立 T1 技术审查及真实出口证据闭合后，才按原规则考虑下一阶段；保留累计失败历史、有界修复和 Owner 门。"
+    ],
+    "not_granted": "产品能力 PASS、E02-E08 通过、原单完成、Owner 冻结或发布。"
+  }
+}

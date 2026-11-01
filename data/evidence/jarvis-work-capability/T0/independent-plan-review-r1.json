@@ -1,0 +1,274 @@
+{
+  "decision": "REVISE",
+  "review_kind": "T0 独立计划审查",
+  "scope": {
+    "read_only": true,
+    "product_code_changed": false,
+    "cli_started": false,
+    "model_audio_or_screenshot_called": false,
+    "tests_executed_by_reviewer": false,
+    "implementation_acceptance": false,
+    "owner_freeze_or_release_approval": false
+  },
+  "reviewed_input_digests": {
+    "plan": {
+      "path": "H:/UltimaAI/UltimaAgent/docs/plans/jarvis-work-capability-delivery-plan-20261101.md",
+      "sha256": "517f30f01d61ddc9b83eae004e20a4d56f178db147bc7c5290b53aad1ec8a4ba"
+    },
+    "spec": {
+      "path": "H:/UltimaAI/UltimaAgent/docs/specs/jarvis-work-capability-contract-20261101.md",
+      "sha256": "289d3156d66dd6fe63b62ce80525d3e720e308aef298b0fa7166621e58520762"
+    },
+    "cases": {
+      "path": "H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T0/acceptance-cases-r1.json",
+      "sha256": "ad418726f62ab488cd055ddec4321a5a03ed8dd198194887f70b53e19931212f"
+    },
+    "work_order": {
+      "path": "H:/UltimaAI/UltimaAgent/tasks/queue/wo-ultimaagent-20261101-0021--work-capability.md",
+      "sha256": "da712446f91350bbe8274124cfaed23b3398563ad1ae016246c0c723fab73513"
+    },
+    "digest_method": "对实际文件原始字节计算 SHA256；出具意见前再次读取核对，四份输入均未变化。"
+  },
+  "strengths": [
+    "R01—R08 均已有 E 用例覆盖和阶段归属；现有 R/E/T 映射足以支持路线，无需增加任务种类。",
+    "T1 先交付真实文件链，T2—T5 分别补上下文、连续任务、恢复和产品入口，依赖顺序合理。",
+    "复用当前 NativeReAct、ToolRegistry、ToolResult 和 SessionStore 的路线可行；必要适配可留在产品代码内，不需要修改 SDK 或新增 Agent 核心。",
+    "技术检查点、原单完成、Owner 验收和发布门已经区分，应继续保留。"
+  ],
+  "findings": [
+    {
+      "id": "F01",
+      "severity": "Important",
+      "location": "H:/UltimaAI/UltimaAgent/docs/plans/jarvis-work-capability-delivery-plan-20261101.md:43",
+      "issue": "submit_work 没有明确可信输出根的绑定来源，当前接口无法落实契约中的请求写域。",
+      "impact": "若从 query、context 或模型工具参数推导授权根，模型能够扩大写域；缺少配置时也无法明确拒绝文件任务。",
+      "minimum_fix": "采用父代理提出的可信启动配置方案：构造 WorkService(output_root=...)，每请求在该根下建立服务端生成的隔离子目录。HTTP、query、context 与模型参数均不能扩大根；根未配置时文件任务失败。回执同时记录配置根和本次请求目录。将 E01 的“本次指定目录”明确为该轮可信配置及其请求子目录。此方案满足 T1，不需要新增授权服务。"
+    },
+    {
+      "id": "F02",
+      "severity": "Important",
+      "location": "H:/UltimaAI/UltimaAgent/docs/plans/jarvis-work-capability-delivery-plan-20261101.md:46",
+      "issue": "计划尚未固定 SDK 名称注册如何得到受限实例，以及真实工具元数据如何到达核验器。",
+      "evidence": [
+        "实际安装的 sdk.py:271-281 只允许以名称列表传入 tools。",
+        "实际安装的 cli/ask.py:315-343 对本项目别名调用无参 tool_cls()。",
+        "FileWriteTool/FileReadTool 的 allowed_dirs 缺省为空，且空列表表示不限制目录。",
+        "sdk.py:584-595 将 ToolResult 序列化时丢弃 metadata。",
+        "tools/_stubs.py:389-404 将 tool.execute 放入进程级工具工作线程；调用线程的 ContextVar 不会由该队列自动传播。"
+      ],
+      "minimum_fix": "在现有 ToolRegistry 注册两个唯一 Ultima 别名适配类。类的无参构造器在 SDK 构造线程捕获不可变请求绑定及请求内 ledger 引用；execute 使用实例上的绑定，封装 SDK FileWriteTool(allowed_dirs=[request_root]) 和 FileReadTool(...)。无绑定立即拒绝。真实执行结果仍返回 SDK ToolResult，同时写入请求内 ledger；verifier 从 ledger 获取产物候选，不能依赖 ask_full 当前丢失 metadata 的返回字典。不得覆盖 SDK 原始注册名、清空注册表或修改 vendor。"
+    },
+    {
+      "id": "F03",
+      "severity": "Important",
+      "location": "H:/UltimaAI/UltimaAgent/docs/plans/jarvis-work-capability-delivery-plan-20261101.md:80",
+      "issue": "当前失败测试清单没有固定“旧产物冒充本轮成果”和“工具声称成功但无本轮有效写入”的判据；示例 SHA 断言只能证明文件与返回摘要一致。",
+      "impact": "预放旧文件、伪造保存文本或回填任意文件摘要，仍可能满足示例断言。",
+      "minimum_fix": "补齐本轮工具调用归属、真实写入候选、独立重新打开文件、与该次写入内容一致四项机械判据。加入旧文件预放、无写入但报告成功、成功结果缺候选、读回异常、写后篡改等负例。artifact.sha256 对实际读回原始字节计算；文本内容比较明确只归一 CRLF/LF。E01 的三事实与无新增事实由独立样本 oracle 和三轮产物审查判断，不在产品 verifier 硬编码夹具事实。"
+    },
+    {
+      "id": "F04",
+      "severity": "Important",
+      "location": "H:/UltimaAI/UltimaAgent/docs/plans/jarvis-work-capability-delivery-plan-20261101.md:47",
+      "issue": "旧 /ask 与新工作请求的判别、云端聊天分支的工作请求处理、真实文字入口和候选启动配置仍未固定。",
+      "evidence": [
+        "隔离工作区 src/brain/cli.py:39-52 的 --agent 仅调用 ask_agent 并打印字符串。",
+        "interaction.py:207-215 先尝试纯云聊天，再走本地 Agent。",
+        "interaction.py:316-325 会因回复校验失败重新调用 Agent；工作请求若继承此行为，可能重复副作用。",
+        "agent_server.py:728-795 固定生产端口和公共 PID 锁，并启动 HUD/update 后台任务。"
+      ],
+      "minimum_fix": "固定显式工作判别，例如 /ask 的 mode='work'，由 ask_work 发送；无 mode 的 query/max_tokens 维持旧路径。工作请求无论选用哪个模型均进入 WorkService，不回退纯云聊天，不因呈现校验失败重新执行任务。T1 精确文件清单补 src/brain/cli.py，提供工作模式及结构化输出。候选服务可配置独立端口、运行目录、输出根及隔离启动模式，不复用生产锁或重启现有语音进程。"
+    },
+    {
+      "id": "F05",
+      "severity": "Moderate",
+      "location": "H:/UltimaAI/UltimaAgent/docs/specs/jarvis-work-capability-contract-20261101.md:4",
+      "issue": "文档仍写未登记工单，代码基线仍为 3a4f825，而本轮实际输入已是 f6eb808 加输入快照；计划中的相对解释器路径也不对应当前隔离工作区。",
+      "impact": "评审摘要、后续执行源码和验证命令可能指向不同输入。",
+      "minimum_fix": "r2 更新状态与基线说明，明确 f6eb808 加 input-baseline.json、baseline-required-supplement.json、workspace-hydration.json 共同构成运行输入。测试命令使用已验证的 H 盘共享解释器，并明确 C 盘隔离工作区 cwd。保留原 r1 和本次 REVISE，不改写既有证据。"
+    }
+  ],
+  "t1_execution_contract": {
+    "status": "以下是建议写入 r2 的执行契约；当前 r1 尚未因此获得 PASS。",
+    "interfaces": {
+      "service_constructor": "WorkService(output_root: Path | None, *, runner: Callable[..., dict])",
+      "service_call": "submit_work(query: str, *, request_id: str, session_id: str, context: dict | None = None, max_tokens: int | None = None) -> dict",
+      "client_call": "ask_work(query: str, *, request_id: str, session_id: str, context: dict | None = None, max_tokens: int | None = None, server_url: str = AGENT_SERVER) -> dict",
+      "legacy_client": "ask_agent(query, max_tokens=None) -> str 保留原签名和旧聊天行为。",
+      "http_work_request": {
+        "method": "POST",
+        "path": "/ask",
+        "fields": {
+          "mode": "work",
+          "query": "非空字符串",
+          "request_id": "非空请求身份，只作标识，不用于拼接目录",
+          "session_id": "非空会话身份",
+          "context": "可选普通数据，不含授权效力",
+          "max_tokens": "可选整数"
+        },
+        "authorization_rule": "不接受客户端 root 字段扩权；输出根仅由可信进程配置构造。"
+      },
+      "response_fields": {
+        "ok": "HTTP/API 请求是否正常被处理，不能作为工作成功判据",
+        "request_id": "回传请求身份",
+        "session_id": "回传会话身份",
+        "task_id": "服务端生成任务身份",
+        "status": "queued/running/succeeded/failed/cancelled/needs_attention",
+        "content": "从真实任务状态及核验结果生成的呈现文字",
+        "artifacts": "仅由本轮 ledger 及独立读回生成",
+        "error": "失败原因字符串或 null",
+        "tool_results": "保留真实工具结果及所需关联信息"
+      },
+      "artifact_required_fields": [
+        "path：已核验的绝对路径",
+        "sha256：独立读回原始字节摘要",
+        "verified：由服务端核验器设置",
+        "request_id",
+        "session_id",
+        "task_id",
+        "call_id：关联实际写入调用"
+      ],
+      "mechanical_verifier": "verify_artifacts(binding, write_candidates) -> 明确的通过/失败结果和已核验 artifacts；不得从模型回复或目录扫描推断本轮写入。",
+      "semantic_acceptance": "E01 的 required_facts 和 no_new_facts 由固定样本的独立 oracle 与产物审查判定。产品 verifier 不硬编码松林、Markdown 或日期，也不新增通用语义验证器研究。"
+    },
+    "files": {
+      "new": [
+        "C:/Users/Administrator/.codex/worktrees/jarvis-work-capability-longpaths/UltimaAgent/src/brain/work_service.py",
+        "C:/Users/Administrator/.codex/worktrees/jarvis-work-capability-longpaths/UltimaAgent/src/brain/work_tools.py",
+        "C:/Users/Administrator/.codex/worktrees/jarvis-work-capability-longpaths/UltimaAgent/src/brain/work_verifier.py",
+        "C:/Users/Administrator/.codex/worktrees/jarvis-work-capability-longpaths/UltimaAgent/src/brain/tests/test_work_delivery.py"
+      ],
+      "modify": [
+        "C:/Users/Administrator/.codex/worktrees/jarvis-work-capability-longpaths/UltimaAgent/src/brain/agent_server.py",
+        "C:/Users/Administrator/.codex/worktrees/jarvis-work-capability-longpaths/UltimaAgent/src/brain/agent_client.py",
+        "C:/Users/Administrator/.codex/worktrees/jarvis-work-capability-longpaths/UltimaAgent/src/brain/interaction.py",
+        "C:/Users/Administrator/.codex/worktrees/jarvis-work-capability-longpaths/UltimaAgent/src/brain/cli.py"
+      ],
+      "supporting_inputs": [
+        "已批准范围内的固定夹具、r2 契约与计划、原工单阶段记录和新鲜证据"
+      ],
+      "excluded": [
+        "SDK/vendor 源码",
+        "真实任务队列与真实长期记忆",
+        "KWS 引擎、词表、参数及受保护运行配置",
+        "T2—T5 尚未进入的功能实现"
+      ]
+    },
+    "authorization_boundary": {
+      "root": "可信启动配置根先解析并固定；每请求子目录由服务端生成，不能直接使用 request_id 作为路径。",
+      "tools": "工作路径只暴露 calculator、think 和两个受限文件别名。不得继承九工具中的真实队列调整、记忆写入、技能写入或子代理能力。",
+      "binding_lifetime": "工具构造时捕获请求绑定；进入 SDK 工作线程后使用实例绑定；请求结束清理调用线程绑定，不复用其他请求的 ledger。",
+      "path_checks": "允许正常的空格、Unicode 和合法大小写路径；拒绝路径穿越、绝对越界、相邻前缀目录、请求身份注入及越界重解析目标。写前检查和读回均核对同一绑定；无法证明目标有效时失败。",
+      "runtime": "候选服务使用独立端口、运行目录、锁与证据目录；不复用或删除生产 PID 锁，不重启受保护进程 32856/18068。"
+    },
+    "success_failure_semantics": {
+      "transitions_t1": "queued -> running -> succeeded/failed/needs_attention；T1 不宣称已实现 T4 的取消和持久恢复。",
+      "succeeded_requires": [
+        "本请求真实受限写入调用成功且有可定位记录",
+        "产物候选来自该调用，而非历史文件或模型文本",
+        "路径仍在请求授权目录内",
+        "服务端重新打开文件成功",
+        "读回文本与该次工具写入意图一致，CRLF/LF 按已固定规则归一",
+        "artifact.sha256 与实际读回原始字节一致"
+      ],
+      "failed": "未配置授权根、拒绝路径、工具失败、无本轮有效写入、读回失败或内容不符，均不得 succeeded。",
+      "needs_attention": "超时或写入状态不明且不能证明安全结果时保留不确定状态，不自动重放写入。",
+      "presentation": "HTTP 200、ok=true、模型最终回答以及工具 success=true 均不能单独提升任务状态；回复风格失败不得重问 Agent 来重做工作。",
+      "e01_pass": "机械链路通过仍需独立 E01 事实审查；语义失败必须记录为该轮 E01 失败，不能只引用 succeeded 字段。"
+    },
+    "required_tests": [
+      "至少一项确定性集成测试使用实际 NativeReAct 循环、实际注册别名、SDK 文件工具和临时文件系统；可替换推理引擎输入，不能用测试专用保存分支代替产品路径。",
+      "模型只说已保存但无文件。",
+      "预放内容正确的旧文件，本轮无有效写入。",
+      "工具声称成功但文件不存在、缺失候选或读回失败。",
+      "写入拒绝、写后篡改、内容摘要不符。",
+      "空格/Unicode/合法大小写路径，以及 ../、绝对越界、相邻前缀和重解析点越界。",
+      "query/context/额外 HTTP 字段不能改变配置根。",
+      "两个请求的工具构造与工作线程执行不串绑定或 ledger。",
+      "工作请求不进入纯云聊天，不因呈现校验失败再次调用写入。",
+      "旧 /ask query/max_tokens、ask_agent 字符串、SSE 和原工具白名单兼容。",
+      "独立 E01 oracle 对缺事实和新增事实样本判失败；不以关键词全部出现替代无新增事实审查。"
+    ],
+    "test_argv": {
+      "cwd": "C:/Users/Administrator/.codex/worktrees/jarvis-work-capability-longpaths/UltimaAgent",
+      "red_first": [
+        "H:/UltimaAI/UltimaAgent/tools/venv-openjarvis/Scripts/python.exe",
+        "-m",
+        "pytest",
+        "src/brain/tests/test_work_delivery.py",
+        "-q"
+      ],
+      "stage_regression": [
+        "H:/UltimaAI/UltimaAgent/tools/venv-openjarvis/Scripts/python.exe",
+        "-m",
+        "pytest",
+        "src/brain/tests/test_work_delivery.py",
+        "src/brain/tests/test_agent_server_sse.py",
+        "src/brain/tests/test_agent_tools_extend.py",
+        "src/brain/tests/test_interaction.py",
+        "-q",
+        "--junitxml=H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T1/<run_id>/test-results.xml"
+      ],
+      "note": "以上由后续实施者执行；本审查未运行测试。run_id 在执行前确定，实际 argv、cwd 与退出码写入回执。"
+    },
+    "three_round_live_validation": {
+      "candidate": "三轮固定同一代码候选、输入清单、SDK 和 qwen3-8b-uncensored/native_react 配置；不替换主脑。",
+      "entry": "必须从实际 src.brain.cli 产品文字入口调用 ask_work，不能仅用脚本直调客户端作为入口验收。",
+      "proposed_server_argv_to_freeze_in_r2": [
+        "H:/UltimaAI/UltimaAgent/tools/venv-openjarvis/Scripts/python.exe",
+        "-m",
+        "src.brain.agent_server",
+        "--port",
+        "<isolated_port>",
+        "--runtime-root",
+        "H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T1/<run_id>/round-<n>/runtime",
+        "--work-output-root",
+        "H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T1/<run_id>/round-<n>/outputs",
+        "--isolated"
+      ],
+      "proposed_product_argv_to_freeze_in_r2": [
+        "H:/UltimaAI/UltimaAgent/tools/venv-openjarvis/Scripts/python.exe",
+        "-m",
+        "src.brain.cli",
+        "--work",
+        "--request-id",
+        "e01-<run_id>-round-<n>",
+        "--session-id",
+        "e01-<run_id>-round-<n>",
+        "--server-url",
+        "http://127.0.0.1:<isolated_port>",
+        "--json",
+        "把以下三条材料整理为摘要，保存到本次指定目录的summary.md。材料：项目代号是松林；交付形式是Markdown文档；截止日期是2026年11月8日。"
+      ],
+      "isolation_meaning": "上述新参数属于待 r2 固定并由 T1 实现的产品配置接口；--isolated 使用独立锁和运行存储，不启动生产 HUD/update 后台任务，不改变默认生产启动行为。",
+      "independent_readback": "每轮由服务端之外的读取工具或独立进程重新打开返回文件，记录绝对路径、原始字节 SHA256、完整夹具文本和事实审查结果；与工具 ledger、响应及 artifacts.json 交叉核对。",
+      "retention": "保留连续三轮全部请求、真实工具轨迹、响应、产物和失败；任一失败后不得只挑成功轮或换标题清空历史。",
+      "pass_meaning": "仅证明该固定 E01 样本集合在该候选连续三轮通过，不代表 E02—E08、开放任务成功率或最终交付通过。"
+    }
+  },
+  "future_stage_interfaces": {
+    "T2": "沿用 context 数据入口，固定窗口身份、采集时间、来源及选区指纹；写入前验证目标。受控资料正文及真实联网证据在 T2 门前补齐并绑定摘要，不以本轮描述性样本冒充已完成回放夹具。",
+    "T3": "明确外部 session_id 与 SDK Session 的映射。SessionStore.get_or_create 接收的是 user_id，并非 session_id；它按用户取最近会话，不能直接假定可满足跨会话隔离。任务/artifact 关联可通过现有消息 metadata 保存；真实偏好写入仍经过 MemoryWriteGate。",
+    "T4": "在实施前固定任务查询、取消路径和错误码，并登记现有 API/消息契约。取消确认只在能够阻止后续提交后生效；已提交动作如实登记；状态不明进入 needs_attention。持久去重和崩溃恢复不得通过 T1 单轮成功提前宣称完成。",
+    "T5": "将已固定的工作调用接回真实文字/语音宿主；保留请求、会话、任务身份和同一成果口径。Owner 现场体验及 KWS 运行保护独立保留。"
+  },
+  "declined_to_judge": [
+    {
+      "behavior": "T2—T5 尚未实现的具体产品行为",
+      "reason": "本轮是 T0 开工契约审查；只固定其接口和后续出口，不因尚未实现否决路线。"
+    },
+    {
+      "behavior": "真实云端模型的产物质量",
+      "reason": "本轮未调用模型；T1 需证明模型选择不改变授权执行路径，当前主脑真实 E01 仍按既定本地配置验证。"
+    },
+    {
+      "behavior": "语音现场体验、KWS 指标和最终 Owner 冻结",
+      "reason": "属于后续入口验收及 Owner 门，且当前明确禁止触碰现有语音基线。"
+    }
+  ],
+  "next_gate": {
+    "required_action": "在同一原单内形成 r2，纳入 F01—F05 的最小修订及精确文件/配置/测试约定，保留 r1 和本次意见。",
+    "review_requirement": "独立计划评审对 r2 的实际 plan/spec/cases 字节重新计算摘要，并对完全一致的修订明确返回 PASS，之后才启动 T1。",
+    "not_authorized_by_this_review": "本次 REVISE 不构成 T1 开工通过、产品实现验收、原单完成或 Owner 冻结。"
+  }
+}

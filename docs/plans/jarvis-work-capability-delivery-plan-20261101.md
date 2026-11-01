@@ -8,7 +8,7 @@
 
 **Tech Stack:** 当前 Windows/Python 执行环境、OpenJarvis、现有 Ollama 主脑、SQLite 会话、现有事件总线与产品宿主；Jarvis.ceo 作为已固定版本的组织方式参考。
 
-**Spec:** [工作能力目标与验收契约 r1](../specs/jarvis-work-capability-contract-20261101.md)。本计划是路线提案，尚未完成 T0 评审、工单登记或产品实现。
+**Spec:** [工作能力目标与验收契约 r2](../specs/jarvis-work-capability-contract-20261101.md)。用户已批准按序执行，原单 `wo-ultimaagent-20261101-0021` 已登记；r1 独立评审 REVISE 保留，本修订等待复核，T1 尚未开始。
 
 ## Global Constraints
 
@@ -38,13 +38,20 @@
 
 ## 接口与文件边界
 
-T0 评审冻结以下增量契约；它们是拟实现接口，当前代码尚未具备：
+T0 r2 评审冻结以下增量契约；它们是拟实现接口，当前代码尚未具备。实施 cwd 为 `C:/Users/Administrator/.codex/worktrees/jarvis-work-capability-longpaths/UltimaAgent`；解释器固定使用已核对的 `H:/UltimaAI/UltimaAgent/tools/venv-openjarvis/Scripts/python.exe`，不向共享环境安装新依赖。
 
-- `submit_work(query: str, *, request_id: str, session_id: str, context: dict | None = None) -> dict`：由 `src/brain/work_service.py` 接入现有 Agent。返回 `task_id: str/status: str/content: str/artifacts: list[dict]/error: str | None`；每个文件 artifact 含 `path: str/sha256: str/verified: bool`，路径为绝对路径。
-- `ask_work(...) -> dict`：`src/brain/agent_client.py` 的结构化客户端；保留原 `ask_agent(query, max_tokens=None) -> str` 为兼容适配。
+- `WorkService(output_root: Path | None, *, runner: Callable[..., dict])`：由可信服务启动配置构造；根未配置立即失败。服务端生成 UUID 请求目录，request_id/session_id 只作标识，不直接用于拼接路径。
+- `WorkService.submit_work(query: str, *, request_id: str, session_id: str, context: dict | None = None, max_tokens: int | None = None) -> dict`：由 `src/brain/work_service.py` 接入现有 Agent。返回 `request_id/session_id/task_id/status/content/artifacts/error/tool_results`；失败原因是字符串或 null。每个文件 artifact 含绝对 `path`、原始字节 `sha256`、`verified` 及 request/session/task/call 四类关联身份。
+- `ask_work(query: str, *, request_id: str, session_id: str, context: dict | None = None, max_tokens: int | None = None, server_url: str = AGENT_SERVER) -> dict`：客户端向现有 `/ask` 发送 `mode="work"`。服务地址只允许本机回环。保留原 `ask_agent(query, max_tokens=None) -> str` 和无 mode 请求的旧行为。
 - 任务状态采用现有契约可映射的 `queued/running/succeeded/failed/cancelled/needs_attention`，状态转换和取消提交点在 T0 评审固定。`succeeded` 要求成果核验通过。
-- 工具沿用 SDK `ToolResult`；新增的产出信息写入 metadata，不自建一套工具协议。文件和会话目录必须可注入，测试不得默认使用生产路径。
-- 在现有 `/ask` 上添加可选身份字段，旧调用方仍可仅传 `query`。查询任务及取消接口的路径和错误码在 T4 前按 `api-contract.md`/`protocol-contract.md` 评审登记。
+- 工作模式只列 `calculator`、`think`、`ultima_work_file_write`、`ultima_work_file_read` 四个工具；不把真实任务调整、记忆、技能写入或子代理工具带进 T1。
+- 两个别名沿用 SDK ToolRegistry/ToolResult，不修改 vendor、不覆盖原注册名。SDK 以无参构造器创建别名：构造时捕获不可变 `WorkBinding` 与请求内线程安全 ledger，实例 execute 再调用 SDK `FileWriteTool(allowed_dirs=[request_root])`/FileReadTool。不能等到 execute 的工作线程里才读取调用线程 ContextVar；无绑定拒绝。
+- SDK 当前丢弃 ToolResult.metadata；适配器将真实调用的身份、路径、写入内容和成功结果同步写入本轮 ledger，同时正常返回 ToolResult。`verify_artifacts(binding, write_candidates)` 在 `work_verifier.py` 只消费本轮记录并重新打开文件；不扫描目录或解析模型回复寻找成果。
+- 未配置根、越界、工具失败、无本轮写入、读回失败或内容不符均不能 succeeded；状态不明进入 needs_attention，不重放副作用。合法 HTTP 处理的 ok=true 不代表任务成功。T1 不宣称取消或持久恢复已实现。
+- WorkService 不走纯云聊天兜底，呈现/风格校验失败不重新执行 Agent。默认继续使用当前本地主脑；云聊设置不能改变工作工具与授权路径，未支持的工作模型明确报不可用。
+- 现有 `/ask` 接受显式工作 mode 和身份字段，根字段不能扩权。任务查询和取消接口在 T4 前按现有 API/消息契约评审登记。
+- `src/brain/cli.py` 新增 `--work --request-id --session-id --server-url --json`，与旧 --agent 分开；结构化工作非 succeeded 返回非零退出码。
+- `agent_server.main(argv=None)` 新增可信启动参数 `--port --runtime-root --work-output-root --isolated`。隔离启动使用独立锁和运行目录，不启动生产 HUD/update 后台任务；默认旧启动行为保持。业务执行仍为同一 WorkService，不建立测试专用保存分支。
 
 集成测试统一包含以下成果断言；各阶段补充其用例中的失败行为，而非只检查返回文本：
 
@@ -73,15 +80,20 @@ assert hashlib.sha256(Path(artifact["path"]).read_bytes()).hexdigest() == artifa
 
 ### T1 交付第一条完整工作链
 
-**Files:** 新增 `src/brain/work_service.py`、`src/brain/work_tools.py`、`src/brain/work_verifier.py`；修改 `agent_server.py`、`agent_client.py`、`interaction.py`；新增 `src/brain/tests/test_work_delivery.py`。
+**Files:** 新增 `src/brain/work_service.py`、`src/brain/work_tools.py`、`src/brain/work_verifier.py`；修改 `agent_server.py`、`agent_client.py`、`interaction.py`、`cli.py`；新增 `src/brain/tests/test_work_delivery.py`。本阶段不实现 T2—T5 模块。
 
 **Interfaces:** 实现上述 `submit_work`/`ask_work`；复用 SDK 文件读写工具，在 Ultima 注册表中增加限域适配；由服务端读回核验产出。
 
-- [ ] 先写 E01 失败测试：模型只说“已保存”但无文件、写入失败、文件内容不符，均不得成功；相邻路径/重解析点越界必须拒绝。
-- [ ] 运行 `tools/venv-openjarvis/Scripts/python.exe -m pytest src/brain/tests/test_work_delivery.py -q`，确认失败来自缺失工作链而非环境问题。
+- [ ] 先写 E01 失败测试：模型只说“已保存”、预放正确旧文件但本轮无写入、工具假成功/缺候选、写入拒绝、读回异常、写后篡改均不得成功；路径穿越、绝对越界、相邻前缀、重解析点、身份注入与根扩权必须拒绝，正常空格/Unicode/合法大小写可用。
+- [ ] 运行 `H:/UltimaAI/UltimaAgent/tools/venv-openjarvis/Scripts/python.exe -m pytest src/brain/tests/test_work_delivery.py -q`，确认失败来自缺失工作链而非环境问题。
 - [ ] 实现实际 Agent → 受限文件工具 → 独立读回 → 成果回复。沿用现有执行器，不用测试专用快捷分支代替产品路径；工作请求的本地/云端分支进入同一授权执行服务。
+- [ ] 确定性集成测试使用实际 NativeReAct、实际注册别名、SDK 文件工具与临时文件系统，仅替换推理引擎输入；验证两请求经 SDK 工作线程执行不串绑定，工作失败不回退云聊或因风格校验再次写入。独立样本 oracle 必须能拒绝缺事实和新增事实，产品核验器不硬编码样本。
 - [ ] 运行同一测试命令并验证旧 `/ask`/`ask_agent` 兼容性；再从真实产品文字入口完成 E01 三轮，外部读回每个文件。
 - [ ] 出口：E01 全绿、绝对路径和内容核验可读回、执行失败不会被包装成成功；独立审查后记录技术检查点。
+
+T1 回归命令的 argv 固定为共享解释器、`-m pytest src/brain/tests/test_work_delivery.py src/brain/tests/test_agent_server_sse.py src/brain/tests/test_agent_tools_extend.py src/brain/tests/test_interaction.py -q`，cwd 使用上述隔离工作区；回执记录实际退出码与 JUnit 路径。
+
+三轮 live 从同一候选启动 `-m src.brain.agent_server --port 18757 --runtime-root <本轮证据>/runtime --work-output-root <本轮证据>/outputs --isolated`，再调用真实 `-m src.brain.cli --work --request-id e01-round-N --session-id e01-round-N --server-url http://127.0.0.1:18757 --json <固定E01请求>`。N 为1至3，每轮使用新隔离目录；固定请求和事实读取版本化夹具。外部进程重新读文件并核对原始字节摘要，再独立审查三事实与无新增事实，保留全部轮次。
 
 ### T2 接通当前工作对象与资料工具
 
@@ -90,7 +102,7 @@ assert hashlib.sha256(Path(artifact["path"]).read_bytes()).hexdigest() == artifa
 **Interfaces:** `capture_work_context() -> dict` 返回窗口标识、标题、可用选区/页面、来源与采集时间；`validate_work_target(context: dict) -> bool` 在修改前检查身份与新鲜度。数据传入 T1 的 `context`。
 
 - [ ] 写 E02/E03 及焦点切换失败测试：来源与正文对应；错误窗口/旧选区不得写入；不可读取时明确呈现缺失。
-- [ ] 运行 `tools/venv-openjarvis/Scripts/python.exe -m pytest src/brain/tests/test_work_context.py src/brain/tests/test_work_delivery.py -q`，确认新增用例先失败。
+- [ ] 运行 `H:/UltimaAI/UltimaAgent/tools/venv-openjarvis/Scripts/python.exe -m pytest src/brain/tests/test_work_context.py src/brain/tests/test_work_delivery.py -q`，确认新增用例先失败。
 - [ ] 优先接已有环境、浏览器与执行通道；仅补完成目标窗口/选区所需的 Windows 适配。按需采集，工具返回的网页/选区作为数据进入任务。
 - [ ] 运行同一命令；在专用测试窗口完成 E03，在真实搜索与写入路径完成 E02；回放和真实环境结果分开记录。
 - [ ] 出口：E01—E03 全绿，窗口身份、内容来源、资料引用和文件产出均有证据；冻结本阶段技术检查点。
@@ -102,7 +114,7 @@ assert hashlib.sha256(Path(artifact["path"]).read_bytes()).hexdigest() == artifa
 **Interfaces:** 以 SDK `SessionStore.get_or_create/save_message` 为存储基础，保存任务与已核验 artifact 的关联；仅为当前会话选择工作对象。明确偏好写入统一经过现有过滤门。
 
 - [ ] 写 E04/E05 失败测试：跨轮定位正确文件、不同会话隔离、同名多候选时不误写；合成密钥和外部指令不能进入长期偏好。
-- [ ] 运行 `tools/venv-openjarvis/Scripts/python.exe -m pytest src/brain/tests/test_work_sessions.py src/brain/tests/test_work_delivery.py src/brain/tests/test_work_context.py -q`，确认新增用例失败。
+- [ ] 运行 `H:/UltimaAI/UltimaAgent/tools/venv-openjarvis/Scripts/python.exe -m pytest src/brain/tests/test_work_sessions.py src/brain/tests/test_work_delivery.py src/brain/tests/test_work_context.py -q`，确认新增用例失败。
 - [ ] 在真实调用路径注入有界历史与当前任务，接通现有记忆入口；避免只创建会话 ID 却不参与推理和执行。
 - [ ] 运行同一命令；通过新客户端连接及隔离测试服务重启验证持久化，生产语音进程保持不动。
 - [ ] 出口：E01—E05 全绿，“刚才那份文档”可连续修改、跨会话不串任务、过滤覆盖实际写入；记录技术检查点。
@@ -114,7 +126,7 @@ assert hashlib.sha256(Path(artifact["path"]).read_bytes()).hexdigest() == artifa
 **Interfaces:** 任务查询和取消接入既有服务；请求身份用于去重，真实工具执行回调发布进度。复用现有编排审计和任务状态，避免新增独立调度进程。
 
 - [ ] 写 E06/E07 失败测试：响应丢失重试、写入前后终止、取消/完成竞态、迟到结果、工具返回成功但读回失败。
-- [ ] 运行 `tools/venv-openjarvis/Scripts/python.exe -m pytest src/brain/tests/test_work_recovery.py src/brain/tests/test_work_delivery.py src/brain/tests/test_work_context.py src/brain/tests/test_work_sessions.py -q`，确认新增失败符合预期。
+- [ ] 运行 `H:/UltimaAI/UltimaAgent/tools/venv-openjarvis/Scripts/python.exe -m pytest src/brain/tests/test_work_recovery.py src/brain/tests/test_work_delivery.py src/brain/tests/test_work_context.py src/brain/tests/test_work_sessions.py -q`，确认新增失败符合预期。
 - [ ] 给重试分类：只读操作最多两次；有副作用操作先检查幂等记录和成果，状态不明时保留需处理状态。取消确认阻止后续提交，已完成动作如实记录。
 - [ ] 接真实开始/结束/核验事件；运行同一命令，并在隔离工作进程中执行真实终止与恢复测试，读回文件与任务状态。
 - [ ] 出口：E01—E07 全绿，失败不伪报完成，取消/恢复不重复写入；记录技术检查点。
@@ -126,7 +138,7 @@ assert hashlib.sha256(Path(artifact["path"]).read_bytes()).hexdigest() == artifa
 **Interfaces:** 各入口适配 `ask_work` 的结构化结果；工作进度、成果链接和失败原因取同一任务状态。保持已接受 KWS 的引擎、词表和参数。
 
 - [ ] 写 E08 入口测试：文字与语音发送同一类工作请求并保留会话/任务身份；服务不可用时明确报失败；旧回复或错误成果不能被当成新结果。
-- [ ] 运行 `tools/venv-openjarvis/Scripts/python.exe -m pytest src/brain/tests/test_work_product_entry.py -q`，确认新增用例失败后接线并重跑。
+- [ ] 运行 `H:/UltimaAI/UltimaAgent/tools/venv-openjarvis/Scripts/python.exe -m pytest src/brain/tests/test_work_product_entry.py -q`，确认新增用例失败后接线并重跑。
 - [ ] 运行 T1—T5 全部测试命令及现有受影响回归门；在真实产品界面完成全部固定用例，核心模型任务连续三轮，不能用测试入口替代宿主入口。
 - [ ] 按契约生成全部回执、轨迹和产出清单；外部读回文件，比较受保护 KWS 文件哈希，核验运行版本与候选 commit 一致。
 - [ ] 进入独立技术审计；按既有最多两轮有界修复规则处理失败。Owner 现场确认语音工作任务与交付体验后才能记录最终验收。
@@ -140,4 +152,4 @@ assert hashlib.sha256(Path(artifact["path"]).read_bytes()).hexdigest() == artifa
 
 ## 本次规划交付与后续动作
 
-本轮产出目标契约与分阶段计划，未修改产品代码、未派发开发、未启动录音或模型推理。接下来先执行 T0：冻结工作样本、写域与验收条件；通过独立计划评审后只启动 T1。每阶段完成一个可工作的增量，避免积累全部模块后才做第一次整体验收。
+当前原单已经登记，隔离输入已按哈希补齐，改造前文字接口/工具回归14项通过。r1 独立计划评审返回 REVISE；r2 纳入可信根绑定、SDK线程/metadata接线、真实文字入口、候选启动隔离及失败口径。保留原意见，复核精确 r2 摘要通过后只启动 T1；前序固定用例持续回归。
