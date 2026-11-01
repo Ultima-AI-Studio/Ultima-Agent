@@ -1,6 +1,6 @@
 链路号/工单号: wo-ultimaagent-20261101-0015
 执行端: Codex coding executor，H:\UltimaAI\UltimaAgent
-完成状态: 收口中（T0-T2 PASS；T3-C1 fresh review 修复后全绿，commit/tag/push 待执行）
+完成状态: 收口中（T0-T2 PASS；T3-C1 全绿；本地 commit c0f0c7b 与 tag 已完成并可解析；push 待执行）
 根因结论: ASR prompt 缺少日常高频词且近音表硬编码；本单通过高频 prompt 扩充、可维护短语映射和上下文安全门完成系统化收敛，0017 首次阻塞已由主线提交 5ef3ec3 解消。
 产出路径: src/brain/voice/asr.py、src/brain/interaction.py（仅 0015 hunks）、config/asr-normalize.json、src/brain/tests/test_asr_normalize.py、docs/reports/stage-asr-correction-20261101.md、docs/reports/evidence/asr-correction/
 验收证据: T0 PASS；T1 固定真机 WAV 1/2->1/2 持平不恶化；T2 初次专项/0016 兼容 30 passed；T3 fresh review 对“看/问/今天+水天一色”误伤完成 RED 6 failures -> GREEN，最终专项/兼容 36 passed，fresh 全量 858 passed + 36 warnings + 120 subtests；冻结结果待回填。

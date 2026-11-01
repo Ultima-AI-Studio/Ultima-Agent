@@ -29,10 +29,14 @@
 - “水天一色是一句成语”不变: PASS
 - “看看水天一色”/“请问水天一色是什么意思”/“今天看到水天一色”不变且不触发天气: RED 6 failures -> GREEN 17 passed；全量 858 passed
 
-[C2/C3 冻结待执行]
+[C2 本地冻结]
 - 精确暂存范围: 仅 0015 写域路径及 interaction.py 的 0015 hunks。
-- commit message: 工单 0015 ASR 纠错系统化（待执行）。
-- tag: ultimaagent-asr-correction-20261101（待创建并以 git rev-parse 独立核验）。
-- push: 待使用免代理命令；网络失败时写 t3-push-blocker.txt。
+- commit: c0f0c7bb4d35b4a26fe0935e21ba97c1a450eb07
+- commit subject: 工单 0015 ASR 纠错系统化
+- tag: ultimaagent-asr-correction-20261101
+- git rev-parse --verify tag^{commit}: c0f0c7bb4d35b4a26fe0935e21ba97c1a450eb07
 
-T3 Gate: C1 PASS（fresh review 修复后专项/兼容 36 passed、完整全量 858 passed）；C2/C3 冻结待执行，不提前判定全阶段 PASS。
+[C3 push 待执行]
+- 待使用免代理命令推送 main 与 tag；网络失败时写 t3-push-blocker.txt。
+
+T3 Gate: C1/C2 PASS（专项/兼容 36 passed、完整全量 858 passed、commit/tag 可解析）；C3 push 待执行。
