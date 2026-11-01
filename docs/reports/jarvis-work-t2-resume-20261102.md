@@ -13,3 +13,11 @@
 实施将先记录A/B失败测试再修复，覆盖回归与原8项隔离兼容后冻结单一候选，fresh代码审查后才另放真实8B E02。任何结果均保留。E01/E02/E03同候选各三轮、窗口负例和语义复核仍为T2出口条件；T3—T5未启动。
 
 证据：data/evidence/jarvis-work-capability/T2/architecture-resume-20261102/、review-r4-plan/。设计检查点标签为ultimaagent-work-t2-r4-plan-pass-20261102，实际推送/远端解析以设计checkpoint回执为准。
+
+## 已开始实施
+
+设计检查点c6bcc3ca84d9fb46567b0895d8d12d5c78181e36、镜像a70c42b5b5e8f371f59e2ff41b0c470c9c5e641d及同名plan tag均已推送并核验远端。源码修复4现已按明确回执放行，基础源码仍等价610005e。执行端先做A/B RED/GREEN、覆盖和隔离兼容，随后等fresh代码审查，不自动启动真实模型验收。设计门不代替代码门或E02。
+
+## 第4次源码候选与独立代码复核
+
+30b6b14：195项测试通过，旧151及T1 60全部保留。但fresh代码复核REVISE，3项Important：方法声明误作调用、非标准换行导致证据行错位、回执多次取快照遗漏终态。真实8B/E02尚未运行。按既定累计上限5进入最后一次有界源码修复，原单/历史不重置，模型及验收不变。证据review-r4-30b6b14/，具体修复回执fix-round-5/controller-release.json。

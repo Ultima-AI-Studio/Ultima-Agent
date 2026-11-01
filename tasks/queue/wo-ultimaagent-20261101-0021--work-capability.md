@@ -5,7 +5,7 @@
 - original_work_order_id: wo-ultimaagent-20261101-0021
 - revision: 2
 - authorization: 用户“那按顺序开始推进吧”；批准按已提交的工作能力契约与计划顺序执行，保留最终 Owner 验收和发布门。
-- 状态：T0/T1技术门保持；T2原真实验收FAIL保留，用户现要求继续，正在第4次修复前架构诊断与方案预审，尚未放行产品源码/真实运行；当前8B/14B未授权，T3—T5未启动。
+- 状态：T0/T1技术门保持；源码4/195测试通过但独立代码复核3Important，现按用户续推后的既定累计上限进入源码修复5；当前8B/无14B，真实gate与T3—T5未放行，所有历史保留。
 - 计划：docs/plans/jarvis-work-capability-delivery-plan-20261101.md
 - 契约：docs/specs/jarvis-work-capability-contract-20261101.md
 - 草案检查点：ultimaagent-jarvis-work-plan-draft-20261101 @ f6eb808348302cec55bddcf44ee03f5b5736c4d9
@@ -87,3 +87,11 @@ T0/T1技术门通过；T2最后候选10fec03在2/2有界修复后真实E02失败
 ## 用户明确继续后的架构前置复核
 
 用户现要求继续。原3次失败/blocked检查点和累计数保留，控制器仅恢复同一T2的架构诊断与方案预审，下一次源码修复累计第4，累计上限5由本轮控制器限定，不是重置额度或冒充Owner批准。当前8B、不切14B，不改验收；代码需精确方案与独立审查先通过。依据data/evidence/jarvis-work-capability/T2/architecture-resume-20261102/resume-disposition.json。T3—T5尚未放行。
+
+## 第4次源码修复放行
+
+r3方案7fe32a4b独立PASS，设计检查点c6bcc3c/ultimaagent-work-t2-r4-plan-pass-20261102远端已核验。源码仅按明确四文件/测试/哈希元数据/新内部证据协议范围RED/GREEN，当前8B不换。实现端/root/implement_work_capability_t2_r4，source-repair4-release.json为具体放行回执；不得自动启动真实模型、UI或后续阶段。
+
+## 源码修复5（最后有界轮）
+
+针对review-r4-30b6b14的I1—I3，按fix-round-5/controller-release.json和同一r3设计修正调用声明判别、引用坐标及同一响应快照。不是重置原单或增加模型/权限，不自动开启真实运行。旧源码30b6b14及code-revise tag已推送。fresh执行者/root/implement_work_capability_t2_r5，完成后仅fresh scoped复核。
