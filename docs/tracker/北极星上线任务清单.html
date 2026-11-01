@@ -29,6 +29,23 @@
   .big-label{font-size:12px; color:var(--sub);}
   .bar{height:8px; background:var(--panel); border-radius:4px; overflow:hidden; margin-top:10px; border:1px solid var(--line);}
   .bar-fill{height:100%; width:0; background:var(--gold); transition:width .3s ease;}
+  /* ===== 验收框架 ===== */
+  .frame{border-top:1px solid var(--line); margin-top:20px;}
+  .frame-head{display:flex; align-items:center; gap:10px; padding:12px 0; cursor:pointer; min-height:44px; user-select:none;}
+  .frame-title{font-size:14px; font-weight:700;}
+  .frame-sub{font-size:12px; color:var(--faint); margin-left:auto;}
+  .frame .chev{color:var(--faint); font-size:11px; transition:transform .2s; width:14px;}
+  .frame.collapsed .chev{transform:rotate(-90deg);}
+  .frame-body{display:none; padding:4px 0 14px;}
+  .frame.open .frame-body{display:block;}
+  .frame-note{font-size:12px; color:var(--sub); margin-bottom:8px;}
+  .frame table{width:100%; border-collapse:collapse; table-layout:fixed; font-size:12px;}
+  .frame col.c1{width:14%;}
+  .frame col.c2{width:22%;}
+  .frame col.c3{width:64%;}
+  .frame th,.frame td{border:1px solid var(--line); padding:6px 8px; text-align:left; vertical-align:top;}
+  .frame th{color:var(--gold); font-weight:600; background:var(--panel);}
+  .frame td{color:var(--sub);}
   /* ===== 筛选 ===== */
   .filters{display:flex; gap:8px; margin:18px 0 6px; flex-wrap:wrap;}
   .filter{
@@ -99,6 +116,27 @@
     </div>
     <div class="bar"><div class="bar-fill" id="barFill"></div></div>
   </header>
+
+  <section class="frame collapsed" id="frameSec">
+    <div class="frame-head" role="button" tabindex="0" aria-expanded="false">
+      <span class="frame-title">北极星工程验收框架</span>
+      <span class="frame-sub">愿景不变 · 工程四维验收</span>
+      <span class="chev">▼</span>
+    </div>
+    <div class="frame-body">
+      <p class="frame-note">愿景层（不变）：贾维斯形态——随时在场 / 听懂你 / 替你做事 / 不打扰 / 有记忆。工程层按 Super Agent 四关键词验收：</p>
+      <table>
+        <colgroup><col class="c1"><col class="c2"><col class="c3"></colgroup>
+        <thead><tr><th>工程维度</th><th>对应验收线</th><th>验收口径</th></tr></thead>
+        <tbody>
+          <tr><td>连续</td><td>随时在场 · 有记忆</td><td>唤醒即响应（热机 ≤18s）；跨轮上下文持续；中断可恢复</td></tr>
+          <tr><td>高效</td><td>替你做事</td><td>工具调用正确率达标；一次到位；成果可验收</td></tr>
+          <tr><td>主动</td><td>不打扰</td><td>主动性 observe→auto 分级；该出手时出手、该安静时安静；需人时结构化单独提问</td></tr>
+          <tr><td>持久</td><td>有记忆 · 随时在场</td><td>会话/任务/偏好持久化；重启可恢复；参数冻结不突变</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
 
   <div class="filters" id="filters" role="tablist" aria-label="状态筛选">
     <button class="filter" data-f="all" aria-pressed="true">全部</button>
@@ -236,6 +274,13 @@ function render(){
     });
   });
 }
+
+document.getElementById("frameSec").querySelector(".frame-head").addEventListener("click", () => {
+  const f = document.getElementById("frameSec");
+  f.classList.toggle("open");
+  f.classList.toggle("collapsed");
+  f.querySelector(".frame-head").setAttribute("aria-expanded", f.classList.contains("open"));
+});
 
 document.querySelectorAll(".filter").forEach(f => {
   f.addEventListener("click", () => {
