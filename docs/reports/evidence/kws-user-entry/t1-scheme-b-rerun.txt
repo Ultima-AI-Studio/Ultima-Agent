@@ -1,0 +1,32 @@
+wo-ultimaagent-20261101-0014 / second dispatch / T1 scheme B evidence
+Captured: 2026-11-01 Asia/Shanghai
+
+Deadlock removal
+- InteractionLoop._try_wakeword_change no longer invokes or waits for the CLI.
+- It validates the command, calls a non-blocking submitter, and returns reason=唤醒词修改已提交 with no premature success speech.
+- WakewordChangeCoordinator runs the frozen CLI on a daemon background thread.
+- The daemon main thread remains in wait_wakeup(), continues maybe_reload(), and drains reload/completion events.
+- The first CLI therefore receives a fresh same-PID log while the daemon main thread is free.
+
+Transaction ordering and convergence
+1. Frozen CLI --replace 贾维斯 <custom>, requiring success=true and same_pid=true.
+2. save_user_override({wakeword:{custom:<custom>}}), followed by load_profile readback.
+3. Wait for the daemon profile_applied event correlated by custom value.
+4. Run the frozen CLI a second time only after the watcher has consumed the profile mtime.
+5. Announce success through the existing tts_synthesize path; daemon asynchronously plays the returned WAV.
+
+Compensation
+- First CLI failure, profile save/apply failure, watcher timeout/failure, second CLI failure, and final profile verification failure all enter rollback.
+- Rollback uses only public save_user_override/load_profile plus the unchanged CLI: restore old custom, wait for the old profile watcher event, then make a final CLI convergence call.
+- Failure completion text is 唤醒词修改失败，请稍后再试。 and never claims success.
+
+Ambiguity rejection
+- 唤醒词改成什么 / 把唤醒词换成哪个 / 把唤醒词改成星期五可以吗 / 星期五可以吗 are rejected before submission.
+- Guidance text: 请明确说，把唤醒词改成某个名字。
+
+Automated result
+- test_kws_user_entry.py: 16 passed in 0.46s.
+- Fault injection covers first CLI, profile save, second CLI, watcher timeout, and rollback.
+- The full VoiceInteractionLoop.handle_audio path asserts watcher-write occurs before the final CLI and cannot rewrite it afterward.
+
+T1 Gate: PASS.

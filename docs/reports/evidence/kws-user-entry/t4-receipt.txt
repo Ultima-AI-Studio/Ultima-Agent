@@ -1,0 +1,10 @@
+链路号/工单号: wo-ultimaagent-20261101-0014
+执行端: Codex coding executor
+完成状态: 阻塞
+根因结论: 代码等待环已由方案 B 解开；新阻塞为执行环境无法直连 github.com:443，免代理 push 未完成。
+产出路径: src/brain/interaction.py; src/brain/voice_loop.py; data/logs/voice-listen-daemon.py; src/brain/tests/test_kws_user_entry.py; docs/reports/stage-kws-user-entry-20261101.md; evidence/kws-user-entry/
+验收证据: T0/T1/T2 与 T3 本地 Gate PASS; 0014 16 passed; voice profile/reload 14 passed; full 852 passed; PID 27820 same-PID reload success; T3 push blocker recorded.
+越界声明: 无；未改 CLI/voice_profile 实现、音频数值/设备、KWS 模型/ONNX/tokens、W6/HUD，未杀/重启 daemon。
+环境声明: 当前 daemon 同 PID 热重载实测；新代码以完整路径等价注入验收，真实麦克风待下一次获准 daemon 生命周期验收。
+
+授权请求: 恢复 github.com:443 直连后重派免代理 push，或明确授权使用代理完成推送。

@@ -1,0 +1,21 @@
+wo-ultimaagent-20261101-0014 / second dispatch / T0 scope probe
+Captured: 2026-11-01 13:38:22 +08:00
+
+Preserved state
+- Existing uncommitted draft was continued; no reset or cleanup was performed.
+- Resident daemon remained PID 27820, started 2026-11-01 12:52:55 +08:00.
+- Command line: tools\venv-asr\Scripts\pythonw.exe -X utf8 data\logs\voice-listen-daemon.py.
+- Existing profile custom=星期五 and keywords=6 Jarvis variants + 星期五 + ULTIMA.
+
+Independent blocker receipt
+- docs/reports/evidence/kws-user-entry/t1-blocker-review.txt retained unchanged.
+- SHA256=FEF2CB1507371110EFBB563134EED0FE6442C744C7E2EF5EF54B4975AF2A1F51.
+
+Authorized scheme B
+- InteractionLoop submits a bounded background transaction and returns immediately.
+- The resident main thread continues HotReloadSpotter.maybe_reload().
+- Daemon profile/keywords reload events are delivered to the transaction coordinator.
+- Success/failure is announced only after transaction completion through tts_synthesize.
+- voice_profile.py and scripts/kws_reconfig.py remain read-only.
+
+T0 Gate: PASS.

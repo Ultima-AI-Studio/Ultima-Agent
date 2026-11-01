@@ -1,0 +1,34 @@
+wo-ultimaagent-20261101-0014 / second dispatch / T2 verification
+Captured: 2026-11-01 Asia/Shanghai
+
+Required interpreter
+- tools\venv-openjarvis\Scripts\python.exe (Python 3.13.16).
+
+0014 focused suite
+- Command: python -m pytest src\brain\tests\test_kws_user_entry.py -q
+- Result: 16 passed in 0.46s.
+
+Voice profile/reload suite
+- Command: python -m pytest src\brain\tests\test_voice_profile.py src\brain\tests\test_voice_wakeword_reload.py -q
+- Result: 14 passed in 0.76s.
+
+Combined voice suite
+- test_kws_user_entry.py + test_voice_loop.py + test_voice_wakeword_reload.py + test_voice_profile.py
+- Result: 38 passed in 1.16s.
+
+Full regression, final fresh run
+- Command: python -m pytest src -q --junitxml=docs\reports\evidence\kws-user-entry\t2\full-pytest-rerun.xml
+- Result: 852 passed, 36 warnings, 120 subtests passed in 197.95s; exit_code=0.
+- JUnit SHA256=06EB0DFFB770C25514DF9A3E35DCFED1F1DC0327938C8215ED34EECDBE86C1A5.
+
+Prior non-authoritative attempts
+- Attempt 1: one mainbrain test failed while an unrelated dirty agent_server.py changed during the run; the node passed fresh afterward.
+- Attempt 2: PreferenceStore updated_at collided within the same millisecond; the node passed 5/5 fresh repetitions.
+- No out-of-scope source was modified by 0014. The final complete run above is the acceptance result.
+
+Equivalent complete-path coverage
+- VoiceInteractionLoop.handle_audio -> InteractionOrbBridge -> InteractionLoop -> WakewordChangeCoordinator.
+- Non-blocking submission, first reload result, profile persistence/readback, correlated watcher completion, second reload, final consistency, success TTS.
+- Failure injection validates compensation and failure TTS for every declared partial-failure point.
+
+T2 Gate: PASS.

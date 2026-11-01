@@ -1,0 +1,38 @@
+wo-ultimaagent-20261101-0014 / independent review blocker
+Captured: 2026-11-01 Asia/Shanghai
+
+Verdict
+BLOCKED. The external InteractionLoop injection is not equivalent to the resident voice-daemon path.
+
+Confirmed synchronous call chain
+1. data/logs/voice-listen-daemon.py:954 synchronously calls _handle_collection_result().
+2. src/brain/voice_loop.py:73 synchronously calls InteractionOrbBridge.handle(), which reaches InteractionLoop._try_wakeword_change().
+3. src/brain/interaction.py:222 synchronously runs scripts/kws_reconfig.py and waits for it to exit.
+4. scripts/kws_reconfig.py:235-269 waits up to 20 seconds for a fresh same-PID reload log.
+5. The resident daemon's only HotReloadSpotter.maybe_reload() call is data/logs/voice-listen-daemon.py:287, inside wait_wakeup().
+6. The daemon cannot return to wait_wakeup() until _handle_collection_result() and the blocking CLI call return.
+
+Consequence
+- A real spoken change command cannot produce the reload acknowledgment required by the first CLI call.
+- The CLI writes keywords before waiting, so it times out after a partial mutation; the handler reports failure and skips profile persistence.
+- Only after the failure returns can the daemon poll and reload the already-mutated keyword file.
+- Therefore the primary spoken-command mechanism and consistency gate are not satisfied.
+
+Additional review findings
+- No compensation exists when CLI mutation, profile save/apply, or the second CLI call partially fails.
+- Interrogative/ambiguous strings such as “唤醒词改成什么” can be parsed as a mutating request.
+- The profile watcher can rewrite keywords after the second CLI, so current tests do not prove stable convergence across real daemon interleavings.
+
+Why this cannot be repaired inside the frozen write domain
+- scripts/kws_reconfig.py is explicitly read-only in the work order; adding a no-wait/deferred-result CLI contract is unauthorized.
+- voice_profile.py is frozen and may only be called through its current public interface.
+- the daemon audio stack is forbidden; adding a reload worker/callback or asynchronous completion/TTS hook is unauthorized.
+- interaction.py alone has no supported callback into the resident HotReloadSpotter and no supported way to deliver a post-reload confirmation through the existing TTS chain.
+
+Current runtime state retained for evidence
+- daemon PID 27820, start 2026-11-01T12:52:55.3238830+08:00; it was not killed or restarted.
+- profile wakeword.custom=星期五.
+- keywords contains six unchanged Jarvis variants with 2.0/0.08, 星期五 with 2.0/0.08, and unchanged ULTIMA.
+
+Required authority decision
+Authorize one compatible interface change: either (A) extend the frozen CLI with a non-blocking transaction/deferred acknowledgment contract plus a supported completion path, or (B) extend the daemon with a reload/completion callback or worker that can acknowledge and then use the existing TTS path. Failure compensation and ambiguous-input rejection must be included in the resumed implementation.

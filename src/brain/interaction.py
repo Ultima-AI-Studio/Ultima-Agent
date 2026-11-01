@@ -71,13 +71,25 @@ class InteractionResponse:
 class InteractionLoop:
     """One conversation session's interaction loop state machine."""
 
-    def __init__(self, queue_root: str | Path) -> None:
+    def __init__(
+        self,
+        queue_root: str | Path,
+        *,
+        wakeword_change_submitter: Callable[[str], bool] | None = None,
+    ) -> None:
         self.queue_root = Path(queue_root).resolve()
         self.phase = _IDLE
         self.last_summary: str | None = None
         self.adjusted = False
         self.storage = QueueStorage(self.queue_root)
         self.planner = QueuePlanner(self.storage)
+        self._wakeword_change_submitter = wakeword_change_submitter
+
+    def set_wakeword_change_submitter(
+        self, submitter: Callable[[str], bool] | None
+    ) -> None:
+        """Attach the resident daemon's non-blocking wakeword transaction hook."""
+        self._wakeword_change_submitter = submitter
 
     # ── 对外入口：处理一条交互文本 ─────────────────────────────
     def handle(
@@ -103,6 +115,12 @@ class InteractionLoop:
         #    不进入 14B 兜底（否则干等 30s+ 后静默，体验=喊了没反应）。
         if _WAKE_ECHO_ONLY.match(normalized):
             return self._respond(True, True, "在呢，请说。", "唤醒确认", self.phase)
+
+        # 用户设置指令是窄边界、工具执行路径：必须先于通用路由门和队列调整，
+        # 否则“改成”会被队列调整吞掉，“以后叫…唤醒我”也可能被误判为听不清。
+        wakeword_change = self._try_wakeword_change(normalized)
+        if wakeword_change is not None:
+            return wakeword_change
 
         # 不可信 ASR / 域外输入必须在近音归一化生效前判定；否则诸如
         # "水量天听"会被改写成"天气"并绕过入口门。DENY/ABSTAIN 均不进 Agent。
@@ -175,6 +193,43 @@ class InteractionLoop:
         # 未命中意图：静默（不语音搭话）。识别成功但语义未命中通常为背景音/无效内容，
         # 频繁语音回应会让用户感到被打扰（真机反馈：总是问我需要做什么）。
         return self._respond(False, True, "", "未命中", self.phase)
+
+    def _try_wakeword_change(self, text: str) -> InteractionResponse | None:
+        """Submit an explicit wakeword-setting command without blocking the daemon."""
+        if _is_ambiguous_wakeword_change(text):
+            return self._respond(
+                True,
+                False,
+                "请明确说，把唤醒词改成某个名字。",
+                "唤醒词指令不明确",
+                self.phase,
+            )
+        custom = _extract_wakeword_change(text)
+        if custom is None:
+            return None
+        if self._wakeword_change_submitter is None:
+            return self._respond(
+                True,
+                False,
+                "唤醒词修改失败，请稍后再试。",
+                "唤醒词修改失败",
+                self.phase,
+            )
+        if not self._wakeword_change_submitter(custom):
+            return self._respond(
+                True,
+                False,
+                "已有唤醒词修改正在处理，请稍后再试。",
+                "唤醒词修改繁忙",
+                self.phase,
+            )
+        return self._respond(
+            True,
+            True,
+            "",
+            "唤醒词修改已提交",
+            self.phase,
+        )
 
     # ── Agent 循环兜底（主链路接入底座，P0）─────────────────────
     def _route_before_agent(
@@ -417,6 +472,36 @@ class InteractionLoop:
 
 
 # ── 意图规则（窄边界，与 intent.py 同风格）─────────────────────
+_WAKEWORD_LABEL = r"(?:唤醒词|唤新词|花新词|叫醒词)"
+_WAKEWORD_CHANGE_PATTERNS = (
+    re.compile(
+        rf"^(?:把|将)?{_WAKEWORD_LABEL}(?:改|换)(?:成|为)?"
+        r"(?P<word>[\u4e00-\u9fff]{1,8}?)(?:吧|啊|呀)?[。！？!?.]*$"
+    ),
+    re.compile(
+        r"^(?:从现在开始|以后)?叫(?P<word>[\u4e00-\u9fff]{1,8}?)"
+        r"(?:来)?(?:唤醒|叫醒)我(?:吧|啊|呀)?[。！？!?.]*$"
+    ),
+)
+_AMBIGUOUS_WAKEWORD_CHANGE = (
+    re.compile(rf"^(?:把|将)?{_WAKEWORD_LABEL}(?:改|换)(?:成|为)?(?:什么|啥|哪个|哪一个)[。！？!?.]*$"),
+    re.compile(rf"^(?:把|将)?{_WAKEWORD_LABEL}(?:改|换)(?:成|为)?[\u4e00-\u9fff]{{1,8}}(?:吗|呢|可不可以|行不行)[。！？!?.]*$"),
+    re.compile(r"^星期五(?:可以吗|行吗|好吗)[。！？!?.]*$"),
+)
+
+
+def _extract_wakeword_change(text: str) -> str | None:
+    for pattern in _WAKEWORD_CHANGE_PATTERNS:
+        match = pattern.fullmatch(text)
+        if match:
+            return match.group("word")
+    return None
+
+
+def _is_ambiguous_wakeword_change(text: str) -> bool:
+    return any(pattern.fullmatch(text) for pattern in _AMBIGUOUS_WAKEWORD_CHANGE)
+
+
 _CONFIRM_INTENT = re.compile(r"(?:确认|可以|没问题|好的|就这样|行|收到|嗯好|OK|ok|是的|对|好(?:的|啊|吧)?)")
 _ADJUST_INTENT = re.compile(r"(?:调整|改(?:一下)?|重排|挪一下|提前一下)")
 _ADJUST_KEYWORD = re.compile(

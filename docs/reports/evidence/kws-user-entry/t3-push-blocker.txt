@@ -1,0 +1,32 @@
+wo-ultimaagent-20261101-0014 / T3 push blocker
+Captured: 2026-11-01 Asia/Shanghai
+
+Required transport
+git -c http.proxy= -c https.proxy= -c http.https://github.com.proxy= push
+
+Attempt 1
+- push origin main
+- exit_code=128
+- fatal: Failed to connect to github.com:443 after 21082 ms: Could not connect to server
+
+Attempt 2
+- direct ls-remote --heads origin main before push
+- exit_code=128
+- fatal: Failed to connect to github.com:443 after 21064 ms: Could not connect to server
+
+Attempt 3
+- Test-NetConnection github.com -Port 443 -InformationLevel Quiet
+- result: False
+
+Readback before transport failure
+- Local commit and tag were created and resolved to the same commit.
+- Resident daemon remained PID 27820 with its original 2026-11-01 12:52:55 start time.
+
+New blocker root cause
+- The execution environment has no direct TCP connectivity to github.com:443.
+- This is outside the repository and cannot be repaired without changing external network state or violating the Owner's explicit proxy-free transport requirement.
+
+Required authorization/state change
+- Restore direct outbound github.com:443 connectivity and re-dispatch push, or explicitly authorize a proxy-enabled push as a deviation from the frozen command.
+
+T3 push Gate: BLOCKED.

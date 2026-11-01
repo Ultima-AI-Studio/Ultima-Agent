@@ -1,0 +1,32 @@
+wo-ultimaagent-20261101-0014 / second dispatch / live same-PID hot-reload probe
+Captured: 2026-11-01 13:34:11 +08:00
+
+Command
+tools\venv-asr\Scripts\python.exe -X utf8 scripts\kws_reconfig.py --replace 贾维斯 星期五
+
+Frozen CLI result
+- exit_code=0
+- hot_reload.requested=true
+- hot_reload.success=true
+- hot_reload.same_pid=true
+- pid_before=27820
+- pid_after=27820
+- log_pid=27820
+- mtime_ns=1793511250710381900
+- log_line=KWS keywords 热重载成功 pid=27820 mtime_ns=1793511250710381900
+
+Independent process readback
+- PID before/after: 27820 / 27820.
+- StartTime before/after: 2026-11-01 12:52:55 / identical.
+- The daemon was not killed or restarted.
+
+State readback
+- voice-profile.json SHA256 before/after was identical:
+  0C8168E7575FCA0A483C095624B726CDF8A2D2B80CDCED7C72A5385CD8D7162B
+- wakeword.custom=星期五.
+- keywords contains six Jarvis variants at :2.0 #0.08, 星期五 at :2.0 #0.08, and unchanged ULTIMA.
+
+Boundary
+- This proves the existing HotReloadSpotter mechanism and same-PID CLI contract on the resident process.
+- Restart is forbidden, so PID 27820 cannot load the newly edited coordinator/callback source in this run.
+- The new complete voice path is therefore accepted by equivalent injection; real microphone acceptance of the new code remains pending the next authorized daemon lifecycle.
