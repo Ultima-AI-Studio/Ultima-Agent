@@ -2,7 +2,7 @@
 
 工单：`wo-ultimaagent-20261101-0017`
 范围：Ollama 原生约束解码、结构化回答 schema、解析降级、grounded/confidence 校验
-状态：T3 回归 PASS，Git 收口待执行
+状态：完成（T0–T4 PASS）
 
 ## 前置门
 
@@ -43,10 +43,22 @@
 - C2 PASS：0016 专项 + D 专项组合 `43 passed`；注入/正常回答组合 `18 passed`；双保险显式用例 `6 passed`。
 - C3 PASS：不可信输入由 0016 门拒绝/弃权，D 层另行阻断即使自报 `grounded=true` 的营销形态；正常问答最多两句。
 - 回归修复：发现并消除每轮读取 voice profile 的副作用，改为模块启动时读取现有风格约束；未修改 `voice_profile.py`，未改产品默认值；焦点复测 `1 passed`。
-- Git 精确写域收口、tag、免代理推送与远端读回：待执行。
+- C4 PASS：仅精确暂存本工单 13 个文件/片段；`agent_server.py` 中并行 HUD 事件改动未进入提交；`git diff --cached --check` 与暂存版本编译均通过。
+- C5 PASS：实现 commit `5ef3ec30a8635b3232d78a1edcabdc7362d9ae07`（`feat: 工单 0017 约束解码结构化输出`）；tag `ultimaagent-reply-constraint-structured-20261101` 精确指向该提交。
+- C6 PASS：branch/tag 均以代理配置显式置空方式推送，并由 `ls-remote` 独立读回。初始 DNS 边缘地址 443 不可达，经有界诊断后在保持 `github.com` 主机名和 TLS 校验的前提下，为本次命令临时指定可达 GitHub 边缘地址。
+- 并发保护：另一授权工单在 push 前于本提交之上生成 `b4fb88a37660d081fce43fd8da4ab50e876b6708`；未覆盖、回退或拆除该提交。远端 `main` 读回为 `b4fb88a...`，0017 的不可变 tag 读回为 `5ef3ec3...`。
 
-证据：`docs/reports/evidence/reply-constraint-d/t3-regression.txt`
+证据：`docs/reports/evidence/reply-constraint-d/t3-regression.txt`、`docs/reports/evidence/reply-constraint-d/t3-git.txt`
 
 ## T4 八字段回执
 
-待执行。
+- 链路号：`wo-ultimaagent-20261101-0017`
+- 执行端：Ultima coding executor；`H:\\UltimaAI\\UltimaAgent`
+- 完成状态：PASS；T0–T4 全部完成，实现提交与 tag 已推送且独立读回
+- 根因结论：自由文本出口缺少生成期形状边界；实测对象支持 Ollama 原生 JSON Schema，但 `grounded` 自报仍须校验器强制执行
+- 产出路径：`src/brain/reply/schema.py`、`src/brain/agent_server.py`、`src/brain/routing/reply_verifier.py`、probe、阶段报告与 evidence 目录
+- 验收证据：T0 20/20；全量 `852 passed + 120 subtests`；0016+D `43 passed`；注入/正常 `18 passed`；显式双保险 `6 passed`；commit/tag/远端读回见 T3
+- 越界声明：未改模型权重/全局推理参数、`jarvis.md` 人设正文、daemon 主链、W6 UI、`voice_profile.py`；未引云端结构化 API、Outlines、vLLM 或更换推理栈；并行脏改动均保留且未混入
+- 环境声明：Windows PowerShell；专用 Python 3.13.16；本地 Ollama 0.32.15 / qwen3-8b-uncensored；未使用默认 Python312；push 代理项显式置空
+
+机器可读回执：`docs/reports/evidence/reply-constraint-d/t4-receipt.txt`
