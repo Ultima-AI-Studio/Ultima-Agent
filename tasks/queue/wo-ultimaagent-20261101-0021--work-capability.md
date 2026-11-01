@@ -5,7 +5,7 @@
 - original_work_order_id: wo-ultimaagent-20261101-0021
 - revision: 2
 - authorization: 用户“那按顺序开始推进吧”；批准按已提交的工作能力契约与计划顺序执行，保留最终 Owner 验收和发布门。
-- 状态：T0/T1 技术门通过；T2累计修复3（默认2+单次schema兼容例外1）后真实E02仍FAIL/blocked；保持当前Qwen3 8B，14B未批准未执行；T3—T5未启动，原单未完成。
+- 状态：T0/T1技术门保持；T2原真实验收FAIL保留，用户现要求继续，正在第4次修复前架构诊断与方案预审，尚未放行产品源码/真实运行；当前8B/14B未授权，T3—T5未启动。
 - 计划：docs/plans/jarvis-work-capability-delivery-plan-20261101.md
 - 契约：docs/specs/jarvis-work-capability-contract-20261101.md
 - 草案检查点：ultimaagent-jarvis-work-plan-draft-20261101 @ f6eb808348302cec55bddcf44ee03f5b5736c4d9
@@ -83,3 +83,7 @@ T0/T1技术门通过；T2最后候选10fec03在2/2有界修复后真实E02失败
 ## 单次兼容例外结束
 
 610005e：151回归及fresh代码复核通过，唯一E02实际机械/语义FAIL，needs_attention/CLI2。首错为非法JSON，原facts:string本次未复现；S2 OpenAI已实现断言仍错。此例外结束，无第二轮/新修复/换模型授权；T2索引FAILED/不可派发、全局blocked/Manager读回，T3—T5未放行。最新报告docs/reports/jarvis-work-schema-compatibility-result-20261102.md，原历史保留。
+
+## 用户明确继续后的架构前置复核
+
+用户现要求继续。原3次失败/blocked检查点和累计数保留，控制器仅恢复同一T2的架构诊断与方案预审，下一次源码修复累计第4，累计上限5由本轮控制器限定，不是重置额度或冒充Owner批准。当前8B、不切14B，不改验收；代码需精确方案与独立审查先通过。依据data/evidence/jarvis-work-capability/T2/architecture-resume-20261102/resume-disposition.json。T3—T5尚未放行。
