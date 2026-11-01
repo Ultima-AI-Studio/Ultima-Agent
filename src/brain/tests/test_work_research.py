@@ -483,7 +483,7 @@ def test_r4b_partial_write(tmp_path,sdk_io,monkeypatch):
     assert Path(effect['path']).read_bytes()==b'partial'
 
 
-@pytest.mark.parametrize('stage',['before_intent','after_intent'])
+@pytest.mark.parametrize('stage',['before_intent','after_intent','r5_between_snapshots'])
 def test_r4b_late_report(tmp_path,sdk_io,mock_jar,monkeypatch,stage):
     import concurrent.futures
     import threading
@@ -493,8 +493,8 @@ def test_r4b_late_report(tmp_path,sdk_io,mock_jar,monkeypatch,stage):
     _,runner,bodies,replies=mock_jar
     entered=threading.Event()
     release=threading.Event()
-    target=WorkResearchWriteTool if stage=='before_intent' else FileWriteTool
-    name='run' if stage=='before_intent' else 'execute'
+    target=FileWriteTool if stage=='after_intent' else WorkResearchWriteTool
+    name='execute' if stage=='after_intent' else 'run'
     real=getattr(target,name)
     def delayed(*args,**kw):
         entered.set()
@@ -514,12 +514,30 @@ def test_r4b_late_report(tmp_path,sdk_io,mock_jar,monkeypatch,stage):
             def cancel(self): return future.cancel()
         return Expired()
     monkeypatch.setattr(_stubs._TOOL_RUNNER,'submit',dispatch)
+    if stage=='r5_between_snapshots':
+        # Deliver the actual SDK timeout response. On reading the compose error,
+        # allow the original worker to finish before the service handles it.
+        original_runner=runner
+        class TimeoutResponse(dict):
+            def __getitem__(self,key):
+                if key=='compose_error':
+                    release.set()
+                    actual[0].result(timeout=5)
+                return super().__getitem__(key)
+        def runner(*args,**kwargs):
+            return TimeoutResponse(original_runner(*args,**kwargs))
     replies.extend([action(report_payload()),'{"final_answer":"no file"}'])
     try:
         r=submit(tmp_path,sdk_io[0],runner)
         assert r['status']=='needs_attention' and len(bodies)==1
         effect=r['research_effects'][0]
-        assert effect['state']=='timed_out' and bool(effect.get('file_call_id'))==(stage=='after_intent')
+        assert effect['state']=='timed_out'
+        if stage=='r5_between_snapshots':
+            assert actual[0].done() and Path(effect['path']).is_file()
+            terminal=[x for x in r['tool_results'] if x.get('call_id') and x.get('tool_name')=='ultima_work_file_write']
+            assert [x['call_id'] for x in terminal]==([effect['file_call_id']] if effect.get('file_call_id') else [])
+        else:
+            assert bool(effect.get('file_call_id'))==(stage=='after_intent')
         snapshot=json.dumps(r,sort_keys=True)
         other=submit(tmp_path,sdk_io[0],runner)
         assert other['task_id']!=r['task_id'] and not other.get('research_effects')
@@ -599,9 +617,87 @@ def test_r4_research_exception_does_not_leak_to_ordinary(tmp_path,sdk_io,mock_ja
 def test_r4_exact_named_symbol_and_explicit_failure():
     from src.brain.work_research import _fact_evidence
     body='const x = new Writer(item);\nthrow new Error("missing");'
-    src=dict(text=body,source_id='S1',final_url='https://example.com/file.ts',
+    src=dict(text=body,body=body,source_id='S1',final_url='https://example.com/file.ts',
              decoded_body_sha256='test',read_call_id='read',request_id='r',session_id='s',task_id='t')
     visible=dict(enumerate(body.splitlines(),1))
     with pytest.raises(ValueError,match='exact operation'):
         _fact_evidence(dict(kind='code',claim='Uses AnotherWriter',symbol='Writer',first_line=1,last_line=1),src,visible)
     assert _fact_evidence(dict(kind='limitation',claim='This branch throws',first_line=2,last_line=2),src,visible)['text']==visible[2]
+
+
+def r5_witness(suffix,body,first,last,symbol='queue.dispatch',projection=None):
+    import hashlib
+    from src.brain.work_research import source_pack, _fact_evidence
+    source=dict(source_id='S1',final_url='https://example.com/queue.'+suffix,
+                text=body if projection is None else projection,body=body,
+                decoded_body_sha256=hashlib.sha256(body.encode()).hexdigest(),
+                read_call_id='read',request_id='r',session_id='s',task_id='t')
+    lines=dict(json.loads(source_pack([source]))[0]['lines'])
+    return _fact_evidence(dict(kind='code',claim='Calls '+symbol,symbol=symbol,
+                               first_line=first,last_line=last),source,lines)
+
+
+@pytest.mark.parametrize('suffix',['js','mjs','cjs','ts'])
+@pytest.mark.parametrize('opening',['class Queue {','const queue = {'])
+def test_r5_method_header_is_not_a_call(suffix,opening):
+    with pytest.raises(ValueError):
+        r5_witness(suffix,opening+'\n  dispatch(item)\n  /* method body */\n  { return item; }\n}',2,2,'dispatch')
+
+
+@pytest.mark.parametrize('body,symbol',[
+    ('interface Queue {\n  dispatch(item)\n  : void;\n}', 'dispatch'),
+    ('const run = () => {\n  return queue.dispatch(item)\n    .then(done);\n}', 'queue.dispatch'),
+    ('function run() {\n  queue.dispatch(item)\n    (other);\n}', 'queue.dispatch'),
+])
+def test_r5_incomplete_statement(body,symbol):
+    with pytest.raises(ValueError):
+        r5_witness('ts',body,2,2,symbol)
+
+
+@pytest.mark.parametrize('suffix,body',[
+    ('py','# head\f# note\nx = queue.dispatch(item)'),
+    ('js','// heading\u2028// note\nconst x = queue.dispatch(item);'),
+])
+def test_r5_comment_cannot_prove_call_on_different_line(suffix,body):
+    with pytest.raises(ValueError):
+        r5_witness(suffix,body,2,2)
+
+
+def test_r5_extracted_html_text_cannot_prove_a_source_statement():
+    with pytest.raises(ValueError):
+        r5_witness('js','<p>queue.dispatch(item);</p>',1,1,projection='queue.dispatch(item);')
+
+
+@pytest.mark.parametrize('newline',['\n','\r\n'],ids=['lf','crlf'])
+@pytest.mark.parametrize('suffix,lines',[
+    ('js',['async function run() {','  return await queue.dispatch(','    item);','}']),
+    ('ts',['async function run() {','  const x = await queue.dispatch(','    item);','}']),
+    ('py',['async def run():','    return await queue.dispatch(','        item)']),
+])
+def test_r5_complete_statement_and_raw_identity(newline,suffix,lines):
+    import hashlib
+    body=newline.join(lines)
+    with pytest.raises(ValueError):
+        r5_witness(suffix,body,2,2)
+    evidence=r5_witness(suffix,body,2,3)
+    assert evidence['text']=='\n'.join(lines[1:3])
+    assert evidence['decoded_body_sha256']==hashlib.sha256(body.encode()).hexdigest()
+
+
+def test_r5_completed_report_includes_sdk_result_and_effect(tmp_path,sdk_io,mock_jar):
+    _,runner,bodies,replies=mock_jar
+    replies.extend([action(report_payload()),'{"final_answer":"done"}'])
+    returned_sdk=[]
+    def observe(*args,**kwargs):
+        response=runner(*args,**kwargs)
+        returned_sdk.extend(response['tool_results'])
+        return response
+    r=submit(tmp_path,sdk_io[0],observe)
+    assert r['status']=='succeeded' and len(bodies)==2
+    assert returned_sdk and [t for t in r['tool_results'] if not t.get('call_id')]==returned_sdk
+    effect,=r['research_effects']
+    assert effect['state']=='completed' and effect['task_id']==r['task_id']
+    for tool,key in [('ultima_work_file_write','file_call_id'),('ultima_work_research_write','report_call_id')]:
+        terminal,=[t for t in r['tool_results'] if t.get('tool_name')==tool and t.get('call_id')]
+        assert terminal['success'] and terminal['call_id']==effect[key]
+    assert effect['path']==r['artifacts'][0]['path']

@@ -228,9 +228,11 @@ def _js_support(body, first, last, kind, symbol, suffix):
     tokens = []
     line = 1
     previous = None
+    following = None
     for _, family, value in lexer.get_tokens_unprocessed(body):
         end = line + value.count('\n')
-        if line > last:
+        if line > last and value.strip() and family not in Comment:
+            following = value
             break
         if end < first and value.strip() and family not in Comment:
             previous = value
@@ -278,6 +280,11 @@ def _js_support(body, first, last, kind, symbol, suffix):
             if not stack:
                 if words[i+1:] not in ([], [';']):
                     return False
+                # Without an explicit terminator the next significant token
+                # may open a method body or extend the operand (e.g. .then).
+                if i == len(words)-1 and following not in (
+                        None, ';', '}', 'return', 'throw', 'const', 'let', 'var', 'if'):
+                    return False
                 return callee == symbol if kind == 'code' else throwing or callee.split('.')[-1] in ('warn','warning')
     return False
 
@@ -309,10 +316,16 @@ def _fact_evidence(fact, source, visible):
                 not re.fullmatch(r'[A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*)*',symbol) or
                 not re.search(r'(?<![A-Za-z0-9_$.])'+re.escape(symbol)+r'(?![A-Za-z0-9_$]|\.[A-Za-z_$])',claim)):
             raise ValueError('A code claim must name its exact operation')
+        body = source['body']
+        # splitlines(), the AST and the lexer agree on LF/CRLF coordinates.
+        # Other separators or extracted HTML cannot supply raw code positions.
+        if (source['text'] != body or 'html' in source.get('content_type', '')
+                or re.search(r'\r(?!\n)|[\v\f\x1c-\x1e\x85\u2028\u2029]', body)):
+            raise ValueError('Unsupported code projection or line separator')
         if suffix == '.py':
-            supported = _python_support(source['text'],first,last,kind,symbol)
+            supported = _python_support(body,first,last,kind,symbol)
         elif suffix in ('.js','.ts','.mjs','.cjs'):
-            supported = _js_support(source['text'],first,last,kind,symbol,suffix)
+            supported = _js_support(body,first,last,kind,symbol,suffix)
         else:
             supported = False
         if not supported:
