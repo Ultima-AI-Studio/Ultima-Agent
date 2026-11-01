@@ -35,18 +35,26 @@ def main(argv: list[str] | None = None) -> int:
         help="文字试点：走本地 Agent 循环（agent_server，14B 自主回答/调工具）",
     )
     parser.add_argument('--work', action='store_true')
+    parser.add_argument('--current-window', action='store_true')
+    parser.add_argument('--replace-selection', action='store_true')
+    parser.add_argument('--research', action='store_true')
     parser.add_argument('--request-id')
     parser.add_argument('--session-id')
     parser.add_argument('--server-url', default='http://127.0.0.1:8756')
     parser.add_argument('--json', action='store_true')
     arguments = parser.parse_args(argv)
+    if (arguments.current_window or arguments.replace_selection or arguments.research) and not arguments.work:
+        parser.error('Context options require --work')
+    if arguments.replace_selection and not arguments.current_window:
+        parser.error('--replace-selection requires --current-window')
     if arguments.work:
         import json
         from src.brain.agent_client import ask_work
         if arguments.agent or arguments.loop or not arguments.request_id or not arguments.session_id or not arguments.text.strip():
             parser.error('--work requires text, --request-id and --session-id and cannot combine with --agent/--loop')
         try:
-            result = ask_work(arguments.text, request_id=arguments.request_id, session_id=arguments.session_id, server_url=arguments.server_url)
+            options={k:True for k,v in [('capture_current',arguments.current_window),('replace_selection',arguments.replace_selection),('research',arguments.research)] if v}
+            result = ask_work(arguments.text, request_id=arguments.request_id, session_id=arguments.session_id, server_url=arguments.server_url, **({'context':options} if options else {}))
         except Exception as exc:
             result = dict(status='failed', error=str(exc), artifacts=[], content='')
         print(json.dumps(result, ensure_ascii=False) if arguments.json else result.get('content') or result.get('error'))

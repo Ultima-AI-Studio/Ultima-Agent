@@ -91,11 +91,23 @@ def test_worker_binding_is_captured_at_construction(tmp_path):
 def test_fixture_oracle():
     e = json.loads((Path(__file__).parent / 'fixtures/work_capability/acceptance-cases.json').read_text(encoding='utf-8'))['e01']
     def oracle(text):
-        lines = [x.strip('- #\n。') for x in text.splitlines() if x.strip()]
+        import re
+        lines=[]
+        for line in text.splitlines():
+            line=re.sub(r'^\s*(?:#+\s*|[-*]\s*|\d+[.)、]\s*)','',line).replace('**','').strip(' \t。')
+            if not line or line in ('摘要','项目摘要','总结'): continue
+            line=re.sub(r'^(项目代号|交付形式|截止日期)\s*[:：]\s*',r'\1是',line)
+            lines.append(line)
         return sorted(lines) == sorted(e['facts'])
     assert oracle('\n'.join('- ' + x for x in e['facts']))
+    assert oracle('# 摘要\n- 项目代号：松林\n- 交付形式：Markdown文档\n- 截止日期：2026年11月8日')
     assert not oracle('\n'.join(e['facts'][:-1]))
     assert not oracle('\n'.join(e['facts'] + ['负责人是李明']))
+
+
+def test_write_schema_matches_execution():
+    spec = WorkWriteTool().spec.parameters
+    assert spec['properties']['mode']['enum'] == ['write']
 
 def test_native_sdk_integration_two_requests(tmp_path, monkeypatch):
     from openjarvis import Jarvis
@@ -151,6 +163,11 @@ def test_http_work_legacy_and_cli(tmp_path, monkeypatch, capsys):
         assert r['status'] == 'succeeded'
         assert cli.main(['--work', '--request-id', 'cli', '--session-id', 'cli', '--server-url', url, '--json', 'save']) == 0
         assert json.loads(capsys.readouterr().out)['status'] == 'succeeded'
+        import urllib.request
+        body = json.dumps(dict(mode='work', query='save', request_id='bad-r', session_id='bad-s', output_root='C:/')).encode()
+        with urllib.request.urlopen(urllib.request.Request(url+'/ask',data=body,headers={'Content-Type':'application/json'})) as response:
+            bad=json.load(response)
+        assert bad['request_id']=='bad-r' and bad['session_id']=='bad-s' and bad['task_id'] is None
     finally:
         server.shutdown()
         server.server_close()
