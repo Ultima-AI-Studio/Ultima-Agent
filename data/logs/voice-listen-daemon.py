@@ -884,8 +884,19 @@ def resolve_out_device() -> int:
         return DEV_OUT
 
 
+def _resample_wav_for_device(samples, src_rate: int, dst_rate: int):
+    """线性插值重采样到目标采样率（CV3=24k 需升到输出设备 44.1/48k，否则 Invalid sample rate）。"""
+    import numpy as np
+    if src_rate == dst_rate:
+        return samples
+    n = max(1, int(round(len(samples) * dst_rate / src_rate)))
+    x_old = np.arange(len(samples), dtype=np.float64)
+    x_new = np.linspace(0, len(samples) - 1, n)
+    return np.interp(x_new, x_old, samples.astype(np.float64)).astype(np.int16)
+
+
 def play_wav(path: Path) -> None:
-    """按扩展名播放：mp3 用 miniaudio 解码后 sounddevice 播放（动态解析输出设备），wav 直放。"""
+    """按扩展名播放：mp3 用 miniaudio 解码后 sounddevice 播放（动态解析输出设备），wav 直放（先重采样到输出设备采样率）。"""
     import sounddevice as sd
     import numpy as np
     out_dev = resolve_out_device()
@@ -903,7 +914,16 @@ def play_wav(path: Path) -> None:
         fr = wf.getframerate()
         raw = wf.readframes(wf.getnframes())
     samples = np.frombuffer(raw, dtype=np.int16)
-    sd.play(samples, fr, device=out_dev)
+    # 输出设备原生采样率优先，其次 48k/44.1k 常见档；CV3(24k)/其他非标采样率先重采样再播。
+    try:
+        dev_info = sd.query_devices(out_dev, "output")
+        target = int(round(float(dev_info.get("default_samplerate") or 0)))
+    except Exception:
+        target = 0
+    if target not in (44100, 48000, 96000):
+        target = 48000
+    samples = _resample_wav_for_device(samples, fr, target)
+    sd.play(samples, target, device=out_dev)
     sd.wait()
 
 

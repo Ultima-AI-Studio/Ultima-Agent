@@ -508,11 +508,29 @@ def _constrain_reply(
 
 
 def ask_once(query: str, max_tokens: int | None = None) -> dict[str, Any]:
-    """执行一轮自主对话：本地 14B 自主决定直接回答或调用工具（并发串行化）。"""
+    """执行一轮自主对话：本地 14B 自主决定直接回答或调用工具（并发串行化）。
+
+    全程向事件总线发布真实事件（四角壳 HUD 消费）：
+    - 收到提问 → message_in（w-agent 流：用户消息）
+    - 开始回复 → stream_start（w-agent 流：回复中）
+    - 工具调用 → tool_executing / tool_call（w-hb 流）
+    - 完成回复 → message（w-msg 流：AI 气泡）
+    """
+    EVENT_BUS.emit_event("message_in", {"text": query, "role": "user"})
     j = get_jarvis()
     with _ask_lock:
+        EVENT_BUS.emit_event("stream_start", {"text": "Ultima 正在回复…"})
+        # 注入当前时间作为 grounded 事实：8B 无时间工具，不注入则"现在几点/今天几号"只能兜底
+        import datetime as _dt
+
+        _now = _dt.datetime.now()
+        _weekdays = "一二三四五六日"
+        _time_ctx = "[当前时间：{0:%Y-%m-%d} {0:%H:%M} 星期{1}（北京时间）]".format(
+            _now, _weekdays[_now.weekday()]
+        )
+        query_with_ctx = f"{_time_ctx} {query}"
         result = j.ask_full(
-            query,
+            query_with_ctx,
             agent=AGENT,
             tools=TOOLS,
             context=False,
@@ -520,8 +538,23 @@ def ask_once(query: str, max_tokens: int | None = None) -> dict[str, Any]:
         )
     draft = _clean_content(result.get("content", ""))
     tool_results = result.get("tool_results", [])
-    structured_reply, degraded = _constrain_reply(query, draft, tool_results)
+    structured_reply, degraded = _constrain_reply(query_with_ctx, draft, tool_results)
     content = structured_reply.reply_text
+    for tr in tool_results:
+        EVENT_BUS.emit_event(
+            "tool_executing",
+            {"tool": tr.get("tool_name", "tool"), "name": tr.get("tool_name", "tool")},
+        )
+        EVENT_BUS.emit_event(
+            "tool_call",
+            {
+                "tool": tr.get("tool_name", "tool"),
+                "name": tr.get("tool_name", "tool"),
+                "text": (tr.get("content") or "")[:200],
+                "ok": bool(tr.get("success")),
+            },
+        )
+    EVENT_BUS.emit_event("message", {"text": content, "role": "jarvis"})
     return {
         "content": content,
         "reply_text": structured_reply.reply_text,
