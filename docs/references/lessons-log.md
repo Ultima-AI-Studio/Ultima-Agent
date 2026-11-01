@@ -199,9 +199,92 @@
 - **规避/修复方向**：`log()` 加进程内 `threading.Lock`（或单写者队列），T4 时间戳提取对损坏行做防御性解析。修复并进 0007 冻结门统一落地（红线：运行中 daemon 未停未重启，工作树改动冻结后一并生效）。
 - **复发**：0（首登记）
 
+### L27 回放端点音量残留 6.3% → "播放成功但物理无声"（运维/工具链）
+- **现象**：0007 五派修复重测中，响亮 1kHz 测试音（0.5 幅）经 MME idx4（POISON 耳机）播放，daemon 环境电平恒 0.0000、双端点对照（WASAPI idx30 + MME idx1）均只采到底噪（peak 0.0002-0.0005），一度判定"回放物理无声"。恢复端点音量后 daemon 即采到强信号（peak 0.0139-0.0625，17:50）。
+- **根因**：Windows 输出端点"耳机 (POISON M@LOFREE)"主音量=6.3%（pycaw 实测 vol=0.063 mute=False）——第四派曾调 6.3%→12%→20% 但只动了探针侧 gain/未持久，Windows 端点实际仍 6.3%。sounddevice 播放不报错（PortAudio 不管 Windows 端音量），播放"成功"但物理声极弱。0.5 幅测试音 × 0.063 ≈ 0.03 弱声 + 密闭耳机漏音不足 → 麦收不到。
+- **规避**：排查"播放成功但采集全静音"时必须先查**输出端点**的 Windows 主音量/静音（pycaw：`dev._dev.Activate(IAudioEndpointVolume._iid_, CLSCTX_ALL).GetMasterVolumeLevelScalar()`），再查输入端点；端音量残留是"物理无声"的第一嫌疑。探针定型：`tools/probe-endpoint-volume4.py`（pycaw 全端点音量/静音 + 恢复）。
+- **复发**：0（首登记）
+
+### L29 KWS 真机命中需「唤醒词后静音确认窗」+ speech 阶段 KWS 暂停互斥（#136 验收期）
+- **现象**：① 12s CV3 长句整句连读，离线 KWS 命中（hits=["贾维斯"]），真机 3 次播放持续强信号（peak 0.13-0.27）零命中；改 MeloTTS 7.87s 紧凑版仍零命中。② 长指令播放（18:43:53-18:44:25）落在上一轮 speech round（18:43:26→18:44:49 elapsed 82.81s）内，daemon 单线程 speech 阶段 KWS 监听暂停，播放声无人听。
+- **根因**：① KWS 流式解码在唤醒词后需静音间隙确认（命中日志 peak 恒为语音结束后的静音块）；整句连读无确认点 → 不输出命中。② daemon 主循环单线程：命中→采集→speech（Agent 回答+TTS+async-play 播放）期间 KWS 不监听。
+- **规避**：① 长指令夹具构造=已验证短音频前段唤醒词（1.6s）+ ≥0.8s 静音 + 指令正文（TTS 合成）拼接，总 9.39s → 真机 3/4 命中（首字 +4s）；1 次偶发未命中为 #133 score=2.0 已知现象。② 批量回放须按 speech 周期（~90s）排队，避开 speech/async-play 窗口（probe-t4-queue.py / probe-t4-long3.py）。
+- **复发**：1（L27/L28 同类物理耦合链；本条为内容与时序层新增根因）
+
+### L28 密闭耳机与 USB 麦无物理声学耦合 → T4 物理布置需操作者固定回放单元（硬件/物理层）
+- **现象**：POISON 输出端点音量恢复 100% 后，0.4 幅测试音播放仍只采到 0.00029（WASAPI30）；换 AG273 显示器（NVIDIA HDMI，电竞显示器无喇叭）播 0.00008 仍无声；daemon 却能采到环境强信号 0.0139-0.0625（采集链路活）。播放唤醒词 3 次 daemon 恒 0.0000。
+- **根因**：密闭式耳机播放声被耳罩吸收/定向，与 USB 麦之间无直达声路径；机器无可用外放单元（显示器无喇叭、SPDIF 无音箱、Steam 虚拟输出）。物理耦合（回放单元→麦 3-5cm 直达声）无法软件建立，是 T4 标定的硬前置。
+- **规避**：T4 物理耦合布置必须由操作者把回放单元（POISON 耳机或任一可外放设备）固定到 USB 麦（麦克风 USBAudio2.0，WASAPI idx30 / MME idx1）正前方 3-5cm；软件侧先恢复端音量 + 重启 daemon，用"强信号未命中/命中"日志判采集链路活，再播唤醒词判耦合达标（门控块峰值 0.01）。
+- **复发**：0（首登记）
+
+### L30 声音链路一致性：KWS 提示音与 TTS 音色必须同源；完整链路冷启动需预热（2026-10-30 真机反馈）
+- **现象**：真机两轮实测（19:40/19:41，reply-346/347）唤醒/识别/意图/回复全对，但：① 用户听感"KWS 提示音是以前的女声，TTS 回复是新合成的贾维斯克隆声，两者不一致"；② 用户觉得 CV3 克隆音"怪异"，要求把声音换回去；③ 重启后首轮 elapsed=68.19s（全链路冷启动）、热机 18.17s，体感"答应了却没动静"。
+- **根因**：① 声音归因（采样率取证）：KWS 提示音 wake-prompt.wav=44100Hz（MeloTTS 女声，与 10/26-10/27 历史 reply 224/241/242 同源）；当前 TTS 配置 engine=cv3 使 CV3 克隆声（24000Hz）永优先，与提示音音色不同源 → 听感断裂。② warmup() 只预热 ASR（5.9s），Agent 14B 首 token 与 TTS daemon 均冷启动 → 首轮 68s。
+- **修复（已执行并验证）**：① `voice-profile.json` engine cv3→sherpa，`tts.py` 增加显式本地引擎直达（sherpa/piper/edge），`voice_profile.py` 白名单扩为 {cv3,edge,sherpa,piper}；验证输出 44100Hz sherpa-melo-tts（1.07s），与 KWS 提示音同源同率。② warmup() 扩为完整链路三段：ASR（2.4s）+ Agent 8756 health+ask 预热（31.9s，首 token 加载）+ TTS 按 engine 预热（37.8s 累计），监听 20:01:43 恢复。**注意：agent_server 端口为 8756（agent_client.py L16），勿探 8080**。
+- **教训**：① 音色变更必须全链路同步（提示音+回复同一引擎/采样率），冻结音色前先真机听感验证，避免"技术正确但用户觉得怪异"；② 用户否决冻结音色（CV3）= 推翻 0005 frozen 决策，换回旧女声，属基线变更需回填报告。
+- **遗留**：换回 sherpa 后仍需真机复测确认延迟与听感；0005 CV3 冻结状态待 Owner 裁定（保留可用但非默认）。
+- **复发**：0（首登记）
+
+### L31 长回复"后半段断续"根因=播放走 MME 与采集同 hostapi 并发欠载；输出改 WASAPI 解耦（2026-10-30 真机反馈）
+- **现象**：用户真机反馈「喊了两遍才应（第二遍回复）→ 查天气时说的前半段正常、后半段断断续续」（20:26:53 强信号未命中 peak=0.0504 → 20:26:58 命中 active=3/5 → 20:27:03 final "查天气信。" → 20:27:06 reply="沈阳现在多云，气温8度，体感5度，北风19公里每小时。" → async-play reply-349.wav → 20:27:07 KWS 采集重新打开 → 20:27:11 played）。
+- **取证**：① reply-349.wav=44100Hz/单声道/4.45s，50ms 块能量连续、停顿全部落在句内逗号处；10ms 全零仅 1.08-1.11/1.81-1.82/2.74-2.76s，弱块特征与 Melo 时代旧回复 reply-40/42/77/85（同为 44100Hz）一致 ⇒ **合成音频健康、无丢帧**。② 设备表（tools/_dev_list.py）：MME POISON 耳机=idx4(44100)、DirectSound=idx15、WASAPI POISON=idx24(44100)、WASAPI 默认输出=24；系统默认输出=4(MME POISON)。daemon `resolve_out_device()` 按设备枚举顺序名字匹配 → 命中 **MME idx=4**（播放与 KWS 采集 MME idx1 **同 hostapi**）。③ 播放实现 `play_wav()`=sounddevice `sd.play()+sd.wait()` 阻塞式（后台线程 `_play_safe`），播放期间（20:27:07）主循环已回到 wait_wakeup 重新打开 KWS 采集流。
+- **根因**：播放线程与采集线程在 **MME 同一驱动栈上并发**（输入流 idx1 + 输出流 idx4），采集满负荷读时 MME 输出缓冲欠载 → 长回复后半段断续；短提示音（~1s）来不及显现，长回复（4.45s）后半段累积欠载。
+- **修复（已执行并验证）**：`resolve_out_device()` 改为**优先 WASAPI 输出**（idx24 POISON 44100Hz，与 MME 输入流不同驱动栈解耦），回退链 = WASAPI POISON → 任意 hostapi POISON → 系统默认。验证脚本（tools/_outdev_verify.py）真实设备表返回 idx=24 WASAPI 44100。daemon 第 5 次重启（PID 27164，20:35:00 监听恢复，warmup 三段完成 asr 5.8s/agent 32.7s/tts 41.4s）。
+- **基线勘误**：**PLAY_DEVICE=26 已漂移**——当前 idx=26 为 WASAPI "扬声器 (Steam Streaming Microphone)" 48000Hz（名字与 POISON 无关），WASAPI 下 POISON 耳机实为 **idx=24（44100Hz）**；daemon 名字优先规则命中 idx4 是 MME 枚举，而非基线 WASAPI 26。
+- **遗留**：① 若 WASAPI 播放后仍断续，下一步排查方向=播放期间暂停 KWS 采集（互斥）或播放改常驻 OutputStream 减少流创建开销；② "唤醒两遍才应"本次复现（20:26:53 peak=0.0504 未命中→第二遍命中）= #133 score=2.0 已知间歇现象，用户在真机多次遇到，待根治方案。
+- **复发**：0（首登记）
+
+### L32 第二轮真机「渐弱→杂音→无声」：端点音量残留 31.5% + 播放/采集并发未根除，播放期暂停采集收口（2026-10-30）
+- **现象**：用户复测「喊一遍即应✅（20:38:46 命中 active=4/5）→ 问现在几点 → 回复前半句正常、随后声音越来越小→变杂音→最后无声音」。round：20:38:50 ASR final="现在几点了？" → 20:38:53 reply="请允许我查看一下当前时间。\n现在是北京时间下午两点整，先生。"（pushed_seq=350）→ async-play reply-350.wav（idx=24 WASAPI 44100）→ 20:38:54 KWS 采集重开 → 20:38:59 played。
+- **取证**：① reply-350.wav（44100Hz/5.24s）50ms 块能量连续、无丢帧、无整体衰减（RMS 前 4912/中 4021/后 3342 属正常尾音，2.25-2.45s=换行停顿）→ **合成健康，问题在播放层**；② **POISON 输出端点音量=0.315（31.5%），非 100%**（pycaw probe-endpoint-volume4 实测）——上次 L27 恢复 100% 后再次被拉低，"声音越来越小"最直接解释；③ 播放期间（20:38:53-59）KWS 采集流仍在 MME idx1 满负荷读（20:38:54 重开），虽输出已切 WASAPI idx24 不同 hostapi，但采集线程 CPU/总线竞争仍在 → 长回复后半段 WASAPI 输出欠载。
+- **修复（已执行并重启验证）**：① `probe-endpoint-volume4.py` 恢复 POISON 端点到 vol=1.0 unmuted（**已执行**）；② daemon `play_wav`/`_play_safe` 增加 **`_PLAYING` 互斥事件**：播放置位、播完 finally 清除；`wait_wakeup` 循环检测 `_PLAYING.is_set()` 时 sleep(0.05) 跳过采集 read → **播放期间完全暂停 KWS 采集，输入/输出零并发**。daemon 第 6 次重启（launcher 2464→本体，20:44:15 启动、20:45:15 监听恢复，warmup asr 6.0s/agent 35.7s/tts 44.9s）。收口断言：播放期日志应出现 `KWS 采集打开` 只发生在播放结束后（非 20:38:53-59 期间）。
+- **代价**：播放期间（≤6s）KWS 不监听、不可唤醒；用户正在听回复，可接受；播完立即恢复唤醒。
+- **遗留**：① 端音量被拉低的原因未定位（Windows 应用/系统策略？），需观察是否再次漂移；② 唤醒两遍（#133 score=2.0）仍为已知间歇项；③ 若播放期互斥后仍出现杂音，下一步=WASAPI OutputStream 常驻化 + 显式 blocksize。
+- **复发**：1（L31 首登记，本条为同根因第二轮：WASAPI 解耦后未根除，追加互斥）
+
+### L33 第三波三连问题收窄：ASR 近音误识进归一化映射 + 征询误触发三重收窄（2026-10-30 真机反馈）
+- **现象**：用户三连抱怨「①KWS 触发不灵敏、②ASR 解析不清晰、③回答内容不精准」。逐层取证定位：22:14 轮 ASR final 完全正确（"给我看一下明天上海的天气怎么样。"），但 round reason="征询中"、reply 把上一轮 21:07 遗留的"水量天听"套进征询模板播给用户 → "回答内容不精准"= 征询误触发 + 跨轮引用旧文本两因素叠加；"水量天听"溯源=21:07 轮 intermediate"查一下明天的水平听听清"→ final"查一下明天的水量天听。"（"天气"近音误识），被 14B Agent 兜底原样引用。
+- **根因**：① `_CONSULT_INTENT = r"(?:你觉得怎么样|怎么样|如何|行不行|行吗|OK吗|可以吗|感觉如何|是否满意)"` 含"怎么样"，天气句"…天气怎么样"在天气直达（原 5.5 步）**之前**先被 `_CONSULT_INTENT` 命中 → `_on_consult` 把遗留 last_summary（"水量天听"）套进征询话术输出；② idle 态纯征询/确认短句（"你觉得怎么样"）在去掉 phase 前置后漏到 6 步 `_try_agent_fallback` 14B 兜底 → 自由发挥答非所问；③ ASR 近音乱词（水量天听/水平听听清）无入口拦截，直接进 Agent 被引用。
+- **修复（已执行并验证）**：interaction.py 四处收窄——① 天气直达整体前移至 handle() 1.4 步（调整指令之后、子智能体/征询/确认之前）；② `_CONFIRM_INTENT`/`_CONSULT_INTENT` 拦截加 `and self.phase == _PENDING_CONFIRM`（仅待确认态拦截）；③ 新增 2b：非待确认态命中征询/确认且不含查询动作词（`_QUERY_ACTION_RE`=查/看/问/天气/任务/队列/进度/状态/多少/什么/哪/时间/安排/计划）的纯短句提前静默返回"无待确认结果"（防漏 14B 兜底）；④ `_normalize_utterance` 新增 `_ASR_NEAR_HOMOPHONE` 近音映射（水量天听→天气、水平听听清→天气、水平听→天气、明天上海的这→明天上海的天气）。
+- **验证**：回归探针 `tools/_regress_int.py`（ProbeLoop 子类，phase 必须用真实常量 `_IDLE`/`_PENDING_CONFIRM`=idle/pending_confirm，不能用字符串字面量否则 phase 判断全落空）5 例全绿：22:14 复现→天气查询（不再征询）、normalize(21:07)="查一下明天的天气"、纯征询待确认态→征询中、天气句 idle→天气查询、确认→确认通过；pytest `test_interaction.py`+`test_interaction_orb.py` **28 passed**（原失败用例 test_consult_without_result_stays_idle 恢复绿：idle 态"你觉得怎么样"应静默 assertFalse(r.handled)）。daemon 第 7 次重启（launcher 39400→本体 23728，22:37:34 监听恢复，warmup asr 4.2s/agent 11.0s/tts 18.5s）。
+- **教训**：① 意图正则含泛词（"怎么样"）必须排在精确意图（天气直达）之后，否则吞掉真实查询；② 征询/确认闭环词只能在其状态机语境（待确认态）生效，跨态应静默而非落 LLM 兜底——LLM 兜底是"最后手段"，不是"所有未匹配句的垃圾桶"；③ ASR 近音误识要入口拦截（归一化映射），不能指望 14B 自纠，它会原样引用乱词。④ 探针/测试里 phase 常量必须与产品代码共用同一常量对象，字符串字面量会静默破坏所有 phase 分支判断。
+- **遗留**：① KWS 漏唤醒（#133 score=2.0）仍为已知间歇项，基线冻结，待专项 A/B（threshold=0.08/score=2.0 不擅动）；② last_summary 跨轮残留收敛（非待确认输入时清空/每轮覆盖）未实现，2b 已挡大部分误征询，但"上轮结果后直接问新问题"仍可能翻旧结果，下一轮治理项；③ 端音量漂移复发观察中。
+- **复发**：0（首登记）
+
 ## 变更日志
 
 | 版本 | 日期 | 变更 |
 |---|---|---|
-| v1.6 | 2026-10-29 | 新增 L24 daemon 重启后 KWS 唤醒失灵=USB 麦克风设备/驱动层不送有效信号（WASAPI/MME 双路径近静音、系统设置全正常、代码无回归）；配套报告第八节 |
+| v2.3 | 2026-10-30 | 新增 L33 第三波三连问题收窄：②ASR 近音误识（水量天听/水平听听清→天气，_normalize_utterance 近音映射）+ ③征询误触发（_CONSULT_INTENT 含"怎么样"先于天气直达拦截 → 天气直达前移 1.4 + 征询/确认仅待确认态拦截 + 纯征询/确认短句非待确认态静默 2b 防漏 14B 兜底自由发挥）；探针 5 例全绿 + 单测 28 全绿；daemon 第 7 次重启（22:37:34 监听恢复） |
+| v2.2 | 2026-10-30 | 新增 L32 第二轮真机渐弱/杂音/无声：POISON 端点音量残留 31.5%（probe 恢复 1.0）+ 播放/采集并发未根除 → daemon 增加 _PLAYING 互斥（播放期暂停 KWS 采集），第 6 次重启 PID 2464 监听 20:45:15 恢复 |
+| v2.1 | 2026-10-30 | 新增 L31 长回复后半段断续根因（MME 播放与采集同 hostapi 并发欠载）+ 修复（输出解析改优先 WASAPI idx24 解耦）+ 基线勘误（PLAY_DEVICE=26 漂移→WASAPI POISON 实为 idx24 44100）；daemon 第 5 次重启 PID 27164 |
+| v2.0 | 2026-10-30 | 新增 L30 声音链路一致性（KWS 提示音与 TTS 音色同源）+ 完整链路三段预热（ASR/Agent 8756/TTS）；engine cv3→sherpa 换回 MeloTTS 44100Hz 女声（用户否决 CV3 克隆音"怪异"）；agent_server 端口勘误 8756 |
 | v1.7 | 2026-10-30 | L24 根因修订：用户实机发声对照 + 双路径探针（MME/WASAPI 同采 peak≈0.034）+ 在线复刻全链命中（t=17.5s）推翻"硬件不送信号"定论；新增 L25 正确根因=daemon 旧实例 MME 句柄驱动级半死（MME error 6 后读静音、CPU 满载空转）；修复=重启换句柄并真机验证（00:06:55 命中贾维斯→00:07:09 天气查询+TTS）；教训=采集实测探针必须提示用户开口，未发声静音采样不能作硬件故障证据；配套报告第九节 |
+| v1.8 | 2026-10-30 | 新增 L27 回放端点音量残留 6.3%→"播放成功但物理无声"（pycaw 实测 vol=0.063，恢复 100% 后 daemon 采到强信号 0.0139）；新增 L28 密闭耳机与 USB 麦无物理声学耦合→T4 物理布置需操作者固定回放单元（唯一人工前置）；配套证据 `a3-output-endpoint-forensic.md` |
+| v1.9 | 2026-10-30 | 新增 L29 KWS 真机命中需「唤醒词后静音确认窗」（长指令夹具 0.8s 静音拼接）+ speech 阶段 KWS 暂停互斥（批量回放按 90s 排队）；#136 验收 PASS，证据 `a4-kws-rootcause.md` |
+
+## L34 Codex 派发 stdin 中文编码（2026-10-31 · 0008 十一次重派）
+
+- **现象**：Codex 派发脚本经 .NET StandardInput 写中文载荷 → codex 报 `Failed to read prompt from stdin: input is not valid UTF-8 (invalid byte at offset 36)`，exit=1 启动即失败（PID 28420）。
+- **根因**：载荷文件本身是合法 UTF-8（无 BOM、严格解码 OK），但 `StandardInput.Write(string)` 在 Windows PowerShell 下按默认编码（GBK/cp936）把字符串转成字节写 stdin，codex 按 UTF-8 解析错位报错；中文 UTF-8 三字节序列被 GBK 单字节化后产生非法字节。
+- **修复**：改用字节直写 `$p.StandardInput.BaseStream.Write([Text.Encoding]::UTF8.GetBytes($promptText), 0, len)` + Flush + Close，绕过 .NET StreamWriter 的默认编码层；修复后重派 PID 29968 启动成功并完整收 round4 回执。
+- **教训**：凡向任意子进程写 stdin 且内容含非 ASCII（中文/emoji/混合），必须显式 UTF-8 字节直写 BaseStream，绝不依赖 StreamWriter/Write(string) 的隐式编码；Windows 下这是高频静默坑（PowerShell 管道、.NET 编码层、控制台代码页三处都可能改写编码）。
+- **遗留**：无；重派收尾已完成（十二次重派 exit=0，round4 重筛 150 段/8.03min，用户拍板 B 方案开训，十三次重派已启动）。
+- **复发**：0（首登记）
+
+## 变更日志
+| v2.4 | 2026-10-31 | 新增 L34 Codex 派发 stdin 中文编码坑（UTF-8 字节直写 BaseStream 修复，0008 十一次重派 PID 28420 exit=1 → 十二次重派 PID 29968 exit=0） |
+| v2.5 | 2026-11-01 | 新增 L35 agent_server 8756 "查新闻" 500 根因链（旧进程未加载 0016/0017 + Qwen3 thinking 空 content + you.com 不可达吞 fallback；修复=启动脚本注入 OPENJARVIS_WEB_SEARCH_ENGINE=duckduckgo + 重启，实测 200 grounded=true） |
+
+## L35 agent_server 8756 "查新闻" 500 根因链（2026-11-01 · 实测修复）
+
+- **现象**：`POST /ask {"query":"查一下今天的新浪新闻"}` 返回 500；agent-server.log 尾部 `Requested engine '"'"'ollama'"'"' is unavailable; no substitute was selected`。
+- **根因链（三层）**：
+  1. **8756 进程跑旧代码**：PID 15504 为 10-31 13:56 启动，未加载 0016/0017（路由门/结构化回复）→ 旧链路异常。
+  2. **Qwen3 thinking 空 content 坑**：Qwen3 系列默认开启 extended thinking，`num_predict` 配额被思考 token 全部消耗，`message.content` 返回空（done_reason=length）。openjarvis OllamaEngine 已默认 `think=False`（源码注释明确此坑），新代码链路不受影响；直接测 ollama chat 需显式 `think:false`。
+  3. **ultima_web_search 30s 硬超时吞 fallback**：首选引擎 you.com API 本机不可达（`WinError 10060` 连接超时挂起），30s 工具执行上限在 fallback 到 DuckDuckGo 之前就掐掉请求。单测证明 you.com→DDG fallback 本身可用（返回真实来源 URL）。
+- **修复**：`scripts/start-agent-server.ps1` Start-Process 前注入 `$env:OPENJARVIS_WEB_SEARCH_ENGINE = "duckduckgo"`（本机实测 200 可达），重启 agent_server 加载新代码。
+- **验证**：`POST /ask "查一下今天的新浪新闻"` → 200；路由门 ALLOW（"查一下"命中）→ 8B 决策调用 ultima_web_search → DDG 返回 5 条真实新浪来源 → 0017 结构化回复 `grounded=true`、`confidence=0.9`、≤2 句无营销，`structured_degraded=false`。
+- **教训**：① 进程重启前先核对启动时间，旧进程排障是浪费轮次；② 外部 API 首选引擎不可达时，检查工具级硬超时是否会吞掉内置 fallback；③ 改引擎走环境变量注入启动脚本（项目内可回退），不直接改 venv 库。
+- **遗留**：无。
+- **复发**：0（首登记）
