@@ -109,7 +109,17 @@ class BrowserChannel:
         sdk=(self._search_factory or WebSearchTool)(engine='duckduckgo')
         result=sdk.execute(query=query,max_results=max_results)
         if not result.success: raise ValueError(result.content)
-        return dict(success=True,engine='duckduckgo',query=query,body=result.content,fetched_at=_now_iso())
+        import re
+        results=[]; diagnostics=[]
+        for index,block in enumerate(result.content.split('\n\n---\n\n')):
+            match=re.fullmatch(r'### ([^\n]+)\nSource: (https?://[^\s]+)\nSummary: (.*)',block,re.DOTALL)
+            if match:
+                title,url,snippet=match.groups()
+                results.append(dict(title=title,url=url,snippet=snippet))
+            else:
+                diagnostics.append(dict(record=index,reason='Unrecognized SDK formatted search record'))
+        return dict(success=True,engine='duckduckgo',query=query,body=result.content,
+                    results=results,parser_diagnostics=diagnostics,fetched_at=_now_iso())
 
     def fetch_public(self, url: str) -> dict:
         import hashlib
@@ -129,7 +139,7 @@ class BrowserChannel:
                 self.final_url=str(response.url)
                 return response
         sdk=(self._fetch_factory or ProvenanceGET)()
-        result=sdk.execute(url=url,method='GET',headers={'Accept':'text/html,text/plain,application/json'},timeout=30)
+        result=sdk.execute(url=url,method='GET',headers={'Accept':'text/html,text/plain,application/json'},timeout=5)
         meta=result.metadata or {}
         status=meta.get('status_code',0)
         kind=meta.get('content_type','').split(';')[0].lower()

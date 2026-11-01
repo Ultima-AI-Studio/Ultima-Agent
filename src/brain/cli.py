@@ -38,6 +38,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument('--current-window', action='store_true')
     parser.add_argument('--replace-selection', action='store_true')
     parser.add_argument('--research', action='store_true')
+    parser.add_argument('--source-url',action='append',default=[])
     parser.add_argument('--request-id')
     parser.add_argument('--session-id')
     parser.add_argument('--server-url', default='http://127.0.0.1:8756')
@@ -47,6 +48,8 @@ def main(argv: list[str] | None = None) -> int:
         parser.error('Context options require --work')
     if arguments.replace_selection and not arguments.current_window:
         parser.error('--replace-selection requires --current-window')
+    if arguments.source_url and not (arguments.work and arguments.research):
+        parser.error('--source-url requires --work --research')
     if arguments.work:
         import json
         from src.brain.agent_client import ask_work
@@ -54,6 +57,7 @@ def main(argv: list[str] | None = None) -> int:
             parser.error('--work requires text, --request-id and --session-id and cannot combine with --agent/--loop')
         try:
             options={k:True for k,v in [('capture_current',arguments.current_window),('replace_selection',arguments.replace_selection),('research',arguments.research)] if v}
+            if arguments.source_url: options['source_urls']=arguments.source_url
             result = ask_work(arguments.text, request_id=arguments.request_id, session_id=arguments.session_id, server_url=arguments.server_url, **({'context':options} if options else {}))
         except Exception as exc:
             result = dict(status='failed', error=str(exc), artifacts=[], content='')

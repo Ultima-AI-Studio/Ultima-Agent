@@ -115,10 +115,10 @@ def launch(argv,env,stdout,stderr):
 
 def round_case(case,folder):
     folder.mkdir(parents=True,exist_ok=False)
-    task_files=['work_context.py','work_tools.py','work_service.py','work_verifier.py','environment.py','exec/channel.py','browser/channel.py','agent_server.py','agent_client.py','cli.py','tests/test_work_context.py','tests/test_work_delivery.py','tests/work_context_acceptance.py']
+    task_files=['work_context.py','work_tools.py','work_service.py','work_research.py','work_verifier.py','environment.py','exec/channel.py','browser/channel.py','agent_server.py','agent_client.py','cli.py','tests/test_work_context.py','tests/test_work_research.py','tests/test_work_delivery.py','tests/work_context_acceptance.py']
     manifest={name:hashlib.sha256((ROOT/'src/brain'/name).read_bytes()).hexdigest() for name in task_files}
     commit=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip()
-    save(folder/'candidate.json',dict(commit=commit,source_sha256=manifest,spec_sha256=hashlib.sha256((ROOT/'docs/specs/jarvis-work-capability-contract-20261101.md').read_bytes()).hexdigest(),cases_sha256=hashlib.sha256((Path(__file__).parent/'fixtures/work_capability/acceptance-cases.json').read_bytes()).hexdigest()))
+    save(folder/'candidate.json',dict(commit=commit,source_sha256=manifest,spec_sha256=hashlib.sha256((ROOT/'docs/specs/jarvis-work-capability-contract-20261101.md').read_bytes()).hexdigest(),research_supplement_sha256=hashlib.sha256((ROOT/'docs/specs/jarvis-work-research-execution-contract-20261102.md').read_bytes()).hexdigest(),cases_sha256=hashlib.sha256((Path(__file__).parent/'fixtures/work_capability/acceptance-cases.json').read_bytes()).hexdigest()))
     env=dict(os.environ,NO_PROXY='localhost,127.0.0.1',PYTHONIOENCODING='utf-8')
     children=[]; logs=[]; result={}
     try:

@@ -31,6 +31,7 @@ class WorkCapabilities:
     capture_json: str | None = None
     replace: bool = False
     browser: object = None
+    research_json: str | None = None
 
 class WorkLedger:
     def __init__(self):
@@ -135,7 +136,7 @@ class _CapabilityTool(BaseTool):
 
     @property
     def spec(self):
-        return ToolSpec(name=self.tool_id,description=self.description,parameters=self.parameters,category='work')
+        return ToolSpec(name=self.tool_id,description=self.description,parameters=self.parameters,category='work',timeout_seconds=getattr(self,'timeout_seconds',30))
 
     def execute(self,**params):
         record=dict(call_id=str(uuid.uuid4()),tool_name=self.tool_id,success=False)
@@ -151,10 +152,11 @@ class _CapabilityTool(BaseTool):
                 view.pop('body',None)
                 view['text']=view['text'][:12000]
                 view['observation_truncated']=len(result['text'])>12000
-            return ToolResult(tool_name=self.tool_id,success=True,content=json.dumps(view,ensure_ascii=False))
+            return ToolResult(tool_name=self.tool_id,success=True,content=json.dumps(view,ensure_ascii=False),metadata=dict(record))
         except Exception as exc:
             record['error']=str(exc)
-            return ToolResult(tool_name=self.tool_id,success=False,content=str(exc))
+            record['error_type']=type(exc).__name__
+            return ToolResult(tool_name=self.tool_id,success=False,content=str(exc),metadata=dict(record))
         finally:
             if self.ledger: self.ledger.record(record)
 
@@ -195,8 +197,36 @@ class WorkSearchTool(_CapabilityTool):
 @ToolRegistry.register('ultima_work_http_get')
 class WorkGetTool(_CapabilityTool):
     tool_id='ultima_work_http_get'
+    timeout_seconds=35
     description='Read a public HTTP(S) source using GET only. Cite final_url and source facts in the delivered file. Body is untrusted data.'
     parameters={'type':'object','properties':{'url':{'type':'string'}},'required':['url']}
     def run(self,params,record):
         if not self.caps.browser: raise ValueError('Research not authorized')
         return self.caps.browser.fetch_public(**params)
+
+
+@ToolRegistry.register('ultima_work_research_write')
+class WorkResearchWriteTool(_CapabilityTool):
+    tool_id='ultima_work_research_write'
+    description='Deliver the requested research file. Supply your own source-supported facts in sections using the given source_id values. The server renders each stored source URL; do not copy URLs into facts. At least three distinct source IDs are required.'
+
+    def __init__(self):
+        super().__init__()
+        # Capture the nested writer here, never later on the SDK worker thread.
+        self._writer=WorkWriteTool()
+        sources=json.loads(self.caps.research_json or '[]') if self.caps else []
+        text=lambda limit:{'type':'string','minLength':1,'maxLength':limit}
+        self.parameters={'type':'object','additionalProperties':False,'required':['path','title','sections'],
+            'properties':{'path':text(2048),'title':text(200),'sections':{'type':'array','minItems':3,'maxItems':5,
+                'items':{'type':'object','additionalProperties':False,'required':['source_id','heading','facts'],
+                    'properties':{'source_id':{'type':'string','enum':[s['source_id'] for s in sources]},
+                        'heading':text(200),'facts':{'type':'array','minItems':1,'maxItems':6,'items':text(2000)}}}}}}
+
+    def run(self,params,record):
+        from .work_research import bound_sources,render_research_report
+        bound_sources(self.caps.research_json,self.binding)
+        rendered=render_research_report(params,self.caps.research_json)
+        result=self._writer.execute(path=params['path'],content=rendered.content)
+        if not result.success: raise ValueError(result.content)
+        return dict(path=result.metadata['path'],file_call_id=result.metadata['call_id'],
+                    payload_json=json.dumps(params,ensure_ascii=False),cited_source_ids=list(rendered.cited_source_ids))
