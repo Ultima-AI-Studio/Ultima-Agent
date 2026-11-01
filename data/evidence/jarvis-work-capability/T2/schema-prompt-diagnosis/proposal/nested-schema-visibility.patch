@@ -1,0 +1,52 @@
+--- a/src/brain/work_tools.py
++++ b/src/brain/work_tools.py
+@@ -221,6 +221,10 @@
+                 'items':{'type':'object','additionalProperties':False,'required':['source_id','heading','facts'],
+                     'properties':{'source_id':{'type':'string','enum':[s['source_id'] for s in sources]},
+                         'heading':text(200),'facts':{'type':'array','minItems':1,'maxItems':6,'items':text(2000)}}}}}}
++        self.description=(type(self).description
++            + '\nFull argument schema (JSON):\n'
++            + json.dumps(self.parameters,ensure_ascii=False,sort_keys=True)
++            + '\nEnd argument schema.')
+ 
+     def run(self,params,record):
+         from .work_research import bound_sources,render_research_report
+--- a/src/brain/tests/test_work_research.py
++++ b/src/brain/tests/test_work_research.py
+@@ -281,3 +281,36 @@
+     called=[]
+     r=submit(tmp_path,browser,lambda *a,**kw:called.append(True) or {})
+     assert r['status']=='failed' and not called,r
++
++
++@pytest.mark.parametrize('source_count',[3,5])
++def test_native_react_first_messages_include_nested_report_schema(tmp_path,sdk_io,monkeypatch,source_count):
++    from openjarvis import Jarvis
++    from openjarvis.core.config import JarvisConfig
++    from src.brain import agent_server
++    browser,calls,_=sdk_io
++    first_messages=[]
++    class CaptureEngine:
++        engine_id='first-message-capture-only'
++        def generate(self,messages,**kwargs):
++            assert not first_messages
++            first_messages.extend((message.role.value,message.content) for message in messages)
++            return {'content':json.dumps({'final_answer':'capture only; no file delivery'})}
++    config=JarvisConfig(); config.telemetry.enabled=False
++    jar=Jarvis(config=config,model='qwen3-8b-uncensored'); jar._engine=CaptureEngine()
++    monkeypatch.setattr(agent_server,'_jars',jar)
++    result=submit(tmp_path,browser,agent_server._run_work_agent,source_urls=URLS[:source_count])
++    assert [kind for kind,_ in calls]==['search']+['get']*source_count
++    assert result['status']=='failed' and not result['artifacts']
++    assert not list(tmp_path.rglob('*.md'))
++    system=next(content for role,content in first_messages if role=='system')
++    # Inspect the actual first inference input built by real NativeReAct,
++    # not WorkResearchWriteTool.spec.parameters or a mocked formatter.
++    assert 'Full argument schema (JSON):\n' in system
++    raw=system.split('Full argument schema (JSON):\n',1)[1].split('\nEnd argument schema.',1)[0]
++    schema=json.loads(raw)
++    section=schema['properties']['sections']
++    assert section['type']=='array'
++    nested=section['items']['properties']
++    assert nested['facts']['type']=='array' and nested['facts']['items']['type']=='string'
++    assert nested['source_id']['enum']==['S'+str(i) for i in range(1,source_count+1)]

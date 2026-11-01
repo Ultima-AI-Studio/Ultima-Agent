@@ -1,0 +1,10 @@
+### ultima_work_research_write
+Deliver the requested research file. Supply your own source-supported facts in sections using the given source_id values. The server renders each stored source URL; do not copy URLs into facts. At least three distinct source IDs are required.
+Full argument schema (JSON):
+{"additionalProperties": false, "properties": {"path": {"maxLength": 2048, "minLength": 1, "type": "string"}, "sections": {"items": {"additionalProperties": false, "properties": {"facts": {"items": {"maxLength": 2000, "minLength": 1, "type": "string"}, "maxItems": 6, "minItems": 1, "type": "array"}, "heading": {"maxLength": 200, "minLength": 1, "type": "string"}, "source_id": {"enum": ["S1", "S2", "S3"], "type": "string"}}, "required": ["source_id", "heading", "facts"], "type": "object"}, "maxItems": 5, "minItems": 3, "type": "array"}, "title": {"maxLength": 200, "minLength": 1, "type": "string"}}, "required": ["path", "title", "sections"], "type": "object"}
+End argument schema.
+Category: work
+Parameters:
+  - path (string, required)
+  - title (string, required)
+  - sections (array, required)

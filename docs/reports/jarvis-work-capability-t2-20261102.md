@@ -1,5 +1,9 @@
 # UltimaAgent 工作能力 T2 停点报告
 
+> 当前接续结果：保持当前Qwen3 8B的一次明确schema兼容例外已完成，累计修复3；候选610005e代码复核PASS、151测试PASS，但唯一真实E02仍机械/语义FAIL，T2继续blocked，T3—T5未放行。详见[最新兼容验收报告](jarvis-work-schema-compatibility-result-20261102.md)。下文保留10fec03/2轮时历史，不改写旧失败。
+
+## 修复2/2时的历史停点（10fec03）
+
 - 原单：`wo-ultimaagent-20261101-0021`；阶段键：`wo-ultimaagent-20261101-0021-t2`。
 - 结论：**T2 BLOCKED / 真实验收 FAIL**。第 2/2 轮有界修复已用，未进入 T3—T5，原单未完成、无 Owner 验收或产品冻结。
 - 最终被测源码：`10fec033343444168cf6fc9d41b63552a6b82727`。失败检查点名称为 `ultimaagent-work-capability-t2-blocked-20261102`；推送/远端解析以 checkpoint 回执为准。

@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="2" skipped="0" tests="2" time="2.153" timestamp="2026-11-02T02:06:54.495237+08:00" hostname="DESKTOP-B366PQ9"><testcase classname="src.brain.tests.test_work_research" name="test_native_react_first_messages_include_nested_report_schema[3]" time="1.209"><failure message="AssertionError: assert 'Full argument schema (JSON):\n' in 'You are a ReAct agent. For each step, respond with exactly one of:\n\n1. To think and act:\nThought: &lt;your reasoning&gt;.../网络等有风险操作 → 先说清要做什么和影响，等确认后再做。\n8. 所有回答都应有依据标记：grounded=true（有依据）/ false（无依据明示）。\n\n【对齐】\n9. 任务类对话遵循简洁推进：报结果、说下一步，不冗长。'">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/schema-compatibility-exception/red-tmp/test_native_react_first_messag0')
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x000001E89D7C74D0&gt;, [('search', 'Research a subject'), ('get', 'https://example.com/source/1'), ('get', 'https://example.com/source/2'), ('get', 'https://example.com/source/3')], {})
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000001E83D4EC180&gt;
+source_count = 3
+
+    @pytest.mark.parametrize('source_count',[3,5])
+    def test_native_react_first_messages_include_nested_report_schema(tmp_path,sdk_io,monkeypatch,source_count):
+        from openjarvis import Jarvis
+        from openjarvis.core.config import JarvisConfig
+        from src.brain import agent_server
+        browser,calls,_=sdk_io
+        first_messages=[]
+        class CaptureEngine:
+            engine_id='first-message-capture-only'
+            def generate(self,messages,**kwargs):
+                assert not first_messages
+                first_messages.extend((message.role.value,message.content) for message in messages)
+                return {'content':json.dumps({'final_answer':'capture only; no file delivery'})}
+        config=JarvisConfig(); config.telemetry.enabled=False
+        jar=Jarvis(config=config,model='qwen3-8b-uncensored'); jar._engine=CaptureEngine()
+        monkeypatch.setattr(agent_server,'_jars',jar)
+        result=submit(tmp_path,browser,agent_server._run_work_agent,source_urls=URLS[:source_count])
+        assert [kind for kind,_ in calls]==['search']+['get']*source_count
+        assert result['status']=='failed' and not result['artifacts']
+        assert not list(tmp_path.rglob('*.md'))
+        system=next(content for role,content in first_messages if role=='system')
+        # Inspect the actual first inference input built by real NativeReAct,
+        # not WorkResearchWriteTool.spec.parameters or a mocked formatter.
+&gt;       assert 'Full argument schema (JSON):\n' in system
+E       AssertionError: assert 'Full argument schema (JSON):\n' in 'You are a ReAct agent. For each step, respond with exactly one of:\n\n1. To think and act:\nThought: &lt;your reasoning&gt;.../网络等有风险操作 → 先说清要做什么和影响，等确认后再做。\n8. 所有回答都应有依据标记：grounded=true（有依据）/ false（无依据明示）。\n\n【对齐】\n9. 任务类对话遵循简洁推进：报结果、说下一步，不冗长。'
+
+src\brain\tests\test_work_research.py:309: AssertionError</failure></testcase><testcase classname="src.brain.tests.test_work_research" name="test_native_react_first_messages_include_nested_report_schema[5]" time="0.018"><failure message="AssertionError: assert 'Full argument schema (JSON):\n' in 'You are a ReAct agent. For each step, respond with exactly one of:\n\n1. To think and act:\nThought: &lt;your reasoning&gt;.../网络等有风险操作 → 先说清要做什么和影响，等确认后再做。\n8. 所有回答都应有依据标记：grounded=true（有依据）/ false（无依据明示）。\n\n【对齐】\n9. 任务类对话遵循简洁推进：报结果、说下一步，不冗长。'">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/schema-compatibility-exception/red-tmp/test_native_react_first_messag1')
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x000001E89FE48F50&gt;, [('search', 'Research a subject'), ('get', '...'https://example.com/source/3'), ('get', 'https://example.com/source/4'), ('get', 'https://example.com/source/5')], {})
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000001E83D4EC050&gt;
+source_count = 5
+
+    @pytest.mark.parametrize('source_count',[3,5])
+    def test_native_react_first_messages_include_nested_report_schema(tmp_path,sdk_io,monkeypatch,source_count):
+        from openjarvis import Jarvis
+        from openjarvis.core.config import JarvisConfig
+        from src.brain import agent_server
+        browser,calls,_=sdk_io
+        first_messages=[]
+        class CaptureEngine:
+            engine_id='first-message-capture-only'
+            def generate(self,messages,**kwargs):
+                assert not first_messages
+                first_messages.extend((message.role.value,message.content) for message in messages)
+                return {'content':json.dumps({'final_answer':'capture only; no file delivery'})}
+        config=JarvisConfig(); config.telemetry.enabled=False
+        jar=Jarvis(config=config,model='qwen3-8b-uncensored'); jar._engine=CaptureEngine()
+        monkeypatch.setattr(agent_server,'_jars',jar)
+        result=submit(tmp_path,browser,agent_server._run_work_agent,source_urls=URLS[:source_count])
+        assert [kind for kind,_ in calls]==['search']+['get']*source_count
+        assert result['status']=='failed' and not result['artifacts']
+        assert not list(tmp_path.rglob('*.md'))
+        system=next(content for role,content in first_messages if role=='system')
+        # Inspect the actual first inference input built by real NativeReAct,
+        # not WorkResearchWriteTool.spec.parameters or a mocked formatter.
+&gt;       assert 'Full argument schema (JSON):\n' in system
+E       AssertionError: assert 'Full argument schema (JSON):\n' in 'You are a ReAct agent. For each step, respond with exactly one of:\n\n1. To think and act:\nThought: &lt;your reasoning&gt;.../网络等有风险操作 → 先说清要做什么和影响，等确认后再做。\n8. 所有回答都应有依据标记：grounded=true（有依据）/ false（无依据明示）。\n\n【对齐】\n9. 任务类对话遵循简洁推进：报结果、说下一步，不冗长。'
+
+src\brain\tests\test_work_research.py:309: AssertionError</failure></testcase></testsuite></testsuites>

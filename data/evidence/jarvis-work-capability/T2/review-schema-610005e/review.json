@@ -1,0 +1,159 @@
+{
+  "reviewer": "fresh independent scoped reviewer / review_work_schema_exception",
+  "at_utc": "2026-11-01T18:14:49.033466+00:00",
+  "original_order": "wo-ultimaagent-20261101-0021",
+  "base": "afbbe3e4616d1f322ebc55705750014a4db2867f",
+  "head": "610005e61187463681c7499c0e8fbba399f0c2eb",
+  "scope": "ONE SDK schema compatibility exception; supplied 1 commit / 2 file / 37 addition diff only",
+  "code_verdict": "PASS",
+  "t2_verdict": "NOT PASS",
+  "live_E02": "PENDING",
+  "findings": [
+    {
+      "id": "I3",
+      "status": "ADDRESSED",
+      "evidence": [
+        "src/brain/work_tools.py:224-227",
+        "src/brain/tests/test_work_research.py:283-316",
+        "retained RED/GREEN same [3] and [5] NativeReAct inference-message test identities"
+      ],
+      "reason": "Instance description serializes the exact current self.parameters after binding the request-local catalog. Supported ToolSpec.description is carried by installed build_tool_descriptions into the real NativeReAct system prompt. Test engine captures actual first generate(messages) inputs via WorkService and _run_work_agent; external I/O alone is replaced."
+    }
+  ],
+  "new_critical": [],
+  "new_important": [],
+  "nonblocking_out_of_scope_observations": [
+    {
+      "id": "O1",
+      "status": "UNRESOLVED / OUT OF SCOPE",
+      "detail": "Earlier live E02 mechanical and factual/source failures remain FAIL. No evidence here establishes real 8B adherence, factual correctness, or T2 acceptance."
+    },
+    {
+      "id": "O2",
+      "status": "NONBLOCKING / BASELINE",
+      "detail": "Retained logs include voice-reference fallback warning and compatibility anyio PytestAssertRewriteWarning; no warning-related changes in this diff."
+    }
+  ],
+  "authorization": {
+    "patch_sha256": "633aa63821e4e3aa76db5b7209fdbd9b31dea615a0079de02894705f5a0d31dc",
+    "hash_verified": true,
+    "cumulative_repair": 3,
+    "prior_repairs": 2,
+    "controller_explicit_exception": 1,
+    "owner_approval_claimed": false,
+    "no14B": true,
+    "production_switch": false
+  },
+  "evidence_checks": {
+    "source_matches": {
+      "work_context.py": true,
+      "work_tools.py": true,
+      "work_service.py": true,
+      "work_research.py": true,
+      "work_verifier.py": true,
+      "environment.py": true,
+      "exec/channel.py": true,
+      "browser/channel.py": true,
+      "agent_server.py": true,
+      "agent_client.py": true,
+      "cli.py": true,
+      "tests/test_work_context.py": true,
+      "tests/test_work_research.py": true,
+      "tests/test_work_delivery.py": true,
+      "tests/work_context_acceptance.py": true
+    },
+    "changed_vs_prior": [
+      "work_tools.py",
+      "tests/test_work_research.py"
+    ],
+    "harness_actual_hash_matches": {
+      "spec_sha256": true,
+      "cases_sha256": true,
+      "research_supplement_sha256": true
+    },
+    "authorization_hash_match": true,
+    "ruling_hash_match": true,
+    "patch_sha256": "633aa63821e4e3aa76db5b7209fdbd9b31dea615a0079de02894705f5a0d31dc",
+    "patch_hash_authorized": true,
+    "approved_additions_reconstruct_prior": {
+      "src/brain/work_tools.py": true,
+      "src/brain/tests/test_work_research.py": true
+    },
+    "retained_runs": {
+      "red": {
+        "count": 2,
+        "distinct": 2,
+        "failures": 2,
+        "errors": 0,
+        "skips": 0,
+        "exit": 1
+      },
+      "green": {
+        "count": 2,
+        "distinct": 2,
+        "failures": 0,
+        "errors": 0,
+        "skips": 0,
+        "exit": 0
+      },
+      "covering": {
+        "count": 143,
+        "distinct": 143,
+        "failures": 0,
+        "errors": 0,
+        "skips": 0,
+        "exit": 0
+      },
+      "compat": {
+        "count": 8,
+        "distinct": 8,
+        "failures": 0,
+        "errors": 0,
+        "skips": 0,
+        "exit": 0
+      }
+    },
+    "red_green_same_two_cases": true,
+    "new_case_identities": [
+      [
+        "src.brain.tests.test_work_research",
+        "test_native_react_first_messages_include_nested_report_schema[3]"
+      ],
+      [
+        "src.brain.tests.test_work_research",
+        "test_native_react_first_messages_include_nested_report_schema[5]"
+      ]
+    ],
+    "green_cases_in_covering": true,
+    "t1_testcase_count": 60,
+    "missing_t1": [],
+    "combined_distinct": 151,
+    "compat_identities_identical_to_prior": true,
+    "t1_compat_count": 8,
+    "prior_covering_identities_retained": true
+  },
+  "protected_process_identities_unchanged": true,
+  "validation_method": "Read retained logs/XML/exits, independently compare testcase identities and SHA256 source/contract/authorization/patch bytes; reconstruct prior exact source bytes by removing approved additions; fresh read-only protected PID identity check. No test suite, inference, network or UI action executed.",
+  "review_scope_limits": "Earlier T2 reviews stand. Commit identity supplied by review package/candidate, not independently re-queried with git per instruction.",
+  "input_evidence_sha256": {
+    "H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\schema-compatibility-exception\\red.log": "596159817b5abf2c4142df81bc00e4b866147aaa1e3fb6bd961c089838272290",
+    "H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\schema-compatibility-exception\\red.xml": "9ed48f3e84b428610dcb7862d28cbb9a99042e2524bb38fcd472d4936587657e",
+    "H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\schema-compatibility-exception\\red-exit.json": "50d7caf03dd967e4363a5bc7babbf450452b31dd1ec7fb605b2abc6465759571",
+    "H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\schema-compatibility-exception\\green.log": "709464b869ff9fcf0305cf111584dcc731799e9901ef4fb729d2e1c2146d0d11",
+    "H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\schema-compatibility-exception\\green.xml": "65ce5b58608ff64869fbc62576032b069b9a56852e8b4dd9269aa29ff85dede6",
+    "H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\schema-compatibility-exception\\green-exit.json": "75876e0e3f497cad271143ba85bd4f36569cd81195509043f860dab14265b716",
+    "H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\schema-compatibility-exception\\covering.log": "19a7ebff0ce6e33600fdd455aa9e0085f79bd6806594e29068912bd9fff703f3",
+    "H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\schema-compatibility-exception\\covering.xml": "ef64879276383d3442a1392f23e4f601f1c58dd680e0b86f21ac21d6b4fe3e83",
+    "H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\schema-compatibility-exception\\covering-exit.json": "75876e0e3f497cad271143ba85bd4f36569cd81195509043f860dab14265b716",
+    "H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\schema-compatibility-exception\\compat.log": "7a573bee9e08169874d13c9d9a34d54742f86671c34dd69675cfb96a30ef353d",
+    "H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\schema-compatibility-exception\\compat.xml": "5dea1437cc71fac3060c11eb6abc8c004a82184be3ed9dde894418eb15874efd",
+    "H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\schema-compatibility-exception\\compat-exit.json": "75876e0e3f497cad271143ba85bd4f36569cd81195509043f860dab14265b716",
+    "H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\schema-compatibility-exception\\candidate.json": "3c9337bd0e1fad74ef35811ae77fbf4bb0a7b172f2557fa91c9e2d0d73cd9333",
+    "H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\schema-compatibility-exception\\tested-source-manifest.json": "7df761fc211a990ee3bfccea2b84d7451cb0998685c7ede3898352be1ed16d3c",
+    "H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\schema-compatibility-exception\\coverage-comparison.json": "2b2f241746cc926bac5d8c7acbb15ce46994f1de719f586e3068ae3e40bf8aa2",
+    "H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\schema-compatibility-exception\\compat-loaded-paths.json": "9ff3af0fa882634a2f7b0bb7942a5aba2d83015460341e28d681dc8738bbfc0d",
+    "H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\schema-prompt-diagnosis\\compatibility-exception-authorization.json": "9ad69ff0c2ed8d3f44d2342e364ad1735f85ce3cc922c01992afbac9c331816e",
+    "H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\schema-prompt-diagnosis\\controller-compatibility-ruling.md": "7832449d666170745f640da640e7dbc5e62ee280a55f32bd3c5a752ebc712c6b",
+    "H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\schema-prompt-diagnosis\\proposal\\nested-schema-visibility.patch": "633aa63821e4e3aa76db5b7209fdbd9b31dea615a0079de02894705f5a0d31dc"
+  }
+}
