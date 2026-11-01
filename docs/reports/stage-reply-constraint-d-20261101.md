@@ -43,6 +43,7 @@
 - C2 PASS：0016 专项 + D 专项组合 `43 passed`；注入/正常回答组合 `18 passed`；双保险显式用例 `6 passed`。
 - C3 PASS：不可信输入由 0016 门拒绝/弃权，D 层另行阻断即使自报 `grounded=true` 的营销形态；正常问答最多两句。
 - 回归修复：发现并消除每轮读取 voice profile 的副作用，改为模块启动时读取现有风格约束；未修改 `voice_profile.py`，未改产品默认值；焦点复测 `1 passed`。
+- 并行提交后的最终主线复测 PASS：再次执行全量 `pytest src -q`，结果仍为 `852 passed, 36 warnings, 120 subtests passed in 170.80s`。
 - C4 PASS：仅精确暂存本工单 13 个文件/片段；`agent_server.py` 中并行 HUD 事件改动未进入提交；`git diff --cached --check` 与暂存版本编译均通过。
 - C5 PASS：实现 commit `5ef3ec30a8635b3232d78a1edcabdc7362d9ae07`（`feat: 工单 0017 约束解码结构化输出`）；tag `ultimaagent-reply-constraint-structured-20261101` 精确指向该提交。
 - C6 PASS：branch/tag 均以代理配置显式置空方式推送，并由 `ls-remote` 独立读回。初始 DNS 边缘地址 443 不可达，经有界诊断后在保持 `github.com` 主机名和 TLS 校验的前提下，为本次命令临时指定可达 GitHub 边缘地址。
