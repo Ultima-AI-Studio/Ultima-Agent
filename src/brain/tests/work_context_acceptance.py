@@ -181,7 +181,7 @@ def round_case(case,folder):
             options=['--research']
             pinned='https://raw.githubusercontent.com/akshayaggarwal99/jarvis-ai-assistant/bec50ef6e615707613c4fa22c8bd6afc3cc93152/'
             sdk_source='https://raw.githubusercontent.com/open-jarvis/OpenJarvis/0eb7811df96cf139e6bd6d7fcc9b5cc4ff1418ff/src/openjarvis/agents/native_react.py'
-            query='查询'+CASES['e02']['topic']+'。实际搜索Jarvis.ceo akshayaggarwal99 jarvis-ai-assistant，再GET读取以下三个官方固定版本架构来源：'+', '.join(pinned+x for x in ('README.md','src/core/agent-manager.ts','src/agents/unified-agent.ts'))+'。另GET现有OpenJarvis底座官方源码：'+sdk_source+'。保存research.md，正文严格分为上述四个来源各一小节：每节先原样粘贴该来源完整final_url，然后列两条能由该节实际GET正文直接支持的具体架构/功能事实。不要只在文末列参考资料。不要项目概况、横向评价或额外URL，仓库首页也不加；只引用这四个实际GET的完整源码URL。搜索片段仅用于发现，不作事实来源；不收录同名人物或产品。区分两个项目，不把架构混同。最后如有接入建议，明确标注为建议，不伪称已实现。'
+            query='查询'+CASES['e02']['topic']+'，整理带来源的文档保存为research.md。请实际搜索并阅读相关官方资料，可参考这些固定版本源码：'+', '.join(pinned+x for x in ('README.md','src/core/agent-manager.ts','src/agents/unified-agent.ts'))+'，以及现有执行底座的官方源码 '+sdk_source+'。'
         cli_args=['-m','src.brain.cli','--work',*options,'--request-id',folder.name,'--session-id',folder.name,'--server-url',f'http://127.0.0.1:{port}','--json',query]
         save(folder/'argv.json',dict(server=server_args,cli=cli_args,owned_pids=[p.pid for p in children],environment_overrides={'NO_PROXY':env['NO_PROXY'],'PYTHONIOENCODING':'utf-8'}))
         out=open(folder/'cli.stdout','w',encoding='utf-8'); err=open(folder/'cli.stderr','w',encoding='utf-8'); logs+=[out,err]

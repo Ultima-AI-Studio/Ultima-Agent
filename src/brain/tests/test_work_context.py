@@ -122,6 +122,62 @@ def test_readonly_capture_does_not_expose_mutation(tmp_path):
     assert r['status']=='succeeded' and n.sent==0
 
 
+@pytest.mark.parametrize('companion',['UNRELATED companion content','prefixactual replacement','actual replacement ','actual replacement\n'])
+def test_companion_must_equal_exact_replacement(tmp_path,companion):
+    p,n=provider()
+    def run(*a,**kw):
+        from src.brain.work_tools import WorkReplaceTool
+        assert WorkReplaceTool().execute(content='actual replacement').success
+        assert WorkWriteTool().execute(path='rewrite.md',content=companion).success
+        return {}
+    r=WorkService(tmp_path,runner=run,context_provider=p).submit_work('rewrite',request_id='r',session_id='s',context={'capture_current':True,'replace_selection':True})
+    assert r['status']=='needs_attention',r
+    assert n.sent==1 and n.state['text']=='A😀Bactual replacementC'
+    assert r['context_results'][0]['verified'] and r['artifacts'][0]['verified']
+    assert Path(r['artifacts'][0]['path']).read_text(encoding='utf8')==companion
+
+
+@pytest.mark.parametrize('payload,companion',[('改写😀\n第二行','改写😀\r\n第二行'),('改写😀\r\n第二行','改写😀\n第二行')])
+def test_companion_unicode_newlines_and_one_of_multiple_files(tmp_path,payload,companion):
+    p,n=provider()
+    def run(*a,**kw):
+        from src.brain.work_tools import WorkReplaceTool
+        assert WorkReplaceTool().execute(content=payload).success
+        assert WorkWriteTool().execute(path='notes.md',content='not the rewrite').success
+        assert WorkWriteTool().execute(path='rewrite.md',content=companion).success
+        return {}
+    r=WorkService(tmp_path,runner=run,context_provider=p).submit_work('rewrite',request_id='r',session_id='s',context={'capture_current':True,'replace_selection':True})
+    assert r['status']=='succeeded',r
+    assert n.sent==1 and len(r['artifacts'])==2
+    assert r['context_results'][0]['replacement_text']==payload
+    assert r['context_results'][0]['companion_paths']==[str(Path(r['artifacts'][1]['path']))]
+
+
+@pytest.mark.parametrize('fault',['changed_hash','unreadable'])
+def test_companion_is_reopened_after_artifact_verification(tmp_path,monkeypatch,fault):
+    from src.brain import work_service
+    real=work_service.verify_artifacts
+    p,n=provider()
+    def verify(binding,writes):
+        artifacts=real(binding,writes)
+        if fault=='changed_hash':
+            target=Path(artifacts[0]['path'])
+            raw=target.read_bytes()
+            altered=raw.replace(b'\r\n',b'\n') if b'\r\n' in raw else raw.replace(b'\n',b'\r\n')
+            assert altered!=raw
+            target.write_bytes(altered)
+        else: Path(artifacts[0]['path']).unlink()
+        return artifacts
+    monkeypatch.setattr(work_service,'verify_artifacts',verify)
+    def run(*a,**kw):
+        from src.brain.work_tools import WorkReplaceTool
+        assert WorkReplaceTool().execute(content='actual replacement\n').success
+        assert WorkWriteTool().execute(path='rewrite.md',content='actual replacement\n').success
+        return {}
+    r=WorkService(tmp_path,runner=run,context_provider=p).submit_work('rewrite',request_id='r',session_id='s',context={'capture_current':True,'replace_selection':True})
+    assert r['status']=='needs_attention' and n.sent==1,r
+
+
 def browser(search=None, fetch=None):
     from src.brain.browser.channel import BrowserChannel
     return BrowserChannel(search_factory=search, fetch_factory=fetch)

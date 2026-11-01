@@ -179,7 +179,7 @@ class WorkReplaceTool(_CapabilityTool):
         channel.register_control('replace_selection',lambda _:self.caps.provider.replace_selection(capture,params.get('content'),before_send=mark))
         # Request-local observation avoids collecting unrelated application content.
         result=channel.perform('replace_selection',confirmed=True)
-        return result['result']
+        return dict(result['result'],replacement_text=params['content'])
 
 
 @ToolRegistry.register('ultima_work_web_search')
