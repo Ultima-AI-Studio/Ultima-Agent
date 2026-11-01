@@ -47,3 +47,9 @@
 | wo-ultimaagent-20261101-0015 | executing | ASR 纠错系统化（工单 F）：initial_prompt 扩充天气/时间高频词 + 近音映射独立化 config/asr-normalize.json + "水天"类扩充；T0-T4；2026-11-01 登记；方案 docs/plans/plan-voice-three-issues-20261101.md；工单卡 tasks/queue/wo-ultimaagent-20261101-0015--asr-correction.md；派发载荷 dispatch-wo-ultimaagent-20261101-0015-prompt.txt；冻结门=tag ultimaagent-asr-correction-20261101 |
 | wo-ultimaagent-20261101-0016 | executing | 意图路由门+回答校验器+主脑规则接入（工单 C）：三态判定 ALLOW/DENY/ABSTAIN + banned 语义化/≤2 句/grounded 接口 + agent_server 规则块恒加载；T0-T4（含 T2.5）；2026-11-01 登记；方案 docs/plans/reply-constraint-implementation-plan-20261031.md（8B 引用+规则接入已更新）；工单卡 tasks/queue/wo-ultimaagent-20261101-0016--reply-constraint-routing.md；派发载荷 dispatch-wo-ultimaagent-20261101-0016-prompt.txt；冻结门=tag ultimaagent-reply-constraint-routing-20261101 |
 | wo-ultimaagent-20261101-0017 | executing | 约束解码结构化输出（工单 D）：ollama format/grammar 实测 qwen3-8b → {reply_text,confidence,grounded} schema + 校验器启用 grounded/confidence；T0-T4；2026-11-01 登记；依赖 0016 出口稳定后派发；方案 docs/plans/reply-constraint-implementation-plan-20261031.md；工单卡 tasks/queue/wo-ultimaagent-20261101-0017--reply-constraint-structured.md；派发载荷 dispatch-wo-ultimaagent-20261101-0017-prompt.txt；冻结门=tag ultimaagent-reply-constraint-structured-20261101 |
+
+## 新路径验证接续（2026-11-01）
+
+| 工单 | 状态 | 说明 |
+|---|---|---|
+| wo-ultimaagent-20261101-0019 | audit | 新中文持续流KWS离线技术审计PASS；待真人与采集接入验证，未冻结、未切换；旧0018保持取消；报告 docs/reports/voice-next-wekws-proof-20261101.md |
