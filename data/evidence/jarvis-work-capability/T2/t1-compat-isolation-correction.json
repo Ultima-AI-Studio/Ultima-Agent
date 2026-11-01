@@ -1,0 +1,37 @@
+{
+  "original_order": "wo-ultimaagent-20261101-0021",
+  "at_utc": "2026-11-01T16:47:52.376152+00:00",
+  "scope": "T1 historical eight legacy-compatibility tests",
+  "finding": "Hardcoded H root and bare-module path insertion can create synthetic TempDirectory under H/data and import H baseline modules; historical run was not fully restricted to evidence root",
+  "historical_results_retained": true,
+  "T1_immutable_tag_unchanged": true,
+  "comparison": [
+    {
+      "file": "src/brain/agent_tools_ultima.py",
+      "T0_sha256": "77cb9a870f5a2bebe4a7bc86adf3e73a381364c666795b49c8bedce40f81c4a0",
+      "H_current_sha256": "77cb9a870f5a2bebe4a7bc86adf3e73a381364c666795b49c8bedce40f81c4a0",
+      "C_current_sha256": "77cb9a870f5a2bebe4a7bc86adf3e73a381364c666795b49c8bedce40f81c4a0",
+      "all_equal": true
+    },
+    {
+      "file": "src/brain/tests/test_agent_tools_extend.py",
+      "T0_sha256": "0c0f7b73078c363d5dc4d2033d51a10a2897b9ad9cb002f1b8b229ce01e3dcf2",
+      "H_current_sha256": "0c0f7b73078c363d5dc4d2033d51a10a2897b9ad9cb002f1b8b229ce01e3dcf2",
+      "C_current_sha256": "0c0f7b73078c363d5dc4d2033d51a10a2897b9ad9cb002f1b8b229ce01e3dcf2",
+      "all_equal": true
+    }
+  ],
+  "production_queue_or_memory_file_evidence": "Tests explicitly construct synthetic stores in TemporaryDirectory, not real queue/memory stores",
+  "supplement_required": "Run unchanged eight tests with evidence-root test ROOT and candidate module preload; record all import paths and testcase identity coverage",
+  "supplement_status": "PASS",
+  "supplement_at_utc": "2026-11-01T16:55:27.722529+00:00",
+  "supplement_candidate": "ad1621e55314de3a79bebbb922f6a58fea7458ae",
+  "supplement_test_count": 8,
+  "supplement_identity_receipt": "fix-round-1/compat-identity-comparison.json",
+  "supplement_import_receipt": "fix-round-1/compat-loaded-paths.json",
+  "supplement_xml_sha256": "c1ab5e391a3b6b2675010f8aeaeb99d0a0b33b44a516d57035340616930359e8",
+  "original_history_unchanged": true,
+  "latest_supplement_candidate": "10fec033343444168cf6fc9d41b63552a6b82727",
+  "latest_supplement_xml_sha256": "7e78b4e338910ccc6ac9e2534c5aa76b2f0f997a313a4e2764e48b95fa622a2f",
+  "all60_prior_cases_covered_by_current149": true
+}
