@@ -156,7 +156,9 @@ def validate_profile(profile: object) -> dict[str, Any]:
         voice = copy.deepcopy(DEFAULT_PROFILE["voice"])
         result["voice"] = voice
     engine = voice.get("engine")
-    if not isinstance(engine, str) or engine not in {"cv3", "edge"}:
+    # 2026-10-30 声音换回：允许显式本地引擎 sherpa(MeloTTS 44100Hz 女声)/piper，
+    # 供"换回以前女声（与 KWS 提示音同源）"配置；cv3=edge 兼容历史冻结。
+    if not isinstance(engine, str) or engine not in {"cv3", "edge", "sherpa", "piper"}:
         voice["engine"] = DEFAULT_PROFILE["voice"]["engine"]
     ref_audio = voice.get("ref_audio")
     if not isinstance(ref_audio, str) or not ref_audio.strip():
@@ -427,7 +429,15 @@ def load_persona(profile: dict[str, Any] | None = None) -> str:
 
 def compose_agent_query(question: str, persona: str) -> str:
     """Carry the selected persona into the local agent request."""
-    return f"{persona}\n\nUSER QUESTION:\n{question}\n\nAnswer under the persona constraints above."
+    return (
+        f"{persona}\n\nUSER QUESTION:\n{question}\n\n"
+        "Answer under the persona constraints above.\n"
+        "回答规则（必须遵守）：\n"
+        "1. 直接回答用户问的问题本身，禁止反问用户或让用户换一种问法；\n"
+        "2. 不知道、不确定或没有把握的事实，明确回答'我不确定/我无法确认'，禁止编造数字与事实，"
+        "也禁止用'没有/不存在/请提供更多信息'一类话术回避问题；\n"
+        "3. 口语化，控制在三句以内。"
+    )
 
 
 def _has_marketing_phrase(text: str, phrases: list[str]) -> bool:

@@ -6,7 +6,7 @@ import re
 from dataclasses import dataclass
 from pathlib import Path
 
-from .intent import parse_task_status_intent
+from .intent import parse_capability_intent, parse_task_status_intent
 from .queue_source import QueueSnapshot, TaskStatus, read_queue_status
 
 
@@ -26,7 +26,17 @@ def respond_to_text(
     queue_root: str | Path,
     detail_task_id: str | None = None,
 ) -> TextResponse:
-    """Handle an explicit task-status query; unmatched text performs no read."""
+    """Handle an explicit task-status or capability query; unmatched text performs no read."""
+    cap_intent = parse_capability_intent(text)
+    if cap_intent.matched:
+        from .capability import CapabilityError, load_manifest, summarize
+
+        try:
+            summary = summarize(load_manifest())
+        except CapabilityError as exc:
+            return TextResponse(True, False, f"能力清单不可用：{exc}")
+        return TextResponse(True, True, summary)
+
     intent = parse_task_status_intent(text)
     if not intent.matched:
         return TextResponse(False, True, "")
@@ -96,5 +106,6 @@ def _state_label(state: str) -> str:
         "FAILED": "失败",
         "BLOCKED": "冻结",
         "CANCELLED": "已取消",
+        "TERMINATED": "已终止",
     }
     return labels[state]

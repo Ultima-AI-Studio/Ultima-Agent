@@ -967,6 +967,48 @@ def _handle_collection_result(loop, collection: CollectionResult) -> dict:
         voice_loop_module.asr_transcribe = original_asr
 
 
+def _guard_tts_completeness(result: dict, reply: Path) -> Path:
+    """CV3 合成完整性护栏（2026-11-01）：时长过短判定为漏句，依次重试。
+
+    实测：完整时间句应 ≥8s；CV3 对"X点/时Y分+星期X"部分句式确定性漏内容，
+    合成仅 1.2~2.3s（只出声尾）。判定阈值 len≥8 且 <2.5s → 重合成同文本 1 次；
+    仍短 → "X时Y分"改写为"X点钟Y分"再合成；仍不达标则保持现状。
+    """
+    text = (result.get("response") or {}).get("text") or ""
+    text_len = len(text.strip())
+    if text_len < 8:
+        return reply
+    import wave as _wave
+
+    def _secs(p: Path) -> float:
+        try:
+            with _wave.open(str(p), "rb") as w:
+                return w.getnframes() / w.getframerate()
+        except Exception:
+            return 0.0
+
+    if _secs(reply) >= 2.5:
+        return reply
+    from src.brain.voice.tts import tts_synthesize
+
+    log(f"tts 完整性防护: 合成仅 {_secs(reply):.2f}s（文本 {text_len} 字），重试同文本…")
+    r = tts_synthesize(text, str(reply), timeout=300)
+    if r.get("ok") and _secs(reply) >= 2.5:
+        log(f"tts 重试成功: {_secs(reply):.2f}s")
+        return reply
+    import re as _re
+
+    alt = _re.sub(r"([一二三四五六七八九十]+)时", r"\1点钟", text)
+    if alt != text:
+        log("tts 完整性防护: 改用「X点钟Y分」句式重合成…")
+        r = tts_synthesize(alt, str(reply), timeout=300)
+        if r.get("ok") and _secs(reply) >= 2.5:
+            log(f"tts 点钟句式成功: {_secs(reply):.2f}s")
+            return reply
+    log(f"tts 完整性防护: 仍未达标（{_secs(reply):.2f}s），保持现状")
+    return reply
+
+
 def main() -> None:
     log(f"daemon 启动（pid={os.getpid()}，唤醒词模式：贾维斯）")
     # 2026-10-29 19:5x 单实例锁：原子创建锁文件（O_CREAT|O_EXCL），
@@ -1042,6 +1084,8 @@ def main() -> None:
                 # 2026-10-29 19:5x 播放改后台线程：原来阻塞式播放使整轮 30~40s 内无法再次
                 # 唤醒，且回复生成(14B+TTs)后才播，用户等太久以为"没反应"。
                 # 现在 handle_audio 返回后立即回待唤醒，播放由线程异步完成。
+                # 2026-11-01：播放前先过 CV3 完整性护栏（漏句重试）。
+                reply = _guard_tts_completeness(result, Path(reply))
                 threading.Thread(target=_play_safe, args=(Path(reply),), daemon=True).start()
                 log("async-play: " + str(reply))
         except KeyboardInterrupt:

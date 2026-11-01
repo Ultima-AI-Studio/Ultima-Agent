@@ -19,7 +19,8 @@ def main():
         process=subprocess.Popen(config['command'],cwd=config['cwd'],stdin=subprocess.DEVNULL,
                                  stdout=sys.stdout.buffer,stderr=sys.stderr.buffer,
                                  shell=False,creationflags=flags,close_fds=True,
-                                 env={**os.environ, 'PYTHONIOENCODING':'utf-8', 'PYTHONUTF8':'1'})
+                                 env={**os.environ, 'PYTHONIOENCODING':'utf-8', 'PYTHONUTF8':'1',
+                                      'CODEX_HOME': r'C:\Users\Administrator\.codex-cli'})
         config.update(worker_pid=process.pid, worker_identity=process_identity(process.pid))
         temporary_progress=progress.with_name(progress.name+f'.{os.getpid()}.tmp')
         temporary_progress.write_text(json.dumps(config),encoding='utf-8')

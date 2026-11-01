@@ -19,15 +19,44 @@ public sealed partial class MainWindow : Window
         nint handle = WindowNative.GetWindowHandle(this);
         _appWindow = AppWindow.GetFromWindowId(Microsoft.UI.Win32Interop.GetWindowIdFromWindow(handle));
         bool dpiAcceptance = Environment.GetEnvironmentVariable("ULTIMA_HOST_DPI_ACCEPTANCE") == "1";
+        bool orbTest = Environment.GetEnvironmentVariable("ULTIMA_HOST_ORB_TEST") == "1";
+        bool orbLive = Environment.GetEnvironmentVariable("ULTIMA_HOST_LIVE") == "1";
+        bool combo = Environment.GetEnvironmentVariable("ULTIMA_HOST_COMBO") == "1";
         bool floatingBall = Environment.GetEnvironmentVariable("ULTIMA_HOST_FLOATINGBALL_TEST") == "1"
             || dpiAcceptance;
         Grid shell = CreateShell();
         Content = shell;
+        // 关闭 WinUI3 默认 backdrop（Win11 默认 Mica 磨砂底色 = 窗体白框真凶），
+        // 背景交由 ACCENT 透明接管（见 OrbWindowConfig.SetTransparent）
+        if (orbLive || orbTest)
+        {
+            SystemBackdrop = null;
+        }
         shell.Loaded += async (_, _) =>
         {
             try
             {
-                if (floatingBall)
+                if (combo)
+                {
+                    await ComboWindowRenderer.RunAsync(
+                        _webView, _appWindow, handle, AppContext.BaseDirectory,
+                        ResolveWriteRoot());
+                }
+                else if (orbLive)
+                {
+                    // 复现 10:41 成功配方：ACCENT + SetWindowPos 240 + 无 Region + 无特殊属性
+                    OrbWindowConfig.ApplyAccent(handle);
+                    OrbWindowConfig.ResizeAndLocate(_appWindow, handle);
+                    await OrbLiveRenderer.RunAsync(
+                        _webView, _appWindow, handle, AppContext.BaseDirectory,
+                        ResolveWriteRoot());
+                }
+                else if (orbTest)
+                {
+                    await OrbBallRenderer.RunAsync(
+                        _webView, _appWindow, handle, AppContext.BaseDirectory);
+                }
+                else if (floatingBall)
                 {
                     await FloatingBallEvidence.RunAsync(_webView, _appWindow, handle);
                 }
@@ -50,18 +79,56 @@ public sealed partial class MainWindow : Window
                 Application.Current.Exit();
             }
         };
-        if (floatingBall)
+        if (orbTest || orbLive)
+        {
+            OrbWindowConfig.Configure(_appWindow, handle);
+        }
+        else if (floatingBall)
         {
             FloatingBallEvidence.ConfigureWindow(_appWindow, handle);
         }
-        else
+        else if (!combo)
         {
             _appWindow.Resize(new SizeInt32(960, 640));
         }
     }
 
+    /// <summary>写域根解析：环境变量优先，默认上溯 exe 目录到 UltimaAgent 根。</summary>
+    private static string ResolveWriteRoot()
+    {
+        string? configured = Environment.GetEnvironmentVariable("ULTIMA_HOST_WRITE_ROOT");
+        if (!string.IsNullOrWhiteSpace(configured))
+        {
+            return configured;
+        }
+        DirectoryInfo current = new(AppContext.BaseDirectory);
+        while (current is not null)
+        {
+            if (File.Exists(Path.Combine(current.FullName, "INDEX.md"))
+                || Directory.Exists(Path.Combine(current.FullName, "src", "brain")))
+            {
+                return current.FullName;
+            }
+            current = current.Parent ?? throw new InvalidOperationException("写域根解析失败：未找到 UltimaAgent 根");
+        }
+        return AppContext.BaseDirectory;
+    }
+
     private Grid CreateShell()
     {
+        bool useWebView = Environment.GetEnvironmentVariable("ULTIMA_HOST_LIVE") == "1"
+            || Environment.GetEnvironmentVariable("ULTIMA_HOST_COMBO") == "1"
+            || Environment.GetEnvironmentVariable("ULTIMA_HOST_WEBVIEW_TEST") == "1"
+            || Environment.GetEnvironmentVariable("ULTIMA_HOST_FLOATINGBALL_TEST") == "1"
+            || Environment.GetEnvironmentVariable("ULTIMA_HOST_DPI_ACCEPTANCE") == "1"
+            || Environment.GetEnvironmentVariable("ULTIMA_HOST_ORB_TEST") == "1";
+        // 复现历史成功配方：orbLive 根背景透明（ACCENT 透明窗口承载 WebView2 球）
+        bool orbLive = Environment.GetEnvironmentVariable("ULTIMA_HOST_LIVE") == "1";
+        var rootBg = orbLive
+            ? new SolidColorBrush(Color.FromArgb(0, 0, 0, 0))
+            : useWebView
+                ? new SolidColorBrush(Color.FromArgb(0, 0, 0, 0))
+                : new SolidColorBrush(Color.FromArgb(255, 15, 20, 32));
         TextBlock title = new()
         {
             Text = "Ultima Agent",
@@ -89,12 +156,9 @@ public sealed partial class MainWindow : Window
         stack.Children.Add(subtitle);
         Grid root = new()
         {
-            Background = new SolidColorBrush(Color.FromArgb(255, 15, 20, 32)),
+            Background = rootBg,
             Children = { stack }
         };
-        bool useWebView = Environment.GetEnvironmentVariable("ULTIMA_HOST_WEBVIEW_TEST") == "1"
-            || Environment.GetEnvironmentVariable("ULTIMA_HOST_FLOATINGBALL_TEST") == "1"
-            || Environment.GetEnvironmentVariable("ULTIMA_HOST_DPI_ACCEPTANCE") == "1";
         _webView.Visibility = useWebView
             ? Visibility.Visible
             : Visibility.Collapsed;

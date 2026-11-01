@@ -26,6 +26,7 @@ from .routing.reply_verifier import ReplySchema, get_reply_verifier
 _TASK_ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._~-]*$")
 _PRIORITY = re.compile(r"^[0-9]{1,3}$")
 
+
 class _DynamicWakeEchoPattern:
     """Match wakeword-only ASR echoes against the current voice profile."""
 
@@ -138,17 +139,40 @@ class InteractionLoop:
         if adjusted is not None:
             return adjusted
 
+        # 1.4 天气直达（2026-10-29 新增，此处提前于征询/确认判断）：
+        #     含"怎么样/如何/行不行"的天气句（如"明天上海的天气怎么样"）必须先走
+        #     天气直达，否则被 _CONSULT_INTENT 的"怎么样"拦截 → 误触发队列征询
+        #     （真机 22:14 复现：简单天气查询被征询"插队/改优先级/确认"）。
+        weather_reply = self._try_weather_fallback(normalized)
+        if weather_reply is not None:
+            return weather_reply
+        # 时间/日期直达（置于天气之后，防"这星期天气怎么样"被时间意图截胡）
+        time_reply = self._try_time_fallback(normalized)
+        if time_reply is not None:
+            return time_reply
+
         # 1.5 子智能体调用意图（MVP：识别 + 引导具体任务；业务派发下一阶段接线）
         if _SUBAGENT_INTENT.search(normalized) or _fuzzy_subagent(normalized):
             return self._on_subagent(normalized)
 
         # 2. 征询/确认/泛调整意图（对话即操作驱动）
-        if _CONFIRM_INTENT.search(normalized):
+        #    仅当存在待确认结果（phase=_PENDING_CONFIRM）时才拦截；否则普通句
+        #    含"可以/好的/怎么样/行不行"等词不得吞掉查询（真机 22:14 误征询根因）。
+        if _CONFIRM_INTENT.search(normalized) and self.phase == _PENDING_CONFIRM:
             return self._on_confirm()
-        if _CONSULT_INTENT.search(normalized):
+        if _CONSULT_INTENT.search(normalized) and self.phase == _PENDING_CONFIRM:
             return self._on_consult(normalized)
         if _ADJUST_INTENT.search(normalized):
             return self._on_adjust_request(normalized)
+        # 2b. 纯征询/确认短句在非待确认态：静默（恢复旧契约"无已交付结果时征询不误吞"，
+        #     并防止漏到 14B 兜底自由发挥——真机抱怨"回答不精准/答非所问"的路径之一）。
+        #     含查询动作/主题词的句子（"可以查一下任务状态"）不受影响，继续走查询。
+        if (
+            self.phase != _PENDING_CONFIRM
+            and (_CONSULT_INTENT.search(normalized) or _CONFIRM_INTENT.search(normalized))
+            and not _QUERY_ACTION_RE.search(normalized)
+        ):
+            return self._respond(False, True, "", "无待确认结果", self.phase)
 
         # 3. 查询意图（复用文本闭环）
         from .reporter import respond_to_text
@@ -178,12 +202,13 @@ class InteractionLoop:
                 self.phase = _PENDING_CONFIRM
                 return self._respond(True, response.ok, summary, "查询完成", self.phase)
 
-        # 5.5 天气直达（2026-10-29 新增）：识别天气意图 → 直查天气 → 一句话秒答，
-        #     不进入 14B 自由发挥（此前"查天气"被 agent 绕圈 119s 或甩一长串天气网链接，
-        #     真机反馈：没直接回答）。仅当天气查询成功才接管；失败/无城市时仍走 14B 兜底。
-        weather_reply = self._try_weather_fallback(normalized)
-        if weather_reply is not None:
-            return weather_reply
+        # 5.5 天气直达已前移至 1.4（先于征询/确认判断，防止"天气怎么样"被"怎么样"误吞）
+
+        # 5.8 云端外脑优先（2026-11-01 用户拍板：接云端大模型对照验证 KWS/ASR/TTS 链路；
+        #     云不可达/异常时静默降级走本地 agent，不破坏既有链路）。
+        cloud_reply = self._try_cloud_fallback(normalized)
+        if cloud_reply is not None:
+            return cloud_reply
 
         # 6. 规则表全部未命中 → 转本地 Agent 循环（agent_server，14B 自主回答/调工具）。
         #    服务不可达或返回空时降级静默（不语音搭话，保持 L7 验收现状）。
@@ -309,6 +334,100 @@ class InteractionLoop:
         self.phase = _PENDING_CONFIRM
         return self._respond(True, True, content, reason, self.phase)
 
+    # ── 云端外脑（DeepSeek）优先回答（2026-11-01 新增）─────────────────
+    # 用户拍板：接云端大模型做对照实验——若云脑下端到端（唤醒→识别→回答→播放）
+    # 好用，问题在本体模型；仍不好用则系统链路有问题。云优先、本地 8B 兜底。
+    _CLOUD_ENV = None  # 进程内缓存 {"key","base"}；None 表示未配置
+
+    @classmethod
+    def _load_cloud_env(cls) -> dict | None:
+        """从 config/.env 读取 DEEPSEEK_API_KEY / DEEPSEEK_API_BASE（.gitignore 已覆盖）。"""
+        if cls._CLOUD_ENV is not None:
+            return cls._CLOUD_ENV
+        try:
+            env_file = Path(__file__).resolve().parents[2] / "config" / ".env"
+            kv: dict[str, str] = {}
+            for line in env_file.read_text(encoding="utf-8").splitlines():
+                line = line.strip()
+                if not line or line.startswith("#") or "=" not in line:
+                    continue
+                k, _, v = line.partition("=")
+                kv[k.strip()] = v.strip()
+            key = kv.get("DEEPSEEK_API_KEY", "")
+            base = kv.get("DEEPSEEK_API_BASE", "https://api.deepseek.com").rstrip("/")
+            if not key:
+                cls._CLOUD_ENV = None
+                return None
+            cls._CLOUD_ENV = {"key": key, "base": base}
+        except Exception:
+            cls._CLOUD_ENV = None
+        return cls._CLOUD_ENV
+
+    def _try_cloud_fallback(self, text: str) -> InteractionResponse | None:
+        """云端外脑回答：一句话口语短答（≤30 字）；网络/校验失败返回 None 走本地兜底。"""
+        env = self._load_cloud_env()
+        if env is None:
+            return None
+        import datetime as _dt
+        import json
+        import urllib.request
+
+        now = _dt.datetime.now()
+        weekdays = "一二三四五六日"
+        sys_prompt = (
+            "你是'幂幂'，UltimaAgent 的语音助手（贾维斯风格）。用中文口语一句话简短回答，"
+            "不超过30字；不得编造事实，不确定就明确说不确定；"
+            "不要用'X点Y分'句式报时间（用'X时Y分'）。"
+            f"当前时间：{now:%Y-%m-%d %H:%M} 星期{weekdays[now.weekday()]}。"
+        )
+        payload = {
+            "model": "deepseek-flash",
+            "messages": [
+                {"role": "system", "content": sys_prompt},
+                {"role": "user", "content": text},
+            ],
+            "temperature": 0.3,
+            "max_tokens": 120,
+        }
+        req = urllib.request.Request(
+            f"{env['base']}/chat/completions",
+            data=json.dumps(payload).encode("utf-8"),
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {env['key']}",
+            },
+            method="POST",
+        )
+        try:
+            with urllib.request.urlopen(req, timeout=25) as resp:
+                data = json.loads(resp.read().decode("utf-8"))
+            content = (data.get("choices") or [{}])[0].get("message", {}).get("content", "").strip()
+        except Exception:
+            return None
+        if not content:
+            return None
+        content = content.split("\n")[0].strip()[:60]
+        try:
+            from .voice.voice_profile import filter_reply, load_persona, load_profile
+
+            profile = load_profile()
+            persona = load_persona(profile)
+            verifier = get_reply_verifier(profile["style"]["banned_phrases"], profile["style"]["max_sentences"])
+            checked = verifier.verify(ReplySchema(reply_text=content))
+            if not checked.accepted:
+                checked = verifier.verify(
+                    ReplySchema(reply_text=verifier.config.verifier_fallback_reply)
+                )
+            content = filter_reply(checked.text, profile)
+        except Exception:
+            pass
+        if not content or not content.strip():
+            return None
+        self.last_summary = content
+        self.adjusted = False
+        self.phase = _PENDING_CONFIRM
+        return self._respond(True, True, content, "云端外脑", self.phase)
+
     # ── 天气直达（2026-10-29 新增）─────────────────────────────
     # 识别"查天气"意图 → 直查天气服务 → 一句话秒答。
     # 背景：此前天气指令落 14B 自由发挥 → 绕圈 119s 或甩一长串天气网链接（真机反馈：
@@ -340,6 +459,68 @@ class InteractionLoop:
         self.adjusted = False
         self.phase = _PENDING_CONFIRM
         return self._respond(True, True, answer, "天气查询", self.phase)
+
+    # ── 时间/日期直达（2026-11-01 新增）─────────────────────────────
+    # 识别"时间/几点/日期/星期"意图 → 本地 datetime 秒答，不落模型自由表述。
+    # 背景：时间类走 8B 自由表述 → 37s 且数字错乱（真机 15:41："现在是下午三点半四十分。星期日。"，
+    # 把 15:41 拆成"半+四十分"）；与天气同样改确定性路径，快且准。
+    # 注意：置于天气直达之后，避免"这星期天气怎么样"含"星期"被时间意图截胡。
+    _TIME_INTENT = re.compile(
+        r"(?:几点了|几点钟|几点|现在几点|现在时间|什么时间|几号|多少号|今天日期|今天几号|星期几|周几|礼拜几|今天星期|日期)"
+    )
+
+    _CN_DIGITS = "零一二三四五六七八九"
+
+    @staticmethod
+    def _cn_hour(h12: int) -> str:
+        """1-12 → 一二…十一、十二。"""
+        if h12 <= 10:
+            return InteractionLoop._CN_DIGITS[h12]
+        return "十" + (InteractionLoop._CN_DIGITS[h12 - 10] if h12 > 10 else "")
+
+    @staticmethod
+    def _cn_minute(m: int) -> str:
+        """0-59 → 中文（0 用「整」）。"""
+        if m == 0:
+            return "整"
+        if m < 10:
+            return InteractionLoop._CN_DIGITS[m]
+        if m < 20:
+            return "十" + (InteractionLoop._CN_DIGITS[m - 10] if m > 10 else "")
+        t, u = divmod(m, 10)
+        return InteractionLoop._CN_DIGITS[t] + "十" + (InteractionLoop._CN_DIGITS[u] if u else "")
+
+    def _try_time_fallback(self, text: str) -> InteractionResponse | None:
+        """时间意图直达：返回一句话时间回答；非时间意图返回 None 走后续路径。"""
+        if not self._TIME_INTENT.search(text):
+            return None
+        import datetime as _dt
+
+        _now = _dt.datetime.now()
+        _weekdays = "一二三四五六日"
+        _h = _now.hour
+        if _h < 5:
+            _period = "凌晨"
+        elif _h < 9:
+            _period = "早上"
+        elif _h < 12:
+            _period = "上午"
+        elif _h < 14:
+            _period = "中午"
+        elif _h < 18:
+            _period = "下午"
+        else:
+            _period = "晚上"
+        # 用「X时Y分」规避 CV3 对「X点Y分+星期X」句式的确定性漏内容
+        # （2026-11-01 实测：「现在是下午三点五十二分，星期日。」连合 3 次仅 1.2s 只出声尾；
+        # 「三时五十二分」版本 8.92s 完整）。
+        _h12 = _h % 12 or 12
+        _min_part = "整" if _now.minute == 0 else f"{self._cn_minute(_now.minute)}分"
+        answer = f"现在是{_period}{self._cn_hour(_h12)}时{_min_part}，星期{_weekdays[_now.weekday()]}。"
+        self.last_summary = answer
+        self.adjusted = False
+        self.phase = _PENDING_CONFIRM
+        return self._respond(True, True, answer, "时间查询", self.phase)
 
     # ── 征询闭环 ──────────────────────────────────────────────
     def _on_confirm(self) -> InteractionResponse:
@@ -509,6 +690,8 @@ _ADJUST_KEYWORD = re.compile(
     r"(?:优先级|优先|插队|插|改成|设为|调到|调整到|改为|调为|调成|重排|挪|提前|放)"
 )
 _CONSULT_INTENT = re.compile(r"(?:你觉得怎么样|怎么样|如何|行不行|行吗|OK吗|可以吗|感觉如何|是否满意)")
+# 2b 查询动作/主题词：含这些词的句子视为真实查询，不得被"纯征询/确认短句静默"误吞
+_QUERY_ACTION_RE = re.compile(r"(?:查|看|问|天气|气温|温度|任务|队列|进度|状态|多少|几|什么|哪|时间|安排|计划)")
 _PRIORITY_COMMAND = re.compile(
     r"(?:^|把|将|让)\s*(?P<task_id>[A-Za-z0-9][A-Za-z0-9._~-]*?)\s*"
     r"(?:优先级|优先|改成|设为|调到|调整到|改为|调为|调成)"

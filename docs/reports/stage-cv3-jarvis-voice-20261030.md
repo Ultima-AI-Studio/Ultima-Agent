@@ -111,3 +111,11 @@
 
 无。未动 SFT、模型版本、云端调优、W6 UI、KWS/ASR 参数基线、ASR 通道；未停止或重启现有语音/Agent 后台进程。
 
+## 后续变更（2026-10-30 晚，Owner 真机反馈后裁决）
+
+- **触发**：真机两轮实测后 Owner 反馈「KWS 提示音是以前的女声、TTS 回复是 CV3 克隆声，不一致；贾维斯克隆音感觉怪异，建议把声音换回去」。
+- **裁决**：TTS 默认音色从 CV3 克隆换回 **sherpa MeloTTS 44100Hz 女声**（与 KWS 唤醒提示音 wake-prompt.wav 同源同采样率，即 10/26-10/27 历史生效音色）。**本报告 0005 冻结的"CV3 音色为默认"决策被 Owner 否决**，CV3 资源保留、可随时切回，但不作为默认。
+- **落盘**：`config/voice-profile.json` voice.engine `cv3`→`sherpa`；`voice_profile.py` 引擎白名单扩为 {cv3, edge, sherpa, piper}；`tts.py` `_synthesize_once` 增加显式本地引擎直达分支（sherpa/piper/edge 短路，cv3 保持冻结链）；`voice-listen-daemon.py` warmup() 扩为完整链路三段预热（ASR + Agent 8756 + TTS）。
+- **验证**：sherpa 直达合成"好的，收到。" → ok=True rate=44100 engine=sherpa-melo-tts（1.07s）；daemon 重启（pid=6872）warmup 三段完成（asr 2.4s / agent 31.9s / tts 37.8s 累计），监听 20:01:43 恢复。
+- **遗留**：真机复测确认延迟与听感；0005 冻结状态待 Owner 最终裁定（CV3 降级为可用非默认）。
+

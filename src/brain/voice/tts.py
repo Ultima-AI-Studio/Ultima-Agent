@@ -654,11 +654,55 @@ def _synthesize_cv3_cold(
 
 
 def _synthesize_once(text: str, out_wav: Path, timeout: int) -> dict:
-    """单次合成（daemon CV3 → 冷启动 CV3 → Piper → Melo → 可选 edge）。"""
+    """单次合成（engine 显式时直达，否则 daemon CV3 → 冷启动 CV3 → Piper → Melo → 可选 edge）。
+
+    engine 显式路由（2026-10-30 声音换回）：
+      - "sherpa": 直达 MeloTTS（44100Hz 女声，与 KWS 唤醒提示音同源，用户选定"换回去"的目标音色）；
+      - "piper":  直达 Piper huayan；
+      - "edge":   直达 edge 晓晓（云端，需联网）；
+      - "cv3"/缺省: 保持 0005 冻结链（CV3 daemon → CV3 冷启动 → Piper → Melo → edge）。
+    """
     profile = load_profile()
     voice = profile.get("voice", {})
     configured_engine = voice.get("engine", "cv3")
     failures: list[str] = []
+
+    # 显式本地引擎直达：跳过 CV3 链（用户反馈 CV3 克隆音"怪异"，换回以前女声）
+    if configured_engine == "sherpa":
+        if _sherpa_tts_available():
+            try:
+                sherpa_result = _synthesize_sherpa(text, out_wav)
+                if sherpa_result.get("ok") and Path(out_wav).is_file():
+                    return sherpa_result
+                failures.append(f"melo={sherpa_result.get('error', 'failed')}")
+            except Exception as exc:
+                failures.append(f"melo={exc}")
+        else:
+            failures.append("melo=unavailable(engine=sherpa)")
+        raise RuntimeError("本地 TTS 链路不可用: " + "; ".join(failures))
+
+    if configured_engine == "piper":
+        if _piper_available():
+            try:
+                piper_result = _synthesize_piper(text, out_wav)
+                if piper_result.get("ok") and Path(out_wav).is_file():
+                    return piper_result
+                failures.append(f"piper={piper_result.get('error', 'failed')}")
+            except Exception as exc:
+                failures.append(f"piper={exc}")
+        else:
+            failures.append("piper=unavailable(engine=piper)")
+        raise RuntimeError("本地 TTS 链路不可用: " + "; ".join(failures))
+
+    if configured_engine == "edge":
+        try:
+            edge_result = _synthesize_edge(text, out_wav)
+            if edge_result.get("ok") and Path(edge_result["wav"]).is_file():
+                return edge_result
+            failures.append(f"edge={edge_result.get('error', 'failed')}")
+        except Exception as exc:
+            failures.append(f"edge={exc}")
+        raise RuntimeError("edge TTS 不可用: " + "; ".join(failures))
 
     if all_cv3_resources_ready():
         try:
