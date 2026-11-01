@@ -1,0 +1,37 @@
+work_order=wo-ultimaagent-20261101-0017
+gate=T3
+captured_at=2026-11-01 Asia/Shanghai
+
+[environment]
+command=tools\venv-openjarvis\Scripts\python.exe --version
+result=Python 3.13.16
+default_python312_used=false
+
+[full_regression]
+command=tools\venv-openjarvis\Scripts\python.exe -m pytest src -q
+exit_code=0
+result=852 passed, 36 warnings, 120 subtests passed in 242.85s (0:04:02)
+
+[0016_plus_d_regression]
+scope=0016 intent/reply-verifier/integration plus 0017 structured-reply tests
+exit_code=0
+result=43 passed in 31.17s
+
+[injection_and_normal_reply]
+scope=0016 injection gate plus D structured double-insurance and normal reply bounds
+exit_code=0
+result=18 passed in 1.91s
+
+[explicit_double_insurance]
+exit_code=0
+result=6 passed in 2.04s
+cases=untrusted nonsensical input abstained before agent; instruction injection denied; weather deterministic path allowed; time allowed; D verifier blocked marketing even with grounded=true; normal reply truncated to at most two sentences without marketing
+
+[regression_repair]
+observed=An independently started full suite exposed a per-turn voice-profile read in agent_server under a Path.read_text guard.
+repair=Load the existing banned_phrases and max_sentences style once at module initialization; no voice_profile.py modification and no product-default change.
+focused_retest=1 passed in 18.94s
+
+[gate]
+result=PASS
+reason=Fresh dedicated-interpreter full regression and 0016/0017 injection gates are green. Git scope closure is recorded separately after immutable commit/tag/push readback.

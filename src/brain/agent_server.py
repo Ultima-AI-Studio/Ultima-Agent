@@ -77,6 +77,21 @@ MAINBRAIN_SYSTEM_PROMPT = _load_mainbrain_system_prompt()
 from openjarvis import Jarvis  # noqa: E402
 from openjarvis.core.registry import ToolRegistry  # noqa: E402
 
+try:  # 包导入用于测试；脚本入口走 fallback
+    from .reply.schema import (  # type: ignore[attr-defined] # noqa: E402
+        REPLY_JSON_SCHEMA,
+        StructuredReply,
+        StructuredReplyError,
+        parse_structured_reply,
+    )
+except ImportError:  # pragma: no cover - 脚本入口
+    from reply.schema import (  # type: ignore[no-redef] # noqa: E402
+        REPLY_JSON_SCHEMA,
+        StructuredReply,
+        StructuredReplyError,
+        parse_structured_reply,
+    )
+
 
 def _install_mainbrain_system_prompt() -> str:
     """Append the cached mainbrain block to native_react's real SYSTEM prompt."""
@@ -122,6 +137,29 @@ TOOLS = [
 DEFAULT_MAX_TOKENS = 1024
 MAX_BODY_BYTES = 1024 * 1024  # 请求体上限 1MB（本地接口防异常大包）
 SSE_PING_SECONDS = 15.0
+OLLAMA_CHAT_URL = "http://127.0.0.1:11434/api/chat"
+STRUCTURED_REPLY_TIMEOUT_SECONDS = 180
+STRUCTURED_FALLBACK_REPLY = "这个问题我暂时无法可靠回答。"
+STRUCTURED_REPLY_SYSTEM_PROMPT = """\
+你是本地 Agent 的最终回答边界。输出必须严格匹配给定 JSON Schema，禁止 markdown 和额外文本。
+reply_text 最多两句，不含营销、关注、点赞或订阅话术。
+confidence 是 0 到 1 的自评置信度。
+grounded 仅当 reply_text 能被用户原文或工具证据直接支持时为 true；草稿本身不是证据。
+无法确认时将 grounded 设为 false，并在 reply_text 中简短说明无法可靠回答。
+"""
+
+
+def _load_reply_style_once() -> tuple[tuple[str, ...], int]:
+    try:
+        from .voice.voice_profile import load_profile
+    except ImportError:  # pragma: no cover - script entry
+        from voice.voice_profile import load_profile
+
+    style = load_profile()["style"]
+    return tuple(style["banned_phrases"]), int(style["max_sentences"])
+
+
+REPLY_BANNED_PHRASES, REPLY_MAX_SENTENCES = _load_reply_style_once()
 EVENT_BUS = get_event_bus()
 
 _jars: Jarvis | None = None
@@ -322,6 +360,153 @@ def _clean_content(content: str) -> str:
     return content.strip()
 
 
+def _structured_evidence(tool_results: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    evidence: list[dict[str, Any]] = []
+    for item in tool_results:
+        evidence.append(
+            {
+                "tool_name": str(item.get("tool_name", "tool")),
+                "success": bool(item.get("success")),
+                "content": str(item.get("content", ""))[:4000],
+            }
+        )
+    return evidence
+
+
+def _request_structured_reply(
+    query: str,
+    draft: str,
+    tool_results: list[dict[str, Any]],
+    *,
+    retry_note: str | None = None,
+) -> StructuredReply:
+    """Render the exposed answer through Ollama's native JSON Schema grammar."""
+    user_payload = json.dumps(
+        {
+            "user_query": query,
+            "agent_draft": draft,
+            "tool_evidence": _structured_evidence(tool_results),
+            "retry_note": retry_note,
+        },
+        ensure_ascii=False,
+    )
+    payload = {
+        "model": MODEL,
+        "messages": [
+            {"role": "system", "content": STRUCTURED_REPLY_SYSTEM_PROMPT},
+            {"role": "user", "content": user_payload},
+        ],
+        "stream": False,
+        "think": False,
+        "format": REPLY_JSON_SCHEMA,
+    }
+    request = Request(
+        OLLAMA_CHAT_URL,
+        data=json.dumps(payload, ensure_ascii=False).encode("utf-8"),
+        headers={"Content-Type": "application/json; charset=utf-8"},
+        method="POST",
+    )
+    try:
+        with urlopen(request, timeout=STRUCTURED_REPLY_TIMEOUT_SECONDS) as response:
+            body = json.loads(response.read().decode("utf-8"))
+        content = body.get("message", {}).get("content", "")
+        if not isinstance(content, str):
+            raise StructuredReplyError("Ollama message content must be a string")
+        return parse_structured_reply(content)
+    except (HTTPError, URLError, TimeoutError, OSError, UnicodeError, json.JSONDecodeError) as exc:
+        raise StructuredReplyError(f"structured Ollama request failed: {type(exc).__name__}") from exc
+
+
+def _fallback_verifier():
+    try:
+        from .routing.reply_verifier import get_reply_verifier
+    except ImportError:  # pragma: no cover - script entry
+        from routing.reply_verifier import get_reply_verifier
+
+    return get_reply_verifier(REPLY_BANNED_PHRASES, REPLY_MAX_SENTENCES)
+
+
+def _structured_verifier():
+    try:
+        from .routing.reply_verifier import get_reply_verifier
+    except ImportError:  # pragma: no cover - script entry
+        from routing.reply_verifier import get_reply_verifier
+
+    return get_reply_verifier(
+        REPLY_BANNED_PHRASES,
+        REPLY_MAX_SENTENCES,
+        enforce_grounded=True,
+        enforce_confidence=True,
+    )
+
+
+def _verified_reply(reply: StructuredReply):
+    try:
+        from .routing.reply_verifier import ReplySchema
+    except ImportError:  # pragma: no cover - script entry
+        from routing.reply_verifier import ReplySchema
+
+    return _structured_verifier().verify(
+        ReplySchema(
+            reply_text=reply.reply_text,
+            confidence=reply.confidence,
+            grounded=reply.grounded,
+        )
+    )
+
+
+def _fixed_structured_fallback() -> StructuredReply:
+    return StructuredReply(STRUCTURED_FALLBACK_REPLY, 1.0, True)
+
+
+def _constrain_reply(
+    query: str,
+    draft: str,
+    tool_results: list[dict[str, Any]],
+) -> tuple[StructuredReply, bool]:
+    """Enforce structure, grounding and confidence with at most one retry."""
+    try:
+        candidate = _request_structured_reply(query, draft, tool_results)
+    except StructuredReplyError:
+        try:
+            from .routing.reply_verifier import ReplySchema
+        except ImportError:  # pragma: no cover - script entry
+            from routing.reply_verifier import ReplySchema
+
+        checked = _fallback_verifier().verify(ReplySchema(reply_text=draft))
+        if checked.accepted and checked.text:
+            # A sanitized draft still lacks trustworthy generated metadata.
+            _verified_reply(StructuredReply(checked.text, 0.0, False))
+        return _fixed_structured_fallback(), True
+
+    checked = _verified_reply(candidate)
+    if checked.accepted:
+        return StructuredReply(checked.text, candidate.confidence, candidate.grounded), False
+    if "confidence_below_threshold" in checked.issues or "confidence_required" in checked.issues:
+        return _fixed_structured_fallback(), True
+    if "grounded_required" in checked.issues:
+        try:
+            retried = _request_structured_reply(
+                query,
+                draft,
+                tool_results,
+                retry_note=(
+                    "上一回答 grounded=false，未通过真实性门。只重答这一次；"
+                    "仅在用户原文或工具证据直接支持时 grounded=true，否则明确无法可靠回答。"
+                ),
+            )
+        except StructuredReplyError:
+            return _fixed_structured_fallback(), True
+        retry_checked = _verified_reply(retried)
+        if retry_checked.accepted:
+            return StructuredReply(
+                retry_checked.text,
+                retried.confidence,
+                retried.grounded,
+            ), False
+    return _fixed_structured_fallback(), True
+
+
 def ask_once(query: str, max_tokens: int | None = None) -> dict[str, Any]:
     """执行一轮自主对话：本地 14B 自主决定直接回答或调用工具（并发串行化）。"""
     j = get_jarvis()
@@ -333,9 +518,18 @@ def ask_once(query: str, max_tokens: int | None = None) -> dict[str, Any]:
             context=False,
             max_tokens=max_tokens or DEFAULT_MAX_TOKENS,
         )
+    draft = _clean_content(result.get("content", ""))
+    tool_results = result.get("tool_results", [])
+    structured_reply, degraded = _constrain_reply(query, draft, tool_results)
+    content = structured_reply.reply_text
     return {
-        "content": _clean_content(result.get("content", "")),
-        "tool_results": result.get("tool_results", []),
+        "content": content,
+        "reply_text": structured_reply.reply_text,
+        "confidence": structured_reply.confidence,
+        "grounded": structured_reply.grounded,
+        "structured_reply": structured_reply.to_dict(),
+        "structured_degraded": degraded,
+        "tool_results": tool_results,
         "usage": result.get("usage", {}),
     }
 

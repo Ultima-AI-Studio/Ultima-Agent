@@ -1,0 +1,37 @@
+工单: wo-ultimaagent-20261101-0017
+Gate: T2 校验器启用
+时间: 2026-11-01 Asia/Shanghai
+
+启用规则
+- src/brain/routing/reply_verifier.py 新增 confidence 强校验。
+- agent_server 的最终结构化回答使用 enforce_grounded=true、enforce_confidence=true。
+- confidence 阈值: 0.60。工单未指定具体数值，本单采用保守 0.60；这是回答验收阈值，不是模型 temperature/权重/全局推理参数。
+- 既有 0016 自由文本调用不传 enforce 参数，保持其已冻结行为；D 层在 agent_server 最终出口显式启用。
+
+有界控制流
+1. schema 合法且 grounded=true、confidence>=0.60、banned/句数校验通过 -> 放行。
+2. grounded=false -> 只重试 1 次，retry_note 明确“仅有用户/工具证据才可 grounded=true”。
+3. 重试通过 -> 放行；重试仍失败/解析失败 -> 固定安全兜底。
+4. confidence<0.60 或缺失 -> 直接固定安全兜底，不进行无依据盲试。
+5. 固定兜底: {reply_text: 这个问题我暂时无法可靠回答。, confidence: 1.0, grounded: true}；grounded=true 表示该拒答由本地确定性校验失败事实直接支持。
+
+路径样例
+- grounded_false_retry_success:
+  calls=2
+  first={reply_text: 无法确认。, confidence: 0.9, grounded: false}
+  retry={reply_text: 任务已完成。, confidence: 0.9, grounded: true}
+  final={reply_text: 任务已完成。, confidence: 0.9, grounded: true}, degraded=false
+- low_confidence_direct_fallback:
+  calls=1
+  first={reply_text: 可能完成。, confidence: 0.2, grounded: true}
+  final={reply_text: 这个问题我暂时无法可靠回答。, confidence: 1.0, grounded: true}, degraded=true
+- grounded_false_retry_fallback:
+  calls=2
+  first grounded=false, retry grounded=false
+  final={reply_text: 这个问题我暂时无法可靠回答。, confidence: 1.0, grounded: true}, degraded=true
+
+测试
+命令: tools\venv-openjarvis\Scripts\python.exe -m pytest src\brain\reply\tests\test_structured_reply.py src\brain\routing\tests\test_reply_verifier.py src\brain\routing\tests\test_intent_gate.py src\brain\routing\tests\test_routing_integration.py -q
+结果: 34 passed in 2.32s
+
+Gate 结论: PASS。grounded=false 有界重试次数严格为 1；低置信直接兜底；重复失败不裸播；0016 入口门与 D 出口结构层组合专项全绿。

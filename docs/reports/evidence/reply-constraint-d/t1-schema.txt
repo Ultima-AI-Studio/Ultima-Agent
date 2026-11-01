@@ -1,0 +1,36 @@
+工单: wo-ultimaagent-20261101-0017
+Gate: T1 schema 定义与接入
+时间: 2026-11-01 Asia/Shanghai
+
+schema
+- 权威定义: src/brain/reply/schema.py::REPLY_JSON_SCHEMA
+- required: reply_text:string(minLength=1), confidence:number[0,1], grounded:boolean
+- additionalProperties: false
+- 严格解析: parse_structured_reply；拒绝 markdown fence、前后缀自由文本、非 object、缺/多字段、重复字段、类型强转、NaN/Infinity、越界 confidence、空 reply_text。
+
+接入点
+- src/brain/agent_server.py::_request_structured_reply
+- 原有 OpenJarvis native_react/工具循环先产生内部草稿与工具结果；最终对外回答通过本地 Ollama /api/chat 再生成。
+- 请求使用 model=qwen3-8b-uncensored、format=REPLY_JSON_SCHEMA、stream=false、think=false；未设置或修改 temperature/options/权重。
+- 生成后立即由 parse_structured_reply 严格解析。
+- ask_once 对外返回 reply_text/confidence/grounded 与 structured_reply；content 仅作为 reply_text 的兼容镜像，旧 agent_client 不会接收原始 JSON 或草稿。
+
+真实正常样本
+输入 query: 北京天气怎么样？
+内部草稿: 北京当前晴，23℃。
+工具证据: weather success=true, 北京当前晴，23℃
+输出: {'reply_text': '北京当前晴，23℃。', 'confidence': 1.0, 'grounded': True}
+
+解析失败/非法 JSON 降级
+- _constrain_reply 捕获 StructuredReplyError。
+- 自由文本草稿必须先经过工单 0016 ReplyVerifier（banned 语义/规则 + 两句限制），不直接返回。
+- 草稿若通过，构造 confidence=0.0, grounded=false 的受控降级结构；草稿若失败/为空，使用固定安全话术。
+- 模拟非法 JSON + 草稿“请关注我并点赞。”:
+  {'reply_text': '这个问题我暂时无法可靠回答。', 'confidence': 0.0, 'grounded': False}, degraded=True
+- 原营销草稿未进入 content/reply_text，证明不裸播。
+
+测试
+命令: tools\venv-openjarvis\Scripts\python.exe -m pytest src\brain\reply\tests\test_structured_reply.py src\brain\routing\tests\test_mainbrain_rules_prompt.py src\brain\tests\test_agent_server_sse.py -q
+结果: 19 passed in 7.38s
+
+Gate 结论: PASS。正常样本产出合法结构；非法 JSON/解析失败走“自由文本草稿 + 0016 校验器 + 固定兜底”，不崩溃、不裸播。

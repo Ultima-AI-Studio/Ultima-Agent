@@ -55,6 +55,32 @@ def test_grounded_schema_is_reserved_but_disabled_by_default() -> None:
     assert "grounded_required" in enforced.issues
 
 
+def test_confidence_threshold_can_be_enabled() -> None:
+    verifier = ReplyVerifier(
+        [],
+        2,
+        embedding_channel=FakeEmbeddingChannel(),
+        enforce_confidence=True,
+        confidence_threshold=0.6,
+    )
+    result = verifier.verify(ReplySchema("有依据的回答。", confidence=0.59, grounded=True))
+    assert not result.accepted
+    assert "confidence_below_threshold" in result.issues
+
+
+def test_grounded_and_confidence_pass_together() -> None:
+    verifier = ReplyVerifier(
+        [],
+        2,
+        embedding_channel=FakeEmbeddingChannel(),
+        enforce_grounded=True,
+        enforce_confidence=True,
+    )
+    result = verifier.verify(ReplySchema("有依据的回答。", confidence=0.6, grounded=True))
+    assert result.accepted
+    assert result.issues == ()
+
+
 def test_interaction_retries_once_then_accepts(tmp_path) -> None:
     verifier = make_verifier()
     ask = Mock(side_effect=["请关注我。", "天气晴朗。"])

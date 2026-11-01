@@ -13,6 +13,7 @@ from .config import DEFAULT_ROUTING_CONFIG, RoutingConfig
 from .intent_gate import EmbeddingChannel, OllamaEmbeddingChannel, cosine_similarity
 
 LOGGER = logging.getLogger(__name__)
+DEFAULT_REPLY_CONFIDENCE_THRESHOLD = 0.6
 
 _MARKETING_CONTEXT = re.compile(
     r"(?:请|记得|欢迎|别忘了|点击|点个|求|帮忙).{0,6}(?:关注|点赞|订阅)|"
@@ -57,11 +58,15 @@ class ReplyVerifier:
         config: RoutingConfig = DEFAULT_ROUTING_CONFIG,
         embedding_channel: EmbeddingChannel | None = None,
         enforce_grounded: bool = False,
+        enforce_confidence: bool = False,
+        confidence_threshold: float = DEFAULT_REPLY_CONFIDENCE_THRESHOLD,
     ) -> None:
         self.banned_phrases = tuple(phrase.strip() for phrase in banned_phrases if phrase.strip())
         self.max_sentences = max(1, int(max_sentences))
         self.config = config
         self.enforce_grounded = enforce_grounded
+        self.enforce_confidence = enforce_confidence
+        self.confidence_threshold = float(confidence_threshold)
         self._embedding_channel = embedding_channel or OllamaEmbeddingChannel(config)
         self._prototype_vectors: list[list[float]] | None = None
         self._embedding_lock = threading.Lock()
@@ -85,6 +90,14 @@ class ReplyVerifier:
 
         if self.enforce_grounded and schema.grounded is not True:
             issues.append("grounded_required")
+        if self.enforce_confidence:
+            confidence = schema.confidence
+            if isinstance(confidence, bool) or not isinstance(confidence, (int, float)):
+                issues.append("confidence_required")
+            elif not 0 <= float(confidence) <= 1:
+                issues.append("confidence_invalid")
+            elif float(confidence) < self.confidence_threshold:
+                issues.append("confidence_below_threshold")
 
         sentences = split_sentences(text)
         if len(sentences) > self.max_sentences:
@@ -133,24 +146,41 @@ class ReplyVerifier:
         )
 
 
-_VERIFIERS: dict[tuple[tuple[str, ...], int], ReplyVerifier] = {}
+_VERIFIERS: dict[tuple[tuple[str, ...], int, bool, bool, float], ReplyVerifier] = {}
 _VERIFIER_LOCK = threading.Lock()
 
 
 def get_reply_verifier(
     banned_phrases: Sequence[str],
     max_sentences: int,
+    *,
+    enforce_grounded: bool = False,
+    enforce_confidence: bool = False,
+    confidence_threshold: float = DEFAULT_REPLY_CONFIDENCE_THRESHOLD,
 ) -> ReplyVerifier:
-    key = (tuple(banned_phrases), int(max_sentences))
+    key = (
+        tuple(banned_phrases),
+        int(max_sentences),
+        bool(enforce_grounded),
+        bool(enforce_confidence),
+        float(confidence_threshold),
+    )
     with _VERIFIER_LOCK:
         verifier = _VERIFIERS.get(key)
         if verifier is None:
-            verifier = ReplyVerifier(key[0], key[1])
+            verifier = ReplyVerifier(
+                key[0],
+                key[1],
+                enforce_grounded=key[2],
+                enforce_confidence=key[3],
+                confidence_threshold=key[4],
+            )
             _VERIFIERS[key] = verifier
         return verifier
 
 
 __all__ = [
+    "DEFAULT_REPLY_CONFIDENCE_THRESHOLD",
     "ReplySchema",
     "ReplyVerifier",
     "VerificationResult",
