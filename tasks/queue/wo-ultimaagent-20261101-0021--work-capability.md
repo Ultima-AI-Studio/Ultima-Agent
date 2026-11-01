@@ -5,7 +5,7 @@
 - original_work_order_id: wo-ultimaagent-20261101-0021
 - revision: 2
 - authorization: 用户“那按顺序开始推进吧”；批准按已提交的工作能力契约与计划顺序执行，保留最终 Owner 验收和发布门。
-- 状态：T0/T1 技术门通过；T2 在修复 2/2 后真实 E02 FAIL、blocked；T3—T5 未启动，原单未完成。
+- 状态：T0/T1 技术门通过；T2累计修复3（默认2+单次schema兼容例外1）后真实E02仍FAIL/blocked；保持当前Qwen3 8B，14B未批准未执行；T3—T5未启动，原单未完成。
 - 计划：docs/plans/jarvis-work-capability-delivery-plan-20261101.md
 - 契约：docs/specs/jarvis-work-capability-contract-20261101.md
 - 草案检查点：ultimaagent-jarvis-work-plan-draft-20261101 @ f6eb808348302cec55bddcf44ee03f5b5736c4d9
@@ -75,3 +75,11 @@
 
 T0/T1技术门通过；T2最后候选10fec03在2/2有界修复后真实E02失败。E01PASS3，E03此候选未启动，T3—T5未进入。149项测试通过不代表实际工作验收。原单与T2阶段索引FAILED/不可派发，全局blocked；所有历史继承、不新增原单重置次数。证据与后续决策材料见docs/reports/jarvis-work-capability-t2-20261102.md。生产服务、已接受KWS和默认主脑未切换；模型对照提案尚未执行，等待Owner明确范围决定。
 
+
+## 2026-11-02 单次兼容例外接续（不修改验收与历史）
+
+上段为历史停点。SDK 实际首轮工具描述遗漏嵌套参数 schema 已由零推理诊断确认，控制器在原用户目标内作一次手动兼容例外裁定，并真实转移 T2 FAILED→QUEUED→EXECUTING，全局 executing/Manager 已读回。仅授权既有双文件补丁，累计修复3（默认2+例外1）；不声称 Owner 新批准，不换当前 8B，不开启 14B，不切生产。先 RED/GREEN 与全新独立复审，再单次 E02；失败即停本次例外。裁定与证据：data/evidence/jarvis-work-capability/T2/schema-prompt-diagnosis/compatibility-exception-authorization.json。
+
+## 单次兼容例外结束
+
+610005e：151回归及fresh代码复核通过，唯一E02实际机械/语义FAIL，needs_attention/CLI2。首错为非法JSON，原facts:string本次未复现；S2 OpenAI已实现断言仍错。此例外结束，无第二轮/新修复/换模型授权；T2索引FAILED/不可派发、全局blocked/Manager读回，T3—T5未放行。最新报告docs/reports/jarvis-work-schema-compatibility-result-20261102.md，原历史保留。
