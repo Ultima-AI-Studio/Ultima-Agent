@@ -1,0 +1,37 @@
+# Independent review of offline pair r2
+
+SPEC **CHANGES_REQUIRED**. QUALITY **CHANGES_REQUIRED**. Hold controller release. Runtime compatibility remains unverified.
+
+Freeze SHA-256 `9ae65c69c0ffe0370ed88fcfd18418c549b5520b9d7a2625e174eeefc292d338`.
+
+## S1 SPEC
+
+rubric.md 3-9
+
+The only per-assertion support ruling asks whether the proposed excerpt supports the claim. A true claim with a miscopied line and an unsupported claim can both receive insufficient. The mechanical renderer can accept a structurally valid span containing a real operation even when it is the wrong span for the assertion. Independently score truth against the intended source body and support by the submitted citation. Record missing/invalid citations separately, retain the strict joint acceptance criterion, and never substitute a reviewer-found range for the proposed one.
+
+## S2 SPEC
+
+probe.py 159-206, 228-229 and rubric.md 11
+
+Recovery is lossless for standard title, heading and string claim fields in a parsed report. In contrast, facts containing a bare string are exported as a null claim. A final_answer containing attributable factual prose yields an empty no_report_proposal. Malformed JSON yields an empty report even when its prose is readable. The blind reviewer cannot follow the explicit recoverable-text rule. Keep noncanonical visible text for blinded review via a common fallback and separate its scoring from report coverage and contract validity.
+
+## Q1 QUALITY
+
+probe.py 83-96 and 144-149; installed ollama.py 201-272, guardrails.py 207-218, core/config.py 1434-1437
+
+wire.json stores the request. first.json stores the secured SDK result after Ollama normalization and possible output redaction. No artifact records the original backend response or proves whether an individual output was transformed. For the requirement to preserve raw output, distinguish the daemon response from the secured proposal. Preserve a controller-only original response receipt on the same guarded transport if raw retention is authorized, or explicitly limit attribution to secured output. Do not bypass guardrails or send another request.
+
+## Static checks and boundaries
+
+Independent static SHA-256 check: all 39 entries matched, both scripts parsed as AST, freeze digest matched the assigned r2 identity. Package contained eight files, no release or one-shot directory. Worktree HEAD b52ca9b.
+
+Across all seven sources archived text equals body. Card generator scans generic source syntax/visible lines, limits negative witnesses then spreads positions, checks production evidence predicates and bounds context. Negative first ordering, explicit URLs, code symbols, nearby lines and missing unsampled context change task difficulty. The plan explicitly bundles those effects. Donor-specific static coverage annotations and semantic rubric are excluded from the proposed model request. Titles and every ordered section are present for well-shaped proposals.
+
+Exact argv, release equality, before receipt hash, expected tag/digests, per-send local manifest SHA and exclusive one-shot directory precede dispatch. PID/start/executable and after receipt require independent controller verification; the script does not authenticate or refresh the daemon receipt or prove the listener store path. Hash matching applies to the inspected files; use the specified interpreter.
+
+In the inspected ordinary path, the real SDK selects native_react and wraps the real Ollama backend with GuardrailsEngine/InstrumentedEngine. Capture raises BaseException before returning a proposal to NativeReAct, so tool parsing/dispatch does not occur. Mechanical rendering computes in memory. The guarded client disables environment proxies and retries, consumes one reservation before sending, records the wire request and forbids subsequent sends in that cell. Four cells bound attempts, a failure can yield fewer. No ordinary path starts the server/UI or writes research.md.
+
+Child temp locations, stdlib tempfile, named caches and SDK runtime settings are bound beneath one-shot-run before SDK imports. Python socket audits restrict connect and DNS to loopback Ollama and deny bind/sendto/sendmsg. The endpoint-level method/path budget is attached to the selected client, not a machine-wide network policy. owner.close() closes the wrapped engine on the ordinary setup path. These are source observations, not an OS sandbox or runtime proof. Keep partial artifacts as spent; stop at first incompatibility.
+
+No model, endpoint, SDK or tests executed. No runtime success, causal isolation, product repair or source/live/T3-T5 gate transition inferred.

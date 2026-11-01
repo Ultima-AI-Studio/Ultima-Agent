@@ -20,3 +20,6 @@
 - 控制器独立读回与队列收门：`data/evidence/jarvis-work-capability/T2/post-cap-diagnosis/`。
 
 代码检查点tag `ultimaagent-work-t2-r5-code-pass-20261102`已推送并核验；真实FAIL检查点、镜像和远端状态另见本次checkpoint回执。不把任一检查点称为T2-frozen。
+
+
+后续同8B四次保留正文无写入诊断已结束，机械及事实/引文/覆盖联合门均0/4。没有源码6或下一阶段放行，T2继续BLOCKED；详见jarvis-work-t2-8b-diagnostic-result-20261102.md及官方8B版本选择提案。

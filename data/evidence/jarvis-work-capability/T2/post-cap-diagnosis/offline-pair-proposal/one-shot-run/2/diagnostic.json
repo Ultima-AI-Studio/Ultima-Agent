@@ -1,0 +1,80 @@
+{
+  "mechanical_error": "ValueError: Invalid fact fields or kind",
+  "report": {
+    "state": "report_proposal",
+    "title": "OpenJarvis 文件安全写入、敏感路径判断和签名验证行为",
+    "sections": [
+      {
+        "heading": "文件安全写入行为",
+        "source": "https://raw.githubusercontent.com/open-jarvis/OpenJarvis/0eb7811df96cf139e6bd6d7fcc9b5cc4ff1418ff/src/openjarvis/security/file_utils.py",
+        "claims": [
+          {
+            "claim": "使用 secure_mkdir 创建目录并设置权限为 0o700。",
+            "first": 33,
+            "last": 33,
+            "citation": "located"
+          },
+          {
+            "claim": "使用 tempfile.mkstemp 创建临时文件并设置权限。",
+            "first": 55,
+            "last": 59,
+            "citation": "located"
+          },
+          {
+            "claim": "使用 os.fchmod 和 os.fsync 确保文件写入完成。",
+            "first": 67,
+            "last": 67,
+            "citation": "located"
+          }
+        ]
+      },
+      {
+        "heading": "敏感路径判断行为",
+        "source": "https://raw.githubusercontent.com/open-jarvis/OpenJarvis/0eb7811df96cf139e6bd6d7fcc9b5cc4ff1418ff/src/openjarvis/security/file_policy.py",
+        "claims": [
+          {
+            "claim": "通过 _rust.is_sensitive_file 判断文件是否为敏感路径。",
+            "first": 41,
+            "last": 41,
+            "citation": "located"
+          },
+          {
+            "claim": "使用 DEFAULT_SENSITIVE_PATTERNS 匹配敏感文件名。",
+            "first": null,
+            "last": null,
+            "citation": "invalid"
+          }
+        ]
+      },
+      {
+        "heading": "签名验证行为",
+        "source": "https://raw.githubusercontent.com/open-jarvis/OpenJarvis/0eb7811df96cf139e6bd6d7fcc9b5cc4ff1418ff/src/openjarvis/security/signing.py",
+        "claims": [
+          {
+            "claim": "使用 Ed25519PrivateKey 生成私钥并签名数据。",
+            "first": 30,
+            "last": 30,
+            "citation": "located"
+          },
+          {
+            "claim": "使用 Ed25519PublicKey 验证签名数据。",
+            "first": 75,
+            "last": 75,
+            "citation": "located"
+          },
+          {
+            "claim": "签名和验证过程使用 base64 编码。",
+            "first": 94,
+            "last": 94,
+            "citation": "located"
+          }
+        ]
+      }
+    ],
+    "fallback_text": "{\n  \"action\": \"ultima_work_research_write\",\n  \"action_input\": {\n    \"path\": \"research.md\",\n    \"title\": \"OpenJarvis 文件安全写入、敏感路径判断和签名验证行为\",\n    \"sections\": [\n      {\n        \"source_id\": \"S1\",\n        \"heading\": \"文件安全写入行为\",\n        \"facts\": [\n          {\n            \"claim\": \"使用 secure_mkdir 创建目录并设置权限为 0o700。\",\n            \"evidence_id\": \"S1.3\"\n          },\n          {\n            \"claim\": \"使用 tempfile.mkstemp 创建临时文件并设置权限。\",\n            \"evidence_id\": \"S1.7\"\n          },\n          {\n            \"claim\": \"使用 os.fchmod 和 os.fsync 确保文件写入完成。\",\n            \"evidence_id\": \"S1.12\"\n          }\n        ]\n      },\n      {\n        \"source_id\": \"S2\",\n        \"heading\": \"敏感路径判断行为\",\n        \"facts\": [\n          {\n            \"claim\": \"通过 _rust.is_sensitive_file 判断文件是否为敏感路径。\",\n            \"evidence_id\": \"S2.2\"\n          },\n          {\n            \"claim\": \"使用 DEFAULT_SENSITIVE_PATTERNS 匹配敏感文件名。\",\n            \"evidence_id\": \"S2.5\"\n          }\n        ]\n      },\n      {\n        \"source_id\": \"S3\",\n        \"heading\": \"签名验证行为\",\n        \"facts\": [\n          {\n            \"claim\": \"使用 Ed25519PrivateKey 生成私钥并签名数据。\",\n            \"evidence_id\": \"S3.2\"\n          },\n          {\n            \"claim\": \"使用 Ed25519PublicKey 验证签名数据。\",\n            \"evidence_id\": \"S3.10\"\n          },\n          {\n            \"claim\": \"签名和验证过程使用 base64 编码。\",\n            \"evidence_id\": \"S3.13\"\n          }\n        ]\n      }\n    ]\n  }\n}"
+  },
+  "events": [
+    "inference_end"
+  ],
+  "dispatches": 0
+}

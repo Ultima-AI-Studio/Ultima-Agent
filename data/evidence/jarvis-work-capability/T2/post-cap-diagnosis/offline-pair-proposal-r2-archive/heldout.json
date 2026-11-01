@@ -1,0 +1,962 @@
+{
+  "query": "根据这些已取得的 OpenJarvis 源码，整理文件安全写入、敏感路径判断和签名验证的行为与失败分支，带来源保存为 research.md。",
+  "sources": [
+    {
+      "source_id": "S1",
+      "final_url": "https://raw.githubusercontent.com/open-jarvis/OpenJarvis/0eb7811df96cf139e6bd6d7fcc9b5cc4ff1418ff/src/openjarvis/security/file_utils.py",
+      "dedupe_url": "https://raw.githubusercontent.com/open-jarvis/OpenJarvis/0eb7811df96cf139e6bd6d7fcc9b5cc4ff1418ff/src/openjarvis/security/file_utils.py",
+      "text": "\"\"\"Secure file and directory creation helpers.\n\nAll OpenJarvis data files under ``~/.openjarvis/`` should be created\nthrough these helpers to ensure consistent, restrictive permissions.\n\"\"\"\n\nfrom __future__ import annotations\n\nimport json\nimport os\nimport tempfile\nfrom pathlib import Path\nfrom typing import Any\n\n\ndef secure_mkdir(path: Path, mode: int = 0o700) -> Path:\n    \"\"\"Create a directory with restrictive permissions.\n\n    Creates parent directories as needed, then sets *mode* on the\n    target directory (even if it already exists).\n    \"\"\"\n    path.mkdir(parents=True, exist_ok=True)\n    os.chmod(path, mode)\n    return path\n\n\ndef secure_create(path: Path, mode: int = 0o600) -> Path:\n    \"\"\"Ensure a file exists with restrictive permissions.\n\n    Creates the parent directory with ``0o700`` if needed, touches the\n    file if it doesn't exist, and sets *mode* on it.\n    \"\"\"\n    secure_mkdir(path.parent, mode=0o700)\n    if not path.exists():\n        path.touch()\n    os.chmod(path, mode)\n    return path\n\n\ndef secure_write_text(\n    path: Path,\n    content: str,\n    *,\n    mode: int = 0o600,\n    encoding: str = \"utf-8\",\n) -> Path:\n    \"\"\"Atomically replace *path* with owner-only text content.\n\n    The temporary file is created in the destination directory so\n    :func:`os.replace` remains atomic. Permissions are restricted before\n    secret bytes are written, then re-applied after replacement for platforms\n    whose replace semantics preserve the destination's prior mode.\n    \"\"\"\n    secure_mkdir(path.parent, mode=0o700)\n    fd, temporary_name = tempfile.mkstemp(\n        prefix=f\".{path.name}.\",\n        suffix=\".tmp\",\n        dir=str(path.parent),\n    )\n    temporary_path = Path(temporary_name)\n    try:\n        if hasattr(os, \"fchmod\"):\n            os.fchmod(fd, mode)\n        with os.fdopen(fd, \"w\", encoding=encoding) as handle:\n            handle.write(content)\n            handle.flush()\n            os.fsync(handle.fileno())\n        os.replace(temporary_path, path)\n        os.chmod(path, mode)\n    except Exception:\n        try:\n            os.close(fd)\n        except OSError:\n            pass\n        temporary_path.unlink(missing_ok=True)\n        raise\n    return path\n\n\ndef secure_write_json(path: Path, payload: Any, *, mode: int = 0o600) -> Path:\n    \"\"\"Atomically persist JSON with restrictive permissions.\"\"\"\n    return secure_write_text(\n        path,\n        json.dumps(payload, indent=2),\n        mode=mode,\n        encoding=\"utf-8\",\n    )\n",
+      "body": "\"\"\"Secure file and directory creation helpers.\n\nAll OpenJarvis data files under ``~/.openjarvis/`` should be created\nthrough these helpers to ensure consistent, restrictive permissions.\n\"\"\"\n\nfrom __future__ import annotations\n\nimport json\nimport os\nimport tempfile\nfrom pathlib import Path\nfrom typing import Any\n\n\ndef secure_mkdir(path: Path, mode: int = 0o700) -> Path:\n    \"\"\"Create a directory with restrictive permissions.\n\n    Creates parent directories as needed, then sets *mode* on the\n    target directory (even if it already exists).\n    \"\"\"\n    path.mkdir(parents=True, exist_ok=True)\n    os.chmod(path, mode)\n    return path\n\n\ndef secure_create(path: Path, mode: int = 0o600) -> Path:\n    \"\"\"Ensure a file exists with restrictive permissions.\n\n    Creates the parent directory with ``0o700`` if needed, touches the\n    file if it doesn't exist, and sets *mode* on it.\n    \"\"\"\n    secure_mkdir(path.parent, mode=0o700)\n    if not path.exists():\n        path.touch()\n    os.chmod(path, mode)\n    return path\n\n\ndef secure_write_text(\n    path: Path,\n    content: str,\n    *,\n    mode: int = 0o600,\n    encoding: str = \"utf-8\",\n) -> Path:\n    \"\"\"Atomically replace *path* with owner-only text content.\n\n    The temporary file is created in the destination directory so\n    :func:`os.replace` remains atomic. Permissions are restricted before\n    secret bytes are written, then re-applied after replacement for platforms\n    whose replace semantics preserve the destination's prior mode.\n    \"\"\"\n    secure_mkdir(path.parent, mode=0o700)\n    fd, temporary_name = tempfile.mkstemp(\n        prefix=f\".{path.name}.\",\n        suffix=\".tmp\",\n        dir=str(path.parent),\n    )\n    temporary_path = Path(temporary_name)\n    try:\n        if hasattr(os, \"fchmod\"):\n            os.fchmod(fd, mode)\n        with os.fdopen(fd, \"w\", encoding=encoding) as handle:\n            handle.write(content)\n            handle.flush()\n            os.fsync(handle.fileno())\n        os.replace(temporary_path, path)\n        os.chmod(path, mode)\n    except Exception:\n        try:\n            os.close(fd)\n        except OSError:\n            pass\n        temporary_path.unlink(missing_ok=True)\n        raise\n    return path\n\n\ndef secure_write_json(path: Path, payload: Any, *, mode: int = 0o600) -> Path:\n    \"\"\"Atomically persist JSON with restrictive permissions.\"\"\"\n    return secure_write_text(\n        path,\n        json.dumps(payload, indent=2),\n        mode=mode,\n        encoding=\"utf-8\",\n    )\n",
+      "decoded_body_sha256": "a43a9d8c2e24108886ef6503fcb690769c9ee650ea446247f71eb3b49974091f",
+      "content_type": "text/plain",
+      "read_call_id": "git-blob:0eb7811df96cf139e6bd6d7fcc9b5cc4ff1418ff:src/openjarvis/security/file_utils.py",
+      "request_id": "heldout",
+      "session_id": "heldout",
+      "task_id": "heldout"
+    },
+    {
+      "source_id": "S2",
+      "final_url": "https://raw.githubusercontent.com/open-jarvis/OpenJarvis/0eb7811df96cf139e6bd6d7fcc9b5cc4ff1418ff/src/openjarvis/security/file_policy.py",
+      "dedupe_url": "https://raw.githubusercontent.com/open-jarvis/OpenJarvis/0eb7811df96cf139e6bd6d7fcc9b5cc4ff1418ff/src/openjarvis/security/file_policy.py",
+      "text": "\"\"\"File sensitivity policy — block access to secrets, credentials, and keys.\"\"\"\n\nfrom __future__ import annotations\n\nfrom pathlib import Path\nfrom typing import Iterable, List, Union\n\nDEFAULT_SENSITIVE_PATTERNS: frozenset[str] = frozenset(\n    {\n        \".env\",\n        \".env.*\",\n        \"*.env\",\n        \".secret\",\n        \"*.secrets\",\n        \"credentials.*\",\n        \"*.pem\",\n        \"*.key\",\n        \"*.p12\",\n        \"*.pfx\",\n        \"*.jks\",\n        \"id_rsa\",\n        \"id_ed25519\",\n        \".htpasswd\",\n        \".pgpass\",\n        \".netrc\",\n    }\n)\n\n\ndef is_sensitive_file(path: Union[str, Path]) -> bool:\n    \"\"\"Return ``True`` if *path* matches a sensitive file pattern.\n\n    Checks both the filename and the full name against\n    ``DEFAULT_SENSITIVE_PATTERNS`` using :func:`fnmatch.fnmatch`.\n    Uses the Rust implementation when available, falls back to Python.\n    \"\"\"\n    try:\n        from openjarvis._rust_bridge import get_rust_module\n\n        _rust = get_rust_module()\n        return _rust.is_sensitive_file(str(path))\n    except ImportError:\n        return _is_sensitive_file_py(str(path))\n\n\ndef _is_sensitive_file_py(path_str: str) -> bool:\n    \"\"\"Pure-Python fallback for sensitive file detection.\"\"\"\n    import fnmatch\n\n    p = Path(path_str)\n    name = p.name\n    for pattern in DEFAULT_SENSITIVE_PATTERNS:\n        if fnmatch.fnmatch(name, pattern) or fnmatch.fnmatch(str(p), pattern):\n            return True\n    return False\n\n\ndef filter_sensitive_paths(paths: Iterable[Union[str, Path]]) -> List[Path]:\n    \"\"\"Return only non-sensitive paths from *paths*.\"\"\"\n    return [Path(p) for p in paths if not is_sensitive_file(p)]\n\n\n__all__ = [\n    \"DEFAULT_SENSITIVE_PATTERNS\",\n    \"filter_sensitive_paths\",\n    \"is_sensitive_file\",\n]\n",
+      "body": "\"\"\"File sensitivity policy — block access to secrets, credentials, and keys.\"\"\"\n\nfrom __future__ import annotations\n\nfrom pathlib import Path\nfrom typing import Iterable, List, Union\n\nDEFAULT_SENSITIVE_PATTERNS: frozenset[str] = frozenset(\n    {\n        \".env\",\n        \".env.*\",\n        \"*.env\",\n        \".secret\",\n        \"*.secrets\",\n        \"credentials.*\",\n        \"*.pem\",\n        \"*.key\",\n        \"*.p12\",\n        \"*.pfx\",\n        \"*.jks\",\n        \"id_rsa\",\n        \"id_ed25519\",\n        \".htpasswd\",\n        \".pgpass\",\n        \".netrc\",\n    }\n)\n\n\ndef is_sensitive_file(path: Union[str, Path]) -> bool:\n    \"\"\"Return ``True`` if *path* matches a sensitive file pattern.\n\n    Checks both the filename and the full name against\n    ``DEFAULT_SENSITIVE_PATTERNS`` using :func:`fnmatch.fnmatch`.\n    Uses the Rust implementation when available, falls back to Python.\n    \"\"\"\n    try:\n        from openjarvis._rust_bridge import get_rust_module\n\n        _rust = get_rust_module()\n        return _rust.is_sensitive_file(str(path))\n    except ImportError:\n        return _is_sensitive_file_py(str(path))\n\n\ndef _is_sensitive_file_py(path_str: str) -> bool:\n    \"\"\"Pure-Python fallback for sensitive file detection.\"\"\"\n    import fnmatch\n\n    p = Path(path_str)\n    name = p.name\n    for pattern in DEFAULT_SENSITIVE_PATTERNS:\n        if fnmatch.fnmatch(name, pattern) or fnmatch.fnmatch(str(p), pattern):\n            return True\n    return False\n\n\ndef filter_sensitive_paths(paths: Iterable[Union[str, Path]]) -> List[Path]:\n    \"\"\"Return only non-sensitive paths from *paths*.\"\"\"\n    return [Path(p) for p in paths if not is_sensitive_file(p)]\n\n\n__all__ = [\n    \"DEFAULT_SENSITIVE_PATTERNS\",\n    \"filter_sensitive_paths\",\n    \"is_sensitive_file\",\n]\n",
+      "decoded_body_sha256": "c4219a7dc5e9e319da3caac1af77a430fe2bacdffc48844ca0d214ff7798e916",
+      "content_type": "text/plain",
+      "read_call_id": "git-blob:0eb7811df96cf139e6bd6d7fcc9b5cc4ff1418ff:src/openjarvis/security/file_policy.py",
+      "request_id": "heldout",
+      "session_id": "heldout",
+      "task_id": "heldout"
+    },
+    {
+      "source_id": "S3",
+      "final_url": "https://raw.githubusercontent.com/open-jarvis/OpenJarvis/0eb7811df96cf139e6bd6d7fcc9b5cc4ff1418ff/src/openjarvis/security/signing.py",
+      "dedupe_url": "https://raw.githubusercontent.com/open-jarvis/OpenJarvis/0eb7811df96cf139e6bd6d7fcc9b5cc4ff1418ff/src/openjarvis/security/signing.py",
+      "text": "\"\"\"Ed25519 signing — supply chain integrity for agent and skill manifests.\"\"\"\n\nfrom __future__ import annotations\n\nimport base64\nimport logging\nfrom dataclasses import dataclass\n\nlogger = logging.getLogger(__name__)\n\n\n@dataclass(slots=True)\nclass KeyPair:\n    \"\"\"Ed25519 key pair.\"\"\"\n\n    private_key: bytes\n    public_key: bytes\n\n\ndef generate_keypair() -> KeyPair:\n    \"\"\"Generate a new Ed25519 key pair.\n\n    Requires the ``cryptography`` package\n    (``uv sync --extra security-signing``).\n    \"\"\"\n    try:\n        from cryptography.hazmat.primitives import serialization\n        from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey\n\n        private_key = Ed25519PrivateKey.generate()\n        private_bytes = private_key.private_bytes(\n            encoding=serialization.Encoding.Raw,\n            format=serialization.PrivateFormat.Raw,\n            encryption_algorithm=serialization.NoEncryption(),\n        )\n        public_bytes = private_key.public_key().public_bytes(\n            encoding=serialization.Encoding.Raw,\n            format=serialization.PublicFormat.Raw,\n        )\n        return KeyPair(private_key=private_bytes, public_key=public_bytes)\n    except ImportError as exc:\n        raise ImportError(\n            \"Ed25519 signing requires the 'cryptography' package. \"\n            \"Install with: uv sync --extra security-signing\"\n        ) from exc\n\n\ndef sign(data: bytes, private_key: bytes) -> bytes:\n    \"\"\"Sign *data* with an Ed25519 *private_key*.\n\n    Returns the raw 64-byte signature.\n    \"\"\"\n    try:\n        from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey\n\n        key = Ed25519PrivateKey.from_private_bytes(private_key)\n        return key.sign(data)\n    except ImportError as exc:\n        raise ImportError(\n            \"Ed25519 signing requires the 'cryptography' package.\"\n        ) from exc\n\n\ndef verify(data: bytes, signature: bytes, public_key: bytes) -> bool:\n    \"\"\"Verify an Ed25519 *signature* on *data* with *public_key*.\n\n    Returns True if valid, False otherwise.\n    \"\"\"\n    try:\n        from cryptography.exceptions import InvalidSignature\n        from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey\n\n        key = Ed25519PublicKey.from_public_bytes(public_key)\n        try:\n            key.verify(signature, data)\n            return True\n        except InvalidSignature:\n            return False\n    except ImportError as exc:\n        raise ImportError(\n            \"Ed25519 signing requires the 'cryptography' package.\"\n        ) from exc\n\n\ndef sign_b64(data: bytes, private_key: bytes) -> str:\n    \"\"\"Sign and return base64-encoded signature string.\"\"\"\n    raw = sign(data, private_key)\n    return base64.b64encode(raw).decode(\"ascii\")\n\n\ndef verify_b64(data: bytes, signature_b64: str, public_key: bytes) -> bool:\n    \"\"\"Verify a base64-encoded signature.\"\"\"\n    try:\n        raw = base64.b64decode(signature_b64)\n    except Exception as exc:\n        logger.warning(\"Signature verification failed: %s\", exc)\n        return False\n    return verify(data, raw, public_key)\n\n\ndef load_public_key(path: str) -> bytes:\n    \"\"\"Load a raw 32-byte Ed25519 public key from a file.\"\"\"\n    from pathlib import Path\n\n    raw = Path(path).read_bytes()\n    # If base64-encoded (common), decode\n    if len(raw) > 32:\n        try:\n            raw = base64.b64decode(raw.strip())\n        except Exception as exc:\n            logger.warning(\"Failed to base64-decode public key from %s: %s\", path, exc)\n    return raw\n\n\ndef save_keypair(keypair: KeyPair, private_path: str, public_path: str) -> None:\n    \"\"\"Save keypair to files (base64-encoded).\"\"\"\n    from pathlib import Path\n\n    Path(private_path).write_text(base64.b64encode(keypair.private_key).decode())\n    Path(public_path).write_text(base64.b64encode(keypair.public_key).decode())\n\n\n__all__ = [\n    \"KeyPair\",\n    \"generate_keypair\",\n    \"load_public_key\",\n    \"save_keypair\",\n    \"sign\",\n    \"sign_b64\",\n    \"verify\",\n    \"verify_b64\",\n]\n",
+      "body": "\"\"\"Ed25519 signing — supply chain integrity for agent and skill manifests.\"\"\"\n\nfrom __future__ import annotations\n\nimport base64\nimport logging\nfrom dataclasses import dataclass\n\nlogger = logging.getLogger(__name__)\n\n\n@dataclass(slots=True)\nclass KeyPair:\n    \"\"\"Ed25519 key pair.\"\"\"\n\n    private_key: bytes\n    public_key: bytes\n\n\ndef generate_keypair() -> KeyPair:\n    \"\"\"Generate a new Ed25519 key pair.\n\n    Requires the ``cryptography`` package\n    (``uv sync --extra security-signing``).\n    \"\"\"\n    try:\n        from cryptography.hazmat.primitives import serialization\n        from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey\n\n        private_key = Ed25519PrivateKey.generate()\n        private_bytes = private_key.private_bytes(\n            encoding=serialization.Encoding.Raw,\n            format=serialization.PrivateFormat.Raw,\n            encryption_algorithm=serialization.NoEncryption(),\n        )\n        public_bytes = private_key.public_key().public_bytes(\n            encoding=serialization.Encoding.Raw,\n            format=serialization.PublicFormat.Raw,\n        )\n        return KeyPair(private_key=private_bytes, public_key=public_bytes)\n    except ImportError as exc:\n        raise ImportError(\n            \"Ed25519 signing requires the 'cryptography' package. \"\n            \"Install with: uv sync --extra security-signing\"\n        ) from exc\n\n\ndef sign(data: bytes, private_key: bytes) -> bytes:\n    \"\"\"Sign *data* with an Ed25519 *private_key*.\n\n    Returns the raw 64-byte signature.\n    \"\"\"\n    try:\n        from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey\n\n        key = Ed25519PrivateKey.from_private_bytes(private_key)\n        return key.sign(data)\n    except ImportError as exc:\n        raise ImportError(\n            \"Ed25519 signing requires the 'cryptography' package.\"\n        ) from exc\n\n\ndef verify(data: bytes, signature: bytes, public_key: bytes) -> bool:\n    \"\"\"Verify an Ed25519 *signature* on *data* with *public_key*.\n\n    Returns True if valid, False otherwise.\n    \"\"\"\n    try:\n        from cryptography.exceptions import InvalidSignature\n        from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey\n\n        key = Ed25519PublicKey.from_public_bytes(public_key)\n        try:\n            key.verify(signature, data)\n            return True\n        except InvalidSignature:\n            return False\n    except ImportError as exc:\n        raise ImportError(\n            \"Ed25519 signing requires the 'cryptography' package.\"\n        ) from exc\n\n\ndef sign_b64(data: bytes, private_key: bytes) -> str:\n    \"\"\"Sign and return base64-encoded signature string.\"\"\"\n    raw = sign(data, private_key)\n    return base64.b64encode(raw).decode(\"ascii\")\n\n\ndef verify_b64(data: bytes, signature_b64: str, public_key: bytes) -> bool:\n    \"\"\"Verify a base64-encoded signature.\"\"\"\n    try:\n        raw = base64.b64decode(signature_b64)\n    except Exception as exc:\n        logger.warning(\"Signature verification failed: %s\", exc)\n        return False\n    return verify(data, raw, public_key)\n\n\ndef load_public_key(path: str) -> bytes:\n    \"\"\"Load a raw 32-byte Ed25519 public key from a file.\"\"\"\n    from pathlib import Path\n\n    raw = Path(path).read_bytes()\n    # If base64-encoded (common), decode\n    if len(raw) > 32:\n        try:\n            raw = base64.b64decode(raw.strip())\n        except Exception as exc:\n            logger.warning(\"Failed to base64-decode public key from %s: %s\", path, exc)\n    return raw\n\n\ndef save_keypair(keypair: KeyPair, private_path: str, public_path: str) -> None:\n    \"\"\"Save keypair to files (base64-encoded).\"\"\"\n    from pathlib import Path\n\n    Path(private_path).write_text(base64.b64encode(keypair.private_key).decode())\n    Path(public_path).write_text(base64.b64encode(keypair.public_key).decode())\n\n\n__all__ = [\n    \"KeyPair\",\n    \"generate_keypair\",\n    \"load_public_key\",\n    \"save_keypair\",\n    \"sign\",\n    \"sign_b64\",\n    \"verify\",\n    \"verify_b64\",\n]\n",
+      "decoded_body_sha256": "8cd118a72234e4e0da45716a47472c1994649dc73728adaf5810c91175949e52",
+      "content_type": "text/plain",
+      "read_call_id": "git-blob:0eb7811df96cf139e6bd6d7fcc9b5cc4ff1418ff:src/openjarvis/security/signing.py",
+      "request_id": "heldout",
+      "session_id": "heldout",
+      "task_id": "heldout"
+    }
+  ],
+  "original": "[{\"source_id\":\"S1\",\"lines\":[[1,\"\\\"\\\"\\\"Secure file and directory creation helpers.\"],[2,\"\"],[3,\"All OpenJarvis data files under ``~/.openjarvis/`` should be created\"],[4,\"through these helpers to ensure consistent, restrictive permissions.\"],[5,\"\\\"\\\"\\\"\"],[6,\"\"],[7,\"from __future__ import annotations\"],[8,\"\"],[9,\"import json\"],[10,\"import os\"],[11,\"import tempfile\"],[12,\"from pathlib import Path\"],[13,\"from typing import Any\"],[14,\"\"],[15,\"\"],[16,\"def secure_mkdir(path: Path, mode: int = 0o700) -> Path:\"],[17,\"    \\\"\\\"\\\"Create a directory with restrictive permissions.\"],[18,\"\"],[19,\"    Creates parent directories as needed, then sets *mode* on the\"],[20,\"    target directory (even if it already exists).\"],[21,\"    \\\"\\\"\\\"\"],[22,\"    path.mkdir(parents=True, exist_ok=True)\"],[23,\"    os.chmod(path, mode)\"],[24,\"    return path\"],[25,\"\"],[26,\"\"],[27,\"def secure_create(path: Path, mode: int = 0o600) -> Path:\"],[28,\"    \\\"\\\"\\\"Ensure a file exists with restrictive permissions.\"],[29,\"\"],[30,\"    Creates the parent directory with ``0o700`` if needed, touches the\"],[31,\"    file if it doesn't exist, and sets *mode* on it.\"],[32,\"    \\\"\\\"\\\"\"],[33,\"    secure_mkdir(path.parent, mode=0o700)\"],[34,\"    if not path.exists():\"],[35,\"        path.touch()\"],[36,\"    os.chmod(path, mode)\"],[37,\"    return path\"],[38,\"\"],[39,\"\"],[40,\"def secure_write_text(\"],[41,\"    path: Path,\"],[42,\"    content: str,\"],[43,\"    *,\"],[44,\"    mode: int = 0o600,\"],[45,\"    encoding: str = \\\"utf-8\\\",\"],[46,\") -> Path:\"],[47,\"    \\\"\\\"\\\"Atomically replace *path* with owner-only text content.\"],[48,\"\"],[49,\"    The temporary file is created in the destination directory so\"],[50,\"    :func:`os.replace` remains atomic. Permissions are restricted before\"],[51,\"    secret bytes are written, then re-applied after replacement for platforms\"],[52,\"    whose replace semantics preserve the destination's prior mode.\"],[53,\"    \\\"\\\"\\\"\"],[54,\"    secure_mkdir(path.parent, mode=0o700)\"],[55,\"    fd, temporary_name = tempfile.mkstemp(\"],[56,\"        prefix=f\\\".{path.name}.\\\",\"],[57,\"        suffix=\\\".tmp\\\",\"],[58,\"        dir=str(path.parent),\"],[59,\"    )\"],[60,\"    temporary_path = Path(temporary_name)\"],[61,\"    try:\"],[62,\"        if hasattr(os, \\\"fchmod\\\"):\"],[63,\"            os.fchmod(fd, mode)\"],[64,\"        with os.fdopen(fd, \\\"w\\\", encoding=encoding) as handle:\"],[65,\"            handle.write(content)\"],[66,\"            handle.flush()\"],[67,\"            os.fsync(handle.fileno())\"],[68,\"        os.replace(temporary_path, path)\"],[69,\"        os.chmod(path, mode)\"],[70,\"    except Exception:\"],[71,\"        try:\"],[72,\"            os.close(fd)\"],[73,\"        except OSError:\"],[74,\"            pass\"],[75,\"        temporary_path.unlink(missing_ok=True)\"],[76,\"        raise\"],[77,\"    return path\"],[78,\"\"],[79,\"\"],[80,\"def secure_write_json(path: Path, payload: Any, *, mode: int = 0o600) -> Path:\"],[81,\"    \\\"\\\"\\\"Atomically persist JSON with restrictive permissions.\\\"\\\"\\\"\"],[82,\"    return secure_write_text(\"],[83,\"        path,\"],[84,\"        json.dumps(payload, indent=2),\"],[85,\"        mode=mode,\"],[86,\"        encoding=\\\"utf-8\\\",\"],[87,\"    )\"]],\"omitted\":false},{\"source_id\":\"S2\",\"lines\":[[1,\"\\\"\\\"\\\"File sensitivity policy — block access to secrets, credentials, and keys.\\\"\\\"\\\"\"],[2,\"\"],[3,\"from __future__ import annotations\"],[4,\"\"],[5,\"from pathlib import Path\"],[6,\"from typing import Iterable, List, Union\"],[7,\"\"],[8,\"DEFAULT_SENSITIVE_PATTERNS: frozenset[str] = frozenset(\"],[9,\"    {\"],[10,\"        \\\".env\\\",\"],[11,\"        \\\".env.*\\\",\"],[12,\"        \\\"*.env\\\",\"],[13,\"        \\\".secret\\\",\"],[14,\"        \\\"*.secrets\\\",\"],[15,\"        \\\"credentials.*\\\",\"],[16,\"        \\\"*.pem\\\",\"],[17,\"        \\\"*.key\\\",\"],[18,\"        \\\"*.p12\\\",\"],[19,\"        \\\"*.pfx\\\",\"],[20,\"        \\\"*.jks\\\",\"],[21,\"        \\\"id_rsa\\\",\"],[22,\"        \\\"id_ed25519\\\",\"],[23,\"        \\\".htpasswd\\\",\"],[24,\"        \\\".pgpass\\\",\"],[25,\"        \\\".netrc\\\",\"],[26,\"    }\"],[27,\")\"],[28,\"\"],[29,\"\"],[30,\"def is_sensitive_file(path: Union[str, Path]) -> bool:\"],[31,\"    \\\"\\\"\\\"Return ``True`` if *path* matches a sensitive file pattern.\"],[32,\"\"],[33,\"    Checks both the filename and the full name against\"],[34,\"    ``DEFAULT_SENSITIVE_PATTERNS`` using :func:`fnmatch.fnmatch`.\"],[35,\"    Uses the Rust implementation when available, falls back to Python.\"],[36,\"    \\\"\\\"\\\"\"],[37,\"    try:\"],[38,\"        from openjarvis._rust_bridge import get_rust_module\"],[39,\"\"],[40,\"        _rust = get_rust_module()\"],[41,\"        return _rust.is_sensitive_file(str(path))\"],[42,\"    except ImportError:\"],[43,\"        return _is_sensitive_file_py(str(path))\"],[44,\"\"],[45,\"\"],[46,\"def _is_sensitive_file_py(path_str: str) -> bool:\"],[47,\"    \\\"\\\"\\\"Pure-Python fallback for sensitive file detection.\\\"\\\"\\\"\"],[48,\"    import fnmatch\"],[49,\"\"],[50,\"    p = Path(path_str)\"],[51,\"    name = p.name\"],[52,\"    for pattern in DEFAULT_SENSITIVE_PATTERNS:\"],[53,\"        if fnmatch.fnmatch(name, pattern) or fnmatch.fnmatch(str(p), pattern):\"],[54,\"            return True\"],[55,\"    return False\"],[56,\"\"],[57,\"\"],[58,\"def filter_sensitive_paths(paths: Iterable[Union[str, Path]]) -> List[Path]:\"],[59,\"    \\\"\\\"\\\"Return only non-sensitive paths from *paths*.\\\"\\\"\\\"\"],[60,\"    return [Path(p) for p in paths if not is_sensitive_file(p)]\"],[61,\"\"],[62,\"\"],[63,\"__all__ = [\"],[64,\"    \\\"DEFAULT_SENSITIVE_PATTERNS\\\",\"],[65,\"    \\\"filter_sensitive_paths\\\",\"],[66,\"    \\\"is_sensitive_file\\\",\"],[67,\"]\"]],\"omitted\":false},{\"source_id\":\"S3\",\"lines\":[[1,\"\\\"\\\"\\\"Ed25519 signing — supply chain integrity for agent and skill manifests.\\\"\\\"\\\"\"],[2,\"\"],[3,\"from __future__ import annotations\"],[4,\"\"],[5,\"import base64\"],[6,\"import logging\"],[7,\"from dataclasses import dataclass\"],[8,\"\"],[9,\"logger = logging.getLogger(__name__)\"],[10,\"\"],[11,\"\"],[12,\"@dataclass(slots=True)\"],[13,\"class KeyPair:\"],[14,\"    \\\"\\\"\\\"Ed25519 key pair.\\\"\\\"\\\"\"],[15,\"\"],[16,\"    private_key: bytes\"],[17,\"    public_key: bytes\"],[18,\"\"],[19,\"\"],[20,\"def generate_keypair() -> KeyPair:\"],[21,\"    \\\"\\\"\\\"Generate a new Ed25519 key pair.\"],[22,\"\"],[23,\"    Requires the ``cryptography`` package\"],[24,\"    (``uv sync --extra security-signing``).\"],[25,\"    \\\"\\\"\\\"\"],[26,\"    try:\"],[27,\"        from cryptography.hazmat.primitives import serialization\"],[28,\"        from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey\"],[29,\"\"],[30,\"        private_key = Ed25519PrivateKey.generate()\"],[31,\"        private_bytes = private_key.private_bytes(\"],[32,\"            encoding=serialization.Encoding.Raw,\"],[33,\"            format=serialization.PrivateFormat.Raw,\"],[34,\"            encryption_algorithm=serialization.NoEncryption(),\"],[35,\"        )\"],[36,\"        public_bytes = private_key.public_key().public_bytes(\"],[37,\"            encoding=serialization.Encoding.Raw,\"],[38,\"            format=serialization.PublicFormat.Raw,\"],[39,\"        )\"],[40,\"        return KeyPair(private_key=private_bytes, public_key=public_bytes)\"],[41,\"    except ImportError as exc:\"],[42,\"        raise ImportError(\"],[43,\"            \\\"Ed25519 signing requires the 'cryptography' package. \\\"\"],[44,\"            \\\"Install with: uv sync --extra security-signing\\\"\"],[45,\"        ) from exc\"],[46,\"\"],[47,\"\"],[48,\"def sign(data: bytes, private_key: bytes) -> bytes:\"],[49,\"    \\\"\\\"\\\"Sign *data* with an Ed25519 *private_key*.\"],[50,\"\"],[51,\"    Returns the raw 64-byte signature.\"],[52,\"    \\\"\\\"\\\"\"],[53,\"    try:\"],[54,\"        from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey\"],[55,\"\"],[56,\"        key = Ed25519PrivateKey.from_private_bytes(private_key)\"],[57,\"        return key.sign(data)\"],[58,\"    except ImportError as exc:\"],[59,\"        raise ImportError(\"],[60,\"            \\\"Ed25519 signing requires the 'cryptography' package.\\\"\"],[61,\"        ) from exc\"],[62,\"\"],[63,\"\"],[64,\"def verify(data: bytes, signature: bytes, public_key: bytes) -> bool:\"],[65,\"    \\\"\\\"\\\"Verify an Ed25519 *signature* on *data* with *public_key*.\"],[66,\"\"],[67,\"    Returns True if valid, False otherwise.\"],[68,\"    \\\"\\\"\\\"\"],[69,\"    try:\"],[70,\"        from cryptography.exceptions import InvalidSignature\"],[71,\"        from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey\"],[72,\"\"],[73,\"        key = Ed25519PublicKey.from_public_bytes(public_key)\"],[74,\"        try:\"],[75,\"            key.verify(signature, data)\"],[76,\"            return True\"],[77,\"        except InvalidSignature:\"],[78,\"            return False\"],[79,\"    except ImportError as exc:\"],[80,\"        raise ImportError(\"],[81,\"            \\\"Ed25519 signing requires the 'cryptography' package.\\\"\"],[82,\"        ) from exc\"],[83,\"\"],[84,\"\"],[85,\"def sign_b64(data: bytes, private_key: bytes) -> str:\"],[86,\"    \\\"\\\"\\\"Sign and return base64-encoded signature string.\\\"\\\"\\\"\"],[87,\"    raw = sign(data, private_key)\"],[88,\"    return base64.b64encode(raw).decode(\\\"ascii\\\")\"],[89,\"\"],[90,\"\"],[91,\"def verify_b64(data: bytes, signature_b64: str, public_key: bytes) -> bool:\"],[92,\"    \\\"\\\"\\\"Verify a base64-encoded signature.\\\"\\\"\\\"\"],[93,\"    try:\"],[94,\"        raw = base64.b64decode(signature_b64)\"],[95,\"    except Exception as exc:\"],[96,\"        logger.warning(\\\"Signature verification failed: %s\\\", exc)\"],[97,\"        return False\"],[98,\"    return verify(data, raw, public_key)\"],[99,\"\"],[100,\"\"],[101,\"def load_public_key(path: str) -> bytes:\"],[102,\"    \\\"\\\"\\\"Load a raw 32-byte Ed25519 public key from a file.\\\"\\\"\\\"\"],[103,\"    from pathlib import Path\"],[104,\"\"],[105,\"    raw = Path(path).read_bytes()\"],[106,\"    # If base64-encoded (common), decode\"],[107,\"    if len(raw) > 32:\"],[108,\"        try:\"],[109,\"            raw = base64.b64decode(raw.strip())\"],[110,\"        except Exception as exc:\"],[111,\"            logger.warning(\\\"Failed to base64-decode public key from %s: %s\\\", path, exc)\"],[112,\"    return raw\"],[113,\"\"],[114,\"\"],[115,\"def save_keypair(keypair: KeyPair, private_path: str, public_path: str) -> None:\"],[116,\"    \\\"\\\"\\\"Save keypair to files (base64-encoded).\\\"\\\"\\\"\"],[117,\"    from pathlib import Path\"],[118,\"\"],[119,\"    Path(private_path).write_text(base64.b64encode(keypair.private_key).decode())\"],[120,\"    Path(public_path).write_text(base64.b64encode(keypair.public_key).decode())\"],[121,\"\"],[122,\"\"],[123,\"__all__ = [\"],[124,\"    \\\"KeyPair\\\",\"],[125,\"    \\\"generate_keypair\\\",\"],[126,\"    \\\"load_public_key\\\",\"],[127,\"    \\\"save_keypair\\\",\"],[128,\"    \\\"sign\\\",\"],[129,\"    \\\"sign_b64\\\",\"],[130,\"    \\\"verify\\\",\"],[131,\"    \\\"verify_b64\\\",\"],[132,\"]\"]],\"omitted\":false}]",
+  "handles": [
+    {
+      "source_id": "S1",
+      "identity": "https://raw.githubusercontent.com/open-jarvis/OpenJarvis/0eb7811df96cf139e6bd6d7fcc9b5cc4ff1418ff/src/openjarvis/security/file_utils.py",
+      "cards": [
+        {
+          "id": "S1.1",
+          "kind": "code",
+          "lines": [
+            22,
+            22
+          ],
+          "symbol": "path.mkdir"
+        },
+        {
+          "id": "S1.2",
+          "kind": "code",
+          "lines": [
+            23,
+            23
+          ],
+          "symbol": "os.chmod"
+        },
+        {
+          "id": "S1.3",
+          "kind": "code",
+          "lines": [
+            33,
+            33
+          ],
+          "symbol": "secure_mkdir"
+        },
+        {
+          "id": "S1.4",
+          "kind": "code",
+          "lines": [
+            35,
+            35
+          ],
+          "symbol": "path.touch"
+        },
+        {
+          "id": "S1.5",
+          "kind": "code",
+          "lines": [
+            36,
+            36
+          ],
+          "symbol": "os.chmod"
+        },
+        {
+          "id": "S1.6",
+          "kind": "code",
+          "lines": [
+            54,
+            54
+          ],
+          "symbol": "secure_mkdir"
+        },
+        {
+          "id": "S1.7",
+          "kind": "code",
+          "lines": [
+            55,
+            59
+          ],
+          "symbol": "tempfile.mkstemp"
+        },
+        {
+          "id": "S1.8",
+          "kind": "code",
+          "lines": [
+            60,
+            60
+          ],
+          "symbol": "Path"
+        },
+        {
+          "id": "S1.9",
+          "kind": "code",
+          "lines": [
+            63,
+            63
+          ],
+          "symbol": "os.fchmod"
+        },
+        {
+          "id": "S1.10",
+          "kind": "code",
+          "lines": [
+            65,
+            65
+          ],
+          "symbol": "handle.write"
+        },
+        {
+          "id": "S1.11",
+          "kind": "code",
+          "lines": [
+            66,
+            66
+          ],
+          "symbol": "handle.flush"
+        },
+        {
+          "id": "S1.12",
+          "kind": "code",
+          "lines": [
+            67,
+            67
+          ],
+          "symbol": "os.fsync"
+        },
+        {
+          "id": "S1.13",
+          "kind": "code",
+          "lines": [
+            68,
+            68
+          ],
+          "symbol": "os.replace"
+        },
+        {
+          "id": "S1.14",
+          "kind": "code",
+          "lines": [
+            69,
+            69
+          ],
+          "symbol": "os.chmod"
+        },
+        {
+          "id": "S1.15",
+          "kind": "code",
+          "lines": [
+            72,
+            72
+          ],
+          "symbol": "os.close"
+        },
+        {
+          "id": "S1.16",
+          "kind": "code",
+          "lines": [
+            75,
+            75
+          ],
+          "symbol": "temporary_path.unlink"
+        },
+        {
+          "id": "S1.17",
+          "kind": "limitation",
+          "lines": [
+            76,
+            76
+          ]
+        },
+        {
+          "id": "S1.18",
+          "kind": "code",
+          "lines": [
+            82,
+            87
+          ],
+          "symbol": "secure_write_text"
+        }
+      ],
+      "context_lines": [
+        [
+          20,
+          "    target directory (even if it already exists)."
+        ],
+        [
+          21,
+          "    \"\"\""
+        ],
+        [
+          22,
+          "    path.mkdir(parents=True, exist_ok=True)"
+        ],
+        [
+          23,
+          "    os.chmod(path, mode)"
+        ],
+        [
+          24,
+          "    return path"
+        ],
+        [
+          25,
+          ""
+        ],
+        [
+          31,
+          "    file if it doesn't exist, and sets *mode* on it."
+        ],
+        [
+          32,
+          "    \"\"\""
+        ],
+        [
+          33,
+          "    secure_mkdir(path.parent, mode=0o700)"
+        ],
+        [
+          34,
+          "    if not path.exists():"
+        ],
+        [
+          35,
+          "        path.touch()"
+        ],
+        [
+          36,
+          "    os.chmod(path, mode)"
+        ],
+        [
+          37,
+          "    return path"
+        ],
+        [
+          38,
+          ""
+        ],
+        [
+          52,
+          "    whose replace semantics preserve the destination's prior mode."
+        ],
+        [
+          53,
+          "    \"\"\""
+        ],
+        [
+          54,
+          "    secure_mkdir(path.parent, mode=0o700)"
+        ],
+        [
+          55,
+          "    fd, temporary_name = tempfile.mkstemp("
+        ],
+        [
+          56,
+          "        prefix=f\".{path.name}.\","
+        ],
+        [
+          57,
+          "        suffix=\".tmp\","
+        ],
+        [
+          58,
+          "        dir=str(path.parent),"
+        ],
+        [
+          59,
+          "    )"
+        ],
+        [
+          60,
+          "    temporary_path = Path(temporary_name)"
+        ],
+        [
+          61,
+          "    try:"
+        ],
+        [
+          62,
+          "        if hasattr(os, \"fchmod\"):"
+        ],
+        [
+          63,
+          "            os.fchmod(fd, mode)"
+        ],
+        [
+          64,
+          "        with os.fdopen(fd, \"w\", encoding=encoding) as handle:"
+        ],
+        [
+          65,
+          "            handle.write(content)"
+        ],
+        [
+          66,
+          "            handle.flush()"
+        ],
+        [
+          67,
+          "            os.fsync(handle.fileno())"
+        ],
+        [
+          68,
+          "        os.replace(temporary_path, path)"
+        ],
+        [
+          69,
+          "        os.chmod(path, mode)"
+        ],
+        [
+          70,
+          "    except Exception:"
+        ],
+        [
+          71,
+          "        try:"
+        ],
+        [
+          72,
+          "            os.close(fd)"
+        ],
+        [
+          73,
+          "        except OSError:"
+        ],
+        [
+          74,
+          "            pass"
+        ],
+        [
+          75,
+          "        temporary_path.unlink(missing_ok=True)"
+        ],
+        [
+          76,
+          "        raise"
+        ],
+        [
+          77,
+          "    return path"
+        ],
+        [
+          78,
+          ""
+        ],
+        [
+          80,
+          "def secure_write_json(path: Path, payload: Any, *, mode: int = 0o600) -> Path:"
+        ],
+        [
+          81,
+          "    \"\"\"Atomically persist JSON with restrictive permissions.\"\"\""
+        ],
+        [
+          82,
+          "    return secure_write_text("
+        ],
+        [
+          83,
+          "        path,"
+        ],
+        [
+          84,
+          "        json.dumps(payload, indent=2),"
+        ],
+        [
+          85,
+          "        mode=mode,"
+        ],
+        [
+          86,
+          "        encoding=\"utf-8\","
+        ],
+        [
+          87,
+          "    )"
+        ]
+      ]
+    },
+    {
+      "source_id": "S2",
+      "identity": "https://raw.githubusercontent.com/open-jarvis/OpenJarvis/0eb7811df96cf139e6bd6d7fcc9b5cc4ff1418ff/src/openjarvis/security/file_policy.py",
+      "cards": [
+        {
+          "id": "S2.1",
+          "kind": "code",
+          "lines": [
+            40,
+            40
+          ],
+          "symbol": "get_rust_module"
+        },
+        {
+          "id": "S2.2",
+          "kind": "code",
+          "lines": [
+            41,
+            41
+          ],
+          "symbol": "_rust.is_sensitive_file"
+        },
+        {
+          "id": "S2.3",
+          "kind": "code",
+          "lines": [
+            43,
+            43
+          ],
+          "symbol": "_is_sensitive_file_py"
+        },
+        {
+          "id": "S2.4",
+          "kind": "code",
+          "lines": [
+            50,
+            50
+          ],
+          "symbol": "Path"
+        }
+      ],
+      "context_lines": [
+        [
+          38,
+          "        from openjarvis._rust_bridge import get_rust_module"
+        ],
+        [
+          39,
+          ""
+        ],
+        [
+          40,
+          "        _rust = get_rust_module()"
+        ],
+        [
+          41,
+          "        return _rust.is_sensitive_file(str(path))"
+        ],
+        [
+          42,
+          "    except ImportError:"
+        ],
+        [
+          43,
+          "        return _is_sensitive_file_py(str(path))"
+        ],
+        [
+          44,
+          ""
+        ],
+        [
+          45,
+          ""
+        ],
+        [
+          48,
+          "    import fnmatch"
+        ],
+        [
+          49,
+          ""
+        ],
+        [
+          50,
+          "    p = Path(path_str)"
+        ],
+        [
+          51,
+          "    name = p.name"
+        ],
+        [
+          52,
+          "    for pattern in DEFAULT_SENSITIVE_PATTERNS:"
+        ]
+      ]
+    },
+    {
+      "source_id": "S3",
+      "identity": "https://raw.githubusercontent.com/open-jarvis/OpenJarvis/0eb7811df96cf139e6bd6d7fcc9b5cc4ff1418ff/src/openjarvis/security/signing.py",
+      "cards": [
+        {
+          "id": "S3.1",
+          "kind": "code",
+          "lines": [
+            9,
+            9
+          ],
+          "symbol": "logging.getLogger"
+        },
+        {
+          "id": "S3.2",
+          "kind": "code",
+          "lines": [
+            30,
+            30
+          ],
+          "symbol": "Ed25519PrivateKey.generate"
+        },
+        {
+          "id": "S3.3",
+          "kind": "code",
+          "lines": [
+            31,
+            35
+          ],
+          "symbol": "private_key.private_bytes"
+        },
+        {
+          "id": "S3.4",
+          "kind": "code",
+          "lines": [
+            40,
+            40
+          ],
+          "symbol": "KeyPair"
+        },
+        {
+          "id": "S3.5",
+          "kind": "limitation",
+          "lines": [
+            42,
+            45
+          ]
+        },
+        {
+          "id": "S3.6",
+          "kind": "code",
+          "lines": [
+            56,
+            56
+          ],
+          "symbol": "Ed25519PrivateKey.from_private_bytes"
+        },
+        {
+          "id": "S3.7",
+          "kind": "code",
+          "lines": [
+            57,
+            57
+          ],
+          "symbol": "key.sign"
+        },
+        {
+          "id": "S3.8",
+          "kind": "limitation",
+          "lines": [
+            59,
+            61
+          ]
+        },
+        {
+          "id": "S3.9",
+          "kind": "code",
+          "lines": [
+            73,
+            73
+          ],
+          "symbol": "Ed25519PublicKey.from_public_bytes"
+        },
+        {
+          "id": "S3.10",
+          "kind": "code",
+          "lines": [
+            75,
+            75
+          ],
+          "symbol": "key.verify"
+        },
+        {
+          "id": "S3.11",
+          "kind": "limitation",
+          "lines": [
+            80,
+            82
+          ]
+        },
+        {
+          "id": "S3.12",
+          "kind": "code",
+          "lines": [
+            87,
+            87
+          ],
+          "symbol": "sign"
+        },
+        {
+          "id": "S3.13",
+          "kind": "code",
+          "lines": [
+            94,
+            94
+          ],
+          "symbol": "base64.b64decode"
+        },
+        {
+          "id": "S3.15",
+          "kind": "limitation",
+          "lines": [
+            96,
+            96
+          ]
+        },
+        {
+          "id": "S3.14",
+          "kind": "code",
+          "lines": [
+            96,
+            96
+          ],
+          "symbol": "logger.warning"
+        },
+        {
+          "id": "S3.16",
+          "kind": "code",
+          "lines": [
+            98,
+            98
+          ],
+          "symbol": "verify"
+        },
+        {
+          "id": "S3.17",
+          "kind": "code",
+          "lines": [
+            109,
+            109
+          ],
+          "symbol": "base64.b64decode"
+        },
+        {
+          "id": "S3.19",
+          "kind": "limitation",
+          "lines": [
+            111,
+            111
+          ]
+        },
+        {
+          "id": "S3.18",
+          "kind": "code",
+          "lines": [
+            111,
+            111
+          ],
+          "symbol": "logger.warning"
+        }
+      ],
+      "context_lines": [
+        [
+          7,
+          "from dataclasses import dataclass"
+        ],
+        [
+          8,
+          ""
+        ],
+        [
+          9,
+          "logger = logging.getLogger(__name__)"
+        ],
+        [
+          10,
+          ""
+        ],
+        [
+          11,
+          ""
+        ],
+        [
+          28,
+          "        from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey"
+        ],
+        [
+          29,
+          ""
+        ],
+        [
+          30,
+          "        private_key = Ed25519PrivateKey.generate()"
+        ],
+        [
+          31,
+          "        private_bytes = private_key.private_bytes("
+        ],
+        [
+          32,
+          "            encoding=serialization.Encoding.Raw,"
+        ],
+        [
+          33,
+          "            format=serialization.PrivateFormat.Raw,"
+        ],
+        [
+          34,
+          "            encryption_algorithm=serialization.NoEncryption(),"
+        ],
+        [
+          35,
+          "        )"
+        ],
+        [
+          36,
+          "        public_bytes = private_key.public_key().public_bytes("
+        ],
+        [
+          37,
+          "            encoding=serialization.Encoding.Raw,"
+        ],
+        [
+          38,
+          "            format=serialization.PublicFormat.Raw,"
+        ],
+        [
+          39,
+          "        )"
+        ],
+        [
+          40,
+          "        return KeyPair(private_key=private_bytes, public_key=public_bytes)"
+        ],
+        [
+          41,
+          "    except ImportError as exc:"
+        ],
+        [
+          42,
+          "        raise ImportError("
+        ],
+        [
+          43,
+          "            \"Ed25519 signing requires the 'cryptography' package. \""
+        ],
+        [
+          44,
+          "            \"Install with: uv sync --extra security-signing\""
+        ],
+        [
+          45,
+          "        ) from exc"
+        ],
+        [
+          46,
+          ""
+        ],
+        [
+          47,
+          ""
+        ],
+        [
+          54,
+          "        from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey"
+        ],
+        [
+          55,
+          ""
+        ],
+        [
+          56,
+          "        key = Ed25519PrivateKey.from_private_bytes(private_key)"
+        ],
+        [
+          57,
+          "        return key.sign(data)"
+        ],
+        [
+          58,
+          "    except ImportError as exc:"
+        ],
+        [
+          59,
+          "        raise ImportError("
+        ],
+        [
+          60,
+          "            \"Ed25519 signing requires the 'cryptography' package.\""
+        ],
+        [
+          61,
+          "        ) from exc"
+        ],
+        [
+          62,
+          ""
+        ],
+        [
+          63,
+          ""
+        ],
+        [
+          71,
+          "        from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey"
+        ],
+        [
+          72,
+          ""
+        ],
+        [
+          73,
+          "        key = Ed25519PublicKey.from_public_bytes(public_key)"
+        ],
+        [
+          74,
+          "        try:"
+        ],
+        [
+          75,
+          "            key.verify(signature, data)"
+        ],
+        [
+          76,
+          "            return True"
+        ],
+        [
+          77,
+          "        except InvalidSignature:"
+        ],
+        [
+          78,
+          "            return False"
+        ],
+        [
+          79,
+          "    except ImportError as exc:"
+        ],
+        [
+          80,
+          "        raise ImportError("
+        ],
+        [
+          81,
+          "            \"Ed25519 signing requires the 'cryptography' package.\""
+        ],
+        [
+          82,
+          "        ) from exc"
+        ],
+        [
+          83,
+          ""
+        ],
+        [
+          84,
+          ""
+        ],
+        [
+          85,
+          "def sign_b64(data: bytes, private_key: bytes) -> str:"
+        ],
+        [
+          86,
+          "    \"\"\"Sign and return base64-encoded signature string.\"\"\""
+        ],
+        [
+          87,
+          "    raw = sign(data, private_key)"
+        ],
+        [
+          88,
+          "    return base64.b64encode(raw).decode(\"ascii\")"
+        ],
+        [
+          89,
+          ""
+        ],
+        [
+          92,
+          "    \"\"\"Verify a base64-encoded signature.\"\"\""
+        ],
+        [
+          93,
+          "    try:"
+        ],
+        [
+          94,
+          "        raw = base64.b64decode(signature_b64)"
+        ],
+        [
+          95,
+          "    except Exception as exc:"
+        ],
+        [
+          96,
+          "        logger.warning(\"Signature verification failed: %s\", exc)"
+        ],
+        [
+          97,
+          "        return False"
+        ],
+        [
+          98,
+          "    return verify(data, raw, public_key)"
+        ],
+        [
+          99,
+          ""
+        ],
+        [
+          100,
+          ""
+        ],
+        [
+          107,
+          "    if len(raw) > 32:"
+        ],
+        [
+          108,
+          "        try:"
+        ],
+        [
+          109,
+          "            raw = base64.b64decode(raw.strip())"
+        ],
+        [
+          110,
+          "        except Exception as exc:"
+        ],
+        [
+          111,
+          "            logger.warning(\"Failed to base64-decode public key from %s: %s\", path, exc)"
+        ],
+        [
+          112,
+          "    return raw"
+        ],
+        [
+          113,
+          ""
+        ]
+      ]
+    }
+  ]
+}

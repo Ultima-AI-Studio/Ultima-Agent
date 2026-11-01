@@ -1,0 +1,96 @@
+{
+  "topic": "根据这些已取得的 OpenJarvis 源码，整理文件安全写入、敏感路径判断和签名验证的行为与失败分支，带来源保存为 research.md。",
+  "report": {
+    "state": "report_proposal",
+    "title": "OpenJarvis 文件安全写入、敏感路径判断和签名验证行为",
+    "sections": [
+      {
+        "heading": "文件安全写入行为",
+        "source": "https://raw.githubusercontent.com/open-jarvis/OpenJarvis/0eb7811df96cf139e6bd6d7fcc9b5cc4ff1418ff/src/openjarvis/security/file_utils.py",
+        "claims": [
+          {
+            "claim": "secure_mkdir 函数创建目录并设置权限为 0o700。",
+            "first": 16,
+            "last": 24,
+            "citation": "invalid"
+          },
+          {
+            "claim": "secure_create 函数创建文件并设置权限为 0o600。",
+            "first": 27,
+            "last": 37,
+            "citation": "invalid"
+          },
+          {
+            "claim": "secure_write_text 函数原子性地替换文件内容并设置权限。",
+            "first": 40,
+            "last": 77,
+            "citation": "invalid"
+          }
+        ]
+      },
+      {
+        "heading": "敏感路径判断行为",
+        "source": "https://raw.githubusercontent.com/open-jarvis/OpenJarvis/0eb7811df96cf139e6bd6d7fcc9b5cc4ff1418ff/src/openjarvis/security/file_policy.py",
+        "claims": [
+          {
+            "claim": "is_sensitive_file 函数检查文件名是否匹配敏感模式。",
+            "first": 30,
+            "last": 55,
+            "citation": "invalid"
+          },
+          {
+            "claim": "filter_sensitive_paths 函数过滤掉敏感路径。",
+            "first": 58,
+            "last": 61,
+            "citation": "located"
+          },
+          {
+            "claim": "DEFAULT_SENSITIVE_PATTERNS 定义了敏感文件模式。",
+            "first": 8,
+            "last": 26,
+            "citation": "invalid"
+          }
+        ]
+      },
+      {
+        "heading": "签名验证行为",
+        "source": "https://raw.githubusercontent.com/open-jarvis/OpenJarvis/0eb7811df96cf139e6bd6d7fcc9b5cc4ff1418ff/src/openjarvis/security/signing.py",
+        "claims": [
+          {
+            "claim": "sign 函数使用 Ed25519 私钥签名数据。",
+            "first": 48,
+            "last": 58,
+            "citation": "invalid"
+          },
+          {
+            "claim": "verify 函数使用 Ed25519 公钥验证签名。",
+            "first": 64,
+            "last": 79,
+            "citation": "invalid"
+          },
+          {
+            "claim": "load_public_key 函数加载 Ed25519 公钥。",
+            "first": 101,
+            "last": 113,
+            "citation": "invalid"
+          }
+        ]
+      }
+    ],
+    "fallback_text": "{\n  \"action\": \"ultima_work_research_write\",\n  \"action_input\": {\n    \"path\": \"research.md\",\n    \"title\": \"OpenJarvis 文件安全写入、敏感路径判断和签名验证行为\",\n    \"sections\": [\n      {\n        \"source_id\": \"S1\",\n        \"heading\": \"文件安全写入行为\",\n        \"facts\": [\n          {\n            \"claim\": \"secure_mkdir 函数创建目录并设置权限为 0o700。\",\n            \"first_line\": 16,\n            \"kind\": \"code\",\n            \"last_line\": 24,\n            \"symbol\": \"secure_mkdir\"\n          },\n          {\n            \"claim\": \"secure_create 函数创建文件并设置权限为 0o600。\",\n            \"first_line\": 27,\n            \"kind\": \"code\",\n            \"last_line\": 37,\n            \"symbol\": \"secure_create\"\n          },\n          {\n            \"claim\": \"secure_write_text 函数原子性地替换文件内容并设置权限。\",\n            \"first_line\": 40,\n            \"kind\": \"code\",\n            \"last_line\": 77,\n            \"symbol\": \"secure_write_text\"\n          }\n        ]\n      },\n      {\n        \"source_id\": \"S2\",\n        \"heading\": \"敏感路径判断行为\",\n        \"facts\": [\n          {\n            \"claim\": \"is_sensitive_file 函数检查文件名是否匹配敏感模式。\",\n            \"first_line\": 30,\n            \"kind\": \"code\",\n            \"last_line\": 55,\n            \"symbol\": \"is_sensitive_file\"\n          },\n          {\n            \"claim\": \"filter_sensitive_paths 函数过滤掉敏感路径。\",\n            \"first_line\": 58,\n            \"kind\": \"code\",\n            \"last_line\": 61,\n            \"symbol\": \"filter_sensitive_paths\"\n          },\n          {\n            \"claim\": \"DEFAULT_SENSITIVE_PATTERNS 定义了敏感文件模式。\",\n            \"first_line\": 8,\n            \"kind\": \"documented\",\n            \"last_line\": 26\n          }\n        ]\n      },\n      {\n        \"source_id\": \"S3\",\n        \"heading\": \"签名验证行为\",\n        \"facts\": [\n          {\n            \"claim\": \"sign 函数使用 Ed25519 私钥签名数据。\",\n            \"first_line\": 48,\n            \"kind\": \"code\",\n            \"last_line\": 58,\n            \"symbol\": \"sign\"\n          },\n          {\n            \"claim\": \"verify 函数使用 Ed25519 公钥验证签名。\",\n            \"first_line\": 64,\n            \"kind\": \"code\",\n            \"last_line\": 79,\n            \"symbol\": \"verify\"\n          },\n          {\n            \"claim\": \"load_public_key 函数加载 Ed25519 公钥。\",\n            \"first_line\": 101,\n            \"kind\": \"code\",\n            \"last_line\": 113,\n            \"symbol\": \"load_public_key\"\n          }\n        ]\n      }\n    ]\n  }\n}"
+  },
+  "sources": [
+    {
+      "url": "https://raw.githubusercontent.com/open-jarvis/OpenJarvis/0eb7811df96cf139e6bd6d7fcc9b5cc4ff1418ff/src/openjarvis/security/file_utils.py",
+      "text": "\"\"\"Secure file and directory creation helpers.\n\nAll OpenJarvis data files under ``~/.openjarvis/`` should be created\nthrough these helpers to ensure consistent, restrictive permissions.\n\"\"\"\n\nfrom __future__ import annotations\n\nimport json\nimport os\nimport tempfile\nfrom pathlib import Path\nfrom typing import Any\n\n\ndef secure_mkdir(path: Path, mode: int = 0o700) -> Path:\n    \"\"\"Create a directory with restrictive permissions.\n\n    Creates parent directories as needed, then sets *mode* on the\n    target directory (even if it already exists).\n    \"\"\"\n    path.mkdir(parents=True, exist_ok=True)\n    os.chmod(path, mode)\n    return path\n\n\ndef secure_create(path: Path, mode: int = 0o600) -> Path:\n    \"\"\"Ensure a file exists with restrictive permissions.\n\n    Creates the parent directory with ``0o700`` if needed, touches the\n    file if it doesn't exist, and sets *mode* on it.\n    \"\"\"\n    secure_mkdir(path.parent, mode=0o700)\n    if not path.exists():\n        path.touch()\n    os.chmod(path, mode)\n    return path\n\n\ndef secure_write_text(\n    path: Path,\n    content: str,\n    *,\n    mode: int = 0o600,\n    encoding: str = \"utf-8\",\n) -> Path:\n    \"\"\"Atomically replace *path* with owner-only text content.\n\n    The temporary file is created in the destination directory so\n    :func:`os.replace` remains atomic. Permissions are restricted before\n    secret bytes are written, then re-applied after replacement for platforms\n    whose replace semantics preserve the destination's prior mode.\n    \"\"\"\n    secure_mkdir(path.parent, mode=0o700)\n    fd, temporary_name = tempfile.mkstemp(\n        prefix=f\".{path.name}.\",\n        suffix=\".tmp\",\n        dir=str(path.parent),\n    )\n    temporary_path = Path(temporary_name)\n    try:\n        if hasattr(os, \"fchmod\"):\n            os.fchmod(fd, mode)\n        with os.fdopen(fd, \"w\", encoding=encoding) as handle:\n            handle.write(content)\n            handle.flush()\n            os.fsync(handle.fileno())\n        os.replace(temporary_path, path)\n        os.chmod(path, mode)\n    except Exception:\n        try:\n            os.close(fd)\n        except OSError:\n            pass\n        temporary_path.unlink(missing_ok=True)\n        raise\n    return path\n\n\ndef secure_write_json(path: Path, payload: Any, *, mode: int = 0o600) -> Path:\n    \"\"\"Atomically persist JSON with restrictive permissions.\"\"\"\n    return secure_write_text(\n        path,\n        json.dumps(payload, indent=2),\n        mode=mode,\n        encoding=\"utf-8\",\n    )\n"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/open-jarvis/OpenJarvis/0eb7811df96cf139e6bd6d7fcc9b5cc4ff1418ff/src/openjarvis/security/file_policy.py",
+      "text": "\"\"\"File sensitivity policy — block access to secrets, credentials, and keys.\"\"\"\n\nfrom __future__ import annotations\n\nfrom pathlib import Path\nfrom typing import Iterable, List, Union\n\nDEFAULT_SENSITIVE_PATTERNS: frozenset[str] = frozenset(\n    {\n        \".env\",\n        \".env.*\",\n        \"*.env\",\n        \".secret\",\n        \"*.secrets\",\n        \"credentials.*\",\n        \"*.pem\",\n        \"*.key\",\n        \"*.p12\",\n        \"*.pfx\",\n        \"*.jks\",\n        \"id_rsa\",\n        \"id_ed25519\",\n        \".htpasswd\",\n        \".pgpass\",\n        \".netrc\",\n    }\n)\n\n\ndef is_sensitive_file(path: Union[str, Path]) -> bool:\n    \"\"\"Return ``True`` if *path* matches a sensitive file pattern.\n\n    Checks both the filename and the full name against\n    ``DEFAULT_SENSITIVE_PATTERNS`` using :func:`fnmatch.fnmatch`.\n    Uses the Rust implementation when available, falls back to Python.\n    \"\"\"\n    try:\n        from openjarvis._rust_bridge import get_rust_module\n\n        _rust = get_rust_module()\n        return _rust.is_sensitive_file(str(path))\n    except ImportError:\n        return _is_sensitive_file_py(str(path))\n\n\ndef _is_sensitive_file_py(path_str: str) -> bool:\n    \"\"\"Pure-Python fallback for sensitive file detection.\"\"\"\n    import fnmatch\n\n    p = Path(path_str)\n    name = p.name\n    for pattern in DEFAULT_SENSITIVE_PATTERNS:\n        if fnmatch.fnmatch(name, pattern) or fnmatch.fnmatch(str(p), pattern):\n            return True\n    return False\n\n\ndef filter_sensitive_paths(paths: Iterable[Union[str, Path]]) -> List[Path]:\n    \"\"\"Return only non-sensitive paths from *paths*.\"\"\"\n    return [Path(p) for p in paths if not is_sensitive_file(p)]\n\n\n__all__ = [\n    \"DEFAULT_SENSITIVE_PATTERNS\",\n    \"filter_sensitive_paths\",\n    \"is_sensitive_file\",\n]\n"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/open-jarvis/OpenJarvis/0eb7811df96cf139e6bd6d7fcc9b5cc4ff1418ff/src/openjarvis/security/signing.py",
+      "text": "\"\"\"Ed25519 signing — supply chain integrity for agent and skill manifests.\"\"\"\n\nfrom __future__ import annotations\n\nimport base64\nimport logging\nfrom dataclasses import dataclass\n\nlogger = logging.getLogger(__name__)\n\n\n@dataclass(slots=True)\nclass KeyPair:\n    \"\"\"Ed25519 key pair.\"\"\"\n\n    private_key: bytes\n    public_key: bytes\n\n\ndef generate_keypair() -> KeyPair:\n    \"\"\"Generate a new Ed25519 key pair.\n\n    Requires the ``cryptography`` package\n    (``uv sync --extra security-signing``).\n    \"\"\"\n    try:\n        from cryptography.hazmat.primitives import serialization\n        from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey\n\n        private_key = Ed25519PrivateKey.generate()\n        private_bytes = private_key.private_bytes(\n            encoding=serialization.Encoding.Raw,\n            format=serialization.PrivateFormat.Raw,\n            encryption_algorithm=serialization.NoEncryption(),\n        )\n        public_bytes = private_key.public_key().public_bytes(\n            encoding=serialization.Encoding.Raw,\n            format=serialization.PublicFormat.Raw,\n        )\n        return KeyPair(private_key=private_bytes, public_key=public_bytes)\n    except ImportError as exc:\n        raise ImportError(\n            \"Ed25519 signing requires the 'cryptography' package. \"\n            \"Install with: uv sync --extra security-signing\"\n        ) from exc\n\n\ndef sign(data: bytes, private_key: bytes) -> bytes:\n    \"\"\"Sign *data* with an Ed25519 *private_key*.\n\n    Returns the raw 64-byte signature.\n    \"\"\"\n    try:\n        from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey\n\n        key = Ed25519PrivateKey.from_private_bytes(private_key)\n        return key.sign(data)\n    except ImportError as exc:\n        raise ImportError(\n            \"Ed25519 signing requires the 'cryptography' package.\"\n        ) from exc\n\n\ndef verify(data: bytes, signature: bytes, public_key: bytes) -> bool:\n    \"\"\"Verify an Ed25519 *signature* on *data* with *public_key*.\n\n    Returns True if valid, False otherwise.\n    \"\"\"\n    try:\n        from cryptography.exceptions import InvalidSignature\n        from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey\n\n        key = Ed25519PublicKey.from_public_bytes(public_key)\n        try:\n            key.verify(signature, data)\n            return True\n        except InvalidSignature:\n            return False\n    except ImportError as exc:\n        raise ImportError(\n            \"Ed25519 signing requires the 'cryptography' package.\"\n        ) from exc\n\n\ndef sign_b64(data: bytes, private_key: bytes) -> str:\n    \"\"\"Sign and return base64-encoded signature string.\"\"\"\n    raw = sign(data, private_key)\n    return base64.b64encode(raw).decode(\"ascii\")\n\n\ndef verify_b64(data: bytes, signature_b64: str, public_key: bytes) -> bool:\n    \"\"\"Verify a base64-encoded signature.\"\"\"\n    try:\n        raw = base64.b64decode(signature_b64)\n    except Exception as exc:\n        logger.warning(\"Signature verification failed: %s\", exc)\n        return False\n    return verify(data, raw, public_key)\n\n\ndef load_public_key(path: str) -> bytes:\n    \"\"\"Load a raw 32-byte Ed25519 public key from a file.\"\"\"\n    from pathlib import Path\n\n    raw = Path(path).read_bytes()\n    # If base64-encoded (common), decode\n    if len(raw) > 32:\n        try:\n            raw = base64.b64decode(raw.strip())\n        except Exception as exc:\n            logger.warning(\"Failed to base64-decode public key from %s: %s\", path, exc)\n    return raw\n\n\ndef save_keypair(keypair: KeyPair, private_path: str, public_path: str) -> None:\n    \"\"\"Save keypair to files (base64-encoded).\"\"\"\n    from pathlib import Path\n\n    Path(private_path).write_text(base64.b64encode(keypair.private_key).decode())\n    Path(public_path).write_text(base64.b64encode(keypair.public_key).decode())\n\n\n__all__ = [\n    \"KeyPair\",\n    \"generate_keypair\",\n    \"load_public_key\",\n    \"save_keypair\",\n    \"sign\",\n    \"sign_b64\",\n    \"verify\",\n    \"verify_b64\",\n]\n"
+    }
+  ]
+}
