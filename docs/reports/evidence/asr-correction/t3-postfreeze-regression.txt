@@ -1,0 +1,28 @@
+工单: wo-ultimaagent-20261101-0015
+阶段: T3 post-freeze 独立回归复核
+时间: 2026-11-01 14:20-14:27 +08:00
+解释器: tools\venv-openjarvis\Scripts\python.exe (Python 3.13.16)
+
+[完整命令]
+tools\venv-openjarvis\Scripts\python.exe -m pytest src -q
+
+[尝试 1]
+结果: 1 failed, 857 passed, 36 warnings, 120 subtests passed in 217.44s
+唯一失败: src/brain/memory/tests/test_preference_p2.py::TestPreferenceStore::test_upsert_idempotent
+断言: first.updated_at == second.updated_at == 2026-11-01T06:21:07.905+00:00
+
+[尝试 2]
+结果: 1 failed, 857 passed, 36 warnings, 120 subtests passed in 183.15s
+唯一失败: src/brain/memory/tests/test_preference_p2.py::TestPreferenceStore::test_upsert_idempotent
+断言: first.updated_at == second.updated_at == 2026-11-01T06:24:57.138+00:00
+
+[判定]
+- 两次均只命中已在收口前复现的既有毫秒时间戳时序缺陷；未出现 0015、0016 或 0017 回归。
+- 0015 审查修复后曾有完整 fresh 858 passed / exit 0；但 post-freeze 最近两次完整运行均红，不能把当前主线稳定性表述为全绿。
+- memory 模块不在 0015 写域，本单不越界修复，不以无限重试掩盖不稳定性。
+
+[最新本单专项/兼容]
+命令: tools\venv-openjarvis\Scripts\python.exe -m pytest src\brain\tests\test_asr_normalize.py src\brain\routing\tests\test_routing_integration.py src\brain\tests\test_interaction.py -q
+结果: 36 passed in 9.01s（2026-11-01 14:27:58 +08:00）
+
+Post-freeze regression: BLOCKED_BY_EXISTING_PREFERENCE_TIMESTAMP_FLAKE；0015 专项/兼容 PASS。

@@ -3,7 +3,7 @@
 时间: 2026-11-01 14:17:22 +08:00
 解释器: tools\venv-openjarvis\Scripts\python.exe (Python 3.13.16)
 
-[C1 fresh 全量]
+[C1 fresh 全量（曾完整通过；post-freeze 稳定性见下）]
 命令: tools\venv-openjarvis\Scripts\python.exe -m pytest src -q
 最终结果: PASS
 摘要: 858 passed, 36 warnings, 120 subtests passed in 178.25s
@@ -20,6 +20,13 @@
 [C1 0015 专项 + 0016 兼容/交互]
 命令: tools\venv-openjarvis\Scripts\python.exe -m pytest src\brain\tests\test_asr_normalize.py src\brain\routing\tests\test_routing_integration.py src\brain\tests\test_interaction.py -q
 结果: 36 passed in 9.01s（其中 0015 专项 17 项，含审查新增 6 个负向断言）
+
+[C1 post-freeze 独立复核]
+- 完整尝试 1: 1 failed, 857 passed, 36 warnings, 120 subtests passed in 217.44s
+- 完整尝试 2: 1 failed, 857 passed, 36 warnings, 120 subtests passed in 183.15s
+- 两次唯一失败: TestPreferenceStore.test_upsert_idempotent（既有毫秒时间戳时序波动）
+- 最新专项/兼容: 36 passed in 9.01s
+- 证据: docs/reports/evidence/asr-correction/t3-postfreeze-regression.txt
 
 [行为复核（fresh review 修复后需提交前重跑）]
 - “查一下明天的水量天听” -> “查一下明天的天气” -> reason=天气查询: PASS
@@ -42,4 +49,4 @@
 - 证据: docs/reports/evidence/asr-correction/t3-push-blocker.txt
 - 处置: 保留本地 commit/tag，不回滚、不重写；待调度侧网络恢复后补推。
 
-T3 Gate: C1/C2 PASS（专项/兼容 36 passed、完整全量 858 passed、commit/tag 可解析）；C3 BLOCKED_BY_GITHUB_CONNECTION_RESET（工单允许的推送阻塞分支）。
+T3 Gate: 0015 专项/兼容与 C2 本地冻结 PASS；完整全量曾 858 passed，但最近两次被既有 preference 毫秒时间戳波动阻塞，不能判定稳定全绿；C3 同时 BLOCKED_BY_GITHUB_CONNECTION_RESET。

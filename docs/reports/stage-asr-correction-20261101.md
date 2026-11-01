@@ -3,7 +3,7 @@
 > 工单：`wo-ultimaagent-20261101-0015`
 > 执行端：Codex（codex exec）
 > 日期：2026-11-01
-> 状态：BLOCKED（T3-C1/C2 本地冻结完成；T3-C3 GitHub 直连被 reset）
+> 状态：BLOCKED（0015 专项/兼容与本地冻结完成；post-freeze 全量受既有 memory 时序波动阻塞；GitHub 直连被 reset）
 
 ## 范围与边界
 
@@ -37,23 +37,24 @@
 - 专项：`30 passed in 4.83s`。
 - 证据：`docs/reports/evidence/asr-correction/t2-normalize.txt`。
 
-### T3 收口 — C1/C2 PASS，C3 push BLOCKED
+### T3 收口 — 本单专项/C2 PASS；全量稳定性与 C3 push BLOCKED
 
 - Fresh 全量命令：`tools/venv-openjarvis/Scripts/python.exe -m pytest src -q`。
 - fresh-context review 修复后的最终完整运行：`858 passed, 36 warnings, 120 subtests passed in 178.25s`。
 - 0017 首次阻塞用例 `test_agent_server_keeps_user_question_separate` 已随主线提交 `5ef3ec3` 修复，本轮全量通过。
 - 本次收口前两次完整运行均为 `1 failed, 851 passed, 120 subtests`，唯一失败是既有 memory 测试 `TestPreferenceStore.test_upsert_idempotent`：两次紧邻写入落在同一毫秒。独立复现 10 次为 8 pass / 2 fail；未修改外域 memory 代码。第三次审查前完整 fresh 为 852 passed，审查修复后的最终完整 fresh 为 858 passed；过程均在 `t3/gate.txt` 如实登记。
+- 本地冻结后的两次完整复核均为 `1 failed, 857 passed, 120 subtests`，仍只命中同一个既有 memory 毫秒时间戳用例；最近一次完整运行不是全绿，因此不把当前主线稳定性表述为 PASS。证据见 `t3-postfreeze-regression.txt`。
 - 0015 专项初次复核为 `11 passed`；fresh review 发现带查询词的“水天一色”误伤后，新增 6 个负向断言，实测 `6 failed` 后最小修复为 `17 passed`。
 - 0015 专项 + 0016 兼容/交互最终合并回归：`36 passed in 9.01s`。
 - 近音行为：带天气上下文的“查一下明天的水量天听”“明天上海的水天”进入确定性天气路径；孤立“水量天听”保持 ABSTAIN；“水田”“水天一色”以及带“看/问/今天”的成语句不变、不触发天气。
-- 证据：`docs/reports/evidence/asr-correction/t3/full-pytest.txt` 与 `t3/gate.txt`。
+- 证据：`docs/reports/evidence/asr-correction/t3/full-pytest.txt`、`t3/gate.txt` 与 `t3-postfreeze-regression.txt`。
 - 本地冻结：commit `c0f0c7bb4d35b4a26fe0935e21ba97c1a450eb07`（`工单 0015 ASR 纠错系统化`）；tag `ultimaagent-asr-correction-20261101` 独立解析到同一 commit。
 - push：免代理命令同时推送 main 与 tag，GitHub HTTPS 直连返回 `Recv failure: Connection was reset`（exit 1）；证据见 `t3-push-blocker.txt`。按工单允许分支保留本地提交/tag，不回滚、不重写，待调度侧网络恢复后补推。
 
-### T4 八字段回执 — 本地冻结完成，push 网络阻塞
+### T4 八字段回执 — 本地冻结完成，全量稳定性与 push 阻塞
 
 - 回执文件：`docs/reports/evidence/asr-correction/t4-receipt.txt`。
-- 当前回执已记录实际 commit/tag 与 push 失败；`t3-push-blocker.txt` 保存原命令和连接重置错误。本地冻结不回滚或重写，调度侧可在网络恢复后补推。
+- 当前回执已记录实际 commit/tag、post-freeze 全量波动与 push 失败；本地冻结不回滚或重写。调度侧可在网络恢复后补推；memory 时间戳缺陷需另单处理后再取稳定全绿。
 
 ## 扩充前后对比
 
