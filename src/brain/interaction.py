@@ -92,6 +92,11 @@ class InteractionLoop:
         """Attach the resident daemon's non-blocking wakeword transaction hook."""
         self._wakeword_change_submitter = submitter
 
+    def handle_work(self, text: str, *, request_id: str, session_id: str, context: dict | None = None, server_url: str = 'http://127.0.0.1:8756') -> dict:
+        """Explicit work bypasses conversational routing and style retries."""
+        from .agent_client import ask_work
+        return ask_work(text, request_id=request_id, session_id=session_id, context=context, server_url=server_url)
+
     # ── 对外入口：处理一条交互文本 ─────────────────────────────
     def handle(
         self,

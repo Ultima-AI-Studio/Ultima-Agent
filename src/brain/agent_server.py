@@ -165,6 +165,30 @@ EVENT_BUS = get_event_bus()
 _jars: Jarvis | None = None
 _ask_lock = threading.Lock()  # Jarvis 单例非线程安全，串行化并发推理
 _manager_token: str | None = None
+_work_service = None
+_runtime_root: Path | None = None
+_isolated = False
+
+
+def _run_work_agent(query, *, binding, tools, max_tokens=None):
+    with _ask_lock:
+        from openjarvis.core.events import EventType
+        jars = get_jarvis()
+        trace = []
+        def collect(event):
+            trace.append(dict(type=event.event_type.value, timestamp=event.timestamp, data=event.data))
+        kinds = (EventType.INFERENCE_END, EventType.TOOL_CALL_START, EventType.TOOL_CALL_END)
+        for kind in kinds:
+            jars._bus.subscribe(kind, collect)
+        try:
+            result = jars.ask_full(query, agent=AGENT, tools=tools, context=False,
+                                   max_tokens=max_tokens or 2048)
+            result['trace'] = trace
+            return result
+        finally:
+            for kind in kinds:
+                jars._bus.unsubscribe(kind, collect)
+
 
 
 def _hardware_summary() -> str:
@@ -346,7 +370,26 @@ def get_jarvis() -> Jarvis:
     global _jars
     if _jars is None:
         _ensure_tools_registered()
-        _jars = Jarvis(engine_key=ENGINE_KEY, model=MODEL)
+        if _isolated:
+            from openjarvis.core.config import JarvisConfig
+            config = JarvisConfig()
+            config.telemetry.enabled = False
+            config.analytics.enabled = False
+            config.agent.context_from_memory = False
+            # Relocate all dataclass path settings, including lazily opened stores.
+            from dataclasses import fields, is_dataclass
+            def relocate(obj, prefix='sdk'):
+                for field in fields(obj):
+                    value = getattr(obj, field.name)
+                    if is_dataclass(value):
+                        relocate(value, prefix + '-' + field.name)
+                    elif isinstance(value, str) and ('path' in field.name or field.name.endswith('_dir')):
+                        setattr(obj, field.name, str(_runtime_root / (prefix + '-' + field.name)))
+            relocate(config)
+            config._config_dir = _runtime_root
+            _jars = Jarvis(config=config, engine_key=ENGINE_KEY, model=MODEL)
+        else:
+            _jars = Jarvis(engine_key=ENGINE_KEY, model=MODEL)
     return _jars
 
 
@@ -718,14 +761,43 @@ class _Handler(BaseHTTPRequestHandler):
             self._send_json(400, {"ok": False, "error": "max_tokens 必须为整数。"})
             return
         try:
-            result = ask_once(query, max_tokens=max_tokens)
+            if payload.get('mode') == 'work':
+                if _work_service is None:
+                    result = dict(request_id=payload.get('request_id'), session_id=payload.get('session_id'), task_id=None, status='failed', content='', artifacts=[], tool_results=[], error='Work output root is not configured')
+                elif set(payload) - {'mode', 'query', 'request_id', 'session_id', 'context', 'max_tokens'}:
+                    result = dict(status='failed', error='Unknown work request or authority fields', artifacts=[], content='', tool_results=[])
+                else:
+                    result = _work_service.submit_work(query, request_id=payload.get('request_id'), session_id=payload.get('session_id'), context=payload.get('context'), max_tokens=max_tokens)
+            elif payload.get('mode') not in (None, 'chat'):
+                self._send_json(400, {'ok': False, 'error': 'Unsupported mode'})
+                return
+            else:
+                result = ask_once(query, max_tokens=max_tokens)
             result["ok"] = True
             self._send_json(200, result)
         except Exception as exc:  # 推理异常返回可读错误
             self._send_json(500, {"ok": False, "error": f"推理失败：{exc}"})
 
 
-def main() -> int:
+def main(argv=None) -> int:
+    import argparse
+    global PORT, _runtime_root, _isolated, _work_service
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--port', type=int, default=PORT)
+    parser.add_argument('--runtime-root', type=Path)
+    parser.add_argument('--work-output-root', type=Path)
+    parser.add_argument('--isolated', action='store_true')
+    args = parser.parse_args(argv)
+    PORT = args.port
+    _isolated = args.isolated
+    _runtime_root = args.runtime_root.resolve() if args.runtime_root else None
+    if _isolated and (_runtime_root is None or args.work_output_root is None):
+        parser.error('--isolated requires --runtime-root and --work-output-root')
+    if _runtime_root:
+        _runtime_root.mkdir(parents=True, exist_ok=True)
+    if args.work_output_root:
+        from src.brain.work_service import WorkService
+        _work_service = WorkService(args.work_output_root, runner=_run_work_agent)
     # 单实例守卫（2026-10-27 性能修复）：ThreadingHTTPServer 默认
     # allow_reuse_address=True，双实例可同时 bind 同一端口 → 每次测试
     # 拉一个新实例且不回收，进程累积吃满机器。先探测端口/再查 pid 锁。
@@ -741,7 +813,7 @@ def main() -> int:
     import ctypes
     import tempfile
 
-    _lock = Path(tempfile.gettempdir()) / "ultima-agent-server.pid"
+    _lock = (_runtime_root / "agent-server.pid") if _isolated else Path(tempfile.gettempdir()) / "ultima-agent-server.pid"
 
     def _holder_alive() -> bool:
         try:
@@ -790,9 +862,11 @@ def main() -> int:
     sys.stderr.write(
         f"[agent-server] 启动：http://{HOST}:{PORT} model={MODEL} agent={AGENT} tools={TOOLS}\n"
     )
-    threading.Thread(target=_hud_tick_loop, daemon=True).start()
+    if not _isolated:
+        threading.Thread(target=_hud_tick_loop, daemon=True).start()
     # RU-05 启动自检：后台静默线程，失败不阻断主链路（N6/N7）
-    threading.Thread(target=_startup_update_check, daemon=True).start()
+    if not _isolated:
+        threading.Thread(target=_startup_update_check, daemon=True).start()
     try:
         server.serve_forever()
     except KeyboardInterrupt:

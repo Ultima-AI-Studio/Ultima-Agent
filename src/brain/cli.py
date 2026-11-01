@@ -34,7 +34,23 @@ def main(argv: list[str] | None = None) -> int:
         action="store_true",
         help="文字试点：走本地 Agent 循环（agent_server，14B 自主回答/调工具）",
     )
+    parser.add_argument('--work', action='store_true')
+    parser.add_argument('--request-id')
+    parser.add_argument('--session-id')
+    parser.add_argument('--server-url', default='http://127.0.0.1:8756')
+    parser.add_argument('--json', action='store_true')
     arguments = parser.parse_args(argv)
+    if arguments.work:
+        import json
+        from src.brain.agent_client import ask_work
+        if arguments.agent or arguments.loop or not arguments.request_id or not arguments.session_id or not arguments.text.strip():
+            parser.error('--work requires text, --request-id and --session-id and cannot combine with --agent/--loop')
+        try:
+            result = ask_work(arguments.text, request_id=arguments.request_id, session_id=arguments.session_id, server_url=arguments.server_url)
+        except Exception as exc:
+            result = dict(status='failed', error=str(exc), artifacts=[], content='')
+        print(json.dumps(result, ensure_ascii=False) if arguments.json else result.get('content') or result.get('error'))
+        return 0 if result.get('status') == 'succeeded' else 2
 
     if arguments.agent:
         from src.brain.agent_client import ask_agent
