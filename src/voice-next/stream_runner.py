@@ -22,6 +22,15 @@ def sha256(path):
     return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
 
+def keyword_sublist_index(sequence, keyword):
+    """Include the final valid suffix offset omitted by the pinned reference."""
+    keyword=tuple(keyword)
+    for start in range(len(sequence)-len(keyword)+1):
+        if tuple(sequence[start:start+len(keyword)])==keyword:
+            return start
+    return -1
+
+
 def replay_wav(spotter, path, chunk_samples=4800):
     """Feed every PCM frame once; emit each packet result without waiting for EOS."""
     if chunk_samples <= 0:
@@ -85,7 +94,9 @@ def build_spotter(model_dir, derived_dir, keyword, threshold):
     import yaml
     torch.set_num_threads(2)
     torch.set_num_interop_threads(1)
-    from wekws.bin.stream_kws_ctc import KeyWordSpotter
+    from wekws.bin import stream_kws_ctc as upstream_kws
+    upstream_kws.is_sublist=keyword_sublist_index
+    KeyWordSpotter=upstream_kws.KeyWordSpotter
     config = yaml.safe_load((model_dir / 'config.yaml').read_text(encoding='utf-8'))
     config['model']['cmvn']['cmvn_file'] = str((model_dir / 'global_cmvn.kaldi').resolve())
     output_dim = config['model']['output_dim']
@@ -120,7 +131,9 @@ def build_spotter(model_dir, derived_dir, keyword, threshold):
                 'dictionary_sha256': sha256(derived_dir/'dict.txt'),
                 'official_runtime': str(wekws/'wekws/bin/stream_kws_ctc.py'),
                 'official_runtime_sha256': sha256(wekws/'wekws/bin/stream_kws_ctc.py'),
-                'metric_scope': 'offline technical proof only'}
+                'metric_scope': 'offline technical proof only',
+                'compatibility_fix': 'keyword_sublist_includes_final_suffix',
+                'adapter_sha256': sha256(__file__)}
     return spotter, metadata, torch
 
 

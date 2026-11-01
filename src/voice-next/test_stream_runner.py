@@ -56,3 +56,9 @@ def test_reset_on_inference_error(tmp_path):
 def test_empty_audio_rejected(tmp_path):
     with pytest.raises(ValueError):
         list(runner.replay_wav(FakeSpotter(),make_wav(tmp_path/'empty.wav',samples=0)))
+
+def test_keyword_matching_includes_final_legal_offset():
+    assert runner.keyword_sublist_index((9,1,2,3,4),(1,2,3,4))==1
+    assert runner.keyword_sublist_index((1,2,3,4),(1,2,3,4))==0
+    assert runner.keyword_sublist_index((9,9),(1,2,3,4))==-1
+    assert runner.keyword_sublist_index((1,2,3,4,9),(1,2,3,4))==0

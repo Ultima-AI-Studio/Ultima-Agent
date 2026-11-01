@@ -53,3 +53,5 @@
 | 工单 | 状态 | 说明 |
 |---|---|---|
 | wo-ultimaagent-20261101-0019 | audit | 新中文持续流KWS离线技术审计PASS；待真人与采集接入验证，未冻结、未切换；旧0018保持取消；报告 docs/reports/voice-next-wekws-proof-20261101.md |
+
+| wo-ultimaagent-20261101-0020 | audit | 新独立语音入口原生KWS/SenseVoice/SAPI；33测试、24真人回放用例、独立审计PASS；20:38用户确认唤醒及时间语音回答；检查点ultimaagent-voice-next-live-pass-20261101，长期质量未冻结；报告docs/reports/voice-next-live-20261101.md |
