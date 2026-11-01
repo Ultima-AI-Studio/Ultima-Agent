@@ -221,6 +221,10 @@ class WorkResearchWriteTool(_CapabilityTool):
                 'items':{'type':'object','additionalProperties':False,'required':['source_id','heading','facts'],
                     'properties':{'source_id':{'type':'string','enum':[s['source_id'] for s in sources]},
                         'heading':text(200),'facts':{'type':'array','minItems':1,'maxItems':6,'items':text(2000)}}}}}}
+        self.description=(type(self).description
+            + '\nFull argument schema (JSON):\n'
+            + json.dumps(self.parameters,ensure_ascii=False,sort_keys=True)
+            + '\nEnd argument schema.')
 
     def run(self,params,record):
         from .work_research import bound_sources,render_research_report

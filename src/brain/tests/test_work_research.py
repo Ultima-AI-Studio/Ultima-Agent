@@ -281,3 +281,36 @@ def test_optional_probe_does_not_waive_unexpected_adapter_error(tmp_path,sdk_io,
     called=[]
     r=submit(tmp_path,browser,lambda *a,**kw:called.append(True) or {})
     assert r['status']=='failed' and not called,r
+
+
+@pytest.mark.parametrize('source_count',[3,5])
+def test_native_react_first_messages_include_nested_report_schema(tmp_path,sdk_io,monkeypatch,source_count):
+    from openjarvis import Jarvis
+    from openjarvis.core.config import JarvisConfig
+    from src.brain import agent_server
+    browser,calls,_=sdk_io
+    first_messages=[]
+    class CaptureEngine:
+        engine_id='first-message-capture-only'
+        def generate(self,messages,**kwargs):
+            assert not first_messages
+            first_messages.extend((message.role.value,message.content) for message in messages)
+            return {'content':json.dumps({'final_answer':'capture only; no file delivery'})}
+    config=JarvisConfig(); config.telemetry.enabled=False
+    jar=Jarvis(config=config,model='qwen3-8b-uncensored'); jar._engine=CaptureEngine()
+    monkeypatch.setattr(agent_server,'_jars',jar)
+    result=submit(tmp_path,browser,agent_server._run_work_agent,source_urls=URLS[:source_count])
+    assert [kind for kind,_ in calls]==['search']+['get']*source_count
+    assert result['status']=='failed' and not result['artifacts']
+    assert not list(tmp_path.rglob('*.md'))
+    system=next(content for role,content in first_messages if role=='system')
+    # Inspect the actual first inference input built by real NativeReAct,
+    # not WorkResearchWriteTool.spec.parameters or a mocked formatter.
+    assert 'Full argument schema (JSON):\n' in system
+    raw=system.split('Full argument schema (JSON):\n',1)[1].split('\nEnd argument schema.',1)[0]
+    schema=json.loads(raw)
+    section=schema['properties']['sections']
+    assert section['type']=='array'
+    nested=section['items']['properties']
+    assert nested['facts']['type']=='array' and nested['facts']['items']['type']=='string'
+    assert nested['source_id']['enum']==['S'+str(i) for i in range(1,source_count+1)]
