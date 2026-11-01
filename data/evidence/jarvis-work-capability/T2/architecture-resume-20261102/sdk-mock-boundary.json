@@ -1,0 +1,277 @@
+{
+  "proof": "mock transport; literal scripted controls and calculator action/final; no real inference",
+  "engine_stack": [
+    "InstrumentedEngine",
+    "GuardrailsEngine",
+    "OllamaEngine"
+  ],
+  "result": {
+    "content": "four",
+    "usage": {},
+    "tool_results": [
+      {
+        "tool_name": "calculator",
+        "content": "4.0",
+        "success": true
+      }
+    ],
+    "turns": 2,
+    "model": "qwen3-8b-uncensored",
+    "engine": "ollama"
+  },
+  "http_requests": [
+    {
+      "model": "qwen3-8b-uncensored",
+      "messages": [
+        {
+          "role": "system",
+          "content": "You are a ReAct agent. For each step, respond with exactly one of:\n\n1. To think and act:\nThought: <your reasoning>\nAction: <tool_name>\nAction Input: <json arguments>\n\n2. To give a final answer:\nThought: <your reasoning>\nFinal Answer: <your answer>\n\n# Using Skills\n\nTools whose names begin with `skill_` are SKILLS. When you call a skill tool,\nthe response can take one of two forms:\n\n- **Computed result**: The skill ran a deterministic pipeline and returned a\n  value (number, string, JSON, etc.). Use the value directly in your answer.\n\n- **Procedural instructions**: The skill returned markdown text describing\n  HOW to accomplish a task. Recognize this when the response starts with\n  `#` headings, contains bullet lists, or uses phrases like \"When asked\n  to...\", \"First...\", \"Steps:\". When you receive instructions:\n  1. READ the instructions carefully — they are your playbook\n  2. FOLLOW the steps using your OTHER tools (e.g. calculator, web_search,\n     shell_exec, file_read) — not the same skill\n  3. DO NOT call the same skill again — you already have its instructions\n  4. Synthesize a Final Answer from what you learned\n\n### calculator\nEvaluate a mathematical expression safely. Supports arithmetic, math functions (sqrt, log, sin, cos), and constants.\nCategory: math\nParameters:\n  - expression (string, required): Math expression to evaluate (e.g. '2+3*4', 'sqrt(16)')"
+        },
+        {
+          "role": "user",
+          "content": "Synthetic transport proof only."
+        }
+      ],
+      "stream": false,
+      "options": {
+        "temperature": 0.7,
+        "num_predict": 2048,
+        "num_ctx": 16384
+      },
+      "think": false
+    },
+    {
+      "model": "qwen3-8b-uncensored",
+      "messages": [
+        {
+          "role": "system",
+          "content": "You are a ReAct agent. For each step, respond with exactly one of:\n\n1. To think and act:\nThought: <your reasoning>\nAction: <tool_name>\nAction Input: <json arguments>\n\n2. To give a final answer:\nThought: <your reasoning>\nFinal Answer: <your answer>\n\n# Using Skills\n\nTools whose names begin with `skill_` are SKILLS. When you call a skill tool,\nthe response can take one of two forms:\n\n- **Computed result**: The skill ran a deterministic pipeline and returned a\n  value (number, string, JSON, etc.). Use the value directly in your answer.\n\n- **Procedural instructions**: The skill returned markdown text describing\n  HOW to accomplish a task. Recognize this when the response starts with\n  `#` headings, contains bullet lists, or uses phrases like \"When asked\n  to...\", \"First...\", \"Steps:\". When you receive instructions:\n  1. READ the instructions carefully — they are your playbook\n  2. FOLLOW the steps using your OTHER tools (e.g. calculator, web_search,\n     shell_exec, file_read) — not the same skill\n  3. DO NOT call the same skill again — you already have its instructions\n  4. Synthesize a Final Answer from what you learned\n\n### calculator\nEvaluate a mathematical expression safely. Supports arithmetic, math functions (sqrt, log, sin, cos), and constants.\nCategory: math\nParameters:\n  - expression (string, required): Math expression to evaluate (e.g. '2+3*4', 'sqrt(16)')\n\n### think\nA reasoning scratchpad. Think through a problem step by step. Input is echoed.\nCategory: reasoning\nParameters:\n  - thought (string, required): Your reasoning or thought process.\n\n### ultima_work_research_write\nDeliver the requested research file. Supply your own source-supported facts in sections using the given source_id values. The server renders each stored source URL; do not copy URLs into facts. At least three distinct source IDs are required.\nFull argument schema (JSON):\n{\"additionalProperties\": false, \"properties\": {\"path\": {\"maxLength\": 2048, \"minLength\": 1, \"type\": \"string\"}, \"sections\": {\"items\": {\"additionalProperties\": false, \"properties\": {\"facts\": {\"items\": {\"maxLength\": 2000, \"minLength\": 1, \"type\": \"string\"}, \"maxItems\": 6, \"minItems\": 1, \"type\": \"array\"}, \"heading\": {\"maxLength\": 200, \"minLength\": 1, \"type\": \"string\"}, \"source_id\": {\"enum\": [\"S1\", \"S2\", \"S3\"], \"type\": \"string\"}}, \"required\": [\"source_id\", \"heading\", \"facts\"], \"type\": \"object\"}, \"maxItems\": 5, \"minItems\": 3, \"type\": \"array\"}, \"title\": {\"maxLength\": 200, \"minLength\": 1, \"type\": \"string\"}}, \"required\": [\"path\", \"title\", \"sections\"], \"type\": \"object\"}\nEnd argument schema.\nCategory: work\nParameters:\n  - path (string, required)\n  - title (string, required)\n  - sections (array, required)\n\n### ultima_work_file_read\nRead the contents of a file. Returns the text content. Only paths within the current work request directory are authorized. Relative paths use that directory.\nCategory: filesystem\nParameters:\n  - path (string, required): Path to the file to read.\n  - max_lines (integer): Max lines to return (default: all).\nFor this request the wire format overrides the text format above. Return one JSON object with action and object action_input, or final_answer."
+        },
+        {
+          "role": "user",
+          "content": "Synthetic transport proof only."
+        }
+      ],
+      "stream": false,
+      "options": {
+        "temperature": 0.7,
+        "num_predict": 2048,
+        "num_ctx": 16384
+      },
+      "think": false,
+      "format": "json"
+    },
+    {
+      "model": "qwen3-8b-uncensored",
+      "messages": [
+        {
+          "role": "system",
+          "content": "You are a ReAct agent. For each step, respond with exactly one of:\n\n1. To think and act:\nThought: <your reasoning>\nAction: <tool_name>\nAction Input: <json arguments>\n\n2. To give a final answer:\nThought: <your reasoning>\nFinal Answer: <your answer>\n\n# Using Skills\n\nTools whose names begin with `skill_` are SKILLS. When you call a skill tool,\nthe response can take one of two forms:\n\n- **Computed result**: The skill ran a deterministic pipeline and returned a\n  value (number, string, JSON, etc.). Use the value directly in your answer.\n\n- **Procedural instructions**: The skill returned markdown text describing\n  HOW to accomplish a task. Recognize this when the response starts with\n  `#` headings, contains bullet lists, or uses phrases like \"When asked\n  to...\", \"First...\", \"Steps:\". When you receive instructions:\n  1. READ the instructions carefully — they are your playbook\n  2. FOLLOW the steps using your OTHER tools (e.g. calculator, web_search,\n     shell_exec, file_read) — not the same skill\n  3. DO NOT call the same skill again — you already have its instructions\n  4. Synthesize a Final Answer from what you learned\n\n### calculator\nEvaluate a mathematical expression safely. Supports arithmetic, math functions (sqrt, log, sin, cos), and constants.\nCategory: math\nParameters:\n  - expression (string, required): Math expression to evaluate (e.g. '2+3*4', 'sqrt(16)')\n\n### think\nA reasoning scratchpad. Think through a problem step by step. Input is echoed.\nCategory: reasoning\nParameters:\n  - thought (string, required): Your reasoning or thought process.\n\n### ultima_work_research_write\nDeliver the requested research file. Supply your own source-supported facts in sections using the given source_id values. The server renders each stored source URL; do not copy URLs into facts. At least three distinct source IDs are required.\nFull argument schema (JSON):\n{\"additionalProperties\": false, \"properties\": {\"path\": {\"maxLength\": 2048, \"minLength\": 1, \"type\": \"string\"}, \"sections\": {\"items\": {\"additionalProperties\": false, \"properties\": {\"facts\": {\"items\": {\"maxLength\": 2000, \"minLength\": 1, \"type\": \"string\"}, \"maxItems\": 6, \"minItems\": 1, \"type\": \"array\"}, \"heading\": {\"maxLength\": 200, \"minLength\": 1, \"type\": \"string\"}, \"source_id\": {\"enum\": [\"S1\", \"S2\", \"S3\"], \"type\": \"string\"}}, \"required\": [\"source_id\", \"heading\", \"facts\"], \"type\": \"object\"}, \"maxItems\": 5, \"minItems\": 3, \"type\": \"array\"}, \"title\": {\"maxLength\": 200, \"minLength\": 1, \"type\": \"string\"}}, \"required\": [\"path\", \"title\", \"sections\"], \"type\": \"object\"}\nEnd argument schema.\nCategory: work\nParameters:\n  - path (string, required)\n  - title (string, required)\n  - sections (array, required)\n\n### ultima_work_file_read\nRead the contents of a file. Returns the text content. Only paths within the current work request directory are authorized. Relative paths use that directory.\nCategory: filesystem\nParameters:\n  - path (string, required): Path to the file to read.\n  - max_lines (integer): Max lines to return (default: all).\nFor this request the wire format overrides the text format above. Return one JSON object with action and object action_input, or final_answer."
+        },
+        {
+          "role": "user",
+          "content": "Synthetic transport proof only."
+        },
+        {
+          "role": "assistant",
+          "content": "{\"action\": \"calculator\", \"action_input\": {\"expression\": \"2+2\"}}"
+        },
+        {
+          "role": "user",
+          "content": "Observation: 4.0"
+        }
+      ],
+      "stream": false,
+      "options": {
+        "temperature": 0.7,
+        "num_predict": 2048,
+        "num_ctx": 16384
+      },
+      "think": false,
+      "format": "json"
+    },
+    {
+      "model": "qwen3-8b-uncensored",
+      "messages": [
+        {
+          "role": "system",
+          "content": "You are a ReAct agent. For each step, respond with exactly one of:\n\n1. To think and act:\nThought: <your reasoning>\nAction: <tool_name>\nAction Input: <json arguments>\n\n2. To give a final answer:\nThought: <your reasoning>\nFinal Answer: <your answer>\n\n# Using Skills\n\nTools whose names begin with `skill_` are SKILLS. When you call a skill tool,\nthe response can take one of two forms:\n\n- **Computed result**: The skill ran a deterministic pipeline and returned a\n  value (number, string, JSON, etc.). Use the value directly in your answer.\n\n- **Procedural instructions**: The skill returned markdown text describing\n  HOW to accomplish a task. Recognize this when the response starts with\n  `#` headings, contains bullet lists, or uses phrases like \"When asked\n  to...\", \"First...\", \"Steps:\". When you receive instructions:\n  1. READ the instructions carefully — they are your playbook\n  2. FOLLOW the steps using your OTHER tools (e.g. calculator, web_search,\n     shell_exec, file_read) — not the same skill\n  3. DO NOT call the same skill again — you already have its instructions\n  4. Synthesize a Final Answer from what you learned\n\n### calculator\nEvaluate a mathematical expression safely. Supports arithmetic, math functions (sqrt, log, sin, cos), and constants.\nCategory: math\nParameters:\n  - expression (string, required): Math expression to evaluate (e.g. '2+3*4', 'sqrt(16)')"
+        },
+        {
+          "role": "user",
+          "content": "Synthetic transport proof only."
+        }
+      ],
+      "stream": false,
+      "options": {
+        "temperature": 0.7,
+        "num_predict": 2048,
+        "num_ctx": 16384
+      },
+      "think": false
+    }
+  ],
+  "events": [
+    [
+      "inference_end",
+      {
+        "model": "qwen3-8b-uncensored",
+        "latency": 0.004209995269775391,
+        "usage": {
+          "prompt_tokens": 361,
+          "prompt_tokens_evaluated": 361,
+          "completion_tokens": 0,
+          "total_tokens": 361
+        },
+        "ttft": 0.0,
+        "throughput_tok_per_sec": 0.0,
+        "energy_per_output_token_joules": 0.0,
+        "throughput_per_watt": 0.0,
+        "energy_joules": 0.0,
+        "power_watts": 0.0,
+        "gpu_utilization_pct": 0.0,
+        "gpu_memory_used_gb": 0.0,
+        "gpu_temperature_c": 0.0,
+        "prefill_latency_seconds": 0.0,
+        "decode_latency_seconds": 0.0,
+        "prefill_energy_joules": 0.0,
+        "decode_energy_joules": 0.0,
+        "mean_itl_ms": 0.0,
+        "energy_method": "",
+        "energy_vendor": "",
+        "content": "{\"final_answer\": \"control\"}",
+        "tool_calls": [],
+        "tool_results": [],
+        "content_blocks": [],
+        "finish_reason": "stop"
+      }
+    ],
+    [
+      "inference_end",
+      {
+        "model": "qwen3-8b-uncensored",
+        "latency": 0.00044083595275878906,
+        "usage": {
+          "prompt_tokens": 805,
+          "prompt_tokens_evaluated": 805,
+          "completion_tokens": 0,
+          "total_tokens": 805
+        },
+        "ttft": 0.0,
+        "throughput_tok_per_sec": 0.0,
+        "energy_per_output_token_joules": 0.0,
+        "throughput_per_watt": 0.0,
+        "energy_joules": 0.0,
+        "power_watts": 0.0,
+        "gpu_utilization_pct": 0.0,
+        "gpu_memory_used_gb": 0.0,
+        "gpu_temperature_c": 0.0,
+        "prefill_latency_seconds": 0.0,
+        "decode_latency_seconds": 0.0,
+        "prefill_energy_joules": 0.0,
+        "decode_energy_joules": 0.0,
+        "mean_itl_ms": 0.0,
+        "energy_method": "",
+        "energy_vendor": "",
+        "content": "{\"action\": \"calculator\", \"action_input\": {\"expression\": \"2+2\"}}",
+        "tool_calls": [],
+        "tool_results": [],
+        "content_blocks": [],
+        "finish_reason": "stop"
+      }
+    ],
+    [
+      "tool_call_start",
+      {
+        "tool": "calculator",
+        "arguments": {
+          "expression": "2+2"
+        },
+        "agent": "native_react"
+      }
+    ],
+    [
+      "tool_call_end",
+      {
+        "tool": "calculator",
+        "success": true,
+        "latency": 0.05035281181335449,
+        "result": "4.0",
+        "metadata": {
+          "arguments": {
+            "expression": "2+2"
+          }
+        },
+        "agent": "native_react"
+      }
+    ],
+    [
+      "inference_end",
+      {
+        "model": "qwen3-8b-uncensored",
+        "latency": 0.0008218288421630859,
+        "usage": {
+          "prompt_tokens": 833,
+          "prompt_tokens_evaluated": 833,
+          "completion_tokens": 0,
+          "total_tokens": 833
+        },
+        "ttft": 0.0,
+        "throughput_tok_per_sec": 0.0,
+        "energy_per_output_token_joules": 0.0,
+        "throughput_per_watt": 0.0,
+        "energy_joules": 0.0,
+        "power_watts": 0.0,
+        "gpu_utilization_pct": 0.0,
+        "gpu_memory_used_gb": 0.0,
+        "gpu_temperature_c": 0.0,
+        "prefill_latency_seconds": 0.0,
+        "decode_latency_seconds": 0.0,
+        "prefill_energy_joules": 0.0,
+        "decode_energy_joules": 0.0,
+        "mean_itl_ms": 0.0,
+        "energy_method": "",
+        "energy_vendor": "",
+        "content": "{\"final_answer\": \"four\"}",
+        "tool_calls": [],
+        "tool_results": [],
+        "content_blocks": [],
+        "finish_reason": "stop"
+      }
+    ],
+    [
+      "inference_end",
+      {
+        "model": "qwen3-8b-uncensored",
+        "latency": 0.0003314018249511719,
+        "usage": {
+          "prompt_tokens": 361,
+          "prompt_tokens_evaluated": 361,
+          "completion_tokens": 0,
+          "total_tokens": 361
+        },
+        "ttft": 0.0,
+        "throughput_tok_per_sec": 0.0,
+        "energy_per_output_token_joules": 0.0,
+        "throughput_per_watt": 0.0,
+        "energy_joules": 0.0,
+        "power_watts": 0.0,
+        "gpu_utilization_pct": 0.0,
+        "gpu_memory_used_gb": 0.0,
+        "gpu_temperature_c": 0.0,
+        "prefill_latency_seconds": 0.0,
+        "decode_latency_seconds": 0.0,
+        "prefill_energy_joules": 0.0,
+        "decode_energy_joules": 0.0,
+        "mean_itl_ms": 0.0,
+        "energy_method": "",
+        "energy_vendor": "",
+        "content": "{\"final_answer\": \"control again\"}",
+        "tool_calls": [],
+        "tool_results": [],
+        "content_blocks": [],
+        "finish_reason": "stop"
+      }
+    ]
+  ]
+}
