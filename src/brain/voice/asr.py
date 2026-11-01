@@ -58,7 +58,7 @@ segments, info = model.transcribe(
     wav,
     language="zh",
     beam_size=5,
-    initial_prompt="以下是中文语音指令。常用指令：查询任务状态、优先处理一号任务、插队、好的、确认、取消。",
+    initial_prompt="以下是中文语音指令。高频主题：天气、今天、明天、几点、时间、温度、风、雨、雪、上海、日程、任务、进度。常用指令：查天气、查询任务状态、优先处理一号任务、插队、好的、确认、取消。",
     condition_on_previous_text=False,
 )
 text = " ".join(s.text.strip() for s in segments).strip()

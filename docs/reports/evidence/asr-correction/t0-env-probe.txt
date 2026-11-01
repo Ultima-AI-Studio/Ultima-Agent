@@ -1,0 +1,55 @@
+工单: wo-ultimaagent-20261101-0015
+阶段: T0 环境盘点
+时间: 2026-11-01 Asia/Shanghai
+执行环境: H:\UltimaAI\UltimaAgent\tools\venv-openjarvis\Scripts\python.exe
+Python: 3.13.16
+
+[C1] faster-whisper 调用与 initial_prompt 现状
+src/brain/voice/asr.py:48-67 的 _INLINE_FASTER_SCRIPT 使用：
+- WhisperModel(model_path, device="cuda", compute_type="float16")
+- model.transcribe(wav, language="zh", beam_size=5,
+  initial_prompt="以下是中文语音指令。常用指令：查询任务状态、优先处理一号任务、插队、好的、确认、取消。",
+  condition_on_previous_text=False)
+结论: prompt 只有任务管理词，没有天气/时间/日程高频词；改动点唯一且明确。
+
+[C2] 归一化与模糊兜底现状
+src/brain/interaction.py:426-452 的 _normalize_utterance 依次执行 NFKC、繁简转换、去空白，随后在函数内硬编码 4 条：
+- 水量天听 -> 天气
+- 水平听听清 -> 天气
+- 水平听 -> 天气
+- 明天上海的这 -> 明天上海的天气
+src/brain/interaction.py:474-506 的 _FUZZY_ADJUST_KEYWORDS、_FUZZY_CONFIRM_KEYWORDS、_FUZZY_QUERY_KEYWORDS、_FUZZY_PHRASES 和编辑距离判定保持只读，本工单不重写。
+
+[C3] 固定文本注入基线（venv-openjarvis Python 3.13.16）
+查一下明天的水量天听 => 查一下明天的天气
+明天上海的水天 => 明天上海的水天
+请介绍水田种植技术 => 请介绍水田种植技术
+现在几点 => 现在几点
+查询任务进度 => 查询任务进度
+结论: 既有 4 条能修正“水量天听”，未覆盖“水天”；“水田”当前不误伤。
+
+[C3] 既有真机观测与固定音频
+权威运行日志 data/logs/voice-listen.log:3927-3936：
+- 21:07:07 intermediate = “查一下明天的水平听听清。”
+- 21:07:07 final = “查一下明天的水量天听。”
+- 对应固定 WAV = data/voice/mic-regress/listen-1793365627174466700.wav
+权威运行日志 data/logs/voice-listen.log:4247-4250：
+- 22:14:45 final = “给我看一下明天上海的天气怎么样。”
+- 对应固定 WAV = data/voice/mic-regress/listen-1793369684628848900.wav
+审计引用 docs/reports/audit-northstar-alignment-20261101.md:19：L33 近音映射（水量天听->天气）已上线。
+
+[离线音频基线尝试]
+命令通过 venv-openjarvis 调用 src.brain.voice.asr._run_faster_whisper，对上述两条固定 WAV 执行旧 prompt 冷启动。
+结果: FAIL，faster-whisper exit=1，stderr 尾为 “RuntimeError: mkl_malloc: failed to allocate memory”。
+判定: 不将失败伪造为转写结果；待同项目 0014/0016 并发进程退出后，在 T1 用相同 WAV 重跑扩充前/后对比。
+
+[WIP 安全盘点]
+2026-11-01 12:42:35 同时发现 3 个同项目 codex exec：
+- PID 33244 = wo-ultimaagent-20261101-0014
+- PID 25596 = wo-ultimaagent-20261101-0015（本单）
+- PID 23504 = wo-ultimaagent-20261101-0016
+0014、0015、0016 的工单写域均包含 src/brain/interaction.py，违反每项目执行中 <=1，存在直接写冲突。本单不终止其他工单；T0 后暂停源码写入，等待冲突进程结束并重新核对差异。
+
+后续解阻: 0016 已以 commit a3fca7c/tag ultimaagent-reply-constraint-routing-20261101 完成并推送；0014 终态 BLOCKED 且留下未提交草稿。本单仅暂存自己的独立 hunk，不纳入 0014 草稿。
+
+T0 Gate: PASS（C1-C4 环境与基线证据齐备）。

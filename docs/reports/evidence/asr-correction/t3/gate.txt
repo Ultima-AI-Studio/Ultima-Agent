@@ -1,0 +1,38 @@
+工单: wo-ultimaagent-20261101-0015
+阶段: T3 收口 Gate
+时间: 2026-11-01 14:17:22 +08:00
+解释器: tools\venv-openjarvis\Scripts\python.exe (Python 3.13.16)
+
+[C1 fresh 全量]
+命令: tools\venv-openjarvis\Scripts\python.exe -m pytest src -q
+最终结果: PASS
+摘要: 858 passed, 36 warnings, 120 subtests passed in 178.25s
+0017 原失败 test_agent_server_keeps_user_question_separate: PASS（主线已含 5ef3ec3）。
+
+[C1 前两次外域波动留痕]
+- 尝试 1: 1 failed, 851 passed, 36 warnings, 120 subtests passed in 168.14s
+- 尝试 2: 1 failed, 851 passed, 36 warnings, 120 subtests passed in 176.18s
+- 两次唯一失败: TestPreferenceStore.test_upsert_idempotent
+- 独立复现: 10 次中 8 pass / 2 fail
+- 根因: PreferenceStore.set() 的 updated_at 仅保留毫秒，两次紧邻更新可同毫秒；不属于 0015 写域，未越界修复。
+- 判定: 保留波动记录；第三次完整 fresh exit=0 满足本单全量 Gate。
+
+[C1 0015 专项 + 0016 兼容/交互]
+命令: tools\venv-openjarvis\Scripts\python.exe -m pytest src\brain\tests\test_asr_normalize.py src\brain\routing\tests\test_routing_integration.py src\brain\tests\test_interaction.py -q
+结果: 36 passed in 9.01s（其中 0015 专项 17 项，含审查新增 6 个负向断言）
+
+[行为复核（fresh review 修复后需提交前重跑）]
+- “查一下明天的水量天听” -> “查一下明天的天气” -> reason=天气查询: PASS
+- “明天上海的水天” -> “明天上海的天气” -> reason=天气查询: PASS
+- 孤立“水量天听”保持 ABSTAIN，不进入 Agent: PASS
+- “请介绍水田种植技术”不变: PASS
+- “水天一色是一句成语”不变: PASS
+- “看看水天一色”/“请问水天一色是什么意思”/“今天看到水天一色”不变且不触发天气: RED 6 failures -> GREEN 17 passed；全量 858 passed
+
+[C2/C3 冻结待执行]
+- 精确暂存范围: 仅 0015 写域路径及 interaction.py 的 0015 hunks。
+- commit message: 工单 0015 ASR 纠错系统化（待执行）。
+- tag: ultimaagent-asr-correction-20261101（待创建并以 git rev-parse 独立核验）。
+- push: 待使用免代理命令；网络失败时写 t3-push-blocker.txt。
+
+T3 Gate: C1 PASS（fresh review 修复后专项/兼容 36 passed、完整全量 858 passed）；C2/C3 冻结待执行，不提前判定全阶段 PASS。

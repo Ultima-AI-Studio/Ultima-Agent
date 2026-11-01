@@ -1,0 +1,42 @@
+工单: wo-ultimaagent-20261101-0015
+阶段: T1 initial_prompt 扩充
+时间: 2026-11-01 Asia/Shanghai
+执行器: tools/venv-openjarvis/Scripts/python.exe (Python 3.13.16)
+推理后端: src.brain.voice.asr._run_faster_whisper -> faster-whisper-large-v3, CUDA float16
+固定参数: language=zh, beam_size=5, condition_on_previous_text=False（本单未修改）
+
+[prompt 对比]
+扩充前（43 字）:
+以下是中文语音指令。常用指令：查询任务状态、优先处理一号任务、插队、好的、确认、取消。
+
+扩充后（88 字）:
+以下是中文语音指令。高频主题：天气、今天、明天、几点、时间、温度、风、雨、雪、上海、日程、任务、进度。常用指令：查天气、查询任务状态、优先处理一号任务、插队、好的、确认、取消。
+
+登记依据:
+- 天气/明天/上海：data/logs/voice-listen.log:3930-3936 与 4247-4250 的真机天气查询。
+- 今天/几点/时间/温度/风/雨/雪：既有确定性天气/时间高频意图。
+- 日程/任务/进度：既有产品意图域与原任务管理 prompt。
+- 长度控制：88 个 Python 字符，仅扩充工单列出的高频域词，没有加入长句或样本正文。
+
+[固定 WAV fresh 对比]
+样本 A: data/voice/mic-regress/listen-1793365627174466700.wav
+- 历史真机 final: 查一下明天的水量天听。
+- 扩充前 fresh faster-whisper: 查一下明天的聊天镜。
+- 扩充后 fresh faster-whisper: 查一下明天的聊天镜。
+- 天气关键词正确: 0 -> 0（持平）
+
+样本 B: data/voice/mic-regress/listen-1793369684628848900.wav
+- 历史真机 final: 给我看一下明天上海的天气怎么样。
+- 扩充前 fresh faster-whisper: 给我看一下明天上海的天气怎么样。
+- 扩充后 fresh faster-whisper: 给我看一下明天上海的天气怎么样。
+- 天气关键词正确: 1 -> 1（持平）
+
+汇总:
+- 固定样本天气关键词正确率: 1/2 (50%) -> 1/2 (50%)。
+- 结论: prompt 扩充在这两条固定真实音频上没有改善，也没有恶化，满足工单 Gate“下降或持平不恶化”的持平分支。
+- 限制: 这是离线复放，不宣称真机新采集效果；T2 可兜底样本 A 的历史真机“水量天听”转写，但本次 fresh 的“聊天镜”未在映射表中，仍未解决。
+
+补充失败留痕:
+并发工单尚未清空时首次旧 prompt 冷启动曾因 mkl_malloc 内存不足失败；WIP 清理后相同命令 fresh 重跑成功。失败未计入准确率。
+
+T1 Gate: PASS（持平不恶化）。

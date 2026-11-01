@@ -122,10 +122,11 @@ class InteractionLoop:
         if wakeword_change is not None:
             return wakeword_change
 
-        # 不可信 ASR / 域外输入必须在近音归一化生效前判定；否则诸如
-        # "水量天听"会被改写成"天气"并绕过入口门。DENY/ABSTAIN 均不进 Agent。
+        # 已登记且带明确天气上下文的近音可走确定性天气路径；孤立近音片段仍把
+        # 原文交给路由门 ABSTAIN，避免未知噪声借纠错绕过入口门。
+        route_text = normalized if _is_contextual_weather_correction(text, normalized) else text
         routed = self._route_before_agent(
-            text,
+            route_text,
             asr_confidence=asr_confidence,
             asr_corrected=asr_corrected,
         )
@@ -556,6 +557,49 @@ def _fuzzy_subagent(text: str) -> bool:
     return any(word in text for word in _SUBAGENT_ACTION_WORDS)
 
 
+_DEFAULT_ASR_NEAR_HOMOPHONE = (
+    ("水量天听", "天气"),
+    ("水平听听清", "天气"),
+    ("水平听", "天气"),
+    ("明天上海的这", "明天上海的天气"),
+)
+_ASR_NORMALIZE_PATH = Path(__file__).resolve().parents[2] / "config" / "asr-normalize.json"
+_ASR_WEATHER_CONTEXT = re.compile(r"(?:查|看|问|今天|明天|后天|大后天|气温|温度|下雨|下雪)")
+
+
+def _load_asr_near_homophones(path: Path = _ASR_NORMALIZE_PATH) -> tuple[tuple[str, str], ...]:
+    """Load literal phrase mappings; any missing/invalid config falls back safely."""
+    try:
+        import json as _json
+
+        payload = _json.loads(path.read_text(encoding="utf-8"))
+        rows = payload["mappings"]
+        if not isinstance(rows, list) or not rows:
+            raise ValueError("mappings must be a non-empty list")
+        mappings = []
+        for row in rows:
+            wrong, right = row["from"], row["to"]
+            if not isinstance(wrong, str) or not isinstance(right, str):
+                raise ValueError("mapping values must be strings")
+            if len(wrong) < 2 or not wrong or not right:
+                raise ValueError("single-character or empty mappings are forbidden")
+            mappings.append((wrong, right))
+        return tuple(sorted(mappings, key=lambda item: len(item[0]), reverse=True))
+    except (OSError, KeyError, TypeError, ValueError, _json.JSONDecodeError):
+        return _DEFAULT_ASR_NEAR_HOMOPHONE
+
+
+_ASR_NEAR_HOMOPHONE = _load_asr_near_homophones()
+
+
+def _is_contextual_weather_correction(text: str | None, normalized: str) -> bool:
+    if not isinstance(text, str) or "天气" not in normalized:
+        return False
+    compact = re.sub(r"\s+", "", text)
+    corrected = any(wrong in compact for wrong, _ in _ASR_NEAR_HOMOPHONE)
+    return corrected and bool(_ASR_WEATHER_CONTEXT.search(compact))
+
+
 def _normalize_utterance(text: str | None) -> str:
     """NFKC + 繁体→简体（复用 intent.py 的映射，独立实现避免循环依赖）。"""
     if not isinstance(text, str):
@@ -568,7 +612,17 @@ def _normalize_utterance(text: str | None) -> str:
     )
     value = unicodedata.normalize("NFKC", text).strip()
     value = value.translate(_TRAD_TO_SIMP)
-    return re.sub(r"\s+", "", value)
+    value = re.sub(r"\s+", "", value)
+    # 只做配置登记的整词/短语字面替换，禁止单字映射；配置异常时使用内置默认表。
+    for wrong, right in _ASR_NEAR_HOMOPHONE:
+        # “水天”也可出现在“水天一色”中；仅在明确天气上下文纠正该短词。
+        if wrong == "水天" and (
+            "水天一色" in value or not _ASR_WEATHER_CONTEXT.search(value)
+        ):
+            continue
+        if wrong in value:
+            value = value.replace(wrong, right)
+    return value
 
 
 def _levenshtein(a: str, b: str) -> int:

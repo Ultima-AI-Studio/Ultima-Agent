@@ -1,0 +1,35 @@
+工单: wo-ultimaagent-20261101-0015
+阶段: T2 近音映射独立化与扩充
+时间: 2026-11-01 Asia/Shanghai
+
+[机制]
+- 新建 config/asr-normalize.json，matching=literal_phrase。
+- 迁移默认 4 条，并新增“水天 -> 天气”；每条含 source 与 verification。
+- interaction.py 在模块加载时读取配置，任意文件缺失、JSON 解析失败或 schema 非法均回退内置默认 4 条，不抛异常断链。
+- loader 拒绝单字/空映射；按错误短语长度降序执行，避免短短语抢先覆盖长短语。
+- “水天”存在正常成语歧义，只在查/看/问/今天/明天/后天/温度/雨雪等天气上下文纠正。
+
+[固定注入]
+查一下明天的水量天听 -> 查一下明天的天气 -> reason=天气查询
+明天上海的水天 -> 明天上海的天气 -> reason=天气查询
+请介绍水田种植技术 -> 请介绍水田种植技术（不变）
+水天一色是一句成语 -> 水天一色是一句成语（不变）
+看看水天一色 -> 看看水天一色（不变，不误触天气）
+请问水天一色是什么意思 -> 请问水天一色是什么意思（不变，不误触天气）
+今天看到水天一色 -> 今天看到水天一色（不变，不误触天气）
+
+[0016 兼容]
+- 孤立“水量天听”仍由 0016 路由门判定 ABSTAIN，不进入 Agent。
+- 只有已登记映射 + 明确天气上下文才把 corrected text 交给路由门，随后走既有确定性天气路径。
+- 未修改 src/brain/routing/，未改 _FUZZY_* 关键词或编辑距离判定。
+
+[配置回退]
+missing_fallback=(水量天听/水平听听清/水平听/明天上海的这 默认 4 条)
+invalid_json_fallback=(同上默认 4 条)
+empty_mappings_fallback=(同上默认 4 条)
+
+[专项命令]
+tools/venv-openjarvis/Scripts/python.exe -m pytest src/brain/tests/test_asr_normalize.py src/brain/routing/tests/test_routing_integration.py src/brain/tests/test_interaction.py -q
+结果: 30 passed in 4.83s
+
+T2 Gate: PASS（注入用例全过、正常语句零误伤、0016 安全门回归保持）。
