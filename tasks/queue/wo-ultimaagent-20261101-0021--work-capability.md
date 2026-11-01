@@ -5,7 +5,7 @@
 - original_work_order_id: wo-ultimaagent-20261101-0021
 - revision: 2
 - authorization: 用户“那按顺序开始推进吧”；批准按已提交的工作能力契约与计划顺序执行，保留最终 Owner 验收和发布门。
-- 状态：T0 r2 独立计划评审 PASS；T1 即将开始，原单未完成。
+- 状态：T0/T1 技术门通过；T2 在修复 2/2 后真实 E02 FAIL、blocked；T3—T5 未启动，原单未完成。
 - 计划：docs/plans/jarvis-work-capability-delivery-plan-20261101.md
 - 契约：docs/specs/jarvis-work-capability-contract-20261101.md
 - 草案检查点：ultimaagent-jarvis-work-plan-draft-20261101 @ f6eb808348302cec55bddcf44ee03f5b5736c4d9
@@ -71,3 +71,7 @@
 | 工作上下文 | 现有 Environment/LocalExecChannel/BrowserChannel，Jarvis.ceo ContextDetector 设计 | 优先接通既有接口；Mac 原生 API 不复制到 Windows |
 | 组织方式参考 | Jarvis.ceo bec50ef6 | 采用任务分流、提供商抽象和会话取消思路，逐路径验证实际能力 |
 | 最小产品接线 | 本计划 work_service/work_tools/work_verifier | 属产品接线与交付体验适配；不重写上述开源能力。T0 独立评审需核实必要性 |
+## 2026-11-02 当前停点补记（原目标与验收不变）
+
+T0/T1技术门通过；T2最后候选10fec03在2/2有界修复后真实E02失败。E01PASS3，E03此候选未启动，T3—T5未进入。149项测试通过不代表实际工作验收。原单与T2阶段索引FAILED/不可派发，全局blocked；所有历史继承、不新增原单重置次数。证据与后续决策材料见docs/reports/jarvis-work-capability-t2-20261102.md。生产服务、已接受KWS和默认主脑未切换；模型对照提案尚未执行，等待Owner明确范围决定。
+
