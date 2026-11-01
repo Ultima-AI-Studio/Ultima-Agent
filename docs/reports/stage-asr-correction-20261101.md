@@ -3,7 +3,7 @@
 > 工单：`wo-ultimaagent-20261101-0015`
 > 执行端：Codex（codex exec）
 > 日期：2026-11-01
-> 状态：收口中（T3-C1/C2 本地冻结完成；push 待执行）
+> 状态：BLOCKED（T3-C1/C2 本地冻结完成；T3-C3 GitHub 直连被 reset）
 
 ## 范围与边界
 
@@ -37,7 +37,7 @@
 - 专项：`30 passed in 4.83s`。
 - 证据：`docs/reports/evidence/asr-correction/t2-normalize.txt`。
 
-### T3 收口 — C1/C2 PASS，C3 push 待执行
+### T3 收口 — C1/C2 PASS，C3 push BLOCKED
 
 - Fresh 全量命令：`tools/venv-openjarvis/Scripts/python.exe -m pytest src -q`。
 - fresh-context review 修复后的最终完整运行：`858 passed, 36 warnings, 120 subtests passed in 178.25s`。
@@ -48,12 +48,12 @@
 - 近音行为：带天气上下文的“查一下明天的水量天听”“明天上海的水天”进入确定性天气路径；孤立“水量天听”保持 ABSTAIN；“水田”“水天一色”以及带“看/问/今天”的成语句不变、不触发天气。
 - 证据：`docs/reports/evidence/asr-correction/t3/full-pytest.txt` 与 `t3/gate.txt`。
 - 本地冻结：commit `c0f0c7bb4d35b4a26fe0935e21ba97c1a450eb07`（`工单 0015 ASR 纠错系统化`）；tag `ultimaagent-asr-correction-20261101` 独立解析到同一 commit。
-- push：待以免代理命令推送 main 与 tag，结果随后回填。
+- push：免代理命令同时推送 main 与 tag，GitHub HTTPS 直连返回 `Recv failure: Connection was reset`（exit 1）；证据见 `t3-push-blocker.txt`。按工单允许分支保留本地提交/tag，不回滚、不重写，待调度侧网络恢复后补推。
 
-### T4 八字段回执 — 本地冻结完成，push 待回填
+### T4 八字段回执 — 本地冻结完成，push 网络阻塞
 
 - 回执文件：`docs/reports/evidence/asr-correction/t4-receipt.txt`。
-- 当前回执已记录实际 commit/tag，但不提前宣称 push 成功；推送后按实际结果回填。网络失败时以 `t3-push-blocker.txt` 为阻塞证据，不回滚或重写本地提交。
+- 当前回执已记录实际 commit/tag 与 push 失败；`t3-push-blocker.txt` 保存原命令和连接重置错误。本地冻结不回滚或重写，调度侧可在网络恢复后补推。
 
 ## 扩充前后对比
 

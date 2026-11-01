@@ -36,7 +36,10 @@
 - tag: ultimaagent-asr-correction-20261101
 - git rev-parse --verify tag^{commit}: c0f0c7bb4d35b4a26fe0935e21ba97c1a450eb07
 
-[C3 push 待执行]
-- 待使用免代理命令推送 main 与 tag；网络失败时写 t3-push-blocker.txt。
+[C3 push]
+- 命令: git -c http.proxy= -c https.proxy= -c http.https://github.com.proxy= push origin main ultimaagent-asr-correction-20261101
+- 结果: BLOCKED，exit 1，Recv failure: Connection was reset
+- 证据: docs/reports/evidence/asr-correction/t3-push-blocker.txt
+- 处置: 保留本地 commit/tag，不回滚、不重写；待调度侧网络恢复后补推。
 
-T3 Gate: C1/C2 PASS（专项/兼容 36 passed、完整全量 858 passed、commit/tag 可解析）；C3 push 待执行。
+T3 Gate: C1/C2 PASS（专项/兼容 36 passed、完整全量 858 passed、commit/tag 可解析）；C3 BLOCKED_BY_GITHUB_CONNECTION_RESET（工单允许的推送阻塞分支）。
