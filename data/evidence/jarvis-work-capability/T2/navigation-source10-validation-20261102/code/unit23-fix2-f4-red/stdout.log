@@ -1,0 +1,218 @@
+FFFFFF                                                                   [100%]
+================================== FAILURES ===================================
+_________________ test_fix2_f4_decoded_envelope_replay[empty] _________________
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/unit23-fix2-f4-red/temp/test_fix2_f4_decoded_envelope_0')
+sdk_io = (<src.brain.browser.channel.BrowserChannel object at 0x000001E822603A10>, [('search', 'Research a subject'), ('get', '...'https://example.com/source/3'), ('get', 'https://example.com/source/4'), ('get', 'https://example.com/source/5')], {})
+mock_jar = (<openjarvis.sdk.Jarvis object at 0x000001E822602270>, <function _run_work_agent at 0x000001E821A034C0>, [{'format': {..., ...], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [])
+fault = 'empty'
+
+    @pytest.mark.parametrize('fault',['empty','whitespace','escaped_final','escaped_action'])
+    def test_fix2_f4_decoded_envelope_replay(tmp_path,sdk_io,mock_jar,fault):
+        import hashlib
+        from src.brain.work_research import verify_runtime_packet
+        from src.brain.work_navigation import canonical_v3
+        _,ledger=genuine_navigation(tmp_path,sdk_io,mock_jar)
+        action=fault=='escaped_action'
+        raw=ledger._runtime_prewrite if action else ledger._runtime_final
+        verify_runtime_packet(ledger._binding,ledger.issued_snapshot,ledger._collection,raw,require_ack=not action,runtime_inputs=ledger._runtime_inputs)
+        packet=json.loads(raw);original_prefix=packet['prewrite_packet'];index=len(packet['wires'])-1
+        if action:
+            value=packet['wires'][index]['raw_envelope'];value['action_input']['title']=escaped_scanner_fixture()
+            start=json.loads(packet['events'][-1]);start['data']['arguments']=value['action_input'];packet['events'][-1]=json.dumps(start)
+            next(n for n in reversed(packet['timeline']) if n['kind']=='expect')['args_hash']=hashlib.sha256(canonical_v3(value['action_input'])).hexdigest()
+        else: value=dict(final_answer='' if fault=='empty' else ' \t ' if fault=='whitespace' else escaped_scanner_fixture())
+        content=escaped_envelope(value) if fault.startswith('escaped') else canonical_v3(value).decode()
+        if fault.startswith('escaped'):
+            assert all(s.scan(content).clean for s in ledger._policy.scanners)
+            assert any(not s.scan(escaped_scanner_fixture()).clean for s in ledger._policy.scanners)
+        rewrite_response(packet,index,value,content)
+        assert packet['prewrite_packet']==original_prefix
+        with pytest.raises(ValueError,match='Unsafe native evidence string' if fault.startswith('escaped') else 'Empty research final answer'):
+>           verify_runtime_packet(ledger._binding,ledger.issued_snapshot,ledger._collection,canonical_v3(packet),
+                require_ack=not action,runtime_inputs=ledger._runtime_inputs)
+
+src\brain\tests\test_work_navigation_transport.py:123: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+src\brain\work_research.py:775: in verify_runtime_packet
+    Draft7Validator(wire['strict_schema']).validate(envelope)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = Draft7Validator(schema={'additionalProperties': False, 'properties': {'final_answer': {'maxLength': 1000, 'minLength': 1, 'type': 'string'}}, 'required': ['final_answer'], 'type': 'object'}, format_checker=None)
+args = ({'final_answer': ''},), kwargs = {}
+
+    def validate(self, *args, **kwargs):
+        for error in self.iter_errors(*args, **kwargs):
+>           raise error
+E           jsonschema.exceptions.ValidationError: '' should be non-empty
+E           
+E           Failed validating 'minLength' in schema['properties']['final_answer']:
+E               {'maxLength': 1000, 'minLength': 1, 'type': 'string'}
+E           
+E           On instance['final_answer']:
+E               ''
+
+H:\UltimaAI\UltimaAgent\tools\venv-openjarvis\Lib\site-packages\jsonschema\validators.py:450: ValidationError
+______________ test_fix2_f4_decoded_envelope_replay[whitespace] _______________
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/unit23-fix2-f4-red/temp/test_fix2_f4_decoded_envelope_1')
+sdk_io = (<src.brain.browser.channel.BrowserChannel object at 0x000001E821B27ED0>, [('search', 'Research a subject'), ('get', '...'https://example.com/source/3'), ('get', 'https://example.com/source/4'), ('get', 'https://example.com/source/5')], {})
+mock_jar = (<openjarvis.sdk.Jarvis object at 0x000001E821B27610>, <function _run_work_agent at 0x000001E821A034C0>, [{'format': {..., ...], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [])
+fault = 'whitespace'
+
+    @pytest.mark.parametrize('fault',['empty','whitespace','escaped_final','escaped_action'])
+    def test_fix2_f4_decoded_envelope_replay(tmp_path,sdk_io,mock_jar,fault):
+        import hashlib
+        from src.brain.work_research import verify_runtime_packet
+        from src.brain.work_navigation import canonical_v3
+        _,ledger=genuine_navigation(tmp_path,sdk_io,mock_jar)
+        action=fault=='escaped_action'
+        raw=ledger._runtime_prewrite if action else ledger._runtime_final
+        verify_runtime_packet(ledger._binding,ledger.issued_snapshot,ledger._collection,raw,require_ack=not action,runtime_inputs=ledger._runtime_inputs)
+        packet=json.loads(raw);original_prefix=packet['prewrite_packet'];index=len(packet['wires'])-1
+        if action:
+            value=packet['wires'][index]['raw_envelope'];value['action_input']['title']=escaped_scanner_fixture()
+            start=json.loads(packet['events'][-1]);start['data']['arguments']=value['action_input'];packet['events'][-1]=json.dumps(start)
+            next(n for n in reversed(packet['timeline']) if n['kind']=='expect')['args_hash']=hashlib.sha256(canonical_v3(value['action_input'])).hexdigest()
+        else: value=dict(final_answer='' if fault=='empty' else ' \t ' if fault=='whitespace' else escaped_scanner_fixture())
+        content=escaped_envelope(value) if fault.startswith('escaped') else canonical_v3(value).decode()
+        if fault.startswith('escaped'):
+            assert all(s.scan(content).clean for s in ledger._policy.scanners)
+            assert any(not s.scan(escaped_scanner_fixture()).clean for s in ledger._policy.scanners)
+        rewrite_response(packet,index,value,content)
+        assert packet['prewrite_packet']==original_prefix
+>       with pytest.raises(ValueError,match='Unsafe native evidence string' if fault.startswith('escaped') else 'Empty research final answer'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+src\brain\tests\test_work_navigation_transport.py:122: Failed
+_____________ test_fix2_f4_decoded_envelope_replay[escaped_final] _____________
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/unit23-fix2-f4-red/temp/test_fix2_f4_decoded_envelope_2')
+sdk_io = (<src.brain.browser.channel.BrowserChannel object at 0x000001E821CEDF90>, [('search', 'Research a subject'), ('get', '...'https://example.com/source/3'), ('get', 'https://example.com/source/4'), ('get', 'https://example.com/source/5')], {})
+mock_jar = (<openjarvis.sdk.Jarvis object at 0x000001E821F8CFC0>, <function _run_work_agent at 0x000001E821A034C0>, [{'format': {..., ...], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [])
+fault = 'escaped_final'
+
+    @pytest.mark.parametrize('fault',['empty','whitespace','escaped_final','escaped_action'])
+    def test_fix2_f4_decoded_envelope_replay(tmp_path,sdk_io,mock_jar,fault):
+        import hashlib
+        from src.brain.work_research import verify_runtime_packet
+        from src.brain.work_navigation import canonical_v3
+        _,ledger=genuine_navigation(tmp_path,sdk_io,mock_jar)
+        action=fault=='escaped_action'
+        raw=ledger._runtime_prewrite if action else ledger._runtime_final
+        verify_runtime_packet(ledger._binding,ledger.issued_snapshot,ledger._collection,raw,require_ack=not action,runtime_inputs=ledger._runtime_inputs)
+        packet=json.loads(raw);original_prefix=packet['prewrite_packet'];index=len(packet['wires'])-1
+        if action:
+            value=packet['wires'][index]['raw_envelope'];value['action_input']['title']=escaped_scanner_fixture()
+            start=json.loads(packet['events'][-1]);start['data']['arguments']=value['action_input'];packet['events'][-1]=json.dumps(start)
+            next(n for n in reversed(packet['timeline']) if n['kind']=='expect')['args_hash']=hashlib.sha256(canonical_v3(value['action_input'])).hexdigest()
+        else: value=dict(final_answer='' if fault=='empty' else ' \t ' if fault=='whitespace' else escaped_scanner_fixture())
+        content=escaped_envelope(value) if fault.startswith('escaped') else canonical_v3(value).decode()
+        if fault.startswith('escaped'):
+            assert all(s.scan(content).clean for s in ledger._policy.scanners)
+            assert any(not s.scan(escaped_scanner_fixture()).clean for s in ledger._policy.scanners)
+        rewrite_response(packet,index,value,content)
+        assert packet['prewrite_packet']==original_prefix
+>       with pytest.raises(ValueError,match='Unsafe native evidence string' if fault.startswith('escaped') else 'Empty research final answer'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AssertionError: Regex pattern did not match.
+E         Expected regex: 'Unsafe native evidence string'
+E         Actual message: 'Invalid \\uXXXX escape: line 1 column 25 (char 24)'
+
+src\brain\tests\test_work_navigation_transport.py:122: AssertionError
+____________ test_fix2_f4_decoded_envelope_replay[escaped_action] _____________
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/unit23-fix2-f4-red/temp/test_fix2_f4_decoded_envelope_3')
+sdk_io = (<src.brain.browser.channel.BrowserChannel object at 0x000001E821F8E9E0>, [('search', 'Research a subject'), ('get', '...'https://example.com/source/3'), ('get', 'https://example.com/source/4'), ('get', 'https://example.com/source/5')], {})
+mock_jar = (<openjarvis.sdk.Jarvis object at 0x000001E821B19260>, <function _run_work_agent at 0x000001E821A034C0>, [{'format': {..., ...], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [])
+fault = 'escaped_action'
+
+    @pytest.mark.parametrize('fault',['empty','whitespace','escaped_final','escaped_action'])
+    def test_fix2_f4_decoded_envelope_replay(tmp_path,sdk_io,mock_jar,fault):
+        import hashlib
+        from src.brain.work_research import verify_runtime_packet
+        from src.brain.work_navigation import canonical_v3
+        _,ledger=genuine_navigation(tmp_path,sdk_io,mock_jar)
+        action=fault=='escaped_action'
+        raw=ledger._runtime_prewrite if action else ledger._runtime_final
+        verify_runtime_packet(ledger._binding,ledger.issued_snapshot,ledger._collection,raw,require_ack=not action,runtime_inputs=ledger._runtime_inputs)
+        packet=json.loads(raw);original_prefix=packet['prewrite_packet'];index=len(packet['wires'])-1
+        if action:
+            value=packet['wires'][index]['raw_envelope'];value['action_input']['title']=escaped_scanner_fixture()
+            start=json.loads(packet['events'][-1]);start['data']['arguments']=value['action_input'];packet['events'][-1]=json.dumps(start)
+            next(n for n in reversed(packet['timeline']) if n['kind']=='expect')['args_hash']=hashlib.sha256(canonical_v3(value['action_input'])).hexdigest()
+        else: value=dict(final_answer='' if fault=='empty' else ' \t ' if fault=='whitespace' else escaped_scanner_fixture())
+        content=escaped_envelope(value) if fault.startswith('escaped') else canonical_v3(value).decode()
+        if fault.startswith('escaped'):
+            assert all(s.scan(content).clean for s in ledger._policy.scanners)
+            assert any(not s.scan(escaped_scanner_fixture()).clean for s in ledger._policy.scanners)
+        rewrite_response(packet,index,value,content)
+        assert packet['prewrite_packet']==original_prefix
+>       with pytest.raises(ValueError,match='Unsafe native evidence string' if fault.startswith('escaped') else 'Empty research final answer'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AssertionError: Regex pattern did not match.
+E         Expected regex: 'Unsafe native evidence string'
+E         Actual message: 'Invalid \\uXXXX escape: line 1 column 149 (char 148)'
+
+src\brain\tests\test_work_navigation_transport.py:122: AssertionError
+_____________ test_fix2_f4_encoded_answer_live_decode_gate[False] _____________
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/unit23-fix2-f4-red/temp/test_fix2_f4_encoded_answer_li0')
+sdk_io = (<src.brain.browser.channel.BrowserChannel object at 0x000001E821F8D0F0>, [('search', 'Research a subject'), ('get', '...'https://example.com/source/3'), ('get', 'https://example.com/source/4'), ('get', 'https://example.com/source/5')], {})
+mock_jar = (<openjarvis.sdk.Jarvis object at 0x000001E821FF5C50>, <function _run_work_agent at 0x000001E821A034C0>, [{'format': {..., ...], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [])
+action = False
+
+    @pytest.mark.parametrize('action',[False,True])
+    def test_fix2_f4_encoded_answer_live_decode_gate(tmp_path,sdk_io,mock_jar,action):
+        from src.brain.tests.test_work_research import RESTRICTED
+        def unsafe(body):
+            value=json.loads(navigation_reply(body))
+            if action: value['action_input']['title']=escaped_scanner_fixture()
+            else: value['final_answer']=escaped_scanner_fixture()
+            content=escaped_envelope(value)
+            assert all(s.scan(content).clean for s in wt._ACTIVE.get()[1]._policy.scanners)
+            return content
+        unsafe.no_auto_navigation=True
+        mock_jar[3].extend([navigation_reply]*3+([unsafe] if action else [navigation_reply,unsafe]))
+        result=submit(tmp_path,sdk_io[0],mock_jar[1]);ledger=RESTRICTED[result['task_id']]
+>       assert result['status']==('failed' if action else 'needs_attention') and 'Unsafe research output' in result['error']
+E       AssertionError: assert ('needs_attention' == 'needs_attention'
+E         
+E           needs_attention and 'Unsafe research output' in 'Invalid \\uXXXX escape: line 1 column 25 (char 24)')
+
+src\brain\tests\test_work_navigation_transport.py:140: AssertionError
+_____________ test_fix2_f4_encoded_answer_live_decode_gate[True] ______________
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/unit23-fix2-f4-red/temp/test_fix2_f4_encoded_answer_li1')
+sdk_io = (<src.brain.browser.channel.BrowserChannel object at 0x000001E821C7A330>, [('search', 'Research a subject'), ('get', '...'https://example.com/source/3'), ('get', 'https://example.com/source/4'), ('get', 'https://example.com/source/5')], {})
+mock_jar = (<openjarvis.sdk.Jarvis object at 0x000001E821F81130>, <function _run_work_agent at 0x000001E821A034C0>, [{'format': {... ...], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 2048, 'temperature': 0}, ...}], [])
+action = True
+
+    @pytest.mark.parametrize('action',[False,True])
+    def test_fix2_f4_encoded_answer_live_decode_gate(tmp_path,sdk_io,mock_jar,action):
+        from src.brain.tests.test_work_research import RESTRICTED
+        def unsafe(body):
+            value=json.loads(navigation_reply(body))
+            if action: value['action_input']['title']=escaped_scanner_fixture()
+            else: value['final_answer']=escaped_scanner_fixture()
+            content=escaped_envelope(value)
+            assert all(s.scan(content).clean for s in wt._ACTIVE.get()[1]._policy.scanners)
+            return content
+        unsafe.no_auto_navigation=True
+        mock_jar[3].extend([navigation_reply]*3+([unsafe] if action else [navigation_reply,unsafe]))
+        result=submit(tmp_path,sdk_io[0],mock_jar[1]);ledger=RESTRICTED[result['task_id']]
+>       assert result['status']==('failed' if action else 'needs_attention') and 'Unsafe research output' in result['error']
+E       AssertionError: assert ('failed' == 'failed'
+E         
+E           failed and 'Unsafe research output' in 'Invalid \\uXXXX escape: line 1 column 149 (char 148)')
+
+src\brain\tests\test_work_navigation_transport.py:140: AssertionError
+=========================== short test summary info ===========================
+FAILED src/brain/tests/test_work_navigation_transport.py::test_fix2_f4_decoded_envelope_replay[empty]
+FAILED src/brain/tests/test_work_navigation_transport.py::test_fix2_f4_decoded_envelope_replay[whitespace]
+FAILED src/brain/tests/test_work_navigation_transport.py::test_fix2_f4_decoded_envelope_replay[escaped_final]
+FAILED src/brain/tests/test_work_navigation_transport.py::test_fix2_f4_decoded_envelope_replay[escaped_action]
+FAILED src/brain/tests/test_work_navigation_transport.py::test_fix2_f4_encoded_answer_live_decode_gate[False]
+FAILED src/brain/tests/test_work_navigation_transport.py::test_fix2_f4_encoded_answer_live_decode_gate[True]
+6 failed in 5.98s

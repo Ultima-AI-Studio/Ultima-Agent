@@ -1,0 +1,414 @@
+FFFFFF............                                                       [100%]
+================================== FAILURES ===================================
+_____________ test_fix2_n1_fractional_prepared_sdk_replay[False] ______________
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/unit23-fix2-n1-red-2/temp/test_fix2_n1_fractional_prepar0')
+sdk_io = (<src.brain.browser.channel.BrowserChannel object at 0x000001FE226E3B60>, [('search', 'Research a subject'), ('get', '...'https://example.com/source/3'), ('get', 'https://example.com/source/4'), ('get', 'https://example.com/source/5')], {})
+mock_jar = (<openjarvis.sdk.Jarvis object at 0x000001FE226E23C0>, <function _run_work_agent at 0x000001FE21AD3920>, [{'format': {... {'num_ctx': 16384, 'num_predict': 2048, 'temperature': 0}, ...}], [<function navigation_reply at 0x000001FE2090A200>])
+source9_clock = {'now': 1000.1, 'metadata': 0, 'author': 0, 'ack': 0, ...}
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001FDE97D03E0>
+edge = False
+
+    @pytest.mark.parametrize('edge',[False,True])
+    def test_fix2_n1_fractional_prepared_sdk_replay(tmp_path,sdk_io,mock_jar,source9_clock,monkeypatch,edge):
+>       fractional_navigation(tmp_path,sdk_io,mock_jar,source9_clock,monkeypatch,edge)
+
+src\brain\tests\test_work_navigation_transport.py:109: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+src\brain\tests\test_work_navigation_transport.py:85: in fractional_navigation
+    verify_runtime_packet(ledger._binding,ledger.issued_snapshot,ledger._collection,ledger._runtime_prewrite,
+src\brain\work_research.py:696: in verify_runtime_packet
+    _verify_runtime_order(packet,reads,written,require_ack,runtime_inputs)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+packet = {'binding': ['r', 's', '00000000-0000-0000-0000-0000000003e8'], 'clock_domain': 'work_tools.monotonic;ledger-sequence-...estamp":1793645927.1935,"type":"tool_call_end"}', ...], 'execution': {'effects': [], 'files': [], 'intent': None}, ...}
+reads = [{'key': {'adapter_uuid': '00000000-0000-0000-0000-0000000003fb', 'dispatch_uuid': '00000000-0000-0000-0000-0000000003...]], 'end': 1, 'lines': [[1, 'Fetched distinct body for https://example.com/source/3']], 'next_start': None, ...}, ...}]
+written = False, require_ack = False
+runtime_inputs = ResearchRuntimeInputs(prompt='[Work request: use ultima_work_research_write to deliver the requested file; a verbal cl...red-2\\temp\\test_fix2_n1_fractional_prepar0\\00000000-0000-0000-0000-0000000003e8', allowance=2048, deadline='1060.2')
+
+    def _verify_runtime_order(packet,reads,written,require_ack,runtime_inputs):
+        from decimal import Decimal,InvalidOperation
+        import uuid
+        from .work_navigation import canonical_v3
+        if packet['clock_domain']!='work_tools.monotonic;ledger-sequence-v1': raise ValueError('Runtime clock domain drift')
+        timeline=packet['timeline']; cursor=0; previous=None
+        def take(kind,**fields):
+            nonlocal cursor,previous
+            if cursor>=len(timeline): raise ValueError('Missing runtime admission order')
+            node=timeline[cursor]; cursor+=1
+            if (set(node)!={'order','kind','at','deadline',*fields} or node['order']!=cursor or node['kind']!=kind
+                    or any(node[k]!=v for k,v in fields.items()) or node['deadline']!=runtime_inputs.deadline):
+                raise ValueError('Runtime admission order drift')
+            try: now=Decimal(node['at']); remaining=Decimal(node['deadline'])-now
+            except (InvalidOperation,TypeError): raise ValueError('Invalid runtime clock') from None
+            if not now.is_finite() or (previous is not None and now<previous): raise ValueError('Runtime monotonic clock drift')
+            previous=now
+            if remaining<=0: raise ValueError('Runtime deadline exceeded')
+            return node,remaining
+        for index,wire in enumerate(packet['wires']):
+            ack=index==len(reads)+1
+            take('generation',generation=index+1)
+            for receipt_index in range(index*3,index*3+3):
+                _,remaining=take('send',generation=index+1,receipt_index=receipt_index)
+                if not ack and remaining<=55: raise ValueError('Runtime send reserve exhausted')
+                receipt=packet['transport']['receipts'][receipt_index]
+                budget=remaining if ack else remaining-55
+                base=min(Decimal(25),budget); read=min(Decimal(25 if ack else 180),budget)
+                if receipt['kind']=='metadata': read=min(Decimal(25),read)
+                timeout=json.loads(receipt['timeout_json'])
+                if (receipt['send_reserved'] is not True or receipt['admission_error'] is not None
+                        or set(timeout)!={'connect','read','write','pool'}
+                        or any(Decimal(str(timeout[k]))>limit or Decimal(str(timeout[k]))<=0 for k,limit in
+                            (('connect',base),('read',read),('write',base),('pool',base)))):
+>                   raise ValueError('Runtime final timeout admission drift')
+E                   ValueError: Runtime final timeout admission drift
+
+src\brain\work_research.py:607: ValueError
+______________ test_fix2_n1_fractional_prepared_sdk_replay[True] ______________
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/unit23-fix2-n1-red-2/temp/test_fix2_n1_fractional_prepar1')
+sdk_io = (<src.brain.browser.channel.BrowserChannel object at 0x000001FE223A4550>, [('search', 'Research a subject'), ('get', '...'https://example.com/source/3'), ('get', 'https://example.com/source/4'), ('get', 'https://example.com/source/5')], {})
+mock_jar = (<openjarvis.sdk.Jarvis object at 0x000001FE2244BC50>, <function _run_work_agent at 0x000001FE21AD3920>, [{'format': {... {'num_ctx': 16384, 'num_predict': 2048, 'temperature': 0}, ...}], [<function navigation_reply at 0x000001FE2090A200>])
+source9_clock = {'now': 1005.1999999999999, 'metadata': 0, 'author': 0, 'ack': 0, ...}
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001FE21B98C30>
+edge = True
+
+    @pytest.mark.parametrize('edge',[False,True])
+    def test_fix2_n1_fractional_prepared_sdk_replay(tmp_path,sdk_io,mock_jar,source9_clock,monkeypatch,edge):
+>       fractional_navigation(tmp_path,sdk_io,mock_jar,source9_clock,monkeypatch,edge)
+
+src\brain\tests\test_work_navigation_transport.py:109: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+src\brain\tests\test_work_navigation_transport.py:85: in fractional_navigation
+    verify_runtime_packet(ledger._binding,ledger.issued_snapshot,ledger._collection,ledger._runtime_prewrite,
+src\brain\work_research.py:696: in verify_runtime_packet
+    _verify_runtime_order(packet,reads,written,require_ack,runtime_inputs)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+packet = {'binding': ['r', 's', '00000000-0000-0000-0000-0000000003e8'], 'clock_domain': 'work_tools.monotonic;ledger-sequence-...amp":1793645928.1898556,"type":"tool_call_end"}', ...], 'execution': {'effects': [], 'files': [], 'intent': None}, ...}
+reads = [{'key': {'adapter_uuid': '00000000-0000-0000-0000-0000000003fb', 'dispatch_uuid': '00000000-0000-0000-0000-0000000003...]], 'end': 1, 'lines': [[1, 'Fetched distinct body for https://example.com/source/3']], 'next_start': None, ...}, ...}]
+written = False, require_ack = False
+runtime_inputs = ResearchRuntimeInputs(prompt='[Work request: use ultima_work_research_write to deliver the requested file; a verbal cl...red-2\\temp\\test_fix2_n1_fractional_prepar1\\00000000-0000-0000-0000-0000000003e8', allowance=2048, deadline='1060.2')
+
+    def _verify_runtime_order(packet,reads,written,require_ack,runtime_inputs):
+        from decimal import Decimal,InvalidOperation
+        import uuid
+        from .work_navigation import canonical_v3
+        if packet['clock_domain']!='work_tools.monotonic;ledger-sequence-v1': raise ValueError('Runtime clock domain drift')
+        timeline=packet['timeline']; cursor=0; previous=None
+        def take(kind,**fields):
+            nonlocal cursor,previous
+            if cursor>=len(timeline): raise ValueError('Missing runtime admission order')
+            node=timeline[cursor]; cursor+=1
+            if (set(node)!={'order','kind','at','deadline',*fields} or node['order']!=cursor or node['kind']!=kind
+                    or any(node[k]!=v for k,v in fields.items()) or node['deadline']!=runtime_inputs.deadline):
+                raise ValueError('Runtime admission order drift')
+            try: now=Decimal(node['at']); remaining=Decimal(node['deadline'])-now
+            except (InvalidOperation,TypeError): raise ValueError('Invalid runtime clock') from None
+            if not now.is_finite() or (previous is not None and now<previous): raise ValueError('Runtime monotonic clock drift')
+            previous=now
+            if remaining<=0: raise ValueError('Runtime deadline exceeded')
+            return node,remaining
+        for index,wire in enumerate(packet['wires']):
+            ack=index==len(reads)+1
+            take('generation',generation=index+1)
+            for receipt_index in range(index*3,index*3+3):
+                _,remaining=take('send',generation=index+1,receipt_index=receipt_index)
+                if not ack and remaining<=55: raise ValueError('Runtime send reserve exhausted')
+                receipt=packet['transport']['receipts'][receipt_index]
+                budget=remaining if ack else remaining-55
+                base=min(Decimal(25),budget); read=min(Decimal(25 if ack else 180),budget)
+                if receipt['kind']=='metadata': read=min(Decimal(25),read)
+                timeout=json.loads(receipt['timeout_json'])
+                if (receipt['send_reserved'] is not True or receipt['admission_error'] is not None
+                        or set(timeout)!={'connect','read','write','pool'}
+                        or any(Decimal(str(timeout[k]))>limit or Decimal(str(timeout[k]))<=0 for k,limit in
+                            (('connect',base),('read',read),('write',base),('pool',base)))):
+>                   raise ValueError('Runtime final timeout admission drift')
+E                   ValueError: Runtime final timeout admission drift
+
+src\brain\work_research.py:607: ValueError
+____________ test_fix2_n1_next_float_above_cap_rejected[GET-False] ____________
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/unit23-fix2-n1-red-2/temp/test_fix2_n1_next_float_above_0')
+sdk_io = (<src.brain.browser.channel.BrowserChannel object at 0x000001FE223A65D0>, [('search', 'Research a subject'), ('get', '...'https://example.com/source/3'), ('get', 'https://example.com/source/4'), ('get', 'https://example.com/source/5')], {})
+mock_jar = (<openjarvis.sdk.Jarvis object at 0x000001FE22139940>, <function _run_work_agent at 0x000001FE21AD3920>, [{'format': {... {'num_ctx': 16384, 'num_predict': 2048, 'temperature': 0}, ...}], [<function navigation_reply at 0x000001FE2090A200>])
+source9_clock = {'now': 1000.1, 'metadata': 0, 'author': 0, 'ack': 0, ...}
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001FE22163530>
+ack = False, method = 'GET'
+
+    @pytest.mark.parametrize('ack',[False,True])
+    @pytest.mark.parametrize('method',['GET','POST'])
+    def test_fix2_n1_next_float_above_cap_rejected(tmp_path,sdk_io,mock_jar,source9_clock,monkeypatch,ack,method):
+        import math
+        from src.brain.work_research import verify_runtime_packet
+        from src.brain.work_navigation import canonical_v3
+>       ledger=fractional_navigation(tmp_path,sdk_io,mock_jar,source9_clock,monkeypatch)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+src\brain\tests\test_work_navigation_transport.py:118: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+src\brain\tests\test_work_navigation_transport.py:85: in fractional_navigation
+    verify_runtime_packet(ledger._binding,ledger.issued_snapshot,ledger._collection,ledger._runtime_prewrite,
+src\brain\work_research.py:696: in verify_runtime_packet
+    _verify_runtime_order(packet,reads,written,require_ack,runtime_inputs)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+packet = {'binding': ['r', 's', '00000000-0000-0000-0000-0000000003e8'], 'clock_domain': 'work_tools.monotonic;ledger-sequence-...amp":1793645928.8088107,"type":"tool_call_end"}', ...], 'execution': {'effects': [], 'files': [], 'intent': None}, ...}
+reads = [{'key': {'adapter_uuid': '00000000-0000-0000-0000-0000000003fb', 'dispatch_uuid': '00000000-0000-0000-0000-0000000003...]], 'end': 1, 'lines': [[1, 'Fetched distinct body for https://example.com/source/3']], 'next_start': None, ...}, ...}]
+written = False, require_ack = False
+runtime_inputs = ResearchRuntimeInputs(prompt='[Work request: use ultima_work_research_write to deliver the requested file; a verbal cl...red-2\\temp\\test_fix2_n1_next_float_above_0\\00000000-0000-0000-0000-0000000003e8', allowance=2048, deadline='1060.2')
+
+    def _verify_runtime_order(packet,reads,written,require_ack,runtime_inputs):
+        from decimal import Decimal,InvalidOperation
+        import uuid
+        from .work_navigation import canonical_v3
+        if packet['clock_domain']!='work_tools.monotonic;ledger-sequence-v1': raise ValueError('Runtime clock domain drift')
+        timeline=packet['timeline']; cursor=0; previous=None
+        def take(kind,**fields):
+            nonlocal cursor,previous
+            if cursor>=len(timeline): raise ValueError('Missing runtime admission order')
+            node=timeline[cursor]; cursor+=1
+            if (set(node)!={'order','kind','at','deadline',*fields} or node['order']!=cursor or node['kind']!=kind
+                    or any(node[k]!=v for k,v in fields.items()) or node['deadline']!=runtime_inputs.deadline):
+                raise ValueError('Runtime admission order drift')
+            try: now=Decimal(node['at']); remaining=Decimal(node['deadline'])-now
+            except (InvalidOperation,TypeError): raise ValueError('Invalid runtime clock') from None
+            if not now.is_finite() or (previous is not None and now<previous): raise ValueError('Runtime monotonic clock drift')
+            previous=now
+            if remaining<=0: raise ValueError('Runtime deadline exceeded')
+            return node,remaining
+        for index,wire in enumerate(packet['wires']):
+            ack=index==len(reads)+1
+            take('generation',generation=index+1)
+            for receipt_index in range(index*3,index*3+3):
+                _,remaining=take('send',generation=index+1,receipt_index=receipt_index)
+                if not ack and remaining<=55: raise ValueError('Runtime send reserve exhausted')
+                receipt=packet['transport']['receipts'][receipt_index]
+                budget=remaining if ack else remaining-55
+                base=min(Decimal(25),budget); read=min(Decimal(25 if ack else 180),budget)
+                if receipt['kind']=='metadata': read=min(Decimal(25),read)
+                timeout=json.loads(receipt['timeout_json'])
+                if (receipt['send_reserved'] is not True or receipt['admission_error'] is not None
+                        or set(timeout)!={'connect','read','write','pool'}
+                        or any(Decimal(str(timeout[k]))>limit or Decimal(str(timeout[k]))<=0 for k,limit in
+                            (('connect',base),('read',read),('write',base),('pool',base)))):
+>                   raise ValueError('Runtime final timeout admission drift')
+E                   ValueError: Runtime final timeout admission drift
+
+src\brain\work_research.py:607: ValueError
+____________ test_fix2_n1_next_float_above_cap_rejected[GET-True] _____________
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/unit23-fix2-n1-red-2/temp/test_fix2_n1_next_float_above_1')
+sdk_io = (<src.brain.browser.channel.BrowserChannel object at 0x000001FE2213B100>, [('search', 'Research a subject'), ('get', '...'https://example.com/source/3'), ('get', 'https://example.com/source/4'), ('get', 'https://example.com/source/5')], {})
+mock_jar = (<openjarvis.sdk.Jarvis object at 0x000001FE220CDE10>, <function _run_work_agent at 0x000001FE21AD3920>, [{'format': {... {'num_ctx': 16384, 'num_predict': 2048, 'temperature': 0}, ...}], [<function navigation_reply at 0x000001FE2090A200>])
+source9_clock = {'now': 1000.1, 'metadata': 0, 'author': 0, 'ack': 0, ...}
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001FE220CDD00>
+ack = True, method = 'GET'
+
+    @pytest.mark.parametrize('ack',[False,True])
+    @pytest.mark.parametrize('method',['GET','POST'])
+    def test_fix2_n1_next_float_above_cap_rejected(tmp_path,sdk_io,mock_jar,source9_clock,monkeypatch,ack,method):
+        import math
+        from src.brain.work_research import verify_runtime_packet
+        from src.brain.work_navigation import canonical_v3
+>       ledger=fractional_navigation(tmp_path,sdk_io,mock_jar,source9_clock,monkeypatch)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+src\brain\tests\test_work_navigation_transport.py:118: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+src\brain\tests\test_work_navigation_transport.py:85: in fractional_navigation
+    verify_runtime_packet(ledger._binding,ledger.issued_snapshot,ledger._collection,ledger._runtime_prewrite,
+src\brain\work_research.py:696: in verify_runtime_packet
+    _verify_runtime_order(packet,reads,written,require_ack,runtime_inputs)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+packet = {'binding': ['r', 's', '00000000-0000-0000-0000-0000000003e8'], 'clock_domain': 'work_tools.monotonic;ledger-sequence-...tamp":1793645929.330248,"type":"tool_call_end"}', ...], 'execution': {'effects': [], 'files': [], 'intent': None}, ...}
+reads = [{'key': {'adapter_uuid': '00000000-0000-0000-0000-0000000003fb', 'dispatch_uuid': '00000000-0000-0000-0000-0000000003...]], 'end': 1, 'lines': [[1, 'Fetched distinct body for https://example.com/source/3']], 'next_start': None, ...}, ...}]
+written = False, require_ack = False
+runtime_inputs = ResearchRuntimeInputs(prompt='[Work request: use ultima_work_research_write to deliver the requested file; a verbal cl...red-2\\temp\\test_fix2_n1_next_float_above_1\\00000000-0000-0000-0000-0000000003e8', allowance=2048, deadline='1060.2')
+
+    def _verify_runtime_order(packet,reads,written,require_ack,runtime_inputs):
+        from decimal import Decimal,InvalidOperation
+        import uuid
+        from .work_navigation import canonical_v3
+        if packet['clock_domain']!='work_tools.monotonic;ledger-sequence-v1': raise ValueError('Runtime clock domain drift')
+        timeline=packet['timeline']; cursor=0; previous=None
+        def take(kind,**fields):
+            nonlocal cursor,previous
+            if cursor>=len(timeline): raise ValueError('Missing runtime admission order')
+            node=timeline[cursor]; cursor+=1
+            if (set(node)!={'order','kind','at','deadline',*fields} or node['order']!=cursor or node['kind']!=kind
+                    or any(node[k]!=v for k,v in fields.items()) or node['deadline']!=runtime_inputs.deadline):
+                raise ValueError('Runtime admission order drift')
+            try: now=Decimal(node['at']); remaining=Decimal(node['deadline'])-now
+            except (InvalidOperation,TypeError): raise ValueError('Invalid runtime clock') from None
+            if not now.is_finite() or (previous is not None and now<previous): raise ValueError('Runtime monotonic clock drift')
+            previous=now
+            if remaining<=0: raise ValueError('Runtime deadline exceeded')
+            return node,remaining
+        for index,wire in enumerate(packet['wires']):
+            ack=index==len(reads)+1
+            take('generation',generation=index+1)
+            for receipt_index in range(index*3,index*3+3):
+                _,remaining=take('send',generation=index+1,receipt_index=receipt_index)
+                if not ack and remaining<=55: raise ValueError('Runtime send reserve exhausted')
+                receipt=packet['transport']['receipts'][receipt_index]
+                budget=remaining if ack else remaining-55
+                base=min(Decimal(25),budget); read=min(Decimal(25 if ack else 180),budget)
+                if receipt['kind']=='metadata': read=min(Decimal(25),read)
+                timeout=json.loads(receipt['timeout_json'])
+                if (receipt['send_reserved'] is not True or receipt['admission_error'] is not None
+                        or set(timeout)!={'connect','read','write','pool'}
+                        or any(Decimal(str(timeout[k]))>limit or Decimal(str(timeout[k]))<=0 for k,limit in
+                            (('connect',base),('read',read),('write',base),('pool',base)))):
+>                   raise ValueError('Runtime final timeout admission drift')
+E                   ValueError: Runtime final timeout admission drift
+
+src\brain\work_research.py:607: ValueError
+___________ test_fix2_n1_next_float_above_cap_rejected[POST-False] ____________
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/unit23-fix2-n1-red-2/temp/test_fix2_n1_next_float_above_2')
+sdk_io = (<src.brain.browser.channel.BrowserChannel object at 0x000001FE22139CD0>, [('search', 'Research a subject'), ('get', '...'https://example.com/source/3'), ('get', 'https://example.com/source/4'), ('get', 'https://example.com/source/5')], {})
+mock_jar = (<openjarvis.sdk.Jarvis object at 0x000001FE220DA350>, <function _run_work_agent at 0x000001FE21AD3920>, [{'format': {... {'num_ctx': 16384, 'num_predict': 2048, 'temperature': 0}, ...}], [<function navigation_reply at 0x000001FE2090A200>])
+source9_clock = {'now': 1000.1, 'metadata': 0, 'author': 0, 'ack': 0, ...}
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001FE220CC7C0>
+ack = False, method = 'POST'
+
+    @pytest.mark.parametrize('ack',[False,True])
+    @pytest.mark.parametrize('method',['GET','POST'])
+    def test_fix2_n1_next_float_above_cap_rejected(tmp_path,sdk_io,mock_jar,source9_clock,monkeypatch,ack,method):
+        import math
+        from src.brain.work_research import verify_runtime_packet
+        from src.brain.work_navigation import canonical_v3
+>       ledger=fractional_navigation(tmp_path,sdk_io,mock_jar,source9_clock,monkeypatch)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+src\brain\tests\test_work_navigation_transport.py:118: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+src\brain\tests\test_work_navigation_transport.py:85: in fractional_navigation
+    verify_runtime_packet(ledger._binding,ledger.issued_snapshot,ledger._collection,ledger._runtime_prewrite,
+src\brain\work_research.py:696: in verify_runtime_packet
+    _verify_runtime_order(packet,reads,written,require_ack,runtime_inputs)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+packet = {'binding': ['r', 's', '00000000-0000-0000-0000-0000000003e8'], 'clock_domain': 'work_tools.monotonic;ledger-sequence-...amp":1793645929.7940874,"type":"tool_call_end"}', ...], 'execution': {'effects': [], 'files': [], 'intent': None}, ...}
+reads = [{'key': {'adapter_uuid': '00000000-0000-0000-0000-0000000003fb', 'dispatch_uuid': '00000000-0000-0000-0000-0000000003...]], 'end': 1, 'lines': [[1, 'Fetched distinct body for https://example.com/source/3']], 'next_start': None, ...}, ...}]
+written = False, require_ack = False
+runtime_inputs = ResearchRuntimeInputs(prompt='[Work request: use ultima_work_research_write to deliver the requested file; a verbal cl...red-2\\temp\\test_fix2_n1_next_float_above_2\\00000000-0000-0000-0000-0000000003e8', allowance=2048, deadline='1060.2')
+
+    def _verify_runtime_order(packet,reads,written,require_ack,runtime_inputs):
+        from decimal import Decimal,InvalidOperation
+        import uuid
+        from .work_navigation import canonical_v3
+        if packet['clock_domain']!='work_tools.monotonic;ledger-sequence-v1': raise ValueError('Runtime clock domain drift')
+        timeline=packet['timeline']; cursor=0; previous=None
+        def take(kind,**fields):
+            nonlocal cursor,previous
+            if cursor>=len(timeline): raise ValueError('Missing runtime admission order')
+            node=timeline[cursor]; cursor+=1
+            if (set(node)!={'order','kind','at','deadline',*fields} or node['order']!=cursor or node['kind']!=kind
+                    or any(node[k]!=v for k,v in fields.items()) or node['deadline']!=runtime_inputs.deadline):
+                raise ValueError('Runtime admission order drift')
+            try: now=Decimal(node['at']); remaining=Decimal(node['deadline'])-now
+            except (InvalidOperation,TypeError): raise ValueError('Invalid runtime clock') from None
+            if not now.is_finite() or (previous is not None and now<previous): raise ValueError('Runtime monotonic clock drift')
+            previous=now
+            if remaining<=0: raise ValueError('Runtime deadline exceeded')
+            return node,remaining
+        for index,wire in enumerate(packet['wires']):
+            ack=index==len(reads)+1
+            take('generation',generation=index+1)
+            for receipt_index in range(index*3,index*3+3):
+                _,remaining=take('send',generation=index+1,receipt_index=receipt_index)
+                if not ack and remaining<=55: raise ValueError('Runtime send reserve exhausted')
+                receipt=packet['transport']['receipts'][receipt_index]
+                budget=remaining if ack else remaining-55
+                base=min(Decimal(25),budget); read=min(Decimal(25 if ack else 180),budget)
+                if receipt['kind']=='metadata': read=min(Decimal(25),read)
+                timeout=json.loads(receipt['timeout_json'])
+                if (receipt['send_reserved'] is not True or receipt['admission_error'] is not None
+                        or set(timeout)!={'connect','read','write','pool'}
+                        or any(Decimal(str(timeout[k]))>limit or Decimal(str(timeout[k]))<=0 for k,limit in
+                            (('connect',base),('read',read),('write',base),('pool',base)))):
+>                   raise ValueError('Runtime final timeout admission drift')
+E                   ValueError: Runtime final timeout admission drift
+
+src\brain\work_research.py:607: ValueError
+____________ test_fix2_n1_next_float_above_cap_rejected[POST-True] ____________
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/unit23-fix2-n1-red-2/temp/test_fix2_n1_next_float_above_3')
+sdk_io = (<src.brain.browser.channel.BrowserChannel object at 0x000001FE21F48DD0>, [('search', 'Research a subject'), ('get', '...'https://example.com/source/3'), ('get', 'https://example.com/source/4'), ('get', 'https://example.com/source/5')], {})
+mock_jar = (<openjarvis.sdk.Jarvis object at 0x000001FE220C8E60>, <function _run_work_agent at 0x000001FE21AD3920>, [{'format': {... {'num_ctx': 16384, 'num_predict': 2048, 'temperature': 0}, ...}], [<function navigation_reply at 0x000001FE2090A200>])
+source9_clock = {'now': 1000.1, 'metadata': 0, 'author': 0, 'ack': 0, ...}
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001FE220D8D50>
+ack = True, method = 'POST'
+
+    @pytest.mark.parametrize('ack',[False,True])
+    @pytest.mark.parametrize('method',['GET','POST'])
+    def test_fix2_n1_next_float_above_cap_rejected(tmp_path,sdk_io,mock_jar,source9_clock,monkeypatch,ack,method):
+        import math
+        from src.brain.work_research import verify_runtime_packet
+        from src.brain.work_navigation import canonical_v3
+>       ledger=fractional_navigation(tmp_path,sdk_io,mock_jar,source9_clock,monkeypatch)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+src\brain\tests\test_work_navigation_transport.py:118: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+src\brain\tests\test_work_navigation_transport.py:85: in fractional_navigation
+    verify_runtime_packet(ledger._binding,ledger.issued_snapshot,ledger._collection,ledger._runtime_prewrite,
+src\brain\work_research.py:696: in verify_runtime_packet
+    _verify_runtime_order(packet,reads,written,require_ack,runtime_inputs)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+packet = {'binding': ['r', 's', '00000000-0000-0000-0000-0000000003e8'], 'clock_domain': 'work_tools.monotonic;ledger-sequence-...amp":1793645930.2397254,"type":"tool_call_end"}', ...], 'execution': {'effects': [], 'files': [], 'intent': None}, ...}
+reads = [{'key': {'adapter_uuid': '00000000-0000-0000-0000-0000000003fb', 'dispatch_uuid': '00000000-0000-0000-0000-0000000003...]], 'end': 1, 'lines': [[1, 'Fetched distinct body for https://example.com/source/3']], 'next_start': None, ...}, ...}]
+written = False, require_ack = False
+runtime_inputs = ResearchRuntimeInputs(prompt='[Work request: use ultima_work_research_write to deliver the requested file; a verbal cl...red-2\\temp\\test_fix2_n1_next_float_above_3\\00000000-0000-0000-0000-0000000003e8', allowance=2048, deadline='1060.2')
+
+    def _verify_runtime_order(packet,reads,written,require_ack,runtime_inputs):
+        from decimal import Decimal,InvalidOperation
+        import uuid
+        from .work_navigation import canonical_v3
+        if packet['clock_domain']!='work_tools.monotonic;ledger-sequence-v1': raise ValueError('Runtime clock domain drift')
+        timeline=packet['timeline']; cursor=0; previous=None
+        def take(kind,**fields):
+            nonlocal cursor,previous
+            if cursor>=len(timeline): raise ValueError('Missing runtime admission order')
+            node=timeline[cursor]; cursor+=1
+            if (set(node)!={'order','kind','at','deadline',*fields} or node['order']!=cursor or node['kind']!=kind
+                    or any(node[k]!=v for k,v in fields.items()) or node['deadline']!=runtime_inputs.deadline):
+                raise ValueError('Runtime admission order drift')
+            try: now=Decimal(node['at']); remaining=Decimal(node['deadline'])-now
+            except (InvalidOperation,TypeError): raise ValueError('Invalid runtime clock') from None
+            if not now.is_finite() or (previous is not None and now<previous): raise ValueError('Runtime monotonic clock drift')
+            previous=now
+            if remaining<=0: raise ValueError('Runtime deadline exceeded')
+            return node,remaining
+        for index,wire in enumerate(packet['wires']):
+            ack=index==len(reads)+1
+            take('generation',generation=index+1)
+            for receipt_index in range(index*3,index*3+3):
+                _,remaining=take('send',generation=index+1,receipt_index=receipt_index)
+                if not ack and remaining<=55: raise ValueError('Runtime send reserve exhausted')
+                receipt=packet['transport']['receipts'][receipt_index]
+                budget=remaining if ack else remaining-55
+                base=min(Decimal(25),budget); read=min(Decimal(25 if ack else 180),budget)
+                if receipt['kind']=='metadata': read=min(Decimal(25),read)
+                timeout=json.loads(receipt['timeout_json'])
+                if (receipt['send_reserved'] is not True or receipt['admission_error'] is not None
+                        or set(timeout)!={'connect','read','write','pool'}
+                        or any(Decimal(str(timeout[k]))>limit or Decimal(str(timeout[k]))<=0 for k,limit in
+                            (('connect',base),('read',read),('write',base),('pool',base)))):
+>                   raise ValueError('Runtime final timeout admission drift')
+E                   ValueError: Runtime final timeout admission drift
+
+src\brain\work_research.py:607: ValueError
+=========================== short test summary info ===========================
+FAILED src/brain/tests/test_work_navigation_transport.py::test_fix2_n1_fractional_prepared_sdk_replay[False]
+FAILED src/brain/tests/test_work_navigation_transport.py::test_fix2_n1_fractional_prepared_sdk_replay[True]
+FAILED src/brain/tests/test_work_navigation_transport.py::test_fix2_n1_next_float_above_cap_rejected[GET-False]
+FAILED src/brain/tests/test_work_navigation_transport.py::test_fix2_n1_next_float_above_cap_rejected[GET-True]
+FAILED src/brain/tests/test_work_navigation_transport.py::test_fix2_n1_next_float_above_cap_rejected[POST-False]
+FAILED src/brain/tests/test_work_navigation_transport.py::test_fix2_n1_next_float_above_cap_rejected[POST-True]
+6 failed, 12 passed, 82 deselected in 5.39s

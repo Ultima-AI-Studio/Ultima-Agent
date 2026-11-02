@@ -1,6 +1,6 @@
 # T2 E02 当前 8B 研究接口复核
 
-当前阶段：**source10 FIX1 独审确认5项关闭，F3、F4与新增时间精度N1共3项Important待修，正在原作者FIX2；E02、T2真实验收尚未通过。** 原工单 `wo-ultimaagent-20261101-0021` 继续执行。
+当前阶段：**source10 FIX2已提交6b1e07c8，475项完整测试+8项兼容通过，F3/F4/N1三项正在同一审查人复核；E02、T2真实验收尚未通过。** 原工单 `wo-ultimaagent-20261101-0021` 继续执行。
 
 源9候选 `244d2120` 上的 E01 文件摘要三轮、E03 选区改写三轮及焦点/选区负例已独立通过，结论见[验收汇总](jarvis-work-t2-e01-e03-acceptance-20261102.md)。源10新候选仍需重新完成同候选回归；当前继续解决 E02 研究任务，不越过 T2 推进 T3。
 
@@ -51,3 +51,6 @@ Source10第一单元已完成：244→e0b04d6→494e544，仅六个允许路径�
 
 
 FIX1逐项独立复核结果为SPEC REVISE、QUALITY REVISE（review-unit23-2/verdict.json e3601963）。F1、F2、F5、F6、F7已关闭；F3可接受来自错误agent的writer END，F4可接受空白或Unicode转义后命中既有scanner的ACK，N1用Decimal重算binary64时钟会拒绝合法已裁剪timeout。原prewrite与真实文件不变的反例均保留，见probe-results.json（15dd6619）。原作者FIX2仅修这3项并补反例回归；不放宽权限、时间、scanner、真实验收要求或8B-only范围。具体时钟裁定为用已记录的有限binary64原值重建与线上相同算术，不加epsilon/容差或换时钟域。
+
+
+FIX2当前提交 `6b1e07c8318a334ee1f2218863eb84254e38f526` 只改work_research.py及test_work_navigation_transport.py，475/0/0/0与兼容8/0/0/0通过。root完整读回追加报告d0bb89d6、68833字节旧报告前缀、31原始输入（30个Git跟踪输入及1个原有未跟踪浏览器测试单独绑定）、SDK22、4份新报告及6组小数时钟/90个同一prepared HTTPX请求；证明见root-unit23-fix2-before-review.json（cfe4926e）。测试夹具自身两次修正及其首轮失败均保留，只有后续正确夹具上的失败用于证明相应缺陷。当前仍待同一审查人review-unit23-3确认F3/F4/N1，不能按测试数宣布T2或模型能力通过。

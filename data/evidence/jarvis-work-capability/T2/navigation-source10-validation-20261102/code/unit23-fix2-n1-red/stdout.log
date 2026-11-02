@@ -1,0 +1,434 @@
+FFFFFFFFFF........                                                       [100%]
+================================== FAILURES ===================================
+_____________ test_fix2_n1_fractional_prepared_sdk_replay[False] ______________
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/unit23-fix2-n1-red/temp/test_fix2_n1_fractional_prepar0')
+sdk_io = (<src.brain.browser.channel.BrowserChannel object at 0x0000021420877B60>, [('search', 'Research a subject'), ('get', '...'https://example.com/source/3'), ('get', 'https://example.com/source/4'), ('get', 'https://example.com/source/5')], {})
+mock_jar = (<openjarvis.sdk.Jarvis object at 0x00000214208763C0>, <function _run_work_agent at 0x000002141FC63880>, [{'format': {... {'num_ctx': 16384, 'num_predict': 2048, 'temperature': 0}, ...}], [<function navigation_reply at 0x000002141EACA160>])
+source9_clock = {'now': 1000.1, 'metadata': 0, 'author': 0, 'ack': 0, ...}
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000002138D9503E0>
+edge = False
+
+    @pytest.mark.parametrize('edge',[False,True])
+    def test_fix2_n1_fractional_prepared_sdk_replay(tmp_path,sdk_io,mock_jar,source9_clock,monkeypatch,edge):
+>       fractional_navigation(tmp_path,sdk_io,mock_jar,source9_clock,monkeypatch,edge)
+
+src\brain\tests\test_work_navigation_transport.py:103: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+src\brain\tests\test_work_navigation_transport.py:81: in fractional_navigation
+    result,ledger=genuine_navigation(tmp_path,sdk_io,mock_jar)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/unit23-fix2-n1-red/temp/test_fix2_n1_fractional_prepar0')
+sdk_io = (<src.brain.browser.channel.BrowserChannel object at 0x0000021420877B60>, [('search', 'Research a subject'), ('get', '...'https://example.com/source/3'), ('get', 'https://example.com/source/4'), ('get', 'https://example.com/source/5')], {})
+mock_jar = (<openjarvis.sdk.Jarvis object at 0x00000214208763C0>, <function _run_work_agent at 0x000002141FC63880>, [{'format': {... {'num_ctx': 16384, 'num_predict': 2048, 'temperature': 0}, ...}], [<function navigation_reply at 0x000002141EACA160>])
+
+    def genuine_navigation(tmp_path,sdk_io,mock_jar):
+        from src.brain.tests.test_work_research import RESTRICTED
+        mock_jar[3].extend([navigation_reply]*5)
+        result=submit(tmp_path,sdk_io[0],mock_jar[1])
+>       assert result['status']=='succeeded',result['error']
+E       AssertionError: Unlinked or failed END
+E       assert 'failed' == 'succeeded'
+E         
+E         - succeeded
+E         + failed
+
+src\brain\tests\test_work_navigation_transport.py:50: AssertionError
+______________ test_fix2_n1_fractional_prepared_sdk_replay[True] ______________
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/unit23-fix2-n1-red/temp/test_fix2_n1_fractional_prepar1')
+sdk_io = (<src.brain.browser.channel.BrowserChannel object at 0x0000021420474550>, [('search', 'Research a subject'), ('get', '...'https://example.com/source/3'), ('get', 'https://example.com/source/4'), ('get', 'https://example.com/source/5')], {})
+mock_jar = (<openjarvis.sdk.Jarvis object at 0x00000214205F39D0>, <function _run_work_agent at 0x000002141FC63880>, [{'format': {... {'num_ctx': 16384, 'num_predict': 2048, 'temperature': 0}, ...}], [<function navigation_reply at 0x000002141EACA160>])
+source9_clock = {'now': 1005.1999999999999, 'metadata': 0, 'author': 0, 'ack': 0, ...}
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000002141FD38C30>
+edge = True
+
+    @pytest.mark.parametrize('edge',[False,True])
+    def test_fix2_n1_fractional_prepared_sdk_replay(tmp_path,sdk_io,mock_jar,source9_clock,monkeypatch,edge):
+>       fractional_navigation(tmp_path,sdk_io,mock_jar,source9_clock,monkeypatch,edge)
+
+src\brain\tests\test_work_navigation_transport.py:103: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+src\brain\tests\test_work_navigation_transport.py:81: in fractional_navigation
+    result,ledger=genuine_navigation(tmp_path,sdk_io,mock_jar)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/unit23-fix2-n1-red/temp/test_fix2_n1_fractional_prepar1')
+sdk_io = (<src.brain.browser.channel.BrowserChannel object at 0x0000021420474550>, [('search', 'Research a subject'), ('get', '...'https://example.com/source/3'), ('get', 'https://example.com/source/4'), ('get', 'https://example.com/source/5')], {})
+mock_jar = (<openjarvis.sdk.Jarvis object at 0x00000214205F39D0>, <function _run_work_agent at 0x000002141FC63880>, [{'format': {... {'num_ctx': 16384, 'num_predict': 2048, 'temperature': 0}, ...}], [<function navigation_reply at 0x000002141EACA160>])
+
+    def genuine_navigation(tmp_path,sdk_io,mock_jar):
+        from src.brain.tests.test_work_research import RESTRICTED
+        mock_jar[3].extend([navigation_reply]*5)
+        result=submit(tmp_path,sdk_io[0],mock_jar[1])
+>       assert result['status']=='succeeded',result['error']
+E       AssertionError: Unlinked or failed END
+E       assert 'failed' == 'succeeded'
+E         
+E         - succeeded
+E         + failed
+
+src\brain\tests\test_work_navigation_transport.py:50: AssertionError
+____________ test_fix2_n1_next_float_above_cap_rejected[GET-False] ____________
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/unit23-fix2-n1-red/temp/test_fix2_n1_next_float_above_0')
+sdk_io = (<src.brain.browser.channel.BrowserChannel object at 0x00000214204765D0>, [('search', 'Research a subject'), ('get', '...'https://example.com/source/3'), ('get', 'https://example.com/source/4'), ('get', 'https://example.com/source/5')], {})
+mock_jar = (<openjarvis.sdk.Jarvis object at 0x000002142026D6E0>, <function _run_work_agent at 0x000002141FC63880>, [{'format': {... {'num_ctx': 16384, 'num_predict': 2048, 'temperature': 0}, ...}], [<function navigation_reply at 0x000002141EACA160>])
+source9_clock = {'now': 1000.1, 'metadata': 0, 'author': 0, 'ack': 0, ...}
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000021420326E70>
+ack = False, method = 'GET'
+
+    @pytest.mark.parametrize('ack',[False,True])
+    @pytest.mark.parametrize('method',['GET','POST'])
+    def test_fix2_n1_next_float_above_cap_rejected(tmp_path,sdk_io,mock_jar,source9_clock,monkeypatch,ack,method):
+        import math
+        from src.brain.work_research import verify_runtime_packet
+        from src.brain.work_navigation import canonical_v3
+>       ledger=fractional_navigation(tmp_path,sdk_io,mock_jar,source9_clock,monkeypatch)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+src\brain\tests\test_work_navigation_transport.py:112: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+src\brain\tests\test_work_navigation_transport.py:81: in fractional_navigation
+    result,ledger=genuine_navigation(tmp_path,sdk_io,mock_jar)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/unit23-fix2-n1-red/temp/test_fix2_n1_next_float_above_0')
+sdk_io = (<src.brain.browser.channel.BrowserChannel object at 0x00000214204765D0>, [('search', 'Research a subject'), ('get', '...'https://example.com/source/3'), ('get', 'https://example.com/source/4'), ('get', 'https://example.com/source/5')], {})
+mock_jar = (<openjarvis.sdk.Jarvis object at 0x000002142026D6E0>, <function _run_work_agent at 0x000002141FC63880>, [{'format': {... {'num_ctx': 16384, 'num_predict': 2048, 'temperature': 0}, ...}], [<function navigation_reply at 0x000002141EACA160>])
+
+    def genuine_navigation(tmp_path,sdk_io,mock_jar):
+        from src.brain.tests.test_work_research import RESTRICTED
+        mock_jar[3].extend([navigation_reply]*5)
+        result=submit(tmp_path,sdk_io[0],mock_jar[1])
+>       assert result['status']=='succeeded',result['error']
+E       AssertionError: Unlinked or failed END
+E       assert 'failed' == 'succeeded'
+E         
+E         - succeeded
+E         + failed
+
+src\brain\tests\test_work_navigation_transport.py:50: AssertionError
+____________ test_fix2_n1_next_float_above_cap_rejected[GET-True] _____________
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/unit23-fix2-n1-red/temp/test_fix2_n1_next_float_above_1')
+sdk_io = (<src.brain.browser.channel.BrowserChannel object at 0x000002142026EFD0>, [('search', 'Research a subject'), ('get', '...'https://example.com/source/3'), ('get', 'https://example.com/source/4'), ('get', 'https://example.com/source/5')], {})
+mock_jar = (<openjarvis.sdk.Jarvis object at 0x0000021420499F20>, <function _run_work_agent at 0x000002141FC63880>, [{'format': {... {'num_ctx': 16384, 'num_predict': 2048, 'temperature': 0}, ...}], [<function navigation_reply at 0x000002141EACA160>])
+source9_clock = {'now': 1000.1, 'metadata': 0, 'author': 0, 'ack': 0, ...}
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000021420499D00>
+ack = True, method = 'GET'
+
+    @pytest.mark.parametrize('ack',[False,True])
+    @pytest.mark.parametrize('method',['GET','POST'])
+    def test_fix2_n1_next_float_above_cap_rejected(tmp_path,sdk_io,mock_jar,source9_clock,monkeypatch,ack,method):
+        import math
+        from src.brain.work_research import verify_runtime_packet
+        from src.brain.work_navigation import canonical_v3
+>       ledger=fractional_navigation(tmp_path,sdk_io,mock_jar,source9_clock,monkeypatch)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+src\brain\tests\test_work_navigation_transport.py:112: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+src\brain\tests\test_work_navigation_transport.py:81: in fractional_navigation
+    result,ledger=genuine_navigation(tmp_path,sdk_io,mock_jar)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/unit23-fix2-n1-red/temp/test_fix2_n1_next_float_above_1')
+sdk_io = (<src.brain.browser.channel.BrowserChannel object at 0x000002142026EFD0>, [('search', 'Research a subject'), ('get', '...'https://example.com/source/3'), ('get', 'https://example.com/source/4'), ('get', 'https://example.com/source/5')], {})
+mock_jar = (<openjarvis.sdk.Jarvis object at 0x0000021420499F20>, <function _run_work_agent at 0x000002141FC63880>, [{'format': {... {'num_ctx': 16384, 'num_predict': 2048, 'temperature': 0}, ...}], [<function navigation_reply at 0x000002141EACA160>])
+
+    def genuine_navigation(tmp_path,sdk_io,mock_jar):
+        from src.brain.tests.test_work_research import RESTRICTED
+        mock_jar[3].extend([navigation_reply]*5)
+        result=submit(tmp_path,sdk_io[0],mock_jar[1])
+>       assert result['status']=='succeeded',result['error']
+E       AssertionError: Unlinked or failed END
+E       assert 'failed' == 'succeeded'
+E         
+E         - succeeded
+E         + failed
+
+src\brain\tests\test_work_navigation_transport.py:50: AssertionError
+___________ test_fix2_n1_next_float_above_cap_rejected[POST-False] ____________
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/unit23-fix2-n1-red/temp/test_fix2_n1_next_float_above_2')
+sdk_io = (<src.brain.browser.channel.BrowserChannel object at 0x000002142024CE90>, [('search', 'Research a subject'), ('get', '...'https://example.com/source/3'), ('get', 'https://example.com/source/4'), ('get', 'https://example.com/source/5')], {})
+mock_jar = (<openjarvis.sdk.Jarvis object at 0x000002142032AC50>, <function _run_work_agent at 0x000002141FC63880>, [{'format': {... {'num_ctx': 16384, 'num_predict': 2048, 'temperature': 0}, ...}], [<function navigation_reply at 0x000002141EACA160>])
+source9_clock = {'now': 1000.1, 'metadata': 0, 'author': 0, 'ack': 0, ...}
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000021420498C00>
+ack = False, method = 'POST'
+
+    @pytest.mark.parametrize('ack',[False,True])
+    @pytest.mark.parametrize('method',['GET','POST'])
+    def test_fix2_n1_next_float_above_cap_rejected(tmp_path,sdk_io,mock_jar,source9_clock,monkeypatch,ack,method):
+        import math
+        from src.brain.work_research import verify_runtime_packet
+        from src.brain.work_navigation import canonical_v3
+>       ledger=fractional_navigation(tmp_path,sdk_io,mock_jar,source9_clock,monkeypatch)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+src\brain\tests\test_work_navigation_transport.py:112: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+src\brain\tests\test_work_navigation_transport.py:81: in fractional_navigation
+    result,ledger=genuine_navigation(tmp_path,sdk_io,mock_jar)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/unit23-fix2-n1-red/temp/test_fix2_n1_next_float_above_2')
+sdk_io = (<src.brain.browser.channel.BrowserChannel object at 0x000002142024CE90>, [('search', 'Research a subject'), ('get', '...'https://example.com/source/3'), ('get', 'https://example.com/source/4'), ('get', 'https://example.com/source/5')], {})
+mock_jar = (<openjarvis.sdk.Jarvis object at 0x000002142032AC50>, <function _run_work_agent at 0x000002141FC63880>, [{'format': {... {'num_ctx': 16384, 'num_predict': 2048, 'temperature': 0}, ...}], [<function navigation_reply at 0x000002141EACA160>])
+
+    def genuine_navigation(tmp_path,sdk_io,mock_jar):
+        from src.brain.tests.test_work_research import RESTRICTED
+        mock_jar[3].extend([navigation_reply]*5)
+        result=submit(tmp_path,sdk_io[0],mock_jar[1])
+>       assert result['status']=='succeeded',result['error']
+E       AssertionError: Unlinked or failed END
+E       assert 'failed' == 'succeeded'
+E         
+E         - succeeded
+E         + failed
+
+src\brain\tests\test_work_navigation_transport.py:50: AssertionError
+____________ test_fix2_n1_next_float_above_cap_rejected[POST-True] ____________
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/unit23-fix2-n1-red/temp/test_fix2_n1_next_float_above_3')
+sdk_io = (<src.brain.browser.channel.BrowserChannel object at 0x000002142023DC70>, [('search', 'Research a subject'), ('get', '...'https://example.com/source/3'), ('get', 'https://example.com/source/4'), ('get', 'https://example.com/source/5')], {})
+mock_jar = (<openjarvis.sdk.Jarvis object at 0x000002142006D130>, <function _run_work_agent at 0x000002141FC63880>, [{'format': {... {'num_ctx': 16384, 'num_predict': 2048, 'temperature': 0}, ...}], [<function navigation_reply at 0x000002141EACA160>])
+source9_clock = {'now': 1000.1, 'metadata': 0, 'author': 0, 'ack': 0, ...}
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000002142032BD50>
+ack = True, method = 'POST'
+
+    @pytest.mark.parametrize('ack',[False,True])
+    @pytest.mark.parametrize('method',['GET','POST'])
+    def test_fix2_n1_next_float_above_cap_rejected(tmp_path,sdk_io,mock_jar,source9_clock,monkeypatch,ack,method):
+        import math
+        from src.brain.work_research import verify_runtime_packet
+        from src.brain.work_navigation import canonical_v3
+>       ledger=fractional_navigation(tmp_path,sdk_io,mock_jar,source9_clock,monkeypatch)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+src\brain\tests\test_work_navigation_transport.py:112: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+src\brain\tests\test_work_navigation_transport.py:81: in fractional_navigation
+    result,ledger=genuine_navigation(tmp_path,sdk_io,mock_jar)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/unit23-fix2-n1-red/temp/test_fix2_n1_next_float_above_3')
+sdk_io = (<src.brain.browser.channel.BrowserChannel object at 0x000002142023DC70>, [('search', 'Research a subject'), ('get', '...'https://example.com/source/3'), ('get', 'https://example.com/source/4'), ('get', 'https://example.com/source/5')], {})
+mock_jar = (<openjarvis.sdk.Jarvis object at 0x000002142006D130>, <function _run_work_agent at 0x000002141FC63880>, [{'format': {... {'num_ctx': 16384, 'num_predict': 2048, 'temperature': 0}, ...}], [<function navigation_reply at 0x000002141EACA160>])
+
+    def genuine_navigation(tmp_path,sdk_io,mock_jar):
+        from src.brain.tests.test_work_research import RESTRICTED
+        mock_jar[3].extend([navigation_reply]*5)
+        result=submit(tmp_path,sdk_io[0],mock_jar[1])
+>       assert result['status']=='succeeded',result['error']
+E       AssertionError: Unlinked or failed END
+E       assert 'failed' == 'succeeded'
+E         
+E         - succeeded
+E         + failed
+
+src\brain\tests\test_work_navigation_transport.py:50: AssertionError
+_____________ test_fix2_n1_fractional_send_boundary[-1-GET-False] _____________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000002142032A650>
+ack = False, method = 'GET', side = -1
+
+    @pytest.mark.parametrize('ack',[False,True])
+    @pytest.mark.parametrize('method',['GET','POST'])
+    @pytest.mark.parametrize('side',[-1,0,1])
+    def test_fix2_n1_fractional_send_boundary(monkeypatch,ack,method,side):
+        import math
+        threshold=1060.2 if ack else 1005.2
+        now=math.nextafter(threshold,-math.inf) if side<0 else math.nextafter(threshold,math.inf) if side>0 else threshold
+        monkeypatch.setattr(wt,'monotonic',lambda:now)
+        ledger=wt.WorkLedger();ledger.deadline=1060.2;observed=[];prepared=[]
+        def receive(request):
+            assert request is prepared[0]
+            observed.append(dict(request.extensions['timeout']))
+            return httpx.Response(200,content=b'{}')
+        with httpx.Client(base_url='http://127.0.0.1:11434',transport=httpx.MockTransport(receive),trust_env=False) as client:
+            build=client.build_request
+            def capture(*args,**kwargs):
+                request=build(*args,**kwargs);prepared.append(request);return request
+            monkeypatch.setattr(client,'build_request',capture)
+            transport=server._ResearchTransport(client,ledger)
+            if side<0:
+>               assert transport.exchange(method,'/api/chat' if method=='POST' else '/api/version',
+                    'chat' if method=='POST' else 'metadata',ack=ack)==b'{}'
+
+src\brain\tests\test_work_navigation_transport.py:143: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+src\brain\agent_server.py:314: in exchange
+    for block in response.iter_raw(chunk_size=512):
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <Response [200 OK]>, chunk_size = 512
+
+    def iter_raw(self, chunk_size: int | None = None) -> typing.Iterator[bytes]:
+        """
+        A byte-iterator over the raw response content.
+        """
+        if self.is_stream_consumed:
+>           raise StreamConsumed()
+E           httpx.StreamConsumed: Attempted to read or stream some content, but the content has already been streamed. For requests, this could be due to passing a generator as request content, and then receiving a redirect response or a secondary request as part of an authentication flow.For responses, this could be due to attempting to stream the response content more than once.
+
+H:\UltimaAI\UltimaAgent\tools\venv-openjarvis\Lib\site-packages\httpx\_models.py:940: StreamConsumed
+_____________ test_fix2_n1_fractional_send_boundary[-1-GET-True] ______________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000021420286990>
+ack = True, method = 'GET', side = -1
+
+    @pytest.mark.parametrize('ack',[False,True])
+    @pytest.mark.parametrize('method',['GET','POST'])
+    @pytest.mark.parametrize('side',[-1,0,1])
+    def test_fix2_n1_fractional_send_boundary(monkeypatch,ack,method,side):
+        import math
+        threshold=1060.2 if ack else 1005.2
+        now=math.nextafter(threshold,-math.inf) if side<0 else math.nextafter(threshold,math.inf) if side>0 else threshold
+        monkeypatch.setattr(wt,'monotonic',lambda:now)
+        ledger=wt.WorkLedger();ledger.deadline=1060.2;observed=[];prepared=[]
+        def receive(request):
+            assert request is prepared[0]
+            observed.append(dict(request.extensions['timeout']))
+            return httpx.Response(200,content=b'{}')
+        with httpx.Client(base_url='http://127.0.0.1:11434',transport=httpx.MockTransport(receive),trust_env=False) as client:
+            build=client.build_request
+            def capture(*args,**kwargs):
+                request=build(*args,**kwargs);prepared.append(request);return request
+            monkeypatch.setattr(client,'build_request',capture)
+            transport=server._ResearchTransport(client,ledger)
+            if side<0:
+>               assert transport.exchange(method,'/api/chat' if method=='POST' else '/api/version',
+                    'chat' if method=='POST' else 'metadata',ack=ack)==b'{}'
+
+src\brain\tests\test_work_navigation_transport.py:143: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+src\brain\agent_server.py:314: in exchange
+    for block in response.iter_raw(chunk_size=512):
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <Response [200 OK]>, chunk_size = 512
+
+    def iter_raw(self, chunk_size: int | None = None) -> typing.Iterator[bytes]:
+        """
+        A byte-iterator over the raw response content.
+        """
+        if self.is_stream_consumed:
+>           raise StreamConsumed()
+E           httpx.StreamConsumed: Attempted to read or stream some content, but the content has already been streamed. For requests, this could be due to passing a generator as request content, and then receiving a redirect response or a secondary request as part of an authentication flow.For responses, this could be due to attempting to stream the response content more than once.
+
+H:\UltimaAI\UltimaAgent\tools\venv-openjarvis\Lib\site-packages\httpx\_models.py:940: StreamConsumed
+____________ test_fix2_n1_fractional_send_boundary[-1-POST-False] _____________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000214202863F0>
+ack = False, method = 'POST', side = -1
+
+    @pytest.mark.parametrize('ack',[False,True])
+    @pytest.mark.parametrize('method',['GET','POST'])
+    @pytest.mark.parametrize('side',[-1,0,1])
+    def test_fix2_n1_fractional_send_boundary(monkeypatch,ack,method,side):
+        import math
+        threshold=1060.2 if ack else 1005.2
+        now=math.nextafter(threshold,-math.inf) if side<0 else math.nextafter(threshold,math.inf) if side>0 else threshold
+        monkeypatch.setattr(wt,'monotonic',lambda:now)
+        ledger=wt.WorkLedger();ledger.deadline=1060.2;observed=[];prepared=[]
+        def receive(request):
+            assert request is prepared[0]
+            observed.append(dict(request.extensions['timeout']))
+            return httpx.Response(200,content=b'{}')
+        with httpx.Client(base_url='http://127.0.0.1:11434',transport=httpx.MockTransport(receive),trust_env=False) as client:
+            build=client.build_request
+            def capture(*args,**kwargs):
+                request=build(*args,**kwargs);prepared.append(request);return request
+            monkeypatch.setattr(client,'build_request',capture)
+            transport=server._ResearchTransport(client,ledger)
+            if side<0:
+>               assert transport.exchange(method,'/api/chat' if method=='POST' else '/api/version',
+                    'chat' if method=='POST' else 'metadata',ack=ack)==b'{}'
+
+src\brain\tests\test_work_navigation_transport.py:143: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+src\brain\agent_server.py:314: in exchange
+    for block in response.iter_raw(chunk_size=512):
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <Response [200 OK]>, chunk_size = 512
+
+    def iter_raw(self, chunk_size: int | None = None) -> typing.Iterator[bytes]:
+        """
+        A byte-iterator over the raw response content.
+        """
+        if self.is_stream_consumed:
+>           raise StreamConsumed()
+E           httpx.StreamConsumed: Attempted to read or stream some content, but the content has already been streamed. For requests, this could be due to passing a generator as request content, and then receiving a redirect response or a secondary request as part of an authentication flow.For responses, this could be due to attempting to stream the response content more than once.
+
+H:\UltimaAI\UltimaAgent\tools\venv-openjarvis\Lib\site-packages\httpx\_models.py:940: StreamConsumed
+_____________ test_fix2_n1_fractional_send_boundary[-1-POST-True] _____________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000021420195A90>
+ack = True, method = 'POST', side = -1
+
+    @pytest.mark.parametrize('ack',[False,True])
+    @pytest.mark.parametrize('method',['GET','POST'])
+    @pytest.mark.parametrize('side',[-1,0,1])
+    def test_fix2_n1_fractional_send_boundary(monkeypatch,ack,method,side):
+        import math
+        threshold=1060.2 if ack else 1005.2
+        now=math.nextafter(threshold,-math.inf) if side<0 else math.nextafter(threshold,math.inf) if side>0 else threshold
+        monkeypatch.setattr(wt,'monotonic',lambda:now)
+        ledger=wt.WorkLedger();ledger.deadline=1060.2;observed=[];prepared=[]
+        def receive(request):
+            assert request is prepared[0]
+            observed.append(dict(request.extensions['timeout']))
+            return httpx.Response(200,content=b'{}')
+        with httpx.Client(base_url='http://127.0.0.1:11434',transport=httpx.MockTransport(receive),trust_env=False) as client:
+            build=client.build_request
+            def capture(*args,**kwargs):
+                request=build(*args,**kwargs);prepared.append(request);return request
+            monkeypatch.setattr(client,'build_request',capture)
+            transport=server._ResearchTransport(client,ledger)
+            if side<0:
+>               assert transport.exchange(method,'/api/chat' if method=='POST' else '/api/version',
+                    'chat' if method=='POST' else 'metadata',ack=ack)==b'{}'
+
+src\brain\tests\test_work_navigation_transport.py:143: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+src\brain\agent_server.py:314: in exchange
+    for block in response.iter_raw(chunk_size=512):
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <Response [200 OK]>, chunk_size = 512
+
+    def iter_raw(self, chunk_size: int | None = None) -> typing.Iterator[bytes]:
+        """
+        A byte-iterator over the raw response content.
+        """
+        if self.is_stream_consumed:
+>           raise StreamConsumed()
+E           httpx.StreamConsumed: Attempted to read or stream some content, but the content has already been streamed. For requests, this could be due to passing a generator as request content, and then receiving a redirect response or a secondary request as part of an authentication flow.For responses, this could be due to attempting to stream the response content more than once.
+
+H:\UltimaAI\UltimaAgent\tools\venv-openjarvis\Lib\site-packages\httpx\_models.py:940: StreamConsumed
+=========================== short test summary info ===========================
+FAILED src/brain/tests/test_work_navigation_transport.py::test_fix2_n1_fractional_prepared_sdk_replay[False]
+FAILED src/brain/tests/test_work_navigation_transport.py::test_fix2_n1_fractional_prepared_sdk_replay[True]
+FAILED src/brain/tests/test_work_navigation_transport.py::test_fix2_n1_next_float_above_cap_rejected[GET-False]
+FAILED src/brain/tests/test_work_navigation_transport.py::test_fix2_n1_next_float_above_cap_rejected[GET-True]
+FAILED src/brain/tests/test_work_navigation_transport.py::test_fix2_n1_next_float_above_cap_rejected[POST-False]
+FAILED src/brain/tests/test_work_navigation_transport.py::test_fix2_n1_next_float_above_cap_rejected[POST-True]
+FAILED src/brain/tests/test_work_navigation_transport.py::test_fix2_n1_fractional_send_boundary[-1-GET-False]
+FAILED src/brain/tests/test_work_navigation_transport.py::test_fix2_n1_fractional_send_boundary[-1-GET-True]
+FAILED src/brain/tests/test_work_navigation_transport.py::test_fix2_n1_fractional_send_boundary[-1-POST-False]
+FAILED src/brain/tests/test_work_navigation_transport.py::test_fix2_n1_fractional_send_boundary[-1-POST-True]
+10 failed, 8 passed, 82 deselected in 6.38s

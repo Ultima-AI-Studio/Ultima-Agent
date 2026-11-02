@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="2" skipped="0" tests="2" time="3.645" timestamp="2026-11-03T02:50:49.502936+08:00" hostname="DESKTOP-B366PQ9"><testcase classname="src.brain.tests.test_work_navigation_transport" name="test_fix2_f3_writer_transcript_identity[START]" time="0.954"><failure message="Failed: DID NOT RAISE ValueError">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/unit23-fix2-f3-red/temp/test_fix2_f3_writer_transcript0')
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x000001EE7EADBA10&gt;, [('search', 'Research a subject'), ('get', '...'https://example.com/source/3'), ('get', 'https://example.com/source/4'), ('get', 'https://example.com/source/5')], {})
+mock_jar = (&lt;openjarvis.sdk.Jarvis object at 0x000001EE7EADA270&gt;, &lt;function _run_work_agent at 0x000001EE7DEC34C0&gt;, [{'format': {..., ...], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [])
+kind = 'START'
+
+    @pytest.mark.parametrize('kind',['START','END'])
+    def test_fix2_f3_writer_transcript_identity(tmp_path,sdk_io,mock_jar,kind):
+        from src.brain.work_research import verify_runtime_packet
+        from src.brain.work_navigation import canonical_v3
+        _,ledger=genuine_navigation(tmp_path,sdk_io,mock_jar)
+        verify_runtime_packet(ledger._binding,ledger.issued_snapshot,ledger._collection,ledger._runtime_final,
+            require_ack=True,runtime_inputs=ledger._runtime_inputs)
+        packet=json.loads(ledger._runtime_final if kind=='END' else ledger._runtime_prewrite)
+        original_prewrite=packet['prewrite_packet']
+        event=json.loads(packet['events'][-1]); event['data']['agent']='foreign'
+        packet['events'][-1]=json.dumps(event,sort_keys=True,separators=(',',':'))
+        assert packet['prewrite_packet']==original_prewrite
+&gt;       with pytest.raises(ValueError,match='writer '+kind+' identity'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+src\brain\tests\test_work_navigation_transport.py:67: Failed</failure></testcase><testcase classname="src.brain.tests.test_work_navigation_transport" name="test_fix2_f3_writer_transcript_identity[END]" time="0.792"><failure message="Failed: DID NOT RAISE ValueError">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/unit23-fix2-f3-red/temp/test_fix2_f3_writer_transcript1')
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x000001EE7DFFF890&gt;, [('search', 'Research a subject'), ('get', '...'https://example.com/source/3'), ('get', 'https://example.com/source/4'), ('get', 'https://example.com/source/5')], {})
+mock_jar = (&lt;openjarvis.sdk.Jarvis object at 0x000001EE7DFFEFD0&gt;, &lt;function _run_work_agent at 0x000001EE7DEC34C0&gt;, [{'format': {..., ...], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [])
+kind = 'END'
+
+    @pytest.mark.parametrize('kind',['START','END'])
+    def test_fix2_f3_writer_transcript_identity(tmp_path,sdk_io,mock_jar,kind):
+        from src.brain.work_research import verify_runtime_packet
+        from src.brain.work_navigation import canonical_v3
+        _,ledger=genuine_navigation(tmp_path,sdk_io,mock_jar)
+        verify_runtime_packet(ledger._binding,ledger.issued_snapshot,ledger._collection,ledger._runtime_final,
+            require_ack=True,runtime_inputs=ledger._runtime_inputs)
+        packet=json.loads(ledger._runtime_final if kind=='END' else ledger._runtime_prewrite)
+        original_prewrite=packet['prewrite_packet']
+        event=json.loads(packet['events'][-1]); event['data']['agent']='foreign'
+        packet['events'][-1]=json.dumps(event,sort_keys=True,separators=(',',':'))
+        assert packet['prewrite_packet']==original_prewrite
+&gt;       with pytest.raises(ValueError,match='writer '+kind+' identity'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+src\brain\tests\test_work_navigation_transport.py:67: Failed</failure></testcase></testsuite></testsuites>
