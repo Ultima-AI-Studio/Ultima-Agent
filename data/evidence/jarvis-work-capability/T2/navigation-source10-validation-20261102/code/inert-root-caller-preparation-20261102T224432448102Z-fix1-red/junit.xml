@@ -1,0 +1,335 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="13" skipped="0" tests="13" time="2.709" timestamp="2026-11-03T06:44:32.799050+08:00" hostname="DESKTOP-B366PQ9"><testcase classname="" name="test_rc01_interprets_only_digest_checked_control_bytes[harness]" time="0.168"><failure message="AssertionError: A digest-checked control was reopened for interpretation&#10;assert ['H:\\UltimaA...anifest.json'] == []&#10;  &#10;  Left contains one more item: 'H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\navigation-source10-validation-20261102\\code\...t-caller-preparation-20261102T224432448102Z-fix1-red\\temp\\test_rc01_interprets_only_dige0\\V\\harness\\manifest.json'&#10;  Use -v to get more diff">env = namespace(c=&lt;module 'caller_contract' from 'C:\\Users\\Administrator\\.codex\\worktrees\\jarvis-work-capability-longpa...a&gt; at 0x00000247BA112B60&gt;), headless=namespace(run_inert=&lt;function env.&lt;locals&gt;.headless_entry at 0x00000247BA112C00&gt;))
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x00000247B94AD480&gt;
+control = 'harness'
+
+    @pytest.mark.parametrize('control', ['harness', 'review', 'historical'])
+    def test_rc01_interprets_only_digest_checked_control_bytes(env, monkeypatch, control):
+        e = env; original = e.c.load; replacements = []
+        targets = dict(harness=e.v/'harness/manifest.json', review=e.v/'inert-root-caller-review/verdict.json', historical=e.c.HISTORICAL)
+        target = targets[control]
+        def second_read(path):
+            if path == target:
+                replacements.append(str(path))
+                return {}  # Simulates replacement between successful hash and reopen.
+            return original(path)
+        monkeypatch.setattr(e.c, 'load', second_read)
+        record = e.c.run()
+&gt;       assert replacements == [], 'A digest-checked control was reopened for interpretation'
+E       AssertionError: A digest-checked control was reopened for interpretation
+E       assert ['H:\\UltimaA...anifest.json'] == []
+E         
+E         Left contains one more item: 'H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\navigation-source10-validation-20261102\\code\...t-caller-preparation-20261102T224432448102Z-fix1-red\\temp\\test_rc01_interprets_only_dige0\\V\\harness\\manifest.json'
+E         Use -v to get more diff
+
+C:\Users\Administrator\.codex\worktrees\jarvis-work-capability-longpaths\UltimaAgent\.superpowers\sdd\jarvis-work-capability-delivery-plan-20261101\test_root_inert_invocation.py:420: AssertionError</failure></testcase><testcase classname="" name="test_rc01_interprets_only_digest_checked_control_bytes[review]" time="0.116"><failure message="AssertionError: A digest-checked control was reopened for interpretation&#10;assert ['H:\\UltimaA...verdict.json'] == []&#10;  &#10;  Left contains one more item: 'H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\navigation-source10-validation-20261102\\code\...tion-20261102T224432448102Z-fix1-red\\temp\\test_rc01_interprets_only_dige1\\V\\inert-root-caller-review\\verdict.json'&#10;  Use -v to get more diff">env = namespace(c=&lt;module 'caller_contract' from 'C:\\Users\\Administrator\\.codex\\worktrees\\jarvis-work-capability-longpa...a&gt; at 0x00000247B9FAD440&gt;), headless=namespace(run_inert=&lt;function env.&lt;locals&gt;.headless_entry at 0x00000247B9FAD4E0&gt;))
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x00000247B94AD220&gt;
+control = 'review'
+
+    @pytest.mark.parametrize('control', ['harness', 'review', 'historical'])
+    def test_rc01_interprets_only_digest_checked_control_bytes(env, monkeypatch, control):
+        e = env; original = e.c.load; replacements = []
+        targets = dict(harness=e.v/'harness/manifest.json', review=e.v/'inert-root-caller-review/verdict.json', historical=e.c.HISTORICAL)
+        target = targets[control]
+        def second_read(path):
+            if path == target:
+                replacements.append(str(path))
+                return {}  # Simulates replacement between successful hash and reopen.
+            return original(path)
+        monkeypatch.setattr(e.c, 'load', second_read)
+        record = e.c.run()
+&gt;       assert replacements == [], 'A digest-checked control was reopened for interpretation'
+E       AssertionError: A digest-checked control was reopened for interpretation
+E       assert ['H:\\UltimaA...verdict.json'] == []
+E         
+E         Left contains one more item: 'H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\navigation-source10-validation-20261102\\code\...tion-20261102T224432448102Z-fix1-red\\temp\\test_rc01_interprets_only_dige1\\V\\inert-root-caller-review\\verdict.json'
+E         Use -v to get more diff
+
+C:\Users\Administrator\.codex\worktrees\jarvis-work-capability-longpaths\UltimaAgent\.superpowers\sdd\jarvis-work-capability-delivery-plan-20261101\test_root_inert_invocation.py:420: AssertionError</failure></testcase><testcase classname="" name="test_rc01_interprets_only_digest_checked_control_bytes[historical]" time="0.201"><failure message="AssertionError: A digest-checked control was reopened for interpretation&#10;assert ['H:\\UltimaA...torical.json'] == []&#10;  &#10;  Left contains one more item: 'H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\navigation-source10-validation-20261102\\code\\inert-root-caller-preparation-20261102T224432448102Z-fix1-red\\temp\\test_rc01_interprets_only_dige2\\V\\historical.json'&#10;  Use -v to get more diff">env = namespace(c=&lt;module 'caller_contract' from 'C:\\Users\\Administrator\\.codex\\worktrees\\jarvis-work-capability-longpa...a&gt; at 0x00000247B9E82CA0&gt;), headless=namespace(run_inert=&lt;function env.&lt;locals&gt;.headless_entry at 0x00000247B9E82D40&gt;))
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x00000247B9FE4B90&gt;
+control = 'historical'
+
+    @pytest.mark.parametrize('control', ['harness', 'review', 'historical'])
+    def test_rc01_interprets_only_digest_checked_control_bytes(env, monkeypatch, control):
+        e = env; original = e.c.load; replacements = []
+        targets = dict(harness=e.v/'harness/manifest.json', review=e.v/'inert-root-caller-review/verdict.json', historical=e.c.HISTORICAL)
+        target = targets[control]
+        def second_read(path):
+            if path == target:
+                replacements.append(str(path))
+                return {}  # Simulates replacement between successful hash and reopen.
+            return original(path)
+        monkeypatch.setattr(e.c, 'load', second_read)
+        record = e.c.run()
+&gt;       assert replacements == [], 'A digest-checked control was reopened for interpretation'
+E       AssertionError: A digest-checked control was reopened for interpretation
+E       assert ['H:\\UltimaA...torical.json'] == []
+E         
+E         Left contains one more item: 'H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\navigation-source10-validation-20261102\\code\\inert-root-caller-preparation-20261102T224432448102Z-fix1-red\\temp\\test_rc01_interprets_only_dige2\\V\\historical.json'
+E         Use -v to get more diff
+
+C:\Users\Administrator\.codex\worktrees\jarvis-work-capability-longpaths\UltimaAgent\.superpowers\sdd\jarvis-work-capability-delivery-plan-20261101\test_root_inert_invocation.py:420: AssertionError</failure></testcase><testcase classname="" name="test_rc02_stalled_prerequisite_cannot_admit_after_release_expiry[before_p4]" time="0.131"><failure message="AssertionError: assert 'P4 definitions' not in ['P4 definitions', 'native', 'parent-native', ('port', 18765)]&#10; +  where ['P4 definitions', 'native', 'parent-native', ('port', 18765)] = namespace(c=&lt;module 'caller_contract' from 'C:\\Users\\Administrator\\.codex\\worktrees\\jarvis-work-capability-longpa...a&gt; at 0x00000247B9E009A0&gt;), headless=namespace(run_inert=&lt;function env.&lt;locals&gt;.headless_entry at 0x00000247B9E00A40&gt;)).events">env = namespace(c=&lt;module 'caller_contract' from 'C:\\Users\\Administrator\\.codex\\worktrees\\jarvis-work-capability-longpa...a&gt; at 0x00000247B9E009A0&gt;), headless=namespace(run_inert=&lt;function env.&lt;locals&gt;.headless_entry at 0x00000247B9E00A40&gt;))
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x00000247BA0DB020&gt;
+stall = 'before_p4'
+
+    @pytest.mark.parametrize('stall', ['before_p4', 'before_native'])
+    def test_rc02_stalled_prerequisite_cannot_admit_after_release_expiry(env, monkeypatch, stall):
+        e = env; wall = [e.c.utc()]; monkeypatch.setattr(e.c, 'utc', lambda:wall[0])
+        if stall == 'before_p4':
+            original = e.c.sha
+            def slow(path):
+                value = original(path)
+                if path == e.v/'inert-root-release.json': wall[0] += dt.timedelta(seconds=101)
+                return value
+            monkeypatch.setattr(e.c, 'sha', slow)
+        else:
+            original = e.c.raw
+            def slow(path):
+                value = original(path)
+                if path == e.c.HISTORICAL: wall[0] += dt.timedelta(seconds=101)
+                return value
+            monkeypatch.setattr(e.c, 'raw', slow)
+        record = e.c.run()
+        assert record['overall'] == 'PERMANENT_FAIL'
+&gt;       if stall == 'before_p4': assert 'P4 definitions' not in e.events
+                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AssertionError: assert 'P4 definitions' not in ['P4 definitions', 'native', 'parent-native', ('port', 18765)]
+E        +  where ['P4 definitions', 'native', 'parent-native', ('port', 18765)] = namespace(c=&lt;module 'caller_contract' from 'C:\\Users\\Administrator\\.codex\\worktrees\\jarvis-work-capability-longpa...a&gt; at 0x00000247B9E009A0&gt;), headless=namespace(run_inert=&lt;function env.&lt;locals&gt;.headless_entry at 0x00000247B9E00A40&gt;)).events
+
+C:\Users\Administrator\.codex\worktrees\jarvis-work-capability-longpaths\UltimaAgent\.superpowers\sdd\jarvis-work-capability-delivery-plan-20261101\test_root_inert_invocation.py:443: AssertionError</failure></testcase><testcase classname="" name="test_rc02_stalled_prerequisite_cannot_admit_after_release_expiry[before_native]" time="0.116"><failure message="AssertionError: assert ('native' not in ['P4 definitions', 'native', 'parent-native', ('port', 18765)])&#10; +  where ['P4 definitions', 'native', 'parent-native', ('port', 18765)] = namespace(c=&lt;module 'caller_contract' from 'C:\\Users\\Administrator\\.codex\\worktrees\\jarvis-work-capability-longpa...a&gt; at 0x00000247B9E72480&gt;), headless=namespace(run_inert=&lt;function env.&lt;locals&gt;.headless_entry at 0x00000247B9E72520&gt;)).events">env = namespace(c=&lt;module 'caller_contract' from 'C:\\Users\\Administrator\\.codex\\worktrees\\jarvis-work-capability-longpa...a&gt; at 0x00000247B9E72480&gt;), headless=namespace(run_inert=&lt;function env.&lt;locals&gt;.headless_entry at 0x00000247B9E72520&gt;))
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x00000247BA0DBBD0&gt;
+stall = 'before_native'
+
+    @pytest.mark.parametrize('stall', ['before_p4', 'before_native'])
+    def test_rc02_stalled_prerequisite_cannot_admit_after_release_expiry(env, monkeypatch, stall):
+        e = env; wall = [e.c.utc()]; monkeypatch.setattr(e.c, 'utc', lambda:wall[0])
+        if stall == 'before_p4':
+            original = e.c.sha
+            def slow(path):
+                value = original(path)
+                if path == e.v/'inert-root-release.json': wall[0] += dt.timedelta(seconds=101)
+                return value
+            monkeypatch.setattr(e.c, 'sha', slow)
+        else:
+            original = e.c.raw
+            def slow(path):
+                value = original(path)
+                if path == e.c.HISTORICAL: wall[0] += dt.timedelta(seconds=101)
+                return value
+            monkeypatch.setattr(e.c, 'raw', slow)
+        record = e.c.run()
+        assert record['overall'] == 'PERMANENT_FAIL'
+        if stall == 'before_p4': assert 'P4 definitions' not in e.events
+&gt;       assert 'native' not in e.events and 'parent-native' not in e.events and 'inv.call' not in e.events
+E       AssertionError: assert ('native' not in ['P4 definitions', 'native', 'parent-native', ('port', 18765)])
+E        +  where ['P4 definitions', 'native', 'parent-native', ('port', 18765)] = namespace(c=&lt;module 'caller_contract' from 'C:\\Users\\Administrator\\.codex\\worktrees\\jarvis-work-capability-longpa...a&gt; at 0x00000247B9E72480&gt;), headless=namespace(run_inert=&lt;function env.&lt;locals&gt;.headless_entry at 0x00000247B9E72520&gt;)).events
+
+C:\Users\Administrator\.codex\worktrees\jarvis-work-capability-longpaths\UltimaAgent\.superpowers\sdd\jarvis-work-capability-delivery-plan-20261101\test_root_inert_invocation.py:444: AssertionError</failure></testcase><testcase classname="" name="test_rc03_precreation_claim_failure_cannot_replay_entry_or_allocation" time="0.189"><failure message="AssertionError: Same release was replayed after failure before claim creation&#10;assert ['P4 definiti...OCK headless'] == []&#10;  &#10;  Left contains 6 more items, first extra item: 'P4 definitions'&#10;  Use -v to get more diff">env = namespace(c=&lt;module 'caller_contract' from 'C:\\Users\\Administrator\\.codex\\worktrees\\jarvis-work-capability-longpa...a&gt; at 0x00000247B9D940E0&gt;), headless=namespace(run_inert=&lt;function env.&lt;locals&gt;.headless_entry at 0x00000247B9D94180&gt;))
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x00000247B9E75850&gt;
+
+    def test_rc03_precreation_claim_failure_cannot_replay_entry_or_allocation(env, monkeypatch):
+        e = env; original = Path.open; fail = [True]
+        def fail_open(path, *args, **kwargs):
+            if path == e.v/'inert-root-release.consumed.json' and fail[0]:
+                fail[0] = False
+                raise PermissionError('mock pre-creation failure')
+            return original(path, *args, **kwargs)
+        monkeypatch.setattr(Path, 'open', fail_open)
+        with pytest.raises(ValueError): e.c.run()
+        try: e.c.run()
+        except ValueError: pass
+&gt;       assert e.events == [], 'Same release was replayed after failure before claim creation'
+E       AssertionError: Same release was replayed after failure before claim creation
+E       assert ['P4 definiti...OCK headless'] == []
+E         
+E         Left contains 6 more items, first extra item: 'P4 definitions'
+E         Use -v to get more diff
+
+C:\Users\Administrator\.codex\worktrees\jarvis-work-capability-longpaths\UltimaAgent\.superpowers\sdd\jarvis-work-capability-delivery-plan-20261101\test_root_inert_invocation.py:458: AssertionError</failure></testcase><testcase classname="" name="test_rc04_existing_or_unknown_inert_namespace_blocks_before_p4[orphan]" time="0.182"><failure message="AssertionError: assert 'ELIGIBLE_FOR_ROOT_REVIEW' == 'PERMANENT_FAIL'&#10;  &#10;  - PERMANENT_FAIL&#10;  + ELIGIBLE_FOR_ROOT_REVIEW">env = namespace(c=&lt;module 'caller_contract' from 'C:\\Users\\Administrator\\.codex\\worktrees\\jarvis-work-capability-longpa...a&gt; at 0x00000247B9F2D9E0&gt;), headless=namespace(run_inert=&lt;function env.&lt;locals&gt;.headless_entry at 0x00000247B9F2DA80&gt;))
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x00000247B9E76A50&gt;
+namespace = 'orphan'
+
+    @pytest.mark.parametrize('namespace', ['orphan', 'empty', 'unreadable'])
+    def test_rc04_existing_or_unknown_inert_namespace_blocks_before_p4(env, monkeypatch, namespace):
+        e = env; root = e.v/'inert'; original = e.c.exists
+        if namespace == 'orphan':
+            old = root/'00000000-0000-4000-8000-000000000123'; old.mkdir(parents=True); (old/'attempt.json').write_bytes(b'old attempt')
+        if namespace == 'empty': root.mkdir()
+        if namespace == 'unreadable':
+            def unknown(path):
+                if path == root: raise PermissionError('unknown inert namespace')
+                return original(path)
+            monkeypatch.setattr(e.c, 'exists', unknown)
+        record = e.c.run()
+&gt;       assert record['overall'] == 'PERMANENT_FAIL'
+E       AssertionError: assert 'ELIGIBLE_FOR_ROOT_REVIEW' == 'PERMANENT_FAIL'
+E         
+E         - PERMANENT_FAIL
+E         + ELIGIBLE_FOR_ROOT_REVIEW
+
+C:\Users\Administrator\.codex\worktrees\jarvis-work-capability-longpaths\UltimaAgent\.superpowers\sdd\jarvis-work-capability-delivery-plan-20261101\test_root_inert_invocation.py:479: AssertionError</failure></testcase><testcase classname="" name="test_rc04_existing_or_unknown_inert_namespace_blocks_before_p4[empty]" time="0.170"><failure message="AssertionError: assert 'ELIGIBLE_FOR_ROOT_REVIEW' == 'PERMANENT_FAIL'&#10;  &#10;  - PERMANENT_FAIL&#10;  + ELIGIBLE_FOR_ROOT_REVIEW">env = namespace(c=&lt;module 'caller_contract' from 'C:\\Users\\Administrator\\.codex\\worktrees\\jarvis-work-capability-longpa...a&gt; at 0x00000247B9E71EE0&gt;), headless=namespace(run_inert=&lt;function env.&lt;locals&gt;.headless_entry at 0x00000247B9E71E40&gt;))
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x00000247BA0F3A70&gt;
+namespace = 'empty'
+
+    @pytest.mark.parametrize('namespace', ['orphan', 'empty', 'unreadable'])
+    def test_rc04_existing_or_unknown_inert_namespace_blocks_before_p4(env, monkeypatch, namespace):
+        e = env; root = e.v/'inert'; original = e.c.exists
+        if namespace == 'orphan':
+            old = root/'00000000-0000-4000-8000-000000000123'; old.mkdir(parents=True); (old/'attempt.json').write_bytes(b'old attempt')
+        if namespace == 'empty': root.mkdir()
+        if namespace == 'unreadable':
+            def unknown(path):
+                if path == root: raise PermissionError('unknown inert namespace')
+                return original(path)
+            monkeypatch.setattr(e.c, 'exists', unknown)
+        record = e.c.run()
+&gt;       assert record['overall'] == 'PERMANENT_FAIL'
+E       AssertionError: assert 'ELIGIBLE_FOR_ROOT_REVIEW' == 'PERMANENT_FAIL'
+E         
+E         - PERMANENT_FAIL
+E         + ELIGIBLE_FOR_ROOT_REVIEW
+
+C:\Users\Administrator\.codex\worktrees\jarvis-work-capability-longpaths\UltimaAgent\.superpowers\sdd\jarvis-work-capability-delivery-plan-20261101\test_root_inert_invocation.py:479: AssertionError</failure></testcase><testcase classname="" name="test_rc04_existing_or_unknown_inert_namespace_blocks_before_p4[unreadable]" time="0.174"><failure message="AssertionError: assert 'ELIGIBLE_FOR_ROOT_REVIEW' == 'PERMANENT_FAIL'&#10;  &#10;  - PERMANENT_FAIL&#10;  + ELIGIBLE_FOR_ROOT_REVIEW">env = namespace(c=&lt;module 'caller_contract' from 'C:\\Users\\Administrator\\.codex\\worktrees\\jarvis-work-capability-longpa...a&gt; at 0x00000247B9E6E840&gt;), headless=namespace(run_inert=&lt;function env.&lt;locals&gt;.headless_entry at 0x00000247B9E6E7A0&gt;))
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x00000247BA0F3110&gt;
+namespace = 'unreadable'
+
+    @pytest.mark.parametrize('namespace', ['orphan', 'empty', 'unreadable'])
+    def test_rc04_existing_or_unknown_inert_namespace_blocks_before_p4(env, monkeypatch, namespace):
+        e = env; root = e.v/'inert'; original = e.c.exists
+        if namespace == 'orphan':
+            old = root/'00000000-0000-4000-8000-000000000123'; old.mkdir(parents=True); (old/'attempt.json').write_bytes(b'old attempt')
+        if namespace == 'empty': root.mkdir()
+        if namespace == 'unreadable':
+            def unknown(path):
+                if path == root: raise PermissionError('unknown inert namespace')
+                return original(path)
+            monkeypatch.setattr(e.c, 'exists', unknown)
+        record = e.c.run()
+&gt;       assert record['overall'] == 'PERMANENT_FAIL'
+E       AssertionError: assert 'ELIGIBLE_FOR_ROOT_REVIEW' == 'PERMANENT_FAIL'
+E         
+E         - PERMANENT_FAIL
+E         + ELIGIBLE_FOR_ROOT_REVIEW
+
+C:\Users\Administrator\.codex\worktrees\jarvis-work-capability-longpaths\UltimaAgent\.superpowers\sdd\jarvis-work-capability-delivery-plan-20261101\test_root_inert_invocation.py:479: AssertionError</failure></testcase><testcase classname="" name="test_rc05_original_admission_rejects_replaced_issued_document_before_launch[authority_port]" time="0.181"><failure message="AssertionError: Original admission returned an unissued effective allocation&#10;assert [8756] == []&#10;  &#10;  Left contains one more item: 8756&#10;  Use -v to get more diff">env = namespace(c=&lt;module 'caller_contract' from 'C:\\Users\\Administrator\\.codex\\worktrees\\jarvis-work-capability-longpa...n test_rc05_original_admission_rejects_replaced_issued_document_before_launch.&lt;locals&gt;.handoff at 0x00000247B9E81B20&gt;))
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x00000247BA07CC90&gt;
+replacement = 'authority_port'
+
+    @pytest.mark.parametrize('replacement', ['authority_port', 'baseline_time'])
+    def test_rc05_original_admission_rejects_replaced_issued_document_before_launch(env, monkeypatch, replacement):
+        e = env; d = e.definitions; launches = []
+        monkeypatch.setattr(d, 'V', e.v); monkeypatch.setattr(d, 'HERE', e.v/'harness')
+        monkeypatch.setattr(d, 'P1', e.v/'legacy/preparation/acceptance_adapter.py')
+        (e.v/'legacy').mkdir(); e.write(e.v/'legacy/runtime-before.json', {})
+        monkeypatch.setattr(d, 'check_inputs', lambda:{})
+        monkeypatch.setattr(d, 'check_import_origins', lambda:None)
+        monkeypatch.setattr(d, 'package_check', lambda p:None)
+        monkeypatch.setattr(d, 'PrivateIO', lambda p,b:nullcontext())
+        e.p4.no_reparse = e.c.no_reparse; e.p4.uuid_text = lambda text:text
+        e.p4.identity = lambda pid: (dict(pid=999, created_filetime=2000, exe='root.exe') if pid == 999 else e.protected[pid-1])
+        monkeypatch.setattr(d, 'load_p4', lambda:e.p4)
+        def original_admission(*args, **kwargs):
+            return d.inert_admit(budget=e.inv.instances[-1].budget)
+        e.a.inert_admit = original_admission
+        def handoff():
+            authority = e.c.load(e.v/'inert-authority.json')
+            if replacement == 'authority_port': authority['port'] = 8756
+            else:
+                proof = e.c.load(e.v/'inert-native-baseline.json')
+                proof['recorded_at'] = (e.c.utc()-dt.timedelta(seconds=1)).isoformat()
+                e.write(e.v/'inert-native-baseline.json', proof)
+                authority['native_baseline_sha256'] = e.c.sha(e.v/'inert-native-baseline.json')
+            e.write(e.v/'inert-authority.json', authority)
+            returned = e.a.inert_admit()
+            launches.append(returned[0]['port'])  # Mock Owned boundary, no actual runtime.
+            return dict(folder=str(returned[1]))
+        e.headless.run_inert = handoff
+        record = e.c.run()
+&gt;       assert launches == [], 'Original admission returned an unissued effective allocation'
+E       AssertionError: Original admission returned an unissued effective allocation
+E       assert [8756] == []
+E         
+E         Left contains one more item: 8756
+E         Use -v to get more diff
+
+C:\Users\Administrator\.codex\worktrees\jarvis-work-capability-longpaths\UltimaAgent\.superpowers\sdd\jarvis-work-capability-delivery-plan-20261101\test_root_inert_invocation.py:514: AssertionError</failure></testcase><testcase classname="" name="test_rc05_original_admission_rejects_replaced_issued_document_before_launch[baseline_time]" time="0.397"><failure message="AssertionError: Original admission returned an unissued effective allocation&#10;assert [18765] == []&#10;  &#10;  Left contains one more item: 18765&#10;  Use -v to get more diff">env = namespace(c=&lt;module 'caller_contract' from 'C:\\Users\\Administrator\\.codex\\worktrees\\jarvis-work-capability-longpa...n test_rc05_original_admission_rejects_replaced_issued_document_before_launch.&lt;locals&gt;.handoff at 0x00000247B9FAFD80&gt;))
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x00000247B9FBD010&gt;
+replacement = 'baseline_time'
+
+    @pytest.mark.parametrize('replacement', ['authority_port', 'baseline_time'])
+    def test_rc05_original_admission_rejects_replaced_issued_document_before_launch(env, monkeypatch, replacement):
+        e = env; d = e.definitions; launches = []
+        monkeypatch.setattr(d, 'V', e.v); monkeypatch.setattr(d, 'HERE', e.v/'harness')
+        monkeypatch.setattr(d, 'P1', e.v/'legacy/preparation/acceptance_adapter.py')
+        (e.v/'legacy').mkdir(); e.write(e.v/'legacy/runtime-before.json', {})
+        monkeypatch.setattr(d, 'check_inputs', lambda:{})
+        monkeypatch.setattr(d, 'check_import_origins', lambda:None)
+        monkeypatch.setattr(d, 'package_check', lambda p:None)
+        monkeypatch.setattr(d, 'PrivateIO', lambda p,b:nullcontext())
+        e.p4.no_reparse = e.c.no_reparse; e.p4.uuid_text = lambda text:text
+        e.p4.identity = lambda pid: (dict(pid=999, created_filetime=2000, exe='root.exe') if pid == 999 else e.protected[pid-1])
+        monkeypatch.setattr(d, 'load_p4', lambda:e.p4)
+        def original_admission(*args, **kwargs):
+            return d.inert_admit(budget=e.inv.instances[-1].budget)
+        e.a.inert_admit = original_admission
+        def handoff():
+            authority = e.c.load(e.v/'inert-authority.json')
+            if replacement == 'authority_port': authority['port'] = 8756
+            else:
+                proof = e.c.load(e.v/'inert-native-baseline.json')
+                proof['recorded_at'] = (e.c.utc()-dt.timedelta(seconds=1)).isoformat()
+                e.write(e.v/'inert-native-baseline.json', proof)
+                authority['native_baseline_sha256'] = e.c.sha(e.v/'inert-native-baseline.json')
+            e.write(e.v/'inert-authority.json', authority)
+            returned = e.a.inert_admit()
+            launches.append(returned[0]['port'])  # Mock Owned boundary, no actual runtime.
+            return dict(folder=str(returned[1]))
+        e.headless.run_inert = handoff
+        record = e.c.run()
+&gt;       assert launches == [], 'Original admission returned an unissued effective allocation'
+E       AssertionError: Original admission returned an unissued effective allocation
+E       assert [18765] == []
+E         
+E         Left contains one more item: 18765
+E         Use -v to get more diff
+
+C:\Users\Administrator\.codex\worktrees\jarvis-work-capability-longpaths\UltimaAgent\.superpowers\sdd\jarvis-work-capability-delivery-plan-20261101\test_root_inert_invocation.py:514: AssertionError</failure></testcase><testcase classname="" name="test_rc06_original_failure_precedes_separate_later_control_veto" time="0.183"><failure message="AssertionError: assert 'Pinned depen...ependency.txt' == 'ORIGINAL native failure'&#10;  &#10;  - ORIGINAL native failure&#10;  + Pinned dependency drift: H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\navigation-source10-validation-20261102\code\inert-root-caller-preparation-20261102T224432448102Z-fix1-red\temp\test_rc06_original_failure_pre0\V\dependency.txt">env = namespace(c=&lt;module 'caller_contract' from 'C:\\Users\\Administrator\\.codex\\worktrees\\jarvis-work-capability-longpa...a&gt; at 0x00000247BA112520&gt;), headless=namespace(run_inert=&lt;function env.&lt;locals&gt;.headless_entry at 0x00000247BA1102C0&gt;))
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x00000247B9E0A5B0&gt;
+
+    def test_rc06_original_failure_precedes_separate_later_control_veto(env, monkeypatch):
+        e = env; original = e.inv.call; captured = []
+        def failed(self, entry):
+            self.budget.failure = 'ORIGINAL native failure'
+            result = original(self, entry); captured.append(json.dumps(result, sort_keys=True))
+            e.dependency.write_text('later drift', encoding='utf8')
+            return result
+        monkeypatch.setattr(e.inv, 'call', failed)
+        record = e.c.run()
+        assert record['overall'] == 'PERMANENT_FAIL'
+&gt;       assert record['first_cause']['message'] == 'ORIGINAL native failure'
+E       AssertionError: assert 'Pinned depen...ependency.txt' == 'ORIGINAL native failure'
+E         
+E         - ORIGINAL native failure
+E         + Pinned dependency drift: H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\navigation-source10-validation-20261102\code\inert-root-caller-preparation-20261102T224432448102Z-fix1-red\temp\test_rc06_original_failure_pre0\V\dependency.txt
+
+C:\Users\Administrator\.codex\worktrees\jarvis-work-capability-longpaths\UltimaAgent\.superpowers\sdd\jarvis-work-capability-delivery-plan-20261101\test_root_inert_invocation.py:529: AssertionError</failure></testcase><testcase classname="" name="test_rc07_fsync_failure_after_visible_result_does_not_publish_canonical" time="0.170"><failure message="AssertionError: Canonical eligible result exists without durable close&#10;assert not True&#10; +  where True = exists()&#10; +    where exists = (WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/inert-root-caller-preparation-20261102T224432448102Z-fix1-red/temp/test_rc07_fsync_failure_after_0/V') / 'inert-root-result.json').exists&#10;[+1 more line; full report in element text]">env = namespace(c=&lt;module 'caller_contract' from 'C:\\Users\\Administrator\\.codex\\worktrees\\jarvis-work-capability-longpa...a&gt; at 0x00000247B9F2FA60&gt;), headless=namespace(run_inert=&lt;function env.&lt;locals&gt;.headless_entry at 0x00000247B9F2FB00&gt;))
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x00000247B9FDDF10&gt;
+
+    def test_rc07_fsync_failure_after_visible_result_does_not_publish_canonical(env, monkeypatch):
+        e = env; original = e.c.write_json; visible = []
+        def fail_close(stream, value):
+            if isinstance(value, dict) and value.get('kind') == 'source10_inert_root_adjudication':
+                json.dump(value, stream); stream.flush()
+                visible.append(Path(stream.name).read_bytes())
+                raise OSError('fsync/close uncertain after bytes visible')
+            return original(stream, value)
+        monkeypatch.setattr(e.c, 'write_json', fail_close)
+        with pytest.raises(OSError, match='uncertain'): e.c.run()
+        assert visible and json.loads(visible[0])['overall'] == 'ELIGIBLE_FOR_ROOT_REVIEW'
+&gt;       assert not (e.v/'inert-root-result.json').exists(), 'Canonical eligible result exists without durable close'
+E       AssertionError: Canonical eligible result exists without durable close
+E       assert not True
+E        +  where True = exists()
+E        +    where exists = (WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/inert-root-caller-preparation-20261102T224432448102Z-fix1-red/temp/test_rc07_fsync_failure_after_0/V') / 'inert-root-result.json').exists
+E        +      where WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/inert-root-caller-preparation-20261102T224432448102Z-fix1-red/temp/test_rc07_fsync_failure_after_0/V') = namespace(c=&lt;module 'caller_contract' from 'C:\\Users\\Administrator\\.codex\\worktrees\\jarvis-work-capability-longpa...a&gt; at 0x00000247B9F2FA60&gt;), headless=namespace(run_inert=&lt;function env.&lt;locals&gt;.headless_entry at 0x00000247B9F2FB00&gt;)).v
+
+C:\Users\Administrator\.codex\worktrees\jarvis-work-capability-longpaths\UltimaAgent\.superpowers\sdd\jarvis-work-capability-delivery-plan-20261101\test_root_inert_invocation.py:545: AssertionError</failure></testcase></testsuite></testsuites>

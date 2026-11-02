@@ -1,0 +1,109 @@
+{
+  "schema": 1,
+  "scope": "TASK4C_FIX1_SCOPED_REREVIEW",
+  "candidate": "118ba152b007c30d358c8bc44c51aabe8ae820f0",
+  "base_caller_manifest_sha256": "83a55d081afd4ca945b18284097885041737bdbf9ad40d0674f1b0394ec58dfd",
+  "caller_manifest_sha256": "b05bbe5dca2acf9952c5d0fc36155ff5ab1099656ed0b1d0b3da6ded6786aafe",
+  "harness_manifest_sha256": "935b3e3b1f42790c6bd3d7ebd88164f4cc47a9de9a1703557f5da0c59806bcb5",
+  "spec": "FAIL",
+  "quality": "NEEDS_FIXES",
+  "spec_verdict": "FAIL",
+  "quality_verdict": "NEEDS_FIXES",
+  "finding_verdicts": [
+    {
+      "id": "RC-01",
+      "verdict": "ADDRESSED",
+      "fileline": "root-inert-invocation.py:86–89, 183–198, 207–210, 303",
+      "evidence": "pinned_json hashes and decodes one buffer. Module digests, review-2 verdict fields and the historical identities come from those buffers. Approval and caller manifest already retain their input bytes.",
+      "tests": "test_root_inert_invocation.py:428–440"
+    },
+    {
+      "id": "RC-02",
+      "verdict": "ADDRESSED",
+      "fileline": "root-inert-invocation.py:272–278, 299–312, 338–339, 349–352",
+      "evidence": "fresh checks the current release and dispatch pins and samples expiry after those reads, immediately before caller-level P4/native admission, original admission, and delegation. The original cleanup path retains its deadlines once admitted.",
+      "tests": "test_root_inert_invocation.py:443–463, 645–656"
+    },
+    {
+      "id": "RC-03",
+      "verdict": "ADDRESSED",
+      "fileline": "root-inert-invocation.py:3, 14–17, 130–133, 146–179, 251–255, 280–287, 395–406",
+      "evidence": "Actual entry and UUID4 bind HELLO, release and the consumed dispatch. The exact GO hash identifies the dispatch. Memory consumption precedes fallible claim creation. Missing/unknown dispatch closure remains a ROOT-side denial. The caller cannot issue a replacement grant.",
+      "tests": "test_root_inert_invocation.py:466–483, 567–600"
+    },
+    {
+      "id": "RC-04",
+      "verdict": "ADDRESSED",
+      "fileline": "root-inert-invocation.py:289–290",
+      "evidence": "Any existing inert namespace blocks before P4. Prior UUID, empty namespace and unreadable namespace are covered, as is a prior pending result.",
+      "tests": "test_root_inert_invocation.py:486–500"
+    },
+    {
+      "id": "RC-05",
+      "verdict": "ADDRESSED",
+      "fileline": "root-inert-invocation.py:313–327, 332–354",
+      "evidence": "Original admission returns to the private wrapper before headless mkdir or Owned. Issued decoded authority and baseline, effective fixed port/folder, budget admission and raw pins are compared. The two mutation cases cannot reach the launch boundary. The original is restored in finally. The pre-return native query problem is separately identified in RC-08.",
+      "tests": "test_root_inert_invocation.py:503–535, 603–613, 659–670"
+    },
+    {
+      "id": "RC-06",
+      "verdict": "ADDRESSED",
+      "fileline": "root-inert-invocation.py:355–368, 378",
+      "evidence": "Original returned failure is latched before supplemental checks. The later exception occupies later_veto; the underlying result/witness is preserved.",
+      "tests": "test_root_inert_invocation.py:538–550"
+    },
+    {
+      "id": "RC-07",
+      "verdict": "ADDRESSED",
+      "fileline": "root-inert-invocation.py:107–117, 385–389",
+      "evidence": "The writer flushes/fsyncs and exits the pending file context before os.link publishes to the no-replacement destination. A write, fsync or close exception skips the link. A destination collision preserves the existing canonical bytes. RC-09 concerns what source is linked after successful close.",
+      "tests": "test_root_inert_invocation.py:553–564, 616–642"
+    }
+  ],
+  "new_findings": [
+    {
+      "id": "RC-08",
+      "severity": "P1",
+      "fileline": "root-inert-invocation.py:338-345",
+      "problem": "The new wrapper detects changed authority only after original_admit has already used its unverified target fields. With port replaced by 8756, adapter.py:1086,1092 allows the value and calls p4.listener_owner(8756), which runs Get-NetTCPConnection on that port (P4 controller.py:248-250). Replacing only parent_identity.pid while retaining run/origin also causes p4.identity(unissued_pid) at adapter.py:1081-1082,358-363 before any wrapper rejection. No off-scope launch is needed for these off-scope native reads. The existing replacement test records only simulated launches in its assertion at test_root_inert_invocation.py:528-535, despite its mock recording listener query targets at line 103.",
+      "required_fix": "Bind the actual input consumed by original admission to the issued bytes before any target-directed lookup, while retaining the effective-state checks after original admission. A separate path prehash leaves a reopen gap. Have ROOT rule on a narrowly scoped private read binding if needed. In pure tests record every native PID/port lookup and assert that substituted targets are never observed."
+    },
+    {
+      "id": "RC-09",
+      "severity": "P2",
+      "fileline": "root-inert-invocation.py:385-392",
+      "problem": "The successful close belongs to the file created at line 388. The hardlink at line 389 resolves its source by pathname again. Replacing the closed pending path with a different ordinary file during that interval makes os.link publish the replacement successfully. no_reparse permits ordinary files. The caller still returns its in-memory record and may exit 0, although the canonical bytes can differ from the witness it durably closed. The close-failure and destination-collision tests do not substitute the source. ROOT independent readback can catch the mismatch; the publisher itself does not.",
+      "required_fix": "Bind publication success to the originally serialized result bytes and closed object. At minimum compare canonical bytes against the exact expected bytes before returning an eligible process outcome, require identical ROOT readback and preserve failure evidence without overwrite. If canonical presence itself must certify closed-source identity, use an identity-bound publication mechanism or a ROOT-owned enforced exclusion across close/link. Cover a regular-file source substitution after close in a mock."
+    }
+  ],
+  "out_of_scope": [
+    "Accepted C118/harness935b broad review, actual native/handshake/inert behavior, ROOT dispatch durability in production and runtime publication. No claim of actual operation or release."
+  ],
+  "checks": [
+    "Verified all named input and caller-five SHA-256 values, companion input hash, immutable prior review, ROOT ruling, report appendix and contextual diff.",
+    "Reopened raw argv, stdout, stderr, JUnit and rehashed the 646 raw source copies. Stages 13/13 failures, 19 pass and 1 fixture failure, 31 pass, 77 pass. Final unselected with 0 failures/errors/skips, empty stderr. ROOT readback retains all 50 old IDs and reports 81 current pins.",
+    "Traced only the changed private admission wrapper into original inert_admit/bind_parent and the targeted P4 listener query. Examined HELLO/grant and pending publication by data/code inspection. No suite rerun or runtime invocation."
+  ],
+  "reviewed_hashes": {
+    "C:\\Users\\Administrator\\.codex\\worktrees\\jarvis-work-capability-longpaths\\UltimaAgent\\.superpowers\\sdd\\jarvis-work-capability-delivery-plan-20261101\\task-4-inert-root-caller-fix1-rereview-brief.md": "d70ba1c012154fe04fd33fae2e19eccdd5b8375d262d4ffdb73d61d4acae56e1",
+    "C:\\Users\\Administrator\\.codex\\worktrees\\jarvis-work-capability-longpaths\\UltimaAgent\\.superpowers\\sdd\\jarvis-work-capability-delivery-plan-20261101\\task-4-inert-root-caller-fix1-brief.md": "f6fbff026a5ee5aab43e468e9a168f133f52cb3f080ba795fb8b3afd081417e0",
+    "C:\\Users\\Administrator\\.codex\\worktrees\\jarvis-work-capability-longpaths\\UltimaAgent\\.superpowers\\sdd\\jarvis-work-capability-delivery-plan-20261101\\task-4-inert-root-caller-fix1-findings-verbatim.md": "690b0bf9ffb0d64a704494b96e77a5b17ceef3b5e69a7de1eff80def814ce3f7",
+    "C:\\Users\\Administrator\\.codex\\worktrees\\jarvis-work-capability-longpaths\\UltimaAgent\\.superpowers\\sdd\\jarvis-work-capability-delivery-plan-20261101\\task-4c-admission-protocol-ruling-1.md": "8c6b2d82c12c04ea13c573b67473d344c6d680b0bdb8d7b5b0aa9fb3dd9bc7d5",
+    "C:\\Users\\Administrator\\.codex\\worktrees\\jarvis-work-capability-longpaths\\UltimaAgent\\.superpowers\\sdd\\jarvis-work-capability-delivery-plan-20261101\\task-4-inert-root-review-schema-addendum.md": "fd7b0e350a3bbde93d43bf44f67754bec484089739e6b6d37110988d1bf6fa1b",
+    "C:\\Users\\Administrator\\.codex\\worktrees\\jarvis-work-capability-longpaths\\UltimaAgent\\.superpowers\\sdd\\jarvis-work-capability-delivery-plan-20261101\\task-4-inert-root-invocation-report.md": "a81819206387e64f34ccdb7bb05280e6f6826d26dd14f1800b098a2dd2a9a0df",
+    "C:\\Users\\Administrator\\.codex\\worktrees\\jarvis-work-capability-longpaths\\UltimaAgent\\.superpowers\\sdd\\jarvis-work-capability-delivery-plan-20261101\\task-4-inert-root-caller-fix1-review-package.txt": "0ca651939e5de2ca6a78e5aac4484acb98317a28eaa6fd8cc5aafbe1652dce5f",
+    "H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\navigation-source10-validation-20261102\\inert-root-caller-review\\review.md": "690b0bf9ffb0d64a704494b96e77a5b17ceef3b5e69a7de1eff80def814ce3f7",
+    "H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\navigation-source10-validation-20261102\\inert-root-caller-review\\verdict.json": "5be27e9ce8dadb9d34ced4531946743123887865ecd0e9cc35017f37b446378a",
+    "H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\navigation-source10-validation-20261102\\code\\root-inert-caller-fix1-before-review.json": "95a36d8e09d9b003b308121a1e2c286fba9b4d45fd19ddfe3dfdd0163767d70b",
+    "H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\navigation-source10-validation-20261102\\code\\inert-root-caller-preparation-20261102T224824112616Z\\receipt.json": "a92754f8e09b93a2e14a18e5190c371cb83e644658f6b5480bcfe34599991dfc",
+    "C:\\Users\\Administrator\\.codex\\worktrees\\jarvis-work-capability-longpaths\\UltimaAgent\\.superpowers\\sdd\\jarvis-work-capability-delivery-plan-20261101\\root-inert-invocation.py": "da273b63953d660b9af73394ae3e5b168a3ac13f50e69e319ef8c899fbe07ede",
+    "C:\\Users\\Administrator\\.codex\\worktrees\\jarvis-work-capability-longpaths\\UltimaAgent\\.superpowers\\sdd\\jarvis-work-capability-delivery-plan-20261101\\test_root_inert_invocation.py": "ea270c1943598a81ae96abfe23f6733b2a9a3b8a2398a6f49b0f0dfc94a16d90",
+    "C:\\Users\\Administrator\\.codex\\worktrees\\jarvis-work-capability-longpaths\\UltimaAgent\\.superpowers\\sdd\\jarvis-work-capability-delivery-plan-20261101\\inert-root-release-template.json": "bf057a7383c0c56bf46538bf6f6e34480dad1170268a7b14fa8fb6d584149b35",
+    "C:\\Users\\Administrator\\.codex\\worktrees\\jarvis-work-capability-longpaths\\UltimaAgent\\.superpowers\\sdd\\jarvis-work-capability-delivery-plan-20261101\\inert-root-caller-manifest.json": "b05bbe5dca2acf9952c5d0fc36155ff5ab1099656ed0b1d0b3da6ded6786aafe",
+    "C:\\Users\\Administrator\\.codex\\worktrees\\jarvis-work-capability-longpaths\\UltimaAgent\\.superpowers\\sdd\\jarvis-work-capability-delivery-plan-20261101\\run-inert-root-caller-checks.py": "8cf51852d8f83126dfaa678468fa6d19f09cfba5ec09166ef3c63c7ec55ec282",
+    "review_inputs": "37df496064d45e2f68bdf9c56cc9065efd588c748def37ae7f7d81661a76457a",
+    "final_junit": "f794014d86eee8920835ca885bf8aa45c22bd23e8019a53f3e62377ded23153b"
+  },
+  "execution_released": false,
+  "T2": "NOT_PASSED"
+}

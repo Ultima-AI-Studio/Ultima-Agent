@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="20" time="3.895" timestamp="2026-11-03T06:46:44.462885+08:00" hostname="DESKTOP-B366PQ9"><testcase classname="" name="test_success_uses_one_existing_invocation_and_outside_witness" time="0.208" /><testcase classname="" name="test_late_claim_is_recorded_as_permanent_failure" time="0.116" /><testcase classname="" name="test_failed_unknown_or_late_return_never_promotes[failed]" time="0.190" /><testcase classname="" name="test_failed_unknown_or_late_return_never_promotes[late]" time="0.208"><failure message="TypeError: 'NoneType' object is not subscriptable">env = namespace(c=&lt;module 'caller_contract' from 'C:\\Users\\Administrator\\.codex\\worktrees\\jarvis-work-capability-longpa...a&gt; at 0x0000027D5EA10360&gt;), headless=namespace(run_inert=&lt;function env.&lt;locals&gt;.headless_entry at 0x0000027D5EA10180&gt;))
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x0000027D5EAA2360&gt;
+mode = 'late'
+
+    @pytest.mark.parametrize('mode', ['failed', 'late', 'exception', 'missing'])
+    def test_failed_unknown_or_late_return_never_promotes(env, monkeypatch, mode):
+        e = env
+        if mode == 'failed': e.inv.eligible = False
+        if mode == 'exception': e.inv.error = RuntimeError('first original cause')
+        if mode == 'late':
+            original = e.inv.call
+            def late(self, entry):
+                e.clock[0] = e.c.ENTRY_NS+315_000_000_001
+                return original(self, entry)
+            monkeypatch.setattr(e.inv, 'call', late)
+        if mode == 'missing': monkeypatch.setattr(e.inv, 'call', lambda *args: None)
+        record = e.c.run()
+        assert record['overall'] == 'PERMANENT_FAIL'
+        assert e.events.count('MOCK headless') &lt;= 1
+        if mode == 'late':
+&gt;           assert record['outcome']['witness']['observed_ns'] == e.c.ENTRY_NS+315_000_000_001
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E           TypeError: 'NoneType' object is not subscriptable
+
+C:\Users\Administrator\.codex\worktrees\jarvis-work-capability-longpaths\UltimaAgent\.superpowers\sdd\jarvis-work-capability-delivery-plan-20261101\test_root_inert_invocation.py:288: TypeError</failure></testcase><testcase classname="" name="test_failed_unknown_or_late_return_never_promotes[exception]" time="0.207" /><testcase classname="" name="test_failed_unknown_or_late_return_never_promotes[missing]" time="0.209" /><testcase classname="" name="test_timely_observation_persisted_later_without_backdating" time="0.190" /><testcase classname="" name="test_rc01_interprets_only_digest_checked_control_bytes[harness]" time="0.203" /><testcase classname="" name="test_rc01_interprets_only_digest_checked_control_bytes[review]" time="0.187" /><testcase classname="" name="test_rc01_interprets_only_digest_checked_control_bytes[historical]" time="0.200" /><testcase classname="" name="test_rc02_stalled_prerequisite_cannot_admit_after_release_expiry[before_p4]" time="0.137" /><testcase classname="" name="test_rc02_stalled_prerequisite_cannot_admit_after_release_expiry[before_native]" time="0.133" /><testcase classname="" name="test_rc03_precreation_claim_failure_cannot_replay_entry_or_allocation" time="0.094" /><testcase classname="" name="test_rc04_existing_or_unknown_inert_namespace_blocks_before_p4[orphan]" time="0.223" /><testcase classname="" name="test_rc04_existing_or_unknown_inert_namespace_blocks_before_p4[empty]" time="0.221" /><testcase classname="" name="test_rc04_existing_or_unknown_inert_namespace_blocks_before_p4[unreadable]" time="0.128" /><testcase classname="" name="test_rc05_original_admission_rejects_replaced_issued_document_before_launch[authority_port]" time="0.203" /><testcase classname="" name="test_rc05_original_admission_rejects_replaced_issued_document_before_launch[baseline_time]" time="0.216" /><testcase classname="" name="test_rc06_original_failure_precedes_separate_later_control_veto" time="0.208" /><testcase classname="" name="test_rc07_fsync_failure_after_visible_result_does_not_publish_canonical" time="0.201" /></testsuite></testsuites>

@@ -1,0 +1,32 @@
+...F................                                                     [100%]
+================================== FAILURES ===================================
+___________ test_failed_unknown_or_late_return_never_promotes[late] ___________
+
+env = namespace(c=<module 'caller_contract' from 'C:\\Users\\Administrator\\.codex\\worktrees\\jarvis-work-capability-longpa...a> at 0x0000027D5EA10360>), headless=namespace(run_inert=<function env.<locals>.headless_entry at 0x0000027D5EA10180>))
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000027D5EAA2360>
+mode = 'late'
+
+    @pytest.mark.parametrize('mode', ['failed', 'late', 'exception', 'missing'])
+    def test_failed_unknown_or_late_return_never_promotes(env, monkeypatch, mode):
+        e = env
+        if mode == 'failed': e.inv.eligible = False
+        if mode == 'exception': e.inv.error = RuntimeError('first original cause')
+        if mode == 'late':
+            original = e.inv.call
+            def late(self, entry):
+                e.clock[0] = e.c.ENTRY_NS+315_000_000_001
+                return original(self, entry)
+            monkeypatch.setattr(e.inv, 'call', late)
+        if mode == 'missing': monkeypatch.setattr(e.inv, 'call', lambda *args: None)
+        record = e.c.run()
+        assert record['overall'] == 'PERMANENT_FAIL'
+        assert e.events.count('MOCK headless') <= 1
+        if mode == 'late':
+>           assert record['outcome']['witness']['observed_ns'] == e.c.ENTRY_NS+315_000_000_001
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E           TypeError: 'NoneType' object is not subscriptable
+
+C:\Users\Administrator\.codex\worktrees\jarvis-work-capability-longpaths\UltimaAgent\.superpowers\sdd\jarvis-work-capability-delivery-plan-20261101\test_root_inert_invocation.py:288: TypeError
+=========================== short test summary info ===========================
+FAILED ::test_failed_unknown_or_late_return_never_promotes[late] - TypeError:...
+1 failed, 19 passed, 43 deselected in 3.96s
