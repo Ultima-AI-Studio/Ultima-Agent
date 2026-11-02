@@ -1,0 +1,48 @@
+# T2 E02 · 逐来源起草与一次文件交付（r2 待审设计，2026-11-02）
+
+保留当前社区模型 `qwen3-8b-uncensored`，digest `6d7230a923426bc1933879eb08a7dafc18e5fc0e7606c459ce98f16e0c7f9330`。本轮交付是设计。建议先用一个完整代码文件检验 8B 能否把“何时执行、执行什么、还有哪条路径”写对，再决定是否投入产品实现。
+
+## 为什么拆分起草
+
+基线 `7c201a3aa00c4cfccb170f6ee5102a282174f329` 的受控首轮完成搜索、四次 GET 和完整生成。独立复核 `T2/review-source9-controlled-r1/review.json`（SHA256 `4de0e39d3b5ed70533eeb157a6e902ddab268c562883d0c886350578dc9c51d0`）发现五节均选 S1，22 条主张只用了六处 README 引用，无一完整受所引位置支持。分支中的警告被写成已实现能力，独立 OpenJarvis 执行路径也未得到说明。重复来源被写入工具拒绝，无文件。以下诊断只供评审，不进入提示词。
+
+| 路线 | 处理了什么 | 仍需承担的代价 |
+|---|---|---|
+| 在现有一次生成中固定每节来源键 | 可防止五节选同一键 | 写每个断言时仍面对多个项目和几十张不相干的卡，错误归因可通过形状检查 |
+| 单来源起草，冻结各节，再授权一次写入（建议） | 一个回答只需读一份材料，服务绑定归属。代码作者可看到整段控制流，精确标出操作和条件。交接不再改写文字 | 多次串行推理；是否读懂分支、是否形成有用的架构说明须实测 |
+| 每份来源先摘录，再做一次全局模型综合 | 有机会给出跨文件叙述 | 新叙述会重新引入未经引用支撑的关系；单轮失败后的首个实验不需要这一层 |
+
+## 材料、论断与归属
+
+1. 从现有 `WorkService.submit_work` 进入。入场时冻结原始 query、caller text、capture/current_object（含来源、采集时间）、source_urls 和 request/session/task 身份；保留用户任务与不可信材料的角色边界。路径仍由启动根、请求 UUID、`checked_path` 约束。现有 `collect_research` 通过真实 ToolRegistry/ToolExecutor 搜索一次并按既有策略 GET，绑定工具调用、重定向后 URL、解码正文 SHA、原文和提取文本。保留所有尝试和去重依据。整个不可变 catalogue 的 3–5 个去重来源都登记来源处置记录，顺序按实际采集的 S1…SN，不按作者偏好丢弃。
+2. 产品按既有证据协议从真实 GET ledger 的 body、text 和 truncated 构建视图，不用 SDK 返回给模型的 12000 字符观察值。BrowserChannel.fetch_public 对 HTML 保存原始 decoded body，并用现有 HTMLParser 排除 script/style 后以空格拼接 data 片段；引用行号取实际 text.splitlines()，标明“HTML 提取文本”，保留原 body SHA、提取文本 SHA、可见行文本及 read_call_id 供重放。纯文本/源码使用其原有编号。每份独立投影，先尝试整文件，序列化编号文本最多 24000 字符，超额则依既有首尾完整行算法在同一上限内选取，明确标示可见和 omitted 区间，引用及支撑不能跨缺口；v3 只放宽原每源 8000/全包 24000 为每次最多 24000，单次上下文门仍有效。记录所有来源处置。已截断、无完整可见行或无可用锚点的可选来源在发起推理前登记 unused_preflight 及理由，不假装已读完。固定 S2 实验另要求整文件无省略。
+3. `local_cards(view) -> table` 沿用现有文档块/AST/词法操作见证、限制项优先和分散选取规则，至多 48 个，在该份可见视图上重建。展示简短本地序号、种类、精确操作、锚点与证据行号，与编号正文对照；server 保存带版本、上述请求/读取身份、URL、正文哈希的完整映射。Guardrails 扫描前后做编号一致性核对，逐行记录可见/被遮蔽行段，拒绝引用任何改写行；行映射丢失则拒绝该次起草。受保护原文、展示文本和两者摘要按现有证据访问边界保存，禁止在普通日志泄露敏感内容。
+4. `NativeReAct 第 i 轮 → ultima_work_research_stage`。一份材料只允许回答它对原问题能说明的部分。提示要求用读者可理解的短句解释当地机制、触发条件及与结果相关的替代或受限路径；文档承诺与代码操作分开。每条可核对陈述带一个操作/文档卡和原文件补充行段，说明条件与结果时能同时引用远处的分支。禁止凭命名相似、导入、配置键或节的相邻位置断言项目互调。完整可见内容不足、无关或分支跨缺口时，可明确提交本源 unused_reason，在 ledger 保留为未采用；final_answer 表示拒绝整项任务。禁止把无效生成、超时、工具失败、缺少确认或安全拒绝改记 unused。少于三份可用来源或不能满足明确指定的必需材料时拒绝交付；冻结样本仍须独立核对两项目、问题各部分和必要分支，不能凭数量跳过唯一相关材料。可据各文件分别描述入口、选择、执行、失败返回；跨文件连线不作推断。若读者无法从这些按仓库与文件定位的短节理解用户所问的路径与边界，即使每句摘录准确，独立覆盖检查仍失败。
+5. 草稿轮原生封闭信封是 {action:"ultima_work_research_stage",action_input: Local} 或 {final_answer:非空拒绝}。Local 二选一，{stage_token,facts:[{claim,ref,ranges:[{lo,hi}]}]} 或 {stage_token,unused_reason:非空短句}，stage_token 是本轮唯一允许的单值枚举。1–4 条事实，每条 1–3 个补充连续可见行段，每段 1–8 行（较远条件用分开的段），claim ≤400 字符、reason ≤200，ref 仅枚举本表整数≤48。服务端完整 Draft7、精确键、非空转义、范围/无遗漏或改写行、已发行锚点、原文及原有 code/limitation 语法见证，拒绝完全重复事实。模型不提交源 ID 或 URL。报告同时显示锚点和补充段，保留引文。有效位置、语法和来源数量均不能证明命题为真。
+
+## 原生执行、封存及写入
+
+沿用已安装 OpenJarvis 1.0.4（H 盘 `tools/venv-openjarvis/Lib/site-packages/openjarvis`）。已静态核对 `sdk.py:Jarvis.ask_full/_run_agent`、`agents/native_react.py:NativeReActAgent.run`、`security/guardrails.py:GuardrailsEngine.generate`、`telemetry/instrumented_engine.py:InstrumentedEngine.generate` 和本仓库 `_borrow_research/_ResearchEngineView`。以下为拟改接口。
+
+- 整次请求在原 _ask_lock、同一 bind_work 元组及真实 bus 订阅下只进入一次 jars.ask_full(prompt,agent="native_react",tools=["ultima_work_research_stage","ultima_work_research_write"],context=False,max_tokens=A)。浅拷贝 Jarvis；在副本上用 dataclasses.replace(config,agent=replace(config.agent,max_turns=N+2)) 设置 _config，保持 owner 原配置、policy、limiter、audit、bus、energy/scanners 身份。N 是预检后有视图并须逐一处理的来源数，N<3 立即失败。_run_agent 在 caller 线程构造两个工具，传入当前上限，wire_agent_security 接入真实执行器。NativeReAct.run 每轮 _generate → _parse_response → 真实 ToolCall/ToolExecutor → observation；最终回复走原生返回。所有推理都在此循环内。只拆分用户任务的研究步骤，不增加 Agent。
+- 请求私有 _ResearchEngineView.generate 检查不可变 prompt、当前 ordinal、前一轮真实 observation、SDK END 成功、adapter 记录和待处理阶段，拒绝压缩/错序导致的状态不明。其后才把 SDK 此轮历史投影成新的 system/user 消息，user 包含冻结原 query/material 和当前来源 View；只为 commit/ack 加对应真实回执。归档 SDK 历史与实际投影的关联，早先作者文字不随历史进入下一份来源。view 经过借用的 Instrumented → Guardrails → native leaf；由 SDK 返回已扫描且严格验证的原生模型信封，交原 parser 分派。leaf 用显式 phase/ordinal 决定预算，POST 前消费一次，禁止并行/重试。推理扫描/遥测与工具权限/限速分别留证。两工具在同一 caller bind 下捕获 ledger、binding、caps；stage 为仅内存、无外部副作用的工具，spec 要求已有 tool:invoke，writer 要求 file:write。正常注册适配器，不按请求修改 SDK 注册表或放宽授权。 工具构造时使用固定的封闭参数形状（writer 的 bundle_id 为 64 位十六进制字符串），本轮 view 的原生 schema 和 adapter 在执行时再用当前表或 sealed ID 收紧；禁止在初始化 writer 时读取尚不存在的 Bundle。
+- Stage/worker 在 ledger 锁内核对预登记的一次性 stage_token（每次生成前签发独立随机 UUID，ledger 映射 request/session/task、ordinal、来源/读取身份、View 哈希及 d）。在 secured 返回严格通过后、交 SDK parser 前只记该 token 的原始受保护 action_input 摘要；worker 使用真实参数中的 token 在捕获的 ledger 中核对全绑定、摘要、未消费且 active ordinal，并原子消费。旧 token 对新 ordinal 必败，绝不按当前目录重解旧 ref1，不在 worker 读取 ContextVar 或写回模型返回体，写入 pending 本源草稿或 unused 记录。对应 caller 观察到真实 END 且复核成功才提升为 confirmed；失配或迟到即撤销/失败。SDK policy/limiter 拒绝可能早于 START，绝不补造事件。最后一个 stage 确认后 seal_local_drafts 从全部候选处置、≥3 个去重的已采用来源及真实作者原句构造不可变 Bundle，绑定身份、路径域、视图/表/材料摘要、证据和规范序列 SHA256。writer 已在首轮构造，执行时只从捕获的同一 ledger 取得已封存对象，拒绝提前请求、重放、换包或更改草稿。v3 将原“同一写 action 提交标题、来源及事实”改为同一 NativeReAct 的 stage actions 提交作者事实，后续 action 以 {path,bundle_id} 提交其精确封存引用；writer 实收并重新校验该完整作者载荷。bundle_id 只在一次 reserve/intent 有效。模型须真实生成这个写 action 或 final_answer 拒绝。中性标题及 repo/path 小节来自呈现模板，逐句展现原作者文字，禁止自动补出事实或最终模型综合。
+- 新 writer 分支核对 bundle_id、身份、完整性与所有本地草稿，复算报告并沿用 `report_adapter/reserve_report → WorkWriteTool → checked_path/write_intent → FileWriteTool.execute`。只允许一次已授权落盘。v3 receipt 添加材料/视图哈希、按序各次生成与原文/补充行段、sealed payload/hash、真实 report/file/dispatch ID、路径和 actual bytes SHA。新验证分支从原 catalogue、实际受保护投影和各份原提交重建表/Bundle/文件，逐字比对（仅既有换行规则）。原 v2/历史未版本化验证可读。确认唯一成功 END、匹配两个调用、重新打开文件后，才让同一 NativeReAct 循环做一次 final_answer-only ack。禁止在 ack 合成研究结论，用户交付链接来自已核验路径。
+- 状态依次为 collect / stage[i] / sealed / action / intent / confirmed / ack。选填候选在事前预检被排除或通过一次真实 stage 明确未采用可与完成并存，其理由、来源、耗时和调用仍列入分母；起草开始后的任何工具/协议/安全/时限错误均失败；原 collection 的具名可选 GET 失败例外保留。任一开始写前的已确认拒绝、无效草稿、越权、超时或丢响应均失败；writer START 后不能证明未写、意图后任意异常、超时后迟到 worker、读回不符、已写后 ack 缺失/超时均返回 needs_attention，保留真实或未知效果和已知路径/哈希。作用域结束时在 ledger 锁中撤销未消费授权，迟到 worker 不能首次取得 intent；已发出 intent 保持不可重放。保留 detached snapshot，禁止重试/重采样/补节/进程恢复重发。成功 ack 和文件核验只证明技术交付，事实与任务验收独立登记。
+
+## 算得清的上限
+
+仍从 WorkService 入场计算 260 秒，包括原读取阶段（120 秒 admission）和等待锁。以下是**共享**上限而非速度预测。N=3…5；最多 N+2 个 chat POST（固定样本 6 个），每次 POST 前照旧检查 version、tags、manifest，每次最多各一 GET。显式计数所有成功、拒绝及失败的尝试。模型 tag/digest、daemon 0.32.15、literal loopback、禁凭据/代理/跳转、typed native request、温度 0、think/stream/truncate/shift=false 全部保留。
+
+- A=min(调用者正 max_tokens 或默认 2048,4096)。各 draft 的 num_predict=min(768, floor((A−128)/N))，最后写动作最多 min(128,A)，ack ≤min(512,A)。分配不够一个正 token 就在起草前拒绝。总输出 ≤ A+min(512,A)，固定 N=4 的默认草稿每份最多 480。每次 num_ctx=16384，扫描前/后保留原 schema+512 估算与后端溢出拒绝；合计最多 (N+2)×16384 上下文槽次。只去掉原生 sampler 不兼容的 maxLength，保留完整 server schema、严格 JSON/raw envelope、完整 stop、actual counts 与 secured result 校验。
+- tD=入场+260，W=min(获得锁时刻+180,tD−55)。每次 source/action 开始时记录单调时钟 b（在投影、metadata 前），k 为含本轮的剩余 source/action 数，冻结绝对到期 d=b+(W−b)/k。W≤b 即拒绝。投影、输入扫描、version/tags、manifest、POST、输出扫描、schema/证据验证、stage worker 入账及 caller 接收 END 确认各步前后检查 now≤d；每次 I/O timeout 各域裁至 d−now，connect/write/pool/metadata 同时 ≤25 秒，过期禁发。收包与完成确认分别记时，trickle/阻塞/迟到即便随后返回成功也计超时；无需假设硬杀。只在 d 内完成验证并确认 stage 才能推进，提前完结留下的时间进入下一次分配。写 action 的 d=W，约束至授权分派；SDK worker/实际 intent 另沿用 tD−now≥55 门，已提交的效果不能被改记为无写入。ack 单独取 d=min(tD,b+25)，前后同验且不得重放。
+
+## 首个判别实验及退出门（仅提案）
+
+先单独批准隔离的 **S2 agent-manager.ts** 前缀实验。固定 acceptance helper 原始完整 query、原可选材料、原受控四正文及身份清单、S2 SHA256 5a7e02f4f63a83316c48283e1ea30dc47aa5543da3ddf2972087b5c37746c573、same digest 和本设计投影/schema。仅为实验将 S2 指定为首个来源，要求全文可见。入场 t0 在载入/校验受控材料前，真实等待同一研究锁并记时；取 tD=t0+260、W=min(实际获锁+180,tD−55)，N=4、k=5，固定原调用者额度。冻结 b、d 在 metadata 前，记录两次 GET 结束、POST 前后、secured validation、stage END 和 caller 确认时刻。按最终确认时刻≤d 判 slice 合格（最长 36 秒）。实验 request-local max_turns=1，只加载 stage 工具，实际 SDK 生成、解析、派发并记录一次；max_turns 到达后 SDK 自行返回 max_turns_exceeded，不产生第二次推理。harness 只读取已确认 stage 和实际 SDK 结果；若未确认、unused、拒绝或超时则失败。最多一 POST、两 metadata GET、一次本地 manifest hash、零写入/ack/重试，预检失败记零 POST。不得伪造 END、报告任务成功或使用历史答案/提示特定条件。 ask_full 不透传 AgentResult.metadata，只根据实际 turns、tool_results、stage 绑定、真实 turn_end 的 max_turns_exceeded 和 END 复核前缀；不从 ask_full 凭空读取该标志。
+
+独立评审人从完整原件重开检查**每句**与其提交的引用，并检查该节能否具体说明此文件对任务架构的作用、触发/替代条件及材料中影响理解的限制。错主语、遗漏改变含义的条件、无关摘录、拒绝、超时、未完成或证据丢失均立即停止，保留首结果和分母。成功仅支持“按本次受控材料加载和锁等待约定，一份代码的实际 SDK stage 在冻结的绝对 slice 内获确认且该节通过事实复核”；不能证明其余三份、总耗时、报告价值或 E02。此实验与产品实现、source10 和正式运行分别授权。
+
+若 S2 首次审查通过，另提请放行按原顺序检查 S1、S3、S4，每份至多一次同样的单来源 SDK 前缀，沿用四来源 N=4、k=5 的保守上限、同一配置和同一材料；无论结果如何不重做 S2，也不从后续轮次挑替代答案。三份合计至多 3 POST、6 metadata GET，含 S2 全组至多 4 POST、8 GET、0 文件。每份先独立复核再继续；错误事实、错误省略、超时、拒绝整单或无效工具输出立即停止。合法 unused 只可由独立评审对照原件确认为与题无关或材料确实不足，并保留其原因；如因此已无法覆盖所问架构或剩余来源不足三份则停止。完整组须有至少三个真正支持且相关的去重来源，所问各路径、条件与项目边界均获覆盖，未经二次改写的草稿组合可供阅读。成功只支持讨论实现，单独前缀不能证明在一次真实请求内通过总时间或写入门。产品实现与 source10 仍需单独决定。
+
+若获准进入实现，产品写域仅 `src/brain/{work_service,work_research,work_tools,agent_server}.py`，对应 `src/brain/tests/{test_work_context,test_work_research}.py` 和一份新 v3 内部协议文档；不修改 frozen5、SDK、依赖或产品默认。保留原 293 项测试目的与失败证据，单列必要的内部协议夹具迁移。用真实 SDK + MockTransport 对 SDK 每轮所有权、原 config 未变、混合可选来源/HTML、跨绝对时限、投影/红删/语法、拒绝、跨 request/worker 串扰、过期/缺节/换序/篡改、限流拒绝、预算边界、迟到 worker、ack 丢失、消费后重放、文件及旧版读回做负测，另审 trace 与真实文件。SPEC/QUALITY 独立复审，再由 controller 单独放行过载拒绝检查及同候选/同 digest 受控 E02 连续三轮，再放行真实搜索/GET E02 连续三轮。每轮外部进程重新打开文件散列，与真实来源核对所有标题、论断、引文及整体覆盖（至少三个相关官方去重 URL/body）；失败即停且全保留。E01/E03 同候选三轮及选区/焦点改变负例仍须通过。R01/R02 单主脑与 SDK，R03/R05 调用身份与交付，R04/R06 上下文及隔离，R07 副作用，R08 保护现有语音、KWS、队列与运行环境。回退为撤销未来独立候选、恢复封存 source9 并保持 T2 未通过；不自动走旧路径或切换模型。T3–T5、Owner 验收和冻结仍各有独立出口。
