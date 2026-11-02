@@ -1,0 +1,147 @@
+# Task 4 · fix1 scoped re-review
+
+**SPEC FAIL · QUALITY NEEDS_FIXES.** Twelve original findings are addressed. H01, H02 and H14 remain open. Three additional findings arise from the fix diff. This decision applies to harness `b67231103cdf00e5c4c6cf60d2c8b6f80192f424b712e40c927093d663a40cbb` against base `eb30d3fd64389fa062a792c25d43117c08f05aa79dbc53a9e024da1d4d11aee1`, product candidate `118ba152b007c30d358c8bc44c51aabe8ae820f0`.
+
+## Original findings
+
+### H01 · NOT_ADDRESSED
+
+adapter.py:401–436,882–894; test_adapter.py:563–580,812–841
+
+Exact argv and exclusive consumption fix the flag/replay cases. Clearance is still transferable among all registered server identities. With one retained launcher and two exact-argv base siblings, line 406 accepts either, 410–417 includes all three, and 435 accepts whichever consumes first. Line 442 also allows this shape. There is no unique intended base at the point before dispatch. Reject ambiguous base sets and bind the consumption to the one intended native base identity, keeping the launcher only as ancestry proof. Add a two-matching-bases rejection.
+
+### H02 · NOT_ADDRESSED
+
+headless_proof.py:23–28; adapter.py:761,816–830; test_adapter.py:771–807
+
+Empty files are rejected; the witness now validates substantial native, cleanup, pin, output and timing data. However, the required inert loopback exchange is never sealed. Its response is checked in a local variable and discarded; witness checks the query/argv and absence of outputs, with no proof of the HTTP exchange. The new positive at test_adapter.py:771–807 obtains eligible without making even a mocked GET. Record the parent's specific admitted endpoint, validated owned listener, observed response and timing in closed data and compare them to the parent-held observation. Add a missing/wrong-loopback negative.
+
+### H03 · ADDRESSED
+
+adapter.py:543–545,627–671,839–841; test_adapter.py:677–685
+
+Post-cleanup bytes, SHA, path and exact output set are rechecked against the accepted inventory; witness requires the indexed task artifact. Removal, replacement and extra output are rejected.
+
+### H04 · ADDRESSED
+
+adapter.py:439–473,792–806; headless_proof.py:28; test_adapter.py:582–593
+
+Requires the exact retained live PID set including the base listener and verifies native argv, parent, times and identity. Empty/subset/wrong-parent cases fail. Ambiguous clearance before startup is separately H01.
+
+### H05 · ADDRESSED
+
+adapter.py:309–320,789–791; test_adapter.py:551–556
+
+Fresh five must match original protected() membership and exact current native integers. A different live five is rejected.
+
+### H06 · ADDRESSED
+
+adapter.py:224–225,244–262,371,335–339; test_adapter.py:558–560,698–701
+
+Operational admission pins the H interpreter and checks the resolved SDK22 origins/cache; original wrong-interpreter and cached wrong SDK counterexamples now fail.
+
+### H07 · ADDRESSED
+
+adapter.py:564–603,608–626; test_adapter.py:647–675
+
+Independent capped raw members remove base64 expansion. Exact 3/4 MiB representation controls and a separate valid synthetic packet roundtrip support the original size finding. The scanner replacement has a separate regression below.
+
+### H08 · ADDRESSED
+
+adapter.py:57–61,101–104,131–139,166–177,192–194,520–559; headless_proof.py:30–50; test_adapter.py:108–115,634–638
+
+Returned FAIL, cleanup exceptions, final-boundary and seal errors latch instead of replacing earlier causes. Actual cleanup-only and boundary-only controls assert their specific first cause.
+
+### H09 · ADDRESSED
+
+adapter.py:330–350,385–387,538–542,785–791; headless_proof.py:18–19,43–44; test_adapter.py:687–696
+
+Operational pin maps include the six, approval, authority/ledger, baseline, historical baseline and fixed inputs. Post-cleanup and enclosing comparison catches later drift from the admitted map.
+
+### H10 · ADDRESSED
+
+run_checks.py:55–68; test_adapter.py:703–721
+
+Pytest zero no longer overrules source/harness/member-set drift; separate pytest status and driver status remain in the receipt.
+
+### H11 · ADDRESSED
+
+adapter.py:264–269,491,887–895; headless_proof.py:14; test_adapter.py:723–728,841
+
+Candidate sys.path insertion is scoped and restored in finally, including exceptional exits.
+
+### H12 · ADDRESSED
+
+adapter.py:108–125; test_adapter.py:595–623
+
+Timeout is recalculated inside the connect wrapper after allocation/setup; the positive-admission check after applying it rejects exhausted setup. Probe still closes.
+
+### H13 · ADDRESSED
+
+adapter.py:196–198,610,832–838; test_adapter.py:625–632
+
+The service and CLI records must match on both IDs, task, status and artifact assertions on both checks. Original service result is retained before export.
+
+### H14 · NOT_ADDRESSED
+
+adapter.py:758–767,830; test_adapter.py:640–645
+
+Individual top-level reads/hashes are guarded. Line 763 guards the entire recursive rglob/is_file comprehension as one call. If a directory query stalls across +315, it resumes and can open further directories and stat every later entry before the postcheck. Line 830 repeats recursive listing under one wrapper. The late-first-read test covers only the two top-level JSON reads. Guard each new directory listing and member stat/hash, with a delayed-first-directory test proving subsequent I/O is not admitted. Late eligibility already fails.
+
+### H15 · ADDRESSED
+
+test_adapter.py:16–28,59–117,647–651; run_checks.py:50–51
+
+Permitted four-source synthetic fixture uses genuine v3 export/replay/readback, real common execute_case finalization and P4 cleanup with fake OS/transport. Each named failure has a distinct cause and cleanup assertion. The positive separately verifies real readback; no original-corpus profile is claimed.
+
+## New findings in this fix
+
+### F1-N01 · Important · adapter.py:579
+
+**The decoded-wire verifier is not a complete safety check for every raw packet field written by the new exporter.** The removed blanket scan has been replaced by verify_runtime_packet alone before unconditional publication at 580,589. In pinned work_research.py:667–677, the top-level packet must be canonical but its key set is not checked; lines 771,783 scan decoded version/tags/outer/envelope, and line 859 returns the packet. A canonical, otherwise valid synthetic final packet with one extra top-level scanner-detectable string preserves every existing binding/prewrite relationship. That extra value is never examined, yet it is written verbatim to trusted-runtime.raw. This is a malformed-evidence boundary regression; no corresponding live packet is claimed.
+
+Validate the allowed typed packet structure/decoded values including unexpected members before raw publication. Preserve the timestamp false-positive correction and the decoded-envelope test; add a coherent otherwise-valid extra-field sentinel and require no raw export.
+
+### F1-N02 · Important · adapter.py:894
+
+**Child can begin the product entry after its work cutoff following an earlier timely clearance.** At 884 the last deadline-checked operation is clearance consumption. Fixture installation/imports and construction of canonical argv (890–893, including corpus I/O) may return after +275; 894 still starts runpy. Similarly inert_child 869–877 does more I/O after consumption before binding the listener. Refusing the parent's later CLI or witness does not undo already admitted child startup.
+
+Check the same budget immediately before product dispatch and inert listener creation after preparation, and exercise a delayed post-clearance setup with a mock dispatch/listener that must remain uncalled.
+
+### F1-N03 · Important · adapter.py:840
+
+**A recorded discrepancy in the pre-cleanup output set can coexist with a clean witness.** The actual path writes pre-cleanup-effects at 528–531, requires the filename at 761, but 839–841 compare only accepted, post-cleanup and current. If an extra file appears for the pre-cleanup inventory and is removed during cleanup, the known discrepancy is neither latched nor reconciled; the final package itself contains the conflicting bytes. The author's appendix claims pre/post comparison.
+
+Compare the observed pre-cleanup map with the accepted one for success and substantively bind that file when rechecking. Retain all three maps and test a transient observed extra output.
+
+## Checks and limitations
+
+- Read the original disposition, correction requirements, H15 clarification, same-author report and sealed contextual diff. No broad review or suite rerun. Named outside-diff inspection was limited to the newly reused verify_runtime_packet scanner/structure contract.
+- Verified companion f12c1cdc and all 17 listed input/source hashes, six final source snapshot hashes and 64 current pins against final source-before. Read final argv, stdout 123 passed in 14.92s, empty stderr, JUnit 123/0 failures/errors/skips, matching before/after source hashes. Root's f9d4b904 readback records 16 stages, 75 retained IDs, six-source snapshots, C31, SDK22 and full previous author prefix.
+- Reviewed concrete positive/negative unit assertions. Findings are static control-flow counterexamples, not executions of those failure paths. No additional test, actual/inert launch, native observation, model call, external request or live profile was performed.
+- Source118 and its separate code gate remain unchanged. The initial historical RED source-byte limitation and 201732 correction-RED field limitation persist.
+- Actual/inert eligibility and the feasibility of the 5-second final observation slice remain unverified. Original-corpus profile, comprehension, real search and same-candidate rounds remain outstanding. Only qwen3-8b-uncensored at digest 6d7230a923426bc1933879eb08a7dafc18e5fc0e7606c459ce98f16e0c7f9330 is in scope. No caller, baseline, approval or authority is issued by this review.
+
+No separate untouched-code observations. E02/T2 remains NOT_PASSED. All operational, T3, Owner and production gates remain closed.
+
+## Reviewed SHA256
+
+- companion `f12c1cdce91f78d6fe9c146a5205748e8742d41e83e1244f3c8546c3cf300247`
+- jarvis-work-capability-delivery-plan-20261101/task-4-navigation-harness-fix1-rereview-brief.md `c31f15240c6f30bc3e39cbd8b7515f3c5e3eb65aa4f65d4e17c9e5fbc81be724`
+- jarvis-work-capability-delivery-plan-20261101/task-4-navigation-harness-fix1-review-package.txt `b7528734fb5c62765125fff3cc83914ebe2c1de9f8731cdd9e7fba757c9730fb`
+- jarvis-work-capability-delivery-plan-20261101/task-4-navigation-adapter-report.md `594584b5ad328070a41d3b9f6a5f29f4f74a0ba8bbd08115932adf968011452b`
+- jarvis-work-capability-delivery-plan-20261101/task-4-navigation-harness-fix1-brief.md `4fcac2928fb9fb264fa9913a23a621c3e1969d5690fbb178f95a732d862fd806`
+- jarvis-work-capability-delivery-plan-20261101/task-4-harness-fix1-h15-context.md `809cc477e5ddd8525a9df9d4b85d1777d7db4a1929dec1416c94f7941a437b0c`
+- harness-review-1/verdict.json `a2b0dae2e0f395d91bc70e7630bd3d38968d10d00ab3dbda8b9a0d3bf0f8257e`
+- harness-review-1/review.md `a71a802dfdd2f4ae74b388001b2d9bfa26c81c537c2dad8a837f11194c77998b`
+- harness-preparation-author-r2/report.md `b61101512a5e49ccb65d015de835ea1ecd87abc49c199702a2d91255fb52ecab`
+- code/root-harness-fix1-before-review.json `f9d4b9040606fa9a1161d96d98db98c465d45ccbc8d3d3c93456f36be081888f`
+- harness/manifest.json `b67231103cdf00e5c4c6cf60d2c8b6f80192f424b712e40c927093d663a40cbb`
+- harness-preparation-20261102T210331790644Z/receipt.json `392957d4a9b8417d56c26cee2ac909b164ce6cdd60b8b57deade5bcdccdc98fa`
+- harness/adapter.py `dca1caeea2c5ef2988010932671287e89b3ad7309e39eb94ae3cae9dbf15c3fe`
+- harness/headless_proof.py `74ed79892f167045e5c441da3938eb571a6d5aef07f726d698f93b260c48bfc0`
+- harness/README.md `7cbb0e35d7641016595db108337bd7897267fc46602c39736b9bcfec09bc1ee5`
+- harness/run_checks.py `36a789cabc122f8c73beba42fcffcf2f4e5f03245fbc39679db9344774ea6f8f`
+- harness/test_adapter.py `d3dc6a250793bd987ed83c79b5952ca065b1f0621f226d0411ab01731e723626`
+- final_JUnit `c748cd845e9a298d158a448afb938b18b2caf4c1b588066a7082d7782109a9c2`
+- before_after `4edf6caf3bd0cd1fc63df2602a27b9419692c01b877e38ae143288ad3525e3ce`
