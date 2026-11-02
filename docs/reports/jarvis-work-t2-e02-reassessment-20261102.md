@@ -1,8 +1,8 @@
 # T2 E02 当前 8B 研究接口复核
 
-当前阶段：**source10 首轮7项修复已提交 facd68d8，449项完整测试+8项兼容检查通过，正在原审查人逐项复核；E02、T2 真实验收尚未通过。** 原工单 `wo-ultimaagent-20261101-0021` 继续执行。
+当前阶段：**source10 FIX1 独审确认5项关闭，F3、F4与新增时间精度N1共3项Important待修，正在原作者FIX2；E02、T2真实验收尚未通过。** 原工单 `wo-ultimaagent-20261101-0021` 继续执行。
 
-同一候选上的 E01 文件摘要三轮、E03 选区改写三轮及焦点/选区负例已独立通过，结论见[验收汇总](jarvis-work-t2-e01-e03-acceptance-20261102.md)。当前继续解决 E02 研究任务，不越过 T2 推进 T3。
+源9候选 `244d2120` 上的 E01 文件摘要三轮、E03 选区改写三轮及焦点/选区负例已独立通过，结论见[验收汇总](jarvis-work-t2-e01-e03-acceptance-20261102.md)。源10新候选仍需重新完成同候选回归；当前继续解决 E02 研究任务，不越过 T2 推进 T3。
 
 本次核对了真实失败请求、SDK 输入与原生请求、响应、资料投影、证据卡及安装版词法器源码，确认以下边界：
 
@@ -48,3 +48,6 @@ Source10第一单元已完成：244→e0b04d6→494e544，仅六个允许路径�
 源10 FIX1当前候选：`facd68d8f94b4adcfd136e489e9ff81580d2dc0d`，首轮 REVISE 的1项Critical、6项Important已由原作者提交修复，尚未被独立确认关闭。完整449/0/0/0与兼容8/0/0/0的回执、当前源码及Git提交字节、SDK22、原报告43651字节前缀及四个新封存成果已由控制器独立读回，见 `navigation-source10-validation-20261102/code/root-unit23-fix1-before-review.json`（74d42860）。原审查人只复核F1–F7和新修复引入的问题，原首轮失败不改写。`source10` 模型推理调用0，验证适配器/惰性验证/实际E02/T3/生产集成均未放行；目前只有已授权的隔离代码和测试。
 
 原E02输入定位已确认：`source6-native-reference/controlled-corpus-inputs/corpus.json`（9e7cdfe6），题目774字节与原实际argv一致，四份正文7236/3252/4643/13559字节及URL/哈希与原独立失败复核一致；未来使用新请求与GET绑定，不复用旧GET许可。该定位读回不是E02通过或实际调用授权。
+
+
+FIX1逐项独立复核结果为SPEC REVISE、QUALITY REVISE（review-unit23-2/verdict.json e3601963）。F1、F2、F5、F6、F7已关闭；F3可接受来自错误agent的writer END，F4可接受空白或Unicode转义后命中既有scanner的ACK，N1用Decimal重算binary64时钟会拒绝合法已裁剪timeout。原prewrite与真实文件不变的反例均保留，见probe-results.json（15dd6619）。原作者FIX2仅修这3项并补反例回归；不放宽权限、时间、scanner、真实验收要求或8B-only范围。具体时钟裁定为用已记录的有限binary64原值重建与线上相同算术，不加epsilon/容差或换时钟域。

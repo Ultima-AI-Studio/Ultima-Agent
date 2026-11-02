@@ -1,0 +1,101 @@
+{
+  "SPEC": "REVISE",
+  "QUALITY": "REVISE",
+  "round": 1,
+  "base": "0e3e0edeb6d57d7d792dd5f1e40ecad58ee60642",
+  "head": "facd68d8f94b4adcfd136e489e9ff81580d2dc0d",
+  "findings": [
+    {
+      "id": "F1",
+      "severity": "Critical",
+      "verdict": "ADDRESSED",
+      "location": "src/brain/work_tools.py:165-201; src/brain/tests/test_work_navigation_sdk.py:307-369",
+      "evidence": "The callback serializes/scans under its RLock before publishing START and revokes before unlocking on any exception. The deterministic test pauses at the catch boundary against the actual worker on both sides of intent."
+    },
+    {
+      "id": "F2",
+      "severity": "Important",
+      "verdict": "ADDRESSED",
+      "location": "src/brain/work_research.py:816-843,864-885; src/brain/work_tools.py:396-422",
+      "evidence": "Canonical author submission, original visible fields, original file and report IDs, binding, executed file content, intent hash, effect and reopened path/hash are checked. Coherent changed-title/file and four cross-record changes have scoped negative coverage."
+    },
+    {
+      "id": "F3",
+      "severity": "Important",
+      "verdict": "NOT ADDRESSED",
+      "location": "src/brain/work_research.py:688-708,797-807,816-825",
+      "evidence": "Ordered timeline, frozen inputs, exact phase and embedded unchanged prewrite are now checked. The final writer END check validates success and tool but omits agent. Replacing just its agent with foreign after the sealed prewrite prefix passed the real verifier. Live observe_navigation rejects that event at work_tools.py:184-185. Validate writer START and END identity with the same exact transcript requirements used at runtime; test the foreign writer END after the sealed prefix."
+    },
+    {
+      "id": "F4",
+      "severity": "Important",
+      "verdict": "NOT ADDRESSED",
+      "location": "src/brain/work_research.py:755-772,789-815; src/brain/agent_server.py:408-413,600-614",
+      "evidence": "Metadata bytes, selected digest, outer response and exact options/counts are reconstructable. Replay scans the outer string but never scans the decoded action/final object. It also lacks the live nonblank final-answer check. With the original prewrite untouched, both a blank final answer and a scanner-positive synthetic identifier encoded with JSON Unicode escapes were accepted on the final ACK. Scan decoded envelopes and enforce the same nonblank rule; test post-prefix mutations with consistent outer bytes, response hash, counts and secured envelope."
+    },
+    {
+      "id": "F5",
+      "severity": "Important",
+      "verdict": "ADDRESSED",
+      "location": "src/brain/agent_server.py:274-304,329-334; src/brain/tests/test_work_navigation_transport.py:158-179",
+      "evidence": "Live admission installs the newly clipped timeout on the same prepared request before reserving. Refusal is recorded without consuming a POST. Both still-admitted and expired GET/POST cases inspect actual request extensions or zero starts. The new offline check has a separate numeric-domain defect N1."
+    },
+    {
+      "id": "F6",
+      "severity": "Important",
+      "verdict": "ADDRESSED",
+      "location": "src/brain/tests/test_work_research.py:635-665,670-700",
+      "evidence": "The between-snapshots stage delays the actual admitted SDK file operation. The compose-error access releases and joins it after the frozen service outcome. Original timeout, terminal identity/path/bytes, independent late record, immutable response and next-request isolation assertions are reachable."
+    },
+    {
+      "id": "F7",
+      "severity": "Important",
+      "verdict": "ADDRESSED",
+      "location": "src/brain/work_service.py:114-117,130-137; src/brain/work_research.py:847-865; src/brain/tests/test_work_navigation_transport.py:181-206",
+      "evidence": "The fresh service, ACK verifier and v3 report verifier require nonempty exact bytes; absent/null/empty/mutable values are denied. The explicitly separate issued-data function does not satisfy the fresh gate."
+    }
+  ],
+  "new_findings": [
+    {
+      "id": "N1",
+      "severity": "Important",
+      "location": "src/brain/work_tools.py:81-85; src/brain/agent_server.py:255-266,294-304; src/brain/work_research.py:586-606",
+      "finding": "Replay subtracts decimal representations of the binary64 clock readings, while live admission subtracts the binary64 values. With deadline 1060.2 and admitted_at 1000.1, the real author budget deadline - admitted_at - 55 is 5.100000000000023. Replay computes Decimal(1060.2)-Decimal(1000.1)-55 as 5.1 and rejects that correctly installed request timeout. This can fail valid research near the reserve boundary, or at ACK with less than 25 seconds remaining. The integer-clock F5 tests cannot catch it.",
+      "resolution": "Reconstruct the actual live clock arithmetic from lossless recorded binary64 values or use one common exact integer domain live and on replay. Add fractional real-shaped clock cases on both sides of the boundary without relaxing the time policy."
+    }
+  ],
+  "open_findings": [
+    "F3",
+    "F4",
+    "N1"
+  ],
+  "inputs": {
+    "C:\\Users\\Administrator\\.codex\\worktrees\\jarvis-work-capability-longpaths\\UltimaAgent\\.superpowers\\sdd\\jarvis-work-capability-delivery-plan-20261101\\task-2-navigation-code-unit23-rereview-brief.md": "a05d33f0143631133cd9a57f3067b58b6bc84c72badb0c5c3616c32528616871",
+    "C:\\Users\\Administrator\\.codex\\worktrees\\jarvis-work-capability-longpaths\\UltimaAgent\\.superpowers\\sdd\\jarvis-work-capability-delivery-plan-20261101\\task-2-navigation-code-unit23-fix1-review-inputs.json": "dc7fc504ae7fa91087daf36774ef7f6decfb8562a0562037ce2658973228a64e",
+    "C:\\Users\\Administrator\\.codex\\worktrees\\jarvis-work-capability-longpaths\\UltimaAgent\\.superpowers\\sdd\\jarvis-work-capability-delivery-plan-20261101\\task-2-navigation-unit23-fix1-brief.md": "e87821a99901b95a76b4fd0617b9cabb121185a5e64efdb76e97f31bcf375402",
+    "C:\\Users\\Administrator\\.codex\\worktrees\\jarvis-work-capability-longpaths\\UltimaAgent\\.superpowers\\sdd\\jarvis-work-capability-delivery-plan-20261101\\task-2-navigation-code-unit23-fix1-review-package.txt": "301b99157fc531a2e83cd2c9589c9e7a57ba7c93c35a6e4fd9dcd5a6e83a495a",
+    "C:\\Users\\Administrator\\.codex\\worktrees\\jarvis-work-capability-longpaths\\UltimaAgent\\.superpowers\\sdd\\jarvis-work-capability-delivery-plan-20261101\\task-2-navigation-code-unit2-report.md": "c43401ecead57c66e875d3d98e4087f42c0b157ed85ef15473acbdab58958871",
+    "H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\navigation-source10-validation-20261102\\code\\root-unit23-fix1-before-review.json": "74d42860d4c0398a0942f218d39b7888c5ad965eadcdbb9c9335e68c367e3755",
+    "H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\navigation-source10-validation-20261102\\review-unit23-1\\verdict.json": "8a77a272ff348e975c1d55d387a801f97b2b840c35ea6b9ace54d1b61f2dc037",
+    "H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\navigation-source10-validation-20261102\\code\\unit23-fix1-covering\\receipt.json": "6ab46371fdf362fae9781515c5441e06798cefbf2299bd8a841867b24e85de4b",
+    "H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\navigation-source10-validation-20261102\\code\\unit23-fix1-compat\\receipt.json": "641a777d97897c703ca7d4774336234d71799fa45254529872885c2f7bd7da63"
+  },
+  "checks": [
+    "Validated fix package/report/root proof hashes against sealed index; author report original 43651-byte prefix independently hashes to 0bd8a4e9f3e64ebc475dbd3c5e67e2581ab0cd50f20e3dd8d21c7bf803182587. Scoped fix package covers nine files. No git, broad test runs or source/index changes.",
+    "Independently verified exact covering and compat argv against root proof, exit zero, all receipt file hashes, JUnit case counts, before/after/current source inputs (31/11) and terminal stdout. 449 passed in 74.54s; 8 passed, one anyio rewrite warning. Optional voice fallback diagnostic remains; no audio operation. Root additionally verified SDK22 and frozen5.",
+    "Reopened all four original research.md files from the writer receipt and frozen root. Independently checked each of six exported hashes, GET body and fixture coordinates/literal Markdown bytes, raw embedded prewrite bytes plus unchanged wires/events/timeline/receipt prefixes, identity response hashes/version and selected local manifest digest, binding/prompt/deadline, file intent/effect/adapter IDs and exact bytes. Text/permuted/HTML/mixed were 337/337/370/341 bytes, five wires and 62 chronology records each.",
+    "Focused fixed H Python -B -X utf8 read-only replay against test_v3_native_react_observati0 with socket.connect/getaddrinfo denied, no files written by probe. Original runtime 7fcdfbcfbf8ff68d60066525f4e3c8536f86953c9c1de6b9fa05ea9a8f72a708 accepted. Independent in-memory variants accepted: writer END agent only 7846e0b17c75875ff4842da9125a0c126f144527b4d2418707c7c469aee8a132; blank final ACK 26f098f4e60684119130e2fa727eac0835dbb18d4ddcc841e5e4c97cdd650ffe; escaped synthetic scanner-positive final ACK 9a9a7c096944be8a43756d30a0fadf6d70d7db59e85379723d2ba355b1519543. For the ACK variants recomputed raw content/parsed and secured envelopes, full raw HTTP response, digest, admitted/retained/downloaded/inspected bytes and total chat admission. No prewrite/input/artifact changes. Verified the configured SDK PII scanner class accepts the escaped JSON string and rejects the decoded fixture identifier. These are replay counterexamples only.",
+    "Separate stdlib arithmetic probe compared the live binary64 and verifier Decimal expressions for N1. No transport or clock scheduling simulation was required."
+  ],
+  "out_of_scope": [],
+  "cannot_verify": [
+    "Real native inference, original four-source semantic coverage, actual GET/search/native timing, operational harness and release remain unproven. Real generated identifier scanner rejection rate is unmeasured.",
+    "Only current fixed 8B policy applies. Model, actual, harness, T3 and production release false; E02/T2 NOT_PASSED."
+  ],
+  "model": false,
+  "actual": false,
+  "harness": false,
+  "T3": false,
+  "production_release": false,
+  "E02_T2": "NOT_PASSED"
+}

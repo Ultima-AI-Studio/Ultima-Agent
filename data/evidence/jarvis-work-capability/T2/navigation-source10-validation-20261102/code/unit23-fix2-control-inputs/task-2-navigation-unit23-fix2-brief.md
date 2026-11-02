@@ -1,0 +1,46 @@
+# Combined U23 fix round2/5 — three scoped residual findings
+
+Read first. SAME original implementer /root/implement_navigation_unit2. BASE facd68d8f94b4adcfd136e489e9ff81580d2dc0d, source branch unchanged. Root read FULL scoped review/verdict plus receiving-code-review and fix-loop AGAIN before round2, checked actual work_research lines586-606/755-772/816-825 against live agent_server lines259-265/408-413/600-614, and independently hashed the exact reviewer outputs. All three findings are technically confirmed; no conflicting spec, severity downgrade, waiver or early adjudication. F1,F2,F5,F6,F7 are independently ADDRESSED. Do not reopen unrelated completed findings or touch unrelated code.
+
+Original combined requirements task-2-navigation-code-unit23-brief.md and prior availability/context rulings still bind. Full prior FIX1 report is raw archived V/code/unit23-author-fix1/report.md, complete68833-byte prefix SHA c43401ecead57c66e875d3d98e4087f42c0b157ed85ef15473acbdab58958871. Append the SAME task-2-navigation-code-unit2-report.md; preserve all existing bytes and all failed/successful stages/exports/reviews. Every new receipt/export uses NEW unit23-fix2-* paths. FIX1 final449+8 are historical facd results, never relabel them as new candidate results.
+
+Review authority V/review-unit23-2/verdict.json SHA e36019634549c3e1980d631f01499f0b0ee7b100c2a2a466227e228d139173a5; review.md SHA00b91e43c4aa8fc583858e9955fdd66b025323b8f6b907eeea1d490ff1c0d664. Exact genuine original packet and post-prefix counterfactuals/recipes at V/review-unit23-2/counterfactuals/probe-results.json SHA15dd6619cf8258d557aaa3ded8292f7f90f8df61fc265a381b532b37b7d2aaa6 plus original.json, wrong_writer_end_agent.json and blank_ack.json. Read these; escaped scanner-positive decoded text deliberately was not duplicated, reconstruction recipe/hash is complete. Keep test evidence safe.
+
+## Open findings verbatim
+
+### F3 Important
+
+src/brain/work_research.py:688-708,797-807,816-825
+
+Ordered timeline, frozen inputs, exact phase and embedded unchanged prewrite are now checked. The final writer END check validates success and tool but omits agent. Replacing just its agent with foreign after the sealed prewrite prefix passed the real verifier. Live observe_navigation rejects that event at work_tools.py:184-185. Validate writer START and END identity with the same exact transcript requirements used at runtime; test the foreign writer END after the sealed prefix.
+
+### F4 Important
+
+src/brain/work_research.py:755-772,789-815; src/brain/agent_server.py:408-413,600-614
+
+Metadata bytes, selected digest, outer response and exact options/counts are reconstructable. Replay scans the outer string but never scans the decoded action/final object. It also lacks the live nonblank final-answer check. With the original prewrite untouched, both a blank final answer and a scanner-positive synthetic identifier encoded with JSON Unicode escapes were accepted on the final ACK. Scan decoded envelopes and enforce the same nonblank rule; test post-prefix mutations with consistent outer bytes, response hash, counts and secured envelope.
+
+### N1 Important
+
+src/brain/work_tools.py:81-85; src/brain/agent_server.py:255-266,294-304; src/brain/work_research.py:586-606
+
+Replay subtracts decimal representations of the binary64 clock readings, while live admission subtracts the binary64 values. With deadline 1060.2 and admitted_at 1000.1, the real author budget deadline - admitted_at - 55 is 5.100000000000023. Replay computes Decimal(1060.2)-Decimal(1000.1)-55 as 5.1 and rejects that correctly installed request timeout. This can fail valid research near the reserve boundary, or at ACK with less than 25 seconds remaining. The integer-clock F5 tests cannot catch it.
+
+Resolution: Reconstruct the actual live clock arithmetic from lossless recorded binary64 values or use one common exact integer domain live and on replay. Add fractional real-shaped clock cases on both sides of the boundary without relaxing the time policy.
+
+## Root resolution and surgical scope
+
+Ruling: reconstruct the SAME finite binary64 monotonic values and arithmetic/order already used by live admission, from their lossless recorded repr strings. Do not migrate live clocks to a new integer domain in this round. This satisfies the declared single actual monotonic domain and minimizes changes. No epsilon/tolerance, cap increase, relaxed finite/monotonic/deadline/reserve checks or cross-clock comparisons. The cost if wrong is a valid-request rejection or excess timeout; meaningful fractional tests must distinguish both. Preserve original runtime/frozen input/receipt bytes and schema rules; raw SDK wall times stay diagnostics.
+
+Allowed changes ONLY src/brain/work_research.py, src/brain/agent_server.py, src/brain/work_tools.py if a small shared existing-policy helper is necessary, src/brain/tests/test_work_navigation_sdk.py and src/brain/tests/test_work_navigation_transport.py; optional docs/specs/jarvis-work-research-navigation-v3-20261102.md appendix for actual numeric-domain clarification. work_navigation.py, work_service.py, other tests including restored F6, five original frozen inputs, approved plans, SDK/vendor/defaults/dependencies/queues/memory/production are READ-ONLY. No new framework/core/registry/module. Do not use any test-mode success bypass or replace real SDK/scanners/file I/O. You may update NEW V/code/unit23-fix2-readback stdlib-only oracle copies for refreshed ABI evidence; do not overwrite the old oracles.
+
+## Test and completion contract
+
+1. One meaningful RED before each amended gate, then covering GREEN on the two named SDK/transport test files using byte-bound run_code_tests_v2.py. New `unit23-fix2-{f3,f4,n1}-{red,green}` (unique suffix if another justified run). Keep actual failing assertion/JUnit/logs. Do not run broad suites per individual edit.
+2. F3: genuine successful issued/file/runtime control must verify. A foreign writer END agent after the sealed prewrite prefix must fail specifically on transcript identity, not a changed prewrite/earlier missing-proof error. Validate both writer START/END exact identity consistently with live observer. Preserve ordered read/writer chronology and existing event/binding linkage; no fallback.
+3. F4: from a genuinely accepted final packet with original prewrite/frozen inputs/file unchanged, coherently mutate final ACK to empty/whitespace or the exact reviewer Unicode-escaped synthetic scanner-positive answer. Recompute raw/parsed/secured envelopes, HTTP response bytes/digests/admitted/retained/downloaded/inspected counts as in reviewer recipe. Require rejection at the nonblank/decoded-string configured scanner gate. Confirm same encoded answer is rejected by LIVE secured path after decoding as well as replay. Cover decoded action inputs too: scanning the whole outer content string alone does not validate nested decoded JSON strings. Reuse current real captured ordered scanners, no opaque-identifier exception, masking, new scanner, reseeding or weakened schema.
+4. N1: use real-shaped fractional live clock values, including exact deadline1060.2 and admission1000.1; inspect SAME actual prepared HTTPX request extensions, then prove replay accepts the correctly installed5.100000000000023 timeout. Cover author and ACK, GET metadata and POST chat where applicable, accepted vs exhausted fractional boundaries. A timeout greater than the actual permitted cap (including a representable amount above when useful) must still reject. Keep all finite/positive/monotonic checks; no Decimal rounded subtraction replacing the actual binary64 calculation. Include at least one genuine full guarded SDK positive with fractional admission/clock evidence, not just a mirrored arithmetic unit.
+5. After all changes, exactly ONE final full original6+new3 (same nine files as FIX1) and ONE safe compatibility8 on final bytes. Existing449 JUnit identities/names retained, original285/65 purposes intact. No skip/xfail. Reopen four NEW positive report/issued/views/runtime/frozen-input/prewrite exports by a separate stdlib-only oracle; also retain focused fractional Request.extensions/replay evidence. Expect no current-gate claim until all final source/C/Git blobs match. If a later source edit is necessary, retain prior run and create a uniquely named new final stage.
+6. Exact commit only allowed paths, self-review, append SAME report with per-finding changes, RED/GREEN commands/output/hashes, final covering/compat stdout/JUnit/receipt/source maps, fresh four-case readback+fractional proof, SDK22/frozen protection, original prefix preservation, commit and concerns. Root owns SAME scoped reviewer at NEW review-unit23-3 and publication. No push/tag/branch changes by you.
+
+Fixed interpreter H:/UltimaAI/UltimaAgent/tools/venv-openjarvis/Scripts/python.exe -B -X utf8. Preserve isolated temp/cache/OPENJARVIS_HOME and real SDK imports; no actual11434/external access except existing isolated legacy SSE loopback. Current8B-only is permanent, no model use in this task, no14B/larger/otherweights. No server/harness/inert/actual/UI/microphone/audio/production actions or subagents. E02/T2 NOT_PASSED, T3 closed, goal active. Finish this code correction without asking to change models or acceptance.
