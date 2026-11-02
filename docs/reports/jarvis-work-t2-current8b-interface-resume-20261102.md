@@ -117,3 +117,14 @@ r3 的上下文估算与受控回放两项 Important 已修订。r4 精确方案
 为继续回答项目可行性问题，目前仅准备一个新预注册问题：在恢复的运行条件下，尚未尝试的S3代码是否能经同样SDK、输入、模型及36秒绝对slice产出可靠本地机制说明。拟固定S3→S1→S4、逐份事实独审、各一次，含失败S2的累计总上限仍为4POST；无S2补样本、无模型预热调用，任一失败即停。此新提案和启动程序尚待独审及controller单独签发，不放行源码10，不补证S2的manager/provider选择，不将原组、总体覆盖或E02改判通过。历史源码9/293项代码检查及全部真实失败保留，原单未完成；模型默认、KWS、生产服务、T3—T5不变。
 
 原始运行：data/evidence/jarvis-work-capability/T2/per-source-feasibility-20261102/S2-first/first-f53a803-r2/；独立复核：data/evidence/jarvis-work-capability/T2/review-per-source-S2-first-infra/；资源及controller记录：data/evidence/jarvis-work-capability/T2/per-source-feasibility-20261102/。
+
+
+## S3真实调用完成，但局部研究未交付
+
+未尝试的S3新问题准备程序完成31项离线测试及6项独立复跑，Windows目录联接写域问题已修复，冻结研究核心和提示词没有变。实际首轮使用同一社区8B、16K上下文、480输出上限；Ollama冷加载9.75秒，原生调用11.49秒，包含SDK确认的前缀共12.09秒，HTTP200/done stop/2928输入与94输出token。模型生成了一次合法unused_reason，真实SDK暂存已确认；0事实、0引用、0研究文件。因此证明了这一次加载与执行可用，不能证明研究交付成功。
+
+独立审查6ad3e00a：机械PASS、事实NOT_ASSESSED、覆盖FAIL。S3全文110行及15张引用卡均可见；弃用理由按“无法完整回答多来源原问题”判断，没有完成已要求的局部来源贡献。源码包含可引用的相关局部机制；没有证据表明输入截断或schema删去事实分支造成此次弃用，也不能由一次没有主张的输出断言模型永久无能力。
+
+S2与S3原结果均保留且不重跑，累计实际POST为2，S1/S4按停止规则关闭，原组及S3新问题均FAIL，源码10/产品集成/T3—T5仍关闭。本轮没有产品源码修改或新研究文件；启动程序31项检查与既有产品293项测试分别计数。受保护5进程身份及21个产品/契约输入再次核对未变，隔离调用进程均已退出。当前只做一次阶段职责表达假设的设计裁决：现有提示已经要求单来源部分贡献，故不能预先认定提示存在根因；若有新提案，只能独审后另裁决未尝试S4/S1，最多使用原累计上限4中的剩余2次，不得补样本或降低公开E02交付门。
+
+实际包：data/evidence/jarvis-work-capability/T2/per-source-feasibility-20261102/remaining-source-actual/S3/first-f53a803-r2/；独立复核：data/evidence/jarvis-work-capability/T2/review-remaining-source-S3-first/。T2仍未通过，原工单未完成。
