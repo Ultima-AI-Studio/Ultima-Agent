@@ -1,0 +1,123 @@
+--- preparation-r3/controller.py
++++ preparation-r4/controller.py
+@@ -1,4 +1,4 @@
+-"""Revision 3 original acceptance evidence controller. Root alone releases a case."""
++"""Revision 4 original acceptance evidence controller. Root alone releases a case."""
+ from __future__ import annotations
+ import base64
+ import argparse, ctypes as C, datetime as dt, hashlib, json, os, socket, stat, subprocess, sys, time, uuid
+@@ -65,7 +65,7 @@
+         require(Path(name).name==name,'Unsafe package entry')
+         require(sha(no_reparse(P/name))==digest,'Preparation file drift')
+     approval_path=no_reparse(R/'controller-preparation-approval.json'); approval=load(approval_path)
+-    review_path=no_reparse(R/'review-preparation-3/review.md')
++    review_path=no_reparse(R/'review-preparation-4/review.md')
+     require(approval.get('schema')==2 and approval.get('overall')=='PASS' and approval.get('reviewer')=='root-independent','Independent preparation approval required')
+     require(approval.get('preparation_manifest_sha256')==sha(P/'manifest.json') and approval.get('review_sha256')==sha(review_path),'Current review mismatch')
+     require(authority.get('approval_sha256')==sha(approval_path),'Approval binding mismatch')
+@@ -175,9 +175,12 @@
+         # Inspect below validated interpreter children too. New nested identities
+         # have no original launch authority: record and fail, never terminate.
+         for parent_pid,parent in list(self.known.items()):
+-            if parent_pid not in snapshot: continue
+-            try: require(identity(parent_pid)==parent['identity'],'Known parent identity drift')
+-            except OSError: continue
++            if parent_pid in snapshot:
++                try: require(identity(parent_pid)==parent['identity'],'Known parent identity drift')
++                except OSError as exc: self.errors.append({'retained_parent_identity_unknown':parent['identity'],'error':str(exc)})
++            # An absent retained parent does not prove its subtree is empty.
++            # Its creation lower bound can exclude older unrelated processes;
++            # without a retained exit bound every later child remains ambiguous.
+             pending=[(parent_pid,parent['identity']['created_filetime'])]; visited=set()
+             while pending:
+                 ancestor,created=pending.pop()
+@@ -187,7 +190,7 @@
+                     if row['ParentProcessId']!=ancestor or pid in self.known or pid in self.auxiliary: continue
+                     key=identity(pid)
+                     if key['created_filetime']<created: continue
+-                    self.errors.append({'discovery':'unknown-nested-descendant','identity':key,'parent':ancestor,'authority':'none'})
++                    self.errors.append({'discovery':'unknown-nested-descendant','identity':key,'parent':ancestor,'retained_parent_present':ancestor in snapshot,'creation_lower_bound':created,'creation_upper_bound':None,'authority':'none'})
+                     pending.append((pid,key['created_filetime']))
+         save(self.folder/'owned-tree.json',{'processes':list(self.known.values()),'auxiliary':list(self.auxiliary.values()),'stale_rejected':self.stale,'errors':self.errors})
+         require(not self.errors,'Owned discovery ambiguity')
+@@ -404,23 +407,64 @@
+         save(self.folder/'pre-cleanup-effects.json',evidence); return evidence
+     def negative(self,baseline):
+         from src.brain.work_context import WorkContextProvider,Win32Edit
+-        provider=WorkContextProvider(load(self.folder/'policy.json')); native=Win32Edit(); failures=[]; sends=[]
+-        before_files=output_inventory(self.folder)
++        packet={'baseline_windows':baseline,'initial_outputs':None,'scenarios':[],'mutation_sends':[]}
++        evidence_path=self.folder/'negative-observations.json'
++        def persist(): save(evidence_path,packet)
++        def observed(record,key,callback):
++            try:
++                value=callback();record[key]=value;persist();return value
++            except Exception as exc:
++                record[key+'_unknown']={'error':str(exc),'type':type(exc).__name__};persist();raise
++        persist()
++        initial=observed(packet,'initial_outputs',lambda:output_inventory(self.folder))
++        require(initial==[],'Negative authorizes empty output set only')
++        try:
++            provider=WorkContextProvider(load(self.folder/'policy.json'));native=Win32Edit()
++        except Exception as exc:
++            packet['provider_unknown']={'error':str(exc),'type':type(exc).__name__};persist();raise
++        after=None
+         for scenario in ('focus','selection'):
+-            self.command(); capture=provider.capture_work_context(); require(capture['available'],'Negative capture unavailable')
+-            self.command(1 if scenario=='focus' else 0,scenario=='focus')
+-            current=self.observe('negative-'+scenario); focus=native.focused(); targets=load(self.folder/'fixture.json')['targets']; index=1 if scenario=='focus' else 0
+-            require(focus==(targets[index]['hwnd'],targets[index]['control_hwnd']),'Actual owned foreground change missing')
+-            require((current[0]['start_utf16'],current[0]['end_utf16'])!=(capture['selection']['start_utf16'],capture['selection']['end_utf16']) if scenario=='selection' else focus!=(targets[0]['hwnd'],targets[0]['control_hwnd']),'Actual negative change missing')
+-            rejected=False; error=None
+-            try: provider.replace_selection(capture,'SHOULD NEVER WRITE',before_send=lambda:sends.append(scenario))
+-            except ValueError as exc: rejected=True; error=str(exc)
+-            finally: provider.release(capture)
+-            after=self.observe('negative-'+scenario+'-after')
+-            require(rejected and not sends and [x['text'] for x in after]==[x['text'] for x in baseline] and output_inventory(self.folder)==before_files,'Negative refusal/mutation/text/file failure')
+-            failures.append({'scenario':scenario,'capture':capture,'changed_windows':current,'foreground':focus,'rejected':rejected,'error':error,'sends':list(sends),'texts_files_unchanged':True})
+-        self.accepted_effects={'outputs':before_files,'windows':after,'cli_count':0}
+-        save(self.folder/'negative-evidence.json',{'cases':failures,'mutation_sends':sends,'model_requests':0}); return {'mechanical':'PASS','facts':'PENDING_ROOT_INDEPENDENT_REVIEW'}
++            record={'scenario':scenario,'sends':[],'completion':'not_attempted','unobserved_reason':'Scenario has not completed'}
++            packet['scenarios'].append(record);persist();capture=None
++            try:
++                observed(record,'reset_command',lambda:self.command())
++                capture=observed(record,'capture',provider.capture_work_context)
++                require(capture.get('available') is True,'Negative capture unavailable')
++                observed(record,'change_command',lambda:self.command(1 if scenario=='focus' else 0,scenario=='focus'))
++                current=observed(record,'changed_windows',lambda:self.observe('negative-'+scenario))
++                focus=observed(record,'foreground',native.focused)
++                targets=load(self.folder/'fixture.json')['targets'];index=1 if scenario=='focus' else 0
++                require(focus==(targets[index]['hwnd'],targets[index]['control_hwnd']),'Actual owned foreground change missing')
++                require((current[0]['start_utf16'],current[0]['end_utf16'])!=(capture['selection']['start_utf16'],capture['selection']['end_utf16']) if scenario=='selection' else focus!=(targets[0]['hwnd'],targets[0]['control_hwnd']),'Actual negative change missing')
++                def mark():
++                    record['sends'].append(scenario);packet['mutation_sends'].append(scenario);persist()
++                try:
++                    provider.replace_selection(capture,'SHOULD NEVER WRITE',before_send=mark)
++                    record['refusal']={'rejected':False}
++                except ValueError as exc: record['refusal']={'rejected':True,'error':str(exc),'type':type(exc).__name__}
++                except Exception as exc:
++                    record['refusal_unknown']={'error':str(exc),'type':type(exc).__name__};persist();raise
++                persist()
++                after=observed(record,'after_windows',lambda:self.observe('negative-'+scenario+'-after'))
++                files=observed(record,'after_outputs',lambda:output_inventory(self.folder))
++                require(record['refusal']['rejected'] and not packet['mutation_sends'],'Negative refusal/mutation failure')
++                require([x['text'] for x in after]==[x['text'] for x in baseline],'Negative text changed')
++                require(files==[],'Negative output set is not empty')
++                record['completion']='PASS';record.pop('unobserved_reason',None);persist()
++            except Exception as exc:
++                record['completion']='FAIL';record['error']={'error':str(exc),'type':type(exc).__name__}
++                record['unobserved_reason']='Scenario stopped at recorded error; absent later fields were not observed'
++                persist();raise
++            finally:
++                if capture is not None:
++                    try: provider.release(capture);record['capture_released']=True
++                    except Exception as exc:
++                        record['release_unknown']={'error':str(exc),'type':type(exc).__name__};persist();raise
++                    persist()
++        self.accepted_effects={'outputs':[],'windows':after,'cli_count':0}
++        save(self.folder/'negative-evidence.json',{'cases':packet['scenarios'],'mutation_sends':packet['mutation_sends'],'model_requests':0,'authorized_outputs':[]})
++        return {'mechanical':'PASS','facts':'PENDING_ROOT_INDEPENDENT_REVIEW'}
++
+ 
+ def execute(case,folder,authority_path,ledger_path):
+     authority,ledger,root_proof=validate_authority(case,folder,authority_path,ledger_path)
