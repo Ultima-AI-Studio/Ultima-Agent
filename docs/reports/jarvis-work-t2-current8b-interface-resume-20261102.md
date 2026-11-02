@@ -135,3 +135,14 @@ S2与S3原结果均保留且不重跑，累计实际POST为2，S1/S4按停止规
 中性局部充分性设计0a95e725独立SPEC/QUALITY PASS（e7abb30a）。只把unused_reason的充分性明确为“可见证据能否支撑至少一条相关且符合引用规则的局部论断”，原query以background_original_query完整保留；不是提示根因已证实或模型能力已修复。完整精确提案见docs/plans/jarvis-work-local-role-diagnostic-design-20261102.md。
 
 当前仅准备新的隔离验证程序，S4/S1实际调用尚未放行。若新准备另经独审通过，最多按S4→S1各一次；S2/S3原失败及2次已耗均保留，累计仍不超过4，任一失败/unused立即终止。两份即使都通过也只证明两个局部前缀，不满足原三来源/三轮E02、全流程预算或文件交付，更不自动放行源码10。生产源码/默认模型/KWS/T3—T5不变。
+
+
+## 当前8B逐来源分支收口：T2 BLOCKED
+
+职责澄清验证程序76项离线测试及5项独立复跑通过后，只执行了S4首次请求。冷加载3.35秒，原生调用5.80秒，SDK在入场后6.30秒确认；HTTP200、done stop、7320输入与79输出token。模型仍只提交unused_reason“没有相关论断”，0事实、0引用、0研究文件。独审00c9ce78判机械PASS、事实NOT_ASSESSED、局部覆盖FAIL：367行原文及48张可用引用卡完整可见，可支持执行底座局部说明，弃用不成立。该结果不能证明模型永久无能力，也不证明更换措辞的因果效果。
+
+本轮三次POST分别为S2加载前失败、S3正常生成后弃用、职责澄清后S4正常生成后弃用，全部首结果与原始包保留。S1未调用，累计3/4；第四次没有授权，不能为凑成功而继续。停止新增协议变体、不重做S2/S3/S4，不放行源码10、产品集成或T3—T5。T2经真实状态机EXECUTING→FAILED→BLOCKED，45条其他任务记录及真实失败重入计数2保持。原工单未完成、E02仍未交付，产品代码及默认模型没有变化。
+
+研究后续的控制面选择提案见docs/plans/jarvis-work-t2-research-model-decision-20261102.md：维持当前社区8B与原验收则保留T2未通过；或由用户选择研究专用本机qwen2.5:14b，先单次只读隔离资格验证，默认8B/语音不变。14B安装摘要已重新核验，但实际调用0、没有模型切换授权。资格验证必须另做精确准备及独审，旧3次保留、最多使用总上限4中的最后一次，不自动放行产品或改变三来源三轮验收。
+
+运行：data/evidence/jarvis-work-capability/T2/per-source-feasibility-20261102/local-role-actual/S4/first-f53a803-role-r2/；独审：data/evidence/jarvis-work-capability/T2/review-local-role-S4-first/；状态机回执：data/evidence/jarvis-work-capability/T2/per-source-feasibility-20261102/queue-closure.json。受保护5进程及21项产品/契约输入再次核对保持，隔离运行进程已退出；没有录音、播放或修改KWS。
