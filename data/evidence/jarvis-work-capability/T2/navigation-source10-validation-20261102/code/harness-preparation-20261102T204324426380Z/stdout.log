@@ -1,0 +1,265 @@
+........................................................................ [ 83%]
+...FFFFFFFFFFF                                                           [100%]
+================================== FAILURES ===================================
+_______________ test_fix1_h05_unrelated_protected_five_rejected _______________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000002641FE6EA50>
+
+    def test_fix1_h05_unrelated_protected_five_rejected(monkeypatch):
+        p4=a.load_p4(); unrelated=[dict(pid=p,created_filetime=100+p,exe='python') for p in range(1,6)]
+        monkeypatch.setattr(p4,'identity',lambda pid:unrelated[pid-1])
+        monkeypatch.setattr(p4,'protected',lambda:[dict(pid=p,created_filetime=100+p,exe='python') for p in range(11,16)])
+        proof=dict(precision='FILETIME100ns',candidate=a.CANDIDATE,recorded_at=dt.datetime.now(dt.timezone.utc).isoformat(),protected=unrelated)
+>       with pytest.raises(ValueError,match='protected member'): a.check_native_baseline(proof,p4)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+..\..\harness\test_adapter.py:525: Failed
+___________ test_fix1_h06_alternate_interpreter_same_flags_rejected ___________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000026420046AC0>
+
+    def test_fix1_h06_alternate_interpreter_same_flags_rejected(monkeypatch):
+        monkeypatch.setattr(sys,'executable','C:/other/python.exe')
+>       with pytest.raises(ValueError,match='interpreter'): a.check_inputs()
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+..\..\harness\test_adapter.py:529: Failed
+_____________ test_fix1_h01_one_use_native_child_clearance[flags] _____________
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/harness-preparation-20261102T204324426380Z/temp/test_fix1_h01_one_use_native_c0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000002641FE2ACF0>
+fault = 'flags'
+
+    @pytest.mark.parametrize('fault',['flags','identity','attempt','replay','none'])
+    def test_fix1_h01_one_use_native_child_clearance(tmp_path,monkeypatch,fault):
+        clock=Clock(); b=a.Deadline(clock=clock); p4=a.load_p4()
+        key=dict(pid=77,created_filetime=123,exe=sys.executable)
+        monkeypatch.setattr(p4,'identity',lambda pid:key)
+        context=dict(folder=tmp_path,port=18799,budget=b,mode='inert',authority={},request_id='r',session_id='s')
+        a.save_new(tmp_path/'attempt.json',dict(parent_timing=b.timing()))
+        argv=a.inert_argv(tmp_path,18799)
+        record=dict(mode='inert',folder=str(tmp_path),timing=b.timing(),argv=argv,attempt_sha256=a.sha(tmp_path/'attempt.json'),authority_sha256='authority',members=[dict(identity=key,role='server',parent=1)])
+        a.save_new(tmp_path/'child-clearance.json',record)
+        supplied=list(argv)
+        if fault=='flags': supplied.remove('--runtime-root')
+        elif fault=='identity': monkeypatch.setattr(p4,'identity',lambda pid:dict(key,created_filetime=124))
+        elif fault=='attempt': (tmp_path/'attempt.json').write_text('{}')
+        elif fault=='replay': a.save_new(tmp_path/'child-clearance.consumed.json',{})
+        if fault=='none': assert a.consume_clearance(context,p4,supplied,'authority')==key
+        else:
+>           with pytest.raises((ValueError,FileExistsError)): a.consume_clearance(context,p4,supplied,'authority')
+                                                              ^^^^^^^^^^^^^^^^^^^
+E           AttributeError: module 'source10_adapter' has no attribute 'consume_clearance'
+
+..\..\harness\test_adapter.py:548: AttributeError
+___________ test_fix1_h01_one_use_native_child_clearance[identity] ____________
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/harness-preparation-20261102T204324426380Z/temp/test_fix1_h01_one_use_native_c1')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000002641FE6D400>
+fault = 'identity'
+
+    @pytest.mark.parametrize('fault',['flags','identity','attempt','replay','none'])
+    def test_fix1_h01_one_use_native_child_clearance(tmp_path,monkeypatch,fault):
+        clock=Clock(); b=a.Deadline(clock=clock); p4=a.load_p4()
+        key=dict(pid=77,created_filetime=123,exe=sys.executable)
+        monkeypatch.setattr(p4,'identity',lambda pid:key)
+        context=dict(folder=tmp_path,port=18799,budget=b,mode='inert',authority={},request_id='r',session_id='s')
+        a.save_new(tmp_path/'attempt.json',dict(parent_timing=b.timing()))
+        argv=a.inert_argv(tmp_path,18799)
+        record=dict(mode='inert',folder=str(tmp_path),timing=b.timing(),argv=argv,attempt_sha256=a.sha(tmp_path/'attempt.json'),authority_sha256='authority',members=[dict(identity=key,role='server',parent=1)])
+        a.save_new(tmp_path/'child-clearance.json',record)
+        supplied=list(argv)
+        if fault=='flags': supplied.remove('--runtime-root')
+        elif fault=='identity': monkeypatch.setattr(p4,'identity',lambda pid:dict(key,created_filetime=124))
+        elif fault=='attempt': (tmp_path/'attempt.json').write_text('{}')
+        elif fault=='replay': a.save_new(tmp_path/'child-clearance.consumed.json',{})
+        if fault=='none': assert a.consume_clearance(context,p4,supplied,'authority')==key
+        else:
+>           with pytest.raises((ValueError,FileExistsError)): a.consume_clearance(context,p4,supplied,'authority')
+                                                              ^^^^^^^^^^^^^^^^^^^
+E           AttributeError: module 'source10_adapter' has no attribute 'consume_clearance'
+
+..\..\harness\test_adapter.py:548: AttributeError
+____________ test_fix1_h01_one_use_native_child_clearance[attempt] ____________
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/harness-preparation-20261102T204324426380Z/temp/test_fix1_h01_one_use_native_c2')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000264200477E0>
+fault = 'attempt'
+
+    @pytest.mark.parametrize('fault',['flags','identity','attempt','replay','none'])
+    def test_fix1_h01_one_use_native_child_clearance(tmp_path,monkeypatch,fault):
+        clock=Clock(); b=a.Deadline(clock=clock); p4=a.load_p4()
+        key=dict(pid=77,created_filetime=123,exe=sys.executable)
+        monkeypatch.setattr(p4,'identity',lambda pid:key)
+        context=dict(folder=tmp_path,port=18799,budget=b,mode='inert',authority={},request_id='r',session_id='s')
+        a.save_new(tmp_path/'attempt.json',dict(parent_timing=b.timing()))
+        argv=a.inert_argv(tmp_path,18799)
+        record=dict(mode='inert',folder=str(tmp_path),timing=b.timing(),argv=argv,attempt_sha256=a.sha(tmp_path/'attempt.json'),authority_sha256='authority',members=[dict(identity=key,role='server',parent=1)])
+        a.save_new(tmp_path/'child-clearance.json',record)
+        supplied=list(argv)
+        if fault=='flags': supplied.remove('--runtime-root')
+        elif fault=='identity': monkeypatch.setattr(p4,'identity',lambda pid:dict(key,created_filetime=124))
+        elif fault=='attempt': (tmp_path/'attempt.json').write_text('{}')
+        elif fault=='replay': a.save_new(tmp_path/'child-clearance.consumed.json',{})
+        if fault=='none': assert a.consume_clearance(context,p4,supplied,'authority')==key
+        else:
+>           with pytest.raises((ValueError,FileExistsError)): a.consume_clearance(context,p4,supplied,'authority')
+                                                              ^^^^^^^^^^^^^^^^^^^
+E           AttributeError: module 'source10_adapter' has no attribute 'consume_clearance'
+
+..\..\harness\test_adapter.py:548: AttributeError
+____________ test_fix1_h01_one_use_native_child_clearance[replay] _____________
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/harness-preparation-20261102T204324426380Z/temp/test_fix1_h01_one_use_native_c3')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000026420047000>
+fault = 'replay'
+
+    @pytest.mark.parametrize('fault',['flags','identity','attempt','replay','none'])
+    def test_fix1_h01_one_use_native_child_clearance(tmp_path,monkeypatch,fault):
+        clock=Clock(); b=a.Deadline(clock=clock); p4=a.load_p4()
+        key=dict(pid=77,created_filetime=123,exe=sys.executable)
+        monkeypatch.setattr(p4,'identity',lambda pid:key)
+        context=dict(folder=tmp_path,port=18799,budget=b,mode='inert',authority={},request_id='r',session_id='s')
+        a.save_new(tmp_path/'attempt.json',dict(parent_timing=b.timing()))
+        argv=a.inert_argv(tmp_path,18799)
+        record=dict(mode='inert',folder=str(tmp_path),timing=b.timing(),argv=argv,attempt_sha256=a.sha(tmp_path/'attempt.json'),authority_sha256='authority',members=[dict(identity=key,role='server',parent=1)])
+        a.save_new(tmp_path/'child-clearance.json',record)
+        supplied=list(argv)
+        if fault=='flags': supplied.remove('--runtime-root')
+        elif fault=='identity': monkeypatch.setattr(p4,'identity',lambda pid:dict(key,created_filetime=124))
+        elif fault=='attempt': (tmp_path/'attempt.json').write_text('{}')
+        elif fault=='replay': a.save_new(tmp_path/'child-clearance.consumed.json',{})
+        if fault=='none': assert a.consume_clearance(context,p4,supplied,'authority')==key
+        else:
+>           with pytest.raises((ValueError,FileExistsError)): a.consume_clearance(context,p4,supplied,'authority')
+                                                              ^^^^^^^^^^^^^^^^^^^
+E           AttributeError: module 'source10_adapter' has no attribute 'consume_clearance'
+
+..\..\harness\test_adapter.py:548: AttributeError
+_____________ test_fix1_h01_one_use_native_child_clearance[none] ______________
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/harness-preparation-20261102T204324426380Z/temp/test_fix1_h01_one_use_native_c4')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000026420047A10>
+fault = 'none'
+
+    @pytest.mark.parametrize('fault',['flags','identity','attempt','replay','none'])
+    def test_fix1_h01_one_use_native_child_clearance(tmp_path,monkeypatch,fault):
+        clock=Clock(); b=a.Deadline(clock=clock); p4=a.load_p4()
+        key=dict(pid=77,created_filetime=123,exe=sys.executable)
+        monkeypatch.setattr(p4,'identity',lambda pid:key)
+        context=dict(folder=tmp_path,port=18799,budget=b,mode='inert',authority={},request_id='r',session_id='s')
+        a.save_new(tmp_path/'attempt.json',dict(parent_timing=b.timing()))
+        argv=a.inert_argv(tmp_path,18799)
+        record=dict(mode='inert',folder=str(tmp_path),timing=b.timing(),argv=argv,attempt_sha256=a.sha(tmp_path/'attempt.json'),authority_sha256='authority',members=[dict(identity=key,role='server',parent=1)])
+        a.save_new(tmp_path/'child-clearance.json',record)
+        supplied=list(argv)
+        if fault=='flags': supplied.remove('--runtime-root')
+        elif fault=='identity': monkeypatch.setattr(p4,'identity',lambda pid:dict(key,created_filetime=124))
+        elif fault=='attempt': (tmp_path/'attempt.json').write_text('{}')
+        elif fault=='replay': a.save_new(tmp_path/'child-clearance.consumed.json',{})
+>       if fault=='none': assert a.consume_clearance(context,p4,supplied,'authority')==key
+                                 ^^^^^^^^^^^^^^^^^^^
+E       AttributeError: module 'source10_adapter' has no attribute 'consume_clearance'
+
+..\..\harness\test_adapter.py:546: AttributeError
+_____________ test_fix1_h04_native_member_set_not_vacuous[empty] ______________
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/harness-preparation-20261102T204324426380Z/temp/test_fix1_h04_native_member_se0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000002641FFA4130>
+rows = 'empty'
+
+    @pytest.mark.parametrize('rows',['empty','subset','parent','none'])
+    def test_fix1_h04_native_member_set_not_vacuous(tmp_path,monkeypatch,rows):
+        p4=a.load_p4(); root=dict(pid=1,created_filetime=101,exe=sys.executable); child=dict(pid=2,created_filetime=102,exe=sys.executable)
+        monkeypatch.setattr(p4,'identity',lambda pid:{1:root,2:child}[pid]); monkeypatch.setattr(p4,'argv_parse',lambda text:json.loads(text)); monkeypatch.setattr(p4,'process_times',lambda proc:(101,0))
+        argv=['-B','script']; owned=types.SimpleNamespace(known={1:dict(identity=root,role='server',parent=0),2:dict(identity=child,role='server',parent=1)},launchers=[dict(proc=types.SimpleNamespace(pid=1),identity=root,argv=argv,role='server')])
+        snapshot={1:dict(ParentProcessId=0,CommandLine=json.dumps([sys.executable,*argv])),2:dict(ParentProcessId=99 if rows=='parent' else 1,CommandLine=json.dumps([sys.executable,*argv]))}
+        if rows=='empty': snapshot={}
+        elif rows=='subset': snapshot.pop(1)
+        listener=dict(identity=child,argv=argv,role='server')
+        if rows=='none': assert a.validate_native_members(owned,p4,snapshot,listener,argv)['live_pids']==[1,2]
+        else:
+>           with pytest.raises(ValueError): a.validate_native_members(owned,p4,snapshot,listener,argv)
+                                            ^^^^^^^^^^^^^^^^^^^^^^^^^
+E           AttributeError: module 'source10_adapter' has no attribute 'validate_native_members'
+
+..\..\harness\test_adapter.py:561: AttributeError
+_____________ test_fix1_h04_native_member_set_not_vacuous[subset] _____________
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/harness-preparation-20261102T204324426380Z/temp/test_fix1_h04_native_member_se1')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000002641FE6EA50>
+rows = 'subset'
+
+    @pytest.mark.parametrize('rows',['empty','subset','parent','none'])
+    def test_fix1_h04_native_member_set_not_vacuous(tmp_path,monkeypatch,rows):
+        p4=a.load_p4(); root=dict(pid=1,created_filetime=101,exe=sys.executable); child=dict(pid=2,created_filetime=102,exe=sys.executable)
+        monkeypatch.setattr(p4,'identity',lambda pid:{1:root,2:child}[pid]); monkeypatch.setattr(p4,'argv_parse',lambda text:json.loads(text)); monkeypatch.setattr(p4,'process_times',lambda proc:(101,0))
+        argv=['-B','script']; owned=types.SimpleNamespace(known={1:dict(identity=root,role='server',parent=0),2:dict(identity=child,role='server',parent=1)},launchers=[dict(proc=types.SimpleNamespace(pid=1),identity=root,argv=argv,role='server')])
+        snapshot={1:dict(ParentProcessId=0,CommandLine=json.dumps([sys.executable,*argv])),2:dict(ParentProcessId=99 if rows=='parent' else 1,CommandLine=json.dumps([sys.executable,*argv]))}
+        if rows=='empty': snapshot={}
+        elif rows=='subset': snapshot.pop(1)
+        listener=dict(identity=child,argv=argv,role='server')
+        if rows=='none': assert a.validate_native_members(owned,p4,snapshot,listener,argv)['live_pids']==[1,2]
+        else:
+>           with pytest.raises(ValueError): a.validate_native_members(owned,p4,snapshot,listener,argv)
+                                            ^^^^^^^^^^^^^^^^^^^^^^^^^
+E           AttributeError: module 'source10_adapter' has no attribute 'validate_native_members'
+
+..\..\harness\test_adapter.py:561: AttributeError
+_____________ test_fix1_h04_native_member_set_not_vacuous[parent] _____________
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/harness-preparation-20261102T204324426380Z/temp/test_fix1_h04_native_member_se2')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000263CF8016A0>
+rows = 'parent'
+
+    @pytest.mark.parametrize('rows',['empty','subset','parent','none'])
+    def test_fix1_h04_native_member_set_not_vacuous(tmp_path,monkeypatch,rows):
+        p4=a.load_p4(); root=dict(pid=1,created_filetime=101,exe=sys.executable); child=dict(pid=2,created_filetime=102,exe=sys.executable)
+        monkeypatch.setattr(p4,'identity',lambda pid:{1:root,2:child}[pid]); monkeypatch.setattr(p4,'argv_parse',lambda text:json.loads(text)); monkeypatch.setattr(p4,'process_times',lambda proc:(101,0))
+        argv=['-B','script']; owned=types.SimpleNamespace(known={1:dict(identity=root,role='server',parent=0),2:dict(identity=child,role='server',parent=1)},launchers=[dict(proc=types.SimpleNamespace(pid=1),identity=root,argv=argv,role='server')])
+        snapshot={1:dict(ParentProcessId=0,CommandLine=json.dumps([sys.executable,*argv])),2:dict(ParentProcessId=99 if rows=='parent' else 1,CommandLine=json.dumps([sys.executable,*argv]))}
+        if rows=='empty': snapshot={}
+        elif rows=='subset': snapshot.pop(1)
+        listener=dict(identity=child,argv=argv,role='server')
+        if rows=='none': assert a.validate_native_members(owned,p4,snapshot,listener,argv)['live_pids']==[1,2]
+        else:
+>           with pytest.raises(ValueError): a.validate_native_members(owned,p4,snapshot,listener,argv)
+                                            ^^^^^^^^^^^^^^^^^^^^^^^^^
+E           AttributeError: module 'source10_adapter' has no attribute 'validate_native_members'
+
+..\..\harness\test_adapter.py:561: AttributeError
+______________ test_fix1_h04_native_member_set_not_vacuous[none] ______________
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/harness-preparation-20261102T204324426380Z/temp/test_fix1_h04_native_member_se3')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000264200378C0>
+rows = 'none'
+
+    @pytest.mark.parametrize('rows',['empty','subset','parent','none'])
+    def test_fix1_h04_native_member_set_not_vacuous(tmp_path,monkeypatch,rows):
+        p4=a.load_p4(); root=dict(pid=1,created_filetime=101,exe=sys.executable); child=dict(pid=2,created_filetime=102,exe=sys.executable)
+        monkeypatch.setattr(p4,'identity',lambda pid:{1:root,2:child}[pid]); monkeypatch.setattr(p4,'argv_parse',lambda text:json.loads(text)); monkeypatch.setattr(p4,'process_times',lambda proc:(101,0))
+        argv=['-B','script']; owned=types.SimpleNamespace(known={1:dict(identity=root,role='server',parent=0),2:dict(identity=child,role='server',parent=1)},launchers=[dict(proc=types.SimpleNamespace(pid=1),identity=root,argv=argv,role='server')])
+        snapshot={1:dict(ParentProcessId=0,CommandLine=json.dumps([sys.executable,*argv])),2:dict(ParentProcessId=99 if rows=='parent' else 1,CommandLine=json.dumps([sys.executable,*argv]))}
+        if rows=='empty': snapshot={}
+        elif rows=='subset': snapshot.pop(1)
+        listener=dict(identity=child,argv=argv,role='server')
+>       if rows=='none': assert a.validate_native_members(owned,p4,snapshot,listener,argv)['live_pids']==[1,2]
+                                ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AttributeError: module 'source10_adapter' has no attribute 'validate_native_members'
+
+..\..\harness\test_adapter.py:559: AttributeError
+=========================== short test summary info ===========================
+FAILED ..\..\harness\test_adapter.py::test_fix1_h05_unrelated_protected_five_rejected
+FAILED ..\..\harness\test_adapter.py::test_fix1_h06_alternate_interpreter_same_flags_rejected
+FAILED ..\..\harness\test_adapter.py::test_fix1_h01_one_use_native_child_clearance[flags]
+FAILED ..\..\harness\test_adapter.py::test_fix1_h01_one_use_native_child_clearance[identity]
+FAILED ..\..\harness\test_adapter.py::test_fix1_h01_one_use_native_child_clearance[attempt]
+FAILED ..\..\harness\test_adapter.py::test_fix1_h01_one_use_native_child_clearance[replay]
+FAILED ..\..\harness\test_adapter.py::test_fix1_h01_one_use_native_child_clearance[none]
+FAILED ..\..\harness\test_adapter.py::test_fix1_h04_native_member_set_not_vacuous[empty]
+FAILED ..\..\harness\test_adapter.py::test_fix1_h04_native_member_set_not_vacuous[subset]
+FAILED ..\..\harness\test_adapter.py::test_fix1_h04_native_member_set_not_vacuous[parent]
+FAILED ..\..\harness\test_adapter.py::test_fix1_h04_native_member_set_not_vacuous[none]
+11 failed, 75 passed in 2.34s

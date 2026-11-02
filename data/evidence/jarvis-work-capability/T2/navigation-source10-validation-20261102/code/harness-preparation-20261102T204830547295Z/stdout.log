@@ -1,0 +1,227 @@
+............FFFFFF...................................................... [ 75%]
+.......................                                                  [100%]
+================================== FAILURES ===================================
+________ test_adapter_first_failure_retained_and_no_next_case[timeout] ________
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/harness-preparation-20261102T204830547295Z/temp/test_adapter_first_failure_ret0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000022CA2745480>
+failure = 'timeout'
+sdk_io = (<src.brain.browser.channel.BrowserChannel object at 0x0000022CA2976A50>, [('search', 'Research a subject'), ('get', '...'https://example.com/source/2'), ('get', 'https://example.com/source/3'), ('get', 'https://example.com/source/4')], {})
+mock_jar = (<openjarvis.sdk.Jarvis object at 0x0000022CA2975550>, <function _run_work_agent at 0x0000022CA279C9A0>, [], [<functio...00022CA1701DA0>, <function navigation_reply at 0x0000022CA1701DA0>, <function navigation_reply at 0x0000022CA1701DA0>])
+
+    @pytest.mark.parametrize('failure',['timeout','nonzero','invalidJSON','partialpacket','missingEND','cleanup'])
+    def test_adapter_first_failure_retained_and_no_next_case(tmp_path,monkeypatch,failure,sdk_io,mock_jar):
+>       first,ledger=synthetic_bundle(tmp_path,sdk_io,mock_jar,monkeypatch)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+..\..\harness\test_adapter.py:61: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+..\..\harness\test_adapter.py:20: in synthetic_bundle
+    result,ledger=genuine_navigation(folder/'outputs',sdk_io,mock_jar)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/harness-preparation-20261102T204830547295Z/temp/test_adapter_first_failure_ret0/outputs')
+sdk_io = (<src.brain.browser.channel.BrowserChannel object at 0x0000022CA2976A50>, [('search', 'Research a subject'), ('get', '...'https://example.com/source/2'), ('get', 'https://example.com/source/3'), ('get', 'https://example.com/source/4')], {})
+mock_jar = (<openjarvis.sdk.Jarvis object at 0x0000022CA2975550>, <function _run_work_agent at 0x0000022CA279C9A0>, [], [<functio...00022CA1701DA0>, <function navigation_reply at 0x0000022CA1701DA0>, <function navigation_reply at 0x0000022CA1701DA0>])
+
+    def genuine_navigation(tmp_path,sdk_io,mock_jar):
+        from src.brain.tests.test_work_research import RESTRICTED
+        mock_jar[3].extend([navigation_reply]*5)
+        result=submit(tmp_path,sdk_io[0],mock_jar[1])
+>       assert result['status']=='succeeded',result['error']
+E       AssertionError: Conflicting research template override
+E       assert 'failed' == 'succeeded'
+E         
+E         - succeeded
+E         + failed
+
+C:\Users\Administrator\.codex\worktrees\jarvis-work-capability-longpaths\UltimaAgent\src\brain\tests\test_work_navigation_transport.py:50: AssertionError
+________ test_adapter_first_failure_retained_and_no_next_case[nonzero] ________
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/harness-preparation-20261102T204830547295Z/temp/test_adapter_first_failure_ret1')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000022CA27EB1D0>
+failure = 'nonzero'
+sdk_io = (<src.brain.browser.channel.BrowserChannel object at 0x0000022C9FE36990>, [('search', 'Research a subject'), ('get', '...'https://example.com/source/2'), ('get', 'https://example.com/source/3'), ('get', 'https://example.com/source/4')], {})
+mock_jar = (<openjarvis.sdk.Jarvis object at 0x0000022C9FE35E50>, <function _run_work_agent at 0x0000022CA279C9A0>, [], [<functio...00022CA1701DA0>, <function navigation_reply at 0x0000022CA1701DA0>, <function navigation_reply at 0x0000022CA1701DA0>])
+
+    @pytest.mark.parametrize('failure',['timeout','nonzero','invalidJSON','partialpacket','missingEND','cleanup'])
+    def test_adapter_first_failure_retained_and_no_next_case(tmp_path,monkeypatch,failure,sdk_io,mock_jar):
+>       first,ledger=synthetic_bundle(tmp_path,sdk_io,mock_jar,monkeypatch)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+..\..\harness\test_adapter.py:61: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+..\..\harness\test_adapter.py:20: in synthetic_bundle
+    result,ledger=genuine_navigation(folder/'outputs',sdk_io,mock_jar)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/harness-preparation-20261102T204830547295Z/temp/test_adapter_first_failure_ret1/outputs')
+sdk_io = (<src.brain.browser.channel.BrowserChannel object at 0x0000022C9FE36990>, [('search', 'Research a subject'), ('get', '...'https://example.com/source/2'), ('get', 'https://example.com/source/3'), ('get', 'https://example.com/source/4')], {})
+mock_jar = (<openjarvis.sdk.Jarvis object at 0x0000022C9FE35E50>, <function _run_work_agent at 0x0000022CA279C9A0>, [], [<functio...00022CA1701DA0>, <function navigation_reply at 0x0000022CA1701DA0>, <function navigation_reply at 0x0000022CA1701DA0>])
+
+    def genuine_navigation(tmp_path,sdk_io,mock_jar):
+        from src.brain.tests.test_work_research import RESTRICTED
+        mock_jar[3].extend([navigation_reply]*5)
+        result=submit(tmp_path,sdk_io[0],mock_jar[1])
+>       assert result['status']=='succeeded',result['error']
+E       AssertionError: Conflicting research template override
+E       assert 'failed' == 'succeeded'
+E         
+E         - succeeded
+E         + failed
+
+C:\Users\Administrator\.codex\worktrees\jarvis-work-capability-longpaths\UltimaAgent\src\brain\tests\test_work_navigation_transport.py:50: AssertionError
+______ test_adapter_first_failure_retained_and_no_next_case[invalidJSON] ______
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/harness-preparation-20261102T204830547295Z/temp/test_adapter_first_failure_ret2')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000022C9FDDF460>
+failure = 'invalidJSON'
+sdk_io = (<src.brain.browser.channel.BrowserChannel object at 0x0000022CA43FCCD0>, [('search', 'Research a subject'), ('get', '...'https://example.com/source/2'), ('get', 'https://example.com/source/3'), ('get', 'https://example.com/source/4')], {})
+mock_jar = (<openjarvis.sdk.Jarvis object at 0x0000022CA433C510>, <function _run_work_agent at 0x0000022CA279C9A0>, [], [<functio...00022CA1701DA0>, <function navigation_reply at 0x0000022CA1701DA0>, <function navigation_reply at 0x0000022CA1701DA0>])
+
+    @pytest.mark.parametrize('failure',['timeout','nonzero','invalidJSON','partialpacket','missingEND','cleanup'])
+    def test_adapter_first_failure_retained_and_no_next_case(tmp_path,monkeypatch,failure,sdk_io,mock_jar):
+>       first,ledger=synthetic_bundle(tmp_path,sdk_io,mock_jar,monkeypatch)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+..\..\harness\test_adapter.py:61: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+..\..\harness\test_adapter.py:20: in synthetic_bundle
+    result,ledger=genuine_navigation(folder/'outputs',sdk_io,mock_jar)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/harness-preparation-20261102T204830547295Z/temp/test_adapter_first_failure_ret2/outputs')
+sdk_io = (<src.brain.browser.channel.BrowserChannel object at 0x0000022CA43FCCD0>, [('search', 'Research a subject'), ('get', '...'https://example.com/source/2'), ('get', 'https://example.com/source/3'), ('get', 'https://example.com/source/4')], {})
+mock_jar = (<openjarvis.sdk.Jarvis object at 0x0000022CA433C510>, <function _run_work_agent at 0x0000022CA279C9A0>, [], [<functio...00022CA1701DA0>, <function navigation_reply at 0x0000022CA1701DA0>, <function navigation_reply at 0x0000022CA1701DA0>])
+
+    def genuine_navigation(tmp_path,sdk_io,mock_jar):
+        from src.brain.tests.test_work_research import RESTRICTED
+        mock_jar[3].extend([navigation_reply]*5)
+        result=submit(tmp_path,sdk_io[0],mock_jar[1])
+>       assert result['status']=='succeeded',result['error']
+E       AssertionError: Conflicting research template override
+E       assert 'failed' == 'succeeded'
+E         
+E         - succeeded
+E         + failed
+
+C:\Users\Administrator\.codex\worktrees\jarvis-work-capability-longpaths\UltimaAgent\src\brain\tests\test_work_navigation_transport.py:50: AssertionError
+_____ test_adapter_first_failure_retained_and_no_next_case[partialpacket] _____
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/harness-preparation-20261102T204830547295Z/temp/test_adapter_first_failure_ret3')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000022C9FDDFF00>
+failure = 'partialpacket'
+sdk_io = (<src.brain.browser.channel.BrowserChannel object at 0x0000022CA433EC40>, [('search', 'Research a subject'), ('get', '...'https://example.com/source/2'), ('get', 'https://example.com/source/3'), ('get', 'https://example.com/source/4')], {})
+mock_jar = (<openjarvis.sdk.Jarvis object at 0x0000022C9FDDF8A0>, <function _run_work_agent at 0x0000022CA279C9A0>, [], [<functio...00022CA1701DA0>, <function navigation_reply at 0x0000022CA1701DA0>, <function navigation_reply at 0x0000022CA1701DA0>])
+
+    @pytest.mark.parametrize('failure',['timeout','nonzero','invalidJSON','partialpacket','missingEND','cleanup'])
+    def test_adapter_first_failure_retained_and_no_next_case(tmp_path,monkeypatch,failure,sdk_io,mock_jar):
+>       first,ledger=synthetic_bundle(tmp_path,sdk_io,mock_jar,monkeypatch)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+..\..\harness\test_adapter.py:61: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+..\..\harness\test_adapter.py:20: in synthetic_bundle
+    result,ledger=genuine_navigation(folder/'outputs',sdk_io,mock_jar)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/harness-preparation-20261102T204830547295Z/temp/test_adapter_first_failure_ret3/outputs')
+sdk_io = (<src.brain.browser.channel.BrowserChannel object at 0x0000022CA433EC40>, [('search', 'Research a subject'), ('get', '...'https://example.com/source/2'), ('get', 'https://example.com/source/3'), ('get', 'https://example.com/source/4')], {})
+mock_jar = (<openjarvis.sdk.Jarvis object at 0x0000022C9FDDF8A0>, <function _run_work_agent at 0x0000022CA279C9A0>, [], [<functio...00022CA1701DA0>, <function navigation_reply at 0x0000022CA1701DA0>, <function navigation_reply at 0x0000022CA1701DA0>])
+
+    def genuine_navigation(tmp_path,sdk_io,mock_jar):
+        from src.brain.tests.test_work_research import RESTRICTED
+        mock_jar[3].extend([navigation_reply]*5)
+        result=submit(tmp_path,sdk_io[0],mock_jar[1])
+>       assert result['status']=='succeeded',result['error']
+E       AssertionError: Conflicting research template override
+E       assert 'failed' == 'succeeded'
+E         
+E         - succeeded
+E         + failed
+
+C:\Users\Administrator\.codex\worktrees\jarvis-work-capability-longpaths\UltimaAgent\src\brain\tests\test_work_navigation_transport.py:50: AssertionError
+______ test_adapter_first_failure_retained_and_no_next_case[missingEND] _______
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/harness-preparation-20261102T204830547295Z/temp/test_adapter_first_failure_ret4')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000022CA43F4850>
+failure = 'missingEND'
+sdk_io = (<src.brain.browser.channel.BrowserChannel object at 0x0000022CA440CB00>, [('search', 'Research a subject'), ('get', '...'https://example.com/source/2'), ('get', 'https://example.com/source/3'), ('get', 'https://example.com/source/4')], {})
+mock_jar = (<openjarvis.sdk.Jarvis object at 0x0000022CA43F4650>, <function _run_work_agent at 0x0000022CA279C9A0>, [], [<functio...00022CA1701DA0>, <function navigation_reply at 0x0000022CA1701DA0>, <function navigation_reply at 0x0000022CA1701DA0>])
+
+    @pytest.mark.parametrize('failure',['timeout','nonzero','invalidJSON','partialpacket','missingEND','cleanup'])
+    def test_adapter_first_failure_retained_and_no_next_case(tmp_path,monkeypatch,failure,sdk_io,mock_jar):
+>       first,ledger=synthetic_bundle(tmp_path,sdk_io,mock_jar,monkeypatch)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+..\..\harness\test_adapter.py:61: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+..\..\harness\test_adapter.py:20: in synthetic_bundle
+    result,ledger=genuine_navigation(folder/'outputs',sdk_io,mock_jar)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/harness-preparation-20261102T204830547295Z/temp/test_adapter_first_failure_ret4/outputs')
+sdk_io = (<src.brain.browser.channel.BrowserChannel object at 0x0000022CA440CB00>, [('search', 'Research a subject'), ('get', '...'https://example.com/source/2'), ('get', 'https://example.com/source/3'), ('get', 'https://example.com/source/4')], {})
+mock_jar = (<openjarvis.sdk.Jarvis object at 0x0000022CA43F4650>, <function _run_work_agent at 0x0000022CA279C9A0>, [], [<functio...00022CA1701DA0>, <function navigation_reply at 0x0000022CA1701DA0>, <function navigation_reply at 0x0000022CA1701DA0>])
+
+    def genuine_navigation(tmp_path,sdk_io,mock_jar):
+        from src.brain.tests.test_work_research import RESTRICTED
+        mock_jar[3].extend([navigation_reply]*5)
+        result=submit(tmp_path,sdk_io[0],mock_jar[1])
+>       assert result['status']=='succeeded',result['error']
+E       AssertionError: Conflicting research template override
+E       assert 'failed' == 'succeeded'
+E         
+E         - succeeded
+E         + failed
+
+C:\Users\Administrator\.codex\worktrees\jarvis-work-capability-longpaths\UltimaAgent\src\brain\tests\test_work_navigation_transport.py:50: AssertionError
+________ test_adapter_first_failure_retained_and_no_next_case[cleanup] ________
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/harness-preparation-20261102T204830547295Z/temp/test_adapter_first_failure_ret5')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000022CA43F6350>
+failure = 'cleanup'
+sdk_io = (<src.brain.browser.channel.BrowserChannel object at 0x0000022CA453A570>, [('search', 'Research a subject'), ('get', '...'https://example.com/source/2'), ('get', 'https://example.com/source/3'), ('get', 'https://example.com/source/4')], {})
+mock_jar = (<openjarvis.sdk.Jarvis object at 0x0000022CA46B4320>, <function _run_work_agent at 0x0000022CA279C9A0>, [], [<functio...00022CA1701DA0>, <function navigation_reply at 0x0000022CA1701DA0>, <function navigation_reply at 0x0000022CA1701DA0>])
+
+    @pytest.mark.parametrize('failure',['timeout','nonzero','invalidJSON','partialpacket','missingEND','cleanup'])
+    def test_adapter_first_failure_retained_and_no_next_case(tmp_path,monkeypatch,failure,sdk_io,mock_jar):
+>       first,ledger=synthetic_bundle(tmp_path,sdk_io,mock_jar,monkeypatch)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+..\..\harness\test_adapter.py:61: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+..\..\harness\test_adapter.py:20: in synthetic_bundle
+    result,ledger=genuine_navigation(folder/'outputs',sdk_io,mock_jar)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/harness-preparation-20261102T204830547295Z/temp/test_adapter_first_failure_ret5/outputs')
+sdk_io = (<src.brain.browser.channel.BrowserChannel object at 0x0000022CA453A570>, [('search', 'Research a subject'), ('get', '...'https://example.com/source/2'), ('get', 'https://example.com/source/3'), ('get', 'https://example.com/source/4')], {})
+mock_jar = (<openjarvis.sdk.Jarvis object at 0x0000022CA46B4320>, <function _run_work_agent at 0x0000022CA279C9A0>, [], [<functio...00022CA1701DA0>, <function navigation_reply at 0x0000022CA1701DA0>, <function navigation_reply at 0x0000022CA1701DA0>])
+
+    def genuine_navigation(tmp_path,sdk_io,mock_jar):
+        from src.brain.tests.test_work_research import RESTRICTED
+        mock_jar[3].extend([navigation_reply]*5)
+        result=submit(tmp_path,sdk_io[0],mock_jar[1])
+>       assert result['status']=='succeeded',result['error']
+E       AssertionError: Conflicting research template override
+E       assert 'failed' == 'succeeded'
+E         
+E         - succeeded
+E         + failed
+
+C:\Users\Administrator\.codex\worktrees\jarvis-work-capability-longpaths\UltimaAgent\src\brain\tests\test_work_navigation_transport.py:50: AssertionError
+=========================== short test summary info ===========================
+FAILED ..\..\harness\test_adapter.py::test_adapter_first_failure_retained_and_no_next_case[timeout]
+FAILED ..\..\harness\test_adapter.py::test_adapter_first_failure_retained_and_no_next_case[nonzero]
+FAILED ..\..\harness\test_adapter.py::test_adapter_first_failure_retained_and_no_next_case[invalidJSON]
+FAILED ..\..\harness\test_adapter.py::test_adapter_first_failure_retained_and_no_next_case[partialpacket]
+FAILED ..\..\harness\test_adapter.py::test_adapter_first_failure_retained_and_no_next_case[missingEND]
+FAILED ..\..\harness\test_adapter.py::test_adapter_first_failure_retained_and_no_next_case[cleanup]
+6 failed, 89 passed in 4.96s

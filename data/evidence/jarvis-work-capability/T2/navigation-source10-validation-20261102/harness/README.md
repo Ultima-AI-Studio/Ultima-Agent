@@ -184,3 +184,85 @@ All new RED/GREEN receipts copy the exact six harness source bytes before pytest
 and retain after hashes/unchanged results. The initial historical RED's absent
 contemporaneous source copy remains documented; it has not been reconstructed or
 silently replaced. The original13665-byte author report prefix is preserved.
+
+## Formal review fix1: proposed contracts, no operational release
+
+The first formal review was SPEC FAIL / QUALITY NEEDS_FIXES. This revision repairs
+H01–H15 for the same reviewer's scoped re-review, including the two minor driver
+and import-path findings. It changes only the six harness source files. The whole
+30837-byte b6110151 author-report prefix and its nested13665-byte prefix are
+preserved. All75 pre-review test IDs and their intended purposes remain; the empty
+proof positive is now a negative with a substantive positive companion.
+
+Actual and inert children cannot start product/runpy/HTTPServer merely from an
+attempt marker and live parent. After ORIGINAL Owned.launch registration and
+bounded ORIGINAL discover, the parent waits for a validated native base child,
+then closes child-clearance.json binding mode/folder/authority hash/attempt hash,
+full canonical argv, original timing and P4-validated native members. Only then
+it publishes a zero-byte child-clearance.ready marker. That marker is publication
+ordering, not proof. Before startup the child verifies the full native orig_argv,
+its own ORIGINAL P1 identity against cleared members, all bindings and exclusively
+creates child-clearance.consumed.json. Extra/changed/missing/duplicated flags,
+wrong identities and replay fail before dispatch. Product flags are derived from
+that canonical argv rather than argparse leftovers. No new ownership/Win32/kill
+authority or launcher algorithm is introduced.
+
+Qualification records exact expected native rows, retained launcher identity/exit,
+base/redirector parent relationships, native argv and owned base listener. Empty,
+partial or misrelated snapshots fail. Native raw ASCII/base64-UTF16 bytes, decoded
+records and their digests are bound together. Fresh protected five must equal the
+CURRENT native identities returned by original P1 protected(), joining exact PIDs
+and native integers; historical CIM tolerance remains a separate prerequisite.
+Exact H interpreter and SDK/helper import origins are required. Parent import
+paths restore on success, exception and timeout.
+
+admission.json and the trusted enclosing budget retain the admitted canonical
+mode/folder/timing/baseline and a FULL operational pin map: candidate/SDK/dependency
+pins, raw source/preparation/ruling, six harness files, approval, operational
+authority/ledger/baseline and historical protected-member record. Both modes
+compare and seal before/after maps after cleanup. The enclosing observer then
+rechecks those maps, original protected native members, exact native roles and
+cleanup identity set, actual absence and definite refusal through original P4/P1
+read-only primitives. It checks the live parent-retained log handles are closed.
+Every fresh required root read/list/hash/port/identity observation is guarded by
+the same seal budget, and an expired/late read prevents subsequent admission.
+The durable witness binds canonical kind/folder/run/timing, terminal digest,
+seal-index digest and every observed member hash. Status strings and empty error
+lists do not substitute for substantive proof.
+
+The actual observer reconciles first raw/parsed CLI and original service IDs,
+status and artifact assertions against the attempt/canonical argv. It replays the
+REAL v3 verifier/resolver/renderer and reads exact research.md again after cleanup.
+accepted-effects.json, pre-cleanup and post-cleanup inventories must agree on the
+single path, hash and exact bytes; removal/replacement/extra files fail. The output
+is a required sealed member, not an optional result claim. First failing stage
+and original cause latch through work/primitive/returned-cleanup/final-boundary/
+seal/witness errors; all later errors and effects_unknown stay separate evidence.
+
+The completed export format is now2. After the REAL v3 runtime verifier validates
+decoded semantic/scanner/END/ACK/linkage data, exact bounded members are closed as
+trusted-runtime.raw, trusted-views.raw, trusted-replay.raw and
+trusted-collection.raw, each capped at4MiB. trusted-export.json is a small bounded
+descriptor with exact names/sizes/digests and snapshot metadata. There is no
+base64 expansion or raw packet loss merely from wrapping multiple members into a
+single4MiB envelope. Unsafe/partial/oversized failures produce no unsafe response
+capture; safe flags/counters and original service result remain. The internal
+representation unit covers3MiB/4MiB safe bytes; it does not claim a padded object
+is a valid protocol packet. A separate genuine synthetic four-source v3 positive
+passes the real complete export, packet, rendering and external-readback pipeline.
+
+H15 units use only synthetic source bodies with existing genuine SDK test fixtures
+and HTTPX MockTransport. No original-corpus WorkService/preparer/profile is run.
+They retain the real common finalization path and original P4 listener/cleanup
+algorithms, supply valid prerequisites and true refusal outside the injected fault,
+and assert each exact first cause, retained product and unknown effects. The
+driver isolates OPENJARVIS_HOME before test imports; whole serialized trusted event
+JSON is not rescanned as opaque PII (numeric timestamps are not untrusted prose).
+The REAL packet verifier still applies all scanner checks to decoded values.
+
+Driver receipts always retain exact six before copies and after hashes. A pin,
+member-byte or member-set drift makes the driver fail even if pytest returns0;
+the failure receipt/raw logs remain. Both report-prefix hashes are checked.
+No new W root-caller draft, concrete authority, independent approval/baseline,
+runtime/inert/model/profile/actual allocation or qualification is implemented or
+issued here. Root retains publication and all later gates. T2 remains NOT_PASSED.

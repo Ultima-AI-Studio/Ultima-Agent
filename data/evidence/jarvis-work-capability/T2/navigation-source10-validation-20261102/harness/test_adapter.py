@@ -9,6 +9,23 @@ import pytest
 
 spec=importlib.util.spec_from_file_location('source10_adapter',Path(__file__).with_name('adapter.py'))
 a=importlib.util.module_from_spec(spec); spec.loader.exec_module(a)
+with a.candidate_import_path():
+    from src.brain.tests.test_work_research import sdk_io,mock_jar
+    from src.brain.tests.test_work_navigation_transport import genuine_navigation
+
+def synthetic_bundle(folder,sdk_io,mock_jar,monkeypatch,*,write=True):
+    from dataclasses import asdict
+    from src.brain.tests import test_work_research as fixtures
+    monkeypatch.setattr(fixtures,'URLS',fixtures.URLS[:4])
+    result,ledger=genuine_navigation(folder/'outputs',sdk_io,mock_jar)
+    sources=json.loads(ledger._collection.catalogue_json)
+    monkeypatch.setattr(a,'corpus',lambda:dict(query='Research a subject',sources=sources))
+    result['marker']='first'
+    if write:
+        a.save_new(folder/'service-first-result.json',result)
+        a.save_new(folder/'runtime-inputs.json',asdict(ledger._runtime_inputs))
+        a.export_completed(folder,ledger,result)
+    return result,ledger
 
 def documents():
     now=dt.datetime.now(dt.timezone.utc)
@@ -39,48 +56,61 @@ def test_pinned_import_rejects_cached_acceptance_adapter(monkeypatch):
     with pytest.raises(ValueError,match='cached'): a.load_p4()
     assert sys.modules['acceptance_adapter'] is sentinel
 
-@pytest.mark.parametrize('failure',['timeout','nonzero','invalidJSON','partialpacket','missingEND','cleanup'])
-def test_adapter_first_failure_retained_and_no_next_case(tmp_path,monkeypatch,failure):
+@pytest.mark.parametrize('failure',['timeout','nonzero','invalidJSON','partialpacket','missingEND','cleanup','finalboundary'])
+def test_adapter_first_failure_retained_and_no_next_case(tmp_path,monkeypatch,failure,sdk_io,mock_jar):
+    first,ledger=synthetic_bundle(tmp_path,sdk_io,mock_jar,monkeypatch)
     p4=a.load_p4()
-    monkeypatch.setattr(p4,'protected',lambda:[])
+    protected=[dict(pid=pid,created_filetime=100,exe=sys.executable) for pid in range(51,56)]
+    monkeypatch.setattr(p4,'protected',lambda:protected)
     monkeypatch.setattr(p4,'identity',lambda pid:dict(pid=pid,created_filetime=100,exe=sys.executable))
     monkeypatch.setattr(p4,'process_times',lambda proc:(100,0))
     monkeypatch.setattr(p4,'process_snapshot',lambda *args,**kwargs:{})
     monkeypatch.setattr(p4,'terminate_owned',lambda key:None)
-    monkeypatch.setattr(p4,'assert_listener',lambda *args:None)
-    monkeypatch.setattr(p4,'listener_owner',lambda port:[7890])
+    monkeypatch.setattr(p4,'listener_owner',lambda port:[7891])
     class Probe:
         def settimeout(self,value): pass
-        def connect_ex(self,address): return 1
+        def connect_ex(self,address): return a.errno.ECONNREFUSED
         def close(self): pass
     monkeypatch.setattr(p4.socket,'socket',Probe)
-    a.save_new(tmp_path/'runtime-inputs.json',{})
-    a.save_new(tmp_path/'trusted-export.json',dict(complete=failure!='missingEND',END=failure!='missingEND',runtime_final='e30=',issued_snapshot={}))
-    monkeypatch.setattr(a,'check_inputs',lambda: {})
-    monkeypatch.setattr(a,'check_native_baseline',lambda *args: [])
+    if failure in ('partialpacket','missingEND'):
+        export=a.load(tmp_path/'trusted-export.json')
+        if failure=='partialpacket': export['members']['runtime']['sha256']='0'*64
+        else: export['END']=False
+        (tmp_path/'trusted-export.json').write_text(json.dumps(export),encoding='utf8')
+    pin_reads=[]
+    def pins():
+        pin_reads.append(1)
+        return {'drift':'changed'} if failure=='finalboundary' and len(pin_reads)>=3 else {}
+    monkeypatch.setattr(a,'check_inputs',pins)
     launches=[]
     class Proc:
-        pid=7890; returncode=2 if failure=='nonzero' else 0
+        def __init__(self,cli):
+            self.pid=7892 if cli else 7891; self.returncode=2 if cli and failure=='nonzero' else 0
         def wait(self,timeout=None):
             if failure=='timeout' and timeout and timeout>3: raise TimeoutError('CLI timeout')
             return self.returncode
     def launch(argv,env,out,err):
         launches.append(argv)
-        if '--research' in argv: out.write('{broken' if failure=='invalidJSON' else json.dumps(dict(status='failed' if failure=='nonzero' else 'succeeded',marker='first',request_id='r',session_id='s'))); out.flush()
-        return Proc()
+        if '--research' in argv: out.write('{broken' if failure=='invalidJSON' else json.dumps(first)); out.flush()
+        return Proc('--research' in argv)
     # Patch only the actual launcher boundary; real P4 Owned.launch/discover/cleanup execute.
     root=a.C
     monkeypatch.syspath_prepend(str(root))
     from src.brain.tests import work_context_acceptance as helper
     monkeypatch.setattr(helper,'launch',launch)
-    if failure=='cleanup': monkeypatch.setattr(p4,'terminate_owned',lambda key: (_ for _ in ()).throw(OSError('cleanup blocked'))); monkeypatch.setattr(p4,'process_snapshot',lambda *args,**kwargs:{7890:{'ParentProcessId':0}})
-    context=dict(folder=tmp_path,port=18799,request_id='r',session_id='s',baseline={},authority={},ledger={})
+    if failure=='cleanup': monkeypatch.setattr(p4,'terminate_owned',lambda key: (_ for _ in ()).throw(OSError('cleanup blocked'))); monkeypatch.setattr(p4,'process_snapshot',lambda *args,**kwargs:{7891:{'ParentProcessId':0},7892:{'ParentProcessId':0}})
+    baseline=dict(candidate=a.CANDIDATE,precision='FILETIME100ns',recorded_at=dt.datetime.now(dt.timezone.utc).isoformat(),protected=protected)
+    context=dict(folder=tmp_path,port=18799,request_id='r',session_id='s',baseline=baseline,authority={},ledger={})
     result=a.execute_case(context,p4)
     assert len(launches)<=2
     assert result['work_cli_attempts']==1
     assert result['actual_native_start_count'] is None
     assert result['overall']=='FAIL'
     assert result['next_case'] is False
+    expected={'timeout':'CLI timeout','nonzero':'CLI nonzero','invalidJSON':'Expecting property name','partialpacket':'Export member digest','missingEND':'Missing complete packet or END','cleanup':'cleanup terminate_owned: cleanup blocked','finalboundary':'final-boundary: Input drift'}
+    assert expected[failure] in result['first_failure']
+    if failure=='cleanup': assert result['cleanup']['status']=='FAIL' and any(e.get('effects_unknown') for e in result['errors'])
+    else: assert result['cleanup']['status']=='PASS'
     if failure not in ('timeout','invalidJSON'):
         assert json.loads((tmp_path/'product-result.json').read_text('utf8'))['marker']=='first'
     with pytest.raises(FileExistsError): a.execute_case(context,p4)
@@ -120,6 +150,7 @@ def test_native_baseline_requires_exact_integer_filetime(monkeypatch,precision,d
     protected=[dict(pid=p,created_filetime=100000001+p,exe='python') for p in range(1,6)]
     proof=dict(precision=precision,candidate=a.CANDIDATE,recorded_at=dt.datetime.now(dt.timezone.utc).isoformat(),protected=protected)
     p4=a.load_p4()
+    monkeypatch.setattr(p4,'protected',lambda:protected)
     monkeypatch.setattr(p4,'identity',lambda pid:dict(protected[pid-1],created_filetime=protected[pid-1]['created_filetime']+drift))
     if precision=='FILETIME100ns' and drift==0: assert a.check_native_baseline(proof,p4)==protected
     else:
@@ -412,7 +443,7 @@ def test_root_observes_closed_package_after_return_no_missing_or_late_promotion(
         clock.value=b.origin_ns+(315000000001 if late else 314999999999)
         return terminal
     observed=invocation.call(entry)
-    assert observed['witness']['eligible']==(missing=='none' and not late)
+    assert observed['witness']['eligible'] is False  # Empty member objects are never substantive proof.
     assert observed['witness']['observed_ns']==clock()
     with pytest.raises(ValueError): invocation.call(lambda:observed['result'])
 
@@ -516,3 +547,295 @@ def test_clipped_wait_preserves_timeout_exception_and_private_sleep_overshoot(mo
         clock.value=budget.cutoff_ns()-1000000000
         with pytest.raises(TimeoutError,match='Late'): p4.time.sleep(2)
     assert proc.wait is wait and p4.time is fake_time
+
+def test_fix1_h05_unrelated_protected_five_rejected(monkeypatch):
+    p4=a.load_p4(); unrelated=[dict(pid=p,created_filetime=100+p,exe='python') for p in range(1,6)]
+    monkeypatch.setattr(p4,'identity',lambda pid:unrelated[pid-1])
+    monkeypatch.setattr(p4,'protected',lambda:[dict(pid=p,created_filetime=100+p,exe='python') for p in range(11,16)])
+    proof=dict(precision='FILETIME100ns',candidate=a.CANDIDATE,recorded_at=dt.datetime.now(dt.timezone.utc).isoformat(),protected=unrelated)
+    with pytest.raises(ValueError,match='protected member'): a.check_native_baseline(proof,p4)
+
+def test_fix1_h06_alternate_interpreter_same_flags_rejected(monkeypatch):
+    monkeypatch.setattr(sys,'executable','C:/other/python.exe')
+    with pytest.raises(ValueError,match='interpreter'): a.check_inputs()
+
+@pytest.mark.parametrize('fault',['flags','identity','attempt','replay','none'])
+def test_fix1_h01_one_use_native_child_clearance(tmp_path,monkeypatch,fault):
+    clock=Clock(); b=a.Deadline(clock=clock); p4=a.load_p4()
+    key=dict(pid=77,created_filetime=123,exe=sys.executable)
+    monkeypatch.setattr(p4,'identity',lambda pid:key)
+    context=dict(folder=tmp_path,port=18799,budget=b,mode='inert',authority={},request_id='r',session_id='s')
+    a.save_new(tmp_path/'attempt.json',dict(parent_timing=b.timing()))
+    argv=a.inert_argv(tmp_path,18799)
+    record=dict(mode='inert',folder=str(tmp_path),timing=b.timing(),argv=argv,attempt_sha256=a.sha(tmp_path/'attempt.json'),authority_sha256='authority',members=[dict(identity=key,role='server',parent=1)])
+    a.save_new(tmp_path/'child-clearance.json',record)
+    a.write_raw_new(tmp_path/'child-clearance.ready',b'')
+    supplied=list(argv)
+    if fault=='flags': supplied.remove('--runtime-root')
+    elif fault=='identity': monkeypatch.setattr(p4,'identity',lambda pid:dict(key,created_filetime=124))
+    elif fault=='attempt': (tmp_path/'attempt.json').write_text('{}')
+    elif fault=='replay': a.save_new(tmp_path/'child-clearance.consumed.json',{})
+    if fault=='none': assert a.consume_clearance(context,p4,supplied,'authority')==key
+    else:
+        with pytest.raises((ValueError,FileExistsError)): a.consume_clearance(context,p4,supplied,'authority')
+
+@pytest.mark.parametrize('rows',['empty','subset','parent','none'])
+def test_fix1_h04_native_member_set_not_vacuous(tmp_path,monkeypatch,rows):
+    p4=a.load_p4(); root=dict(pid=1,created_filetime=101,exe=sys.executable); child=dict(pid=2,created_filetime=102,exe=sys.executable)
+    monkeypatch.setattr(p4,'identity',lambda pid:{1:root,2:child}[pid]); monkeypatch.setattr(p4,'argv_parse',lambda text:json.loads(text)); monkeypatch.setattr(p4,'process_times',lambda proc:(101,0))
+    argv=['-B','script']; owned=types.SimpleNamespace(known={1:dict(identity=root,role='server',parent=0),2:dict(identity=child,role='server',parent=1)},launchers=[dict(proc=types.SimpleNamespace(pid=1),identity=root,argv=argv,role='server')])
+    snapshot={1:dict(ParentProcessId=0,CommandLine=json.dumps([sys.executable,*argv])),2:dict(ParentProcessId=99 if rows=='parent' else 1,CommandLine=json.dumps([sys.executable,*argv]))}
+    if rows=='empty': snapshot={}
+    elif rows=='subset': snapshot.pop(1)
+    listener=dict(identity=child,argv=argv,role='server')
+    if rows=='none': assert a.validate_native_members(owned,p4,snapshot,listener,argv)['live_pids']==[1,2]
+    else:
+        with pytest.raises(ValueError): a.validate_native_members(owned,p4,snapshot,listener,argv)
+
+def test_fix1_h12_socket_timeout_reclipped_at_connect(monkeypatch):
+    clock=Clock(); b=a.Deadline(clock=clock); b.phase='cleanup'; clock.value=b.cutoff_ns()-1000000000
+    p4=a.load_p4(); waits=[]
+    class Probe:
+        def __init__(self): clock.advance(.8)
+        def settimeout(self,value): waits.append(value)
+        def connect_ex(self,address): return a.errno.ECONNREFUSED
+        def close(self): pass
+    monkeypatch.setattr(p4.socket,'socket',Probe)
+    with a.PrivateIO(p4,b) as io:
+        probe=p4.socket.socket(); probe.settimeout(1)
+        try: probe.connect_ex(('127.0.0.1',18799))
+        finally: probe.close()
+    assert waits[-1]==pytest.approx(.2)
+
+def test_fix1_h12_setup_overrun_cannot_admit_connect_and_still_closes(monkeypatch):
+    clock=Clock(); b=a.Deadline(clock=clock); b.phase='cleanup'; clock.value=b.cutoff_ns()-1000000000
+    p4=a.load_p4(); connected=[]; closed=[]
+    class Probe:
+        def settimeout(self,value): clock.advance(.6)
+        def connect_ex(self,address): connected.append(address); return a.errno.ECONNREFUSED
+        def close(self): closed.append(True)
+    monkeypatch.setattr(p4.socket,'socket',Probe)
+    with a.PrivateIO(p4,b):
+        probe=p4.socket.socket(); probe.settimeout(1)
+        try:
+            with pytest.raises(TimeoutError): probe.connect_ex(('127.0.0.1',18799))
+        finally: probe.close()
+    assert not connected and closed
+
+@pytest.mark.parametrize('field',['request_id','session_id','task_id','status','artifacts','none'])
+def test_fix1_h13_service_cli_invariants(field):
+    first=dict(request_id='r',session_id='s',task_id='t',status='succeeded',artifacts=[dict(path='p',sha256='h',verified=True)])
+    service=json.loads(json.dumps(first))
+    if field!='none': service[field]=[] if field=='artifacts' else 'different'
+    if field=='none': a.reconcile_results(first,service)
+    else:
+        with pytest.raises(ValueError,match='service/CLI'): a.reconcile_results(first,service)
+
+def test_fix1_h08_first_cause_cleanup_then_boundary_never_replaced():
+    b=a.Deadline(); errors=[]
+    a.record_failure(b,errors,'cleanup','returned FAIL',effects_unknown=True)
+    a.record_failure(b,errors,'final-boundary','later drift')
+    assert b.failure=='cleanup: returned FAIL' and errors[0]['effects_unknown']
+
+def test_fix1_h14_observer_late_first_read_stops_following_io(tmp_path,monkeypatch):
+    clock=Clock(); invocation=a.RootInvocation(clock=clock); b=invocation.budget; reads=[]
+    def read(path): reads.append(path); clock.value=b.cutoff_ns('seal')+1; return {}
+    monkeypatch.setattr(a,'load',read)
+    outcome=invocation.call(lambda:dict(folder=str(tmp_path)))
+    assert len(reads)==1 and not outcome['witness']['eligible']
+
+def test_fix1_genuine_synthetic_export_and_external_readback(tmp_path,monkeypatch,sdk_io,mock_jar):
+    result,ledger=synthetic_bundle(tmp_path,sdk_io,mock_jar,monkeypatch)
+    verified=a.verify_exports(tmp_path,result,a.load_p4())
+    assert verified['native_POST_attempts']==5 and len(verified['inventory'])==1
+    assert a.read_completed(tmp_path,a.load(tmp_path/'trusted-export.json'))['runtime']==ledger._runtime_final
+
+@pytest.mark.parametrize('size',[3*1024*1024,4*1024*1024])
+def test_fix1_h07_sizable_and_max_safe_raw_representation(tmp_path,monkeypatch,sdk_io,mock_jar,size):
+    result,ledger=synthetic_bundle(tmp_path,sdk_io,mock_jar,monkeypatch,write=False)
+    empty=json.dumps(dict(events=[],padding=''),separators=(',',':')).encode()
+    raw=json.dumps(dict(events=[],padding='a'*(size-len(empty))),separators=(',',':')).encode()
+    # Representation unit after a safe-completion boundary; this padded packet
+    # is not claimed to be a valid product replay. The genuine companion above is.
+    a.preserve_completed_members(tmp_path,raw,ledger.issued_snapshot,ledger._collection,result,5)
+    exported=a.load(tmp_path/'trusted-export.json')
+    assert len(raw)==size and a.read_completed(tmp_path,exported)['runtime']==raw
+    assert (tmp_path/'trusted-export.json').stat().st_size<4096
+
+def test_fix1_h07_unsafe_completed_values_never_exported(tmp_path,monkeypatch,sdk_io,mock_jar):
+    from src.brain.work_navigation import canonical_v3
+    from src.brain.tests.test_work_navigation_transport import escaped_scanner_fixture,escaped_envelope,rewrite_response
+    result,ledger=synthetic_bundle(tmp_path,sdk_io,mock_jar,monkeypatch,write=False)
+    packet=json.loads(ledger._runtime_final); value=dict(final_answer=escaped_scanner_fixture()); encoded=escaped_envelope(value)
+    assert all(s.scan(encoded).clean for s in ledger._policy.scanners)
+    assert any(not s.scan(value['final_answer']).clean for s in ledger._policy.scanners)
+    rewrite_response(packet,len(packet['wires'])-1,value,encoded)
+    ledger._runtime_final=canonical_v3(packet)
+    with pytest.raises(ValueError,match='Unsafe native evidence string'): a.export_completed(tmp_path,ledger,result)
+    assert not list(tmp_path.glob('trusted-*.raw'))
+
+@pytest.mark.parametrize('fault',['remove','replace','extra'])
+def test_fix1_h03_closed_output_drift_rejected(tmp_path,fault):
+    p4=a.load_p4(); task='12345678-1234-4234-8234-123456789abc'; output=tmp_path/'outputs'/task; output.mkdir(parents=True)
+    path=output/'research.md'; path.write_bytes(b'accepted')
+    result=dict(task_id=task,artifacts=[dict(path=str(path),sha256=a.sha(path))]); accepted=p4.output_inventory(tmp_path)
+    if fault=='remove': path.unlink()
+    elif fault=='replace': path.write_bytes(b'changed')
+    else: (output/'extra.md').write_bytes(b'extra')
+    with pytest.raises(ValueError,match='output drift'): a.validate_final_outputs(tmp_path,result,accepted,p4)
+
+@pytest.mark.parametrize('which',['harness','approval','authority','baseline'])
+def test_fix1_h09_late_operational_drift_rejected(tmp_path,monkeypatch,which):
+    paths=[]
+    for name in ('harness','approval','authority','baseline'):
+        path=tmp_path/name; path.write_text(name); paths.append(path)
+    monkeypatch.setattr(a,'check_inputs',lambda:{})
+    monkeypatch.setattr(a,'operational_paths',lambda mode:paths)
+    budget=a.Deadline(); admitted=dict(mode='inert',pins=a.operational_pins('inert',budget))
+    (tmp_path/which).write_text('late drift')
+    with pytest.raises(ValueError,match='pin drift'): a.compare_operational_pins(admitted,budget)
+
+def test_fix1_h06_cached_sdk_import_origin_rejected(monkeypatch):
+    fake=types.ModuleType('openjarvis.agents.native_react'); fake.__file__='C:/unapproved/native_react.py'
+    monkeypatch.setitem(sys.modules,'openjarvis.agents.native_react',fake)
+    with pytest.raises(ValueError,match='Import origin'): a.check_import_origins()
+
+@pytest.mark.parametrize('fault',['harness','input','addition','none'])
+def test_fix1_h10_driver_drift_fails_even_with_pytest_zero(tmp_path,monkeypatch,fault):
+    spec=importlib.util.spec_from_file_location('driver_control',Path(__file__).with_name('run_checks.py'))
+    driver=importlib.util.module_from_spec(spec); spec.loader.exec_module(driver)
+    here=tmp_path/'harness'; here.mkdir(); input_file=tmp_path/'input'; input_file.write_bytes(b'original')
+    for source in Path(__file__).parent.iterdir():
+        if source.is_file(): (here/source.name).write_bytes(source.read_bytes())
+    monkeypatch.setattr(driver,'HERE',here); monkeypatch.setattr(driver,'V',tmp_path)
+    monkeypatch.setattr(driver,'snapshot',lambda:{str(input_file):driver.digest(input_file)})
+    monkeypatch.setattr(sys,'argv',['run_checks.py','adapter'])
+    def pytest_process(*args,**kwargs):
+        if fault=='harness': (here/'README.md').write_bytes(b'changed')
+        elif fault=='input': input_file.write_bytes(b'changed')
+        elif fault=='addition': (here/'seventh.txt').write_bytes(b'extra')
+        return types.SimpleNamespace(returncode=0,stdout=b'controlled pytest success',stderr=b'')
+    monkeypatch.setattr(driver.subprocess,'run',pytest_process)
+    status=driver.main(); receipt=a.load(next((tmp_path/'code').glob('harness-preparation-*/receipt.json')))
+    assert (status==0)==(fault=='none') and receipt['pytest_exit_code']==0
+    assert receipt['exit_code']==status
+
+def test_fix1_h11_import_path_restored_on_failure():
+    original=list(sys.path)
+    with pytest.raises(ValueError):
+        with a.candidate_import_path():
+            assert sys.path[0]==str(a.C); raise ValueError('injected')
+    assert sys.path==original
+
+@pytest.mark.parametrize('fault',['none','protected-empty','native-subset','cleanup-subset'])
+def test_fix1_h02_substantive_closed_witness_positive_and_faults(tmp_path,monkeypatch,fault):
+    import base64,os
+    from collections import OrderedDict
+    original_v=a.V; original_here=a.HERE
+    virtual=tmp_path/'virtual-root'; here=virtual/'harness'; here.mkdir(parents=True)
+    for source in original_here.iterdir():
+        if source.is_file(): (here/source.name).write_bytes(source.read_bytes())
+    for name in ('source10-candidate-manifest.json','harness-preparation-authority.json'):
+        (virtual/name).write_bytes((original_v/name).read_bytes())
+    (virtual/'harness-deadline-design').mkdir()
+    (virtual/'harness-deadline-design/root-decision.json').write_bytes((original_v/'harness-deadline-design/root-decision.json').read_bytes())
+    monkeypatch.setattr(a,'V',virtual); monkeypatch.setattr(a,'HERE',here)
+    package=a.load(here/'manifest.json')
+    package['files']={name:a.sha(here/name) for name in package['files']}
+    (here/'manifest.json').write_text(json.dumps(package),encoding='utf8')
+    a.save_new(virtual/'harness-approval.json',dict(reviewer='root-independent',overall='PASS',manifest_sha256=a.sha(here/'manifest.json')))
+    clock=Clock(); invocation=a.RootInvocation(clock=clock); b=invocation.budget
+    folder=virtual/'inert'/b.run_id; folder.mkdir(parents=True)
+    p4=a.load_p4(); active=set(); _,calls=native_kernel(monkeypatch,p4,active,clock)
+    protected=[p4.identity(pid) for pid in range(51,56)]
+    monkeypatch.setattr(p4,'protected',lambda:protected)
+    monkeypatch.setattr(p4,'process_times',lambda proc:(1000001,0))
+    monkeypatch.setattr(p4,'argv_parse',lambda text:json.loads(text))
+    monkeypatch.setattr(a,'load_p4',lambda:p4)
+    authority=dict(kind='source10_inert_qualification',folder=str(folder),port=18799,parent_timing=b.timing())
+    a.save_new(virtual/'inert-authority.json',authority)
+    baseline=dict(protected=protected,candidate=a.CANDIDATE,precision='FILETIME100ns',recorded_at=dt.datetime.now(dt.timezone.utc).isoformat())
+    a.save_new(virtual/'inert-native-baseline.json',baseline)
+    argv=a.inert_argv(folder,18799); snapshot_live=[True]
+    command=json.dumps([str(a.PY),*argv])
+    def checkout(cmd,**kwargs):
+        if 'Get-NetTCPConnection' in cmd[-1]: return '[]'
+        rows=[dict(ProcessId=pid,ParentProcessId=0 if pid==1 else 1,CommandLineBase64=base64.b64encode(command.encode('utf-16-le')).decode('ascii')) for pid in (1,2)] if snapshot_live[0] else []
+        return json.dumps(rows).encode('ascii')
+    monkeypatch.setattr(p4.subprocess,'check_output',checkout)
+    class Probe:
+        def settimeout(self,value): pass
+        def connect_ex(self,address): return a.errno.ECONNREFUSED
+        def close(self): pass
+    monkeypatch.setattr(p4.socket,'socket',Probe)
+    def entry():
+        admitted=a.admitted_record('inert',folder,18799,authority,baseline,b)
+        a.save_new(folder/'admission.json',admitted)
+        a.save_new(folder/'attempt.json',dict(parent_timing=b.timing()))
+        owned=p4.Owned(folder,{}); b.owned=owned
+        proc=types.SimpleNamespace(pid=1,wait=lambda timeout=None:0)
+        owned.launchers=[dict(proc=proc,identity=p4.identity(1),argv=argv,role='server')]
+        owned.known[1]=dict(identity=p4.identity(1),argv=argv,role='server',parent=0)
+        owned.logs=[open(folder/'server.stdout','w'),open(folder/'server.stderr','w')]
+        context=dict(mode='inert',folder=folder,port=18799,budget=b)
+        with a.PrivateIO(p4,b) as io:
+            a.issue_clearance(context,p4,owned,argv,a.sha(virtual/'inert-authority.json'))
+            identity=p4.identity
+            with monkeypatch.context() as child:
+                child.setattr(p4,'identity',lambda pid:identity(2) if pid==os.getpid() else identity(pid))
+                a.consume_clearance(context,p4,argv,a.sha(virtual/'inert-authority.json'))
+            listener=dict(port=18799,identity=identity(2),role='server',argv=argv)
+            a.save_new(folder/'listener.json',listener)
+            a.record_native_members(folder,p4,owned,argv,b)
+            a.save_new(folder/'argv-roundtrip.json',dict(question=a.corpus()['query'],argv=argv[4:]))
+            for name in ('protected-before.json','protected-after.json'): a.save_new(folder/name,protected)
+            for name in ('boundary-before.json','boundary-after.json'): a.save_new(folder/name,dict(pins=admitted['pins'],protected=protected))
+            snapshot_live[0]=False
+            cleanup=io.cleanup(owned,18799)
+        if fault=='protected-empty': (folder/'protected-after.json').write_text('[]')
+        elif fault=='native-subset':
+            malformed=a.load(folder/'native-members.json'); malformed['snapshot'].pop('1')
+            (folder/'native-members.json').write_text(json.dumps(malformed))
+        elif fault=='cleanup-subset':
+            malformed=a.load(folder/'cleanup.json'); malformed['processes'].pop()
+            (folder/'cleanup.json').write_text(json.dumps(malformed))
+        b.phase='seal'
+        terminal=dict(kind='inert',folder=str(folder),run_id=b.run_id,timing=b.timing(),overall='READY_FOR_ROOT_TIMING_WITNESS',cleanup=cleanup,errors=[],first_failure=None)
+        a.save_new(folder/'terminal.json',terminal); a.seal_index(folder,b,p4)
+        return terminal
+    outcome=invocation.call(entry)
+    assert outcome['witness']['eligible']==(fault=='none'),outcome['witness']
+    if fault=='none':
+        assert outcome['witness']['seal_index_sha256']==a.sha(folder/'seal-index.json')
+        assert outcome['witness']['member_hashes'] and outcome['witness']['kind']=='inert'
+
+@pytest.mark.parametrize('fault',['missing-isolated','port','extra-policy','duplicate','none'])
+def test_fix1_h01_actual_child_entry_dispatch_is_canonical_once(tmp_path,monkeypatch,fault):
+    import ddgs,httpx,socket
+    from src.brain.work_tools import WorkLedger
+    from src.brain.work_service import WorkService
+    clock=Clock(); b=a.Deadline(clock=clock); p4=a.load_p4(); key=dict(pid=77,created_filetime=123,exe=str(a.PY))
+    monkeypatch.setattr(p4,'identity',lambda pid:key)
+    context=dict(mode='actual',folder=tmp_path,port=18799,budget=b,request_id='r',session_id='s')
+    a.save_new(tmp_path/'attempt.json',dict(parent_timing=b.timing()))
+    argv=a.candidate_argv(context)[0]
+    a.save_new(tmp_path/'child-clearance.json',dict(mode='actual',folder=str(tmp_path),timing=b.timing(),argv=argv,attempt_sha256=a.sha(tmp_path/'attempt.json'),authority_sha256='authority',members=[dict(role='server',identity=key,parent=1)]))
+    a.write_raw_new(tmp_path/'child-clearance.ready',b'')
+    supplied=list(argv)
+    if fault=='missing-isolated': supplied.remove('--isolated')
+    elif fault=='port': supplied[supplied.index('--port')+1]='11434'
+    elif fault=='extra-policy': supplied+=['--work-target-policy','unapproved.json']
+    elif fault=='duplicate': supplied+=['--child-server',str(tmp_path)]
+    calls=[]; old_args=list(sys.argv); old_paths=list(sys.path)
+    for obj,name in ((ddgs,'DDGS'),(httpx,'request'),(socket,'getaddrinfo'),(WorkLedger,'__init__'),(WorkLedger,'_freeze_runtime_inputs'),(WorkService,'submit_work')):
+        monkeypatch.setattr(obj,name,getattr(obj,name))
+    def dispatched(name,**kwargs): calls.append((name,list(sys.argv)))
+    if fault=='none':
+        a.actual_child_entry(context,p4,supplied,'authority',dispatch=dispatched)
+        assert calls==[('src.brain.agent_server',['src.brain.agent_server',*argv[6:]])]
+        with pytest.raises(FileExistsError): a.actual_child_entry(context,p4,supplied,'authority',dispatch=dispatched)
+        assert len(calls)==1
+    else:
+        with pytest.raises(ValueError): a.actual_child_entry(context,p4,supplied,'authority',dispatch=dispatched)
+        assert not calls and not (tmp_path/'child-clearance.consumed.json').exists()
+    assert sys.argv==old_args and sys.path==old_paths

@@ -1,0 +1,182 @@
+.................................................................F...... [ 75%]
+..............FFFFFFFFF                                                  [100%]
+================================== FAILURES ===================================
+_ test_root_observes_closed_package_after_return_no_missing_or_late_promotion[none-False] _
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/harness-preparation-20261102T204502128270Z/temp/test_root_observes_closed_pack0')
+missing = 'none', late = False
+
+    @pytest.mark.parametrize('missing,late',[('none',False),('seal-index.json',False),('data',False),('none',True)])
+    def test_root_observes_closed_package_after_return_no_missing_or_late_promotion(tmp_path,missing,late):
+        clock=Clock(); invocation=a.RootInvocation(clock=clock); b=invocation.budget; p4=a.load_p4()
+        required={'attempt.json','argv-roundtrip.json','native-argv.json','native-argv.raw','listener.json','owned-tree.json','cleanup.json','protected-before.json','protected-after.json','server.stdout','server.stderr'}
+        def entry():
+            b.phase='seal'
+            for name in required: a.save_new(tmp_path/name,{})
+            terminal=dict(kind='inert',folder=str(tmp_path),run_id=b.run_id,overall='READY_FOR_ROOT_TIMING_WITNESS',cleanup=dict(status='PASS',port_definitively_closed=True,logs_closed=True),errors=[])
+            a.save_new(tmp_path/'terminal.json',terminal); a.seal_index(tmp_path,b,p4)
+            if missing=='seal-index.json': (tmp_path/'seal-index.json').unlink()
+            if missing=='data': (tmp_path/'native-argv.raw').unlink()
+            clock.value=b.origin_ns+(315000000001 if late else 314999999999)
+            return terminal
+        observed=invocation.call(entry)
+>       assert observed['witness']['eligible'] is False  # Empty member objects are never substantive proof.
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       assert True is False
+
+..\..\harness\test_adapter.py:416: AssertionError
+______________ test_fix1_h12_socket_timeout_reclipped_at_connect ______________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001BD57804360>
+
+    def test_fix1_h12_socket_timeout_reclipped_at_connect(monkeypatch):
+        clock=Clock(); b=a.Deadline(clock=clock); b.phase='cleanup'; clock.value=b.cutoff_ns()-1000000000
+        p4=a.load_p4(); waits=[]
+        class Probe:
+            def __init__(self): clock.advance(.8)
+            def settimeout(self,value): waits.append(value)
+            def connect_ex(self,address): return a.errno.ECONNREFUSED
+            def close(self): pass
+        monkeypatch.setattr(p4.socket,'socket',Probe)
+        with a.PrivateIO(p4,b) as io:
+            probe=p4.socket.socket(); probe.settimeout(1)
+            try: probe.connect_ex(('127.0.0.1',18799))
+            finally: probe.close()
+>       assert waits[-1]==pytest.approx(.2)
+E       assert 1 == 0.2 ± 2.0e-07
+E         
+E         comparison failed
+E         Obtained: 1
+E         Expected: 0.2 ± 2.0e-07
+
+..\..\harness\test_adapter.py:577: AssertionError
+______________ test_fix1_h13_service_cli_invariants[request_id] _______________
+
+field = 'request_id'
+
+    @pytest.mark.parametrize('field',['request_id','session_id','task_id','status','artifacts','none'])
+    def test_fix1_h13_service_cli_invariants(field):
+        first=dict(request_id='r',session_id='s',task_id='t',status='succeeded',artifacts=[dict(path='p',sha256='h',verified=True)])
+        service=json.loads(json.dumps(first))
+        if field!='none': service[field]=[] if field=='artifacts' else 'different'
+        if field=='none': a.reconcile_results(first,service)
+        else:
+>           with pytest.raises(ValueError,match='service/CLI'): a.reconcile_results(first,service)
+                                                                ^^^^^^^^^^^^^^^^^^^
+E           AttributeError: module 'source10_adapter' has no attribute 'reconcile_results'
+
+..\..\harness\test_adapter.py:586: AttributeError
+______________ test_fix1_h13_service_cli_invariants[session_id] _______________
+
+field = 'session_id'
+
+    @pytest.mark.parametrize('field',['request_id','session_id','task_id','status','artifacts','none'])
+    def test_fix1_h13_service_cli_invariants(field):
+        first=dict(request_id='r',session_id='s',task_id='t',status='succeeded',artifacts=[dict(path='p',sha256='h',verified=True)])
+        service=json.loads(json.dumps(first))
+        if field!='none': service[field]=[] if field=='artifacts' else 'different'
+        if field=='none': a.reconcile_results(first,service)
+        else:
+>           with pytest.raises(ValueError,match='service/CLI'): a.reconcile_results(first,service)
+                                                                ^^^^^^^^^^^^^^^^^^^
+E           AttributeError: module 'source10_adapter' has no attribute 'reconcile_results'
+
+..\..\harness\test_adapter.py:586: AttributeError
+________________ test_fix1_h13_service_cli_invariants[task_id] ________________
+
+field = 'task_id'
+
+    @pytest.mark.parametrize('field',['request_id','session_id','task_id','status','artifacts','none'])
+    def test_fix1_h13_service_cli_invariants(field):
+        first=dict(request_id='r',session_id='s',task_id='t',status='succeeded',artifacts=[dict(path='p',sha256='h',verified=True)])
+        service=json.loads(json.dumps(first))
+        if field!='none': service[field]=[] if field=='artifacts' else 'different'
+        if field=='none': a.reconcile_results(first,service)
+        else:
+>           with pytest.raises(ValueError,match='service/CLI'): a.reconcile_results(first,service)
+                                                                ^^^^^^^^^^^^^^^^^^^
+E           AttributeError: module 'source10_adapter' has no attribute 'reconcile_results'
+
+..\..\harness\test_adapter.py:586: AttributeError
+________________ test_fix1_h13_service_cli_invariants[status] _________________
+
+field = 'status'
+
+    @pytest.mark.parametrize('field',['request_id','session_id','task_id','status','artifacts','none'])
+    def test_fix1_h13_service_cli_invariants(field):
+        first=dict(request_id='r',session_id='s',task_id='t',status='succeeded',artifacts=[dict(path='p',sha256='h',verified=True)])
+        service=json.loads(json.dumps(first))
+        if field!='none': service[field]=[] if field=='artifacts' else 'different'
+        if field=='none': a.reconcile_results(first,service)
+        else:
+>           with pytest.raises(ValueError,match='service/CLI'): a.reconcile_results(first,service)
+                                                                ^^^^^^^^^^^^^^^^^^^
+E           AttributeError: module 'source10_adapter' has no attribute 'reconcile_results'
+
+..\..\harness\test_adapter.py:586: AttributeError
+_______________ test_fix1_h13_service_cli_invariants[artifacts] _______________
+
+field = 'artifacts'
+
+    @pytest.mark.parametrize('field',['request_id','session_id','task_id','status','artifacts','none'])
+    def test_fix1_h13_service_cli_invariants(field):
+        first=dict(request_id='r',session_id='s',task_id='t',status='succeeded',artifacts=[dict(path='p',sha256='h',verified=True)])
+        service=json.loads(json.dumps(first))
+        if field!='none': service[field]=[] if field=='artifacts' else 'different'
+        if field=='none': a.reconcile_results(first,service)
+        else:
+>           with pytest.raises(ValueError,match='service/CLI'): a.reconcile_results(first,service)
+                                                                ^^^^^^^^^^^^^^^^^^^
+E           AttributeError: module 'source10_adapter' has no attribute 'reconcile_results'
+
+..\..\harness\test_adapter.py:586: AttributeError
+_________________ test_fix1_h13_service_cli_invariants[none] __________________
+
+field = 'none'
+
+    @pytest.mark.parametrize('field',['request_id','session_id','task_id','status','artifacts','none'])
+    def test_fix1_h13_service_cli_invariants(field):
+        first=dict(request_id='r',session_id='s',task_id='t',status='succeeded',artifacts=[dict(path='p',sha256='h',verified=True)])
+        service=json.loads(json.dumps(first))
+        if field!='none': service[field]=[] if field=='artifacts' else 'different'
+>       if field=='none': a.reconcile_results(first,service)
+                          ^^^^^^^^^^^^^^^^^^^
+E       AttributeError: module 'source10_adapter' has no attribute 'reconcile_results'
+
+..\..\harness\test_adapter.py:584: AttributeError
+_______ test_fix1_h08_first_cause_cleanup_then_boundary_never_replaced ________
+
+    def test_fix1_h08_first_cause_cleanup_then_boundary_never_replaced():
+        b=a.Deadline(); errors=[]
+>       a.record_failure(b,errors,'cleanup','returned FAIL',effects_unknown=True)
+        ^^^^^^^^^^^^^^^^
+E       AttributeError: module 'source10_adapter' has no attribute 'record_failure'
+
+..\..\harness\test_adapter.py:590: AttributeError
+__________ test_fix1_h14_observer_late_first_read_stops_following_io __________
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/harness-preparation-20261102T204502128270Z/temp/test_fix1_h14_observer_late_fi0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001BD9FFD3A80>
+
+    def test_fix1_h14_observer_late_first_read_stops_following_io(tmp_path,monkeypatch):
+        clock=Clock(); invocation=a.RootInvocation(clock=clock); b=invocation.budget; reads=[]
+        def read(path): reads.append(path); clock.value=b.cutoff_ns('seal')+1; return {}
+        monkeypatch.setattr(a,'load',read)
+        outcome=invocation.call(lambda:dict(folder=str(tmp_path)))
+>       assert len(reads)==1 and not outcome['witness']['eligible']
+E       AssertionError: assert (2 == 1)
+E        +  where 2 = len([WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/...dation-20261102/code/harness-preparation-20261102T204502128270Z/temp/test_fix1_h14_observer_late_fi0/seal-index.json')])
+
+..\..\harness\test_adapter.py:599: AssertionError
+=========================== short test summary info ===========================
+FAILED ..\..\harness\test_adapter.py::test_root_observes_closed_package_after_return_no_missing_or_late_promotion[none-False]
+FAILED ..\..\harness\test_adapter.py::test_fix1_h12_socket_timeout_reclipped_at_connect
+FAILED ..\..\harness\test_adapter.py::test_fix1_h13_service_cli_invariants[request_id]
+FAILED ..\..\harness\test_adapter.py::test_fix1_h13_service_cli_invariants[session_id]
+FAILED ..\..\harness\test_adapter.py::test_fix1_h13_service_cli_invariants[task_id]
+FAILED ..\..\harness\test_adapter.py::test_fix1_h13_service_cli_invariants[status]
+FAILED ..\..\harness\test_adapter.py::test_fix1_h13_service_cli_invariants[artifacts]
+FAILED ..\..\harness\test_adapter.py::test_fix1_h13_service_cli_invariants[none]
+FAILED ..\..\harness\test_adapter.py::test_fix1_h08_first_cause_cleanup_then_boundary_never_replaced
+FAILED ..\..\harness\test_adapter.py::test_fix1_h14_observer_late_first_read_stops_following_io
+10 failed, 85 passed in 2.39s

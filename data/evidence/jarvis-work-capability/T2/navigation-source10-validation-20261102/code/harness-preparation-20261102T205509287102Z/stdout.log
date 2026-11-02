@@ -1,0 +1,69 @@
+.................F...................................................... [ 61%]
+.............................................                            [100%]
+================================== FAILURES ===================================
+________ test_adapter_first_failure_retained_and_no_next_case[cleanup] ________
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/harness-preparation-20261102T205509287102Z/temp/test_adapter_first_failure_ret5')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000020CA37D2650>
+failure = 'cleanup'
+sdk_io = (<src.brain.browser.channel.BrowserChannel object at 0x0000020CA53E3AD0>, [('search', 'Research a subject'), ('get', '...'https://example.com/source/2'), ('get', 'https://example.com/source/3'), ('get', 'https://example.com/source/4')], {})
+mock_jar = (<openjarvis.sdk.Jarvis object at 0x0000020CA3A2E5D0>, <function _run_work_agent at 0x0000020CA3819260>, [{'format': {..., ...], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [])
+
+    @pytest.mark.parametrize('failure',['timeout','nonzero','invalidJSON','partialpacket','missingEND','cleanup','finalboundary'])
+    def test_adapter_first_failure_retained_and_no_next_case(tmp_path,monkeypatch,failure,sdk_io,mock_jar):
+        first,ledger=synthetic_bundle(tmp_path,sdk_io,mock_jar,monkeypatch)
+        p4=a.load_p4()
+        monkeypatch.setattr(p4,'protected',lambda:[])
+        monkeypatch.setattr(p4,'identity',lambda pid:dict(pid=pid,created_filetime=100,exe=sys.executable))
+        monkeypatch.setattr(p4,'process_times',lambda proc:(100,0))
+        monkeypatch.setattr(p4,'process_snapshot',lambda *args,**kwargs:{})
+        monkeypatch.setattr(p4,'terminate_owned',lambda key:None)
+        monkeypatch.setattr(p4,'assert_listener',lambda *args:None)
+        monkeypatch.setattr(p4,'listener_owner',lambda port:[7890])
+        class Probe:
+            def settimeout(self,value): pass
+            def connect_ex(self,address): return a.errno.ECONNREFUSED
+            def close(self): pass
+        monkeypatch.setattr(p4.socket,'socket',Probe)
+        if failure in ('partialpacket','missingEND'):
+            export=a.load(tmp_path/'trusted-export.json')
+            if failure=='partialpacket': export['members']['runtime']['sha256']='0'*64
+            else: export['END']=False
+            (tmp_path/'trusted-export.json').write_text(json.dumps(export),encoding='utf8')
+        pin_reads=[]
+        def pins():
+            pin_reads.append(1)
+            return {'drift':'changed'} if failure=='finalboundary' and len(pin_reads)>=3 else {}
+        monkeypatch.setattr(a,'check_inputs',pins)
+        monkeypatch.setattr(a,'check_native_baseline',lambda *args: [])
+        launches=[]
+        class Proc:
+            pid=7890; returncode=2 if failure=='nonzero' else 0
+            def wait(self,timeout=None):
+                if failure=='timeout' and timeout and timeout>3: raise TimeoutError('CLI timeout')
+                return self.returncode
+        def launch(argv,env,out,err):
+            launches.append(argv)
+            if '--research' in argv: out.write('{broken' if failure=='invalidJSON' else json.dumps(first)); out.flush()
+            return Proc()
+        # Patch only the actual launcher boundary; real P4 Owned.launch/discover/cleanup execute.
+        root=a.C
+        monkeypatch.syspath_prepend(str(root))
+        from src.brain.tests import work_context_acceptance as helper
+        monkeypatch.setattr(helper,'launch',launch)
+        if failure=='cleanup': monkeypatch.setattr(p4,'terminate_owned',lambda key: (_ for _ in ()).throw(OSError('cleanup blocked'))); monkeypatch.setattr(p4,'process_snapshot',lambda *args,**kwargs:{7890:{'ParentProcessId':0}})
+        context=dict(folder=tmp_path,port=18799,request_id='r',session_id='s',baseline={},authority={},ledger={})
+        result=a.execute_case(context,p4)
+        assert len(launches)<=2
+        assert result['work_cli_attempts']==1
+        assert result['actual_native_start_count'] is None
+        assert result['overall']=='FAIL'
+        assert result['next_case'] is False
+        expected={'timeout':'CLI timeout','nonzero':'CLI nonzero','invalidJSON':'Expecting property name','partialpacket':'Export member digest','missingEND':'Missing complete packet or END','cleanup':'cleanup: returned FAIL','finalboundary':'final-boundary: Input drift'}
+>       assert expected[failure] in result['first_failure']
+E       AssertionError: assert 'cleanup: returned FAIL' in 'cleanup terminate_owned: cleanup blocked'
+
+..\..\harness\test_adapter.py:110: AssertionError
+=========================== short test summary info ===========================
+FAILED ..\..\harness\test_adapter.py::test_adapter_first_failure_retained_and_no_next_case[cleanup]
+1 failed, 116 passed in 14.64s

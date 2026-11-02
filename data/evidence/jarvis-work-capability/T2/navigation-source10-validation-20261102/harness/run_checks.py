@@ -24,7 +24,8 @@ def snapshot():
     files[str(V/'source10-candidate-manifest.json')] = 'cdfbfb059f889ef9e92221c503dffe2ca7fa08106ebf4968bcc26037f214be50'
     files[str(V/'harness-deadline-design/root-decision.json')]='144be9bc0a63294f5fd4e75c7cbe06f8e2ad2d51df36d0b11896d2455a0b4d47'
     report=Path(m['candidate_root'])/'.superpowers/sdd/jarvis-work-capability-delivery-plan-20261101/task-4-navigation-adapter-report.md'
-    if hashlib.sha256(report.read_bytes()[:13665]).hexdigest()!='47246ba87216f07d696a7bb2b1bb38d525fa7c99eb83a72e694552090dc3c2c1': raise ValueError('Original author report prefix drift')
+    report_bytes=report.read_bytes()
+    if hashlib.sha256(report_bytes[:13665]).hexdigest()!='47246ba87216f07d696a7bb2b1bb38d525fa7c99eb83a72e694552090dc3c2c1' or hashlib.sha256(report_bytes[:30837]).hexdigest()!='b61101512a5e49ccb65d015de835ea1ecd87abc49c199702a2d91255fb52ecab': raise ValueError('Original author report prefix drift')
     actual = {p: digest(p) for p in files}
     if actual != files:
         raise ValueError('Pinned preparation input drift')
@@ -47,19 +48,24 @@ def main():
         harness_before[name]=hashlib.sha256(raw).hexdigest()
     (run/'source-before.json').write_text(json.dumps(before,indent=2),encoding='utf8')
     argv = [str(PY), '-B', '-X', 'utf8', '-m', 'pytest', str(HERE/'test_adapter.py'), '-q', '-p', 'no:cacheprovider', '--basetemp='+str(run/'temp'), '--junitxml='+str(run/'harness/adapter.xml')]
-    env = dict(os.environ, PYTHONDONTWRITEBYTECODE='1', PYTHONIOENCODING='utf-8', PYTEST_DISABLE_PLUGIN_AUTOLOAD='1', TEMP=str(run), TMP=str(run))
+    env = dict(os.environ, PYTHONDONTWRITEBYTECODE='1', PYTHONIOENCODING='utf-8', PYTEST_DISABLE_PLUGIN_AUTOLOAD='1', TEMP=str(run), TMP=str(run),OPENJARVIS_HOME=str(run/'owned-env/openjarvis'),HF_HOME=str(run/'owned-env/hf'),XDG_CACHE_HOME=str(run/'owned-env/cache'))
     result = subprocess.run(argv,cwd=run,env=env,stdout=subprocess.PIPE,stderr=subprocess.PIPE,timeout=90)
     (run/'stdout.log').write_bytes(result.stdout)
     (run/'stderr.log').write_bytes(result.stderr)
-    after = snapshot()
+    after_error=None
+    try: after = snapshot()
+    except Exception as exc: after={'snapshot_error':str(exc)}; after_error=type(exc).__name__
     (run/'source-after.json').write_text(json.dumps(after,indent=2),encoding='utf8')
-    harness_after={name:digest(HERE/name) for name in sorted(names)}
-    receipt = dict(argv=argv,cwd=str(run),exit_code=result.returncode,inputs_unchanged=before==after,harness_before=harness_before,harness_after=harness_after,harness_unchanged=harness_before==harness_after,controlled_environment={key:env[key] for key in ('PYTHONDONTWRITEBYTECODE','PYTHONIOENCODING','PYTEST_DISABLE_PLUGIN_AUTOLOAD','TEMP','TMP')},kind='mocked-boundary-unit-only',inert=False,actual=False,model_calls=0,product_launches=0,T2='NOT_PASSED',files=harness_after)
+    harness_after={name:digest(HERE/name) if (HERE/name).is_file() else None for name in sorted(names)}
+    members_after={p.name for p in HERE.iterdir() if p.is_file()}
+    unchanged=harness_before==harness_after and members_after==names
+    exit_code=result.returncode if unchanged and before==after and after_error is None else 2
+    receipt = dict(argv=argv,cwd=str(run),exit_code=exit_code,pytest_exit_code=result.returncode,snapshot_after_error=after_error,inputs_unchanged=before==after,harness_before=harness_before,harness_after=harness_after,harness_members_after=sorted(members_after),harness_unchanged=unchanged,controlled_environment={key:env[key] for key in ('PYTHONDONTWRITEBYTECODE','PYTHONIOENCODING','PYTEST_DISABLE_PLUGIN_AUTOLOAD','TEMP','TMP','OPENJARVIS_HOME','HF_HOME','XDG_CACHE_HOME')},kind='mocked-boundary-unit-only',inert=False,actual=False,model_calls=0,product_launches=0,T2='NOT_PASSED',files=harness_after)
     (run/'receipt.json').write_text(json.dumps(receipt,indent=2),encoding='utf8')
     print(result.stdout.decode('utf8'),end='')
     print(result.stderr.decode('utf8'),end='',file=sys.stderr)
     print('RECEIPT '+str(run/'receipt.json'))
-    return result.returncode
+    return exit_code
 
 if __name__ == '__main__':
     raise SystemExit(main())

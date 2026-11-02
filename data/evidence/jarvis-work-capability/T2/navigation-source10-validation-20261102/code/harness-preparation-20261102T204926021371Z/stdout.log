@@ -1,0 +1,245 @@
+............FFFFFF...................................................... [ 75%]
+.......................                                                  [100%]
+================================== FAILURES ===================================
+________ test_adapter_first_failure_retained_and_no_next_case[timeout] ________
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/harness-preparation-20261102T204926021371Z/temp/test_adapter_first_failure_ret0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000019E9DB49480>
+failure = 'timeout'
+sdk_io = (<src.brain.browser.channel.BrowserChannel object at 0x0000019E9DD76A50>, [('search', 'Research a subject'), ('get', '...'https://example.com/source/2'), ('get', 'https://example.com/source/3'), ('get', 'https://example.com/source/4')], {})
+mock_jar = (<openjarvis.sdk.Jarvis object at 0x0000019E9DD75550>, <function _run_work_agent at 0x0000019E9DBA0900>, [{'format': {..., ...], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [])
+
+    @pytest.mark.parametrize('failure',['timeout','nonzero','invalidJSON','partialpacket','missingEND','cleanup'])
+    def test_adapter_first_failure_retained_and_no_next_case(tmp_path,monkeypatch,failure,sdk_io,mock_jar):
+>       first,ledger=synthetic_bundle(tmp_path,sdk_io,mock_jar,monkeypatch)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+..\..\harness\test_adapter.py:61: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+..\..\harness\test_adapter.py:27: in synthetic_bundle
+    a.export_completed(folder,ledger,result)
+..\..\harness\adapter.py:549: in export_completed
+    packet=json.loads(raw); ledger._scan_output(packet)
+                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Administrator\.codex\worktrees\jarvis-work-capability-longpaths\UltimaAgent\src\brain\work_tools.py:328: in _scan_output
+    check(value)
+C:\Users\Administrator\.codex\worktrees\jarvis-work-capability-longpaths\UltimaAgent\src\brain\work_tools.py:325: in check
+    for k,item in v.items(): check(k); check(item)
+                                       ^^^^^^^^^^^
+C:\Users\Administrator\.codex\worktrees\jarvis-work-capability-longpaths\UltimaAgent\src\brain\work_tools.py:327: in check
+    for item in v: check(item)
+                   ^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+v = '{"data":{"agent":"native_react","arguments":{"source_id":"S1","start_line":1},"tool":"ultima_work_research_inspect"},"timestamp":1793652568.55993,"type":"tool_call_start"}'
+
+    def check(v):
+        if isinstance(v,str):
+>           if any(not s.scan(v).clean for s in self._policy.scanners): raise ValueError('Unsafe research output')
+                                                                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E           ValueError: Unsafe research output
+
+C:\Users\Administrator\.codex\worktrees\jarvis-work-capability-longpaths\UltimaAgent\src\brain\work_tools.py:323: ValueError
+________ test_adapter_first_failure_retained_and_no_next_case[nonzero] ________
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/harness-preparation-20261102T204926021371Z/temp/test_adapter_first_failure_ret1')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000019E9DBE71D0>
+failure = 'nonzero'
+sdk_io = (<src.brain.browser.channel.BrowserChannel object at 0x0000019E9B237ED0>, [('search', 'Research a subject'), ('get', '...'https://example.com/source/2'), ('get', 'https://example.com/source/3'), ('get', 'https://example.com/source/4')], {})
+mock_jar = (<openjarvis.sdk.Jarvis object at 0x0000019E9B237610>, <function _run_work_agent at 0x0000019E9DBA0900>, [{'format': {..., ...], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [])
+
+    @pytest.mark.parametrize('failure',['timeout','nonzero','invalidJSON','partialpacket','missingEND','cleanup'])
+    def test_adapter_first_failure_retained_and_no_next_case(tmp_path,monkeypatch,failure,sdk_io,mock_jar):
+>       first,ledger=synthetic_bundle(tmp_path,sdk_io,mock_jar,monkeypatch)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+..\..\harness\test_adapter.py:61: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+..\..\harness\test_adapter.py:27: in synthetic_bundle
+    a.export_completed(folder,ledger,result)
+..\..\harness\adapter.py:549: in export_completed
+    packet=json.loads(raw); ledger._scan_output(packet)
+                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Administrator\.codex\worktrees\jarvis-work-capability-longpaths\UltimaAgent\src\brain\work_tools.py:328: in _scan_output
+    check(value)
+C:\Users\Administrator\.codex\worktrees\jarvis-work-capability-longpaths\UltimaAgent\src\brain\work_tools.py:325: in check
+    for k,item in v.items(): check(k); check(item)
+                                       ^^^^^^^^^^^
+C:\Users\Administrator\.codex\worktrees\jarvis-work-capability-longpaths\UltimaAgent\src\brain\work_tools.py:327: in check
+    for item in v: check(item)
+                   ^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+v = '{"data":{"agent":"native_react","arguments":{"source_id":"S1","start_line":1},"tool":"ultima_work_research_inspect"},"timestamp":1793652569.6853137,"type":"tool_call_start"}'
+
+    def check(v):
+        if isinstance(v,str):
+>           if any(not s.scan(v).clean for s in self._policy.scanners): raise ValueError('Unsafe research output')
+                                                                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E           ValueError: Unsafe research output
+
+C:\Users\Administrator\.codex\worktrees\jarvis-work-capability-longpaths\UltimaAgent\src\brain\work_tools.py:323: ValueError
+______ test_adapter_first_failure_retained_and_no_next_case[invalidJSON] ______
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/harness-preparation-20261102T204926021371Z/temp/test_adapter_first_failure_ret2')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000019E9F8008D0>
+failure = 'invalidJSON'
+sdk_io = (<src.brain.browser.channel.BrowserChannel object at 0x0000019E9F9E1810>, [('search', 'Research a subject'), ('get', '...'https://example.com/source/2'), ('get', 'https://example.com/source/3'), ('get', 'https://example.com/source/4')], {})
+mock_jar = (<openjarvis.sdk.Jarvis object at 0x0000019E9DB49480>, <function _run_work_agent at 0x0000019E9DBA0900>, [{'format': {..., ...], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [])
+
+    @pytest.mark.parametrize('failure',['timeout','nonzero','invalidJSON','partialpacket','missingEND','cleanup'])
+    def test_adapter_first_failure_retained_and_no_next_case(tmp_path,monkeypatch,failure,sdk_io,mock_jar):
+>       first,ledger=synthetic_bundle(tmp_path,sdk_io,mock_jar,monkeypatch)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+..\..\harness\test_adapter.py:61: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+..\..\harness\test_adapter.py:27: in synthetic_bundle
+    a.export_completed(folder,ledger,result)
+..\..\harness\adapter.py:549: in export_completed
+    packet=json.loads(raw); ledger._scan_output(packet)
+                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Administrator\.codex\worktrees\jarvis-work-capability-longpaths\UltimaAgent\src\brain\work_tools.py:328: in _scan_output
+    check(value)
+C:\Users\Administrator\.codex\worktrees\jarvis-work-capability-longpaths\UltimaAgent\src\brain\work_tools.py:325: in check
+    for k,item in v.items(): check(k); check(item)
+                                       ^^^^^^^^^^^
+C:\Users\Administrator\.codex\worktrees\jarvis-work-capability-longpaths\UltimaAgent\src\brain\work_tools.py:327: in check
+    for item in v: check(item)
+                   ^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+v = '{"data":{"agent":"native_react","arguments":{"source_id":"S1","start_line":1},"tool":"ultima_work_research_inspect"},"timestamp":1793652570.909157,"type":"tool_call_start"}'
+
+    def check(v):
+        if isinstance(v,str):
+>           if any(not s.scan(v).clean for s in self._policy.scanners): raise ValueError('Unsafe research output')
+                                                                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E           ValueError: Unsafe research output
+
+C:\Users\Administrator\.codex\worktrees\jarvis-work-capability-longpaths\UltimaAgent\src\brain\work_tools.py:323: ValueError
+_____ test_adapter_first_failure_retained_and_no_next_case[partialpacket] _____
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/harness-preparation-20261102T204926021371Z/temp/test_adapter_first_failure_ret3')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000019E9B1E2F10>
+failure = 'partialpacket'
+sdk_io = (<src.brain.browser.channel.BrowserChannel object at 0x0000019E9F9948A0>, [('search', 'Research a subject'), ('get', '...'https://example.com/source/2'), ('get', 'https://example.com/source/3'), ('get', 'https://example.com/source/4')], {})
+mock_jar = (<openjarvis.sdk.Jarvis object at 0x0000019E9F801040>, <function _run_work_agent at 0x0000019E9DBA0900>, [{'format': {..., ...], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [])
+
+    @pytest.mark.parametrize('failure',['timeout','nonzero','invalidJSON','partialpacket','missingEND','cleanup'])
+    def test_adapter_first_failure_retained_and_no_next_case(tmp_path,monkeypatch,failure,sdk_io,mock_jar):
+>       first,ledger=synthetic_bundle(tmp_path,sdk_io,mock_jar,monkeypatch)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+..\..\harness\test_adapter.py:61: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+..\..\harness\test_adapter.py:27: in synthetic_bundle
+    a.export_completed(folder,ledger,result)
+..\..\harness\adapter.py:549: in export_completed
+    packet=json.loads(raw); ledger._scan_output(packet)
+                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Administrator\.codex\worktrees\jarvis-work-capability-longpaths\UltimaAgent\src\brain\work_tools.py:328: in _scan_output
+    check(value)
+C:\Users\Administrator\.codex\worktrees\jarvis-work-capability-longpaths\UltimaAgent\src\brain\work_tools.py:325: in check
+    for k,item in v.items(): check(k); check(item)
+                                       ^^^^^^^^^^^
+C:\Users\Administrator\.codex\worktrees\jarvis-work-capability-longpaths\UltimaAgent\src\brain\work_tools.py:327: in check
+    for item in v: check(item)
+                   ^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+v = '{"data":{"agent":"native_react","arguments":{"source_id":"S1","start_line":1},"tool":"ultima_work_research_inspect"},"timestamp":1793652571.567004,"type":"tool_call_start"}'
+
+    def check(v):
+        if isinstance(v,str):
+>           if any(not s.scan(v).clean for s in self._policy.scanners): raise ValueError('Unsafe research output')
+                                                                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E           ValueError: Unsafe research output
+
+C:\Users\Administrator\.codex\worktrees\jarvis-work-capability-longpaths\UltimaAgent\src\brain\work_tools.py:323: ValueError
+______ test_adapter_first_failure_retained_and_no_next_case[missingEND] _______
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/harness-preparation-20261102T204926021371Z/temp/test_adapter_first_failure_ret4')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000019E9F9FD850>
+failure = 'missingEND'
+sdk_io = (<src.brain.browser.channel.BrowserChannel object at 0x0000019E9F996190>, [('search', 'Research a subject'), ('get', '...'https://example.com/source/2'), ('get', 'https://example.com/source/3'), ('get', 'https://example.com/source/4')], {})
+mock_jar = (<openjarvis.sdk.Jarvis object at 0x0000019E9F9FE050>, <function _run_work_agent at 0x0000019E9DBA0900>, [{'format': {..., ...], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [])
+
+    @pytest.mark.parametrize('failure',['timeout','nonzero','invalidJSON','partialpacket','missingEND','cleanup'])
+    def test_adapter_first_failure_retained_and_no_next_case(tmp_path,monkeypatch,failure,sdk_io,mock_jar):
+>       first,ledger=synthetic_bundle(tmp_path,sdk_io,mock_jar,monkeypatch)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+..\..\harness\test_adapter.py:61: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+..\..\harness\test_adapter.py:27: in synthetic_bundle
+    a.export_completed(folder,ledger,result)
+..\..\harness\adapter.py:549: in export_completed
+    packet=json.loads(raw); ledger._scan_output(packet)
+                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Administrator\.codex\worktrees\jarvis-work-capability-longpaths\UltimaAgent\src\brain\work_tools.py:328: in _scan_output
+    check(value)
+C:\Users\Administrator\.codex\worktrees\jarvis-work-capability-longpaths\UltimaAgent\src\brain\work_tools.py:325: in check
+    for k,item in v.items(): check(k); check(item)
+                                       ^^^^^^^^^^^
+C:\Users\Administrator\.codex\worktrees\jarvis-work-capability-longpaths\UltimaAgent\src\brain\work_tools.py:327: in check
+    for item in v: check(item)
+                   ^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+v = '{"data":{"agent":"native_react","arguments":{"source_id":"S1","start_line":1},"tool":"ultima_work_research_inspect"},"timestamp":1793652572.2536573,"type":"tool_call_start"}'
+
+    def check(v):
+        if isinstance(v,str):
+>           if any(not s.scan(v).clean for s in self._policy.scanners): raise ValueError('Unsafe research output')
+                                                                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E           ValueError: Unsafe research output
+
+C:\Users\Administrator\.codex\worktrees\jarvis-work-capability-longpaths\UltimaAgent\src\brain\work_tools.py:323: ValueError
+________ test_adapter_first_failure_retained_and_no_next_case[cleanup] ________
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/harness-preparation-20261102T204926021371Z/temp/test_adapter_first_failure_ret5')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000019E9F73FB50>
+failure = 'cleanup'
+sdk_io = (<src.brain.browser.channel.BrowserChannel object at 0x0000019E9FBDE690>, [('search', 'Research a subject'), ('get', '...'https://example.com/source/2'), ('get', 'https://example.com/source/3'), ('get', 'https://example.com/source/4')], {})
+mock_jar = (<openjarvis.sdk.Jarvis object at 0x0000019E9B2475C0>, <function _run_work_agent at 0x0000019E9DBA0900>, [{'format': {..., ...], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [])
+
+    @pytest.mark.parametrize('failure',['timeout','nonzero','invalidJSON','partialpacket','missingEND','cleanup'])
+    def test_adapter_first_failure_retained_and_no_next_case(tmp_path,monkeypatch,failure,sdk_io,mock_jar):
+>       first,ledger=synthetic_bundle(tmp_path,sdk_io,mock_jar,monkeypatch)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+..\..\harness\test_adapter.py:61: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+..\..\harness\test_adapter.py:27: in synthetic_bundle
+    a.export_completed(folder,ledger,result)
+..\..\harness\adapter.py:549: in export_completed
+    packet=json.loads(raw); ledger._scan_output(packet)
+                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Administrator\.codex\worktrees\jarvis-work-capability-longpaths\UltimaAgent\src\brain\work_tools.py:328: in _scan_output
+    check(value)
+C:\Users\Administrator\.codex\worktrees\jarvis-work-capability-longpaths\UltimaAgent\src\brain\work_tools.py:325: in check
+    for k,item in v.items(): check(k); check(item)
+                                       ^^^^^^^^^^^
+C:\Users\Administrator\.codex\worktrees\jarvis-work-capability-longpaths\UltimaAgent\src\brain\work_tools.py:327: in check
+    for item in v: check(item)
+                   ^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+v = '{"data":{"agent":"native_react","arguments":{"source_id":"S1","start_line":1},"tool":"ultima_work_research_inspect"},"timestamp":1793652572.9432008,"type":"tool_call_start"}'
+
+    def check(v):
+        if isinstance(v,str):
+>           if any(not s.scan(v).clean for s in self._policy.scanners): raise ValueError('Unsafe research output')
+                                                                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E           ValueError: Unsafe research output
+
+C:\Users\Administrator\.codex\worktrees\jarvis-work-capability-longpaths\UltimaAgent\src\brain\work_tools.py:323: ValueError
+=========================== short test summary info ===========================
+FAILED ..\..\harness\test_adapter.py::test_adapter_first_failure_retained_and_no_next_case[timeout]
+FAILED ..\..\harness\test_adapter.py::test_adapter_first_failure_retained_and_no_next_case[nonzero]
+FAILED ..\..\harness\test_adapter.py::test_adapter_first_failure_retained_and_no_next_case[invalidJSON]
+FAILED ..\..\harness\test_adapter.py::test_adapter_first_failure_retained_and_no_next_case[partialpacket]
+FAILED ..\..\harness\test_adapter.py::test_adapter_first_failure_retained_and_no_next_case[missingEND]
+FAILED ..\..\harness\test_adapter.py::test_adapter_first_failure_retained_and_no_next_case[cleanup]
+6 failed, 89 passed in 8.15s
