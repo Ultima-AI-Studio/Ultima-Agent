@@ -214,6 +214,27 @@ def _research_client():
     return httpx.Client(base_url=_RESEARCH_ORIGIN,trust_env=False,follow_redirects=False,timeout=25)
 
 
+def _research_sampler_schema(schema):
+    """Copy a JSON Schema, removing only sampler-incompatible length keywords."""
+    from copy import deepcopy
+    projected = deepcopy(schema)
+    def visit(node):
+        if not isinstance(node,dict):
+            return
+        node.pop('maxLength',None)
+        for key in ('properties','patternProperties','definitions','$defs','dependentSchemas','dependencies'):
+            for child in node.get(key,{}).values():
+                visit(child)
+        for key in ('additionalProperties','additionalItems','contains','propertyNames','not','if','then','else'):
+            visit(node.get(key))
+        for key in ('items','allOf','anyOf','oneOf'):
+            children = node.get(key,[])
+            for child in children if isinstance(children,list) else [children]:
+                visit(child)
+    visit(projected)
+    return projected
+
+
 class _NativeResearchLeaf:
     engine_id = 'ollama'
 
@@ -240,7 +261,7 @@ class _NativeResearchLeaf:
         matches = [m['digest'] for m in tags if m.get('name') in (model,model+':latest')]
         if matches != [_RESEARCH_DIGEST] or _research_manifest_digest() != _RESEARCH_DIGEST:
             raise ValueError('Unexpected research manifest identity')
-        request = NativeRequest(model=model,messages=messages_to_dicts(messages),format=response_format,
+        request = NativeRequest(model=model,messages=messages_to_dicts(messages),format=_research_sampler_schema(response_format),
                                 tools=[],think=False,stream=False,
                                 options={'num_ctx':16384,'temperature':0,'num_predict':max_tokens})
         if 'anyOf' in response_format:

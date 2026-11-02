@@ -1016,3 +1016,108 @@ def test_source7_split_prefix_issued_and_reopened(tmp_path,sdk_io,monkeypatch,su
     assert rec['evidence'][0]['text']==statement
     assert Path(r['artifacts'][0]['path']).read_text(encoding='utf8').find('Observed '+operation)>=0
     assert not _js_support(statement,2,2,kind,operation,'.'+suffix)
+
+
+
+def test_source8_sampler_copy_preserves_full_authority(tmp_path,sdk_io,mock_jar,monkeypatch):
+    from copy import deepcopy
+    from src.brain import agent_server
+    from src.brain.work_tools import WorkResearchWriteTool
+    jar,runner,bodies,replies=mock_jar
+    owner=jar._engine
+    original=agent_server._NativeResearchLeaf.generate
+    captured=[]
+    def capture(leaf,messages,**kwargs):
+        schema=deepcopy(kwargs['response_format'])
+        before=deepcopy(messages)
+        spec=deepcopy(WorkResearchWriteTool().spec.parameters)
+        result=original(leaf,messages,**kwargs)
+        assert kwargs['response_format']==schema and messages==before
+        assert WorkResearchWriteTool().spec.parameters==spec
+        captured.append(schema)
+        return result
+    monkeypatch.setattr(agent_server._NativeResearchLeaf,'generate',capture)
+    replies.extend([action(report_payload()),'{"final_answer":"saved"}'])
+    result=submit(tmp_path,sdk_io[0],runner)
+    assert result['status']=='succeeded',result['error']
+    assert jar._engine is owner and not owner._inner._engine._client.is_closed
+    assert len(result['research_effects'])==1 and len(list(tmp_path.rglob('research.md')))==1
+    assert len(captured)==len(bodies)==2
+    for full,body in zip(captured,bodies):
+        # Compare every path/value independently; only schema-keyword lengths disappear.
+        removed=[]
+        def compare(old,new,path=()):
+            if isinstance(old,dict):
+                assert set(new)==set(old)-{'maxLength'},path
+                for key,value in old.items():
+                    if key=='maxLength': removed.append((path,value))
+                    else: compare(value,new[key],path+(key,))
+            elif isinstance(old,list):
+                assert len(old)==len(new)
+                for i,(a,b) in enumerate(zip(old,new)): compare(a,b,path+(i,))
+            else: assert old==new,path
+        compare(full,body['format'])
+        assert removed
+    assert captured[0]['anyOf'][0]['properties']['action_input']['properties']['title']['maxLength']==200
+    assert captured[1]['properties']['final_answer']['maxLength']==1000
+    system=bodies[0]['messages'][0]['content']
+    assert '"maxLength":2000' in system
+
+
+def test_source8_property_named_maxlength_is_not_a_keyword(tmp_path,mock_jar):
+    from copy import deepcopy
+    from openjarvis.core.types import Message,Role
+    from src.brain import agent_server
+    _,_,bodies,replies=mock_jar
+    schema={'type':'object','additionalProperties':False,'required':['maxLength'],
+            'properties':{'maxLength':{'type':'string','minLength':1,'maxLength':3,
+                                      'enum':['abc'],'default':'abc'}},
+            'examples':[{'maxLength':'abc'}]}
+    before=deepcopy(schema)
+    expected=deepcopy(schema)
+    del expected['properties']['maxLength']['maxLength']
+    class Ledger:
+        def admit_ack(self): pass
+    replies.append('{"maxLength":"abc"}')
+    with agent_server._research_client() as client:
+        leaf=agent_server._NativeResearchLeaf(client,Ledger())
+        leaf.generate([Message(role=Role.USER,content='schema copy')],model=agent_server._RESEARCH_MODEL,
+                      temperature=0,max_tokens=32,response_format=schema)
+    assert schema==before
+    assert bodies[0]['format']==expected
+
+
+@pytest.mark.parametrize('field',['path','title','heading','claim','final_answer'])
+def test_source8_full_length_validation_precedes_dispatch(tmp_path,sdk_io,mock_jar,monkeypatch,field):
+    from openjarvis.tools.file_write import FileWriteTool
+    jar,runner,bodies,replies=mock_jar
+    owner=jar._engine
+    actual=FileWriteTool.execute
+    writes=[]
+    def write(tool,**kwargs):
+        writes.append(dict(kwargs))
+        return actual(tool,**kwargs)
+    monkeypatch.setattr(FileWriteTool,'execute',write)
+    def draft(body):
+        data=report_payload()
+        if field=='path': data['path']='x'*2049
+        elif field=='title': data['title']='x'*201
+        elif field=='heading': data['sections'][0]['heading']='x'*201
+        elif field=='claim': data['sections'][0]['facts'][0]['claim']='x'*2001
+        return action(data)
+    replies.append(draft)
+    if field=='final_answer': replies.append(json.dumps({'final_answer':'x'*1001}))
+    result=submit(tmp_path,sdk_io[0],runner)
+    assert result['status']==('needs_attention' if field=='final_answer' else 'failed'),result
+    assert len(bodies)==(2 if field=='final_answer' else 1)
+    assert len(writes)==(1 if field=='final_answer' else 0)
+    assert len(list(tmp_path.rglob('research.md')))==len(writes)
+    assert not result['artifacts']
+    if field=='final_answer':
+        effect,=result['research_effects']
+        assert effect['state']=='completed' and Path(effect['path']).is_file()
+        assert Path(effect['path']).read_text(encoding='utf8').startswith('# Model title')
+    else:
+        assert not result.get('research_effects')
+        assert not any(e['type']=='tool_call_start' and e.get('phase')=='research.compose' for e in result['trace'])
+    assert jar._engine is owner and not owner._inner._engine._client.is_closed
