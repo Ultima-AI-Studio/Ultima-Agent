@@ -1,0 +1,235 @@
+F.F.F                                                                    [100%]
+================================== FAILURES ===================================
+__________ test_fix1_genuine_synthetic_export_and_external_readback ___________
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/harness-preparation-20261102T212429823531Z/temp/test_fix1_genuine_synthetic_ex0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001C1AE7ED220>
+sdk_io = (<src.brain.browser.channel.BrowserChannel object at 0x000001C221032BA0>, [('search', 'Research a subject'), ('get', '...'https://example.com/source/2'), ('get', 'https://example.com/source/3'), ('get', 'https://example.com/source/4')], {})
+mock_jar = (<openjarvis.sdk.Jarvis object at 0x000001C2210316A0>, <function _run_work_agent at 0x000001C220E516C0>, [{'format': {..., ...], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [])
+
+    def test_fix1_genuine_synthetic_export_and_external_readback(tmp_path,monkeypatch,sdk_io,mock_jar):
+>       result,ledger=synthetic_bundle(tmp_path,sdk_io,mock_jar,monkeypatch)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+..\..\harness\test_adapter.py:659: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+..\..\harness\test_adapter.py:27: in synthetic_bundle
+    a.export_completed(folder,ledger,result)
+..\..\harness\adapter.py:591: in export_completed
+    validate_export_structure(json.loads(raw),ledger._policy.scanners)
+..\..\harness\adapter.py:625: in validate_export_structure
+    if packet['prewrite_packet'] is not None: validate_export_structure(json.loads(packet['prewrite_packet']),scanners)
+                                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\harness\adapter.py:641: in validate_export_structure
+    scan(packet)
+..\..\harness\adapter.py:630: in scan
+    require(type(key) is str,'Export string key'); scan(key,('$key',)); scan(item,path+(key,))
+                                                                        ^^^^^^^^^^^^^^^^^^^^^^
+..\..\harness\adapter.py:632: in scan
+    for index,item in enumerate(value): scan(item,path+(index,))
+                                        ^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\harness\adapter.py:630: in scan
+    require(type(key) is str,'Export string key'); scan(key,('$key',)); scan(item,path+(key,))
+                                                                        ^^^^^^^^^^^^^^^^^^^^^^
+..\..\harness\adapter.py:638: in scan
+    if encoded: scan(json.loads(value),path+('$decoded',)); return
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\harness\adapter.py:630: in scan
+    require(type(key) is str,'Export string key'); scan(key,('$key',)); scan(item,path+(key,))
+                                                                        ^^^^^^^^^^^^^^^^^^^^^^
+..\..\harness\adapter.py:632: in scan
+    for index,item in enumerate(value): scan(item,path+(index,))
+                                        ^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\harness\adapter.py:630: in scan
+    require(type(key) is str,'Export string key'); scan(key,('$key',)); scan(item,path+(key,))
+                                                                        ^^^^^^^^^^^^^^^^^^^^^^
+..\..\harness\adapter.py:638: in scan
+    if encoded: scan(json.loads(value),path+('$decoded',)); return
+                     ^^^^^^^^^^^^^^^^^
+C:\Users\Administrator\AppData\Local\Doubao\User Data\sandbox_runtime\bases\772984f6fd3a8ae0ae7d2422cd7c2bfa\python\Lib\json\__init__.py:352: in loads
+    return _default_decoder.decode(s)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Administrator\AppData\Local\Doubao\User Data\sandbox_runtime\bases\772984f6fd3a8ae0ae7d2422cd7c2bfa\python\Lib\json\decoder.py:345: in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <json.decoder.JSONDecoder object at 0x000001C1ACB80D70>
+s = '[Work request: use ultima_work_research_write to deliver the requested file; a verbal claim is not delivery. Authoriz...:true,"identity":"example.com/source/4","landmarks":[[1,1]],"reason":"","source_id":"S4","suffix":"","total_lines":1}]'
+idx = 0
+
+    def raw_decode(self, s, idx=0):
+        """Decode a JSON document from ``s`` (a ``str`` beginning with
+        a JSON document) and return a 2-tuple of the Python
+        representation and the index in ``s`` where the document ended.
+    
+        This can be used to decode a JSON document from a string that may
+        have extraneous data at the end.
+    
+        """
+        try:
+            obj, end = self.scan_once(s, idx)
+        except StopIteration as err:
+>           raise JSONDecodeError("Expecting value", s, err.value) from None
+E           json.decoder.JSONDecodeError: Expecting value: line 1 column 2 (char 1)
+
+C:\Users\Administrator\AppData\Local\Doubao\User Data\sandbox_runtime\bases\772984f6fd3a8ae0ae7d2422cd7c2bfa\python\Lib\json\decoder.py:363: JSONDecodeError
+_______ test_fix2_n01_coherent_unchecked_member_never_raw_export[wire] ________
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/harness-preparation-20261102T212429823531Z/temp/test_fix2_n01_coherent_uncheck1')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001C222C25B50>
+sdk_io = (<src.brain.browser.channel.BrowserChannel object at 0x000001C21E56F890>, [('search', 'Research a subject'), ('get', '...'https://example.com/source/2'), ('get', 'https://example.com/source/3'), ('get', 'https://example.com/source/4')], {})
+mock_jar = (<openjarvis.sdk.Jarvis object at 0x000001C220D66B10>, <function _run_work_agent at 0x000001C220E516C0>, [{'format': {..., ...], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [])
+where = 'wire'
+
+    @pytest.mark.parametrize('where',['top','wire','transport','event'])
+    def test_fix2_n01_coherent_unchecked_member_never_raw_export(tmp_path,monkeypatch,sdk_io,mock_jar,where):
+        from src.brain.work_navigation import canonical_v3
+        from src.brain.work_research import verify_runtime_packet
+        from src.brain.tests.test_work_navigation_transport import escaped_scanner_fixture
+        result,ledger=synthetic_bundle(tmp_path,sdk_io,mock_jar,monkeypatch,write=False)
+        packet=json.loads(ledger._runtime_final); secret=escaped_scanner_fixture()
+        target=packet if where=='top' else packet['wires'][0] if where=='wire' else packet['transport'] if where=='transport' else json.loads(packet['events'][0])
+        target['unchecked_extra']=secret
+        if where=='event': packet['events'][0]=canonical_v3(target).decode()
+        raw=canonical_v3(packet)
+>       if where!='event': verify_runtime_packet(ledger._binding,ledger.issued_snapshot,ledger._collection,raw,require_ack=True,runtime_inputs=ledger._runtime_inputs)
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+..\..\harness\test_adapter.py:911: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+binding = WorkBinding(root=WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-vali...128c1be7-b1f8-4722-b997-e9b77654e3b1'), request_id='r', session_id='s', task_id='128c1be7-b1f8-4722-b997-e9b77654e3b1')
+snapshot = IssuedSnapshotV3(binding_key=('r', 's', '128c1be7-b1f8-4722-b997-e9b77654e3b1'), nonce='8c3a80dbb6b0cc708ba022cef15d07...ffix":"","total_lines":1}],"v":3}', manifest_sha256='6d47f4e9bde5780d79b7cec5e01a6d417ee7e0443539701e6bc57d3b7f17063c')
+collection = ResearchCollection(catalogue_json='[{"success": true, "requested_url": "https://example.com/source/1", "final_url": "h...: "s", "task_id": "128c1be7-b1f8-4722-b997-e9b77654e3b1"}]', ignored_failure_ids=(), search_query='Research a subject')
+raw = b'{"binding":["r","s","128c1be7-b1f8-4722-b997-e9b77654e3b1"],"clock_domain":"work_tools.monotonic;ledger-sequence-v1"...ies":{"final_answer":{"maxLength":1000,"minLength":1,"type":"string"}},"required":["final_answer"],"type":"object"}}]}'
+require_ack = True
+runtime_inputs = ResearchRuntimeInputs(prompt='[Work request: use ultima_work_research_write to deliver the requested file; a verbal cl..._fix2_n01_coherent_uncheck1\\outputs\\128c1be7-b1f8-4722-b997-e9b77654e3b1', allowance=2048, deadline='228781.1272813')
+
+    def verify_runtime_packet(binding, snapshot, collection, raw, *, require_ack=False,runtime_inputs=None):
+        """Reconstruct native entities, history and read/event links independently."""
+        from .work_navigation import canonical_v3,v3_writer_schema
+        from .work_tools import WorkInspectTool,WorkResearchWriteTool
+        from openjarvis.tools._stubs import ToolSpec,build_tool_descriptions
+        from types import SimpleNamespace
+        from .agent_server import _strict_json,_research_sampler_schema,_RESEARCH_MODEL,MAINBRAIN_SYSTEM_PROMPT
+        from openjarvis.agents.native_react import REACT_SYSTEM_PROMPT
+        from jsonschema import Draft7Validator
+        from openjarvis.security.scanner import SecretScanner,PIIScanner
+        from .work_navigation import make_scan_policy
+        sealed_policy=json.loads(snapshot.replay_json)['policy']
+        factories={c.__module__+'.'+c.__qualname__:c for c in (SecretScanner,PIIScanner)}
+        policy=make_scan_policy(tuple(factories[d['name']]() for d in sealed_policy['scanners']),sealed_policy['mode'])
+        if json.loads(policy.policy_json)!=sealed_policy: raise ValueError('Runtime scanner policy drift')
+        def scan_strings(value):
+            if isinstance(value,str):
+                if any(not s.scan(value).clean for s in policy.scanners): raise ValueError('Unsafe native evidence string')
+            elif isinstance(value,list):
+                for child in value: scan_strings(child)
+            elif isinstance(value,dict):
+                for key,child in value.items(): scan_strings(key);scan_strings(child)
+        if type(raw) is not bytes or not raw: raise ValueError('Nonempty immutable runtime bytes required')
+        packet=json.loads(raw)
+        digest=lambda value:hashlib.sha256(value).hexdigest()
+        if (runtime_inputs is None or packet['prompt']!=runtime_inputs.prompt or runtime_inputs.binding_key!=snapshot.binding_key
+                or runtime_inputs.root!=str(binding.root)):
+            raise ValueError('Runtime independently frozen input drift')
+        if (canonical_v3(packet)!=raw or packet['v']!=3 or packet['binding']!=list(snapshot.binding_key)
+                or tuple(getattr(binding,k) for k in ('request_id','session_id','task_id'))!=snapshot.binding_key
+                or packet['nonce']!=snapshot.nonce or packet['issued_manifest']!=snapshot.manifest_sha256
+                or packet['views_sha256']!=digest(snapshot.views_json)):
+            raise ValueError('Runtime snapshot linkage drift')
+        original=packet['system_original']
+        specs=[ToolSpec(name=WorkInspectTool.tool_id,description=WorkInspectTool.description,parameters=WorkInspectTool.parameters,category='work',timeout_seconds=5),
+            ToolSpec(name=WorkResearchWriteTool.tool_id,description=WorkResearchWriteTool.description,parameters=v3_writer_schema(),category='work',timeout_seconds=30,required_capabilities=['file:write'])]
+        expected_original=(REACT_SYSTEM_PROMPT+'\n\n'+MAINBRAIN_SYSTEM_PROMPT).format(skill_examples='',tool_descriptions=build_tool_descriptions([SimpleNamespace(spec=s) for s in specs]))
+        prefix=REACT_SYSTEM_PROMPT.split('# Using Skills',1)[0]
+        if (original!=expected_original or original.count(prefix)!=1 or not original.endswith(MAINBRAIN_SYSTEM_PROMPT)
+                or any(name not in original for name in ('ultima_work_research_inspect','ultima_work_research_write'))):
+            raise ValueError('Runtime SDK policy drift')
+        replacement=('Return exactly one JSON object matching the phase schema. Use action and object action_input '
+            'for one permitted SDK tool, or final_answer for refusal or the authorized final acknowledgement. '
+            'Write prose style applies inside user-facing text only.\n\n')
+        replaced=original.replace(prefix,replacement,1)
+        events=[_strict_json(e) for e in packet['events']]
+        starts=[e['data'] for e in events if e['type']=='tool_call_start']
+        ends=[e['data'] for e in events if e['type']=='tool_call_end']
+        reads=json.loads(snapshot.replay_json)['reads']
+        wires=packet['wires']
+        if not len(reads)+1<=len(wires)<=8: raise ValueError('Runtime generation count')
+        written=packet['execution']['intent'] is not None
+        if len(starts)!=len(reads)+1 or len(ends)!=len(reads)+int(written):
+            raise ValueError('Runtime event count')
+        expected_types=['tool_call_start','tool_call_end']*len(reads)+['tool_call_start']+(['tool_call_end'] if written else [])
+        if [e['type'] for e in events]!=expected_types: raise ValueError('Runtime ordered transcript drift')
+        submitted_writer=wires[len(reads)]['secured_envelope']['action_input']
+        if starts[-1]!=dict(tool='ultima_work_research_write',agent='native_react',arguments=submitted_writer):
+            raise ValueError('Runtime writer START identity drift')
+        _verify_runtime_order(packet,reads,written,require_ack,runtime_inputs)
+        prewrite=packet.get('prewrite_packet')
+        if prewrite is not None:
+            if type(prewrite) is not str or digest(prewrite.encode())!=packet['prewrite_sha256']:
+                raise ValueError('Runtime sealed prewrite hash drift')
+            if json.loads(prewrite).get('prewrite_packet') is not None: raise ValueError('Nested prewrite packet')
+            prefix_packet=verify_runtime_packet(binding,snapshot,collection,prewrite.encode(),runtime_inputs=runtime_inputs)
+            if prefix_packet.get('prewrite_packet') is not None or prefix_packet['execution']!=dict(intent=None,files=[],effects=[]):
+                raise ValueError('Runtime invalid prewrite prefix')
+            for key in ('v','binding','nonce','issued_manifest','views_sha256','prompt','system_original','clock_domain'):
+                if packet[key]!=prefix_packet[key]: raise ValueError('Runtime prewrite binding drift')
+            for key in ('wires','events','timeline'):
+>               if packet[key][:len(prefix_packet[key])]!=prefix_packet[key]: raise ValueError('Runtime prewrite transcript drift')
+                                                                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E               ValueError: Runtime prewrite transcript drift
+
+C:\Users\Administrator\.codex\worktrees\jarvis-work-capability-longpaths\UltimaAgent\src\brain\work_research.py:716: ValueError
+_______ test_fix2_n01_coherent_unchecked_member_never_raw_export[event] _______
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/harness-preparation-20261102T212429823531Z/temp/test_fix2_n01_coherent_uncheck3')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001C21E516CF0>
+sdk_io = (<src.brain.browser.channel.BrowserChannel object at 0x000001C222C29940>, [('search', 'Research a subject'), ('get', '...'https://example.com/source/2'), ('get', 'https://example.com/source/3'), ('get', 'https://example.com/source/4')], {})
+mock_jar = (<openjarvis.sdk.Jarvis object at 0x000001C222A13A50>, <function _run_work_agent at 0x000001C220E516C0>, [{'format': {..., ...], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [])
+where = 'event'
+
+    @pytest.mark.parametrize('where',['top','wire','transport','event'])
+    def test_fix2_n01_coherent_unchecked_member_never_raw_export(tmp_path,monkeypatch,sdk_io,mock_jar,where):
+        from src.brain.work_navigation import canonical_v3
+        from src.brain.work_research import verify_runtime_packet
+        from src.brain.tests.test_work_navigation_transport import escaped_scanner_fixture
+        result,ledger=synthetic_bundle(tmp_path,sdk_io,mock_jar,monkeypatch,write=False)
+        packet=json.loads(ledger._runtime_final); secret=escaped_scanner_fixture()
+        target=packet if where=='top' else packet['wires'][0] if where=='wire' else packet['transport'] if where=='transport' else json.loads(packet['events'][0])
+        target['unchecked_extra']=secret
+>       if where=='event': packet['events'][0]=canonical_v3(target).decode()
+                                               ^^^^^^^^^^^^^^^^^^^^
+
+..\..\harness\test_adapter.py:909: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+C:\Users\Administrator\.codex\worktrees\jarvis-work-capability-longpaths\UltimaAgent\src\brain\work_navigation.py:34: in canonical_v3
+    check(value)
+C:\Users\Administrator\.codex\worktrees\jarvis-work-capability-longpaths\UltimaAgent\src\brain\work_navigation.py:31: in check
+    for k, item in v.items(): check(k); check(item)
+                                        ^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+v = 1793654676.143007
+
+    def check(v):
+        if v is None or type(v) in (bool, int): return
+        if type(v) is str:
+            if any(0xd800 <= ord(c) <= 0xdfff for c in v): raise ValueError('Surrogate in canonical JSON')
+            return
+        if type(v) is list:
+            for item in v: check(item)
+            return
+        if type(v) is dict and all(type(k) is str for k in v):
+            for k, item in v.items(): check(k); check(item)
+            return
+>       raise ValueError('Unsupported canonical JSON type')
+E       ValueError: Unsupported canonical JSON type
+
+C:\Users\Administrator\.codex\worktrees\jarvis-work-capability-longpaths\UltimaAgent\src\brain\work_navigation.py:33: ValueError
+=========================== short test summary info ===========================
+FAILED ..\..\harness\test_adapter.py::test_fix1_genuine_synthetic_export_and_external_readback
+FAILED ..\..\harness\test_adapter.py::test_fix2_n01_coherent_unchecked_member_never_raw_export[wire]
+FAILED ..\..\harness\test_adapter.py::test_fix2_n01_coherent_unchecked_member_never_raw_export[event]
+3 failed, 2 passed, 129 deselected in 6.50s

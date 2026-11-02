@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="1" time="3.507" timestamp="2026-11-03T05:32:59.837270+08:00" hostname="DESKTOP-B366PQ9"><testcase classname="harness.test_adapter" name="test_fix2_n01_clock_named_unchecked_metadata_has_no_numeric_exemption" time="1.416"><failure message="Failed: DID NOT RAISE ValueError">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/harness-preparation-20261102T213259526089Z/temp/test_fix2_n01_clock_named_unch0')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000001D3FC4CD220&gt;
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x000001D422C1ECF0&gt;, [('search', 'Research a subject'), ('get', '...'https://example.com/source/2'), ('get', 'https://example.com/source/3'), ('get', 'https://example.com/source/4')], {})
+mock_jar = (&lt;openjarvis.sdk.Jarvis object at 0x000001D422C1D7F0&gt;, &lt;function _run_work_agent at 0x000001D422A31760&gt;, [{'format': {..., ...], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [])
+
+    def test_fix2_n01_clock_named_unchecked_metadata_has_no_numeric_exemption(tmp_path,monkeypatch,sdk_io,mock_jar):
+        from src.brain.work_navigation import canonical_v3
+        from src.brain.work_research import verify_runtime_packet
+        from src.brain.tests.test_work_navigation_transport import escaped_scanner_fixture
+        result,ledger=synthetic_bundle(tmp_path,sdk_io,mock_jar,monkeypatch,write=False)
+        packet=json.loads(ledger._runtime_final)
+        packet['execution']['files'][0]['result']=json.dumps(dict(timeline=[dict(at=escaped_scanner_fixture())]))
+        raw=canonical_v3(packet)
+        verify_runtime_packet(ledger._binding,ledger.issued_snapshot,ledger._collection,raw,require_ack=True,runtime_inputs=ledger._runtime_inputs)
+        ledger._runtime_final=raw
+&gt;       with pytest.raises(ValueError,match='Unsafe export decoded value'): a.export_completed(tmp_path,ledger,result)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+..\..\harness\test_adapter.py:944: Failed</failure></testcase></testsuite></testsuites>

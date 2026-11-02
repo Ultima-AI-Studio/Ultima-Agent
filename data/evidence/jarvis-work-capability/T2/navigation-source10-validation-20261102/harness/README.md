@@ -266,3 +266,69 @@ the failure receipt/raw logs remain. Both report-prefix hashes are checked.
 No new W root-caller draft, concrete authority, independent approval/baseline,
 runtime/inert/model/profile/actual allocation or qualification is implemented or
 issued here. Root retains publication and all later gates. T2 remains NOT_PASSED.
+
+## Formal fix2: six scoped blockers, no operational release
+
+The same reviewer independently closed H03/H04/H05/H06/H07/H08/H09/H10/H11/H12/
+H13/H15 after fix1. Their original tests/remedies remain. This change targets only
+H01/H02/H14 and F1-N01/F1-N02/F1-N03 plus shared-path regressions. All123 fix1
+test IDs remain. The entire52443-byte594584b5 report prefix and nested prefixes
+remain verbatim; the driver checks all three before/after. No root caller draft,
+authority, baseline, approval or operational gate is prepared or executed.
+
+H01 now requires one retained server launcher and exactly ONE validated native
+base child before clearance publication. Two matching siblings are ambiguous and
+fail; all original Owned identities remain for evidence/cleanup. No set is
+truncated, no first process is selected, and no new kill/ownership rule exists.
+Clearance distinguishes launcher_identity (ancestry only) and base_identity (the
+sole eligible consumer). The child self identity, exclusive consumption, native
+base listener and closed proof must all bind that same unique base. Root, other
+member, duplicate flags, wrong mode and replay remain denied.
+
+F1-N02 adds the final positive-remaining check immediately at product dispatch or
+HTTPServer/listener constructor AFTER clearance, imports, fixture/argv/body setup.
+Timely consumption does not renew the275s work cutoff. A late setup leaves the
+consumed record and specific first failure, and starts no new service/listener.
+
+H02's inert-exchange.json is required closed evidence. The parent performs the
+original P4 get_json against the exact admitted loopback endpoint after original
+assert_listener. It retains the validated actual response, method/URL, owned base
+listener and same-clock before/after observations in BOTH trusted parent context
+and the sealed file. Witness compares them exactly, checks original run/timing,
+canonical endpoint/role and response, and admits no parentless self-written proof.
+The substantive positive actually invokes real get_json with only its HTTP opener
+mocked; missing/endpoint/listener/response/timing/no-parent controls fail. It is
+still a unit, not actual inert qualification or networking.
+
+H14's own guarded_files walk replaces whole rglob comprehensions. Each directory
+open, iterator advance and member stat has pre/post admission to the SAME current
+seal budget; iterators close in finally even on late return. No later directory,
+iteration/stat/hash is admitted after the first delayed query. This is used for
+index creation, enclosing closed-member listing and inert/output observation.
+It does not modify original P4 or globally patch pathlib/OS. Boundary mocks exist
+only in isolated tests. A raw operation admitted earlier can still return late;
+physical failure-path preemption is not promised.
+
+F1-N01 keeps real v3 verification and adds closed producer object structures for
+runtime/prewrite, wires/hashes/identity, transport/receipts, execution records and
+events/timeline. Unexpected members/types fail before any raw publication. Every
+decoded string/key is checked with the EXISTING configured scanners. Serialized
+events/entities/native envelopes are decoded before scan; closed finite repr(float)
+timeline clocks remain typed numbers, preserving the timestamp correction. No
+arbitrary metadata exemption, stripping, SDK/policy change or fact filter exists.
+The same safety check also applies to readback. Coherent extra top/wire/transport/
+event values accepted by the original loose verifier are refused by this boundary,
+while genuine export, decoded unsafe-envelope and bounded3/4MiB controls remain.
+
+F1-N03 compares the OBSERVED pre-cleanup inventory immediately to accepted bytes/
+paths/hashes and latches any discrepancy before cleanup can remove/restore it.
+The exact closed pre-map is also reconciled by the enclosing witness alongside
+accepted/post/current maps and remains durably member-hash bound. A transient
+observed extra can never become successful when later deleted. Equal maps pass.
+
+Preparation driver may select a focused unit expression using the shell-local
+ULTIMA_ADAPTER_UNIT_SELECTION environment value. It records the actual -k and
+expression in exact pytest argv and still copies six bytes and64 pin snapshots.
+The final complete stage has no selection; only that stage establishes retained
+all123 IDs. This is a unit filter, not a product or qualification flag. Source118,
+SDK22, old P4/P1/corpus, original8B policy and all allocations remain unchanged.

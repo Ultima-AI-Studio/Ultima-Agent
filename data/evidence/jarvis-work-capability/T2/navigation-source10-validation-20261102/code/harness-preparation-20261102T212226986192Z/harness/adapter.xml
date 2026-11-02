@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="1" time="2.041" timestamp="2026-11-03T05:22:27.334812+08:00" hostname="DESKTOP-B366PQ9"><testcase classname="harness.test_adapter" name="test_fix2_h14_first_directory_overrun_stops_iteration_and_further_io" time="0.052"><failure message="AssertionError: ({'result': {'kind': 'inert', 'folder': 'H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\&#10;  aviga...tonic_ns;same-host=DESKTOP-B366PQ9', 'work_cutoff_ns': 1275000000000, ...}}, 'witness: Trusted admission proof absent')&#10;assert (not False and 0 == 1)&#10; +  where 0 = len([])">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/harness-preparation-20261102T212226986192Z/temp/test_fix2_h14_first_directory_0')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x0000022CAEE8D220&gt;
+
+    def test_fix2_h14_first_directory_overrun_stops_iteration_and_further_io(tmp_path,monkeypatch):
+        import os
+        clock=Clock(); invocation=a.RootInvocation(clock=clock); b=invocation.budget; p4=a.load_p4(); opened=[]; advanced=[]; closed=[]; late_stats=[]; late_hashes=[]
+        real_scan=os.scandir; real_stat=os.stat; real_sha=a.sha
+        class Iterator:
+            def __init__(self,raw): self.raw=raw
+            def __iter__(self): return self
+            def __next__(self): advanced.append(True); return next(self.raw)
+            def close(self): closed.append(True); self.raw.close()
+            def __enter__(self): return self
+            def __exit__(self,*args): self.close()
+        def scan(path):
+            opened.append(str(path)); raw=real_scan(path)
+            if len(opened)==1: clock.value=b.cutoff_ns('seal')+1
+            return Iterator(raw)
+        def stat(*args,**kwargs):
+            if clock()&gt;b.cutoff_ns('seal'): late_stats.append(args[0])
+            return real_stat(*args,**kwargs)
+        def hashed(path):
+            if clock()&gt;b.cutoff_ns('seal'): late_hashes.append(path)
+            return real_sha(path)
+        def entry():
+            b.phase='seal'
+            required={'attempt.json','admission.json','child-clearance.json','child-clearance.ready','child-clearance.consumed.json','argv-roundtrip.json','native-argv.json','native-argv.raw','native-members.json','listener.json','owned-tree.json','cleanup.json','protected-before.json','protected-after.json','boundary-before.json','boundary-after.json','inert-exchange.json','server.stdout','server.stderr'}
+            for name in required: a.save_new(tmp_path/name,{})
+            (tmp_path/'later-directory').mkdir(); a.save_new(tmp_path/'later-directory/member.json',{})
+            terminal=dict(kind='inert',folder=str(tmp_path),run_id=b.run_id,timing=b.timing())
+            a.save_new(tmp_path/'terminal.json',terminal); a.seal_index(tmp_path,b,p4)
+            monkeypatch.setattr(os,'scandir',scan); monkeypatch.setattr(os,'stat',stat); monkeypatch.setattr(a,'sha',hashed)
+            return terminal
+        observed=invocation.call(entry)
+&gt;       assert not observed['witness']['eligible'] and len(opened)==1,(observed,b.failure)
+E       AssertionError: ({'result': {'kind': 'inert', 'folder': 'H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\
+E         aviga...tonic_ns;same-host=DESKTOP-B366PQ9', 'work_cutoff_ns': 1275000000000, ...}}, 'witness: Trusted admission proof absent')
+E       assert (not False and 0 == 1)
+E        +  where 0 = len([])
+
+..\..\harness\test_adapter.py:947: AssertionError</failure></testcase></testsuite></testsuites>

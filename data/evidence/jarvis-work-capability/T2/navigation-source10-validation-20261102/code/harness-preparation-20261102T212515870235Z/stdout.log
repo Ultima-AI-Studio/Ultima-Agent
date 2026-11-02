@@ -1,0 +1,95 @@
+F....                                                                    [100%]
+================================== FAILURES ===================================
+__________ test_fix1_genuine_synthetic_export_and_external_readback ___________
+
+value = '2433c21dc9044eb922d28f1ffa6de1bef1088c6368ff5a0f4bdb62f1c2be7f86'
+path = ('wires', 0, 'hashes', 'entity')
+
+    def scan(value,path=()):
+        if isinstance(value,dict):
+            for key,item in value.items():
+                require(type(key) is str,'Export string key'); scan(key,('$key',)); scan(item,path+(key,))
+        elif isinstance(value,list):
+            for index,item in enumerate(value): scan(item,path+(index,))
+        elif isinstance(value,str):
+            key=path[-1] if path else None
+            if len(path)>=3 and path[-3]=='timeline' and key in ('at','deadline'): return  # Closed, finite repr(float) above.
+            encoded=(key in serial or len(path)==2 and path[0]=='events' or key in ('content','result') and value.startswith('{'))
+            if value.startswith('Observation: '): scan(json.loads(value[13:]),path+('$decoded',)); return
+            if encoded:
+>               try: decoded=json.loads(value)
+                             ^^^^^^^^^^^^^^^^^
+
+..\..\harness\adapter.py:639: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+C:\Users\Administrator\AppData\Local\Doubao\User Data\sandbox_runtime\bases\772984f6fd3a8ae0ae7d2422cd7c2bfa\python\Lib\json\__init__.py:352: in loads
+    return _default_decoder.decode(s)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <json.decoder.JSONDecoder object at 0x000002849BA70D70>
+s = '2433c21dc9044eb922d28f1ffa6de1bef1088c6368ff5a0f4bdb62f1c2be7f86'
+_w = <built-in method match of re.Pattern object at 0x000002849BA81E50>
+
+    def decode(self, s, _w=WHITESPACE.match):
+        """Return the Python representation of ``s`` (a ``str`` instance
+        containing a JSON document).
+    
+        """
+        obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+        end = _w(s, end).end()
+        if end != len(s):
+>           raise JSONDecodeError("Extra data", s, end)
+E           json.decoder.JSONDecodeError: Extra data: line 1 column 5 (char 4)
+
+C:\Users\Administrator\AppData\Local\Doubao\User Data\sandbox_runtime\bases\772984f6fd3a8ae0ae7d2422cd7c2bfa\python\Lib\json\decoder.py:348: JSONDecodeError
+
+During handling of the above exception, another exception occurred:
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/harness-preparation-20261102T212515870235Z/temp/test_fix1_genuine_synthetic_ex0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000002849D6ED220>
+sdk_io = (<src.brain.browser.channel.BrowserChannel object at 0x000002851FF22BA0>, [('search', 'Research a subject'), ('get', '...'https://example.com/source/2'), ('get', 'https://example.com/source/3'), ('get', 'https://example.com/source/4')], {})
+mock_jar = (<openjarvis.sdk.Jarvis object at 0x000002851FF216A0>, <function _run_work_agent at 0x000002851FD416C0>, [{'format': {..., ...], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [])
+
+    def test_fix1_genuine_synthetic_export_and_external_readback(tmp_path,monkeypatch,sdk_io,mock_jar):
+>       result,ledger=synthetic_bundle(tmp_path,sdk_io,mock_jar,monkeypatch)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+..\..\harness\test_adapter.py:659: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+..\..\harness\test_adapter.py:27: in synthetic_bundle
+    a.export_completed(folder,ledger,result)
+..\..\harness\adapter.py:591: in export_completed
+    validate_export_structure(json.loads(raw),ledger._policy.scanners)
+..\..\harness\adapter.py:625: in validate_export_structure
+    if packet['prewrite_packet'] is not None: validate_export_structure(json.loads(packet['prewrite_packet']),scanners)
+                                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\harness\adapter.py:645: in validate_export_structure
+    scan(packet)
+..\..\harness\adapter.py:630: in scan
+    require(type(key) is str,'Export string key'); scan(key,('$key',)); scan(item,path+(key,))
+                                                                        ^^^^^^^^^^^^^^^^^^^^^^
+..\..\harness\adapter.py:632: in scan
+    for index,item in enumerate(value): scan(item,path+(index,))
+                                        ^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\harness\adapter.py:630: in scan
+    require(type(key) is str,'Export string key'); scan(key,('$key',)); scan(item,path+(key,))
+                                                                        ^^^^^^^^^^^^^^^^^^^^^^
+..\..\harness\adapter.py:630: in scan
+    require(type(key) is str,'Export string key'); scan(key,('$key',)); scan(item,path+(key,))
+                                                                        ^^^^^^^^^^^^^^^^^^^^^^
+..\..\harness\adapter.py:641: in scan
+    require(key not in serial,'Malformed serialized export value')
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+ok = False, message = 'Malformed serialized export value'
+
+    def require(ok,message):
+>       if not ok: raise ValueError(message)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       ValueError: Malformed serialized export value
+
+..\..\harness\adapter.py:192: ValueError
+=========================== short test summary info ===========================
+FAILED ..\..\harness\test_adapter.py::test_fix1_genuine_synthetic_export_and_external_readback
+1 failed, 4 passed, 129 deselected in 6.72s

@@ -56,7 +56,7 @@ def test_pinned_import_rejects_cached_acceptance_adapter(monkeypatch):
     with pytest.raises(ValueError,match='cached'): a.load_p4()
     assert sys.modules['acceptance_adapter'] is sentinel
 
-@pytest.mark.parametrize('failure',['timeout','nonzero','invalidJSON','partialpacket','missingEND','cleanup','finalboundary'])
+@pytest.mark.parametrize('failure',['timeout','nonzero','invalidJSON','partialpacket','missingEND','cleanup','finalboundary','transientextra'])
 def test_adapter_first_failure_retained_and_no_next_case(tmp_path,monkeypatch,failure,sdk_io,mock_jar):
     first,ledger=synthetic_bundle(tmp_path,sdk_io,mock_jar,monkeypatch)
     p4=a.load_p4()
@@ -82,12 +82,19 @@ def test_adapter_first_failure_retained_and_no_next_case(tmp_path,monkeypatch,fa
         pin_reads.append(1)
         return {'drift':'changed'} if failure=='finalboundary' and len(pin_reads)>=3 else {}
     monkeypatch.setattr(a,'check_inputs',pins)
+    if failure=='transientextra':
+        save=a.save_new
+        def transient(path,value):
+            save(path,value)
+            if Path(path).name=='accepted-effects.json': (tmp_path/'outputs'/first['task_id']/'transient.md').write_bytes(b'known transient effect')
+        monkeypatch.setattr(a,'save_new',transient)
     launches=[]
     class Proc:
         def __init__(self,cli):
             self.pid=7892 if cli else 7891; self.returncode=2 if cli and failure=='nonzero' else 0
         def wait(self,timeout=None):
             if failure=='timeout' and timeout and timeout>3: raise TimeoutError('CLI timeout')
+            if failure=='transientextra' and timeout and timeout<=3: (tmp_path/'outputs'/first['task_id']/'transient.md').unlink(missing_ok=True)
             return self.returncode
     def launch(argv,env,out,err):
         launches.append(argv)
@@ -107,10 +114,13 @@ def test_adapter_first_failure_retained_and_no_next_case(tmp_path,monkeypatch,fa
     assert result['actual_native_start_count'] is None
     assert result['overall']=='FAIL'
     assert result['next_case'] is False
-    expected={'timeout':'CLI timeout','nonzero':'CLI nonzero','invalidJSON':'Expecting property name','partialpacket':'Export member digest','missingEND':'Missing complete packet or END','cleanup':'cleanup terminate_owned: cleanup blocked','finalboundary':'final-boundary: Input drift'}
+    expected={'timeout':'CLI timeout','nonzero':'CLI nonzero','invalidJSON':'Expecting property name','partialpacket':'Export member digest','missingEND':'Missing complete packet or END','cleanup':'cleanup terminate_owned: cleanup blocked','finalboundary':'final-boundary: Input drift','transientextra':'pre-cleanup-effects: Observed pre-cleanup output drift'}
     assert expected[failure] in result['first_failure']
     if failure=='cleanup': assert result['cleanup']['status']=='FAIL' and any(e.get('effects_unknown') for e in result['errors'])
     else: assert result['cleanup']['status']=='PASS'
+    if failure=='transientextra':
+        assert a.load(tmp_path/'accepted-effects.json')!=a.load(tmp_path/'pre-cleanup-effects.json')
+        assert a.load(tmp_path/'accepted-effects.json')==a.load(tmp_path/'post-cleanup-effects.json')
     if failure not in ('timeout','invalidJSON'):
         assert json.loads((tmp_path/'product-result.json').read_text('utf8'))['marker']=='first'
     with pytest.raises(FileExistsError): a.execute_case(context,p4)
@@ -567,7 +577,8 @@ def test_fix1_h01_one_use_native_child_clearance(tmp_path,monkeypatch,fault):
     context=dict(folder=tmp_path,port=18799,budget=b,mode='inert',authority={},request_id='r',session_id='s')
     a.save_new(tmp_path/'attempt.json',dict(parent_timing=b.timing()))
     argv=a.inert_argv(tmp_path,18799)
-    record=dict(mode='inert',folder=str(tmp_path),timing=b.timing(),argv=argv,attempt_sha256=a.sha(tmp_path/'attempt.json'),authority_sha256='authority',members=[dict(identity=key,role='server',parent=1)])
+    root=dict(pid=1,created_filetime=122,exe=str(a.PY))
+    record=dict(mode='inert',folder=str(tmp_path),timing=b.timing(),argv=argv,attempt_sha256=a.sha(tmp_path/'attempt.json'),authority_sha256='authority',launcher_identity=root,base_identity=key,members=[dict(identity=root,role='server',parent=0),dict(identity=key,role='server',parent=1)])
     a.save_new(tmp_path/'child-clearance.json',record)
     a.write_raw_new(tmp_path/'child-clearance.ready',b'')
     supplied=list(argv)
@@ -727,7 +738,7 @@ def test_fix1_h11_import_path_restored_on_failure():
             assert sys.path[0]==str(a.C); raise ValueError('injected')
     assert sys.path==original
 
-@pytest.mark.parametrize('fault',['none','protected-empty','native-subset','cleanup-subset'])
+@pytest.mark.parametrize('fault',['none','protected-empty','native-subset','cleanup-subset','missing-exchange','wrong-endpoint','wrong-listener','wrong-response','nonboolean-response','late-exchange','no-parent-exchange'])
 def test_fix1_h02_substantive_closed_witness_positive_and_faults(tmp_path,monkeypatch,fault):
     import base64,os
     from collections import OrderedDict
@@ -756,10 +767,10 @@ def test_fix1_h02_substantive_closed_witness_positive_and_faults(tmp_path,monkey
     a.save_new(virtual/'inert-authority.json',authority)
     baseline=dict(protected=protected,candidate=a.CANDIDATE,precision='FILETIME100ns',recorded_at=dt.datetime.now(dt.timezone.utc).isoformat())
     a.save_new(virtual/'inert-native-baseline.json',baseline)
-    argv=a.inert_argv(folder,18799); snapshot_live=[True]
+    argv=a.inert_argv(folder,18799); snapshot_live=[True]; http_calls=[]
     command=json.dumps([str(a.PY),*argv])
     def checkout(cmd,**kwargs):
-        if 'Get-NetTCPConnection' in cmd[-1]: return '[]'
+        if 'Get-NetTCPConnection' in cmd[-1]: return '2' if snapshot_live[0] else '[]'
         rows=[dict(ProcessId=pid,ParentProcessId=0 if pid==1 else 1,CommandLineBase64=base64.b64encode(command.encode('utf-16-le')).decode('ascii')) for pid in (1,2)] if snapshot_live[0] else []
         return json.dumps(rows).encode('ascii')
     monkeypatch.setattr(p4.subprocess,'check_output',checkout)
@@ -768,6 +779,13 @@ def test_fix1_h02_substantive_closed_witness_positive_and_faults(tmp_path,monkey
         def connect_ex(self,address): return a.errno.ECONNREFUSED
         def close(self): pass
     monkeypatch.setattr(p4.socket,'socket',Probe)
+    class Response:
+        def __enter__(self): return self
+        def __exit__(self,*args): pass
+        def read(self): return b'{"inert":true}'
+    class Opener:
+        def open(self,url,timeout): http_calls.append((url,timeout)); clock.advance(.001); return Response()
+    monkeypatch.setattr(p4.urllib.request,'build_opener',lambda *args:Opener())
     def entry():
         admitted=a.admitted_record('inert',folder,18799,authority,baseline,b)
         a.save_new(folder/'admission.json',admitted)
@@ -787,6 +805,7 @@ def test_fix1_h02_substantive_closed_witness_positive_and_faults(tmp_path,monkey
             listener=dict(port=18799,identity=identity(2),role='server',argv=argv)
             a.save_new(folder/'listener.json',listener)
             a.record_native_members(folder,p4,owned,argv,b)
+            a.observe_inert_exchange(folder,p4,owned,argv,18799,b)
             a.save_new(folder/'argv-roundtrip.json',dict(question=a.corpus()['query'],argv=argv[4:]))
             for name in ('protected-before.json','protected-after.json'): a.save_new(folder/name,protected)
             for name in ('boundary-before.json','boundary-after.json'): a.save_new(folder/name,dict(pins=admitted['pins'],protected=protected))
@@ -799,6 +818,16 @@ def test_fix1_h02_substantive_closed_witness_positive_and_faults(tmp_path,monkey
         elif fault=='cleanup-subset':
             malformed=a.load(folder/'cleanup.json'); malformed['processes'].pop()
             (folder/'cleanup.json').write_text(json.dumps(malformed))
+        elif fault=='missing-exchange': (folder/'inert-exchange.json').unlink()
+        elif fault=='no-parent-exchange': del b.inert_exchange
+        elif fault in ('wrong-endpoint','wrong-listener','wrong-response','nonboolean-response','late-exchange'):
+            malformed=a.load(folder/'inert-exchange.json')
+            if fault=='wrong-endpoint': malformed['endpoint']='http://127.0.0.1:11434/inert'
+            elif fault=='wrong-listener': malformed['listener']['identity']['pid']=999
+            elif fault=='wrong-response': malformed['response']=dict(inert=False)
+            elif fault=='nonboolean-response': malformed['response']=dict(inert=1)
+            else: malformed['after_ns']=b.cutoff_ns('work')+1
+            (folder/'inert-exchange.json').write_text(json.dumps(malformed))
         b.phase='seal'
         terminal=dict(kind='inert',folder=str(folder),run_id=b.run_id,timing=b.timing(),overall='READY_FOR_ROOT_TIMING_WITNESS',cleanup=cleanup,errors=[],first_failure=None)
         a.save_new(folder/'terminal.json',terminal); a.seal_index(folder,b,p4)
@@ -806,6 +835,7 @@ def test_fix1_h02_substantive_closed_witness_positive_and_faults(tmp_path,monkey
     outcome=invocation.call(entry)
     assert outcome['witness']['eligible']==(fault=='none'),outcome['witness']
     if fault=='none':
+        assert http_calls==[(f'http://127.0.0.1:18799/inert',2)]
         assert outcome['witness']['seal_index_sha256']==a.sha(folder/'seal-index.json')
         assert outcome['witness']['member_hashes'] and outcome['witness']['kind']=='inert'
 
@@ -819,7 +849,8 @@ def test_fix1_h01_actual_child_entry_dispatch_is_canonical_once(tmp_path,monkeyp
     context=dict(mode='actual',folder=tmp_path,port=18799,budget=b,request_id='r',session_id='s')
     a.save_new(tmp_path/'attempt.json',dict(parent_timing=b.timing()))
     argv=a.candidate_argv(context)[0]
-    a.save_new(tmp_path/'child-clearance.json',dict(mode='actual',folder=str(tmp_path),timing=b.timing(),argv=argv,attempt_sha256=a.sha(tmp_path/'attempt.json'),authority_sha256='authority',members=[dict(role='server',identity=key,parent=1)]))
+    root=dict(pid=1,created_filetime=122,exe=str(a.PY))
+    a.save_new(tmp_path/'child-clearance.json',dict(mode='actual',folder=str(tmp_path),timing=b.timing(),argv=argv,attempt_sha256=a.sha(tmp_path/'attempt.json'),authority_sha256='authority',launcher_identity=root,base_identity=key,members=[dict(role='server',identity=root,parent=0),dict(role='server',identity=key,parent=1)]))
     a.write_raw_new(tmp_path/'child-clearance.ready',b'')
     supplied=list(argv)
     if fault=='missing-isolated': supplied.remove('--isolated')
@@ -839,3 +870,133 @@ def test_fix1_h01_actual_child_entry_dispatch_is_canonical_once(tmp_path,monkeyp
         with pytest.raises(ValueError): a.actual_child_entry(context,p4,supplied,'authority',dispatch=dispatched)
         assert not calls and not (tmp_path/'child-clearance.consumed.json').exists()
     assert sys.argv==old_args and sys.path==old_paths
+
+def test_fix2_h01_two_native_base_siblings_refuse_clearance_without_truncation(tmp_path,monkeypatch):
+    import base64
+    clock=Clock(); b=a.Deadline(clock=clock); p4=a.load_p4(); active={1,2,3}
+    native_kernel(monkeypatch,p4,active,clock)
+    monkeypatch.setattr(p4,'protected',lambda:[]); monkeypatch.setattr(p4,'process_times',lambda proc:(1000001,0)); monkeypatch.setattr(p4,'argv_parse',json.loads)
+    argv=['-B','script']; command=json.dumps([sys.executable,*argv])
+    monkeypatch.setattr(p4.subprocess,'check_output',lambda *args,**kwargs:json.dumps([dict(ProcessId=pid,ParentProcessId=0 if pid==1 else 1,CommandLineBase64=base64.b64encode(command.encode('utf-16-le')).decode()) for pid in (1,2,3)]).encode('ascii'))
+    owned=p4.Owned(tmp_path,{})
+    owned.launchers=[dict(proc=types.SimpleNamespace(pid=1),identity=p4.identity(1),argv=argv,role='server')]
+    owned.known[1]=dict(identity=p4.identity(1),role='server',parent=0,argv=argv)
+    a.save_new(tmp_path/'attempt.json',{})
+    with a.PrivateIO(p4,b):
+        with pytest.raises(ValueError,match='unique native base'): a.issue_clearance(dict(folder=tmp_path,budget=b,mode='inert'),p4,owned,argv,'authority')
+    assert set(owned.known)=={1,2,3} and not (tmp_path/'child-clearance.json').exists()
+
+@pytest.mark.parametrize('consumer',['launcher','other','base'])
+def test_fix2_h01_only_intended_base_can_consume(tmp_path,monkeypatch,consumer):
+    clock=Clock(); b=a.Deadline(clock=clock); p4=a.load_p4()
+    root=dict(pid=1,created_filetime=101,exe=str(a.PY)); base=dict(pid=2,created_filetime=102,exe=str(a.PY)); other=dict(pid=3,created_filetime=103,exe=str(a.PY))
+    monkeypatch.setattr(p4,'identity',lambda pid:dict(launcher=root,other=other,base=base)[consumer])
+    context=dict(mode='inert',folder=tmp_path,port=18799,budget=b); argv=a.inert_argv(tmp_path,18799)
+    a.save_new(tmp_path/'attempt.json',{})
+    a.save_new(tmp_path/'child-clearance.json',dict(mode='inert',folder=str(tmp_path),timing=b.timing(),argv=argv,authority_sha256='authority',attempt_sha256=a.sha(tmp_path/'attempt.json'),launcher_identity=root,base_identity=base,members=[dict(identity=root,role='server',parent=0),dict(identity=base,role='server',parent=1)]))
+    a.write_raw_new(tmp_path/'child-clearance.ready',b'')
+    if consumer=='base': assert a.consume_clearance(context,p4,argv,'authority')==base
+    else:
+        with pytest.raises(ValueError,match='native'): a.consume_clearance(context,p4,argv,'authority')
+
+def test_fix2_n02_actual_post_clearance_setup_cannot_start_product(tmp_path,monkeypatch):
+    import ddgs,httpx,socket
+    from src.brain.work_tools import WorkLedger
+    from src.brain.work_service import WorkService
+    clock=Clock(); b=a.Deadline(clock=clock); p4=a.load_p4(); root=dict(pid=1,created_filetime=101,exe=str(a.PY)); base=dict(pid=2,created_filetime=102,exe=str(a.PY))
+    monkeypatch.setattr(p4,'identity',lambda pid:base)
+    context=dict(mode='actual',folder=tmp_path,port=18799,budget=b,request_id='r',session_id='s'); argv=a.candidate_argv(context)[0]
+    a.save_new(tmp_path/'attempt.json',{})
+    a.save_new(tmp_path/'child-clearance.json',dict(mode='actual',folder=str(tmp_path),timing=b.timing(),argv=argv,authority_sha256='authority',attempt_sha256=a.sha(tmp_path/'attempt.json'),launcher_identity=root,base_identity=base,members=[dict(identity=root,role='server',parent=0),dict(identity=base,role='server',parent=1)]))
+    a.write_raw_new(tmp_path/'child-clearance.ready',b'')
+    for obj,name in ((ddgs,'DDGS'),(httpx,'request'),(socket,'getaddrinfo'),(WorkLedger,'__init__'),(WorkLedger,'_freeze_runtime_inputs'),(WorkService,'submit_work')): monkeypatch.setattr(obj,name,getattr(obj,name))
+    prepare=a.install_trusted_exports
+    def delayed(folder): prepare(folder); clock.value=b.cutoff_ns('work')+1
+    monkeypatch.setattr(a,'install_trusted_exports',delayed); called=[]
+    with pytest.raises(TimeoutError,match='child product startup'): a.actual_child_entry(context,p4,argv,'authority',dispatch=lambda *args,**kwargs:called.append(True))
+    assert not called and (tmp_path/'child-clearance.consumed.json').exists()
+
+@pytest.mark.parametrize('where',['top','wire','transport','event'])
+def test_fix2_n01_coherent_unchecked_member_never_raw_export(tmp_path,monkeypatch,sdk_io,mock_jar,where):
+    from src.brain.work_navigation import canonical_v3
+    from src.brain.work_research import verify_runtime_packet
+    from src.brain.tests.test_work_navigation_transport import escaped_scanner_fixture
+    result,ledger=synthetic_bundle(tmp_path,sdk_io,mock_jar,monkeypatch,write=False)
+    packet=json.loads(ledger._runtime_final); secret=escaped_scanner_fixture()
+    target=packet if where=='top' else packet['wires'][-1] if where=='wire' else packet['transport'] if where=='transport' else json.loads(packet['events'][-1])
+    target['unchecked_extra']=secret
+    if where=='event': packet['events'][-1]=json.dumps(target,sort_keys=True,ensure_ascii=False,separators=(',',':'),allow_nan=False)
+    raw=canonical_v3(packet)
+    verify_runtime_packet(ledger._binding,ledger.issued_snapshot,ledger._collection,raw,require_ack=True,runtime_inputs=ledger._runtime_inputs)
+    ledger._runtime_final=raw
+    with pytest.raises(ValueError): a.export_completed(tmp_path,ledger,result)
+    assert not list(tmp_path.glob('trusted-*.raw'))
+
+def test_fix2_n01_clock_named_unchecked_metadata_has_no_numeric_exemption(tmp_path,monkeypatch,sdk_io,mock_jar):
+    from src.brain.work_navigation import canonical_v3
+    from src.brain.work_research import verify_runtime_packet
+    from src.brain.tests.test_work_navigation_transport import escaped_scanner_fixture
+    result,ledger=synthetic_bundle(tmp_path,sdk_io,mock_jar,monkeypatch,write=False)
+    packet=json.loads(ledger._runtime_final)
+    packet['execution']['files'][0]['result']=json.dumps(dict(timeline=[dict(at=escaped_scanner_fixture())]))
+    raw=canonical_v3(packet)
+    verify_runtime_packet(ledger._binding,ledger.issued_snapshot,ledger._collection,raw,require_ack=True,runtime_inputs=ledger._runtime_inputs)
+    ledger._runtime_final=raw
+    with pytest.raises(ValueError,match='Unsafe export decoded value'): a.export_completed(tmp_path,ledger,result)
+    assert not list(tmp_path.glob('trusted-*.raw'))
+
+def test_fix2_h14_first_directory_overrun_stops_iteration_and_further_io(tmp_path,monkeypatch):
+    import os
+    clock=Clock(); invocation=a.RootInvocation(clock=clock); b=invocation.budget; p4=a.load_p4(); opened=[]; advanced=[]; closed=[]; late_stats=[]; late_hashes=[]
+    real_scan=os.scandir; real_stat=os.stat; real_sha=a.sha
+    class Iterator:
+        def __init__(self,raw): self.raw=raw
+        def __iter__(self): return self
+        def __next__(self): advanced.append(True); return next(self.raw)
+        def close(self): closed.append(True); self.raw.close()
+        def __enter__(self): return self
+        def __exit__(self,*args): self.close()
+    def scan(path):
+        opened.append(str(path)); raw=real_scan(path)
+        if len(opened)==1: clock.value=b.cutoff_ns('seal')+1
+        return Iterator(raw)
+    def stat(*args,**kwargs):
+        if clock()>b.cutoff_ns('seal'): late_stats.append(args[0])
+        return real_stat(*args,**kwargs)
+    def hashed(path):
+        if clock()>b.cutoff_ns('seal'): late_hashes.append(path)
+        return real_sha(path)
+    b.phase='seal'; (tmp_path/'later-directory').mkdir(); a.save_new(tmp_path/'later-directory/member.json',{})
+    monkeypatch.setattr(os,'scandir',scan); monkeypatch.setattr(os,'stat',stat); monkeypatch.setattr(a,'sha',hashed)
+    with pytest.raises(TimeoutError): a.guarded_files(tmp_path,b)
+    assert len(opened)==1
+    assert not advanced and not late_stats and not late_hashes and closed
+
+@pytest.mark.parametrize('late',[False,True])
+def test_fix2_n02_inert_post_clearance_setup_cannot_start_listener(tmp_path,monkeypatch,late):
+    clock=Clock(); b=a.Deadline(clock=clock); p4=a.load_p4()
+    root=dict(pid=1,created_filetime=101,exe=str(a.PY)); base=dict(pid=2,created_filetime=102,exe=str(a.PY)); monkeypatch.setattr(p4,'identity',lambda pid:base)
+    context=dict(mode='inert',folder=tmp_path,port=18799,budget=b); argv=a.inert_argv(tmp_path,18799)
+    a.save_new(tmp_path/'attempt.json',{})
+    a.save_new(tmp_path/'child-clearance.json',dict(mode='inert',folder=str(tmp_path),timing=b.timing(),argv=argv,authority_sha256='authority',attempt_sha256=a.sha(tmp_path/'attempt.json'),launcher_identity=root,base_identity=base,members=[dict(role='server',identity=root,parent=0),dict(role='server',identity=base,parent=1)]))
+    a.write_raw_new(tmp_path/'child-clearance.ready',b'')
+    saved=a.save_new
+    def delayed(path,value):
+        saved(path,value)
+        if Path(path).name=='argv-roundtrip.json' and late: clock.value=b.cutoff_ns('work')+1
+    monkeypatch.setattr(a,'save_new',delayed); constructed=[]; closed=[]
+    class Server:
+        def __init__(self,*args): constructed.append(args)
+        def handle_request(self): (tmp_path/'stop').touch()
+        def server_close(self): closed.append(True)
+    if late:
+        with pytest.raises(TimeoutError,match='inert child listener startup'): a.inert_child_entry(context,p4,argv,'authority',constructor=Server)
+        assert not constructed and not closed and 'inert child listener startup' in b.failure
+    else:
+        a.inert_child_entry(context,p4,argv,'authority',constructor=Server); assert constructed and closed
+    assert (tmp_path/'child-clearance.consumed.json').exists()
+
+def test_fix2_n03_equal_pre_cleanup_inventory_positive(tmp_path):
+    p4=a.load_p4(); output=tmp_path/'outputs'; output.mkdir(); (output/'research.md').write_bytes(b'accepted')
+    accepted=p4.output_inventory(tmp_path)
+    assert a.compare_pre_cleanup(accepted,p4.output_inventory(tmp_path),p4) is None

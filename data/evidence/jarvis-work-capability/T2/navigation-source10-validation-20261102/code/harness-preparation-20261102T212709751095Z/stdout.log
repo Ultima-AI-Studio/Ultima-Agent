@@ -1,0 +1,104 @@
+F                                                                        [100%]
+================================== FAILURES ===================================
+_____ test_fix1_h02_substantive_closed_witness_positive_and_faults[none] ______
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/harness-preparation-20261102T212709751095Z/temp/test_fix1_h02_substantive_clos0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001F134D3D220>
+fault = 'none'
+
+    @pytest.mark.parametrize('fault',['none','protected-empty','native-subset','cleanup-subset'])
+    def test_fix1_h02_substantive_closed_witness_positive_and_faults(tmp_path,monkeypatch,fault):
+        import base64,os
+        from collections import OrderedDict
+        original_v=a.V; original_here=a.HERE
+        virtual=tmp_path/'virtual-root'; here=virtual/'harness'; here.mkdir(parents=True)
+        for source in original_here.iterdir():
+            if source.is_file(): (here/source.name).write_bytes(source.read_bytes())
+        for name in ('source10-candidate-manifest.json','harness-preparation-authority.json'):
+            (virtual/name).write_bytes((original_v/name).read_bytes())
+        (virtual/'harness-deadline-design').mkdir()
+        (virtual/'harness-deadline-design/root-decision.json').write_bytes((original_v/'harness-deadline-design/root-decision.json').read_bytes())
+        monkeypatch.setattr(a,'V',virtual); monkeypatch.setattr(a,'HERE',here)
+        package=a.load(here/'manifest.json')
+        package['files']={name:a.sha(here/name) for name in package['files']}
+        (here/'manifest.json').write_text(json.dumps(package),encoding='utf8')
+        a.save_new(virtual/'harness-approval.json',dict(reviewer='root-independent',overall='PASS',manifest_sha256=a.sha(here/'manifest.json')))
+        clock=Clock(); invocation=a.RootInvocation(clock=clock); b=invocation.budget
+        folder=virtual/'inert'/b.run_id; folder.mkdir(parents=True)
+        p4=a.load_p4(); active=set(); _,calls=native_kernel(monkeypatch,p4,active,clock)
+        protected=[p4.identity(pid) for pid in range(51,56)]
+        monkeypatch.setattr(p4,'protected',lambda:protected)
+        monkeypatch.setattr(p4,'process_times',lambda proc:(1000001,0))
+        monkeypatch.setattr(p4,'argv_parse',lambda text:json.loads(text))
+        monkeypatch.setattr(a,'load_p4',lambda:p4)
+        authority=dict(kind='source10_inert_qualification',folder=str(folder),port=18799,parent_timing=b.timing())
+        a.save_new(virtual/'inert-authority.json',authority)
+        baseline=dict(protected=protected,candidate=a.CANDIDATE,precision='FILETIME100ns',recorded_at=dt.datetime.now(dt.timezone.utc).isoformat())
+        a.save_new(virtual/'inert-native-baseline.json',baseline)
+        argv=a.inert_argv(folder,18799); snapshot_live=[True]; http_calls=[]
+        command=json.dumps([str(a.PY),*argv])
+        def checkout(cmd,**kwargs):
+            if 'Get-NetTCPConnection' in cmd[-1]: return '2' if snapshot_live[0] else '[]'
+            rows=[dict(ProcessId=pid,ParentProcessId=0 if pid==1 else 1,CommandLineBase64=base64.b64encode(command.encode('utf-16-le')).decode('ascii')) for pid in (1,2)] if snapshot_live[0] else []
+            return json.dumps(rows).encode('ascii')
+        monkeypatch.setattr(p4.subprocess,'check_output',checkout)
+        class Probe:
+            def settimeout(self,value): pass
+            def connect_ex(self,address): return a.errno.ECONNREFUSED
+            def close(self): pass
+        monkeypatch.setattr(p4.socket,'socket',Probe)
+        class Response:
+            def __enter__(self): return self
+            def __exit__(self,*args): pass
+            def read(self): return b'{"inert":true}'
+        class Opener:
+            def open(self,url,timeout): http_calls.append((url,timeout)); clock.advance(.001); return Response()
+        monkeypatch.setattr(p4.urllib.request,'build_opener',lambda *args:Opener())
+        def entry():
+            admitted=a.admitted_record('inert',folder,18799,authority,baseline,b)
+            a.save_new(folder/'admission.json',admitted)
+            a.save_new(folder/'attempt.json',dict(parent_timing=b.timing()))
+            owned=p4.Owned(folder,{}); b.owned=owned
+            proc=types.SimpleNamespace(pid=1,wait=lambda timeout=None:0)
+            owned.launchers=[dict(proc=proc,identity=p4.identity(1),argv=argv,role='server')]
+            owned.known[1]=dict(identity=p4.identity(1),argv=argv,role='server',parent=0)
+            owned.logs=[open(folder/'server.stdout','w'),open(folder/'server.stderr','w')]
+            context=dict(mode='inert',folder=folder,port=18799,budget=b)
+            with a.PrivateIO(p4,b) as io:
+                a.issue_clearance(context,p4,owned,argv,a.sha(virtual/'inert-authority.json'))
+                identity=p4.identity
+                with monkeypatch.context() as child:
+                    child.setattr(p4,'identity',lambda pid:identity(2) if pid==os.getpid() else identity(pid))
+                    a.consume_clearance(context,p4,argv,a.sha(virtual/'inert-authority.json'))
+                listener=dict(port=18799,identity=identity(2),role='server',argv=argv)
+                a.save_new(folder/'listener.json',listener)
+                a.record_native_members(folder,p4,owned,argv,b)
+                a.save_new(folder/'argv-roundtrip.json',dict(question=a.corpus()['query'],argv=argv[4:]))
+                for name in ('protected-before.json','protected-after.json'): a.save_new(folder/name,protected)
+                for name in ('boundary-before.json','boundary-after.json'): a.save_new(folder/name,dict(pins=admitted['pins'],protected=protected))
+                snapshot_live[0]=False
+                cleanup=io.cleanup(owned,18799)
+            if fault=='protected-empty': (folder/'protected-after.json').write_text('[]')
+            elif fault=='native-subset':
+                malformed=a.load(folder/'native-members.json'); malformed['snapshot'].pop('1')
+                (folder/'native-members.json').write_text(json.dumps(malformed))
+            elif fault=='cleanup-subset':
+                malformed=a.load(folder/'cleanup.json'); malformed['processes'].pop()
+                (folder/'cleanup.json').write_text(json.dumps(malformed))
+            b.phase='seal'
+            terminal=dict(kind='inert',folder=str(folder),run_id=b.run_id,timing=b.timing(),overall='READY_FOR_ROOT_TIMING_WITNESS',cleanup=cleanup,errors=[],first_failure=None)
+            a.save_new(folder/'terminal.json',terminal); a.seal_index(folder,b,p4)
+            return terminal
+        outcome=invocation.call(entry)
+        assert outcome['witness']['eligible']==(fault=='none'),outcome['witness']
+        if fault=='none':
+>           assert http_calls==[(f'http://127.0.0.1:18799/inert',2)]
+E           AssertionError: assert [] == [('http://127...99/inert', 2)]
+E             
+E             Right contains one more item: ('http://127.0.0.1:18799/inert', 2)
+E             Use -v to get more diff
+
+..\..\harness\test_adapter.py:827: AssertionError
+=========================== short test summary info ===========================
+FAILED ..\..\harness\test_adapter.py::test_fix1_h02_substantive_closed_witness_positive_and_faults[none]
+1 failed, 133 deselected in 3.61s

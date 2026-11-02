@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="4" skipped="0" tests="5" time="2.242" timestamp="2026-11-03T05:19:49.157830+08:00" hostname="DESKTOP-B366PQ9"><testcase classname="harness.test_adapter" name="test_fix2_h01_two_native_base_siblings_refuse_clearance_without_truncation" time="0.022"><failure message="Failed: DID NOT RAISE ValueError">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/harness-preparation-20261102T211948837074Z/temp/test_fix2_h01_two_native_base_0')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x0000025314AAD220&gt;
+
+    def test_fix2_h01_two_native_base_siblings_refuse_clearance_without_truncation(tmp_path,monkeypatch):
+        import base64
+        clock=Clock(); b=a.Deadline(clock=clock); p4=a.load_p4(); active={1,2,3}
+        native_kernel(monkeypatch,p4,active,clock)
+        monkeypatch.setattr(p4,'protected',lambda:[]); monkeypatch.setattr(p4,'process_times',lambda proc:(1000001,0)); monkeypatch.setattr(p4,'argv_parse',json.loads)
+        argv=['-B','script']; command=json.dumps([sys.executable,*argv])
+        monkeypatch.setattr(p4.subprocess,'check_output',lambda *args,**kwargs:json.dumps([dict(ProcessId=pid,ParentProcessId=0 if pid==1 else 1,CommandLineBase64=base64.b64encode(command.encode('utf-16-le')).decode()) for pid in (1,2,3)]).encode('ascii'))
+        owned=p4.Owned(tmp_path,{})
+        owned.launchers=[dict(proc=types.SimpleNamespace(pid=1),identity=p4.identity(1),argv=argv,role='server')]
+        owned.known[1]=dict(identity=p4.identity(1),role='server',parent=0,argv=argv)
+        a.save_new(tmp_path/'attempt.json',{})
+        with a.PrivateIO(p4,b):
+&gt;           with pytest.raises(ValueError,match='unique native base'): a.issue_clearance(dict(folder=tmp_path,budget=b,mode='inert'),p4,owned,argv,'authority')
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E           Failed: DID NOT RAISE ValueError
+
+..\..\harness\test_adapter.py:855: Failed</failure></testcase><testcase classname="harness.test_adapter" name="test_fix2_h01_only_intended_base_can_consume[launcher]" time="0.025"><failure message="Failed: DID NOT RAISE ValueError">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/harness-preparation-20261102T211948837074Z/temp/test_fix2_h01_only_intended_ba0')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000002539EFEF820&gt;
+consumer = 'launcher'
+
+    @pytest.mark.parametrize('consumer',['launcher','other','base'])
+    def test_fix2_h01_only_intended_base_can_consume(tmp_path,monkeypatch,consumer):
+        clock=Clock(); b=a.Deadline(clock=clock); p4=a.load_p4()
+        root=dict(pid=1,created_filetime=101,exe=str(a.PY)); base=dict(pid=2,created_filetime=102,exe=str(a.PY)); other=dict(pid=3,created_filetime=103,exe=str(a.PY))
+        monkeypatch.setattr(p4,'identity',lambda pid:dict(launcher=root,other=other,base=base)[consumer])
+        context=dict(mode='inert',folder=tmp_path,port=18799,budget=b); argv=a.inert_argv(tmp_path,18799)
+        a.save_new(tmp_path/'attempt.json',{})
+        a.save_new(tmp_path/'child-clearance.json',dict(mode='inert',folder=str(tmp_path),timing=b.timing(),argv=argv,authority_sha256='authority',attempt_sha256=a.sha(tmp_path/'attempt.json'),launcher_identity=root,base_identity=base,members=[dict(identity=root,role='server',parent=0),dict(identity=base,role='server',parent=1)]))
+        a.write_raw_new(tmp_path/'child-clearance.ready',b'')
+        if consumer=='base': assert a.consume_clearance(context,p4,argv,'authority')==base
+        else:
+&gt;           with pytest.raises(ValueError,match='intended native base'): a.consume_clearance(context,p4,argv,'authority')
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E           Failed: DID NOT RAISE ValueError
+
+..\..\harness\test_adapter.py:869: Failed</failure></testcase><testcase classname="harness.test_adapter" name="test_fix2_h01_only_intended_base_can_consume[other]" time="0.025"><failure message="AssertionError: Regex pattern did not match.&#10;  Expected regex: 'intended native base'&#10;  Actual message: 'Child native identity not cleared'">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/harness-preparation-20261102T211948837074Z/temp/test_fix2_h01_only_intended_ba1')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000002539F0CA7B0&gt;
+consumer = 'other'
+
+    @pytest.mark.parametrize('consumer',['launcher','other','base'])
+    def test_fix2_h01_only_intended_base_can_consume(tmp_path,monkeypatch,consumer):
+        clock=Clock(); b=a.Deadline(clock=clock); p4=a.load_p4()
+        root=dict(pid=1,created_filetime=101,exe=str(a.PY)); base=dict(pid=2,created_filetime=102,exe=str(a.PY)); other=dict(pid=3,created_filetime=103,exe=str(a.PY))
+        monkeypatch.setattr(p4,'identity',lambda pid:dict(launcher=root,other=other,base=base)[consumer])
+        context=dict(mode='inert',folder=tmp_path,port=18799,budget=b); argv=a.inert_argv(tmp_path,18799)
+        a.save_new(tmp_path/'attempt.json',{})
+        a.save_new(tmp_path/'child-clearance.json',dict(mode='inert',folder=str(tmp_path),timing=b.timing(),argv=argv,authority_sha256='authority',attempt_sha256=a.sha(tmp_path/'attempt.json'),launcher_identity=root,base_identity=base,members=[dict(identity=root,role='server',parent=0),dict(identity=base,role='server',parent=1)]))
+        a.write_raw_new(tmp_path/'child-clearance.ready',b'')
+        if consumer=='base': assert a.consume_clearance(context,p4,argv,'authority')==base
+        else:
+&gt;           with pytest.raises(ValueError,match='intended native base'): a.consume_clearance(context,p4,argv,'authority')
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E           AssertionError: Regex pattern did not match.
+E             Expected regex: 'intended native base'
+E             Actual message: 'Child native identity not cleared'
+
+..\..\harness\test_adapter.py:869: AssertionError</failure></testcase><testcase classname="harness.test_adapter" name="test_fix2_h01_only_intended_base_can_consume[base]" time="0.026" /><testcase classname="harness.test_adapter" name="test_fix2_n02_actual_post_clearance_setup_cannot_start_product" time="0.029"><failure message="Failed: DID NOT RAISE TimeoutError">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/harness-preparation-20261102T211948837074Z/temp/test_fix2_n02_actual_post_clea0')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000002539F230050&gt;
+
+    def test_fix2_n02_actual_post_clearance_setup_cannot_start_product(tmp_path,monkeypatch):
+        import ddgs,httpx,socket
+        from src.brain.work_tools import WorkLedger
+        from src.brain.work_service import WorkService
+        clock=Clock(); b=a.Deadline(clock=clock); p4=a.load_p4(); root=dict(pid=1,created_filetime=101,exe=str(a.PY)); base=dict(pid=2,created_filetime=102,exe=str(a.PY))
+        monkeypatch.setattr(p4,'identity',lambda pid:base)
+        context=dict(mode='actual',folder=tmp_path,port=18799,budget=b,request_id='r',session_id='s'); argv=a.candidate_argv(context)[0]
+        a.save_new(tmp_path/'attempt.json',{})
+        a.save_new(tmp_path/'child-clearance.json',dict(mode='actual',folder=str(tmp_path),timing=b.timing(),argv=argv,authority_sha256='authority',attempt_sha256=a.sha(tmp_path/'attempt.json'),launcher_identity=root,base_identity=base,members=[dict(identity=root,role='server',parent=0),dict(identity=base,role='server',parent=1)]))
+        a.write_raw_new(tmp_path/'child-clearance.ready',b'')
+        for obj,name in ((ddgs,'DDGS'),(httpx,'request'),(socket,'getaddrinfo'),(WorkLedger,'__init__'),(WorkLedger,'_freeze_runtime_inputs'),(WorkService,'submit_work')): monkeypatch.setattr(obj,name,getattr(obj,name))
+        prepare=a.install_trusted_exports
+        def delayed(folder): prepare(folder); clock.value=b.cutoff_ns('work')+1
+        monkeypatch.setattr(a,'install_trusted_exports',delayed); called=[]
+&gt;       with pytest.raises(TimeoutError,match='child product startup'): a.actual_child_entry(context,p4,argv,'authority',dispatch=lambda *args,**kwargs:called.append(True))
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE TimeoutError
+
+..\..\harness\test_adapter.py:885: Failed</failure></testcase></testsuite></testsuites>

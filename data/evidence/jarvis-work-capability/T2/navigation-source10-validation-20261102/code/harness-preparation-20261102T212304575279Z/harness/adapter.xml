@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="1" time="2.080" timestamp="2026-11-03T05:23:04.953296+08:00" hostname="DESKTOP-B366PQ9"><testcase classname="harness.test_adapter" name="test_fix2_h14_first_directory_overrun_stops_iteration_and_further_io" time="0.019"><failure message="AttributeError: module 'source10_adapter' has no attribute 'guarded_files'">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/harness-preparation-20261102T212304575279Z/temp/test_fix2_h14_first_directory_0')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x0000025ACDF7D220&gt;
+
+    def test_fix2_h14_first_directory_overrun_stops_iteration_and_further_io(tmp_path,monkeypatch):
+        import os
+        clock=Clock(); invocation=a.RootInvocation(clock=clock); b=invocation.budget; p4=a.load_p4(); opened=[]; advanced=[]; closed=[]; late_stats=[]; late_hashes=[]
+        real_scan=os.scandir; real_stat=os.stat; real_sha=a.sha
+        class Iterator:
+            def __init__(self,raw): self.raw=raw
+            def __iter__(self): return self
+            def __next__(self): advanced.append(True); return next(self.raw)
+            def close(self): closed.append(True); self.raw.close()
+            def __enter__(self): return self
+            def __exit__(self,*args): self.close()
+        def scan(path):
+            opened.append(str(path)); raw=real_scan(path)
+            if len(opened)==1: clock.value=b.cutoff_ns('seal')+1
+            return Iterator(raw)
+        def stat(*args,**kwargs):
+            if clock()&gt;b.cutoff_ns('seal'): late_stats.append(args[0])
+            return real_stat(*args,**kwargs)
+        def hashed(path):
+            if clock()&gt;b.cutoff_ns('seal'): late_hashes.append(path)
+            return real_sha(path)
+        b.phase='seal'; (tmp_path/'later-directory').mkdir(); a.save_new(tmp_path/'later-directory/member.json',{})
+        monkeypatch.setattr(os,'scandir',scan); monkeypatch.setattr(os,'stat',stat); monkeypatch.setattr(a,'sha',hashed)
+&gt;       with pytest.raises(TimeoutError): a.guarded_files(tmp_path,b)
+                                          ^^^^^^^^^^^^^^^
+E       AttributeError: module 'source10_adapter' has no attribute 'guarded_files'
+
+..\..\harness\test_adapter.py:939: AttributeError</failure></testcase></testsuite></testsuites>

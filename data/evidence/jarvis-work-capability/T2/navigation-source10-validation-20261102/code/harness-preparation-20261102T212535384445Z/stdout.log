@@ -1,0 +1,48 @@
+F....                                                                    [100%]
+================================== FAILURES ===================================
+__________ test_fix1_genuine_synthetic_export_and_external_readback ___________
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/harness-preparation-20261102T212535384445Z/temp/test_fix1_genuine_synthetic_ex0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000002087DFCD220>
+sdk_io = (<src.brain.browser.channel.BrowserChannel object at 0x00000208A27B2BA0>, [('search', 'Research a subject'), ('get', '...'https://example.com/source/2'), ('get', 'https://example.com/source/3'), ('get', 'https://example.com/source/4')], {})
+mock_jar = (<openjarvis.sdk.Jarvis object at 0x00000208A27B16A0>, <function _run_work_agent at 0x00000208A25D16C0>, [{'format': {..., ...], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [])
+
+    def test_fix1_genuine_synthetic_export_and_external_readback(tmp_path,monkeypatch,sdk_io,mock_jar):
+>       result,ledger=synthetic_bundle(tmp_path,sdk_io,mock_jar,monkeypatch)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+..\..\harness\test_adapter.py:659: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+..\..\harness\test_adapter.py:27: in synthetic_bundle
+    a.export_completed(folder,ledger,result)
+..\..\harness\adapter.py:591: in export_completed
+    validate_export_structure(json.loads(raw),ledger._policy.scanners)
+..\..\harness\adapter.py:646: in validate_export_structure
+    scan(packet)
+..\..\harness\adapter.py:630: in scan
+    require(type(key) is str,'Export string key'); scan(key,('$key',)); scan(item,path+(key,))
+                                                                        ^^^^^^^^^^^^^^^^^^^^^^
+..\..\harness\adapter.py:643: in scan
+    else: scan(decoded,path+('$decoded',)); return
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\harness\adapter.py:630: in scan
+    require(type(key) is str,'Export string key'); scan(key,('$key',)); scan(item,path+(key,))
+                                                                        ^^^^^^^^^^^^^^^^^^^^^^
+..\..\harness\adapter.py:632: in scan
+    for index,item in enumerate(value): scan(item,path+(index,))
+                                        ^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\harness\adapter.py:644: in scan
+    require(all(scanner.scan(value).clean for scanner in scanners),'Unsafe export decoded value')
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+ok = False, message = 'Unsafe export decoded value'
+
+    def require(ok,message):
+>       if not ok: raise ValueError(message)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       ValueError: Unsafe export decoded value
+
+..\..\harness\adapter.py:192: ValueError
+=========================== short test summary info ===========================
+FAILED ..\..\harness\test_adapter.py::test_fix1_genuine_synthetic_export_and_external_readback
+1 failed, 4 passed, 129 deselected in 6.77s
