@@ -536,10 +536,149 @@ def resolve_v3(submitted,issued_snapshot,collection):
     return resolve(submitted,issued_snapshot,collection)
 
 
+def verify_runtime_packet(binding, snapshot, collection, raw, *, require_ack=False):
+    """Reconstruct native entities, history and read/event links independently."""
+    from .work_navigation import canonical_v3,v3_writer_schema
+    from .work_tools import WorkInspectTool,WorkResearchWriteTool
+    from openjarvis.tools._stubs import ToolSpec,build_tool_descriptions
+    from types import SimpleNamespace
+    from .agent_server import _strict_json,_research_sampler_schema,_RESEARCH_MODEL,MAINBRAIN_SYSTEM_PROMPT
+    from openjarvis.agents.native_react import REACT_SYSTEM_PROMPT
+    from jsonschema import Draft7Validator
+    packet=json.loads(raw)
+    digest=lambda value:hashlib.sha256(value).hexdigest()
+    if (canonical_v3(packet)!=raw or packet['v']!=3 or packet['binding']!=list(snapshot.binding_key)
+            or tuple(getattr(binding,k) for k in ('request_id','session_id','task_id'))!=snapshot.binding_key
+            or packet['nonce']!=snapshot.nonce or packet['issued_manifest']!=snapshot.manifest_sha256
+            or packet['views_sha256']!=digest(snapshot.views_json)):
+        raise ValueError('Runtime snapshot linkage drift')
+    original=packet['system_original']
+    specs=[ToolSpec(name=WorkInspectTool.tool_id,description=WorkInspectTool.description,parameters=WorkInspectTool.parameters,category='work',timeout_seconds=5),
+        ToolSpec(name=WorkResearchWriteTool.tool_id,description=WorkResearchWriteTool.description,parameters=v3_writer_schema(),category='work',timeout_seconds=30,required_capabilities=['file:write'])]
+    expected_original=(REACT_SYSTEM_PROMPT+'\n\n'+MAINBRAIN_SYSTEM_PROMPT).format(skill_examples='',tool_descriptions=build_tool_descriptions([SimpleNamespace(spec=s) for s in specs]))
+    prefix=REACT_SYSTEM_PROMPT.split('# Using Skills',1)[0]
+    if (original!=expected_original or original.count(prefix)!=1 or not original.endswith(MAINBRAIN_SYSTEM_PROMPT)
+            or any(name not in original for name in ('ultima_work_research_inspect','ultima_work_research_write'))):
+        raise ValueError('Runtime SDK policy drift')
+    replacement=('Return exactly one JSON object matching the phase schema. Use action and object action_input '
+        'for one permitted SDK tool, or final_answer for refusal or the authorized final acknowledgement. '
+        'Write prose style applies inside user-facing text only.\n\n')
+    replaced=original.replace(prefix,replacement,1)
+    events=[_strict_json(e) for e in packet['events']]
+    starts=[e['data'] for e in events if e['type']=='tool_call_start']
+    ends=[e['data'] for e in events if e['type']=='tool_call_end']
+    reads=json.loads(snapshot.replay_json)['reads']
+    wires=packet['wires']
+    if not len(reads)+1<=len(wires)<=8: raise ValueError('Runtime generation count')
+    if len(starts)!=len(reads)+1 or len(ends)!=len(reads)+int(require_ack):
+        raise ValueError('Runtime event count')
+    for index,read in enumerate(reads):
+        start=starts[index]; end=ends[index]; key=read['key']
+        args=dict(source_id=read['source_id'],start_line=read['start'])
+        metadata=dict(seq=key['seq'],generation=key['generation'],dispatch_uuid=key['dispatch_uuid'],
+            adapter_uuid=key['adapter_uuid'],binding=list(snapshot.binding_key),arguments=args)
+        if (start!=dict(tool='ultima_work_research_inspect',agent='native_react',arguments=args)
+                or end.get('tool')!=start['tool'] or end.get('agent')!='native_react' or end.get('success') is not True
+                or end.get('metadata')!=metadata or end.get('result')!=canonical_v3(read['wire']).decode()):
+            raise ValueError('Runtime read dispatch linkage drift')
+        if read['wire_sha256']!=digest(end['result'].encode()): raise ValueError('Runtime read bytes drift')
+    previous=None
+    transport=packet['transport']; receipts=transport['receipts']
+    if (transport['generations']!=len(wires) or transport['gets']!=2*len(wires) or transport['posts']!=len(wires)
+            or transport['completed']!=len(wires) or len(receipts)!=3*len(wires)
+            or transport['post_bytes']!=sum(len(w['entity'].encode()) for w in wires) or transport['post_bytes']>393216):
+        raise ValueError('Runtime transport reservations drift')
+    for kind,cap in (('metadata',32768),('chat',65536)):
+        group=[r for r in receipts if r['kind']==kind]
+        if (transport['admitted'][kind]!=sum(r['admitted'] for r in group) or transport['admitted'][kind]>524288
+                or any(r['error'] is not None or not 200<=r['status']<300 or r['admitted']>cap
+                    or r['admitted']!=r['retained'] or r['inspected']!=r['admitted']
+                    or (r['downloaded'] is not None and r['downloaded']<r['admitted']) for r in group)):
+            raise ValueError('Runtime response accounting drift')
+    for index,wire in enumerate(wires):
+        entity=wire['entity'].encode(); request=_strict_json(wire['entity'])
+        if canonical_v3(request)!=entity or wire['generation']!=index+1: raise ValueError('Runtime entity drift')
+        if wire['hashes']!={k:digest(v) for k,v in dict(messages=canonical_v3(wire['secured_messages']),
+                strict=canonical_v3(wire['strict_schema']),sampler=canonical_v3(wire['sampler_schema']),entity=entity).items()}:
+            raise ValueError('Runtime four-hash drift')
+        if (request['messages']!=wire['secured_messages'] or request['format']!=_research_sampler_schema(wire['strict_schema'])
+                or request['format']!=wire['sampler_schema'] or request['model']!=_RESEARCH_MODEL
+                or any(request.get(k) is not False for k in ('think','stream','truncate','shift')) or request.get('tools')!=[]
+                or request['options']['num_ctx']!=16384 or request['options']['temperature']!=0
+                or set(request)!={'model','messages','format','tools','think','stream','truncate','shift','options'}):
+            raise ValueError('Runtime native policy drift')
+        messages=request['messages']
+        if any(set(m)!={'role','content'} for m in messages): raise ValueError('Runtime optional message field drift')
+        if (not messages[0]['content'].startswith(replaced+'\n\n') or messages[0]['role']!='system'
+                or messages[1]!=dict(role='user',content=packet['prompt'])):
+            raise ValueError('Runtime system or query drift')
+        if previous is None:
+            if len(messages)!=2: raise ValueError('Unexpected initial history')
+        else:
+            expected=[messages[0],*previous['secured_messages'][1:],dict(role='assistant',content=previous['raw']['message']['content']),
+                dict(role='user',content='Observation: '+ends[index-1]['result'])]
+            if messages!=expected: raise ValueError('Runtime observation history drift')
+        outer=wire['raw']; envelope=_strict_json(outer['message']['content'])
+        response=wire['raw_response'].encode()
+        chunk=receipts[index*3:index*3+3]
+        if ([(r['method'],r['path'],r['kind']) for r in chunk]!=[('GET','/api/version','metadata'),('GET','/api/tags','metadata'),('POST','/api/chat','chat')]
+                or _strict_json(wire['raw_response'])!=outer or chunk[-1]['response_sha256']!=digest(response)
+                or chunk[-1]['admitted']!=len(response) or chunk[-1]['entity_sha256']!=digest(entity)
+                or chunk[-1]['entity_bytes']!=len(entity)):
+            raise ValueError('Runtime raw response or send receipt drift')
+        if envelope!=wire['raw_envelope'] or envelope!=wire['secured_envelope']:
+            raise ValueError('Runtime secured envelope drift')
+        Draft7Validator(wire['strict_schema']).validate(envelope)
+        final=dict(type='object',additionalProperties=False,required=['final_answer'],
+            properties=dict(final_answer=dict(type='string',minLength=1,maxLength=1000)))
+        ack=index==len(reads)+1
+        allowed=[]
+        def action(name,params):
+            return dict(type='object',additionalProperties=False,required=['action','action_input'],properties=dict(action=dict(enum=[name]),action_input=params))
+        visible=reads[:index]
+        eligible=len({r['source_id'] for r in visible if r['wire']['cards']})>=3
+        if not ack:
+            if index<6: allowed.append(action('ultima_work_research_inspect',WorkInspectTool.parameters))
+            if eligible: allowed.append(action('ultima_work_research_write',v3_writer_schema()))
+        expected_schema=final if ack else dict(anyOf=[*allowed,final])
+        output_cap=256 if ack or not eligible else 2048
+        if (wire['strict_schema']!=expected_schema or type(request['options']['num_predict']) is not int
+                or not 0<request['options']['num_predict']<=output_cap):
+            raise ValueError('Runtime phase schema or output budget drift')
+        if 'action' in envelope:
+            start=starts[index]
+            if envelope['action']!=start['tool'] or envelope['action_input']!=start['arguments']:
+                raise ValueError('Runtime action-to-dispatch drift')
+        elif index!=len(wires)-1 or not require_ack: raise ValueError('Runtime premature final')
+        if (outer.get('done') is not True or outer.get('done_reason')!='stop'
+                or type(outer.get('eval_count')) is not int or not 0<outer['eval_count']<=request['options']['num_predict']
+                or len(canonical_v3([messages,wire['strict_schema']]))>32768 or len(entity)>49152):
+            raise ValueError('Runtime response or request admission drift')
+        previous=wire
+    last=wires[-1]['secured_envelope']
+    if (require_ack and set(last)!={'final_answer'}) or (not require_ack and last.get('action')!='ultima_work_research_write'):
+        raise ValueError('Runtime terminal phase drift')
+    if require_ack:
+        end=ends[-1]
+        if end.get('success') is not True or end.get('tool')!='ultima_work_research_write': raise ValueError('Runtime writer END missing')
+        receipt=_strict_json(end['result'])
+        metadata=end.get('metadata',{})
+        submitted=wires[-2]['secured_envelope']['action_input']
+        if (metadata!=dict(receipt,arguments=submitted) or receipt.get('binding')!=list(snapshot.binding_key)
+                or receipt.get('replay_sha256')!=snapshot.manifest_sha256
+                or receipt.get('seq')!=snapshot.generation or receipt.get('protocol_version')!=3
+                or receipt.get('runtime_sha256')!=packet.get('prewrite_sha256')):
+            raise ValueError('Runtime writer receipt linkage drift')
+    return packet
+
+
 def verify_research_artifacts(binding,artifacts,report_records,sources_json,*,require_reference=False,
-                              required_version:int|None=None,issued_snapshot=None):
+                              required_version:int|None=None,issued_snapshot=None,runtime_packet=None,require_ack=False):
     from .work_tools import checked_path
     source_map=bound_sources(sources_json,binding)
+    runtime=None
+    if runtime_packet is not None:
+        runtime=verify_runtime_packet(binding,issued_snapshot,None,runtime_packet,require_ack=require_ack)
     if not report_records: raise ValueError('No successful bound research report write')
     reports={r['result']['file_call_id']:r for r in report_records}
     cited=set()
@@ -548,6 +687,16 @@ def verify_research_artifacts(binding,artifacts,report_records,sources_json,*,re
         if not record or any(record.get(k)!=getattr(binding,k) for k in ('request_id','session_id','task_id')):
             raise ValueError('Research artifact has no current report-to-file call linkage')
         result = record['result']
+        if runtime is not None:
+            runtime_hash=runtime['prewrite_sha256'] if require_ack else hashlib.sha256(runtime_packet).hexdigest()
+            if (result.get('runtime_sha256')!=runtime_hash or result.get('replay_sha256')!=issued_snapshot.manifest_sha256
+                    or result.get('sha256')!=artifact['sha256']):
+                raise ValueError('Report runtime manifest linkage drift')
+            if require_ack:
+                receipt=json.loads(json.loads(runtime['events'][-1])['data']['result'])
+                if (receipt['report_call_id']!=record['call_id'] or receipt['file_call_id']!=result['file_call_id']
+                        or receipt['dispatch_uuid']!=result['dispatch_uuid'] or receipt['adapter_uuid']!=result['adapter_uuid']):
+                    raise ValueError('Report runtime writer identity drift')
         version=result.get('protocol_version')
         if required_version not in (None,3) or (version is not None and (type(version) is not int or version not in (2,3))):
             raise ValueError('Unsupported research protocol version')

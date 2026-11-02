@@ -4,15 +4,36 @@ import json
 from pathlib import Path
 import pytest
 from src.brain.work_service import WorkService
+from src.brain.tests.test_work_navigation import stable_navigation_entropy
 
 URLS=['https://example.com/source/'+str(i) for i in range(1,6)]
+RESTRICTED={}
+CURRENT_NATIVE={}
+
+def restricted_records(result):
+    ledger=RESTRICTED.get(result['task_id'])
+    if ledger is None:
+        ledger=next((x for x in CURRENT_NATIVE.get('ledgers',[]) if any(r.get('task_id')==result['task_id'] for r in x.snapshot())),None)
+    if ledger is None: return result['tool_results']
+    return [r for r in result['tool_results'] if not r.get('call_id')]+ledger.snapshot()
+
+def restricted_sources(result):
+    return json.loads(RESTRICTED[result['task_id']]._collection.catalogue_json)
 
 
 @pytest.fixture
-def sdk_io(monkeypatch):
+def sdk_io(monkeypatch,mock_jar):
     import ddgs
     import httpx
     import socket
+    RESTRICTED.clear()
+    CURRENT_NATIVE['ledgers']=[]
+    from src.brain.work_tools import WorkLedger
+    original_init=WorkLedger.__init__
+    def capture(ledger):
+        original_init(ledger)
+        CURRENT_NATIVE.setdefault('ledgers',[]).append(ledger)
+    monkeypatch.setattr(WorkLedger,'__init__',capture)
     calls=[]
     statuses={}
     monkeypatch.setattr(socket,'getaddrinfo',lambda *a,**kw:[(2,1,6,'',('93.184.216.34',443))])
@@ -31,13 +52,29 @@ def sdk_io(monkeypatch):
 
 
 def submit(tmp_path,browser,runner,**context):
-    return WorkService(tmp_path,runner=runner,browser_channel=browser).submit_work('Research a subject',request_id='r',session_id='s',context={'research':True,**context})
+    from src.brain import agent_server
+    actual=agent_server._prepare_research_navigation if runner is agent_server._run_work_agent else fixture_prepare
+    def prepare(collection,*,binding,ledger):
+        RESTRICTED[binding.task_id]=ledger
+        return actual(collection,binding=binding,ledger=ledger)
+    def run(prompt,**kwargs):
+        from src.brain.work_tools import _ACTIVE
+        _ACTIVE.get()[1]._fixture_prompt=prompt
+        return runner(prompt,**kwargs)
+    return WorkService(tmp_path,runner=run,browser_channel=browser,research_preparer=prepare).submit_work('Research a subject',request_id='r',session_id='s',context={'research':True,**context})
+
+
+def fixture_prepare(collection,*,binding,ledger):
+    """Trusted U2-only preparation; complete native tests use the real callback."""
+    RESTRICTED[binding.task_id]=ledger
+    from src.brain import agent_server
+    return agent_server._prepare_research_navigation(collection,binding=binding,ledger=ledger)
 
 
 def report_payload(count=3):
     from src.brain.work_tools import _ACTIVE
     bound = _ACTIVE.get()
-    cards = json.loads(bound[2].cards_json) if bound and bound[2].cards_json else {}
+    cards={}
     sections = []
     for i in range(1,count+1):
         sid = f'S{i}'
@@ -47,12 +84,21 @@ def report_payload(count=3):
     return dict(path='research.md',title='Model title',sections=sections)
 
 
-def write_report(payload=None):
+def fixture_dispatch(payload=None):
     assert importlib.util.find_spec('src.brain.work_research'),'research adapter missing'
-    from src.brain.work_tools import WorkResearchWriteTool
-    result=WorkResearchWriteTool().execute(**(payload or report_payload()))
-    assert result.success,result.content
-    return {}
+    from src.brain.work_tools import _ACTIVE
+    binding,ledger,_=_ACTIVE.get()
+    data=payload or report_payload()
+    CURRENT_NATIVE['replies'].extend([data if callable(data) else action(data),'{"final_answer":"saved"}'])
+    response=CURRENT_NATIVE['runner'](ledger._fixture_prompt,binding=binding,
+        tools=['ultima_work_research_inspect','ultima_work_research_write'])
+    return response
+
+
+def write_report(payload=None):
+    response=fixture_dispatch(payload)
+    assert not response.get('compose_error'),response.get('compose_error')
+    return response
 
 
 def test_required_reads_precede_even_an_immediate_final_answer(tmp_path,sdk_io):
@@ -74,7 +120,7 @@ def test_actual_report_write_cites_three_of_five_fetched_sources(tmp_path,sdk_io
     text=Path(r['artifacts'][0]['path']).read_text(encoding='utf8')
     assert all(u in text for u in URLS[:3]) and all(u not in text for u in URLS[3:])
     assert len(r['sources'])==3 and len(r['available_sources'])==5
-    assert all(s['body'].endswith(s['final_url']) for s in r['sources'])
+    assert all(s['body'].endswith(s['final_url']) for s in restricted_sources(r) if s['source_id'] in {x['source_id'] for x in r['sources']})
     assert len([e for e in r['trace'] if e.get('phase')=='research.preflight' and e['type']=='tool_call_start'])==6
     assert all(e['task_id']==r['task_id'] and e['sdk_call_id'] for e in r['trace'] if e.get('phase')=='research.preflight')
 
@@ -86,7 +132,7 @@ def test_optional_failed_probe_has_exact_ledger_identity(tmp_path,sdk_io):
     assert r['status']=='succeeded',r
     failures=[a for a in r['research_attempts'] if not a['success']]
     assert len(failures)==1 and failures[0]['adapter_call_id'] and failures[0]['sdk_call_id']
-    assert any(x.get('call_id')==failures[0]['adapter_call_id'] and x['success'] is False for x in r['tool_results'])
+    assert any(x.get('call_id')==failures[0]['adapter_call_id'] and x['success'] is False for x in restricted_records(r))
 
 
 @pytest.mark.parametrize('forgery',['same_tool','model_metadata'])
@@ -144,12 +190,12 @@ def test_real_executor_timeout_aborts_before_runner(tmp_path,sdk_io,monkeypatch)
 def test_report_refuses_unbound_or_forged_citations(tmp_path,sdk_io,change):
     browser,_,_=sdk_io
     def runner(*a,**kw):
-        from src.brain.work_tools import WorkResearchWriteTool
         data=report_payload(); data['sections'][0].update(change)
         if change.get('facts') and isinstance(change['facts'][0],str):
             data['sections'][0]['facts']=[dict(report_payload()['sections'][0]['facts'][0],claim=change['facts'][0])]
-        assert not WorkResearchWriteTool().execute(**data).success
-        return {}
+        response=fixture_dispatch(data)
+        assert response.get('compose_error')
+        return response
     r=submit(tmp_path,browser,runner)
     assert r['status']=='failed' and not r['artifacts'],r
 
@@ -186,7 +232,7 @@ def test_malformed_sdk_search_records_retain_raw_and_diagnostics(tmp_path,sdk_io
     browser,_,_=sdk_io
     r=submit(tmp_path,browser,lambda *a,**kw:pytest.fail('malformed source hints reached model'))
     assert r['status']=='failed'
-    search=next(x['result'] for x in r['tool_results'] if x.get('tool_name')=='ultima_work_web_search')
+    search=next(x['result'] for x in restricted_records(r) if x.get('tool_name')=='ultima_work_web_search')
     assert search['body'] and search['parser_diagnostics'] and search['results']==[]
 
 
@@ -206,7 +252,8 @@ def test_cross_request_catalogue_is_rejected(tmp_path,sdk_io):
         binding,ledger,caps=_ACTIVE.get()
         foreign=WorkBinding(binding.root,binding.request_id,binding.session_id,'another-task')
         with bind_work(foreign,ledger,caps):
-            assert not WorkResearchWriteTool().execute(**report_payload()).success
+            response=fixture_dispatch(report_payload())
+            assert 'enrollment' in response['compose_error']
         return {}
     r=submit(tmp_path,browser,runner)
     assert r['status']=='failed' and not list(tmp_path.rglob('*.md'))
@@ -260,8 +307,9 @@ def test_report_nested_writer_keeps_existing_path_boundary(tmp_path,sdk_io,path)
     def runner(*a,**kw):
         from src.brain.work_tools import WorkResearchWriteTool
         data=report_payload(); data['path']=path
-        assert not WorkResearchWriteTool().execute(**data).success
-        return {}
+        response=fixture_dispatch(data)
+        assert response.get('compose_error')
+        return response
     r=submit(tmp_path,browser,runner)
     assert r['status']=='failed' and not r['artifacts'],r
 
@@ -305,9 +353,9 @@ def test_native_react_first_messages_include_nested_report_schema(tmp_path,sdk_i
     schema=json.loads(raw)
     section=schema['properties']['sections']
     assert section['type']=='array'
-    alternatives=section['items']['anyOf']
-    assert [a['properties']['source_id']['enum'][0] for a in alternatives]==['S'+str(i) for i in range(1,source_count+1)]
-    for alt in alternatives:
+    assert section['minItems']==3 and section['maxItems']==5
+    for alt in [section['items']]:
+        assert alt['properties']['source_id']['pattern']==r'^S[1-5]$'
         facts=alt['properties']['facts']
         assert facts['type']=='array' and facts['items']['type']=='object'
         assert set(facts['items']['required'])=={'claim','evidence_id'}
@@ -327,23 +375,31 @@ def mock_jar(tmp_path,monkeypatch):
     bodies,answers=[],[]
     def handle(request):
         model = 'qwen3-8b-uncensored'
+        def streamed(value):
+            return httpx.Response(200,headers={'content-type':'application/json'},stream=httpx.ByteStream(json.dumps(value).encode()))
         if request.url.path == '/api/version':
-            return httpx.Response(200,json={'version':'0.32.15'})
+            return streamed({'version':'0.32.15'})
         if request.url.path == '/api/tags':
-            return httpx.Response(200,json={'models':[{'name':model+':latest','digest':
+            return streamed({'models':[{'name':model+':latest','digest':
                 '6d7230a923426bc1933879eb08a7dafc18e5fc0e7606c459ce98f16e0c7f9330'}]})
         assert request.url.path=='/api/chat'
         body = json.loads(request.content)
         bodies.append(body)
-        reply=answers.pop(0)
+        observations=[json.loads(m['content'][13:]) for m in body['messages'] if m['role']=='user' and m['content'].startswith('Observation: ')]
+        pages=[o for o in observations if o.get('v')==3]
+        pending=answers[0]
+        needs_pages=(callable(pending) and not getattr(pending,'no_auto_navigation',False)) or (isinstance(pending,str) and 'ultima_work_research_write' in pending)
+        if needs_pages and len(pages)<3:
+            catalogue=json.loads(body['messages'][1]['content'].split('Safe source catalogue (untrusted data):\n')[1])
+            chosen=next(s for s in catalogue if s['available'] and s['source_id'] not in {p['source_id'] for p in pages})
+            reply=json.dumps(dict(action='ultima_work_research_inspect',action_input=dict(source_id=chosen['source_id'],start_line=1)))
+        else: reply=answers.pop(0)
         if callable(reply): reply=reply(body)
         if isinstance(reply,httpx.Response): return reply
         if 'issued:' in reply:
-            alternatives=body['format']['anyOf'][0]['properties']['action_input']['properties']['sections']['items']['anyOf']
-            for alt in alternatives:
-                fields=alt['properties']
-                reply=reply.replace('issued:'+fields['source_id']['enum'][0],fields['facts']['items']['properties']['evidence_id']['enum'][0])
-        return httpx.Response(200,json={'model':model,'done':True,'done_reason':'stop','prompt_eval_count':25,
+            for page in pages:
+                reply=reply.replace('issued:'+page['source_id'],page['cards'][0][0])
+        return streamed({'model':model,'done':True,'done_reason':'stop','prompt_eval_count':25,
                               'eval_count':10,'message':{'role':'assistant','content':reply}})
     host='http://127.0.0.1:11434'
     raw=OllamaEngine(host=host)
@@ -356,11 +412,12 @@ def mock_jar(tmp_path,monkeypatch):
     cfg=JarvisConfig(); cfg.telemetry.enabled=False; cfg.analytics.enabled=False
     cfg.security.audit_log_path=str(tmp_path/'audit.db')
     cfg.security.capabilities.enabled=True
-    cfg.agent.max_turns=5
+    cfg.agent.max_turns=8
     jar=Jarvis(config=cfg,engine_key='ollama',model=agent_server.MODEL)
     monkeypatch.setattr('openjarvis.sdk.get_engine',lambda *a:('ollama',raw))
     monkeypatch.setattr(agent_server,'_jars',jar)
     jar._ensure_engine()
+    CURRENT_NATIVE.update(jar=jar,runner=agent_server._run_work_agent,bodies=bodies,replies=answers)
     try:
         yield jar,agent_server._run_work_agent,bodies,answers
     finally:
@@ -372,17 +429,17 @@ def test_source6_nested_action_and_final_only(tmp_path, sdk_io, mock_jar):
     replies.extend([action(report_payload()), '{"final_answer":"saved"}'])
     result = submit(tmp_path, sdk_io[0], runner, text='original scope')
     assert result['status'] == 'succeeded', result['error']
-    author, ack = bodies
+    author, ack = bodies[-2:]
     assert isinstance(author['format'], dict)
-    assert author['format']['anyOf'][0]['properties']['action']['enum'] == ['ultima_work_research_write']
+    assert any(a['properties'].get('action',{}).get('enum')==['ultima_work_research_write'] for a in author['format']['anyOf'])
     assert ack['format']['required'] == ['final_answer']
     for body in bodies:
         assert body['truncate'] is False and body['shift'] is False and body['think'] is False
         assert body['options']['num_ctx'] == 16384 and body['options']['temperature'] == 0
         assert 'original scope' in str(body['messages'][1:])
         assert 'Final Answer:' not in body['messages'][0]['content']
-    record = next(t['result'] for t in result['tool_results'] if t.get('call_id') and t['tool_name']=='ultima_work_research_write')
-    assert record['protocol_version'] == 2
+    record = next(t['result'] for t in restricted_records(result) if t.get('call_id') and t['tool_name']=='ultima_work_research_write')
+    assert record['protocol_version'] == 3
     assert len(record['bindings']) == 3
 
 
@@ -390,8 +447,7 @@ def test_source6_double_report_is_one_mutation(tmp_path, sdk_io):
     def twice(*a, **kw):
         write_report()
         from src.brain.work_tools import WorkResearchWriteTool
-        second = WorkResearchWriteTool().execute(**dict(report_payload(), path='second.md'))
-        assert not second.success
+        with pytest.raises(ValueError): WorkResearchWriteTool()
         return {}
     result = submit(tmp_path, sdk_io[0], twice)
     assert result['status'] == 'needs_attention'
@@ -412,10 +468,12 @@ def test_source6_only_bound_tool_and_frozen_capture(tmp_path, sdk_io):
         return fetch(url)
     browser.fetch_public = mutate
     def inspect(prompt, **kw):
-        assert kw['tools'] == ['ultima_work_research_write']
+        from src.brain.work_tools import _ACTIVE
+        _ACTIVE.get()[1]._fixture_prompt=prompt
+        assert kw['tools'] == ['ultima_work_research_inspect','ultima_work_research_write']
         assert 'before' in prompt and 'after' not in prompt and 'original' in prompt
         return write_report()
-    result = WorkService(tmp_path, runner=inspect, browser_channel=browser, context_provider=Provider()).submit_work(
+    result = WorkService(tmp_path, runner=inspect, browser_channel=browser, research_preparer=fixture_prepare, context_provider=Provider()).submit_work(
         'topic', request_id='r',session_id='s', context={'capture_current':True,'research':True})
     assert result['status'] == 'succeeded', result['error']
 
@@ -446,12 +504,13 @@ def test_r4a_wire_scope(tmp_path,sdk_io,mock_jar):
     result=submit(tmp_path,sdk_io[0],runner)
     jar.ask_full('ordinary after',agent='native_react',tools=['calculator'],context=False)
     assert result['status']=='succeeded',result['error']
-    assert [type(b.get('format')) for b in bodies]==[type(None),dict,dict,type(None)]
+    assert [type(b.get('format')) for b in bodies]==[type(None)]+[dict]*5+[type(None)]
     assert jar._engine is base and type(base._inner).__name__=='GuardrailsEngine'
     assert all(b['model']=='qwen3-8b-uncensored' for b in bodies)
     assert 'ultima_work_research_write' in bodies[1]['messages'][0]['content']
-    assert 'calculator' not in bodies[1]['messages'][0]['content']
-    assert sum(e['type']=='inference_end' for e in result['trace'])==2
+    assert '### calculator' not in bodies[1]['messages'][0]['content']
+    assert '# Using Skills' in bodies[1]['messages'][0]['content']
+    assert sum(e['type']=='inference_end' for e in result['trace'])==5
     assert Path(result['artifacts'][0]['path']).is_file()
 
 
@@ -465,7 +524,7 @@ def test_r4a_bad_final_after_write(tmp_path,sdk_io,mock_jar,invalid):
     result=submit(tmp_path,sdk_io[0],runner)
     assert result['status']=='needs_attention' and not result['artifacts']
     assert any(e['type']=='inference_end' for e in result['trace'])
-    write=next(x for x in result['tool_results'] if x.get('tool_name')=='ultima_work_file_write' and x['success'])
+    write=next(x for x in restricted_records(result) if x.get('tool_name')=='ultima_work_file_write' and x.get('call_id') and x['success'])
     assert Path(write['path']).read_text(encoding='utf8')==write['content']
 
 
@@ -476,9 +535,9 @@ def test_r4a_stop_on_rejection(tmp_path,sdk_io,mock_jar):
     replies.extend([action(broken),action(report_payload()),'{"final_answer":"done"}'])
     r=submit(tmp_path,sdk_io[0],runner)
     assert r['status']=='failed' and not list(tmp_path.rglob('research.md'))
-    assert len(bodies)==1 and len(replies)==2
+    assert len(bodies)==4 and len(replies)==2
     starts=[e for e in r['trace'] if e['type']=='tool_call_start' and e.get('phase')=='research.compose']
-    assert len(starts)==0
+    assert len(starts)==3
     assert not any(x.get('file_call_id') for x in r.get('research_effects',[]))
 
 
@@ -607,12 +666,15 @@ def test_r4b_late_report(tmp_path,sdk_io,mock_jar,monkeypatch,stage):
     replies.extend([action(report_payload()),'{"final_answer":"no file"}'])
     try:
         r=submit(tmp_path,sdk_io[0],runner)
-        assert r['status']=='needs_attention' and len(bodies)==1
+        assert r['status']==('needs_attention' if stage=='after_intent' else 'failed') and len(bodies)==4
+        if stage!='after_intent':
+            assert not r.get('research_effects') and not list(tmp_path.rglob('research.md'))
+            return
         effect=r['research_effects'][0]
         assert effect['state']=='timed_out'
         if stage=='r5_between_snapshots':
             assert actual[0].done() and Path(effect['path']).is_file()
-            terminal=[x for x in r['tool_results'] if x.get('call_id') and x.get('tool_name')=='ultima_work_file_write']
+            terminal=[x for x in restricted_records(r) if x.get('call_id') and x.get('tool_name')=='ultima_work_file_write']
             assert [x['call_id'] for x in terminal]==([effect['file_call_id']] if effect.get('file_call_id') else [])
         else:
             assert bool(effect.get('file_call_id'))==(stage=='after_intent')
@@ -655,10 +717,12 @@ def test_r4_projected_html_evidence(tmp_path,sdk_io,monkeypatch):
     monkeypatch.setattr(httpx,'request',get)
     r=submit(tmp_path,sdk_io[0],lambda *a,**kw:write_report())
     assert r['status']=='succeeded'
-    record=next(t for t in r['tool_results'] if t.get('tool_name')=='ultima_work_research_write')
+    record=next(t for t in restricted_records(r) if t.get('tool_name')=='ultima_work_research_write' and t.get('call_id'))
     evidence=record['result']['evidence'][0]
-    assert evidence['text']==r['sources'][0]['text'] and '<p>' not in evidence['text']
-    assert evidence['request_id']==r['request_id'] and evidence['read_call_id']==r['sources'][0]['read_call_id']
+    source=restricted_sources(r)[0]
+    assert evidence['text']==source['text'] and '<p>' not in evidence['text']
+    assert evidence['request_id']==r['request_id'] and evidence['read_call_id']==source['read_call_id']
+    assert all('text' not in s and 'body' not in s for s in r['sources'])
 
 
 def test_r4_limitations_are_local_claims():
@@ -675,12 +739,17 @@ def test_r4_limitations_are_local_claims():
         _fact_evidence(dict(kind='documented',claim='Fully implemented',first_line=2,last_line=2),src,visible)
 
 
-def test_r4_max_turns_after_committed_write(tmp_path,sdk_io,mock_jar):
+def test_r4_max_turns_after_committed_write(tmp_path,sdk_io,mock_jar,monkeypatch):
     jar,runner,bodies,replies=mock_jar
-    jar.config.agent.max_turns=1
+    from openjarvis.agents.native_react import NativeReActAgent
+    run=NativeReActAgent.run
+    def stop_after_write(agent,*args,**kwargs):
+        agent._max_turns=4
+        return run(agent,*args,**kwargs)
+    monkeypatch.setattr(NativeReActAgent,'run',stop_after_write)
     replies.append(action(report_payload()))
     r=submit(tmp_path,sdk_io[0],runner)
-    assert r['status']=='needs_attention' and len(bodies)==1 and not r['artifacts']
+    assert r['status']=='needs_attention' and len(bodies)==4 and not r['artifacts']
     assert 'final envelope' in r['error'] and len(list(tmp_path.rglob('research.md')))==1
 
 
@@ -771,12 +840,14 @@ def test_r5_completed_report_includes_sdk_result_and_effect(tmp_path,sdk_io,mock
         returned_sdk.extend(response['tool_results'])
         return response
     r=submit(tmp_path,sdk_io[0],observe)
-    assert r['status']=='succeeded' and len(bodies)==2
-    assert returned_sdk and [t for t in r['tool_results'] if not t.get('call_id')]==returned_sdk
+    assert r['status']=='succeeded' and len(bodies)==5
+    assert returned_sdk and [t for t in restricted_records(r) if not t.get('call_id')]==[
+        {k:t[k] for k in ('tool_name','success')} for t in returned_sdk]
+    assert all(t['content'] for t in returned_sdk)
     effect,=r['research_effects']
     assert effect['state']=='completed' and effect['task_id']==r['task_id']
     for tool,key in [('ultima_work_file_write','file_call_id'),('ultima_work_research_write','report_call_id')]:
-        terminal,=[t for t in r['tool_results'] if t.get('tool_name')==tool and t.get('call_id')]
+        terminal,=[t for t in restricted_records(r) if t.get('tool_name')==tool and t.get('call_id')]
         assert terminal['success'] and terminal['call_id']==effect[key]
     assert effect['path']==r['artifacts'][0]['path']
 
@@ -790,13 +861,14 @@ def test_source6_native_boundary(tmp_path,sdk_io,mock_jar,monkeypatch,fault):
     paths=[]
     def issued():
         client=original()
-        get=client.get
-        def metadata(path):
-            paths.append(path)
+        send=client.send
+        def metadata(request,**kwargs):
+            path=request.url.path
+            if request.method=='GET': paths.append(path)
             if fault=='version' and path=='/api/version' or fault=='digest' and path=='/api/tags':
-                return httpx.Response(200,json={'version':'0.32.14','models':[]},request=httpx.Request('GET','http://test'))
-            return get(path)
-        client.get=metadata
+                return httpx.Response(200,stream=httpx.ByteStream(b'{"version":"0.32.14","models":[]}'))
+            return send(request,**kwargs)
+        client.send=metadata
         return client
     monkeypatch.setattr(agent_server,'_research_client',issued)
     if fault=='manifest': monkeypatch.setattr(agent_server,'_research_manifest_digest',lambda:'changed',raising=False)
@@ -817,14 +889,14 @@ def test_source6_native_boundary(tmp_path,sdk_io,mock_jar,monkeypatch,fault):
     replies.append(httpx.Response(400 if 'overflow' in fault else 200,content=entity))
     r=submit(tmp_path,sdk_io[0],runner,text='漢'*2500)
     assert r['status']==('needs_attention' if fault=='ack-overflow' else 'failed')
-    expected=0 if fault in ('version','digest','manifest','credential','origin','wrapper') else 2 if fault=='ack-overflow' else 1
+    expected=0 if fault in ('version','digest','manifest','credential','origin','wrapper') else 5 if fault=='ack-overflow' else 1
     assert len(bodies)==expected
     if expected:
         assert paths==['/api/version','/api/tags']*expected
         assert all(b['truncate'] is False and b['shift'] is False for b in bodies)
         assert '漢'*2500 in bodies[0]['messages'][1]['content']
     assert len(list(tmp_path.rglob('research.md')))==int(fault=='ack-overflow')
-    assert not any(e['type']=='inference_end' for e in r['trace'] if e.get('phase')=='research.compose') or fault=='ack-overflow'
+    assert not any(e['type']=='inference_end' for e in r.get('trace',[]) if e.get('phase')=='research.compose') or fault=='ack-overflow'
 
 
 @pytest.mark.parametrize('stage',['after-action','worker','pre-intent','equal'])
@@ -834,6 +906,9 @@ def test_source6_real_admission(tmp_path,sdk_io,mock_jar,monkeypatch,stage):
     now=[0]
     monkeypatch.setattr(work_service,'monotonic',lambda:0)
     monkeypatch.setattr(work_tools,'monotonic',lambda:now[0])
+    from src.brain import work_navigation
+    from types import SimpleNamespace
+    monkeypatch.setattr(work_navigation,'time',SimpleNamespace(monotonic=lambda:now[0]))
     now[0]=204
     def authored(body):
         if stage=='equal': now[0]=205
@@ -856,7 +931,7 @@ def test_source6_real_admission(tmp_path,sdk_io,mock_jar,monkeypatch,stage):
     replies.extend([authored,'{"final_answer":"saved"}'])
     r=submit(tmp_path,sdk_io[0],runner)
     assert r['status']==('succeeded' if stage=='equal' else 'failed'),r['error']
-    assert len(bodies)==(2 if stage=='equal' else 1)
+    assert len(bodies)==(5 if stage=='equal' else 4)
     if stage!='equal':
         assert not any(e.get('file_call_id') for e in r.get('research_effects',[]))
         assert not list(tmp_path.rglob('research.md'))
@@ -872,7 +947,7 @@ def test_source6_executor_denies_before_write(tmp_path,sdk_io,mock_jar,monkeypat
     monkeypatch.setattr(jar._capability_policy if gate=='policy' else jar._rate_limiter,'check',deny)
     replies.append(action(report_payload()))
     r=submit(tmp_path,sdk_io[0],runner)
-    assert checked and r['status']=='failed' and len(bodies)==1
+    assert checked and r['status']=='failed' and len(bodies)==(4 if gate=='policy' else 1)
     assert not list(tmp_path.rglob('research.md'))
 
 
@@ -884,33 +959,31 @@ def test_source6_secured_material(tmp_path,sdk_io,mock_jar,monkeypatch,stage):
     if stage=='expanded':
         monkeypatch.setattr(jar._engine._inner._scanners[0],'redact',lambda s:'x'*80000)
     replies.extend([action(report_payload()),'{"final_answer":"contact private@example.test"}'])
-    r=submit(tmp_path,sdk_io[0],runner,text=material)
-    if stage in ('oversize','expanded'):
-        assert not bodies and r['status']=='failed'
+    r=submit(tmp_path,sdk_io[0],runner,text='safe material' if stage=='output' else material)
+    if stage=='output':
+        assert r['status']=='needs_attention' and len(bodies)==5
+        assert material not in r['content']
     else:
-        assert r['status']=='succeeded'
-        assert all(material not in b['messages'][1]['content'] and 'REDACTED' in b['messages'][1]['content'] for b in bodies)
-        assert material not in r['content'] and 'REDACTED' in r['content']
+        assert not bodies and r['status']=='failed'
 
 
 def test_source6_reference_membership_and_readback(tmp_path,sdk_io):
-    from src.brain.work_tools import _ACTIVE,WorkResearchWriteTool
-    from src.brain.work_research import reference_cards,resolve_references
+    from src.brain.work_tools import _ACTIVE
+    from src.brain import work_navigation as nav
     def check(*a,**kw):
-        _,_,caps=_ACTIVE.get()
-        table=reference_cards(caps.research_json)
-        payload=report_payload()
-        foreign=json.loads(caps.research_json)
-        for source in foreign: source['task_id']='other'
-        foreign_cards=reference_cards(json.dumps(foreign))
-        assert set(foreign_cards).isdisjoint(table)
-        import jsonschema
-        for key in ('not-issued',next(iter(foreign_cards)),next(k for k,c in table.items() if c['source_id']=='S2')):
-            data=json.loads(json.dumps(payload))
-            data['sections'][0]['facts'][0]['evidence_id']=key
-            with pytest.raises(jsonschema.ValidationError):
-                resolve_references(data,table,caps.research_json)
-        return write_report()
+        def authored(body):
+            binding,ledger,caps=_ACTIVE.get()
+            pending=ledger._staged[ledger._sequence]
+            reads=[*ledger._issued,(pending['key'],pending['view'])]
+            snapshot=nav.seal_snapshot(caps.navigation,ledger._collection,ledger._get_records_json,ledger._policy,reads,generation=ledger._generation+1)
+            pages=[json.loads(m['content'][13:]) for m in body['messages'] if m['role']=='user' and m['content'].startswith('Observation: ')]
+            payload=report_payload()
+            for section,page in zip(payload['sections'],pages): section['facts'][0]['evidence_id']=page['cards'][0][0]
+            for key in ('not-issued','N3.'+'0'*16,pages[1]['cards'][0][0]):
+                data=json.loads(json.dumps(payload)); data['sections'][0]['facts'][0]['evidence_id']=key
+                with pytest.raises(ValueError): nav.resolve_v3(data,snapshot,ledger._collection)
+            return action(payload)
+        return write_report(authored)
     result=submit(tmp_path,sdk_io[0],check)
     assert result['status']=='succeeded',result['error']
 
@@ -922,7 +995,7 @@ def test_source6_reopen_validates_reference_protocol(tmp_path,sdk_io,fault):
     assert result['status']=='succeeded'
     artifact,=result['artifacts']
     binding=WorkBinding(Path(artifact['path']).parent,'r','s',result['task_id'])
-    record=next(r for r in result['tool_results'] if r.get('tool_name')=='ultima_work_research_write')
+    record=next(r for r in restricted_records(result) if r.get('tool_name')=='ultima_work_research_write' and r.get('call_id'))
     receipt=record['result']
     if fault=='unknown-version': receipt['protocol_version']=999
     if fault=='missing-version': receipt.pop('protocol_version')
@@ -931,11 +1004,12 @@ def test_source6_reopen_validates_reference_protocol(tmp_path,sdk_io,fault):
         original['sections'][0]['facts'][0]['claim']='Changed prose'
         receipt['submitted_json']=json.dumps(original)
     if fault=='altered-binding': receipt['bindings'][0]['citation_first']+=1
-    if fault=='body': result['available_sources'][0]['body']+=' changed'
-    if fault=='url': result['available_sources'][0]['final_url']='https://example.com/other'
+    original_sources=restricted_sources(result)
+    if fault=='body': original_sources[0]['body']+=' changed'
+    if fault=='url': original_sources[0]['final_url']='https://example.com/other'
     from jsonschema import ValidationError
     with pytest.raises((ValueError,ValidationError)):
-        verify_research_artifacts(binding,[artifact],[record],json.dumps(result['available_sources']),require_reference=True)
+        verify_research_artifacts(binding,[artifact],[record],json.dumps(original_sources),require_reference=True,required_version=3,issued_snapshot=RESTRICTED[result['task_id']].issued_snapshot)
 
 def test_source6_lock_wait_uses_entry_deadline(tmp_path,sdk_io,mock_jar,monkeypatch):
     from src.brain import agent_server
@@ -954,18 +1028,18 @@ def test_source6_lock_wait_uses_entry_deadline(tmp_path,sdk_io,mock_jar,monkeypa
 def test_source7_refuses_invalid_allowance_before_native_generation(tmp_path, sdk_io, mock_jar, allowance):
     _, runner, bodies, replies = mock_jar
     replies.append('{"final_answer":"refusal"}')
-    result = WorkService(tmp_path, runner=runner, browser_channel=sdk_io[0]).submit_work(
+    result = WorkService(tmp_path, runner=runner, browser_channel=sdk_io[0], research_preparer=fixture_prepare).submit_work(
         'Research a subject', request_id='r', session_id='s', context={'research':True}, max_tokens=allowance)
     assert result['status']=='failed' and not bodies
     assert 'positive integer' in result['error']
     assert not result.get('research_effects')
 
 
-@pytest.mark.parametrize('allowance,expected', [(None,[2048,512]),(32,[32,32]),(8192,[4096,512])])
+@pytest.mark.parametrize('allowance,expected', [(None,[256,256,256,2048,256]),(32,[32]*5),(8192,[256,256,256,2048,256])])
 def test_source7_bounded_native_author_and_ack(tmp_path, sdk_io, mock_jar, allowance, expected):
     _, runner, bodies, replies = mock_jar
     replies.extend([action(report_payload()),'{"final_answer":"saved"}'])
-    result = WorkService(tmp_path, runner=runner, browser_channel=sdk_io[0]).submit_work(
+    result = WorkService(tmp_path, runner=runner, browser_channel=sdk_io[0], research_preparer=fixture_prepare).submit_work(
         'Research a subject', request_id='r',session_id='s',context={'research':True},max_tokens=allowance)
     assert result['status']=='succeeded', result['error']
     assert [b['options']['num_predict'] for b in bodies]==expected
@@ -1002,18 +1076,17 @@ def test_source7_split_prefix_issued_and_reopened(tmp_path,sdk_io,monkeypatch,su
         return httpx.Response(200,headers={'content-type':'text/plain'},text=text,request=httpx.Request(method,url))
     monkeypatch.setattr(httpx,'request',fetch)
     def write(*a,**kw):
-        tool=WorkResearchWriteTool()
-        refs=[(k,v) for k,v in tool.cards.items() if v['source_id']=='S1' and v['kind']==kind]
-        assert len(refs)==1
-        key,card=refs[0]
-        assert (card['first_line'],card['last_line'])==(1,2)
-        payload=report_payload()
-        payload['sections'][0]['facts']=[dict(evidence_id=key,claim='Observed '+operation)]
-        assert tool.execute(**payload).success
-        return {}
+        def authored(body):
+            page=next(json.loads(m['content'][13:]) for m in body['messages'] if m['role']=='user' and m['content'].startswith('Observation: ') and json.loads(m['content'][13:]).get('source_id')=='S1')
+            cards=[card for card in page['cards'] if card[1]==kind]
+            assert len(cards)==1 and cards[0][3:5]==[1,2]
+            payload=report_payload()
+            payload['sections'][0]['facts']=[dict(evidence_id=cards[0][0],claim='Observed '+operation)]
+            return action(payload)
+        return write_report(authored)
     r=submit(tmp_path,sdk_io[0],write,source_urls=urls)
     assert r['status']=='succeeded',r['error']
-    rec=next(t['result'] for t in r['tool_results'] if t.get('tool_name')=='ultima_work_research_write')
+    rec=next(t['result'] for t in restricted_records(r) if t.get('tool_name')=='ultima_work_research_write' and t.get('call_id'))
     assert rec['evidence'][0]['text']==statement
     assert Path(r['artifacts'][0]['path']).read_text(encoding='utf8').find('Observed '+operation)>=0
     assert not _js_support(statement,2,2,kind,operation,'.'+suffix)
@@ -1031,10 +1104,11 @@ def test_source8_sampler_copy_preserves_full_authority(tmp_path,sdk_io,mock_jar,
     def capture(leaf,messages,**kwargs):
         schema=deepcopy(kwargs['response_format'])
         before=deepcopy(messages)
-        spec=deepcopy(WorkResearchWriteTool().spec.parameters)
+        from src.brain.work_navigation import v3_writer_schema
+        spec=deepcopy(v3_writer_schema())
         result=original(leaf,messages,**kwargs)
         assert kwargs['response_format']==schema and messages==before
-        assert WorkResearchWriteTool().spec.parameters==spec
+        assert v3_writer_schema()==spec
         captured.append(schema)
         return result
     monkeypatch.setattr(agent_server._NativeResearchLeaf,'generate',capture)
@@ -1043,7 +1117,7 @@ def test_source8_sampler_copy_preserves_full_authority(tmp_path,sdk_io,mock_jar,
     assert result['status']=='succeeded',result['error']
     assert jar._engine is owner and not owner._inner._engine._client.is_closed
     assert len(result['research_effects'])==1 and len(list(tmp_path.rglob('research.md')))==1
-    assert len(captured)==len(bodies)==2
+    assert len(captured)==len(bodies)==5
     for full,body in zip(captured,bodies):
         # Compare every path/value independently; only schema-keyword lengths disappear.
         removed=[]
@@ -1059,8 +1133,8 @@ def test_source8_sampler_copy_preserves_full_authority(tmp_path,sdk_io,mock_jar,
             else: assert old==new,path
         compare(full,body['format'])
         assert removed
-    assert captured[0]['anyOf'][0]['properties']['action_input']['properties']['title']['maxLength']==200
-    assert captured[1]['properties']['final_answer']['maxLength']==1000
+    assert captured[3]['anyOf'][1]['properties']['action_input']['properties']['title']['maxLength']==200
+    assert captured[4]['properties']['final_answer']['maxLength']==1000
     system=bodies[0]['messages'][0]['content']
     assert '"maxLength":2000' in system
 
@@ -1077,17 +1151,8 @@ def test_source8_property_named_maxlength_is_not_a_keyword(tmp_path,mock_jar):
     before=deepcopy(schema)
     expected=deepcopy(schema)
     del expected['properties']['maxLength']['maxLength']
-    class Ledger:
-        from time import monotonic
-        deadline = monotonic()+260
-        def admit_ack(self): pass
-    replies.append('{"maxLength":"abc"}')
-    with agent_server._research_client() as client:
-        leaf=agent_server._NativeResearchLeaf(client,Ledger())
-        leaf.generate([Message(role=Role.USER,content='schema copy')],model=agent_server._RESEARCH_MODEL,
-                      temperature=0,max_tokens=32,response_format=schema)
-    assert schema==before
-    assert bodies[0]['format']==expected
+    assert agent_server._research_sampler_schema(schema)==expected
+    assert schema==before and not bodies
 
 
 @pytest.mark.parametrize('field',['path','title','heading','claim','final_answer'])
@@ -1112,7 +1177,7 @@ def test_source8_full_length_validation_precedes_dispatch(tmp_path,sdk_io,mock_j
     if field=='final_answer': replies.append(json.dumps({'final_answer':'x'*1001}))
     result=submit(tmp_path,sdk_io[0],runner)
     assert result['status']==('needs_attention' if field=='final_answer' else 'failed'),result
-    assert len(bodies)==(2 if field=='final_answer' else 1)
+    assert len(bodies)==(5 if field=='final_answer' else 4)
     assert len(writes)==(1 if field=='final_answer' else 0)
     assert len(list(tmp_path.rglob('research.md')))==len(writes)
     assert not result['artifacts']
@@ -1122,7 +1187,8 @@ def test_source8_full_length_validation_precedes_dispatch(tmp_path,sdk_io,mock_j
         assert Path(effect['path']).read_text(encoding='utf8').startswith('# Model title')
     else:
         assert not result.get('research_effects')
-        assert not any(e['type']=='tool_call_start' and e.get('phase')=='research.compose' for e in result['trace'])
+        assert len([e for e in result['trace'] if e['type']=='tool_call_start' and e.get('phase')=='research.compose'])==3
+        assert not any(r['tool_name']=='ultima_work_research_write' for r in RESTRICTED[result['task_id']].snapshot())
     assert jar._engine is owner and not owner._inner._engine._client.is_closed
 
 
@@ -1131,9 +1197,12 @@ def source9_clock(mock_jar, monkeypatch):
     """Controlled elapsed time around real HTTPX MockTransport and SDK calls."""
     import httpx
     from src.brain import agent_server, work_service, work_tools
-    state = dict(now=0, metadata=0, author=0, ack=0, overrun=False, requests=[])
+    state = dict(now=0, metadata=0, author=0, ack=0, overrun=False, writer_only=False, requests=[])
     monkeypatch.setattr(work_service, 'monotonic', lambda: 0)
     monkeypatch.setattr(work_tools, 'monotonic', lambda: state['now'])
+    from src.brain import work_navigation
+    from types import SimpleNamespace
+    monkeypatch.setattr(work_navigation,'time',SimpleNamespace(monotonic=lambda:state['now']))
     factory = agent_server._research_client
     def client():
         result = factory()
@@ -1142,6 +1211,8 @@ def source9_clock(mock_jar, monkeypatch):
             phase = ('author' if 'anyOf' in json.loads(request.content)['format'] else 'ack') if request.method=='POST' else 'metadata'
             state['requests'].append((phase, timeout))
             elapsed = state[phase]
+            if phase=='author' and state['writer_only'] and not any(a.get('properties',{}).get('action',{}).get('enum')==['ultima_work_research_write'] for a in json.loads(request.content)['format'].get('anyOf',[])):
+                elapsed=0
             state['now'] += elapsed
             if elapsed > timeout['read'] and not state['overrun']:
                 raise httpx.ReadTimeout('scripted inactivity timeout', request=request)
@@ -1160,31 +1231,31 @@ def test_source9_author_declared_budget(tmp_path,sdk_io,mock_jar,source9_clock,r
     result=submit(tmp_path,sdk_io[0],runner)
     assert result['status']=='failed' and len(bodies)==1
     phase,timeout=state['requests'][-1]
-    assert phase=='author' and timeout==dict(connect=25,write=25,pool=25,read=expected)
+    assert phase=='author' and timeout==dict(connect=pytest.approx(min(25,remaining-55)),write=pytest.approx(min(25,remaining-55)),pool=pytest.approx(min(25,remaining-55)),read=expected)
 
 
 def test_source9_31_second_sdk_file_and_ack(tmp_path,sdk_io,mock_jar,source9_clock):
     _,runner,bodies,replies=mock_jar
     state=source9_clock
-    state.update(now=30,metadata=10,author=31)
+    state.update(now=30,metadata=10,author=31,writer_only=True)
     replies.extend([action(report_payload()),'{"final_answer":"saved"}'])
     result=submit(tmp_path,sdk_io[0],runner)
     assert result['status']=='succeeded',result['error']
-    assert state['now']==101  # preflight + four metadata GETs + author, no renewal
-    assert [t['read'] for phase,t in state['requests'] if phase!='metadata']==[155,25]
+    assert state['now']==161  # original deadline includes ten metadata GETs and writer author latency
+    assert [t['read'] for phase,t in state['requests'] if phase!='metadata']==[155,135,115,95,25]
     assert all(t==dict(connect=25,write=25,pool=25,read=25) for phase,t in state['requests'] if phase=='metadata')
-    assert len(bodies)==2 and len(result['research_effects'])==1
+    assert len(bodies)==5 and len(result['research_effects'])==1
     artifact,=result['artifacts']
     reopened=Path(artifact['path']).read_text(encoding='utf8')
     assert reopened.startswith('# Model title') and all(u in reopened for u in URLS[:3])
     import hashlib
     assert hashlib.sha256(Path(artifact['path']).read_bytes()).hexdigest()==artifact['sha256']
-    writes=[r for r in result['tool_results'] if r['tool_name']=='ultima_work_file_write']
-    reports=[r for r in result['tool_results'] if r['tool_name']=='ultima_work_research_write' and r.get('call_id')]
+    writes=[r for r in restricted_records(result) if r['tool_name']=='ultima_work_file_write']
+    reports=[r for r in restricted_records(result) if r['tool_name']=='ultima_work_research_write' and r.get('call_id')]
     assert len(writes)==len(reports)==1 and writes[0]['success'] and reports[0]['success']
     effect,=result['research_effects']
     assert effect['file_call_id']==writes[0]['call_id'] and effect['report_call_id']==reports[0]['call_id']
-    for body,limit in zip(bodies,[2048,512]):
+    for body,limit in zip(bodies,[256,256,256,2048,256]):
         assert body['stream'] is False and body['think'] is False and body['truncate'] is False and body['shift'] is False
         assert body['tools']==[] and body['options']==dict(num_ctx=16384,temperature=0,num_predict=limit)
 
@@ -1227,4 +1298,4 @@ def test_source9_timeout_and_late_results(tmp_path,sdk_io,mock_jar,source9_clock
     committed=mode in ('short','expired','ack-timeout')
     assert len(list(tmp_path.rglob('research.md')))==int(committed)
     assert len(result.get('research_effects',[]))==int(committed)
-    assert len(bodies)<=2
+    assert len(bodies)<=5

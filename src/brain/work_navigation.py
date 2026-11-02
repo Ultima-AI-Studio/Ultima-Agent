@@ -364,7 +364,8 @@ def prepare_navigation(collection, binding, scanners: ScanPolicy, *, get_records
             for start in range(1,source.total_lines+1):
                 if time.monotonic()>=deadline: raise ValueError('Navigation preparation deadline')
                 view=build_page(cat,source.source_id,start,PageKey(1,2147483647,str(uuid.UUID(int=1)),str(uuid.UUID(int=2))))
-                scan_view(view,scanners)
+                # Placeholder IDs prove byte fit only. Actual final wire is
+                # scanned by the trusted read port before staging or exposure.
                 if json.loads(view.cards_json): fits=True; break
         available.append(replace(source,available=fits,reason=source.reason or ('' if fits else 'unrenderable')))
     sources=tuple(available); cat=replace(cat,sources=sources)

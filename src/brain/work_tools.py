@@ -10,6 +10,10 @@ from time import monotonic
 import uuid
 import json
 import copy
+import hashlib
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from .work_navigation import CatalogueV3
 from openjarvis.core.registry import ToolRegistry
 from openjarvis.core.types import ToolResult
 from openjarvis.tools._stubs import BaseTool, ToolSpec
@@ -34,6 +38,7 @@ class WorkCapabilities:
     browser: object = None
     research_json: str | None = None
     cards_json: str | None = None
+    navigation: CatalogueV3 | None = None
 
 class WorkLedger:
     def __init__(self):
@@ -43,6 +48,250 @@ class WorkLedger:
         self.deadline = None
         self._reserved_report = None
         self._intent = False
+        self._navigation = None
+        self._enrolled = {}
+        self._enrollment = False
+        self._enrollment_closed = False
+        self._expected = None
+        self._permit = None
+        self._sequence = 0
+        self._generation = 0
+        self._staged = {}
+        self._issued = []
+        self._seen_starts = set()
+        self._seen_pages = set()
+        self._read_count = 0
+        self._read_bytes = 0
+        self._sealed = False
+        self.first_failure = None
+        self.issued_snapshot = None
+        self._runtime_events=[]
+        self._late_records=[]
+
+    def _live(self):
+        if self._sealed:
+            self.first_failure=self.first_failure or 'Navigation sealed'
+            raise ValueError(self.first_failure)
+        self.admit_ack()
+
+    def seal(self, reason):
+        with self._lock:
+            self.first_failure = self.first_failure or str(reason)
+            self._sealed = True
+            self._permit = None
+
+    def _prepare_navigation(self, binding, catalogue, collection, get_records_json, policy):
+        from .work_navigation import validate_scan_policy
+        with self._lock:
+            self._live()
+            if self._navigation is not None: raise ValueError('Navigation already prepared')
+            validate_scan_policy(policy)
+            key = tuple(getattr(binding,k) for k in ('request_id','session_id','task_id'))
+            if key != catalogue.binding_key or catalogue.policy_sha256 != policy.policy_sha256:
+                raise ValueError('Foreign navigation preparation')
+            self._navigation = catalogue
+            self._binding = binding
+            self._collection = collection
+            self._get_records_json = bytes(get_records_json)
+            self._policy = policy
+
+    def _check_policy(self, policy):
+        from .work_navigation import validate_scan_policy
+        with self._lock:
+            self._live()
+            validate_scan_policy(policy,self._policy)
+
+    def open_enrollment(self, binding, caller_id):
+        with self._lock:
+            self._live()
+            if (self._navigation is None or binding is not self._binding or self._enrollment
+                    or self._enrollment_closed or caller_id != threading.get_ident()):
+                self.seal('Invalid enrollment epoch'); raise ValueError(self.first_failure)
+            self._caller = caller_id
+            self._enrollment = True
+
+    def enroll(self, name, instance):
+        with self._lock:
+            self._live()
+            if (not self._enrollment or threading.get_ident()!=self._caller or name in self._enrolled
+                    or name not in ('ultima_work_research_inspect','ultima_work_research_write')):
+                self.seal('Invalid or duplicate enrollment'); raise ValueError(self.first_failure)
+            self._enrolled[name] = instance
+
+    def close_enrollment(self):
+        with self._lock:
+            self._live()
+            if (not self._enrollment or threading.get_ident()!=self._caller or
+                    set(self._enrolled)!={'ultima_work_research_inspect','ultima_work_research_write'}):
+                self.seal('Incomplete enrollment'); raise ValueError(self.first_failure)
+            self._enrollment = False
+            self._enrollment_closed = True
+
+    def expect(self, seq, name, args_hash):
+        with self._lock:
+            self._live()
+            if (not self._enrollment_closed or threading.get_ident()!=self._caller or type(seq) is not int
+                    or seq!=self._sequence+1 or name not in self._enrolled or self._permit is not None
+                    or (self._expected is not None and not self._expected.get('ended'))):
+                self.seal('Unconfirmed or invalid action'); raise ValueError(self.first_failure)
+            if len(args_hash)!=64 or any(c not in '0123456789abcdef' for c in args_hash):
+                self.seal('Invalid action digest'); raise ValueError(self.first_failure)
+            self._sequence=seq; self._generation+=1
+            self._expected=dict(seq=seq,name=name,args_hash=args_hash,generation=self._generation,ended=False)
+
+    def observe_navigation(self, event, *, caller_id, binding_key):
+        # EventBus swallows subscriber exceptions; this callback must invalidate
+        # authority itself, including when malformed events arrive after a seal.
+        try:
+            with self._lock:
+                self._live()
+                if (threading.get_ident()!=self._caller or caller_id!=self._caller
+                        or binding_key!=self._navigation.binding_key):
+                    raise ValueError('Foreign navigation callback')
+                kind=event.event_type.value; data=event.data
+                expected=self._expected
+                if kind=='tool_timeout' and expected is not None and data.get('tool')==expected['name']:
+                    if self._permit and self._permit['dispatch_uuid'] in self._report_effects:
+                        self.report_end(self._permit['dispatch_uuid'],timeout=True)
+                    raise ValueError('Research SDK tool timeout')
+                if expected is None or data.get('agent')!='native_react' or data.get('tool')!=expected['name']:
+                    raise ValueError('Unexpected navigation event')
+                if kind=='tool_call_start':
+                    from .work_navigation import canonical_v3
+                    digest=hashlib.sha256(canonical_v3(data['arguments'])).hexdigest()
+                    if expected['seq'] in self._seen_starts or digest!=expected['args_hash']:
+                        raise ValueError('Repeated or mismatched START')
+                    self._seen_starts.add(expected['seq'])
+                    self._permit=dict(expected,dispatch_uuid=str(uuid.uuid4()),claimed=False)
+                elif kind=='tool_call_end':
+                    self.confirm_end(expected['seq'],event)
+                else: raise ValueError('Navigation tool timeout or unexpected event')
+                self._runtime_events.append(json.dumps(dict(type=kind,timestamp=event.timestamp,data=copy.deepcopy(data)),
+                    sort_keys=True,ensure_ascii=False,allow_nan=False,separators=(',',':')))
+        except Exception as exc:
+            self.seal(str(exc))
+            # Failed and late SDK events are evidence, never issuance. Retain
+            # their exact JSON (including SDK floating timestamps) only after
+            # the captured policy accepts every string. Unsafe data stay local.
+            try:
+                with self._lock:
+                    if (threading.get_ident()==self._caller and caller_id==self._caller
+                            and binding_key==self._navigation.binding_key):
+                        self._scan_output(event.data)
+                        self._runtime_events.append(json.dumps(dict(type=event.event_type.value,
+                            timestamp=event.timestamp,data=copy.deepcopy(event.data)),sort_keys=True,
+                            ensure_ascii=False,allow_nan=False,separators=(',',':')))
+            except Exception:
+                pass
+
+    def claim(self, seq, name, args_hash, adapter_id, *, instance):
+        with self._lock:
+            self._live()
+            permit=self._permit
+            if (not permit or permit['claimed'] or permit['seq']!=seq or permit['name']!=name
+                    or permit['args_hash']!=args_hash or self._enrolled.get(name) is not instance
+                    or str(uuid.UUID(adapter_id))!=adapter_id):
+                self.seal('Invalid worker claim'); raise ValueError(self.first_failure)
+            permit.update(claimed=True,adapter_uuid=adapter_id)
+            return permit['dispatch_uuid']
+
+    def _claim_tool(self, name, args, instance):
+        from .work_navigation import canonical_v3
+        with self._lock:
+            expected=self._expected
+            if expected is None: raise ValueError('No expected SDK action')
+            adapter=str(uuid.uuid4())
+            dispatch=self.claim(expected['seq'],name,hashlib.sha256(canonical_v3(args)).hexdigest(),adapter,instance=instance)
+            return dict(seq=expected['seq'],generation=expected['generation'],dispatch_uuid=dispatch,
+                        adapter_uuid=adapter,binding=list(self._navigation.binding_key))
+
+    def _read_port(self, instance):
+        # Only this callable is captured by the inspector. Raw evidence, scanner
+        # policy and binding remain in the trusted request ledger.
+        def read(args):
+            from .work_navigation import PageKey, build_page, scan_view
+            with self._lock:
+                if self._read_count>=6: raise ValueError('Six read attempts exhausted')
+                self._read_count+=1
+                metadata=self._claim_tool('ultima_work_research_inspect',args,instance)
+                if set(args)!={'source_id','start_line'}: raise ValueError('Invalid inspector fields')
+                page=(args['source_id'],args['start_line'])
+                if page in self._seen_pages: raise ValueError('Duplicate read attempt')
+                self._seen_pages.add(page)
+                key=PageKey(metadata['generation'],metadata['seq'],metadata['dispatch_uuid'],metadata['adapter_uuid'])
+                view=scan_view(build_page(self._navigation,*page,key),self._policy)
+                self._read_bytes+=len(view.wire_json)
+                if self._read_bytes>18432: raise ValueError('Read byte budget exhausted')
+                self._staged[metadata['seq']]=dict(key=key,view=view,metadata=metadata,
+                    content=view.wire_json.decode('utf8'),confirmed=False,promoted=False)
+                self._staged[metadata['seq']]['metadata']=dict(metadata,arguments=copy.deepcopy(args))
+                return view.wire_json.decode('utf8'),dict(metadata)
+        return read
+
+    def confirm_end(self, seq, event):
+        with self._lock:
+            self._live()
+            permit=self._permit; staged=self._staged.get(seq); data=event.data
+            if (threading.get_ident()!=self._caller or event.event_type.value!='tool_call_end'
+                    or not permit or not permit['claimed'] or permit['seq']!=seq or not staged or
+                    staged['confirmed'] or data.get('tool')!=permit['name'] or data.get('success') is not True
+                    or data.get('agent')!='native_react' or data.get('result')!=staged['content']
+                    or data.get('metadata')!=staged['metadata']):
+                self.seal('Unlinked or failed END'); raise ValueError(self.first_failure)
+            staged['confirmed']=True
+            self._expected['ended']=True
+            self._permit=None
+            if permit['name']=='ultima_work_research_write':
+                self.report_end(permit['dispatch_uuid'],success=True)
+
+    def promote_visible(self, generation, wire_hash):
+        with self._lock:
+            self._live()
+            staged=self._staged.get(self._sequence)
+            if (generation!=self._generation or not staged or not staged.get('view') or not staged['confirmed']
+                    or staged['promoted'] or staged['view'].wire_sha256!=wire_hash):
+                self.seal('Unconfirmed projection'); raise ValueError(self.first_failure)
+            staged['promoted']=True
+            self._issued.append((staged['key'],staged['view']))
+
+    def freeze_for_write(self, generation):
+        from .work_navigation import seal_snapshot
+        with self._lock:
+            self._live()
+            if generation!=self._generation or self.issued_snapshot is not None:
+                raise ValueError('Invalid write snapshot generation')
+            self.issued_snapshot=seal_snapshot(self._navigation,self._collection,self._get_records_json,
+                self._policy,tuple(self._issued),generation=generation)
+            if hasattr(self,'_runtime_wires'):
+                from .work_research import verify_runtime_packet
+                self._runtime_prewrite=self._runtime_packet()
+                verify_runtime_packet(self._binding,self.issued_snapshot,self._collection,self._runtime_prewrite)
+            return self.issued_snapshot
+
+    def _runtime_packet(self):
+        from .work_navigation import canonical_v3
+        with self._lock:
+            transport=self._runtime_transport
+            return canonical_v3(dict(v=3,binding=list(self._navigation.binding_key),nonce=self._navigation.nonce,
+                issued_manifest=self.issued_snapshot.manifest_sha256,
+                views_sha256=hashlib.sha256(self.issued_snapshot.views_json).hexdigest(),
+                prompt=self._runtime_prompt,system_original=self._runtime_system,
+                prewrite_sha256=hashlib.sha256(self._runtime_prewrite).hexdigest() if hasattr(self,'_runtime_prewrite') else None,
+                transport=dict(generations=transport.generations,gets=transport.gets,posts=transport.posts,completed=transport.completed,
+                    post_bytes=transport.post_bytes,admitted=dict(transport.admitted),receipts=copy.deepcopy(transport.receipts)),
+                wires=copy.deepcopy(self._runtime_wires),events=list(self._runtime_events)))
+
+    def _scan_output(self, value):
+        from .work_navigation import validate_scan_policy
+        validate_scan_policy(self._policy)
+        def check(v):
+            if isinstance(v,str):
+                if any(not s.scan(v).clean for s in self._policy.scanners): raise ValueError('Unsafe research output')
+            elif isinstance(v,dict):
+                for k,item in v.items(): check(k); check(item)
+            elif isinstance(v,list):
+                for item in v: check(item)
+        check(value)
 
     def admit_report(self):
         if self.deadline is not None and self.deadline - monotonic() < 55:
@@ -68,10 +317,18 @@ class WorkLedger:
             self.admit_report()
             if self._reserved_report is not None:
                 raise ValueError('Report already reserved')
+            if self._navigation is not None:
+                self._live()
+                if not self._permit or not self._permit['claimed'] or self._permit['name']!='ultima_work_research_write':
+                    raise ValueError('Report reservation requires claimed writer')
+                self._permit['report_call_id']=call_id
             self._reserved_report = call_id
 
     def record(self, item):
         with self._lock:
+            if self._sealed:
+                item=dict(item,late=True)
+                self._late_records.append(copy.deepcopy(item))
             self._records.append(dict(item))
 
     def snapshot(self):
@@ -102,6 +359,15 @@ class WorkLedger:
 
     def write_intent(self, binding, path, report_id, file_id, dispatch):
         with self._lock:
+            if self._navigation is not None:
+                self._live()
+                if path != checked_path(binding,'research.md'):
+                    raise ValueError('Research target mismatch')
+                if (binding is not self._binding or not self._permit or not self._permit['claimed']
+                        or self._permit['name']!='ultima_work_research_write' or self._permit['dispatch_uuid']!=dispatch
+                        or self._permit.get('report_call_id')!=report_id or self._permit.get('file_call_id')!=file_id
+                        or self.issued_snapshot.generation!=self._permit['generation']):
+                    raise ValueError('File intent requires exact claimed writer reservation')
             checked_path(binding,str(path))
             self.admit_report()
             if self._reserved_report != report_id or self._intent:
@@ -178,11 +444,13 @@ class _WorkFileTool(BaseTool):
         return ToolSpec(name=self.tool_id, description=sdk.spec.description + ' Only paths within the current work request directory are authorized. Relative paths use that directory.', parameters=parameters, category='filesystem')
 
     def execute(self, **params):
-        call_id = str(uuid.uuid4())
+        call_id = getattr(self,'_report_file_id',None) or str(uuid.uuid4())
         record = {'call_id': call_id, 'tool_name': self.tool_id, 'success': False}
         try:
             if self._binding is None:
                 raise ValueError('No trusted work binding')
+            if self.writing and self._ledger._navigation is not None and not getattr(self,'_report_parent',None):
+                raise ValueError('Research file tool requires claimed writer intent')
             allowed = {'path', 'content', 'mode', 'create_dirs'} if self.writing else {'path', 'max_lines'}
             if set(params) - allowed:
                 raise ValueError('Unknown or authority-bearing tool parameters')
@@ -237,7 +505,8 @@ class _CapabilityTool(BaseTool):
             record.update(success=True,result=result)
             view=dict(result)
             if self.tool_id=='ultima_work_research_write':
-                view = {k:result[k] for k in ('path','cited_source_ids','file_call_id')}
+                wire=record.pop('_visible')
+                return ToolResult(tool_name=self.tool_id,success=True,content=wire,metadata=json.loads(wire))
             if self.tool_id=='ultima_work_http_get':
                 view.pop('body',None)
                 view['text']=view['text'][:12000]
@@ -302,11 +571,12 @@ class WorkResearchWriteTool(_CapabilityTool):
 
     def __init__(self):
         super().__init__()
+        if self.caps and self.caps.navigation:
+            self.ledger.enroll(self.tool_id,self)
         # Capture the nested writer here, never later on the SDK worker thread.
         self._writer=WorkWriteTool()
-        from .work_research import reference_schema
-        self.cards = json.loads(self.caps.cards_json or '{}') if self.caps else {}
-        self.parameters = reference_schema(self.cards)
+        from .work_navigation import v3_writer_schema
+        self.parameters = v3_writer_schema()
 
     @property
     def spec(self):
@@ -315,16 +585,72 @@ class WorkResearchWriteTool(_CapabilityTool):
         return spec
 
     def run(self,params,record):
-        from .work_research import bound_sources,render_research_report,resolve_references
-        dispatch = self.ledger.report_adapter(record['call_id'])
+        from .work_navigation import resolve_v3,render_v3,canonical_v3
+        if not self.caps.navigation: raise ValueError('Fresh research requires v3 navigation')
+        metadata=self.ledger._claim_tool(self.tool_id,params,self)
+        snapshot=self.ledger.freeze_for_write(metadata['generation'])
+        dispatch=metadata['dispatch_uuid']
         self.ledger.reserve_report(record['call_id'])
-        bound_sources(self.caps.research_json,self.binding)
-        resolved, bindings = resolve_references(params,self.cards,self.caps.research_json)
-        rendered=render_research_report(resolved,self.caps.research_json,bindings=bindings)
+        if params.get('path')!='research.md': raise ValueError('Research target must be research.md')
+        path=checked_path(self.binding,params['path'])
+        resolved, bindings = resolve_v3(params,snapshot,self.ledger._collection)
+        rendered=render_v3(resolved,self.caps.research_json,bindings=bindings)
+        digest=hashlib.sha256(rendered.content.encode('utf8')).hexdigest()
+        self._writer._report_file_id=str(uuid.uuid4())
+        visible=dict(path=str(path),sha256=digest,protocol_version=3,report_call_id=record['call_id'],
+                     file_call_id=self._writer._report_file_id,
+                     replay_sha256=snapshot.manifest_sha256,**metadata)
+        if hasattr(self.ledger,'_runtime_wires'):
+            visible['runtime_sha256']=hashlib.sha256(self.ledger._runtime_prewrite).hexdigest()
+        wire=canonical_v3(visible).decode('utf8')
+        if len(wire.encode('utf8'))>3072: raise ValueError('Research receipt exceeds observation limit')
+        self.ledger._scan_output([params,resolved,bindings,rendered.content,visible,wire])
+        with self.ledger._lock:
+            self.ledger._live()
+            self.ledger._permit['file_call_id']=self._writer._report_file_id
         self._writer._report_parent = (record['call_id'], dispatch)
         result=self._writer.execute(path=params['path'],content=rendered.content)
         if not result.success: raise ValueError(result.content)
-        return dict(path=result.metadata['path'],file_call_id=result.metadata['call_id'],protocol_version=2,
+        # SDK success alone cannot confirm bytes; compare before staging an END.
+        if path.read_bytes()!=rendered.content.encode('utf8'): raise ValueError('SDK file bytes mismatch')
+        full=dict(path=result.metadata['path'],file_call_id=result.metadata['call_id'],protocol_version=3,
                     submitted_json=json.dumps(params,ensure_ascii=False),bindings=bindings,
                     payload_json=json.dumps(resolved,ensure_ascii=False),cited_source_ids=list(rendered.cited_source_ids),
-                    evidence=list(rendered.evidence))
+                    evidence=list(rendered.evidence),sha256=digest,replay_sha256=snapshot.manifest_sha256,
+                    **metadata)
+        if hasattr(self.ledger,'_runtime_wires'): full['runtime_sha256']=visible['runtime_sha256']
+        with self.ledger._lock:
+            self.ledger._live()
+            self.ledger._staged[metadata['seq']]=dict(metadata=dict(visible,arguments=copy.deepcopy(params)),content=wire,confirmed=False,promoted=False)
+        record['_visible']=wire
+        record.update(metadata)
+        return full
+
+
+@ToolRegistry.register('ultima_work_research_inspect')
+class WorkInspectTool(BaseTool):
+    tool_id='ultima_work_research_inspect'
+    description='Inspect one safe source page. Use only issued page references when writing.'
+    parameters=dict(type='object',additionalProperties=False,properties=dict(source_id=dict(type='string',enum=['S1','S2','S3','S4','S5']),
+        start_line=dict(type='integer',minimum=1,maximum=1024)),required=['source_id','start_line'])
+
+    def __init__(self):
+        bound=_ACTIVE.get()
+        self._catalogue=bound[2].navigation if bound and bound[2] else None
+        self._read=None
+        if self._catalogue is not None:
+            bound[1].enroll(self.tool_id,self)
+            self._read=bound[1]._read_port(self)
+
+    @property
+    def spec(self):
+        return ToolSpec(name=self.tool_id,description=self.description,
+            parameters=copy.deepcopy(self.parameters),category='work',timeout_seconds=5)
+
+    def execute(self,**params):
+        try:
+            if self._read is None: raise ValueError('No trusted navigation capability')
+            content,metadata=self._read(params)
+            return ToolResult(tool_name=self.tool_id,success=True,content=content,metadata=metadata)
+        except Exception as exc:
+            return ToolResult(tool_name=self.tool_id,success=False,content=str(exc))

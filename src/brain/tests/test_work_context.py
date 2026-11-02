@@ -215,7 +215,15 @@ def test_independent_readback_checks_caret(tmp_path):
     with pytest.raises(ValueError): p.verify_replacement(c,r['expected_text'])
 
 
-def test_research_actual_sdk_get_and_document_gate(tmp_path,monkeypatch):
+@pytest.fixture
+def research_navigation_entropy(monkeypatch):
+    import itertools,secrets,uuid
+    values=itertools.count(1000)
+    monkeypatch.setattr(uuid,'uuid4',lambda:uuid.UUID(int=next(values)))
+    monkeypatch.setattr(secrets,'token_bytes',lambda n:bytes(range(n)))
+
+
+def test_research_actual_sdk_get_and_document_gate(tmp_path,monkeypatch,mock_jar,research_navigation_entropy):
     import httpx
     import socket
     # No HTTP/DNS in this replay: the real SDK GET handles constructed HTTP responses.
@@ -226,19 +234,20 @@ def test_research_actual_sdk_get_and_document_gate(tmp_path,monkeypatch):
         return httpx.Response(200,headers={'content-type':'text/plain'},text=body,request=httpx.Request('GET',url))
     monkeypatch.setattr(httpx,'request',response)
     b=browser(Search,None)
-    from src.brain.work_tools import WorkResearchWriteTool
+    from src.brain.tests.test_work_research import submit,write_report,report_payload,action,restricted_sources
     urls=['https://raw.githubusercontent.com/akshayaggarwal99/jarvis-ai-assistant/bec50ef6e615707613c4fa22c8bd6afc3cc93152/'+x for x in ('README.md','src/core/agent-manager.ts','src/agents/unified-agent.ts')]
-    def run(*a,**kw):
-        tool=WorkResearchWriteTool()
-        facts=[dict(claim='Official architecture' if idx==0 else 'Delegates to registry.dispatch',
-                    evidence_id=alt['properties']['facts']['items']['properties']['evidence_id']['enum'][0])
-               for idx,alt in enumerate(tool.spec.parameters['properties']['sections']['items']['anyOf'])]
-        assert WorkResearchWriteTool().execute(path='research.md',title='Research',sections=[dict(source_id='S'+str(i+1),heading='Source '+str(i+1),facts=[fact]) for i,fact in enumerate(facts)]).success
-        return {}
-    r=WorkService(tmp_path,runner=run,browser_channel=b).submit_work('research',request_id='r',session_id='s',context={'research':True,'source_urls':urls})
+    def run(*args,**kwargs):
+        def authored(body):
+            payload=report_payload()
+            for idx,section in enumerate(payload['sections']):
+                section['facts'][0]['claim']='Official architecture' if idx==0 else 'Delegates to registry.dispatch'
+            return action(payload)
+        return write_report(authored)
+    r=submit(tmp_path,b,run,source_urls=urls)
     assert r['status']=='succeeded',r
     assert len(r['sources'])==3
-    assert all(x['body'].endswith(x['final_url']) for x in r['sources'])
+    assert all(x['body'].endswith(x['final_url']) for x in restricted_sources(r))
+    assert all('body' not in x and 'text' not in x for x in r['sources'])
 
 
 @pytest.mark.parametrize('query',['https://example.com','find https://example.com now'])
@@ -311,7 +320,7 @@ def test_repeat_mutation_is_refused(tmp_path):
 from src.brain.tests.test_work_research import mock_jar
 
 
-def test_native_react_research_real_registry(tmp_path,monkeypatch,mock_jar):
+def test_native_react_research_real_registry(tmp_path,monkeypatch,mock_jar,research_navigation_entropy):
     from src.brain import agent_server
     from src.brain.tests.test_work_research import report_payload,action
     import httpx
@@ -320,7 +329,7 @@ def test_native_react_research_real_registry(tmp_path,monkeypatch,mock_jar):
     monkeypatch.setattr(httpx,'request',lambda method,url,**kw:httpx.Response(200,headers={'content-type':'text/plain'},text='Distinct source body '+url,request=httpx.Request(method,url)))
     urls=['https://github.com/o/r/'+str(i) for i in range(3)]
     mock_jar[3].extend([action(report_payload()),'{"final_answer":"saved"}'])
-    service=WorkService(tmp_path,runner=agent_server._run_work_agent,browser_channel=browser(Search,None))
+    service=WorkService(tmp_path,runner=agent_server._run_work_agent,browser_channel=browser(Search,None),research_preparer=agent_server._prepare_research_navigation)
     r=service.submit_work('research',request_id='r',session_id='s',context={'research':True,'source_urls':urls})
     assert r['status']=='succeeded',r
     assert len(r['sources'])==3 and r['trace']

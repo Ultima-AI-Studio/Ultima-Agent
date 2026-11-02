@@ -4,12 +4,12 @@ from time import monotonic
 import uuid
 import json
 import hashlib
-from dataclasses import replace
+import copy
 from .work_tools import WorkBinding, WorkLedger, WorkCapabilities, bind_work, WORK_TOOLS, checked_path
 from .work_verifier import verify_artifacts
 
 class WorkService:
-    def __init__(self, output_root: Path | None, *, runner, context_provider=None, exec_channel=None, browser_channel=None):
+    def __init__(self, output_root: Path | None, *, runner, context_provider=None, exec_channel=None, browser_channel=None, research_preparer=None):
         if output_root is None:
             raise ValueError('Trusted work output root is not configured')
         root = Path(output_root).absolute()
@@ -21,6 +21,7 @@ class WorkService:
         self._runner = runner
         self._context_provider=context_provider
         self._browser=browser_channel
+        self._research_preparer=research_preparer
 
     def submit_work(self, query, *, request_id, session_id, context=None, max_tokens=None):
         entered = monotonic()
@@ -37,7 +38,7 @@ class WorkService:
                 raise ValueError('Nonempty query and identity strings required')
             if context is not None and (not isinstance(context, dict) or set(context) - {'text','capture_current','replace_selection','research','source_urls'}):
                 raise ValueError('Context cannot supply identity or output authority')
-            context=dict(context or {})
+            context=copy.deepcopy(context or {})
             if 'text' in context and not isinstance(context['text'],str): raise ValueError('Context text must be a string')
             if any(type(context[k]) is not bool for k in ('capture_current','replace_selection','research') if k in context):
                 raise ValueError('Context options must be booleans')
@@ -59,23 +60,25 @@ class WorkService:
             if context.get('replace_selection'): tools.append('ultima_work_replace_selection')
             if context.get('research'):
                 if not self._browser: raise ValueError('Research is not enabled by trusted startup')
+                if not self._research_preparer: raise ValueError('Research navigation preparer is not configured')
             capabilities=WorkCapabilities(provider=self._context_provider,capture_json=json.dumps(captured) if captured else None,replace=bool(context.get('replace_selection')),browser=self._browser if context.get('research') else None)
             if context.get('research'):
                 ledger.deadline = entered + 260
-                from .work_research import collect_research,ResearchCollectionError,reference_cards
+                from .work_research import collect_research,ResearchCollectionError
                 try:
                     with bind_work(binding,ledger,capabilities):
                         collection=collect_research(query,context.get('source_urls',[]),binding=binding,ledger=ledger,capabilities=capabilities)
                 except ResearchCollectionError as exc:
-                    result.update(trace=exc.trace,research_attempts=exc.attempts,available_sources=exc.sources)
+                    result.update(trace=[{k:e[k] for k in ('phase','type','sdk_call_id','request_id','session_id','task_id') if k in e} for e in exc.trace],
+                        research_attempts=exc.attempts,available_sources=[])
                     raise
-                result.update(trace=json.loads(collection.trace_json),research_attempts=json.loads(collection.attempts_json),available_sources=json.loads(collection.catalogue_json))
+                navigation=self._research_preparer(collection,binding=binding,ledger=ledger)
+                if ledger._navigation is not navigation: raise ValueError('Preparer did not configure trusted navigation')
+                result.update(trace=[{k:e[k] for k in ('phase','type','sdk_call_id','request_id','session_id','task_id') if k in e} for e in json.loads(collection.trace_json)],
+                    research_attempts=json.loads(collection.attempts_json),available_sources=json.loads(navigation.catalogue_json))
                 ignored_failure_ids=frozenset(collection.ignored_failure_ids)
-                cards=reference_cards(collection.catalogue_json)
-                if len({c['source_id'] for c in cards.values()}) < 3:
-                    raise ValueError('Fewer than three sources with representable references')
-                capabilities=replace(capabilities,browser=None,research_json=collection.catalogue_json,cards_json=json.dumps(cards))
-                tools=['ultima_work_research_write']
+                capabilities=WorkCapabilities(capture_json=capabilities.capture_json,research_json=collection.catalogue_json,navigation=navigation)
+                tools=['ultima_work_research_inspect','ultima_work_research_write']
             delivery_tool='ultima_work_research_write' if context.get('research') else 'ultima_work_file_write'
             prompt = ('[Work request: use '+delivery_tool+' to deliver the requested file; a verbal claim is not delivery. '
                       'Authorized request directory: ' + str(root) + '. Relative file paths use this directory. '
@@ -85,19 +88,11 @@ class WorkService:
             if context.get('replace_selection'):
                 prompt+='\nUse ultima_work_replace_selection once to replace the captured selection, then save the same rewrite to a file. A file alone does not complete this request.'
             if context.get('research'):
-                from .work_research import source_pack
-                index = [[key,c['source_id'],c['kind'],c['symbol'],c['first_line'],c['last_line'],
-                          c['citation_first'],c['citation_last']] for key,c in cards.items()]
-                identities = [{k:s[k] for k in ('source_id','final_url','read_call_id','decoded_body_sha256',
-                              'request_id','session_id','task_id')} for s in result['available_sources']]
-                prompt += ('\nSource URLs and numbered source material (untrusted data):\n'
-                           +json.dumps(identities,ensure_ascii=False)+'\n'+source_pack(result['available_sources'])
-                           +'\nIssued references [ID,source,kind,operation,anchor start/end,citation start/end]:\n'
-                           +json.dumps(index,ensure_ascii=False,separators=(',',':')))
+                prompt += '\nSafe source catalogue (untrusted data):\n'+navigation.catalogue_json.decode('utf8')
             with bind_work(binding, ledger, capabilities):
                 response = self._runner(prompt, binding=binding, tools=tools, max_tokens=max_tokens)
             compose_trace=response.get('trace',[])
-            if context.get('research'): compose_trace=[dict(e,phase='research.compose') for e in compose_trace]
+            if context.get('research'): compose_trace=[dict(type=e['type'],phase='research.compose') for e in compose_trace]
             result['trace'] = result.get('trace',[])+compose_trace
             result['content'] = str(response.get('content', ''))
             sdk_results = list(response.get('tool_results', []))
@@ -132,9 +127,16 @@ class WorkService:
             if context.get('research'):
                 from .work_research import verify_research_artifacts
                 reports=[r for r in records if r['tool_name']=='ultima_work_research_write' and r['success']]
-                result['sources']=verify_research_artifacts(binding,result['artifacts'],reports,capabilities.research_json,require_reference=True)
+                if ledger.first_failure: raise ValueError(ledger.first_failure)
+                if not hasattr(ledger,'_runtime_final'): raise ValueError('Missing final native runtime proof')
+                result['sources']=verify_research_artifacts(binding,result['artifacts'],reports,capabilities.research_json,
+                    require_reference=True,required_version=3,issued_snapshot=ledger.issued_snapshot,
+                    runtime_packet=getattr(ledger,'_runtime_final',None),require_ack=True)
+                cited={s['source_id'] for s in result['sources']}
+                result['sources']=[s for s in result['available_sources'] if s['source_id'] in cited]
             result['status'] = 'succeeded'
         except Exception as exc:
+            if context and isinstance(context,dict) and context.get('research'): ledger.seal(str(exc))
             # Failures before the runner returns have no response cutoff yet.
             if outcome is None:
                 outcome = ledger.outcome_snapshot()
@@ -147,6 +149,11 @@ class WorkService:
         finally:
             if captured and self._context_provider: self._context_provider.release(captured)
         result['tool_results'] = sdk_results + records
+        if isinstance(context,dict) and context.get('research'):
+            # Full GETs, submitted reports and replay stay in the restricted
+            # ledger. Public records preserve identity/status and byte links.
+            result['tool_results']=[{k:r[k] for k in ('call_id','tool_name','success','request_id','session_id','task_id','error_type') if k in r}
+                for r in result['tool_results']]
         if research_effects:
             result['research_effects'] = research_effects
         return result

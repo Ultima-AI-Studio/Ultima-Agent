@@ -11,6 +11,15 @@ import pytest
 from src.brain import work_research as research
 
 
+@pytest.fixture(autouse=True)
+def stable_navigation_entropy(monkeypatch):
+    """Reproducible protocol fixtures; real production entropy is unchanged."""
+    import itertools,secrets
+    counter=itertools.count(1000)
+    monkeypatch.setattr(uuid,'uuid4',lambda:uuid.UUID(int=next(counter)))
+    monkeypatch.setattr(secrets,'token_bytes',lambda n:bytes(range(n)))
+
+
 def nav():
     assert importlib.util.find_spec('src.brain.work_navigation'), 'v3 safe navigation module missing'
     from src.brain import work_navigation
@@ -389,3 +398,18 @@ def test_v3_nonce_preserves_all_sixteen_random_bytes_once(monkeypatch):
     cat,*_=prepare()
     assert cat.nonce=='000102030405060708090a0b0c0d0e0f'
     assert calls==[16]
+
+
+def test_v3_placeholder_renderability_does_not_expose_or_certify_wire(monkeypatch):
+    """Controlled SHA primitive forces a valid rare metadata shape; real scanners remain."""
+    n=nav(); original=n._h
+    def controlled(raw):
+        return '5138343572083543'+'a'*48 if raw.startswith(b'["card3",') else original(raw)
+    monkeypatch.setattr(n,'_h',controlled)
+    cat,*rest=prepare()
+    assert sum(s.available for s in cat.sources)==3
+    assert b'N3.' not in cat.catalogue_json
+    page=n.build_page(cat,'S1',1,key())
+    assert json.loads(page.cards_json)[0][0]=='N3.5138343572083543'
+    with pytest.raises(ValueError,match='Unsafe complete observation'):
+        n.scan_view(page,rest[-1])
