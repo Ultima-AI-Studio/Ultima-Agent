@@ -1,0 +1,9 @@
+# Offline preparation: exact verifier import boundary
+
+This clarifies preparation brief item6, without releasing execution. Root statically inspected work_tools.py, SDK registry.py, file_read.py and file_write.py. The author also identified SDK tools/__init__.py eager imports and _stubs.py module-level _BoundedToolRunner initialization/atexit registration. Importing the unchanged real verifier is preferable to substituting or emulating its path.
+
+In the FUTURE single reviewed isolated batch, normal imports from the pinned installed openjarvis source tree and installed dependencies, existing class registration in that process's one SDK registry, and existing _BoundedToolRunner initialization/atexit registration are allowed. No submit, ToolRegistry.create, tool instance/execution, agent/engine/client/service construction, model calls or device/audio actions are allowed. Direct-written synthetic compatibility fixture files only under actual-r1 are permitted and never count as model/SDK/E02 artifacts. No product modules are replaced in sys.modules.
+
+Preparation should remain compact and pin relevant source hashes. A network/process/out-of-root-write audit guard must log attempted prohibited effects, including ones subsequently caught by optional imports; any such attempt makes the batch incomplete/failed. The implementation must identify the specific constructor/execution boundaries it prevents without broad redesign of SDK initialization. No runtime imports now. Concrete guards/import closure and the actual real-verifier call are subject to independent readiness review before any probe.
+
+This is controller judgment within the authorized isolated engineering task. It cannot alter production, the source-only receiver patch, old counters, source9, the8B-only policy or any acceptance gate. Unexpected external effects stay a failure witness, not a reason for an unbounded retry.

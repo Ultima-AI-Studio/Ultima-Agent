@@ -1,0 +1,28 @@
+--- baseline_work_research.py
++++ candidate_work_research.py
+@@ -382,7 +382,7 @@
+         if suffix == '.py':
+             yield from syntax
+         elif suffix in ('.ts', '.js', '.mjs', '.cjs'):
+-            from pygments.token import Comment, Name
++            from pygments.token import Comment, Keyword, Name
+             rows = syntax
+             for idx, (first, end, family, value) in enumerate(rows):
+                 if first not in visible:
+@@ -392,8 +392,14 @@
+                 if family not in Name or idx+1 == len(rows) or rows[idx+1][3] != '(':
+                     continue
+                 begin = idx
+-                while begin >= 2 and rows[begin-1][3] == '.' and rows[begin-2][2] in Name:
+-                    begin -= 2
++                while begin >= 2 and rows[begin-1][3] == '.':
++                    receiver = rows[begin-2]
++                    if receiver[2] in Name:
++                        begin -= 2
++                        continue
++                    if receiver[2] in Keyword and receiver[3] in ('this', 'super'):
++                        begin -= 2
++                    break
+                 op = ''.join(row[3] for row in rows[begin:idx+1])
+                 if len(op) > 200 or not re.fullmatch(r'[A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*)*', op):
+                     continue

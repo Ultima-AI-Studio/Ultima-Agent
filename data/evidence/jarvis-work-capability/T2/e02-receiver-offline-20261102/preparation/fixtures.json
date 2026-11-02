@@ -1,0 +1,252 @@
+[
+  {
+    "name": "js-ordinary",
+    "body": "const result = service.run();\nlet next = await worker.read();\ntarget.value = source.load();\nreturn cache.get();\nconst obj = new Factory();",
+    "expected": "preserve",
+    "operations": [
+      "service.run",
+      "worker.read",
+      "source.load",
+      "cache.get",
+      "Factory"
+    ],
+    "suffix": ".js"
+  },
+  {
+    "name": "js-receiver",
+    "body": "const result = await this.service.run(\n  input,\n  options\n);\nreturn super.service.read();",
+    "expected": "gain",
+    "operations": [
+      "this.service.run",
+      "super.service.read"
+    ],
+    "suffix": ".js"
+  },
+  {
+    "name": "js-valid-multiline-prefix",
+    "body": "const result =\n await\n this.service.run(input);",
+    "expected": "gain",
+    "operations": [
+      "this.service.run"
+    ],
+    "suffix": ".js"
+  },
+  {
+    "name": "js-comments",
+    "body": "// this.service.run();\n/* super.service.read(); */",
+    "expected": "reject",
+    "operations": [],
+    "suffix": ".js"
+  },
+  {
+    "name": "js-strings",
+    "body": "const a = 'this.service.run()';\nconst b = `super.service.read()`;",
+    "expected": "reject",
+    "operations": [],
+    "suffix": ".js"
+  },
+  {
+    "name": "js-unrelated-keyword",
+    "body": "const result = return.service.run();",
+    "expected": "reject",
+    "operations": [],
+    "suffix": ".js"
+  },
+  {
+    "name": "js-malformed-interruption",
+    "body": "const result = this.\n + service.run();",
+    "expected": "reject",
+    "operations": [],
+    "suffix": ".js"
+  },
+  {
+    "name": "js-cross-line-interruption",
+    "body": "const result = this.\n return service.run();",
+    "expected": "reject",
+    "operations": [],
+    "suffix": ".js"
+  },
+  {
+    "name": "js-comment-interruption",
+    "body": "const result = this /* gap */ .service.run();",
+    "expected": "baseline_limitation",
+    "operations": [],
+    "suffix": ".js"
+  },
+  {
+    "name": "js-optional-chain",
+    "body": "const result = this.service?.run();",
+    "expected": "baseline_limitation",
+    "operations": [],
+    "suffix": ".js"
+  },
+  {
+    "name": "js-omitted",
+    "body": "const result = this.service.run(\n input\n);",
+    "expected": "reject",
+    "operations": [],
+    "suffix": ".js",
+    "omitted_lines": [
+      2
+    ]
+  },
+  {
+    "name": "js-redacted",
+    "body": "const result = this.service.run();",
+    "expected": "reject",
+    "operations": [],
+    "suffix": ".js",
+    "text": "[redacted]"
+  },
+  {
+    "name": "js-html-projection",
+    "body": "const result = this.service.run();",
+    "expected": "reject",
+    "operations": [],
+    "suffix": ".js",
+    "content_type": "text/html"
+  },
+  {
+    "name": "js-unsupported-separator",
+    "body": "const result = this.service.run(); ",
+    "expected": "reject",
+    "operations": [],
+    "suffix": ".js"
+  },
+  {
+    "name": "ts-ordinary",
+    "body": "const result = service.run();\nlet next = await worker.read();\ntarget.value = source.load();\nreturn cache.get();\nconst obj = new Factory();",
+    "expected": "preserve",
+    "operations": [
+      "service.run",
+      "worker.read",
+      "source.load",
+      "cache.get",
+      "Factory"
+    ],
+    "suffix": ".ts"
+  },
+  {
+    "name": "ts-receiver",
+    "body": "const result = await this.service.run(\n  input,\n  options\n);\nreturn super.service.read();",
+    "expected": "gain",
+    "operations": [
+      "this.service.run",
+      "super.service.read"
+    ],
+    "suffix": ".ts"
+  },
+  {
+    "name": "ts-valid-multiline-prefix",
+    "body": "const result =\n await\n this.service.run(input);",
+    "expected": "gain",
+    "operations": [
+      "this.service.run"
+    ],
+    "suffix": ".ts"
+  },
+  {
+    "name": "ts-comments",
+    "body": "// this.service.run();\n/* super.service.read(); */",
+    "expected": "reject",
+    "operations": [],
+    "suffix": ".ts"
+  },
+  {
+    "name": "ts-strings",
+    "body": "const a = 'this.service.run()';\nconst b = `super.service.read()`;",
+    "expected": "reject",
+    "operations": [],
+    "suffix": ".ts"
+  },
+  {
+    "name": "ts-unrelated-keyword",
+    "body": "const result = return.service.run();",
+    "expected": "reject",
+    "operations": [],
+    "suffix": ".ts"
+  },
+  {
+    "name": "ts-malformed-interruption",
+    "body": "const result = this.\n + service.run();",
+    "expected": "reject",
+    "operations": [],
+    "suffix": ".ts"
+  },
+  {
+    "name": "ts-cross-line-interruption",
+    "body": "const result = this.\n return service.run();",
+    "expected": "reject",
+    "operations": [],
+    "suffix": ".ts"
+  },
+  {
+    "name": "ts-comment-interruption",
+    "body": "const result = this /* gap */ .service.run();",
+    "expected": "baseline_limitation",
+    "operations": [],
+    "suffix": ".ts"
+  },
+  {
+    "name": "ts-optional-chain",
+    "body": "const result = this.service?.run();",
+    "expected": "baseline_limitation",
+    "operations": [],
+    "suffix": ".ts"
+  },
+  {
+    "name": "ts-omitted",
+    "body": "const result = this.service.run(\n input\n);",
+    "expected": "reject",
+    "operations": [],
+    "suffix": ".ts",
+    "omitted_lines": [
+      2
+    ]
+  },
+  {
+    "name": "ts-redacted",
+    "body": "const result = this.service.run();",
+    "expected": "reject",
+    "operations": [],
+    "suffix": ".ts",
+    "text": "[redacted]"
+  },
+  {
+    "name": "ts-html-projection",
+    "body": "const result = this.service.run();",
+    "expected": "reject",
+    "operations": [],
+    "suffix": ".ts",
+    "content_type": "text/html"
+  },
+  {
+    "name": "ts-unsupported-separator",
+    "body": "const result = this.service.run(); ",
+    "expected": "reject",
+    "operations": [],
+    "suffix": ".ts"
+  },
+  {
+    "name": "ts-interface",
+    "body": "interface Service {\n run(): void;\n}\ntype Signature = (input: string) => void;",
+    "expected": "reject",
+    "operations": []
+  },
+  {
+    "name": "ts-type-only",
+    "body": "declare function run(): void;\ntype Thing = typeof service.run;",
+    "expected": "reject",
+    "operations": []
+  },
+  {
+    "name": "python-unrelated",
+    "body": "result = service.run()\nreturn_value = worker.read()",
+    "expected": "preserve",
+    "operations": [
+      "service.run",
+      "worker.read"
+    ],
+    "suffix": ".py"
+  }
+]
