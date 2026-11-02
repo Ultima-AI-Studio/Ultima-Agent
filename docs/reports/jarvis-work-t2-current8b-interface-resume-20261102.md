@@ -106,3 +106,43 @@ r3 的上下文估算与受控回放两项 Important 已修订。r4 精确方案
 新设计b1290ae6经独立复审SPEC/QUALITY PASS（verdict253bf87c）。r1三个Important已关闭：起草改为同一个真实NativeReAct循环的request-bound暂存工具；额外可选/不可用来源保留处置记录，不自动否决充分来源；各阶段按含metadata及确认的绝对截止时刻验收。一次性stage_token阻止旧worker把局部引用绑定到下一来源，封存后仍只经一次SDK文件工具交付和独立读回。
 
 本轮没有新模型推理或产品代码。拟议下一步先做S2一次只读SDK前缀（最多1POST、0文件），事实/引文与时间均须独立PASS；之后才可另行放行其余S1/S3/S4各一次，不重测S2、不挑样本；有至少三份相关来源及必要题目覆盖后再讨论源码10接入。该组至多4POST，全部尚未执行；单源或独立前缀通过不等于整体260秒预算、文件交付或E02通过。旧源码9及所有失败封存，T2保持BLOCKED，原单未完成。
+
+
+## S2首次前缀因运行环境失败，原组停止
+
+用户要求以项目目标继续后，只读SDK前缀验证程序完成24项离线测试并通过独立SPEC/QUALITY复审（97585bb9）。首次S2实际发出1次POST、2次试验metadata GET，SDK启动另记1次GET；Ollama在分配4455.34MiB权重CUDA缓冲区时返回HTTP500。17.67秒结束，未生成答案、未确认stage、未写研究文件，SDK owner已关闭。独立复核597467ca原始包与日志一致：前缀FAIL，事实/覆盖NOT_ASSESSED，原组停止、S2不重做，不能据此评价新的单来源设计是否提高模型事实能力。
+
+日志中的GPU容量预测仍有余量，主机内存压力是有证据的原因假说，尚不能认定唯一根因。用户确认可结束的遗留豆包PowerShell在身份核验前已退出，root的Stop-Process调用为0；随后可用RAM约16GB，保护的主脑、唤醒及语音工作进程身份保持。内存恢复不等于模型冷加载已验证。
+
+为继续回答项目可行性问题，目前仅准备一个新预注册问题：在恢复的运行条件下，尚未尝试的S3代码是否能经同样SDK、输入、模型及36秒绝对slice产出可靠本地机制说明。拟固定S3→S1→S4、逐份事实独审、各一次，含失败S2的累计总上限仍为4POST；无S2补样本、无模型预热调用，任一失败即停。此新提案和启动程序尚待独审及controller单独签发，不放行源码10，不补证S2的manager/provider选择，不将原组、总体覆盖或E02改判通过。历史源码9/293项代码检查及全部真实失败保留，原单未完成；模型默认、KWS、生产服务、T3—T5不变。
+
+原始运行：data/evidence/jarvis-work-capability/T2/per-source-feasibility-20261102/S2-first/first-f53a803-r2/；独立复核：data/evidence/jarvis-work-capability/T2/review-per-source-S2-first-infra/；资源及controller记录：data/evidence/jarvis-work-capability/T2/per-source-feasibility-20261102/。
+
+
+## S3真实调用完成，但局部研究未交付
+
+未尝试的S3新问题准备程序完成31项离线测试及6项独立复跑，Windows目录联接写域问题已修复，冻结研究核心和提示词没有变。实际首轮使用同一社区8B、16K上下文、480输出上限；Ollama冷加载9.75秒，原生调用11.49秒，包含SDK确认的前缀共12.09秒，HTTP200/done stop/2928输入与94输出token。模型生成了一次合法unused_reason，真实SDK暂存已确认；0事实、0引用、0研究文件。因此证明了这一次加载与执行可用，不能证明研究交付成功。
+
+独立审查6ad3e00a：机械PASS、事实NOT_ASSESSED、覆盖FAIL。S3全文110行及15张引用卡均可见；弃用理由按“无法完整回答多来源原问题”判断，没有完成已要求的局部来源贡献。源码包含可引用的相关局部机制；没有证据表明输入截断或schema删去事实分支造成此次弃用，也不能由一次没有主张的输出断言模型永久无能力。
+
+S2与S3原结果均保留且不重跑，累计实际POST为2，S1/S4按停止规则关闭，原组及S3新问题均FAIL，源码10/产品集成/T3—T5仍关闭。本轮没有产品源码修改或新研究文件；启动程序31项检查与既有产品293项测试分别计数。受保护5进程身份及21个产品/契约输入再次核对未变，隔离调用进程均已退出。当前只做一次阶段职责表达假设的设计裁决：现有提示已经要求单来源部分贡献，故不能预先认定提示存在根因；若有新提案，只能独审后另裁决未尝试S4/S1，最多使用原累计上限4中的剩余2次，不得补样本或降低公开E02交付门。
+
+实际包：data/evidence/jarvis-work-capability/T2/per-source-feasibility-20261102/remaining-source-actual/S3/first-f53a803-r2/；独立复核：data/evidence/jarvis-work-capability/T2/review-remaining-source-S3-first/。T2仍未通过，原工单未完成。
+
+
+## 阶段职责澄清设计通过，当前仅准备
+
+中性局部充分性设计0a95e725独立SPEC/QUALITY PASS（e7abb30a）。只把unused_reason的充分性明确为“可见证据能否支撑至少一条相关且符合引用规则的局部论断”，原query以background_original_query完整保留；不是提示根因已证实或模型能力已修复。完整精确提案见docs/plans/jarvis-work-local-role-diagnostic-design-20261102.md。
+
+当前仅准备新的隔离验证程序，S4/S1实际调用尚未放行。若新准备另经独审通过，最多按S4→S1各一次；S2/S3原失败及2次已耗均保留，累计仍不超过4，任一失败/unused立即终止。两份即使都通过也只证明两个局部前缀，不满足原三来源/三轮E02、全流程预算或文件交付，更不自动放行源码10。生产源码/默认模型/KWS/T3—T5不变。
+
+
+## 当前8B逐来源分支收口：T2 BLOCKED
+
+职责澄清验证程序76项离线测试及5项独立复跑通过后，只执行了S4首次请求。冷加载3.35秒，原生调用5.80秒，SDK在入场后6.30秒确认；HTTP200、done stop、7320输入与79输出token。模型仍只提交unused_reason“没有相关论断”，0事实、0引用、0研究文件。独审00c9ce78判机械PASS、事实NOT_ASSESSED、局部覆盖FAIL：367行原文及48张可用引用卡完整可见，可支持执行底座局部说明，弃用不成立。该结果不能证明模型永久无能力，也不证明更换措辞的因果效果。
+
+本轮三次POST分别为S2加载前失败、S3正常生成后弃用、职责澄清后S4正常生成后弃用，全部首结果与原始包保留。S1未调用，累计3/4；第四次没有授权，不能为凑成功而继续。停止新增协议变体、不重做S2/S3/S4，不放行源码10、产品集成或T3—T5。T2经真实状态机EXECUTING→FAILED→BLOCKED，45条其他任务记录及真实失败重入计数2保持。原工单未完成、E02仍未交付，产品代码及默认模型没有变化。
+
+研究后续的控制面选择提案见docs/plans/jarvis-work-t2-research-model-decision-20261102.md：维持当前社区8B与原验收则保留T2未通过；或由用户选择研究专用本机qwen2.5:14b，先单次只读隔离资格验证，默认8B/语音不变。14B安装摘要已重新核验，但实际调用0、没有模型切换授权。资格验证必须另做精确准备及独审，旧3次保留、最多使用总上限4中的最后一次，不自动放行产品或改变三来源三轮验收。
+
+运行：data/evidence/jarvis-work-capability/T2/per-source-feasibility-20261102/local-role-actual/S4/first-f53a803-role-r2/；独审：data/evidence/jarvis-work-capability/T2/review-local-role-S4-first/；状态机回执：data/evidence/jarvis-work-capability/T2/per-source-feasibility-20261102/queue-closure.json。受保护5进程及21项产品/契约输入再次核对保持，隔离运行进程已退出；没有录音、播放或修改KWS。
