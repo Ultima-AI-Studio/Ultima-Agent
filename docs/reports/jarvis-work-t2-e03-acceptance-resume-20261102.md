@@ -9,3 +9,5 @@ DoR、原计划/写域、全球登记和实际CLI WIP已核对；T2经BLOCKED→
 证据：data/evidence/jarvis-work-capability/T2/e03-resume-20261102；原始准备brief与进度账在C工作区的.superpowers/sdd/jarvis-work-capability-delivery-plan-20261101。独立事实口径已在首轮前冻结。E03一项通过不使E02/T2通过，源码10/生产集成/T3—T5均未放行；最终目标仍是原契约E01—E08和Owner门。
 
 准备首轮确定性覆盖82项、适配器29项及两份无界面进程证明已由独审回读；独审仍判SPEC/QUALITY FAIL：7组问题涉及授权时效/前置身份证明、失败效果保全、机械关联及负例证明、实际监听归属、UUID/固定根、后代进程与清理、规范授权顺序。它们属于验收程序，不表示产品已修复。原作者正进行有界fix1/5，仅写新的preparation-r2并保留首版全部字节；完成后同一审查方复审。真实case/模型CLI仍0，实际放行false。完整审查SHA aa6aef1a0e20f6b9d1c3b25678d761e1babea8a12a5b57e9291f0f36726d36cc。
+
+fix1准备版80项检查及无界面生命周期证明落盘后，独审判5组已解决、SPEC3/QUALITY2仍未解决。新增具体复现为本机CIM中文参数的GB2312/UTF8失真，以及纯内存样本中后一次读回hash矛盾仍可能PASS；后者不代表现场发生过文件变更。现仅在NEW preparation-r3执行fix2/5，补无害中文/多行参数的实际进程证明与最终效果一致性检查。P1/P2和两个审查版本不覆盖；产品代码不变，真实case/模型CLI仍0，T2产品出口未通过且队列继续EXECUTING。

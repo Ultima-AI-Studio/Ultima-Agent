@@ -1,0 +1,736 @@
+--- preparation/acceptance_adapter.py
++++ preparation-r2/controller.py
+@@ -1,338 +1,414 @@
+-"""One root-released original acceptance case; no release is included in preparation.
+-Only the CLI submits work. No research, retry, budget override or model replacement.
+-"""
++"""Revision 2 original acceptance evidence controller. Root alone releases a case."""
+ from __future__ import annotations
+-import argparse, ctypes as C, hashlib, json, os, socket, stat, subprocess, sys, time
++import argparse, ctypes as C, datetime as dt, hashlib, json, os, socket, stat, subprocess, sys, time, uuid
+ from pathlib import Path
+ import urllib.request
+-ROOT=Path('C:/Users/Administrator/.codex/worktrees/jarvis-work-capability-longpaths/UltimaAgent')
+-R=Path('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-resume-20261102')
+-PREP=R/'preparation'
+-MODEL='qwen3-8b-uncensored'
+-DIGEST='6d7230a923426bc1933879eb08a7dafc18e5fc0e7606c459ce98f16e0c7f9330'
+-ORDER=('e03-round1','e03-round2','e03-round3','e03-negative','e01-round1','e01-round2','e01-round3')
+-MODULE='src.brain.tests.work_context_acceptance'
+-E03_QUERY='将当前选区整理为三条要点，替换该选区，并保存相同改写到rewrite.md。保留所有原事实，不新增事实。'
+-CLI_TIMEOUT=315  # unchanged product HTTP client deadline 300 + bounded receipt margin
+-
+-def sha(path): return hashlib.sha256(Path(path).read_bytes()).hexdigest()
+-def load(path): return json.loads(Path(path).read_text(encoding='utf-8'))
+-def save(path,value): Path(path).write_text(json.dumps(value,ensure_ascii=False,indent=2),encoding='utf-8')
+-def no_reparse(path):
+-    p=Path(path).absolute()
+-    if '..' in p.parts: raise ValueError('Traversal forbidden')
+-    for q in (p,*p.parents):
+-        if q.exists() and (q.is_symlink() or getattr(q.lstat(),'st_file_attributes',0)&stat.FILE_ATTRIBUTE_REPARSE_POINT):
+-            raise ValueError('Reparse path forbidden')
+-    return p
++P=Path(__file__).resolve().parent
++P1=P.parent/'preparation'
++if hashlib.sha256((P1/'acceptance_adapter.py').read_bytes()).hexdigest()!='d91ddf5e44a19d6143ee8657f1e0946617eb1c77197c399d017ace39cad02da4': raise RuntimeError('P1 changed')
++sys.path.insert(0,str(P1))
++import acceptance_adapter as old
++ROOT,R,MODEL,DIGEST,ORDER,MODULE=old.ROOT,old.R,old.MODEL,old.DIGEST,old.ORDER,old.MODULE
++sha,load,save,identity,protected,environment,terminate_owned=old.sha,old.load,old.save,old.identity,old.protected,old.environment,old.terminate_owned
++no_reparse=old.no_reparse
++MAX_ADMISSION=120
++IDENTITY=('hwnd','control_hwnd','pid','process_created_filetime','title','class')
++
++def require(ok,message):
++    if not ok: raise ValueError(message)
++def utc(): return dt.datetime.now(dt.timezone.utc)
++def timestamp(value):
++    result=dt.datetime.fromisoformat(value.replace('Z','+00:00'))
++    require(result.tzinfo is not None,'Timezone required'); return result
++
++def uuid_text(value):
++    require(isinstance(value,str),'UUID string required')
++    try: parsed=uuid.UUID(value)
++    except (ValueError,AttributeError): raise ValueError('Canonical UUID required')
++    require(str(parsed)==value and parsed.version==4,'Canonical UUID4 required')
++    return value
++
++def artifact_path(folder,task,value):
++    uuid_text(task)
++    require(isinstance(value,str) and Path(value).is_absolute(),'Absolute artifact path required')
++    raw=Path(value); fixed=folder/'outputs'
++    require('..' not in raw.parts and raw.parent==fixed/task and raw.is_relative_to(fixed),'Outside lexical task root')
++    require(':' not in value[2:],'Alternate streams forbidden')
++    raw=no_reparse(raw); root=no_reparse(fixed).resolve()
++    resolved=raw.resolve()
++    require(resolved.is_relative_to(root) and resolved.parent==root/task,'Artifact outside exact task root')
++    return resolved
+ 
+ def source_check():
+-    expected=load(R/'source21-before.json')
+-    current={k:sha(ROOT/k) for k in expected}
+-    if current!=expected: raise ValueError('Frozen source21 drift')
+-    if subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip()!='244d2120abcd6b8d7744f74a05bd22de46a2d3a5':
+-        raise ValueError('HEAD drift')
+-    before=load(PREP/'preservation-before.json')
+-    for key,digest in before['old_files'].items():
+-        if sha(R/key)!=digest: raise ValueError('Old evidence drift: '+key)
+-    for path,digest in load(PREP/'sdk-sources.json')['sha256'].items():
+-        if sha(path)!=digest: raise ValueError('SDK drift')
++    current=old.source_check()
++    for path,digest in load(P/'inputs.json')['files'].items(): require(sha(path)==digest,'Input drift '+path)
+     return current
+ 
+-def validate_release(case,folder,authority,ledger):
+-    if sys.flags.optimize: raise ValueError('Optimized Python forbidden')
+-    if case not in ORDER: raise ValueError('Only seven original cases permitted')
+-    folder=no_reparse(folder)
+-    if folder!=R/'actual'/case or folder.exists(): raise ValueError('Exclusive new case path required')
+-    if authority.get('schema')!=1 or authority.get('issuer')!='root' or authority.get('case')!=case:
+-        raise ValueError('Root single-case authority required')
+-    if authority.get('runner_sha256')!=sha(__file__) or authority.get('source21_sha256')!=sha(R/'source21-before.json'):
+-        raise ValueError('Release package mismatch')
+-    if authority.get('model')!=MODEL or authority.get('digest')!=DIGEST or authority.get('folder')!=str(folder):
+-        raise ValueError('Release model/path mismatch')
++def validate_authority(case,folder,authority_path,ledger_path,*,active=False,now=None):
++    require(not sys.flags.optimize,'Optimized Python forbidden')
++    require(case in ORDER,'Only original cases')
++    require(no_reparse(folder)==R/'actual'/case,'Exact fixed case root required')
++    require(active or not folder.exists(),'Existing case forbidden')
++    require(no_reparse(authority_path)==R/'controller-authority'/f'{case}.json','Canonical authority path required')
++    require(no_reparse(ledger_path)==R/'controller-ledger.json','Canonical ledger path required')
++    authority=load(authority_path); ledger=load(ledger_path); now=now or utc()
++    require(authority.get('schema')==2 and ledger.get('schema')==2 and authority.get('issuer')=='root','Current root schema required')
++    require(authority.get('case')==case and authority.get('folder')==str(folder),'Case binding mismatch')
++    issued=timestamp(authority['issued_at']); expiry=timestamp(authority['expires_at'])
++    require(issued<=now<expiry and 0<(expiry-issued).total_seconds()<=MAX_ADMISSION,'Expired/stale admission')
++    require(authority.get('model')==MODEL and authority.get('digest')==DIGEST,'Model boundary mismatch')
++    require(authority.get('preparation_manifest_sha256')==sha(P/'manifest.json'),'Preparation mismatch')
++    package=load(P/'manifest.json')
++    require(package.get('files',{}).get('controller.py')==sha(__file__),'Loaded runner/package mismatch')
++    for name,digest in package['files'].items():
++        require(Path(name).name==name,'Unsafe package entry')
++        require(sha(no_reparse(P/name))==digest,'Preparation file drift')
++    approval_path=no_reparse(R/'controller-preparation-approval.json'); approval=load(approval_path)
++    review_path=no_reparse(R/'review-preparation-2/review.md')
++    require(approval.get('schema')==2 and approval.get('overall')=='PASS' and approval.get('reviewer')=='root-independent','Independent preparation approval required')
++    require(approval.get('preparation_manifest_sha256')==sha(P/'manifest.json') and approval.get('review_sha256')==sha(review_path),'Current review mismatch')
++    require(authority.get('approval_sha256')==sha(approval_path),'Approval binding mismatch')
++    require(authority.get('ledger_sha256')==sha(ledger_path),'Root ledger binding mismatch')
+     index=ORDER.index(case)
+-    if ledger.get('consumed')!=list(ORDER[:index+1]) or ledger.get('released_case')!=case:
+-        raise ValueError('Root ledger must preconsume exact ordered case; total positive cap six')
+-    if authority.get('ledger_sha256')!=hashlib.sha256(json.dumps(ledger,sort_keys=True).encode()).hexdigest():
+-        raise ValueError('Release ledger mismatch')
+-    prior=authority.get('prior_reviews',[])
+-    if [x.get('case') for x in prior]!=list(ORDER[:index]): raise ValueError('Prior independent reviews required')
+-    for item in prior:
+-        if item.get('reviewer')!='root-independent' or any(item.get(k)!='PASS' for k in ('mechanical','facts','target','file','cleanup')):
+-            raise ValueError('Prior case not independently accepted')
+-        path=no_reparse(R/'actual'/item['case']/'receipt.json')
+-        if sha(path)!=item.get('receipt_sha256') or load(path).get('status')!='succeeded': raise ValueError('Prior receipt mismatch')
+-    return folder
+-
+-def metadata_valid(health,version,tags,manifest):
+-    if health.get('ok') is not True or health.get('model')!=MODEL or health.get('agent')!='native_react': raise ValueError('Isolated health/model mismatch')
+-    if version.get('version')!='0.32.15': raise ValueError('Daemon version drift')
+-    matches=[m for m in tags.get('models',[]) if m.get('name') in (MODEL,MODEL+':latest')]
+-    if len(matches)!=1 or matches[0].get('digest')!=DIGEST or hashlib.sha256(manifest).hexdigest()!=DIGEST:
+-        raise ValueError('Native tag/manifest mismatch')
+-    if matches[0].get('details',{}).get('parameter_size')!='8.2B': raise ValueError('8B proof missing')
+-
+-def identity(pid):
+-    # Read creation time + actual executable from one process handle, no task killing.
++    require(ledger.get('consumed')==list(ORDER[:index+1]) and ledger.get('released_case')==case,'Exact ordered preconsumption cap required')
++    proof_path=no_reparse(R/'controller-native-preflight'/f'{case}.json'); proof=load(proof_path)
++    require(authority.get('native_preflight_sha256')==sha(proof_path),'Native proof binding mismatch')
++    age=(now-timestamp(proof['recorded_at'])).total_seconds()
++    require(0<=age<=60 and proof.get('source21_sha256')==sha(R/'source21-before.json') and proof.get('head')=='244d2120abcd6b8d7744f74a05bd22de46a2d3a5','Stale source/native proof')
++    require(proof.get('model')==MODEL and proof.get('digest')==DIGEST,'Preflight model mismatch')
++    actual=R/'actual'; names={x.name for x in actual.iterdir()} if actual.exists() else set()
++    require(names==set(ORDER[:index])|({case} if active else set()),'Unexpected/preexisting sibling state')
++    reviews=authority.get('prior_reviews',[])
++    require([x.get('case') for x in reviews]==list(ORDER[:index]),'Exact predecessor reviews required')
++    for item in reviews:
++        terminal_path=no_reparse(actual/item['case']/'terminal.json'); terminal=load(terminal_path)
++        require(item.get('terminal_sha256')==sha(terminal_path) and terminal.get('case')==item['case'] and terminal.get('mechanical')=='PASS' and terminal.get('overall')=='PASS' and terminal.get('cleanup')=='PASS' and terminal.get('boundaries')=='PASS','Predecessor overall failure')
++        review=no_reparse(actual/item['case']/'independent-review.json'); accepted=load(review)
++        require(item.get('review_sha256')==sha(review) and accepted.get('terminal_sha256')==sha(terminal_path) and accepted.get('reviewer')=='root-independent','Predecessor review binding')
++        require(all(accepted.get(k)=='PASS' for k in ('facts','mechanical','target','file','cleanup','boundaries')),'Predecessor independent acceptance required')
++    return authority,ledger,proof
++
++def get_json(url):
++    class NoRedirect(urllib.request.HTTPRedirectHandler):
++        def redirect_request(self,*args,**kwargs): raise ValueError('Redirect forbidden')
++    opener=urllib.request.build_opener(urllib.request.ProxyHandler({}),NoRedirect())
++    with opener.open(url,timeout=2) as response: return json.load(response)
++
++def native_proof(root_proof):
++    require(os.environ.get('OLLAMA_HOST','http://localhost:11434') in ('http://localhost:11434','http://127.0.0.1:11434'),'Local model only')
++    source_check(); protected()
++    version=get_json('http://127.0.0.1:11434/api/version'); tags=get_json('http://127.0.0.1:11434/api/tags')
++    path=Path(os.environ.get('OLLAMA_MODELS') or Path.home()/'.ollama/models')/'manifests/registry.ollama.ai/library'/MODEL/'latest'
++    manifest=no_reparse(path).read_bytes()
++    old.metadata_valid({'ok':True,'model':MODEL,'agent':'native_react'},version,tags,manifest)
++    require(root_proof.get('version')==version and root_proof.get('tags_sha256')==hashlib.sha256(json.dumps(tags,sort_keys=True).encode()).hexdigest() and root_proof.get('manifest_sha256')==hashlib.sha256(manifest).hexdigest(),'Fresh native proof differs from root binding')
++    return {'recorded_at':utc().isoformat(),'version':version,'tags':tags,'manifest_sha256':hashlib.sha256(manifest).hexdigest(),'model':MODEL,'digest':DIGEST}
++
++def argv_parse(text):
+     from ctypes import wintypes as W
+-    k=C.WinDLL('kernel32',use_last_error=True)
+-    k.OpenProcess.argtypes=[W.DWORD,W.BOOL,W.DWORD]; k.OpenProcess.restype=W.HANDLE
+-    k.CloseHandle.argtypes=[W.HANDLE]
+-    k.GetProcessTimes.argtypes=[W.HANDLE,*([C.POINTER(W.FILETIME)]*4)]
+-    k.QueryFullProcessImageNameW.argtypes=[W.HANDLE,W.DWORD,W.LPWSTR,C.POINTER(W.DWORD)]
+-    h=k.OpenProcess(0x1000,False,pid)
+-    if not h: raise OSError('Cannot prove process identity '+str(pid))
+-    try:
+-        times=[W.FILETIME() for _ in range(4)]
+-        if not k.GetProcessTimes(h,*[C.byref(x) for x in times]): raise OSError('GetProcessTimes')
+-        size=W.DWORD(32768); buf=C.create_unicode_buffer(size.value)
+-        if not k.QueryFullProcessImageNameW(h,0,buf,C.byref(size)): raise OSError('QueryFullProcessImageName')
+-        return {'pid':pid,'created_filetime':times[0].dwLowDateTime+(times[0].dwHighDateTime<<32),'exe':buf.value}
+-    finally: k.CloseHandle(h)
+-
+-def process_snapshot():
+-    # Read-only CIM. All-process data stays transient; persist only own descendants.
+-    text=subprocess.check_output(['powershell.exe','-NoProfile','-NonInteractive','-Command',
+-        'Get-CimInstance Win32_Process | Select-Object ProcessId,ParentProcessId,CommandLine | ConvertTo-Json -Compress'],text=True,encoding='utf-8',errors='replace',creationflags=subprocess.CREATE_NO_WINDOW,timeout=15)
+-    value=json.loads(text)
+-    return {x['ProcessId']:x for x in value}
+-
+-def terminate_owned(key):
++    shell=C.WinDLL('shell32'); kernel=C.WinDLL('kernel32')
++    shell.CommandLineToArgvW.argtypes=[W.LPCWSTR,C.POINTER(C.c_int)]; shell.CommandLineToArgvW.restype=C.POINTER(W.LPWSTR)
++    kernel.LocalFree.argtypes=[W.HLOCAL]
++    count=C.c_int(); pointer=shell.CommandLineToArgvW(text,C.byref(count))
++    if not pointer: raise OSError('CommandLineToArgvW')
++    try: return [pointer[i] for i in range(count.value)]
++    finally: kernel.LocalFree(C.cast(pointer,W.HLOCAL))
++
++def process_times(proc):
+     from ctypes import wintypes as W
+-    if identity(key['pid'])!=key: raise ValueError('Owned cleanup identity mismatch')
+-    k=C.WinDLL('kernel32',use_last_error=True)
+-    k.OpenProcess.argtypes=[W.DWORD,W.BOOL,W.DWORD]; k.OpenProcess.restype=W.HANDLE
+-    k.CloseHandle.argtypes=[W.HANDLE]
+-    k.TerminateProcess.argtypes=[W.HANDLE,W.UINT]
+-    k.WaitForSingleObject.argtypes=[W.HANDLE,W.DWORD]
+-    handle=k.OpenProcess(0x00100001,False,key['pid'])
+-    if not handle: raise OSError('Cannot open exact owned process')
+-    try:
+-        # Recheck after opening handle; termination targets that retained handle.
+-        if identity(key['pid'])!=key: raise ValueError('Owned cleanup identity changed')
+-        if not k.TerminateProcess(handle,1): raise OSError('TerminateProcess failed')
+-        if k.WaitForSingleObject(handle,10000)!=0: raise TimeoutError('Owned process exit not proved')
+-    finally: k.CloseHandle(handle)
+-
+-
+-def protected():
+-    import datetime
+-    result=[]
+-    for expected in load(R/'runtime-before.json')['protected5']:
+-        actual=identity(expected['pid'])
+-        dt=datetime.datetime.fromisoformat(expected['created_utc'].replace('Z','+00:00'))
+-        expected_ticks=int((dt-datetime.datetime(1601,1,1,tzinfo=datetime.timezone.utc)).total_seconds()*10000000)
+-        if actual['exe'].lower()!=expected['exe'].lower() or abs(actual['created_filetime']-expected_ticks)>20:
+-            raise ValueError('Protected identity drift')
+-        result.append(actual)
+-    return result
+-
+-def environment(folder):
+-    env=dict(os.environ,NO_PROXY='localhost,127.0.0.1,::1',PYTHONIOENCODING='utf-8',PYTHONDONTWRITEBYTECODE='1',HF_HUB_OFFLINE='1',TRANSFORMERS_OFFLINE='1')
+-    for key in ('TEMP','TMP','TMPDIR','OPENJARVIS_HOME','HF_HOME','XDG_CACHE_HOME','XDG_CONFIG_HOME','XDG_DATA_HOME'):
+-        directory=folder/'owned-env'/key; directory.mkdir(parents=True)
+-        env[key]=str(directory)
+-    if os.environ.get('OLLAMA_HOST','http://localhost:11434') not in ('http://localhost:11434','http://127.0.0.1:11434'):
+-        raise ValueError('Nonlocal model host forbidden')
+-    for key in ('HTTP_PROXY','HTTPS_PROXY','ALL_PROXY','http_proxy','https_proxy','all_proxy'):
+-        env.pop(key,None)
+-    env['PYTHONPATH']=str(ROOT)
+-    return env
+-
+-def external_validate(case,result,artifacts,windows=None,baseline=None):
+-    if result.get('status')!='succeeded' or not artifacts or not all(x['verified'] for x in artifacts): raise ValueError('Product or external file failure')
+-    expected='rewrite.md' if case.startswith('e03') else 'summary.md'
+-    files=[x for x in artifacts if Path(x['path']).name==expected]
+-    if len(files)!=1: raise ValueError('Expected exact output missing/ambiguous')
+-    # Human root review still owns factual meaning/no additions. Literal checks are evidence only.
+-    if case.startswith('e03'):
+-        edits=result.get('context_results',[])
+-        if len(edits)!=1 or not windows or not baseline: raise ValueError('Missing external target proof')
+-        edit=edits[0]; original=edit['before']; actual=windows[0]
+-        raw=original['text'].encode('utf-16-le')
+-        replacement=edit['replacement_text']
+-        expected_text=(raw[:2*original['start_utf16']]+replacement.encode('utf-16-le')+raw[2*original['end_utf16']:]).decode('utf-16-le')
+-        if original['text']!=baseline[0]['text']: raise ValueError('Captured source drift')
+-        for a,b in zip(windows,baseline):
+-            for field in ('hwnd','control_hwnd','pid','process_created_filetime','title','class'):
+-                if a[field]!=b[field]: raise ValueError('Owned target identity drift')
+-        for key in ('hwnd','control_hwnd','pid','process_created_filetime','title','class'):
+-            if actual[key]!=baseline[0][key] or original[key]!=baseline[0][key]: raise ValueError('Target identity mismatch')
+-        if actual['text']!=expected_text or windows[1]['text']!=baseline[1]['text']: raise ValueError('Window outside replacement changed')
+-        if files[0]['text'].replace('\r\n','\n')!=replacement.replace('\r\n','\n'): raise ValueError('Companion exact replacement mismatch')
+-    return {'mechanical':'PASS','facts':'PENDING_ROOT_INDEPENDENT_REVIEW','file_sha256':files[0]['sha256']}
+-
+-def wait_cli(cli,folder):
+-    try: return cli.wait(timeout=CLI_TIMEOUT)
+-    except subprocess.TimeoutExpired:
+-        save(folder/'timeout.json',{'timeout_seconds':CLI_TIMEOUT,'work_cli_count':1,'retry':False,'logs_preserved':True,'sdk_inference_count':None})
+-        raise
+-
+-
+-def execute(case,folder,authority,ledger):
+-    folder=validate_release(case,folder,authority,ledger)
+-    if os.environ.get('OLLAMA_HOST','http://localhost:11434') not in ('http://localhost:11434','http://127.0.0.1:11434'): raise ValueError('Nonlocal model host forbidden')
+-    before_source=source_check(); before_process=protected()
+-    folder.mkdir(parents=True,exist_ok=False)
+-    save(folder/'authority.json',authority); save(folder/'ledger.json',ledger)
+-    save(folder/'boundary-before.json',{'source21':before_source,'protected5':before_process})
+-    env=environment(folder)
+-    sys.path.insert(0,str(ROOT))
+-    from src.brain.tests import work_context_acceptance as h
+-    children=[]; logs=[]; result={}; cleanup=[]; owned={}; port=None
+-    def refresh_owned():
+-        snapshot=process_snapshot()
+-        for item in children:
+-            proc=item['process']; root_key=item['identity']
+-            if proc.poll() is not None: continue
+-            if identity(proc.pid)!=root_key: raise ValueError('Launcher identity drift')
+-            pending=[proc.pid]
+-            while pending:
+-                pid=pending.pop()
+-                row=snapshot.get(pid)
+-                if row is None: continue
+-                try: key=identity(pid)
+-                except OSError:
+-                    if pid not in process_snapshot(): continue
+-                    raise
+-                if pid in {x['pid'] for x in before_process}: raise ValueError('Protected process in owned tree')
+-                owned[pid]={'identity':key,'ppid':row['ParentProcessId'],'argv':row['CommandLine'],'label':item['label']}
+-                pending.extend(x['ProcessId'] for x in snapshot.values() if x['ParentProcessId']==pid)
+-        save(folder/'owned-tree.json',list(owned.values()))
+-    def launch(argv,label):
+-        out=open(folder/(label+'.stdout'),'w',encoding='utf-8'); err=open(folder/(label+'.stderr'),'w',encoding='utf-8'); logs.extend([out,err])
+-        proc=h.launch(argv,env,out,err)
+-        record={'process':proc,'identity':identity(proc.pid),'label':label}
+-        children.append(record)
+-        owned[proc.pid]={'identity':record['identity'],'ppid':os.getpid(),'argv':argv,'label':label}
+-        refresh_owned()
+-        save(folder/'owned-processes.json',[{k:v for k,v in x.items() if k!='process'} for x in children])
+-        return proc
+-    def observe(name):
+-        proc=launch(['-B','-m',MODULE,'--observe-policy',str(folder/'fixture.json'),'--observe-result',str(folder/name)],name)
+-        if proc.wait(timeout=15): raise ValueError('External observer failed')
+-        return load(folder/name)
+-    def command(index=0,select=True):
+-        (folder/'command-done.json').unlink(missing_ok=True)
+-        save(folder/'command.json',{'index':index,'select':select})
+-        h.wait_for(lambda:(folder/'command-done.json').exists(),10)
+-    try:
+-        if case.startswith('e03'):
+-            fixture=launch(['-B','-m',MODULE,'--fixture',str(folder)],'fixture')
+-            h.wait_for(lambda:(folder/'fixture.json').exists(),20)
+-            fixture_data=load(folder/'fixture.json')
+-            refresh_owned()
+-            actual_fixture=owned.get(fixture_data['pid'])
+-            if not actual_fixture or actual_fixture['label']!='fixture' or any(t['pid']!=fixture_data['pid'] or t['process_created_filetime']!=actual_fixture['identity']['created_filetime'] for t in fixture_data['targets']): raise ValueError('Fixture ownership mismatch')
+-            baseline=observe('external-before.json')
+-            if baseline[0]['text']!=h.CASES['e03']['text'] or len(baseline)!=2: raise ValueError('Original fixture mismatch')
+-        if case=='e03-negative':
+-            from src.brain.work_context import WorkContextProvider
+-            provider=WorkContextProvider(load(folder/'policy.json')); sends=[]; failures=[]
+-            for scenario in ('focus','selection'):
+-                command(); capture=provider.capture_work_context()
+-                if not capture['available']: raise ValueError('Negative capture unavailable')
+-                command(1 if scenario=='focus' else 0,scenario=='focus')
+-                try:
+-                    provider.replace_selection(capture,'SHOULD NEVER WRITE',before_send=lambda:sends.append(scenario))
+-                    failures.append({'scenario':scenario,'rejected':False})
+-                except ValueError as exc: failures.append({'scenario':scenario,'rejected':True,'error':str(exc)})
+-                finally: provider.release(capture)
+-            after=observe('external-after.json')
+-            unchanged=[o['text'] for o in baseline]==[o['text'] for o in after]
+-            passed=not sends and unchanged and len(failures)==2 and all(x['rejected'] for x in failures)
+-            result={'status':'succeeded' if passed else 'failed','case':case,'cases':failures,'sends':sends,'all_window_text_unchanged':unchanged,'work_cli_count':0,'sdk_inference_end_count':0}
+-            save(folder/'negative-receipt.json',result); save(folder/'receipt.json',result)
+-            return result
+-        sock=socket.socket(); sock.bind(('127.0.0.1',0)); port=sock.getsockname()[1]; sock.close()
+-        server_args=['-B','-m','src.brain.agent_server','--port',str(port),'--runtime-root',str(folder/'runtime'),'--work-output-root',str(folder/'outputs'),'--isolated']
+-        if case.startswith('e03'): server_args+=['--work-target-policy',str(folder/'policy.json')]
+-        server=launch(server_args,'server')
+-        class NoRedirect(urllib.request.HTTPRedirectHandler):
+-            def redirect_request(self,*args,**kwargs): raise ValueError('Metadata redirect forbidden')
+-        opener=urllib.request.build_opener(urllib.request.ProxyHandler({}),NoRedirect())
+-        def get(url):
+-            with opener.open(url,timeout=2) as response: return json.load(response)
+-        def healthy():
+-            if server.poll() is not None: raise ValueError('Owned server exited')
+-            try: return get(f'http://127.0.0.1:{port}/health')
+-            except OSError: return None
+-        health=h.wait_for(healthy,30)
+-        refresh_owned()
+-        save(folder/'config-source-proof.json',load(PREP/'sdk-sources.json'))
+-        version=get('http://127.0.0.1:11434/api/version'); tags=get('http://127.0.0.1:11434/api/tags')
+-        manifest_path=Path(os.environ.get('OLLAMA_MODELS') or Path.home()/'.ollama/models')/'manifests/registry.ollama.ai/library'/MODEL/'latest'
+-        manifest=manifest_path.read_bytes()
+-        save(folder/'metadata-get-only.json',{'health':health,'version':version,'tags':tags,'manifest_path':str(manifest_path),'manifest_sha256':hashlib.sha256(manifest).hexdigest(),'manifest':json.loads(manifest)})
+-        metadata_valid(health,version,tags,manifest)
+-        source_check(); protected()
+-        query=h.CASES['e01']['request']+'\n'+'\n'.join(h.CASES['e01']['facts']); options=[]
+-        if case.startswith('e03'):
+-            command(); query=E03_QUERY; options=['--current-window','--replace-selection']
+-        cli_args=['-B','-m','src.brain.cli','--work',*options,'--request-id',case,'--session-id',case,'--server-url',f'http://127.0.0.1:{port}','--json',query]
+-        save(folder/'argv.json',{'server':server_args,'cli':cli_args,'max_tokens_override':None,'max_turns_override':None,'work_cli_cap':1,'cli_timeout':CLI_TIMEOUT})
+-        cli=launch(cli_args,'cli')
+-        time.sleep(.1)
+-        refresh_owned()
+-        code=wait_cli(cli,folder)
+-        for f in logs: f.flush()
+-        result=load(folder/'cli.stdout')
+-        inferences=[x for x in result.get('trace',[]) if x.get('type')=='inference_end']
+-        if not inferences or len(inferences)>10 or any(x.get('data',{}).get('model')!=MODEL for x in inferences): raise ValueError('Missing/mismatched SDK inference proof')
+-        save(folder/'receipt.json',dict(result,cli_exit=code,case=case,work_cli_count=1,sdk_inference_end_count=sum(x.get('type')=='inference_end' for x in result.get('trace',[])),sdk_inference_start_count=None,native_post_count=None,incomplete_inference_count=None,model_proof='metadata-get-only.json'))
+-        if result.get('request_id')!=case or result.get('session_id')!=case: raise ValueError('Result identity mismatch')
+-        for a in result.get('artifacts',[]):
+-            path=no_reparse(a['path'])
+-            if path.parent!=folder/'outputs'/result['task_id']: raise ValueError('External artifact escaped exact task root')
+-        artifacts=h.external_readback(result,folder)
+-        windows=observe('external-windows.json') if case.startswith('e03') else None
+-        save(folder/'mechanical-review.json',external_validate(case,result,artifacts,windows,baseline if case.startswith('e03') else None))
+-        if code: raise ValueError('CLI nonzero exit')
+-        return result
+-    except Exception as exc:
+-        save(folder/'harness-error.json',{'error':str(exc),'type':type(exc).__name__,'result':result,'retry':False})
+-        raise
+-    finally:
+-        (folder/'stop').touch()
+-        try: refresh_owned()
+-        except Exception as exc: save(folder/'cleanup-refresh-error.json',{'error':str(exc)})
+-        fixture_launchers=[x['process'] for x in children if x['label']=='fixture']
+-        for p in fixture_launchers:
+-            try: p.wait(timeout=3)
+-            except subprocess.TimeoutExpired: pass
+-        # Descendants first. Every terminate checks exact PID+creation+exe again.
+-        roots={x['process'].pid for x in children}
+-        sequence=sorted(owned.values(),key=lambda x:x['identity']['pid'] in roots)
+-        for item in sequence:
++    kernel=C.WinDLL('kernel32'); kernel.GetProcessTimes.argtypes=[W.HANDLE,*([C.POINTER(W.FILETIME)]*4)]
++    values=[W.FILETIME() for _ in range(4)]
++    if not kernel.GetProcessTimes(int(proc._handle),*[C.byref(x) for x in values]): raise OSError('Retained launcher times unavailable')
++    return tuple(x.dwLowDateTime+(x.dwHighDateTime<<32) for x in values[:2])
++
++def candidate_valid(key,row,root,argv,allowed_exes,exit_ticks):
++    return (row['ParentProcessId']==root['pid'] and root['created_filetime']<=key['created_filetime'] and (not exit_ticks or key['created_filetime']<=exit_ticks) and key['exe'].lower() in allowed_exes and argv_parse(row['CommandLine'])[1:]==argv)
++
++class Owned:
++    def __init__(self,folder,env):
++        self.folder,self.env=folder,env; self.launchers=[]; self.known={}; self.logs=[]; self.errors=[]; self.auxiliary={}; self.stale=[]
++        self.allowed_exes={str(Path(sys.executable)).lower(),identity(os.getpid())['exe'].lower()}
++        self.forbidden={x['pid'] for x in protected()}
++    def discover(self):
++        snapshot=old.process_snapshot()
++        for item in self.launchers:
++            proc=item['proc']; created,exited=process_times(proc)
++            require(created==item['identity']['created_filetime'],'Launcher creation drift')
++            for pid,row in snapshot.items():
++                if row['ParentProcessId']!=proc.pid: continue
++                key=identity(pid)
++                # Console hosts have no case argv. Observation only: never terminate.
++                console=str(Path(os.environ.get('SystemRoot','C:/Windows'))/'System32/conhost.exe').lower()
++                if key['created_filetime']<created:
++                    self.stale.append({'identity':key,'reason':'predates launcher'}); continue
++                if key['exe'].lower()==console and (not exited or key['created_filetime']<=exited):
++                    self.auxiliary[pid]={'identity':key,'parent':proc.pid,'argv':row['CommandLine'],'authority':'observe-only'}; continue
++                # Ambiguous matching parent is never sufficient authority to stop.
++                if not candidate_valid(key,row,item['identity'],item['argv'],self.allowed_exes,exited):
++                    self.errors.append({'discovery':'ambiguous-child','pid':pid,'identity':key,'argv_matches':argv_parse(row['CommandLine'])[1:]==item['argv']}); continue
++                require(pid not in self.forbidden,'Protected identity in tree')
++                previous=self.known.get(pid)
++                require(previous is None or previous['identity']==key,'Owned PID reuse')
++                self.known[pid]={'identity':key,'role':item['role'],'argv':row['CommandLine'],'parent':proc.pid}
++        save(self.folder/'owned-tree.json',{'processes':list(self.known.values()),'auxiliary':list(self.auxiliary.values()),'stale_rejected':self.stale,'errors':self.errors})
++        require(not self.errors,'Owned discovery ambiguity')
++        return snapshot
++    def launch(self,argv,role):
++        from src.brain.tests import work_context_acceptance as h
++        out=open(self.folder/(role+'.stdout'),'w',encoding='utf-8'); err=open(self.folder/(role+'.stderr'),'w',encoding='utf-8'); self.logs.extend((out,err))
++        proc=h.launch(argv,self.env,out,err); key=identity(proc.pid)
++        require(key['pid'] not in self.forbidden and key['exe'].lower() in self.allowed_exes,'Unexpected launcher identity')
++        item={'proc':proc,'identity':key,'argv':argv,'role':role}; self.launchers.append(item)
++        self.known[proc.pid]={'identity':key,'role':role,'argv':argv,'parent':os.getpid()}
++        self.discover(); return proc
++    def flush(self):
++        for stream in self.logs: stream.flush()
++    def cleanup(self,port=None):
++        records=[]
++        try: self.discover()
++        except Exception as exc: self.errors.append({'discovery_error':str(exc)})
++        (self.folder/'stop').touch()
++        for item in self.launchers:
++            if item['role']=='fixture':
++                try: item['proc'].wait(timeout=3)
++                except subprocess.TimeoutExpired: pass
++        roots={x['proc'].pid for x in self.launchers}
++        for item in sorted(self.known.values(),key=lambda x:x['identity']['pid'] in roots):
+             key=item['identity']; pid=key['pid']
+             try:
+-                if pid not in process_snapshot():
+-                    cleanup.append({'identity':key,'absent':True}); continue
+-                terminate_owned(key)
+-                cleanup.append({'identity':key,'terminated':True,'absent':pid not in process_snapshot()})
+-            except Exception as exc: cleanup.append({'identity':key,'cleanup_error':str(exc),'absent':False})
+-        for item in children:
+-            try: item['process'].wait(timeout=2)
+-            except subprocess.TimeoutExpired: pass
++                if pid in old.process_snapshot(): terminate_owned(key)
++                absent=pid not in old.process_snapshot()
++                require(absent,'Owned PID remains')
++                records.append({'identity':key,'absent':True})
++            except Exception as exc: self.errors.append({'cleanup':pid,'error':str(exc)}); records.append({'identity':key,'absent':False})
++        for item in self.launchers:
++            try: item['proc'].wait(timeout=2)
++            except subprocess.TimeoutExpired: self.errors.append({'launcher_remains':item['proc'].pid})
++        # Let console auxiliaries exit naturally; no parent-only termination.
++        deadline=time.monotonic()+3
++        while self.auxiliary and time.monotonic()<deadline:
++            snapshot=old.process_snapshot()
++            if not any(pid in snapshot for pid in self.auxiliary): break
++            time.sleep(.05)
++        snapshot=old.process_snapshot()
++        for pid,item in self.auxiliary.items():
++            if pid in snapshot: self.errors.append({'auxiliary_remains':item})
++            else: records.append({'identity':item['identity'],'absent':True,'authority':'observe-only'})
++        for stream in self.logs: stream.close()
++        closed=True
+         if port:
+             probe=socket.socket(); probe.settimeout(1)
+-            try: save(folder/'port-cleanup.json',{'port':port,'closed':probe.connect_ex(('127.0.0.1',port))!=0})
++            try: closed=probe.connect_ex(('127.0.0.1',port))!=0
+             finally: probe.close()
+-        for f in logs: f.close()
+-        save(folder/'cleanup.json',cleanup)
++        result={'status':'PASS' if records and all(x['absent'] for x in records) and closed and not self.errors else 'FAIL','processes':records,'port_closed':closed,'errors':self.errors}
++        save(self.folder/'cleanup.json',result); return result
++
++def listener_owner(port):
++    text=subprocess.check_output(['powershell.exe','-NoProfile','-NonInteractive','-Command',f'@(Get-NetTCPConnection -State Listen -LocalPort {int(port)} -ErrorAction SilentlyContinue | Select-Object -ExpandProperty OwningProcess) | ConvertTo-Json -Compress'],text=True,creationflags=subprocess.CREATE_NO_WINDOW,timeout=15).strip()
++    value=json.loads(text or '[]'); return [value] if isinstance(value,int) else value
++
++def assert_listener(owned,port,server_argv):
++    owned.discover(); owners=set(listener_owner(port))
++    require(len(owners)==1,'Unique listener required')
++    pid=owners.pop(); item=owned.known.get(pid)
++    require(item is not None and item['role']=='server' and identity(pid)==item['identity'],'Listener not owned server')
++    argv=item['argv'] if isinstance(item['argv'],list) else argv_parse(item['argv'])[1:]
++    require(argv==server_argv and str(owned.folder/'runtime') in argv and str(owned.folder/'outputs') in argv,'Listener case argv/root mismatch')
++    proof={'port':port,'identity':item['identity'],'role':'server','argv':argv}; save(owned.folder/'listener.json',proof); return proof
++
++def output_inventory(folder):
++    root=no_reparse(folder/'outputs'); records=[]
++    def walk(directory):
++        for entry in os.scandir(directory):
++            path=no_reparse(entry.path)
++            require(path.resolve().is_relative_to(root.resolve()),'Inventory escape')
++            require(len(records)<64,'Inventory bound exceeded')
++            if entry.is_dir(follow_symlinks=False): walk(path)
++            elif entry.is_file(follow_symlinks=False):
++                require(path.stat().st_size<=1048576,'Output too large')
++                raw=path.read_bytes(); records.append({'path':str(path.resolve()),'sha256':hashlib.sha256(raw).hexdigest(),'bytes_hex':raw.hex()})
++            else: raise ValueError('Unknown output object')
++    if root.exists(): walk(root)
++    return records
++
++def read_artifacts(folder,result):
++    task=uuid_text(result.get('task_id')); artifacts=[]
++    for item in result.get('artifacts',[]):
++        path=artifact_path(folder,task,item.get('path')); raw=path.read_bytes()
++        artifacts.append(dict(item,text=raw.decode('utf-8'),external_sha256=hashlib.sha256(raw).hexdigest()))
++    return artifacts
++
++def ids(item,result):
++    require(all(item.get(k)==result[k] for k in ('request_id','session_id','task_id')),'Run identity mismatch')
++    uuid_text(item.get('call_id'))
++
++def sdk_tool_proof(result,name,content):
++    trace=result.get('trace',[])
++    starts=[(i,x) for i,x in enumerate(trace) if x.get('type')=='tool_call_start' and x.get('data',{}).get('tool')==name]
++    ends=[(i,x) for i,x in enumerate(trace) if x.get('type')=='tool_call_end' and x.get('data',{}).get('tool')==name]
++    sdk=[x for x in result.get('tool_results',[]) if 'call_id' not in x and x.get('tool_name')==name]
++    require(len(starts)==len(ends)==len(sdk)==1 and starts[0][0]<ends[0][0] and ends[0][1]['data'].get('success') is True and sdk[0].get('success') is True,'Completed SDK tool evidence missing')
++    require(starts[0][1]['data'].get('arguments',{}).get('content')==content,'SDK arguments/ledger mismatch')
++    return starts[0][1]['data']['arguments']
++
++def mechanical(case,folder,result,artifacts,baseline,windows,inventory):
++    require(result.get('status')=='succeeded' and result.get('request_id')==case and result.get('session_id')==case,'Product identity/status mismatch'); uuid_text(result.get('task_id'))
++    expected='rewrite.md' if case.startswith('e03') else 'summary.md'
++    require(len(artifacts)==1 and Path(artifacts[0]['path']).name==expected,'Exact output set required')
++    artifact=artifacts[0]; ids(artifact,result)
++    require(artifact.get('verified') is True and artifact['sha256']==artifact['external_sha256'],'Service/external hash mismatch')
++    require({x['path'] for x in inventory}=={artifact['path']},'Unrelated/unreported output')
++    records=[x for x in result.get('tool_results',[]) if 'call_id' in x]
++    writes=[x for x in records if x.get('tool_name')=='ultima_work_file_write']
++    require(len(writes)==1 and writes[0].get('success') is True,'One completed actual write required')
++    write=writes[0]; ids(write,result)
++    require(write['call_id']==artifact['call_id'] and write['path']==artifact['path'],'Write/artifact call mismatch')
++    sdk_args=sdk_tool_proof(result,'ultima_work_file_write',write['content'])
++    sdk_path=Path(sdk_args['path']); sdk_path=sdk_path if sdk_path.is_absolute() else folder/'outputs'/result['task_id']/sdk_path
++    require(artifact_path(folder,result['task_id'],str(sdk_path))==Path(artifact['path']),'SDK write path mismatch')
++    require(write['content'].replace('\r\n','\n')==artifact['text'].replace('\r\n','\n'),'Write content/readback mismatch')
++    if case.startswith('e03'):
++        require(len(baseline)==len(windows)==2,'Two owned windows required')
++        capture=result['work_context']; uuid_text(capture.get('capture_id'))
++        require(capture.get('available') is True and capture.get('source')=='win32.standard_edit','Current capture required')
++        require(all(capture['window'][k]==baseline[0][k] for k in IDENTITY),'Capture target mismatch')
++        require(capture['text_sha256']==hashlib.sha256(baseline[0]['text'].encode()).hexdigest(),'Capture text mismatch')
++        timing=load(folder/'dispatch-baseline-timing.json'); final_timing=load(folder/'final-windows-timing.json')
++        require(timestamp(timing['ended_at'])<=timestamp(capture['captured_at'])<=timestamp(final_timing['ended_at']),'Stale capture time')
++        selection=capture['selection']; before=baseline[0]; raw=before['text'].encode('utf-16-le')
++        require(selection['start_utf16']==before['start_utf16'] and selection['end_utf16']==before['end_utf16'] and 0<=selection['start_utf16']<selection['end_utf16']<=len(raw)//2,'Baseline selection mismatch')
++        require(selection['text']==raw[2*selection['start_utf16']:2*selection['end_utf16']].decode('utf-16-le'),'Captured selection content mismatch')
++        edits=result.get('context_results',[]); require(len(edits)==1,'One context result required'); edit=edits[0]; ids(edit,result)
++        require(edit['before']==before,'Fresh before record mismatch')
++        replaces=[x for x in records if x.get('tool_name')=='ultima_work_replace_selection' and x.get('event')!='mutation.send']
++        sends=[x for x in records if x.get('event')=='mutation.send']
++        require(len(replaces)==len(sends)==1 and replaces[0].get('success') is True,'One completed replace and one mutation send required')
++        for item in (replaces[0],sends[0]): ids(item,result); require(item['call_id']==edit['call_id'],'Replace call mismatch')
++        require(replaces[0]['result']['replacement_text']==edit['replacement_text'] and replaces[0]['result']['before']==before,'Replace evidence mismatch')
++        require(sends[0].get('may_have_committed') is True,'Missing mutation intent witness')
++        sdk_tool_proof(result,'ultima_work_replace_selection',edit['replacement_text'])
++        replacement=edit['replacement_text']; expected_text=(raw[:2*before['start_utf16']]+replacement.encode('utf-16-le')+raw[2*before['end_utf16']:]).decode('utf-16-le')
++        caret=before['start_utf16']+len(replacement.encode('utf-16-le'))//2
++        for current,original in zip(windows,baseline): require(all(current[k]==original[k] for k in IDENTITY),'External target identity mismatch')
++        require(windows[0]['text']==expected_text and windows[0]['start_utf16']==windows[0]['end_utf16']==caret,'External final text/caret mismatch')
++        require(windows[1]['text']==baseline[1]['text'] and edit['after']==windows[0] and edit['expected_text']==expected_text,'Service/external state mismatch')
++        require(artifact['path'] in edit['companion_paths'] and artifact['text'].replace('\r\n','\n')==replacement.replace('\r\n','\n'),'Exact companion mismatch')
++    else: require(not any(x.get('event')=='mutation.send' or x.get('tool_name')=='ultima_work_replace_selection' for x in records),'Unexpected E01 mutation')
++    return {'mechanical':'PASS','facts':'PENDING_ROOT_INDEPENDENT_REVIEW'}
++
++class Case:
++    def __init__(self,case,folder,env):
++        self.case,self.folder=case,folder; self.owned=Owned(folder,env); self.port=None; self.fixture_ready=False; self.result=None; self.cli_count=0
++    def observe(self,label):
++        started=utc().isoformat()
++        proc=self.owned.launch(['-B','-m',MODULE,'--observe-policy',str(self.folder/'fixture.json'),'--observe-result',str(self.folder/(label+'.json'))],label)
++        require(proc.wait(timeout=15)==0,'Observer failed'); save(self.folder/(label+'-timing.json'),{'started_at':started,'ended_at':utc().isoformat()}); return load(self.folder/(label+'.json'))
++    def command(self,index=0,select=True):
++        from src.brain.tests import work_context_acceptance as h
++        (self.folder/'command-done.json').unlink(missing_ok=True); save(self.folder/'command.json',{'index':index,'select':select}); h.wait_for(lambda:(self.folder/'command-done.json').exists(),10)
++    def effects(self):
++        evidence={'cli_count':self.cli_count,'native_start_count':None,'incomplete_inferences':None,'generation_after_disconnect':'unknown','attempted_at':utc().isoformat()}
++        try: self.owned.flush()
++        except Exception as exc: evidence['logs_flush_unknown']=str(exc)
+         try:
+-            save(folder/'boundary-after.json',{'source21':source_check(),'protected5':protected(),'matches_before':protected()==before_process})
+-        except Exception as exc: save(folder/'boundary-error.json',{'error':str(exc)})
++            raw=(self.folder/'cli.stdout').read_text(encoding='utf-8'); evidence['raw_cli_preserved']='cli.stdout'
++            self.result=json.loads(raw); save(self.folder/'product-result.json',self.result)
++        except Exception as exc: evidence['product_unknown']=str(exc)
++        evidence['completed_inferences']=[x for x in (self.result or {}).get('trace',[]) if x.get('type')=='inference_end']
++        try: evidence['outputs']=output_inventory(self.folder)
++        except Exception as exc: evidence['outputs_unknown']=str(exc)
++        if not self.fixture_ready and (self.folder/'fixture.json').exists():
++            try:
++                fixture=load(self.folder/'fixture.json'); owner=self.owned.known.get(fixture['pid'])
++                self.fixture_ready=bool(owner and owner['role']=='fixture' and all(t['pid']==fixture['pid'] and t['process_created_filetime']==owner['identity']['created_filetime'] for t in fixture['targets']))
++            except Exception as exc: evidence['fixture_owner_unknown']=str(exc)
++        if self.fixture_ready:
++            try: evidence['windows']=self.observe('pre-cleanup-windows')
++            except Exception as exc: evidence['windows_unknown']=str(exc)
++        else: evidence['windows_unknown']='No approved fixture was created'
++        save(self.folder/'pre-cleanup-effects.json',evidence); return evidence
++    def negative(self,baseline):
++        from src.brain.work_context import WorkContextProvider,Win32Edit
++        provider=WorkContextProvider(load(self.folder/'policy.json')); native=Win32Edit(); failures=[]; sends=[]
++        before_files=output_inventory(self.folder)
++        for scenario in ('focus','selection'):
++            self.command(); capture=provider.capture_work_context(); require(capture['available'],'Negative capture unavailable')
++            self.command(1 if scenario=='focus' else 0,scenario=='focus')
++            current=self.observe('negative-'+scenario); focus=native.focused(); targets=load(self.folder/'fixture.json')['targets']; index=1 if scenario=='focus' else 0
++            require(focus==(targets[index]['hwnd'],targets[index]['control_hwnd']),'Actual owned foreground change missing')
++            require((current[0]['start_utf16'],current[0]['end_utf16'])!=(capture['selection']['start_utf16'],capture['selection']['end_utf16']) if scenario=='selection' else focus!=(targets[0]['hwnd'],targets[0]['control_hwnd']),'Actual negative change missing')
++            rejected=False; error=None
++            try: provider.replace_selection(capture,'SHOULD NEVER WRITE',before_send=lambda:sends.append(scenario))
++            except ValueError as exc: rejected=True; error=str(exc)
++            finally: provider.release(capture)
++            after=self.observe('negative-'+scenario+'-after')
++            require(rejected and not sends and [x['text'] for x in after]==[x['text'] for x in baseline] and output_inventory(self.folder)==before_files,'Negative refusal/mutation/text/file failure')
++            failures.append({'scenario':scenario,'capture':capture,'changed_windows':current,'foreground':focus,'rejected':rejected,'error':error,'sends':list(sends),'texts_files_unchanged':True})
++        save(self.folder/'negative-evidence.json',{'cases':failures,'mutation_sends':sends,'model_requests':0}); return {'mechanical':'PASS','facts':'PENDING_ROOT_INDEPENDENT_REVIEW'}
++
++def execute(case,folder,authority_path,ledger_path):
++    authority,ledger,root_proof=validate_authority(case,folder,authority_path,ledger_path)
++    source_check(); before=protected(); native=native_proof(root_proof) # BEFORE fixture/UI, negative included
++    folder.mkdir(parents=True,exist_ok=False)
++    save(folder/'admission.json',{'authority':authority,'ledger':ledger,'native':native})
++    sys.path.insert(0,str(ROOT)); context=Case(case,folder,environment(folder)); review=None; errors=[]; baseline=None
++    try:
++        from src.brain.tests import work_context_acceptance as h
++        validate_authority(case,folder,authority_path,ledger_path,active=True)
++        if case.startswith('e03'):
++            context.owned.launch(['-B','-m',MODULE,'--fixture',str(folder)],'fixture'); h.wait_for(lambda:(folder/'fixture.json').exists(),20); context.owned.discover()
++            fixture=load(folder/'fixture.json'); owner=context.owned.known.get(fixture['pid'])
++            require(owner and owner['role']=='fixture' and all(t['pid']==fixture['pid'] and t['process_created_filetime']==owner['identity']['created_filetime'] for t in fixture['targets']),'Actual fixture owner mismatch')
++            context.fixture_ready=True; baseline=context.observe('baseline')
++            require(len(baseline)==2 and baseline[0]['text']==h.CASES['e03']['text'],'Frozen fixture mismatch')
++        if case=='e03-negative': review=context.negative(baseline)
++        else:
++            sock=socket.socket(); sock.bind(('127.0.0.1',0)); context.port=sock.getsockname()[1]; sock.close()
++            argv=['-B','-m','src.brain.agent_server','--port',str(context.port),'--runtime-root',str(folder/'runtime'),'--work-output-root',str(folder/'outputs'),'--isolated']
++            if case.startswith('e03'): argv+=['--work-target-policy',str(folder/'policy.json')]
++            context.owned.launch(argv,'server')
++            def ready():
++                if not listener_owner(context.port): return False
++                assert_listener(context.owned,context.port,argv)
++                health=get_json(f'http://127.0.0.1:{context.port}/health')
++                require(health.get('ok') is True and health.get('model')==MODEL and health.get('agent')=='native_react','Isolated health mismatch')
++                return health
++            save(folder/'isolated-health.json',h.wait_for(ready,30))
++            if case.startswith('e03'): context.command(); baseline=context.observe('dispatch-baseline')
++            validate_authority(case,folder,authority_path,ledger_path,active=True); save(folder/'native-dispatch.json',native_proof(root_proof)); assert_listener(context.owned,context.port,argv)
++            query=h.CASES['e01']['request']+'\n'+'\n'.join(h.CASES['e01']['facts']); options=[]
++            if case.startswith('e03'): query=old.E03_QUERY; options=['--current-window','--replace-selection']
++            cli_args=['-B','-m','src.brain.cli','--work',*options,'--request-id',case,'--session-id',case,'--server-url',f'http://127.0.0.1:{context.port}','--json',query]
++            save(folder/'argv.json',{'server':argv,'cli':cli_args,'max_turns':10,'work_max_tokens':2048,'CLI_timeout':300,'SDK_timeout':1800,'controller_wait':315,'overrides':[]})
++            validate_authority(case,folder,authority_path,ledger_path,active=True)
++            context.cli_count+=1; cli=context.owned.launch(cli_args,'cli'); old.wait_cli(cli,folder); context.owned.flush()
++            context.result=load(folder/'cli.stdout'); save(folder/'product-result.json',context.result)
++            require(cli.returncode==0,'Nonzero CLI exit; generation may continue')
++            events=[x for x in context.result.get('trace',[]) if x.get('type')=='inference_end']; require(1<=len(events)<=10 and all(x.get('data',{}).get('model')==MODEL for x in events),'Completed inference proof missing')
++            artifacts=read_artifacts(folder,context.result); windows=context.observe('final-windows') if context.fixture_ready else None
++            review=mechanical(case,folder,context.result,artifacts,baseline,windows,output_inventory(folder)); save(folder/'mechanical-review.json',review)
++    except Exception as exc: errors.append({'harness':str(exc),'type':type(exc).__name__})
++    finally:
++        try: effects=context.effects() # ALWAYS before target destruction/server termination
++        except Exception as exc:
++            effects={'effects_unknown':str(exc)}; save(folder/'pre-cleanup-effects.json',effects); errors.append({'effects':str(exc)})
++        save(folder/'pre-cleanup-effects.json',effects)
++        try: save(folder/'native-after.json',native_proof(root_proof))
++        except Exception as exc: errors.append({'native_boundary':str(exc)})
++        try: cleanup=context.owned.cleanup(context.port)
++        except Exception as exc:
++            cleanup={'status':'FAIL','error':str(exc)}; save(folder/'cleanup.json',cleanup)
++        boundary='FAIL'
++        try:
++            source_check(); after=protected(); require(after==before,'Protected identities changed'); boundary='PASS'; save(folder/'boundaries.json',{'status':'PASS','protected5':after})
++        except Exception as exc: errors.append({'boundary':str(exc)})
++        if 'outputs_unknown' in effects or context.fixture_ready and 'windows_unknown' in effects: errors.append({'failure_evidence':'Required effects unknown'})
++        terminal={'schema':2,'case':case,'overall':'PASS' if review and not errors and cleanup['status']=='PASS' and boundary=='PASS' else 'FAIL','mechanical':(review or {}).get('mechanical','FAIL'),'facts':'PENDING_ROOT_INDEPENDENT_REVIEW','cleanup':cleanup['status'],'boundaries':boundary,'errors':errors,'product_result_sha256':sha(folder/'product-result.json') if (folder/'product-result.json').exists() else None,'effects_sha256':sha(folder/'pre-cleanup-effects.json'),'work_cli_count':context.cli_count,'actual_native_start_count':None}
++        save(folder/'terminal.json',terminal)
++    return terminal
+ 
+ def main():
+-    parser=argparse.ArgumentParser(description=__doc__)
+-    parser.add_argument('--case',required=True,choices=ORDER)
+-    parser.add_argument('--folder',required=True,type=Path)
+-    parser.add_argument('--authority',required=True,type=Path)
+-    parser.add_argument('--ledger',required=True,type=Path)
+-    args=parser.parse_args()
+-    authority=load(no_reparse(args.authority)); ledger=load(no_reparse(args.ledger))
+-    result=execute(args.case,args.folder,authority,ledger)
+-    print(json.dumps({'case':args.case,'status':result.get('status'),'facts':'PENDING_ROOT_REVIEW'}))
+-    return 0 if result.get('status')=='succeeded' else 2
++    parser=argparse.ArgumentParser(); parser.add_argument('--case',required=True,choices=ORDER); args=parser.parse_args()
++    terminal=execute(args.case,R/'actual'/args.case,R/'controller-authority'/f'{args.case}.json',R/'controller-ledger.json')
++    print(json.dumps(terminal)); return 0 if terminal['overall']=='PASS' else 2
+ if __name__=='__main__': raise SystemExit(main())

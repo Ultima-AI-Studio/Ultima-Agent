@@ -1,0 +1,847 @@
+--- /dev/null
++++ preparation-r2/controller.py
+@@ -0,0 +1,414 @@
++"""Revision 2 original acceptance evidence controller. Root alone releases a case."""
++from __future__ import annotations
++import argparse, ctypes as C, datetime as dt, hashlib, json, os, socket, stat, subprocess, sys, time, uuid
++from pathlib import Path
++import urllib.request
++P=Path(__file__).resolve().parent
++P1=P.parent/'preparation'
++if hashlib.sha256((P1/'acceptance_adapter.py').read_bytes()).hexdigest()!='d91ddf5e44a19d6143ee8657f1e0946617eb1c77197c399d017ace39cad02da4': raise RuntimeError('P1 changed')
++sys.path.insert(0,str(P1))
++import acceptance_adapter as old
++ROOT,R,MODEL,DIGEST,ORDER,MODULE=old.ROOT,old.R,old.MODEL,old.DIGEST,old.ORDER,old.MODULE
++sha,load,save,identity,protected,environment,terminate_owned=old.sha,old.load,old.save,old.identity,old.protected,old.environment,old.terminate_owned
++no_reparse=old.no_reparse
++MAX_ADMISSION=120
++IDENTITY=('hwnd','control_hwnd','pid','process_created_filetime','title','class')
++
++def require(ok,message):
++    if not ok: raise ValueError(message)
++def utc(): return dt.datetime.now(dt.timezone.utc)
++def timestamp(value):
++    result=dt.datetime.fromisoformat(value.replace('Z','+00:00'))
++    require(result.tzinfo is not None,'Timezone required'); return result
++
++def uuid_text(value):
++    require(isinstance(value,str),'UUID string required')
++    try: parsed=uuid.UUID(value)
++    except (ValueError,AttributeError): raise ValueError('Canonical UUID required')
++    require(str(parsed)==value and parsed.version==4,'Canonical UUID4 required')
++    return value
++
++def artifact_path(folder,task,value):
++    uuid_text(task)
++    require(isinstance(value,str) and Path(value).is_absolute(),'Absolute artifact path required')
++    raw=Path(value); fixed=folder/'outputs'
++    require('..' not in raw.parts and raw.parent==fixed/task and raw.is_relative_to(fixed),'Outside lexical task root')
++    require(':' not in value[2:],'Alternate streams forbidden')
++    raw=no_reparse(raw); root=no_reparse(fixed).resolve()
++    resolved=raw.resolve()
++    require(resolved.is_relative_to(root) and resolved.parent==root/task,'Artifact outside exact task root')
++    return resolved
++
++def source_check():
++    current=old.source_check()
++    for path,digest in load(P/'inputs.json')['files'].items(): require(sha(path)==digest,'Input drift '+path)
++    return current
++
++def validate_authority(case,folder,authority_path,ledger_path,*,active=False,now=None):
++    require(not sys.flags.optimize,'Optimized Python forbidden')
++    require(case in ORDER,'Only original cases')
++    require(no_reparse(folder)==R/'actual'/case,'Exact fixed case root required')
++    require(active or not folder.exists(),'Existing case forbidden')
++    require(no_reparse(authority_path)==R/'controller-authority'/f'{case}.json','Canonical authority path required')
++    require(no_reparse(ledger_path)==R/'controller-ledger.json','Canonical ledger path required')
++    authority=load(authority_path); ledger=load(ledger_path); now=now or utc()
++    require(authority.get('schema')==2 and ledger.get('schema')==2 and authority.get('issuer')=='root','Current root schema required')
++    require(authority.get('case')==case and authority.get('folder')==str(folder),'Case binding mismatch')
++    issued=timestamp(authority['issued_at']); expiry=timestamp(authority['expires_at'])
++    require(issued<=now<expiry and 0<(expiry-issued).total_seconds()<=MAX_ADMISSION,'Expired/stale admission')
++    require(authority.get('model')==MODEL and authority.get('digest')==DIGEST,'Model boundary mismatch')
++    require(authority.get('preparation_manifest_sha256')==sha(P/'manifest.json'),'Preparation mismatch')
++    package=load(P/'manifest.json')
++    require(package.get('files',{}).get('controller.py')==sha(__file__),'Loaded runner/package mismatch')
++    for name,digest in package['files'].items():
++        require(Path(name).name==name,'Unsafe package entry')
++        require(sha(no_reparse(P/name))==digest,'Preparation file drift')
++    approval_path=no_reparse(R/'controller-preparation-approval.json'); approval=load(approval_path)
++    review_path=no_reparse(R/'review-preparation-2/review.md')
++    require(approval.get('schema')==2 and approval.get('overall')=='PASS' and approval.get('reviewer')=='root-independent','Independent preparation approval required')
++    require(approval.get('preparation_manifest_sha256')==sha(P/'manifest.json') and approval.get('review_sha256')==sha(review_path),'Current review mismatch')
++    require(authority.get('approval_sha256')==sha(approval_path),'Approval binding mismatch')
++    require(authority.get('ledger_sha256')==sha(ledger_path),'Root ledger binding mismatch')
++    index=ORDER.index(case)
++    require(ledger.get('consumed')==list(ORDER[:index+1]) and ledger.get('released_case')==case,'Exact ordered preconsumption cap required')
++    proof_path=no_reparse(R/'controller-native-preflight'/f'{case}.json'); proof=load(proof_path)
++    require(authority.get('native_preflight_sha256')==sha(proof_path),'Native proof binding mismatch')
++    age=(now-timestamp(proof['recorded_at'])).total_seconds()
++    require(0<=age<=60 and proof.get('source21_sha256')==sha(R/'source21-before.json') and proof.get('head')=='244d2120abcd6b8d7744f74a05bd22de46a2d3a5','Stale source/native proof')
++    require(proof.get('model')==MODEL and proof.get('digest')==DIGEST,'Preflight model mismatch')
++    actual=R/'actual'; names={x.name for x in actual.iterdir()} if actual.exists() else set()
++    require(names==set(ORDER[:index])|({case} if active else set()),'Unexpected/preexisting sibling state')
++    reviews=authority.get('prior_reviews',[])
++    require([x.get('case') for x in reviews]==list(ORDER[:index]),'Exact predecessor reviews required')
++    for item in reviews:
++        terminal_path=no_reparse(actual/item['case']/'terminal.json'); terminal=load(terminal_path)
++        require(item.get('terminal_sha256')==sha(terminal_path) and terminal.get('case')==item['case'] and terminal.get('mechanical')=='PASS' and terminal.get('overall')=='PASS' and terminal.get('cleanup')=='PASS' and terminal.get('boundaries')=='PASS','Predecessor overall failure')
++        review=no_reparse(actual/item['case']/'independent-review.json'); accepted=load(review)
++        require(item.get('review_sha256')==sha(review) and accepted.get('terminal_sha256')==sha(terminal_path) and accepted.get('reviewer')=='root-independent','Predecessor review binding')
++        require(all(accepted.get(k)=='PASS' for k in ('facts','mechanical','target','file','cleanup','boundaries')),'Predecessor independent acceptance required')
++    return authority,ledger,proof
++
++def get_json(url):
++    class NoRedirect(urllib.request.HTTPRedirectHandler):
++        def redirect_request(self,*args,**kwargs): raise ValueError('Redirect forbidden')
++    opener=urllib.request.build_opener(urllib.request.ProxyHandler({}),NoRedirect())
++    with opener.open(url,timeout=2) as response: return json.load(response)
++
++def native_proof(root_proof):
++    require(os.environ.get('OLLAMA_HOST','http://localhost:11434') in ('http://localhost:11434','http://127.0.0.1:11434'),'Local model only')
++    source_check(); protected()
++    version=get_json('http://127.0.0.1:11434/api/version'); tags=get_json('http://127.0.0.1:11434/api/tags')
++    path=Path(os.environ.get('OLLAMA_MODELS') or Path.home()/'.ollama/models')/'manifests/registry.ollama.ai/library'/MODEL/'latest'
++    manifest=no_reparse(path).read_bytes()
++    old.metadata_valid({'ok':True,'model':MODEL,'agent':'native_react'},version,tags,manifest)
++    require(root_proof.get('version')==version and root_proof.get('tags_sha256')==hashlib.sha256(json.dumps(tags,sort_keys=True).encode()).hexdigest() and root_proof.get('manifest_sha256')==hashlib.sha256(manifest).hexdigest(),'Fresh native proof differs from root binding')
++    return {'recorded_at':utc().isoformat(),'version':version,'tags':tags,'manifest_sha256':hashlib.sha256(manifest).hexdigest(),'model':MODEL,'digest':DIGEST}
++
++def argv_parse(text):
++    from ctypes import wintypes as W
++    shell=C.WinDLL('shell32'); kernel=C.WinDLL('kernel32')
++    shell.CommandLineToArgvW.argtypes=[W.LPCWSTR,C.POINTER(C.c_int)]; shell.CommandLineToArgvW.restype=C.POINTER(W.LPWSTR)
++    kernel.LocalFree.argtypes=[W.HLOCAL]
++    count=C.c_int(); pointer=shell.CommandLineToArgvW(text,C.byref(count))
++    if not pointer: raise OSError('CommandLineToArgvW')
++    try: return [pointer[i] for i in range(count.value)]
++    finally: kernel.LocalFree(C.cast(pointer,W.HLOCAL))
++
++def process_times(proc):
++    from ctypes import wintypes as W
++    kernel=C.WinDLL('kernel32'); kernel.GetProcessTimes.argtypes=[W.HANDLE,*([C.POINTER(W.FILETIME)]*4)]
++    values=[W.FILETIME() for _ in range(4)]
++    if not kernel.GetProcessTimes(int(proc._handle),*[C.byref(x) for x in values]): raise OSError('Retained launcher times unavailable')
++    return tuple(x.dwLowDateTime+(x.dwHighDateTime<<32) for x in values[:2])
++
++def candidate_valid(key,row,root,argv,allowed_exes,exit_ticks):
++    return (row['ParentProcessId']==root['pid'] and root['created_filetime']<=key['created_filetime'] and (not exit_ticks or key['created_filetime']<=exit_ticks) and key['exe'].lower() in allowed_exes and argv_parse(row['CommandLine'])[1:]==argv)
++
++class Owned:
++    def __init__(self,folder,env):
++        self.folder,self.env=folder,env; self.launchers=[]; self.known={}; self.logs=[]; self.errors=[]; self.auxiliary={}; self.stale=[]
++        self.allowed_exes={str(Path(sys.executable)).lower(),identity(os.getpid())['exe'].lower()}
++        self.forbidden={x['pid'] for x in protected()}
++    def discover(self):
++        snapshot=old.process_snapshot()
++        for item in self.launchers:
++            proc=item['proc']; created,exited=process_times(proc)
++            require(created==item['identity']['created_filetime'],'Launcher creation drift')
++            for pid,row in snapshot.items():
++                if row['ParentProcessId']!=proc.pid: continue
++                key=identity(pid)
++                # Console hosts have no case argv. Observation only: never terminate.
++                console=str(Path(os.environ.get('SystemRoot','C:/Windows'))/'System32/conhost.exe').lower()
++                if key['created_filetime']<created:
++                    self.stale.append({'identity':key,'reason':'predates launcher'}); continue
++                if key['exe'].lower()==console and (not exited or key['created_filetime']<=exited):
++                    self.auxiliary[pid]={'identity':key,'parent':proc.pid,'argv':row['CommandLine'],'authority':'observe-only'}; continue
++                # Ambiguous matching parent is never sufficient authority to stop.
++                if not candidate_valid(key,row,item['identity'],item['argv'],self.allowed_exes,exited):
++                    self.errors.append({'discovery':'ambiguous-child','pid':pid,'identity':key,'argv_matches':argv_parse(row['CommandLine'])[1:]==item['argv']}); continue
++                require(pid not in self.forbidden,'Protected identity in tree')
++                previous=self.known.get(pid)
++                require(previous is None or previous['identity']==key,'Owned PID reuse')
++                self.known[pid]={'identity':key,'role':item['role'],'argv':row['CommandLine'],'parent':proc.pid}
++        save(self.folder/'owned-tree.json',{'processes':list(self.known.values()),'auxiliary':list(self.auxiliary.values()),'stale_rejected':self.stale,'errors':self.errors})
++        require(not self.errors,'Owned discovery ambiguity')
++        return snapshot
++    def launch(self,argv,role):
++        from src.brain.tests import work_context_acceptance as h
++        out=open(self.folder/(role+'.stdout'),'w',encoding='utf-8'); err=open(self.folder/(role+'.stderr'),'w',encoding='utf-8'); self.logs.extend((out,err))
++        proc=h.launch(argv,self.env,out,err); key=identity(proc.pid)
++        require(key['pid'] not in self.forbidden and key['exe'].lower() in self.allowed_exes,'Unexpected launcher identity')
++        item={'proc':proc,'identity':key,'argv':argv,'role':role}; self.launchers.append(item)
++        self.known[proc.pid]={'identity':key,'role':role,'argv':argv,'parent':os.getpid()}
++        self.discover(); return proc
++    def flush(self):
++        for stream in self.logs: stream.flush()
++    def cleanup(self,port=None):
++        records=[]
++        try: self.discover()
++        except Exception as exc: self.errors.append({'discovery_error':str(exc)})
++        (self.folder/'stop').touch()
++        for item in self.launchers:
++            if item['role']=='fixture':
++                try: item['proc'].wait(timeout=3)
++                except subprocess.TimeoutExpired: pass
++        roots={x['proc'].pid for x in self.launchers}
++        for item in sorted(self.known.values(),key=lambda x:x['identity']['pid'] in roots):
++            key=item['identity']; pid=key['pid']
++            try:
++                if pid in old.process_snapshot(): terminate_owned(key)
++                absent=pid not in old.process_snapshot()
++                require(absent,'Owned PID remains')
++                records.append({'identity':key,'absent':True})
++            except Exception as exc: self.errors.append({'cleanup':pid,'error':str(exc)}); records.append({'identity':key,'absent':False})
++        for item in self.launchers:
++            try: item['proc'].wait(timeout=2)
++            except subprocess.TimeoutExpired: self.errors.append({'launcher_remains':item['proc'].pid})
++        # Let console auxiliaries exit naturally; no parent-only termination.
++        deadline=time.monotonic()+3
++        while self.auxiliary and time.monotonic()<deadline:
++            snapshot=old.process_snapshot()
++            if not any(pid in snapshot for pid in self.auxiliary): break
++            time.sleep(.05)
++        snapshot=old.process_snapshot()
++        for pid,item in self.auxiliary.items():
++            if pid in snapshot: self.errors.append({'auxiliary_remains':item})
++            else: records.append({'identity':item['identity'],'absent':True,'authority':'observe-only'})
++        for stream in self.logs: stream.close()
++        closed=True
++        if port:
++            probe=socket.socket(); probe.settimeout(1)
++            try: closed=probe.connect_ex(('127.0.0.1',port))!=0
++            finally: probe.close()
++        result={'status':'PASS' if records and all(x['absent'] for x in records) and closed and not self.errors else 'FAIL','processes':records,'port_closed':closed,'errors':self.errors}
++        save(self.folder/'cleanup.json',result); return result
++
++def listener_owner(port):
++    text=subprocess.check_output(['powershell.exe','-NoProfile','-NonInteractive','-Command',f'@(Get-NetTCPConnection -State Listen -LocalPort {int(port)} -ErrorAction SilentlyContinue | Select-Object -ExpandProperty OwningProcess) | ConvertTo-Json -Compress'],text=True,creationflags=subprocess.CREATE_NO_WINDOW,timeout=15).strip()
++    value=json.loads(text or '[]'); return [value] if isinstance(value,int) else value
++
++def assert_listener(owned,port,server_argv):
++    owned.discover(); owners=set(listener_owner(port))
++    require(len(owners)==1,'Unique listener required')
++    pid=owners.pop(); item=owned.known.get(pid)
++    require(item is not None and item['role']=='server' and identity(pid)==item['identity'],'Listener not owned server')
++    argv=item['argv'] if isinstance(item['argv'],list) else argv_parse(item['argv'])[1:]
++    require(argv==server_argv and str(owned.folder/'runtime') in argv and str(owned.folder/'outputs') in argv,'Listener case argv/root mismatch')
++    proof={'port':port,'identity':item['identity'],'role':'server','argv':argv}; save(owned.folder/'listener.json',proof); return proof
++
++def output_inventory(folder):
++    root=no_reparse(folder/'outputs'); records=[]
++    def walk(directory):
++        for entry in os.scandir(directory):
++            path=no_reparse(entry.path)
++            require(path.resolve().is_relative_to(root.resolve()),'Inventory escape')
++            require(len(records)<64,'Inventory bound exceeded')
++            if entry.is_dir(follow_symlinks=False): walk(path)
++            elif entry.is_file(follow_symlinks=False):
++                require(path.stat().st_size<=1048576,'Output too large')
++                raw=path.read_bytes(); records.append({'path':str(path.resolve()),'sha256':hashlib.sha256(raw).hexdigest(),'bytes_hex':raw.hex()})
++            else: raise ValueError('Unknown output object')
++    if root.exists(): walk(root)
++    return records
++
++def read_artifacts(folder,result):
++    task=uuid_text(result.get('task_id')); artifacts=[]
++    for item in result.get('artifacts',[]):
++        path=artifact_path(folder,task,item.get('path')); raw=path.read_bytes()
++        artifacts.append(dict(item,text=raw.decode('utf-8'),external_sha256=hashlib.sha256(raw).hexdigest()))
++    return artifacts
++
++def ids(item,result):
++    require(all(item.get(k)==result[k] for k in ('request_id','session_id','task_id')),'Run identity mismatch')
++    uuid_text(item.get('call_id'))
++
++def sdk_tool_proof(result,name,content):
++    trace=result.get('trace',[])
++    starts=[(i,x) for i,x in enumerate(trace) if x.get('type')=='tool_call_start' and x.get('data',{}).get('tool')==name]
++    ends=[(i,x) for i,x in enumerate(trace) if x.get('type')=='tool_call_end' and x.get('data',{}).get('tool')==name]
++    sdk=[x for x in result.get('tool_results',[]) if 'call_id' not in x and x.get('tool_name')==name]
++    require(len(starts)==len(ends)==len(sdk)==1 and starts[0][0]<ends[0][0] and ends[0][1]['data'].get('success') is True and sdk[0].get('success') is True,'Completed SDK tool evidence missing')
++    require(starts[0][1]['data'].get('arguments',{}).get('content')==content,'SDK arguments/ledger mismatch')
++    return starts[0][1]['data']['arguments']
++
++def mechanical(case,folder,result,artifacts,baseline,windows,inventory):
++    require(result.get('status')=='succeeded' and result.get('request_id')==case and result.get('session_id')==case,'Product identity/status mismatch'); uuid_text(result.get('task_id'))
++    expected='rewrite.md' if case.startswith('e03') else 'summary.md'
++    require(len(artifacts)==1 and Path(artifacts[0]['path']).name==expected,'Exact output set required')
++    artifact=artifacts[0]; ids(artifact,result)
++    require(artifact.get('verified') is True and artifact['sha256']==artifact['external_sha256'],'Service/external hash mismatch')
++    require({x['path'] for x in inventory}=={artifact['path']},'Unrelated/unreported output')
++    records=[x for x in result.get('tool_results',[]) if 'call_id' in x]
++    writes=[x for x in records if x.get('tool_name')=='ultima_work_file_write']
++    require(len(writes)==1 and writes[0].get('success') is True,'One completed actual write required')
++    write=writes[0]; ids(write,result)
++    require(write['call_id']==artifact['call_id'] and write['path']==artifact['path'],'Write/artifact call mismatch')
++    sdk_args=sdk_tool_proof(result,'ultima_work_file_write',write['content'])
++    sdk_path=Path(sdk_args['path']); sdk_path=sdk_path if sdk_path.is_absolute() else folder/'outputs'/result['task_id']/sdk_path
++    require(artifact_path(folder,result['task_id'],str(sdk_path))==Path(artifact['path']),'SDK write path mismatch')
++    require(write['content'].replace('\r\n','\n')==artifact['text'].replace('\r\n','\n'),'Write content/readback mismatch')
++    if case.startswith('e03'):
++        require(len(baseline)==len(windows)==2,'Two owned windows required')
++        capture=result['work_context']; uuid_text(capture.get('capture_id'))
++        require(capture.get('available') is True and capture.get('source')=='win32.standard_edit','Current capture required')
++        require(all(capture['window'][k]==baseline[0][k] for k in IDENTITY),'Capture target mismatch')
++        require(capture['text_sha256']==hashlib.sha256(baseline[0]['text'].encode()).hexdigest(),'Capture text mismatch')
++        timing=load(folder/'dispatch-baseline-timing.json'); final_timing=load(folder/'final-windows-timing.json')
++        require(timestamp(timing['ended_at'])<=timestamp(capture['captured_at'])<=timestamp(final_timing['ended_at']),'Stale capture time')
++        selection=capture['selection']; before=baseline[0]; raw=before['text'].encode('utf-16-le')
++        require(selection['start_utf16']==before['start_utf16'] and selection['end_utf16']==before['end_utf16'] and 0<=selection['start_utf16']<selection['end_utf16']<=len(raw)//2,'Baseline selection mismatch')
++        require(selection['text']==raw[2*selection['start_utf16']:2*selection['end_utf16']].decode('utf-16-le'),'Captured selection content mismatch')
++        edits=result.get('context_results',[]); require(len(edits)==1,'One context result required'); edit=edits[0]; ids(edit,result)
++        require(edit['before']==before,'Fresh before record mismatch')
++        replaces=[x for x in records if x.get('tool_name')=='ultima_work_replace_selection' and x.get('event')!='mutation.send']
++        sends=[x for x in records if x.get('event')=='mutation.send']
++        require(len(replaces)==len(sends)==1 and replaces[0].get('success') is True,'One completed replace and one mutation send required')
++        for item in (replaces[0],sends[0]): ids(item,result); require(item['call_id']==edit['call_id'],'Replace call mismatch')
++        require(replaces[0]['result']['replacement_text']==edit['replacement_text'] and replaces[0]['result']['before']==before,'Replace evidence mismatch')
++        require(sends[0].get('may_have_committed') is True,'Missing mutation intent witness')
++        sdk_tool_proof(result,'ultima_work_replace_selection',edit['replacement_text'])
++        replacement=edit['replacement_text']; expected_text=(raw[:2*before['start_utf16']]+replacement.encode('utf-16-le')+raw[2*before['end_utf16']:]).decode('utf-16-le')
++        caret=before['start_utf16']+len(replacement.encode('utf-16-le'))//2
++        for current,original in zip(windows,baseline): require(all(current[k]==original[k] for k in IDENTITY),'External target identity mismatch')
++        require(windows[0]['text']==expected_text and windows[0]['start_utf16']==windows[0]['end_utf16']==caret,'External final text/caret mismatch')
++        require(windows[1]['text']==baseline[1]['text'] and edit['after']==windows[0] and edit['expected_text']==expected_text,'Service/external state mismatch')
++        require(artifact['path'] in edit['companion_paths'] and artifact['text'].replace('\r\n','\n')==replacement.replace('\r\n','\n'),'Exact companion mismatch')
++    else: require(not any(x.get('event')=='mutation.send' or x.get('tool_name')=='ultima_work_replace_selection' for x in records),'Unexpected E01 mutation')
++    return {'mechanical':'PASS','facts':'PENDING_ROOT_INDEPENDENT_REVIEW'}
++
++class Case:
++    def __init__(self,case,folder,env):
++        self.case,self.folder=case,folder; self.owned=Owned(folder,env); self.port=None; self.fixture_ready=False; self.result=None; self.cli_count=0
++    def observe(self,label):
++        started=utc().isoformat()
++        proc=self.owned.launch(['-B','-m',MODULE,'--observe-policy',str(self.folder/'fixture.json'),'--observe-result',str(self.folder/(label+'.json'))],label)
++        require(proc.wait(timeout=15)==0,'Observer failed'); save(self.folder/(label+'-timing.json'),{'started_at':started,'ended_at':utc().isoformat()}); return load(self.folder/(label+'.json'))
++    def command(self,index=0,select=True):
++        from src.brain.tests import work_context_acceptance as h
++        (self.folder/'command-done.json').unlink(missing_ok=True); save(self.folder/'command.json',{'index':index,'select':select}); h.wait_for(lambda:(self.folder/'command-done.json').exists(),10)
++    def effects(self):
++        evidence={'cli_count':self.cli_count,'native_start_count':None,'incomplete_inferences':None,'generation_after_disconnect':'unknown','attempted_at':utc().isoformat()}
++        try: self.owned.flush()
++        except Exception as exc: evidence['logs_flush_unknown']=str(exc)
++        try:
++            raw=(self.folder/'cli.stdout').read_text(encoding='utf-8'); evidence['raw_cli_preserved']='cli.stdout'
++            self.result=json.loads(raw); save(self.folder/'product-result.json',self.result)
++        except Exception as exc: evidence['product_unknown']=str(exc)
++        evidence['completed_inferences']=[x for x in (self.result or {}).get('trace',[]) if x.get('type')=='inference_end']
++        try: evidence['outputs']=output_inventory(self.folder)
++        except Exception as exc: evidence['outputs_unknown']=str(exc)
++        if not self.fixture_ready and (self.folder/'fixture.json').exists():
++            try:
++                fixture=load(self.folder/'fixture.json'); owner=self.owned.known.get(fixture['pid'])
++                self.fixture_ready=bool(owner and owner['role']=='fixture' and all(t['pid']==fixture['pid'] and t['process_created_filetime']==owner['identity']['created_filetime'] for t in fixture['targets']))
++            except Exception as exc: evidence['fixture_owner_unknown']=str(exc)
++        if self.fixture_ready:
++            try: evidence['windows']=self.observe('pre-cleanup-windows')
++            except Exception as exc: evidence['windows_unknown']=str(exc)
++        else: evidence['windows_unknown']='No approved fixture was created'
++        save(self.folder/'pre-cleanup-effects.json',evidence); return evidence
++    def negative(self,baseline):
++        from src.brain.work_context import WorkContextProvider,Win32Edit
++        provider=WorkContextProvider(load(self.folder/'policy.json')); native=Win32Edit(); failures=[]; sends=[]
++        before_files=output_inventory(self.folder)
++        for scenario in ('focus','selection'):
++            self.command(); capture=provider.capture_work_context(); require(capture['available'],'Negative capture unavailable')
++            self.command(1 if scenario=='focus' else 0,scenario=='focus')
++            current=self.observe('negative-'+scenario); focus=native.focused(); targets=load(self.folder/'fixture.json')['targets']; index=1 if scenario=='focus' else 0
++            require(focus==(targets[index]['hwnd'],targets[index]['control_hwnd']),'Actual owned foreground change missing')
++            require((current[0]['start_utf16'],current[0]['end_utf16'])!=(capture['selection']['start_utf16'],capture['selection']['end_utf16']) if scenario=='selection' else focus!=(targets[0]['hwnd'],targets[0]['control_hwnd']),'Actual negative change missing')
++            rejected=False; error=None
++            try: provider.replace_selection(capture,'SHOULD NEVER WRITE',before_send=lambda:sends.append(scenario))
++            except ValueError as exc: rejected=True; error=str(exc)
++            finally: provider.release(capture)
++            after=self.observe('negative-'+scenario+'-after')
++            require(rejected and not sends and [x['text'] for x in after]==[x['text'] for x in baseline] and output_inventory(self.folder)==before_files,'Negative refusal/mutation/text/file failure')
++            failures.append({'scenario':scenario,'capture':capture,'changed_windows':current,'foreground':focus,'rejected':rejected,'error':error,'sends':list(sends),'texts_files_unchanged':True})
++        save(self.folder/'negative-evidence.json',{'cases':failures,'mutation_sends':sends,'model_requests':0}); return {'mechanical':'PASS','facts':'PENDING_ROOT_INDEPENDENT_REVIEW'}
++
++def execute(case,folder,authority_path,ledger_path):
++    authority,ledger,root_proof=validate_authority(case,folder,authority_path,ledger_path)
++    source_check(); before=protected(); native=native_proof(root_proof) # BEFORE fixture/UI, negative included
++    folder.mkdir(parents=True,exist_ok=False)
++    save(folder/'admission.json',{'authority':authority,'ledger':ledger,'native':native})
++    sys.path.insert(0,str(ROOT)); context=Case(case,folder,environment(folder)); review=None; errors=[]; baseline=None
++    try:
++        from src.brain.tests import work_context_acceptance as h
++        validate_authority(case,folder,authority_path,ledger_path,active=True)
++        if case.startswith('e03'):
++            context.owned.launch(['-B','-m',MODULE,'--fixture',str(folder)],'fixture'); h.wait_for(lambda:(folder/'fixture.json').exists(),20); context.owned.discover()
++            fixture=load(folder/'fixture.json'); owner=context.owned.known.get(fixture['pid'])
++            require(owner and owner['role']=='fixture' and all(t['pid']==fixture['pid'] and t['process_created_filetime']==owner['identity']['created_filetime'] for t in fixture['targets']),'Actual fixture owner mismatch')
++            context.fixture_ready=True; baseline=context.observe('baseline')
++            require(len(baseline)==2 and baseline[0]['text']==h.CASES['e03']['text'],'Frozen fixture mismatch')
++        if case=='e03-negative': review=context.negative(baseline)
++        else:
++            sock=socket.socket(); sock.bind(('127.0.0.1',0)); context.port=sock.getsockname()[1]; sock.close()
++            argv=['-B','-m','src.brain.agent_server','--port',str(context.port),'--runtime-root',str(folder/'runtime'),'--work-output-root',str(folder/'outputs'),'--isolated']
++            if case.startswith('e03'): argv+=['--work-target-policy',str(folder/'policy.json')]
++            context.owned.launch(argv,'server')
++            def ready():
++                if not listener_owner(context.port): return False
++                assert_listener(context.owned,context.port,argv)
++                health=get_json(f'http://127.0.0.1:{context.port}/health')
++                require(health.get('ok') is True and health.get('model')==MODEL and health.get('agent')=='native_react','Isolated health mismatch')
++                return health
++            save(folder/'isolated-health.json',h.wait_for(ready,30))
++            if case.startswith('e03'): context.command(); baseline=context.observe('dispatch-baseline')
++            validate_authority(case,folder,authority_path,ledger_path,active=True); save(folder/'native-dispatch.json',native_proof(root_proof)); assert_listener(context.owned,context.port,argv)
++            query=h.CASES['e01']['request']+'\n'+'\n'.join(h.CASES['e01']['facts']); options=[]
++            if case.startswith('e03'): query=old.E03_QUERY; options=['--current-window','--replace-selection']
++            cli_args=['-B','-m','src.brain.cli','--work',*options,'--request-id',case,'--session-id',case,'--server-url',f'http://127.0.0.1:{context.port}','--json',query]
++            save(folder/'argv.json',{'server':argv,'cli':cli_args,'max_turns':10,'work_max_tokens':2048,'CLI_timeout':300,'SDK_timeout':1800,'controller_wait':315,'overrides':[]})
++            validate_authority(case,folder,authority_path,ledger_path,active=True)
++            context.cli_count+=1; cli=context.owned.launch(cli_args,'cli'); old.wait_cli(cli,folder); context.owned.flush()
++            context.result=load(folder/'cli.stdout'); save(folder/'product-result.json',context.result)
++            require(cli.returncode==0,'Nonzero CLI exit; generation may continue')
++            events=[x for x in context.result.get('trace',[]) if x.get('type')=='inference_end']; require(1<=len(events)<=10 and all(x.get('data',{}).get('model')==MODEL for x in events),'Completed inference proof missing')
++            artifacts=read_artifacts(folder,context.result); windows=context.observe('final-windows') if context.fixture_ready else None
++            review=mechanical(case,folder,context.result,artifacts,baseline,windows,output_inventory(folder)); save(folder/'mechanical-review.json',review)
++    except Exception as exc: errors.append({'harness':str(exc),'type':type(exc).__name__})
++    finally:
++        try: effects=context.effects() # ALWAYS before target destruction/server termination
++        except Exception as exc:
++            effects={'effects_unknown':str(exc)}; save(folder/'pre-cleanup-effects.json',effects); errors.append({'effects':str(exc)})
++        save(folder/'pre-cleanup-effects.json',effects)
++        try: save(folder/'native-after.json',native_proof(root_proof))
++        except Exception as exc: errors.append({'native_boundary':str(exc)})
++        try: cleanup=context.owned.cleanup(context.port)
++        except Exception as exc:
++            cleanup={'status':'FAIL','error':str(exc)}; save(folder/'cleanup.json',cleanup)
++        boundary='FAIL'
++        try:
++            source_check(); after=protected(); require(after==before,'Protected identities changed'); boundary='PASS'; save(folder/'boundaries.json',{'status':'PASS','protected5':after})
++        except Exception as exc: errors.append({'boundary':str(exc)})
++        if 'outputs_unknown' in effects or context.fixture_ready and 'windows_unknown' in effects: errors.append({'failure_evidence':'Required effects unknown'})
++        terminal={'schema':2,'case':case,'overall':'PASS' if review and not errors and cleanup['status']=='PASS' and boundary=='PASS' else 'FAIL','mechanical':(review or {}).get('mechanical','FAIL'),'facts':'PENDING_ROOT_INDEPENDENT_REVIEW','cleanup':cleanup['status'],'boundaries':boundary,'errors':errors,'product_result_sha256':sha(folder/'product-result.json') if (folder/'product-result.json').exists() else None,'effects_sha256':sha(folder/'pre-cleanup-effects.json'),'work_cli_count':context.cli_count,'actual_native_start_count':None}
++        save(folder/'terminal.json',terminal)
++    return terminal
++
++def main():
++    parser=argparse.ArgumentParser(); parser.add_argument('--case',required=True,choices=ORDER); args=parser.parse_args()
++    terminal=execute(args.case,R/'actual'/args.case,R/'controller-authority'/f'{args.case}.json',R/'controller-ledger.json')
++    print(json.dumps(terminal)); return 0 if terminal['overall']=='PASS' else 2
++if __name__=='__main__': raise SystemExit(main())
+--- /dev/null
++++ preparation-r2/test_controller.py
+@@ -0,0 +1,268 @@
++import copy,hashlib,json,sys,datetime as dt,subprocess
++from pathlib import Path
++import pytest
++import controller as c
++
++@pytest.fixture
++def release(tmp_path,monkeypatch):
++    monkeypatch.setattr(c,'R',tmp_path)
++    def write(relative,value):
++        path=tmp_path/relative; path.parent.mkdir(parents=True,exist_ok=True); c.save(path,value); return path
++    write('source21-before.json',{})
++    # Root authority is simulated only inside pytest's isolated owned root.
++    monkeypatch.setattr(c,'P',tmp_path/'package'); (c.P).mkdir(); (c.P/'controller.py').write_bytes(Path(c.__file__).read_bytes()); c.save(c.P/'manifest.json',{'files':{'controller.py':c.sha(c.P/'controller.py')}})
++    review=tmp_path/'review-preparation-2/review.md';review.parent.mkdir();review.write_text('independent PASS')
++    approval=write('controller-preparation-approval.json',{'schema':2,'reviewer':'root-independent','overall':'PASS','preparation_manifest_sha256':c.sha(c.P/'manifest.json'),'review_sha256':c.sha(review)})
++    ledger=write('controller-ledger.json',{'schema':2,'consumed':['e03-round1'],'released_case':'e03-round1'})
++    proof=write('controller-native-preflight/e03-round1.json',{'recorded_at':c.utc().isoformat(),'source21_sha256':c.sha(tmp_path/'source21-before.json'),'head':'244d2120abcd6b8d7744f74a05bd22de46a2d3a5','model':c.MODEL,'digest':c.DIGEST})
++    folder=tmp_path/'actual/e03-round1'; now=c.utc()
++    auth=write('controller-authority/e03-round1.json',{'schema':2,'issuer':'root','case':'e03-round1','folder':str(folder),'issued_at':now.isoformat(),'expires_at':(now+dt.timedelta(seconds=110)).isoformat(),'model':c.MODEL,'digest':c.DIGEST,'preparation_manifest_sha256':c.sha(c.P/'manifest.json'),'approval_sha256':c.sha(approval),'ledger_sha256':c.sha(ledger),'native_preflight_sha256':c.sha(proof),'prior_reviews':[]})
++    return folder,auth,ledger
++
++def test_single_release(release): c.validate_authority('e03-round1',*release)
++@pytest.mark.parametrize('case',['e02','e03','e03-round4','e01-round4','../e03-round1'])
++def test_other_cases(release,case):
++    with pytest.raises(ValueError): c.validate_authority(case,*release)
++@pytest.mark.parametrize('change',['root','old','ledger','model','runner','prior','authority_path','ledger_path','expired','future','proof_age','sibling','approval','review'])
++def test_failclosed(release,change):
++    folder,auth,ledger=release; value=c.load(auth)
++    if change=='root': folder=folder.parent.parent/'outside'
++    if change=='old': folder.mkdir(parents=True)
++    if change=='ledger': c.save(ledger,dict(c.load(ledger),consumed=['e03-round1']*2))
++    if change=='model': value['digest']='other'
++    if change=='runner': value['preparation_manifest_sha256']='stale'
++    if change=='prior': value['prior_reviews']=[{'case':'fake'}]
++    if change=='expired': value['expires_at']=(c.utc()-dt.timedelta(seconds=1)).isoformat()
++    if change=='future': value['issued_at']=(c.utc()+dt.timedelta(seconds=10)).isoformat()
++    if change=='proof_age':
++        p=folder.parents[1]/'controller-native-preflight/e03-round1.json'; c.save(p,dict(c.load(p),recorded_at=(c.utc()-dt.timedelta(seconds=61)).isoformat()));value['native_preflight_sha256']=c.sha(p)
++    if change=='sibling': (folder.parent/'e02').mkdir(parents=True)
++    if change=='approval': value['approval_sha256']='old'
++    if change=='review': (folder.parents[1]/'review-preparation-2/review.md').write_text('changed')
++    c.save(auth,value)
++    if change=='authority_path': copied=auth.with_name('copy.json');copied.write_bytes(auth.read_bytes());auth=copied
++    if change=='ledger_path': copied=ledger.with_name('copy.json');copied.write_bytes(ledger.read_bytes());ledger=copied
++    with pytest.raises(ValueError): c.validate_authority('e03-round1',folder,auth,ledger)
++
++def test_optimized(release,monkeypatch):
++    monkeypatch.setattr(c.sys,'flags',type('Flags',(),{'optimize':1})())
++    with pytest.raises(ValueError): c.validate_authority('e03-round1',*release)
++
++def test_traversal():
++    with pytest.raises(ValueError): c.no_reparse(Path.cwd()/'x/../escape')
++def test_reparse(tmp_path):
++    target=tmp_path/'target';target.mkdir();link=tmp_path/'link';link.symlink_to(target,target_is_directory=True)
++    with pytest.raises(ValueError): c.no_reparse(link/'new')
++@pytest.mark.parametrize('length',[0,2,7,8])
++def test_cap(release,length):
++    folder,auth,ledger=release; sequence=list(c.ORDER[:length]);sequence+=['e01-round4'] if length==8 else []
++    c.save(ledger,{'schema':2,'released_case':'e03-round1','consumed':sequence});c.save(auth,dict(c.load(auth),ledger_sha256=c.sha(ledger)))
++    with pytest.raises(ValueError): c.validate_authority('e03-round1',folder,auth,ledger)
++
++def test_model_manifest_mismatch():
++    with pytest.raises(ValueError): c.old.metadata_valid({'ok':True,'model':c.MODEL,'agent':'native_react'},{'version':'0.32.15'},{'models':[]},b'wrong')
++def test_source_drift(tmp_path,monkeypatch):
++    monkeypatch.setattr(c.old,'R',tmp_path);monkeypatch.setattr(c.old,'ROOT',tmp_path)
++    (tmp_path/'source.py').write_text('changed');c.save(tmp_path/'source21-before.json',{'source.py':'old'})
++    with pytest.raises(ValueError): c.source_check()
++def test_timeout_preserves(tmp_path):
++    (tmp_path/'cli.stdout').write_text('partial')
++    class CLI:
++        def wait(self,timeout): raise subprocess.TimeoutExpired('owned',timeout)
++    with pytest.raises(subprocess.TimeoutExpired): c.old.wait_cli(CLI(),tmp_path)
++    assert (tmp_path/'cli.stdout').read_text()=='partial' and c.load(tmp_path/'timeout.json')['retry'] is False
++
++@pytest.mark.parametrize('task',['C:/outside','../outside','not-uuid','A'*36,'00000000-0000-0000-0000-000000000000'])
++def test_task_escape_refused_without_read(tmp_path,task,monkeypatch):
++    monkeypatch.setattr(Path,'read_bytes',lambda self:pytest.fail('No read permitted'))
++    with pytest.raises(ValueError): c.artifact_path(tmp_path,task,'C:/outside/data')
++def test_absolute_outside_no_read(tmp_path,monkeypatch):
++    monkeypatch.setattr(Path,'read_bytes',lambda self:pytest.fail('No outside read'))
++    monkeypatch.setattr(c,'no_reparse',lambda path:pytest.fail('Outside path must not be inspected'))
++    with pytest.raises(ValueError): c.artifact_path(tmp_path,'a64039d2-cbd0-4f5a-a679-ae3eb7fa6817',str(tmp_path.parent/'outside'))
++
++def data(tmp_path):
++    case='e03-round1';task='a64039d2-cbd0-4f5a-a679-ae3eb7fa6817';writeid='b64039d2-cbd0-4f5a-a679-ae3eb7fa6817';editid='c64039d2-cbd0-4f5a-a679-ae3eb7fa6817'
++    target={'hwnd':1,'control_hwnd':2,'pid':123,'process_created_filetime':456,'title':'fixture','class':'Edit'}
++    before=dict(target,text='prefix材料suffix',start_utf16=6,end_utf16=8,editable=True,password=False);other=dict(before,hwnd=3,control_hwnd=4,text='other')
++    after=dict(before,text='prefix要点suffix',start_utf16=8,end_utf16=8)
++    ids={'request_id':case,'session_id':case,'task_id':task};path=str(tmp_path/'outputs'/task/'rewrite.md');content='要点';digest=hashlib.sha256(content.encode()).hexdigest()
++    edit=dict(ids,call_id=editid,before=before,after=after,expected_text=after['text'],replacement_text=content,companion_paths=[path])
++    write=dict(ids,call_id=writeid,tool_name='ultima_work_file_write',success=True,path=path,content=content)
++    replacement=dict(ids,call_id=editid,tool_name='ultima_work_replace_selection',success=True,result=dict(edit))
++    send=dict(ids,call_id=editid,tool_name='ultima_work_replace_selection',event='mutation.send',may_have_committed=True)
++    artifact=dict(ids,call_id=writeid,path=path,verified=True,sha256=digest,external_sha256=digest,text=content)
++    capture={'capture_id':'d64039d2-cbd0-4f5a-a679-ae3eb7fa6817','available':True,'source':'win32.standard_edit','captured_at':c.utc().isoformat(),'window':target,'text_sha256':hashlib.sha256(before['text'].encode()).hexdigest(),'selection':{'start_utf16':6,'end_utf16':8,'text':'材料'}}
++    trace=[]
++    for name,content,params in [('ultima_work_file_write',content,{'path':path}),('ultima_work_replace_selection',content,{})]:
++        trace.extend([{'type':'tool_call_start','data':{'tool':name,'arguments':dict(params,content=content)}},{'type':'tool_call_end','data':{'tool':name,'success':True}}])
++    c.save(tmp_path/'dispatch-baseline-timing.json',{'ended_at':(c.utc()-dt.timedelta(seconds=1)).isoformat()});c.save(tmp_path/'final-windows-timing.json',{'ended_at':(c.utc()+dt.timedelta(seconds=1)).isoformat()})
++    result=dict(ids,status='succeeded',work_context=capture,context_results=[edit],tool_results=[write,replacement,send,{'tool_name':'ultima_work_file_write','success':True},{'tool_name':'ultima_work_replace_selection','success':True}],trace=trace)
++    return result,[artifact],[before,other],[after,other],[{'path':path,'sha256':digest}]
++def test_external_validator(tmp_path):
++    result,artifacts,baseline,windows,inventory=data(tmp_path)
++    assert c.mechanical('e03-round1',tmp_path,result,artifacts,baseline,windows,inventory)['facts']=='PENDING_ROOT_INDEPENDENT_REVIEW'
++@pytest.mark.parametrize('drift',['outside','other','companion','identity','hash','product','partial-selection','missing-write','wrong-call','wrong-run','caret','unrelated','capture','missing-send','service-after'])
++def test_external_refusals(tmp_path,drift):
++    result,artifacts,baseline,windows,inventory=copy.deepcopy(data(tmp_path))
++    baseline=copy.deepcopy(baseline); windows=copy.deepcopy(windows)
++    if drift=='outside': windows[0]['text']='changed prefix'
++    if drift=='other': windows[1]['text']='changed'
++    if drift=='companion': artifacts[0]['text']='different'
++    if drift=='identity': windows[0]['pid']=999
++    if drift=='hash': artifacts[0]['external_sha256']='changed'
++    if drift=='product': result['status']='failed'
++    if drift=='partial-selection': result['context_results'][0]['before']['start_utf16']=7
++    if drift=='missing-write': result['tool_results'].pop(0)
++    if drift=='wrong-call': artifacts[0]['call_id']='e64039d2-cbd0-4f5a-a679-ae3eb7fa6817'
++    if drift=='wrong-run': result['tool_results'][0]['request_id']='old'
++    if drift=='caret': windows[0]['end_utf16']=9
++    if drift=='unrelated': inventory.append({'path':'unrelated'})
++    if drift=='capture': result['work_context']['selection']['start_utf16']=7
++    if drift=='missing-send': result['tool_results'].pop(2)
++    if drift=='service-after': result['context_results'][0]['after']['text']='service-only'
++    with pytest.raises(ValueError): c.mechanical('e03-round1',tmp_path,result,artifacts,baseline,windows,inventory)
++@pytest.mark.parametrize('mode',['timeout','nonzero','invalid-json','missing-inference','readback','cleanup','boundary','dispatch-expiry'])
++def test_failure_ordering_and_overall(tmp_path,monkeypatch,mode):
++    sys.path.insert(0,str(c.ROOT))
++    events=[]; folder=tmp_path/'case';counter={'auth':0,'boundary':0}
++    def authorize(*args,**kwargs):
++        counter['auth']+=1
++        if mode=='dispatch-expiry' and counter['auth']>=4: raise ValueError('expired before CLI')
++        return {},{},{}
++    monkeypatch.setattr(c,'validate_authority',authorize)
++    def boundary():
++        counter['boundary']+=1
++        if mode=='boundary' and counter['boundary']>1: raise ValueError('boundary failed')
++        return {}
++    monkeypatch.setattr(c,'source_check',boundary);monkeypatch.setattr(c,'protected',lambda:[])
++    monkeypatch.setattr(c,'native_proof',lambda proof:events.append('native') or {})
++    monkeypatch.setattr(c,'listener_owner',lambda port:[123])
++    monkeypatch.setattr(c,'assert_listener',lambda *a:events.append('listener') or {})
++    monkeypatch.setattr(c,'get_json',lambda url:{'ok':True,'model':c.MODEL,'agent':'native_react'})
++    monkeypatch.setattr(c,'read_artifacts',lambda *a:[])
++    monkeypatch.setattr(c,'output_inventory',lambda *a:[])
++    def validate(*args):
++        if mode=='readback': raise ValueError('failed external readback')
++        return {'mechanical':'PASS'}
++    monkeypatch.setattr(c,'mechanical',validate)
++    class Proc:
++        returncode=1 if mode=='nonzero' else 0
++    class Owned:
++        known={5:{'role':'fixture','identity':{'created_filetime':9}}}
++        def launch(self,argv,role):
++            events.append(role)
++            if role=='fixture': c.save(folder/'fixture.json',{'pid':5,'targets':[{'pid':5,'process_created_filetime':9}]})
++            if role=='cli':
++                result={'status':'succeeded','trace':[] if mode=='missing-inference' else [{'type':'inference_end','data':{'model':c.MODEL}}]}
++                (folder/'cli.stdout').write_text('INVALID' if mode=='invalid-json' else json.dumps(result))
++            return Proc()
++        def discover(self): pass
++        def flush(self): pass
++        def cleanup(self,port): events.append('cleanup');return {'status':'FAIL' if mode=='cleanup' else 'PASS'}
++    class Context:
++        def __init__(self,case,folder,env): self.owned=Owned();self.port=None;self.fixture_ready=False;self.cli_count=0;self.result=None
++        def observe(self,label): return [{'text':'fixed'},{}]
++        def command(self): pass
++        def effects(self): events.append('effects');return {'windows':[],'outputs':[]}
++    monkeypatch.setattr(c,'Case',Context)
++    import src.brain.tests.work_context_acceptance as h
++    monkeypatch.setitem(h.CASES['e03'],'text','fixed')
++    def wait(cli,folder):
++        if mode=='timeout': raise subprocess.TimeoutExpired('owned',315)
++        return cli.returncode
++    monkeypatch.setattr(c.old,'wait_cli',wait)
++    result=c.execute('e03-round1',folder,tmp_path/'auth',tmp_path/'ledger')
++    assert result['overall']=='FAIL'
++    assert events[0]=='native' and events.index('native')<events.index('fixture')
++    assert events.index('effects')<events.index('cleanup')
++    if mode=='dispatch-expiry': assert 'cli' not in events
++    if mode in ('cleanup','boundary','readback'):
++        assert c.load(folder/'product-result.json')['status']=='succeeded'
++
++def test_effects_invalid_json_keeps_outputs_and_windows(tmp_path):
++    context=object.__new__(c.Case);context.folder=tmp_path;context.cli_count=1;context.fixture_ready=True;context.result=None
++    context.owned=type('Owned',(),{'flush':lambda self:None})()
++    context.observe=lambda label:[{'text':'actual still-live target'}]
++    (tmp_path/'cli.stdout').write_text('invalid JSON partial')
++    out=tmp_path/'outputs';out.mkdir();(out/'delivered.md').write_text('actual committed bytes')
++    effects=context.effects()
++    assert effects['windows'][0]['text']=='actual still-live target'
++    assert bytes.fromhex(effects['outputs'][0]['bytes_hex'])==b'actual committed bytes'
++    assert 'product_unknown' in effects and effects['native_start_count'] is None
++
++@pytest.mark.parametrize('bad',['later-than-exit','earlier-than-parent','exe','argv','parent'])
++def test_stale_parent_not_termination_authority(monkeypatch,bad):
++    monkeypatch.setattr(c,'argv_parse',lambda text:text.split())
++    root={'pid':4,'created_filetime':100};key={'pid':5,'created_filetime':110,'exe':'python.exe'}
++    row={'ParentProcessId':4,'CommandLine':'python.exe --case-root OWNED'}
++    if bad=='later-than-exit': key['created_filetime']=130
++    if bad=='earlier-than-parent': key['created_filetime']=90
++    if bad=='exe': key['exe']='foreign.exe'
++    if bad=='argv': row['CommandLine']='python.exe --case-root FOREIGN'
++    if bad=='parent': row['ParentProcessId']=99
++    assert not c.candidate_valid(key,row,root,['--case-root','OWNED'],{'python.exe'},120)
++
++def test_collision_listener_refused(tmp_path,monkeypatch):
++    owned=type('Owned',(),{'discover':lambda self:None,'known':{},'folder':tmp_path})()
++    monkeypatch.setattr(c,'listener_owner',lambda port:[999])
++    with pytest.raises(ValueError,match='owned server'): c.assert_listener(owned,12345,[])
++
++def test_preflight_failure_no_fixture_or_case(tmp_path,monkeypatch):
++    events=[]
++    monkeypatch.setattr(c,'validate_authority',lambda *a,**k:({}, {}, {}));monkeypatch.setattr(c,'source_check',lambda:{});monkeypatch.setattr(c,'protected',lambda:[])
++    def fail(proof): events.append('native');raise ValueError('native mismatch')
++    monkeypatch.setattr(c,'native_proof',fail)
++    with pytest.raises(ValueError): c.execute('e03-negative',tmp_path/'case',tmp_path/'auth',tmp_path/'ledger')
++    assert events==['native'] and not (tmp_path/'case').exists()
++
++def test_unseen_child_discovered_after_launcher_exit(tmp_path,monkeypatch):
++    key={'pid':5,'created_filetime':110,'exe':'python.exe'};root={'pid':4,'created_filetime':100,'exe':'python.exe'}
++    row={'ProcessId':5,'ParentProcessId':4,'CommandLine':'python.exe --case-root OWNED'}
++    monkeypatch.setattr(c.old,'process_snapshot',lambda:{5:row});monkeypatch.setattr(c,'process_times',lambda proc:(100,120));monkeypatch.setattr(c,'identity',lambda pid:key);monkeypatch.setattr(c,'argv_parse',lambda x:x.split())
++    owned=object.__new__(c.Owned);owned.folder=tmp_path;owned.allowed_exes={'python.exe'};owned.forbidden=set();owned.known={};owned.errors=[];owned.auxiliary={};owned.stale=[]
++    owned.launchers=[{'proc':type('Exited',(),{'pid':4})(),'identity':root,'argv':['--case-root','OWNED'],'role':'server'}]
++    owned.discover()
++    assert owned.known[5]['identity']==key and not owned.errors
++
++@pytest.mark.parametrize('bad',['focus','range','mutation','refusal','files'])
++def test_negative_requires_actual_change_refusal_and_no_mutation(tmp_path,monkeypatch,bad):
++    sys.path.insert(0,str(c.ROOT));import src.brain.work_context as wc
++    targets=[{'hwnd':1,'control_hwnd':2},{'hwnd':3,'control_hwnd':4}];c.save(tmp_path/'fixture.json',{'targets':targets});c.save(tmp_path/'policy.json',{})
++    state={'index':0,'select':True};base=[{'text':'a','start_utf16':0,'end_utf16':1},{'text':'other','start_utf16':0,'end_utf16':1}]
++    context=object.__new__(c.Case);context.folder=tmp_path
++    context.command=lambda index=0,select=True:state.update(index=index,select=select)
++    context.observe=lambda label:[dict(base[0],end_utf16=1 if state['select'] or bad=='range' else 0),base[1]]
++    class Native:
++        def focused(self):
++            target=targets[0 if bad=='focus' else state['index']];return target['hwnd'],target['control_hwnd']
++    class Provider:
++        def __init__(self,policy): pass
++        def capture_work_context(self): return {'available':True,'selection':{'start_utf16':0,'end_utf16':1}}
++        def release(self,capture): pass
++        def replace_selection(self,capture,text,before_send):
++            if bad=='mutation': before_send()
++            if bad!='refusal': raise ValueError('stale')
++    monkeypatch.setattr(wc,'WorkContextProvider',Provider);monkeypatch.setattr(wc,'Win32Edit',Native)
++    count={'n':0}
++    def inventory(folder):
++        count['n']+=1;return [] if bad!='files' or count['n']==1 else [{'path':'changed'}]
++    monkeypatch.setattr(c,'output_inventory',inventory)
++    with pytest.raises(ValueError): context.negative(base)
++
++def test_stale_product_success_not_predecessor_acceptance(release):
++    folder,auth,ledger=release;root=folder.parents[1]
++    previous=folder;previous.mkdir(parents=True);c.save(previous/'terminal.json',{'case':'e03-round1','overall':'FAIL','mechanical':'PASS','cleanup':'FAIL','boundaries':'PASS','product_status':'succeeded'})
++    newfolder=folder.with_name('e03-round2');newauth=auth.with_name('e03-round2.json');newproof=root/'controller-native-preflight/e03-round2.json';newproof.write_bytes((newproof.with_name('e03-round1.json')).read_bytes())
++    c.save(ledger,{'schema':2,'released_case':'e03-round2','consumed':['e03-round1','e03-round2']})
++    value=dict(c.load(auth),case='e03-round2',folder=str(newfolder),ledger_sha256=c.sha(ledger),native_preflight_sha256=c.sha(newproof),prior_reviews=[{'case':'e03-round1','terminal_sha256':c.sha(previous/'terminal.json')}]);c.save(newauth,value)
++    with pytest.raises(ValueError,match='overall'):c.validate_authority('e03-round2',newfolder,newauth,ledger)
++@pytest.mark.parametrize('drift',['sdk-start','sdk-end','sdk-result','stale-time','send-intent'])
++def test_completed_sdk_and_capture_proofs(tmp_path,drift):
++    result,artifacts,baseline,windows,inventory=data(tmp_path)
++    if drift=='sdk-start': result['trace'].pop(0)
++    if drift=='sdk-end': result['trace'][1]['data']['success']=False
++    if drift=='sdk-result': result['tool_results']=[x for x in result['tool_results'] if 'call_id' in x]
++    if drift=='stale-time': result['work_context']['captured_at']=(c.utc()-dt.timedelta(days=1)).isoformat()
++    if drift=='send-intent': result['tool_results'][2]['may_have_committed']=False
++    with pytest.raises(ValueError):c.mechanical('e03-round1',tmp_path,result,artifacts,baseline,windows,inventory)
+--- /dev/null
++++ preparation-r2/run_checks.py
+@@ -0,0 +1,34 @@
++"""Offline proof driver; invokes existing pytest files unchanged with owned env."""
++import contextlib, hashlib, importlib, json, os, socket, sys
++from pathlib import Path
++ROOT=Path('C:/Users/Administrator/.codex/worktrees/jarvis-work-capability-longpaths/UltimaAgent')
++P=Path(__file__).resolve().parent
++sys.path[:0]=[str(ROOT),str(P)]
++os.chdir(ROOT)
++for key in ('TEMP','TMP','TMPDIR','OPENJARVIS_HOME','HF_HOME','XDG_CACHE_HOME','XDG_CONFIG_HOME','XDG_DATA_HOME'):
++    directory=P/'test-env'/key; directory.mkdir(parents=True,exist_ok=True); os.environ[key]=str(directory)
++os.environ.update(PYTHONDONTWRITEBYTECODE='1',NO_PROXY='localhost,127.0.0.1,::1',HF_HUB_OFFLINE='1',TRANSFORMERS_OFFLINE='1',PYTHONPATH=str(ROOT)+os.pathsep+str(P))
++network_events=[]
++def audit(event,args):
++    if event=='socket.connect':
++        address=args[1]
++        if not isinstance(address,tuple) or address[0] not in ('localhost','127.0.0.1','::1') or address[1] in (8756,11434):
++            raise RuntimeError('Preparation forbids production or external socket: '+str(address))
++        network_events.append({'event':event,'address':address})
++sys.addaudithook(audit)
++import pytest
++mode=sys.argv[1]
++files=['src/brain/tests/test_work_context.py','src/brain/tests/test_work_delivery.py'] if mode=='covering' else [str(P/'test_controller.py')]
++args=[*files,'-q','-p','no:cacheprovider','--basetemp',str(P/(mode+'-basetemp')),'--junitxml',str(P/(mode+'.xml'))]
++with (P/(mode+'.log')).open('w',encoding='utf-8') as f,contextlib.redirect_stdout(f),contextlib.redirect_stderr(f):
++    code=pytest.main(args)
++modules={}
++for name,module in list(sys.modules.items()):
++    path=getattr(module,'__file__',None)
++    if path and (name.startswith('src.brain') or name.startswith('openjarvis')) and Path(path).is_file():
++        modules[name]={'path':str(Path(path).resolve()),'sha256':hashlib.sha256(Path(path).read_bytes()).hexdigest()}
++for name,item in modules.items():
++    if name.startswith('src.brain') and not Path(item['path']).is_relative_to(ROOT): raise RuntimeError('Wrong product checkout '+name)
++(P/(mode+'-receipt.json')).write_text(json.dumps({'argv':[sys.executable,'-B','-X','utf8','-m','pytest',*args],'driver_argv':sys.argv,'exit_code':int(code),'environment_overrides':{k:os.environ[k] for k in ('TEMP','TMP','TMPDIR','OPENJARVIS_HOME','HF_HOME','XDG_CACHE_HOME','XDG_CONFIG_HOME','XDG_DATA_HOME','NO_PROXY','PYTHONPATH','HF_HUB_OFFLINE','TRANSFORMERS_OFFLINE')},'loaded_modules':modules,'allowed_local_test_connections':network_events,'production_and_external_connections':'blocked by socket.connect audit hook'},indent=2),encoding='utf-8')
++print(json.dumps({'mode':mode,'exit_code':int(code),'module_count':len(modules),'allowed_test_connections':len(network_events)}))
++raise SystemExit(code)
+--- /dev/null
++++ preparation-r2/headless_owned.py
+@@ -0,0 +1,8 @@
++import argparse,socket,time
++from pathlib import Path
++p=argparse.ArgumentParser();p.add_argument('--runtime-root');p.add_argument('--work-output-root');p.add_argument('--port',type=int);a=p.parse_args()
++root=Path(a.runtime_root).parent
++sock=socket.socket();sock.bind(('127.0.0.1',a.port));sock.listen()
++(root/'ready').touch();deadline=time.monotonic()+45
++while time.monotonic()<deadline and not (root/'stop').exists(): time.sleep(.03)
++sock.close()
+--- /dev/null
++++ preparation-r2/headless_proof.py
+@@ -0,0 +1,31 @@
++import sys,socket,time,json
++from pathlib import Path
++import controller as c
++sys.path.insert(0,str(c.ROOT))
++p=Path(__file__).resolve().parent;before=c.protected();receipts=[]
++for mode in ('normal-discovery','exited-launcher-discovery'):
++    folder=p/(mode+'-final');folder.mkdir(exist_ok=False);owned=c.Owned(folder,c.environment(folder))
++    sock=socket.socket();sock.bind(('127.0.0.1',0));port=sock.getsockname()[1];sock.close()
++    argv=['-B',str(p/'headless_owned.py'),'--runtime-root',str(folder/'runtime'),'--work-output-root',str(folder/'outputs'),'--port',str(port)]
++    proc=owned.launch(argv,'server')
++    try:
++        deadline=time.monotonic()+10
++        while not (folder/'ready').exists() and time.monotonic()<deadline: time.sleep(.05)
++        assert (folder/'ready').exists()
++        owned.discover()
++        if mode=='exited-launcher-discovery':
++            c.terminate_owned(owned.launchers[0]['identity']);proc.wait(timeout=5)
++            # This redirector also exits the child. Retain controller-discovered identity.
++            pass
++        owned.discover()
++        childkeys=[x['identity'] for x in owned.known.values() if x['identity']['pid']!=proc.pid]
++        assert len(childkeys)==1
++        proof=c.assert_listener(owned,port,argv) if mode=='normal-discovery' else {'launcher_exited':True,'children_retained_after_exit':True,'actual_live_orphan_proven':False}
++        if mode=='normal-discovery': assert proof['identity']==childkeys[0]
++        (folder/'pre-cleanup-effects.json').write_text(json.dumps({'headless_only':True,'listener':proof,'model_posts':0,'UI_calls':0}))
++    finally: cleanup=owned.cleanup(port)
++    assert cleanup['status']=='PASS'
++    receipts.append({'mode':mode,'launcher':owned.launchers[0]['identity'],'discovered_children':childkeys,'listener':proof,'cleanup':cleanup})
++assert before==c.protected()
++c.save(p/'headless-discovery-proof.json',{'controller_sha256':c.sha(p/'controller.py'),'cases':receipts,'protected_before':before,'protected_after':c.protected(),'protected_unchanged':True,'UI_calls':0,'model_posts':0,'external_connections':0,'scope':'prep-owned ephemeral socket listener, no HTTP/model payload'})
++print(json.dumps({'headless_cases':len(receipts),'protected_unchanged':True}))
+--- /dev/null
++++ preparation-r2/README.md
+@@ -0,0 +1,62 @@
++# Preparation r2 — fix round 1/5
++
++Status: READY_FOR_INDEPENDENT_REREVIEW; actual_release=false. This is an evidence-controller correction, not product acceptance. All P1 bytes remain preserved. Frozen product HEAD/source21/helper/fixtures, model policy, SDK and budgets remain unchanged. E02/source10/later stages remain closed. No actual authority or R/actual case directory was created.
++
++The binding review is ../review-preparation-1/review.md, SHA256 aa6aef1a0e20f6b9d1c3b25678d761e1babea8a12a5b57e9291f0f36726d36cc. All seven groups and subpoints are addressed, subject to the same reviewer's independent rerun/readback.
++
++## Files and reuse
++
++controller.py is the only revised future case controller. It imports immutable P1 public read-only/process primitives after checking P1 adapter SHA; original product helper launch/fixture/observe/CLI are reused. P1 code is never edited. Original E03 query, E01 fixture facts, real SDK product path, one work CLI per positive and original negative provider semantics remain. No arbitrary exec/HTTP payload rewrite/private SDK mutation/new model answer or dependency.
++
++p1-to-r2.diff is the exact complete P1 adapter-to-r2-controller diff. full-new.diff contains complete new review-source files. inputs.json binds original source/runtime snapshots, full review, ruling and fix brief. manifest.json binds current controller/tests/drivers/docs/input hashes plus tests/proofs/diffs. preservation-after.json compares every original P1 file byte hash and all 21 original source hashes.
++
++## Seven finding repairs
++
++1. SPEC1: Canonical root-issued schema2 authority binds current package manifest, independent approval/review, ledger, source21 and native metadata. Root proof age <=60s; issued_at <= now < expires_at and admission window <=120s. Authority is rechecked before fixture and after native/listener dispatch checks immediately before the positive CLI. Initial live GET-only native version/tags/local-manifest/source/protected identity proof precedes all fixture creation, activation and observation, including negatives. Policy-dependent isolated health is correctly later, with exact listener ownership before trust and CLI. Native identity is checked again after the request; admission expiry never rewrites the admitted request's existing lifetime.
++2. SPEC2: Every entered case finally attempts raw CLI parse/product preservation, completed inference extraction, fixed-root bounded file inventory with byte hex/hash, and still-live approved window readback before stopfile or process termination. Missing/invalid evidence is explicitly unknown with reason. Product-result.json preserves actual product status; terminal.json reports harness/cleanup failure separately. Client timeout/nonzero/missing inference/invalid JSON/readback errors cannot become terminal success. Actual native starts and incomplete generation remain unknown/null; shared Ollama is never stopped.
++3. SPEC3: Mechanical validator binds current run/task/artifact/write/replace call IDs; SDK starts/ends/results; baseline source hash, exact selection and capture ID/time; real completed write and replace ledger evidence; one mutation intent/send; expected output set; actual final window identity/text/caret; unselected text; unrelated owned window and output inventory; service/external hash and exact companion bytes under existing CRLF/LF rule only. Synthetic partial-selection or missing-write packets fail. Negative group records approved capture, actual owned foreground and actual changed range, refusal before send, all owned texts/files unchanged and zero sends. Semantic/no-additions review stays independent.
++4. SPEC4: OS Get-NetTCPConnection listener PID must resolve to exact identity-proven owned server interpreter/ancestry/full case argv/runtime/output root. This occurs before health and immediately before CLI. Port collision or matching foreign health body cannot admit a case.
++5. QUALITY1: Server task_id is canonical lowercase UUID4 before any path composition. Lexical fixed output/task containment rejects outside inputs before even lstat; reparse/ADS/canonical checks precede reads. File inventory walks only the fixed owned output root without following links. Tests explicitly forbid outside inspection/read.
++6. QUALITY2: Descendant discovery retains identities beyond launcher exit, using retained launcher handle creation/exit interval, actual exe and exact argv/role/case root. Parent PID alone never grants termination authority. Unknown/ambiguous discovery, cleanup failure, open port, or source/protected/model boundary failure produces terminal overall FAIL/nonzero after cleanup. Exact Windows System32 conhost children are observation-only; no termination authority is granted, and disappearance after owned Python teardown is mandatory. This exception follows root's explicit fix-round ruling. Real proof uses Owned.launch/discover/assert_listener/cleanup, not child-PID-file shortcuts or a separate termination routine.
++7. QUALITY3: CLI accepts only --case; authority/ledger/preflight/approval/review locations are canonical and cannot be caller-selected. Exact ordered preconsumption and exact sibling set are required. Prior product success is insufficient: predecessor terminal overall/mechanical/cleanup/boundaries plus hash-bound independent facts/mechanical/target/file/cleanup/boundary review must PASS. Current manifest files and loaded runner hash are verified. Root alone writes real authority/ledger.
++
++## Canonical root protocol — no authority included
++
++Root-controlled paths:
++
++* R/controller-authority/<case>.json
++* R/controller-ledger.json
++* R/controller-native-preflight/<case>.json
++* R/controller-preparation-approval.json
++* R/review-preparation-2/review.md
++* R/actual/<case>/{terminal.json,independent-review.json}
++
++Fixed order: e03-round1, e03-round2, e03-round3, e03-negative, e01-round1, e01-round2, e01-round3. Six positive CLI invocations total, zero negative CLI/inferences, no loop/retry. Root preconsumes one case before issuing its authority. Existing/failed case names cannot be reused, and no unknown sibling is allowed.
++
++Ledger schema2: {"schema":2,"consumed":["e03-round1"],"released_case":"e03-round1"}.
++Approval schema2: schema, overall=PASS, reviewer=root-independent, preparation_manifest_sha256, review_sha256 (canonical review file's raw SHA256).
++Preflight: recorded_at ISO UTC, source21_sha256 (raw frozen snapshot file hash), head, model, digest, version (GET JSON object), tags_sha256 (SHA256 of UTF8 json.dumps(tags,sort_keys=True) with default separators), manifest_sha256. It binds exact current version/tags/local manifest and is <=60s old at admission/dispatch. Root alone prepares the real preflight.
++Authority schema2: schema=2, issuer=root, case, folder (exact Windows str(Path) form), issued_at, expires_at (<=120s apart), model, digest, preparation_manifest_sha256, approval_sha256, ledger_sha256 (raw canonical ledger file hash), native_preflight_sha256, prior_reviews. Each ordered predecessor review entry has case, terminal_sha256 and review_sha256. Independent-review.json has reviewer=root-independent, terminal_sha256, and facts/mechanical/target/file/cleanup/boundaries all PASS. Exact JSON schemas are enforced by required fields and canonical paths; additional unused fields do not grant capabilities.
++
++Root invocation after independent preparation approval and fresh admission:
++
++```powershell
++& H:/UltimaAI/UltimaAgent/tools/venv-openjarvis/Scripts/python.exe -B -X utf8 H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-resume-20261102/preparation-r2/controller.py --case e03-round1
++```
++
++The authority expiry admits effects/dispatch only. Product CLI timeout300, SDK HTTP timeout1800, maxturn10 and normal work allowance2048 remain untouched; controller CLI wait315. Source constructor proof plus actual serving PID/health establishes the existing config path. No 260-second research deadline is invented for E01/E03.
++
++## Verification and preserved failures
++
++80 focused checks pass, covering all original 29 purposes plus seven-group regressions. run_checks.py runs test_controller.py with owned environment/basetemp/JUnit and production/external socket refusal. The unchanged product82 suite was already independently reviewed and was not rerun. adapter-receipt.json records actual driver argv plus equivalent pytest argv/env, exit, imports and zero socket connections.
++
++headless-discovery-proof.json records two final real local-only cases: normal redirector/basechild discovery with OS listener proof, and identity retention after actual launcher exit; both use controller's actual Owned path and mandatory cleanup, all Python/conhost identities absent, port closed, protected5 unchanged. The native Windows redirector also exits its child when forcibly terminated, so no live unseen orphan is claimed. A deterministic exited-launcher/live-child snapshot test covers that unavailable branch, including creation-order/argv/exe/stale-parent rejection.
++
++Preserved earlier failures:
++
++* normal-discovery and normal-discovery-attempt2 retain FAIL cleanup packets: real CREATE_NO_WINDOW launcher also owns conhost.exe, initially classified ambiguous. Both Python identities and port were cleaned. Root then allowed exact System32 conhost as observation-only with mandatory disappearance, never kill authority.
++* normal-discovery-attempt3 succeeded; exited-launcher-discovery-attempt3 retains the failed headless driver assumption that a live child would survive launcher termination. Actual cleanup PASS/closed port proves no residue; no false orphan claim.
++* attempt4 and final folders retain successful corrected lifecycle proof. Final proof binds current controller SHA.
++* During focused-test development an aliasing fixture issue and a fake-effects mock missing its persisted evidence file caused failures; corrected mock data and controller's explicit effects persistence were verified by the final suite. P1 evidence was untouched throughout.
++
++Remaining limits: interrupted native-start counts stay null as accepted by root/reviewer; factual meaning/no-additions acceptance remains independent; live product/UI/model behavior remains untested here. All real execution still requires the original reviewer's scoped re-review and root-owned fresh admission. actual_release=false.
+--- /dev/null
++++ preparation-r2/inputs.json
+@@ -0,0 +1,9 @@
++{
++  "files": {
++    "H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\e03-resume-20261102\\source21-before.json": "1b129fb515f10c4399f0d51029a4419a173af84d2a2d5da07622912e331410f5",
++    "H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\e03-resume-20261102\\runtime-before.json": "6a575f58da2d5491870f6ad96ef6cbad0169fc75d59841d81cd3d63d86447163",
++    "H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\e03-resume-20261102\\review-preparation-1\\review.md": "aa6aef1a0e20f6b9d1c3b25678d761e1babea8a12a5b57e9291f0f36726d36cc",
++    "H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\e03-resume-20261102\\controller-preparation-review1-ruling.md": "b492a811a4f65ae666587cbdb34dfeb0ff74862159336c3e8584d8f045d3c53a",
++    "C:\\Users\\Administrator\\.codex\\worktrees\\jarvis-work-capability-longpaths\\UltimaAgent\\.superpowers\\sdd\\jarvis-work-capability-delivery-plan-20261101\\task-2-e03-preparation-fix1-brief.md": "dbba2835b76440075d802de7129d082753e45b6b37a4068a514e7d8c5cbb6b9c"
++  }
++}
