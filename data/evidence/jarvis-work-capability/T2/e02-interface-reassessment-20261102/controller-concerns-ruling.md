@@ -1,0 +1,11 @@
+# Controller ruling before reassessment review
+
+Both DONE_WITH_CONCERNS reports have been read under handling-reports. Their static/data findings and future proposals are distinct. The unknown cause of model abstention is an observation limit, not a claim of a fixed product. The S4 Python counterexample remains binding.
+
+Scope ruling: review the completed read-only analysis and receiver addendum. The recommended NEXT candidate for judgment is the narrower existing-Pygments this/super receiver offline discriminator. Broader mechanism extraction/new parser research is not released and is not implicitly needed if the small defect is confirmed. Root's bounded metadata/path inventory does not prove machine-wide parser absence; no dependency installation is authorized. No model call, source10, product edit, new SDK instance or historical prefix retry is authorized by the report or this ruling.
+
+The proposed one offline batch/30minutes/0POST must receive a concrete executable brief and independent gate before it runs. Only source-preserving evidence code in a new sandbox may be considered, changing receiver identification alone and retaining validation/selection/caps/current source data. It must compare the old full behavior against the candidate, record all output/semantic differences, reject strings/comments/type-only and unrelated keywords, preserve original snapshots and immutable source/ref identities. Reference renumbering and old signed-reference reopening need explicit treatment; copied human winning facts/IDs cannot enter model/product inputs. A successful offline discriminator proves representation behavior only, not E02 quality.
+
+The user has fixed the product goal, original delivery plan, execution method and 8B platform, and explicitly asked continuous work. Read-only exploration stays within that authorization. Routine internal implementation choices will be labeled controller choices, never falsely attributed to the user. A new design/candidate/budget must remain concrete and independently reviewable; no hidden source9-cap extension or gate relaxation.
+
+Cost if wrong: reject or revise the small probe before any product/model work; all previous failures and successful E01/E03 proofs remain intact. T2 remains EXECUTING with product exit NOT_PASSED.

@@ -1,0 +1,519 @@
+Readonly analysis/addendum review only; CHEAD244/source9 unchanged, no product git diff.
+Full new authored and root-ruling text diff follows; root inventory is limited scope.
+
+--- /dev/null
++++ report.md
+@@ -0,0 +1,38 @@
++# T2 E02 当前 8B 研究接口复核
++
++工单 wo-ultimaagent-20261101-0021。T2 执行中，E02 仍失败。**已定位两个不同的停止点**。source9 生成了完整的写入请求，但引用与论断不匹配，重复来源触发写前拒绝。未进入产品的逐来源 r2 前缀则把“弃用本来源”作为一次合法工具结果执行完成。二者均未交付文件。将同一段角色说明再改写一次，不能区分这两个问题。
++
++## 实际输入、生成和副作用
++
++以下 T 指 H 工程的 data/evidence/jarvis-work-capability/T2。analysis.json 列出精确包路径、哈希和字段，SDK 行号均对应实际安装目录。
++
++|路径|任务与给模型的消息|原生响应、SDK 分派与交付|
++|---|---|---|
++|E01 / E03，同一产品源码|E01 用户给出松林、Markdown、日期三事实和 summary.md。E03 指令要求改写选区并保存相同改写，provider 把选区、窗口与采集信息作为 material 交给 WorkService。普通路径由 SDK 生成含实际工具说明的 system、工作请求 user，执行后的 observation 进入后续 turn。可用文件工具；E03 另有受限替换。每请求最多 10 turn，工作额度 2048。消息结构来自源码，普通路径无逐 POST 原始 wire。|E01 三次各 2 个完成推理、1 次写；E03 三次各 3 个完成推理、2 次工具。外部重开六个文件，E03 对应实际窗口内容；失焦和选区变化的真实 provider 拒写另行通过。6 CLI、15 完成推理、9 完成工具，native starts 未知。证据 E03/E01 actual/*/{argv,product-result,independent-review}.json（正例）及 e01-e03-current-candidate-result.json。|
++|source9 产品整篇生成|原主题与四个固定 URL，一次受控搜索、四个成功 GET，冻结正文哈希和读取身份。SDK 原 system 在研究 view 中被替换为研究指令及完整 writer 参数 schema，user 保留原请求、权限根、四源编号材料、身份和卡表。只暴露报告 writer 或 final 拒绝。工具由 SDK 解析 action 分派，原生 tools=[]。|原生单 POST，16384 上下文／2048 输出额度，实际 13888／1615 tokens、200 stop。5 节全 S1、22 条论断、6 张 README 卡；对应位置完整支持论断的 URL 为 0，区分两项目及说明执行条件的覆盖失败。写工具拒绝重复来源，CLI 2，无文件、ack、外部成功读回。受控整篇不是已通过的历史 293 项源码回归。|
++|S2 单源前缀|冻结 GET 回放，独立实验 stage 能力，无 writer。|同一模型加载分配 CUDA 缓冲失败，原生 500，零模型答复。S2 不进入事实判断。|
++|S3 / S4 单源前缀|实际 SDK history 的 ReAct system 与原查询被实验 view 换成两条 prepared 消息：system 含 stage schema 与局部任务，user 为原问题、来源身份、逐行原文和短整数卡号。S4 把问题显式命名 background_original_query，仅在一条相关局部论断也写不出时才可 unused。实际材料 110/367 行、15/48 卡，均全见。|真实 200 stop，2928/94 与 7320/79 tokens，在 16384/480、温度 0、单 turn 内返回带正确 token 的 stage/unused。两次均经原始和 secured 校验、SDK 成功的内存 stage、调用方 END 及确认，之后才因零 facts 未过前缀门。SDK 单轮耗尽符合设计；无 writer、ack 或文件，事实正确性无样本，局部覆盖失败。|
++
++**定位。** C 的 src/brain/work_service.py:60–99,132–135 和 agent_server.py:217–296,305–331,376–428,436–468 区分收集、研究 view、guard 及 request-owned leaf。普通路径调用同一 ask_full，不走该 view。安装 SDK 的 sdk.py:271、agents/native_react.py:225–286,304–360、agents/_stubs.py:198,265、security/guardrails.py:167–219、tools/_stubs.py:213,381,452 分别负责组装消息、生成、解析、权限/执行和事件。实验前缀改的是研究输入和能力集，见 preparation-r2/run_stage_prefix.py:377–433 及 local-role-preparation-r2/run_local_role_core.py，实际以 outcome.json 的 sdk_history → raw_messages → secured_messages → wire[-1] → raw_envelope/secured_envelope → sdk_result/timeline 为准。r2 设计 SHA b1290ae6…21d17d7 的独审仅批准设计质量，未实现其完整收集至写入流程。
++
++## 可以证明到哪一步
++
++* **PROVED · 形状与语义有两个门。** work_research.py:454–490 的每个数组项分别约束 source_id 与该源 evidence_id，却允许不同行都取 S1。渲染器再检查去重。旧包 review-source9-controlled-r1/review.md 对 6 处实际引用逐项核原文；S1 的下载/构建等行段不支持供应商切换，S2 的 OpenAI TODO 不能当作已实现。仅在 sampler 强制不同键仍允许三源各写错。
++* **PROVED · 实际安全投影和预算。** 整篇所引 S1 行未遭篡改，S2 L45 的 loopback 被脱敏且未被引用。S3/S4 raw、secured、wire 消息逐值相等；sampler 仅移除三个字符串 maxLength，完整 schema 在 system 及收包检查仍在。事实分支需要 stage_token、1–4 个 claim/ref/ranges，每条 1–3 个 1–8 行补段。unused 与整项 final 拒绝是不同分支。两次 wire 均无截断、移窗、流式或思考标志开启。S3 原话 “insufficient to fully answer” 针对全题；S4 原话 “No relevant claims can be made from this source.”。收到的是弃用动作，无证据显示 facts 曾在 SDK 或 guard 中丢失。
++* **PROVED · 锚点偏差可具体指出。** work_research.py:235–295,351–405 对 TS 使用完整调用语句的词法见证。S3 的 15 个实际 symbol 全是 Logger、console 或 Date.now，没有直接的 this.toolRegistry.execute、this.provider.generateText。命名卡中操作的规则迫使作者讲清执行/回退时绕经日志锚点；卡 9、13 附加上下文仍可表达局部事实。反例是 S4 卡 45 直接指到 self._executor.execute L352，允许的三段足以覆盖 guard 分支、执行和 observation。Jarvis.ceo 的 donor 是 akshayaggarwal99/jarvis-ai-assistant@bec50ef…，S4 是独立 OpenJarvis 底座，无二者集成的直接证据。
++* **HYPOTHESIS / UNKNOWN。** 当控制分支、调用和返回值成为可直接引用的证据单元时，作者或能更准确表达机制。没有配对数据可把弃用归因于卡密度、角色、预算或模型能力；S3/S4 同时换了材料和措辞。E01/E03 证实可在小材料上执行有副作用的工具，没有验证跨源归属。未发现足以解释两次弃用的消息丢失、角色倒置、伪造身份或无合法事实分支。
++
++## 两条待评审路线
++
++1. **按语法结构发放机制证据（建议先审表达能力）。** 在产品整篇单 author/write 形态内，针对支持的源语言，从通用语法结构提取同一函数内条件、调用和局部结果的原始行范围，不能证明关联的保留独立片段。向作者提供中性的请求内引用，允许一个论断绑定多处有关证据；保留代码操作见证和模型自写论断；章节用服务端校验的不同源槽，仍允许不采用来源。服务只绑定原行、ID 和字节，不生成主题结论。README/TODO 保留种类，不把条件分支或动态调用推成实装或跨项目集成。与 r3/r4 的单锚邻行及 r2 的同样锚点加手填补段不同，改变的是**能以哪个核心操作和分支为证据**。需要版本化内部卡表、writer、重开规则及历史兼容，公共 E02 不变。风险为 JS/TS 解析覆盖、不可达分支、投影大小；若固定依赖不能安全解析，报告不支持并停止，不能把日志重新标为执行。安装 SDK BaseTool.spec/execute（tools/_stubs.py:137–153）及现有 WorkResearchWriteTool（work_tools.py:299 起）支持有界参数与一次受限写。
++2. **请求内只读证据导航。** 保留已收集的不可变目录与原始卡，由同一个 NativeReAct 通过受限 inspect 工具选择源/函数窗口，返回带出处的原文作为 observation，再决定继续查阅或授权一次报告。所见范围与请求、GET 和 hash 绑定，禁止发起其他读取。它改变的是何时、由谁选上下文，既非按源固定生成 N 段也非整篇一次塞入材料，能用交互记录定位“未查／已查但误引”。仍可能选错源，且旧卡的表达瓶颈仍在。需修订当前首次只能 writer/refuse 的私有协议、turn/deadline 和 ledger 的能力切换；原 writer 和验证保持。SDK core/registry.py:33,121、NativeReAct.run:329–356 和 ToolExecutor.execute 可复用。此轮不建议并行投入。
++
++## 最小未来判别（提案，未执行）
++
++先只回答“通用新证据单元能否直接覆盖旧表遗漏的核心操作，同时拒绝假关联”。冻结上述 S3/S4 原始字节和 S2 注释/警告作负对照，预注册独立盲评 rubric（代码真实调用及其控制条件、另一路径、两项目身份），在隔离区离线对比旧表和一个版本化候选表。不向产品或模型提供人工获胜行号、样本特判、期望报告或金标 ID。候选输出须逐项重建原行/来源、覆盖两种语言各一条有条件机制及替代路径，拒绝注释伪调用、跨函数错配、脱敏/遗漏行和跨源拼接；双侧记录全部输出。限一次离线批、30 分钟、0 POST、0 网络费、0 写产品文件；不能表示或不能排除负例即停止。它只检验表示能力，不能预言模型采用或真实文件成功。
++
++离线通过也不自动放行。若独审另行批准单候选，最小实际判别为原受控 E02 整篇首轮，同一固定查询/四源和同一 8B，换已登记的内部表示，1 CLI、最多 2 POST（author 一次、实际写完才 ack 一次），单一原始 260 秒工作时限，外层 315 秒封口；最多 1 次报告写，0 重试。首个缺失/不实论断、引用不支持、来源少于 3、混淆项目或缺失执行条件/替代路径、非真实写入/外部重开哈希不符均判失败；部分写/超时记录 needs_attention 并隔离，不重放。单轮通过只支持该接口组合在该样本可行。原 E02 仍需同候选连续三轮、另行真实联网和独立事实核验；变更候选须重跑 E01/E03 与负例。工单后续门不变。
++
++## 封口
++
++只读照核 source21 的 21 项工作树字节及 C HEAD 244d2120abcd6b8d7744f74a05bd22de46a2d3a5。只新增本报告、analysis.json 和指定 W 报告。模型固定为 qwen3-8b-uncensored，完整 digest 在 JSON。source9 9/9、已关闭逐来源组 3/4、第四次及 S1 无放行；source10 未放行。无新模型或 SDK 实例、外部请求、运行器、测试、产品/队列/默认值改动或 UI/语音操作。本复核没有发布设计、候选或预算。
+--- /dev/null
++++ analysis.json
+@@ -0,0 +1,399 @@
++{
++  "scope": "READ_ONLY_ARCHITECTURAL_REASSESSMENT",
++  "decision": "DONE_WITH_CONCERNS",
++  "source9_mechanical": {
++    "candidate": "7c201a3aa00c4cfccb170f6ee5102a282174f329",
++    "gate": "controlled_E02_round1",
++    "verdict": "FAIL_PROTOCOL_NO_ARTIFACT",
++    "secured_error": "Unknown, duplicate or unbound source ID",
++    "actual_native_posts": 1,
++    "complete_model_proposals": 1,
++    "sections": 5,
++    "distinct_source_ids": 1,
++    "source_ids": [
++      "S1",
++      "S1",
++      "S1",
++      "S1",
++      "S1"
++    ],
++    "native_prompt_tokens": 13888,
++    "native_output_tokens": 1615,
++    "native_total_seconds": 22.4850387,
++    "actual_successful_writes": 0,
++    "artifact_count": 0,
++    "request_sha256": "c14eba499d8a15856b470597447b8a99dafabfe1993ebeb592682077ffa5b2e2",
++    "response_sha256": "62d0ab40549ff111a783852968b043e8e275b947978f8b768c0a57a4bf38462e",
++    "factual_review": "PENDING_INDEPENDENT_REVIEW",
++    "cleanup_verified_from_receipt": true,
++    "next_round_released": false
++  },
++  "superseding_factual_review": "review-source9-controlled-r1/review.json",
++  "closed_prefix": {
++    "S2": {
++      "packet": "per-source-feasibility-20261102/S2-first/first-f53a803-r2/outcome.json",
++      "observer": "per-source-feasibility-20261102/S2-first/first-f53a803-r2/http-observer.json",
++      "original_history_roles": [
++        "system",
++        "user"
++      ],
++      "raw_equals_secured": false,
++      "secured_equals_wire": true,
++      "wire_chars_by_role": {
++        "system": 2356,
++        "user": 6265
++      },
++      "wire_options": {
++        "num_ctx": 16384,
++        "temperature": 0,
++        "num_predict": 480
++      },
++      "strict_schema_path": "outcome.json#/schema",
++      "wire_schema_path": "outcome.json#/wire/2/request/format",
++      "line_count": 90,
++      "unchanged_lines": 89,
++      "card_count": 20,
++      "card_symbols": [
++        "AgentManager",
++        "Logger.debug",
++        "",
++        "console.log",
++        "Logger.info",
++        "console.log",
++        "Logger.info",
++        "GeminiProvider",
++        "",
++        "Logger.warning",
++        "",
++        "console.log",
++        "UnifiedAgent",
++        "Logger.info",
++        "console.log",
++        "Logger.warning",
++        "",
++        "Logger.error",
++        "",
++        "Logger.debug"
++      ],
++      "native_http": 500,
++      "native_done_reason": null,
++      "input_tokens": null,
++      "output_tokens": null,
++      "native_error": "llama-server reported out-of-memory during startup: cudaMalloc failed: out of memory\nalloc_tensor_range: failed to allocate CUDA0 buffer of size 4671766528\nerror loading model: unable to allocate CUDA0 buffer",
++      "raw_equals_secured_response": null,
++      "stage": null,
++      "confirmed": false,
++      "sdk_result": null,
++      "effects": []
++    },
++    "S3": {
++      "packet": "per-source-feasibility-20261102/remaining-source-actual/S3/first-f53a803-r2/outcome.json",
++      "observer": "per-source-feasibility-20261102/remaining-source-actual/S3/first-f53a803-r2/http-observer.json",
++      "original_history_roles": [
++        "system",
++        "user"
++      ],
++      "raw_equals_secured": true,
++      "secured_equals_wire": true,
++      "wire_chars_by_role": {
++        "system": 2341,
++        "user": 7483
++      },
++      "wire_options": {
++        "num_ctx": 16384,
++        "temperature": 0,
++        "num_predict": 480
++      },
++      "strict_schema_path": "outcome.json#/schema",
++      "wire_schema_path": "outcome.json#/wire/2/request/format",
++      "line_count": 110,
++      "unchanged_lines": 110,
++      "card_count": 15,
++      "card_symbols": [
++        "Logger.info",
++        "Date.now",
++        "Logger.info",
++        "Logger.error",
++        "console.log",
++        "console.log",
++        "console.log",
++        "console.log",
++        "Logger.info",
++        "Logger.info",
++        "console.log",
++        "Logger.info",
++        "Logger.error",
++        "Logger.info",
++        "Logger.info"
++      ],
++      "native_http": 200,
++      "native_done_reason": "stop",
++      "input_tokens": 2928,
++      "output_tokens": 94,
++      "native_error": null,
++      "raw_equals_secured_response": true,
++      "stage": {
++        "stage_token": "41970166-cf4b-42d6-8598-da88b07692a7",
++        "unused_reason": "The source code provided is insufficient to fully answer the question about Jarvis.ceo's desktop task architecture and existing open-source access."
++      },
++      "confirmed": true,
++      "sdk_result": {
++        "content": "Maximum turns reached without a final answer.",
++        "usage": {},
++        "tool_results": [
++          {
++            "tool_name": "ultima_work_research_stage",
++            "content": "Local draft staged in memory.",
++            "success": true
++          }
++        ],
++        "turns": 1,
++        "model": "qwen3-8b-uncensored",
++        "engine": "ollama"
++      },
++      "effects": []
++    },
++    "S4": {
++      "packet": "per-source-feasibility-20261102/local-role-actual/S4/first-f53a803-role-r2/outcome.json",
++      "observer": "per-source-feasibility-20261102/local-role-actual/S4/first-f53a803-role-r2/http-observer.json",
++      "original_history_roles": [
++        "system",
++        "user"
++      ],
++      "raw_equals_secured": true,
++      "secured_equals_wire": true,
++      "wire_chars_by_role": {
++        "system": 2575,
++        "user": 21083
++      },
++      "wire_options": {
++        "num_ctx": 16384,
++        "temperature": 0,
++        "num_predict": 480
++      },
++      "strict_schema_path": "outcome.json#/schema",
++      "wire_schema_path": "outcome.json#/wire/2/request/format",
++      "line_count": 367,
++      "unchanged_lines": 367,
++      "card_count": 48,
++      "card_symbols": [
++        "",
++        "",
++        "json.loads",
++        "",
++        "",
++        "fields.get",
++        "",
++        "value.strip",
++        "",
++        "",
++        "fields.get",
++        "json.loads",
++        "",
++        "json.dumps",
++        "text.strip",
++        "re.fullmatch",
++        "_parse_json_response",
++        "_parse_json_response",
++        "re.search",
++        "re.search",
++        "re.search",
++        "re.search",
++        "self._emit_turn_start",
++        "build_tool_descriptions",
++        "prompt_template.format",
++        "prompt_template.format",
++        "self._build_messages",
++        "messages.insert",
++        "self._loop_guard.compress_context",
++        "self._generate",
++        "result.get",
++        "result.get",
++        "self._parse_response",
++        "self._emit_turn_end",
++        "self._emit_turn_end",
++        "AgentResult",
++        "self._emit_turn_end",
++        "AgentResult",
++        "messages.append",
++        "ToolCall",
++        "self._loop_guard.check_call",
++        "ToolResult",
++        "all_tool_results.append",
++        "messages.append",
++        "self._executor.execute",
++        "all_tool_results.append",
++        "messages.append",
++        "self._max_turns_result"
++      ],
++      "native_http": 200,
++      "native_done_reason": "stop",
++      "input_tokens": 7320,
++      "output_tokens": 79,
++      "native_error": null,
++      "raw_equals_secured_response": true,
++      "stage": {
++        "stage_token": "747723da-fb08-41a1-a078-d01819a7b472",
++        "unused_reason": "No relevant claims can be made from this source."
++      },
++      "confirmed": true,
++      "sdk_result": {
++        "content": "Maximum turns reached without a final answer.",
++        "usage": {},
++        "tool_results": [
++          {
++            "tool_name": "ultima_work_research_stage",
++            "content": "Local draft staged in memory.",
++            "success": true
++          }
++        ],
++        "turns": 1,
++        "model": "qwen3-8b-uncensored",
++        "engine": "ollama"
++      },
++      "effects": []
++    }
++  },
++  "ordinary": {
++    "e01-round1": {
++      "argv": "e03-resume-20261102/actual/e01-round1/argv.json",
++      "trace": "e03-resume-20261102/actual/e01-round1/product-result.json",
++      "independent": "e03-resume-20261102/actual/e01-round1/independent-review.json",
++      "tool_events": [
++        "ultima_work_file_write"
++      ],
++      "finish_reasons": [
++        "stop",
++        "stop"
++      ],
++      "native_wire_capture": null
++    },
++    "e03-round1": {
++      "argv": "e03-resume-20261102/actual/e03-round1/argv.json",
++      "trace": "e03-resume-20261102/actual/e03-round1/product-result.json",
++      "independent": "e03-resume-20261102/actual/e03-round1/independent-review.json",
++      "tool_events": [
++        "ultima_work_replace_selection",
++        "ultima_work_file_write"
++      ],
++      "finish_reasons": [
++        "stop",
++        "stop",
++        "stop"
++      ],
++      "native_wire_capture": null
++    }
++  },
++  "controller_disposition": {
++    "recorded_utc": "2026-11-02T12:14:58.840860+00:00",
++    "user_authorization": "开始持续推进工单目标; 以后仅8B",
++    "original_order": "wo-ultimaagent-20261101-0021",
++    "stage": "T2",
++    "phase": "READONLY_E02_INTERFACE_REASSESSMENT",
++    "C_head": "244d2120abcd6b8d7744f74a05bd22de46a2d3a5",
++    "product_source": "7c201a3aa00c4cfccb170f6ee5102a282174f329",
++    "source21_sha256": "1b129fb515f10c4399f0d51029a4419a173af84d2a2d5da07622912e331410f5",
++    "E01_E03_current_candidate": "PASS_INDEPENDENT",
++    "E02": "FAIL_RETAINED",
++    "source9_cumulative": 9,
++    "source9_cap": 9,
++    "old_prefix_posts": 3,
++    "old_prefix_cap": 4,
++    "old_prefix_branch_closed": true,
++    "fourth_old_prefix_released": false,
++    "source10_released": false,
++    "model_calls_released": false,
++    "model_policy": "CURRENT8B_ONLY_NO_LARGER_NO_FALLBACK",
++    "new_product_code_released": false,
++    "goal_remains_active": true
++  },
++  "evidence_root": "H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2",
++  "sha256": {
++    "per-source-feasibility-20261102/S2-first/first-f53a803-r2/outcome.json": "597467ca6cd98cf271eaa6a5a62181a614023c591b2a87d66c75eb4df42739aa",
++    "per-source-feasibility-20261102/S2-first/first-f53a803-r2/http-observer.json": "cf770ff4786ea239bca4e28c8df5d3b6657133579f28fa7bceba8d4373c861f8",
++    "per-source-feasibility-20261102/remaining-source-actual/S3/first-f53a803-r2/outcome.json": "c8c64b4f9fdff1c3e28d326309d605d3d4ca3d0536e7a559f7fd4a082e6aaa72",
++    "per-source-feasibility-20261102/remaining-source-actual/S3/first-f53a803-r2/http-observer.json": "6eef9a23bec52e4303cc3c3b7d37bf699d72fe8ac1a1fcdb51635c195659ed1c",
++    "per-source-feasibility-20261102/local-role-actual/S4/first-f53a803-role-r2/outcome.json": "6346f26e196bfc756e0ca1fa3651299e5b9a7b9e356e9ebb0037f6db32b22afb",
++    "per-source-feasibility-20261102/local-role-actual/S4/first-f53a803-role-r2/http-observer.json": "5fb161724c3ddf30747cfbfc1a798f755b73e9508878a76bbad09dd21b47eb59",
++    "source6-native-reference/controlled-corpus-7c201a3a-r1/wire/e7cf535c6b3c42e1be358ccfe3b538cc.request.entity": "c14eba499d8a15856b470597447b8a99dafabfe1993ebeb592682077ffa5b2e2",
++    "source6-native-reference/controlled-corpus-7c201a3a-r1/wire/e7cf535c6b3c42e1be358ccfe3b538cc.response.entity": "62d0ab40549ff111a783852968b043e8e275b947978f8b768c0a57a4bf38462e",
++    "source6-native-reference/controlled-corpus-7c201a3a-r1/controller-outcome.json": "8827f66c9c6b5c576087a9001ed096a51dc70b58608526d2b2a0ac015fdddd1a",
++    "source6-native-reference/controlled-corpus-7c201a3a-r1/root-mechanical-readback.json": "cb24cf499ea8b6729baef174239c2a0fa64028ef6449f6f7173f93ebedd89d1f",
++    "source6-native-reference/controlled-corpus-7c201a3a-r1/e02-round-1/receipt.json": "a7745c350e549799ab0609d17aa6bbb8ab7b121dd2139476f9c856e98c4d329e",
++    "source6-native-reference/controlled-corpus-7c201a3a-r1/e02-round-1/external-artifacts.json": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
++    "review-source9-controlled-r1/review.json": "4de0e39d3b5ed70533eeb157a6e902ddab268c562883d0c886350578dc9c51d0",
++    "review-source9-controlled-r1/review.md": "6be5d9bcddd5e8358816d13c38b3546e5bbcd8b5afd662cca0c22eb4fa65957c",
++    "per-source-design-review-2/verdict.json": "253bf87cea904806a10dfa72ac53bc865d1e4bb050da1ac8264bac6f61043e36",
++    "review-remaining-source-S3-first/review.json": "6ad3e00a17c48ee3b0104b6cfd465702b2298acca2008a31462d7077fc5994f9",
++    "review-local-role-S4-first/review.json": "00c9ce78049af968f42f7a0830783e2b5f384da849772cf4c74b9ca65852ed06",
++    "e03-resume-20261102/e01-e03-current-candidate-result.json": "ef61c4a9bef29fe6c47bd96d83b83d92c7e1639d994e2b022b543e3abb61bffe",
++    "e03-resume-20261102/preparation/sdk-sources.json": "b77f9c170129a47376b711c4212d125e995faef7e6ccb661c1419763502c8690",
++    "e02-interface-reassessment-20261102/source21-before.json": "1b129fb515f10c4399f0d51029a4419a173af84d2a2d5da07622912e331410f5",
++    "e02-interface-reassessment-20261102/controller-readonly-disposition.json": "740cc5acc73f27ee40e2e401fb78d591a5f23266a9de9a5891bd4f9da55c7119",
++    "C:\\Users\\Administrator\\.codex\\worktrees\\jarvis-work-capability-longpaths\\UltimaAgent\\docs\\plans\\jarvis-work-per-source-research-design-20261102.md": "b1290ae6633418b9ab04a2b88ff9152655a8b30cbde79d795d8f3c18321d17d7",
++    "e03-resume-20261102/actual/e01-round1/argv.json": "7dde30d9d519dcdc8ee654d73a77c0f97574c4fda293a295de2e1d9dc48ccc0a",
++    "e03-resume-20261102/actual/e01-round1/product-result.json": "17d60abcf10a1c1571ad7c3eeadf18552fd9d0ad461283d267d24b5c62bac879",
++    "e03-resume-20261102/actual/e01-round1/independent-review.json": "97407d8fd872f4ea82e8f9e583059310e786d1f966d0f59a22a5a873a1613037",
++    "e03-resume-20261102/actual/e03-round1/argv.json": "33cf9c579fc898b616f7bb0ab923669791ae5e76cf5a2cf30115ca5013aaec9e",
++    "e03-resume-20261102/actual/e03-round1/product-result.json": "9653e4d577e3d653ff6687258f14f68646ac66b7b5e33e7fa44e6748fde96254",
++    "e03-resume-20261102/actual/e03-round1/independent-review.json": "e84dfc5f9d2a266eaa5940a11da82c0bf79641228228b52aad3458092ccc39ec"
++  },
++  "preservation": {
++    "head_ref": "refs/heads/codex/jarvis-work-capability",
++    "observed_head": "244d2120abcd6b8d7744f74a05bd22de46a2d3a5",
++    "source21_match": true,
++    "source21_readback": {
++      "src\\brain\\work_context.py": "967151513b9e1d092b6225d9cd9c5b84a7bd59d0beca8a17ddd66d9ebe027e4d",
++      "src\\brain\\work_tools.py": "b14ae3e10da15d4eaeb8f222901cf6365dc9930f9da59a2289766069471ad915",
++      "src\\brain\\work_service.py": "be28bd281cb65f418bc31bf949c740e09f94fff9854a1516f1f2b576c735e029",
++      "src\\brain\\work_research.py": "6819826397fcf031987e612da13cb1cd7c9a517cb782b16d71bea53a4d16b758",
++      "src\\brain\\work_verifier.py": "a76e9738d33e0ae4b37ce6650531bafd6a28bc0f0424143aadeafb2ec1f0fe9e",
++      "src\\brain\\environment.py": "0eb842f7f260bad2e8a2e4c86648a841afd8141a7a469a23136bc2d5629a4b5e",
++      "src\\brain\\exec\\channel.py": "57a57c57593096b13f38a7ac64d95403fb7904ecd33273599306f88a0facffce",
++      "src\\brain\\browser\\channel.py": "9d7cab4749f27dbc08f1b246e03c8a6f8a059acb74692802a1326216e00ef86d",
++      "src\\brain\\agent_server.py": "9e309a0421cfe62ea6c3d2b7d1678f175cdffb9a12bf6224219ebdaff8f3d600",
++      "src\\brain\\agent_client.py": "709987143445eac2b5102c6a7705f0c828d42d17e659eb0b86993e6080841405",
++      "src\\brain\\cli.py": "a0f7943eaeb26e5aa4170689b1df0d222281bdb493762518a53ed31f874fbb03",
++      "src\\brain\\tests\\test_work_context.py": "f1f23bbbfdea0aea7db28b296487629df67c19cbdd960f6e16d360a0497f5257",
++      "src\\brain\\tests\\test_work_research.py": "1348a46e157a1c13c268f1ed48bd90d265cd144e6bbf5a84c90f2493efbcdc43",
++      "src\\brain\\tests\\test_work_delivery.py": "ba937f5d3e5c83fc1d6890a52e9088c9cb8dbd32d45a8a05dbd98a6e93ea21a6",
++      "src\\brain\\tests\\work_context_acceptance.py": "8eafd9931adf2278032fd79a210b1fc0dbdcc6f80ca5ca5e35bb8e99d3e8b9f0",
++      "docs\\specs\\jarvis-work-research-evidence-protocol-20261102.md": "d641bd1a9e287b48d8a21413cb9c8574e9ca118ae38c17d50b8652b5a5e4f83c",
++      "docs\\specs\\jarvis-work-research-execution-contract-20261102.md": "ae721d8bd7dcdc5f3cfbe7707a04153a2d1514418b35d488d0a2014075764aaa",
++      "docs\\specs\\jarvis-work-capability-contract-20261101.md": "99ebc2de134683d986b62799b70814a9f336f7813f03725687fe469a8edf7047",
++      "docs\\plans\\jarvis-work-capability-delivery-plan-20261101.md": "78d6d0e2584d47894a8e84fbf419b1c7ea8df818996124b63e05459e3ce69ae4",
++      "src\\brain\\tests\\fixtures\\work_capability\\acceptance-cases.json": "e8d8c0e75a54d8f04221f54aabaec94a36fe6398a00d5745f6ae746e66038225",
++      "docs\\specs\\jarvis-work-research-reference-protocol-20261102.md": "4e018b05af939f0b118f94f75f41ea30c8e0b51d26219d95329f460813560844"
++    }
++  },
++  "classification": {
++    "proved": [
++      "array items locally source-bound but can repeat one source",
++      "S3 and S4 confirmed unused actions over complete secured material",
++      "no direct S3 registry action card; direct S4 executor card exists"
++    ],
++    "hypothesis": "Structured multi-location operation witnesses may improve expressibility",
++    "unknown": [
++      "semantic effect of changing representation",
++      "specific cause of model abstention",
++      "future whole report or online performance"
++    ]
++  },
++  "routes": [
++    "versioned structural witnesses in existing whole report flow",
++    "bounded read-only evidence navigation inside NativeReAct"
++  ],
++  "proposed_next_only": {
++    "test": "blind offline representability and adversarial attribution audit",
++    "attempts": 1,
++    "minutes": 30,
++    "native_posts": 0,
++    "authorized": false
++  },
++  "effects": {
++    "new_experiment": false,
++    "source10": false,
++    "product_edits": false,
++    "model_calls": 0
++  }
++}
+--- /dev/null
++++ this-receiver-addendum.md
+@@ -0,0 +1,11 @@
++## 补充复核 · TypeScript 接收者在候选构造时丢失
++
++**PROVED（静态源码推导）。** 对封存 S3 L71–74 的普通调用语句 `const result = await this.toolRegistry.execute(…);`，候选生成器与完整语句验证器对同一调用构造了不同的操作名。
++
++1. 产品 `src/brain/work_research.py:223–234` 对 .ts 使用 TypeScriptLexer，保留非空白 token 的原始类型、拼写与行号。安装版 `pygments/lexers/javascript.py:140,156–175` 的 TS root 在专用规则后显式 inherit；该处的调用表达式不匹配前置的类型注解等规则。`pygments/lexer.py:609–641,711–720` 说明继承位置及按序匹配。JS root 在普通标识符规则前把 this、super 标为 Keyword，点是 Punctuation，成员名是 Name.Other（javascript.py:55–60,80–94,118）。`pygments/token.py:28–32,65–67` 说明 Keyword 不属于 Name。
++2. work_research.py:392–400 从后接左括号的成员 execute 向左拼接，跨点只接受 Name。因此候选是 toolRegistry.execute，丢失 this。_js_statement_anchor（351–365）把这个拼写交给 _js_support。对上述完整语句，前一有效 token 是分号，const 赋值及 await 符合 header，末尾分号闭合；完整 header 的 callee 是 this.toolRegistry.execute。237–265,272–301 最终比较不等，无法为这条语句签发其真实操作的 code 卡。S3 L97 的 this.provider.generateText 同理。普通成员调用 super.method 在相同词法前提下也会丢失前缀；此处未提供 super 的历史实例。独立的 if 条件、复合表达式、可选链等还受完整语句规则限制，不能从这一步推断也会获卡。
++3. 产品 reference_cards 在 work_research.py:410–438 生成候选后才做上限挑选。实验 preparation-r2/run_stage_prefix.py:137–138 复用相同 _js_tokens/_anchors，实际 S3 outcome.json 的 15 个批准 symbol 只有日志/计时。它记录原始正文与最终卡表，没有逐 token 轨迹或每个候选拒绝原因；以上逐步归因是对该精确语句的源码推导。S4 的 Python 卡 45 已有完整 self._executor.execute，仍得到 unused。该缺陷可解释特定 TS 操作为何不能作为直接锚点，不能据此推断弃用原因、修复后事实得分或 E02 文件交付结果。
++
++**更小的判别。** 在通用结构提取之前，优先考虑一次另批的离线对照：冻结原 lexer 和原 S3、S4，其他选择、验证、48 卡及权限规则全不变，仅在隔离候选中允许 dotted callee 的最左段取词法上确为 Keyword 的 this/super。针对普通 JS/TS 成员、this/super 成员及变量接收者保留完整 token 与全量候选/最终卡表，验证所签见证的完整操作与原行、来源和哈希逐一一致；加入注释、字符串、类型声明、跨行断裂或非成员关键字等拒绝样本。已有 S4 和其他无关见证按原文坐标/种类/操作比较，另查排序插入后 ID 变化及旧协议重开兼容，不能用手工卡号作金标。只承认新规则为 S3 显示至少一个此前缺失的核心调用、负例零误签且无无关语义回归；否则停止，记录拒绝层。独立人工 rubric 只用于验后，禁止输入模型或作为产品特例。一批、30 分钟、0 POST、0 外部费用、无产品写入，不交付模型事实判分或 E02 文件。未实施、未导入或运行 lexer、未分配额度。根控制器的依赖清点仅在限定范围发现 lark 1.3.1，四个 TypeScript 编译器路径均未找到；这条判别不需要引入新 parser。
++
++**UNKNOWN。** 接收者识别修正是否足以扩大最终发给模型的实用证据、是否同时改变其他卡的排序/选择、作者是否采用新卡并写出有依据的条件和替代路径。后两层仍须分别取得证据。source21 与 C HEAD 保留，原 R2 两文件哈希见补充 JSON。
+--- /dev/null
++++ this-receiver-addendum.json
+@@ -0,0 +1,42 @@
++{
++  "status": "DONE_WITH_CONCERNS",
++  "method": "static source and sealed data only",
++  "proved": {
++    "typescript_inherits_js_root": true,
++    "keyword_not_in_name": true,
++    "example": "S3 L71-74",
++    "candidate": "toolRegistry.execute",
++    "complete_callee": "this.toolRegistry.execute",
++    "historical_token_trace": false,
++    "sealed_s3_card_count": 15,
++    "s4_complete_executor_card": true
++  },
++  "unknown": [
++    "causal relationship to abstention",
++    "candidate acceptance and new card selection after change",
++    "whole E02 file success"
++  ],
++  "next_probe": {
++    "authorized": false,
++    "proposed_batches": 1,
++    "wall_minutes": 30,
++    "posts": 0,
++    "product_edits": 0
++  },
++  "source21_count": 21,
++  "source21_matches": true,
++  "head_readback": "244d2120abcd6b8d7744f74a05bd22de46a2d3a5",
++  "sha256": {
++    "H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\e02-interface-reassessment-20261102\\report.md": "83384b770f10b34f0b7f91362a1032a967befc111a2a47731edc07fb93bb3087",
++    "H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\e02-interface-reassessment-20261102\\analysis.json": "521d96f4ff7f9ce2e79a016cdeccb902d78c14f1451b2d94fff7b6c632a2e6ea",
++    "C:\\Users\\Administrator\\.codex\\worktrees\\jarvis-work-capability-longpaths\\UltimaAgent\\src\\brain\\work_research.py": "6819826397fcf031987e612da13cb1cd7c9a517cb782b16d71bea53a4d16b758",
++    "H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\e02-interface-reassessment-20261102\\root-parser-availability.json": "f7b3ef89553eaf4c38eaa4fa3c9e3f74397f51d7a3c6e667f29dcb1828d62bb9",
++    "H:\\UltimaAI\\UltimaAgent\\tools\\venv-openjarvis\\Lib\\site-packages\\pygments\\token.py": "0d58a5e53da5b479138104d4632d5d32d8328a08dabc2b35ca913841fd82ac6a",
++    "H:\\UltimaAI\\UltimaAgent\\tools\\venv-openjarvis\\Lib\\site-packages\\pygments\\lexer.py": "2037632e5c3bbf18c6c12a14dc38815e0584b16b2e81e7b765c04af1b3e1b738",
++    "H:\\UltimaAI\\UltimaAgent\\tools\\venv-openjarvis\\Lib\\site-packages\\pygments\\lexers\\javascript.py": "66ecc85bbaf14527e07a18f5124df6d5c4c6dd2524ae60e2c2ff419a935f5393",
++    "H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\per-source-feasibility-20261102\\preparation-r2\\run_stage_prefix.py": "4122c8d0c288689f31899fc59cebf7aabbcc546c46342071134af712d4a9863e",
++    "H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\per-source-feasibility-20261102\\remaining-source-actual\\S3\\first-f53a803-r2\\outcome.json": "c8c64b4f9fdff1c3e28d326309d605d3d4ca3d0536e7a559f7fd4a082e6aaa72",
++    "H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\per-source-feasibility-20261102\\local-role-actual\\S4\\first-f53a803-role-r2\\outcome.json": "6346f26e196bfc756e0ca1fa3651299e5b9a7b9e356e9ebb0037f6db32b22afb"
++  },
++  "addendum_md_sha256": "55fa2a2b06fa64db3dc1c168e54661572e167a60b48812892a31b283285cce9f"
++}
+--- /dev/null
++++ controller-concerns-ruling.md
+@@ -0,0 +1,11 @@
++# Controller ruling before reassessment review
++
++Both DONE_WITH_CONCERNS reports have been read under handling-reports. Their static/data findings and future proposals are distinct. The unknown cause of model abstention is an observation limit, not a claim of a fixed product. The S4 Python counterexample remains binding.
++
++Scope ruling: review the completed read-only analysis and receiver addendum. The recommended NEXT candidate for judgment is the narrower existing-Pygments this/super receiver offline discriminator. Broader mechanism extraction/new parser research is not released and is not implicitly needed if the small defect is confirmed. Root's bounded metadata/path inventory does not prove machine-wide parser absence; no dependency installation is authorized. No model call, source10, product edit, new SDK instance or historical prefix retry is authorized by the report or this ruling.
++
++The proposed one offline batch/30minutes/0POST must receive a concrete executable brief and independent gate before it runs. Only source-preserving evidence code in a new sandbox may be considered, changing receiver identification alone and retaining validation/selection/caps/current source data. It must compare the old full behavior against the candidate, record all output/semantic differences, reject strings/comments/type-only and unrelated keywords, preserve original snapshots and immutable source/ref identities. Reference renumbering and old signed-reference reopening need explicit treatment; copied human winning facts/IDs cannot enter model/product inputs. A successful offline discriminator proves representation behavior only, not E02 quality.
++
++The user has fixed the product goal, original delivery plan, execution method and 8B platform, and explicitly asked continuous work. Read-only exploration stays within that authorization. Routine internal implementation choices will be labeled controller choices, never falsely attributed to the user. A new design/candidate/budget must remain concrete and independently reviewable; no hidden source9-cap extension or gate relaxation.
++
++Cost if wrong: reject or revise the small probe before any product/model work; all previous failures and successful E01/E03 proofs remain intact. T2 remains EXECUTING with product exit NOT_PASSED.
