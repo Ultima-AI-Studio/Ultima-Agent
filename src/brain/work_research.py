@@ -571,7 +571,7 @@ def checked_native_response(raw,max_tokens):
 
 
 def _verify_runtime_order(packet,reads,written,require_ack,runtime_inputs):
-    from decimal import Decimal,InvalidOperation
+    from math import isfinite
     import uuid
     from .work_navigation import canonical_v3
     if packet['clock_domain']!='work_tools.monotonic;ledger-sequence-v1': raise ValueError('Runtime clock domain drift')
@@ -583,9 +583,12 @@ def _verify_runtime_order(packet,reads,written,require_ack,runtime_inputs):
         if (set(node)!={'order','kind','at','deadline',*fields} or node['order']!=cursor or node['kind']!=kind
                 or any(node[k]!=v for k,v in fields.items()) or node['deadline']!=runtime_inputs.deadline):
             raise ValueError('Runtime admission order drift')
-        try: now=Decimal(node['at']); remaining=Decimal(node['deadline'])-now
-        except (InvalidOperation,TypeError): raise ValueError('Invalid runtime clock') from None
-        if not now.is_finite() or (previous is not None and now<previous): raise ValueError('Runtime monotonic clock drift')
+        try:
+            if type(node['at']) is not str or type(node['deadline']) is not str: raise ValueError('Clock representation')
+            now=float(node['at']);deadline=float(node['deadline']);remaining=deadline-now
+        except (ValueError,TypeError,OverflowError): raise ValueError('Invalid runtime clock') from None
+        if not all(isfinite(n) for n in (now,deadline,remaining)) or (previous is not None and now<previous):
+            raise ValueError('Runtime monotonic clock drift')
         previous=now
         if remaining<=0: raise ValueError('Runtime deadline exceeded')
         return node,remaining
@@ -597,12 +600,17 @@ def _verify_runtime_order(packet,reads,written,require_ack,runtime_inputs):
             if not ack and remaining<=55: raise ValueError('Runtime send reserve exhausted')
             receipt=packet['transport']['receipts'][receipt_index]
             budget=remaining if ack else remaining-55
-            base=min(Decimal(25),budget); read=min(Decimal(25 if ack else 180),budget)
-            if receipt['kind']=='metadata': read=min(Decimal(25),read)
+            # Recorded repr strings round-trip the live binary64 samples. Keep
+            # its subtraction order so boundary timeouts have identical caps.
+            base=min(25,budget); read=min(25 if ack else 180,budget)
+            if receipt['kind']=='metadata': read=min(25,read)
             timeout=json.loads(receipt['timeout_json'])
+            def admitted(value,limit):
+                try: return type(value) in (int,float) and isfinite(value) and 0<value<=limit
+                except OverflowError: return False
             if (receipt['send_reserved'] is not True or receipt['admission_error'] is not None
                     or set(timeout)!={'connect','read','write','pool'}
-                    or any(Decimal(str(timeout[k]))>limit or Decimal(str(timeout[k]))<=0 for k,limit in
+                    or any(not admitted(timeout[k],limit) for k,limit in
                         (('connect',base),('read',read),('write',base),('pool',base)))):
                 raise ValueError('Runtime final timeout admission drift')
             take('return',generation=index+1,receipt_index=receipt_index)
@@ -690,6 +698,9 @@ def verify_runtime_packet(binding, snapshot, collection, raw, *, require_ack=Fal
         raise ValueError('Runtime event count')
     expected_types=['tool_call_start','tool_call_end']*len(reads)+['tool_call_start']+(['tool_call_end'] if written else [])
     if [e['type'] for e in events]!=expected_types: raise ValueError('Runtime ordered transcript drift')
+    submitted_writer=wires[len(reads)]['secured_envelope']['action_input']
+    if starts[-1]!=dict(tool='ultima_work_research_write',agent='native_react',arguments=submitted_writer):
+        raise ValueError('Runtime writer START identity drift')
     _verify_runtime_order(packet,reads,written,require_ack,runtime_inputs)
     prewrite=packet.get('prewrite_packet')
     if prewrite is not None:
@@ -769,6 +780,9 @@ def verify_runtime_packet(binding, snapshot, collection, raw, *, require_ack=Fal
             raise ValueError('Runtime raw response or send receipt drift')
         if envelope!=wire['raw_envelope'] or envelope!=wire['secured_envelope']:
             raise ValueError('Runtime secured envelope drift')
+        scan_strings(envelope)
+        if isinstance(envelope,dict) and isinstance(envelope.get('final_answer'),str) and not envelope['final_answer'].strip():
+            raise ValueError('Empty research final answer')
         Draft7Validator(wire['strict_schema']).validate(envelope)
         final=dict(type='object',additionalProperties=False,required=['final_answer'],
             properties=dict(final_answer=dict(type='string',minLength=1,maxLength=1000)))
@@ -815,7 +829,8 @@ def verify_runtime_packet(binding, snapshot, collection, raw, *, require_ack=Fal
         raise ValueError('Runtime terminal phase drift')
     if written:
         end=ends[-1]
-        if end.get('success') is not True or end.get('tool')!='ultima_work_research_write': raise ValueError('Runtime writer END missing')
+        if (end.get('success') is not True or end.get('tool')!='ultima_work_research_write'
+                or end.get('agent')!='native_react'): raise ValueError('Runtime writer END identity drift')
         receipt=_strict_json(end['result'])
         metadata=end.get('metadata',{})
         submitted=wires[-2 if require_ack else -1]['secured_envelope']['action_input']

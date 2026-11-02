@@ -52,6 +52,203 @@ def genuine_navigation(tmp_path,sdk_io,mock_jar):
     return result,ledger
 
 
+def fractional_navigation(tmp_path,sdk_io,mock_jar,state,monkeypatch,edge=False):
+    import hashlib,math
+    from dataclasses import asdict
+    from pathlib import Path
+    from src.brain import work_service
+    from src.brain.work_navigation import canonical_v3
+    from src.brain.work_research import verify_runtime_packet
+    monkeypatch.setattr(work_service,'monotonic',lambda:800.2)
+    author=math.nextafter(1005.2,-math.inf) if edge else 1000.1
+    ack=math.nextafter(1060.2,-math.inf) if edge else 1040.1
+    state['now']=author
+    build=httpx.Client.build_request;send=httpx.Client.send;prepared={};observed=[]
+    def capture(client,verb,*args,**kwargs):
+        request=build(client,verb,*args,**kwargs)
+        ledger=wt._ACTIVE.get()[1]
+        if ledger._runtime_transport.generations==5: state['now']=ack
+        prepared[id(request)]=hashlib.sha256(request.content).hexdigest()
+        return request
+    def inspect(client,request,*args,**kwargs):
+        digest=hashlib.sha256(request.content).hexdigest()
+        assert prepared.pop(id(request))==digest
+        observed.append(dict(method=request.method,path=request.url.path,at=repr(state['now']),
+            timeout=dict(request.extensions['timeout']),entity_sha256=digest))
+        return send(client,request,*args,**kwargs)
+    monkeypatch.setattr(httpx.Client,'build_request',capture)
+    monkeypatch.setattr(httpx.Client,'send',inspect)
+    from src.brain.tests.test_work_research import RESTRICTED
+    mock_jar[3].extend([navigation_reply]*5)
+    result=submit(tmp_path,sdk_io[0],mock_jar[1]);ledger=RESTRICTED[result['task_id']]
+    if result['status']!='succeeded' and hasattr(ledger,'_runtime_prewrite'):
+        verify_runtime_packet(ledger._binding,ledger.issued_snapshot,ledger._collection,ledger._runtime_prewrite,
+            runtime_inputs=ledger._runtime_inputs)
+    assert result['status']=='succeeded',result['error']
+    assert ledger.deadline==1060.2 and not prepared and len(observed)==15
+    for index,item in enumerate(observed):
+        cap=(1060.2-ack) if index>=12 else (1060.2-author)-55
+        assert item['timeout']==dict(connect=cap,read=cap,write=cap,pool=cap)
+    if not edge: assert observed[0]['timeout']['read']==5.100000000000023
+    verify_runtime_packet(ledger._binding,ledger.issued_snapshot,ledger._collection,ledger._runtime_final,
+        require_ack=True,runtime_inputs=ledger._runtime_inputs)
+    artifact=Path(result['artifacts'][0]['path']);artifact_hash=hashlib.sha256(artifact.read_bytes()).hexdigest()
+    assert artifact_hash==result['artifacts'][0]['sha256']
+    for name,raw in [('runtime',ledger._runtime_final),('prewrite',ledger._runtime_prewrite),
+            ('issued',ledger.issued_snapshot.replay_json),('views',ledger.issued_snapshot.views_json),
+            ('inputs',canonical_v3(dict(asdict(ledger._runtime_inputs),binding_key=list(ledger._runtime_inputs.binding_key))))]:
+        (tmp_path/('fractional-'+name+'.json')).write_bytes(raw)
+    (tmp_path/'fractional-proof.json').write_text(json.dumps(dict(edge=edge,deadline=repr(ledger.deadline),
+        author_at=repr(author),ack_at=repr(ack),prepared_requests=observed,artifact=str(artifact),
+        artifact_sha256=artifact_hash,replay_accepted=True)),encoding='utf8')
+    return ledger
+
+
+@pytest.mark.parametrize('edge',[False,True])
+def test_fix2_n1_fractional_prepared_sdk_replay(tmp_path,sdk_io,mock_jar,source9_clock,monkeypatch,edge):
+    fractional_navigation(tmp_path,sdk_io,mock_jar,source9_clock,monkeypatch,edge)
+
+
+@pytest.mark.parametrize('ack',[False,True])
+@pytest.mark.parametrize('method',['GET','POST'])
+def test_fix2_n1_next_float_above_cap_rejected(tmp_path,sdk_io,mock_jar,source9_clock,monkeypatch,ack,method):
+    import math
+    from src.brain.work_research import verify_runtime_packet
+    from src.brain.work_navigation import canonical_v3
+    ledger=fractional_navigation(tmp_path,sdk_io,mock_jar,source9_clock,monkeypatch)
+    packet=json.loads(ledger._runtime_final if ack else ledger._runtime_prewrite)
+    index=(12 if ack else 0)+(2 if method=='POST' else 0)
+    receipt=packet['transport']['receipts'][index];timeout=json.loads(receipt['timeout_json'])
+    timeout['read']=math.nextafter(timeout['read'],math.inf)
+    receipt['timeout_json']=json.dumps(timeout,sort_keys=True,separators=(',',':'))
+    with pytest.raises(ValueError,match='Runtime final timeout admission drift'):
+        verify_runtime_packet(ledger._binding,ledger.issued_snapshot,ledger._collection,canonical_v3(packet),
+            require_ack=ack,runtime_inputs=ledger._runtime_inputs)
+
+
+@pytest.mark.parametrize('ack',[False,True])
+@pytest.mark.parametrize('method',['GET','POST'])
+@pytest.mark.parametrize('side',[-1,0,1])
+def test_fix2_n1_fractional_send_boundary(monkeypatch,ack,method,side):
+    import math
+    threshold=1060.2 if ack else 1005.2
+    now=math.nextafter(threshold,-math.inf) if side<0 else math.nextafter(threshold,math.inf) if side>0 else threshold
+    monkeypatch.setattr(wt,'monotonic',lambda:now)
+    ledger=wt.WorkLedger();ledger.deadline=1060.2;observed=[];prepared=[]
+    def receive(request):
+        assert request is prepared[0]
+        observed.append(dict(request.extensions['timeout']))
+        return httpx.Response(200,stream=httpx.ByteStream(b'{}'))
+    with httpx.Client(base_url='http://127.0.0.1:11434',transport=httpx.MockTransport(receive),trust_env=False) as client:
+        build=client.build_request
+        def capture(*args,**kwargs):
+            request=build(*args,**kwargs);prepared.append(request);return request
+        monkeypatch.setattr(client,'build_request',capture)
+        transport=server._ResearchTransport(client,ledger)
+        if side<0:
+            assert transport.exchange(method,'/api/chat' if method=='POST' else '/api/version',
+                'chat' if method=='POST' else 'metadata',ack=ack)==b'{}'
+            cap=(1060.2-now)-(0 if ack else 55)
+            assert observed==[dict(connect=cap,read=cap,write=cap,pool=cap)] and cap>0
+        else:
+            with pytest.raises(ValueError,match='admission deadline|acknowledgement deadline'):
+                transport.exchange(method,'/api/chat' if method=='POST' else '/api/version',
+                    'chat' if method=='POST' else 'metadata',ack=ack)
+            assert not observed and not transport.receipts[-1]['send_reserved']
+
+
+@pytest.mark.parametrize('kind',['START','END'])
+def test_fix2_f3_writer_transcript_identity(tmp_path,sdk_io,mock_jar,kind):
+    from src.brain.work_research import verify_runtime_packet
+    from src.brain.work_navigation import canonical_v3
+    _,ledger=genuine_navigation(tmp_path,sdk_io,mock_jar)
+    verify_runtime_packet(ledger._binding,ledger.issued_snapshot,ledger._collection,ledger._runtime_final,
+        require_ack=True,runtime_inputs=ledger._runtime_inputs)
+    packet=json.loads(ledger._runtime_final if kind=='END' else ledger._runtime_prewrite)
+    original_prewrite=packet['prewrite_packet']
+    event=json.loads(packet['events'][-1]); event['data']['agent']='foreign'
+    packet['events'][-1]=json.dumps(event,sort_keys=True,separators=(',',':'))
+    assert packet['prewrite_packet']==original_prewrite
+    with pytest.raises(ValueError,match='writer '+kind+' identity'):
+        verify_runtime_packet(ledger._binding,ledger.issued_snapshot,ledger._collection,canonical_v3(packet),
+            require_ack=kind=='END',runtime_inputs=ledger._runtime_inputs)
+
+
+def escaped_scanner_fixture():
+    """Reuse the reviewed synthetic fixture without duplicating decoded evidence."""
+    import ast,inspect,textwrap
+    from src.brain.tests.test_work_navigation import test_v3_placeholder_renderability_does_not_expose_or_certify_wire
+    tree=ast.parse(textwrap.dedent(inspect.getsource(test_v3_placeholder_renderability_does_not_expose_or_certify_wire)))
+    reference=next(n.value for n in ast.walk(tree) if isinstance(n,ast.Constant) and isinstance(n.value,str)
+        and n.value.startswith('N3.') and len(n.value)==19 and n.value[3:].isdecimal())
+    return reference[3:]
+
+
+def escaped_envelope(value):
+    from src.brain.work_navigation import canonical_v3
+    raw=canonical_v3(value).decode()
+    digits=set(escaped_scanner_fixture())
+    encoded=''.join('\\u'+format(ord(c),'04x') if c in digits else c for c in raw)
+    if json.loads(encoded)!=value: raise AssertionError('Synthetic escape fixture mismatch')
+    return encoded
+
+
+def rewrite_response(packet,index,value,content):
+    import hashlib
+    from src.brain.work_navigation import canonical_v3
+    wire=packet['wires'][index];wire['raw']['message']['content']=content
+    wire['raw_envelope']=value;wire['secured_envelope']=value
+    wire['raw_response']=canonical_v3(wire['raw']).decode()
+    receipt=packet['transport']['receipts'][index*3+2];size=len(wire['raw_response'].encode())
+    receipt.update(response_sha256=hashlib.sha256(wire['raw_response'].encode()).hexdigest(),
+        downloaded=size,inspected=size,admitted=size,retained=size)
+    packet['transport']['admitted']['chat']=sum(r['admitted'] for r in packet['transport']['receipts'] if r['kind']=='chat')
+
+
+@pytest.mark.parametrize('fault',['empty','whitespace','escaped_final','escaped_action'])
+def test_fix2_f4_decoded_envelope_replay(tmp_path,sdk_io,mock_jar,fault):
+    import hashlib
+    from src.brain.work_research import verify_runtime_packet
+    from src.brain.work_navigation import canonical_v3
+    _,ledger=genuine_navigation(tmp_path,sdk_io,mock_jar)
+    action=fault=='escaped_action'
+    raw=ledger._runtime_prewrite if action else ledger._runtime_final
+    verify_runtime_packet(ledger._binding,ledger.issued_snapshot,ledger._collection,raw,require_ack=not action,runtime_inputs=ledger._runtime_inputs)
+    packet=json.loads(raw);original_prefix=packet['prewrite_packet'];index=len(packet['wires'])-1
+    if action:
+        value=packet['wires'][index]['raw_envelope'];value['action_input']['title']=escaped_scanner_fixture()
+        start=json.loads(packet['events'][-1]);start['data']['arguments']=value['action_input'];packet['events'][-1]=json.dumps(start)
+        next(n for n in reversed(packet['timeline']) if n['kind']=='expect')['args_hash']=hashlib.sha256(canonical_v3(value['action_input'])).hexdigest()
+    else: value=dict(final_answer='' if fault=='empty' else ' \t ' if fault=='whitespace' else escaped_scanner_fixture())
+    content=escaped_envelope(value) if fault.startswith('escaped') else canonical_v3(value).decode()
+    if fault.startswith('escaped'):
+        assert all(s.scan(content).clean for s in ledger._policy.scanners)
+        assert any(not s.scan(escaped_scanner_fixture()).clean for s in ledger._policy.scanners)
+    rewrite_response(packet,index,value,content)
+    assert packet['prewrite_packet']==original_prefix
+    with pytest.raises(ValueError,match='Unsafe native evidence string' if fault.startswith('escaped') else 'Empty research final answer'):
+        verify_runtime_packet(ledger._binding,ledger.issued_snapshot,ledger._collection,canonical_v3(packet),
+            require_ack=not action,runtime_inputs=ledger._runtime_inputs)
+
+
+@pytest.mark.parametrize('action',[False,True])
+def test_fix2_f4_encoded_answer_live_decode_gate(tmp_path,sdk_io,mock_jar,action):
+    from src.brain.tests.test_work_research import RESTRICTED
+    def unsafe(body):
+        value=json.loads(navigation_reply(body))
+        if action: value['action_input']['title']=escaped_scanner_fixture()
+        else: value['final_answer']=escaped_scanner_fixture()
+        content=escaped_envelope(value)
+        assert all(s.scan(content).clean for s in wt._ACTIVE.get()[1]._policy.scanners)
+        return content
+    unsafe.no_auto_navigation=True
+    mock_jar[3].extend([navigation_reply]*3+([unsafe] if action else [navigation_reply,unsafe]))
+    result=submit(tmp_path,sdk_io[0],mock_jar[1]);ledger=RESTRICTED[result['task_id']]
+    assert result['status']==('failed' if action else 'needs_attention') and 'Unsafe research output' in result['error']
+    assert len(ledger._runtime_wires)==(3 if action else 4)
+    assert len(list((tmp_path/result['task_id']).glob('research.md')))==int(not action)
+
+
 def test_fix1_f2_coherent_title_substitution_rejected(tmp_path,sdk_io,mock_jar):
     import copy,hashlib
     from pathlib import Path
