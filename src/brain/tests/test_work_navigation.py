@@ -376,3 +376,16 @@ def test_v3_incomplete_python_is_unavailable_without_aborting_other_sources():
     c,b,r=fixture(["'''",'one()','two()','three()'],suffix='.py')
     cat=research.prepare_navigation(c,b,policy(),get_records_json=r,deadline=time.monotonic()+30)
     assert not cat.sources[0].available and sum(s.available for s in cat.sources)==3
+
+
+def test_v3_nonce_preserves_all_sixteen_random_bytes_once(monkeypatch):
+    import secrets
+    calls=[]
+    def random_bytes(size):
+        calls.append(size)
+        assert size==16
+        return b'\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f'
+    monkeypatch.setattr(secrets,'token_bytes',random_bytes)
+    cat,*_=prepare()
+    assert cat.nonce=='000102030405060708090a0b0c0d0e0f'
+    assert calls==[16]

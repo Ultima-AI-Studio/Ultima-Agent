@@ -7,6 +7,7 @@ import json
 from pathlib import Path, PurePosixPath
 import platform
 import re
+import secrets
 import time
 import tokenize
 from urllib.parse import urlsplit, urlunsplit
@@ -354,7 +355,7 @@ def prepare_navigation(collection, binding, scanners: ScanPolicy, *, get_records
     originals=_linked_sources(collection,binding,records)
     sources=tuple(_safe_source(s,scanners) for s in originals)
     b=tuple(getattr(binding,k) for k in ('request_id','session_id','task_id'))
-    nonce=uuid.uuid4().hex
+    nonce=secrets.token_hex(16)
     cat=CatalogueV3(b,nonce,scanners.policy_sha256,sources,b'', '')
     available=[]
     for source in sources:
