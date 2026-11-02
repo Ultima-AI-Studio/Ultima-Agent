@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="4" skipped="0" tests="9" time="1.541" timestamp="2026-11-03T06:27:26.977191+08:00" hostname="DESKTOP-B366PQ9"><testcase classname="" name="test_success_uses_one_existing_invocation_and_outside_witness" time="0.163"><failure message="AssertionError: assert 'PERMANENT_FAIL' == 'ELIGIBLE_FOR_ROOT_REVIEW'&#10;  &#10;  - ELIGIBLE_FOR_ROOT_REVIEW&#10;  + PERMANENT_FAIL">env = namespace(c=&lt;module 'caller_contract' from 'C:\\Users\\Administrator\\.codex\\worktrees\\jarvis-work-capability-longpa...ltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\navigation-source10-validation-20261102\\harness\\adapter.py'&gt;)
+
+    def test_success_uses_one_existing_invocation_and_outside_witness(env):
+        e = env; e.clock[0] += 4_000_000_000
+        record = e.c.run()
+&gt;       assert record['overall'] == 'ELIGIBLE_FOR_ROOT_REVIEW'
+E       AssertionError: assert 'PERMANENT_FAIL' == 'ELIGIBLE_FOR_ROOT_REVIEW'
+E         
+E         - ELIGIBLE_FOR_ROOT_REVIEW
+E         + PERMANENT_FAIL
+
+C:\Users\Administrator\.codex\worktrees\jarvis-work-capability-longpaths\UltimaAgent\.superpowers\sdd\jarvis-work-capability-delivery-plan-20261101\test_root_inert_invocation.py:177: AssertionError</failure></testcase><testcase classname="" name="test_slow_import_cannot_renew_allowance" time="0.123" /><testcase classname="" name="test_late_claim_is_recorded_as_permanent_failure" time="0.114" /><testcase classname="" name="test_failed_unknown_or_late_return_never_promotes[failed]" time="0.143" /><testcase classname="" name="test_failed_unknown_or_late_return_never_promotes[late]" time="0.149"><failure message="TypeError: 'NoneType' object is not subscriptable">env = namespace(c=&lt;module 'caller_contract' from 'C:\\Users\\Administrator\\.codex\\worktrees\\jarvis-work-capability-longpa...ltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\navigation-source10-validation-20261102\\harness\\adapter.py'&gt;)
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000002380F523DF0&gt;
+mode = 'late'
+
+    @pytest.mark.parametrize('mode', ['failed', 'late', 'exception', 'missing'])
+    def test_failed_unknown_or_late_return_never_promotes(env, monkeypatch, mode):
+        e = env
+        if mode == 'failed': e.inv.eligible = False
+        if mode == 'exception': e.inv.error = RuntimeError('first original cause')
+        if mode == 'late':
+            original = e.inv.call
+            def late(self, entry):
+                e.clock[0] = e.c.ENTRY_NS+315_000_000_001
+                return original(self, entry)
+            monkeypatch.setattr(e.inv, 'call', late)
+        if mode == 'missing': monkeypatch.setattr(e.inv, 'call', lambda *args: None)
+        record = e.c.run()
+        assert record['overall'] == 'PERMANENT_FAIL'
+        assert e.events.count('MOCK headless') &lt;= 1
+        if mode == 'late':
+&gt;           assert record['outcome']['witness']['observed_ns'] == e.c.ENTRY_NS+315_000_000_001
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E           TypeError: 'NoneType' object is not subscriptable
+
+C:\Users\Administrator\.codex\worktrees\jarvis-work-capability-longpaths\UltimaAgent\.superpowers\sdd\jarvis-work-capability-delivery-plan-20261101\test_root_inert_invocation.py:271: TypeError</failure></testcase><testcase classname="" name="test_failed_unknown_or_late_return_never_promotes[exception]" time="0.151"><failure message="AssertionError: assert 'Inert scope' == 'first original cause'&#10;  &#10;  - first original cause&#10;  + Inert scope">env = namespace(c=&lt;module 'caller_contract' from 'C:\\Users\\Administrator\\.codex\\worktrees\\jarvis-work-capability-longpa...ltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\navigation-source10-validation-20261102\\harness\\adapter.py'&gt;)
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000002380FE9A350&gt;
+mode = 'exception'
+
+    @pytest.mark.parametrize('mode', ['failed', 'late', 'exception', 'missing'])
+    def test_failed_unknown_or_late_return_never_promotes(env, monkeypatch, mode):
+        e = env
+        if mode == 'failed': e.inv.eligible = False
+        if mode == 'exception': e.inv.error = RuntimeError('first original cause')
+        if mode == 'late':
+            original = e.inv.call
+            def late(self, entry):
+                e.clock[0] = e.c.ENTRY_NS+315_000_000_001
+                return original(self, entry)
+            monkeypatch.setattr(e.inv, 'call', late)
+        if mode == 'missing': monkeypatch.setattr(e.inv, 'call', lambda *args: None)
+        record = e.c.run()
+        assert record['overall'] == 'PERMANENT_FAIL'
+        assert e.events.count('MOCK headless') &lt;= 1
+        if mode == 'late':
+            assert record['outcome']['witness']['observed_ns'] == e.c.ENTRY_NS+315_000_000_001
+            assert record['outcome']['witness']['eligible'] is False
+&gt;       if mode == 'exception': assert record['first_cause']['message'] == 'first original cause'
+                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AssertionError: assert 'Inert scope' == 'first original cause'
+E         
+E         - first original cause
+E         + Inert scope
+
+C:\Users\Administrator\.codex\worktrees\jarvis-work-capability-longpaths\UltimaAgent\.superpowers\sdd\jarvis-work-capability-delivery-plan-20261101\test_root_inert_invocation.py:273: AssertionError</failure></testcase><testcase classname="" name="test_failed_unknown_or_late_return_never_promotes[missing]" time="0.160" /><testcase classname="" name="test_timely_observation_persisted_later_without_backdating" time="0.252"><failure message="AssertionError: assert 'PERMANENT_FAIL' == 'ELIGIBLE_FOR_ROOT_REVIEW'&#10;  &#10;  - ELIGIBLE_FOR_ROOT_REVIEW&#10;  + PERMANENT_FAIL">env = namespace(c=&lt;module 'caller_contract' from 'C:\\Users\\Administrator\\.codex\\worktrees\\jarvis-work-capability-longpa...ltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\navigation-source10-validation-20261102\\harness\\adapter.py'&gt;)
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000002380FE06D50&gt;
+
+    def test_timely_observation_persisted_later_without_backdating(env, monkeypatch):
+        e = env; original = e.c.save_new
+        def persist(path, record):
+            if path.name == 'inert-root-result.json': e.clock[0] += 400_000_000_000
+            original(path, record)
+        # Advance before record timestamp sample, after observed witness has returned.
+        original_controls = e.c.check_controls
+        count = [0]
+        def controls(*args):
+            result = original_controls(*args); count[0] += 1
+            if count[0] == 3: e.clock[0] += 400_000_000_000
+            return result
+        monkeypatch.setattr(e.c, 'check_controls', controls)
+        record = e.c.run()
+&gt;       assert record['overall'] == 'ELIGIBLE_FOR_ROOT_REVIEW'
+E       AssertionError: assert 'PERMANENT_FAIL' == 'ELIGIBLE_FOR_ROOT_REVIEW'
+E         
+E         - ELIGIBLE_FOR_ROOT_REVIEW
+E         + PERMANENT_FAIL
+
+C:\Users\Administrator\.codex\worktrees\jarvis-work-capability-longpaths\UltimaAgent\.superpowers\sdd\jarvis-work-capability-delivery-plan-20261101\test_root_inert_invocation.py:290: AssertionError</failure></testcase><testcase classname="" name="test_actual_pinned_harness_definition_import_restores_bindings" time="0.084" /></testsuite></testsuites>

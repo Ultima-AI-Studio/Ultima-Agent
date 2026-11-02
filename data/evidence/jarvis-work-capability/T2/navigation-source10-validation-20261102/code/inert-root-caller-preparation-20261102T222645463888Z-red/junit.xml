@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="1" time="0.434" timestamp="2026-11-03T06:26:45.822054+08:00" hostname="DESKTOP-B366PQ9"><testcase classname="" name="test_late_claim_is_recorded_as_permanent_failure" time="0.212"><failure message="ValueError: Late return: exclusive ROOT allocation consumption">env = namespace(c=&lt;module 'caller_contract' from 'C:\\Users\\Administrator\\.codex\\worktrees\\jarvis-work-capability-longpa...ltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\navigation-source10-validation-20261102\\harness\\adapter.py'&gt;)
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x0000018669B9D480&gt;
+
+    def test_late_claim_is_recorded_as_permanent_failure(env, monkeypatch):
+        e = env; original = e.c.save_new
+        def slow(path, value):
+            original(path, value)
+            if path.name == 'inert-root-release.consumed.json': e.clock[0] += 276_000_000_000
+        monkeypatch.setattr(e.c, 'save_new', slow)
+&gt;       record = e.c.run()
+                 ^^^^^^^^^
+
+C:\Users\Administrator\.codex\worktrees\jarvis-work-capability-longpaths\UltimaAgent\.superpowers\sdd\jarvis-work-capability-delivery-plan-20261101\test_root_inert_invocation.py:233: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    def run():
+        inv = None
+        consumed = False
+        outcome = None
+        first_cause = None
+        release = None
+        def call(label, function, *args):
+            return inv.budget.call(label, function, *args) if inv else early_call(label, function, *args)
+        try:
+            release_raw = call('ROOT release read', raw, V/'inert-root-release.json')
+            release = decode(release_raw)
+            call('ROOT release admission', release_check, release)
+            # Claim is outside the future case root. Any subsequent failure is final.
+            call('exclusive ROOT allocation consumption', save_new, V/'inert-root-release.consumed.json',
+                 dict(release_sha256=sha_bytes(release_raw), origin_ns=ENTRY_NS, consumed_at=utc().isoformat(), attempts=1, retry=0))
+            consumed = True
+            for name in ('inert-authority.json', 'inert-native-baseline.json', 'inert-root-result.json'):
+                require(not call('canonical existence', no_reparse, V/name).exists(), 'Existing canonical object: ' + name)
+            harness = check_controls(release, call)
+            a, headless = call('checked harness import', load_harness, harness)
+            inv = a.RootInvocation()
+            inv.budget.adopt_parent(dict(clock_domain=a.CLOCK_DOMAIN, run_id=inv.budget.run_id, origin_ns=ENTRY_NS))
+            call('revalidate release before native entry', release_check, release)
+            folder = V/'inert'/inv.budget.run_id
+            require(not call('new inert folder check', no_reparse, folder).exists(), 'Existing inert attempt')
+            require(call('ROOT release immutable', sha, V/'inert-root-release.json') == sha_bytes(release_raw), 'Release changed after consumption')
+            p4 = call('pinned original P4 definitions', a.load_p4)
+            call('original package check', a.package_check, p4)
+            call('source/SDK/helper pins', a.check_inputs)
+            call('source import origins', a.check_import_origins)
+            require(call('historical precise native pin', sha, HISTORICAL) == HISTORICAL_SHA, 'Historical native proof drift')
+            expected = call('historical precise native proof', load, HISTORICAL)['protected5']
+            protected = call('fresh original protected native identities', p4.protected)
+            exact_native(protected, expected)
+            call('fresh native member validation', a.validate_protected_members, protected, p4)
+            parent_timing = call('same ROOT native parent timing', inv.parent_timing)
+            with a.PrivateIO(p4, inv.budget):
+                require(not call('fixed inert port unused', p4.listener_owner, PORT), 'Controlled inert port occupied')
+            baseline = dict(precision='FILETIME100ns', candidate=CANDIDATE, recorded_at=utc().isoformat(), protected=protected)
+            call('native baseline validation', a.check_native_baseline, baseline, p4)
+            call('exclusive canonical native baseline', save_new, V/'inert-native-baseline.json', baseline)
+            now = utc()
+            authority = dict(schema=11, kind='source10_inert_qualification', issuer='root', actual=False,
+                             model_calls=0, native11434=False, candidate=CANDIDATE,
+                             candidate_manifest_sha256=CANDIDATE_SHA, approval_sha256=release['approval_sha256'],
+                             native_baseline_sha256=call('baseline raw binding', sha, V/'inert-native-baseline.json'),
+                             issued_at=now.isoformat(), expires_at=min(now+dt.timedelta(seconds=120), stamp(release['expires_at'])).isoformat(),
+                             run_id=inv.budget.run_id, folder=str(folder), port=PORT, schedule=SCHEDULE,
+                             parent_timing=parent_timing)
+            call('existing inert schema validator', a.validate_inert_documents, authority, utc())
+            call('exclusive canonical inert authority', save_new, V/'inert-authority.json', authority)
+            check_controls(release, call)
+            call('final ROOT release freshness', release_check, release)
+            require(call('final ROOT release raw pin', sha, V/'inert-root-release.json') == sha_bytes(release_raw), 'Release drift')
+            # Sole released entry; existing RootInvocation owns all substantive proof.
+            inv.budget.pre('one inert invocation')
+            outcome = inv.call(headless.run_inert)
+            # Extra ROOT controls are immutable, separately pinned; never edit its witness.
+            check_controls(release, lambda label, function, *args: function(*args))
+            require(sha(V/'inert-root-release.json') == sha_bytes(release_raw), 'Release drift after observation')
+        except Exception as exc:
+            first_cause = dict(type=type(exc).__name__, message=str(exc))
+        if not consumed:
+            if first_cause:
+&gt;               raise ValueError(first_cause['message'])
+E               ValueError: Late return: exclusive ROOT allocation consumption
+
+C:\Users\Administrator\.codex\worktrees\jarvis-work-capability-longpaths\UltimaAgent\.superpowers\sdd\jarvis-work-capability-delivery-plan-20261101\root-inert-invocation.py:257: ValueError</failure></testcase></testsuite></testsuites>
