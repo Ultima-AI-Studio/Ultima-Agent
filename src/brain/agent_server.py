@@ -264,11 +264,23 @@ class _NativeResearchLeaf:
         request = NativeRequest(model=model,messages=messages_to_dicts(messages),format=_research_sampler_schema(response_format),
                                 tools=[],think=False,stream=False,
                                 options={'num_ctx':16384,'temperature':0,'num_predict':max_tokens})
+        from .work_tools import monotonic
+        import httpx
+        if self.ledger.deadline is None:
+            raise ValueError('Research request deadline missing')
+        remaining = self.ledger.deadline - monotonic()
         if 'anyOf' in response_format:
             self.ledger.admit_report()
+            if remaining <= 55:
+                raise ValueError('Research author admission deadline')
+            read_timeout = min(180,remaining-55)
         else:
             self.ledger.admit_ack()
-        response = self.client.post('/api/chat',json=request.model_dump(exclude_none=True,mode='json'))
+            if remaining <= 0:
+                raise ValueError('Research acknowledgement deadline')
+            read_timeout = min(25,remaining)
+        response = self.client.post('/api/chat',json=request.model_dump(exclude_none=True,mode='json'),
+                                    timeout=httpx.Timeout(25,read=read_timeout))
         response.raise_for_status()
         raw = _strict_json(response.content.decode('utf8'))
         message = raw.get('message')

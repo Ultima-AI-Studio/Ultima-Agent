@@ -349,7 +349,7 @@ def mock_jar(tmp_path,monkeypatch):
     raw=OllamaEngine(host=host)
     raw._client.close()
     def client():
-        return httpx.Client(base_url=host,transport=httpx.MockTransport(handle),trust_env=False)
+        return httpx.Client(base_url=host,transport=httpx.MockTransport(handle),trust_env=False,timeout=25)
     raw._client=client()
     monkeypatch.setattr(agent_server,'_research_client',client,raising=False)
     monkeypatch.setattr(agent_server,'_research_manifest_digest',lambda:agent_server._RESEARCH_DIGEST,raising=False)
@@ -834,8 +834,9 @@ def test_source6_real_admission(tmp_path,sdk_io,mock_jar,monkeypatch,stage):
     now=[0]
     monkeypatch.setattr(work_service,'monotonic',lambda:0)
     monkeypatch.setattr(work_tools,'monotonic',lambda:now[0])
-    now[0]=205 if stage=='equal' else 204
+    now[0]=204
     def authored(body):
+        if stage=='equal': now[0]=205
         if stage=='after-action': now[0]+=24
         return action(report_payload())
     if stage=='worker':
@@ -1077,6 +1078,8 @@ def test_source8_property_named_maxlength_is_not_a_keyword(tmp_path,mock_jar):
     expected=deepcopy(schema)
     del expected['properties']['maxLength']['maxLength']
     class Ledger:
+        from time import monotonic
+        deadline = monotonic()+260
         def admit_ack(self): pass
     replies.append('{"maxLength":"abc"}')
     with agent_server._research_client() as client:
@@ -1121,3 +1124,107 @@ def test_source8_full_length_validation_precedes_dispatch(tmp_path,sdk_io,mock_j
         assert not result.get('research_effects')
         assert not any(e['type']=='tool_call_start' and e.get('phase')=='research.compose' for e in result['trace'])
     assert jar._engine is owner and not owner._inner._engine._client.is_closed
+
+
+@pytest.fixture
+def source9_clock(mock_jar, monkeypatch):
+    """Controlled elapsed time around real HTTPX MockTransport and SDK calls."""
+    import httpx
+    from src.brain import agent_server, work_service, work_tools
+    state = dict(now=0, metadata=0, author=0, ack=0, overrun=False, requests=[])
+    monkeypatch.setattr(work_service, 'monotonic', lambda: 0)
+    monkeypatch.setattr(work_tools, 'monotonic', lambda: state['now'])
+    factory = agent_server._research_client
+    def client():
+        result = factory()
+        def observe(request):
+            timeout = dict(request.extensions['timeout'])
+            phase = ('author' if 'anyOf' in json.loads(request.content)['format'] else 'ack') if request.method=='POST' else 'metadata'
+            state['requests'].append((phase, timeout))
+            elapsed = state[phase]
+            state['now'] += elapsed
+            if elapsed > timeout['read'] and not state['overrun']:
+                raise httpx.ReadTimeout('scripted inactivity timeout', request=request)
+        result.event_hooks['request'].append(observe)
+        return result
+    monkeypatch.setattr(agent_server, '_research_client', client)
+    return state
+
+
+@pytest.mark.parametrize('remaining,expected', [(260,180),(150,95),(55.1,pytest.approx(.1))])
+def test_source9_author_declared_budget(tmp_path,sdk_io,mock_jar,source9_clock,remaining,expected):
+    _,runner,bodies,replies=mock_jar
+    state=source9_clock
+    state['now']=260-remaining
+    replies.append('{"final_answer":"refused"}')
+    result=submit(tmp_path,sdk_io[0],runner)
+    assert result['status']=='failed' and len(bodies)==1
+    phase,timeout=state['requests'][-1]
+    assert phase=='author' and timeout==dict(connect=25,write=25,pool=25,read=expected)
+
+
+def test_source9_31_second_sdk_file_and_ack(tmp_path,sdk_io,mock_jar,source9_clock):
+    _,runner,bodies,replies=mock_jar
+    state=source9_clock
+    state.update(now=30,metadata=10,author=31)
+    replies.extend([action(report_payload()),'{"final_answer":"saved"}'])
+    result=submit(tmp_path,sdk_io[0],runner)
+    assert result['status']=='succeeded',result['error']
+    assert state['now']==101  # preflight + four metadata GETs + author, no renewal
+    assert [t['read'] for phase,t in state['requests'] if phase!='metadata']==[155,25]
+    assert all(t==dict(connect=25,write=25,pool=25,read=25) for phase,t in state['requests'] if phase=='metadata')
+    assert len(bodies)==2 and len(result['research_effects'])==1
+    artifact,=result['artifacts']
+    reopened=Path(artifact['path']).read_text(encoding='utf8')
+    assert reopened.startswith('# Model title') and all(u in reopened for u in URLS[:3])
+    import hashlib
+    assert hashlib.sha256(Path(artifact['path']).read_bytes()).hexdigest()==artifact['sha256']
+    writes=[r for r in result['tool_results'] if r['tool_name']=='ultima_work_file_write']
+    reports=[r for r in result['tool_results'] if r['tool_name']=='ultima_work_research_write' and r.get('call_id')]
+    assert len(writes)==len(reports)==1 and writes[0]['success'] and reports[0]['success']
+    effect,=result['research_effects']
+    assert effect['file_call_id']==writes[0]['call_id'] and effect['report_call_id']==reports[0]['call_id']
+    for body,limit in zip(bodies,[2048,512]):
+        assert body['stream'] is False and body['think'] is False and body['truncate'] is False and body['shift'] is False
+        assert body['tools']==[] and body['options']==dict(num_ctx=16384,temperature=0,num_predict=limit)
+
+
+@pytest.mark.parametrize('remaining', [55,54.9,0,-1])
+def test_source9_no_new_author_at_exhausted_reserve(tmp_path,sdk_io,mock_jar,source9_clock,remaining):
+    _,runner,bodies,replies=mock_jar
+    state=source9_clock
+    # Enter with time for the lock; metadata consumes the last author reserve.
+    state.update(now=200,metadata=(60-remaining)/2,overrun=True)
+    replies.append(action(report_payload()))
+    result=submit(tmp_path,sdk_io[0],runner)
+    assert result['status']=='failed' and 'deadline' in result['error']
+    assert not bodies and not result.get('research_effects') and not list(tmp_path.rglob('research.md'))
+    assert all(phase=='metadata' for phase,_ in state['requests'])
+
+
+@pytest.mark.parametrize('mode,ack_read,status', [('short',5,'succeeded'),('expired',None,'needs_attention'),
+                                                 ('ack-timeout',25,'needs_attention'),('author-timeout',None,'failed'),
+                                                 ('late-author',None,'failed')])
+def test_source9_timeout_and_late_results(tmp_path,sdk_io,mock_jar,source9_clock,monkeypatch,mode,ack_read,status):
+    from src.brain import work_tools
+    _,runner,bodies,replies=mock_jar
+    state=source9_clock
+    if mode in ('short','expired'):
+        actual=work_tools.WorkResearchWriteTool.execute
+        def write(tool,**kwargs):
+            result=actual(tool,**kwargs)
+            state['now']=255 if mode=='short' else 260
+            return result
+        monkeypatch.setattr(work_tools.WorkResearchWriteTool,'execute',write)
+    if mode=='ack-timeout': state['ack']=26
+    if mode=='author-timeout': state['author']=181
+    if mode=='late-author': state.update(author=206,overrun=True)
+    replies.extend([action(report_payload()),'{"final_answer":"saved"}'])
+    result=submit(tmp_path,sdk_io[0],runner)
+    assert result['status']==status,result['error']
+    acks=[t['read'] for phase,t in state['requests'] if phase=='ack']
+    assert acks==([] if ack_read is None else [ack_read])
+    committed=mode in ('short','expired','ack-timeout')
+    assert len(list(tmp_path.rglob('research.md')))==int(committed)
+    assert len(result.get('research_effects',[]))==int(committed)
+    assert len(bodies)<=2
