@@ -6,6 +6,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 import stat
 import threading
+from time import monotonic
 import uuid
 import json
 import copy
@@ -32,12 +33,42 @@ class WorkCapabilities:
     replace: bool = False
     browser: object = None
     research_json: str | None = None
+    cards_json: str | None = None
 
 class WorkLedger:
     def __init__(self):
         self._lock = threading.RLock()
         self._records = []
         self._report_effects = {}
+        self.deadline = None
+        self._reserved_report = None
+        self._intent = False
+
+    def admit_report(self):
+        if self.deadline is not None and self.deadline - monotonic() < 55:
+            raise ValueError('Research write admission deadline')
+
+    def admit_ack(self):
+        if self.deadline is not None and monotonic() >= self.deadline:
+            raise ValueError('Research acknowledgement deadline')
+
+    @contextmanager
+    def lock_for_report(self, lock):
+        self.admit_report()
+        if not lock.acquire(timeout=max(0,self.deadline-monotonic()-55)):
+            raise ValueError('Research lock admission deadline')
+        try:
+            self.admit_report()
+            yield
+        finally:
+            lock.release()
+
+    def reserve_report(self, call_id):
+        with self._lock:
+            self.admit_report()
+            if self._reserved_report is not None:
+                raise ValueError('Report already reserved')
+            self._reserved_report = call_id
 
     def record(self, item):
         with self._lock:
@@ -71,6 +102,11 @@ class WorkLedger:
 
     def write_intent(self, binding, path, report_id, file_id, dispatch):
         with self._lock:
+            checked_path(binding,str(path))
+            self.admit_report()
+            if self._reserved_report != report_id or self._intent:
+                raise ValueError('Invalid or consumed report reservation')
+            self._intent = True
             # Direct bound tool invocation has no SDK outer START.
             effect = self._report_effects.setdefault(dispatch or report_id, dict(
                 request_id=binding.request_id, session_id=binding.session_id, task_id=binding.task_id))
@@ -268,30 +304,27 @@ class WorkResearchWriteTool(_CapabilityTool):
         super().__init__()
         # Capture the nested writer here, never later on the SDK worker thread.
         self._writer=WorkWriteTool()
-        sources=json.loads(self.caps.research_json or '[]') if self.caps else []
-        text=lambda limit:{'type':'string','minLength':1,'maxLength':limit}
-        fact={'type':'object','additionalProperties':False,'required':['kind','claim','first_line','last_line'],
-              'properties':{'kind':{'enum':['documented','code','limitation']},'claim':text(2000),
-                            'first_line':{'type':'integer','minimum':1},'last_line':{'type':'integer','minimum':1},
-                            'symbol':dict(text(200),description='Exact qualified operation; required only for code.')}}
-        self.parameters={'type':'object','additionalProperties':False,'required':['path','title','sections'],
-            'properties':{'path':text(2048),'title':text(200),'sections':{'type':'array','minItems':3,'maxItems':5,
-                'items':{'type':'object','additionalProperties':False,'required':['source_id','heading','facts'],
-                    'properties':{'source_id':{'type':'string','enum':[s['source_id'] for s in sources]},
-                        'heading':text(200),'facts':{'type':'array','minItems':1,'maxItems':6,'items':fact}}}}}}
-        self.description=(type(self).description
-            + '\nFull argument schema (JSON):\n'
-            + json.dumps(self.parameters,ensure_ascii=False,sort_keys=True)
-            + '\nEnd argument schema.')
+        from .work_research import reference_schema
+        self.cards = json.loads(self.caps.cards_json or '{}') if self.caps else {}
+        self.parameters = reference_schema(self.cards)
+
+    @property
+    def spec(self):
+        spec = super().spec
+        spec.required_capabilities = ['file:write']
+        return spec
 
     def run(self,params,record):
-        from .work_research import bound_sources,render_research_report
+        from .work_research import bound_sources,render_research_report,resolve_references
         dispatch = self.ledger.report_adapter(record['call_id'])
+        self.ledger.reserve_report(record['call_id'])
         bound_sources(self.caps.research_json,self.binding)
-        rendered=render_research_report(params,self.caps.research_json)
+        resolved, bindings = resolve_references(params,self.cards,self.caps.research_json)
+        rendered=render_research_report(resolved,self.caps.research_json,bindings=bindings)
         self._writer._report_parent = (record['call_id'], dispatch)
         result=self._writer.execute(path=params['path'],content=rendered.content)
         if not result.success: raise ValueError(result.content)
-        return dict(path=result.metadata['path'],file_call_id=result.metadata['call_id'],
-                    payload_json=json.dumps(params,ensure_ascii=False),cited_source_ids=list(rendered.cited_source_ids),
+        return dict(path=result.metadata['path'],file_call_id=result.metadata['call_id'],protocol_version=2,
+                    submitted_json=json.dumps(params,ensure_ascii=False),bindings=bindings,
+                    payload_json=json.dumps(resolved,ensure_ascii=False),cited_source_ids=list(rendered.cited_source_ids),
                     evidence=list(rendered.evidence))

@@ -35,9 +35,16 @@ def submit(tmp_path,browser,runner,**context):
 
 
 def report_payload(count=3):
-    return dict(path='research.md',title='Model title',sections=[dict(source_id='S'+str(i),heading='Section '+str(i),
-                facts=[dict(kind='documented',claim='A distinct fetched source',first_line=1,last_line=1)])
-                for i in range(1,count+1)])
+    from src.brain.work_tools import _ACTIVE
+    bound = _ACTIVE.get()
+    cards = json.loads(bound[2].cards_json) if bound and bound[2].cards_json else {}
+    sections = []
+    for i in range(1,count+1):
+        sid = f'S{i}'
+        ref = next((k for k,c in cards.items() if c['source_id']==sid),'issued:'+sid)
+        sections.append(dict(source_id=sid,heading=f'Section {i}',
+                             facts=[dict(claim='A distinct fetched source',evidence_id=ref)]))
+    return dict(path='research.md',title='Model title',sections=sections)
 
 
 def write_report(payload=None):
@@ -219,22 +226,14 @@ def test_report_independent_reopen_detects_changed_bytes(tmp_path,sdk_io,monkeyp
     assert r['status']=='needs_attention' and 'readback' in r['error'],r
 
 
-def test_native_react_uses_bound_report_with_real_sdk_collection(tmp_path,sdk_io,monkeypatch):
-    from openjarvis import Jarvis
-    from openjarvis.core.config import JarvisConfig
-    from src.brain import agent_server
+def test_native_react_uses_bound_report_with_real_sdk_collection(tmp_path,sdk_io,mock_jar):
     browser,calls,_=sdk_io
-    class Engine:
-        engine_id='deterministic-inference-only'
-        def generate(self,messages,**kw):
-            assert [kind for kind,_ in calls]==['search']+['get']*5
-            action={'action':'ultima_work_research_write','action_input':report_payload()} if len(messages)<=2 else {'final_answer':'saved'}
-            return {'content':json.dumps(action)}
-    config=JarvisConfig(); config.telemetry.enabled=False
-    jar=Jarvis(config=config,model='qwen3-8b-uncensored'); jar._engine=Engine()
-    jar._resolved_engine_key='ollama'  # injected engine bypasses SDK discovery
-    monkeypatch.setattr(agent_server,'_jars',jar)
-    r=submit(tmp_path,browser,agent_server._run_work_agent)
+    _,runner,_,replies=mock_jar
+    def authored(body):
+        assert [kind for kind,_ in calls]==['search']+['get']*5
+        return action(report_payload())
+    replies.extend([authored,'{"final_answer":"saved"}'])
+    r=submit(tmp_path,browser,runner)
     assert r['status']=='succeeded',r
     assert any(e.get('phase')=='research.compose' for e in r['trace'])
 
@@ -289,23 +288,12 @@ def test_optional_probe_does_not_waive_unexpected_adapter_error(tmp_path,sdk_io,
 
 
 @pytest.mark.parametrize('source_count',[3,5])
-def test_native_react_first_messages_include_nested_report_schema(tmp_path,sdk_io,monkeypatch,source_count):
-    from openjarvis import Jarvis
-    from openjarvis.core.config import JarvisConfig
-    from src.brain import agent_server
+def test_native_react_first_messages_include_nested_report_schema(tmp_path,sdk_io,mock_jar,source_count):
     browser,calls,_=sdk_io
-    first_messages=[]
-    class CaptureEngine:
-        engine_id='first-message-capture-only'
-        def generate(self,messages,**kwargs):
-            assert not first_messages
-            first_messages.extend((message.role.value,message.content) for message in messages)
-            return {'content':json.dumps({'final_answer':'capture only; no file delivery'})}
-    config=JarvisConfig(); config.telemetry.enabled=False
-    jar=Jarvis(config=config,model='qwen3-8b-uncensored'); jar._engine=CaptureEngine()
-    jar._resolved_engine_key='ollama'
-    monkeypatch.setattr(agent_server,'_jars',jar)
-    result=submit(tmp_path,browser,agent_server._run_work_agent,source_urls=URLS[:source_count])
+    _,runner,bodies,replies=mock_jar
+    replies.append('{"final_answer":"capture only; no file delivery"}')
+    result=submit(tmp_path,browser,runner,source_urls=URLS[:source_count])
+    first_messages = [(m['role'],m['content']) for m in bodies[0]['messages']]
     assert [kind for kind,_ in calls]==['search']+['get']*source_count
     assert result['status']=='failed' and not result['artifacts']
     assert not list(tmp_path.rglob('*.md'))
@@ -317,10 +305,13 @@ def test_native_react_first_messages_include_nested_report_schema(tmp_path,sdk_i
     schema=json.loads(raw)
     section=schema['properties']['sections']
     assert section['type']=='array'
-    nested=section['items']['properties']
-    assert nested['facts']['type']=='array' and nested['facts']['items']['type']=='object'
-    assert set(nested['facts']['items']['required'])=={'claim','kind','first_line','last_line'}
-    assert nested['source_id']['enum']==['S'+str(i) for i in range(1,source_count+1)]
+    alternatives=section['items']['anyOf']
+    assert [a['properties']['source_id']['enum'][0] for a in alternatives]==['S'+str(i) for i in range(1,source_count+1)]
+    for alt in alternatives:
+        facts=alt['properties']['facts']
+        assert facts['type']=='array' and facts['items']['type']=='object'
+        assert set(facts['items']['required'])=={'claim','evidence_id'}
+
 
 
 @pytest.fixture
@@ -335,15 +326,36 @@ def mock_jar(tmp_path,monkeypatch):
     monkeypatch.setenv('OPENJARVIS_HOME',str(tmp_path/'sdk'))
     bodies,answers=[],[]
     def handle(request):
+        model = 'qwen3-8b-uncensored'
+        if request.url.path == '/api/version':
+            return httpx.Response(200,json={'version':'0.32.15'})
+        if request.url.path == '/api/tags':
+            return httpx.Response(200,json={'models':[{'name':model+':latest','digest':
+                '6d7230a923426bc1933879eb08a7dafc18e5fc0e7606c459ce98f16e0c7f9330'}]})
         assert request.url.path=='/api/chat'
-        bodies.append(json.loads(request.content))
+        body = json.loads(request.content)
+        bodies.append(body)
         reply=answers.pop(0)
-        return httpx.Response(200,json={'message':{'role':'assistant','content':reply}})
-    raw=OllamaEngine(host='http://mock.invalid')
+        if callable(reply): reply=reply(body)
+        if isinstance(reply,httpx.Response): return reply
+        if 'issued:' in reply:
+            alternatives=body['format']['anyOf'][0]['properties']['action_input']['properties']['sections']['items']['anyOf']
+            for alt in alternatives:
+                fields=alt['properties']
+                reply=reply.replace('issued:'+fields['source_id']['enum'][0],fields['facts']['items']['properties']['evidence_id']['enum'][0])
+        return httpx.Response(200,json={'model':model,'done':True,'done_reason':'stop','prompt_eval_count':25,
+                              'eval_count':10,'message':{'role':'assistant','content':reply}})
+    host='http://127.0.0.1:11434'
+    raw=OllamaEngine(host=host)
     raw._client.close()
-    raw._client=httpx.Client(base_url='http://mock.invalid',transport=httpx.MockTransport(handle))
+    def client():
+        return httpx.Client(base_url=host,transport=httpx.MockTransport(handle),trust_env=False)
+    raw._client=client()
+    monkeypatch.setattr(agent_server,'_research_client',client,raising=False)
+    monkeypatch.setattr(agent_server,'_research_manifest_digest',lambda:agent_server._RESEARCH_DIGEST,raising=False)
     cfg=JarvisConfig(); cfg.telemetry.enabled=False; cfg.analytics.enabled=False
     cfg.security.audit_log_path=str(tmp_path/'audit.db')
+    cfg.security.capabilities.enabled=True
     cfg.agent.max_turns=5
     jar=Jarvis(config=cfg,engine_key='ollama',model=agent_server.MODEL)
     monkeypatch.setattr('openjarvis.sdk.get_engine',lambda *a:('ollama',raw))
@@ -353,6 +365,72 @@ def mock_jar(tmp_path,monkeypatch):
         yield jar,agent_server._run_work_agent,bodies,answers
     finally:
         jar.close()
+
+
+def test_source6_nested_action_and_final_only(tmp_path, sdk_io, mock_jar):
+    _, runner, bodies, replies = mock_jar
+    replies.extend([action(report_payload()), '{"final_answer":"saved"}'])
+    result = submit(tmp_path, sdk_io[0], runner, text='original scope')
+    assert result['status'] == 'succeeded', result['error']
+    author, ack = bodies
+    assert isinstance(author['format'], dict)
+    assert author['format']['anyOf'][0]['properties']['action']['enum'] == ['ultima_work_research_write']
+    assert ack['format']['required'] == ['final_answer']
+    for body in bodies:
+        assert body['truncate'] is False and body['shift'] is False and body['think'] is False
+        assert body['options']['num_ctx'] == 16384 and body['options']['temperature'] == 0
+        assert 'original scope' in str(body['messages'][1:])
+        assert 'Final Answer:' not in body['messages'][0]['content']
+    record = next(t['result'] for t in result['tool_results'] if t.get('call_id') and t['tool_name']=='ultima_work_research_write')
+    assert record['protocol_version'] == 2
+    assert len(record['bindings']) == 3
+
+
+def test_source6_double_report_is_one_mutation(tmp_path, sdk_io):
+    def twice(*a, **kw):
+        write_report()
+        from src.brain.work_tools import WorkResearchWriteTool
+        second = WorkResearchWriteTool().execute(**dict(report_payload(), path='second.md'))
+        assert not second.success
+        return {}
+    result = submit(tmp_path, sdk_io[0], twice)
+    assert result['status'] == 'needs_attention'
+    assert not list(tmp_path.rglob('second.md'))
+
+
+def test_source6_only_bound_tool_and_frozen_capture(tmp_path, sdk_io):
+    capture = {'available':True,'selection':'before','provenance':'original'}
+    class Provider:
+        def capture_work_context(self):
+            return capture
+        def release(self, value):
+            pass
+    browser = sdk_io[0]
+    fetch = browser.fetch_public
+    def mutate(url):
+        capture['selection'] = 'after'
+        return fetch(url)
+    browser.fetch_public = mutate
+    def inspect(prompt, **kw):
+        assert kw['tools'] == ['ultima_work_research_write']
+        assert 'before' in prompt and 'after' not in prompt and 'original' in prompt
+        return write_report()
+    result = WorkService(tmp_path, runner=inspect, browser_channel=browser, context_provider=Provider()).submit_work(
+        'topic', request_id='r',session_id='s', context={'capture_current':True,'research':True})
+    assert result['status'] == 'succeeded', result['error']
+
+
+@pytest.mark.parametrize('remaining,ok', [(55,True),(54.9,False)])
+def test_source6_admission_boundary(monkeypatch, remaining, ok):
+    from src.brain import work_tools
+    ledger = work_tools.WorkLedger()
+    ledger.deadline = 260
+    monkeypatch.setattr(work_tools, 'monotonic', lambda: 260-remaining, raising=False)
+    if ok:
+        ledger.admit_report()
+    else:
+        with pytest.raises(ValueError, match='deadline'):
+            ledger.admit_report()
 
 
 def action(payload):
@@ -368,11 +446,11 @@ def test_r4a_wire_scope(tmp_path,sdk_io,mock_jar):
     result=submit(tmp_path,sdk_io[0],runner)
     jar.ask_full('ordinary after',agent='native_react',tools=['calculator'],context=False)
     assert result['status']=='succeeded',result['error']
-    assert [b.get('format') for b in bodies]==[None,'json','json',None]
+    assert [type(b.get('format')) for b in bodies]==[type(None),dict,dict,type(None)]
     assert jar._engine is base and type(base._inner).__name__=='GuardrailsEngine'
     assert all(b['model']=='qwen3-8b-uncensored' for b in bodies)
-    for name in ('think','calculator','ultima_work_research_write','ultima_work_file_read'):
-        assert name in bodies[1]['messages'][0]['content']
+    assert 'ultima_work_research_write' in bodies[1]['messages'][0]['content']
+    assert 'calculator' not in bodies[1]['messages'][0]['content']
     assert sum(e['type']=='inference_end' for e in result['trace'])==2
     assert Path(result['artifacts'][0]['path']).is_file()
 
@@ -400,7 +478,7 @@ def test_r4a_stop_on_rejection(tmp_path,sdk_io,mock_jar):
     assert r['status']=='failed' and not list(tmp_path.rglob('research.md'))
     assert len(bodies)==1 and len(replies)==2
     starts=[e for e in r['trace'] if e['type']=='tool_call_start' and e.get('phase')=='research.compose']
-    assert len(starts)==1
+    assert len(starts)==0
     assert not any(x.get('file_call_id') for x in r.get('research_effects',[]))
 
 
@@ -611,7 +689,7 @@ def test_r4_research_exception_does_not_leak_to_ordinary(tmp_path,sdk_io,mock_ja
     replies.extend(['not json','{"final_answer":"normal"}'])
     assert submit(tmp_path,sdk_io[0],runner)['status']=='failed'
     jar.ask_full('ordinary',agent='native_react',tools=['calculator'],context=False)
-    assert [b.get('format') for b in bodies]==['json',None]
+    assert isinstance(bodies[0]['format'],dict) and 'format' not in bodies[1]
 
 
 def test_r4_exact_named_symbol_and_explicit_failure():
@@ -701,3 +779,172 @@ def test_r5_completed_report_includes_sdk_result_and_effect(tmp_path,sdk_io,mock
         terminal,=[t for t in r['tool_results'] if t.get('tool_name')==tool and t.get('call_id')]
         assert terminal['success'] and terminal['call_id']==effect[key]
     assert effect['path']==r['artifacts'][0]['path']
+
+@pytest.mark.parametrize('fault',['version','digest','manifest','credential','wrapper','origin','raw-coercion','duplicate','nonfinite',
+                                  'native-tool','length','model','empty','overflow','ack-overflow'])
+def test_source6_native_boundary(tmp_path,sdk_io,mock_jar,monkeypatch,fault):
+    import httpx
+    from src.brain import agent_server
+    jar,runner,bodies,replies=mock_jar
+    original=agent_server._research_client
+    paths=[]
+    def issued():
+        client=original()
+        get=client.get
+        def metadata(path):
+            paths.append(path)
+            if fault=='version' and path=='/api/version' or fault=='digest' and path=='/api/tags':
+                return httpx.Response(200,json={'version':'0.32.14','models':[]},request=httpx.Request('GET','http://test'))
+            return get(path)
+        client.get=metadata
+        return client
+    monkeypatch.setattr(agent_server,'_research_client',issued)
+    if fault=='manifest': monkeypatch.setattr(agent_server,'_research_manifest_digest',lambda:'changed',raising=False)
+    if fault=='credential': monkeypatch.setenv('OLLAMA_API_KEY','')
+    if fault=='origin': monkeypatch.setattr(jar._engine._inner._engine,'_host','http://localhost:11433')
+    if fault=='wrapper': monkeypatch.setattr(jar._engine._inner,'_engine',object())
+    native=dict(model='qwen3-8b-uncensored',done=True,done_reason='stop',prompt_eval_count=100,eval_count=10,
+                message=dict(role='assistant',content='{"final_answer":"ok"}'))
+    if fault=='raw-coercion': native['done']=1
+    if fault=='native-tool': native['message']['tool_calls']=[{'function':{'name':'tool'}}]
+    if fault=='length': native['done_reason']='length'
+    if fault=='model': native['model']='wrong'
+    if fault=='empty': native['message']['content']=' '
+    entity=json.dumps(native)
+    if fault=='duplicate': entity='{"done":false,'+entity[1:]
+    if fault=='nonfinite': entity='{"extension":1e999,'+entity[1:]
+    if fault=='ack-overflow': replies.append(action(report_payload()))
+    replies.append(httpx.Response(400 if 'overflow' in fault else 200,content=entity))
+    r=submit(tmp_path,sdk_io[0],runner,text='漢'*2500)
+    assert r['status']==('needs_attention' if fault=='ack-overflow' else 'failed')
+    expected=0 if fault in ('version','digest','manifest','credential','origin','wrapper') else 2 if fault=='ack-overflow' else 1
+    assert len(bodies)==expected
+    if expected:
+        assert paths==['/api/version','/api/tags']*expected
+        assert all(b['truncate'] is False and b['shift'] is False for b in bodies)
+        assert '漢'*2500 in bodies[0]['messages'][1]['content']
+    assert len(list(tmp_path.rglob('research.md')))==int(fault=='ack-overflow')
+    assert not any(e['type']=='inference_end' for e in r['trace'] if e.get('phase')=='research.compose') or fault=='ack-overflow'
+
+
+@pytest.mark.parametrize('stage',['after-action','worker','pre-intent','equal'])
+def test_source6_real_admission(tmp_path,sdk_io,mock_jar,monkeypatch,stage):
+    from src.brain import work_tools,work_service
+    _,runner,bodies,replies=mock_jar
+    now=[0]
+    monkeypatch.setattr(work_service,'monotonic',lambda:0)
+    monkeypatch.setattr(work_tools,'monotonic',lambda:now[0])
+    now[0]=205 if stage=='equal' else 204
+    def authored(body):
+        if stage=='after-action': now[0]+=24
+        return action(report_payload())
+    if stage=='worker':
+        original=work_tools.WorkResearchWriteTool.run
+        def delayed(*a,**k):
+            now[0]=205.1
+            return original(*a,**k)
+        monkeypatch.setattr(work_tools.WorkResearchWriteTool,'run',delayed)
+    if stage=='pre-intent':
+        original=work_tools.checked_path
+        def delayed(binding,path):
+            resolved=original(binding,path)
+            if isinstance(path,str) and path.endswith('research.md') and Path(path).is_absolute():
+                now[0]=205.1
+            return resolved
+        monkeypatch.setattr(work_tools,'checked_path',delayed)
+    replies.extend([authored,'{"final_answer":"saved"}'])
+    r=submit(tmp_path,sdk_io[0],runner)
+    assert r['status']==('succeeded' if stage=='equal' else 'failed'),r['error']
+    assert len(bodies)==(2 if stage=='equal' else 1)
+    if stage!='equal':
+        assert not any(e.get('file_call_id') for e in r.get('research_effects',[]))
+        assert not list(tmp_path.rglob('research.md'))
+
+
+@pytest.mark.parametrize('gate',['policy','rate'])
+def test_source6_executor_denies_before_write(tmp_path,sdk_io,mock_jar,monkeypatch,gate):
+    jar,runner,bodies,replies=mock_jar
+    checked=[]
+    def deny(*args):
+        checked.append(args)
+        return False if gate=='policy' else (False,10)
+    monkeypatch.setattr(jar._capability_policy if gate=='policy' else jar._rate_limiter,'check',deny)
+    replies.append(action(report_payload()))
+    r=submit(tmp_path,sdk_io[0],runner)
+    assert checked and r['status']=='failed' and len(bodies)==1
+    assert not list(tmp_path.rglob('research.md'))
+
+
+@pytest.mark.parametrize('stage',['input','output','oversize','expanded'])
+def test_source6_secured_material(tmp_path,sdk_io,mock_jar,monkeypatch,stage):
+    jar,runner,bodies,replies=mock_jar
+    material='private@example.test'
+    if stage=='oversize': material='x'*80000
+    if stage=='expanded':
+        monkeypatch.setattr(jar._engine._inner._scanners[0],'redact',lambda s:'x'*80000)
+    replies.extend([action(report_payload()),'{"final_answer":"contact private@example.test"}'])
+    r=submit(tmp_path,sdk_io[0],runner,text=material)
+    if stage in ('oversize','expanded'):
+        assert not bodies and r['status']=='failed'
+    else:
+        assert r['status']=='succeeded'
+        assert all(material not in b['messages'][1]['content'] and 'REDACTED' in b['messages'][1]['content'] for b in bodies)
+        assert material not in r['content'] and 'REDACTED' in r['content']
+
+
+def test_source6_reference_membership_and_readback(tmp_path,sdk_io):
+    from src.brain.work_tools import _ACTIVE,WorkResearchWriteTool
+    from src.brain.work_research import reference_cards,resolve_references
+    def check(*a,**kw):
+        _,_,caps=_ACTIVE.get()
+        table=reference_cards(caps.research_json)
+        payload=report_payload()
+        foreign=json.loads(caps.research_json)
+        for source in foreign: source['task_id']='other'
+        foreign_cards=reference_cards(json.dumps(foreign))
+        assert set(foreign_cards).isdisjoint(table)
+        import jsonschema
+        for key in ('not-issued',next(iter(foreign_cards)),next(k for k,c in table.items() if c['source_id']=='S2')):
+            data=json.loads(json.dumps(payload))
+            data['sections'][0]['facts'][0]['evidence_id']=key
+            with pytest.raises(jsonschema.ValidationError):
+                resolve_references(data,table,caps.research_json)
+        return write_report()
+    result=submit(tmp_path,sdk_io[0],check)
+    assert result['status']=='succeeded',result['error']
+
+@pytest.mark.parametrize('fault',['unknown-version','missing-version','altered-submission','altered-binding','body','url'])
+def test_source6_reopen_validates_reference_protocol(tmp_path,sdk_io,fault):
+    from src.brain.work_tools import WorkBinding
+    from src.brain.work_research import verify_research_artifacts
+    result=submit(tmp_path,sdk_io[0],lambda *a,**kw:write_report())
+    assert result['status']=='succeeded'
+    artifact,=result['artifacts']
+    binding=WorkBinding(Path(artifact['path']).parent,'r','s',result['task_id'])
+    record=next(r for r in result['tool_results'] if r.get('tool_name')=='ultima_work_research_write')
+    receipt=record['result']
+    if fault=='unknown-version': receipt['protocol_version']=999
+    if fault=='missing-version': receipt.pop('protocol_version')
+    if fault=='altered-submission':
+        original=json.loads(receipt['submitted_json'])
+        original['sections'][0]['facts'][0]['claim']='Changed prose'
+        receipt['submitted_json']=json.dumps(original)
+    if fault=='altered-binding': receipt['bindings'][0]['citation_first']+=1
+    if fault=='body': result['available_sources'][0]['body']+=' changed'
+    if fault=='url': result['available_sources'][0]['final_url']='https://example.com/other'
+    from jsonschema import ValidationError
+    with pytest.raises((ValueError,ValidationError)):
+        verify_research_artifacts(binding,[artifact],[record],json.dumps(result['available_sources']),require_reference=True)
+
+def test_source6_lock_wait_uses_entry_deadline(tmp_path,sdk_io,mock_jar,monkeypatch):
+    from src.brain import agent_server
+    _,runner,bodies,_=mock_jar
+    waits=[]
+    class Busy:
+        def acquire(self,timeout):
+            waits.append(timeout)
+            return False
+    monkeypatch.setattr(agent_server,'_ask_lock',Busy())
+    r=submit(tmp_path,sdk_io[0],runner)
+    assert r['status']=='failed' and 'deadline' in r['error'] and not bodies
+    assert len(waits)==1 and 0 < waits[0] <= 205

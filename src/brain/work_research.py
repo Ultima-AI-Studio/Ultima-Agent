@@ -196,58 +196,70 @@ def source_pack(sources):
     return _compact([_source_view(source, len(sources)) for source in sources])
 
 
-def _python_support(body, first, last, kind, symbol):
-    if kind == 'limitation':
-        for token in tokenize.generate_tokens(io.StringIO(body).readline):
-            if (token.type == tokenize.COMMENT and first <= token.start[0] <= last
-                    and re.search(r'\b(?:TODO|FIXME|unimplemented)\b', token.string, re.I)):
-                return True
+def _python_support(body, first, last, kind, symbol, witnesses=None):
+    return any(first <= a <= b <= last and k == kind and op == (symbol or '')
+               for a, b, k, op in (_python_witnesses(body) if witnesses is None else witnesses))
+
+
+def _python_witnesses(body):
+    for token in tokenize.generate_tokens(io.StringIO(body).readline):
+        if token.type == tokenize.COMMENT and re.search(r'\b(?:TODO|FIXME|unimplemented)\b', token.string, re.I):
+            yield token.start[0], token.end[0], 'limitation', ''
     for node in ast.walk(ast.parse(body)):
-        if not (isinstance(node, ast.stmt) and first <= node.lineno <= node.end_lineno <= last):
-            continue
-        if kind == 'limitation' and isinstance(node, ast.Raise):
-            return True
-        if not isinstance(node, (ast.Assign, ast.AnnAssign, ast.Expr, ast.Return)):
-            continue
-        call = node.value
-        if isinstance(call, ast.Await):
-            call = call.value
-        if isinstance(call, ast.Call):
-            callee = ast.unparse(call.func)
-            if kind == 'code' and callee == symbol:
-                return True
-            if kind == 'limitation' and callee.split('.')[-1] in ('warn', 'warning'):
-                return True
-    return False
+        if isinstance(node, ast.Raise):
+            yield node.lineno, node.end_lineno, 'limitation', ''
+        if isinstance(node, (ast.Assign, ast.AnnAssign, ast.Expr, ast.Return)):
+            call = node.value
+            if isinstance(call, ast.Await):
+                call = call.value
+            if isinstance(call, ast.Call):
+                op = ast.unparse(call.func)
+                if len(op) <= 200 and re.fullmatch(r'[A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*)*', op):
+                    yield node.lineno, node.end_lineno, 'code', op
+                if op.split('.')[-1] in ('warn', 'warning'):
+                    yield node.lineno, node.end_lineno, 'limitation', ''
 
 
-def _js_support(body, first, last, kind, symbol, suffix):
+def _js_tokens(body, suffix):
     from pygments.lexers.javascript import JavascriptLexer, TypeScriptLexer
-    from pygments.token import Comment, Error, Name, String
+    from pygments.token import Comment
     lexer = TypeScriptLexer() if suffix == '.ts' else JavascriptLexer()
-    tokens = []
     line = 1
-    previous = None
-    following = None
+    rows = []
     for _, family, value in lexer.get_tokens_unprocessed(body):
         end = line + value.count('\n')
-        if line > last and value.strip() and family not in Comment:
-            following = value
-            break
-        if end < first and value.strip() and family not in Comment:
-            previous = value
-        if line <= last and end >= first and value.strip():
-            if family in Comment:
-                if (kind == 'limitation' and first <= line and end <= last
-                        and re.search(r'\b(?:TODO|FIXME|unimplemented)\b', value, re.I)):
-                    return True
-            elif family in Error or line < first or end > last:
-                return False
-            elif family in String:
-                tokens.append(('@literal', family))
-            else:
-                tokens.append((value, family))
+        if value.strip():
+            rows.append((line, end, family, value))
         line = end
+    return rows
+
+
+def _js_support(body, first, last, kind, symbol, suffix, rows=None):
+    from bisect import bisect_left
+    from pygments.token import Comment, Error, Name, String
+    rows = _js_tokens(body, suffix) if rows is None else rows
+    start = bisect_left(rows, first, key=lambda row: row[1])
+    previous = following = None
+    for i in range(start-1, -1, -1):
+        if rows[i][2] not in Comment:
+            previous = rows[i][3]
+            break
+    tokens = []
+    for i in range(start, len(rows)):
+        line, end, family, value = rows[i]
+        if line > last:
+            if family not in Comment:
+                following = value
+                break
+            continue
+        if family in Comment:
+            if (kind == 'limitation' and first <= line and end <= last
+                    and re.search(r'\b(?:TODO|FIXME|unimplemented)\b', value, re.I)):
+                return True
+        elif family in Error or line < first or end > last:
+            return False
+        else:
+            tokens.append(('@literal' if family in String else value, family))
     # Match only a single complete call statement. Token offsets and classes
     # come from the full source, so text in literals cannot become a callee.
     words = [v for v, _ in tokens]
@@ -289,7 +301,7 @@ def _js_support(body, first, last, kind, symbol, suffix):
     return False
 
 
-def _fact_evidence(fact, source, visible):
+def _fact_evidence(fact, source, visible, syntax=None):
     if not isinstance(fact, dict):
         raise ValueError('A fact needs a claim, evidence kind and visible line range')
     kind = fact.get('kind')
@@ -323,9 +335,9 @@ def _fact_evidence(fact, source, visible):
                 or re.search(r'\r(?!\n)|[\v\f\x1c-\x1e\x85\u2028\u2029]', body)):
             raise ValueError('Unsupported code projection or line separator')
         if suffix == '.py':
-            supported = _python_support(body,first,last,kind,symbol)
+            supported = _python_support(body,first,last,kind,symbol,syntax)
         elif suffix in ('.js','.ts','.mjs','.cjs'):
-            supported = _js_support(body,first,last,kind,symbol,suffix)
+            supported = _js_support(body,first,last,kind,symbol,suffix,syntax)
         else:
             supported = False
         if not supported:
@@ -334,7 +346,137 @@ def _fact_evidence(fact, source, visible):
     return dict(fact, text=excerpt, **{k:source[k] for k in keys})
 
 
-def render_research_report(payload,sources_json):
+def _anchors(source, visible, syntax):
+    suffix = PurePosixPath(urlsplit(source['final_url']).path).suffix.lower()
+    body = source['body']
+    if suffix in ('', '.md', '.rst', '.txt', '.htm', '.html', '.adoc'):
+        chunk = []
+        for line, value in visible.items():
+            if chunk and (not value.strip() or line != chunk[-1]+1 or len(chunk) == 4):
+                yield chunk[0], chunk[-1], 'documented', ''
+                chunk = []
+            if value.strip():
+                chunk.append(line)
+        if chunk:
+            yield chunk[0], chunk[-1], 'documented', ''
+    elif (source['text'] == body and 'html' not in source.get('content_type', '')
+          and not re.search(r'\r(?!\n)|[\v\f\x1c-\x1e\x85\u2028\u2029]', body)):
+        if suffix == '.py':
+            yield from syntax
+        elif suffix in ('.ts', '.js', '.mjs', '.cjs'):
+            from pygments.token import Comment, Name
+            rows = syntax
+            for idx, (first, end, family, value) in enumerate(rows):
+                if first not in visible:
+                    continue
+                if family in Comment and re.search(r'\b(?:TODO|FIXME|unimplemented)\b',value,re.I):
+                    yield first, end, 'limitation', ''
+                if family not in Name or idx+1 == len(rows) or rows[idx+1][3] != '(':
+                    continue
+                begin = idx
+                while begin >= 2 and rows[begin-1][3] == '.' and rows[begin-2][2] in Name:
+                    begin -= 2
+                op = ''.join(row[3] for row in rows[begin:idx+1])
+                if len(op) > 200 or not re.fullmatch(r'[A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*)*', op):
+                    continue
+                for last in range(first, first+8):
+                    if last not in visible:
+                        break
+                    if _js_support(body,first,last,'code',op,suffix,rows):
+                        yield first, last, 'code', op
+                        if op.split('.')[-1] in ('warn','warning'):
+                            yield first, last, 'limitation', ''
+                        break
+                    if _js_support(body,first,last,'limitation',None,suffix,rows):
+                        yield first, last, 'limitation', ''
+                        break
+
+
+def reference_cards(catalogue):
+    sources = bound_sources(catalogue)
+    table = {}
+    for sid, source in sources.items():
+        if hashlib.sha256(source['body'].encode()).hexdigest() != source['decoded_body_sha256']:
+            raise ValueError('Source body identity mismatch')
+        visible = dict(_source_view(source,len(sources))['lines'])
+        suffix = PurePosixPath(urlsplit(source['final_url']).path).suffix.lower()
+        syntax = None
+        if suffix == '.py':
+            try:
+                syntax = list(_python_witnesses(source['body']))
+            except (SyntaxError, ValueError, tokenize.TokenError):
+                syntax = []
+        elif suffix in ('.ts','.js','.mjs','.cjs'):
+            syntax = _js_tokens(source['body'],suffix)
+        anchors = sorted({a for a in _anchors(source,visible,syntax) if a[1]-a[0]<8
+                          and all(i in visible for i in range(a[0],a[1]+1))})
+        identity = {k:source[k] for k in ('source_id','final_url','decoded_body_sha256','read_call_id',
+                                          'request_id','session_id','task_id')}
+        prefix = hashlib.sha256(_compact(identity).encode()).hexdigest()[:12]
+        numbered = list(enumerate(anchors, 1))
+        selected = []
+        for limitations in (True, False):
+            group = [row for row in numbered if (row[1][2]=='limitation') == limitations]
+            n = min(len(group), 48-len(selected))
+            selected.extend(group[round(i*(len(group)-1)/max(n-1,1))] for i in range(n))
+        for number, (first,last,kind,op) in sorted(selected):
+            # Extend only through visible neighboring lines, never across the projection gap.
+            left, right = first,last
+            padding = 7-(last-first)
+            for _ in range(padding//2):
+                if left-1 not in visible: break
+                left -= 1
+            for _ in range(padding-padding//2):
+                if right+1 not in visible: break
+                right += 1
+            witness = dict(kind=kind,claim=op or 'witness',first_line=first,last_line=last)
+            if kind == 'code':
+                witness['symbol'] = op
+            _fact_evidence(witness,source,visible,syntax)
+            key = f'{prefix}.{number}'
+            table[key] = dict(identity,kind=kind,symbol=op,first_line=first,last_line=last,
+                              citation_first=left,citation_last=right)
+    return table
+
+
+def reference_schema(table):
+    def obj(**props):
+        return dict(type='object',additionalProperties=False,properties=props,required=list(props))
+    def text(limit):
+        return dict(type='string',minLength=1,maxLength=limit)
+    def array(items,low,high):
+        return dict(type='array',items=items,minItems=low,maxItems=high)
+    alternatives = []
+    for sid in dict.fromkeys(card['source_id'] for card in table.values()):
+        ids = [key for key,card in table.items() if card['source_id']==sid]
+        fact = obj(claim=text(2000),evidence_id=dict(type='string',enum=ids))
+        alternatives.append(obj(source_id=dict(type='string',enum=[sid]),heading=text(200),facts=array(fact,1,6)))
+    return obj(path=text(2048),title=text(200),sections=array(dict(anyOf=alternatives),3,5))
+
+
+def resolve_references(payload, table, catalogue):
+    from jsonschema import Draft7Validator
+    Draft7Validator(reference_schema(table)).validate(payload)
+    resolved = json.loads(_compact(payload))
+    bindings = []
+    sources = bound_sources(catalogue)
+    for section in resolved['sections']:
+        sid = section['source_id']
+        visible = dict(_source_view(sources[sid],len(sources))['lines'])
+        for fact in section['facts']:
+            key = fact.pop('evidence_id')
+            card = table[key]
+            if card['source_id'] != sid:
+                raise ValueError('Foreign reference')
+            fact.update(kind=card['kind'],first_line=card['first_line'],last_line=card['last_line'])
+            if card['kind']=='code':
+                fact['symbol'] = card['symbol']
+            _fact_evidence(fact,sources[sid],visible)
+            bindings.append(dict(card,evidence_id=key))
+    return resolved, bindings
+
+
+def render_research_report(payload,sources_json,*,bindings=None):
     if not isinstance(payload,dict) or set(payload)!={'path','title','sections'}:
         raise ValueError('Report requires only path, title and sections')
     sources=bound_sources(sources_json)
@@ -356,16 +498,23 @@ def render_research_report(payload,sources_json):
         visible = dict(_source_view(sources[source_id],len(sources))['lines'])
         for fact in facts:
             support = _fact_evidence(fact, sources[source_id], visible)
+            citation = f"L{support['first_line']}–L{support['last_line']}"
+            if bindings is not None:
+                card = bindings[len(evidence)]
+                left, right = card['citation_first'], card['citation_last']
+                support.update(citation_first=left,citation_last=right,
+                               citation_text='\n'.join(visible[i] for i in range(left,right+1)))
+                citation = f'L{left}–L{right}，依据 {citation}'
             evidence.append(support)
             label = {'documented':'文档说明','code':'代码观察','limitation':'该处标注'}[support['kind']]
-            lines.append(f"- {label}（L{support['first_line']}–L{support['last_line']}）"+_escape(support['claim']))
+            lines.append(f"- {label}（{citation}）"+_escape(support['claim']))
         lines.append(''); cited.append(source_id)
     if len({sources[s]['dedupe_url'] for s in cited})<3 or len({sources[s]['decoded_body_sha256'] for s in cited})<3:
         raise ValueError('Report requires three distinct cited source URL/body identities')
     return RenderedReport('\n'.join(lines),tuple(cited),tuple(evidence))
 
 
-def verify_research_artifacts(binding,artifacts,report_records,sources_json):
+def verify_research_artifacts(binding,artifacts,report_records,sources_json,*,require_reference=False):
     from .work_tools import checked_path
     source_map=bound_sources(sources_json,binding)
     if not report_records: raise ValueError('No successful bound research report write')
@@ -375,7 +524,15 @@ def verify_research_artifacts(binding,artifacts,report_records,sources_json):
         record=reports.get(artifact['call_id'])
         if not record or any(record.get(k)!=getattr(binding,k) for k in ('request_id','session_id','task_id')):
             raise ValueError('Research artifact has no current report-to-file call linkage')
-        rendered=render_research_report(json.loads(record['result']['payload_json']),sources_json)
+        result = record['result']
+        payload = json.loads(result['payload_json'])
+        if 'protocol_version' in result or require_reference:
+            if type(result.get('protocol_version')) is not int or result['protocol_version'] != 2:
+                raise ValueError('Unsupported research reference protocol')
+            resolved, bindings = resolve_references(json.loads(result['submitted_json']),reference_cards(sources_json),sources_json)
+            if resolved != payload or bindings != result['bindings'] or checked_path(binding,payload['path']) != checked_path(binding,artifact['path']):
+                raise ValueError('Research reference readback mismatch')
+        rendered=render_research_report(payload,sources_json,bindings=result.get("bindings"))
         raw=checked_path(binding,artifact['path']).read_bytes()
         if hashlib.sha256(raw).hexdigest()!=artifact['sha256'] or raw.decode('utf8').replace('\r\n','\n')!=rendered.content.replace('\r\n','\n'):
             raise ValueError('Research rendered report independent readback mismatch')

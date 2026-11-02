@@ -1,0 +1,19 @@
+# Request-bound research reference protocol v2
+
+WorkService captures the query and optional current object, provenance and supplied text before research reads. One request owns the source catalogue, card index, SDK report dispatch and nested file effect. Collection and source projection follow the existing research evidence protocol. The model receives the projected original numbered lines once, their source identities, and an index of eligible references.
+
+## References and authoring
+
+Each source has at most 48 cards. Eligible anchors are documentation blocks, complete syntax-witnessed local operations, or explicit local limitations. IDs combine a digest prefix of the bound request, session, task, URL, body and read identity with the original sorted anchor number. Selection prioritizes limitations and spreads remaining cards across the visible source. The displayed citation encloses the anchor with up to eight contiguous visible lines. Omission gaps terminate expansion.
+
+The initial secured generation either refuses with a nonempty final answer or requests the single bound report writer. The closed writer arguments contain a path, title and three to five sections. Each section has its own source ID, heading and one to six facts. Each fact contains exactly the author's claim and a reference ID issued for that source. The resolver validates the original claim, including its exact named operation for code, then renders that prose with server-owned URL, citation and anchor. Mechanical validation establishes reference and syntax linkage. Independent review of the original material and reopened report determines factual support and coverage.
+
+## Native generation and authority
+
+The request shallow-copies the initialized instrumentation and guardrails delegates. The owner retains the security policy, scanner objects, rate limiter, event bus, audit and energy monitor. The request owns only the newly constructed HTTPX client. Every native chat POST requires the recognized literal loopback backend, exact local manifest and served tag digest, supported daemon version, checked SDK wrapper chain and absence of Ollama credentials. The installed Ollama 0.6.3 request model lives in ollama._types and its public ChatResponse model is exported from ollama. A declared request subtype adds the native truncate and shift fields. Both are false. The typed request sends the entire JSON Schema, num_ctx 16384, bounded num_predict, zero temperature and think false. The native client uses a synchronous 25-second socket timeout and disallows redirects and environment proxies. Input-size estimation with a 512-token cushion is a prefilter. The native backend must reject overflow. Both the raw response entity and the secured model payload are checked before dispatch.
+
+The ledger admits a single report reservation. Author admission, secured action, worker admission and the checked-path write intent require at least 55 seconds remaining from the 260-second WorkService deadline. The intent consumes the reservation before the actual SDK write. A successful SDK END, matching report/file identities and independently reopened bytes permit one final-only acknowledgement. Refusal or confirmed rejection fails. Unknown or partial writes and acknowledgement failures after mutation require attention.
+
+## Receipt and reopening
+
+The report receipt stores protocol_version 2, submitted_json, resolved payload_json, the exact ordered reference bindings, anchor/citation texts, source identities, model prose, path and SDK file call ID. Reopening rebuilds the issued table from the immutable original catalogue, resolves and validates the submitted facts again, compares bindings and payload, and verifies the actual path, file content and SHA-256. New collection requires v2. Legacy rendering and unversioned historical readback remain available to historical callers.

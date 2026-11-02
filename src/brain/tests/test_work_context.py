@@ -229,9 +229,10 @@ def test_research_actual_sdk_get_and_document_gate(tmp_path,monkeypatch):
     from src.brain.work_tools import WorkResearchWriteTool
     urls=['https://raw.githubusercontent.com/akshayaggarwal99/jarvis-ai-assistant/bec50ef6e615707613c4fa22c8bd6afc3cc93152/'+x for x in ('README.md','src/core/agent-manager.ts','src/agents/unified-agent.ts')]
     def run(*a,**kw):
-        facts=[dict(kind='documented',claim='Official architecture',first_line=1,last_line=1)]
-        facts.extend(dict(kind='code',claim='Delegates to registry.dispatch',symbol='registry.dispatch',
-                          first_line=1,last_line=1) for _ in range(2))
+        tool=WorkResearchWriteTool()
+        facts=[dict(claim='Official architecture' if idx==0 else 'Delegates to registry.dispatch',
+                    evidence_id=alt['properties']['facts']['items']['properties']['evidence_id']['enum'][0])
+               for idx,alt in enumerate(tool.spec.parameters['properties']['sections']['items']['anyOf'])]
         assert WorkResearchWriteTool().execute(path='research.md',title='Research',sections=[dict(source_id='S'+str(i+1),heading='Source '+str(i+1),facts=[fact]) for i,fact in enumerate(facts)]).success
         return {}
     r=WorkService(tmp_path,runner=run,browser_channel=b).submit_work('research',request_id='r',session_id='s',context={'research':True,'source_urls':urls})
@@ -284,8 +285,9 @@ def test_research_cannot_claim_unproven_sources(tmp_path,fault):
         if fault=='no_report': return {'content':'No report'}
         if fault=='malicious':
             assert not WorkGetTool().execute(url=urls[0],headers={'Authorization':'bad'}).success
+        alternatives=WorkResearchWriteTool().spec.parameters['properties']['sections']['items']['anyOf']
         sections=[dict(source_id='S'+str(i+1),heading='Source',facts=[
-            dict(claim='The source contains a text directive',kind='documented',first_line=1,last_line=1)]) for i in range(3)]
+            dict(claim='The source contains a text directive',evidence_id=alt['properties']['facts']['items']['properties']['evidence_id']['enum'][0])]) for i,alt in enumerate(alternatives)]
         if fault=='uncited': sections=sections[:2]
         if fault=='unfetched_reference': sections[0]['facts'][0]['claim']='Unrelated fact https://en.wikipedia.org/wiki/Jarvis_Cocker'
         WorkResearchWriteTool().execute(path='x.md',title='Research',sections=sections)
@@ -306,30 +308,18 @@ def test_repeat_mutation_is_refused(tmp_path):
     assert n.sent==1 and r['status']=='needs_attention'
 
 
-def test_native_react_research_real_registry(tmp_path,monkeypatch):
-    from openjarvis import Jarvis
-    from openjarvis.core.config import JarvisConfig
+from src.brain.tests.test_work_research import mock_jar
+
+
+def test_native_react_research_real_registry(tmp_path,monkeypatch,mock_jar):
     from src.brain import agent_server
-    from src.brain.work_tools import WORK_TOOLS
+    from src.brain.tests.test_work_research import report_payload,action
     import httpx
     import socket
     monkeypatch.setattr(socket,'getaddrinfo',lambda *a,**kw:[(2,1,6,'',('140.82.112.3',443))])
     monkeypatch.setattr(httpx,'request',lambda method,url,**kw:httpx.Response(200,headers={'content-type':'text/plain'},text='Distinct source body '+url,request=httpx.Request(method,url)))
     urls=['https://github.com/o/r/'+str(i) for i in range(3)]
-    actions=[('ultima_work_research_write',{'path':'research.md','title':'Research','sections':[dict(source_id='S'+str(i+1),heading='Source',facts=[
-        dict(claim='Distinct source body',kind='documented',first_line=1,last_line=1)]) for i in range(3)]})]
-    class Engine:
-        engine_id='deterministic-input'
-        def generate(self,messages,**kw):
-            index=(len(messages)-2)//2
-            if index<len(actions):
-                name,args=actions[index]
-                return {'content':json.dumps({'action':name,'action_input':args})}
-            return {'content':json.dumps({'final_answer':'saved'})}
-    cfg=JarvisConfig(); cfg.telemetry.enabled=False
-    jar=Jarvis(config=cfg,model='qwen3-8b-uncensored'); jar._engine=Engine()
-    jar._resolved_engine_key='ollama'  # fixture engine bypasses real SDK backend discovery
-    monkeypatch.setattr(agent_server,'_jars',jar)
+    mock_jar[3].extend([action(report_payload()),'{"final_answer":"saved"}'])
     service=WorkService(tmp_path,runner=agent_server._run_work_agent,browser_channel=browser(Search,None))
     r=service.submit_work('research',request_id='r',session_id='s',context={'research':True,'source_urls':urls})
     assert r['status']=='succeeded',r
