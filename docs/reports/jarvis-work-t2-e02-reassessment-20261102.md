@@ -1,6 +1,6 @@
 # T2 E02 当前 8B 研究接口复核
 
-当前阶段：**source10整体代码候选118ba152已独审通过（479项完整测试+8项兼容），Task4验收适配器代码与单元测试正在准备；惰性资格、原语料运行测量及真实8B尚未放行，E02/T2未通过。** 原工单 `wo-ultimaagent-20261101-0021` 继续执行。
+当前阶段：**source10代码候选118ba152独审通过；Task4首版6文件与37项隔离单元已完成，315秒总时限仍未解决，正聚焦核对既有P4的有效适配方式；惰性/模型/实际验收仍未放行，E02/T2未通过。** 原工单 `wo-ultimaagent-20261101-0021` 继续执行。
 
 源9候选 `244d2120` 上的 E01 文件摘要三轮、E03 选区改写三轮及焦点/选区负例已独立通过，结论见[验收汇总](jarvis-work-t2-e01-e03-acceptance-20261102.md)。源10新候选仍需重新完成同候选回归；当前继续解决 E02 研究任务，不越过 T2 推进 T3。
 
@@ -66,3 +66,6 @@ FIX2独立复核最终SPEC PASS、QUALITY PASS：F3/F4/N1均ADDRESSED，无新�
 
 
 整体审查的一次限定复核已确认C1/C2 ADDRESSED、SPEC PASS、QUALITY PASS，无新问题，代码候选与Task4适配器准备ready（candidate-review-2/verdict.json 1ca4f4ab，报告74f34a7f）。控制器完整读回并签发仅准备许可harness-preparation-authority.json（0e8c2e27）及独立source10-candidate-manifest.json（cdfbfb05）：固定118ba152、31源输入/30跟踪+1原有单独绑定测试、SDK22、原P4/P1/helper及原四源语料，永久当前8B策略。只允许新建6个harness文件、隔离单元测试和回执；允许读入固定P4无副作用定义，不允许惰性启动/真实CLI或server/原语料运行profile/模型或联网调用。原P4归属与清理原语复用，旧corpus_hook的response.read完整读入钩子须分离，保持新流式限制。
+
+
+Task4首版作者DONE_WITH_CONCERNS，6文件manifest14247bfe、报告47246ba8、最终37项GREEN回执f233e889；所有C产品/SDK/P4保持原字节，已归档到harness-preparation-author-r1。第一轮20个NotImplemented功能RED未同时复制旧源码，原trace/hash限制已诚实记录，后续GREEN保留完整6文件快照。实际/inert/profile/model未运行。未决正确性问题是315秒聚合上限：P4每次进程查询timeout15，单个已归属身份清理还含最长10秒退出等待及多次查询，当前adapter仅事后检查elapsed、CLI按剩余时间等待，不能证明完整操作含清理均受315约束。控制器已完整读报告和原P4函数，先进行仅限截止时间映射的只读架构核对，不把该缺口当作已通过的资格门；不降低原315或另造原生归属控制器。
