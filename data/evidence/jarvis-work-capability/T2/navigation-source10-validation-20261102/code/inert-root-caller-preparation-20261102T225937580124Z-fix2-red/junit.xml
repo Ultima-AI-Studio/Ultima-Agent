@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="3" skipped="0" tests="4" time="1.616" timestamp="2026-11-03T06:59:38.008617+08:00" hostname="DESKTOP-B366PQ9"><testcase classname="" name="test_rc08_later_original_read_cannot_query_unissued_native_target[port8756]" time="0.236"><failure message="AssertionError: Off-scope port was queried before the post-admit guard&#10;assert ('port', 8756) not in [('pid', 1), ('pid', 2), ('pid', 3), ('pid', 4), ('pid', 5), ('port', 18765), ...]">env = namespace(c=&lt;module 'caller_contract' from 'C:\\Users\\Administrator\\.codex\\worktrees\\jarvis-work-capability-longpa...ad at 0x0000018DEFCB7D80&gt;), headless=namespace(run_inert=&lt;function env.&lt;locals&gt;.headless_entry at 0x0000018DEFCB7E20&gt;))
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x0000018DEEE1D480&gt;
+replacement = 'port8756'
+
+    @pytest.mark.parametrize('replacement', ['port8756', 'parent_pid', 'unchanged'])
+    def test_rc08_later_original_read_cannot_query_unissued_native_target(env, monkeypatch, replacement):
+        e = env; d = e.definitions; lookups = []; swaps = []; launches = []
+        original_load = d.load
+        monkeypatch.setattr(d, 'V', e.v); monkeypatch.setattr(d, 'HERE', e.v/'harness')
+        monkeypatch.setattr(d, 'P1', e.v/'legacy/preparation/acceptance_adapter.py')
+        (e.v/'legacy').mkdir(); e.write(e.v/'legacy/runtime-before.json', {})
+        monkeypatch.setattr(d, 'RootInvocation', e.inv)
+        monkeypatch.setattr(d, 'check_inputs', lambda:{})
+        monkeypatch.setattr(d, 'check_import_origins', lambda:None)
+        monkeypatch.setattr(d, 'package_check', lambda p:None)
+        monkeypatch.setattr(d, 'PrivateIO', lambda p,b:nullcontext())
+        e.p4.uuid_text = lambda text:text
+        def identity(pid):
+            lookups.append(('pid', pid))
+            if pid in (999, 424242): return dict(pid=pid, created_filetime=2000, exe='root.exe')
+            return e.protected[pid-1]
+        def listener_owner(port):
+            lookups.append(('port', port))
+            return None
+        e.p4.identity = identity; e.p4.listener_owner = listener_owner
+        def at_original_read(path):
+            # Occurs in ORIGINAL inert_admit after all earlier caller checks/hashes,
+            # immediately before its load(path); no stand-in admission algorithm.
+            if Path(path) == e.v/'inert-authority.json' and not swaps:
+                assert 'inv.call' in e.events
+                swaps.append(replacement)
+                if replacement != 'unchanged':
+                    authority = e.c.load(path)
+                    if replacement == 'port8756': authority['port'] = 8756
+                    if replacement == 'parent_pid': authority['parent_timing']['parent_identity']['pid'] = 424242
+                    e.write(path, authority)
+            return e.c.no_reparse(path)
+        e.p4.no_reparse = at_original_read
+        monkeypatch.setattr(d, 'load_p4', lambda:e.p4)
+        def headless_boundary():
+            returned = d.inert_admit(budget=e.inv.instances[-1].budget)
+            launches.append(returned[0]['port'])
+            return dict(folder=str(returned[1]))
+        monkeypatch.setattr(e.c, 'load_harness', lambda h:(d, SimpleNamespace(run_inert=headless_boundary)))
+        original_admit = d.inert_admit
+        record = e.c.run()
+        assert swaps == [replacement]
+        assert ('pid', 424242) not in lookups, 'Unissued parent PID was queried before the post-admit guard'
+&gt;       assert ('port', 8756) not in lookups, 'Off-scope port was queried before the post-admit guard'
+E       AssertionError: Off-scope port was queried before the post-admit guard
+E       assert ('port', 8756) not in [('pid', 1), ('pid', 2), ('pid', 3), ('pid', 4), ('pid', 5), ('port', 18765), ...]
+
+C:\Users\Administrator\.codex\worktrees\jarvis-work-capability-longpaths\UltimaAgent\.superpowers\sdd\jarvis-work-capability-delivery-plan-20261101\test_root_inert_invocation.py:718: AssertionError</failure></testcase><testcase classname="" name="test_rc08_later_original_read_cannot_query_unissued_native_target[parent_pid]" time="0.480"><failure message="AssertionError: Unissued parent PID was queried before the post-admit guard&#10;assert ('pid', 424242) not in [('pid', 1), ('pid', 2), ('pid', 3), ('pid', 4), ('pid', 5), ('port', 18765), ...]">env = namespace(c=&lt;module 'caller_contract' from 'C:\\Users\\Administrator\\.codex\\worktrees\\jarvis-work-capability-longpa...ad at 0x0000018DEF7BB7E0&gt;), headless=namespace(run_inert=&lt;function env.&lt;locals&gt;.headless_entry at 0x0000018DEF7BB880&gt;))
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x0000018DEEE1D220&gt;
+replacement = 'parent_pid'
+
+    @pytest.mark.parametrize('replacement', ['port8756', 'parent_pid', 'unchanged'])
+    def test_rc08_later_original_read_cannot_query_unissued_native_target(env, monkeypatch, replacement):
+        e = env; d = e.definitions; lookups = []; swaps = []; launches = []
+        original_load = d.load
+        monkeypatch.setattr(d, 'V', e.v); monkeypatch.setattr(d, 'HERE', e.v/'harness')
+        monkeypatch.setattr(d, 'P1', e.v/'legacy/preparation/acceptance_adapter.py')
+        (e.v/'legacy').mkdir(); e.write(e.v/'legacy/runtime-before.json', {})
+        monkeypatch.setattr(d, 'RootInvocation', e.inv)
+        monkeypatch.setattr(d, 'check_inputs', lambda:{})
+        monkeypatch.setattr(d, 'check_import_origins', lambda:None)
+        monkeypatch.setattr(d, 'package_check', lambda p:None)
+        monkeypatch.setattr(d, 'PrivateIO', lambda p,b:nullcontext())
+        e.p4.uuid_text = lambda text:text
+        def identity(pid):
+            lookups.append(('pid', pid))
+            if pid in (999, 424242): return dict(pid=pid, created_filetime=2000, exe='root.exe')
+            return e.protected[pid-1]
+        def listener_owner(port):
+            lookups.append(('port', port))
+            return None
+        e.p4.identity = identity; e.p4.listener_owner = listener_owner
+        def at_original_read(path):
+            # Occurs in ORIGINAL inert_admit after all earlier caller checks/hashes,
+            # immediately before its load(path); no stand-in admission algorithm.
+            if Path(path) == e.v/'inert-authority.json' and not swaps:
+                assert 'inv.call' in e.events
+                swaps.append(replacement)
+                if replacement != 'unchanged':
+                    authority = e.c.load(path)
+                    if replacement == 'port8756': authority['port'] = 8756
+                    if replacement == 'parent_pid': authority['parent_timing']['parent_identity']['pid'] = 424242
+                    e.write(path, authority)
+            return e.c.no_reparse(path)
+        e.p4.no_reparse = at_original_read
+        monkeypatch.setattr(d, 'load_p4', lambda:e.p4)
+        def headless_boundary():
+            returned = d.inert_admit(budget=e.inv.instances[-1].budget)
+            launches.append(returned[0]['port'])
+            return dict(folder=str(returned[1]))
+        monkeypatch.setattr(e.c, 'load_harness', lambda h:(d, SimpleNamespace(run_inert=headless_boundary)))
+        original_admit = d.inert_admit
+        record = e.c.run()
+        assert swaps == [replacement]
+&gt;       assert ('pid', 424242) not in lookups, 'Unissued parent PID was queried before the post-admit guard'
+E       AssertionError: Unissued parent PID was queried before the post-admit guard
+E       assert ('pid', 424242) not in [('pid', 1), ('pid', 2), ('pid', 3), ('pid', 4), ('pid', 5), ('port', 18765), ...]
+
+C:\Users\Administrator\.codex\worktrees\jarvis-work-capability-longpaths\UltimaAgent\.superpowers\sdd\jarvis-work-capability-delivery-plan-20261101\test_root_inert_invocation.py:717: AssertionError</failure></testcase><testcase classname="" name="test_rc08_later_original_read_cannot_query_unissued_native_target[unchanged]" time="0.381" /><testcase classname="" name="test_rc09_replaced_closed_pending_cannot_return_eligible_process_outcome" time="0.256"><failure message="Failed: DID NOT RAISE ValueError">env = namespace(c=&lt;module 'caller_contract' from 'C:\\Users\\Administrator\\.codex\\worktrees\\jarvis-work-capability-longpa...a&gt; at 0x0000018DEFB56980&gt;), headless=namespace(run_inert=&lt;function env.&lt;locals&gt;.headless_entry at 0x0000018DEFB568E0&gt;))
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x0000018DEFB5F790&gt;
+
+    def test_rc09_replaced_closed_pending_cannot_return_eligible_process_outcome(env, monkeypatch):
+        e = env; original_link = e.c.os.link; expected = []; replacement = b'{"overall":"ELIGIBLE_FOR_ROOT_REVIEW","replacement":true}\n'
+        def swap_closed_regular_source(source, target):
+            source = Path(source)
+            expected.append(source.read_bytes())
+            # Preserve the original closed object as test evidence while replacing
+            # only its pathname with another ordinary file before real os.link.
+            source.rename(source.with_name('closed-original-result.raw'))
+            source.write_bytes(replacement)
+            assert source.is_file() and not source.is_symlink()
+            return original_link(source, target)
+        monkeypatch.setattr(e.c.os, 'link', swap_closed_regular_source)
+&gt;       with pytest.raises(ValueError, match='publication'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+C:\Users\Administrator\.codex\worktrees\jarvis-work-capability-longpaths\UltimaAgent\.superpowers\sdd\jarvis-work-capability-delivery-plan-20261101\test_root_inert_invocation.py:737: Failed</failure></testcase></testsuite></testsuites>
