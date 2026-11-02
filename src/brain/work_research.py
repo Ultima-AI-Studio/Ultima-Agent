@@ -526,7 +526,18 @@ def render_research_report(payload,sources_json,*,bindings=None):
     return RenderedReport('\n'.join(lines),tuple(cited),tuple(evidence))
 
 
-def verify_research_artifacts(binding,artifacts,report_records,sources_json,*,require_reference=False):
+def prepare_navigation(collection,binding,scanners,*,get_records_json:bytes,deadline:float):
+    from .work_navigation import prepare_navigation as prepare
+    return prepare(collection,binding,scanners,get_records_json=get_records_json,deadline=deadline)
+
+
+def resolve_v3(submitted,issued_snapshot,collection):
+    from .work_navigation import resolve_v3 as resolve
+    return resolve(submitted,issued_snapshot,collection)
+
+
+def verify_research_artifacts(binding,artifacts,report_records,sources_json,*,require_reference=False,
+                              required_version:int|None=None,issued_snapshot=None):
     from .work_tools import checked_path
     source_map=bound_sources(sources_json,binding)
     if not report_records: raise ValueError('No successful bound research report write')
@@ -537,14 +548,33 @@ def verify_research_artifacts(binding,artifacts,report_records,sources_json,*,re
         if not record or any(record.get(k)!=getattr(binding,k) for k in ('request_id','session_id','task_id')):
             raise ValueError('Research artifact has no current report-to-file call linkage')
         result = record['result']
+        version=result.get('protocol_version')
+        if required_version not in (None,3) or (version is not None and (type(version) is not int or version not in (2,3))):
+            raise ValueError('Unsupported research protocol version')
+        if required_version==3 and (version!=3 or issued_snapshot is None):
+            raise ValueError('Fresh research requires protocol version 3 and snapshot')
         payload = json.loads(result['payload_json'])
-        if 'protocol_version' in result or require_reference:
+        if version==3:
+            from .work_navigation import resolve_v3, render_v3
+            if issued_snapshot is None: raise ValueError('Missing v3 issued snapshot')
+            packet=json.loads(issued_snapshot.replay_json)
+            original=packet['collection']
+            collection=ResearchCollection(original['catalogue_json'],original['trace_json'],original['attempts_json'],
+                tuple(original['ignored_failure_ids']),original['search_query'])
+            if json.loads(collection.catalogue_json)!=json.loads(sources_json): raise ValueError('Original v3 sources drift')
+            resolved,bindings=resolve_v3(json.loads(result['submitted_json']),issued_snapshot,collection)
+            if resolved!=payload or bindings!=result['bindings'] or checked_path(binding,payload['path'])!=checked_path(binding,artifact['path']):
+                raise ValueError('Research v3 reference readback mismatch')
+            rendered=render_v3(payload,sources_json,bindings=bindings)
+        elif 'protocol_version' in result or require_reference:
             if type(result.get('protocol_version')) is not int or result['protocol_version'] != 2:
                 raise ValueError('Unsupported research reference protocol')
             resolved, bindings = resolve_references(json.loads(result['submitted_json']),reference_cards(sources_json),sources_json)
             if resolved != payload or bindings != result['bindings'] or checked_path(binding,payload['path']) != checked_path(binding,artifact['path']):
                 raise ValueError('Research reference readback mismatch')
-        rendered=render_research_report(payload,sources_json,bindings=result.get("bindings"))
+            rendered=render_research_report(payload,sources_json,bindings=result.get("bindings"))
+        else:
+            rendered=render_research_report(payload,sources_json,bindings=result.get("bindings"))
         raw=checked_path(binding,artifact['path']).read_bytes()
         if hashlib.sha256(raw).hexdigest()!=artifact['sha256'] or raw.decode('utf8').replace('\r\n','\n')!=rendered.content.replace('\r\n','\n'):
             raise ValueError('Research rendered report independent readback mismatch')
