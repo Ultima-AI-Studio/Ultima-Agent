@@ -1,0 +1,134 @@
+# Task 4 independent harness review
+
+**SPEC FAIL · QUALITY NEEDS_FIXES**
+
+Candidate `118ba152b007c30d358c8bc44c51aabe8ae820f0`. The child-server entry can exceed its authority, the witness accepts empty required proof and the final output can drift after verification. The product code gate is separate. E02/T2 remains NOT_PASSED.
+
+## Findings
+
+### H01 · Critical · adapter.py:589
+
+**The actual child can start a server outside the allocated roots or on an unapproved port.** Lines 584–589 check the supplied folder but forward parser leftovers verbatim. Removing --isolated or replacing --runtime-root, --work-output-root, --port or adding --work-target-policy reaches candidate agent_server.py:1285–1304,1327,1376–1380. Lines 290,554 only check for existence of an attempt; bind_parent at 262–267 checks that the listed PID is alive with that identity, not that this startup belongs to the claimed launcher. A second invocation during the authority window can reuse the marker. Parent-side assert_listener runs after startup, too late to prevent those effects.
+
+Before starting anything, bind the actual/inert child once to the matching attempt, full authority/timing, intended invocation and immutable canonical argv. Reject omissions, duplicates, extra modes, changed roots/port and replay. Exercise child entry with mocked launch/dispatch only.
+
+### H02 · Important · adapter.py:534
+
+**The trusted witness can mark an incomplete evidence package eligible.** Lines 525–534 hash whatever the index names; pins/protected derive solely from an empty error list, readback from a child status string. test_adapter.py:404–415 explicitly expects eligible=true with every required inert member containing {} and no terminal timing. Even the witness records only the terminal digest, leaving other observed members without a durable binding to the observed index.
+
+Bind kind, canonical folder/run/timing and seal-index digest to the witness. Check substantive required evidence against admission inputs and observed data. Ensure the existing empty-file positive becomes negative, alongside a meaningful closed-package positive.
+
+### H03 · Important · adapter.py:395
+
+**A changed or deleted research.md can survive final sealing as an eligible actual result.** Lines 428–434 verify bytes before cleanup. Lines 371–374 merely record a later inventory and never compare it. After cleanup lines 380–395 check source pins/protected identities and hash whatever files remain. The actual required set at 525 has no task output. Deleting or replacing research.md between the valid read and seal leaves the child clean, as does adding another output. The witness can attest the changed set.
+
+Use the original inventory proof to reconcile the closed post-cleanup exact output set, path and bytes with the accepted readback and required indexed output. Include removal/replacement/extra-output cases.
+
+### H04 · Important · headless_proof.py:26
+
+**The native argv qualification can accept missing launcher/base process evidence.** P4 process_snapshot:118–136 requires a nonempty PID request, but a successful query returning [] writes both proof files and returns {}. all() over that result is true, and a subset consisting of just one matching row also passes. Neither the expected redirector/base relationship nor identity of the observed listener row is required here.
+
+Check that required roles and all expected live identities are observed, relate the owned listener to the base/redirector, verify native identity/parent and exact argv for the required records; reject empty and partial snapshots.
+
+### H05 · Important · adapter.py:252
+
+**Exact protected before/after can be reported for the wrong five processes.** Lines 247–253 accept any five distinct live native identities from the proof. The historical protected PIDs returned by original P1 protected():118–128 are used independently by P4 Owned:153, with no equality between sets. The postchecks (380–383 and headless_proof.py:37–39) then revisit only the supplied list. A misbound but hash-sealed root proof can therefore overlook drift in the actual protected set.
+
+Join the fresh proof to the expected protected members by stable role/PID and actual native identity; compare exact native integers before/after without promoting legacy CIM ticks into an exact value. Test an unrelated live set of five.
+
+### H06 · Important · adapter.py:192
+
+**An alternate Python installation can run borrowed ownership helpers and imports using SDK bytes outside the pinned environment.** The absolute context mandates H/tools/venv-openjarvis/Scripts/python.exe. Actual and inert admission only inspect interpreter flags. P4:152 trusts sys.executable; candidate work_context_acceptance.py:112–113 starts that same executable. Hashing files of the H SDK does not establish that another interpreter imports those files. Only run_checks.py:34 enforces the expected executable.
+
+Require the exact authorized interpreter at the entry/admission and verify relevant import origins before operational calls; retain a negative unit test for another executable with identical flags.
+
+### H07 · Important · adapter.py:480
+
+**An admissible runtime packet can be discarded solely by the export wrapper.** Lines 474–480 permit len(raw) up to 4 MiB, then base64-expand it and two snapshot members, duplicate collection data and pass the whole envelope through save_new's same 4 MiB cap (186–189). Even a 3 MiB packet leaves no room for metadata. There is no fallback preserving completed safe raw bytes, and verify_exports requires the single envelope. Whether this original corpus reaches that size remains unmeasured.
+
+Preserve exact completed bytes in separately bounded sealed members, or prove a bound for the complete representation from product limits and enforce it consistently. Test valid maximal/sizable payloads and fail closed for unsafe values.
+
+### H08 · Important · adapter.py:384
+
+**A cleanup-only or final-boundary failure can have no first-failure receipt.** budget.failure is set in the main work exception path but an original P4 cleanup FAIL returned at 376, cleanup exception at 377, or a non-timeout final check failure at 384 can leave first_failure=None in the terminal at 392. The same occurs in headless_proof.py:33–41. A thrown cleanup entry in actual also drops explicit effects_unknown. A later deadline may displace the earlier failure as first.
+
+Latch the first failed stage/cause at every phase including a returned FAIL, preserve the original cleanup/unknown evidence and keep product outcome separate. Add cleanup-only and final-boundary-only assertions.
+
+### H09 · Important · adapter.py:382
+
+**A late drift in the approved harness or operational authority can escape final pin proof.** check_inputs at 191–207 pins source/dependencies and rulings. Harness members/manifest/approval are checked separately in package_check only at admission (281/547); actual authority, ledger and native proof hashes are likewise absent from boundary-after, and inert does not store before/after pin maps. Mutating an approved harness member between admission and cleanup leaves both calls to check_inputs equal. The retained witness currently labels pins true.
+
+Capture the full admitted operational evidence set including raw harness, approval, authority/ledger and baseline, compare again after cleanup and seal expected and observed hashes in both modes.
+
+### H10 · Minor · run_checks.py:62
+
+**A run with changed harness bytes may still return exit code zero.** The driver calculates harness_unchanged at 57 but returns only pytest's exit status. The sealed final run did have matching hashes; the defect affects future driver use.
+
+Keep the receipt and return failure on any before/after harness drift, including additions to the allowed member set.
+
+### H11 · Minor · adapter.py:342
+
+**The enclosing root interpreter retains a global import-path mutation after return.** execute_case inserts C into sys.path without restoring it, as does headless_proof.py:17. The documented trusted caller runs entry in-process. load_p4 at 216–218 already models scoped restoration.
+
+Scope this insertion to the necessary imports and restore the original sys.path on success, exception and timeout.
+
+### H12 · Important · adapter.py:105
+
+**Cleanup can request a socket wait beyond its residual deadline despite clipping at socket creation.** Lines 115–118 sample the timeout before raw socket allocation. Lines 100–106 set that old allowance and later only check that some time remains. If allocation/setup consumes 0.9 s of a 1 s remaining slice, connect_ex can still block up to 1 s. Postcheck prevents a late success but the extra avoidable wait consumes the final seal reservation.
+
+Reclip/apply socket timeout immediately before connect_ex inside the original try/finally; test delayed allocation or setup leaving a smaller residual.
+
+### H13 · Important · adapter.py:392
+
+**A disagreement between the first service result and the CLI result is retained but can still be certified clean.** Line 470 saves the service result before export. Actual success uses only product from cli.stdout at 357–362 and 392. No check reconciles the saved service outcome/IDs/artifact claims to the CLI fields; line 480 derives ACK from service status but does not check the identity or equivalence of these records.
+
+Reconcile the invariant request/session/task, status and verified artifact fields across the independent CLI/service records before allowing eligibility. Retain both on disagreement.
+
+### H14 · Important · adapter.py:529
+
+**The observer starts new required reads even after the outer cutoff.** Lines 522–532 perform the listing, terminal/index reads and every member hash without prechecking the seal budget. Returning at exactly +315 or overrunning on the first hash still admits all remaining I/O. Sampling at 539 rejects late success but does not enforce the specified positive remaining time for new required work.
+
+Guard each fresh observer read/list/hash with the non-renewed seal budget. Stop admitting more on exhaustion, preserve the permanent failure, and test that a stalled first read prevents subsequent I/O.
+
+### H15 · Important · test_adapter.py:82
+
+**The named legacy failure tests do not distinguish a failing cleanup from the requested failure being tested.** At 54 every cleanup probe returns 1 (not a definitive refusal). The successful-export fixture at 58 has no valid issued snapshot, so the cleanup-only variant fails prior validation as well. The shared assertion overall==FAIL can pass with the wrong first cause, and the test never asserts the cause or required uncertainty for its parameter.
+
+Give each path valid prerequisites up to the injected fault, supply a true refusal on unrelated cases and assert the specific first failure, retained facts and uncertainty. Keep the existing test IDs.
+
+## Checks
+
+- Read original brief/context, correction brief, architect mapping, binding root ruling, author report and full sealed six-file diff. Independently matched all companion-listed hashes, six live source files, six final source copies and all 64 current pin hashes against the final snapshot.
+- Read fixed H Python -B -X utf8 pytest argv, isolated basetemp, stdout (75 passed in 2.09s), JUnit (75 cases), empty stderr, receipt and before/after hashes. Root proof records retention of original 37 IDs across nine correction stages, including 37 passed/16 failed correction RED and 52/1 intermediate. No rerun.
+- Inspected named outside-diff dependencies for coupling: P4 process_snapshot, Owned launch/discover/cleanup, retained process_times, assert_listener, environment, inventory, artifact path/readback; P1 identity, terminate_owned, protected, metadata_valid, no_reparse; candidate helper launch, agent_server isolation/argv/runtime, WorkLedger freeze/export, WorkService, browser fixed GET, collection/verifier, resolver/renderer and original corpus sizes.
+- Original P4/P1 procedures are reused. Real Popen wait wrappers restore methods, P1 reopens/rechecks the native handle and closes it in finally. Refusal checks distinguish timeout. No parent-only kill extension. Fixture avoids Client.send preconsumption, observes runtime inputs at freeze and saves service output before export.
+- Root proof covers candidate C31 (30 tracked, one bound untracked), SDK22, seven dependencies and the retained 13665-byte report prefix. Only qwen3-8b-uncensored digest 6d7230a923426bc1933879eb08a7dafc18e5fc0e7606c459ce98f16e0c7f9330 applies. No real launches, native observations, tests, profile, recovery, or product changes were made.
+
+## Limits
+
+- Initial 194437 RED has no contemporaneous source bytes. Correction 201732 has six contemporaneous copies matching after-run hashes but lacks explicit harness_before/harness_after; those fields start 201803.
+- Actual ownership, redirector/base/native argv, cleanup and timing, original-corpus dry-profile dimensions, original-case comprehension, real search and three same-candidate rounds remain unqualified. The actual envelope size is unknown. A failed OS call can outlive the deadline.
+- No future caller, root approval, new live native baseline, authority or independent actual witness was exercised. All operational, T3, Owner and production gates remain closed. Product candidate118 has a separate gate.
+
+## Reviewed SHA256
+
+- jarvis-work-capability-delivery-plan-20261101/task-4-navigation-adapter-review-brief.md `3730cac5d4894a1b02d0199bffb1038ffba8cf7965cd262b7b16c9710e031d70`
+- jarvis-work-capability-delivery-plan-20261101/task-4-navigation-adapter-review-package.txt `29b249172e094192251f716a5f9608ad02d40197b3397bcff0de884790d5f996`
+- jarvis-work-capability-delivery-plan-20261101/task-4-navigation-adapter-report.md `b61101512a5e49ccb65d015de835ea1ecd87abc49c199702a2d91255fb52ecab`
+- jarvis-work-capability-delivery-plan-20261101/task-4-navigation-adapter-brief.md `ac193a8195eaee8ce10bbcc24e8564101880cdec4030dfc0317376beea528c4e`
+- jarvis-work-capability-delivery-plan-20261101/task-4-navigation-adapter-context.md `cc19ad013dea42f37f926627c64f7e6138a91d43e5cef86fc8ef9fb9fe639ad0`
+- jarvis-work-capability-delivery-plan-20261101/task-4-deadline-correction-brief.md `00d3f819cf4f38b4e47726d31a29ee7f96396aeefd8edba1099d4bea6a3b4e32`
+- jarvis-work-capability-delivery-plan-20261101/task-4-deadline-mapping-report.md `50f8a5c9d314bc7385c9e29cde4f94b24f9db9523c2d6910afb3adba56528eca`
+- harness-deadline-design/root-decision.json `144be9bc0a63294f5fd4e75c7cbe06f8e2ad2d51df36d0b11896d2455a0b4d47`
+- code/root-harness-correction1-before-review.json `420ab4b50dbeb1401d88f56e9aa382c9b6ff31bd5fb3d6ace6fdcca1a7e72809`
+- harness/manifest.json `eb30d3fd64389fa062a792c25d43117c08f05aa79dbc53a9e024da1d4d11aee1`
+- harness-preparation-20261102T202635778604Z/receipt.json `4709905ed9a2ac74c208c41861cae696c2ce02644bba655f5fe3b787103eb646`
+- harness/adapter.py `4ef9558ef6042347af95485b4b187326d1745d86b1d717ed4eed7bd43fb6459f`
+- harness/headless_proof.py `62df44976ab82fae4812c13401040b9c47c81f33afdc8df4ca493001f37c77df`
+- harness/README.md `f568c1df92fdd6190f0a6df3dca37b165a834650620a2e681c21a270fdd36f7c`
+- harness/run_checks.py `e2cb47f23ce625567f13de88515f463dc2dca5cd55765d87e6a2e1b4bcf7e239`
+- harness/test_adapter.py `3fc1cf212f483e5719b27ab135443016c4a1adccf0b389341be824813e165646`
+- review-inputs.json `594f051837390da7d6240ffb739a9fec5f2be6e9644f3fe90b10254f14b8b02a`
+- final JUnit `ac55e7eee67801484b2e5e9885349e88729a9a657d835db554d4b9c2b62654c5`
+- final stdout `4a9f0d600ab68f6c6c69a6ea55d73053e1e4f5b8b6f08537277c8cb905a4d5cc`
+- final source-before/after `4edf6caf3bd0cd1fc63df2602a27b9419692c01b877e38ae143288ad3525e3ce`
