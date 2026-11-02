@@ -1,0 +1,27 @@
+F                                                                        [100%]
+================================== FAILURES ===================================
+______________ test_fix1_f2_coherent_title_substitution_rejected ______________
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/unit23-fix1-f2-red/temp/test_fix1_f2_coherent_title_su0')
+sdk_io = (<src.brain.browser.channel.BrowserChannel object at 0x000001BBA065F620>, [('search', 'Research a subject'), ('get', '...'https://example.com/source/3'), ('get', 'https://example.com/source/4'), ('get', 'https://example.com/source/5')], {})
+mock_jar = (<openjarvis.sdk.Jarvis object at 0x000001BBA065DE80>, <function _run_work_agent at 0x000001BB9EA0F100>, [{'format': {..., ...], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [])
+
+    def test_fix1_f2_coherent_title_substitution_rejected(tmp_path,sdk_io,mock_jar):
+        import copy,hashlib
+        from pathlib import Path
+        from src.brain.work_research import verify_research_artifacts
+        result,ledger=genuine_navigation(tmp_path,sdk_io,mock_jar)
+        artifact=copy.deepcopy(result['artifacts'][0])
+        record=copy.deepcopy(next(r for r in ledger.snapshot() if r['tool_name']=='ultima_work_research_write'))
+        for key in ('submitted_json','payload_json'):
+            value=json.loads(record['result'][key]); value['title']='Coherent substitute title'; record['result'][key]=json.dumps(value)
+        path=Path(artifact['path']); path.write_bytes(b'# Coherent substitute title\n'+path.read_bytes().split(b'\n',1)[1])
+        artifact['sha256']=record['result']['sha256']=hashlib.sha256(path.read_bytes()).hexdigest()
+>       with pytest.raises(ValueError,match='authored|receipt|intent'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+src\brain\tests\test_work_navigation_transport.py:66: Failed
+=========================== short test summary info ===========================
+FAILED src/brain/tests/test_work_navigation_transport.py::test_fix1_f2_coherent_title_substitution_rejected
+1 failed in 2.57s

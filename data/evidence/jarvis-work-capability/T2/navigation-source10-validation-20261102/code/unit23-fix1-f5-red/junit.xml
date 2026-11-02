@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="4" skipped="0" tests="4" time="2.744" timestamp="2026-11-03T02:19:12.713620+08:00" hostname="DESKTOP-B366PQ9"><testcase classname="src.brain.tests.test_work_navigation_transport" name="test_fix1_f5_final_send_timeout_and_refusal_receipt[False-GET]" time="0.449"><failure message="AssertionError: assert {'connect': 5... 5, 'pool': 5} == {'connect': 1... 1, 'read': 1}&#10;  &#10;  Differing items:&#10;  {'read': 5} != {'read': 1}&#10;  {'connect': 5} != {'connect': 1}&#10;  {'write': 5} != {'write': 1}&#10;  {'pool': 5} != {'pool': 1}&#10;  Use -v to get more diff">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/unit23-fix1-f5-red/temp/test_fix1_f5_final_send_timeou0')
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x0000024BA0D138C0&gt;, [('search', 'Research a subject'), ('get', '...'https://example.com/source/3'), ('get', 'https://example.com/source/4'), ('get', 'https://example.com/source/5')], {})
+mock_jar = (&lt;openjarvis.sdk.Jarvis object at 0x0000024BA0D12120&gt;, &lt;function _run_work_agent at 0x0000024BA0153100&gt;, [{'format': {...ser'}], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [])
+source9_clock = {'now': 204, 'metadata': 0, 'author': 0, 'ack': 0, ...}
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x0000024BA01DB950&gt;
+method = 'GET', expired = False
+
+    @pytest.mark.parametrize('method',['GET','POST'])
+    @pytest.mark.parametrize('expired',[False,True])
+    def test_fix1_f5_final_send_timeout_and_refusal_receipt(tmp_path,sdk_io,mock_jar,source9_clock,monkeypatch,method,expired):
+        from src.brain.tests.test_work_research import RESTRICTED
+        state=source9_clock;state['now']=200
+        build=httpx.Client.build_request; changed=[False]
+        def advance(client,verb,*args,**kwargs):
+            request=build(client,verb,*args,**kwargs)
+            if verb==method and not changed[0]: state['now']=206 if expired else 204;changed[0]=True
+            return request
+        monkeypatch.setattr(httpx.Client,'build_request',advance)
+        mock_jar[3].append('{"final_answer":"refused"}')
+        result=submit(tmp_path,sdk_io[0],mock_jar[1]); ledger=RESTRICTED[result['task_id']]; transport=ledger._runtime_transport
+        assert result['status']=='failed' and changed[0]
+        if expired:
+            assert transport.posts==0 and transport.gets==(2 if method=='POST' else 0)
+            receipt=transport.receipts[-1]
+            assert receipt['method']==method and receipt['send_reserved'] is False and receipt['admission_error']
+        else:
+            phase='author' if method=='POST' else 'metadata'
+&gt;           assert next(timeout for label,timeout in state['requests'] if label==phase)==dict(connect=1,write=1,pool=1,read=1)
+E           AssertionError: assert {'connect': 5... 5, 'pool': 5} == {'connect': 1... 1, 'read': 1}
+E             
+E             Differing items:
+E             {'read': 5} != {'read': 1}
+E             {'connect': 5} != {'connect': 1}
+E             {'write': 5} != {'write': 1}
+E             {'pool': 5} != {'pool': 1}
+E             Use -v to get more diff
+
+src\brain\tests\test_work_navigation_transport.py:161: AssertionError</failure></testcase><testcase classname="src.brain.tests.test_work_navigation_transport" name="test_fix1_f5_final_send_timeout_and_refusal_receipt[False-POST]" time="0.229"><failure message="AssertionError: assert {'connect': 5... 5, 'pool': 5} == {'connect': 1... 1, 'read': 1}&#10;  &#10;  Differing items:&#10;  {'read': 5} != {'read': 1}&#10;  {'connect': 5} != {'connect': 1}&#10;  {'write': 5} != {'write': 1}&#10;  {'pool': 5} != {'pool': 1}&#10;  Use -v to get more diff">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/unit23-fix1-f5-red/temp/test_fix1_f5_final_send_timeou1')
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x0000024BA031BB10&gt;, [('search', 'Research a subject'), ('get', '...'https://example.com/source/3'), ('get', 'https://example.com/source/4'), ('get', 'https://example.com/source/5')], {})
+mock_jar = (&lt;openjarvis.sdk.Jarvis object at 0x0000024BA031AFD0&gt;, &lt;function _run_work_agent at 0x0000024BA0153100&gt;, [{'format': {...ser'}], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [])
+source9_clock = {'now': 204, 'metadata': 0, 'author': 0, 'ack': 0, ...}
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x0000024B4DE502B0&gt;
+method = 'POST', expired = False
+
+    @pytest.mark.parametrize('method',['GET','POST'])
+    @pytest.mark.parametrize('expired',[False,True])
+    def test_fix1_f5_final_send_timeout_and_refusal_receipt(tmp_path,sdk_io,mock_jar,source9_clock,monkeypatch,method,expired):
+        from src.brain.tests.test_work_research import RESTRICTED
+        state=source9_clock;state['now']=200
+        build=httpx.Client.build_request; changed=[False]
+        def advance(client,verb,*args,**kwargs):
+            request=build(client,verb,*args,**kwargs)
+            if verb==method and not changed[0]: state['now']=206 if expired else 204;changed[0]=True
+            return request
+        monkeypatch.setattr(httpx.Client,'build_request',advance)
+        mock_jar[3].append('{"final_answer":"refused"}')
+        result=submit(tmp_path,sdk_io[0],mock_jar[1]); ledger=RESTRICTED[result['task_id']]; transport=ledger._runtime_transport
+        assert result['status']=='failed' and changed[0]
+        if expired:
+            assert transport.posts==0 and transport.gets==(2 if method=='POST' else 0)
+            receipt=transport.receipts[-1]
+            assert receipt['method']==method and receipt['send_reserved'] is False and receipt['admission_error']
+        else:
+            phase='author' if method=='POST' else 'metadata'
+&gt;           assert next(timeout for label,timeout in state['requests'] if label==phase)==dict(connect=1,write=1,pool=1,read=1)
+E           AssertionError: assert {'connect': 5... 5, 'pool': 5} == {'connect': 1... 1, 'read': 1}
+E             
+E             Differing items:
+E             {'read': 5} != {'read': 1}
+E             {'connect': 5} != {'connect': 1}
+E             {'write': 5} != {'write': 1}
+E             {'pool': 5} != {'pool': 1}
+E             Use -v to get more diff
+
+src\brain\tests\test_work_navigation_transport.py:161: AssertionError</failure></testcase><testcase classname="src.brain.tests.test_work_navigation_transport" name="test_fix1_f5_final_send_timeout_and_refusal_receipt[True-GET]" time="0.137"><failure message="IndexError: list index out of range">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/unit23-fix1-f5-red/temp/test_fix1_f5_final_send_timeou2')
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x0000024BA08EDF90&gt;, [('search', 'Research a subject'), ('get', '...'https://example.com/source/3'), ('get', 'https://example.com/source/4'), ('get', 'https://example.com/source/5')], {})
+mock_jar = (&lt;openjarvis.sdk.Jarvis object at 0x0000024BA093C3E0&gt;, &lt;function _run_work_agent at 0x0000024BA0153100&gt;, [], ['{"final_answer":"refused"}'])
+source9_clock = {'now': 206, 'metadata': 0, 'author': 0, 'ack': 0, ...}
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x0000024BA028FBF0&gt;
+method = 'GET', expired = True
+
+    @pytest.mark.parametrize('method',['GET','POST'])
+    @pytest.mark.parametrize('expired',[False,True])
+    def test_fix1_f5_final_send_timeout_and_refusal_receipt(tmp_path,sdk_io,mock_jar,source9_clock,monkeypatch,method,expired):
+        from src.brain.tests.test_work_research import RESTRICTED
+        state=source9_clock;state['now']=200
+        build=httpx.Client.build_request; changed=[False]
+        def advance(client,verb,*args,**kwargs):
+            request=build(client,verb,*args,**kwargs)
+            if verb==method and not changed[0]: state['now']=206 if expired else 204;changed[0]=True
+            return request
+        monkeypatch.setattr(httpx.Client,'build_request',advance)
+        mock_jar[3].append('{"final_answer":"refused"}')
+        result=submit(tmp_path,sdk_io[0],mock_jar[1]); ledger=RESTRICTED[result['task_id']]; transport=ledger._runtime_transport
+        assert result['status']=='failed' and changed[0]
+        if expired:
+            assert transport.posts==0 and transport.gets==(2 if method=='POST' else 0)
+&gt;           receipt=transport.receipts[-1]
+                    ^^^^^^^^^^^^^^^^^^^^^^
+E           IndexError: list index out of range
+
+src\brain\tests\test_work_navigation_transport.py:157: IndexError</failure></testcase><testcase classname="src.brain.tests.test_work_navigation_transport" name="test_fix1_f5_final_send_timeout_and_refusal_receipt[True-POST]" time="0.127"><failure message="AssertionError: assert ('GET' == 'POST'&#10;  &#10;  - POST&#10;  + GET)">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/unit23-fix1-f5-red/temp/test_fix1_f5_final_send_timeou3')
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x0000024BA093DBA0&gt;, [('search', 'Research a subject'), ('get', '...'https://example.com/source/3'), ('get', 'https://example.com/source/4'), ('get', 'https://example.com/source/5')], {})
+mock_jar = (&lt;openjarvis.sdk.Jarvis object at 0x0000024BA07EB240&gt;, &lt;function _run_work_agent at 0x0000024BA0153100&gt;, [], ['{"final_answer":"refused"}'])
+source9_clock = {'now': 206, 'metadata': 0, 'author': 0, 'ack': 0, ...}
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x0000024BA07EB020&gt;
+method = 'POST', expired = True
+
+    @pytest.mark.parametrize('method',['GET','POST'])
+    @pytest.mark.parametrize('expired',[False,True])
+    def test_fix1_f5_final_send_timeout_and_refusal_receipt(tmp_path,sdk_io,mock_jar,source9_clock,monkeypatch,method,expired):
+        from src.brain.tests.test_work_research import RESTRICTED
+        state=source9_clock;state['now']=200
+        build=httpx.Client.build_request; changed=[False]
+        def advance(client,verb,*args,**kwargs):
+            request=build(client,verb,*args,**kwargs)
+            if verb==method and not changed[0]: state['now']=206 if expired else 204;changed[0]=True
+            return request
+        monkeypatch.setattr(httpx.Client,'build_request',advance)
+        mock_jar[3].append('{"final_answer":"refused"}')
+        result=submit(tmp_path,sdk_io[0],mock_jar[1]); ledger=RESTRICTED[result['task_id']]; transport=ledger._runtime_transport
+        assert result['status']=='failed' and changed[0]
+        if expired:
+            assert transport.posts==0 and transport.gets==(2 if method=='POST' else 0)
+            receipt=transport.receipts[-1]
+&gt;           assert receipt['method']==method and receipt['send_reserved'] is False and receipt['admission_error']
+E           AssertionError: assert ('GET' == 'POST'
+E             
+E             - POST
+E             + GET)
+
+src\brain\tests\test_work_navigation_transport.py:158: AssertionError</failure></testcase></testsuite></testsuites>

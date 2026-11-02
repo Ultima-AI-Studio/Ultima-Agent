@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="4" skipped="0" tests="4" time="4.546" timestamp="2026-11-03T02:13:09.620529+08:00" hostname="DESKTOP-B366PQ9"><testcase classname="src.brain.tests.test_work_navigation_transport" name="test_fix1_f3_replay_rejects_coherent_history_mutations[chronology]" time="0.853"><failure message="Failed: DID NOT RAISE ValueError">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/unit23-fix1-f3-red/temp/test_fix1_f3_replay_rejects_co0')
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x00000202A2CB7620&gt;, [('search', 'Research a subject'), ('get', '...'https://example.com/source/3'), ('get', 'https://example.com/source/4'), ('get', 'https://example.com/source/5')], {})
+mock_jar = (&lt;openjarvis.sdk.Jarvis object at 0x00000202A2CB5E80&gt;, &lt;function _run_work_agent at 0x00000202A0FEF2E0&gt;, [{'format': {..., ...], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [])
+fault = 'chronology'
+
+    @pytest.mark.parametrize('fault',['chronology','phase_suffix','prompt','prewrite_hash'])
+    def test_fix1_f3_replay_rejects_coherent_history_mutations(tmp_path,sdk_io,mock_jar,fault):
+        from src.brain.work_research import verify_runtime_packet
+        from src.brain.work_navigation import canonical_v3
+        _,ledger=genuine_navigation(tmp_path,sdk_io,mock_jar)
+        packet=json.loads(ledger._runtime_final)
+        if fault=='chronology': packet['events'][0],packet['events'][1]=packet['events'][1],packet['events'][0]
+        elif fault=='phase_suffix':
+            packet['wires'][0]['secured_messages'][0]['content']+=' Arbitrary altered phase rule.'
+            rewrite_wire(packet,0)
+        elif fault=='prompt':
+            packet['prompt']=packet['prompt'].replace('Research a subject','Unrelated subject')
+            for i,wire in enumerate(packet['wires']):
+                wire['secured_messages'][1]['content']=packet['prompt']; rewrite_wire(packet,i)
+        else:
+            packet['prewrite_sha256']='f'*64
+            end=json.loads(packet['events'][-1]); receipt=json.loads(end['data']['result']); receipt['runtime_sha256']='f'*64
+            end['data']['result']=canonical_v3(receipt).decode(); end['data']['metadata']['runtime_sha256']='f'*64
+            packet['events'][-1]=json.dumps(end)
+            packet['wires'][-1]['secured_messages'][-1]['content']='Observation: '+end['data']['result']; rewrite_wire(packet,len(packet['wires'])-1)
+        kwargs=dict(require_ack=True)
+        if hasattr(ledger,'_runtime_inputs'): kwargs['runtime_inputs']=ledger._runtime_inputs
+&gt;       with pytest.raises(ValueError):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+src\brain\tests\test_work_navigation_transport.py:103: Failed</failure></testcase><testcase classname="src.brain.tests.test_work_navigation_transport" name="test_fix1_f3_replay_rejects_coherent_history_mutations[phase_suffix]" time="0.701"><failure message="Failed: DID NOT RAISE ValueError">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/unit23-fix1-f3-red/temp/test_fix1_f3_replay_rejects_co1')
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x00000202A28A3ED0&gt;, [('search', 'Research a subject'), ('get', '...'https://example.com/source/3'), ('get', 'https://example.com/source/4'), ('get', 'https://example.com/source/5')], {})
+mock_jar = (&lt;openjarvis.sdk.Jarvis object at 0x00000202A28A3610&gt;, &lt;function _run_work_agent at 0x00000202A0FEF2E0&gt;, [{'format': {..., ...], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [])
+fault = 'phase_suffix'
+
+    @pytest.mark.parametrize('fault',['chronology','phase_suffix','prompt','prewrite_hash'])
+    def test_fix1_f3_replay_rejects_coherent_history_mutations(tmp_path,sdk_io,mock_jar,fault):
+        from src.brain.work_research import verify_runtime_packet
+        from src.brain.work_navigation import canonical_v3
+        _,ledger=genuine_navigation(tmp_path,sdk_io,mock_jar)
+        packet=json.loads(ledger._runtime_final)
+        if fault=='chronology': packet['events'][0],packet['events'][1]=packet['events'][1],packet['events'][0]
+        elif fault=='phase_suffix':
+            packet['wires'][0]['secured_messages'][0]['content']+=' Arbitrary altered phase rule.'
+            rewrite_wire(packet,0)
+        elif fault=='prompt':
+            packet['prompt']=packet['prompt'].replace('Research a subject','Unrelated subject')
+            for i,wire in enumerate(packet['wires']):
+                wire['secured_messages'][1]['content']=packet['prompt']; rewrite_wire(packet,i)
+        else:
+            packet['prewrite_sha256']='f'*64
+            end=json.loads(packet['events'][-1]); receipt=json.loads(end['data']['result']); receipt['runtime_sha256']='f'*64
+            end['data']['result']=canonical_v3(receipt).decode(); end['data']['metadata']['runtime_sha256']='f'*64
+            packet['events'][-1]=json.dumps(end)
+            packet['wires'][-1]['secured_messages'][-1]['content']='Observation: '+end['data']['result']; rewrite_wire(packet,len(packet['wires'])-1)
+        kwargs=dict(require_ack=True)
+        if hasattr(ledger,'_runtime_inputs'): kwargs['runtime_inputs']=ledger._runtime_inputs
+&gt;       with pytest.raises(ValueError):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+src\brain\tests\test_work_navigation_transport.py:103: Failed</failure></testcase><testcase classname="src.brain.tests.test_work_navigation_transport" name="test_fix1_f3_replay_rejects_coherent_history_mutations[prompt]" time="0.486"><failure message="Failed: DID NOT RAISE ValueError">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/unit23-fix1-f3-red/temp/test_fix1_f3_replay_rejects_co2')
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x00000202A2512850&gt;, [('search', 'Research a subject'), ('get', '...'https://example.com/source/3'), ('get', 'https://example.com/source/4'), ('get', 'https://example.com/source/5')], {})
+mock_jar = (&lt;openjarvis.sdk.Jarvis object at 0x00000202A27642B0&gt;, &lt;function _run_work_agent at 0x00000202A0FEF2E0&gt;, [{'format': {..., ...], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [])
+fault = 'prompt'
+
+    @pytest.mark.parametrize('fault',['chronology','phase_suffix','prompt','prewrite_hash'])
+    def test_fix1_f3_replay_rejects_coherent_history_mutations(tmp_path,sdk_io,mock_jar,fault):
+        from src.brain.work_research import verify_runtime_packet
+        from src.brain.work_navigation import canonical_v3
+        _,ledger=genuine_navigation(tmp_path,sdk_io,mock_jar)
+        packet=json.loads(ledger._runtime_final)
+        if fault=='chronology': packet['events'][0],packet['events'][1]=packet['events'][1],packet['events'][0]
+        elif fault=='phase_suffix':
+            packet['wires'][0]['secured_messages'][0]['content']+=' Arbitrary altered phase rule.'
+            rewrite_wire(packet,0)
+        elif fault=='prompt':
+            packet['prompt']=packet['prompt'].replace('Research a subject','Unrelated subject')
+            for i,wire in enumerate(packet['wires']):
+                wire['secured_messages'][1]['content']=packet['prompt']; rewrite_wire(packet,i)
+        else:
+            packet['prewrite_sha256']='f'*64
+            end=json.loads(packet['events'][-1]); receipt=json.loads(end['data']['result']); receipt['runtime_sha256']='f'*64
+            end['data']['result']=canonical_v3(receipt).decode(); end['data']['metadata']['runtime_sha256']='f'*64
+            packet['events'][-1]=json.dumps(end)
+            packet['wires'][-1]['secured_messages'][-1]['content']='Observation: '+end['data']['result']; rewrite_wire(packet,len(packet['wires'])-1)
+        kwargs=dict(require_ack=True)
+        if hasattr(ledger,'_runtime_inputs'): kwargs['runtime_inputs']=ledger._runtime_inputs
+&gt;       with pytest.raises(ValueError):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+src\brain\tests\test_work_navigation_transport.py:103: Failed</failure></testcase><testcase classname="src.brain.tests.test_work_navigation_transport" name="test_fix1_f3_replay_rejects_coherent_history_mutations[prewrite_hash]" time="0.697"><failure message="Failed: DID NOT RAISE ValueError">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/unit23-fix1-f3-red/temp/test_fix1_f3_replay_rejects_co3')
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x0000020227CC0180&gt;, [('search', 'Research a subject'), ('get', '...'https://example.com/source/3'), ('get', 'https://example.com/source/4'), ('get', 'https://example.com/source/5')], {})
+mock_jar = (&lt;openjarvis.sdk.Jarvis object at 0x00000202A27D3CE0&gt;, &lt;function _run_work_agent at 0x00000202A0FEF2E0&gt;, [{'format': {..., ...], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [])
+fault = 'prewrite_hash'
+
+    @pytest.mark.parametrize('fault',['chronology','phase_suffix','prompt','prewrite_hash'])
+    def test_fix1_f3_replay_rejects_coherent_history_mutations(tmp_path,sdk_io,mock_jar,fault):
+        from src.brain.work_research import verify_runtime_packet
+        from src.brain.work_navigation import canonical_v3
+        _,ledger=genuine_navigation(tmp_path,sdk_io,mock_jar)
+        packet=json.loads(ledger._runtime_final)
+        if fault=='chronology': packet['events'][0],packet['events'][1]=packet['events'][1],packet['events'][0]
+        elif fault=='phase_suffix':
+            packet['wires'][0]['secured_messages'][0]['content']+=' Arbitrary altered phase rule.'
+            rewrite_wire(packet,0)
+        elif fault=='prompt':
+            packet['prompt']=packet['prompt'].replace('Research a subject','Unrelated subject')
+            for i,wire in enumerate(packet['wires']):
+                wire['secured_messages'][1]['content']=packet['prompt']; rewrite_wire(packet,i)
+        else:
+            packet['prewrite_sha256']='f'*64
+            end=json.loads(packet['events'][-1]); receipt=json.loads(end['data']['result']); receipt['runtime_sha256']='f'*64
+            end['data']['result']=canonical_v3(receipt).decode(); end['data']['metadata']['runtime_sha256']='f'*64
+            packet['events'][-1]=json.dumps(end)
+            packet['wires'][-1]['secured_messages'][-1]['content']='Observation: '+end['data']['result']; rewrite_wire(packet,len(packet['wires'])-1)
+        kwargs=dict(require_ack=True)
+        if hasattr(ledger,'_runtime_inputs'): kwargs['runtime_inputs']=ledger._runtime_inputs
+&gt;       with pytest.raises(ValueError):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+src\brain\tests\test_work_navigation_transport.py:103: Failed</failure></testcase></testsuite></testsuites>

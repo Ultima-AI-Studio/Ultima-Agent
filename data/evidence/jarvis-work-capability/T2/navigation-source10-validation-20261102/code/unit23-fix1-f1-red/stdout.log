@@ -1,0 +1,135 @@
+FFF                                                                      [100%]
+================================== FAILURES ===================================
+__________ test_fix1_f1_timeout_revokes_inside_observer_lock[False] ___________
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/unit23-fix1-f1-red/temp/test_fix1_f1_timeout_revokes_i0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000020D721D0180>
+after_intent = False
+
+    @pytest.mark.parametrize('after_intent',[False,True])
+    def test_fix1_f1_timeout_revokes_inside_observer_lock(tmp_path,monkeypatch,after_intent):
+        import concurrent.futures
+        from openjarvis.tools import _stubs
+        state=setup(tmp_path); data=read_three(state); ledger=state[0]
+        entered=threading.Event(); release=threading.Event(); finished=threading.Event()
+        writes=[]; held=[]; actual=[]
+        file_write=wt.FileWriteTool.execute
+        def file(tool,**args):
+            if after_intent: entered.set(); assert release.wait(5)
+            writes.append(args)
+            return file_write(tool,**args)
+        monkeypatch.setattr(wt.FileWriteTool,'execute',file)
+        if not after_intent:
+            intent=ledger.write_intent
+            def delayed(*args,**kw):
+                entered.set(); assert release.wait(5)
+                return intent(*args,**kw)
+            monkeypatch.setattr(ledger,'write_intent',delayed)
+        original_submit=_stubs._TOOL_RUNNER.submit
+        def submit(function,**args):
+            future=original_submit(function,**args)
+            if function.__self__.tool_id!=WRITE: return future
+            actual.append(future)
+            future.add_done_callback(lambda _:finished.set())
+            class Expired:
+                def result(self,timeout):
+                    assert entered.wait(5)
+                    raise concurrent.futures.TimeoutError()
+                def cancel(self): return False
+            return Expired()
+        monkeypatch.setattr(_stubs._TOOL_RUNNER,'submit',submit)
+        seal=ledger.seal
+        def boundary(reason):
+            if 'timeout' in str(reason).lower():
+                owned=ledger._lock._is_owned(); held.append(owned); release.set()
+                if not owned: assert finished.wait(5)  # Deterministic exposure of the old lock gap.
+            return seal(reason)
+        monkeypatch.setattr(ledger,'seal',boundary)
+        try: result=invoke(state,4,WRITE,data)
+        finally: release.set()
+        actual[0].result(timeout=5)
+>       assert held and all(held)
+E       assert ([False, False] and False)
+E        +  where False = all([False, False])
+
+src\brain\tests\test_work_navigation_sdk.py:348: AssertionError
+___________ test_fix1_f1_timeout_revokes_inside_observer_lock[True] ___________
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/unit23-fix1-f1-red/temp/test_fix1_f1_timeout_revokes_i1')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000020D721D02B0>
+after_intent = True
+
+    @pytest.mark.parametrize('after_intent',[False,True])
+    def test_fix1_f1_timeout_revokes_inside_observer_lock(tmp_path,monkeypatch,after_intent):
+        import concurrent.futures
+        from openjarvis.tools import _stubs
+        state=setup(tmp_path); data=read_three(state); ledger=state[0]
+        entered=threading.Event(); release=threading.Event(); finished=threading.Event()
+        writes=[]; held=[]; actual=[]
+        file_write=wt.FileWriteTool.execute
+        def file(tool,**args):
+            if after_intent: entered.set(); assert release.wait(5)
+            writes.append(args)
+            return file_write(tool,**args)
+        monkeypatch.setattr(wt.FileWriteTool,'execute',file)
+        if not after_intent:
+            intent=ledger.write_intent
+            def delayed(*args,**kw):
+                entered.set(); assert release.wait(5)
+                return intent(*args,**kw)
+            monkeypatch.setattr(ledger,'write_intent',delayed)
+        original_submit=_stubs._TOOL_RUNNER.submit
+        def submit(function,**args):
+            future=original_submit(function,**args)
+            if function.__self__.tool_id!=WRITE: return future
+            actual.append(future)
+            future.add_done_callback(lambda _:finished.set())
+            class Expired:
+                def result(self,timeout):
+                    assert entered.wait(5)
+                    raise concurrent.futures.TimeoutError()
+                def cancel(self): return False
+            return Expired()
+        monkeypatch.setattr(_stubs._TOOL_RUNNER,'submit',submit)
+        seal=ledger.seal
+        def boundary(reason):
+            if 'timeout' in str(reason).lower():
+                owned=ledger._lock._is_owned(); held.append(owned); release.set()
+                if not owned: assert finished.wait(5)  # Deterministic exposure of the old lock gap.
+            return seal(reason)
+        monkeypatch.setattr(ledger,'seal',boundary)
+        try: result=invoke(state,4,WRITE,data)
+        finally: release.set()
+        actual[0].result(timeout=5)
+>       assert held and all(held)
+E       assert ([False, False] and False)
+E        +  where False = all([False, False])
+
+src\brain\tests\test_work_navigation_sdk.py:348: AssertionError
+________ test_fix1_f1_start_serialization_failure_never_exposes_permit ________
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/unit23-fix1-f1-red/temp/test_fix1_f1_start_serializati0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000020DA2B4D490>
+
+    def test_fix1_f1_start_serialization_failure_never_exposes_permit(tmp_path,monkeypatch):
+        from openjarvis.core.events import Event,EventType
+        state=setup(tmp_path); ledger=state[0]; seen=[]; seal=ledger.seal
+        args=dict(source_id='S1',start_line=1); ledger.expect(1,INSPECT,hashlib.sha256(j(args)).hexdigest())
+        def inspect(reason):
+            seen.append((ledger._lock._is_owned(),ledger._permit))
+            seal(reason)
+        monkeypatch.setattr(ledger,'seal',inspect)
+        ledger.observe_navigation(Event(EventType.TOOL_CALL_START,object(),dict(tool=INSPECT,agent='native_react',arguments=args)),
+            caller_id=threading.get_ident(),binding_key=state[3].binding_key)
+>       assert seen==[(True,None)] and ledger._permit is None
+E       AssertionError: assert ([(False, {'se...on': 1, ...})] == [(True, None)]
+E         
+E         At index 0 diff: (False, {'seq': 1, 'name': 'ultima_work_research_inspect', 'args_hash': '5d48a4bf6d53b1c7a6a9c6f2b6abe396a95cf3c5b9d64b19f55b15afce4f6d8e', 'generation': 1, 'ended': False, 'dispatch_uuid': '00000000-0000-0000-0000-0000000003e8', 'claimed': False}) != (True, None)
+E         Use -v to get more diff)
+
+src\brain\tests\test_work_navigation_sdk.py:367: AssertionError
+=========================== short test summary info ===========================
+FAILED src/brain/tests/test_work_navigation_sdk.py::test_fix1_f1_timeout_revokes_inside_observer_lock[False]
+FAILED src/brain/tests/test_work_navigation_sdk.py::test_fix1_f1_timeout_revokes_inside_observer_lock[True]
+FAILED src/brain/tests/test_work_navigation_sdk.py::test_fix1_f1_start_serialization_failure_never_exposes_permit
+3 failed in 2.15s

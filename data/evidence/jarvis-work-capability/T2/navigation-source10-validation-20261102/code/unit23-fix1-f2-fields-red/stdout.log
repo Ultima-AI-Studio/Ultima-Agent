@@ -1,0 +1,104 @@
+FFFF                                                                     [100%]
+================================== FAILURES ===================================
+_ test_fix1_f2_all_original_receipt_and_adapter_fields_bound[report_generation] _
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/unit23-fix1-f2-fields-red/temp/test_fix1_f2_all_original_rece0')
+sdk_io = (<src.brain.browser.channel.BrowserChannel object at 0x00000284A506BA10>, [('search', 'Research a subject'), ('get', '...'https://example.com/source/3'), ('get', 'https://example.com/source/4'), ('get', 'https://example.com/source/5')], {})
+mock_jar = (<openjarvis.sdk.Jarvis object at 0x00000284A506A270>, <function _run_work_agent at 0x00000284A4383560>, [{'format': {..., ...], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [])
+fault = 'report_generation'
+
+    @pytest.mark.parametrize('fault',['report_generation','report_binding','file_binding','effect_binding'])
+    def test_fix1_f2_all_original_receipt_and_adapter_fields_bound(tmp_path,sdk_io,mock_jar,fault):
+        import copy
+        from src.brain.work_research import verify_research_artifacts,verify_runtime_packet
+        from src.brain.work_navigation import canonical_v3
+        result,ledger=genuine_navigation(tmp_path,sdk_io,mock_jar)
+        record=copy.deepcopy(next(r for r in ledger.snapshot() if r['tool_name']=='ultima_work_research_write'))
+        packet=json.loads(ledger._runtime_final)
+        if fault=='report_generation': record['result']['generation']+=1
+        elif fault=='report_binding': record['result']['binding'][0]='other-request'
+        elif fault=='file_binding': packet['execution']['files'][0]['request_id']='other-request'
+        else: packet['execution']['effects'][0]['request_id']='other-request'
+>       with pytest.raises(ValueError):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+src\brain\tests\test_work_navigation_transport.py:83: Failed
+_ test_fix1_f2_all_original_receipt_and_adapter_fields_bound[report_binding] __
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/unit23-fix1-f2-fields-red/temp/test_fix1_f2_all_original_rece1')
+sdk_io = (<src.brain.browser.channel.BrowserChannel object at 0x00000284A44B7890>, [('search', 'Research a subject'), ('get', '...'https://example.com/source/3'), ('get', 'https://example.com/source/4'), ('get', 'https://example.com/source/5')], {})
+mock_jar = (<openjarvis.sdk.Jarvis object at 0x00000284A44B6FD0>, <function _run_work_agent at 0x00000284A4383560>, [{'format': {..., ...], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [])
+fault = 'report_binding'
+
+    @pytest.mark.parametrize('fault',['report_generation','report_binding','file_binding','effect_binding'])
+    def test_fix1_f2_all_original_receipt_and_adapter_fields_bound(tmp_path,sdk_io,mock_jar,fault):
+        import copy
+        from src.brain.work_research import verify_research_artifacts,verify_runtime_packet
+        from src.brain.work_navigation import canonical_v3
+        result,ledger=genuine_navigation(tmp_path,sdk_io,mock_jar)
+        record=copy.deepcopy(next(r for r in ledger.snapshot() if r['tool_name']=='ultima_work_research_write'))
+        packet=json.loads(ledger._runtime_final)
+        if fault=='report_generation': record['result']['generation']+=1
+        elif fault=='report_binding': record['result']['binding'][0]='other-request'
+        elif fault=='file_binding': packet['execution']['files'][0]['request_id']='other-request'
+        else: packet['execution']['effects'][0]['request_id']='other-request'
+>       with pytest.raises(ValueError):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+src\brain\tests\test_work_navigation_transport.py:83: Failed
+__ test_fix1_f2_all_original_receipt_and_adapter_fields_bound[file_binding] ___
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/unit23-fix1-f2-fields-red/temp/test_fix1_f2_all_original_rece2')
+sdk_io = (<src.brain.browser.channel.BrowserChannel object at 0x00000284A49C5BD0>, [('search', 'Research a subject'), ('get', '...'https://example.com/source/3'), ('get', 'https://example.com/source/4'), ('get', 'https://example.com/source/5')], {})
+mock_jar = (<openjarvis.sdk.Jarvis object at 0x00000284A4A78D60>, <function _run_work_agent at 0x00000284A4383560>, [{'format': {..., ...], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [])
+fault = 'file_binding'
+
+    @pytest.mark.parametrize('fault',['report_generation','report_binding','file_binding','effect_binding'])
+    def test_fix1_f2_all_original_receipt_and_adapter_fields_bound(tmp_path,sdk_io,mock_jar,fault):
+        import copy
+        from src.brain.work_research import verify_research_artifacts,verify_runtime_packet
+        from src.brain.work_navigation import canonical_v3
+        result,ledger=genuine_navigation(tmp_path,sdk_io,mock_jar)
+        record=copy.deepcopy(next(r for r in ledger.snapshot() if r['tool_name']=='ultima_work_research_write'))
+        packet=json.loads(ledger._runtime_final)
+        if fault=='report_generation': record['result']['generation']+=1
+        elif fault=='report_binding': record['result']['binding'][0]='other-request'
+        elif fault=='file_binding': packet['execution']['files'][0]['request_id']='other-request'
+        else: packet['execution']['effects'][0]['request_id']='other-request'
+>       with pytest.raises(ValueError):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+src\brain\tests\test_work_navigation_transport.py:83: Failed
+_ test_fix1_f2_all_original_receipt_and_adapter_fields_bound[effect_binding] __
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/unit23-fix1-f2-fields-red/temp/test_fix1_f2_all_original_rece3')
+sdk_io = (<src.brain.browser.channel.BrowserChannel object at 0x00000284A4A7A9E0>, [('search', 'Research a subject'), ('get', '...'https://example.com/source/3'), ('get', 'https://example.com/source/4'), ('get', 'https://example.com/source/5')], {})
+mock_jar = (<openjarvis.sdk.Jarvis object at 0x00000284A4C6ABE0>, <function _run_work_agent at 0x00000284A4383560>, [{'format': {..., ...], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [])
+fault = 'effect_binding'
+
+    @pytest.mark.parametrize('fault',['report_generation','report_binding','file_binding','effect_binding'])
+    def test_fix1_f2_all_original_receipt_and_adapter_fields_bound(tmp_path,sdk_io,mock_jar,fault):
+        import copy
+        from src.brain.work_research import verify_research_artifacts,verify_runtime_packet
+        from src.brain.work_navigation import canonical_v3
+        result,ledger=genuine_navigation(tmp_path,sdk_io,mock_jar)
+        record=copy.deepcopy(next(r for r in ledger.snapshot() if r['tool_name']=='ultima_work_research_write'))
+        packet=json.loads(ledger._runtime_final)
+        if fault=='report_generation': record['result']['generation']+=1
+        elif fault=='report_binding': record['result']['binding'][0]='other-request'
+        elif fault=='file_binding': packet['execution']['files'][0]['request_id']='other-request'
+        else: packet['execution']['effects'][0]['request_id']='other-request'
+>       with pytest.raises(ValueError):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+src\brain\tests\test_work_navigation_transport.py:83: Failed
+=========================== short test summary info ===========================
+FAILED src/brain/tests/test_work_navigation_transport.py::test_fix1_f2_all_original_receipt_and_adapter_fields_bound[report_generation]
+FAILED src/brain/tests/test_work_navigation_transport.py::test_fix1_f2_all_original_receipt_and_adapter_fields_bound[report_binding]
+FAILED src/brain/tests/test_work_navigation_transport.py::test_fix1_f2_all_original_receipt_and_adapter_fields_bound[file_binding]
+FAILED src/brain/tests/test_work_navigation_transport.py::test_fix1_f2_all_original_receipt_and_adapter_fields_bound[effect_binding]
+4 failed in 5.44s

@@ -1,0 +1,68 @@
+..F                                                                      [100%]
+================================== FAILURES ===================================
+_________________ test_r4b_late_report[r5_between_snapshots] __________________
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/unit23-fix1-f6-red/temp/test_r4b_late_report_r5_betwee0')
+sdk_io = (<src.brain.browser.channel.BrowserChannel object at 0x000001C6A01C2710>, [('search', 'Research a subject'), ('get', '...'https://example.com/source/3'), ('get', 'https://example.com/source/4'), ('get', 'https://example.com/source/5')], {})
+mock_jar = (<openjarvis.sdk.Jarvis object at 0x000001C6A01772F0>, <function _run_work_agent at 0x000001C69F943F60>, [{'format': {...censored', 'options': {'num_ctx': 16384, 'num_predict': 2048, 'temperature': 0}, ...}], ['{"final_answer":"no file"}'])
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001C6A01770B0>
+stage = 'r5_between_snapshots'
+
+    @pytest.mark.parametrize('stage',['before_intent','after_intent','r5_between_snapshots'])
+    def test_r4b_late_report(tmp_path,sdk_io,mock_jar,monkeypatch,stage):
+        import concurrent.futures
+        import threading
+        from openjarvis.tools import _stubs
+        from openjarvis.tools.file_write import FileWriteTool
+        from src.brain.work_tools import WorkResearchWriteTool
+        _,runner,bodies,replies=mock_jar
+        entered=threading.Event()
+        release=threading.Event()
+        file_args=[]
+        target=FileWriteTool if stage=='after_intent' else WorkResearchWriteTool
+        name='execute' if stage=='after_intent' else 'run'
+        real=getattr(target,name)
+        def delayed(*args,**kw):
+            if 'content' in kw: file_args.append(dict(kw))
+            entered.set()
+            assert release.wait(10)
+            return real(*args,**kw)
+        monkeypatch.setattr(target,name,delayed)
+        real_submit=_stubs._TOOL_RUNNER.submit
+        actual=[]
+        def dispatch(function,**kw):
+            future=real_submit(function,**kw)
+            if function.__self__.tool_id!='ultima_work_research_write': return future
+            actual.append(future)
+            class Expired:
+                def result(self,timeout):
+                    assert entered.wait(3)
+                    raise concurrent.futures.TimeoutError()
+                def cancel(self): return future.cancel()
+            return Expired()
+        monkeypatch.setattr(_stubs._TOOL_RUNNER,'submit',dispatch)
+        if stage=='r5_between_snapshots':
+            # Deliver the actual SDK timeout response. On reading the compose error,
+            # allow the original worker to finish before the service handles it.
+            original_runner=runner
+            class TimeoutResponse(dict):
+                def __getitem__(self,key):
+                    if key=='compose_error':
+                        release.set()
+                        actual[0].result(timeout=5)
+                    return super().__getitem__(key)
+            def runner(*args,**kwargs):
+                return TimeoutResponse(original_runner(*args,**kwargs))
+        replies.extend([action(report_payload()),'{"final_answer":"no file"}'])
+        try:
+            r=submit(tmp_path,sdk_io[0],runner)
+>           assert r['status']==('failed' if stage=='before_intent' else 'needs_attention') and len(bodies)==4
+E           AssertionError: assert ('failed' == 'needs_attention'
+E             
+E             - needs_attention
+E             + failed)
+
+src\brain\tests\test_work_research.py:673: AssertionError
+=========================== short test summary info ===========================
+FAILED src/brain/tests/test_work_research.py::test_r4b_late_report[r5_between_snapshots]
+1 failed, 2 passed in 3.62s

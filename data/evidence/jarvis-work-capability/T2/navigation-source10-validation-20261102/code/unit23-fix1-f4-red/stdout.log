@@ -1,0 +1,327 @@
+FFFFFFFF                                                                 [100%]
+================================== FAILURES ===================================
+____ test_fix1_f4_native_identity_and_outer_policy_replayed[metadata_hash] ____
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/unit23-fix1-f4-red/temp/test_fix1_f4_native_identity_a0')
+sdk_io = (<src.brain.browser.channel.BrowserChannel object at 0x000001F9A55EBA10>, [('search', 'Research a subject'), ('get', '...'https://example.com/source/3'), ('get', 'https://example.com/source/4'), ('get', 'https://example.com/source/5')], {})
+mock_jar = (<openjarvis.sdk.Jarvis object at 0x000001F9A55EA270>, <function _run_work_agent at 0x000001F9A48F3240>, [{'format': {..., ...], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [])
+fault = 'metadata_hash'
+
+    @pytest.mark.parametrize('fault',['metadata_hash','metadata_digest','outer_model','outer_role','outer_extra','negative_prompt','context_total','options_extra'])
+    def test_fix1_f4_native_identity_and_outer_policy_replayed(tmp_path,sdk_io,mock_jar,fault):
+        import hashlib
+        from src.brain.work_research import verify_runtime_packet
+        from src.brain.work_navigation import canonical_v3
+        _,ledger=genuine_navigation(tmp_path,sdk_io,mock_jar); packet=json.loads(ledger._runtime_final)
+        index=len(packet['wires'])-1; wire=packet['wires'][index]
+        if fault=='metadata_hash': packet['transport']['receipts'][index*3]['response_sha256']='0'*64
+        elif fault=='metadata_digest':
+            assert 'identity' in wire,'replayable metadata identity missing'
+            tags=json.loads(wire['identity']['tags_response']); tags['models'][0]['digest']='0'*64
+            wire['identity']['tags_response']=json.dumps(tags)
+            receipt=packet['transport']['receipts'][index*3+1]
+            receipt.update(response_sha256=hashlib.sha256(wire['identity']['tags_response'].encode()).hexdigest(),
+                admitted=len(wire['identity']['tags_response'].encode()),retained=len(wire['identity']['tags_response'].encode()),
+                inspected=len(wire['identity']['tags_response'].encode()),downloaded=len(wire['identity']['tags_response'].encode()))
+            packet['transport']['admitted']['metadata']=sum(r['admitted'] for r in packet['transport']['receipts'] if r['kind']=='metadata')
+        elif fault=='options_extra':
+            request=json.loads(wire['entity']); request['options']['num_gpu']=1; wire['entity']=canonical_v3(request).decode(); rewrite_wire(packet,index)
+        else:
+            raw=wire['raw']
+            if fault=='outer_model': raw['model']='wrong-model'
+            elif fault=='outer_role': raw['message']['role']='user'
+            elif fault=='outer_extra': raw['unexpected']=True
+            elif fault=='negative_prompt': raw['prompt_eval_count']=-1
+            else: raw['prompt_eval_count']=16384
+            wire['raw_response']=json.dumps(raw); receipt=packet['transport']['receipts'][index*3+2]
+            receipt.update(response_sha256=hashlib.sha256(wire['raw_response'].encode()).hexdigest(),admitted=len(wire['raw_response'].encode()),
+                retained=len(wire['raw_response'].encode()),inspected=len(wire['raw_response'].encode()),downloaded=len(wire['raw_response'].encode()))
+            packet['transport']['admitted']['chat']=sum(r['admitted'] for r in packet['transport']['receipts'] if r['kind']=='chat')
+>       with pytest.raises(ValueError):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+src\brain\tests\test_work_navigation_transport.py:137: Failed
+___ test_fix1_f4_native_identity_and_outer_policy_replayed[metadata_digest] ___
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/unit23-fix1-f4-red/temp/test_fix1_f4_native_identity_a1')
+sdk_io = (<src.brain.browser.channel.BrowserChannel object at 0x000001F9A5054050>, [('search', 'Research a subject'), ('get', '...'https://example.com/source/3'), ('get', 'https://example.com/source/4'), ('get', 'https://example.com/source/5')], {})
+mock_jar = (<openjarvis.sdk.Jarvis object at 0x000001F9A4F93750>, <function _run_work_agent at 0x000001F9A48F3240>, [{'format': {..., ...], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [])
+fault = 'metadata_digest'
+
+    @pytest.mark.parametrize('fault',['metadata_hash','metadata_digest','outer_model','outer_role','outer_extra','negative_prompt','context_total','options_extra'])
+    def test_fix1_f4_native_identity_and_outer_policy_replayed(tmp_path,sdk_io,mock_jar,fault):
+        import hashlib
+        from src.brain.work_research import verify_runtime_packet
+        from src.brain.work_navigation import canonical_v3
+        _,ledger=genuine_navigation(tmp_path,sdk_io,mock_jar); packet=json.loads(ledger._runtime_final)
+        index=len(packet['wires'])-1; wire=packet['wires'][index]
+        if fault=='metadata_hash': packet['transport']['receipts'][index*3]['response_sha256']='0'*64
+        elif fault=='metadata_digest':
+>           assert 'identity' in wire,'replayable metadata identity missing'
+E           AssertionError: replayable metadata identity missing
+E           assert 'identity' in {'entity': '{"format":{"additionalProperties":false,"properties":{"final_answer":{"minLength":1,"type":"string"}},"req...op', 'eval_count': 10, 'message': {'content': '{"final_answer": "Saved research.md"}', 'role': 'assistant'}, ...}, ...}
+
+src\brain\tests\test_work_navigation_transport.py:116: AssertionError
+_____ test_fix1_f4_native_identity_and_outer_policy_replayed[outer_model] _____
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/unit23-fix1-f4-red/temp/test_fix1_f4_native_identity_a2')
+sdk_io = (<src.brain.browser.channel.BrowserChannel object at 0x000001F9A5056210>, [('search', 'Research a subject'), ('get', '...'https://example.com/source/3'), ('get', 'https://example.com/source/4'), ('get', 'https://example.com/source/5')], {})
+mock_jar = (<openjarvis.sdk.Jarvis object at 0x000001F9A54F6060>, <function _run_work_agent at 0x000001F9A48F3240>, [{'format': {..., ...], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [])
+fault = 'outer_model'
+
+    @pytest.mark.parametrize('fault',['metadata_hash','metadata_digest','outer_model','outer_role','outer_extra','negative_prompt','context_total','options_extra'])
+    def test_fix1_f4_native_identity_and_outer_policy_replayed(tmp_path,sdk_io,mock_jar,fault):
+        import hashlib
+        from src.brain.work_research import verify_runtime_packet
+        from src.brain.work_navigation import canonical_v3
+        _,ledger=genuine_navigation(tmp_path,sdk_io,mock_jar); packet=json.loads(ledger._runtime_final)
+        index=len(packet['wires'])-1; wire=packet['wires'][index]
+        if fault=='metadata_hash': packet['transport']['receipts'][index*3]['response_sha256']='0'*64
+        elif fault=='metadata_digest':
+            assert 'identity' in wire,'replayable metadata identity missing'
+            tags=json.loads(wire['identity']['tags_response']); tags['models'][0]['digest']='0'*64
+            wire['identity']['tags_response']=json.dumps(tags)
+            receipt=packet['transport']['receipts'][index*3+1]
+            receipt.update(response_sha256=hashlib.sha256(wire['identity']['tags_response'].encode()).hexdigest(),
+                admitted=len(wire['identity']['tags_response'].encode()),retained=len(wire['identity']['tags_response'].encode()),
+                inspected=len(wire['identity']['tags_response'].encode()),downloaded=len(wire['identity']['tags_response'].encode()))
+            packet['transport']['admitted']['metadata']=sum(r['admitted'] for r in packet['transport']['receipts'] if r['kind']=='metadata')
+        elif fault=='options_extra':
+            request=json.loads(wire['entity']); request['options']['num_gpu']=1; wire['entity']=canonical_v3(request).decode(); rewrite_wire(packet,index)
+        else:
+            raw=wire['raw']
+            if fault=='outer_model': raw['model']='wrong-model'
+            elif fault=='outer_role': raw['message']['role']='user'
+            elif fault=='outer_extra': raw['unexpected']=True
+            elif fault=='negative_prompt': raw['prompt_eval_count']=-1
+            else: raw['prompt_eval_count']=16384
+            wire['raw_response']=json.dumps(raw); receipt=packet['transport']['receipts'][index*3+2]
+            receipt.update(response_sha256=hashlib.sha256(wire['raw_response'].encode()).hexdigest(),admitted=len(wire['raw_response'].encode()),
+                retained=len(wire['raw_response'].encode()),inspected=len(wire['raw_response'].encode()),downloaded=len(wire['raw_response'].encode()))
+            packet['transport']['admitted']['chat']=sum(r['admitted'] for r in packet['transport']['receipts'] if r['kind']=='chat')
+>       with pytest.raises(ValueError):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+src\brain\tests\test_work_navigation_transport.py:137: Failed
+_____ test_fix1_f4_native_identity_and_outer_policy_replayed[outer_role] ______
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/unit23-fix1-f4-red/temp/test_fix1_f4_native_identity_a3')
+sdk_io = (<src.brain.browser.channel.BrowserChannel object at 0x000001F9A50215B0>, [('search', 'Research a subject'), ('get', '...'https://example.com/source/3'), ('get', 'https://example.com/source/4'), ('get', 'https://example.com/source/5')], {})
+mock_jar = (<openjarvis.sdk.Jarvis object at 0x000001F9A4ECB240>, <function _run_work_agent at 0x000001F9A48F3240>, [{'format': {..., ...], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [])
+fault = 'outer_role'
+
+    @pytest.mark.parametrize('fault',['metadata_hash','metadata_digest','outer_model','outer_role','outer_extra','negative_prompt','context_total','options_extra'])
+    def test_fix1_f4_native_identity_and_outer_policy_replayed(tmp_path,sdk_io,mock_jar,fault):
+        import hashlib
+        from src.brain.work_research import verify_runtime_packet
+        from src.brain.work_navigation import canonical_v3
+        _,ledger=genuine_navigation(tmp_path,sdk_io,mock_jar); packet=json.loads(ledger._runtime_final)
+        index=len(packet['wires'])-1; wire=packet['wires'][index]
+        if fault=='metadata_hash': packet['transport']['receipts'][index*3]['response_sha256']='0'*64
+        elif fault=='metadata_digest':
+            assert 'identity' in wire,'replayable metadata identity missing'
+            tags=json.loads(wire['identity']['tags_response']); tags['models'][0]['digest']='0'*64
+            wire['identity']['tags_response']=json.dumps(tags)
+            receipt=packet['transport']['receipts'][index*3+1]
+            receipt.update(response_sha256=hashlib.sha256(wire['identity']['tags_response'].encode()).hexdigest(),
+                admitted=len(wire['identity']['tags_response'].encode()),retained=len(wire['identity']['tags_response'].encode()),
+                inspected=len(wire['identity']['tags_response'].encode()),downloaded=len(wire['identity']['tags_response'].encode()))
+            packet['transport']['admitted']['metadata']=sum(r['admitted'] for r in packet['transport']['receipts'] if r['kind']=='metadata')
+        elif fault=='options_extra':
+            request=json.loads(wire['entity']); request['options']['num_gpu']=1; wire['entity']=canonical_v3(request).decode(); rewrite_wire(packet,index)
+        else:
+            raw=wire['raw']
+            if fault=='outer_model': raw['model']='wrong-model'
+            elif fault=='outer_role': raw['message']['role']='user'
+            elif fault=='outer_extra': raw['unexpected']=True
+            elif fault=='negative_prompt': raw['prompt_eval_count']=-1
+            else: raw['prompt_eval_count']=16384
+            wire['raw_response']=json.dumps(raw); receipt=packet['transport']['receipts'][index*3+2]
+            receipt.update(response_sha256=hashlib.sha256(wire['raw_response'].encode()).hexdigest(),admitted=len(wire['raw_response'].encode()),
+                retained=len(wire['raw_response'].encode()),inspected=len(wire['raw_response'].encode()),downloaded=len(wire['raw_response'].encode()))
+            packet['transport']['admitted']['chat']=sum(r['admitted'] for r in packet['transport']['receipts'] if r['kind']=='chat')
+>       with pytest.raises(ValueError):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+src\brain\tests\test_work_navigation_transport.py:137: Failed
+_____ test_fix1_f4_native_identity_and_outer_policy_replayed[outer_extra] _____
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/unit23-fix1-f4-red/temp/test_fix1_f4_native_identity_a4')
+sdk_io = (<src.brain.browser.channel.BrowserChannel object at 0x000001F9A5023230>, [('search', 'Research a subject'), ('get', '...'https://example.com/source/3'), ('get', 'https://example.com/source/4'), ('get', 'https://example.com/source/5')], {})
+mock_jar = (<openjarvis.sdk.Jarvis object at 0x000001F9A4E66F50>, <function _run_work_agent at 0x000001F9A48F3240>, [{'format': {..., ...], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [])
+fault = 'outer_extra'
+
+    @pytest.mark.parametrize('fault',['metadata_hash','metadata_digest','outer_model','outer_role','outer_extra','negative_prompt','context_total','options_extra'])
+    def test_fix1_f4_native_identity_and_outer_policy_replayed(tmp_path,sdk_io,mock_jar,fault):
+        import hashlib
+        from src.brain.work_research import verify_runtime_packet
+        from src.brain.work_navigation import canonical_v3
+        _,ledger=genuine_navigation(tmp_path,sdk_io,mock_jar); packet=json.loads(ledger._runtime_final)
+        index=len(packet['wires'])-1; wire=packet['wires'][index]
+        if fault=='metadata_hash': packet['transport']['receipts'][index*3]['response_sha256']='0'*64
+        elif fault=='metadata_digest':
+            assert 'identity' in wire,'replayable metadata identity missing'
+            tags=json.loads(wire['identity']['tags_response']); tags['models'][0]['digest']='0'*64
+            wire['identity']['tags_response']=json.dumps(tags)
+            receipt=packet['transport']['receipts'][index*3+1]
+            receipt.update(response_sha256=hashlib.sha256(wire['identity']['tags_response'].encode()).hexdigest(),
+                admitted=len(wire['identity']['tags_response'].encode()),retained=len(wire['identity']['tags_response'].encode()),
+                inspected=len(wire['identity']['tags_response'].encode()),downloaded=len(wire['identity']['tags_response'].encode()))
+            packet['transport']['admitted']['metadata']=sum(r['admitted'] for r in packet['transport']['receipts'] if r['kind']=='metadata')
+        elif fault=='options_extra':
+            request=json.loads(wire['entity']); request['options']['num_gpu']=1; wire['entity']=canonical_v3(request).decode(); rewrite_wire(packet,index)
+        else:
+            raw=wire['raw']
+            if fault=='outer_model': raw['model']='wrong-model'
+            elif fault=='outer_role': raw['message']['role']='user'
+            elif fault=='outer_extra': raw['unexpected']=True
+            elif fault=='negative_prompt': raw['prompt_eval_count']=-1
+            else: raw['prompt_eval_count']=16384
+            wire['raw_response']=json.dumps(raw); receipt=packet['transport']['receipts'][index*3+2]
+            receipt.update(response_sha256=hashlib.sha256(wire['raw_response'].encode()).hexdigest(),admitted=len(wire['raw_response'].encode()),
+                retained=len(wire['raw_response'].encode()),inspected=len(wire['raw_response'].encode()),downloaded=len(wire['raw_response'].encode()))
+            packet['transport']['admitted']['chat']=sum(r['admitted'] for r in packet['transport']['receipts'] if r['kind']=='chat')
+>       with pytest.raises(ValueError):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+src\brain\tests\test_work_navigation_transport.py:137: Failed
+___ test_fix1_f4_native_identity_and_outer_policy_replayed[negative_prompt] ___
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/unit23-fix1-f4-red/temp/test_fix1_f4_native_identity_a5')
+sdk_io = (<src.brain.browser.channel.BrowserChannel object at 0x000001F9A4FFD490>, [('search', 'Research a subject'), ('get', '...'https://example.com/source/3'), ('get', 'https://example.com/source/4'), ('get', 'https://example.com/source/5')], {})
+mock_jar = (<openjarvis.sdk.Jarvis object at 0x000001F9A4E8F020>, <function _run_work_agent at 0x000001F9A48F3240>, [{'format': {..., ...], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [])
+fault = 'negative_prompt'
+
+    @pytest.mark.parametrize('fault',['metadata_hash','metadata_digest','outer_model','outer_role','outer_extra','negative_prompt','context_total','options_extra'])
+    def test_fix1_f4_native_identity_and_outer_policy_replayed(tmp_path,sdk_io,mock_jar,fault):
+        import hashlib
+        from src.brain.work_research import verify_runtime_packet
+        from src.brain.work_navigation import canonical_v3
+        _,ledger=genuine_navigation(tmp_path,sdk_io,mock_jar); packet=json.loads(ledger._runtime_final)
+        index=len(packet['wires'])-1; wire=packet['wires'][index]
+        if fault=='metadata_hash': packet['transport']['receipts'][index*3]['response_sha256']='0'*64
+        elif fault=='metadata_digest':
+            assert 'identity' in wire,'replayable metadata identity missing'
+            tags=json.loads(wire['identity']['tags_response']); tags['models'][0]['digest']='0'*64
+            wire['identity']['tags_response']=json.dumps(tags)
+            receipt=packet['transport']['receipts'][index*3+1]
+            receipt.update(response_sha256=hashlib.sha256(wire['identity']['tags_response'].encode()).hexdigest(),
+                admitted=len(wire['identity']['tags_response'].encode()),retained=len(wire['identity']['tags_response'].encode()),
+                inspected=len(wire['identity']['tags_response'].encode()),downloaded=len(wire['identity']['tags_response'].encode()))
+            packet['transport']['admitted']['metadata']=sum(r['admitted'] for r in packet['transport']['receipts'] if r['kind']=='metadata')
+        elif fault=='options_extra':
+            request=json.loads(wire['entity']); request['options']['num_gpu']=1; wire['entity']=canonical_v3(request).decode(); rewrite_wire(packet,index)
+        else:
+            raw=wire['raw']
+            if fault=='outer_model': raw['model']='wrong-model'
+            elif fault=='outer_role': raw['message']['role']='user'
+            elif fault=='outer_extra': raw['unexpected']=True
+            elif fault=='negative_prompt': raw['prompt_eval_count']=-1
+            else: raw['prompt_eval_count']=16384
+            wire['raw_response']=json.dumps(raw); receipt=packet['transport']['receipts'][index*3+2]
+            receipt.update(response_sha256=hashlib.sha256(wire['raw_response'].encode()).hexdigest(),admitted=len(wire['raw_response'].encode()),
+                retained=len(wire['raw_response'].encode()),inspected=len(wire['raw_response'].encode()),downloaded=len(wire['raw_response'].encode()))
+            packet['transport']['admitted']['chat']=sum(r['admitted'] for r in packet['transport']['receipts'] if r['kind']=='chat')
+>       with pytest.raises(ValueError):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+src\brain\tests\test_work_navigation_transport.py:137: Failed
+____ test_fix1_f4_native_identity_and_outer_policy_replayed[context_total] ____
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/unit23-fix1-f4-red/temp/test_fix1_f4_native_identity_a6')
+sdk_io = (<src.brain.browser.channel.BrowserChannel object at 0x000001F9A4ECA8B0>, [('search', 'Research a subject'), ('get', '...'https://example.com/source/3'), ('get', 'https://example.com/source/4'), ('get', 'https://example.com/source/5')], {})
+mock_jar = (<openjarvis.sdk.Jarvis object at 0x000001F9A4E511D0>, <function _run_work_agent at 0x000001F9A48F3240>, [{'format': {..., ...], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [])
+fault = 'context_total'
+
+    @pytest.mark.parametrize('fault',['metadata_hash','metadata_digest','outer_model','outer_role','outer_extra','negative_prompt','context_total','options_extra'])
+    def test_fix1_f4_native_identity_and_outer_policy_replayed(tmp_path,sdk_io,mock_jar,fault):
+        import hashlib
+        from src.brain.work_research import verify_runtime_packet
+        from src.brain.work_navigation import canonical_v3
+        _,ledger=genuine_navigation(tmp_path,sdk_io,mock_jar); packet=json.loads(ledger._runtime_final)
+        index=len(packet['wires'])-1; wire=packet['wires'][index]
+        if fault=='metadata_hash': packet['transport']['receipts'][index*3]['response_sha256']='0'*64
+        elif fault=='metadata_digest':
+            assert 'identity' in wire,'replayable metadata identity missing'
+            tags=json.loads(wire['identity']['tags_response']); tags['models'][0]['digest']='0'*64
+            wire['identity']['tags_response']=json.dumps(tags)
+            receipt=packet['transport']['receipts'][index*3+1]
+            receipt.update(response_sha256=hashlib.sha256(wire['identity']['tags_response'].encode()).hexdigest(),
+                admitted=len(wire['identity']['tags_response'].encode()),retained=len(wire['identity']['tags_response'].encode()),
+                inspected=len(wire['identity']['tags_response'].encode()),downloaded=len(wire['identity']['tags_response'].encode()))
+            packet['transport']['admitted']['metadata']=sum(r['admitted'] for r in packet['transport']['receipts'] if r['kind']=='metadata')
+        elif fault=='options_extra':
+            request=json.loads(wire['entity']); request['options']['num_gpu']=1; wire['entity']=canonical_v3(request).decode(); rewrite_wire(packet,index)
+        else:
+            raw=wire['raw']
+            if fault=='outer_model': raw['model']='wrong-model'
+            elif fault=='outer_role': raw['message']['role']='user'
+            elif fault=='outer_extra': raw['unexpected']=True
+            elif fault=='negative_prompt': raw['prompt_eval_count']=-1
+            else: raw['prompt_eval_count']=16384
+            wire['raw_response']=json.dumps(raw); receipt=packet['transport']['receipts'][index*3+2]
+            receipt.update(response_sha256=hashlib.sha256(wire['raw_response'].encode()).hexdigest(),admitted=len(wire['raw_response'].encode()),
+                retained=len(wire['raw_response'].encode()),inspected=len(wire['raw_response'].encode()),downloaded=len(wire['raw_response'].encode()))
+            packet['transport']['admitted']['chat']=sum(r['admitted'] for r in packet['transport']['receipts'] if r['kind']=='chat')
+>       with pytest.raises(ValueError):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+src\brain\tests\test_work_navigation_transport.py:137: Failed
+____ test_fix1_f4_native_identity_and_outer_policy_replayed[options_extra] ____
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/unit23-fix1-f4-red/temp/test_fix1_f4_native_identity_a7')
+sdk_io = (<src.brain.browser.channel.BrowserChannel object at 0x000001F9A50A9260>, [('search', 'Research a subject'), ('get', '...'https://example.com/source/3'), ('get', 'https://example.com/source/4'), ('get', 'https://example.com/source/5')], {})
+mock_jar = (<openjarvis.sdk.Jarvis object at 0x000001F9A5138EF0>, <function _run_work_agent at 0x000001F9A48F3240>, [{'format': {..., ...], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [])
+fault = 'options_extra'
+
+    @pytest.mark.parametrize('fault',['metadata_hash','metadata_digest','outer_model','outer_role','outer_extra','negative_prompt','context_total','options_extra'])
+    def test_fix1_f4_native_identity_and_outer_policy_replayed(tmp_path,sdk_io,mock_jar,fault):
+        import hashlib
+        from src.brain.work_research import verify_runtime_packet
+        from src.brain.work_navigation import canonical_v3
+        _,ledger=genuine_navigation(tmp_path,sdk_io,mock_jar); packet=json.loads(ledger._runtime_final)
+        index=len(packet['wires'])-1; wire=packet['wires'][index]
+        if fault=='metadata_hash': packet['transport']['receipts'][index*3]['response_sha256']='0'*64
+        elif fault=='metadata_digest':
+            assert 'identity' in wire,'replayable metadata identity missing'
+            tags=json.loads(wire['identity']['tags_response']); tags['models'][0]['digest']='0'*64
+            wire['identity']['tags_response']=json.dumps(tags)
+            receipt=packet['transport']['receipts'][index*3+1]
+            receipt.update(response_sha256=hashlib.sha256(wire['identity']['tags_response'].encode()).hexdigest(),
+                admitted=len(wire['identity']['tags_response'].encode()),retained=len(wire['identity']['tags_response'].encode()),
+                inspected=len(wire['identity']['tags_response'].encode()),downloaded=len(wire['identity']['tags_response'].encode()))
+            packet['transport']['admitted']['metadata']=sum(r['admitted'] for r in packet['transport']['receipts'] if r['kind']=='metadata')
+        elif fault=='options_extra':
+            request=json.loads(wire['entity']); request['options']['num_gpu']=1; wire['entity']=canonical_v3(request).decode(); rewrite_wire(packet,index)
+        else:
+            raw=wire['raw']
+            if fault=='outer_model': raw['model']='wrong-model'
+            elif fault=='outer_role': raw['message']['role']='user'
+            elif fault=='outer_extra': raw['unexpected']=True
+            elif fault=='negative_prompt': raw['prompt_eval_count']=-1
+            else: raw['prompt_eval_count']=16384
+            wire['raw_response']=json.dumps(raw); receipt=packet['transport']['receipts'][index*3+2]
+            receipt.update(response_sha256=hashlib.sha256(wire['raw_response'].encode()).hexdigest(),admitted=len(wire['raw_response'].encode()),
+                retained=len(wire['raw_response'].encode()),inspected=len(wire['raw_response'].encode()),downloaded=len(wire['raw_response'].encode()))
+            packet['transport']['admitted']['chat']=sum(r['admitted'] for r in packet['transport']['receipts'] if r['kind']=='chat')
+>       with pytest.raises(ValueError):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+src\brain\tests\test_work_navigation_transport.py:137: Failed
+=========================== short test summary info ===========================
+FAILED src/brain/tests/test_work_navigation_transport.py::test_fix1_f4_native_identity_and_outer_policy_replayed[metadata_hash]
+FAILED src/brain/tests/test_work_navigation_transport.py::test_fix1_f4_native_identity_and_outer_policy_replayed[metadata_digest]
+FAILED src/brain/tests/test_work_navigation_transport.py::test_fix1_f4_native_identity_and_outer_policy_replayed[outer_model]
+FAILED src/brain/tests/test_work_navigation_transport.py::test_fix1_f4_native_identity_and_outer_policy_replayed[outer_role]
+FAILED src/brain/tests/test_work_navigation_transport.py::test_fix1_f4_native_identity_and_outer_policy_replayed[outer_extra]
+FAILED src/brain/tests/test_work_navigation_transport.py::test_fix1_f4_native_identity_and_outer_policy_replayed[negative_prompt]
+FAILED src/brain/tests/test_work_navigation_transport.py::test_fix1_f4_native_identity_and_outer_policy_replayed[context_total]
+FAILED src/brain/tests/test_work_navigation_transport.py::test_fix1_f4_native_identity_and_outer_policy_replayed[options_extra]
+8 failed in 7.59s
