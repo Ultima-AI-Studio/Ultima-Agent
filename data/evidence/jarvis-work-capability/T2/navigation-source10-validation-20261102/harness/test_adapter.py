@@ -738,7 +738,7 @@ def test_fix1_h11_import_path_restored_on_failure():
             assert sys.path[0]==str(a.C); raise ValueError('injected')
     assert sys.path==original
 
-@pytest.mark.parametrize('fault',['none','protected-empty','native-subset','cleanup-subset','missing-exchange','wrong-endpoint','wrong-listener','wrong-response','nonboolean-response','late-exchange','no-parent-exchange'])
+@pytest.mark.parametrize('fault',['none','protected-empty','native-subset','cleanup-subset','missing-exchange','wrong-endpoint','wrong-listener','wrong-response','nonboolean-response','late-exchange','no-parent-exchange','empty-task-directory'])
 def test_fix1_h02_substantive_closed_witness_positive_and_faults(tmp_path,monkeypatch,fault):
     import base64,os
     from collections import OrderedDict
@@ -820,6 +820,7 @@ def test_fix1_h02_substantive_closed_witness_positive_and_faults(tmp_path,monkey
             (folder/'cleanup.json').write_text(json.dumps(malformed))
         elif fault=='missing-exchange': (folder/'inert-exchange.json').unlink()
         elif fault=='no-parent-exchange': del b.inert_exchange
+        elif fault=='empty-task-directory': (folder/'outputs/unexpected-task').mkdir(parents=True)
         elif fault in ('wrong-endpoint','wrong-listener','wrong-response','nonboolean-response','late-exchange'):
             malformed=a.load(folder/'inert-exchange.json')
             if fault=='wrong-endpoint': malformed['endpoint']='http://127.0.0.1:11434/inert'
@@ -1000,3 +1001,85 @@ def test_fix2_n03_equal_pre_cleanup_inventory_positive(tmp_path):
     p4=a.load_p4(); output=tmp_path/'outputs'; output.mkdir(); (output/'research.md').write_bytes(b'accepted')
     accepted=p4.output_inventory(tmp_path)
     assert a.compare_pre_cleanup(accepted,p4.output_inventory(tmp_path),p4) is None
+
+@pytest.mark.parametrize('variant',['duplicate','entity'])
+def test_fix3_f1_exact_coherent_metadata_counter_never_published(tmp_path,monkeypatch,sdk_io,mock_jar,variant):
+    from src.brain.work_navigation import canonical_v3
+    from src.brain.work_research import verify_runtime_packet
+    from src.brain.tests.test_work_navigation_transport import escaped_scanner_fixture
+    result,ledger=synthetic_bundle(tmp_path,sdk_io,mock_jar,monkeypatch,write=False)
+    sentinel=escaped_scanner_fixture(); assert any(not s.scan(sentinel).clean for s in ledger._policy.scanners)
+    packet=json.loads(ledger._runtime_final)
+    packet['execution']['files'][0]['result']=('{"slot":'+json.dumps(sentinel)+',"slot":"safe"}' if variant=='duplicate' else json.dumps(dict(nested=dict(entity=sentinel))))
+    raw=canonical_v3(packet)
+    verify_runtime_packet(ledger._binding,ledger.issued_snapshot,ledger._collection,raw,require_ack=True,runtime_inputs=ledger._runtime_inputs)
+    ledger._runtime_final=raw; published=[]
+    monkeypatch.setattr(a,'preserve_completed_members',lambda *args:published.append(args[1]))
+    with pytest.raises(ValueError): a.export_completed(tmp_path,ledger,result)
+    assert not published and not list(tmp_path.glob('trusted-*.raw'))
+
+def test_fix3_f2_observation_ack_is_genuine_scanned_prose(tmp_path,monkeypatch,sdk_io,mock_jar):
+    from dataclasses import asdict
+    from src.brain.work_navigation import canonical_v3
+    from src.brain.work_research import verify_runtime_packet
+    from src.brain.tests.test_work_navigation_transport import rewrite_response
+    result,ledger=synthetic_bundle(tmp_path,sdk_io,mock_jar,monkeypatch,write=False)
+    answer='Observation: the report is complete.'
+    assert all(s.scan(answer).clean for s in ledger._policy.scanners)
+    packet=json.loads(ledger._runtime_final); value=dict(final_answer=answer)
+    rewrite_response(packet,len(packet['wires'])-1,value,canonical_v3(value).decode())
+    raw=canonical_v3(packet)
+    verify_runtime_packet(ledger._binding,ledger.issued_snapshot,ledger._collection,raw,require_ack=True,runtime_inputs=ledger._runtime_inputs)
+    ledger._runtime_final=raw; result['content']=answer
+    a.save_new(tmp_path/'service-first-result.json',result); a.save_new(tmp_path/'runtime-inputs.json',asdict(ledger._runtime_inputs))
+    a.export_completed(tmp_path,ledger,result)
+    assert a.verify_exports(tmp_path,result,a.load_p4())['native_POST_attempts']==5
+
+@pytest.mark.parametrize('data_count',[256,257])
+def test_fix3_f2_data_member_cap_writer_observer_agree(tmp_path,data_count):
+    p4=a.load_p4(); b=a.Deadline(); b.phase='seal'
+    for index in range(data_count): (tmp_path/f'data-{index:03}.txt').write_bytes(b'data')
+    if data_count==257:
+        with pytest.raises(ValueError): a.seal_index(tmp_path,b,p4)
+        assert not (tmp_path/'seal-index.json').exists()
+    else:
+        a.seal_index(tmp_path,b,p4)
+        observed=a.guarded_files(tmp_path,b,reserve_index=True)
+        assert len(observed)==257 and len(a.load(tmp_path/'seal-index.json')['files'])==256
+
+@pytest.mark.parametrize('raw',['{"x":0,"x":1}','{"outer":[{"x":"first","x":"last"}]}',r'{"a":1,"\u0061":2}'])
+def test_fix3_f1_strict_duplicate_decoder_at_each_depth(raw):
+    with pytest.raises(ValueError,match='Duplicate export JSON member'): a.strict_json(raw)
+
+def test_fix3_f1_duplicate_actual_timeout_json_boundary_never_published(tmp_path,monkeypatch,sdk_io,mock_jar):
+    from src.brain.work_navigation import canonical_v3
+    from src.brain.work_research import verify_runtime_packet
+    result,ledger=synthetic_bundle(tmp_path,sdk_io,mock_jar,monkeypatch,write=False)
+    packet=json.loads(ledger._runtime_final); receipt=packet['transport']['receipts'][-1]
+    receipt['timeout_json']='{"connect":123,'+receipt['timeout_json'][1:]
+    raw=canonical_v3(packet)
+    verify_runtime_packet(ledger._binding,ledger.issued_snapshot,ledger._collection,raw,require_ack=True,runtime_inputs=ledger._runtime_inputs)
+    ledger._runtime_final=raw; published=[]
+    monkeypatch.setattr(a,'preserve_completed_members',lambda *args:published.append(args[1]))
+    with pytest.raises(ValueError,match='Duplicate export JSON member'): a.export_completed(tmp_path,ledger,result)
+    assert not published and not list(tmp_path.glob('trusted-*.raw'))
+
+@pytest.mark.parametrize('lookalike',['nested','suffix','other'])
+def test_fix3_f2_index_reservation_never_exempts_other_data(tmp_path,lookalike):
+    b=a.Deadline(); b.phase='seal'
+    for index in range(256): (tmp_path/f'data-{index:03}.txt').write_bytes(b'data')
+    a.save_new(tmp_path/'seal-index.json',{})
+    if lookalike=='nested':
+        (tmp_path/'nested').mkdir(); a.save_new(tmp_path/'nested/seal-index.json',{})
+    elif lookalike=='suffix':
+        a.save_new(tmp_path/'seal-index.json.extra',{})
+    else: a.save_new(tmp_path/'other-index.json',{})
+    with pytest.raises(ValueError,match='data member cap'): a.guarded_files(tmp_path,b,reserve_index=True)
+
+@pytest.mark.parametrize('effect',['absent','empty-root','empty-task','file'])
+def test_fix3_f2_inert_no_descendants_includes_empty_directories(tmp_path,effect):
+    root=tmp_path/'outputs'; b=a.Deadline(); b.phase='seal'
+    if effect!='absent': root.mkdir()
+    if effect=='empty-task': (root/'unexpected-task').mkdir()
+    elif effect=='file': (root/'unexpected.md').write_bytes(b'effect')
+    assert a.no_output_descendants(root,b)==(effect in ('absent','empty-root'))

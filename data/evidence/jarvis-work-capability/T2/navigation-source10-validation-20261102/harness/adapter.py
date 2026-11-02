@@ -205,17 +205,21 @@ def observed_io(label,function):
 
 def sha(path): return observed_io('observed hash '+str(path),lambda:hashlib.sha256(Path(path).read_bytes()).hexdigest())
 
+def strict_json(value):
+    def unique(items):
+        result={}
+        for key,item in items:
+            require(key not in result,'Duplicate export JSON member'); result[key]=item
+        return result
+    def nonfinite(value): raise ValueError('Nonfinite export JSON constant')
+    return json.loads(value,object_pairs_hook=unique,parse_constant=nonfinite)
+
 def load(path):
     def read():
         with Path(path).open('rb') as stream: return stream.read(CAP+1)
     raw=observed_io('observed JSON '+str(path),read)
     require(len(raw)<=CAP,'Evidence byte cap')
-    def pairs(items):
-        result={}
-        for key,value in items:
-            require(key not in result,'Duplicate JSON field'); result[key]=value
-        return result
-    return json.loads(raw.decode('utf-8-sig'),object_pairs_hook=pairs)
+    return strict_json(raw.decode('utf-8-sig'))
 
 def save_new(path,value):
     raw=json.dumps(value,ensure_ascii=False,indent=2,allow_nan=False).encode('utf8')
@@ -477,7 +481,7 @@ def record_native_members(folder,p4,owned,argv,budget):
     snapshot=p4.process_snapshot(list(members),folder/'native-argv.json')
     record=validate_native_members(owned,p4,snapshot,listener,argv)
     record['snapshot']=snapshot; record['argv']=argv
-    budget.native_members=json.loads(json.dumps(record))
+    budget.native_members=strict_json(json.dumps(record))
     budget.call('native members close',save_new,folder/'native-members.json',record)
 
 def observe_inert_exchange(folder,p4,owned,argv,port,budget):
@@ -489,7 +493,7 @@ def observe_inert_exchange(folder,p4,owned,argv,port,budget):
     after=budget.clock(); budget.post('fixed inert exchange')
     require(type(response) is dict and set(response)=={'inert'} and response['inert'] is True,'Inert exchange response mismatch')
     record=dict(mode='inert',method='GET',endpoint=endpoint,listener=listener,response=response,before_ns=before,after_ns=after,timing=budget.timing())
-    budget.inert_exchange=json.loads(json.dumps(record))
+    budget.inert_exchange=strict_json(json.dumps(record))
     budget.call('inert exchange close',save_new,folder/'inert-exchange.json',record)
     return record
 
@@ -607,7 +611,7 @@ def export_completed(folder,ledger,result):
     # The real verifier scans decoded semantic values. Re-scanning serialized
     # ledger event JSON would misclassify trusted numeric timestamps as PII.
     verify_runtime_packet(ledger._binding,ledger.issued_snapshot,ledger._collection,raw,require_ack=True,runtime_inputs=ledger._runtime_inputs)
-    validate_export_structure(json.loads(raw),ledger._policy.scanners)
+    validate_export_structure(strict_json(raw),ledger._policy.scanners)
     return preserve_completed_members(folder,raw,ledger.issued_snapshot,ledger._collection,result,getattr(getattr(ledger,'_runtime_transport',None),'posts',None))
 
 def validate_export_structure(packet,scanners):
@@ -637,39 +641,79 @@ def validate_export_structure(packet,scanners):
         closed(event,'at deadline kind order '+extras[event['kind']])
         for name in ('at','deadline'):
             require(type(event[name]) is str and math.isfinite(float(event[name])) and repr(float(event[name]))==event[name],'Typed export clock')
-    for raw_event in packet['events']:
-        event=json.loads(raw_event); closed(event,'data timestamp type')
-        require(type(event['timestamp']) in (float,int) and event['type'] in ('tool_call_start','tool_call_end'),'Typed export event')
-        closed(event['data'],'agent arguments tool' if event['type']=='tool_call_start' else 'agent latency metadata result success tool')
-    if packet['prewrite_packet'] is not None: validate_export_structure(json.loads(packet['prewrite_packet']),scanners)
-    serial={'entity','raw_response','version_response','tags_response','timeout_json','prewrite_packet'}
-    def scan(value,path=()):
+    def prose(value):
+        """Data stays its declared type; never infer serialization from names/text."""
         if isinstance(value,dict):
             for key,item in value.items():
-                require(type(key) is str,'Export string key'); scan(key,('$key',)); scan(item,path+(key,))
+                require(type(key) is str,'Export string key'); prose(key); prose(item)
         elif isinstance(value,list):
-            for index,item in enumerate(value): scan(item,path+(index,))
+            for item in value: prose(item)
         elif isinstance(value,str):
-            key=path[-1] if path else None
-            clock_path=path
-            while clock_path[:2]==('prewrite_packet','$decoded'): clock_path=clock_path[2:]
-            if len(clock_path)==3 and clock_path[0]=='timeline' and type(clock_path[1]) is int and key in ('at','deadline'):
-                require(math.isfinite(float(value)) and repr(float(value))==value,'Typed export clock')
-                return  # ONLY the independently closed producer timeline, not similarly named metadata.
-            serialized=key in serial and not (len(path)>=2 and path[-2]=='hashes')
-            encoded=(serialized or len(path)>=2 and path[-2]=='events' or key in ('content','result') and value.startswith('{'))
-            if value.startswith('Observation: '): scan(json.loads(value[13:]),path+('$decoded',)); return
-            if encoded:
-                try: decoded=json.loads(value)
-                except json.JSONDecodeError:
-                    require(not serialized,'Malformed serialized export value')
-                else: scan(decoded,path+('$decoded',)); return
             require(all(scanner.scan(value).clean for scanner in scanners),'Unsafe export decoded value')
-        else: require(value is None or type(value) in (int,float,bool),'Unexpected export value type')
-    scan(packet)
+        else:
+            require(value is None or type(value) in (int,float,bool),'Unexpected export value type')
+            if type(value) is float: require(math.isfinite(value),'Nonfinite export value')
+    def object_json(value):
+        require(type(value) is str,'Producer serialized JSON string required')
+        decoded=strict_json(value); require(type(decoded) is dict,'Producer serialized JSON object required')
+        return decoded
+    def messages(values):
+        require(type(values) is list,'Producer message list required')
+        for index,message in enumerate(values):
+            closed(message,'role content'); role=message['role']; content=message['content']
+            require(type(role) is str and type(content) is str,'Producer message types')
+            prose(role)
+            if index>=3 and index%2==1 and role=='user':
+                require(values[index-1]['role']=='assistant' and content.startswith('Observation: '),'Producer SDK observation position/role')
+                prose(object_json(content[13:]))
+            elif index>=2 and index%2==0 and role=='assistant':
+                prose(object_json(content))
+            else:
+                # System, original user request and ordinary free prose stay text.
+                prose(content)
+    def native(value):
+        require(type(value) is dict,'Producer native response object')
+        message=value['message']; closed(message,'role content')
+        require(message['role']=='assistant','Producer native response role')
+        for key,item in value.items():
+            if key!='message': prose(key); prose(item)
+        prose(message['role']); prose(object_json(message['content']))
+    # Each decoder below is attached to ONE exact producer slot. No suffix,
+    # terminal-name or leading-prose heuristic selects decoding anywhere else.
+    for key,value in packet.items():
+        if key not in ('prewrite_packet','events','wires','timeline','transport'): prose(key); prose(value)
+    if packet['prewrite_packet'] is not None: validate_export_structure(object_json(packet['prewrite_packet']),scanners)
+    for event in packet['timeline']:
+        for key,value in event.items():
+            prose(key)
+            if key not in ('at','deadline'): prose(value)  # EXACT closed producer clock fields validated above.
+    for raw_event in packet['events']:
+        event=object_json(raw_event); closed(event,'data timestamp type')
+        require(type(event['timestamp']) in (float,int) and event['type'] in ('tool_call_start','tool_call_end'),'Typed export event')
+        data=event['data']; closed(data,'agent arguments tool' if event['type']=='tool_call_start' else 'agent latency metadata result success tool')
+        prose(event['type']); prose(event['timestamp'])
+        for key,value in data.items():
+            prose(key)
+            prose(object_json(value) if event['type']=='tool_call_end' and key=='result' else value)
+    for wire in packet['wires']:
+        entity=object_json(wire['entity'])
+        for key,value in entity.items():
+            prose(key)
+            if key=='messages': messages(value)
+            else: prose(value)
+        messages(wire['secured_messages']); native(wire['raw']); native(object_json(wire['raw_response']))
+        for key in ('generation','hashes','raw_envelope','sampler_schema','secured_envelope','strict_schema'): prose(wire[key])
+        prose(wire['identity']['local_manifest_sha256'])
+        for key in ('version_response','tags_response'): prose(object_json(wire['identity'][key]))
+    for key,value in packet['transport'].items():
+        if key!='receipts': prose(key); prose(value)
+    for receipt in packet['transport']['receipts']:
+        for key,value in receipt.items():
+            prose(key)
+            prose(object_json(value) if key=='timeout_json' and value is not None else value)
 
 def preserve_completed_members(folder,raw,issued_snapshot,collection,result,posts):
-    require(type(raw) is bytes and len(raw)<=CAP,'Final packet export cap'); packet=json.loads(raw)
+    require(type(raw) is bytes and len(raw)<=CAP,'Final packet export cap'); packet=strict_json(raw)
     snapshot=asdict(issued_snapshot)
     blobs={'runtime':raw,'views':snapshot.pop('views_json'),'replay':snapshot.pop('replay_json'),
         'collection':json.dumps(asdict(collection),ensure_ascii=False,separators=(',',':')).encode('utf8')}
@@ -677,7 +721,7 @@ def preserve_completed_members(folder,raw,issued_snapshot,collection,result,post
     for role,body in blobs.items():
         name='trusted-'+role+'.raw'; write_raw_new(folder/name,body)
         members[role]=dict(name=name,bytes=len(body),sha256=sha(folder/name))
-    ends=[json.loads(e) for e in packet['events'] if json.loads(e).get('type')=='tool_call_end']
+    ends=[strict_json(e) for e in packet['events'] if strict_json(e).get('type')=='tool_call_end']
     save_new(folder/'trusted-export.json',dict(format=2,complete=True,END=any(e.get('data',{}).get('tool')=='ultima_work_research_write' and e['data'].get('success') is True for e in ends),members=members,
         issued_snapshot=snapshot,native_POST_attempts=posts,ack_admitted=result.get('status')=='succeeded'))
 
@@ -704,15 +748,15 @@ def verify_exports(folder,result,p4,*,readonly=False):
     binding=WorkBinding(Path(inputs['root']),*inputs['binding_key'])
     require(inputs['binding_key']==tuple(result[k] for k in ('request_id','session_id','task_id')),'Independent input binding mismatch')
     require(Path(inputs['root'])==folder/'outputs'/result['task_id'],'Independent root mismatch')
-    collection=ResearchCollection(**json.loads(blobs['collection']))
-    frozen=corpus()['sources']; actual_sources=json.loads(collection.catalogue_json)
+    collection=ResearchCollection(**strict_json(blobs['collection']))
+    frozen=corpus()['sources']; actual_sources=strict_json(collection.catalogue_json)
     require([(s['final_url'],s['body'],s['decoded_body_sha256']) for s in actual_sources]==[(s['final_url'],s['body'],s['decoded_body_sha256']) for s in frozen],'Original four-source corpus mismatch')
-    attempts=json.loads(collection.attempts_json)
+    attempts=strict_json(collection.attempts_json)
     require(sum(x['tool_name']=='ultima_work_web_search' for x in attempts)==1 and sum(x['tool_name']=='ultima_work_http_get' for x in attempts)==4,'Original collection attempt caps')
     packet=verify_runtime_packet(binding,snapshot,collection,raw,require_ack=True,runtime_inputs=runtime_inputs)
     from openjarvis.security.scanner import SecretScanner,PIIScanner
     factories={c.__module__+'.'+c.__qualname__:c for c in (SecretScanner,PIIScanner)}
-    scanner_policy=json.loads(snapshot.replay_json)['policy']
+    scanner_policy=strict_json(snapshot.replay_json)['policy']
     validate_export_structure(packet,tuple(factories[item['name']]() for item in scanner_policy['scanners']))
     require(1<=packet['transport']['posts']<=8,'POST attempt bound')
     resolved,bindings=resolve_v3(packet['wires'][-2]['secured_envelope']['action_input'],snapshot,collection)
@@ -746,13 +790,14 @@ def output_inventory(folder,p4):
         records.append(dict(path=str(path),sha256=hashlib.sha256(raw).hexdigest(),bytes_hex=raw.hex()))
     return records
 
-def guarded_files(root,budget):
+def guarded_files(root,budget,*,reserve_index=False):
     """Own filesystem walk: admission for each open, iteration and member stat."""
-    root=Path(root).absolute(); files=[]
+    root=Path(root).absolute(); files=[]; data_count=0; fixed_index=False
     if not budget.call('directory existence',root.exists): return files
     metadata=budget.call('directory root stat',root.lstat)
     require(stat.S_ISDIR(metadata.st_mode) and not getattr(metadata,'st_file_attributes',0)&stat.FILE_ATTRIBUTE_REPARSE_POINT,'Directory root reparse/type')
     def walk(directory):
+        nonlocal data_count,fixed_index
         budget.pre('directory open'); entries=os.scandir(directory)
         try:
             budget.post('directory open')
@@ -767,10 +812,34 @@ def guarded_files(root,budget):
                 require(not stat.S_ISLNK(metadata.st_mode) and not getattr(metadata,'st_file_attributes',0)&stat.FILE_ATTRIBUTE_REPARSE_POINT,'Directory member reparse')
                 if stat.S_ISDIR(metadata.st_mode): walk(path)
                 elif stat.S_ISREG(metadata.st_mode):
-                    require(len(files)<256,'Closed directory member cap'); files.append(path)
+                    if reserve_index and path.parent==root and path.name=='seal-index.json':
+                        require(not fixed_index,'Duplicate fixed root index'); fixed_index=True
+                    else:
+                        require(data_count<256,'Closed directory data member cap'); data_count+=1
+                    files.append(path)
                 else: raise ValueError('Unknown directory member type')
         finally: entries.close()
-    walk(root); return files
+    walk(root)
+    if reserve_index: require(fixed_index,'Fixed root index missing')
+    return files
+
+def no_output_descendants(root,budget):
+    """Inert effects: any child entry, including an empty directory, is an effect."""
+    root=Path(root).absolute()
+    def root_status():
+        try: return root.lstat()
+        except FileNotFoundError: return None
+    metadata=budget.call('inert output root stat',root_status)
+    if metadata is None: return True
+    require(stat.S_ISDIR(metadata.st_mode) and not getattr(metadata,'st_file_attributes',0)&stat.FILE_ATTRIBUTE_REPARSE_POINT,'Inert output root reparse/type')
+    budget.pre('inert output directory open'); entries=os.scandir(root)
+    try:
+        budget.post('inert output directory open'); budget.pre('inert output directory iteration')
+        try: next(entries)
+        except StopIteration:
+            budget.post('inert output directory iteration'); return True
+        budget.post('inert output directory iteration'); return False
+    finally: entries.close()
 
 def validate_final_outputs(folder,result,accepted,p4):
     current=output_inventory(folder,p4)
@@ -873,7 +942,7 @@ class RootInvocation:
             require(index['timing']==self.budget.timing() and terminal['timing']==self.budget.timing(),'Root observation origin binding')
             required=({'attempt.json','admission.json','child-clearance.json','child-clearance.consumed.json','argv-roundtrip.json','native-argv.json','native-argv.raw','native-members.json','inert-exchange.json','listener.json','owned-tree.json','cleanup.json','protected-before.json','protected-after.json','boundary-before.json','boundary-after.json','terminal.json','server.stdout','server.stderr'} if terminal.get('kind')=='inert' else {'attempt.json','admission.json','child-clearance.json','child-clearance.consumed.json','argv.json','native-argv.json','native-argv.raw','native-members.json','effective-schedule.json','first-product.raw','product-result.json','service-first-result.json','trusted-export.json','trusted-runtime.raw','trusted-views.raw','trusted-replay.raw','trusted-collection.raw','runtime-inputs.json','accepted-effects.json','post-cleanup-effects.json','pre-cleanup-effects.json','external-artifacts.json','external-readback-attempts.json','owned-tree.json','cleanup.json','listener.json','boundary-before.json','boundary-after.json','terminal.json','server.stdout','server.stderr','cli.stdout','cli.stderr'})
             require(required<=set(index['files']),'Required closed execution evidence absent')
-            observed_files={str(p.relative_to(folder)) for p in guarded_files(folder,self.budget)}
+            observed_files={str(p.relative_to(folder)) for p in guarded_files(folder,self.budget,reserve_index=True)}
             require(observed_files==set(index['files'])|{'seal-index.json'},'Missing/extra sealed data')
             for name,expected in index['files'].items():
                 raw=Path(name); require(not raw.is_absolute() and '..' not in raw.parts,'Seal relative member')
@@ -909,7 +978,7 @@ def validate_observed_package(folder,terminal,index,budget):
     require(set(map(int,native['snapshot']))==set(native['live_pids']),'Observed complete native row set')
     wire=read_raw(folder/'native-argv.raw'); proof=load(folder/'native-argv.json')
     require(proof['raw_sha256']==hashlib.sha256(wire).hexdigest() and proof['raw_hex']==wire.hex() and proof['records']==native['snapshot'],'Original native raw/record proof binding')
-    rows=json.loads(wire.decode('ascii')); rows=[rows] if isinstance(rows,dict) else rows
+    rows=strict_json(wire.decode('ascii')); rows=[rows] if isinstance(rows,dict) else rows
     decoded={}
     for row in rows:
         row=dict(row); row['CommandLine']=base64.b64decode(row['CommandLineBase64'],validate=True).decode('utf-16-le')
@@ -941,7 +1010,7 @@ def validate_observed_package(folder,terminal,index,budget):
         validate_inert_exchange(load(folder/'inert-exchange.json'),getattr(budget,'inert_exchange',None),admitted,listener,budget)
         require(load(folder/'protected-before.json')==protected and load(folder/'protected-after.json')==protected,'Inert protected proof')
         roundtrip=load(folder/'argv-roundtrip.json'); require(roundtrip['question']==corpus()['query'] and native['argv']==inert_argv(folder,admitted['port']) and roundtrip['argv']==native['argv'][4:],'Observed original query/full argv roundtrip')
-        require(not guarded_files(folder/'outputs',budget),'Unexpected inert outputs')
+        require(no_output_descendants(folder/'outputs',budget),'Unexpected inert outputs')
     else:
         cli=load(folder/'product-result.json'); service=load(folder/'service-first-result.json'); reconcile_results(cli,service)
         require(cli.get('status')=='succeeded' and cli==load(folder/'first-product.raw'),'Observed first result mismatch')

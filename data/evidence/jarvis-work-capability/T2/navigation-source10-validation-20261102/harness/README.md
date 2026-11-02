@@ -332,3 +332,53 @@ expression in exact pytest argv and still copies six bytes and64 pin snapshots.
 The final complete stage has no selection; only that stage establishes retained
 all123 IDs. This is a unit filter, not a product or qualification flag. Source118,
 SDK22, old P4/P1/corpus, original8B policy and all allocations remain unchanged.
+
+## Formal fix3: producer decoding and inert directory effects
+
+The same reviewer held 17 remedies independently closed: H01-H15 and
+F1-N02/F1-N03. This scoped round addresses Important F1-N01/F2-N01/F2-N02
+and the related Minor F2-N03. All145 prior test IDs and their purposes remain;
+17 further cases cover the exact coherent counters and their boundary controls.
+All earlier FAIL dispositions stay in force until independent scoped re-review.
+
+Every actual JSON decode in the adapter uses standard json.loads with a unique
+object-member hook (including escaped-equivalent names at every nesting depth)
+and rejection of nonfinite JSON constants. Decoding is attached to explicit
+producer slots and declared types: serialized runtime/prewrite packets, event
+objects and tool-end results, native response message content, request entity and
+SDK transcript messages, identity responses, receipt timeout JSON, and completed
+export/replay/collection inputs. Ordinary execution metadata and free prose are
+recursively scanned as strings/keys without parsing by terminal name or suffix;
+numeric-looking strings remain scanner inputs. Closed timeline clock fields
+retain their explicit finite repr(float) validation. No scanner or SDK changed.
+
+Observation JSON decoding applies only to the SDK transcript's later user turn
+following its assistant turn. The final assistant envelope's final_answer is
+ordinary scanned prose, including the exact valid ACK 'Observation: the report
+is complete.'. Its new positive passes real require_ack replay, scanner checks,
+complete export and independent readback. Duplicate-shadowed metadata and nested
+entity numeric strings each first pass the real original verifier, then fail the
+export safety boundary before raw publication. A duplicate actual timeout JSON
+boundary is also refused; no raw member is retained for these unsafe cases.
+
+Inert output eligibility uses a dedicated budgeted no-descendants predicate.
+An absent outputs directory or an existing empty root is allowed; ANY immediate
+entry is an effect, including an empty outputs/unexpected-task directory. Root
+stat, directory open and iterator advance retain pre/post deadline checks and
+iterator closure. The substantive otherwise-valid enclosing inert mock package
+now rejects that empty-task effect while retaining its real parent-held mocked
+GET exchange, native identity, cleanup, listener and protected-state proofs.
+
+Writer and observer apply the same256 DATA member cap. Closed observation
+separately reserves exactly one regular fixed ROOT seal-index.json, whose I/O
+and time remain charged and whose exact set/digests are still checked by the
+original witness path. Nested, suffixed or other index-like names consume DATA
+capacity.256 DATA plus the fixed root index passes;257 DATA fails before sealing.
+
+The driver now checks all four immutable historical report prefixes, including
+the entire69552-byte6f9926ac fix2 report. Final complete adapter verification has
+no selection and seals these exact six source bytes plus64 fixed input pins.
+No root-caller draft, live authority, real process, native/external/model call,
+original-corpus profile, inert qualification or operational release occurred.
+T2 and E02 remain NOT_PASSED; outer315 timing remains the prior eligibility and
+enclosing-witness contract, without arbitrary-kernel preemption or recovery.

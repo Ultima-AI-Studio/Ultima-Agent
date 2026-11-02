@@ -1,0 +1,732 @@
+Task4 FIX3 scoped six-file diff against archived e166 manifest. Product source remains 118ba152b007c30d358c8bc44c51aabe8ae820f0.
+Not a product Git diff; only evidence/harness files, root owns private evidence publication.
+All requirements/report/root independent readback are separate named inputs.
+
+
+FILE H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\navigation-source10-validation-20261102\harness\README.md SHA256 f7db0b2991e7df040960d40641fd8c1bf53bc3f0027b679796a4ee06d0a90e75 bytes 25736
+--- base-e166/README.md
++++ H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\navigation-source10-validation-20261102\harness\README.md
+@@ -325,10 +325,60 @@
+ The exact closed pre-map is also reconciled by the enclosing witness alongside
+ accepted/post/current maps and remains durably member-hash bound. A transient
+ observed extra can never become successful when later deleted. Equal maps pass.
+ 
+ Preparation driver may select a focused unit expression using the shell-local
+ ULTIMA_ADAPTER_UNIT_SELECTION environment value. It records the actual -k and
+ expression in exact pytest argv and still copies six bytes and64 pin snapshots.
+ The final complete stage has no selection; only that stage establishes retained
+ all123 IDs. This is a unit filter, not a product or qualification flag. Source118,
+ SDK22, old P4/P1/corpus, original8B policy and all allocations remain unchanged.
++
++## Formal fix3: producer decoding and inert directory effects
++
++The same reviewer held 17 remedies independently closed: H01-H15 and
++F1-N02/F1-N03. This scoped round addresses Important F1-N01/F2-N01/F2-N02
++and the related Minor F2-N03. All145 prior test IDs and their purposes remain;
++17 further cases cover the exact coherent counters and their boundary controls.
++All earlier FAIL dispositions stay in force until independent scoped re-review.
++
++Every actual JSON decode in the adapter uses standard json.loads with a unique
++object-member hook (including escaped-equivalent names at every nesting depth)
++and rejection of nonfinite JSON constants. Decoding is attached to explicit
++producer slots and declared types: serialized runtime/prewrite packets, event
++objects and tool-end results, native response message content, request entity and
++SDK transcript messages, identity responses, receipt timeout JSON, and completed
++export/replay/collection inputs. Ordinary execution metadata and free prose are
++recursively scanned as strings/keys without parsing by terminal name or suffix;
++numeric-looking strings remain scanner inputs. Closed timeline clock fields
++retain their explicit finite repr(float) validation. No scanner or SDK changed.
++
++Observation JSON decoding applies only to the SDK transcript's later user turn
++following its assistant turn. The final assistant envelope's final_answer is
++ordinary scanned prose, including the exact valid ACK 'Observation: the report
++is complete.'. Its new positive passes real require_ack replay, scanner checks,
++complete export and independent readback. Duplicate-shadowed metadata and nested
++entity numeric strings each first pass the real original verifier, then fail the
++export safety boundary before raw publication. A duplicate actual timeout JSON
++boundary is also refused; no raw member is retained for these unsafe cases.
++
++Inert output eligibility uses a dedicated budgeted no-descendants predicate.
++An absent outputs directory or an existing empty root is allowed; ANY immediate
++entry is an effect, including an empty outputs/unexpected-task directory. Root
++stat, directory open and iterator advance retain pre/post deadline checks and
++iterator closure. The substantive otherwise-valid enclosing inert mock package
++now rejects that empty-task effect while retaining its real parent-held mocked
++GET exchange, native identity, cleanup, listener and protected-state proofs.
++
++Writer and observer apply the same256 DATA member cap. Closed observation
++separately reserves exactly one regular fixed ROOT seal-index.json, whose I/O
++and time remain charged and whose exact set/digests are still checked by the
++original witness path. Nested, suffixed or other index-like names consume DATA
++capacity.256 DATA plus the fixed root index passes;257 DATA fails before sealing.
++
++The driver now checks all four immutable historical report prefixes, including
++the entire69552-byte6f9926ac fix2 report. Final complete adapter verification has
++no selection and seals these exact six source bytes plus64 fixed input pins.
++No root-caller draft, live authority, real process, native/external/model call,
++original-corpus profile, inert qualification or operational release occurred.
++T2 and E02 remain NOT_PASSED; outer315 timing remains the prior eligibility and
++enclosing-witness contract, without arbitrary-kernel preemption or recovery.
+FILE H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\navigation-source10-validation-20261102\harness\adapter.py SHA256 25f3befa2f3a9e5ccf66bdbf1bb954019de4296e3ea2ddf76f13f54230618093 bytes 81263
+--- base-e166/adapter.py
++++ H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\navigation-source10-validation-20261102\harness\adapter.py
+@@ -198,31 +198,35 @@
+ def reconcile_results(cli,service):
+     fields=('request_id','session_id','task_id','status','artifacts')
+     require(all(k in cli and k in service and cli[k]==service[k] for k in fields),'First service/CLI result mismatch')
+ 
+ def observed_io(label,function):
+     budget=_OBSERVING.get()
+     return budget.call(label,function) if budget is not None else function()
+ 
+ def sha(path): return observed_io('observed hash '+str(path),lambda:hashlib.sha256(Path(path).read_bytes()).hexdigest())
+ 
++def strict_json(value):
++    def unique(items):
++        result={}
++        for key,item in items:
++            require(key not in result,'Duplicate export JSON member'); result[key]=item
++        return result
++    def nonfinite(value): raise ValueError('Nonfinite export JSON constant')
++    return json.loads(value,object_pairs_hook=unique,parse_constant=nonfinite)
++
+ def load(path):
+     def read():
+         with Path(path).open('rb') as stream: return stream.read(CAP+1)
+     raw=observed_io('observed JSON '+str(path),read)
+     require(len(raw)<=CAP,'Evidence byte cap')
+-    def pairs(items):
+-        result={}
+-        for key,value in items:
+-            require(key not in result,'Duplicate JSON field'); result[key]=value
+-        return result
+-    return json.loads(raw.decode('utf-8-sig'),object_pairs_hook=pairs)
++    return strict_json(raw.decode('utf-8-sig'))
+ 
+ def save_new(path,value):
+     raw=json.dumps(value,ensure_ascii=False,indent=2,allow_nan=False).encode('utf8')
+     require(len(raw)<=CAP,'Evidence byte cap')
+     with Path(path).open('xb') as stream: stream.write(raw)
+ 
+ def check_inputs():
+     require(Path(sys.executable).resolve()==PY.resolve(),'Exact authorized interpreter required')
+     require(not sys.flags.optimize and sys.flags.dont_write_bytecode and sys.flags.utf8_mode==1,'Python -B -X utf8 required')
+     require(sha(V/'source10-candidate-manifest.json')==MANIFEST_SHA,'Source10 manifest drift')
+@@ -470,33 +474,33 @@
+         p4.time.sleep(min(.1,(deadline-budget.clock())/1000000000))
+     budget.call('unique owned listener',p4.assert_listener,owned,port,argv)
+     if budget.clock()>deadline: budget.fail('Late listener identity proof')
+ 
+ def record_native_members(folder,p4,owned,argv,budget):
+     listener=budget.call('native listener record',load,folder/'listener.json')
+     members={pid:item for pid,item in owned.known.items() if item['role']=='server'}
+     snapshot=p4.process_snapshot(list(members),folder/'native-argv.json')
+     record=validate_native_members(owned,p4,snapshot,listener,argv)
+     record['snapshot']=snapshot; record['argv']=argv
+-    budget.native_members=json.loads(json.dumps(record))
++    budget.native_members=strict_json(json.dumps(record))
+     budget.call('native members close',save_new,folder/'native-members.json',record)
+ 
+ def observe_inert_exchange(folder,p4,owned,argv,port,budget):
+     require(getattr(budget,'admitted',{}).get('mode')=='inert' and budget.admitted['folder']==str(folder) and budget.admitted['port']==port,'Admitted inert exchange binding')
+     listener=budget.call('inert exchange owned listener',p4.assert_listener,owned,port,argv)
+     endpoint=f'http://127.0.0.1:{port}/inert'
+     budget.pre('fixed inert exchange',full_ns=2000000000); before=budget.clock()
+     response=p4.get_json(endpoint)
+     after=budget.clock(); budget.post('fixed inert exchange')
+     require(type(response) is dict and set(response)=={'inert'} and response['inert'] is True,'Inert exchange response mismatch')
+     record=dict(mode='inert',method='GET',endpoint=endpoint,listener=listener,response=response,before_ns=before,after_ns=after,timing=budget.timing())
+-    budget.inert_exchange=json.loads(json.dumps(record))
++    budget.inert_exchange=strict_json(json.dumps(record))
+     budget.call('inert exchange close',save_new,folder/'inert-exchange.json',record)
+     return record
+ 
+ def validate_inert_exchange(record,expected,admitted,listener,budget):
+     require(isinstance(expected,dict) and record==expected,'Trusted parent inert exchange absent/mismatch')
+     require(type(record['response']) is dict and set(record['response'])=={'inert'} and record['response']['inert'] is True,'Closed inert exchange response type')
+     require(record['mode']=='inert' and record['method']=='GET' and record['endpoint']==f"http://127.0.0.1:{admitted['port']}/inert" and record['listener']==listener and record['response']==dict(inert=True) and record['timing']==budget.timing(),'Closed inert exchange binding')
+     require(type(record['before_ns']) is int and type(record['after_ns']) is int and budget.origin_ns<=record['before_ns']<=record['after_ns']<=budget.cutoff_ns('work') and record['after_ns']<=budget.clock(),'Closed inert exchange timing')
+ 
+ def capture_first(folder,owned,budget):
+@@ -600,21 +604,21 @@
+         with Path(path).open('rb') as stream: return stream.read(CAP+1)
+     raw=observed_io('observed raw '+str(path),read)
+     require(len(raw)<=CAP,'Raw member byte cap'); return raw
+ 
+ def export_completed(folder,ledger,result):
+     raw=ledger._runtime_final; require(type(raw) is bytes and len(raw)<=CAP,'Final packet export cap')
+     from src.brain.work_research import verify_runtime_packet
+     # The real verifier scans decoded semantic values. Re-scanning serialized
+     # ledger event JSON would misclassify trusted numeric timestamps as PII.
+     verify_runtime_packet(ledger._binding,ledger.issued_snapshot,ledger._collection,raw,require_ack=True,runtime_inputs=ledger._runtime_inputs)
+-    validate_export_structure(json.loads(raw),ledger._policy.scanners)
++    validate_export_structure(strict_json(raw),ledger._policy.scanners)
+     return preserve_completed_members(folder,raw,ledger.issued_snapshot,ledger._collection,result,getattr(getattr(ledger,'_runtime_transport',None),'posts',None))
+ 
+ def validate_export_structure(packet,scanners):
+     """Closed producer structures plus scanning of EVERY decoded string value.
+ 
+     Only typed numeric clocks are not prose. Serialized events/native entities
+     are decoded before scanning so trusted numeric timestamps stay numeric.
+     """
+     def closed(value,names):
+         require(type(value) is dict and set(value)==set(names.split()),'Unexpected export fields/type')
+@@ -630,61 +634,101 @@
+         closed(wire,'entity generation hashes identity raw raw_envelope raw_response sampler_schema secured_envelope secured_messages strict_schema')
+         closed(wire['hashes'],'entity messages sampler strict')
+         closed(wire['identity'],'local_manifest_sha256 tags_response version_response')
+     for receipt in packet['transport']['receipts']: closed(receipt,'admission_error admitted downloaded entity_bytes entity_sha256 error inspected kind method path peer_bytes response_sha256 retained send_reserved socket_bytes status timeout_json')
+     extras={'claim':'adapter_uuid dispatch_uuid seq','expect':'args_hash name seq','file_end':'file_call_id','freeze':'seq','generation':'generation','intent':'file_call_id seq','promote':'seq wire_hash','return':'generation receipt_index','sdk_end':'event_index seq','sdk_start':'event_index seq','secured':'generation','send':'generation receipt_index'}
+     for event in packet['timeline']:
+         require(event.get('kind') in extras,'Unknown export timeline kind')
+         closed(event,'at deadline kind order '+extras[event['kind']])
+         for name in ('at','deadline'):
+             require(type(event[name]) is str and math.isfinite(float(event[name])) and repr(float(event[name]))==event[name],'Typed export clock')
+-    for raw_event in packet['events']:
+-        event=json.loads(raw_event); closed(event,'data timestamp type')
+-        require(type(event['timestamp']) in (float,int) and event['type'] in ('tool_call_start','tool_call_end'),'Typed export event')
+-        closed(event['data'],'agent arguments tool' if event['type']=='tool_call_start' else 'agent latency metadata result success tool')
+-    if packet['prewrite_packet'] is not None: validate_export_structure(json.loads(packet['prewrite_packet']),scanners)
+-    serial={'entity','raw_response','version_response','tags_response','timeout_json','prewrite_packet'}
+-    def scan(value,path=()):
++    def prose(value):
++        """Data stays its declared type; never infer serialization from names/text."""
+         if isinstance(value,dict):
+             for key,item in value.items():
+-                require(type(key) is str,'Export string key'); scan(key,('$key',)); scan(item,path+(key,))
++                require(type(key) is str,'Export string key'); prose(key); prose(item)
+         elif isinstance(value,list):
+-            for index,item in enumerate(value): scan(item,path+(index,))
++            for item in value: prose(item)
+         elif isinstance(value,str):
+-            key=path[-1] if path else None
+-            clock_path=path
+-            while clock_path[:2]==('prewrite_packet','$decoded'): clock_path=clock_path[2:]
+-            if len(clock_path)==3 and clock_path[0]=='timeline' and type(clock_path[1]) is int and key in ('at','deadline'):
+-                require(math.isfinite(float(value)) and repr(float(value))==value,'Typed export clock')
+-                return  # ONLY the independently closed producer timeline, not similarly named metadata.
+-            serialized=key in serial and not (len(path)>=2 and path[-2]=='hashes')
+-            encoded=(serialized or len(path)>=2 and path[-2]=='events' or key in ('content','result') and value.startswith('{'))
+-            if value.startswith('Observation: '): scan(json.loads(value[13:]),path+('$decoded',)); return
+-            if encoded:
+-                try: decoded=json.loads(value)
+-                except json.JSONDecodeError:
+-                    require(not serialized,'Malformed serialized export value')
+-                else: scan(decoded,path+('$decoded',)); return
+             require(all(scanner.scan(value).clean for scanner in scanners),'Unsafe export decoded value')
+-        else: require(value is None or type(value) in (int,float,bool),'Unexpected export value type')
+-    scan(packet)
++        else:
++            require(value is None or type(value) in (int,float,bool),'Unexpected export value type')
++            if type(value) is float: require(math.isfinite(value),'Nonfinite export value')
++    def object_json(value):
++        require(type(value) is str,'Producer serialized JSON string required')
++        decoded=strict_json(value); require(type(decoded) is dict,'Producer serialized JSON object required')
++        return decoded
++    def messages(values):
++        require(type(values) is list,'Producer message list required')
++        for index,message in enumerate(values):
++            closed(message,'role content'); role=message['role']; content=message['content']
++            require(type(role) is str and type(content) is str,'Producer message types')
++            prose(role)
++            if index>=3 and index%2==1 and role=='user':
++                require(values[index-1]['role']=='assistant' and content.startswith('Observation: '),'Producer SDK observation position/role')
++                prose(object_json(content[13:]))
++            elif index>=2 and index%2==0 and role=='assistant':
++                prose(object_json(content))
++            else:
++                # System, original user request and ordinary free prose stay text.
++                prose(content)
++    def native(value):
++        require(type(value) is dict,'Producer native response object')
++        message=value['message']; closed(message,'role content')
++        require(message['role']=='assistant','Producer native response role')
++        for key,item in value.items():
++            if key!='message': prose(key); prose(item)
++        prose(message['role']); prose(object_json(message['content']))
++    # Each decoder below is attached to ONE exact producer slot. No suffix,
++    # terminal-name or leading-prose heuristic selects decoding anywhere else.
++    for key,value in packet.items():
++        if key not in ('prewrite_packet','events','wires','timeline','transport'): prose(key); prose(value)
++    if packet['prewrite_packet'] is not None: validate_export_structure(object_json(packet['prewrite_packet']),scanners)
++    for event in packet['timeline']:
++        for key,value in event.items():
++            prose(key)
++            if key not in ('at','deadline'): prose(value)  # EXACT closed producer clock fields validated above.
++    for raw_event in packet['events']:
++        event=object_json(raw_event); closed(event,'data timestamp type')
++        require(type(event['timestamp']) in (float,int) and event['type'] in ('tool_call_start','tool_call_end'),'Typed export event')
++        data=event['data']; closed(data,'agent arguments tool' if event['type']=='tool_call_start' else 'agent latency metadata result success tool')
++        prose(event['type']); prose(event['timestamp'])
++        for key,value in data.items():
++            prose(key)
++            prose(object_json(value) if event['type']=='tool_call_end' and key=='result' else value)
++    for wire in packet['wires']:
++        entity=object_json(wire['entity'])
++        for key,value in entity.items():
++            prose(key)
++            if key=='messages': messages(value)
++            else: prose(value)
++        messages(wire['secured_messages']); native(wire['raw']); native(object_json(wire['raw_response']))
++        for key in ('generation','hashes','raw_envelope','sampler_schema','secured_envelope','strict_schema'): prose(wire[key])
++        prose(wire['identity']['local_manifest_sha256'])
++        for key in ('version_response','tags_response'): prose(object_json(wire['identity'][key]))
++    for key,value in packet['transport'].items():
++        if key!='receipts': prose(key); prose(value)
++    for receipt in packet['transport']['receipts']:
++        for key,value in receipt.items():
++            prose(key)
++            prose(object_json(value) if key=='timeout_json' and value is not None else value)
+ 
+ def preserve_completed_members(folder,raw,issued_snapshot,collection,result,posts):
+-    require(type(raw) is bytes and len(raw)<=CAP,'Final packet export cap'); packet=json.loads(raw)
++    require(type(raw) is bytes and len(raw)<=CAP,'Final packet export cap'); packet=strict_json(raw)
+     snapshot=asdict(issued_snapshot)
+     blobs={'runtime':raw,'views':snapshot.pop('views_json'),'replay':snapshot.pop('replay_json'),
+         'collection':json.dumps(asdict(collection),ensure_ascii=False,separators=(',',':')).encode('utf8')}
+     members={}
+     for role,body in blobs.items():
+         name='trusted-'+role+'.raw'; write_raw_new(folder/name,body)
+         members[role]=dict(name=name,bytes=len(body),sha256=sha(folder/name))
+-    ends=[json.loads(e) for e in packet['events'] if json.loads(e).get('type')=='tool_call_end']
++    ends=[strict_json(e) for e in packet['events'] if strict_json(e).get('type')=='tool_call_end']
+     save_new(folder/'trusted-export.json',dict(format=2,complete=True,END=any(e.get('data',{}).get('tool')=='ultima_work_research_write' and e['data'].get('success') is True for e in ends),members=members,
+         issued_snapshot=snapshot,native_POST_attempts=posts,ack_admitted=result.get('status')=='succeeded'))
+ 
+ def read_completed(folder,exported):
+     require(exported.get('format')==2 and set(exported.get('members',{}))=={'runtime','views','replay','collection'},'Export members required')
+     blobs={}
+     for role,item in exported['members'].items():
+         require(item['name']=='trusted-'+role+'.raw' and type(item['bytes']) is int and 0<=item['bytes']<=CAP,'Export member binding')
+         body=read_raw(folder/item['name']); require(len(body)==item['bytes'] and hashlib.sha256(body).hexdigest()==item['sha256'],'Export member digest')
+         blobs[role]=body
+@@ -697,29 +741,29 @@
+     exported=load(folder/'trusted-export.json'); inputs=load(folder/'runtime-inputs.json')
+     require(exported.get('complete') is True and exported.get('END') is True,'Missing complete packet or END')
+     reconcile_results(result,load(folder/'service-first-result.json'))
+     blobs=read_completed(folder,exported); raw=blobs['runtime']
+     s=exported['issued_snapshot']; s['binding_key']=tuple(s['binding_key'])
+     s['views_json']=blobs['views']; s['replay_json']=blobs['replay']
+     snapshot=IssuedSnapshotV3(**s); inputs['binding_key']=tuple(inputs['binding_key']); runtime_inputs=ResearchRuntimeInputs(**inputs)
+     binding=WorkBinding(Path(inputs['root']),*inputs['binding_key'])
+     require(inputs['binding_key']==tuple(result[k] for k in ('request_id','session_id','task_id')),'Independent input binding mismatch')
+     require(Path(inputs['root'])==folder/'outputs'/result['task_id'],'Independent root mismatch')
+-    collection=ResearchCollection(**json.loads(blobs['collection']))
+-    frozen=corpus()['sources']; actual_sources=json.loads(collection.catalogue_json)
++    collection=ResearchCollection(**strict_json(blobs['collection']))
++    frozen=corpus()['sources']; actual_sources=strict_json(collection.catalogue_json)
+     require([(s['final_url'],s['body'],s['decoded_body_sha256']) for s in actual_sources]==[(s['final_url'],s['body'],s['decoded_body_sha256']) for s in frozen],'Original four-source corpus mismatch')
+-    attempts=json.loads(collection.attempts_json)
++    attempts=strict_json(collection.attempts_json)
+     require(sum(x['tool_name']=='ultima_work_web_search' for x in attempts)==1 and sum(x['tool_name']=='ultima_work_http_get' for x in attempts)==4,'Original collection attempt caps')
+     packet=verify_runtime_packet(binding,snapshot,collection,raw,require_ack=True,runtime_inputs=runtime_inputs)
+     from openjarvis.security.scanner import SecretScanner,PIIScanner
+     factories={c.__module__+'.'+c.__qualname__:c for c in (SecretScanner,PIIScanner)}
+-    scanner_policy=json.loads(snapshot.replay_json)['policy']
++    scanner_policy=strict_json(snapshot.replay_json)['policy']
+     validate_export_structure(packet,tuple(factories[item['name']]() for item in scanner_policy['scanners']))
+     require(1<=packet['transport']['posts']<=8,'POST attempt bound')
+     resolved,bindings=resolve_v3(packet['wires'][-2]['secured_envelope']['action_input'],snapshot,collection)
+     rendered=render_v3(resolved,collection.catalogue_json,bindings=bindings)
+     verify_readback(folder,result,p4,rendered.content,readonly=readonly)
+     require(exported['ack_admitted'] is True,'Final ACK missing')
+     inventory=output_inventory(folder,p4)
+     if not readonly: save_new(folder/'accepted-effects.json',inventory)
+     return dict(native_POST_attempts=packet['transport']['posts'],inventory=inventory)
+ 
+@@ -739,45 +783,70 @@
+ def output_inventory(folder,p4):
+     budget=_OBSERVING.get()
+     if budget is None: return p4.output_inventory(folder)
+     records=[]
+     for path in guarded_files(folder/'outputs',budget):
+         require(len(records)<64,'Observed output count cap')
+         raw=read_raw(path); require(len(raw)<=1048576,'Observed output size cap')
+         records.append(dict(path=str(path),sha256=hashlib.sha256(raw).hexdigest(),bytes_hex=raw.hex()))
+     return records
+ 
+-def guarded_files(root,budget):
++def guarded_files(root,budget,*,reserve_index=False):
+     """Own filesystem walk: admission for each open, iteration and member stat."""
+-    root=Path(root).absolute(); files=[]
++    root=Path(root).absolute(); files=[]; data_count=0; fixed_index=False
+     if not budget.call('directory existence',root.exists): return files
+     metadata=budget.call('directory root stat',root.lstat)
+     require(stat.S_ISDIR(metadata.st_mode) and not getattr(metadata,'st_file_attributes',0)&stat.FILE_ATTRIBUTE_REPARSE_POINT,'Directory root reparse/type')
+     def walk(directory):
++        nonlocal data_count,fixed_index
+         budget.pre('directory open'); entries=os.scandir(directory)
+         try:
+             budget.post('directory open')
+             while True:
+                 budget.pre('directory iteration')
+                 try: entry=next(entries)
+                 except StopIteration:
+                     budget.post('directory iteration'); break
+                 budget.post('directory iteration')
+                 path=Path(entry.path).absolute(); require(path.is_relative_to(root),'Directory member escape')
+                 metadata=budget.call('directory member stat',entry.stat,follow_symlinks=False)
+                 require(not stat.S_ISLNK(metadata.st_mode) and not getattr(metadata,'st_file_attributes',0)&stat.FILE_ATTRIBUTE_REPARSE_POINT,'Directory member reparse')
+                 if stat.S_ISDIR(metadata.st_mode): walk(path)
+                 elif stat.S_ISREG(metadata.st_mode):
+-                    require(len(files)<256,'Closed directory member cap'); files.append(path)
++                    if reserve_index and path.parent==root and path.name=='seal-index.json':
++                        require(not fixed_index,'Duplicate fixed root index'); fixed_index=True
++                    else:
++                        require(data_count<256,'Closed directory data member cap'); data_count+=1
++                    files.append(path)
+                 else: raise ValueError('Unknown directory member type')
+         finally: entries.close()
+-    walk(root); return files
++    walk(root)
++    if reserve_index: require(fixed_index,'Fixed root index missing')
++    return files
++
++def no_output_descendants(root,budget):
++    """Inert effects: any child entry, including an empty directory, is an effect."""
++    root=Path(root).absolute()
++    def root_status():
++        try: return root.lstat()
++        except FileNotFoundError: return None
++    metadata=budget.call('inert output root stat',root_status)
++    if metadata is None: return True
++    require(stat.S_ISDIR(metadata.st_mode) and not getattr(metadata,'st_file_attributes',0)&stat.FILE_ATTRIBUTE_REPARSE_POINT,'Inert output root reparse/type')
++    budget.pre('inert output directory open'); entries=os.scandir(root)
++    try:
++        budget.post('inert output directory open'); budget.pre('inert output directory iteration')
++        try: next(entries)
++        except StopIteration:
++            budget.post('inert output directory iteration'); return True
++        budget.post('inert output directory iteration'); return False
++    finally: entries.close()
+ 
+ def validate_final_outputs(folder,result,accepted,p4):
+     current=output_inventory(folder,p4)
+     require(p4.inventory_map(current)==p4.inventory_map(accepted),'Closed final output drift')
+     require(len(current)==1 and len(result.get('artifacts',[]))==1,'Closed exact output set')
+     artifact=result['artifacts'][0]
+     require(current[0]['path']==artifact['path'] and current[0]['sha256']==artifact['sha256'],'Closed output artifact binding')
+     return current
+ 
+ def compare_pre_cleanup(accepted,observed,p4):
+@@ -866,21 +935,21 @@
+         token=_ENCLOSING.set(self.budget); result=None; digest=None; proofs={}; error=None; binding={}; observing=None
+         try:
+             result=entry(*args,**kwargs)
+             self.budget.phase='seal'; observing=_OBSERVING.set(self.budget)
+             require(isinstance(result,dict),'Returned closed package required')
+             folder=Path(result['folder']); terminal=self.budget.call('root terminal read',load,folder/'terminal.json'); index=self.budget.call('root seal index read',load,folder/'seal-index.json')
+             require(index['run_id']==self.budget.run_id and terminal['run_id']==self.budget.run_id,'Root observation run binding')
+             require(index['timing']==self.budget.timing() and terminal['timing']==self.budget.timing(),'Root observation origin binding')
+             required=({'attempt.json','admission.json','child-clearance.json','child-clearance.consumed.json','argv-roundtrip.json','native-argv.json','native-argv.raw','native-members.json','inert-exchange.json','listener.json','owned-tree.json','cleanup.json','protected-before.json','protected-after.json','boundary-before.json','boundary-after.json','terminal.json','server.stdout','server.stderr'} if terminal.get('kind')=='inert' else {'attempt.json','admission.json','child-clearance.json','child-clearance.consumed.json','argv.json','native-argv.json','native-argv.raw','native-members.json','effective-schedule.json','first-product.raw','product-result.json','service-first-result.json','trusted-export.json','trusted-runtime.raw','trusted-views.raw','trusted-replay.raw','trusted-collection.raw','runtime-inputs.json','accepted-effects.json','post-cleanup-effects.json','pre-cleanup-effects.json','external-artifacts.json','external-readback-attempts.json','owned-tree.json','cleanup.json','listener.json','boundary-before.json','boundary-after.json','terminal.json','server.stdout','server.stderr','cli.stdout','cli.stderr'})
+             require(required<=set(index['files']),'Required closed execution evidence absent')
+-            observed_files={str(p.relative_to(folder)) for p in guarded_files(folder,self.budget)}
++            observed_files={str(p.relative_to(folder)) for p in guarded_files(folder,self.budget,reserve_index=True)}
+             require(observed_files==set(index['files'])|{'seal-index.json'},'Missing/extra sealed data')
+             for name,expected in index['files'].items():
+                 raw=Path(name); require(not raw.is_absolute() and '..' not in raw.parts,'Seal relative member')
+                 require(self.budget.call('root closed member hash',sha,folder/raw)==expected,'Closed required data changed')
+             digest=sha(folder/'terminal.json')
+             proofs=validate_observed_package(folder,terminal,index,self.budget)
+             binding=dict(kind=terminal.get('kind','actual'),folder=str(folder),seal_index_sha256=sha(folder/'seal-index.json'),member_hashes=dict(index['files']))
+         except Exception as exc:
+             error=type(exc).__name__; self.budget.failure=self.budget.failure or 'witness: '+str(exc)
+         finally:
+@@ -902,21 +971,21 @@
+     protected=admitted['baseline']['protected']; budget.call('root exact protected members',validate_protected_members,protected,p4)
+     for name in ('boundary-before.json','boundary-after.json'):
+         boundary=load(folder/name); require(boundary==dict(pins=admitted['pins'],protected=protected),'Substantive protected/pin boundary')
+     native=load(folder/'native-members.json')
+     require(native==getattr(budget,'native_members',None) and len(native.get('live_pids',[]))>=1 and len(native.get('members',[]))>=2,'Substantive native proof absent')
+     members={m['identity']['pid']:m for m in native['members']}; root=native['launcher_identity']['pid']; listener=load(folder/'listener.json')
+     require(listener==native['listener'] and listener['identity']['pid']!=root and members[listener['identity']['pid']]['parent']==root,'Observed native base listener relationship')
+     require(set(map(int,native['snapshot']))==set(native['live_pids']),'Observed complete native row set')
+     wire=read_raw(folder/'native-argv.raw'); proof=load(folder/'native-argv.json')
+     require(proof['raw_sha256']==hashlib.sha256(wire).hexdigest() and proof['raw_hex']==wire.hex() and proof['records']==native['snapshot'],'Original native raw/record proof binding')
+-    rows=json.loads(wire.decode('ascii')); rows=[rows] if isinstance(rows,dict) else rows
++    rows=strict_json(wire.decode('ascii')); rows=[rows] if isinstance(rows,dict) else rows
+     decoded={}
+     for row in rows:
+         row=dict(row); row['CommandLine']=base64.b64decode(row['CommandLineBase64'],validate=True).decode('utf-16-le')
+         decoded[str(row['ProcessId'])]=row
+     require(decoded==native['snapshot'],'Original native ASCII/UTF16 proof mismatch')
+     for pid,row in native['snapshot'].items():
+         member=members[int(pid)]; require(row['ParentProcessId']==member['parent'] and p4.argv_parse(row['CommandLine'])[1:]==native['argv'],'Observed native argv/parent')
+     tree=load(folder/'owned-tree.json'); cleanup=load(folder/'cleanup.json')
+     require(not tree.get('errors') and cleanup.get('status')=='PASS' and cleanup.get('port_closed') is True and not cleanup.get('errors'),'Substantive cleanup proof')
+     expected={m['identity']['pid']:m['identity'] for m in tree['processes']+tree.get('auxiliary',[])}
+@@ -934,21 +1003,21 @@
+         require(not p4.process_snapshot(list(expected)),'Native owned process remains at observation')
+         require(not p4.listener_owner(admitted['port']),'Listener remains at observation')
+         probe=p4.socket.socket(); probe.settimeout(1)
+         try: probe.connect_ex(('127.0.0.1',admitted['port']))
+         finally: probe.close()
+         require(io.port_closed,'Observed port closure unknown')
+     if mode=='inert':
+         validate_inert_exchange(load(folder/'inert-exchange.json'),getattr(budget,'inert_exchange',None),admitted,listener,budget)
+         require(load(folder/'protected-before.json')==protected and load(folder/'protected-after.json')==protected,'Inert protected proof')
+         roundtrip=load(folder/'argv-roundtrip.json'); require(roundtrip['question']==corpus()['query'] and native['argv']==inert_argv(folder,admitted['port']) and roundtrip['argv']==native['argv'][4:],'Observed original query/full argv roundtrip')
+-        require(not guarded_files(folder/'outputs',budget),'Unexpected inert outputs')
++        require(no_output_descendants(folder/'outputs',budget),'Unexpected inert outputs')
+     else:
+         cli=load(folder/'product-result.json'); service=load(folder/'service-first-result.json'); reconcile_results(cli,service)
+         require(cli.get('status')=='succeeded' and cli==load(folder/'first-product.raw'),'Observed first result mismatch')
+         attempt=load(folder/'attempt.json'); argv=load(folder/'argv.json')
+         require(all(cli[k]==attempt[k] for k in ('request_id','session_id')),'Observed CLI/attempt identity binding')
+         context=dict(folder=folder,port=admitted['port'],request_id=attempt['request_id'],session_id=attempt['session_id'])
+         server_args,cli_args=candidate_argv(context)
+         require(argv['server']==server_args==native['argv'] and argv['cli']==cli_args and terminal['product_status']==cli['status'] and terminal['product_result_sha256']==sha(folder/'product-result.json') and terminal['service_first_result_sha256']==sha(folder/'service-first-result.json'),'Observed CLI/service/argv manifest binding')
+         verify_exports(folder,cli,p4,readonly=True)
+         accepted=load(folder/'accepted-effects.json'); compare_pre_cleanup(accepted,load(folder/'pre-cleanup-effects.json'),p4)
+
+FILE H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\navigation-source10-validation-20261102\harness\headless_proof.py SHA256 0cc928afd81310907e46e318f9aee7d299480f40192158a2203f4c26f896d4f3 bytes 4162
+
+FILE H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\navigation-source10-validation-20261102\harness\manifest.json SHA256 84b85517f7aafe985d0c33a354ba3b5f9736ecb64f6e52d9da6eb9520a7bdcc3 bytes 3100
+--- base-e166/manifest.json
++++ H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\navigation-source10-validation-20261102\harness\manifest.json
+@@ -1,57 +1,63 @@
+ {
+-  "schema": 11,
++  "schema": 12,
+   "kind": "source10_harness_preparation_only",
+   "candidate": "118ba152b007c30d358c8bc44c51aabe8ae820f0",
+   "candidate_manifest_sha256": "cdfbfb059f889ef9e92221c503dffe2ca7fa08106ebf4968bcc26037f214be50",
+   "preparation_authority_sha256": "0e8c2e273bc2a4c35d0fd01e4c0022955609cb4bcecc2ec1f47d3bf95cdd5418",
+   "files": {
+-    "adapter.py": "b5b96b8eb8c1eccfec6d841e9a53724a49da610ca76145244e2a88be3453e9a1",
+-    "test_adapter.py": "31d20b69bd526eb589f40d2c691ef96b456e4bc127d6f6bbb6d5cae800c50d07",
+-    "run_checks.py": "58a2a44691559f63f8b2d9dbc15aff20bf0afc094e6177d8d7cf78115bace03f",
++    "adapter.py": "25f3befa2f3a9e5ccf66bdbf1bb954019de4296e3ea2ddf76f13f54230618093",
++    "test_adapter.py": "5b96ffec0a2b4c0ac329bebda0062996ba07fdd126ae144e9e22417bea99a1e3",
++    "run_checks.py": "6f2c3267c75e0f0b83e39353518769051f72fd464016b17767a71d6a158bf511",
+     "headless_proof.py": "0cc928afd81310907e46e318f9aee7d299480f40192158a2203f4c26f896d4f3",
+-    "README.md": "bc89a0ce8ff78dea98304682224d2f19de6bcc416c4181caebf1729a45b2afec"
++    "README.md": "f7db0b2991e7df040960d40641fd8c1bf53bc3f0027b679796a4ee06d0a90e75"
+   },
+   "authority_schema_status": "PROPOSED_REQUIRES_INDEPENDENT_ROOT_REVIEW",
+   "actual": false,
+   "inert_qualification_executed": false,
+   "original_corpus_profile_executed": false,
+   "model_calls": 0,
+   "product_launches": 0,
+   "T2": "NOT_PASSED",
+   "outer_timeout": "T4-D315-01 immutable eligibility deadline; monotonic_ns origin before admission, work275 cleanup310 seal315; trusted root enclosing witness required; no arbitrary-kernel preemption or recovery release",
+   "deadline_ruling_sha256": "144be9bc0a63294f5fd4e75c7cbe06f8e2ad2d51df36d0b11896d2455a0b4d47",
+   "schedule": {
+     "outer_seconds": 315,
+     "completion_inclusive": true,
+     "cleanup_seconds": 310,
+     "admission_strictly_positive": true,
+     "work_seconds": 275
+   },
+   "root_witness_contract": "One-shot trusted admitted context; sealed parent-held actual loopback GET observation; each directory/iteration/stat/hash budgeted; full runtime export safety closure and decoded scan; accepted/pre/post/current output maps equal; original proof and eligibility rules unchanged",
+-  "formal_fix_round": 2,
++  "formal_fix_round": 3,
+   "addressed_review_ids": [
+-    "H01",
+-    "H02",
+-    "H14",
+     "F1-N01",
+-    "F1-N02",
+-    "F1-N03"
++    "F2-N01",
++    "F2-N02",
++    "F2-N03"
+   ],
+-  "review_status": "SCOPED_FIX2_REREVIEW_REQUIRED_NOT_APPROVED",
++  "review_status": "SCOPED_FIX3_REREVIEW_REQUIRED_NOT_APPROVED",
+   "export_format": 2,
+   "child_entry": "Exactly one validated native base under one original retained launcher; launcher ancestry-only; unique base clearance consumption and final work-budget admission before product/listener startup",
+   "prior_independently_closed_ids": [
++    "H01",
++    "H02",
+     "H03",
+     "H04",
+     "H05",
+     "H06",
+     "H07",
+     "H08",
+     "H09",
+     "H10",
+     "H11",
+     "H12",
+     "H13",
+-    "H15"
+-  ]
++    "H14",
++    "H15",
++    "F1-N02",
++    "F1-N03"
++  ],
++  "minor_review_disposition": "F2-N03 addressed surgically; independent disposition pending",
++  "export_safety_contract": "Strict duplicate/nonfinite JSON at actual typed producer boundaries; ordinary metadata and ACK remain scanned prose; no field-name/suffix decoding; unsafe counters refused before raw publication",
++  "directory_effect_contract": "Inert outputs require no descendants including empty directories; observer reserves exactly one fixed root seal-index.json beyond common256 DATA cap; index exact-set/digest and deadline guards retained"
+ }
+
+FILE H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\navigation-source10-validation-20261102\harness\run_checks.py SHA256 6f2c3267c75e0f0b83e39353518769051f72fd464016b17767a71d6a158bf511 bytes 5359
+--- base-e166/run_checks.py
++++ H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\navigation-source10-validation-20261102\harness\run_checks.py
+@@ -18,20 +18,21 @@
+ def snapshot():
+     m = json.loads((V/'source10-candidate-manifest.json').read_text('utf8'))
+     files = dict(m['source_files'], **m['sdk22'], **m['dependencies'])
+     files[m['model']['policy_path']] = m['model']['policy_sha256']
+     files[m['model']['local_manifest_path']] = m['model']['local_manifest_observed_sha256']
+     files[str(V/'harness-preparation-authority.json')] = '0e8c2e273bc2a4c35d0fd01e4c0022955609cb4bcecc2ec1f47d3bf95cdd5418'
+     files[str(V/'source10-candidate-manifest.json')] = 'cdfbfb059f889ef9e92221c503dffe2ca7fa08106ebf4968bcc26037f214be50'
+     files[str(V/'harness-deadline-design/root-decision.json')]='144be9bc0a63294f5fd4e75c7cbe06f8e2ad2d51df36d0b11896d2455a0b4d47'
+     report=Path(m['candidate_root'])/'.superpowers/sdd/jarvis-work-capability-delivery-plan-20261101/task-4-navigation-adapter-report.md'
+     report_bytes=report.read_bytes()
++    if hashlib.sha256(report_bytes[:69552]).hexdigest()!='6f9926ac5819579c80367fa2c510fe0f9654839e3a6b185d9e66219bc1a56168': raise ValueError('Fix2 author prefix drift')
+     if hashlib.sha256(report_bytes[:13665]).hexdigest()!='47246ba87216f07d696a7bb2b1bb38d525fa7c99eb83a72e694552090dc3c2c1' or hashlib.sha256(report_bytes[:30837]).hexdigest()!='b61101512a5e49ccb65d015de835ea1ecd87abc49c199702a2d91255fb52ecab' or hashlib.sha256(report_bytes[:52443]).hexdigest()!='594584b5ad328070a41d3b9f6a5f29f4f74a0ba8bbd08115932adf968011452b': raise ValueError('Original author report prefix drift')
+     actual = {p: digest(p) for p in files}
+     if actual != files:
+         raise ValueError('Pinned preparation input drift')
+     return actual
+ 
+ def main():
+     if sys.argv[1:] != ['adapter'] or Path(sys.executable).resolve() != PY.resolve() or not sys.flags.dont_write_bytecode or sys.flags.utf8_mode != 1:
+         raise ValueError('Fixed H Python -B -X utf8 and adapter required')
+     before = snapshot()
+
+FILE H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\navigation-source10-validation-20261102\harness\test_adapter.py SHA256 5b96ffec0a2b4c0ac329bebda0062996ba07fdd126ae144e9e22417bea99a1e3 bytes 72063
+--- base-e166/test_adapter.py
++++ H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\navigation-source10-validation-20261102\harness\test_adapter.py
+@@ -731,21 +731,21 @@
+     assert (status==0)==(fault=='none') and receipt['pytest_exit_code']==0
+     assert receipt['exit_code']==status
+ 
+ def test_fix1_h11_import_path_restored_on_failure():
+     original=list(sys.path)
+     with pytest.raises(ValueError):
+         with a.candidate_import_path():
+             assert sys.path[0]==str(a.C); raise ValueError('injected')
+     assert sys.path==original
+ 
+-@pytest.mark.parametrize('fault',['none','protected-empty','native-subset','cleanup-subset','missing-exchange','wrong-endpoint','wrong-listener','wrong-response','nonboolean-response','late-exchange','no-parent-exchange'])
++@pytest.mark.parametrize('fault',['none','protected-empty','native-subset','cleanup-subset','missing-exchange','wrong-endpoint','wrong-listener','wrong-response','nonboolean-response','late-exchange','no-parent-exchange','empty-task-directory'])
+ def test_fix1_h02_substantive_closed_witness_positive_and_faults(tmp_path,monkeypatch,fault):
+     import base64,os
+     from collections import OrderedDict
+     original_v=a.V; original_here=a.HERE
+     virtual=tmp_path/'virtual-root'; here=virtual/'harness'; here.mkdir(parents=True)
+     for source in original_here.iterdir():
+         if source.is_file(): (here/source.name).write_bytes(source.read_bytes())
+     for name in ('source10-candidate-manifest.json','harness-preparation-authority.json'):
+         (virtual/name).write_bytes((original_v/name).read_bytes())
+     (virtual/'harness-deadline-design').mkdir()
+@@ -813,20 +813,21 @@
+             cleanup=io.cleanup(owned,18799)
+         if fault=='protected-empty': (folder/'protected-after.json').write_text('[]')
+         elif fault=='native-subset':
+             malformed=a.load(folder/'native-members.json'); malformed['snapshot'].pop('1')
+             (folder/'native-members.json').write_text(json.dumps(malformed))
+         elif fault=='cleanup-subset':
+             malformed=a.load(folder/'cleanup.json'); malformed['processes'].pop()
+             (folder/'cleanup.json').write_text(json.dumps(malformed))
+         elif fault=='missing-exchange': (folder/'inert-exchange.json').unlink()
+         elif fault=='no-parent-exchange': del b.inert_exchange
++        elif fault=='empty-task-directory': (folder/'outputs/unexpected-task').mkdir(parents=True)
+         elif fault in ('wrong-endpoint','wrong-listener','wrong-response','nonboolean-response','late-exchange'):
+             malformed=a.load(folder/'inert-exchange.json')
+             if fault=='wrong-endpoint': malformed['endpoint']='http://127.0.0.1:11434/inert'
+             elif fault=='wrong-listener': malformed['listener']['identity']['pid']=999
+             elif fault=='wrong-response': malformed['response']=dict(inert=False)
+             elif fault=='nonboolean-response': malformed['response']=dict(inert=1)
+             else: malformed['after_ns']=b.cutoff_ns('work')+1
+             (folder/'inert-exchange.json').write_text(json.dumps(malformed))
+         b.phase='seal'
+         terminal=dict(kind='inert',folder=str(folder),run_id=b.run_id,timing=b.timing(),overall='READY_FOR_ROOT_TIMING_WITNESS',cleanup=cleanup,errors=[],first_failure=None)
+@@ -993,10 +994,92 @@
+         with pytest.raises(TimeoutError,match='inert child listener startup'): a.inert_child_entry(context,p4,argv,'authority',constructor=Server)
+         assert not constructed and not closed and 'inert child listener startup' in b.failure
+     else:
+         a.inert_child_entry(context,p4,argv,'authority',constructor=Server); assert constructed and closed
+     assert (tmp_path/'child-clearance.consumed.json').exists()
+ 
+ def test_fix2_n03_equal_pre_cleanup_inventory_positive(tmp_path):
+     p4=a.load_p4(); output=tmp_path/'outputs'; output.mkdir(); (output/'research.md').write_bytes(b'accepted')
+     accepted=p4.output_inventory(tmp_path)
+     assert a.compare_pre_cleanup(accepted,p4.output_inventory(tmp_path),p4) is None
++
++@pytest.mark.parametrize('variant',['duplicate','entity'])
++def test_fix3_f1_exact_coherent_metadata_counter_never_published(tmp_path,monkeypatch,sdk_io,mock_jar,variant):
++    from src.brain.work_navigation import canonical_v3
++    from src.brain.work_research import verify_runtime_packet
++    from src.brain.tests.test_work_navigation_transport import escaped_scanner_fixture
++    result,ledger=synthetic_bundle(tmp_path,sdk_io,mock_jar,monkeypatch,write=False)
++    sentinel=escaped_scanner_fixture(); assert any(not s.scan(sentinel).clean for s in ledger._policy.scanners)
++    packet=json.loads(ledger._runtime_final)
++    packet['execution']['files'][0]['result']=('{"slot":'+json.dumps(sentinel)+',"slot":"safe"}' if variant=='duplicate' else json.dumps(dict(nested=dict(entity=sentinel))))
++    raw=canonical_v3(packet)
++    verify_runtime_packet(ledger._binding,ledger.issued_snapshot,ledger._collection,raw,require_ack=True,runtime_inputs=ledger._runtime_inputs)
++    ledger._runtime_final=raw; published=[]
++    monkeypatch.setattr(a,'preserve_completed_members',lambda *args:published.append(args[1]))
++    with pytest.raises(ValueError): a.export_completed(tmp_path,ledger,result)
++    assert not published and not list(tmp_path.glob('trusted-*.raw'))
++
++def test_fix3_f2_observation_ack_is_genuine_scanned_prose(tmp_path,monkeypatch,sdk_io,mock_jar):
++    from dataclasses import asdict
++    from src.brain.work_navigation import canonical_v3
++    from src.brain.work_research import verify_runtime_packet
++    from src.brain.tests.test_work_navigation_transport import rewrite_response
++    result,ledger=synthetic_bundle(tmp_path,sdk_io,mock_jar,monkeypatch,write=False)
++    answer='Observation: the report is complete.'
++    assert all(s.scan(answer).clean for s in ledger._policy.scanners)
++    packet=json.loads(ledger._runtime_final); value=dict(final_answer=answer)
++    rewrite_response(packet,len(packet['wires'])-1,value,canonical_v3(value).decode())
++    raw=canonical_v3(packet)
++    verify_runtime_packet(ledger._binding,ledger.issued_snapshot,ledger._collection,raw,require_ack=True,runtime_inputs=ledger._runtime_inputs)
++    ledger._runtime_final=raw; result['content']=answer
++    a.save_new(tmp_path/'service-first-result.json',result); a.save_new(tmp_path/'runtime-inputs.json',asdict(ledger._runtime_inputs))
++    a.export_completed(tmp_path,ledger,result)
++    assert a.verify_exports(tmp_path,result,a.load_p4())['native_POST_attempts']==5
++
++@pytest.mark.parametrize('data_count',[256,257])
++def test_fix3_f2_data_member_cap_writer_observer_agree(tmp_path,data_count):
++    p4=a.load_p4(); b=a.Deadline(); b.phase='seal'
++    for index in range(data_count): (tmp_path/f'data-{index:03}.txt').write_bytes(b'data')
++    if data_count==257:
++        with pytest.raises(ValueError): a.seal_index(tmp_path,b,p4)
++        assert not (tmp_path/'seal-index.json').exists()
++    else:
++        a.seal_index(tmp_path,b,p4)
++        observed=a.guarded_files(tmp_path,b,reserve_index=True)
++        assert len(observed)==257 and len(a.load(tmp_path/'seal-index.json')['files'])==256
++
++@pytest.mark.parametrize('raw',['{"x":0,"x":1}','{"outer":[{"x":"first","x":"last"}]}',r'{"a":1,"\u0061":2}'])
++def test_fix3_f1_strict_duplicate_decoder_at_each_depth(raw):
++    with pytest.raises(ValueError,match='Duplicate export JSON member'): a.strict_json(raw)
++
++def test_fix3_f1_duplicate_actual_timeout_json_boundary_never_published(tmp_path,monkeypatch,sdk_io,mock_jar):
++    from src.brain.work_navigation import canonical_v3
++    from src.brain.work_research import verify_runtime_packet
++    result,ledger=synthetic_bundle(tmp_path,sdk_io,mock_jar,monkeypatch,write=False)
++    packet=json.loads(ledger._runtime_final); receipt=packet['transport']['receipts'][-1]
++    receipt['timeout_json']='{"connect":123,'+receipt['timeout_json'][1:]
++    raw=canonical_v3(packet)
++    verify_runtime_packet(ledger._binding,ledger.issued_snapshot,ledger._collection,raw,require_ack=True,runtime_inputs=ledger._runtime_inputs)
++    ledger._runtime_final=raw; published=[]
++    monkeypatch.setattr(a,'preserve_completed_members',lambda *args:published.append(args[1]))
++    with pytest.raises(ValueError,match='Duplicate export JSON member'): a.export_completed(tmp_path,ledger,result)
++    assert not published and not list(tmp_path.glob('trusted-*.raw'))
++
++@pytest.mark.parametrize('lookalike',['nested','suffix','other'])
++def test_fix3_f2_index_reservation_never_exempts_other_data(tmp_path,lookalike):
++    b=a.Deadline(); b.phase='seal'
++    for index in range(256): (tmp_path/f'data-{index:03}.txt').write_bytes(b'data')
++    a.save_new(tmp_path/'seal-index.json',{})
++    if lookalike=='nested':
++        (tmp_path/'nested').mkdir(); a.save_new(tmp_path/'nested/seal-index.json',{})
++    elif lookalike=='suffix':
++        a.save_new(tmp_path/'seal-index.json.extra',{})
++    else: a.save_new(tmp_path/'other-index.json',{})
++    with pytest.raises(ValueError,match='data member cap'): a.guarded_files(tmp_path,b,reserve_index=True)
++
++@pytest.mark.parametrize('effect',['absent','empty-root','empty-task','file'])
++def test_fix3_f2_inert_no_descendants_includes_empty_directories(tmp_path,effect):
++    root=tmp_path/'outputs'; b=a.Deadline(); b.phase='seal'
++    if effect!='absent': root.mkdir()
++    if effect=='empty-task': (root/'unexpected-task').mkdir()
++    elif effect=='file': (root/'unexpected.md').write_bytes(b'effect')
++    assert a.no_output_descendants(root,b)==(effect in ('absent','empty-root'))
