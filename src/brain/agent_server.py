@@ -186,6 +186,14 @@ def _strict_json(data):
     return value
 
 
+def _research_output_tokens(value):
+    if value is None:
+        return 2048
+    if type(value) is not int or value <= 0:
+        raise ValueError('Research max_tokens must be a positive integer')
+    return min(value,4096)
+
+
 def _research_budget(messages, schema, output):
     from openjarvis.core.types import Message,Role
     from openjarvis.engine._base import estimate_prompt_tokens
@@ -393,6 +401,7 @@ def _run_work_agent(query, *, binding, tools, max_tokens=None):
     from copy import copy
     bound = _ACTIVE.get()
     research = bool(bound and bound[0] is binding and bound[2] and bound[2].research_json)
+    allowance = _research_output_tokens(max_tokens) if research else (max_tokens or 2048)
     with bound[1].lock_for_report(_ask_lock) if research else _ask_lock:
         jars = get_jarvis()
         view = client = None
@@ -420,7 +429,7 @@ def _run_work_agent(query, *, binding, tools, max_tokens=None):
         result = {}
         try:
             result = jars.ask_full(query, agent=AGENT, tools=tools, context=False,
-                                   max_tokens=max_tokens or 2048)
+                                   max_tokens=allowance)
             if view:
                 view.check_dispatch()
                 if not view.final:
@@ -1004,7 +1013,10 @@ class _Handler(BaseHTTPRequestHandler):
             return
         try:
             max_tokens = payload.get("max_tokens")
-            if max_tokens is not None:
+            context = payload.get('context')
+            if payload.get('mode')=='work' and isinstance(context,dict) and context.get('research') is True:
+                max_tokens = _research_output_tokens(max_tokens)
+            elif max_tokens is not None:
                 max_tokens = int(max_tokens)  # 非数字 → 400 参数错误（不误报推理失败）
         except (TypeError, ValueError):
             self._send_json(400, {"ok": False, "error": "max_tokens 必须为整数。"})

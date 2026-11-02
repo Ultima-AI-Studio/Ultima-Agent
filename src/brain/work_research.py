@@ -253,7 +253,7 @@ def _js_support(body, first, last, kind, symbol, suffix, rows=None):
                 break
             continue
         if family in Comment:
-            if (kind == 'limitation' and first <= line and end <= last
+            if (kind == 'limitation' and symbol is None and first <= line and end <= last
                     and re.search(r'\b(?:TODO|FIXME|unimplemented)\b', value, re.I)):
                 return True
         elif family in Error or line < first or end > last:
@@ -297,7 +297,9 @@ def _js_support(body, first, last, kind, symbol, suffix, rows=None):
                 if i == len(words)-1 and following not in (
                         None, ';', '}', 'return', 'throw', 'const', 'let', 'var', 'if'):
                     return False
-                return callee == symbol if kind == 'code' else throwing or callee.split('.')[-1] in ('warn','warning')
+                if kind == 'code':
+                    return callee == symbol
+                return (symbol is None or callee == symbol) and (throwing or callee.split('.')[-1] in ('warn','warning'))
     return False
 
 
@@ -346,6 +348,22 @@ def _fact_evidence(fact, source, visible, syntax=None):
     return dict(fact, text=excerpt, **{k:source[k] for k in keys})
 
 
+def _js_statement_anchor(body, callee_line, operation, suffix, rows, visible):
+    # A prefix (assignment, return/await, throw/new) may precede the callee.
+    # Start nearest the callee and stop at the first complete visible statement.
+    for first in range(callee_line,max(0,callee_line-8),-1):
+        if first not in visible:
+            break
+        for last in range(callee_line,first+8):
+            if last not in visible:
+                break
+            if _js_support(body,first,last,'code',operation,suffix,rows):
+                return first,last,'code',operation
+            if _js_support(body,first,last,'limitation',operation,suffix,rows):
+                return first,last,'limitation',''
+    return None
+
+
 def _anchors(source, visible, syntax):
     suffix = PurePosixPath(urlsplit(source['final_url']).path).suffix.lower()
     body = source['body']
@@ -379,17 +397,11 @@ def _anchors(source, visible, syntax):
                 op = ''.join(row[3] for row in rows[begin:idx+1])
                 if len(op) > 200 or not re.fullmatch(r'[A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*)*', op):
                     continue
-                for last in range(first, first+8):
-                    if last not in visible:
-                        break
-                    if _js_support(body,first,last,'code',op,suffix,rows):
-                        yield first, last, 'code', op
-                        if op.split('.')[-1] in ('warn','warning'):
-                            yield first, last, 'limitation', ''
-                        break
-                    if _js_support(body,first,last,'limitation',None,suffix,rows):
-                        yield first, last, 'limitation', ''
-                        break
+                anchor = _js_statement_anchor(body,first,op,suffix,rows,visible)
+                if anchor:
+                    yield anchor
+                    if anchor[2]=='code' and op.split('.')[-1] in ('warn','warning'):
+                        yield anchor[0],anchor[1],'limitation',''
 
 
 def reference_cards(catalogue):

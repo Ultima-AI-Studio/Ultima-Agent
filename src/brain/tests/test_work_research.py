@@ -948,3 +948,71 @@ def test_source6_lock_wait_uses_entry_deadline(tmp_path,sdk_io,mock_jar,monkeypa
     r=submit(tmp_path,sdk_io[0],runner)
     assert r['status']=='failed' and 'deadline' in r['error'] and not bodies
     assert len(waits)==1 and 0 < waits[0] <= 205
+
+@pytest.mark.parametrize('allowance', [-1, -999, 0, True, 12.5, '15'])
+def test_source7_refuses_invalid_allowance_before_native_generation(tmp_path, sdk_io, mock_jar, allowance):
+    _, runner, bodies, replies = mock_jar
+    replies.append('{"final_answer":"refusal"}')
+    result = WorkService(tmp_path, runner=runner, browser_channel=sdk_io[0]).submit_work(
+        'Research a subject', request_id='r', session_id='s', context={'research':True}, max_tokens=allowance)
+    assert result['status']=='failed' and not bodies
+    assert 'positive integer' in result['error']
+    assert not result.get('research_effects')
+
+
+@pytest.mark.parametrize('allowance,expected', [(None,[2048,512]),(32,[32,32]),(8192,[4096,512])])
+def test_source7_bounded_native_author_and_ack(tmp_path, sdk_io, mock_jar, allowance, expected):
+    _, runner, bodies, replies = mock_jar
+    replies.extend([action(report_payload()),'{"final_answer":"saved"}'])
+    result = WorkService(tmp_path, runner=runner, browser_channel=sdk_io[0]).submit_work(
+        'Research a subject', request_id='r',session_id='s',context={'research':True},max_tokens=allowance)
+    assert result['status']=='succeeded', result['error']
+    assert [b['options']['num_predict'] for b in bodies]==expected
+
+
+@pytest.mark.parametrize('allowance', [True, 12.5, '15'])
+def test_source7_http_research_refuses_coercion(monkeypatch, allowance):
+    import io
+    from types import SimpleNamespace
+    from src.brain import agent_server
+    body=json.dumps(dict(mode='work',query='topic',context={'research':True},max_tokens=allowance)).encode()
+    replies=[]
+    handler=SimpleNamespace(path='/ask', headers={'Content-Length':str(len(body))},rfile=io.BytesIO(body),
+                            _send_json=lambda status,result: replies.append((status,result)))
+    monkeypatch.setattr(agent_server,'_work_service',None)
+    agent_server._Handler.do_POST(handler)
+    assert replies[0][0]==400
+
+
+@pytest.mark.parametrize('suffix',['js','ts'])
+@pytest.mark.parametrize('statement,kind,operation',[
+    ('const result =\n  queue.dispatch(item);','code','queue.dispatch'),
+    ('const result =\n  logger.warn(item);','limitation','logger.warn'),
+    ('throw new\n  TypeError(item);','limitation','TypeError'),
+])
+def test_source7_split_prefix_issued_and_reopened(tmp_path,sdk_io,monkeypatch,suffix,statement,kind,operation):
+    import httpx
+    from src.brain.work_research import _js_support
+    from src.brain.work_tools import WorkResearchWriteTool
+    code='https://example.com/example.'+suffix
+    urls=[code,*URLS[:2]]
+    def fetch(method,url,**kw):
+        text=statement if url==code else 'Document '+url
+        return httpx.Response(200,headers={'content-type':'text/plain'},text=text,request=httpx.Request(method,url))
+    monkeypatch.setattr(httpx,'request',fetch)
+    def write(*a,**kw):
+        tool=WorkResearchWriteTool()
+        refs=[(k,v) for k,v in tool.cards.items() if v['source_id']=='S1' and v['kind']==kind]
+        assert len(refs)==1
+        key,card=refs[0]
+        assert (card['first_line'],card['last_line'])==(1,2)
+        payload=report_payload()
+        payload['sections'][0]['facts']=[dict(evidence_id=key,claim='Observed '+operation)]
+        assert tool.execute(**payload).success
+        return {}
+    r=submit(tmp_path,sdk_io[0],write,source_urls=urls)
+    assert r['status']=='succeeded',r['error']
+    rec=next(t['result'] for t in r['tool_results'] if t.get('tool_name')=='ultima_work_research_write')
+    assert rec['evidence'][0]['text']==statement
+    assert Path(r['artifacts'][0]['path']).read_text(encoding='utf8').find('Observed '+operation)>=0
+    assert not _js_support(statement,2,2,kind,operation,'.'+suffix)
