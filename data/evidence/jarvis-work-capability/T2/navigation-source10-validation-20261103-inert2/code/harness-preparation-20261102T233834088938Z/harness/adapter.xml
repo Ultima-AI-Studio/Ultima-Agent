@@ -1,0 +1,141 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="2" skipped="0" tests="36" time="4.965" timestamp="2026-11-03T07:38:34.400119+08:00" hostname="DESKTOP-B366PQ9"><testcase classname="harness.test_adapter" name="test_port_rev2_real_cleanup_delayed_refusal[sufficient-inert]" time="0.028" /><testcase classname="harness.test_adapter" name="test_port_rev2_real_cleanup_delayed_refusal[sufficient-actual]" time="0.016" /><testcase classname="harness.test_adapter" name="test_port_rev2_real_cleanup_delayed_refusal[clipped-sufficient-inert]" time="0.015" /><testcase classname="harness.test_adapter" name="test_port_rev2_real_cleanup_delayed_refusal[clipped-sufficient-actual]" time="0.015" /><testcase classname="harness.test_adapter" name="test_port_rev2_real_cleanup_delayed_refusal[clipped-unknown-inert]" time="0.014"><failure message="FileNotFoundError: [Errno 2] No such file or directory: 'H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\navigation-source10-validation-20261103-inert2\\code\\harness-preparation-20261102T233834088938Z\\temp\\test_port_rev2_real_cleanup_de4\\cleanup.json'">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261103-inert2/code/harness-preparation-20261102T233834088938Z/temp/test_port_rev2_real_cleanup_de4')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000002259F0949E0&gt;
+mode = 'inert'
+scenario = {'name': 'clipped-unknown', 'remaining': 2, 'setup': 0, 'eligible': False, ...}
+
+    @pytest.mark.parametrize('mode',['inert','actual'])
+    @pytest.mark.parametrize('scenario',[
+        dict(name='sufficient',remaining=10,setup=0,eligible=True,effective=3),
+        dict(name='clipped-sufficient',remaining=2.5,setup=0,eligible=True,effective=2.5),
+        dict(name='clipped-unknown',remaining=2,setup=0,eligible=False,effective=2),
+        dict(name='setup-sufficient',remaining=10,setup=.8,eligible=True,effective=2.2),
+        dict(name='setup-unknown',remaining=10,setup=1.1,eligible=False,effective=1.9),
+        dict(name='zero-before-connect',remaining=10,setup=3,eligible=False,effective=None),
+        dict(name='10035',remaining=10,code=10035,eligible=False,effective=3),
+        dict(name='10060',remaining=10,code=10060,eligible=False,effective=3),
+        dict(name='open',remaining=10,code=0,eligible=False,effective=3),
+        dict(name='other',remaining=10,code=12345,eligible=False,effective=3),
+        dict(name='missing',remaining=10,code=None,eligible=False,effective=3),
+        dict(name='error',remaining=10,error=True,eligible=False,effective=3),
+        dict(name='late-phase',remaining=2.5,overrun=1,eligible=False,effective=2.5),
+        dict(name='late-private-cap',remaining=10,overrun=1.1,eligible=False,effective=3),
+    ],ids=lambda v:v['name'])
+    def test_port_rev2_real_cleanup_delayed_refusal(tmp_path,monkeypatch,mode,scenario):
+        scenario=dict(scenario); clock=Clock(); b=a.Deadline(clock=clock); b.phase='cleanup'
+        b.admitted=dict(mode=mode); p4=a.load_p4(); active=set()
+        native_kernel(monkeypatch,p4,active,clock)
+        p4.protected=lambda:[]
+        p4.subprocess=types.SimpleNamespace(check_output=lambda *args,**kwargs:b'[]',CREATE_NO_WINDOW=0)
+        probes=install_delayed_port(p4,clock,scenario)
+        saved={key:getattr(p4,key) for key in ('socket','time','subprocess','terminate_owned','save')}
+        owned=p4.Owned(tmp_path,{})
+        owned.known[1]=dict(identity=p4.identity(1),role='server',argv=[],parent=0)
+        clock.value=b.cutoff_ns()-int(scenario['remaining']*1e9)
+        with a.PrivateIO(p4,b) as io:
+            result=io.cleanup(owned,18799)
+            assert (result['status']=='PASS') is scenario['eligible'],result
+            assert io.port_closed is scenario['eligible']
+            if scenario.get('code',10035) in (10035,10060,12345,None) and not scenario.get('error') and not scenario.get('overrun') and scenario['effective'] is not None:
+                # Original P4's any-nonzero verdict is insufficient for strict eligibility.
+&gt;               original=a.load(tmp_path/'cleanup.json')
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+..\..\harness\test_adapter.py:1212: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+..\..\harness\adapter.py:229: in load
+    raw=observed_io('observed JSON '+str(path),read)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\harness\adapter.py:213: in observed_io
+    return budget.call(label,function) if budget is not None else function()
+                                                                  ^^^^^^^^^^
+..\..\harness\adapter.py:228: in read
+    with Path(path).open('rb') as stream: return stream.read(CAP+1)
+         ^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261103-inert2/code/harness-preparation-20261102T233834088938Z/temp/test_port_rev2_real_cleanup_de4/cleanup.json')
+mode = 'rb', buffering = -1, encoding = None, errors = None, newline = None
+
+    def open(self, mode='r', buffering=-1, encoding=None,
+             errors=None, newline=None):
+        """
+        Open the file pointed to by this path and return a file object, as
+        the built-in open() function does.
+        """
+        if "b" not in mode:
+            encoding = io.text_encoding(encoding)
+&gt;       return io.open(self, mode, buffering, encoding, errors, newline)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       FileNotFoundError: [Errno 2] No such file or directory: 'H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\navigation-source10-validation-20261103-inert2\\code\\harness-preparation-20261102T233834088938Z\\temp\\test_port_rev2_real_cleanup_de4\\cleanup.json'
+
+C:\Users\Administrator\AppData\Local\Doubao\User Data\sandbox_runtime\bases\772984f6fd3a8ae0ae7d2422cd7c2bfa\python\Lib\pathlib\_local.py:537: FileNotFoundError</failure></testcase><testcase classname="harness.test_adapter" name="test_port_rev2_real_cleanup_delayed_refusal[clipped-unknown-actual]" time="0.013"><failure message="FileNotFoundError: [Errno 2] No such file or directory: 'H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\navigation-source10-validation-20261103-inert2\\code\\harness-preparation-20261102T233834088938Z\\temp\\test_port_rev2_real_cleanup_de5\\cleanup.json'">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261103-inert2/code/harness-preparation-20261102T233834088938Z/temp/test_port_rev2_real_cleanup_de5')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000002259F0A5850&gt;
+mode = 'actual'
+scenario = {'name': 'clipped-unknown', 'remaining': 2, 'setup': 0, 'eligible': False, ...}
+
+    @pytest.mark.parametrize('mode',['inert','actual'])
+    @pytest.mark.parametrize('scenario',[
+        dict(name='sufficient',remaining=10,setup=0,eligible=True,effective=3),
+        dict(name='clipped-sufficient',remaining=2.5,setup=0,eligible=True,effective=2.5),
+        dict(name='clipped-unknown',remaining=2,setup=0,eligible=False,effective=2),
+        dict(name='setup-sufficient',remaining=10,setup=.8,eligible=True,effective=2.2),
+        dict(name='setup-unknown',remaining=10,setup=1.1,eligible=False,effective=1.9),
+        dict(name='zero-before-connect',remaining=10,setup=3,eligible=False,effective=None),
+        dict(name='10035',remaining=10,code=10035,eligible=False,effective=3),
+        dict(name='10060',remaining=10,code=10060,eligible=False,effective=3),
+        dict(name='open',remaining=10,code=0,eligible=False,effective=3),
+        dict(name='other',remaining=10,code=12345,eligible=False,effective=3),
+        dict(name='missing',remaining=10,code=None,eligible=False,effective=3),
+        dict(name='error',remaining=10,error=True,eligible=False,effective=3),
+        dict(name='late-phase',remaining=2.5,overrun=1,eligible=False,effective=2.5),
+        dict(name='late-private-cap',remaining=10,overrun=1.1,eligible=False,effective=3),
+    ],ids=lambda v:v['name'])
+    def test_port_rev2_real_cleanup_delayed_refusal(tmp_path,monkeypatch,mode,scenario):
+        scenario=dict(scenario); clock=Clock(); b=a.Deadline(clock=clock); b.phase='cleanup'
+        b.admitted=dict(mode=mode); p4=a.load_p4(); active=set()
+        native_kernel(monkeypatch,p4,active,clock)
+        p4.protected=lambda:[]
+        p4.subprocess=types.SimpleNamespace(check_output=lambda *args,**kwargs:b'[]',CREATE_NO_WINDOW=0)
+        probes=install_delayed_port(p4,clock,scenario)
+        saved={key:getattr(p4,key) for key in ('socket','time','subprocess','terminate_owned','save')}
+        owned=p4.Owned(tmp_path,{})
+        owned.known[1]=dict(identity=p4.identity(1),role='server',argv=[],parent=0)
+        clock.value=b.cutoff_ns()-int(scenario['remaining']*1e9)
+        with a.PrivateIO(p4,b) as io:
+            result=io.cleanup(owned,18799)
+            assert (result['status']=='PASS') is scenario['eligible'],result
+            assert io.port_closed is scenario['eligible']
+            if scenario.get('code',10035) in (10035,10060,12345,None) and not scenario.get('error') and not scenario.get('overrun') and scenario['effective'] is not None:
+                # Original P4's any-nonzero verdict is insufficient for strict eligibility.
+&gt;               original=a.load(tmp_path/'cleanup.json')
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+..\..\harness\test_adapter.py:1212: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+..\..\harness\adapter.py:229: in load
+    raw=observed_io('observed JSON '+str(path),read)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\harness\adapter.py:213: in observed_io
+    return budget.call(label,function) if budget is not None else function()
+                                                                  ^^^^^^^^^^
+..\..\harness\adapter.py:228: in read
+    with Path(path).open('rb') as stream: return stream.read(CAP+1)
+         ^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261103-inert2/code/harness-preparation-20261102T233834088938Z/temp/test_port_rev2_real_cleanup_de5/cleanup.json')
+mode = 'rb', buffering = -1, encoding = None, errors = None, newline = None
+
+    def open(self, mode='r', buffering=-1, encoding=None,
+             errors=None, newline=None):
+        """
+        Open the file pointed to by this path and return a file object, as
+        the built-in open() function does.
+        """
+        if "b" not in mode:
+            encoding = io.text_encoding(encoding)
+&gt;       return io.open(self, mode, buffering, encoding, errors, newline)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       FileNotFoundError: [Errno 2] No such file or directory: 'H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\navigation-source10-validation-20261103-inert2\\code\\harness-preparation-20261102T233834088938Z\\temp\\test_port_rev2_real_cleanup_de5\\cleanup.json'
+
+C:\Users\Administrator\AppData\Local\Doubao\User Data\sandbox_runtime\bases\772984f6fd3a8ae0ae7d2422cd7c2bfa\python\Lib\pathlib\_local.py:537: FileNotFoundError</failure></testcase><testcase classname="harness.test_adapter" name="test_port_rev2_real_cleanup_delayed_refusal[setup-sufficient-inert]" time="0.016" /><testcase classname="harness.test_adapter" name="test_port_rev2_real_cleanup_delayed_refusal[setup-sufficient-actual]" time="0.015" /><testcase classname="harness.test_adapter" name="test_port_rev2_real_cleanup_delayed_refusal[setup-unknown-inert]" time="0.015" /><testcase classname="harness.test_adapter" name="test_port_rev2_real_cleanup_delayed_refusal[setup-unknown-actual]" time="0.015" /><testcase classname="harness.test_adapter" name="test_port_rev2_real_cleanup_delayed_refusal[zero-before-connect-inert]" time="0.012" /><testcase classname="harness.test_adapter" name="test_port_rev2_real_cleanup_delayed_refusal[zero-before-connect-actual]" time="0.014" /><testcase classname="harness.test_adapter" name="test_port_rev2_real_cleanup_delayed_refusal[10035-inert]" time="0.015" /><testcase classname="harness.test_adapter" name="test_port_rev2_real_cleanup_delayed_refusal[10035-actual]" time="0.015" /><testcase classname="harness.test_adapter" name="test_port_rev2_real_cleanup_delayed_refusal[10060-inert]" time="0.015" /><testcase classname="harness.test_adapter" name="test_port_rev2_real_cleanup_delayed_refusal[10060-actual]" time="0.015" /><testcase classname="harness.test_adapter" name="test_port_rev2_real_cleanup_delayed_refusal[open-inert]" time="0.013" /><testcase classname="harness.test_adapter" name="test_port_rev2_real_cleanup_delayed_refusal[open-actual]" time="0.013" /><testcase classname="harness.test_adapter" name="test_port_rev2_real_cleanup_delayed_refusal[other-inert]" time="0.015" /><testcase classname="harness.test_adapter" name="test_port_rev2_real_cleanup_delayed_refusal[other-actual]" time="0.015" /><testcase classname="harness.test_adapter" name="test_port_rev2_real_cleanup_delayed_refusal[missing-inert]" time="0.016" /><testcase classname="harness.test_adapter" name="test_port_rev2_real_cleanup_delayed_refusal[missing-actual]" time="0.015" /><testcase classname="harness.test_adapter" name="test_port_rev2_real_cleanup_delayed_refusal[error-inert]" time="0.013" /><testcase classname="harness.test_adapter" name="test_port_rev2_real_cleanup_delayed_refusal[error-actual]" time="0.013" /><testcase classname="harness.test_adapter" name="test_port_rev2_real_cleanup_delayed_refusal[late-phase-inert]" time="0.012" /><testcase classname="harness.test_adapter" name="test_port_rev2_real_cleanup_delayed_refusal[late-phase-actual]" time="0.013" /><testcase classname="harness.test_adapter" name="test_port_rev2_real_cleanup_delayed_refusal[late-private-cap-inert]" time="0.013" /><testcase classname="harness.test_adapter" name="test_port_rev2_real_cleanup_delayed_refusal[late-private-cap-actual]" time="0.013" /><testcase classname="harness.test_adapter" name="test_port_rev2_real_substantive_observer_delayed_refusal[sufficient]" time="0.317" /><testcase classname="harness.test_adapter" name="test_port_rev2_real_substantive_observer_delayed_refusal[setup-sufficient]" time="0.300" /><testcase classname="harness.test_adapter" name="test_port_rev2_real_substantive_observer_delayed_refusal[setup-unknown]" time="0.321" /><testcase classname="harness.test_adapter" name="test_port_rev2_real_substantive_observer_delayed_refusal[10035]" time="0.315" /><testcase classname="harness.test_adapter" name="test_port_rev2_real_substantive_observer_delayed_refusal[10060]" time="0.310" /><testcase classname="harness.test_adapter" name="test_port_rev2_real_substantive_observer_delayed_refusal[open]" time="0.308" /><testcase classname="harness.test_adapter" name="test_port_rev2_real_substantive_observer_delayed_refusal[error]" time="0.306" /><testcase classname="harness.test_adapter" name="test_port_rev2_real_substantive_observer_delayed_refusal[late-private-cap]" time="0.301" /></testsuite></testsuites>

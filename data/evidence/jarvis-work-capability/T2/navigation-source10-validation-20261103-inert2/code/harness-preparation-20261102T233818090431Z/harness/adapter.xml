@@ -1,0 +1,213 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="3" skipped="0" tests="3" time="2.557" timestamp="2026-11-03T07:38:18.431773+08:00" hostname="DESKTOP-B366PQ9"><testcase classname="harness.test_adapter" name="test_port_rev2_real_cleanup_delayed_refusal[sufficient-inert]" time="0.022"><failure message="AssertionError: {'status': 'FAIL', 'processes': [{'identity': {'pid': 1, 'created_filetime': 1000001, 'exe': 'H:\\UltimaAI\\UltimaAgent\\tools\\venv-openjarvis\\Scripts\\python.exe'}, 'absent': True}], 'port_closed': True, 'errors': [], ...}&#10;assert ('FAIL' == 'PASS'&#10;  &#10;  - PASS&#10;  + FAIL) is True">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261103-inert2/code/harness-preparation-20261102T233818090431Z/temp/test_port_rev2_real_cleanup_de0')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000001D8842FD220&gt;
+mode = 'inert'
+scenario = {'name': 'sufficient', 'remaining': 10, 'setup': 0, 'eligible': True, ...}
+
+    @pytest.mark.parametrize('mode',['inert','actual'])
+    @pytest.mark.parametrize('scenario',[
+        dict(name='sufficient',remaining=10,setup=0,eligible=True,effective=3),
+        dict(name='clipped-sufficient',remaining=2.5,setup=0,eligible=True,effective=2.5),
+        dict(name='clipped-unknown',remaining=2,setup=0,eligible=False,effective=2),
+        dict(name='setup-sufficient',remaining=10,setup=.8,eligible=True,effective=2.2),
+        dict(name='setup-unknown',remaining=10,setup=1.1,eligible=False,effective=1.9),
+        dict(name='zero-before-connect',remaining=10,setup=3,eligible=False,effective=None),
+        dict(name='10035',remaining=10,code=10035,eligible=False,effective=3),
+        dict(name='10060',remaining=10,code=10060,eligible=False,effective=3),
+        dict(name='open',remaining=10,code=0,eligible=False,effective=3),
+        dict(name='other',remaining=10,code=12345,eligible=False,effective=3),
+        dict(name='missing',remaining=10,code=None,eligible=False,effective=3),
+        dict(name='error',remaining=10,error=True,eligible=False,effective=3),
+        dict(name='late-phase',remaining=2.5,overrun=1,eligible=False,effective=2.5),
+        dict(name='late-private-cap',remaining=10,overrun=1.1,eligible=False,effective=3),
+    ],ids=lambda v:v['name'])
+    def test_port_rev2_real_cleanup_delayed_refusal(tmp_path,monkeypatch,mode,scenario):
+        scenario=dict(scenario); clock=Clock(); b=a.Deadline(clock=clock); b.phase='cleanup'
+        b.admitted=dict(mode=mode); p4=a.load_p4(); active=set()
+        native_kernel(monkeypatch,p4,active,clock)
+        p4.protected=lambda:[]
+        p4.subprocess=types.SimpleNamespace(check_output=lambda *args,**kwargs:b'[]',CREATE_NO_WINDOW=0)
+        probes=install_delayed_port(p4,clock,scenario)
+        saved={key:getattr(p4,key) for key in ('socket','time','subprocess','terminate_owned','save')}
+        owned=p4.Owned(tmp_path,{})
+        owned.known[1]=dict(identity=p4.identity(1),role='server',argv=[],parent=0)
+        clock.value=b.cutoff_ns()-int(scenario['remaining']*1e9)
+        with a.PrivateIO(p4,b) as io:
+            result=io.cleanup(owned,18799)
+&gt;           assert (result['status']=='PASS') is scenario['eligible'],result
+E           AssertionError: {'status': 'FAIL', 'processes': [{'identity': {'pid': 1, 'created_filetime': 1000001, 'exe': 'H:\\UltimaAI\\UltimaAgent\\tools\\venv-openjarvis\\Scripts\\python.exe'}, 'absent': True}], 'port_closed': True, 'errors': [], ...}
+E           assert ('FAIL' == 'PASS'
+E             
+E             - PASS
+E             + FAIL) is True
+
+..\..\harness\test_adapter.py:1208: AssertionError</failure></testcase><testcase classname="harness.test_adapter" name="test_port_rev2_real_cleanup_delayed_refusal[sufficient-actual]" time="0.014"><failure message="AssertionError: {'status': 'FAIL', 'processes': [{'identity': {'pid': 1, 'created_filetime': 1000001, 'exe': 'H:\\UltimaAI\\UltimaAgent\\tools\\venv-openjarvis\\Scripts\\python.exe'}, 'absent': True}], 'port_closed': True, 'errors': [], ...}&#10;assert ('FAIL' == 'PASS'&#10;  &#10;  - PASS&#10;  + FAIL) is True">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261103-inert2/code/harness-preparation-20261102T233818090431Z/temp/test_port_rev2_real_cleanup_de1')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000001D91E8775C0&gt;
+mode = 'actual'
+scenario = {'name': 'sufficient', 'remaining': 10, 'setup': 0, 'eligible': True, ...}
+
+    @pytest.mark.parametrize('mode',['inert','actual'])
+    @pytest.mark.parametrize('scenario',[
+        dict(name='sufficient',remaining=10,setup=0,eligible=True,effective=3),
+        dict(name='clipped-sufficient',remaining=2.5,setup=0,eligible=True,effective=2.5),
+        dict(name='clipped-unknown',remaining=2,setup=0,eligible=False,effective=2),
+        dict(name='setup-sufficient',remaining=10,setup=.8,eligible=True,effective=2.2),
+        dict(name='setup-unknown',remaining=10,setup=1.1,eligible=False,effective=1.9),
+        dict(name='zero-before-connect',remaining=10,setup=3,eligible=False,effective=None),
+        dict(name='10035',remaining=10,code=10035,eligible=False,effective=3),
+        dict(name='10060',remaining=10,code=10060,eligible=False,effective=3),
+        dict(name='open',remaining=10,code=0,eligible=False,effective=3),
+        dict(name='other',remaining=10,code=12345,eligible=False,effective=3),
+        dict(name='missing',remaining=10,code=None,eligible=False,effective=3),
+        dict(name='error',remaining=10,error=True,eligible=False,effective=3),
+        dict(name='late-phase',remaining=2.5,overrun=1,eligible=False,effective=2.5),
+        dict(name='late-private-cap',remaining=10,overrun=1.1,eligible=False,effective=3),
+    ],ids=lambda v:v['name'])
+    def test_port_rev2_real_cleanup_delayed_refusal(tmp_path,monkeypatch,mode,scenario):
+        scenario=dict(scenario); clock=Clock(); b=a.Deadline(clock=clock); b.phase='cleanup'
+        b.admitted=dict(mode=mode); p4=a.load_p4(); active=set()
+        native_kernel(monkeypatch,p4,active,clock)
+        p4.protected=lambda:[]
+        p4.subprocess=types.SimpleNamespace(check_output=lambda *args,**kwargs:b'[]',CREATE_NO_WINDOW=0)
+        probes=install_delayed_port(p4,clock,scenario)
+        saved={key:getattr(p4,key) for key in ('socket','time','subprocess','terminate_owned','save')}
+        owned=p4.Owned(tmp_path,{})
+        owned.known[1]=dict(identity=p4.identity(1),role='server',argv=[],parent=0)
+        clock.value=b.cutoff_ns()-int(scenario['remaining']*1e9)
+        with a.PrivateIO(p4,b) as io:
+            result=io.cleanup(owned,18799)
+&gt;           assert (result['status']=='PASS') is scenario['eligible'],result
+E           AssertionError: {'status': 'FAIL', 'processes': [{'identity': {'pid': 1, 'created_filetime': 1000001, 'exe': 'H:\\UltimaAI\\UltimaAgent\\tools\\venv-openjarvis\\Scripts\\python.exe'}, 'absent': True}], 'port_closed': True, 'errors': [], ...}
+E           assert ('FAIL' == 'PASS'
+E             
+E             - PASS
+E             + FAIL) is True
+
+..\..\harness\test_adapter.py:1208: AssertionError</failure></testcase><testcase classname="harness.test_adapter" name="test_port_rev2_real_substantive_observer_delayed_refusal[sufficient]" time="0.331"><failure message="AssertionError: {'run_id': 'f3ef26b0-633f-43d5-9bae-1d0df5417e8b', 'origin_ns': 1000000000000, 'clock_domain': 'monotonic_ns;same-host=DESKTOP-B366PQ9', 'work_cutoff_ns': 1275000000000, ...}&#10;assert False == True">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261103-inert2/code/harness-preparation-20261102T233818090431Z/temp/test_port_rev2_real_substantiv0')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000001D91EA1B530&gt;
+scenario = {'name': 'sufficient', 'eligible': True, 'effective': 3, 'probes': [&lt;test_adapter.install_delayed_port.&lt;locals&gt;.DelayedProbe object at 0x000001D91EBA41A0&gt;]}
+
+    @pytest.mark.parametrize('scenario',[
+        dict(name='sufficient',eligible=True,effective=3),
+        dict(name='setup-sufficient',setup=.8,eligible=True,effective=2.2),
+        dict(name='setup-unknown',setup=1.1,eligible=False,effective=1.9),
+        dict(name='10035',code=10035,eligible=False,effective=3),
+        dict(name='10060',code=10060,eligible=False,effective=3),
+        dict(name='open',code=0,eligible=False,effective=3),
+        dict(name='error',error=True,eligible=False,effective=3),
+        dict(name='late-private-cap',overrun=1.1,eligible=False,effective=3),
+    ],ids=lambda v:v['name'])
+    def test_port_rev2_real_substantive_observer_delayed_refusal(tmp_path,monkeypatch,scenario):
+        scenario=dict(scenario)
+&gt;       _substantive_closed_witness_fixture(tmp_path,monkeypatch,'none',observer_port=scenario)
+
+..\..\harness\test_adapter.py:1234: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261103-inert2/code/harness-preparation-20261102T233818090431Z/temp/test_port_rev2_real_substantiv0')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000001D91EA1B530&gt;
+fault = 'none'
+observer_port = {'name': 'sufficient', 'eligible': True, 'effective': 3, 'probes': [&lt;test_adapter.install_delayed_port.&lt;locals&gt;.DelayedProbe object at 0x000001D91EBA41A0&gt;]}
+
+    def _substantive_closed_witness_fixture(tmp_path,monkeypatch,fault,observer_port=None):
+        import base64,os
+        from collections import OrderedDict
+        original_v=a.V; original_here=a.HERE
+        virtual=tmp_path/'virtual-root'; here=virtual/'harness'; here.mkdir(parents=True)
+        for source in original_here.iterdir():
+            if source.is_file(): (here/source.name).write_bytes(source.read_bytes())
+        for name in ('source10-candidate-manifest.json','harness-preparation-authority.json'):
+            (virtual/name).write_bytes((original_v/name).read_bytes())
+        (virtual/'harness-deadline-design').mkdir()
+        (virtual/'harness-deadline-design/root-decision.json').write_bytes((original_v/'harness-deadline-design/root-decision.json').read_bytes())
+        monkeypatch.setattr(a,'V',virtual); monkeypatch.setattr(a,'HERE',here)
+        package=a.load(here/'manifest.json')
+        package['files']={name:a.sha(here/name) for name in package['files']}
+        (here/'manifest.json').write_text(json.dumps(package),encoding='utf8')
+        a.save_new(virtual/'harness-approval.json',dict(reviewer='root-independent',overall='PASS',manifest_sha256=a.sha(here/'manifest.json')))
+        clock=Clock(); invocation=a.RootInvocation(clock=clock); b=invocation.budget
+        folder=virtual/'inert'/b.run_id; folder.mkdir(parents=True)
+        p4=a.load_p4(); active=set(); _,calls=native_kernel(monkeypatch,p4,active,clock)
+        protected=[p4.identity(pid) for pid in range(51,56)]
+        monkeypatch.setattr(p4,'protected',lambda:protected)
+        monkeypatch.setattr(p4,'process_times',lambda proc:(1000001,0))
+        monkeypatch.setattr(p4,'argv_parse',lambda text:json.loads(text))
+        monkeypatch.setattr(a,'load_p4',lambda:p4)
+        authority=dict(kind='source10_inert_qualification',folder=str(folder),port=18799,parent_timing=b.timing())
+        a.save_new(virtual/'inert-authority.json',authority)
+        baseline=dict(protected=protected,candidate=a.CANDIDATE,precision='FILETIME100ns',recorded_at=dt.datetime.now(dt.timezone.utc).isoformat())
+        a.save_new(virtual/'inert-native-baseline.json',baseline)
+        argv=a.inert_argv(folder,18799); snapshot_live=[True]; http_calls=[]
+        command=json.dumps([str(a.PY),*argv])
+        def checkout(cmd,**kwargs):
+            if 'Get-NetTCPConnection' in cmd[-1]: return '2' if snapshot_live[0] else '[]'
+            rows=[dict(ProcessId=pid,ParentProcessId=0 if pid==1 else 1,CommandLineBase64=base64.b64encode(command.encode('utf-16-le')).decode('ascii')) for pid in (1,2)] if snapshot_live[0] else []
+            return json.dumps(rows).encode('ascii')
+        monkeypatch.setattr(p4.subprocess,'check_output',checkout)
+        class Probe:
+            def settimeout(self,value): pass
+            def connect_ex(self,address): return a.errno.ECONNREFUSED
+            def close(self): pass
+        monkeypatch.setattr(p4.socket,'socket',Probe)
+        class Response:
+            def __enter__(self): return self
+            def __exit__(self,*args): pass
+            def read(self): return b'{"inert":true}'
+        class Opener:
+            def open(self,url,timeout): http_calls.append((url,timeout)); clock.advance(.001); return Response()
+        monkeypatch.setattr(p4.urllib.request,'build_opener',lambda *args:Opener())
+        def entry():
+            admitted=a.admitted_record('inert',folder,18799,authority,baseline,b)
+            a.save_new(folder/'admission.json',admitted)
+            a.save_new(folder/'attempt.json',dict(parent_timing=b.timing()))
+            owned=p4.Owned(folder,{}); b.owned=owned
+            proc=types.SimpleNamespace(pid=1,wait=lambda timeout=None:0)
+            owned.launchers=[dict(proc=proc,identity=p4.identity(1),argv=argv,role='server')]
+            owned.known[1]=dict(identity=p4.identity(1),argv=argv,role='server',parent=0)
+            owned.logs=[open(folder/'server.stdout','w'),open(folder/'server.stderr','w')]
+            context=dict(mode='inert',folder=folder,port=18799,budget=b)
+            with a.PrivateIO(p4,b) as io:
+                a.issue_clearance(context,p4,owned,argv,a.sha(virtual/'inert-authority.json'))
+                identity=p4.identity
+                with monkeypatch.context() as child:
+                    child.setattr(p4,'identity',lambda pid:identity(2) if pid==os.getpid() else identity(pid))
+                    a.consume_clearance(context,p4,argv,a.sha(virtual/'inert-authority.json'))
+                listener=dict(port=18799,identity=identity(2),role='server',argv=argv)
+                a.save_new(folder/'listener.json',listener)
+                a.record_native_members(folder,p4,owned,argv,b)
+                a.observe_inert_exchange(folder,p4,owned,argv,18799,b)
+                a.save_new(folder/'argv-roundtrip.json',dict(question=a.corpus()['query'],argv=argv[4:]))
+                for name in ('protected-before.json','protected-after.json'): a.save_new(folder/name,protected)
+                for name in ('boundary-before.json','boundary-after.json'): a.save_new(folder/name,dict(pins=admitted['pins'],protected=protected))
+                snapshot_live[0]=False
+                cleanup=io.cleanup(owned,18799)
+            if fault=='protected-empty': (folder/'protected-after.json').write_text('[]')
+            elif fault=='native-subset':
+                malformed=a.load(folder/'native-members.json'); malformed['snapshot'].pop('1')
+                (folder/'native-members.json').write_text(json.dumps(malformed))
+            elif fault=='cleanup-subset':
+                malformed=a.load(folder/'cleanup.json'); malformed['processes'].pop()
+                (folder/'cleanup.json').write_text(json.dumps(malformed))
+            elif fault=='missing-exchange': (folder/'inert-exchange.json').unlink()
+            elif fault=='no-parent-exchange': del b.inert_exchange
+            elif fault=='empty-task-directory': (folder/'outputs/unexpected-task').mkdir(parents=True)
+            elif fault in ('wrong-endpoint','wrong-listener','wrong-response','nonboolean-response','late-exchange'):
+                malformed=a.load(folder/'inert-exchange.json')
+                if fault=='wrong-endpoint': malformed['endpoint']='http://127.0.0.1:11434/inert'
+                elif fault=='wrong-listener': malformed['listener']['identity']['pid']=999
+                elif fault=='wrong-response': malformed['response']=dict(inert=False)
+                elif fault=='nonboolean-response': malformed['response']=dict(inert=1)
+                else: malformed['after_ns']=b.cutoff_ns('work')+1
+                (folder/'inert-exchange.json').write_text(json.dumps(malformed))
+            b.phase='seal'
+            terminal=dict(kind='inert',folder=str(folder),run_id=b.run_id,timing=b.timing(),overall='READY_FOR_ROOT_TIMING_WITNESS',cleanup=cleanup,errors=[],first_failure=None)
+            a.save_new(folder/'terminal.json',terminal); a.seal_index(folder,b,p4)
+            if observer_port is not None:
+                install_delayed_port(p4,clock,observer_port)
+            return terminal
+        outcome=invocation.call(entry)
+        expected=(fault=='none') if observer_port is None else observer_port['eligible']
+&gt;       assert outcome['witness']['eligible']==expected,outcome['witness']
+E       AssertionError: {'run_id': 'f3ef26b0-633f-43d5-9bae-1d0df5417e8b', 'origin_ns': 1000000000000, 'clock_domain': 'monotonic_ns;same-host=DESKTOP-B366PQ9', 'work_cutoff_ns': 1275000000000, ...}
+E       assert False == True
+
+..\..\harness\test_adapter.py:839: AssertionError</failure></testcase></testsuite></testsuites>
