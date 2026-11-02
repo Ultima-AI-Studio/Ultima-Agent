@@ -110,9 +110,11 @@ class PrivateIO:
         class Probe:
             def __init__(self,raw,allowance,expires_ns): self.raw=raw; self.allowance=allowance; self.expires_ns=expires_ns; self.closed=False
             def settimeout(self,seconds):
-                # P4 sets timeout before its try/finally. Do not raise a budget
-                # exception there; scope finally also owns closure of this probe.
-                return self.raw.settimeout(min(seconds,self.allowance))
+                # P4's hint precedes its try/finally; scope finally owns closure
+                # even when construction has exhausted either admission deadline.
+                remaining=(self.expires_ns-b.clock())/1000000000
+                if remaining<=0: b.fail('Port proof allocation expired before timeout hint')
+                return self.raw.settimeout(b.clip(min(seconds,remaining),'cleanup port timeout hint'))
             def connect_ex(self,address):
                 # One shared private proof: construction/setup spend allocation,
                 # and the immutable P4 settimeout(1) hint cannot renew it.

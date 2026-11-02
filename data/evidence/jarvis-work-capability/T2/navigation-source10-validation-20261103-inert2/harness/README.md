@@ -428,3 +428,24 @@ integration uses the inert fixture, and reaches the shared proof before either
 mode-specific validation branch. This is mock preparation, not native actual or
 inert qualification. Prior allocation stays PERMANENT_FAIL,1/1 consumed,0remaining;
 model calls remain0 and E02/T2 remains NOT_PASSED.
+
+
+### PORT2-I01 scoped fix, pending independent re-review
+
+The original timeout hint now checks the pinned private proof expiry and the
+absolute phase deadline before invoking raw.settimeout. Expired construction
+admits neither the raw setter nor connect. The surrounding PrivateIO scope still
+owns mandatory raw close and restoration when P4's hint raises before P4's own
+try/finally. Unexpired hints remain clipped normally and connect retains the
+shared fixed3s allocation expiry. Tests inspect raw setter records and exactly
+one close for both proof-expiry and enclosing-phase-expiry failure paths, at real
+original P4 cleanup and real substantive observation. Prior216 test IDs remain.
+
+
+FIX1 diagnostic follow-up: after a preserved full-run upstream END failure and
+an unchanged isolated pass, ROOT authorized one diagnostic covering run. Only
+synthetic_bundle assertion failures emit bounded context: known literal error
+labels (otherwise hash/length), status/sequence, and END-to-staged equality flags.
+No prompt, report, full result, metadata values or credentials are emitted. The
+original fixture execution and assertions remain identical; no validator is
+relaxed. PrivateIO implementation remains frozen during this diagnostic step.

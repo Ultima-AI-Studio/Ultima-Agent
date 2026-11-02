@@ -1,0 +1,305 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="6" skipped="0" tests="6" time="2.870" timestamp="2026-11-03T07:47:34.848979+08:00" hostname="DESKTOP-B366PQ9"><testcase classname="harness.test_adapter" name="test_port_rev2_real_cleanup_delayed_refusal[zero-before-connect-inert]" time="0.020"><failure message="assert [1] == []&#10;  &#10;  Left contains one more item: 1&#10;  Use -v to get more diff">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261103-inert2/code/harness-preparation-20261102T234734534365Z/temp/test_port_rev2_real_cleanup_de0')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000001AFC5CBD220&gt;
+mode = 'inert'
+scenario = {'name': 'zero-before-connect', 'remaining': 10, 'setup': 3, 'eligible': False, ...}
+
+    @pytest.mark.parametrize('mode',['inert','actual'])
+    @pytest.mark.parametrize('scenario',[
+        dict(name='sufficient',remaining=10,setup=0,eligible=True,effective=3),
+        dict(name='clipped-sufficient',remaining=2.5,setup=0,eligible=True,effective=2.5),
+        dict(name='clipped-unknown',remaining=2,setup=0,eligible=False,effective=2),
+        dict(name='exact-cutoff',remaining=PORT_REFUSAL_DELAY,eligible=False,closed=True,effective=PORT_REFUSAL_DELAY),
+        dict(name='setup-sufficient',remaining=10,setup=.8,eligible=True,effective=2.2),
+        dict(name='setup-unknown',remaining=10,setup=1.1,eligible=False,effective=1.9),
+        dict(name='zero-before-connect',remaining=10,setup=3,eligible=False,effective=None),
+        dict(name='phase-expired-before-hint',remaining=2,setup=2,eligible=False,effective=None),
+        dict(name='10035',remaining=10,code=10035,eligible=False,effective=3),
+        dict(name='10060',remaining=10,code=10060,eligible=False,effective=3),
+        dict(name='open',remaining=10,code=0,eligible=False,effective=3),
+        dict(name='other',remaining=10,code=12345,eligible=False,effective=3),
+        dict(name='missing',remaining=10,code=None,eligible=False,effective=3),
+        dict(name='error',remaining=10,error=True,eligible=False,effective=3),
+        dict(name='late-phase',remaining=2.5,overrun=1,eligible=False,effective=2.5),
+        dict(name='late-private-cap',remaining=10,overrun=1.1,eligible=False,effective=3),
+    ],ids=lambda v:v['name'])
+    def test_port_rev2_real_cleanup_delayed_refusal(tmp_path,monkeypatch,mode,scenario):
+        scenario=dict(scenario); clock=Clock(); b=a.Deadline(clock=clock); b.phase='cleanup'
+        b.admitted=dict(mode=mode); p4=a.load_p4(); active=set()
+        native_kernel(monkeypatch,p4,active,clock)
+        p4.protected=lambda:[]
+        p4.subprocess=types.SimpleNamespace(check_output=lambda *args,**kwargs:b'[]',CREATE_NO_WINDOW=0)
+        probes=install_delayed_port(p4,clock,scenario)
+        saved={key:getattr(p4,key) for key in ('socket','time','subprocess','terminate_owned','save')}
+        owned=p4.Owned(tmp_path,{})
+        owned.known[1]=dict(identity=p4.identity(1),role='server',argv=[],parent=0)
+        clock.value=b.cutoff_ns()-int(scenario['remaining']*1e9)
+        with a.PrivateIO(p4,b) as io:
+            result=io.cleanup(owned,18799)
+            assert (result['status']=='PASS') is scenario['eligible'],result
+            assert io.port_closed is scenario.get('closed',scenario['eligible'])
+            if scenario.get('code',10035) in (10035,10060,12345,None) and not scenario.get('error') and not scenario.get('overrun') and scenario['effective'] is not None and b.remaining_ns()&gt;0:
+                # Original P4's any-nonzero verdict is insufficient for strict eligibility.
+                original=a.load(tmp_path/'cleanup.json')
+                assert original['status']=='PASS' and original['port_closed'] is True
+            if b.remaining_ns()&lt;=0:
+                assert not (tmp_path/'cleanup.json').exists()
+                assert b.failure # completed proof cannot admit a following save
+        assert all(getattr(p4,key) is value for key,value in saved.items())
+        assert len(probes)==1 and probes[0].closed
+        connects=probes[0].connects
+        assert len(connects)==(scenario['effective'] is not None)
+        assert probes[0].close_count==1
+        if not connects:
+&gt;           assert probes[0].timeouts==[] # expired construction admits no raw hint
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E           assert [1] == []
+E             
+E             Left contains one more item: 1
+E             Use -v to get more diff
+
+..\..\harness\test_adapter.py:1230: AssertionError</failure></testcase><testcase classname="harness.test_adapter" name="test_port_rev2_real_cleanup_delayed_refusal[zero-before-connect-actual]" time="0.012"><failure message="assert [1] == []&#10;  &#10;  Left contains one more item: 1&#10;  Use -v to get more diff">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261103-inert2/code/harness-preparation-20261102T234734534365Z/temp/test_port_rev2_real_cleanup_de1')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000001B0202276F0&gt;
+mode = 'actual'
+scenario = {'name': 'zero-before-connect', 'remaining': 10, 'setup': 3, 'eligible': False, ...}
+
+    @pytest.mark.parametrize('mode',['inert','actual'])
+    @pytest.mark.parametrize('scenario',[
+        dict(name='sufficient',remaining=10,setup=0,eligible=True,effective=3),
+        dict(name='clipped-sufficient',remaining=2.5,setup=0,eligible=True,effective=2.5),
+        dict(name='clipped-unknown',remaining=2,setup=0,eligible=False,effective=2),
+        dict(name='exact-cutoff',remaining=PORT_REFUSAL_DELAY,eligible=False,closed=True,effective=PORT_REFUSAL_DELAY),
+        dict(name='setup-sufficient',remaining=10,setup=.8,eligible=True,effective=2.2),
+        dict(name='setup-unknown',remaining=10,setup=1.1,eligible=False,effective=1.9),
+        dict(name='zero-before-connect',remaining=10,setup=3,eligible=False,effective=None),
+        dict(name='phase-expired-before-hint',remaining=2,setup=2,eligible=False,effective=None),
+        dict(name='10035',remaining=10,code=10035,eligible=False,effective=3),
+        dict(name='10060',remaining=10,code=10060,eligible=False,effective=3),
+        dict(name='open',remaining=10,code=0,eligible=False,effective=3),
+        dict(name='other',remaining=10,code=12345,eligible=False,effective=3),
+        dict(name='missing',remaining=10,code=None,eligible=False,effective=3),
+        dict(name='error',remaining=10,error=True,eligible=False,effective=3),
+        dict(name='late-phase',remaining=2.5,overrun=1,eligible=False,effective=2.5),
+        dict(name='late-private-cap',remaining=10,overrun=1.1,eligible=False,effective=3),
+    ],ids=lambda v:v['name'])
+    def test_port_rev2_real_cleanup_delayed_refusal(tmp_path,monkeypatch,mode,scenario):
+        scenario=dict(scenario); clock=Clock(); b=a.Deadline(clock=clock); b.phase='cleanup'
+        b.admitted=dict(mode=mode); p4=a.load_p4(); active=set()
+        native_kernel(monkeypatch,p4,active,clock)
+        p4.protected=lambda:[]
+        p4.subprocess=types.SimpleNamespace(check_output=lambda *args,**kwargs:b'[]',CREATE_NO_WINDOW=0)
+        probes=install_delayed_port(p4,clock,scenario)
+        saved={key:getattr(p4,key) for key in ('socket','time','subprocess','terminate_owned','save')}
+        owned=p4.Owned(tmp_path,{})
+        owned.known[1]=dict(identity=p4.identity(1),role='server',argv=[],parent=0)
+        clock.value=b.cutoff_ns()-int(scenario['remaining']*1e9)
+        with a.PrivateIO(p4,b) as io:
+            result=io.cleanup(owned,18799)
+            assert (result['status']=='PASS') is scenario['eligible'],result
+            assert io.port_closed is scenario.get('closed',scenario['eligible'])
+            if scenario.get('code',10035) in (10035,10060,12345,None) and not scenario.get('error') and not scenario.get('overrun') and scenario['effective'] is not None and b.remaining_ns()&gt;0:
+                # Original P4's any-nonzero verdict is insufficient for strict eligibility.
+                original=a.load(tmp_path/'cleanup.json')
+                assert original['status']=='PASS' and original['port_closed'] is True
+            if b.remaining_ns()&lt;=0:
+                assert not (tmp_path/'cleanup.json').exists()
+                assert b.failure # completed proof cannot admit a following save
+        assert all(getattr(p4,key) is value for key,value in saved.items())
+        assert len(probes)==1 and probes[0].closed
+        connects=probes[0].connects
+        assert len(connects)==(scenario['effective'] is not None)
+        assert probes[0].close_count==1
+        if not connects:
+&gt;           assert probes[0].timeouts==[] # expired construction admits no raw hint
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E           assert [1] == []
+E             
+E             Left contains one more item: 1
+E             Use -v to get more diff
+
+..\..\harness\test_adapter.py:1230: AssertionError</failure></testcase><testcase classname="harness.test_adapter" name="test_port_rev2_real_cleanup_delayed_refusal[phase-expired-before-hint-inert]" time="0.013"><failure message="assert [1] == []&#10;  &#10;  Left contains one more item: 1&#10;  Use -v to get more diff">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261103-inert2/code/harness-preparation-20261102T234734534365Z/temp/test_port_rev2_real_cleanup_de2')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000001B0205343B0&gt;
+mode = 'inert'
+scenario = {'name': 'phase-expired-before-hint', 'remaining': 2, 'setup': 2, 'eligible': False, ...}
+
+    @pytest.mark.parametrize('mode',['inert','actual'])
+    @pytest.mark.parametrize('scenario',[
+        dict(name='sufficient',remaining=10,setup=0,eligible=True,effective=3),
+        dict(name='clipped-sufficient',remaining=2.5,setup=0,eligible=True,effective=2.5),
+        dict(name='clipped-unknown',remaining=2,setup=0,eligible=False,effective=2),
+        dict(name='exact-cutoff',remaining=PORT_REFUSAL_DELAY,eligible=False,closed=True,effective=PORT_REFUSAL_DELAY),
+        dict(name='setup-sufficient',remaining=10,setup=.8,eligible=True,effective=2.2),
+        dict(name='setup-unknown',remaining=10,setup=1.1,eligible=False,effective=1.9),
+        dict(name='zero-before-connect',remaining=10,setup=3,eligible=False,effective=None),
+        dict(name='phase-expired-before-hint',remaining=2,setup=2,eligible=False,effective=None),
+        dict(name='10035',remaining=10,code=10035,eligible=False,effective=3),
+        dict(name='10060',remaining=10,code=10060,eligible=False,effective=3),
+        dict(name='open',remaining=10,code=0,eligible=False,effective=3),
+        dict(name='other',remaining=10,code=12345,eligible=False,effective=3),
+        dict(name='missing',remaining=10,code=None,eligible=False,effective=3),
+        dict(name='error',remaining=10,error=True,eligible=False,effective=3),
+        dict(name='late-phase',remaining=2.5,overrun=1,eligible=False,effective=2.5),
+        dict(name='late-private-cap',remaining=10,overrun=1.1,eligible=False,effective=3),
+    ],ids=lambda v:v['name'])
+    def test_port_rev2_real_cleanup_delayed_refusal(tmp_path,monkeypatch,mode,scenario):
+        scenario=dict(scenario); clock=Clock(); b=a.Deadline(clock=clock); b.phase='cleanup'
+        b.admitted=dict(mode=mode); p4=a.load_p4(); active=set()
+        native_kernel(monkeypatch,p4,active,clock)
+        p4.protected=lambda:[]
+        p4.subprocess=types.SimpleNamespace(check_output=lambda *args,**kwargs:b'[]',CREATE_NO_WINDOW=0)
+        probes=install_delayed_port(p4,clock,scenario)
+        saved={key:getattr(p4,key) for key in ('socket','time','subprocess','terminate_owned','save')}
+        owned=p4.Owned(tmp_path,{})
+        owned.known[1]=dict(identity=p4.identity(1),role='server',argv=[],parent=0)
+        clock.value=b.cutoff_ns()-int(scenario['remaining']*1e9)
+        with a.PrivateIO(p4,b) as io:
+            result=io.cleanup(owned,18799)
+            assert (result['status']=='PASS') is scenario['eligible'],result
+            assert io.port_closed is scenario.get('closed',scenario['eligible'])
+            if scenario.get('code',10035) in (10035,10060,12345,None) and not scenario.get('error') and not scenario.get('overrun') and scenario['effective'] is not None and b.remaining_ns()&gt;0:
+                # Original P4's any-nonzero verdict is insufficient for strict eligibility.
+                original=a.load(tmp_path/'cleanup.json')
+                assert original['status']=='PASS' and original['port_closed'] is True
+            if b.remaining_ns()&lt;=0:
+                assert not (tmp_path/'cleanup.json').exists()
+                assert b.failure # completed proof cannot admit a following save
+        assert all(getattr(p4,key) is value for key,value in saved.items())
+        assert len(probes)==1 and probes[0].closed
+        connects=probes[0].connects
+        assert len(connects)==(scenario['effective'] is not None)
+        assert probes[0].close_count==1
+        if not connects:
+&gt;           assert probes[0].timeouts==[] # expired construction admits no raw hint
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E           assert [1] == []
+E             
+E             Left contains one more item: 1
+E             Use -v to get more diff
+
+..\..\harness\test_adapter.py:1230: AssertionError</failure></testcase><testcase classname="harness.test_adapter" name="test_port_rev2_real_cleanup_delayed_refusal[phase-expired-before-hint-actual]" time="0.013"><failure message="assert [1] == []&#10;  &#10;  Left contains one more item: 1&#10;  Use -v to get more diff">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261103-inert2/code/harness-preparation-20261102T234734534365Z/temp/test_port_rev2_real_cleanup_de3')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000001B0204B89E0&gt;
+mode = 'actual'
+scenario = {'name': 'phase-expired-before-hint', 'remaining': 2, 'setup': 2, 'eligible': False, ...}
+
+    @pytest.mark.parametrize('mode',['inert','actual'])
+    @pytest.mark.parametrize('scenario',[
+        dict(name='sufficient',remaining=10,setup=0,eligible=True,effective=3),
+        dict(name='clipped-sufficient',remaining=2.5,setup=0,eligible=True,effective=2.5),
+        dict(name='clipped-unknown',remaining=2,setup=0,eligible=False,effective=2),
+        dict(name='exact-cutoff',remaining=PORT_REFUSAL_DELAY,eligible=False,closed=True,effective=PORT_REFUSAL_DELAY),
+        dict(name='setup-sufficient',remaining=10,setup=.8,eligible=True,effective=2.2),
+        dict(name='setup-unknown',remaining=10,setup=1.1,eligible=False,effective=1.9),
+        dict(name='zero-before-connect',remaining=10,setup=3,eligible=False,effective=None),
+        dict(name='phase-expired-before-hint',remaining=2,setup=2,eligible=False,effective=None),
+        dict(name='10035',remaining=10,code=10035,eligible=False,effective=3),
+        dict(name='10060',remaining=10,code=10060,eligible=False,effective=3),
+        dict(name='open',remaining=10,code=0,eligible=False,effective=3),
+        dict(name='other',remaining=10,code=12345,eligible=False,effective=3),
+        dict(name='missing',remaining=10,code=None,eligible=False,effective=3),
+        dict(name='error',remaining=10,error=True,eligible=False,effective=3),
+        dict(name='late-phase',remaining=2.5,overrun=1,eligible=False,effective=2.5),
+        dict(name='late-private-cap',remaining=10,overrun=1.1,eligible=False,effective=3),
+    ],ids=lambda v:v['name'])
+    def test_port_rev2_real_cleanup_delayed_refusal(tmp_path,monkeypatch,mode,scenario):
+        scenario=dict(scenario); clock=Clock(); b=a.Deadline(clock=clock); b.phase='cleanup'
+        b.admitted=dict(mode=mode); p4=a.load_p4(); active=set()
+        native_kernel(monkeypatch,p4,active,clock)
+        p4.protected=lambda:[]
+        p4.subprocess=types.SimpleNamespace(check_output=lambda *args,**kwargs:b'[]',CREATE_NO_WINDOW=0)
+        probes=install_delayed_port(p4,clock,scenario)
+        saved={key:getattr(p4,key) for key in ('socket','time','subprocess','terminate_owned','save')}
+        owned=p4.Owned(tmp_path,{})
+        owned.known[1]=dict(identity=p4.identity(1),role='server',argv=[],parent=0)
+        clock.value=b.cutoff_ns()-int(scenario['remaining']*1e9)
+        with a.PrivateIO(p4,b) as io:
+            result=io.cleanup(owned,18799)
+            assert (result['status']=='PASS') is scenario['eligible'],result
+            assert io.port_closed is scenario.get('closed',scenario['eligible'])
+            if scenario.get('code',10035) in (10035,10060,12345,None) and not scenario.get('error') and not scenario.get('overrun') and scenario['effective'] is not None and b.remaining_ns()&gt;0:
+                # Original P4's any-nonzero verdict is insufficient for strict eligibility.
+                original=a.load(tmp_path/'cleanup.json')
+                assert original['status']=='PASS' and original['port_closed'] is True
+            if b.remaining_ns()&lt;=0:
+                assert not (tmp_path/'cleanup.json').exists()
+                assert b.failure # completed proof cannot admit a following save
+        assert all(getattr(p4,key) is value for key,value in saved.items())
+        assert len(probes)==1 and probes[0].closed
+        connects=probes[0].connects
+        assert len(connects)==(scenario['effective'] is not None)
+        assert probes[0].close_count==1
+        if not connects:
+&gt;           assert probes[0].timeouts==[] # expired construction admits no raw hint
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E           assert [1] == []
+E             
+E             Left contains one more item: 1
+E             Use -v to get more diff
+
+..\..\harness\test_adapter.py:1230: AssertionError</failure></testcase><testcase classname="harness.test_adapter" name="test_port_rev2_real_substantive_observer_delayed_refusal[zero-before-connect]" time="0.308"><failure message="assert [1] == []&#10;  &#10;  Left contains one more item: 1&#10;  Use -v to get more diff">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261103-inert2/code/harness-preparation-20261102T234734534365Z/temp/test_port_rev2_real_substantiv0')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000001B0204BA7A0&gt;
+scenario = {'name': 'zero-before-connect', 'setup': 3, 'eligible': False, 'effective': None, ...}
+
+    @pytest.mark.parametrize('scenario',[
+        dict(name='sufficient',eligible=True,effective=3),
+        dict(name='clipped-sufficient',remaining=2.5,eligible=True,effective=2.5),
+        dict(name='clipped-unknown',remaining=2,eligible=False,effective=2),
+        dict(name='exact-cutoff',remaining=PORT_REFUSAL_DELAY,eligible=False,effective=PORT_REFUSAL_DELAY),
+        dict(name='zero-before-connect',setup=3,eligible=False,effective=None),
+        dict(name='phase-expired-before-hint',remaining=2,setup=2,eligible=False,effective=None),
+        dict(name='late-phase',remaining=2.5,overrun=1,eligible=False,effective=2.5),
+        dict(name='setup-sufficient',setup=.8,eligible=True,effective=2.2),
+        dict(name='setup-unknown',setup=1.1,eligible=False,effective=1.9),
+        dict(name='10035',code=10035,eligible=False,effective=3),
+        dict(name='10060',code=10060,eligible=False,effective=3),
+        dict(name='open',code=0,eligible=False,effective=3),
+        dict(name='error',error=True,eligible=False,effective=3),
+        dict(name='late-private-cap',overrun=1.1,eligible=False,effective=3),
+    ],ids=lambda v:v['name'])
+    def test_port_rev2_real_substantive_observer_delayed_refusal(tmp_path,monkeypatch,scenario):
+        scenario=dict(scenario)
+        _substantive_closed_witness_fixture(tmp_path,monkeypatch,'none',observer_port=scenario)
+        probe,=scenario['probes']
+        assert probe.closed and len(probe.connects)==(scenario['effective'] is not None)
+        assert probe.close_count==1
+        if not probe.connects:
+&gt;           assert probe.timeouts==[] # mandatory scope close despite hint-before-try
+            ^^^^^^^^^^^^^^^^^^^^^^^^^
+E           assert [1] == []
+E             
+E             Left contains one more item: 1
+E             Use -v to get more diff
+
+..\..\harness\test_adapter.py:1258: AssertionError</failure></testcase><testcase classname="harness.test_adapter" name="test_port_rev2_real_substantive_observer_delayed_refusal[phase-expired-before-hint]" time="0.332"><failure message="assert [1] == []&#10;  &#10;  Left contains one more item: 1&#10;  Use -v to get more diff">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261103-inert2/code/harness-preparation-20261102T234734534365Z/temp/test_port_rev2_real_substantiv1')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000001B0215FCD50&gt;
+scenario = {'name': 'phase-expired-before-hint', 'remaining': 2, 'setup': 2, 'eligible': False, ...}
+
+    @pytest.mark.parametrize('scenario',[
+        dict(name='sufficient',eligible=True,effective=3),
+        dict(name='clipped-sufficient',remaining=2.5,eligible=True,effective=2.5),
+        dict(name='clipped-unknown',remaining=2,eligible=False,effective=2),
+        dict(name='exact-cutoff',remaining=PORT_REFUSAL_DELAY,eligible=False,effective=PORT_REFUSAL_DELAY),
+        dict(name='zero-before-connect',setup=3,eligible=False,effective=None),
+        dict(name='phase-expired-before-hint',remaining=2,setup=2,eligible=False,effective=None),
+        dict(name='late-phase',remaining=2.5,overrun=1,eligible=False,effective=2.5),
+        dict(name='setup-sufficient',setup=.8,eligible=True,effective=2.2),
+        dict(name='setup-unknown',setup=1.1,eligible=False,effective=1.9),
+        dict(name='10035',code=10035,eligible=False,effective=3),
+        dict(name='10060',code=10060,eligible=False,effective=3),
+        dict(name='open',code=0,eligible=False,effective=3),
+        dict(name='error',error=True,eligible=False,effective=3),
+        dict(name='late-private-cap',overrun=1.1,eligible=False,effective=3),
+    ],ids=lambda v:v['name'])
+    def test_port_rev2_real_substantive_observer_delayed_refusal(tmp_path,monkeypatch,scenario):
+        scenario=dict(scenario)
+        _substantive_closed_witness_fixture(tmp_path,monkeypatch,'none',observer_port=scenario)
+        probe,=scenario['probes']
+        assert probe.closed and len(probe.connects)==(scenario['effective'] is not None)
+        assert probe.close_count==1
+        if not probe.connects:
+&gt;           assert probe.timeouts==[] # mandatory scope close despite hint-before-try
+            ^^^^^^^^^^^^^^^^^^^^^^^^^
+E           assert [1] == []
+E             
+E             Left contains one more item: 1
+E             Use -v to get more diff
+
+..\..\harness\test_adapter.py:1258: AssertionError</failure></testcase></testsuite></testsuites>

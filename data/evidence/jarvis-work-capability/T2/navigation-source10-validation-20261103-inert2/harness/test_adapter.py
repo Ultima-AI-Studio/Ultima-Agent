@@ -17,7 +17,47 @@ def synthetic_bundle(folder,sdk_io,mock_jar,monkeypatch,*,write=True):
     from dataclasses import asdict
     from src.brain.tests import test_work_research as fixtures
     monkeypatch.setattr(fixtures,'URLS',fixtures.URLS[:4])
-    result,ledger=genuine_navigation(folder/'outputs',sdk_io,mock_jar)
+    try:
+        result,ledger=genuine_navigation(folder/'outputs',sdk_io,mock_jar)
+    except AssertionError:
+        # Failure-only summaries: no report/prompt/result or credential payloads.
+        import ast,hashlib
+        literal_errors=set()
+        for name in ('work_tools.py','work_navigation.py','work_research.py'):
+            tree=ast.parse((a.C/'src/brain'/name).read_text('utf8'))
+            for node in ast.walk(tree):
+                if (isinstance(node,ast.Call) and isinstance(node.func,ast.Name)
+                        and node.func.id in ('ValueError','RuntimeError') and node.args
+                        and isinstance(node.args[0],ast.Constant) and isinstance(node.args[0].value,str)):
+                    literal_errors.add(node.args[0].value)
+        def error_summary(value):
+            value=str(value or '')
+            return dict(label=value if value in literal_errors else 'redacted_or_empty',
+                sha256=hashlib.sha256(value.encode('utf8')).hexdigest(),characters=len(value))
+        ledgers=[]
+        for observed in list(fixtures.RESTRICTED.values())[-2:]:
+            records=[]
+            for record in observed.snapshot()[-8:]:
+                records.append(dict(tool=record.get('tool_name'),success=record.get('success'),
+                    error=error_summary(record.get('error')),error_type=record.get('error_type'),
+                    result_present='result' in record,seq=record.get('seq')))
+            events=[]
+            staged=getattr(observed,'_staged',{})
+            for raw in getattr(observed,'_runtime_events',[])[-2:]:
+                event=json.loads(raw); data=event.get('data',{})
+                events.append(dict(type=event.get('type'),tool=data.get('tool'),
+                    success=data.get('success'),agent=data.get('agent'),
+                    staged_links=[dict(seq=seq,confirmed=node.get('confirmed'),
+                        result_equal=data.get('result')==node.get('content'),
+                        metadata_equal=data.get('metadata')==node.get('metadata'))
+                        for seq,node in list(staged.items())[-4:]]))
+            expected=getattr(observed,'_expected',None) or {}
+            ledgers.append(dict(first_failure=error_summary(observed.first_failure),
+                permit_present=observed._permit is not None,
+                expected={key:expected.get(key) for key in ('seq','name','generation','ended')},
+                records=records,events=events))
+        print('SYNTHETIC_FIXTURE_FAILURE_CONTEXT '+json.dumps(ledgers,sort_keys=True))
+        raise
     sources=json.loads(ledger._collection.catalogue_json)
     monkeypatch.setattr(a,'corpus',lambda:dict(query='Research a subject',sources=sources))
     result['marker']='first'
@@ -1167,7 +1207,7 @@ def install_delayed_port(p4,clock,scenario):
     probes=scenario.setdefault('probes',[])
     class DelayedProbe:
         def __init__(self):
-            self.timeouts=[]; self.connects=[]; self.closed=False
+            self.timeouts=[]; self.connects=[]; self.closed=False; self.close_count=0
             probes.append(self); clock.advance(scenario.get('setup',0))
         def settimeout(self,value): self.timeout=value; self.timeouts.append(value)
         def connect_ex(self,address):
@@ -1176,7 +1216,7 @@ def install_delayed_port(p4,clock,scenario):
             clock.advance(scenario.get('overrun',0))
             if scenario.get('error'): raise OSError('mocked port error')
             return scenario.get('code',10061 if wait>=PORT_REFUSAL_DELAY else 10035)
-        def close(self): self.closed=True
+        def close(self): self.closed=True; self.close_count+=1
     p4.socket=types.SimpleNamespace(socket=DelayedProbe)
     return probes
 
@@ -1189,6 +1229,7 @@ def install_delayed_port(p4,clock,scenario):
     dict(name='setup-sufficient',remaining=10,setup=.8,eligible=True,effective=2.2),
     dict(name='setup-unknown',remaining=10,setup=1.1,eligible=False,effective=1.9),
     dict(name='zero-before-connect',remaining=10,setup=3,eligible=False,effective=None),
+    dict(name='phase-expired-before-hint',remaining=2,setup=2,eligible=False,effective=None),
     dict(name='10035',remaining=10,code=10035,eligible=False,effective=3),
     dict(name='10060',remaining=10,code=10060,eligible=False,effective=3),
     dict(name='open',remaining=10,code=0,eligible=False,effective=3),
@@ -1224,6 +1265,9 @@ def test_port_rev2_real_cleanup_delayed_refusal(tmp_path,monkeypatch,mode,scenar
     assert len(probes)==1 and probes[0].closed
     connects=probes[0].connects
     assert len(connects)==(scenario['effective'] is not None)
+    assert probes[0].close_count==1
+    if not connects:
+        assert probes[0].timeouts==[] # expired construction admits no raw hint
     if connects:
         assert connects[0]['timeout']==pytest.approx(scenario['effective'])
         assert probes[0].timeouts[0]==1 # immutable original P4 hint
@@ -1234,6 +1278,7 @@ def test_port_rev2_real_cleanup_delayed_refusal(tmp_path,monkeypatch,mode,scenar
     dict(name='clipped-unknown',remaining=2,eligible=False,effective=2),
     dict(name='exact-cutoff',remaining=PORT_REFUSAL_DELAY,eligible=False,effective=PORT_REFUSAL_DELAY),
     dict(name='zero-before-connect',setup=3,eligible=False,effective=None),
+    dict(name='phase-expired-before-hint',remaining=2,setup=2,eligible=False,effective=None),
     dict(name='late-phase',remaining=2.5,overrun=1,eligible=False,effective=2.5),
     dict(name='setup-sufficient',setup=.8,eligible=True,effective=2.2),
     dict(name='setup-unknown',setup=1.1,eligible=False,effective=1.9),
@@ -1248,5 +1293,8 @@ def test_port_rev2_real_substantive_observer_delayed_refusal(tmp_path,monkeypatc
     _substantive_closed_witness_fixture(tmp_path,monkeypatch,'none',observer_port=scenario)
     probe,=scenario['probes']
     assert probe.closed and len(probe.connects)==(scenario['effective'] is not None)
+    assert probe.close_count==1
+    if not probe.connects:
+        assert probe.timeouts==[] # mandatory scope close despite hint-before-try
     if probe.connects:
         assert probe.connects[0]['timeout']==pytest.approx(scenario['effective'])

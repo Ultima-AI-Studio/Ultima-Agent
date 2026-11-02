@@ -1,0 +1,352 @@
+Task4-PORT-REV2 scoped exact six-file changea5b→3d0b47c9102b969d75685cc07b65623a9764e51cfdeaaee687431d45ec6916c1
+Product Git C118 unchanged. Evidence-only package; original task and gates retained.
+
+FILE H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\navigation-source10-validation-20261103-inert2\harness\README.md SHA256 e53a8e84212aa5d1357468ff76fc31472fcd97d0a27661808eee3ed503307b36 bytes 30535
+--- base-a5b/README.md
++++ H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\navigation-source10-validation-20261103-inert2\harness\README.md
+@@ -416,15 +416,36 @@
+ The archived reviewer test explicitly reads that original location; fixture
+ bytes are neither copied nor regenerated. Candidate-manifest and deadline-ruling
+ historical source/review references remain untouched. Unit helper copies and
+ synthetic mocked authority documents exist only inside new V2 run temp outputs.
+ 
+ Added tests use a fake clock and socket with refusal delay2.0139454s: waiting
+ advances min(effective timeout,delay), returning10035 while incomplete and10061
+ only after enough waiting. They exercise real original P4 cleanup and the real
+ substantive observer using its existing sealed mocked native package. The old
+ one-second implementation is expected to fail positive outcomes at both sites.
+ Both mode labels use the same PrivateIO implementation; substantive observer
+ integration uses the inert fixture, and reaches the shared proof before either
+ mode-specific validation branch. This is mock preparation, not native actual or
+ inert qualification. Prior allocation stays PERMANENT_FAIL,1/1 consumed,0remaining;
+ model calls remain0 and E02/T2 remains NOT_PASSED.
++
++
++### PORT2-I01 scoped fix, pending independent re-review
++
++The original timeout hint now checks the pinned private proof expiry and the
++absolute phase deadline before invoking raw.settimeout. Expired construction
++admits neither the raw setter nor connect. The surrounding PrivateIO scope still
++owns mandatory raw close and restoration when P4's hint raises before P4's own
++try/finally. Unexpired hints remain clipped normally and connect retains the
++shared fixed3s allocation expiry. Tests inspect raw setter records and exactly
++one close for both proof-expiry and enclosing-phase-expiry failure paths, at real
++original P4 cleanup and real substantive observation. Prior216 test IDs remain.
++
++
++FIX1 diagnostic follow-up: after a preserved full-run upstream END failure and
++an unchanged isolated pass, ROOT authorized one diagnostic covering run. Only
++synthetic_bundle assertion failures emit bounded context: known literal error
++labels (otherwise hash/length), status/sequence, and END-to-staged equality flags.
++No prompt, report, full result, metadata values or credentials are emitted. The
++original fixture execution and assertions remain identical; no validator is
++relaxed. PrivateIO implementation remains frozen during this diagnostic step.
+
+FILE H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\navigation-source10-validation-20261103-inert2\harness\adapter.py SHA256 27100afd246c9fb58579ed0389412731b4f029f1c5073ecce9e0cdd8b89d09ed bytes 86042
+--- base-a5b/adapter.py
++++ H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\navigation-source10-validation-20261103-inert2\harness\adapter.py
+@@ -98,33 +98,35 @@
+                 snapshot=re.fullmatch(r'Get-CimInstance Win32_Process(?: -Filter "ProcessId=[1-9][0-9]*(?: OR ProcessId=[1-9][0-9]*)*")?'+re.escape(suffix),script)
+                 listener=re.fullmatch(r'@\(Get-NetTCPConnection -State Listen -LocalPort [0-9]+ -ErrorAction SilentlyContinue \| Select-Object -ExpandProperty OwningProcess\) \| ConvertTo-Json -Compress',script)
+                 require(snapshot or listener,'Only pinned P4 snapshot/listener I/O')
+                 requested=kwargs['timeout']; kwargs['timeout']=b.clip(requested,'P4 check_output')
+                 owner.events.append(dict(io='check_output',argv=argv,timeout=kwargs['timeout'],phase=b.phase))
+                 try: result=self.original.check_output(argv,**kwargs)
+                 except Exception as exc:
+                     b.failure=b.failure or b.phase+' check_output: '+str(exc); raise
+                 b.post('P4 check_output'); return result
+         class ClockIO(Delegate):
+             def sleep(self,seconds):
+                 result=self.original.sleep(b.clip(seconds,'P4 sleep')); b.post('P4 sleep'); return result
+         class Probe:
+             def __init__(self,raw,allowance,expires_ns): self.raw=raw; self.allowance=allowance; self.expires_ns=expires_ns; self.closed=False
+             def settimeout(self,seconds):
+-                # P4 sets timeout before its try/finally. Do not raise a budget
+-                # exception there; scope finally also owns closure of this probe.
+-                return self.raw.settimeout(min(seconds,self.allowance))
++                # P4's hint precedes its try/finally; scope finally owns closure
++                # even when construction has exhausted either admission deadline.
++                remaining=(self.expires_ns-b.clock())/1000000000
++                if remaining<=0: b.fail('Port proof allocation expired before timeout hint')
++                return self.raw.settimeout(b.clip(min(seconds,remaining),'cleanup port timeout hint'))
+             def connect_ex(self,address):
+                 # One shared private proof: construction/setup spend allocation,
+                 # and the immutable P4 settimeout(1) hint cannot renew it.
+                 remaining=(self.expires_ns-b.clock())/1000000000
+                 if remaining<=0: b.fail('Port proof allocation expired before connect')
+                 self.raw.settimeout(b.clip(min(3,remaining),'cleanup port connect'))
+                 b.pre('cleanup port connect admission after setup')
+                 if b.clock()>=self.expires_ns: b.fail('Port proof allocation expired after setup')
+                 code=self.raw.connect_ex(address)
+                 owner.port_closed=(code in {errno.ECONNREFUSED,10061})
+                 owner.events.append(dict(io='port',code=code,definitive_refusal=owner.port_closed))
+                 try:
+                     b.post('cleanup port probe')
+                     if b.clock()>self.expires_ns: b.fail('Late return: port proof allocation')
+                 except Exception: owner.port_closed=False; raise
+
+FILE H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\navigation-source10-validation-20261103-inert2\harness\headless_proof.py SHA256 0cc928afd81310907e46e318f9aee7d299480f40192158a2203f4c26f896d4f3 bytes 4162
+
+FILE H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\navigation-source10-validation-20261103-inert2\harness\manifest.json SHA256 3d0b47c9102b969d75685cc07b65623a9764e51cfdeaaee687431d45ec6916c1 bytes 3658
+--- base-a5b/manifest.json
++++ H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\navigation-source10-validation-20261103-inert2\harness\manifest.json
+@@ -1,50 +1,50 @@
+ {
+   "schema": 13,
+   "kind": "source10_harness_preparation_only",
+   "candidate": "118ba152b007c30d358c8bc44c51aabe8ae820f0",
+   "candidate_manifest_sha256": "cdfbfb059f889ef9e92221c503dffe2ca7fa08106ebf4968bcc26037f214be50",
+   "preparation_authority_sha256": "f3dcea80f720f903cc98ce77d1f8b9461ca4ad9b4e87e9d9d8c8b89262ae118a",
+   "files": {
+-    "adapter.py": "ea4270e735fbac4a5fbcf2d750135f5602b7fa756d5b2dbc6da39940743445bb",
+-    "test_adapter.py": "1ee606b5ee4fdfa8337bcbc06ff6df4951d2fd6f85098330d3e07fe20d061dc7",
++    "adapter.py": "27100afd246c9fb58579ed0389412731b4f029f1c5073ecce9e0cdd8b89d09ed",
++    "test_adapter.py": "61fd638095404a161e3f81d5a20df7d53f6413f74a4a5521e1d57f628a0a4c1e",
+     "run_checks.py": "4392774a4e11fde91a5fdec47d1bf10ef81296b3aa9d12e2c23f30151bc87cbb",
+     "headless_proof.py": "0cc928afd81310907e46e318f9aee7d299480f40192158a2203f4c26f896d4f3",
+-    "README.md": "3654f1daea80d347b3d2b851597fdd8603c110ad0230db2067e105d2bfa1ca71"
++    "README.md": "e53a8e84212aa5d1357468ff76fc31472fcd97d0a27661808eee3ed503307b36"
+   },
+   "authority_schema_status": "PROPOSED_REQUIRES_INDEPENDENT_ROOT_REVIEW",
+   "actual": false,
+   "inert_qualification_executed": false,
+   "original_corpus_profile_executed": false,
+   "model_calls": 0,
+   "product_launches": 0,
+   "T2": "NOT_PASSED",
+   "outer_timeout": "T4-D315-01 immutable eligibility deadline; monotonic_ns origin before admission, work275 cleanup310 seal315; trusted root enclosing witness required; no arbitrary-kernel preemption or recovery release",
+   "deadline_ruling_sha256": "144be9bc0a63294f5fd4e75c7cbe06f8e2ad2d51df36d0b11896d2455a0b4d47",
+   "schedule": {
+     "outer_seconds": 315,
+     "completion_inclusive": true,
+     "cleanup_seconds": 310,
+     "admission_strictly_positive": true,
+     "work_seconds": 275
+   },
+   "root_witness_contract": "One-shot trusted admitted context; sealed parent-held actual loopback GET observation; each directory/iteration/stat/hash budgeted; full runtime export safety closure and decoded scan; accepted/pre/post/current output maps equal; original proof and eligibility rules unchanged",
+   "formal_fix_round": 4,
+   "addressed_review_ids": [
+     "F1-N01"
+   ],
+-  "review_status": "PORT_REV2_PREPARATION_REQUIRES_INDEPENDENT_REVIEW",
++  "review_status": "PORT_REV2_FIX1_PENDING_INDEPENDENT_REREVIEW",
+   "export_format": 2,
+   "child_entry": "Exactly one validated native base under one original retained launcher; launcher ancestry-only; unique base clearance consumption and final work-budget admission before product/listener startup",
+   "prior_independently_closed_ids": [
+     "H01",
+     "H02",
+     "H03",
+     "H04",
+     "H05",
+     "H06",
+     "H07",
+     "H08",
+     "H09",
+     "H10",
+     "H11",
+     "H12",
+@@ -57,18 +57,19 @@
+     "F2-N02",
+     "F2-N03"
+   ],
+   "minor_review_disposition": "F2-N03 independently addressed in review 4",
+   "export_safety_contract": "Strict duplicate/nonfinite JSON at actual typed producer boundaries; ordinary metadata and ACK remain scanned prose; no field-name/suffix decoding; unsafe counters refused before raw publication; producer-declared SDK/file, transport, writer-receipt and native model metadata types checked before raw publication",
+   "directory_effect_contract": "Inert outputs require no descendants including empty directories; observer reserves exactly one fixed root seal-index.json beyond common256 DATA cap; index exact-set/digest and deadline guards retained",
+   "port_proof_revision": {
+     "cap_seconds": 3,
+     "shared_modes": [
+       "inert",
+       "actual"
+     ],
+     "single_connect": true,
+     "setup_consumes_allocation": true,
+     "strict_refusal_only": true,
+-    "ruling_sha256": "295ca3be9a9040967e826341af084a369d90606c595306ec62b62c912d62c209"
++    "ruling_sha256": "295ca3be9a9040967e826341af084a369d90606c595306ec62b62c912d62c209",
++    "timeout_hint_admission": "Both pinned private proof expiry and absolute phase deadline before raw setter; scope-owned close/restoration"
+   }
+ }
+
+FILE H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\navigation-source10-validation-20261103-inert2\harness\run_checks.py SHA256 4392774a4e11fde91a5fdec47d1bf10ef81296b3aa9d12e2c23f30151bc87cbb bytes 9596
+
+FILE H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\navigation-source10-validation-20261103-inert2\harness\test_adapter.py SHA256 61fd638095404a161e3f81d5a20df7d53f6413f74a4a5521e1d57f628a0a4c1e bytes 87400
+--- base-a5b/test_adapter.py
++++ H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\navigation-source10-validation-20261103-inert2\harness\test_adapter.py
+@@ -5,31 +5,71 @@
+ from pathlib import Path
+ import sys
+ import types
+ import pytest
+ 
+ spec=importlib.util.spec_from_file_location('source10_adapter',Path(__file__).with_name('adapter.py'))
+ a=importlib.util.module_from_spec(spec); spec.loader.exec_module(a)
+ with a.candidate_import_path():
+     from src.brain.tests.test_work_research import sdk_io,mock_jar
+     from src.brain.tests.test_work_navigation_transport import genuine_navigation
+ 
+ def synthetic_bundle(folder,sdk_io,mock_jar,monkeypatch,*,write=True):
+     from dataclasses import asdict
+     from src.brain.tests import test_work_research as fixtures
+     monkeypatch.setattr(fixtures,'URLS',fixtures.URLS[:4])
+-    result,ledger=genuine_navigation(folder/'outputs',sdk_io,mock_jar)
++    try:
++        result,ledger=genuine_navigation(folder/'outputs',sdk_io,mock_jar)
++    except AssertionError:
++        # Failure-only summaries: no report/prompt/result or credential payloads.
++        import ast,hashlib
++        literal_errors=set()
++        for name in ('work_tools.py','work_navigation.py','work_research.py'):
++            tree=ast.parse((a.C/'src/brain'/name).read_text('utf8'))
++            for node in ast.walk(tree):
++                if (isinstance(node,ast.Call) and isinstance(node.func,ast.Name)
++                        and node.func.id in ('ValueError','RuntimeError') and node.args
++                        and isinstance(node.args[0],ast.Constant) and isinstance(node.args[0].value,str)):
++                    literal_errors.add(node.args[0].value)
++        def error_summary(value):
++            value=str(value or '')
++            return dict(label=value if value in literal_errors else 'redacted_or_empty',
++                sha256=hashlib.sha256(value.encode('utf8')).hexdigest(),characters=len(value))
++        ledgers=[]
++        for observed in list(fixtures.RESTRICTED.values())[-2:]:
++            records=[]
++            for record in observed.snapshot()[-8:]:
++                records.append(dict(tool=record.get('tool_name'),success=record.get('success'),
++                    error=error_summary(record.get('error')),error_type=record.get('error_type'),
++                    result_present='result' in record,seq=record.get('seq')))
++            events=[]
++            staged=getattr(observed,'_staged',{})
++            for raw in getattr(observed,'_runtime_events',[])[-2:]:
++                event=json.loads(raw); data=event.get('data',{})
++                events.append(dict(type=event.get('type'),tool=data.get('tool'),
++                    success=data.get('success'),agent=data.get('agent'),
++                    staged_links=[dict(seq=seq,confirmed=node.get('confirmed'),
++                        result_equal=data.get('result')==node.get('content'),
++                        metadata_equal=data.get('metadata')==node.get('metadata'))
++                        for seq,node in list(staged.items())[-4:]]))
++            expected=getattr(observed,'_expected',None) or {}
++            ledgers.append(dict(first_failure=error_summary(observed.first_failure),
++                permit_present=observed._permit is not None,
++                expected={key:expected.get(key) for key in ('seq','name','generation','ended')},
++                records=records,events=events))
++        print('SYNTHETIC_FIXTURE_FAILURE_CONTEXT '+json.dumps(ledgers,sort_keys=True))
++        raise
+     sources=json.loads(ledger._collection.catalogue_json)
+     monkeypatch.setattr(a,'corpus',lambda:dict(query='Research a subject',sources=sources))
+     result['marker']='first'
+     if write:
+         a.save_new(folder/'service-first-result.json',result)
+         a.save_new(folder/'runtime-inputs.json',asdict(ledger._runtime_inputs))
+         a.export_completed(folder,ledger,result)
+     return result,ledger
+ 
+ def documents():
+     now=dt.datetime.now(dt.timezone.utc)
+     authority=dict(schema=11,kind='source10_execution',issuer='root',case='E02-controlled-1',candidate='118ba152b007c30d358c8bc44c51aabe8ae820f0',candidate_manifest_sha256='cdfbfb059f889ef9e92221c503dffe2ca7fa08106ebf4968bcc26037f214be50',issued_at=now.isoformat(),expires_at=(now+dt.timedelta(seconds=90)).isoformat(),budgets=dict(cli=1,search=1,GET=4,inspect=6,write=1,ACK=1,native_POST=8,service_seconds=260,client_seconds=300,outer_seconds=315,retry=0),native_precision='FILETIME100ns',actual=True,schedule=dict(work_seconds=275,cleanup_seconds=310,outer_seconds=315,ruling_sha256='144be9bc0a63294f5fd4e75c7cbe06f8e2ad2d51df36d0b11896d2455a0b4d47'),parent_timing=dict(origin_ns=100,clock_domain=a.CLOCK_DOMAIN,run_id='test',parent_identity={}))
+     ledger=dict(schema=11,released_case='E02-controlled-1',consumed=['E02-controlled-1'],attempts=1,retry=0)
+     return authority,ledger,now
+ 
+@@ -1155,52 +1195,53 @@
+     packet=a.strict_json(blobs['runtime']); value=int(escaped_scanner_fixture())
+     packet['execution']['files'][0]['result']={'unissued':value} if nested else value
+     ledger._runtime_final=canonical_v3(packet)
+     verify_runtime_packet(binding,snapshot,ledger._collection,ledger._runtime_final,require_ack=True,runtime_inputs=ledger._runtime_inputs)
+     with pytest.raises(ValueError,match='Producer'): a.export_completed(tmp_path,ledger,{})
+     assert not published and not list(tmp_path.glob('trusted-*.raw'))
+ 
+ 
+ # Port revision: an actual wait-dependent refusal, never a constant-success socket.
+ PORT_REFUSAL_DELAY = 2.0139454
+ 
+ def install_delayed_port(p4,clock,scenario):
+     probes=scenario.setdefault('probes',[])
+     class DelayedProbe:
+         def __init__(self):
+-            self.timeouts=[]; self.connects=[]; self.closed=False
++            self.timeouts=[]; self.connects=[]; self.closed=False; self.close_count=0
+             probes.append(self); clock.advance(scenario.get('setup',0))
+         def settimeout(self,value): self.timeout=value; self.timeouts.append(value)
+         def connect_ex(self,address):
+             self.connects.append(dict(address=address,timeout=self.timeout,start=clock()))
+             wait=min(self.timeout,PORT_REFUSAL_DELAY); clock.advance(wait)
+             clock.advance(scenario.get('overrun',0))
+             if scenario.get('error'): raise OSError('mocked port error')
+             return scenario.get('code',10061 if wait>=PORT_REFUSAL_DELAY else 10035)
+-        def close(self): self.closed=True
++        def close(self): self.closed=True; self.close_count+=1
+     p4.socket=types.SimpleNamespace(socket=DelayedProbe)
+     return probes
+ 
+ @pytest.mark.parametrize('mode',['inert','actual'])
+ @pytest.mark.parametrize('scenario',[
+     dict(name='sufficient',remaining=10,setup=0,eligible=True,effective=3),
+     dict(name='clipped-sufficient',remaining=2.5,setup=0,eligible=True,effective=2.5),
+     dict(name='clipped-unknown',remaining=2,setup=0,eligible=False,effective=2),
+     dict(name='exact-cutoff',remaining=PORT_REFUSAL_DELAY,eligible=False,closed=True,effective=PORT_REFUSAL_DELAY),
+     dict(name='setup-sufficient',remaining=10,setup=.8,eligible=True,effective=2.2),
+     dict(name='setup-unknown',remaining=10,setup=1.1,eligible=False,effective=1.9),
+     dict(name='zero-before-connect',remaining=10,setup=3,eligible=False,effective=None),
++    dict(name='phase-expired-before-hint',remaining=2,setup=2,eligible=False,effective=None),
+     dict(name='10035',remaining=10,code=10035,eligible=False,effective=3),
+     dict(name='10060',remaining=10,code=10060,eligible=False,effective=3),
+     dict(name='open',remaining=10,code=0,eligible=False,effective=3),
+     dict(name='other',remaining=10,code=12345,eligible=False,effective=3),
+     dict(name='missing',remaining=10,code=None,eligible=False,effective=3),
+     dict(name='error',remaining=10,error=True,eligible=False,effective=3),
+     dict(name='late-phase',remaining=2.5,overrun=1,eligible=False,effective=2.5),
+     dict(name='late-private-cap',remaining=10,overrun=1.1,eligible=False,effective=3),
+ ],ids=lambda v:v['name'])
+ def test_port_rev2_real_cleanup_delayed_refusal(tmp_path,monkeypatch,mode,scenario):
+     scenario=dict(scenario); clock=Clock(); b=a.Deadline(clock=clock); b.phase='cleanup'
+     b.admitted=dict(mode=mode); p4=a.load_p4(); active=set()
+     native_kernel(monkeypatch,p4,active,clock)
+     p4.protected=lambda:[]
+     p4.subprocess=types.SimpleNamespace(check_output=lambda *args,**kwargs:b'[]',CREATE_NO_WINDOW=0)
+@@ -1212,41 +1253,48 @@
+     with a.PrivateIO(p4,b) as io:
+         result=io.cleanup(owned,18799)
+         assert (result['status']=='PASS') is scenario['eligible'],result
+         assert io.port_closed is scenario.get('closed',scenario['eligible'])
+         if scenario.get('code',10035) in (10035,10060,12345,None) and not scenario.get('error') and not scenario.get('overrun') and scenario['effective'] is not None and b.remaining_ns()>0:
+             # Original P4's any-nonzero verdict is insufficient for strict eligibility.
+             original=a.load(tmp_path/'cleanup.json')
+             assert original['status']=='PASS' and original['port_closed'] is True
+         if b.remaining_ns()<=0:
+             assert not (tmp_path/'cleanup.json').exists()
+             assert b.failure # completed proof cannot admit a following save
+     assert all(getattr(p4,key) is value for key,value in saved.items())
+     assert len(probes)==1 and probes[0].closed
+     connects=probes[0].connects
+     assert len(connects)==(scenario['effective'] is not None)
++    assert probes[0].close_count==1
++    if not connects:
++        assert probes[0].timeouts==[] # expired construction admits no raw hint
+     if connects:
+         assert connects[0]['timeout']==pytest.approx(scenario['effective'])
+         assert probes[0].timeouts[0]==1 # immutable original P4 hint
+ 
+ @pytest.mark.parametrize('scenario',[
+     dict(name='sufficient',eligible=True,effective=3),
+     dict(name='clipped-sufficient',remaining=2.5,eligible=True,effective=2.5),
+     dict(name='clipped-unknown',remaining=2,eligible=False,effective=2),
+     dict(name='exact-cutoff',remaining=PORT_REFUSAL_DELAY,eligible=False,effective=PORT_REFUSAL_DELAY),
+     dict(name='zero-before-connect',setup=3,eligible=False,effective=None),
++    dict(name='phase-expired-before-hint',remaining=2,setup=2,eligible=False,effective=None),
+     dict(name='late-phase',remaining=2.5,overrun=1,eligible=False,effective=2.5),
+     dict(name='setup-sufficient',setup=.8,eligible=True,effective=2.2),
+     dict(name='setup-unknown',setup=1.1,eligible=False,effective=1.9),
+     dict(name='10035',code=10035,eligible=False,effective=3),
+     dict(name='10060',code=10060,eligible=False,effective=3),
+     dict(name='open',code=0,eligible=False,effective=3),
+     dict(name='error',error=True,eligible=False,effective=3),
+     dict(name='late-private-cap',overrun=1.1,eligible=False,effective=3),
+ ],ids=lambda v:v['name'])
+ def test_port_rev2_real_substantive_observer_delayed_refusal(tmp_path,monkeypatch,scenario):
+     scenario=dict(scenario)
+     _substantive_closed_witness_fixture(tmp_path,monkeypatch,'none',observer_port=scenario)
+     probe,=scenario['probes']
+     assert probe.closed and len(probe.connects)==(scenario['effective'] is not None)
++    assert probe.close_count==1
++    if not probe.connects:
++        assert probe.timeouts==[] # mandatory scope close despite hint-before-try
+     if probe.connects:
+         assert probe.connects[0]['timeout']==pytest.approx(scenario['effective'])
