@@ -1,0 +1,12 @@
+# Independent prefix harness re-review, revision 2
+
+**PASS** for the four scoped corrections. SPEC PASS. QUALITY PASS. No new Critical or Important issue was found in the amended scope.
+
+| Finding | Verdict | Evidence from the revised path and retained receipts |
+|---|---|---|
+| F1. Scanner eligibility | ADDRESSED | The helper preflights actual configured scanners on copies, filters and renumbers unchanged anchors, then binds the finalized schema/table before stage registration. The native leaf requires byte-equivalent message contents and identical eligibility from the genuine guarded pass before metadata or inference. Direct readback of S1–S4 templates found 48, 20, 15 and 48 issued cards, respectively. Every issued ref matches its schema enum and every anchor excludes changed lines. S2 still contains 90 lines, L45 is redacted and one candidate was excluded. The mock S2 wire messages equal the real SDK secured messages and preflight projection. Modified supplementary references still fail. |
+| F2. Deadline after intent I/O | ADDRESSED | One intent is consumed before disk I/O. Immediately afterwards the leaf checks the absolute deadline, requires positive remaining time and recalculates per-domain timeouts before dispatch. The focused late-intent test advances the clock during intent I/O and checks one intent, zero transport sends, zero recorded dispatches. The happy receipt has one intent, one POST and two trial GETs. |
+| F3. Optimized Python | ADDRESSED | Both main and run_prefix first execute an unconditional sys.flags.optimize check. The retained optimized CLI subprocess exited 1 with the intended RuntimeError ahead of authority file access and run-root creation. |
+| F4. Duplicate facts | ADDRESSED | The deduplication key recursively sorts object keys while preserving array order. The added reordered-key test exercises both the fact and its nested range, requiring a duplicate-fact failure from consume. |
+
+The retained XML contains 24 tests and zero failures, errors or skips. The happy receipt records a genuine stage START/END, confirmation and SDK max_turns_exceeded. Recomputed hashes match for the r2 manifest (02d0cd4ee8ae5f502a7c35cf6c630c07b5bd591922cb00eee1bde7265651e1ca), helper (4122c8d0c288689f31899fc59cebf7aabbcc546c46342071134af712d4a9863e), exact diff (d361df99b7cc575f7f282e2f16cdd9d3a35fb466149f59c8d3edcabe249e471c) and unchanged prompt. This review used readback only. Actual execution requires a separate root authority; actual factual quality remains untested.

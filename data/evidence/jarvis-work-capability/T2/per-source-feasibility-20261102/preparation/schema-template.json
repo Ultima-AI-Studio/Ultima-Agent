@@ -1,0 +1,172 @@
+{
+  "anyOf": [
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "action",
+        "action_input"
+      ],
+      "properties": {
+        "action": {
+          "type": "string",
+          "enum": [
+            "ultima_work_research_stage"
+          ]
+        },
+        "action_input": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "stage_token",
+                "facts"
+              ],
+              "properties": {
+                "stage_token": {
+                  "type": "string",
+                  "enum": [
+                    "00000000-0000-0000-0000-000000000000"
+                  ]
+                },
+                "facts": {
+                  "type": "array",
+                  "minItems": 1,
+                  "maxItems": 4,
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "claim",
+                      "ref",
+                      "ranges"
+                    ],
+                    "properties": {
+                      "claim": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 400
+                      },
+                      "ref": {
+                        "type": "integer",
+                        "enum": [
+                          1,
+                          2,
+                          3,
+                          4,
+                          5,
+                          6,
+                          7,
+                          8,
+                          9,
+                          10,
+                          11,
+                          12,
+                          13,
+                          14,
+                          15,
+                          16,
+                          17,
+                          18,
+                          19,
+                          20,
+                          21,
+                          22,
+                          23,
+                          24,
+                          25,
+                          26,
+                          27,
+                          28,
+                          29,
+                          30,
+                          31,
+                          32,
+                          33,
+                          34,
+                          35,
+                          36,
+                          37,
+                          38,
+                          39,
+                          40,
+                          41,
+                          42,
+                          43,
+                          44,
+                          45,
+                          46,
+                          47,
+                          48
+                        ]
+                      },
+                      "ranges": {
+                        "type": "array",
+                        "minItems": 1,
+                        "maxItems": 3,
+                        "items": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "lo",
+                            "hi"
+                          ],
+                          "properties": {
+                            "lo": {
+                              "type": "integer",
+                              "minimum": 1
+                            },
+                            "hi": {
+                              "type": "integer",
+                              "minimum": 1
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "stage_token",
+                "unused_reason"
+              ],
+              "properties": {
+                "stage_token": {
+                  "type": "string",
+                  "enum": [
+                    "00000000-0000-0000-0000-000000000000"
+                  ]
+                },
+                "unused_reason": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "final_answer"
+      ],
+      "properties": {
+        "final_answer": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1000
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="16" time="16.394" timestamp="2026-11-02T14:24:50.237092+08:00" hostname="DESKTOP-B366PQ9"><testcase classname="" name="test_general_projection_and_same_anchor_rules" time="0.039"><failure message="ValueError: No bound research source catalogue">def test_general_projection_and_same_anchor_rules():
+        from src.brain import work_research as wr
+        _,sources=h.load_material()
+        for source in sources:
+            view,omitted=h.project(source)
+            assert len(h.compact(view))&lt;=24000
+            table=h.cards(source,view)
+            assert 1&lt;=len(table)&lt;=48
+            assert list(table)==list(range(1,len(table)+1))
+            if source['source_id']=='S2':
+                assert not omitted
+&gt;               previous=wr.reference_cards(h.compact([source]))
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\per-source-feasibility-20261102\preparation\test_stage_prefix.py:49: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+src\brain\work_research.py:408: in reference_cards
+    sources = bound_sources(catalogue)
+              ^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+sources_json = '[{"success":true,"requested_url":"https://raw.githubusercontent.com/akshayaggarwal99/jarvis-ai-assistant/bec50ef6e615...46185f9ad472","request_id":"e02-round-1","session_id":"e02-round-1","task_id":"b31c8b0c-2aa1-4205-9c80-fe2458691c67"}]'
+binding = None
+
+    def bound_sources(sources_json,binding=None):
+        sources=json.loads(sources_json or '[]')
+&gt;       if len(sources)&lt;3: raise ValueError('No bound research source catalogue')
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       ValueError: No bound research source catalogue
+
+src\brain\work_research.py:142: ValueError</failure></testcase><testcase classname="" name="test_stage_negative[foreign]" time="0.091" /><testcase classname="" name="test_stage_negative[invalid_ref]" time="0.016" /><testcase classname="" name="test_stage_negative[length]" time="0.018" /><testcase classname="" name="test_stage_negative[replay]" time="0.019" /><testcase classname="" name="test_stage_negative[late]" time="0.016" /><testcase classname="" name="test_stage_negative[changed]" time="0.018" /><testcase classname="" name="test_stage_negative[duplicate]" time="0.020" /><testcase classname="" name="test_actual_sdk_prefix[happy]" time="13.237" /><testcase classname="" name="test_actual_sdk_prefix[wrong_model]" time="0.600" /><testcase classname="" name="test_actual_sdk_prefix[wrong_version]" time="0.592" /><testcase classname="" name="test_actual_sdk_prefix[length]" time="0.437" /><testcase classname="" name="test_actual_sdk_prefix[late_trickle]" time="0.320" /><testcase classname="" name="test_actual_sdk_prefix[late_END]" time="0.635" /><testcase classname="" name="test_duplicate_raw_envelope" time="0.001" /><testcase classname="" name="test_sampler_projection_preserves_server_schema" time="0.018" /></testsuite></testsuites>

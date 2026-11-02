@@ -1,0 +1,2487 @@
+{
+  "original_query": "查询Jarvis.ceo桌面端的任务架构与现有开源接入，整理带来源的文档保存为research.md。请实际搜索并阅读相关官方资料，可参考这些固定版本源码：https://raw.githubusercontent.com/akshayaggarwal99/jarvis-ai-assistant/bec50ef6e615707613c4fa22c8bd6afc3cc93152/README.md, https://raw.githubusercontent.com/akshayaggarwal99/jarvis-ai-assistant/bec50ef6e615707613c4fa22c8bd6afc3cc93152/src/core/agent-manager.ts, https://raw.githubusercontent.com/akshayaggarwal99/jarvis-ai-assistant/bec50ef6e615707613c4fa22c8bd6afc3cc93152/src/agents/unified-agent.ts，以及现有执行底座的官方源码 https://raw.githubusercontent.com/open-jarvis/OpenJarvis/0eb7811df96cf139e6bd6d7fcc9b5cc4ff1418ff/src/openjarvis/agents/native_react.py。",
+  "source": {
+    "success": true,
+    "requested_url": "https://raw.githubusercontent.com/open-jarvis/OpenJarvis/0eb7811df96cf139e6bd6d7fcc9b5cc4ff1418ff/src/openjarvis/agents/native_react.py",
+    "final_url": "https://raw.githubusercontent.com/open-jarvis/OpenJarvis/0eb7811df96cf139e6bd6d7fcc9b5cc4ff1418ff/src/openjarvis/agents/native_react.py",
+    "dedupe_url": "https://raw.githubusercontent.com/open-jarvis/OpenJarvis/0eb7811df96cf139e6bd6d7fcc9b5cc4ff1418ff/src/openjarvis/agents/native_react.py",
+    "source_id": "S4",
+    "fetched_at": "2026-11-02T05:34:24.693Z",
+    "status_code": 200,
+    "content_type": "text/plain",
+    "truncated": false,
+    "body": "\"\"\"NativeReActAgent -- Thought-Action-Observation loop agent.\n\nRenamed from ``ReActAgent`` to clarify this is OpenJarvis's native\nimplementation, not an integration with an external project.\n\"\"\"\n\nfrom __future__ import annotations\n\nimport json\nimport re\nfrom typing import Any, List, Optional\n\nfrom openjarvis.agents._stubs import AgentContext, AgentResult, ToolUsingAgent\nfrom openjarvis.agents.prompt_loader import (\n    load_few_shot_exemplars,\n    load_system_prompt_override,\n)\nfrom openjarvis.core.events import EventBus\nfrom openjarvis.core.registry import AgentRegistry\nfrom openjarvis.core.types import Message, Role, ToolCall, ToolResult, _message_to_dict\nfrom openjarvis.engine._stubs import InferenceEngine\nfrom openjarvis.tools._stubs import BaseTool, build_tool_descriptions\n\nREACT_SYSTEM_PROMPT = \"\"\"\\\nYou are a ReAct agent. For each step, respond with exactly one of:\n\n1. To think and act:\nThought: <your reasoning>\nAction: <tool_name>\nAction Input: <json arguments>\n\n2. To give a final answer:\nThought: <your reasoning>\nFinal Answer: <your answer>\n\n# Using Skills\n\nTools whose names begin with `skill_` are SKILLS. When you call a skill tool,\nthe response can take one of two forms:\n\n- **Computed result**: The skill ran a deterministic pipeline and returned a\n  value (number, string, JSON, etc.). Use the value directly in your answer.\n\n- **Procedural instructions**: The skill returned markdown text describing\n  HOW to accomplish a task. Recognize this when the response starts with\n  `#` headings, contains bullet lists, or uses phrases like \"When asked\n  to...\", \"First...\", \"Steps:\". When you receive instructions:\n  1. READ the instructions carefully — they are your playbook\n  2. FOLLOW the steps using your OTHER tools (e.g. calculator, web_search,\n     shell_exec, file_read) — not the same skill\n  3. DO NOT call the same skill again — you already have its instructions\n  4. Synthesize a Final Answer from what you learned\n\n{skill_examples}{tool_descriptions}\"\"\"\n\n\ndef _unique_json_object(pairs: list[tuple[str, Any]]) -> dict[str, Any]:\n    result = {}\n    for key, value in pairs:\n        if key in result:\n            raise ValueError(\"Duplicate JSON field\")\n        result[key] = value\n    return result\n\n\ndef _reject_json_constant(value: str) -> Any:\n    raise ValueError(\"Non-JSON numeric constant\")\n\n\ndef _parse_json_response(text: str) -> dict[str, str]:\n    \"\"\"Parse a complete JSON envelope without recovering partial tool calls.\"\"\"\n    result = {\"thought\": \"\", \"action\": \"\", \"action_input\": \"\", \"final_answer\": \"\"}\n    try:\n        payload = json.loads(\n            text,\n            object_pairs_hook=_unique_json_object,\n            parse_constant=_reject_json_constant,\n        )\n        if not isinstance(payload, dict):\n            raise ValueError(\"Expected one JSON object\")\n        fields = {}\n        for key, value in payload.items():\n            name = key.strip().lower().replace(\" \", \"_\")\n            if name in result:\n                if name in fields:\n                    raise ValueError(\"Ambiguous ReAct JSON fields\")\n                fields[name] = value\n        # Ordinary JSON answers without ReAct fields remain plain answers.\n        if not fields:\n            return result\n        for name in (\"thought\", \"action\", \"final_answer\"):\n            value = fields.get(name)\n            if value is not None:\n                if not isinstance(value, str):\n                    raise ValueError(f\"{name} must be a string\")\n                result[name] = value.strip()\n        if result[\"action\"] and result[\"final_answer\"]:\n            raise ValueError(\"Expected an action or a final answer, not both\")\n        if result[\"final_answer\"]:\n            return result\n        if not result[\"action\"]:\n            raise ValueError(\"ReAct JSON needs an action or a final answer\")\n        arguments = fields.get(\"action_input\", {})\n        if isinstance(arguments, str):\n            arguments = json.loads(\n                arguments,\n                object_pairs_hook=_unique_json_object,\n                parse_constant=_reject_json_constant,\n            )\n        if not isinstance(arguments, dict):\n            raise ValueError(\"action_input must be a JSON object\")\n        result[\"action_input\"] = json.dumps(\n            arguments, ensure_ascii=False, allow_nan=False\n        )\n        return result\n    except (ValueError, RecursionError):\n        # Do not expose JSON decoder messages or salvage a partial action: the\n        # response may contain tool arguments, secrets, or quoted action markers.\n        return {\n            \"thought\": \"\",\n            \"action\": \"\",\n            \"action_input\": \"\",\n            \"final_answer\": \"\",\n            \"parse_error\": (\n                \"Expected one JSON object with either a nonempty action and \"\n                \"object action_input, or a nonempty final_answer.\"\n            ),\n        }\n\n\n@AgentRegistry.register(\"native_react\")\nclass NativeReActAgent(ToolUsingAgent):\n    \"\"\"ReAct agent: Thought -> Action -> Observation loop.\"\"\"\n\n    agent_id = \"native_react\"\n    _default_temperature = 0.7\n    _default_max_tokens = 1024\n    _default_max_turns = 10\n\n    def __init__(\n        self,\n        engine: InferenceEngine,\n        model: str,\n        *,\n        tools: Optional[List[BaseTool]] = None,\n        bus: Optional[EventBus] = None,\n        max_turns: Optional[int] = None,\n        temperature: Optional[float] = None,\n        max_tokens: Optional[int] = None,\n        interactive: bool = False,\n        confirm_callback=None,\n        skill_few_shot_examples: Optional[List[str]] = None,\n        capability_policy: Optional[Any] = None,\n        agent_id: Optional[str] = None,\n        rate_limiter: Optional[Any] = None,\n    ) -> None:\n        super().__init__(\n            engine,\n            model,\n            tools=tools,\n            bus=bus,\n            max_turns=max_turns,\n            temperature=temperature,\n            max_tokens=max_tokens,\n            interactive=interactive,\n            confirm_callback=confirm_callback,\n            skill_few_shot_examples=skill_few_shot_examples,\n            capability_policy=capability_policy,\n            agent_id=agent_id,\n            rate_limiter=rate_limiter,\n        )\n\n    def _parse_response(self, text: str) -> dict:\n        \"\"\"Parse ReAct structured output.\"\"\"\n        stripped = text.strip()\n        fenced = re.fullmatch(\n            r\"```(?:json)?[ \\t]*\\r?\\n(.*?)\\r?\\n```\",\n            stripped,\n            re.DOTALL | re.IGNORECASE,\n        )\n        if fenced and fenced.group(1).lstrip().startswith((\"{\", \"[\")):\n            return _parse_json_response(fenced.group(1))\n        if (\n            stripped.startswith(\"{\")\n            or re.match(r\"\\[\\s*\\{\", stripped)\n            or stripped.lower().startswith(\"```json\")\n            or re.match(r\"```[ \\t]*\\r?\\n\\s*[\\{\\[]\", stripped)\n        ):\n            return _parse_json_response(stripped)\n\n        result = {\"thought\": \"\", \"action\": \"\", \"action_input\": \"\", \"final_answer\": \"\"}\n\n        # Extract Thought\n        thought_match = re.search(\n            r\"Thought:\\s*(.+?)(?=\\nAction:|\\nFinal Answer:|\\Z)\",\n            text,\n            re.DOTALL | re.IGNORECASE,\n        )\n        if thought_match:\n            result[\"thought\"] = thought_match.group(1).strip()\n\n        # Check for Final Answer\n        final_match = re.search(\n            r\"Final Answer:\\s*(.+)\", text, re.DOTALL | re.IGNORECASE\n        )\n        if final_match:\n            result[\"final_answer\"] = final_match.group(1).strip()\n            return result\n\n        # Extract Action and Action Input\n        action_match = re.search(r\"Action:\\s*(.+)\", text, re.IGNORECASE)\n        if action_match:\n            result[\"action\"] = action_match.group(1).strip()\n\n        input_match = re.search(\n            r\"Action Input:\\s*(.+?)(?=\\n\\n|\\nThought:|\\Z)\",\n            text,\n            re.DOTALL | re.IGNORECASE,\n        )\n        if input_match:\n            result[\"action_input\"] = input_match.group(1).strip()\n\n        return result\n\n    def run(\n        self,\n        input: str,\n        context: Optional[AgentContext] = None,\n        **kwargs: Any,\n    ) -> AgentResult:\n        self._emit_turn_start(input)\n\n        # Build system prompt with rich tool descriptions\n        tool_desc = build_tool_descriptions(self._tools)\n        # Plan 2B I3: render optimized few-shot skill examples as a section\n        # before the tool descriptions. Empty string when not present.\n        if self._skill_few_shot_examples:\n            skill_examples_block = (\n                \"## Skill Examples\\n\\n\"\n                + \"\\n\\n\".join(self._skill_few_shot_examples)\n                + \"\\n\\n\"\n            )\n        else:\n            skill_examples_block = \"\"\n        # Respect $OPENJARVIS_HOME override for the base template (M2+ work).\n        prompt_template = (\n            load_system_prompt_override(\"native_react\") or REACT_SYSTEM_PROMPT\n        )\n        # External overrides may not include the {skill_examples} slot.\n        try:\n            system_prompt = prompt_template.format(\n                tool_descriptions=tool_desc,\n                skill_examples=skill_examples_block,\n            )\n        except KeyError:\n            system_prompt = prompt_template.format(tool_descriptions=tool_desc)\n            if skill_examples_block:\n                system_prompt = system_prompt + \"\\n\\n\" + skill_examples_block\n\n        messages = self._build_messages(input, context, system_prompt=system_prompt)\n\n        # Inject few-shot exemplars before the user input\n        for ex in load_few_shot_exemplars(\"native_react\"):\n            if ex.get(\"input\") and ex.get(\"output\"):\n                messages.insert(-1, Message(role=Role.USER, content=ex[\"input\"]))\n                messages.insert(-1, Message(role=Role.ASSISTANT, content=ex[\"output\"]))\n\n        all_tool_results: list[ToolResult] = []\n        turns = 0\n        total_usage: dict[str, int] = {\n            \"prompt_tokens\": 0,\n            \"completion_tokens\": 0,\n            \"total_tokens\": 0,\n        }\n\n        for _turn in range(self._max_turns):\n            turns += 1\n\n            if self._loop_guard:\n                messages = self._loop_guard.compress_context(messages)\n\n            result = self._generate(messages)\n            usage = result.get(\"usage\", {})\n            for k in total_usage:\n                total_usage[k] += usage.get(k, 0)\n\n            content = result.get(\"content\", \"\")\n            parsed = self._parse_response(content)\n\n            if parsed.get(\"parse_error\"):\n                self._emit_turn_end(turns=turns)\n                return AgentResult(\n                    content=\"Could not parse the model's ReAct response. \"\n                    + parsed[\"parse_error\"],\n                    tool_results=all_tool_results,\n                    turns=turns,\n                    metadata={\n                        **total_usage,\n                        \"response_parse_error\": parsed[\"parse_error\"],\n                        \"messages\": [_message_to_dict(m) for m in messages],\n                    },\n                )\n\n            # Final answer?\n            if parsed[\"final_answer\"]:\n                self._emit_turn_end(turns=turns)\n                msg_dicts = [_message_to_dict(m) for m in messages]\n                return AgentResult(\n                    content=parsed[\"final_answer\"],\n                    tool_results=all_tool_results,\n                    turns=turns,\n                    metadata={**total_usage, \"messages\": msg_dicts},\n                )\n\n            # No action? Treat content as final answer\n            if not parsed[\"action\"]:\n                self._emit_turn_end(turns=turns)\n                msg_dicts = [_message_to_dict(m) for m in messages]\n                return AgentResult(\n                    content=content,\n                    tool_results=all_tool_results,\n                    turns=turns,\n                    metadata={**total_usage, \"messages\": msg_dicts},\n                )\n\n            # Execute action\n            messages.append(Message(role=Role.ASSISTANT, content=content))\n\n            tool_call = ToolCall(\n                id=f\"react_{turns}\",\n                name=parsed[\"action\"],\n                arguments=parsed[\"action_input\"] or \"{}\",\n            )\n\n            # Loop guard check before execution\n            if self._loop_guard:\n                verdict = self._loop_guard.check_call(\n                    tool_call.name,\n                    tool_call.arguments,\n                )\n                if verdict.blocked:\n                    tool_result = ToolResult(\n                        tool_name=tool_call.name,\n                        content=f\"Loop guard: {verdict.reason}\",\n                        success=False,\n                    )\n                    all_tool_results.append(tool_result)\n                    observation = f\"Observation: {tool_result.content}\"\n                    messages.append(Message(role=Role.USER, content=observation))\n                    continue\n\n            tool_result = self._executor.execute(tool_call)\n            all_tool_results.append(tool_result)\n\n            observation = f\"Observation: {tool_result.content}\"\n            messages.append(Message(role=Role.USER, content=observation))\n\n        # Max turns exceeded\n        msg_dicts = [_message_to_dict(m) for m in messages]\n        return self._max_turns_result(\n            all_tool_results,\n            turns,\n            metadata={**total_usage, \"messages\": msg_dicts},\n        )\n\n\n__all__ = [\"NativeReActAgent\", \"REACT_SYSTEM_PROMPT\"]\n",
+    "text": "\"\"\"NativeReActAgent -- Thought-Action-Observation loop agent.\n\nRenamed from ``ReActAgent`` to clarify this is OpenJarvis's native\nimplementation, not an integration with an external project.\n\"\"\"\n\nfrom __future__ import annotations\n\nimport json\nimport re\nfrom typing import Any, List, Optional\n\nfrom openjarvis.agents._stubs import AgentContext, AgentResult, ToolUsingAgent\nfrom openjarvis.agents.prompt_loader import (\n    load_few_shot_exemplars,\n    load_system_prompt_override,\n)\nfrom openjarvis.core.events import EventBus\nfrom openjarvis.core.registry import AgentRegistry\nfrom openjarvis.core.types import Message, Role, ToolCall, ToolResult, _message_to_dict\nfrom openjarvis.engine._stubs import InferenceEngine\nfrom openjarvis.tools._stubs import BaseTool, build_tool_descriptions\n\nREACT_SYSTEM_PROMPT = \"\"\"\\\nYou are a ReAct agent. For each step, respond with exactly one of:\n\n1. To think and act:\nThought: <your reasoning>\nAction: <tool_name>\nAction Input: <json arguments>\n\n2. To give a final answer:\nThought: <your reasoning>\nFinal Answer: <your answer>\n\n# Using Skills\n\nTools whose names begin with `skill_` are SKILLS. When you call a skill tool,\nthe response can take one of two forms:\n\n- **Computed result**: The skill ran a deterministic pipeline and returned a\n  value (number, string, JSON, etc.). Use the value directly in your answer.\n\n- **Procedural instructions**: The skill returned markdown text describing\n  HOW to accomplish a task. Recognize this when the response starts with\n  `#` headings, contains bullet lists, or uses phrases like \"When asked\n  to...\", \"First...\", \"Steps:\". When you receive instructions:\n  1. READ the instructions carefully — they are your playbook\n  2. FOLLOW the steps using your OTHER tools (e.g. calculator, web_search,\n     shell_exec, file_read) — not the same skill\n  3. DO NOT call the same skill again — you already have its instructions\n  4. Synthesize a Final Answer from what you learned\n\n{skill_examples}{tool_descriptions}\"\"\"\n\n\ndef _unique_json_object(pairs: list[tuple[str, Any]]) -> dict[str, Any]:\n    result = {}\n    for key, value in pairs:\n        if key in result:\n            raise ValueError(\"Duplicate JSON field\")\n        result[key] = value\n    return result\n\n\ndef _reject_json_constant(value: str) -> Any:\n    raise ValueError(\"Non-JSON numeric constant\")\n\n\ndef _parse_json_response(text: str) -> dict[str, str]:\n    \"\"\"Parse a complete JSON envelope without recovering partial tool calls.\"\"\"\n    result = {\"thought\": \"\", \"action\": \"\", \"action_input\": \"\", \"final_answer\": \"\"}\n    try:\n        payload = json.loads(\n            text,\n            object_pairs_hook=_unique_json_object,\n            parse_constant=_reject_json_constant,\n        )\n        if not isinstance(payload, dict):\n            raise ValueError(\"Expected one JSON object\")\n        fields = {}\n        for key, value in payload.items():\n            name = key.strip().lower().replace(\" \", \"_\")\n            if name in result:\n                if name in fields:\n                    raise ValueError(\"Ambiguous ReAct JSON fields\")\n                fields[name] = value\n        # Ordinary JSON answers without ReAct fields remain plain answers.\n        if not fields:\n            return result\n        for name in (\"thought\", \"action\", \"final_answer\"):\n            value = fields.get(name)\n            if value is not None:\n                if not isinstance(value, str):\n                    raise ValueError(f\"{name} must be a string\")\n                result[name] = value.strip()\n        if result[\"action\"] and result[\"final_answer\"]:\n            raise ValueError(\"Expected an action or a final answer, not both\")\n        if result[\"final_answer\"]:\n            return result\n        if not result[\"action\"]:\n            raise ValueError(\"ReAct JSON needs an action or a final answer\")\n        arguments = fields.get(\"action_input\", {})\n        if isinstance(arguments, str):\n            arguments = json.loads(\n                arguments,\n                object_pairs_hook=_unique_json_object,\n                parse_constant=_reject_json_constant,\n            )\n        if not isinstance(arguments, dict):\n            raise ValueError(\"action_input must be a JSON object\")\n        result[\"action_input\"] = json.dumps(\n            arguments, ensure_ascii=False, allow_nan=False\n        )\n        return result\n    except (ValueError, RecursionError):\n        # Do not expose JSON decoder messages or salvage a partial action: the\n        # response may contain tool arguments, secrets, or quoted action markers.\n        return {\n            \"thought\": \"\",\n            \"action\": \"\",\n            \"action_input\": \"\",\n            \"final_answer\": \"\",\n            \"parse_error\": (\n                \"Expected one JSON object with either a nonempty action and \"\n                \"object action_input, or a nonempty final_answer.\"\n            ),\n        }\n\n\n@AgentRegistry.register(\"native_react\")\nclass NativeReActAgent(ToolUsingAgent):\n    \"\"\"ReAct agent: Thought -> Action -> Observation loop.\"\"\"\n\n    agent_id = \"native_react\"\n    _default_temperature = 0.7\n    _default_max_tokens = 1024\n    _default_max_turns = 10\n\n    def __init__(\n        self,\n        engine: InferenceEngine,\n        model: str,\n        *,\n        tools: Optional[List[BaseTool]] = None,\n        bus: Optional[EventBus] = None,\n        max_turns: Optional[int] = None,\n        temperature: Optional[float] = None,\n        max_tokens: Optional[int] = None,\n        interactive: bool = False,\n        confirm_callback=None,\n        skill_few_shot_examples: Optional[List[str]] = None,\n        capability_policy: Optional[Any] = None,\n        agent_id: Optional[str] = None,\n        rate_limiter: Optional[Any] = None,\n    ) -> None:\n        super().__init__(\n            engine,\n            model,\n            tools=tools,\n            bus=bus,\n            max_turns=max_turns,\n            temperature=temperature,\n            max_tokens=max_tokens,\n            interactive=interactive,\n            confirm_callback=confirm_callback,\n            skill_few_shot_examples=skill_few_shot_examples,\n            capability_policy=capability_policy,\n            agent_id=agent_id,\n            rate_limiter=rate_limiter,\n        )\n\n    def _parse_response(self, text: str) -> dict:\n        \"\"\"Parse ReAct structured output.\"\"\"\n        stripped = text.strip()\n        fenced = re.fullmatch(\n            r\"```(?:json)?[ \\t]*\\r?\\n(.*?)\\r?\\n```\",\n            stripped,\n            re.DOTALL | re.IGNORECASE,\n        )\n        if fenced and fenced.group(1).lstrip().startswith((\"{\", \"[\")):\n            return _parse_json_response(fenced.group(1))\n        if (\n            stripped.startswith(\"{\")\n            or re.match(r\"\\[\\s*\\{\", stripped)\n            or stripped.lower().startswith(\"```json\")\n            or re.match(r\"```[ \\t]*\\r?\\n\\s*[\\{\\[]\", stripped)\n        ):\n            return _parse_json_response(stripped)\n\n        result = {\"thought\": \"\", \"action\": \"\", \"action_input\": \"\", \"final_answer\": \"\"}\n\n        # Extract Thought\n        thought_match = re.search(\n            r\"Thought:\\s*(.+?)(?=\\nAction:|\\nFinal Answer:|\\Z)\",\n            text,\n            re.DOTALL | re.IGNORECASE,\n        )\n        if thought_match:\n            result[\"thought\"] = thought_match.group(1).strip()\n\n        # Check for Final Answer\n        final_match = re.search(\n            r\"Final Answer:\\s*(.+)\", text, re.DOTALL | re.IGNORECASE\n        )\n        if final_match:\n            result[\"final_answer\"] = final_match.group(1).strip()\n            return result\n\n        # Extract Action and Action Input\n        action_match = re.search(r\"Action:\\s*(.+)\", text, re.IGNORECASE)\n        if action_match:\n            result[\"action\"] = action_match.group(1).strip()\n\n        input_match = re.search(\n            r\"Action Input:\\s*(.+?)(?=\\n\\n|\\nThought:|\\Z)\",\n            text,\n            re.DOTALL | re.IGNORECASE,\n        )\n        if input_match:\n            result[\"action_input\"] = input_match.group(1).strip()\n\n        return result\n\n    def run(\n        self,\n        input: str,\n        context: Optional[AgentContext] = None,\n        **kwargs: Any,\n    ) -> AgentResult:\n        self._emit_turn_start(input)\n\n        # Build system prompt with rich tool descriptions\n        tool_desc = build_tool_descriptions(self._tools)\n        # Plan 2B I3: render optimized few-shot skill examples as a section\n        # before the tool descriptions. Empty string when not present.\n        if self._skill_few_shot_examples:\n            skill_examples_block = (\n                \"## Skill Examples\\n\\n\"\n                + \"\\n\\n\".join(self._skill_few_shot_examples)\n                + \"\\n\\n\"\n            )\n        else:\n            skill_examples_block = \"\"\n        # Respect $OPENJARVIS_HOME override for the base template (M2+ work).\n        prompt_template = (\n            load_system_prompt_override(\"native_react\") or REACT_SYSTEM_PROMPT\n        )\n        # External overrides may not include the {skill_examples} slot.\n        try:\n            system_prompt = prompt_template.format(\n                tool_descriptions=tool_desc,\n                skill_examples=skill_examples_block,\n            )\n        except KeyError:\n            system_prompt = prompt_template.format(tool_descriptions=tool_desc)\n            if skill_examples_block:\n                system_prompt = system_prompt + \"\\n\\n\" + skill_examples_block\n\n        messages = self._build_messages(input, context, system_prompt=system_prompt)\n\n        # Inject few-shot exemplars before the user input\n        for ex in load_few_shot_exemplars(\"native_react\"):\n            if ex.get(\"input\") and ex.get(\"output\"):\n                messages.insert(-1, Message(role=Role.USER, content=ex[\"input\"]))\n                messages.insert(-1, Message(role=Role.ASSISTANT, content=ex[\"output\"]))\n\n        all_tool_results: list[ToolResult] = []\n        turns = 0\n        total_usage: dict[str, int] = {\n            \"prompt_tokens\": 0,\n            \"completion_tokens\": 0,\n            \"total_tokens\": 0,\n        }\n\n        for _turn in range(self._max_turns):\n            turns += 1\n\n            if self._loop_guard:\n                messages = self._loop_guard.compress_context(messages)\n\n            result = self._generate(messages)\n            usage = result.get(\"usage\", {})\n            for k in total_usage:\n                total_usage[k] += usage.get(k, 0)\n\n            content = result.get(\"content\", \"\")\n            parsed = self._parse_response(content)\n\n            if parsed.get(\"parse_error\"):\n                self._emit_turn_end(turns=turns)\n                return AgentResult(\n                    content=\"Could not parse the model's ReAct response. \"\n                    + parsed[\"parse_error\"],\n                    tool_results=all_tool_results,\n                    turns=turns,\n                    metadata={\n                        **total_usage,\n                        \"response_parse_error\": parsed[\"parse_error\"],\n                        \"messages\": [_message_to_dict(m) for m in messages],\n                    },\n                )\n\n            # Final answer?\n            if parsed[\"final_answer\"]:\n                self._emit_turn_end(turns=turns)\n                msg_dicts = [_message_to_dict(m) for m in messages]\n                return AgentResult(\n                    content=parsed[\"final_answer\"],\n                    tool_results=all_tool_results,\n                    turns=turns,\n                    metadata={**total_usage, \"messages\": msg_dicts},\n                )\n\n            # No action? Treat content as final answer\n            if not parsed[\"action\"]:\n                self._emit_turn_end(turns=turns)\n                msg_dicts = [_message_to_dict(m) for m in messages]\n                return AgentResult(\n                    content=content,\n                    tool_results=all_tool_results,\n                    turns=turns,\n                    metadata={**total_usage, \"messages\": msg_dicts},\n                )\n\n            # Execute action\n            messages.append(Message(role=Role.ASSISTANT, content=content))\n\n            tool_call = ToolCall(\n                id=f\"react_{turns}\",\n                name=parsed[\"action\"],\n                arguments=parsed[\"action_input\"] or \"{}\",\n            )\n\n            # Loop guard check before execution\n            if self._loop_guard:\n                verdict = self._loop_guard.check_call(\n                    tool_call.name,\n                    tool_call.arguments,\n                )\n                if verdict.blocked:\n                    tool_result = ToolResult(\n                        tool_name=tool_call.name,\n                        content=f\"Loop guard: {verdict.reason}\",\n                        success=False,\n                    )\n                    all_tool_results.append(tool_result)\n                    observation = f\"Observation: {tool_result.content}\"\n                    messages.append(Message(role=Role.USER, content=observation))\n                    continue\n\n            tool_result = self._executor.execute(tool_call)\n            all_tool_results.append(tool_result)\n\n            observation = f\"Observation: {tool_result.content}\"\n            messages.append(Message(role=Role.USER, content=observation))\n\n        # Max turns exceeded\n        msg_dicts = [_message_to_dict(m) for m in messages]\n        return self._max_turns_result(\n            all_tool_results,\n            turns,\n            metadata={**total_usage, \"messages\": msg_dicts},\n        )\n\n\n__all__ = [\"NativeReActAgent\", \"REACT_SYSTEM_PROMPT\"]\n",
+    "decoded_body_sha256": "a02c228a40f321cedd495c674f2bed5ff47866d8cc0561e71d0459d479a3c365",
+    "adapter_source_id": "60553554a9284a2eaff602b8167e1797",
+    "read_call_id": "0d783f46-522e-4ad2-b5ef-18680a3ac126",
+    "request_id": "e02-round-1",
+    "session_id": "e02-round-1",
+    "task_id": "b31c8b0c-2aa1-4205-9c80-fe2458691c67"
+  },
+  "view": {
+    "source_id": "S4",
+    "lines": [
+      [
+        1,
+        "\"\"\"NativeReActAgent -- Thought-Action-Observation loop agent."
+      ],
+      [
+        2,
+        ""
+      ],
+      [
+        3,
+        "Renamed from ``ReActAgent`` to clarify this is OpenJarvis's native"
+      ],
+      [
+        4,
+        "implementation, not an integration with an external project."
+      ],
+      [
+        5,
+        "\"\"\""
+      ],
+      [
+        6,
+        ""
+      ],
+      [
+        7,
+        "from __future__ import annotations"
+      ],
+      [
+        8,
+        ""
+      ],
+      [
+        9,
+        "import json"
+      ],
+      [
+        10,
+        "import re"
+      ],
+      [
+        11,
+        "from typing import Any, List, Optional"
+      ],
+      [
+        12,
+        ""
+      ],
+      [
+        13,
+        "from openjarvis.agents._stubs import AgentContext, AgentResult, ToolUsingAgent"
+      ],
+      [
+        14,
+        "from openjarvis.agents.prompt_loader import ("
+      ],
+      [
+        15,
+        "    load_few_shot_exemplars,"
+      ],
+      [
+        16,
+        "    load_system_prompt_override,"
+      ],
+      [
+        17,
+        ")"
+      ],
+      [
+        18,
+        "from openjarvis.core.events import EventBus"
+      ],
+      [
+        19,
+        "from openjarvis.core.registry import AgentRegistry"
+      ],
+      [
+        20,
+        "from openjarvis.core.types import Message, Role, ToolCall, ToolResult, _message_to_dict"
+      ],
+      [
+        21,
+        "from openjarvis.engine._stubs import InferenceEngine"
+      ],
+      [
+        22,
+        "from openjarvis.tools._stubs import BaseTool, build_tool_descriptions"
+      ],
+      [
+        23,
+        ""
+      ],
+      [
+        24,
+        "REACT_SYSTEM_PROMPT = \"\"\"\\"
+      ],
+      [
+        25,
+        "You are a ReAct agent. For each step, respond with exactly one of:"
+      ],
+      [
+        26,
+        ""
+      ],
+      [
+        27,
+        "1. To think and act:"
+      ],
+      [
+        28,
+        "Thought: <your reasoning>"
+      ],
+      [
+        29,
+        "Action: <tool_name>"
+      ],
+      [
+        30,
+        "Action Input: <json arguments>"
+      ],
+      [
+        31,
+        ""
+      ],
+      [
+        32,
+        "2. To give a final answer:"
+      ],
+      [
+        33,
+        "Thought: <your reasoning>"
+      ],
+      [
+        34,
+        "Final Answer: <your answer>"
+      ],
+      [
+        35,
+        ""
+      ],
+      [
+        36,
+        "# Using Skills"
+      ],
+      [
+        37,
+        ""
+      ],
+      [
+        38,
+        "Tools whose names begin with `skill_` are SKILLS. When you call a skill tool,"
+      ],
+      [
+        39,
+        "the response can take one of two forms:"
+      ],
+      [
+        40,
+        ""
+      ],
+      [
+        41,
+        "- **Computed result**: The skill ran a deterministic pipeline and returned a"
+      ],
+      [
+        42,
+        "  value (number, string, JSON, etc.). Use the value directly in your answer."
+      ],
+      [
+        43,
+        ""
+      ],
+      [
+        44,
+        "- **Procedural instructions**: The skill returned markdown text describing"
+      ],
+      [
+        45,
+        "  HOW to accomplish a task. Recognize this when the response starts with"
+      ],
+      [
+        46,
+        "  `#` headings, contains bullet lists, or uses phrases like \"When asked"
+      ],
+      [
+        47,
+        "  to...\", \"First...\", \"Steps:\". When you receive instructions:"
+      ],
+      [
+        48,
+        "  1. READ the instructions carefully — they are your playbook"
+      ],
+      [
+        49,
+        "  2. FOLLOW the steps using your OTHER tools (e.g. calculator, web_search,"
+      ],
+      [
+        50,
+        "     shell_exec, file_read) — not the same skill"
+      ],
+      [
+        51,
+        "  3. DO NOT call the same skill again — you already have its instructions"
+      ],
+      [
+        52,
+        "  4. Synthesize a Final Answer from what you learned"
+      ],
+      [
+        53,
+        ""
+      ],
+      [
+        54,
+        "{skill_examples}{tool_descriptions}\"\"\""
+      ],
+      [
+        55,
+        ""
+      ],
+      [
+        56,
+        ""
+      ],
+      [
+        57,
+        "def _unique_json_object(pairs: list[tuple[str, Any]]) -> dict[str, Any]:"
+      ],
+      [
+        58,
+        "    result = {}"
+      ],
+      [
+        59,
+        "    for key, value in pairs:"
+      ],
+      [
+        60,
+        "        if key in result:"
+      ],
+      [
+        61,
+        "            raise ValueError(\"Duplicate JSON field\")"
+      ],
+      [
+        62,
+        "        result[key] = value"
+      ],
+      [
+        63,
+        "    return result"
+      ],
+      [
+        64,
+        ""
+      ],
+      [
+        65,
+        ""
+      ],
+      [
+        66,
+        "def _reject_json_constant(value: str) -> Any:"
+      ],
+      [
+        67,
+        "    raise ValueError(\"Non-JSON numeric constant\")"
+      ],
+      [
+        68,
+        ""
+      ],
+      [
+        69,
+        ""
+      ],
+      [
+        70,
+        "def _parse_json_response(text: str) -> dict[str, str]:"
+      ],
+      [
+        71,
+        "    \"\"\"Parse a complete JSON envelope without recovering partial tool calls.\"\"\""
+      ],
+      [
+        72,
+        "    result = {\"thought\": \"\", \"action\": \"\", \"action_input\": \"\", \"final_answer\": \"\"}"
+      ],
+      [
+        73,
+        "    try:"
+      ],
+      [
+        74,
+        "        payload = json.loads("
+      ],
+      [
+        75,
+        "            text,"
+      ],
+      [
+        76,
+        "            object_pairs_hook=_unique_json_object,"
+      ],
+      [
+        77,
+        "            parse_constant=_reject_json_constant,"
+      ],
+      [
+        78,
+        "        )"
+      ],
+      [
+        79,
+        "        if not isinstance(payload, dict):"
+      ],
+      [
+        80,
+        "            raise ValueError(\"Expected one JSON object\")"
+      ],
+      [
+        81,
+        "        fields = {}"
+      ],
+      [
+        82,
+        "        for key, value in payload.items():"
+      ],
+      [
+        83,
+        "            name = key.strip().lower().replace(\" \", \"_\")"
+      ],
+      [
+        84,
+        "            if name in result:"
+      ],
+      [
+        85,
+        "                if name in fields:"
+      ],
+      [
+        86,
+        "                    raise ValueError(\"Ambiguous ReAct JSON fields\")"
+      ],
+      [
+        87,
+        "                fields[name] = value"
+      ],
+      [
+        88,
+        "        # Ordinary JSON answers without ReAct fields remain plain answers."
+      ],
+      [
+        89,
+        "        if not fields:"
+      ],
+      [
+        90,
+        "            return result"
+      ],
+      [
+        91,
+        "        for name in (\"thought\", \"action\", \"final_answer\"):"
+      ],
+      [
+        92,
+        "            value = fields.get(name)"
+      ],
+      [
+        93,
+        "            if value is not None:"
+      ],
+      [
+        94,
+        "                if not isinstance(value, str):"
+      ],
+      [
+        95,
+        "                    raise ValueError(f\"{name} must be a string\")"
+      ],
+      [
+        96,
+        "                result[name] = value.strip()"
+      ],
+      [
+        97,
+        "        if result[\"action\"] and result[\"final_answer\"]:"
+      ],
+      [
+        98,
+        "            raise ValueError(\"Expected an action or a final answer, not both\")"
+      ],
+      [
+        99,
+        "        if result[\"final_answer\"]:"
+      ],
+      [
+        100,
+        "            return result"
+      ],
+      [
+        101,
+        "        if not result[\"action\"]:"
+      ],
+      [
+        102,
+        "            raise ValueError(\"ReAct JSON needs an action or a final answer\")"
+      ],
+      [
+        103,
+        "        arguments = fields.get(\"action_input\", {})"
+      ],
+      [
+        104,
+        "        if isinstance(arguments, str):"
+      ],
+      [
+        105,
+        "            arguments = json.loads("
+      ],
+      [
+        106,
+        "                arguments,"
+      ],
+      [
+        107,
+        "                object_pairs_hook=_unique_json_object,"
+      ],
+      [
+        108,
+        "                parse_constant=_reject_json_constant,"
+      ],
+      [
+        109,
+        "            )"
+      ],
+      [
+        110,
+        "        if not isinstance(arguments, dict):"
+      ],
+      [
+        111,
+        "            raise ValueError(\"action_input must be a JSON object\")"
+      ],
+      [
+        112,
+        "        result[\"action_input\"] = json.dumps("
+      ],
+      [
+        113,
+        "            arguments, ensure_ascii=False, allow_nan=False"
+      ],
+      [
+        114,
+        "        )"
+      ],
+      [
+        115,
+        "        return result"
+      ],
+      [
+        116,
+        "    except (ValueError, RecursionError):"
+      ],
+      [
+        117,
+        "        # Do not expose JSON decoder messages or salvage a partial action: the"
+      ],
+      [
+        118,
+        "        # response may contain tool arguments, secrets, or quoted action markers."
+      ],
+      [
+        119,
+        "        return {"
+      ],
+      [
+        120,
+        "            \"thought\": \"\","
+      ],
+      [
+        121,
+        "            \"action\": \"\","
+      ],
+      [
+        122,
+        "            \"action_input\": \"\","
+      ],
+      [
+        123,
+        "            \"final_answer\": \"\","
+      ],
+      [
+        124,
+        "            \"parse_error\": ("
+      ],
+      [
+        125,
+        "                \"Expected one JSON object with either a nonempty action and \""
+      ],
+      [
+        126,
+        "                \"object action_input, or a nonempty final_answer.\""
+      ],
+      [
+        127,
+        "            ),"
+      ],
+      [
+        128,
+        "        }"
+      ],
+      [
+        129,
+        ""
+      ],
+      [
+        130,
+        ""
+      ],
+      [
+        131,
+        "@AgentRegistry.register(\"native_react\")"
+      ],
+      [
+        132,
+        "class NativeReActAgent(ToolUsingAgent):"
+      ],
+      [
+        133,
+        "    \"\"\"ReAct agent: Thought -> Action -> Observation loop.\"\"\""
+      ],
+      [
+        134,
+        ""
+      ],
+      [
+        135,
+        "    agent_id = \"native_react\""
+      ],
+      [
+        136,
+        "    _default_temperature = 0.7"
+      ],
+      [
+        137,
+        "    _default_max_tokens = 1024"
+      ],
+      [
+        138,
+        "    _default_max_turns = 10"
+      ],
+      [
+        139,
+        ""
+      ],
+      [
+        140,
+        "    def __init__("
+      ],
+      [
+        141,
+        "        self,"
+      ],
+      [
+        142,
+        "        engine: InferenceEngine,"
+      ],
+      [
+        143,
+        "        model: str,"
+      ],
+      [
+        144,
+        "        *,"
+      ],
+      [
+        145,
+        "        tools: Optional[List[BaseTool]] = None,"
+      ],
+      [
+        146,
+        "        bus: Optional[EventBus] = None,"
+      ],
+      [
+        147,
+        "        max_turns: Optional[int] = None,"
+      ],
+      [
+        148,
+        "        temperature: Optional[float] = None,"
+      ],
+      [
+        149,
+        "        max_tokens: Optional[int] = None,"
+      ],
+      [
+        150,
+        "        interactive: bool = False,"
+      ],
+      [
+        151,
+        "        confirm_callback=None,"
+      ],
+      [
+        152,
+        "        skill_few_shot_examples: Optional[List[str]] = None,"
+      ],
+      [
+        153,
+        "        capability_policy: Optional[Any] = None,"
+      ],
+      [
+        154,
+        "        agent_id: Optional[str] = None,"
+      ],
+      [
+        155,
+        "        rate_limiter: Optional[Any] = None,"
+      ],
+      [
+        156,
+        "    ) -> None:"
+      ],
+      [
+        157,
+        "        super().__init__("
+      ],
+      [
+        158,
+        "            engine,"
+      ],
+      [
+        159,
+        "            model,"
+      ],
+      [
+        160,
+        "            tools=tools,"
+      ],
+      [
+        161,
+        "            bus=bus,"
+      ],
+      [
+        162,
+        "            max_turns=max_turns,"
+      ],
+      [
+        163,
+        "            temperature=temperature,"
+      ],
+      [
+        164,
+        "            max_tokens=max_tokens,"
+      ],
+      [
+        165,
+        "            interactive=interactive,"
+      ],
+      [
+        166,
+        "            confirm_callback=confirm_callback,"
+      ],
+      [
+        167,
+        "            skill_few_shot_examples=skill_few_shot_examples,"
+      ],
+      [
+        168,
+        "            capability_policy=capability_policy,"
+      ],
+      [
+        169,
+        "            agent_id=agent_id,"
+      ],
+      [
+        170,
+        "            rate_limiter=rate_limiter,"
+      ],
+      [
+        171,
+        "        )"
+      ],
+      [
+        172,
+        ""
+      ],
+      [
+        173,
+        "    def _parse_response(self, text: str) -> dict:"
+      ],
+      [
+        174,
+        "        \"\"\"Parse ReAct structured output.\"\"\""
+      ],
+      [
+        175,
+        "        stripped = text.strip()"
+      ],
+      [
+        176,
+        "        fenced = re.fullmatch("
+      ],
+      [
+        177,
+        "            r\"```(?:json)?[ \\t]*\\r?\\n(.*?)\\r?\\n```\","
+      ],
+      [
+        178,
+        "            stripped,"
+      ],
+      [
+        179,
+        "            re.DOTALL | re.IGNORECASE,"
+      ],
+      [
+        180,
+        "        )"
+      ],
+      [
+        181,
+        "        if fenced and fenced.group(1).lstrip().startswith((\"{\", \"[\")):"
+      ],
+      [
+        182,
+        "            return _parse_json_response(fenced.group(1))"
+      ],
+      [
+        183,
+        "        if ("
+      ],
+      [
+        184,
+        "            stripped.startswith(\"{\")"
+      ],
+      [
+        185,
+        "            or re.match(r\"\\[\\s*\\{\", stripped)"
+      ],
+      [
+        186,
+        "            or stripped.lower().startswith(\"```json\")"
+      ],
+      [
+        187,
+        "            or re.match(r\"```[ \\t]*\\r?\\n\\s*[\\{\\[]\", stripped)"
+      ],
+      [
+        188,
+        "        ):"
+      ],
+      [
+        189,
+        "            return _parse_json_response(stripped)"
+      ],
+      [
+        190,
+        ""
+      ],
+      [
+        191,
+        "        result = {\"thought\": \"\", \"action\": \"\", \"action_input\": \"\", \"final_answer\": \"\"}"
+      ],
+      [
+        192,
+        ""
+      ],
+      [
+        193,
+        "        # Extract Thought"
+      ],
+      [
+        194,
+        "        thought_match = re.search("
+      ],
+      [
+        195,
+        "            r\"Thought:\\s*(.+?)(?=\\nAction:|\\nFinal Answer:|\\Z)\","
+      ],
+      [
+        196,
+        "            text,"
+      ],
+      [
+        197,
+        "            re.DOTALL | re.IGNORECASE,"
+      ],
+      [
+        198,
+        "        )"
+      ],
+      [
+        199,
+        "        if thought_match:"
+      ],
+      [
+        200,
+        "            result[\"thought\"] = thought_match.group(1).strip()"
+      ],
+      [
+        201,
+        ""
+      ],
+      [
+        202,
+        "        # Check for Final Answer"
+      ],
+      [
+        203,
+        "        final_match = re.search("
+      ],
+      [
+        204,
+        "            r\"Final Answer:\\s*(.+)\", text, re.DOTALL | re.IGNORECASE"
+      ],
+      [
+        205,
+        "        )"
+      ],
+      [
+        206,
+        "        if final_match:"
+      ],
+      [
+        207,
+        "            result[\"final_answer\"] = final_match.group(1).strip()"
+      ],
+      [
+        208,
+        "            return result"
+      ],
+      [
+        209,
+        ""
+      ],
+      [
+        210,
+        "        # Extract Action and Action Input"
+      ],
+      [
+        211,
+        "        action_match = re.search(r\"Action:\\s*(.+)\", text, re.IGNORECASE)"
+      ],
+      [
+        212,
+        "        if action_match:"
+      ],
+      [
+        213,
+        "            result[\"action\"] = action_match.group(1).strip()"
+      ],
+      [
+        214,
+        ""
+      ],
+      [
+        215,
+        "        input_match = re.search("
+      ],
+      [
+        216,
+        "            r\"Action Input:\\s*(.+?)(?=\\n\\n|\\nThought:|\\Z)\","
+      ],
+      [
+        217,
+        "            text,"
+      ],
+      [
+        218,
+        "            re.DOTALL | re.IGNORECASE,"
+      ],
+      [
+        219,
+        "        )"
+      ],
+      [
+        220,
+        "        if input_match:"
+      ],
+      [
+        221,
+        "            result[\"action_input\"] = input_match.group(1).strip()"
+      ],
+      [
+        222,
+        ""
+      ],
+      [
+        223,
+        "        return result"
+      ],
+      [
+        224,
+        ""
+      ],
+      [
+        225,
+        "    def run("
+      ],
+      [
+        226,
+        "        self,"
+      ],
+      [
+        227,
+        "        input: str,"
+      ],
+      [
+        228,
+        "        context: Optional[AgentContext] = None,"
+      ],
+      [
+        229,
+        "        **kwargs: Any,"
+      ],
+      [
+        230,
+        "    ) -> AgentResult:"
+      ],
+      [
+        231,
+        "        self._emit_turn_start(input)"
+      ],
+      [
+        232,
+        ""
+      ],
+      [
+        233,
+        "        # Build system prompt with rich tool descriptions"
+      ],
+      [
+        234,
+        "        tool_desc = build_tool_descriptions(self._tools)"
+      ],
+      [
+        235,
+        "        # Plan 2B I3: render optimized few-shot skill examples as a section"
+      ],
+      [
+        236,
+        "        # before the tool descriptions. Empty string when not present."
+      ],
+      [
+        237,
+        "        if self._skill_few_shot_examples:"
+      ],
+      [
+        238,
+        "            skill_examples_block = ("
+      ],
+      [
+        239,
+        "                \"## Skill Examples\\n\\n\""
+      ],
+      [
+        240,
+        "                + \"\\n\\n\".join(self._skill_few_shot_examples)"
+      ],
+      [
+        241,
+        "                + \"\\n\\n\""
+      ],
+      [
+        242,
+        "            )"
+      ],
+      [
+        243,
+        "        else:"
+      ],
+      [
+        244,
+        "            skill_examples_block = \"\""
+      ],
+      [
+        245,
+        "        # Respect $OPENJARVIS_HOME override for the base template (M2+ work)."
+      ],
+      [
+        246,
+        "        prompt_template = ("
+      ],
+      [
+        247,
+        "            load_system_prompt_override(\"native_react\") or REACT_SYSTEM_PROMPT"
+      ],
+      [
+        248,
+        "        )"
+      ],
+      [
+        249,
+        "        # External overrides may not include the {skill_examples} slot."
+      ],
+      [
+        250,
+        "        try:"
+      ],
+      [
+        251,
+        "            system_prompt = prompt_template.format("
+      ],
+      [
+        252,
+        "                tool_descriptions=tool_desc,"
+      ],
+      [
+        253,
+        "                skill_examples=skill_examples_block,"
+      ],
+      [
+        254,
+        "            )"
+      ],
+      [
+        255,
+        "        except KeyError:"
+      ],
+      [
+        256,
+        "            system_prompt = prompt_template.format(tool_descriptions=tool_desc)"
+      ],
+      [
+        257,
+        "            if skill_examples_block:"
+      ],
+      [
+        258,
+        "                system_prompt = system_prompt + \"\\n\\n\" + skill_examples_block"
+      ],
+      [
+        259,
+        ""
+      ],
+      [
+        260,
+        "        messages = self._build_messages(input, context, system_prompt=system_prompt)"
+      ],
+      [
+        261,
+        ""
+      ],
+      [
+        262,
+        "        # Inject few-shot exemplars before the user input"
+      ],
+      [
+        263,
+        "        for ex in load_few_shot_exemplars(\"native_react\"):"
+      ],
+      [
+        264,
+        "            if ex.get(\"input\") and ex.get(\"output\"):"
+      ],
+      [
+        265,
+        "                messages.insert(-1, Message(role=Role.USER, content=ex[\"input\"]))"
+      ],
+      [
+        266,
+        "                messages.insert(-1, Message(role=Role.ASSISTANT, content=ex[\"output\"]))"
+      ],
+      [
+        267,
+        ""
+      ],
+      [
+        268,
+        "        all_tool_results: list[ToolResult] = []"
+      ],
+      [
+        269,
+        "        turns = 0"
+      ],
+      [
+        270,
+        "        total_usage: dict[str, int] = {"
+      ],
+      [
+        271,
+        "            \"prompt_tokens\": 0,"
+      ],
+      [
+        272,
+        "            \"completion_tokens\": 0,"
+      ],
+      [
+        273,
+        "            \"total_tokens\": 0,"
+      ],
+      [
+        274,
+        "        }"
+      ],
+      [
+        275,
+        ""
+      ],
+      [
+        276,
+        "        for _turn in range(self._max_turns):"
+      ],
+      [
+        277,
+        "            turns += 1"
+      ],
+      [
+        278,
+        ""
+      ],
+      [
+        279,
+        "            if self._loop_guard:"
+      ],
+      [
+        280,
+        "                messages = self._loop_guard.compress_context(messages)"
+      ],
+      [
+        281,
+        ""
+      ],
+      [
+        282,
+        "            result = self._generate(messages)"
+      ],
+      [
+        283,
+        "            usage = result.get(\"usage\", {})"
+      ],
+      [
+        284,
+        "            for k in total_usage:"
+      ],
+      [
+        285,
+        "                total_usage[k] += usage.get(k, 0)"
+      ],
+      [
+        286,
+        ""
+      ],
+      [
+        287,
+        "            content = result.get(\"content\", \"\")"
+      ],
+      [
+        288,
+        "            parsed = self._parse_response(content)"
+      ],
+      [
+        289,
+        ""
+      ],
+      [
+        290,
+        "            if parsed.get(\"parse_error\"):"
+      ],
+      [
+        291,
+        "                self._emit_turn_end(turns=turns)"
+      ],
+      [
+        292,
+        "                return AgentResult("
+      ],
+      [
+        293,
+        "                    content=\"Could not parse the model's ReAct response. \""
+      ],
+      [
+        294,
+        "                    + parsed[\"parse_error\"],"
+      ],
+      [
+        295,
+        "                    tool_results=all_tool_results,"
+      ],
+      [
+        296,
+        "                    turns=turns,"
+      ],
+      [
+        297,
+        "                    metadata={"
+      ],
+      [
+        298,
+        "                        **total_usage,"
+      ],
+      [
+        299,
+        "                        \"response_parse_error\": parsed[\"parse_error\"],"
+      ],
+      [
+        300,
+        "                        \"messages\": [_message_to_dict(m) for m in messages],"
+      ],
+      [
+        301,
+        "                    },"
+      ],
+      [
+        302,
+        "                )"
+      ],
+      [
+        303,
+        ""
+      ],
+      [
+        304,
+        "            # Final answer?"
+      ],
+      [
+        305,
+        "            if parsed[\"final_answer\"]:"
+      ],
+      [
+        306,
+        "                self._emit_turn_end(turns=turns)"
+      ],
+      [
+        307,
+        "                msg_dicts = [_message_to_dict(m) for m in messages]"
+      ],
+      [
+        308,
+        "                return AgentResult("
+      ],
+      [
+        309,
+        "                    content=parsed[\"final_answer\"],"
+      ],
+      [
+        310,
+        "                    tool_results=all_tool_results,"
+      ],
+      [
+        311,
+        "                    turns=turns,"
+      ],
+      [
+        312,
+        "                    metadata={**total_usage, \"messages\": msg_dicts},"
+      ],
+      [
+        313,
+        "                )"
+      ],
+      [
+        314,
+        ""
+      ],
+      [
+        315,
+        "            # No action? Treat content as final answer"
+      ],
+      [
+        316,
+        "            if not parsed[\"action\"]:"
+      ],
+      [
+        317,
+        "                self._emit_turn_end(turns=turns)"
+      ],
+      [
+        318,
+        "                msg_dicts = [_message_to_dict(m) for m in messages]"
+      ],
+      [
+        319,
+        "                return AgentResult("
+      ],
+      [
+        320,
+        "                    content=content,"
+      ],
+      [
+        321,
+        "                    tool_results=all_tool_results,"
+      ],
+      [
+        322,
+        "                    turns=turns,"
+      ],
+      [
+        323,
+        "                    metadata={**total_usage, \"messages\": msg_dicts},"
+      ],
+      [
+        324,
+        "                )"
+      ],
+      [
+        325,
+        ""
+      ],
+      [
+        326,
+        "            # Execute action"
+      ],
+      [
+        327,
+        "            messages.append(Message(role=Role.ASSISTANT, content=content))"
+      ],
+      [
+        328,
+        ""
+      ],
+      [
+        329,
+        "            tool_call = ToolCall("
+      ],
+      [
+        330,
+        "                id=f\"react_{turns}\","
+      ],
+      [
+        331,
+        "                name=parsed[\"action\"],"
+      ],
+      [
+        332,
+        "                arguments=parsed[\"action_input\"] or \"{}\","
+      ],
+      [
+        333,
+        "            )"
+      ],
+      [
+        334,
+        ""
+      ],
+      [
+        335,
+        "            # Loop guard check before execution"
+      ],
+      [
+        336,
+        "            if self._loop_guard:"
+      ],
+      [
+        337,
+        "                verdict = self._loop_guard.check_call("
+      ],
+      [
+        338,
+        "                    tool_call.name,"
+      ],
+      [
+        339,
+        "                    tool_call.arguments,"
+      ],
+      [
+        340,
+        "                )"
+      ],
+      [
+        341,
+        "                if verdict.blocked:"
+      ],
+      [
+        342,
+        "                    tool_result = ToolResult("
+      ],
+      [
+        343,
+        "                        tool_name=tool_call.name,"
+      ],
+      [
+        344,
+        "                        content=f\"Loop guard: {verdict.reason}\","
+      ],
+      [
+        345,
+        "                        success=False,"
+      ],
+      [
+        346,
+        "                    )"
+      ],
+      [
+        347,
+        "                    all_tool_results.append(tool_result)"
+      ],
+      [
+        348,
+        "                    observation = f\"Observation: {tool_result.content}\""
+      ],
+      [
+        349,
+        "                    messages.append(Message(role=Role.USER, content=observation))"
+      ],
+      [
+        350,
+        "                    continue"
+      ],
+      [
+        351,
+        ""
+      ],
+      [
+        352,
+        "            tool_result = self._executor.execute(tool_call)"
+      ],
+      [
+        353,
+        "            all_tool_results.append(tool_result)"
+      ],
+      [
+        354,
+        ""
+      ],
+      [
+        355,
+        "            observation = f\"Observation: {tool_result.content}\""
+      ],
+      [
+        356,
+        "            messages.append(Message(role=Role.USER, content=observation))"
+      ],
+      [
+        357,
+        ""
+      ],
+      [
+        358,
+        "        # Max turns exceeded"
+      ],
+      [
+        359,
+        "        msg_dicts = [_message_to_dict(m) for m in messages]"
+      ],
+      [
+        360,
+        "        return self._max_turns_result("
+      ],
+      [
+        361,
+        "            all_tool_results,"
+      ],
+      [
+        362,
+        "            turns,"
+      ],
+      [
+        363,
+        "            metadata={**total_usage, \"messages\": msg_dicts},"
+      ],
+      [
+        364,
+        "        )"
+      ],
+      [
+        365,
+        ""
+      ],
+      [
+        366,
+        ""
+      ],
+      [
+        367,
+        "__all__ = [\"NativeReActAgent\", \"REACT_SYSTEM_PROMPT\"]"
+      ]
+    ],
+    "omitted": false
+  },
+  "omitted_ranges": [],
+  "table": {
+    "1": {
+      "kind": "limitation",
+      "claim": "witness",
+      "first_line": 61,
+      "last_line": 61,
+      "text": "            raise ValueError(\"Duplicate JSON field\")",
+      "source_id": "S4",
+      "final_url": "https://raw.githubusercontent.com/open-jarvis/OpenJarvis/0eb7811df96cf139e6bd6d7fcc9b5cc4ff1418ff/src/openjarvis/agents/native_react.py",
+      "decoded_body_sha256": "a02c228a40f321cedd495c674f2bed5ff47866d8cc0561e71d0459d479a3c365",
+      "read_call_id": "0d783f46-522e-4ad2-b5ef-18680a3ac126",
+      "request_id": "e02-round-1",
+      "session_id": "e02-round-1",
+      "task_id": "b31c8b0c-2aa1-4205-9c80-fe2458691c67",
+      "symbol": "",
+      "citation_first": 58,
+      "citation_last": 65
+    },
+    "2": {
+      "kind": "limitation",
+      "claim": "witness",
+      "first_line": 67,
+      "last_line": 67,
+      "text": "    raise ValueError(\"Non-JSON numeric constant\")",
+      "source_id": "S4",
+      "final_url": "https://raw.githubusercontent.com/open-jarvis/OpenJarvis/0eb7811df96cf139e6bd6d7fcc9b5cc4ff1418ff/src/openjarvis/agents/native_react.py",
+      "decoded_body_sha256": "a02c228a40f321cedd495c674f2bed5ff47866d8cc0561e71d0459d479a3c365",
+      "read_call_id": "0d783f46-522e-4ad2-b5ef-18680a3ac126",
+      "request_id": "e02-round-1",
+      "session_id": "e02-round-1",
+      "task_id": "b31c8b0c-2aa1-4205-9c80-fe2458691c67",
+      "symbol": "",
+      "citation_first": 64,
+      "citation_last": 71
+    },
+    "3": {
+      "kind": "code",
+      "claim": "json.loads",
+      "first_line": 74,
+      "last_line": 78,
+      "symbol": "json.loads",
+      "text": "        payload = json.loads(\n            text,\n            object_pairs_hook=_unique_json_object,\n            parse_constant=_reject_json_constant,\n        )",
+      "source_id": "S4",
+      "final_url": "https://raw.githubusercontent.com/open-jarvis/OpenJarvis/0eb7811df96cf139e6bd6d7fcc9b5cc4ff1418ff/src/openjarvis/agents/native_react.py",
+      "decoded_body_sha256": "a02c228a40f321cedd495c674f2bed5ff47866d8cc0561e71d0459d479a3c365",
+      "read_call_id": "0d783f46-522e-4ad2-b5ef-18680a3ac126",
+      "request_id": "e02-round-1",
+      "session_id": "e02-round-1",
+      "task_id": "b31c8b0c-2aa1-4205-9c80-fe2458691c67",
+      "citation_first": 73,
+      "citation_last": 80
+    },
+    "4": {
+      "kind": "limitation",
+      "claim": "witness",
+      "first_line": 80,
+      "last_line": 80,
+      "text": "            raise ValueError(\"Expected one JSON object\")",
+      "source_id": "S4",
+      "final_url": "https://raw.githubusercontent.com/open-jarvis/OpenJarvis/0eb7811df96cf139e6bd6d7fcc9b5cc4ff1418ff/src/openjarvis/agents/native_react.py",
+      "decoded_body_sha256": "a02c228a40f321cedd495c674f2bed5ff47866d8cc0561e71d0459d479a3c365",
+      "read_call_id": "0d783f46-522e-4ad2-b5ef-18680a3ac126",
+      "request_id": "e02-round-1",
+      "session_id": "e02-round-1",
+      "task_id": "b31c8b0c-2aa1-4205-9c80-fe2458691c67",
+      "symbol": "",
+      "citation_first": 77,
+      "citation_last": 84
+    },
+    "5": {
+      "kind": "limitation",
+      "claim": "witness",
+      "first_line": 86,
+      "last_line": 86,
+      "text": "                    raise ValueError(\"Ambiguous ReAct JSON fields\")",
+      "source_id": "S4",
+      "final_url": "https://raw.githubusercontent.com/open-jarvis/OpenJarvis/0eb7811df96cf139e6bd6d7fcc9b5cc4ff1418ff/src/openjarvis/agents/native_react.py",
+      "decoded_body_sha256": "a02c228a40f321cedd495c674f2bed5ff47866d8cc0561e71d0459d479a3c365",
+      "read_call_id": "0d783f46-522e-4ad2-b5ef-18680a3ac126",
+      "request_id": "e02-round-1",
+      "session_id": "e02-round-1",
+      "task_id": "b31c8b0c-2aa1-4205-9c80-fe2458691c67",
+      "symbol": "",
+      "citation_first": 83,
+      "citation_last": 90
+    },
+    "6": {
+      "kind": "code",
+      "claim": "fields.get",
+      "first_line": 92,
+      "last_line": 92,
+      "symbol": "fields.get",
+      "text": "            value = fields.get(name)",
+      "source_id": "S4",
+      "final_url": "https://raw.githubusercontent.com/open-jarvis/OpenJarvis/0eb7811df96cf139e6bd6d7fcc9b5cc4ff1418ff/src/openjarvis/agents/native_react.py",
+      "decoded_body_sha256": "a02c228a40f321cedd495c674f2bed5ff47866d8cc0561e71d0459d479a3c365",
+      "read_call_id": "0d783f46-522e-4ad2-b5ef-18680a3ac126",
+      "request_id": "e02-round-1",
+      "session_id": "e02-round-1",
+      "task_id": "b31c8b0c-2aa1-4205-9c80-fe2458691c67",
+      "citation_first": 89,
+      "citation_last": 96
+    },
+    "7": {
+      "kind": "limitation",
+      "claim": "witness",
+      "first_line": 95,
+      "last_line": 95,
+      "text": "                    raise ValueError(f\"{name} must be a string\")",
+      "source_id": "S4",
+      "final_url": "https://raw.githubusercontent.com/open-jarvis/OpenJarvis/0eb7811df96cf139e6bd6d7fcc9b5cc4ff1418ff/src/openjarvis/agents/native_react.py",
+      "decoded_body_sha256": "a02c228a40f321cedd495c674f2bed5ff47866d8cc0561e71d0459d479a3c365",
+      "read_call_id": "0d783f46-522e-4ad2-b5ef-18680a3ac126",
+      "request_id": "e02-round-1",
+      "session_id": "e02-round-1",
+      "task_id": "b31c8b0c-2aa1-4205-9c80-fe2458691c67",
+      "symbol": "",
+      "citation_first": 92,
+      "citation_last": 99
+    },
+    "8": {
+      "kind": "code",
+      "claim": "value.strip",
+      "first_line": 96,
+      "last_line": 96,
+      "symbol": "value.strip",
+      "text": "                result[name] = value.strip()",
+      "source_id": "S4",
+      "final_url": "https://raw.githubusercontent.com/open-jarvis/OpenJarvis/0eb7811df96cf139e6bd6d7fcc9b5cc4ff1418ff/src/openjarvis/agents/native_react.py",
+      "decoded_body_sha256": "a02c228a40f321cedd495c674f2bed5ff47866d8cc0561e71d0459d479a3c365",
+      "read_call_id": "0d783f46-522e-4ad2-b5ef-18680a3ac126",
+      "request_id": "e02-round-1",
+      "session_id": "e02-round-1",
+      "task_id": "b31c8b0c-2aa1-4205-9c80-fe2458691c67",
+      "citation_first": 93,
+      "citation_last": 100
+    },
+    "9": {
+      "kind": "limitation",
+      "claim": "witness",
+      "first_line": 98,
+      "last_line": 98,
+      "text": "            raise ValueError(\"Expected an action or a final answer, not both\")",
+      "source_id": "S4",
+      "final_url": "https://raw.githubusercontent.com/open-jarvis/OpenJarvis/0eb7811df96cf139e6bd6d7fcc9b5cc4ff1418ff/src/openjarvis/agents/native_react.py",
+      "decoded_body_sha256": "a02c228a40f321cedd495c674f2bed5ff47866d8cc0561e71d0459d479a3c365",
+      "read_call_id": "0d783f46-522e-4ad2-b5ef-18680a3ac126",
+      "request_id": "e02-round-1",
+      "session_id": "e02-round-1",
+      "task_id": "b31c8b0c-2aa1-4205-9c80-fe2458691c67",
+      "symbol": "",
+      "citation_first": 95,
+      "citation_last": 102
+    },
+    "10": {
+      "kind": "limitation",
+      "claim": "witness",
+      "first_line": 102,
+      "last_line": 102,
+      "text": "            raise ValueError(\"ReAct JSON needs an action or a final answer\")",
+      "source_id": "S4",
+      "final_url": "https://raw.githubusercontent.com/open-jarvis/OpenJarvis/0eb7811df96cf139e6bd6d7fcc9b5cc4ff1418ff/src/openjarvis/agents/native_react.py",
+      "decoded_body_sha256": "a02c228a40f321cedd495c674f2bed5ff47866d8cc0561e71d0459d479a3c365",
+      "read_call_id": "0d783f46-522e-4ad2-b5ef-18680a3ac126",
+      "request_id": "e02-round-1",
+      "session_id": "e02-round-1",
+      "task_id": "b31c8b0c-2aa1-4205-9c80-fe2458691c67",
+      "symbol": "",
+      "citation_first": 99,
+      "citation_last": 106
+    },
+    "11": {
+      "kind": "code",
+      "claim": "fields.get",
+      "first_line": 103,
+      "last_line": 103,
+      "symbol": "fields.get",
+      "text": "        arguments = fields.get(\"action_input\", {})",
+      "source_id": "S4",
+      "final_url": "https://raw.githubusercontent.com/open-jarvis/OpenJarvis/0eb7811df96cf139e6bd6d7fcc9b5cc4ff1418ff/src/openjarvis/agents/native_react.py",
+      "decoded_body_sha256": "a02c228a40f321cedd495c674f2bed5ff47866d8cc0561e71d0459d479a3c365",
+      "read_call_id": "0d783f46-522e-4ad2-b5ef-18680a3ac126",
+      "request_id": "e02-round-1",
+      "session_id": "e02-round-1",
+      "task_id": "b31c8b0c-2aa1-4205-9c80-fe2458691c67",
+      "citation_first": 100,
+      "citation_last": 107
+    },
+    "12": {
+      "kind": "code",
+      "claim": "json.loads",
+      "first_line": 105,
+      "last_line": 109,
+      "symbol": "json.loads",
+      "text": "            arguments = json.loads(\n                arguments,\n                object_pairs_hook=_unique_json_object,\n                parse_constant=_reject_json_constant,\n            )",
+      "source_id": "S4",
+      "final_url": "https://raw.githubusercontent.com/open-jarvis/OpenJarvis/0eb7811df96cf139e6bd6d7fcc9b5cc4ff1418ff/src/openjarvis/agents/native_react.py",
+      "decoded_body_sha256": "a02c228a40f321cedd495c674f2bed5ff47866d8cc0561e71d0459d479a3c365",
+      "read_call_id": "0d783f46-522e-4ad2-b5ef-18680a3ac126",
+      "request_id": "e02-round-1",
+      "session_id": "e02-round-1",
+      "task_id": "b31c8b0c-2aa1-4205-9c80-fe2458691c67",
+      "citation_first": 104,
+      "citation_last": 111
+    },
+    "13": {
+      "kind": "limitation",
+      "claim": "witness",
+      "first_line": 111,
+      "last_line": 111,
+      "text": "            raise ValueError(\"action_input must be a JSON object\")",
+      "source_id": "S4",
+      "final_url": "https://raw.githubusercontent.com/open-jarvis/OpenJarvis/0eb7811df96cf139e6bd6d7fcc9b5cc4ff1418ff/src/openjarvis/agents/native_react.py",
+      "decoded_body_sha256": "a02c228a40f321cedd495c674f2bed5ff47866d8cc0561e71d0459d479a3c365",
+      "read_call_id": "0d783f46-522e-4ad2-b5ef-18680a3ac126",
+      "request_id": "e02-round-1",
+      "session_id": "e02-round-1",
+      "task_id": "b31c8b0c-2aa1-4205-9c80-fe2458691c67",
+      "symbol": "",
+      "citation_first": 108,
+      "citation_last": 115
+    },
+    "14": {
+      "kind": "code",
+      "claim": "json.dumps",
+      "first_line": 112,
+      "last_line": 114,
+      "symbol": "json.dumps",
+      "text": "        result[\"action_input\"] = json.dumps(\n            arguments, ensure_ascii=False, allow_nan=False\n        )",
+      "source_id": "S4",
+      "final_url": "https://raw.githubusercontent.com/open-jarvis/OpenJarvis/0eb7811df96cf139e6bd6d7fcc9b5cc4ff1418ff/src/openjarvis/agents/native_react.py",
+      "decoded_body_sha256": "a02c228a40f321cedd495c674f2bed5ff47866d8cc0561e71d0459d479a3c365",
+      "read_call_id": "0d783f46-522e-4ad2-b5ef-18680a3ac126",
+      "request_id": "e02-round-1",
+      "session_id": "e02-round-1",
+      "task_id": "b31c8b0c-2aa1-4205-9c80-fe2458691c67",
+      "citation_first": 110,
+      "citation_last": 117
+    },
+    "15": {
+      "kind": "code",
+      "claim": "text.strip",
+      "first_line": 175,
+      "last_line": 175,
+      "symbol": "text.strip",
+      "text": "        stripped = text.strip()",
+      "source_id": "S4",
+      "final_url": "https://raw.githubusercontent.com/open-jarvis/OpenJarvis/0eb7811df96cf139e6bd6d7fcc9b5cc4ff1418ff/src/openjarvis/agents/native_react.py",
+      "decoded_body_sha256": "a02c228a40f321cedd495c674f2bed5ff47866d8cc0561e71d0459d479a3c365",
+      "read_call_id": "0d783f46-522e-4ad2-b5ef-18680a3ac126",
+      "request_id": "e02-round-1",
+      "session_id": "e02-round-1",
+      "task_id": "b31c8b0c-2aa1-4205-9c80-fe2458691c67",
+      "citation_first": 172,
+      "citation_last": 179
+    },
+    "16": {
+      "kind": "code",
+      "claim": "re.fullmatch",
+      "first_line": 176,
+      "last_line": 180,
+      "symbol": "re.fullmatch",
+      "text": "        fenced = re.fullmatch(\n            r\"```(?:json)?[ \\t]*\\r?\\n(.*?)\\r?\\n```\",\n            stripped,\n            re.DOTALL | re.IGNORECASE,\n        )",
+      "source_id": "S4",
+      "final_url": "https://raw.githubusercontent.com/open-jarvis/OpenJarvis/0eb7811df96cf139e6bd6d7fcc9b5cc4ff1418ff/src/openjarvis/agents/native_react.py",
+      "decoded_body_sha256": "a02c228a40f321cedd495c674f2bed5ff47866d8cc0561e71d0459d479a3c365",
+      "read_call_id": "0d783f46-522e-4ad2-b5ef-18680a3ac126",
+      "request_id": "e02-round-1",
+      "session_id": "e02-round-1",
+      "task_id": "b31c8b0c-2aa1-4205-9c80-fe2458691c67",
+      "citation_first": 175,
+      "citation_last": 182
+    },
+    "17": {
+      "kind": "code",
+      "claim": "_parse_json_response",
+      "first_line": 182,
+      "last_line": 182,
+      "symbol": "_parse_json_response",
+      "text": "            return _parse_json_response(fenced.group(1))",
+      "source_id": "S4",
+      "final_url": "https://raw.githubusercontent.com/open-jarvis/OpenJarvis/0eb7811df96cf139e6bd6d7fcc9b5cc4ff1418ff/src/openjarvis/agents/native_react.py",
+      "decoded_body_sha256": "a02c228a40f321cedd495c674f2bed5ff47866d8cc0561e71d0459d479a3c365",
+      "read_call_id": "0d783f46-522e-4ad2-b5ef-18680a3ac126",
+      "request_id": "e02-round-1",
+      "session_id": "e02-round-1",
+      "task_id": "b31c8b0c-2aa1-4205-9c80-fe2458691c67",
+      "citation_first": 179,
+      "citation_last": 186
+    },
+    "18": {
+      "kind": "code",
+      "claim": "_parse_json_response",
+      "first_line": 189,
+      "last_line": 189,
+      "symbol": "_parse_json_response",
+      "text": "            return _parse_json_response(stripped)",
+      "source_id": "S4",
+      "final_url": "https://raw.githubusercontent.com/open-jarvis/OpenJarvis/0eb7811df96cf139e6bd6d7fcc9b5cc4ff1418ff/src/openjarvis/agents/native_react.py",
+      "decoded_body_sha256": "a02c228a40f321cedd495c674f2bed5ff47866d8cc0561e71d0459d479a3c365",
+      "read_call_id": "0d783f46-522e-4ad2-b5ef-18680a3ac126",
+      "request_id": "e02-round-1",
+      "session_id": "e02-round-1",
+      "task_id": "b31c8b0c-2aa1-4205-9c80-fe2458691c67",
+      "citation_first": 186,
+      "citation_last": 193
+    },
+    "19": {
+      "kind": "code",
+      "claim": "re.search",
+      "first_line": 194,
+      "last_line": 198,
+      "symbol": "re.search",
+      "text": "        thought_match = re.search(\n            r\"Thought:\\s*(.+?)(?=\\nAction:|\\nFinal Answer:|\\Z)\",\n            text,\n            re.DOTALL | re.IGNORECASE,\n        )",
+      "source_id": "S4",
+      "final_url": "https://raw.githubusercontent.com/open-jarvis/OpenJarvis/0eb7811df96cf139e6bd6d7fcc9b5cc4ff1418ff/src/openjarvis/agents/native_react.py",
+      "decoded_body_sha256": "a02c228a40f321cedd495c674f2bed5ff47866d8cc0561e71d0459d479a3c365",
+      "read_call_id": "0d783f46-522e-4ad2-b5ef-18680a3ac126",
+      "request_id": "e02-round-1",
+      "session_id": "e02-round-1",
+      "task_id": "b31c8b0c-2aa1-4205-9c80-fe2458691c67",
+      "citation_first": 193,
+      "citation_last": 200
+    },
+    "20": {
+      "kind": "code",
+      "claim": "re.search",
+      "first_line": 203,
+      "last_line": 205,
+      "symbol": "re.search",
+      "text": "        final_match = re.search(\n            r\"Final Answer:\\s*(.+)\", text, re.DOTALL | re.IGNORECASE\n        )",
+      "source_id": "S4",
+      "final_url": "https://raw.githubusercontent.com/open-jarvis/OpenJarvis/0eb7811df96cf139e6bd6d7fcc9b5cc4ff1418ff/src/openjarvis/agents/native_react.py",
+      "decoded_body_sha256": "a02c228a40f321cedd495c674f2bed5ff47866d8cc0561e71d0459d479a3c365",
+      "read_call_id": "0d783f46-522e-4ad2-b5ef-18680a3ac126",
+      "request_id": "e02-round-1",
+      "session_id": "e02-round-1",
+      "task_id": "b31c8b0c-2aa1-4205-9c80-fe2458691c67",
+      "citation_first": 201,
+      "citation_last": 208
+    },
+    "21": {
+      "kind": "code",
+      "claim": "re.search",
+      "first_line": 211,
+      "last_line": 211,
+      "symbol": "re.search",
+      "text": "        action_match = re.search(r\"Action:\\s*(.+)\", text, re.IGNORECASE)",
+      "source_id": "S4",
+      "final_url": "https://raw.githubusercontent.com/open-jarvis/OpenJarvis/0eb7811df96cf139e6bd6d7fcc9b5cc4ff1418ff/src/openjarvis/agents/native_react.py",
+      "decoded_body_sha256": "a02c228a40f321cedd495c674f2bed5ff47866d8cc0561e71d0459d479a3c365",
+      "read_call_id": "0d783f46-522e-4ad2-b5ef-18680a3ac126",
+      "request_id": "e02-round-1",
+      "session_id": "e02-round-1",
+      "task_id": "b31c8b0c-2aa1-4205-9c80-fe2458691c67",
+      "citation_first": 208,
+      "citation_last": 215
+    },
+    "22": {
+      "kind": "code",
+      "claim": "re.search",
+      "first_line": 215,
+      "last_line": 219,
+      "symbol": "re.search",
+      "text": "        input_match = re.search(\n            r\"Action Input:\\s*(.+?)(?=\\n\\n|\\nThought:|\\Z)\",\n            text,\n            re.DOTALL | re.IGNORECASE,\n        )",
+      "source_id": "S4",
+      "final_url": "https://raw.githubusercontent.com/open-jarvis/OpenJarvis/0eb7811df96cf139e6bd6d7fcc9b5cc4ff1418ff/src/openjarvis/agents/native_react.py",
+      "decoded_body_sha256": "a02c228a40f321cedd495c674f2bed5ff47866d8cc0561e71d0459d479a3c365",
+      "read_call_id": "0d783f46-522e-4ad2-b5ef-18680a3ac126",
+      "request_id": "e02-round-1",
+      "session_id": "e02-round-1",
+      "task_id": "b31c8b0c-2aa1-4205-9c80-fe2458691c67",
+      "citation_first": 214,
+      "citation_last": 221
+    },
+    "23": {
+      "kind": "code",
+      "claim": "self._emit_turn_start",
+      "first_line": 231,
+      "last_line": 231,
+      "symbol": "self._emit_turn_start",
+      "text": "        self._emit_turn_start(input)",
+      "source_id": "S4",
+      "final_url": "https://raw.githubusercontent.com/open-jarvis/OpenJarvis/0eb7811df96cf139e6bd6d7fcc9b5cc4ff1418ff/src/openjarvis/agents/native_react.py",
+      "decoded_body_sha256": "a02c228a40f321cedd495c674f2bed5ff47866d8cc0561e71d0459d479a3c365",
+      "read_call_id": "0d783f46-522e-4ad2-b5ef-18680a3ac126",
+      "request_id": "e02-round-1",
+      "session_id": "e02-round-1",
+      "task_id": "b31c8b0c-2aa1-4205-9c80-fe2458691c67",
+      "citation_first": 228,
+      "citation_last": 235
+    },
+    "24": {
+      "kind": "code",
+      "claim": "build_tool_descriptions",
+      "first_line": 234,
+      "last_line": 234,
+      "symbol": "build_tool_descriptions",
+      "text": "        tool_desc = build_tool_descriptions(self._tools)",
+      "source_id": "S4",
+      "final_url": "https://raw.githubusercontent.com/open-jarvis/OpenJarvis/0eb7811df96cf139e6bd6d7fcc9b5cc4ff1418ff/src/openjarvis/agents/native_react.py",
+      "decoded_body_sha256": "a02c228a40f321cedd495c674f2bed5ff47866d8cc0561e71d0459d479a3c365",
+      "read_call_id": "0d783f46-522e-4ad2-b5ef-18680a3ac126",
+      "request_id": "e02-round-1",
+      "session_id": "e02-round-1",
+      "task_id": "b31c8b0c-2aa1-4205-9c80-fe2458691c67",
+      "citation_first": 231,
+      "citation_last": 238
+    },
+    "25": {
+      "kind": "code",
+      "claim": "prompt_template.format",
+      "first_line": 251,
+      "last_line": 254,
+      "symbol": "prompt_template.format",
+      "text": "            system_prompt = prompt_template.format(\n                tool_descriptions=tool_desc,\n                skill_examples=skill_examples_block,\n            )",
+      "source_id": "S4",
+      "final_url": "https://raw.githubusercontent.com/open-jarvis/OpenJarvis/0eb7811df96cf139e6bd6d7fcc9b5cc4ff1418ff/src/openjarvis/agents/native_react.py",
+      "decoded_body_sha256": "a02c228a40f321cedd495c674f2bed5ff47866d8cc0561e71d0459d479a3c365",
+      "read_call_id": "0d783f46-522e-4ad2-b5ef-18680a3ac126",
+      "request_id": "e02-round-1",
+      "session_id": "e02-round-1",
+      "task_id": "b31c8b0c-2aa1-4205-9c80-fe2458691c67",
+      "citation_first": 249,
+      "citation_last": 256
+    },
+    "26": {
+      "kind": "code",
+      "claim": "prompt_template.format",
+      "first_line": 256,
+      "last_line": 256,
+      "symbol": "prompt_template.format",
+      "text": "            system_prompt = prompt_template.format(tool_descriptions=tool_desc)",
+      "source_id": "S4",
+      "final_url": "https://raw.githubusercontent.com/open-jarvis/OpenJarvis/0eb7811df96cf139e6bd6d7fcc9b5cc4ff1418ff/src/openjarvis/agents/native_react.py",
+      "decoded_body_sha256": "a02c228a40f321cedd495c674f2bed5ff47866d8cc0561e71d0459d479a3c365",
+      "read_call_id": "0d783f46-522e-4ad2-b5ef-18680a3ac126",
+      "request_id": "e02-round-1",
+      "session_id": "e02-round-1",
+      "task_id": "b31c8b0c-2aa1-4205-9c80-fe2458691c67",
+      "citation_first": 253,
+      "citation_last": 260
+    },
+    "27": {
+      "kind": "code",
+      "claim": "self._build_messages",
+      "first_line": 260,
+      "last_line": 260,
+      "symbol": "self._build_messages",
+      "text": "        messages = self._build_messages(input, context, system_prompt=system_prompt)",
+      "source_id": "S4",
+      "final_url": "https://raw.githubusercontent.com/open-jarvis/OpenJarvis/0eb7811df96cf139e6bd6d7fcc9b5cc4ff1418ff/src/openjarvis/agents/native_react.py",
+      "decoded_body_sha256": "a02c228a40f321cedd495c674f2bed5ff47866d8cc0561e71d0459d479a3c365",
+      "read_call_id": "0d783f46-522e-4ad2-b5ef-18680a3ac126",
+      "request_id": "e02-round-1",
+      "session_id": "e02-round-1",
+      "task_id": "b31c8b0c-2aa1-4205-9c80-fe2458691c67",
+      "citation_first": 257,
+      "citation_last": 264
+    },
+    "28": {
+      "kind": "code",
+      "claim": "messages.insert",
+      "first_line": 265,
+      "last_line": 265,
+      "symbol": "messages.insert",
+      "text": "                messages.insert(-1, Message(role=Role.USER, content=ex[\"input\"]))",
+      "source_id": "S4",
+      "final_url": "https://raw.githubusercontent.com/open-jarvis/OpenJarvis/0eb7811df96cf139e6bd6d7fcc9b5cc4ff1418ff/src/openjarvis/agents/native_react.py",
+      "decoded_body_sha256": "a02c228a40f321cedd495c674f2bed5ff47866d8cc0561e71d0459d479a3c365",
+      "read_call_id": "0d783f46-522e-4ad2-b5ef-18680a3ac126",
+      "request_id": "e02-round-1",
+      "session_id": "e02-round-1",
+      "task_id": "b31c8b0c-2aa1-4205-9c80-fe2458691c67",
+      "citation_first": 262,
+      "citation_last": 269
+    },
+    "29": {
+      "kind": "code",
+      "claim": "self._loop_guard.compress_context",
+      "first_line": 280,
+      "last_line": 280,
+      "symbol": "self._loop_guard.compress_context",
+      "text": "                messages = self._loop_guard.compress_context(messages)",
+      "source_id": "S4",
+      "final_url": "https://raw.githubusercontent.com/open-jarvis/OpenJarvis/0eb7811df96cf139e6bd6d7fcc9b5cc4ff1418ff/src/openjarvis/agents/native_react.py",
+      "decoded_body_sha256": "a02c228a40f321cedd495c674f2bed5ff47866d8cc0561e71d0459d479a3c365",
+      "read_call_id": "0d783f46-522e-4ad2-b5ef-18680a3ac126",
+      "request_id": "e02-round-1",
+      "session_id": "e02-round-1",
+      "task_id": "b31c8b0c-2aa1-4205-9c80-fe2458691c67",
+      "citation_first": 277,
+      "citation_last": 284
+    },
+    "30": {
+      "kind": "code",
+      "claim": "self._generate",
+      "first_line": 282,
+      "last_line": 282,
+      "symbol": "self._generate",
+      "text": "            result = self._generate(messages)",
+      "source_id": "S4",
+      "final_url": "https://raw.githubusercontent.com/open-jarvis/OpenJarvis/0eb7811df96cf139e6bd6d7fcc9b5cc4ff1418ff/src/openjarvis/agents/native_react.py",
+      "decoded_body_sha256": "a02c228a40f321cedd495c674f2bed5ff47866d8cc0561e71d0459d479a3c365",
+      "read_call_id": "0d783f46-522e-4ad2-b5ef-18680a3ac126",
+      "request_id": "e02-round-1",
+      "session_id": "e02-round-1",
+      "task_id": "b31c8b0c-2aa1-4205-9c80-fe2458691c67",
+      "citation_first": 279,
+      "citation_last": 286
+    },
+    "31": {
+      "kind": "code",
+      "claim": "result.get",
+      "first_line": 283,
+      "last_line": 283,
+      "symbol": "result.get",
+      "text": "            usage = result.get(\"usage\", {})",
+      "source_id": "S4",
+      "final_url": "https://raw.githubusercontent.com/open-jarvis/OpenJarvis/0eb7811df96cf139e6bd6d7fcc9b5cc4ff1418ff/src/openjarvis/agents/native_react.py",
+      "decoded_body_sha256": "a02c228a40f321cedd495c674f2bed5ff47866d8cc0561e71d0459d479a3c365",
+      "read_call_id": "0d783f46-522e-4ad2-b5ef-18680a3ac126",
+      "request_id": "e02-round-1",
+      "session_id": "e02-round-1",
+      "task_id": "b31c8b0c-2aa1-4205-9c80-fe2458691c67",
+      "citation_first": 280,
+      "citation_last": 287
+    },
+    "32": {
+      "kind": "code",
+      "claim": "result.get",
+      "first_line": 287,
+      "last_line": 287,
+      "symbol": "result.get",
+      "text": "            content = result.get(\"content\", \"\")",
+      "source_id": "S4",
+      "final_url": "https://raw.githubusercontent.com/open-jarvis/OpenJarvis/0eb7811df96cf139e6bd6d7fcc9b5cc4ff1418ff/src/openjarvis/agents/native_react.py",
+      "decoded_body_sha256": "a02c228a40f321cedd495c674f2bed5ff47866d8cc0561e71d0459d479a3c365",
+      "read_call_id": "0d783f46-522e-4ad2-b5ef-18680a3ac126",
+      "request_id": "e02-round-1",
+      "session_id": "e02-round-1",
+      "task_id": "b31c8b0c-2aa1-4205-9c80-fe2458691c67",
+      "citation_first": 284,
+      "citation_last": 291
+    },
+    "33": {
+      "kind": "code",
+      "claim": "self._parse_response",
+      "first_line": 288,
+      "last_line": 288,
+      "symbol": "self._parse_response",
+      "text": "            parsed = self._parse_response(content)",
+      "source_id": "S4",
+      "final_url": "https://raw.githubusercontent.com/open-jarvis/OpenJarvis/0eb7811df96cf139e6bd6d7fcc9b5cc4ff1418ff/src/openjarvis/agents/native_react.py",
+      "decoded_body_sha256": "a02c228a40f321cedd495c674f2bed5ff47866d8cc0561e71d0459d479a3c365",
+      "read_call_id": "0d783f46-522e-4ad2-b5ef-18680a3ac126",
+      "request_id": "e02-round-1",
+      "session_id": "e02-round-1",
+      "task_id": "b31c8b0c-2aa1-4205-9c80-fe2458691c67",
+      "citation_first": 285,
+      "citation_last": 292
+    },
+    "34": {
+      "kind": "code",
+      "claim": "self._emit_turn_end",
+      "first_line": 291,
+      "last_line": 291,
+      "symbol": "self._emit_turn_end",
+      "text": "                self._emit_turn_end(turns=turns)",
+      "source_id": "S4",
+      "final_url": "https://raw.githubusercontent.com/open-jarvis/OpenJarvis/0eb7811df96cf139e6bd6d7fcc9b5cc4ff1418ff/src/openjarvis/agents/native_react.py",
+      "decoded_body_sha256": "a02c228a40f321cedd495c674f2bed5ff47866d8cc0561e71d0459d479a3c365",
+      "read_call_id": "0d783f46-522e-4ad2-b5ef-18680a3ac126",
+      "request_id": "e02-round-1",
+      "session_id": "e02-round-1",
+      "task_id": "b31c8b0c-2aa1-4205-9c80-fe2458691c67",
+      "citation_first": 288,
+      "citation_last": 295
+    },
+    "35": {
+      "kind": "code",
+      "claim": "self._emit_turn_end",
+      "first_line": 306,
+      "last_line": 306,
+      "symbol": "self._emit_turn_end",
+      "text": "                self._emit_turn_end(turns=turns)",
+      "source_id": "S4",
+      "final_url": "https://raw.githubusercontent.com/open-jarvis/OpenJarvis/0eb7811df96cf139e6bd6d7fcc9b5cc4ff1418ff/src/openjarvis/agents/native_react.py",
+      "decoded_body_sha256": "a02c228a40f321cedd495c674f2bed5ff47866d8cc0561e71d0459d479a3c365",
+      "read_call_id": "0d783f46-522e-4ad2-b5ef-18680a3ac126",
+      "request_id": "e02-round-1",
+      "session_id": "e02-round-1",
+      "task_id": "b31c8b0c-2aa1-4205-9c80-fe2458691c67",
+      "citation_first": 303,
+      "citation_last": 310
+    },
+    "36": {
+      "kind": "code",
+      "claim": "AgentResult",
+      "first_line": 308,
+      "last_line": 313,
+      "symbol": "AgentResult",
+      "text": "                return AgentResult(\n                    content=parsed[\"final_answer\"],\n                    tool_results=all_tool_results,\n                    turns=turns,\n                    metadata={**total_usage, \"messages\": msg_dicts},\n                )",
+      "source_id": "S4",
+      "final_url": "https://raw.githubusercontent.com/open-jarvis/OpenJarvis/0eb7811df96cf139e6bd6d7fcc9b5cc4ff1418ff/src/openjarvis/agents/native_react.py",
+      "decoded_body_sha256": "a02c228a40f321cedd495c674f2bed5ff47866d8cc0561e71d0459d479a3c365",
+      "read_call_id": "0d783f46-522e-4ad2-b5ef-18680a3ac126",
+      "request_id": "e02-round-1",
+      "session_id": "e02-round-1",
+      "task_id": "b31c8b0c-2aa1-4205-9c80-fe2458691c67",
+      "citation_first": 307,
+      "citation_last": 314
+    },
+    "37": {
+      "kind": "code",
+      "claim": "self._emit_turn_end",
+      "first_line": 317,
+      "last_line": 317,
+      "symbol": "self._emit_turn_end",
+      "text": "                self._emit_turn_end(turns=turns)",
+      "source_id": "S4",
+      "final_url": "https://raw.githubusercontent.com/open-jarvis/OpenJarvis/0eb7811df96cf139e6bd6d7fcc9b5cc4ff1418ff/src/openjarvis/agents/native_react.py",
+      "decoded_body_sha256": "a02c228a40f321cedd495c674f2bed5ff47866d8cc0561e71d0459d479a3c365",
+      "read_call_id": "0d783f46-522e-4ad2-b5ef-18680a3ac126",
+      "request_id": "e02-round-1",
+      "session_id": "e02-round-1",
+      "task_id": "b31c8b0c-2aa1-4205-9c80-fe2458691c67",
+      "citation_first": 314,
+      "citation_last": 321
+    },
+    "38": {
+      "kind": "code",
+      "claim": "AgentResult",
+      "first_line": 319,
+      "last_line": 324,
+      "symbol": "AgentResult",
+      "text": "                return AgentResult(\n                    content=content,\n                    tool_results=all_tool_results,\n                    turns=turns,\n                    metadata={**total_usage, \"messages\": msg_dicts},\n                )",
+      "source_id": "S4",
+      "final_url": "https://raw.githubusercontent.com/open-jarvis/OpenJarvis/0eb7811df96cf139e6bd6d7fcc9b5cc4ff1418ff/src/openjarvis/agents/native_react.py",
+      "decoded_body_sha256": "a02c228a40f321cedd495c674f2bed5ff47866d8cc0561e71d0459d479a3c365",
+      "read_call_id": "0d783f46-522e-4ad2-b5ef-18680a3ac126",
+      "request_id": "e02-round-1",
+      "session_id": "e02-round-1",
+      "task_id": "b31c8b0c-2aa1-4205-9c80-fe2458691c67",
+      "citation_first": 318,
+      "citation_last": 325
+    },
+    "39": {
+      "kind": "code",
+      "claim": "messages.append",
+      "first_line": 327,
+      "last_line": 327,
+      "symbol": "messages.append",
+      "text": "            messages.append(Message(role=Role.ASSISTANT, content=content))",
+      "source_id": "S4",
+      "final_url": "https://raw.githubusercontent.com/open-jarvis/OpenJarvis/0eb7811df96cf139e6bd6d7fcc9b5cc4ff1418ff/src/openjarvis/agents/native_react.py",
+      "decoded_body_sha256": "a02c228a40f321cedd495c674f2bed5ff47866d8cc0561e71d0459d479a3c365",
+      "read_call_id": "0d783f46-522e-4ad2-b5ef-18680a3ac126",
+      "request_id": "e02-round-1",
+      "session_id": "e02-round-1",
+      "task_id": "b31c8b0c-2aa1-4205-9c80-fe2458691c67",
+      "citation_first": 324,
+      "citation_last": 331
+    },
+    "40": {
+      "kind": "code",
+      "claim": "ToolCall",
+      "first_line": 329,
+      "last_line": 333,
+      "symbol": "ToolCall",
+      "text": "            tool_call = ToolCall(\n                id=f\"react_{turns}\",\n                name=parsed[\"action\"],\n                arguments=parsed[\"action_input\"] or \"{}\",\n            )",
+      "source_id": "S4",
+      "final_url": "https://raw.githubusercontent.com/open-jarvis/OpenJarvis/0eb7811df96cf139e6bd6d7fcc9b5cc4ff1418ff/src/openjarvis/agents/native_react.py",
+      "decoded_body_sha256": "a02c228a40f321cedd495c674f2bed5ff47866d8cc0561e71d0459d479a3c365",
+      "read_call_id": "0d783f46-522e-4ad2-b5ef-18680a3ac126",
+      "request_id": "e02-round-1",
+      "session_id": "e02-round-1",
+      "task_id": "b31c8b0c-2aa1-4205-9c80-fe2458691c67",
+      "citation_first": 328,
+      "citation_last": 335
+    },
+    "41": {
+      "kind": "code",
+      "claim": "self._loop_guard.check_call",
+      "first_line": 337,
+      "last_line": 340,
+      "symbol": "self._loop_guard.check_call",
+      "text": "                verdict = self._loop_guard.check_call(\n                    tool_call.name,\n                    tool_call.arguments,\n                )",
+      "source_id": "S4",
+      "final_url": "https://raw.githubusercontent.com/open-jarvis/OpenJarvis/0eb7811df96cf139e6bd6d7fcc9b5cc4ff1418ff/src/openjarvis/agents/native_react.py",
+      "decoded_body_sha256": "a02c228a40f321cedd495c674f2bed5ff47866d8cc0561e71d0459d479a3c365",
+      "read_call_id": "0d783f46-522e-4ad2-b5ef-18680a3ac126",
+      "request_id": "e02-round-1",
+      "session_id": "e02-round-1",
+      "task_id": "b31c8b0c-2aa1-4205-9c80-fe2458691c67",
+      "citation_first": 335,
+      "citation_last": 342
+    },
+    "42": {
+      "kind": "code",
+      "claim": "ToolResult",
+      "first_line": 342,
+      "last_line": 346,
+      "symbol": "ToolResult",
+      "text": "                    tool_result = ToolResult(\n                        tool_name=tool_call.name,\n                        content=f\"Loop guard: {verdict.reason}\",\n                        success=False,\n                    )",
+      "source_id": "S4",
+      "final_url": "https://raw.githubusercontent.com/open-jarvis/OpenJarvis/0eb7811df96cf139e6bd6d7fcc9b5cc4ff1418ff/src/openjarvis/agents/native_react.py",
+      "decoded_body_sha256": "a02c228a40f321cedd495c674f2bed5ff47866d8cc0561e71d0459d479a3c365",
+      "read_call_id": "0d783f46-522e-4ad2-b5ef-18680a3ac126",
+      "request_id": "e02-round-1",
+      "session_id": "e02-round-1",
+      "task_id": "b31c8b0c-2aa1-4205-9c80-fe2458691c67",
+      "citation_first": 341,
+      "citation_last": 348
+    },
+    "43": {
+      "kind": "code",
+      "claim": "all_tool_results.append",
+      "first_line": 347,
+      "last_line": 347,
+      "symbol": "all_tool_results.append",
+      "text": "                    all_tool_results.append(tool_result)",
+      "source_id": "S4",
+      "final_url": "https://raw.githubusercontent.com/open-jarvis/OpenJarvis/0eb7811df96cf139e6bd6d7fcc9b5cc4ff1418ff/src/openjarvis/agents/native_react.py",
+      "decoded_body_sha256": "a02c228a40f321cedd495c674f2bed5ff47866d8cc0561e71d0459d479a3c365",
+      "read_call_id": "0d783f46-522e-4ad2-b5ef-18680a3ac126",
+      "request_id": "e02-round-1",
+      "session_id": "e02-round-1",
+      "task_id": "b31c8b0c-2aa1-4205-9c80-fe2458691c67",
+      "citation_first": 344,
+      "citation_last": 351
+    },
+    "44": {
+      "kind": "code",
+      "claim": "messages.append",
+      "first_line": 349,
+      "last_line": 349,
+      "symbol": "messages.append",
+      "text": "                    messages.append(Message(role=Role.USER, content=observation))",
+      "source_id": "S4",
+      "final_url": "https://raw.githubusercontent.com/open-jarvis/OpenJarvis/0eb7811df96cf139e6bd6d7fcc9b5cc4ff1418ff/src/openjarvis/agents/native_react.py",
+      "decoded_body_sha256": "a02c228a40f321cedd495c674f2bed5ff47866d8cc0561e71d0459d479a3c365",
+      "read_call_id": "0d783f46-522e-4ad2-b5ef-18680a3ac126",
+      "request_id": "e02-round-1",
+      "session_id": "e02-round-1",
+      "task_id": "b31c8b0c-2aa1-4205-9c80-fe2458691c67",
+      "citation_first": 346,
+      "citation_last": 353
+    },
+    "45": {
+      "kind": "code",
+      "claim": "self._executor.execute",
+      "first_line": 352,
+      "last_line": 352,
+      "symbol": "self._executor.execute",
+      "text": "            tool_result = self._executor.execute(tool_call)",
+      "source_id": "S4",
+      "final_url": "https://raw.githubusercontent.com/open-jarvis/OpenJarvis/0eb7811df96cf139e6bd6d7fcc9b5cc4ff1418ff/src/openjarvis/agents/native_react.py",
+      "decoded_body_sha256": "a02c228a40f321cedd495c674f2bed5ff47866d8cc0561e71d0459d479a3c365",
+      "read_call_id": "0d783f46-522e-4ad2-b5ef-18680a3ac126",
+      "request_id": "e02-round-1",
+      "session_id": "e02-round-1",
+      "task_id": "b31c8b0c-2aa1-4205-9c80-fe2458691c67",
+      "citation_first": 349,
+      "citation_last": 356
+    },
+    "46": {
+      "kind": "code",
+      "claim": "all_tool_results.append",
+      "first_line": 353,
+      "last_line": 353,
+      "symbol": "all_tool_results.append",
+      "text": "            all_tool_results.append(tool_result)",
+      "source_id": "S4",
+      "final_url": "https://raw.githubusercontent.com/open-jarvis/OpenJarvis/0eb7811df96cf139e6bd6d7fcc9b5cc4ff1418ff/src/openjarvis/agents/native_react.py",
+      "decoded_body_sha256": "a02c228a40f321cedd495c674f2bed5ff47866d8cc0561e71d0459d479a3c365",
+      "read_call_id": "0d783f46-522e-4ad2-b5ef-18680a3ac126",
+      "request_id": "e02-round-1",
+      "session_id": "e02-round-1",
+      "task_id": "b31c8b0c-2aa1-4205-9c80-fe2458691c67",
+      "citation_first": 350,
+      "citation_last": 357
+    },
+    "47": {
+      "kind": "code",
+      "claim": "messages.append",
+      "first_line": 356,
+      "last_line": 356,
+      "symbol": "messages.append",
+      "text": "            messages.append(Message(role=Role.USER, content=observation))",
+      "source_id": "S4",
+      "final_url": "https://raw.githubusercontent.com/open-jarvis/OpenJarvis/0eb7811df96cf139e6bd6d7fcc9b5cc4ff1418ff/src/openjarvis/agents/native_react.py",
+      "decoded_body_sha256": "a02c228a40f321cedd495c674f2bed5ff47866d8cc0561e71d0459d479a3c365",
+      "read_call_id": "0d783f46-522e-4ad2-b5ef-18680a3ac126",
+      "request_id": "e02-round-1",
+      "session_id": "e02-round-1",
+      "task_id": "b31c8b0c-2aa1-4205-9c80-fe2458691c67",
+      "citation_first": 353,
+      "citation_last": 360
+    },
+    "48": {
+      "kind": "code",
+      "claim": "self._max_turns_result",
+      "first_line": 360,
+      "last_line": 364,
+      "symbol": "self._max_turns_result",
+      "text": "        return self._max_turns_result(\n            all_tool_results,\n            turns,\n            metadata={**total_usage, \"messages\": msg_dicts},\n        )",
+      "source_id": "S4",
+      "final_url": "https://raw.githubusercontent.com/open-jarvis/OpenJarvis/0eb7811df96cf139e6bd6d7fcc9b5cc4ff1418ff/src/openjarvis/agents/native_react.py",
+      "decoded_body_sha256": "a02c228a40f321cedd495c674f2bed5ff47866d8cc0561e71d0459d479a3c365",
+      "read_call_id": "0d783f46-522e-4ad2-b5ef-18680a3ac126",
+      "request_id": "e02-round-1",
+      "session_id": "e02-round-1",
+      "task_id": "b31c8b0c-2aa1-4205-9c80-fe2458691c67",
+      "citation_first": 359,
+      "citation_last": 366
+    }
+  },
+  "schema": {
+    "anyOf": [
+      {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "action",
+          "action_input"
+        ],
+        "properties": {
+          "action": {
+            "type": "string",
+            "enum": [
+              "ultima_work_research_stage"
+            ]
+          },
+          "action_input": {
+            "oneOf": [
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "stage_token",
+                  "facts"
+                ],
+                "properties": {
+                  "stage_token": {
+                    "type": "string",
+                    "enum": [
+                      "00000000-0000-0000-0000-000000000000"
+                    ]
+                  },
+                  "facts": {
+                    "type": "array",
+                    "minItems": 1,
+                    "maxItems": 4,
+                    "items": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "claim",
+                        "ref",
+                        "ranges"
+                      ],
+                      "properties": {
+                        "claim": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 400
+                        },
+                        "ref": {
+                          "type": "integer",
+                          "enum": [
+                            1,
+                            2,
+                            3,
+                            4,
+                            5,
+                            6,
+                            7,
+                            8,
+                            9,
+                            10,
+                            11,
+                            12,
+                            13,
+                            14,
+                            15,
+                            16,
+                            17,
+                            18,
+                            19,
+                            20,
+                            21,
+                            22,
+                            23,
+                            24,
+                            25,
+                            26,
+                            27,
+                            28,
+                            29,
+                            30,
+                            31,
+                            32,
+                            33,
+                            34,
+                            35,
+                            36,
+                            37,
+                            38,
+                            39,
+                            40,
+                            41,
+                            42,
+                            43,
+                            44,
+                            45,
+                            46,
+                            47,
+                            48
+                          ]
+                        },
+                        "ranges": {
+                          "type": "array",
+                          "minItems": 1,
+                          "maxItems": 3,
+                          "items": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "lo",
+                              "hi"
+                            ],
+                            "properties": {
+                              "lo": {
+                                "type": "integer",
+                                "minimum": 1
+                              },
+                              "hi": {
+                                "type": "integer",
+                                "minimum": 1
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              },
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "stage_token",
+                  "unused_reason"
+                ],
+                "properties": {
+                  "stage_token": {
+                    "type": "string",
+                    "enum": [
+                      "00000000-0000-0000-0000-000000000000"
+                    ]
+                  },
+                  "unused_reason": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200
+                  }
+                }
+              }
+            ]
+          }
+        }
+      },
+      {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "final_answer"
+        ],
+        "properties": {
+          "final_answer": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1000
+          }
+        }
+      }
+    ]
+  }
+}

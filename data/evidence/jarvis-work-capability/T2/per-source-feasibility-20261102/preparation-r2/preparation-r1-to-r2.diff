@@ -1,0 +1,420 @@
+--- H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\per-source-feasibility-20261102\preparation\run_stage_prefix.py
++++ H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\per-source-feasibility-20261102\preparation-r2\run_stage_prefix.py
+@@ -21,7 +21,7 @@
+ 
+ CHECKOUT = Path('C:/Users/Administrator/.codex/worktrees/jarvis-work-capability-longpaths/UltimaAgent')
+ ROOT = Path('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2')
+-PREP = ROOT/'per-source-feasibility-20261102/preparation'
++PREP = ROOT/'per-source-feasibility-20261102/preparation-r2'
+ CORPUS = ROOT/'source6-native-reference/controlled-corpus-inputs/corpus.json'
+ FREEZE = CORPUS.with_name('freeze.json')
+ ARCHIVE = ROOT/'source6-native-reference/controlled-corpus-7c201a3a-r1/e02-round-1/receipt.json'
+@@ -51,6 +51,13 @@
+ 
+ def compact(value):
+     return json.dumps(value, ensure_ascii=False, separators=(',', ':'), allow_nan=False)
++
++
++def require_unoptimized():
++    # Unlike assertions, this gate survives -O/PYTHONOPTIMIZE. Called before
++    # CLI parsing/file reads/directories, and before the callable harness.
++    if sys.flags.optimize:
++        raise RuntimeError('Optimized Python execution is prohibited for this evidence harness')
+ 
+ 
+ def sha(data):
+@@ -201,7 +208,7 @@
+         seen = set()
+         for fact in payload['facts']:
+             if not fact['claim'].strip(): raise ValueError('empty claim')
+-            marker = compact(fact)
++            marker = json.dumps(fact,ensure_ascii=False,sort_keys=True,separators=(',',':'),allow_nan=False)
+             if marker in seen: raise ValueError('duplicate fact')
+             seen.add(marker)
+             card = self.table[fact['ref']]
+@@ -257,28 +264,31 @@
+         self.client,self.ledger,self.runroot = client,ledger,runroot
+         self.manifest_digest = manifest_digest
+         self.posts = self.gets = 0
++        self.post_intents = 0
+         self.wire = []
+ 
+     def io(self, method, path, **kwargs):
+         import httpx
+         self.ledger.stamp('before_'+method+'_'+path)
+-        remaining = self.ledger.deadline-self.ledger.clock()
+-        if remaining <= 0: raise TimeoutError('no positive I/O budget')
+-        timeout = httpx.Timeout(min(25,remaining),read=remaining if method=='POST' else min(25,remaining))
+         if method=='POST':
+-            if self.posts: raise ValueError('second native POST prohibited')
+-            self.posts += 1
++            if self.post_intents: raise ValueError('second native POST prohibited')
++            self.post_intents += 1
+             # Intent is durable before send, including transport failures.
+-            with (self.runroot/'post-intent.jsonl').open('a',encoding='utf8') as stream:
+-                stream.write(compact(dict(at=self.ledger.clock(),post=self.posts))+'\n')
++            self.record_intent()
+         else:
+             if self.gets >= 2: raise ValueError('metadata GET cap')
+             self.gets += 1
++        # Intent disk I/O is inside the absolute slice, never a renewed timeout.
++        self.ledger.stamp('send_admission_'+method+'_'+path)
++        remaining = self.ledger.deadline-self.ledger.clock()
++        if remaining <= 0: raise TimeoutError('no positive I/O budget at send')
++        timeout = httpx.Timeout(min(25,remaining),read=remaining if method=='POST' else min(25,remaining))
+         record = dict(method=method,path=path,timeout=dict(connect=timeout.connect,read=timeout.read,
+                                                          write=timeout.write,pool=timeout.pool))
+         if 'json' in kwargs: record['request']=kwargs['json']
+         self.wire.append(record)
+         try:
++            if method=='POST': self.posts += 1  # observed client dispatch, separate from consumed intent
+             response = self.client.request(method,path,timeout=timeout,**kwargs)
+             record.update(status=response.status_code,response=response.text,received=self.ledger.clock())
+             self.ledger.stamp('raw_response_'+path)
+@@ -287,6 +297,10 @@
+         except Exception as exc:
+             record['error'] = str(exc)
+             raise
++
++    def record_intent(self):
++        with (self.runroot/'post-intent.jsonl').open('a',encoding='utf8') as stream:
++            stream.write(compact(dict(at=self.ledger.clock(),intent=self.post_intents))+'\n')
+ 
+     def generate(self, messages, *, model, temperature, max_tokens, response_format):
+         from ollama import ChatResponse
+@@ -300,11 +314,19 @@
+         assert model==MODEL and temperature==0 and max_tokens==480
+         assert all(m.role.value in ('system','user','assistant') and not(m.images or m.tool_calls or m.tool_call_id) for m in messages)
+         self.secured_messages = messages_to_dicts(messages)
++        if self.secured_messages != self.expected_secured_messages:
++            raise ValueError('guarded messages differ from independently frozen scanner preflight')
+         material = strict(messages[1].content)
+         secured_lines = material['view']['lines']
+         assert [n for n,_ in secured_lines] == [n for n,_ in self.ledger.view['lines']]
+         self.mapping = [dict(line=n,unchanged=dict(secured_lines)[n]==text) for n,text in self.ledger.view['lines']]
+-        self.ledger.visible = {n:text for n,text in self.ledger.view['lines'] if dict(secured_lines)[n]==text}
++        actual_visible = {n:text for n,text in self.ledger.view['lines'] if dict(secured_lines)[n]==text}
++        if actual_visible!=self.ledger.visible: raise ValueError('guarded line eligibility changed')
++        if material['local_cards']!=self.expected_cards: raise ValueError('guarded issued cards changed')
++        if response_format!=self.ledger.schema: raise ValueError('guarded schema differs from issued schema')
++        for card in self.ledger.table.values():
++            if any(n not in actual_visible for n in range(card['first_line'],card['last_line']+1)):
++                raise ValueError('ineligible anchor offered to native generation')
+         _research_budget(messages,response_format,max_tokens)
+         if self.io('GET','/api/version').get('version') != '0.32.15': raise ValueError('wrong native version')
+         tags = self.io('GET','/api/tags')['models']
+@@ -342,6 +364,62 @@
+         self.inner,self.ledger,self.query = inner,ledger,query
+         self.generated = False
+     def __getattr__(self, key): return getattr(self.inner,key)
++
++    def outgoing(self):
++        from openjarvis.core.types import Message,Role
++        table = [dict(ref=n,kind=c['kind'],symbol=c['symbol'],lo=c['first_line'],hi=c['last_line']) for n,c in self.ledger.table.items()]
++        material = dict(original_query=self.query,provenance='frozen source replay; original GET identities retained',
++                        source={k:self.ledger.source[k] for k in ('source_id','final_url','read_call_id','decoded_body_sha256')},
++                        view=self.ledger.view,omitted_ranges=project(self.ledger.source)[1],local_cards=table)
++        return [Message(role=Role.SYSTEM,content=PROMPT+'\nSchema:\n'+compact(self.ledger.schema)),
++                Message(role=Role.USER,content=compact(material))]
++
++    def scan_preflight(self, messages):
++        # Reuse the official GuardrailsEngine's exact scanner/handling methods,
++        # without publishing events or invoking any engine. Never alter input.
++        guard=copy(self.inner._inner)
++        guard._bus=None
++        processed=[]
++        for message in messages:
++            result=guard._scan_text(message.content)
++            content=message.content if result.clean else guard._handle_findings(message.content,result,'input')
++            processed.append(replace(message,content=content))
++        return processed
++
++    def prepare(self):
++        from openjarvis.engine._base import messages_to_dicts
++        self.ledger.stamp('before_scanner_preflight')
++        candidates=self.outgoing()
++        scanned=self.scan_preflight(candidates)
++        candidate_lines=strict(scanned[1].content)['view']['lines']
++        if [n for n,_ in candidate_lines]!=[n for n,_ in self.ledger.view['lines']]:
++            raise ValueError('preflight source line mapping lost')
++        visible={n:text for n,text in self.ledger.view['lines'] if dict(candidate_lines)[n]==text}
++        eligible=[c for c in self.ledger.table.values()
++                  if all(n in visible for n in range(c['first_line'],c['last_line']+1))]
++        self.preflight_lineage=dict(candidate_raw=messages_to_dicts(candidates),
++                                   candidate_secured=messages_to_dicts(scanned),
++                                   excluded_anchors=len(self.ledger.table)-len(eligible))
++        if not eligible: raise ValueError('unused_preflight: no unchanged eligible anchors')
++        self.ledger.table=dict(enumerate(eligible,1))
++        self.ledger.visible=visible
++        self.ledger.schema=schema_for(self.ledger.token,self.ledger.table)
++        self.ledger.binding_hash=self.ledger.integrity_hash()
++        self.prepared=self.outgoing()  # original source bytes retained, only issued metadata changes
++        final=self.scan_preflight(self.prepared)
++        self.raw_messages=messages_to_dicts(self.prepared)
++        self.preflight_messages=messages_to_dicts(final)
++        final_material=strict(final[1].content)
++        final_visible={n:text for n,text in self.ledger.view['lines'] if dict(final_material['view']['lines'])[n]==text}
++        if visible!=final_visible or strict(self.prepared[1].content)['local_cards']!=final_material['local_cards']:
++            raise ValueError('issued metadata not scanner-stable')
++        if final[0].content!=self.prepared[0].content:
++            raise ValueError('issued schema changed during scanner preflight')
++        leaf=self.inner._inner._engine
++        leaf.expected_secured_messages=self.preflight_messages
++        leaf.expected_cards=final_material['local_cards']
++        self.ledger.stamp('scanner_preflight_complete')
++
+     def generate(self, messages, **kwargs):
+         from jsonschema import Draft7Validator
+         from src.brain.agent_server import _research_budget
+@@ -349,13 +427,7 @@
+         if self.generated or len(messages)!=2 or messages[1].content != self.query: raise ValueError('unexpected SDK history')
+         self.sdk_history=[dict(role=m.role.value,content=m.content) for m in messages]
+         self.generated=True
+-        table = [dict(ref=n,kind=c['kind'],symbol=c['symbol'],lo=c['first_line'],hi=c['last_line']) for n,c in self.ledger.table.items()]
+-        material = dict(original_query=self.query,provenance='frozen source replay; original GET identities retained',
+-                        source={k:self.ledger.source[k] for k in ('source_id','final_url','read_call_id','decoded_body_sha256')},
+-                        view=self.ledger.view,omitted_ranges=project(self.ledger.source)[1],local_cards=table)
+-        outgoing=[replace(messages[0],content=PROMPT+'\nSchema:\n'+compact(self.ledger.schema)),
+-                  replace(messages[1],content=compact(material))]
+-        self.raw_messages=[dict(role=m.role.value,content=m.content) for m in outgoing]
++        outgoing=self.prepared
+         _research_budget(outgoing,self.ledger.schema,480)
+         self.ledger.stamp('before_security')
+         result=self.inner.generate(outgoing,model=kwargs['model'],temperature=0,max_tokens=480,response_format=self.ledger.schema)
+@@ -376,6 +448,7 @@
+ 
+ def run_prefix(owner, client, runroot, source_id, manifest_digest, *, clock=time.monotonic, input_hashes=None):
+     """t0 precedes material loading and the original server ask lock."""
++    require_unoptimized()
+     from src.brain import agent_server
+     from src.brain.work_tools import WorkBinding,WorkLedger,WorkCapabilities,bind_work
+     from openjarvis.core.events import EventType
+@@ -406,7 +479,6 @@
+         binding=dict(request_id=str(uuid.uuid4()),session_id=str(uuid.uuid4()),task_id=str(uuid.uuid4()))
+         ledger=StageLedger(binding,source,projected,table,d,clock)
+         ledger.stamp('projection_complete')
+-        register_stage(ledger)
+         outer=owner._engine
+         assert type(outer) is InstrumentedEngine and type(outer._inner) is GuardrailsEngine
+         assert outer._bus is owner._bus and outer._inner._bus is owner._bus
+@@ -417,6 +489,8 @@
+         leaf=NativeLeaf(client,ledger,runroot,manifest_digest)
+         borrowed._inner._engine=leaf
+         view=PrefixView(borrowed,ledger,query)
++        view.prepare()
++        register_stage(ledger)
+         request=copy(owner); request._engine=view
+         request._config=replace(owner.config,agent=replace(owner.config.agent,max_turns=1))
+         def observe(event):
+@@ -452,11 +526,12 @@
+                               binding=ledger.binding,binding_hash=ledger.binding_hash,view=ledger.view,table=ledger.table,
+                               schema=ledger.schema,timeline=ledger.timeline,detached_stage=True)
+         if leaf:
+-            output.update(wire=leaf.wire,native_posts=leaf.posts,metadata_gets=leaf.gets,
++            output.update(wire=leaf.wire,native_posts=leaf.posts,native_post_intents=leaf.post_intents,metadata_gets=leaf.gets,
+                           secured_messages=getattr(leaf,'secured_messages',None),line_mapping=getattr(leaf,'mapping',None),
+                           raw_envelope=getattr(leaf,'raw_envelope',None))
+         if view: output.update(raw_messages=getattr(view,'raw_messages',None),secured_envelope=getattr(view,'secured_envelope',None),
+-                               sdk_history=getattr(view,'sdk_history',None))
++                               sdk_history=getattr(view,'sdk_history',None),preflight_messages=getattr(view,'preflight_messages',None),
++                               preflight_lineage=getattr(view,'preflight_lineage',None))
+         if acquired: lock.release()
+         output['teardown_at']=clock()
+         save(runroot/'outcome.json',output)
+@@ -527,6 +602,7 @@
+ 
+ 
+ def main():
++    require_unoptimized()
+     parser=argparse.ArgumentParser()
+     parser.add_argument('--authority',required=True,type=Path)
+     parser.add_argument('--run-root',required=True,type=Path)
+--- H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\per-source-feasibility-20261102\preparation\test_stage_prefix.py
++++ H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\per-source-feasibility-20261102\preparation-r2\test_stage_prefix.py
+@@ -6,6 +6,7 @@
+ import socket
+ import sys
+ import time
++import subprocess
+ from unittest.mock import patch
+ import pytest
+ 
+@@ -132,11 +133,26 @@
+         if mode=='happy':
+             assert out['status']=='PENDING_INDEPENDENT_FACT_REVIEW',out.get('error')
+             assert out['confirmed'] and out['consumed'] and out['sdk_result']['turns']==1
+-            assert out['metadata_gets']==2 and out['native_posts']==1 and manifests==[1]
++            assert out['metadata_gets']==2 and out['native_posts']==1 and out['native_post_intents']==1 and manifests==[1]
+             assert out['captured_capabilities']['writer_exposed'] is False
+             assert len([e for e in out['events'] if e['type']=='tool_call_start'])==1
+             assert len([e for e in out['events'] if e['type']=='tool_call_end'])==1
+             assert any(e['type']=='agent_turn_end' and e['data'].get('max_turns_exceeded') for e in out['events'])
++            material=json.loads(out['secured_messages'][1]['content'])
++            unchanged={row['line'] for row in out['line_mapping'] if row['unchanged']}
++            assert any(not row['unchanged'] for row in out['line_mapping'])
++            assert out['preflight_messages']==out['secured_messages']
++            assert out['preflight_lineage']['excluded_anchors']>0
++            assert {c['ref'] for c in material['local_cards']}==set(out['table'])
++            for card in out['table'].values():
++                assert all(n in unchanged for n in range(card['first_line'],card['last_line']+1))
++            for alternative in out['schema']['anyOf'][0]['properties']['action_input']['oneOf']:
++                if 'facts' in alternative['properties']:
++                    assert alternative['properties']['facts']['items']['properties']['ref']['enum']==list(out['table'])
++            changed=next(row['line'] for row in out['line_mapping'] if not row['unchanged'])
++            invalid=copy.deepcopy(out['stage_payload'])
++            invalid['facts'][0]['ranges']=[dict(lo=changed,hi=changed)]
++            with pytest.raises(ValueError): holder['ledger'].validate(invalid)
+         else:
+             assert out['status']=='FAILED',out
+             assert not out.get('confirmed') or mode=='late_END'
+@@ -145,7 +161,7 @@
+         assert not out['effects']
+         # A consumed POST cannot be retried even after an error or empty result.
+         leaf=h.NativeLeaf(client,holder['ledger'],tmp_path,manifest)
+-        leaf.posts=1
++        leaf.posts=1; leaf.post_intents=1
+         with pytest.raises((ValueError,TimeoutError)): leaf.io('POST','/api/chat',json={})
+         h.save(tmp_path/'smoke-summary.json',out)
+     finally:
+@@ -165,3 +181,69 @@
+     sampler=_research_sampler_schema(server)
+     assert 'maxLength' not in h.compact(sampler) and 'maxLength' in h.compact(server)
+     assert server==ledger.schema
++
++
++def test_duplicate_reordered_object_keys():
++    ledger=fresh_ledger()
++    payload=payload_for(ledger)
++    fact=payload['facts'][0]
++    payload['facts'].append(dict(ranges=[dict(hi=s['hi'],lo=s['lo']) for s in fact['ranges']],
++                                 ref=fact['ref'],claim=fact['claim']))
++    ledger.protected=h.sha(h.compact(payload).encode())
++    with pytest.raises(ValueError,match='duplicate fact'): ledger.consume(payload)
++
++
++@pytest.mark.parametrize('source_index',range(4))
++def test_general_scanner_eligibility(source_index):
++    from types import SimpleNamespace
++    from openjarvis.security.guardrails import GuardrailsEngine
++    from openjarvis.security.types import RedactionMode
++    _,sources=h.load_material()
++    source=sources[source_index]
++    view,_=h.project(source)
++    ledger=h.StageLedger(dict(request_id='r',session_id='s',task_id='t'),source,view,h.cards(source,view),36,lambda:0)
++    leaf=SimpleNamespace()
++    guard=GuardrailsEngine(leaf,mode=RedactionMode.REDACT)
++    prefix=h.PrefixView(SimpleNamespace(_inner=guard),ledger,'Generic original query')
++    prefix.prepare()
++    assert all(n in ledger.visible for card in ledger.table.values()
++               for n in range(card['first_line'],card['last_line']+1))
++    assert len(ledger.table)<=48
++    assert prefix.scan_preflight(prefix.prepared)==prefix.scan_preflight(prefix.prepared)
++
++
++def test_intent_io_expiry_prevents_send(tmp_path):
++    import httpx
++    now=[0.]; ledger=fresh_ledger(lambda:now[0]); sends=[]
++    client=httpx.Client(base_url=h.ORIGIN,transport=httpx.MockTransport(lambda req:sends.append(req)))
++    leaf=h.NativeLeaf(client,ledger,tmp_path,lambda:h.DIGEST)
++    original=leaf.record_intent
++    def delayed_intent():
++        original()
++        now[0]=ledger.deadline+1
++    leaf.record_intent=delayed_intent
++    with pytest.raises(TimeoutError): leaf.io('POST','/api/chat',json={})
++    assert leaf.post_intents==1 and leaf.posts==0 and sends==[]
++    assert (tmp_path/'post-intent.jsonl').is_file()
++    assert leaf.wire==[]
++    with pytest.raises((TimeoutError,ValueError)): leaf.io('POST','/api/chat',json={})
++    client.close()
++
++
++def test_optimized_cli_zero_side_effects(tmp_path):
++    attempted=tmp_path/'network-attempted'
++    nonexistent=tmp_path/'never-create'
++    guard=(
++        'import runpy,socket,sys\n'
++        'def deny(*args,**kwargs):\n'
++        '    raise AssertionError("real network prohibited in optimized CLI check")\n'
++        'socket.socket.connect=socket.socket.connect_ex=socket.getaddrinfo=deny\n'
++        'sys.argv=[sys.argv[1],"--authority",sys.argv[2],"--run-root",sys.argv[3]]\n'
++        'runpy.run_path(sys.argv[0],run_name="__main__")\n')
++    result=subprocess.run([sys.executable,'-B','-X','utf8','-O','-c',guard,str(h.PREP/'run_stage_prefix.py'),
++                           str(tmp_path/'no-authority.json'),str(nonexistent)],capture_output=True,text=True,
++                          env=dict(os.environ,PYTHONOPTIMIZE='1'),timeout=20)
++    assert result.returncode!=0 and 'Optimized Python execution is prohibited' in result.stderr
++    assert 'FileNotFoundError' not in result.stderr and not nonexistent.exists() and not attempted.exists()
++    h.save(tmp_path/'optimized-cli.json',dict(argv=result.args,exit=result.returncode,stdout=result.stdout,
++                                            stderr=result.stderr,actual_sends=0,runroot_created=False))
+--- H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\per-source-feasibility-20261102\preparation\freeze_preparation.py
++++ H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\per-source-feasibility-20261102\preparation-r2\freeze_preparation.py
+@@ -19,6 +19,12 @@
+     assert all(actual[name]==digest for name,digest in frozen5.items())
+     assert h.sha(h.DESIGN.read_bytes())=='b1290ae6633418b9ab04a2b88ff9152655a8b30cbde79d795d8f3c18321d17d7'
+     query,catalogue=h.load_material()
++    prior=h.PREP.with_name('preparation')
++    before=h.strict((h.PREP/'r1-preservation-before.json').read_text(encoding='utf-8-sig'))
++    after={str(p):h.sha(p.read_bytes()) for p in prior.rglob('*') if p.is_file()}
++    assert after==before,'entire r1 preparation must remain unchanged'
++    h.save(h.PREP/'r1-preservation.json',dict(all_files_unchanged=True,file_count=len(after),sha256=after,
++        manifest_sha256=h.sha((prior/'manifest.json').read_bytes()),script_sha256=h.sha((prior/'run_stage_prefix.py').read_bytes())))
+     scripts=[h.PREP/name for name in ('run_stage_prefix.py','test_stage_prefix.py','freeze_preparation.py')]
+     compile_receipt=[]
+     for path in scripts:
+@@ -28,11 +34,21 @@
+     (h.PREP/'prompt.txt').write_text(h.PROMPT,encoding='utf8')
+     templates=[]
+     for source in catalogue:
++        from types import SimpleNamespace
++        from openjarvis.security.guardrails import GuardrailsEngine
++        from openjarvis.security.types import RedactionMode
+         view,omitted=h.project(source)
+         table=h.cards(source,view)
+-        schema=h.schema_for('00000000-0000-0000-0000-000000000000',table)
++        ledger=h.StageLedger(dict(request_id='template',session_id='template',task_id='template'),source,view,table,36,lambda:0)
++        ledger.token='00000000-0000-0000-0000-000000000000'
++        ledger.schema=h.schema_for(ledger.token,table)
++        guard=GuardrailsEngine(SimpleNamespace(),mode=RedactionMode.REDACT)
++        prefix=h.PrefixView(SimpleNamespace(_inner=guard),ledger,query)
++        prefix.prepare()
+         name=source['source_id']+'-template.json'
+-        h.save(h.PREP/name,dict(original_query=query,source=source,view=view,omitted_ranges=omitted,table=table,schema=schema))
++        h.save(h.PREP/name,dict(original_query=query,source=source,view=view,omitted_ranges=omitted,
++            table=ledger.table,schema=ledger.schema,raw_messages=prefix.raw_messages,
++            preflight_messages=prefix.preflight_messages,lineage=prefix.preflight_lineage))
+         templates.append(h.PREP/name)
+     h.save(h.PREP/'schema-template.json',h.schema_for('00000000-0000-0000-0000-000000000000',{i:None for i in range(1,49)}))
+     h.save(h.PREP/'preservation.json',dict(source21=actual,frozen5=frozen5,all_match=True,
+@@ -54,6 +70,10 @@
+     suite=next(iter(xml)) if xml.tag=='testsuites' else xml
+     test_summary=dict(suite.attrib)
+     assert int(test_summary['failures'])==int(test_summary['errors'])==0
++    old_tests={case.attrib['name'] for case in ET.parse(prior/'tests-frozen-final.xml').getroot().iter('testcase')}
++    new_tests={case.attrib['name'] for case in xml.iter('testcase')}
++    assert len(old_tests)==17 and old_tests<=new_tests
++    h.save(h.PREP/'test-identity-preservation.json',dict(retained=sorted(old_tests),added=sorted(new_tests-old_tests),all_original_17_retained=True))
+     frozen_files={str(h.CHECKOUT/name):digest for name,digest in source21.items()}
+     for path in [*scripts,*templates,h.PREP/'prompt.txt',h.PREP/'schema-template.json',h.DESIGN]:
+         frozen_files[str(path)]=h.sha(path.read_bytes())
+@@ -62,6 +82,9 @@
+         frozen_files=frozen_files,input_files={str(p):h.sha(p.read_bytes()) for p in (h.CORPUS,h.FREEZE,h.ARCHIVE)},
+         review_path=str(h.ROOT/'per-source-design-review-2/verdict.json'),
+         review_sha256=h.sha((h.ROOT/'per-source-design-review-2/verdict.json').read_bytes()),
++        fix_review_path=str(h.ROOT/'review-per-source-probe-r1/verdict.json'),
++        fix_review_sha256=h.sha((h.ROOT/'review-per-source-probe-r1/verdict.json').read_bytes()),
++        old_preparation_manifest_sha256=h.sha((prior/'manifest.json').read_bytes()),
+         budget=dict(A=2048,N=4,k=5,num_predict=480,num_ctx=16384,max_native_posts=1,max_trial_metadata_gets=2,
+                     separate_bootstrap_health_gets=1,total_deadline=260,reserve=55,max_stage_slice=36),
+         model=h.MODEL,digest=h.DIGEST,daemon_version='0.32.15',test_summary=test_summary,
+@@ -80,6 +103,11 @@
+         text.extend(difflib.unified_diff([],path.read_text(encoding='utf8').splitlines(True),
+                                         fromfile='/dev/null',tofile=str(path)))
+     (h.PREP/'new-helper-package.diff').write_text(''.join(text),encoding='utf8')
++    changes=[]
++    for path in scripts:
++        changes.extend(difflib.unified_diff((prior/path.name).read_text(encoding='utf8').splitlines(True),
++            path.read_text(encoding='utf8').splitlines(True),fromfile=str(prior/path.name),tofile=str(path)))
++    (h.PREP/'preparation-r1-to-r2.diff').write_text(''.join(changes),encoding='utf8')
+     print(json.dumps(dict(status=manifest['status'],manifest_sha256=h.sha((h.PREP/'manifest.json').read_bytes()),
+         script_sha256=h.sha(scripts[0].read_bytes()),test_summary=test_summary),indent=2))
+ 
