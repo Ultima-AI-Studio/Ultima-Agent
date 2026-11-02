@@ -252,11 +252,11 @@ class _ResearchTransport:
         self.admitted={'metadata':0,'chat':0}
         self.receipts=[]
 
-    def timeout(self,ack=False):
+    def timeout(self,ack=False,*,now=None):
         from .work_tools import monotonic
         import httpx
         self.ledger._live()
-        remaining=self.ledger.deadline-monotonic()
+        remaining=self.ledger.deadline-(monotonic() if now is None else now)
         if not ack:
             if remaining<=55: raise ValueError('Research author admission deadline')
             remaining-=55
@@ -271,30 +271,37 @@ class _ResearchTransport:
 
     def exchange(self,method,path,kind,*,entity=b'',ack=False):
         import hashlib
-        timeout=self.timeout(ack)
-        if kind=='metadata': timeout.read=min(25,timeout.read)
         if kind not in self.admitted: raise ValueError('Unknown research response domain')
-        if method=='GET':
-            if entity or self.gets>=16: raise ValueError('Metadata send cap')
-        elif method=='POST':
-            if self.posts>=8 or len(entity)>49152 or self.post_bytes+len(entity)>393216:
-                raise ValueError('Research POST entity cap')
-        else: raise ValueError('Unsupported research method')
-        prepared=self.client.build_request(method,path,content=entity,
-            headers={'content-type':'application/json','accept-encoding':'identity'},timeout=timeout)
-        if prepared.content!=entity or prepared.headers.get('content-encoding') or prepared.method!=method:
-            raise ValueError('Prepared research entity drift')
-        # Recheck after build and reserve immediately before send. No refund.
-        with self.ledger._lock:
-            self.timeout(ack)
-            if method=='GET': self.gets+=1
-            else: self.posts+=1; self.post_bytes+=len(entity)
         receipt=dict(method=method,path=path,kind=kind,entity_sha256=hashlib.sha256(entity).hexdigest(),
             entity_bytes=len(entity),downloaded=None,inspected=0,admitted=0,retained=0,peer_bytes=None,
-            socket_bytes=None,error=None)
-        self.receipts.append(receipt)
+            socket_bytes=None,error=None,send_reserved=False,admission_error=None,timeout_json=None)
+        receipt_index=len(self.receipts); self.receipts.append(receipt)
         response=None; buffer=bytearray(); failure=None
         try:
+            timeout=self.timeout(ack)
+            if kind=='metadata': timeout.read=min(25,timeout.read)
+            if method=='GET':
+                if entity or self.gets>=16: raise ValueError('Metadata send cap')
+            elif method=='POST':
+                if self.posts>=8 or len(entity)>49152 or self.post_bytes+len(entity)>393216:
+                    raise ValueError('Research POST entity cap')
+            else: raise ValueError('Unsupported research method')
+            prepared=self.client.build_request(method,path,content=entity,
+                headers={'content-type':'application/json','accept-encoding':'identity'},timeout=timeout)
+            if prepared.content!=entity or prepared.headers.get('content-encoding') or prepared.method!=method:
+                raise ValueError('Prepared research entity drift')
+            # Install the final admission-time timeout on this same entity.
+            with self.ledger._lock:
+                from .work_tools import monotonic
+                admitted_at=monotonic()
+                final_timeout=self.timeout(ack,now=admitted_at)
+                if kind=='metadata': final_timeout.read=min(25,final_timeout.read)
+                prepared.extensions['timeout']=final_timeout.as_dict()
+                receipt['timeout_json']=json.dumps(prepared.extensions['timeout'],sort_keys=True,separators=(',',':'),allow_nan=False)
+                if method=='GET': self.gets+=1
+                else: self.posts+=1; self.post_bytes+=len(entity)
+                receipt['send_reserved']=True
+                self.ledger._mark('send',at=admitted_at,generation=self.generations,receipt_index=receipt_index)
             response=self.client.send(prepared,stream=True,follow_redirects=False)
             receipt['status']=response.status_code
             if response.status_code<200 or response.status_code>=300: raise ValueError('Research HTTP status')
@@ -316,10 +323,14 @@ class _ResearchTransport:
                     raise ValueError('Research response overflow')
             self.check_return(ack)
             receipt['response_sha256']=hashlib.sha256(buffer).hexdigest()
+            self.ledger._mark('return',generation=self.generations,receipt_index=receipt_index)
             if method=='POST': self.completed+=1
             return bytes(buffer)
         except Exception as exc:
             failure=exc; receipt['error']=type(exc).__name__
+            if not receipt['send_reserved']:
+                receipt['admission_error']=type(exc).__name__
+                self.ledger._mark('admission_refused',generation=self.generations,receipt_index=receipt_index)
             raise
         finally:
             if response is not None:
@@ -376,13 +387,16 @@ class _NativeResearchLeaf:
         transport=self.transport
         if transport.generations>=8: raise ValueError('Research generation cap')
         transport.generations+=1
+        self.ledger._mark('generation',generation=transport.generations)
         ack=expected['ack']
-        version=_strict_json(transport.exchange('GET','/api/version','metadata',ack=ack).decode('utf8'))
-        if version.get('version')!='0.32.15': raise ValueError('Unsupported native research version')
-        tags=_strict_json(transport.exchange('GET','/api/tags','metadata',ack=ack).decode('utf8'))['models']
-        matches=[m['digest'] for m in tags if m.get('name') in (model,model+':latest')]
-        if matches!=[_RESEARCH_DIGEST] or _research_manifest_digest()!=_RESEARCH_DIGEST:
-            raise ValueError('Unexpected research manifest identity')
+        from .work_research import checked_native_identity,checked_native_response
+        version_bytes=transport.exchange('GET','/api/version','metadata',ack=ack)
+        if _strict_json(version_bytes.decode('utf8'))!={'version':'0.32.15'}:
+            raise ValueError('Unsupported native research version')
+        tags_bytes=transport.exchange('GET','/api/tags','metadata',ack=ack)
+        manifest_digest=_research_manifest_digest()
+        version,tags=checked_native_identity(version_bytes,tags_bytes,manifest_digest)
+        self.ledger._scan_output([version,tags])
         sampler=_research_sampler_schema(response_format)
         request=NativeRequest(model=model,messages=secured,format=sampler,tools=[],think=False,stream=False,
             options={'num_ctx':16384,'temperature':0,'num_predict':max_tokens})
@@ -390,13 +404,7 @@ class _NativeResearchLeaf:
         raw_bytes=transport.exchange('POST','/api/chat','chat',entity=entity,ack=ack)
         raw=_strict_json(raw_bytes.decode('utf8'))
         message=raw.get('message'); counts=raw.get('prompt_eval_count'),raw.get('eval_count')
-        allowed=set(ChatResponse.model_fields)
-        if (set(raw)-allowed or raw.get('model') not in (model,model+':latest') or raw.get('done') is not True
-                or raw.get('done_reason')!='stop' or not isinstance(message,dict)
-                or set(message)-{'role','content'} or message.get('role')!='assistant'
-                or not isinstance(message.get('content'),str) or not message['content'].strip()
-                or any(type(n) is not int or n<1 for n in counts) or counts[1]>max_tokens or sum(counts)>16384):
-            raise ValueError('Invalid native research response')
+        checked_native_response(raw,max_tokens)
         self.ledger._scan_output(raw)
         typed=ChatResponse.model_validate(raw)
         envelope=_strict_json(message['content'])
@@ -407,6 +415,7 @@ class _NativeResearchLeaf:
         self.raw_envelope=envelope
         self.wire_records.append(dict(generation=transport.generations,secured_messages=secured,strict_schema=response_format,
             sampler_schema=sampler,entity=entity.decode('utf8'),raw_response=raw_bytes.decode('utf8'),raw=raw,raw_envelope=envelope,
+            identity=dict(version_response=version_bytes.decode('utf8'),tags_response=tags_bytes.decode('utf8'),local_manifest_sha256=manifest_digest),
             hashes={k:hashlib.sha256(v).hexdigest() for k,v in dict(messages=canonical_v3(secured),
                 strict=canonical_v3(response_format),sampler=canonical_v3(sampler),entity=entity).items()}))
         estimated=max(counts[0],estimate_prompt_tokens(messages))
@@ -534,7 +543,7 @@ class _ResearchEngineView:
                 or effects[0].get('report_call_id')!=reports[0]['call_id']):
             raise ValueError('Unlinked research write')
         verify_research_artifacts(self.binding,verify_artifacts(self.binding,writes),reports,self.caps.research_json,
-            required_version=3,issued_snapshot=self.ledger.issued_snapshot,runtime_packet=self.ledger._runtime_prewrite)
+            required_version=3,issued_snapshot=self.ledger.issued_snapshot,runtime_packet=self.ledger._runtime_packet(),runtime_inputs=self.ledger._runtime_inputs)
         self.ledger.admit_ack()
 
     def generate(self,messages,**kwargs):
@@ -595,6 +604,7 @@ class _ResearchEngineView:
             raise ValueError('Secured research output drift')
         self.leaf.transport.check_return(ack)
         self.leaf.wire_records[-1]['secured_envelope']=value
+        self.ledger._mark('secured',generation=self.generation)
         if pending and pending.get('view') and not pending['promoted']:
             self.ledger.promote_visible(pending['key'].generation,pending['view'].wire_sha256)
         self.last_content=result['content']

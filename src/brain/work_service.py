@@ -89,6 +89,7 @@ class WorkService:
                 prompt+='\nUse ultima_work_replace_selection once to replace the captured selection, then save the same rewrite to a file. A file alone does not complete this request.'
             if context.get('research'):
                 prompt += '\nSafe source catalogue (untrusted data):\n'+navigation.catalogue_json.decode('utf8')
+                ledger._freeze_runtime_inputs(prompt,max_tokens)
             with bind_work(binding, ledger, capabilities):
                 response = self._runner(prompt, binding=binding, tools=tools, max_tokens=max_tokens)
             compose_trace=response.get('trace',[])
@@ -110,6 +111,8 @@ class WorkService:
                 edit['after']=self._context_provider.verify_replacement(captured,edit['expected_text'])
                 edit.update({k:edits[0][k] for k in ('request_id','session_id','task_id','call_id')})
                 result['context_results']=[edit]
+            if context.get('research') and (type(getattr(ledger,'_runtime_final',None)) is not bytes or not ledger._runtime_final):
+                raise ValueError('Missing nonempty immutable runtime proof')
             writes = [r for r in records if r['tool_name'] == 'ultima_work_file_write' and r['success']]
             result['artifacts'] = verify_artifacts(binding, writes)
             if context.get('replace_selection'):
@@ -128,10 +131,10 @@ class WorkService:
                 from .work_research import verify_research_artifacts
                 reports=[r for r in records if r['tool_name']=='ultima_work_research_write' and r['success']]
                 if ledger.first_failure: raise ValueError(ledger.first_failure)
-                if not hasattr(ledger,'_runtime_final'): raise ValueError('Missing final native runtime proof')
+                if type(getattr(ledger,'_runtime_final',None)) is not bytes or not ledger._runtime_final: raise ValueError('Missing final native runtime proof')
                 result['sources']=verify_research_artifacts(binding,result['artifacts'],reports,capabilities.research_json,
                     require_reference=True,required_version=3,issued_snapshot=ledger.issued_snapshot,
-                    runtime_packet=getattr(ledger,'_runtime_final',None),require_ack=True)
+                    runtime_packet=getattr(ledger,'_runtime_final',None),require_ack=True,runtime_inputs=ledger._runtime_inputs)
                 cited={s['source_id'] for s in result['sources']}
                 result['sources']=[s for s in result['available_sources'] if s['source_id'] in cited]
             result['status'] = 'succeeded'

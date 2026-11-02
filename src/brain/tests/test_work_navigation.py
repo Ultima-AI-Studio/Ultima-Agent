@@ -376,9 +376,9 @@ def test_v3_fresh_artifact_reopening_and_tamper(tmp_path):
     path=tmp_path/'research.md'; path.write_bytes(rendered.content.encode())
     artifact=dict(call_id='file',path=str(path),sha256=h(path.read_bytes()))
     record=dict(call_id='report',**vars(b),result=dict(protocol_version=3,file_call_id='file',submitted_json=json.dumps(submitted),payload_json=json.dumps(resolved),bindings=bindings,cited_source_ids=list(rendered.cited_source_ids),evidence=list(rendered.evidence)))
-    assert len(research.verify_research_artifacts(binding,[artifact],[record],c.catalogue_json,required_version=3,issued_snapshot=snapshot))==3
+    assert len(research.verify_issued_research_artifacts(binding,[artifact],[record],c.catalogue_json,issued_snapshot=snapshot))==3
     path.write_bytes(b'tampered')
-    with pytest.raises(ValueError,match='readback'): research.verify_research_artifacts(binding,[artifact],[record],c.catalogue_json,required_version=3,issued_snapshot=snapshot)
+    with pytest.raises(ValueError,match='readback'): research.verify_issued_research_artifacts(binding,[artifact],[record],c.catalogue_json,issued_snapshot=snapshot)
 
 
 def test_v3_incomplete_python_is_unavailable_without_aborting_other_sources():

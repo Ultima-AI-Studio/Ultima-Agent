@@ -5,7 +5,7 @@ import httpx
 import pytest
 from src.brain import agent_server as server
 from src.brain import work_tools as wt
-from src.brain.tests.test_work_research import sdk_io,mock_jar,submit,stable_navigation_entropy
+from src.brain.tests.test_work_research import sdk_io,mock_jar,submit,stable_navigation_entropy,source9_clock
 
 def test_v3_download_inspection_admission_are_distinct():
     assert hasattr(server,'_ResearchTransport'), 'bounded research transport missing'
@@ -41,6 +41,169 @@ def navigation_reply(body):
                 evidence_id=p['cards'][0][0])]) for p in pages])))
     return json.dumps(dict(final_answer='Saved research.md'))
 navigation_reply.no_auto_navigation=True
+
+
+def genuine_navigation(tmp_path,sdk_io,mock_jar):
+    from src.brain.tests.test_work_research import RESTRICTED
+    mock_jar[3].extend([navigation_reply]*5)
+    result=submit(tmp_path,sdk_io[0],mock_jar[1])
+    assert result['status']=='succeeded',result['error']
+    ledger=RESTRICTED[result['task_id']]
+    return result,ledger
+
+
+def test_fix1_f2_coherent_title_substitution_rejected(tmp_path,sdk_io,mock_jar):
+    import copy,hashlib
+    from pathlib import Path
+    from src.brain.work_research import verify_research_artifacts
+    result,ledger=genuine_navigation(tmp_path,sdk_io,mock_jar)
+    artifact=copy.deepcopy(result['artifacts'][0])
+    record=copy.deepcopy(next(r for r in ledger.snapshot() if r['tool_name']=='ultima_work_research_write'))
+    for key in ('submitted_json','payload_json'):
+        value=json.loads(record['result'][key]); value['title']='Coherent substitute title'; record['result'][key]=json.dumps(value)
+    path=Path(artifact['path']); path.write_bytes(b'# Coherent substitute title\n'+path.read_bytes().split(b'\n',1)[1])
+    artifact['sha256']=record['result']['sha256']=hashlib.sha256(path.read_bytes()).hexdigest()
+    with pytest.raises(ValueError,match='authored|receipt|intent'):
+        verify_research_artifacts(ledger._binding,[artifact],[record],ledger._collection.catalogue_json,required_version=3,
+            issued_snapshot=ledger.issued_snapshot,runtime_packet=ledger._runtime_final,require_ack=True,runtime_inputs=ledger._runtime_inputs)
+
+
+@pytest.mark.parametrize('fault',['report_generation','report_binding','file_binding','effect_binding'])
+def test_fix1_f2_all_original_receipt_and_adapter_fields_bound(tmp_path,sdk_io,mock_jar,fault):
+    import copy
+    from src.brain.work_research import verify_research_artifacts,verify_runtime_packet
+    from src.brain.work_navigation import canonical_v3
+    result,ledger=genuine_navigation(tmp_path,sdk_io,mock_jar)
+    record=copy.deepcopy(next(r for r in ledger.snapshot() if r['tool_name']=='ultima_work_research_write'))
+    packet=json.loads(ledger._runtime_final)
+    if fault=='report_generation': record['result']['generation']+=1
+    elif fault=='report_binding': record['result']['binding'][0]='other-request'
+    elif fault=='file_binding': packet['execution']['files'][0]['request_id']='other-request'
+    else: packet['execution']['effects'][0]['request_id']='other-request'
+    with pytest.raises(ValueError):
+        verify_research_artifacts(ledger._binding,result['artifacts'],[record],ledger._collection.catalogue_json,
+            required_version=3,issued_snapshot=ledger.issued_snapshot,runtime_packet=canonical_v3(packet),require_ack=True,runtime_inputs=ledger._runtime_inputs)
+
+
+def rewrite_wire(packet,index):
+    import hashlib
+    from src.brain.work_navigation import canonical_v3
+    wire=packet['wires'][index]; request=json.loads(wire['entity']); request['messages']=wire['secured_messages']
+    entity=canonical_v3(request); wire['entity']=entity.decode(); wire['hashes']['messages']=hashlib.sha256(canonical_v3(request['messages'])).hexdigest()
+    wire['hashes']['entity']=hashlib.sha256(entity).hexdigest()
+    receipt=packet['transport']['receipts'][index*3+2]; receipt['entity_sha256']=wire['hashes']['entity']; receipt['entity_bytes']=len(entity)
+    packet['transport']['post_bytes']=sum(len(w['entity'].encode()) for w in packet['wires'])
+
+
+@pytest.mark.parametrize('fault',['chronology','phase_suffix','prompt','prewrite_hash'])
+def test_fix1_f3_replay_rejects_coherent_history_mutations(tmp_path,sdk_io,mock_jar,fault):
+    from src.brain.work_research import verify_runtime_packet
+    from src.brain.work_navigation import canonical_v3
+    _,ledger=genuine_navigation(tmp_path,sdk_io,mock_jar)
+    packet=json.loads(ledger._runtime_final)
+    if fault=='chronology': packet['events'][0],packet['events'][1]=packet['events'][1],packet['events'][0]
+    elif fault=='phase_suffix':
+        packet['wires'][0]['secured_messages'][0]['content']+=' Arbitrary altered phase rule.'
+        rewrite_wire(packet,0)
+    elif fault=='prompt':
+        packet['prompt']=packet['prompt'].replace('Research a subject','Unrelated subject')
+        for i,wire in enumerate(packet['wires']):
+            wire['secured_messages'][1]['content']=packet['prompt']; rewrite_wire(packet,i)
+    else:
+        packet['prewrite_sha256']='f'*64
+        end=json.loads(packet['events'][-1]); receipt=json.loads(end['data']['result']); receipt['runtime_sha256']='f'*64
+        end['data']['result']=canonical_v3(receipt).decode(); end['data']['metadata']['runtime_sha256']='f'*64
+        packet['events'][-1]=json.dumps(end)
+        packet['wires'][-1]['secured_messages'][-1]['content']='Observation: '+end['data']['result']; rewrite_wire(packet,len(packet['wires'])-1)
+    kwargs=dict(require_ack=True)
+    if hasattr(ledger,'_runtime_inputs'): kwargs['runtime_inputs']=ledger._runtime_inputs
+    with pytest.raises(ValueError):
+        verify_runtime_packet(ledger._binding,ledger.issued_snapshot,ledger._collection,canonical_v3(packet),**kwargs)
+
+
+@pytest.mark.parametrize('fault',['metadata_hash','metadata_digest','outer_model','outer_role','outer_extra','negative_prompt','context_total','options_extra'])
+def test_fix1_f4_native_identity_and_outer_policy_replayed(tmp_path,sdk_io,mock_jar,fault):
+    import hashlib
+    from src.brain.work_research import verify_runtime_packet
+    from src.brain.work_navigation import canonical_v3
+    _,ledger=genuine_navigation(tmp_path,sdk_io,mock_jar); packet=json.loads(ledger._runtime_final)
+    index=len(packet['wires'])-1; wire=packet['wires'][index]
+    if fault=='metadata_hash': packet['transport']['receipts'][index*3]['response_sha256']='0'*64
+    elif fault=='metadata_digest':
+        assert 'identity' in wire,'replayable metadata identity missing'
+        tags=json.loads(wire['identity']['tags_response']); tags['models'][0]['digest']='0'*64
+        wire['identity']['tags_response']=json.dumps(tags)
+        receipt=packet['transport']['receipts'][index*3+1]
+        receipt.update(response_sha256=hashlib.sha256(wire['identity']['tags_response'].encode()).hexdigest(),
+            admitted=len(wire['identity']['tags_response'].encode()),retained=len(wire['identity']['tags_response'].encode()),
+            inspected=len(wire['identity']['tags_response'].encode()),downloaded=len(wire['identity']['tags_response'].encode()))
+        packet['transport']['admitted']['metadata']=sum(r['admitted'] for r in packet['transport']['receipts'] if r['kind']=='metadata')
+    elif fault=='options_extra':
+        request=json.loads(wire['entity']); request['options']['num_gpu']=1; wire['entity']=canonical_v3(request).decode(); rewrite_wire(packet,index)
+    else:
+        raw=wire['raw']
+        if fault=='outer_model': raw['model']='wrong-model'
+        elif fault=='outer_role': raw['message']['role']='user'
+        elif fault=='outer_extra': raw['unexpected']=True
+        elif fault=='negative_prompt': raw['prompt_eval_count']=-1
+        else: raw['prompt_eval_count']=16384
+        wire['raw_response']=json.dumps(raw); receipt=packet['transport']['receipts'][index*3+2]
+        receipt.update(response_sha256=hashlib.sha256(wire['raw_response'].encode()).hexdigest(),admitted=len(wire['raw_response'].encode()),
+            retained=len(wire['raw_response'].encode()),inspected=len(wire['raw_response'].encode()),downloaded=len(wire['raw_response'].encode()))
+        packet['transport']['admitted']['chat']=sum(r['admitted'] for r in packet['transport']['receipts'] if r['kind']=='chat')
+    with pytest.raises(ValueError):
+        verify_runtime_packet(ledger._binding,ledger.issued_snapshot,ledger._collection,canonical_v3(packet),require_ack=True,runtime_inputs=ledger._runtime_inputs)
+
+
+@pytest.mark.parametrize('method',['GET','POST'])
+@pytest.mark.parametrize('expired',[False,True])
+def test_fix1_f5_final_send_timeout_and_refusal_receipt(tmp_path,sdk_io,mock_jar,source9_clock,monkeypatch,method,expired):
+    from src.brain.tests.test_work_research import RESTRICTED
+    state=source9_clock;state['now']=200
+    build=httpx.Client.build_request; changed=[False]
+    def advance(client,verb,*args,**kwargs):
+        request=build(client,verb,*args,**kwargs)
+        if verb==method and not changed[0]: state['now']=206 if expired else 204;changed[0]=True
+        return request
+    monkeypatch.setattr(httpx.Client,'build_request',advance)
+    mock_jar[3].append('{"final_answer":"refused"}')
+    result=submit(tmp_path,sdk_io[0],mock_jar[1]); ledger=RESTRICTED[result['task_id']]; transport=ledger._runtime_transport
+    assert result['status']=='failed' and changed[0]
+    if expired:
+        assert transport.posts==0 and transport.gets==(2 if method=='POST' else 0)
+        receipt=transport.receipts[-1]
+        assert receipt['method']==method and receipt['send_reserved'] is False and receipt['admission_error']
+    else:
+        phase='author' if method=='POST' else 'metadata'
+        assert next(timeout for label,timeout in state['requests'] if label==phase)==dict(connect=1,write=1,pool=1,read=1)
+
+
+@pytest.mark.parametrize('proof',['null','empty','mutable'])
+def test_fix1_f7_fresh_verifier_requires_immutable_runtime(tmp_path,sdk_io,mock_jar,proof):
+    from src.brain.work_research import verify_research_artifacts
+    result,ledger=genuine_navigation(tmp_path,sdk_io,mock_jar)
+    record=next(r for r in ledger.snapshot() if r['tool_name']=='ultima_work_research_write')
+    raw=None if proof=='null' else b'' if proof=='empty' else bytearray(ledger._runtime_final)
+    with pytest.raises(ValueError,match='runtime|Runtime'):
+        verify_research_artifacts(ledger._binding,result['artifacts'],[record],ledger._collection.catalogue_json,required_version=3,
+            issued_snapshot=ledger.issued_snapshot,runtime_packet=raw,require_ack=True,runtime_inputs=ledger._runtime_inputs)
+
+
+@pytest.mark.parametrize('proof',['absent','null','empty','mutable'])
+def test_fix1_f7_service_missing_final_proof_needs_attention(tmp_path,sdk_io,mock_jar,proof):
+    from src.brain.tests.test_work_research import RESTRICTED
+    runner=mock_jar[1];mock_jar[3].extend([navigation_reply]*5)
+    def drop(*a,**kw):
+        response=runner(*a,**kw)
+        ledger=wt._ACTIVE.get()[1]
+        assert type(ledger._runtime_final) is bytes
+        if proof=='absent': del ledger._runtime_final
+        else: ledger._runtime_final=None if proof=='null' else b'' if proof=='empty' else bytearray(ledger._runtime_final)
+        return response
+    result=submit(tmp_path,sdk_io[0],drop)
+    assert result['status']=='needs_attention' and not result['artifacts']
+    assert len(list(tmp_path.rglob('research.md')))==1
+    assert RESTRICTED[result['task_id']].outcome_snapshot()[1][0]['state']=='completed'
 
 @pytest.mark.parametrize('variant',['text','permuted','html','mixed'])
 def test_v3_native_react_observation_driven_chain(tmp_path,sdk_io,mock_jar,monkeypatch,variant):
@@ -105,30 +268,36 @@ def test_v3_native_react_observation_driven_chain(tmp_path,sdk_io,mock_jar,monke
     raw=Path(result['artifacts'][0]['path']).read_bytes()
     assert raw==oracle and hashlib.sha256(raw).hexdigest()==result['artifacts'][0]['sha256']
     (tmp_path/'runtime-replay.json').write_bytes(ledger._runtime_final)
+    from dataclasses import asdict
+    inputs_bytes=canonical_v3(dict(asdict(ledger._runtime_inputs),binding_key=list(ledger._runtime_inputs.binding_key)))
+    (tmp_path/'runtime-inputs.json').write_bytes(inputs_bytes)
+    (tmp_path/'prewrite-packet.json').write_bytes(ledger._runtime_prewrite)
     (tmp_path/'issued-snapshot.json').write_bytes(ledger.issued_snapshot.replay_json)
     (tmp_path/'issued-views.json').write_bytes(ledger.issued_snapshot.views_json)
     (tmp_path/'packet-manifest.json').write_text(json.dumps(dict(
         issued_sha256=ledger.issued_snapshot.manifest_sha256,
         runtime_sha256=hashlib.sha256(ledger._runtime_final).hexdigest(),
         views_sha256=hashlib.sha256(ledger.issued_snapshot.views_json).hexdigest(),
+        inputs_sha256=hashlib.sha256(inputs_bytes).hexdigest(),
+        prewrite_sha256=hashlib.sha256(ledger._runtime_prewrite).hexdigest(),
         artifact_sha256=hashlib.sha256(raw).hexdigest())),encoding='utf8')
     (tmp_path/'external-readback.json').write_text(json.dumps(dict(variant=variant,sha256=hashlib.sha256(raw).hexdigest(),
         expected_sha256=hashlib.sha256(oracle).hexdigest(),sources=fixtures,request_id=result['request_id'],session_id=result['session_id'],
         strict_sizes=strict_sizes,entity_sizes=entity_sizes,persona_sha256=hashlib.sha256(persona.encode()).hexdigest())),encoding='utf8')
     assert hasattr(ledger,'_runtime_final'), 'native proof appendix missing'
     from src.brain.work_research import verify_runtime_packet
-    verify_runtime_packet(captured['binding'],ledger.issued_snapshot,captured['collection'],ledger._runtime_final,require_ack=True)
+    verify_runtime_packet(captured['binding'],ledger.issued_snapshot,captured['collection'],ledger._runtime_final,require_ack=True,runtime_inputs=ledger._runtime_inputs)
     packet=json.loads(ledger._runtime_final)
     packet['wires'][0]['entity']=packet['wires'][0]['entity'].replace('Research a subject','changed subject')
     from src.brain.work_navigation import canonical_v3
     with pytest.raises(ValueError):
-        verify_runtime_packet(captured['binding'],ledger.issued_snapshot,captured['collection'],canonical_v3(packet),require_ack=True)
+        verify_runtime_packet(captured['binding'],ledger.issued_snapshot,captured['collection'],canonical_v3(packet),require_ack=True,runtime_inputs=ledger._runtime_inputs)
     packet=json.loads(ledger._runtime_final)
     end=json.loads(packet['events'][-1])
     end['data']['metadata']['file_call_id']='00000000-0000-0000-0000-000000000001'
     packet['events'][-1]=json.dumps(end)
     with pytest.raises(ValueError,match='writer'):
-        verify_runtime_packet(captured['binding'],ledger.issued_snapshot,captured['collection'],canonical_v3(packet),require_ack=True)
+        verify_runtime_packet(captured['binding'],ledger.issued_snapshot,captured['collection'],canonical_v3(packet),require_ack=True,runtime_inputs=ledger._runtime_inputs)
 
 
 @pytest.mark.parametrize('fault',['observation','old_assistant','system','role','optional','schema','skip_guard','secured_output','raw_unknown','unsafe_unknown'])

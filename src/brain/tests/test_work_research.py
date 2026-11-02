@@ -380,7 +380,8 @@ def mock_jar(tmp_path,monkeypatch):
         if request.url.path == '/api/version':
             return streamed({'version':'0.32.15'})
         if request.url.path == '/api/tags':
-            return streamed({'models':[{'name':model+':latest','digest':
+            return streamed({'models':[{'name':model+':latest','model':model+':latest','size':4987654321,'modified_at':'2026-11-03T00:00:00Z',
+                'details':{'format':'gguf','family':'qwen3','families':['qwen3'],'parameter_size':'8.2B','quantization_level':'Q4_K_M'},'digest':
                 '6d7230a923426bc1933879eb08a7dafc18e5fc0e7606c459ce98f16e0c7f9330'}]})
         assert request.url.path=='/api/chat'
         body = json.loads(request.content)
@@ -399,7 +400,8 @@ def mock_jar(tmp_path,monkeypatch):
         if 'issued:' in reply:
             for page in pages:
                 reply=reply.replace('issued:'+page['source_id'],page['cards'][0][0])
-        return streamed({'model':model,'done':True,'done_reason':'stop','prompt_eval_count':25,
+        return streamed({'model':model,'done':True,'done_reason':'stop','created_at':'2026-11-03T00:00:00Z',
+                              'total_duration':9876543210,'load_duration':1234567890,'prompt_eval_duration':2345678901,'eval_duration':3456789012,'prompt_eval_count':25,
                               'eval_count':10,'message':{'role':'assistant','content':reply}})
     host='http://127.0.0.1:11434'
     raw=OllamaEngine(host=host)
@@ -630,10 +632,12 @@ def test_r4b_late_report(tmp_path,sdk_io,mock_jar,monkeypatch,stage):
     _,runner,bodies,replies=mock_jar
     entered=threading.Event()
     release=threading.Event()
-    target=FileWriteTool if stage=='after_intent' else WorkResearchWriteTool
-    name='execute' if stage=='after_intent' else 'run'
+    file_args=[]
+    target=WorkResearchWriteTool if stage=='before_intent' else FileWriteTool
+    name='run' if stage=='before_intent' else 'execute'
     real=getattr(target,name)
     def delayed(*args,**kw):
+        if 'content' in kw: file_args.append(dict(kw))
         entered.set()
         assert release.wait(10)
         return real(*args,**kw)
@@ -666,8 +670,8 @@ def test_r4b_late_report(tmp_path,sdk_io,mock_jar,monkeypatch,stage):
     replies.extend([action(report_payload()),'{"final_answer":"no file"}'])
     try:
         r=submit(tmp_path,sdk_io[0],runner)
-        assert r['status']==('needs_attention' if stage=='after_intent' else 'failed') and len(bodies)==4
-        if stage!='after_intent':
+        assert r['status']==('failed' if stage=='before_intent' else 'needs_attention') and len(bodies)==4
+        if stage=='before_intent':
             assert not r.get('research_effects') and not list(tmp_path.rglob('research.md'))
             return
         effect=r['research_effects'][0]
@@ -676,6 +680,14 @@ def test_r4b_late_report(tmp_path,sdk_io,mock_jar,monkeypatch,stage):
             assert actual[0].done() and Path(effect['path']).is_file()
             terminal=[x for x in restricted_records(r) if x.get('call_id') and x.get('tool_name')=='ultima_work_file_write']
             assert [x['call_id'] for x in terminal]==([effect['file_call_id']] if effect.get('file_call_id') else [])
+            ledger=RESTRICTED[r['task_id']]
+            assert ledger.first_failure==r['error']=='Research SDK tool timeout'
+            late=[x for x in ledger._late_records if x.get('tool_name')=='ultima_work_file_write']
+            assert len(late)==1 and late[0]['call_id']==effect['file_call_id'] and late[0]['path']==effect['path']
+            assert not any(x.get('tool_name')=='ultima_work_file_write' for x in r['tool_results'])
+            assert len(file_args)==1 and file_args[0]['path']==effect['path']
+            assert Path(effect['path']).parent==tmp_path/r['task_id']
+            assert Path(effect['path']).read_bytes()==file_args[0]['content'].encode()
         else:
             assert bool(effect.get('file_call_id'))==(stage=='after_intent')
         snapshot=json.dumps(r,sort_keys=True)
@@ -1009,7 +1021,7 @@ def test_source6_reopen_validates_reference_protocol(tmp_path,sdk_io,fault):
     if fault=='url': original_sources[0]['final_url']='https://example.com/other'
     from jsonschema import ValidationError
     with pytest.raises((ValueError,ValidationError)):
-        verify_research_artifacts(binding,[artifact],[record],json.dumps(original_sources),require_reference=True,required_version=3,issued_snapshot=RESTRICTED[result['task_id']].issued_snapshot)
+        verify_research_artifacts(binding,[artifact],[record],json.dumps(original_sources),require_reference=True,required_version=3,issued_snapshot=RESTRICTED[result['task_id']].issued_snapshot,runtime_packet=RESTRICTED[result['task_id']]._runtime_final,require_ack=True,runtime_inputs=RESTRICTED[result['task_id']]._runtime_inputs)
 
 def test_source6_lock_wait_uses_entry_deadline(tmp_path,sdk_io,mock_jar,monkeypatch):
     from src.brain import agent_server

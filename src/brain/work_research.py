@@ -536,7 +536,105 @@ def resolve_v3(submitted,issued_snapshot,collection):
     return resolve(submitted,issued_snapshot,collection)
 
 
-def verify_runtime_packet(binding, snapshot, collection, raw, *, require_ack=False):
+def checked_native_identity(version_bytes,tags_bytes,manifest_digest):
+    from .agent_server import _strict_json,_RESEARCH_MODEL,_RESEARCH_DIGEST
+    if not all(type(b) is bytes and 0<len(b)<=32768 for b in (version_bytes,tags_bytes)):
+        raise ValueError('Invalid metadata identity bytes')
+    version=_strict_json(version_bytes.decode()); tags=_strict_json(tags_bytes.decode())
+    if version!={'version':'0.32.15'} or set(tags)!={'models'} or not isinstance(tags['models'],list):
+        raise ValueError('Unsupported native metadata identity')
+    matches=[]
+    for model in tags['models']:
+        if (not isinstance(model,dict) or set(model)-{'name','model','modified_at','size','digest','details'}
+                or not all(type(model.get(k)) is str for k in ('name','digest'))
+                or ('size' in model and (type(model['size']) is not int or not 0<=model['size']<2**63))
+                or ('model' in model and model['model']!=model['name'])):
+            raise ValueError('Invalid native model metadata')
+        if model['name'] in (_RESEARCH_MODEL,_RESEARCH_MODEL+':latest'): matches.append(model['digest'])
+    if matches!=[_RESEARCH_DIGEST] or manifest_digest!=_RESEARCH_DIGEST:
+        raise ValueError('Unexpected research manifest identity')
+    return version,tags
+
+
+def checked_native_response(raw,max_tokens):
+    from .agent_server import _RESEARCH_MODEL
+    allowed={'model','created_at','done','done_reason','total_duration','load_duration','prompt_eval_count',
+        'prompt_eval_duration','eval_count','eval_duration','message'}
+    message=raw.get('message'); counts=raw.get('prompt_eval_count'),raw.get('eval_count')
+    if (set(raw)-allowed or raw.get('model') not in (_RESEARCH_MODEL,_RESEARCH_MODEL+':latest') or raw.get('done') is not True
+            or raw.get('done_reason')!='stop' or not isinstance(message,dict) or set(message)!={'role','content'}
+            or message['role']!='assistant' or type(message['content']) is not str or not message['content'].strip()
+            or any(type(n) is not int or n<1 for n in counts) or counts[1]>max_tokens or sum(counts)>16384
+            or any(type(raw[k]) is not int or not 0<=raw[k]<2**63 for k in ('total_duration','load_duration','prompt_eval_duration','eval_duration') if k in raw)
+            or ('created_at' in raw and type(raw['created_at']) is not str)):
+        raise ValueError('Invalid native research response')
+
+
+def _verify_runtime_order(packet,reads,written,require_ack,runtime_inputs):
+    from decimal import Decimal,InvalidOperation
+    import uuid
+    from .work_navigation import canonical_v3
+    if packet['clock_domain']!='work_tools.monotonic;ledger-sequence-v1': raise ValueError('Runtime clock domain drift')
+    timeline=packet['timeline']; cursor=0; previous=None
+    def take(kind,**fields):
+        nonlocal cursor,previous
+        if cursor>=len(timeline): raise ValueError('Missing runtime admission order')
+        node=timeline[cursor]; cursor+=1
+        if (set(node)!={'order','kind','at','deadline',*fields} or node['order']!=cursor or node['kind']!=kind
+                or any(node[k]!=v for k,v in fields.items()) or node['deadline']!=runtime_inputs.deadline):
+            raise ValueError('Runtime admission order drift')
+        try: now=Decimal(node['at']); remaining=Decimal(node['deadline'])-now
+        except (InvalidOperation,TypeError): raise ValueError('Invalid runtime clock') from None
+        if not now.is_finite() or (previous is not None and now<previous): raise ValueError('Runtime monotonic clock drift')
+        previous=now
+        if remaining<=0: raise ValueError('Runtime deadline exceeded')
+        return node,remaining
+    for index,wire in enumerate(packet['wires']):
+        ack=index==len(reads)+1
+        take('generation',generation=index+1)
+        for receipt_index in range(index*3,index*3+3):
+            _,remaining=take('send',generation=index+1,receipt_index=receipt_index)
+            if not ack and remaining<=55: raise ValueError('Runtime send reserve exhausted')
+            receipt=packet['transport']['receipts'][receipt_index]
+            budget=remaining if ack else remaining-55
+            base=min(Decimal(25),budget); read=min(Decimal(25 if ack else 180),budget)
+            if receipt['kind']=='metadata': read=min(Decimal(25),read)
+            timeout=json.loads(receipt['timeout_json'])
+            if (receipt['send_reserved'] is not True or receipt['admission_error'] is not None
+                    or set(timeout)!={'connect','read','write','pool'}
+                    or any(Decimal(str(timeout[k]))>limit or Decimal(str(timeout[k]))<=0 for k,limit in
+                        (('connect',base),('read',read),('write',base),('pool',base)))):
+                raise ValueError('Runtime final timeout admission drift')
+            take('return',generation=index+1,receipt_index=receipt_index)
+        _,remaining=take('secured',generation=index+1)
+        if not ack and remaining<55: raise ValueError('Runtime secured reserve exhausted')
+        if index and index<=len(reads): take('promote',seq=index,wire_hash=reads[index-1]['wire_sha256'])
+        if ack: continue
+        action=wire['secured_envelope']; seq=index+1
+        take('expect',seq=seq,name=action['action'],args_hash=hashlib.sha256(canonical_v3(action['action_input'])).hexdigest())
+        take('sdk_start',seq=seq,event_index=index*2)
+        if index<len(reads): key=reads[index]['key']
+        elif written: key=packet['execution']['intent']
+        else:
+            if cursor>=len(timeline): raise ValueError('Missing writer claim')
+            key=timeline[cursor]
+        for field in ('dispatch_uuid','adapter_uuid'):
+            try:
+                if str(uuid.UUID(key[field]))!=key[field]: raise ValueError('Invalid claim UUID')
+            except (TypeError,KeyError): raise ValueError('Invalid claim UUID') from None
+        take('claim',seq=seq,dispatch_uuid=key['dispatch_uuid'],adapter_uuid=key['adapter_uuid'])
+        if index<len(reads): take('sdk_end',seq=seq,event_index=index*2+1)
+        else:
+            take('freeze',seq=seq)
+            if written:
+                _,remaining=take('intent',seq=seq,file_call_id=key['file_call_id'])
+                if remaining<55: raise ValueError('Runtime intent reserve exhausted')
+                take('file_end',file_call_id=key['file_call_id'])
+                take('sdk_end',seq=seq,event_index=index*2+1)
+    if cursor!=len(timeline): raise ValueError('Unexpected runtime terminal order')
+
+
+def verify_runtime_packet(binding, snapshot, collection, raw, *, require_ack=False,runtime_inputs=None):
     """Reconstruct native entities, history and read/event links independently."""
     from .work_navigation import canonical_v3,v3_writer_schema
     from .work_tools import WorkInspectTool,WorkResearchWriteTool
@@ -545,8 +643,25 @@ def verify_runtime_packet(binding, snapshot, collection, raw, *, require_ack=Fal
     from .agent_server import _strict_json,_research_sampler_schema,_RESEARCH_MODEL,MAINBRAIN_SYSTEM_PROMPT
     from openjarvis.agents.native_react import REACT_SYSTEM_PROMPT
     from jsonschema import Draft7Validator
+    from openjarvis.security.scanner import SecretScanner,PIIScanner
+    from .work_navigation import make_scan_policy
+    sealed_policy=json.loads(snapshot.replay_json)['policy']
+    factories={c.__module__+'.'+c.__qualname__:c for c in (SecretScanner,PIIScanner)}
+    policy=make_scan_policy(tuple(factories[d['name']]() for d in sealed_policy['scanners']),sealed_policy['mode'])
+    if json.loads(policy.policy_json)!=sealed_policy: raise ValueError('Runtime scanner policy drift')
+    def scan_strings(value):
+        if isinstance(value,str):
+            if any(not s.scan(value).clean for s in policy.scanners): raise ValueError('Unsafe native evidence string')
+        elif isinstance(value,list):
+            for child in value: scan_strings(child)
+        elif isinstance(value,dict):
+            for key,child in value.items(): scan_strings(key);scan_strings(child)
+    if type(raw) is not bytes or not raw: raise ValueError('Nonempty immutable runtime bytes required')
     packet=json.loads(raw)
     digest=lambda value:hashlib.sha256(value).hexdigest()
+    if (runtime_inputs is None or packet['prompt']!=runtime_inputs.prompt or runtime_inputs.binding_key!=snapshot.binding_key
+            or runtime_inputs.root!=str(binding.root)):
+        raise ValueError('Runtime independently frozen input drift')
     if (canonical_v3(packet)!=raw or packet['v']!=3 or packet['binding']!=list(snapshot.binding_key)
             or tuple(getattr(binding,k) for k in ('request_id','session_id','task_id'))!=snapshot.binding_key
             or packet['nonce']!=snapshot.nonce or packet['issued_manifest']!=snapshot.manifest_sha256
@@ -570,8 +685,27 @@ def verify_runtime_packet(binding, snapshot, collection, raw, *, require_ack=Fal
     reads=json.loads(snapshot.replay_json)['reads']
     wires=packet['wires']
     if not len(reads)+1<=len(wires)<=8: raise ValueError('Runtime generation count')
-    if len(starts)!=len(reads)+1 or len(ends)!=len(reads)+int(require_ack):
+    written=packet['execution']['intent'] is not None
+    if len(starts)!=len(reads)+1 or len(ends)!=len(reads)+int(written):
         raise ValueError('Runtime event count')
+    expected_types=['tool_call_start','tool_call_end']*len(reads)+['tool_call_start']+(['tool_call_end'] if written else [])
+    if [e['type'] for e in events]!=expected_types: raise ValueError('Runtime ordered transcript drift')
+    _verify_runtime_order(packet,reads,written,require_ack,runtime_inputs)
+    prewrite=packet.get('prewrite_packet')
+    if prewrite is not None:
+        if type(prewrite) is not str or digest(prewrite.encode())!=packet['prewrite_sha256']:
+            raise ValueError('Runtime sealed prewrite hash drift')
+        if json.loads(prewrite).get('prewrite_packet') is not None: raise ValueError('Nested prewrite packet')
+        prefix_packet=verify_runtime_packet(binding,snapshot,collection,prewrite.encode(),runtime_inputs=runtime_inputs)
+        if prefix_packet.get('prewrite_packet') is not None or prefix_packet['execution']!=dict(intent=None,files=[],effects=[]):
+            raise ValueError('Runtime invalid prewrite prefix')
+        for key in ('v','binding','nonce','issued_manifest','views_sha256','prompt','system_original','clock_domain'):
+            if packet[key]!=prefix_packet[key]: raise ValueError('Runtime prewrite binding drift')
+        for key in ('wires','events','timeline'):
+            if packet[key][:len(prefix_packet[key])]!=prefix_packet[key]: raise ValueError('Runtime prewrite transcript drift')
+        receipts_prefix=prefix_packet['transport']['receipts']
+        if packet['transport']['receipts'][:len(receipts_prefix)]!=receipts_prefix: raise ValueError('Runtime prewrite sends drift')
+    elif written or packet.get('prewrite_sha256') is not None: raise ValueError('Missing sealed prewrite packet')
     for index,read in enumerate(reads):
         start=starts[index]; end=ends[index]; key=read['key']
         args=dict(source_id=read['source_id'],start_line=read['start'])
@@ -621,6 +755,13 @@ def verify_runtime_packet(binding, snapshot, collection, raw, *, require_ack=Fal
         outer=wire['raw']; envelope=_strict_json(outer['message']['content'])
         response=wire['raw_response'].encode()
         chunk=receipts[index*3:index*3+3]
+        identity=wire['identity']
+        version,tags=checked_native_identity(identity['version_response'].encode(),identity['tags_response'].encode(),identity['local_manifest_sha256'])
+        scan_strings(version);scan_strings(tags);scan_strings(outer)
+        for receipt,body in zip(chunk[:2],(identity['version_response'],identity['tags_response'])):
+            if (receipt['response_sha256']!=digest(body.encode()) or receipt['admitted']!=len(body.encode())
+                    or receipt['entity_bytes']!=0 or receipt['entity_sha256']!=digest(b'')):
+                raise ValueError('Runtime metadata response hash drift')
         if ([(r['method'],r['path'],r['kind']) for r in chunk]!=[('GET','/api/version','metadata'),('GET','/api/tags','metadata'),('POST','/api/chat','chat')]
                 or _strict_json(wire['raw_response'])!=outer or chunk[-1]['response_sha256']!=digest(response)
                 or chunk[-1]['admitted']!=len(response) or chunk[-1]['entity_sha256']!=digest(entity)
@@ -645,6 +786,20 @@ def verify_runtime_packet(binding, snapshot, collection, raw, *, require_ack=Fal
         if (wire['strict_schema']!=expected_schema or type(request['options']['num_predict']) is not int
                 or not 0<request['options']['num_predict']<=output_cap):
             raise ValueError('Runtime phase schema or output budget drift')
+        if (type(runtime_inputs.allowance) is not int or runtime_inputs.allowance<=0 or request['options']!=dict(
+                num_ctx=16384,temperature=0,num_predict=min(runtime_inputs.allowance,output_cap))
+                or type(request['options']['num_ctx']) is not int or type(request['options']['temperature']) is not int):
+            raise ValueError('Runtime exact native options drift')
+        checked_native_response(outer,request['options']['num_predict'])
+        from .agent_server import _research_budget
+        from openjarvis.core.types import Message,Role
+        _research_budget([Message(role=Role(m['role']),content=m['content']) for m in messages],wire['strict_schema'],request['options']['num_predict'])
+        phase=('Acknowledge the verified research.md file. No further action is authorized.' if ack else
+            'Inspect safe source pages; author only atomic claims supported by the exact returned witnesses. '
+            'Use at least three distinct source URLs and bodies. Write only research.md once, or refuse with final_answer. '
+            'The phase schema is the entire output contract. Full argument schema (JSON):\n'
+            +json.dumps(v3_writer_schema(),ensure_ascii=False,separators=(',',':'))+'\nEnd argument schema.')
+        if messages[0]['content']!=replaced+'\n\n'+phase: raise ValueError('Runtime exact phase system drift')
         if 'action' in envelope:
             start=starts[index]
             if envelope['action']!=start['tool'] or envelope['action_input']!=start['arguments']:
@@ -658,27 +813,83 @@ def verify_runtime_packet(binding, snapshot, collection, raw, *, require_ack=Fal
     last=wires[-1]['secured_envelope']
     if (require_ack and set(last)!={'final_answer'}) or (not require_ack and last.get('action')!='ultima_work_research_write'):
         raise ValueError('Runtime terminal phase drift')
-    if require_ack:
+    if written:
         end=ends[-1]
         if end.get('success') is not True or end.get('tool')!='ultima_work_research_write': raise ValueError('Runtime writer END missing')
         receipt=_strict_json(end['result'])
         metadata=end.get('metadata',{})
-        submitted=wires[-2]['secured_envelope']['action_input']
+        submitted=wires[-2 if require_ack else -1]['secured_envelope']['action_input']
         if (metadata!=dict(receipt,arguments=submitted) or receipt.get('binding')!=list(snapshot.binding_key)
                 or receipt.get('replay_sha256')!=snapshot.manifest_sha256
                 or receipt.get('seq')!=snapshot.generation or receipt.get('protocol_version')!=3
                 or receipt.get('runtime_sha256')!=packet.get('prewrite_sha256')):
             raise ValueError('Runtime writer receipt linkage drift')
+        from .work_tools import checked_path
+        intent=packet['execution']['intent']; files=packet['execution']['files']; effects=packet['execution']['effects']
+        if len(files)!=1 or len(effects)!=1: raise ValueError('Runtime intent/file count drift')
+        file=files[0]; effect=effects[0]
+        if (receipt['path']!=str(checked_path(binding,'research.md')) or intent['path']!=receipt['path']
+                or file.get('path')!=receipt['path'] or file.get('call_id')!=receipt['file_call_id']
+                or file.get('tool_name')!='ultima_work_file_write' or file.get('report_call_id')!=receipt['report_call_id']
+                or file.get('dispatch_uuid')!=receipt['dispatch_uuid'] or effect.get('dispatch_id')!=receipt['dispatch_uuid']
+                or receipt.get('generation')!=snapshot.generation
+                or any(file.get(k)!=v or effect.get(k)!=v for k,v in zip(('request_id','session_id','task_id'),snapshot.binding_key))
+                or file.get('success') is not True or effect.get('state')!='completed'
+                or effect.get('path')!=receipt['path'] or effect.get('file_call_id')!=receipt['file_call_id']
+                or effect.get('report_call_id')!=receipt['report_call_id']
+                or any(intent.get(k)!=receipt.get(k) for k in ('report_call_id','file_call_id','dispatch_uuid','adapter_uuid','seq','binding','sha256'))
+                or intent['args_hash']!=digest(canonical_v3(submitted)) or intent['binding']!=list(snapshot.binding_key)
+                or digest(file['content'].encode())!=receipt['sha256'] or intent['bytes']!=len(file['content'].encode())):
+            raise ValueError('Runtime writer intent/file receipt drift')
     return packet
 
 
+def verify_issued_research_artifacts(binding,artifacts,report_records,sources_json,*,issued_snapshot):
+    """Explicit pure-data U1 helper; establishes no SDK runtime or ACK authority."""
+    return _verify_artifact_data(binding,artifacts,report_records,sources_json,required_version=3,issued_snapshot=issued_snapshot)
+
+
 def verify_research_artifacts(binding,artifacts,report_records,sources_json,*,require_reference=False,
-                              required_version:int|None=None,issued_snapshot=None,runtime_packet=None,require_ack=False):
+                              required_version=None,issued_snapshot=None,runtime_packet=None,require_ack=False,runtime_inputs=None):
+    """Historical v2 readback or strict fresh v3 runtime/file verification."""
+    from .work_navigation import canonical_v3
+    fresh=(required_version==3 or require_ack or runtime_packet is not None
+        or any(r.get('result',{}).get('protocol_version')==3 for r in report_records))
+    if fresh:
+        if issued_snapshot is None or any(type(r.get('result',{}).get('protocol_version')) is not int
+                or r['result']['protocol_version']!=3 for r in report_records):
+            raise ValueError('Fresh protocol version 3 and snapshot required')
+        if type(runtime_packet) is not bytes or not runtime_packet:
+            raise ValueError('Nonempty immutable runtime bytes required')
+        runtime=verify_runtime_packet(binding,issued_snapshot,None,runtime_packet,require_ack=require_ack,runtime_inputs=runtime_inputs)
+        if runtime['execution']['intent'] is None: raise ValueError('Fresh runtime lacks file intent')
+        reports={r['result']['file_call_id']:r for r in report_records}
+        receipt=json.loads(json.loads(runtime['events'][-1])['data']['result'])
+        submitted=runtime['wires'][-2 if require_ack else -1]['secured_envelope']['action_input']
+        for artifact in artifacts:
+            record=reports.get(artifact['call_id'])
+            if record is None: raise ValueError('Missing runtime report adapter')
+            result=record['result']
+            if canonical_v3(json.loads(result['submitted_json']))!=canonical_v3(submitted):
+                raise ValueError('Runtime authored submission drift')
+            if (result.get('runtime_sha256')!=runtime['prewrite_sha256']
+                    or result.get('replay_sha256')!=issued_snapshot.manifest_sha256 or result.get('sha256')!=artifact['sha256']):
+                raise ValueError('Report runtime manifest linkage drift')
+            if (receipt['report_call_id']!=record['call_id'] or receipt['file_call_id']!=result['file_call_id']
+                    or receipt['dispatch_uuid']!=result['dispatch_uuid'] or receipt['adapter_uuid']!=result['adapter_uuid']
+                    or receipt['path']!=artifact['path'] or result['path']!=receipt['path'] or receipt['sha256']!=artifact['sha256']):
+                raise ValueError('Report runtime writer receipt drift')
+            if any((record['call_id'] if key=='report_call_id' else result.get(key))!=value for key,value in receipt.items()):
+                raise ValueError('Report original visible receipt field drift')
+        required_version=3
+    return _verify_artifact_data(binding,artifacts,report_records,sources_json,require_reference=require_reference,
+        required_version=required_version,issued_snapshot=issued_snapshot)
+
+
+def _verify_artifact_data(binding,artifacts,report_records,sources_json,*,require_reference=False,
+                          required_version=None,issued_snapshot=None):
     from .work_tools import checked_path
     source_map=bound_sources(sources_json,binding)
-    runtime=None
-    if runtime_packet is not None:
-        runtime=verify_runtime_packet(binding,issued_snapshot,None,runtime_packet,require_ack=require_ack)
     if not report_records: raise ValueError('No successful bound research report write')
     reports={r['result']['file_call_id']:r for r in report_records}
     cited=set()
@@ -687,16 +898,6 @@ def verify_research_artifacts(binding,artifacts,report_records,sources_json,*,re
         if not record or any(record.get(k)!=getattr(binding,k) for k in ('request_id','session_id','task_id')):
             raise ValueError('Research artifact has no current report-to-file call linkage')
         result = record['result']
-        if runtime is not None:
-            runtime_hash=runtime['prewrite_sha256'] if require_ack else hashlib.sha256(runtime_packet).hexdigest()
-            if (result.get('runtime_sha256')!=runtime_hash or result.get('replay_sha256')!=issued_snapshot.manifest_sha256
-                    or result.get('sha256')!=artifact['sha256']):
-                raise ValueError('Report runtime manifest linkage drift')
-            if require_ack:
-                receipt=json.loads(json.loads(runtime['events'][-1])['data']['result'])
-                if (receipt['report_call_id']!=record['call_id'] or receipt['file_call_id']!=result['file_call_id']
-                        or receipt['dispatch_uuid']!=result['dispatch_uuid'] or receipt['adapter_uuid']!=result['adapter_uuid']):
-                    raise ValueError('Report runtime writer identity drift')
         version=result.get('protocol_version')
         if required_version not in (None,3) or (version is not None and (type(version) is not int or version not in (2,3))):
             raise ValueError('Unsupported research protocol version')

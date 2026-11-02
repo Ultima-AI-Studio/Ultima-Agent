@@ -301,3 +301,67 @@ def test_v3_concurrent_requests_cannot_exchange_references(tmp_path,same_identit
     with ThreadPoolExecutor(max_workers=2) as pool:
         futures=[pool.submit(request,i) for i in range(2)]
         for future in futures: future.result(timeout=20)
+
+
+@pytest.mark.parametrize('after_intent',[False,True])
+def test_fix1_f1_timeout_revokes_inside_observer_lock(tmp_path,monkeypatch,after_intent):
+    import concurrent.futures
+    from openjarvis.tools import _stubs
+    state=setup(tmp_path); data=read_three(state); ledger=state[0]
+    entered=threading.Event(); release=threading.Event(); finished=threading.Event()
+    writes=[]; held=[]; actual=[]
+    file_write=wt.FileWriteTool.execute
+    def file(tool,**args):
+        if after_intent: entered.set(); assert release.wait(5)
+        writes.append(args)
+        return file_write(tool,**args)
+    monkeypatch.setattr(wt.FileWriteTool,'execute',file)
+    if not after_intent:
+        intent=ledger.write_intent
+        def delayed(*args,**kw):
+            entered.set(); assert release.wait(5)
+            return intent(*args,**kw)
+        monkeypatch.setattr(ledger,'write_intent',delayed)
+    original_submit=_stubs._TOOL_RUNNER.submit
+    def submit(function,**args):
+        future=original_submit(function,**args)
+        if function.__self__.tool_id!=WRITE: return future
+        actual.append(future)
+        future.add_done_callback(lambda _:finished.set())
+        class Expired:
+            def result(self,timeout):
+                assert entered.wait(5)
+                raise concurrent.futures.TimeoutError()
+            def cancel(self): return False
+        return Expired()
+    monkeypatch.setattr(_stubs._TOOL_RUNNER,'submit',submit)
+    seal=ledger.seal
+    def boundary(reason):
+        if 'timeout' in str(reason).lower():
+            owned=ledger._lock._is_owned(); held.append(owned); release.set()
+            if not owned: assert finished.wait(5)  # Deterministic exposure of the old lock gap.
+        return seal(reason)
+    monkeypatch.setattr(ledger,'seal',boundary)
+    try: result=invoke(state,4,WRITE,data)
+    finally: release.set()
+    actual[0].result(timeout=5)
+    assert held and all(held)
+    assert 'timeout' in ledger.first_failure.lower() and not result.success
+    assert len(writes)==int(after_intent)
+    assert (tmp_path/'research.md').exists()==after_intent
+    if after_intent:
+        assert ledger.outcome_snapshot()[1][0]['state']=='timed_out'
+        assert ledger._late_records
+
+
+def test_fix1_f1_start_serialization_failure_never_exposes_permit(tmp_path,monkeypatch):
+    from openjarvis.core.events import Event,EventType
+    state=setup(tmp_path); ledger=state[0]; seen=[]; seal=ledger.seal
+    args=dict(source_id='S1',start_line=1); ledger.expect(1,INSPECT,hashlib.sha256(j(args)).hexdigest())
+    def inspect(reason):
+        seen.append((ledger._lock._is_owned(),ledger._permit))
+        seal(reason)
+    monkeypatch.setattr(ledger,'seal',inspect)
+    ledger.observe_navigation(Event(EventType.TOOL_CALL_START,object(),dict(tool=INSPECT,agent='native_react',arguments=args)),
+        caller_id=threading.get_ident(),binding_key=state[3].binding_key)
+    assert seen==[(True,None)] and ledger._permit is None

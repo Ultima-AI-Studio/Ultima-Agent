@@ -40,6 +40,15 @@ class WorkCapabilities:
     cards_json: str | None = None
     navigation: CatalogueV3 | None = None
 
+
+@dataclass(frozen=True)
+class ResearchRuntimeInputs:
+    prompt: str
+    binding_key: tuple[str,str,str]
+    root: str
+    allowance: int
+    deadline: str
+
 class WorkLedger:
     def __init__(self):
         self._lock = threading.RLock()
@@ -67,6 +76,19 @@ class WorkLedger:
         self.issued_snapshot = None
         self._runtime_events=[]
         self._late_records=[]
+        self._timeline=[]
+
+    def _mark(self, kind, *, at=None, **fields):
+        with self._lock:
+            item=dict(order=len(self._timeline)+1,kind=kind,at=repr(monotonic() if at is None else at),deadline=repr(self.deadline),**fields)
+            self._timeline.append(item)
+            return item['order']
+
+    def _freeze_runtime_inputs(self,prompt,max_tokens):
+        with self._lock:
+            if hasattr(self,'_runtime_inputs'): raise ValueError('Runtime inputs already frozen')
+            allowance=2048 if max_tokens is None else max_tokens
+            self._runtime_inputs=ResearchRuntimeInputs(prompt,self._navigation.binding_key,str(self._binding.root),allowance,repr(self.deadline))
 
     def _live(self):
         if self._sealed:
@@ -138,17 +160,22 @@ class WorkLedger:
                 self.seal('Invalid action digest'); raise ValueError(self.first_failure)
             self._sequence=seq; self._generation+=1
             self._expected=dict(seq=seq,name=name,args_hash=args_hash,generation=self._generation,ended=False)
+            self._mark('expect',seq=seq,name=name,args_hash=args_hash)
 
     def observe_navigation(self, event, *, caller_id, binding_key):
-        # EventBus swallows subscriber exceptions; this callback must invalidate
-        # authority itself, including when malformed events arrive after a seal.
-        try:
-            with self._lock:
+        # Revocation and publication share this exact lock acquisition. The SDK
+        # cannot cancel a running worker; no exception may expose a live permit.
+        with self._lock:
+            serialized=None
+            try:
                 self._live()
                 if (threading.get_ident()!=self._caller or caller_id!=self._caller
                         or binding_key!=self._navigation.binding_key):
                     raise ValueError('Foreign navigation callback')
                 kind=event.event_type.value; data=event.data
+                self._scan_output(data)
+                serialized=json.dumps(dict(type=kind,timestamp=event.timestamp,data=copy.deepcopy(data)),
+                    sort_keys=True,ensure_ascii=False,allow_nan=False,separators=(',',':'))
                 expected=self._expected
                 if kind=='tool_timeout' and expected is not None and data.get('tool')==expected['name']:
                     if self._permit and self._permit['dispatch_uuid'] in self._report_effects:
@@ -161,28 +188,27 @@ class WorkLedger:
                     digest=hashlib.sha256(canonical_v3(data['arguments'])).hexdigest()
                     if expected['seq'] in self._seen_starts or digest!=expected['args_hash']:
                         raise ValueError('Repeated or mismatched START')
+                    self._runtime_events.append(serialized)
+                    self._mark('sdk_start',seq=expected['seq'],event_index=len(self._runtime_events)-1)
                     self._seen_starts.add(expected['seq'])
                     self._permit=dict(expected,dispatch_uuid=str(uuid.uuid4()),claimed=False)
                 elif kind=='tool_call_end':
                     self.confirm_end(expected['seq'],event)
+                    self._runtime_events.append(serialized)
+                    self._mark('sdk_end',seq=expected['seq'],event_index=len(self._runtime_events)-1)
                 else: raise ValueError('Navigation tool timeout or unexpected event')
-                self._runtime_events.append(json.dumps(dict(type=kind,timestamp=event.timestamp,data=copy.deepcopy(data)),
-                    sort_keys=True,ensure_ascii=False,allow_nan=False,separators=(',',':')))
-        except Exception as exc:
-            self.seal(str(exc))
-            # Failed and late SDK events are evidence, never issuance. Retain
-            # their exact JSON (including SDK floating timestamps) only after
-            # the captured policy accepts every string. Unsafe data stay local.
-            try:
-                with self._lock:
+            except Exception as exc:
+                self.seal(str(exc))
+                try:
                     if (threading.get_ident()==self._caller and caller_id==self._caller
                             and binding_key==self._navigation.binding_key):
-                        self._scan_output(event.data)
-                        self._runtime_events.append(json.dumps(dict(type=event.event_type.value,
-                            timestamp=event.timestamp,data=copy.deepcopy(event.data)),sort_keys=True,
-                            ensure_ascii=False,allow_nan=False,separators=(',',':')))
-            except Exception:
-                pass
+                        if serialized is None:
+                            self._scan_output(event.data)
+                            serialized=json.dumps(dict(type=event.event_type.value,timestamp=event.timestamp,
+                                data=copy.deepcopy(event.data)),sort_keys=True,ensure_ascii=False,allow_nan=False,separators=(',',':'))
+                        self._runtime_events.append(serialized)
+                except Exception:
+                    pass
 
     def claim(self, seq, name, args_hash, adapter_id, *, instance):
         with self._lock:
@@ -193,6 +219,7 @@ class WorkLedger:
                     or str(uuid.UUID(adapter_id))!=adapter_id):
                 self.seal('Invalid worker claim'); raise ValueError(self.first_failure)
             permit.update(claimed=True,adapter_uuid=adapter_id)
+            self._mark('claim',seq=seq,dispatch_uuid=permit['dispatch_uuid'],adapter_uuid=adapter_id)
             return permit['dispatch_uuid']
 
     def _claim_tool(self, name, args, instance):
@@ -253,6 +280,7 @@ class WorkLedger:
                 self.seal('Unconfirmed projection'); raise ValueError(self.first_failure)
             staged['promoted']=True
             self._issued.append((staged['key'],staged['view']))
+            self._mark('promote',seq=staged['key'].seq,wire_hash=wire_hash)
 
     def freeze_for_write(self, generation):
         from .work_navigation import seal_snapshot
@@ -262,10 +290,11 @@ class WorkLedger:
                 raise ValueError('Invalid write snapshot generation')
             self.issued_snapshot=seal_snapshot(self._navigation,self._collection,self._get_records_json,
                 self._policy,tuple(self._issued),generation=generation)
+            self._mark('freeze',seq=self._sequence)
             if hasattr(self,'_runtime_wires'):
                 from .work_research import verify_runtime_packet
                 self._runtime_prewrite=self._runtime_packet()
-                verify_runtime_packet(self._binding,self.issued_snapshot,self._collection,self._runtime_prewrite)
+                verify_runtime_packet(self._binding,self.issued_snapshot,self._collection,self._runtime_prewrite,runtime_inputs=self._runtime_inputs)
             return self.issued_snapshot
 
     def _runtime_packet(self):
@@ -277,6 +306,11 @@ class WorkLedger:
                 views_sha256=hashlib.sha256(self.issued_snapshot.views_json).hexdigest(),
                 prompt=self._runtime_prompt,system_original=self._runtime_system,
                 prewrite_sha256=hashlib.sha256(self._runtime_prewrite).hexdigest() if hasattr(self,'_runtime_prewrite') else None,
+                prewrite_packet=self._runtime_prewrite.decode() if hasattr(self,'_runtime_prewrite') else None,
+                clock_domain='work_tools.monotonic;ledger-sequence-v1',timeline=copy.deepcopy(self._timeline),
+                execution=dict(intent=copy.deepcopy(getattr(self,'_intent_record',None)),
+                    files=copy.deepcopy([r for r in self._records if r.get('tool_name')=='ultima_work_file_write']),
+                    effects=copy.deepcopy(list(self._report_effects.values()))),
                 transport=dict(generations=transport.generations,gets=transport.gets,posts=transport.posts,completed=transport.completed,
                     post_bytes=transport.post_bytes,admitted=dict(transport.admitted),receipts=copy.deepcopy(transport.receipts)),
                 wires=copy.deepcopy(self._runtime_wires),events=list(self._runtime_events)))
@@ -330,6 +364,8 @@ class WorkLedger:
                 item=dict(item,late=True)
                 self._late_records.append(copy.deepcopy(item))
             self._records.append(dict(item))
+            if self._navigation is not None and item.get('tool_name')=='ultima_work_file_write':
+                self._mark('file_end',file_call_id=item['call_id'])
 
     def snapshot(self):
         with self._lock:
@@ -357,7 +393,7 @@ class WorkLedger:
                     return effect['dispatch_id']
         return None
 
-    def write_intent(self, binding, path, report_id, file_id, dispatch):
+    def write_intent(self, binding, path, report_id, file_id, dispatch, *, content=None):
         with self._lock:
             if self._navigation is not None:
                 self._live()
@@ -373,10 +409,17 @@ class WorkLedger:
             if self._reserved_report != report_id or self._intent:
                 raise ValueError('Invalid or consumed report reservation')
             self._intent = True
+            if self._navigation is not None:
+                self._intent_record=dict(path=str(path),report_call_id=report_id,file_call_id=file_id,
+                    dispatch_uuid=dispatch,adapter_uuid=self._permit['adapter_uuid'],seq=self._permit['seq'],
+                    binding=list(self._navigation.binding_key),args_hash=self._permit['args_hash'],
+                    sha256=hashlib.sha256(content.encode('utf8')).hexdigest(),bytes=len(content.encode('utf8')))
+                self._mark('intent',seq=self._permit['seq'],file_call_id=file_id)
             # Direct bound tool invocation has no SDK outer START.
             effect = self._report_effects.setdefault(dispatch or report_id, dict(
                 request_id=binding.request_id, session_id=binding.session_id, task_id=binding.task_id))
             effect.update(path=str(path), report_call_id=report_id, file_call_id=file_id)
+            if self._navigation is not None: effect['dispatch_id']=dispatch
             if effect.get('state') != 'timed_out':
                 effect['state'] = 'write_attempted'
 
@@ -461,9 +504,10 @@ class _WorkFileTool(BaseTool):
             args = dict(params, path=str(path))
             if self.writing and getattr(self, '_report_parent', None):
                 report_id, dispatch = self._report_parent
-                self._ledger.write_intent(self._binding,path,report_id,call_id,dispatch)
+                self._ledger.write_intent(self._binding,path,report_id,call_id,dispatch,content=params.get('content'))
                 record.update(path=str(path),request_id=self._binding.request_id,
-                              session_id=self._binding.session_id,task_id=self._binding.task_id)
+                              session_id=self._binding.session_id,task_id=self._binding.task_id,
+                              report_call_id=report_id,dispatch_uuid=dispatch)
             result = sdk.execute(**args)
             record.update(path=str(path), content=params.get('content'), success=bool(result.success), result=result.content,
                           request_id=self._binding.request_id, session_id=self._binding.session_id, task_id=self._binding.task_id)
