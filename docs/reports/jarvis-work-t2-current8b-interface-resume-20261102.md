@@ -106,3 +106,14 @@ r3 的上下文估算与受控回放两项 Important 已修订。r4 精确方案
 新设计b1290ae6经独立复审SPEC/QUALITY PASS（verdict253bf87c）。r1三个Important已关闭：起草改为同一个真实NativeReAct循环的request-bound暂存工具；额外可选/不可用来源保留处置记录，不自动否决充分来源；各阶段按含metadata及确认的绝对截止时刻验收。一次性stage_token阻止旧worker把局部引用绑定到下一来源，封存后仍只经一次SDK文件工具交付和独立读回。
 
 本轮没有新模型推理或产品代码。拟议下一步先做S2一次只读SDK前缀（最多1POST、0文件），事实/引文与时间均须独立PASS；之后才可另行放行其余S1/S3/S4各一次，不重测S2、不挑样本；有至少三份相关来源及必要题目覆盖后再讨论源码10接入。该组至多4POST，全部尚未执行；单源或独立前缀通过不等于整体260秒预算、文件交付或E02通过。旧源码9及所有失败封存，T2保持BLOCKED，原单未完成。
+
+
+## S2首次前缀因运行环境失败，原组停止
+
+用户要求以项目目标继续后，只读SDK前缀验证程序完成24项离线测试并通过独立SPEC/QUALITY复审（97585bb9）。首次S2实际发出1次POST、2次试验metadata GET，SDK启动另记1次GET；Ollama在分配4455.34MiB权重CUDA缓冲区时返回HTTP500。17.67秒结束，未生成答案、未确认stage、未写研究文件，SDK owner已关闭。独立复核597467ca原始包与日志一致：前缀FAIL，事实/覆盖NOT_ASSESSED，原组停止、S2不重做，不能据此评价新的单来源设计是否提高模型事实能力。
+
+日志中的GPU容量预测仍有余量，主机内存压力是有证据的原因假说，尚不能认定唯一根因。用户确认可结束的遗留豆包PowerShell在身份核验前已退出，root的Stop-Process调用为0；随后可用RAM约16GB，保护的主脑、唤醒及语音工作进程身份保持。内存恢复不等于模型冷加载已验证。
+
+为继续回答项目可行性问题，目前仅准备一个新预注册问题：在恢复的运行条件下，尚未尝试的S3代码是否能经同样SDK、输入、模型及36秒绝对slice产出可靠本地机制说明。拟固定S3→S1→S4、逐份事实独审、各一次，含失败S2的累计总上限仍为4POST；无S2补样本、无模型预热调用，任一失败即停。此新提案和启动程序尚待独审及controller单独签发，不放行源码10，不补证S2的manager/provider选择，不将原组、总体覆盖或E02改判通过。历史源码9/293项代码检查及全部真实失败保留，原单未完成；模型默认、KWS、生产服务、T3—T5不变。
+
+原始运行：data/evidence/jarvis-work-capability/T2/per-source-feasibility-20261102/S2-first/first-f53a803-r2/；独立复核：data/evidence/jarvis-work-capability/T2/review-per-source-S2-first-infra/；资源及controller记录：data/evidence/jarvis-work-capability/T2/per-source-feasibility-20261102/。
