@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="2" skipped="0" tests="3" time="4.974" timestamp="2026-11-03T03:25:31.417221+08:00" hostname="DESKTOP-B366PQ9"><testcase classname="src.brain.tests.test_work_navigation_transport" name="test_service_deadline_after_final_readback[before]" time="1.399" /><testcase classname="src.brain.tests.test_work_navigation_transport" name="test_service_deadline_after_final_readback[at]" time="0.859"><failure message="AssertionError: assert 'succeeded' == 'needs_attention'&#10;  &#10;  - needs_attention&#10;  + succeeded">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/candidate-fixwave1-c1-red/temp/test_service_deadline_after_fi1')
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x00000211368C4E10&gt;, [('search', 'Research a subject'), ('get', '...'https://example.com/source/3'), ('get', 'https://example.com/source/4'), ('get', 'https://example.com/source/5')], {})
+mock_jar = (&lt;openjarvis.sdk.Jarvis object at 0x00000211A0CFA850&gt;, &lt;function _run_work_agent at 0x00000211A0BC34C0&gt;, [{'format': {..., ...], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [])
+source9_clock = {'now': 260, 'metadata': 0, 'author': 0, 'ack': 0, ...}
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x00000211368C0180&gt;
+boundary = 'at'
+
+    @pytest.mark.parametrize('boundary',['before','at','after'])
+    def test_service_deadline_after_final_readback(tmp_path,sdk_io,mock_jar,source9_clock,monkeypatch,boundary):
+        import hashlib, math
+        from pathlib import Path
+        from src.brain import work_research, work_service
+        from src.brain.tests.test_work_research import RESTRICTED
+    
+        clock=source9_clock
+        monkeypatch.setattr(work_service,'monotonic',lambda:clock['now'])
+        verify=work_research.verify_research_artifacts
+        sample={}
+        def readback(binding,artifacts,reports,*args,**kwargs):
+            sources=verify(binding,artifacts,reports,*args,**kwargs)
+            if kwargs.get('require_ack'):
+                ledger=RESTRICTED[binding.task_id]
+                artifact,=artifacts
+                report,=reports
+                effect,=ledger.outcome_snapshot()[1]
+                intent=ledger._intent_record
+                assert effect['state']=='completed'
+                assert artifact['call_id']==effect['file_call_id']==intent['file_call_id']
+                assert report['call_id']==effect['report_call_id']==intent['report_call_id']
+                assert report['result']['adapter_uuid']==intent['adapter_uuid']
+                assert report['result']['dispatch_uuid']==intent['dispatch_uuid']==effect['dispatch_id']
+                assert effect['path']==artifact['path']==str(binding.root/'research.md')
+                assert ledger.deadline==260 and clock['now']==0
+                sample.update(before=clock['now'],deadline=ledger.deadline,artifact=artifact.copy(),
+                    effect=effect,intent=intent.copy(),sends=len(clock['requests']))
+                clock['now']={'before':math.nextafter(260,-math.inf),'at':260,'after':math.nextafter(260,math.inf)}[boundary]
+            return sources
+        monkeypatch.setattr(work_research,'verify_research_artifacts',readback)
+        mock_jar[3].extend([navigation_reply]*5)
+        result=submit(tmp_path,sdk_io[0],mock_jar[1])
+        assert len(clock['requests'])==sample['sends']==15 and len(mock_jar[2])==5
+        assert result['research_effects']==[sample['effect']] and result['artifacts']==[sample['artifact']]
+        path,=tmp_path.rglob('research.md')
+        assert path==Path(sample['artifact']['path'])
+        assert hashlib.sha256(path.read_bytes()).hexdigest()==sample['artifact']['sha256']==sample['intent']['sha256']
+        (tmp_path/'service-deadline.json').write_text(json.dumps(dict(sample,after=clock['now'],
+            boundary=boundary,status=result['status'],error=result['error'])),encoding='utf8')
+&gt;       assert result['status']==('succeeded' if boundary=='before' else 'needs_attention')
+E       AssertionError: assert 'succeeded' == 'needs_attention'
+E         
+E         - needs_attention
+E         + succeeded
+
+src\brain\tests\test_work_navigation_transport.py:445: AssertionError</failure></testcase><testcase classname="src.brain.tests.test_work_navigation_transport" name="test_service_deadline_after_final_readback[after]" time="0.816"><failure message="AssertionError: assert 'succeeded' == 'needs_attention'&#10;  &#10;  - needs_attention&#10;  + succeeded">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/candidate-fixwave1-c1-red/temp/test_service_deadline_after_fi2')
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x00000211A127CE10&gt;, [('search', 'Research a subject'), ('get', '...'https://example.com/source/3'), ('get', 'https://example.com/source/4'), ('get', 'https://example.com/source/5')], {})
+mock_jar = (&lt;openjarvis.sdk.Jarvis object at 0x00000211A147D0F0&gt;, &lt;function _run_work_agent at 0x00000211A0BC34C0&gt;, [{'format': {..., ...], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [])
+source9_clock = {'now': 260.00000000000006, 'metadata': 0, 'author': 0, 'ack': 0, ...}
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x00000211A0D3B9B0&gt;
+boundary = 'after'
+
+    @pytest.mark.parametrize('boundary',['before','at','after'])
+    def test_service_deadline_after_final_readback(tmp_path,sdk_io,mock_jar,source9_clock,monkeypatch,boundary):
+        import hashlib, math
+        from pathlib import Path
+        from src.brain import work_research, work_service
+        from src.brain.tests.test_work_research import RESTRICTED
+    
+        clock=source9_clock
+        monkeypatch.setattr(work_service,'monotonic',lambda:clock['now'])
+        verify=work_research.verify_research_artifacts
+        sample={}
+        def readback(binding,artifacts,reports,*args,**kwargs):
+            sources=verify(binding,artifacts,reports,*args,**kwargs)
+            if kwargs.get('require_ack'):
+                ledger=RESTRICTED[binding.task_id]
+                artifact,=artifacts
+                report,=reports
+                effect,=ledger.outcome_snapshot()[1]
+                intent=ledger._intent_record
+                assert effect['state']=='completed'
+                assert artifact['call_id']==effect['file_call_id']==intent['file_call_id']
+                assert report['call_id']==effect['report_call_id']==intent['report_call_id']
+                assert report['result']['adapter_uuid']==intent['adapter_uuid']
+                assert report['result']['dispatch_uuid']==intent['dispatch_uuid']==effect['dispatch_id']
+                assert effect['path']==artifact['path']==str(binding.root/'research.md')
+                assert ledger.deadline==260 and clock['now']==0
+                sample.update(before=clock['now'],deadline=ledger.deadline,artifact=artifact.copy(),
+                    effect=effect,intent=intent.copy(),sends=len(clock['requests']))
+                clock['now']={'before':math.nextafter(260,-math.inf),'at':260,'after':math.nextafter(260,math.inf)}[boundary]
+            return sources
+        monkeypatch.setattr(work_research,'verify_research_artifacts',readback)
+        mock_jar[3].extend([navigation_reply]*5)
+        result=submit(tmp_path,sdk_io[0],mock_jar[1])
+        assert len(clock['requests'])==sample['sends']==15 and len(mock_jar[2])==5
+        assert result['research_effects']==[sample['effect']] and result['artifacts']==[sample['artifact']]
+        path,=tmp_path.rglob('research.md')
+        assert path==Path(sample['artifact']['path'])
+        assert hashlib.sha256(path.read_bytes()).hexdigest()==sample['artifact']['sha256']==sample['intent']['sha256']
+        (tmp_path/'service-deadline.json').write_text(json.dumps(dict(sample,after=clock['now'],
+            boundary=boundary,status=result['status'],error=result['error'])),encoding='utf8')
+&gt;       assert result['status']==('succeeded' if boundary=='before' else 'needs_attention')
+E       AssertionError: assert 'succeeded' == 'needs_attention'
+E         
+E         - needs_attention
+E         + succeeded
+
+src\brain\tests\test_work_navigation_transport.py:445: AssertionError</failure></testcase></testsuite></testsuites>

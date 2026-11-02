@@ -1,6 +1,6 @@
 # T2 E02 当前 8B 研究接口复核
 
-当前阶段：**source10代码单元独审通过，但整体候选独审FAIL，C1收尾截止时间与C2页面确认顺序两项Important进入一次集中修复；Task4和E02/T2真实验收未放行。** 原工单 `wo-ultimaagent-20261101-0021` 继续执行。
+当前阶段：**source10整体代码候选118ba152已独审通过（479项完整测试+8项兼容），Task4验收适配器代码与单元测试正在准备；惰性资格、原语料运行测量及真实8B尚未放行，E02/T2未通过。** 原工单 `wo-ultimaagent-20261101-0021` 继续执行。
 
 源9候选 `244d2120` 上的 E01 文件摘要三轮、E03 选区改写三轮及焦点/选区负例已独立通过，结论见[验收汇总](jarvis-work-t2-e01-e03-acceptance-20261102.md)。源10新候选仍需重新完成同候选回归；当前继续解决 E02 研究任务，不越过 T2 推进 T3。
 
@@ -60,3 +60,9 @@ FIX2独立复核最终SPEC PASS、QUALITY PASS：F3/F4/N1均ADDRESSED，无新�
 
 
 整体候选独审结论SPEC FAIL、QUALITY FAIL、CODE CANDIDATE NOT READY（candidate-review-1/verdict.json e157cd0f，报告acebd119）。两项Important分别为C1：ACK及时完成后，服务最终重放/重开文件可能超原260秒仍报succeeded；C2：纯空白final_answer在被拒绝前先确认pending页面，尤其第三页会污染已发放记录。审查基于实际控制流，未冒称新增现场复现；475+8历史检查记录及原代码单元PASS保持，不能代替这两个未覆盖分支。已按最终审查流程交一位新实现者一次修复整组问题，随后仅由同一整体审查人做一次范围限定复核；不进入新一轮无界修复或更换模型。
+
+
+一次集中修复提交 `118ba152b007c30d358c8bc44c51aabe8ae820f0` 仅改服务、研究视图及对应transport测试三处。C1的3个真正SDK/文件控制流用例中，首次RED在at/after错误succeeded、before正确；修复后在259.99999999999994成功、260及260.00000000000006需要人工关注，原文件、completed effect、ID与15次请求保持。C2的首次RED明确promoted=[1,2,3]多于预期[1,2]，修复后空白final在secured/页面发放前拒绝。当前479/0/0/0与兼容8/0/0/0、31原始输入/30Git跟踪+1单独绑定原有未跟踪测试、SDK22、4新报告、6组fractional/90prepared请求均已控制器读回；root-candidate-fixwave1-before-review.json（5a5cc44b）、新报告10b079f5。原整体审查人仅复核C1/C2与此修复新增问题，不进行第二次整体重审或另起无界修复波。真实模型调用0，Task4/惰性/实际/T3/生产门仍保持。
+
+
+整体审查的一次限定复核已确认C1/C2 ADDRESSED、SPEC PASS、QUALITY PASS，无新问题，代码候选与Task4适配器准备ready（candidate-review-2/verdict.json 1ca4f4ab，报告74f34a7f）。控制器完整读回并签发仅准备许可harness-preparation-authority.json（0e8c2e27）及独立source10-candidate-manifest.json（cdfbfb05）：固定118ba152、31源输入/30跟踪+1原有单独绑定测试、SDK22、原P4/P1/helper及原四源语料，永久当前8B策略。只允许新建6个harness文件、隔离单元测试和回执；允许读入固定P4无副作用定义，不允许惰性启动/真实CLI或server/原语料运行profile/模型或联网调用。原P4归属与清理原语复用，旧corpus_hook的response.read完整读入钩子须分离，保持新流式限制。

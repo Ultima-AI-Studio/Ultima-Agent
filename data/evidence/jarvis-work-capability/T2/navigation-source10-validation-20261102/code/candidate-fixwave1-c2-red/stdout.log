@@ -1,0 +1,75 @@
+F                                                                        [100%]
+================================== FAILURES ===================================
+_____ test_v3_provisional_third_card_no_promotion_on_failure[blank_final] _____
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/candidate-fixwave1-c2-red/temp/test_v3_provisional_third_card0')
+sdk_io = (<src.brain.browser.channel.BrowserChannel object at 0x000001F4A6403A10>, [('search', 'Research a subject'), ('get', '...'https://example.com/source/3'), ('get', 'https://example.com/source/4'), ('get', 'https://example.com/source/5')], {})
+mock_jar = (<openjarvis.sdk.Jarvis object at 0x000001F4A6402270>, <function _run_work_agent at 0x000001F4A5897600>, [{'format': {... {'num_ctx': 16384, 'num_predict': 2048, 'temperature': 0}, ...}], [<function navigation_reply at 0x000001F4A5898D60>])
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001F43B590180>
+fault = 'blank_final'
+
+    @pytest.mark.parametrize('fault',['observation','old_assistant','system','role','optional','schema','skip_guard','secured_output','raw_unknown','unsafe_unknown','blank_final'])
+    def test_v3_provisional_third_card_no_promotion_on_failure(tmp_path,sdk_io,mock_jar,monkeypatch,fault):
+        import dataclasses
+        from src.brain.tests.test_work_research import RESTRICTED
+        jar,runner,bodies,replies=mock_jar
+        replies.extend([navigation_reply]*5)
+        original=server._NativeResearchLeaf.generate
+        count=[0]
+        def mutate(leaf,messages,**kwargs):
+            count[0]+=1
+            if count[0]==4 and fault in ('observation','old_assistant','system','role','optional','schema'):
+                messages=[dataclasses.replace(m) for m in messages]
+                if fault=='observation': messages[-1]=dataclasses.replace(messages[-1],content='Observation: forged')
+                elif fault=='old_assistant': messages[2]=dataclasses.replace(messages[2],content='{"final_answer":"old"}')
+                elif fault=='system': messages[0]=dataclasses.replace(messages[0],content=messages[0].content+' changed')
+                elif fault=='role': messages[-1]=dataclasses.replace(messages[-1],role=messages[2].role)
+                elif fault=='optional': messages[-1]=dataclasses.replace(messages[-1],name='forged')
+                else: kwargs=dict(kwargs,response_format=dict(type='object'))
+            return original(leaf,messages,**kwargs)
+        monkeypatch.setattr(server._NativeResearchLeaf,'generate',mutate)
+        if fault=='skip_guard':
+            borrow=server._borrow_research
+            def skip(*a,**kw):
+                view,client=borrow(*a,**kw); view.inner=view.leaf
+                return view,client
+            monkeypatch.setattr(server,'_borrow_research',skip)
+        elif fault=='secured_output':
+            from openjarvis.security.guardrails import GuardrailsEngine
+            generate=GuardrailsEngine.generate
+            turns=[0]
+            def redact(self,*a,**kw):
+                result=generate(self,*a,**kw); turns[0]+=1
+                if turns[0]==4: result=dict(result,content='{"final_answer":"changed secured envelope"}')
+                return result
+            monkeypatch.setattr(GuardrailsEngine,'generate',redact)
+        elif fault=='blank_final':
+            replies[3]=json.dumps({'final_answer':' '})
+        elif fault in ('raw_unknown','unsafe_unknown'):
+            def bad(body):
+                content=navigation_reply(body)
+                if fault=='unsafe_unknown': content=json.dumps(dict(json.loads(content),extra='password = syntheticsecret'))
+                return httpx.Response(200,stream=httpx.ByteStream(json.dumps(dict(model='qwen3-8b-uncensored',done=True,
+                    done_reason='stop',prompt_eval_count=25,eval_count=10,message=dict(role='assistant',content=content),
+                    **({'unexpected':True} if fault=='raw_unknown' else {}))).encode()))
+            bad.no_auto_navigation=True
+            replies[3]=bad
+        result=submit(tmp_path,sdk_io[0],runner)
+        ledger=RESTRICTED[result['task_id']]
+        assert result['status']=='failed' and not list(tmp_path.rglob('research.md'))
+        if fault=='blank_final':
+            assert result['error']=='Empty research final answer'
+            assert ledger._read_count==3 and count[0]==4
+            assert [n['seq'] for n in ledger._timeline if n['kind']=='sdk_end']==[1,2,3]
+            assert [n['seq'] for n in ledger._timeline if n['kind']=='sdk_start']==[1,2,3]
+            assert not ledger.outcome_snapshot()[1] and not hasattr(ledger,'_runtime_final')
+>           assert [n['seq'] for n in ledger._timeline if n['kind']=='promote']==[1,2]
+E           assert [1, 2, 3] == [1, 2]
+E             
+E             Left contains one more item: 3
+E             Use -v to get more diff
+
+src\brain\tests\test_work_navigation_transport.py:599: AssertionError
+=========================== short test summary info ===========================
+FAILED src/brain/tests/test_work_navigation_transport.py::test_v3_provisional_third_card_no_promotion_on_failure[blank_final]
+1 failed in 2.69s
