@@ -25,6 +25,7 @@ def snapshot():
     files[str(V/'harness-deadline-design/root-decision.json')]='144be9bc0a63294f5fd4e75c7cbe06f8e2ad2d51df36d0b11896d2455a0b4d47'
     report=Path(m['candidate_root'])/'.superpowers/sdd/jarvis-work-capability-delivery-plan-20261101/task-4-navigation-adapter-report.md'
     report_bytes=report.read_bytes()
+    if hashlib.sha256(report_bytes[:94969]).hexdigest()!='51cd77d1d09527bc26462724e2ee07191e3378e895c23a49ccc3d96ab4f09269': raise ValueError('Fix3 author prefix drift')
     if hashlib.sha256(report_bytes[:69552]).hexdigest()!='6f9926ac5819579c80367fa2c510fe0f9654839e3a6b185d9e66219bc1a56168': raise ValueError('Fix2 author prefix drift')
     if hashlib.sha256(report_bytes[:13665]).hexdigest()!='47246ba87216f07d696a7bb2b1bb38d525fa7c99eb83a72e694552090dc3c2c1' or hashlib.sha256(report_bytes[:30837]).hexdigest()!='b61101512a5e49ccb65d015de835ea1ecd87abc49c199702a2d91255fb52ecab' or hashlib.sha256(report_bytes[:52443]).hexdigest()!='594584b5ad328070a41d3b9f6a5f29f4f74a0ba8bbd08115932adf968011452b': raise ValueError('Original author report prefix drift')
     actual = {p: digest(p) for p in files}

@@ -1,0 +1,51 @@
+F                                                                        [100%]
+================================== FAILURES ===================================
+___________ test_fix4_f1_producer_types_before_publication[latency] ___________
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/harness-preparation-20261102T221319931406Z/temp/test_fix4_f1_producer_types_be0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000024DB8A5D220>
+sdk_io = (<src.brain.browser.channel.BrowserChannel object at 0x0000024E232AB0E0>, [('search', 'Research a subject'), ('get', '...'https://example.com/source/2'), ('get', 'https://example.com/source/3'), ('get', 'https://example.com/source/4')], {})
+mock_jar = (<openjarvis.sdk.Jarvis object at 0x0000024E232A9BE0>, <function _run_work_agent at 0x0000024E230A9DA0>, [{'format': {..., ...], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [])
+variant = 'latency'
+
+    @pytest.mark.parametrize('variant',['digits','nested-digits','integer','bool','null','list','peer','latency','tag-family'])
+    def test_fix4_f1_producer_types_before_publication(tmp_path,monkeypatch,sdk_io,mock_jar,variant):
+        import hashlib
+        from src.brain.work_navigation import canonical_v3
+        from src.brain.work_research import verify_runtime_packet
+        from src.brain.tests.test_work_navigation_transport import escaped_scanner_fixture
+        result,ledger=synthetic_bundle(tmp_path,sdk_io,mock_jar,monkeypatch,write=False)
+        sentinel=escaped_scanner_fixture()
+        assert str(int(sentinel))==sentinel and any(not s.scan(sentinel).clean for s in ledger._policy.scanners)
+        packet=json.loads(ledger._runtime_final)
+        file=packet['execution']['files'][0]
+        assert type(file['result']) is str
+        if variant=='peer':
+            packet['transport']['receipts'][-1]['peer_bytes']=int(sentinel)
+        elif variant=='latency':
+            event=json.loads(packet['events'][-1]); event['data']['latency']={'unissued':int(sentinel)}
+            packet['events'][-1]=json.dumps(event,sort_keys=True,ensure_ascii=False,separators=(',',':'),allow_nan=False)
+        elif variant=='tag-family':
+            identity=packet['wires'][-1]['identity']
+            tags=json.loads(identity['tags_response']); tags['models'][0]['details']['family']=int(sentinel)
+            body=canonical_v3(tags); identity['tags_response']=body.decode()
+            receipt=packet['transport']['receipts'][-2]
+            delta=len(body)-receipt['admitted']
+            for key in ('downloaded','inspected','retained','admitted'): receipt[key]+=delta
+            packet['transport']['admitted']['metadata']+=delta
+            receipt['response_sha256']=hashlib.sha256(body).hexdigest()
+        else:
+            file['result']={'digits':int(sentinel),'nested-digits':{'unissued':int(sentinel)},
+                            'integer':7,'bool':True,'null':None,'list':[]}[variant]
+        raw=canonical_v3(packet)
+        verify_runtime_packet(ledger._binding,ledger.issued_snapshot,ledger._collection,raw,require_ack=True,runtime_inputs=ledger._runtime_inputs)
+        ledger._runtime_final=raw; published=[]
+        monkeypatch.setattr(a,'preserve_completed_members',lambda *args:published.append(True))
+>       with pytest.raises(ValueError,match='Producer'): a.export_completed(tmp_path,ledger,result)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+..\..\harness\test_adapter.py:1120: Failed
+=========================== short test summary info ===========================
+FAILED ..\..\harness\test_adapter.py::test_fix4_f1_producer_types_before_publication[latency]
+1 failed, 172 deselected in 3.46s

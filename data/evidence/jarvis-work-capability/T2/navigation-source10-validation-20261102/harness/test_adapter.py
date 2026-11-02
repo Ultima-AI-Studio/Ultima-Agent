@@ -1083,3 +1083,67 @@ def test_fix3_f2_inert_no_descendants_includes_empty_directories(tmp_path,effect
     if effect=='empty-task': (root/'unexpected-task').mkdir()
     elif effect=='file': (root/'unexpected.md').write_bytes(b'effect')
     assert a.no_output_descendants(root,b)==(effect in ('absent','empty-root'))
+
+@pytest.mark.parametrize('variant',['digits','nested-digits','integer','bool','null','list','peer','latency','tag-family'])
+def test_fix4_f1_producer_types_before_publication(tmp_path,monkeypatch,sdk_io,mock_jar,variant):
+    import hashlib
+    from src.brain.work_navigation import canonical_v3
+    from src.brain.work_research import verify_runtime_packet
+    from src.brain.tests.test_work_navigation_transport import escaped_scanner_fixture
+    result,ledger=synthetic_bundle(tmp_path,sdk_io,mock_jar,monkeypatch,write=False)
+    sentinel=escaped_scanner_fixture()
+    assert str(int(sentinel))==sentinel and any(not s.scan(sentinel).clean for s in ledger._policy.scanners)
+    packet=json.loads(ledger._runtime_final)
+    file=packet['execution']['files'][0]
+    assert type(file['result']) is str
+    if variant=='peer':
+        packet['transport']['receipts'][-1]['peer_bytes']=int(sentinel)
+    elif variant=='latency':
+        event=json.loads(packet['events'][-1]); event['data']['latency']={'unissued':int(sentinel)}
+        packet['events'][-1]=json.dumps(event,sort_keys=True,ensure_ascii=False,separators=(',',':'),allow_nan=False)
+    elif variant=='tag-family':
+        identity=packet['wires'][-1]['identity']
+        tags=json.loads(identity['tags_response']); tags['models'][0]['details']['family']=int(sentinel)
+        body=canonical_v3(tags); identity['tags_response']=body.decode()
+        receipt=packet['transport']['receipts'][-2]
+        delta=len(body)-receipt['admitted']
+        for key in ('downloaded','inspected','retained','admitted'): receipt[key]+=delta
+        packet['transport']['admitted']['metadata']+=delta
+        receipt['response_sha256']=hashlib.sha256(body).hexdigest()
+    else:
+        file['result']={'digits':int(sentinel),'nested-digits':{'unissued':int(sentinel)},
+                        'integer':7,'bool':True,'null':None,'list':[]}[variant]
+    raw=canonical_v3(packet)
+    verify_runtime_packet(ledger._binding,ledger.issued_snapshot,ledger._collection,raw,require_ack=True,runtime_inputs=ledger._runtime_inputs)
+    ledger._runtime_final=raw; published=[]
+    monkeypatch.setattr(a,'preserve_completed_members',lambda *args:published.append(True))
+    with pytest.raises(ValueError,match='Producer'): a.export_completed(tmp_path,ledger,result)
+    assert not published and not list(tmp_path.glob('trusted-*.raw'))
+
+@pytest.mark.parametrize('nested',[False,True])
+def test_fix4_f1_archived_reviewer_packet(tmp_path,monkeypatch,nested):
+    from src.brain.work_tools import WorkBinding,ResearchRuntimeInputs
+    from src.brain.work_navigation import IssuedSnapshotV3,canonical_v3
+    from src.brain.work_research import ResearchCollection,verify_runtime_packet
+    from src.brain.tests.test_work_navigation_transport import escaped_scanner_fixture
+    from openjarvis.security.scanner import SecretScanner,PIIScanner
+    archive=a.V/'code/harness-preparation-20261102T215807022506Z/temp/test_fix1_genuine_synthetic_ex0'
+    exported=a.load(archive/'trusted-export.json'); blobs=a.read_completed(archive,exported)
+    snapshot=exported['issued_snapshot']; snapshot['binding_key']=tuple(snapshot['binding_key'])
+    snapshot=IssuedSnapshotV3(**snapshot,views_json=blobs['views'],replay_json=blobs['replay'])
+    inputs=a.load(archive/'runtime-inputs.json'); inputs['binding_key']=tuple(inputs['binding_key'])
+    binding=WorkBinding(Path(inputs['root']),*inputs['binding_key'])
+    ledger=types.SimpleNamespace(_binding=binding,issued_snapshot=snapshot,_runtime_inputs=ResearchRuntimeInputs(**inputs),
+        _collection=ResearchCollection(**a.strict_json(blobs['collection'])),_policy=types.SimpleNamespace(scanners=(SecretScanner(),PIIScanner())))
+    published=[]
+    monkeypatch.setattr(a,'preserve_completed_members',lambda *args:published.append(True))
+    ledger._runtime_final=blobs['runtime']
+    a.export_completed(tmp_path,ledger,{})
+    assert published==[True]
+    published.clear()
+    packet=a.strict_json(blobs['runtime']); value=int(escaped_scanner_fixture())
+    packet['execution']['files'][0]['result']={'unissued':value} if nested else value
+    ledger._runtime_final=canonical_v3(packet)
+    verify_runtime_packet(binding,snapshot,ledger._collection,ledger._runtime_final,require_ack=True,runtime_inputs=ledger._runtime_inputs)
+    with pytest.raises(ValueError,match='Producer'): a.export_completed(tmp_path,ledger,{})
+    assert not published and not list(tmp_path.glob('trusted-*.raw'))

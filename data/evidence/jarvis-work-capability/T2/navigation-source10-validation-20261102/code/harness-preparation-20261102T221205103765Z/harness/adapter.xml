@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="2" skipped="0" tests="2" time="2.592" timestamp="2026-11-03T06:12:05.436098+08:00" hostname="DESKTOP-B366PQ9"><testcase classname="harness.test_adapter" name="test_fix4_f1_archived_reviewer_packet[False]" time="0.256"><failure message="Failed: DID NOT RAISE ValueError">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/harness-preparation-20261102T221205103765Z/temp/test_fix4_f1_archived_reviewer0')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000001AC0EAAD220&gt;
+nested = False
+
+    @pytest.mark.parametrize('nested',[False,True])
+    def test_fix4_f1_archived_reviewer_packet(tmp_path,monkeypatch,nested):
+        from src.brain.work_tools import WorkBinding,ResearchRuntimeInputs
+        from src.brain.work_navigation import IssuedSnapshotV3,canonical_v3
+        from src.brain.work_research import ResearchCollection,verify_runtime_packet
+        from src.brain.tests.test_work_navigation_transport import escaped_scanner_fixture
+        from openjarvis.security.scanner import SecretScanner,PIIScanner
+        archive=a.V/'code/harness-preparation-20261102T215807022506Z/temp/test_fix1_genuine_synthetic_ex0'
+        exported=a.load(archive/'trusted-export.json'); blobs=a.read_completed(archive,exported)
+        snapshot=exported['issued_snapshot']; snapshot['binding_key']=tuple(snapshot['binding_key'])
+        snapshot=IssuedSnapshotV3(**snapshot,views_json=blobs['views'],replay_json=blobs['replay'])
+        inputs=a.load(archive/'runtime-inputs.json'); inputs['binding_key']=tuple(inputs['binding_key'])
+        binding=WorkBinding(Path(inputs['root']),*inputs['binding_key'])
+        ledger=types.SimpleNamespace(_binding=binding,issued_snapshot=snapshot,_runtime_inputs=ResearchRuntimeInputs(**inputs),
+            _collection=ResearchCollection(**a.strict_json(blobs['collection'])),_policy=types.SimpleNamespace(scanners=(SecretScanner(),PIIScanner())))
+        published=[]
+        monkeypatch.setattr(a,'preserve_completed_members',lambda *args:published.append(True))
+        ledger._runtime_final=blobs['runtime']
+        a.export_completed(tmp_path,ledger,{})
+        assert published==[True]
+        published.clear()
+        packet=a.strict_json(blobs['runtime']); value=int(escaped_scanner_fixture())
+        packet['execution']['files'][0]['result']={'unissued':value} if nested else value
+        ledger._runtime_final=canonical_v3(packet)
+        verify_runtime_packet(binding,snapshot,ledger._collection,ledger._runtime_final,require_ack=True,runtime_inputs=ledger._runtime_inputs)
+&gt;       with pytest.raises(ValueError,match='Producer'): a.export_completed(tmp_path,ledger,{})
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+..\..\harness\test_adapter.py:1147: Failed</failure></testcase><testcase classname="harness.test_adapter" name="test_fix4_f1_archived_reviewer_packet[True]" time="0.197"><failure message="Failed: DID NOT RAISE ValueError">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/harness-preparation-20261102T221205103765Z/temp/test_fix4_f1_archived_reviewer1')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000001ACA101AFD0&gt;
+nested = True
+
+    @pytest.mark.parametrize('nested',[False,True])
+    def test_fix4_f1_archived_reviewer_packet(tmp_path,monkeypatch,nested):
+        from src.brain.work_tools import WorkBinding,ResearchRuntimeInputs
+        from src.brain.work_navigation import IssuedSnapshotV3,canonical_v3
+        from src.brain.work_research import ResearchCollection,verify_runtime_packet
+        from src.brain.tests.test_work_navigation_transport import escaped_scanner_fixture
+        from openjarvis.security.scanner import SecretScanner,PIIScanner
+        archive=a.V/'code/harness-preparation-20261102T215807022506Z/temp/test_fix1_genuine_synthetic_ex0'
+        exported=a.load(archive/'trusted-export.json'); blobs=a.read_completed(archive,exported)
+        snapshot=exported['issued_snapshot']; snapshot['binding_key']=tuple(snapshot['binding_key'])
+        snapshot=IssuedSnapshotV3(**snapshot,views_json=blobs['views'],replay_json=blobs['replay'])
+        inputs=a.load(archive/'runtime-inputs.json'); inputs['binding_key']=tuple(inputs['binding_key'])
+        binding=WorkBinding(Path(inputs['root']),*inputs['binding_key'])
+        ledger=types.SimpleNamespace(_binding=binding,issued_snapshot=snapshot,_runtime_inputs=ResearchRuntimeInputs(**inputs),
+            _collection=ResearchCollection(**a.strict_json(blobs['collection'])),_policy=types.SimpleNamespace(scanners=(SecretScanner(),PIIScanner())))
+        published=[]
+        monkeypatch.setattr(a,'preserve_completed_members',lambda *args:published.append(True))
+        ledger._runtime_final=blobs['runtime']
+        a.export_completed(tmp_path,ledger,{})
+        assert published==[True]
+        published.clear()
+        packet=a.strict_json(blobs['runtime']); value=int(escaped_scanner_fixture())
+        packet['execution']['files'][0]['result']={'unissued':value} if nested else value
+        ledger._runtime_final=canonical_v3(packet)
+        verify_runtime_packet(binding,snapshot,ledger._collection,ledger._runtime_final,require_ack=True,runtime_inputs=ledger._runtime_inputs)
+&gt;       with pytest.raises(ValueError,match='Producer'): a.export_completed(tmp_path,ledger,{})
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+..\..\harness\test_adapter.py:1147: Failed</failure></testcase></testsuite></testsuites>

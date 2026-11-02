@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="13" time="11.832" timestamp="2026-11-03T06:12:45.143656+08:00" hostname="DESKTOP-B366PQ9"><testcase classname="harness.test_adapter" name="test_fix1_genuine_synthetic_export_and_external_readback" time="1.372" /><testcase classname="harness.test_adapter" name="test_fix3_f2_observation_ack_is_genuine_scanned_prose" time="0.849" /><testcase classname="harness.test_adapter" name="test_fix4_f1_producer_types_before_publication[digits]" time="1.022" /><testcase classname="harness.test_adapter" name="test_fix4_f1_producer_types_before_publication[nested-digits]" time="0.899" /><testcase classname="harness.test_adapter" name="test_fix4_f1_producer_types_before_publication[integer]" time="0.769" /><testcase classname="harness.test_adapter" name="test_fix4_f1_producer_types_before_publication[bool]" time="0.888" /><testcase classname="harness.test_adapter" name="test_fix4_f1_producer_types_before_publication[null]" time="0.856" /><testcase classname="harness.test_adapter" name="test_fix4_f1_producer_types_before_publication[list]" time="0.670" /><testcase classname="harness.test_adapter" name="test_fix4_f1_producer_types_before_publication[peer]" time="0.766" /><testcase classname="harness.test_adapter" name="test_fix4_f1_producer_types_before_publication[latency]" time="0.555"><failure message="ValueError: Unsupported canonical JSON type">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/harness-preparation-20261102T221244826193Z/temp/test_fix4_f1_producer_types_be7')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000001E0A1D16190&gt;
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x000001E0A02C1050&gt;, [('search', 'Research a subject'), ('get', '...'https://example.com/source/2'), ('get', 'https://example.com/source/3'), ('get', 'https://example.com/source/4')], {})
+mock_jar = (&lt;openjarvis.sdk.Jarvis object at 0x000001E09D70BCD0&gt;, &lt;function _run_work_agent at 0x000001E0A0075DA0&gt;, [{'format': {..., ...], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [])
+variant = 'latency'
+
+    @pytest.mark.parametrize('variant',['digits','nested-digits','integer','bool','null','list','peer','latency','tag-family'])
+    def test_fix4_f1_producer_types_before_publication(tmp_path,monkeypatch,sdk_io,mock_jar,variant):
+        import hashlib
+        from src.brain.work_navigation import canonical_v3
+        from src.brain.work_research import verify_runtime_packet
+        from src.brain.tests.test_work_navigation_transport import escaped_scanner_fixture
+        result,ledger=synthetic_bundle(tmp_path,sdk_io,mock_jar,monkeypatch,write=False)
+        sentinel=escaped_scanner_fixture()
+        assert str(int(sentinel))==sentinel and any(not s.scan(sentinel).clean for s in ledger._policy.scanners)
+        packet=json.loads(ledger._runtime_final)
+        file=packet['execution']['files'][0]
+        assert type(file['result']) is str
+        if variant=='peer':
+            packet['transport']['receipts'][-1]['peer_bytes']=int(sentinel)
+        elif variant=='latency':
+            event=json.loads(packet['events'][-1]); event['data']['latency']={'unissued':int(sentinel)}
+&gt;           packet['events'][-1]=canonical_v3(event).decode()
+                                 ^^^^^^^^^^^^^^^^^^^
+
+..\..\harness\test_adapter.py:1103: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+C:\Users\Administrator\.codex\worktrees\jarvis-work-capability-longpaths\UltimaAgent\src\brain\work_navigation.py:34: in canonical_v3
+    check(value)
+C:\Users\Administrator\.codex\worktrees\jarvis-work-capability-longpaths\UltimaAgent\src\brain\work_navigation.py:31: in check
+    for k, item in v.items(): check(k); check(item)
+                                        ^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+v = 1793657575.3083663
+
+    def check(v):
+        if v is None or type(v) in (bool, int): return
+        if type(v) is str:
+            if any(0xd800 &lt;= ord(c) &lt;= 0xdfff for c in v): raise ValueError('Surrogate in canonical JSON')
+            return
+        if type(v) is list:
+            for item in v: check(item)
+            return
+        if type(v) is dict and all(type(k) is str for k in v):
+            for k, item in v.items(): check(k); check(item)
+            return
+&gt;       raise ValueError('Unsupported canonical JSON type')
+E       ValueError: Unsupported canonical JSON type
+
+C:\Users\Administrator\.codex\worktrees\jarvis-work-capability-longpaths\UltimaAgent\src\brain\work_navigation.py:33: ValueError</failure></testcase><testcase classname="harness.test_adapter" name="test_fix4_f1_producer_types_before_publication[tag-family]" time="0.800" /><testcase classname="harness.test_adapter" name="test_fix4_f1_archived_reviewer_packet[False]" time="0.171" /><testcase classname="harness.test_adapter" name="test_fix4_f1_archived_reviewer_packet[True]" time="0.160" /></testsuite></testsuites>

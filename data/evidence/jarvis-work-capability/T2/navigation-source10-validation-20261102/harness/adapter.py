@@ -617,28 +617,54 @@ def export_completed(folder,ledger,result):
 def validate_export_structure(packet,scanners):
     """Closed producer structures plus scanning of EVERY decoded string value.
 
-    Only typed numeric clocks are not prose. Serialized events/native entities
-    are decoded before scanning so trusted numeric timestamps stay numeric.
+    Replay binds the issued inputs, schema and transcript. Check producer types
+    on residual fields before treating their primitive values as non-text.
     """
     def closed(value,names):
         require(type(value) is dict and set(value)==set(names.split()),'Unexpected export fields/type')
+    def fields(value,names,*types):
+        for name in names.split():
+            require(type(value[name]) in types,'Producer field type: '+name)
     closed(packet,'binding clock_domain events execution issued_manifest nonce prewrite_packet prewrite_sha256 prompt system_original timeline transport v views_sha256 wires')
     require(type(packet['v']) is int and packet['v']==3 and type(packet['wires']) is list and type(packet['events']) is list and type(packet['timeline']) is list,'Export typed packet')
     closed(packet['transport'],'admitted completed generations gets post_bytes posts receipts')
     closed(packet['transport']['admitted'],'chat metadata')
     closed(packet['execution'],'effects files intent')
-    if packet['execution']['intent'] is not None: closed(packet['execution']['intent'],'adapter_uuid args_hash binding bytes dispatch_uuid file_call_id path report_call_id seq sha256')
-    for file in packet['execution']['files']: closed(file,'call_id content dispatch_uuid path report_call_id request_id result session_id success task_id tool_name')
-    for effect in packet['execution']['effects']: closed(effect,'dispatch_id file_call_id path report_call_id request_id session_id state task_id')
+    fields(packet['execution'],'effects files',list)
+    intent=packet['execution']['intent']
+    if intent is not None:
+        closed(intent,'adapter_uuid args_hash binding bytes dispatch_uuid file_call_id path report_call_id seq sha256')
+        fields(intent,'adapter_uuid args_hash dispatch_uuid file_call_id path report_call_id sha256',str)
+        fields(intent,'bytes seq',int)
+    for file in packet['execution']['files']:
+        text='call_id content dispatch_uuid path report_call_id request_id result session_id task_id tool_name'
+        closed(file,text+' success')
+        fields(file,text,str)
+        fields(file,'success',bool)
+    for effect in packet['execution']['effects']:
+        text='dispatch_id file_call_id path report_call_id request_id session_id state task_id'
+        closed(effect,text); fields(effect,text,str)
     for wire in packet['wires']:
         closed(wire,'entity generation hashes identity raw raw_envelope raw_response sampler_schema secured_envelope secured_messages strict_schema')
+        fields(wire,'generation',int)
         closed(wire['hashes'],'entity messages sampler strict')
         closed(wire['identity'],'local_manifest_sha256 tags_response version_response')
-    for receipt in packet['transport']['receipts']: closed(receipt,'admission_error admitted downloaded entity_bytes entity_sha256 error inspected kind method path peer_bytes response_sha256 retained send_reserved socket_bytes status timeout_json')
+    transport=packet['transport']
+    fields(transport,'completed generations gets post_bytes posts',int)
+    fields(transport['admitted'],'chat metadata',int)
+    for receipt in transport['receipts']:
+        closed(receipt,'admission_error admitted downloaded entity_bytes entity_sha256 error inspected kind method path peer_bytes response_sha256 retained send_reserved socket_bytes status timeout_json')
+        fields(receipt,'admitted entity_bytes inspected retained status',int)
+        fields(receipt,'downloaded',int,type(None))
+        fields(receipt,'peer_bytes socket_bytes',type(None))  # Unmeasured by _ResearchTransport.exchange.
+        fields(receipt,'error admission_error',str,type(None))
+        fields(receipt,'send_reserved',bool)
     extras={'claim':'adapter_uuid dispatch_uuid seq','expect':'args_hash name seq','file_end':'file_call_id','freeze':'seq','generation':'generation','intent':'file_call_id seq','promote':'seq wire_hash','return':'generation receipt_index','sdk_end':'event_index seq','sdk_start':'event_index seq','secured':'generation','send':'generation receipt_index'}
     for event in packet['timeline']:
         require(event.get('kind') in extras,'Unknown export timeline kind')
         closed(event,'at deadline kind order '+extras[event['kind']])
+        for name in ('order','seq','event_index','receipt_index','generation'):
+            if name in event: fields(event,name,int)
         for name in ('at','deadline'):
             require(type(event[name]) is str and math.isfinite(float(event[name])) and repr(float(event[name]))==event[name],'Typed export clock')
     def prose(value):
@@ -691,6 +717,16 @@ def validate_export_structure(packet,scanners):
         event=object_json(raw_event); closed(event,'data timestamp type')
         require(type(event['timestamp']) in (float,int) and event['type'] in ('tool_call_start','tool_call_end'),'Typed export event')
         data=event['data']; closed(data,'agent arguments tool' if event['type']=='tool_call_start' else 'agent latency metadata result success tool')
+        if event['type']=='tool_call_end':
+            fields(data,'latency',float)  # SDK ToolExecutor records time.time() - t0.
+            fields(data['metadata'],'seq generation',int)
+            if data['tool']=='ultima_work_research_write':
+                visible=object_json(data['result'])
+                text='adapter_uuid dispatch_uuid file_call_id path replay_sha256 report_call_id runtime_sha256 sha256'
+                closed(visible,text+' binding generation protocol_version seq')
+                fields(visible,text,str)
+                fields(visible,'generation protocol_version seq',int)
+                fields(data['metadata'],'protocol_version',int)
         prose(event['type']); prose(event['timestamp'])
         for key,value in data.items():
             prose(key)
@@ -704,7 +740,21 @@ def validate_export_structure(packet,scanners):
         messages(wire['secured_messages']); native(wire['raw']); native(object_json(wire['raw_response']))
         for key in ('generation','hashes','raw_envelope','sampler_schema','secured_envelope','strict_schema'): prose(wire[key])
         prose(wire['identity']['local_manifest_sha256'])
-        for key in ('version_response','tags_response'): prose(object_json(wire['identity'][key]))
+        prose(object_json(wire['identity']['version_response']))
+        tags=object_json(wire['identity']['tags_response'])
+        # ListResponse.Model and ModelDetails declare optional metadata slots.
+        for model in tags['models']:
+            if 'modified_at' in model: fields(model,'modified_at',str,type(None))
+            details=model.get('details')
+            if details is not None:
+                require(type(details) is dict,'Producer model details object required')
+                for key,value in details.items():
+                    if key=='families' and value is not None:
+                        require(type(value) is list and all(type(family) is str for family in value),'Producer model families type')
+                    else:
+                        require(key in ('parent_model','format','family','families','parameter_size','quantization_level')
+                                and (value is None or type(value) is str),'Producer model detail type')
+        prose(tags)
     for key,value in packet['transport'].items():
         if key!='receipts': prose(key); prose(value)
     for receipt in packet['transport']['receipts']:

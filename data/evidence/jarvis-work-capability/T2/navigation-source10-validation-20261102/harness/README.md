@@ -382,3 +382,7 @@ No root-caller draft, live authority, real process, native/external/model call,
 original-corpus profile, inert qualification or operational release occurred.
 T2 and E02 remain NOT_PASSED; outer315 timing remains the prior eligibility and
 enclosing-witness contract, without arbitrary-kernel preemption or recovery.
+Round 4 checks SDK file result text and producer-declared metadata types before
+raw export, including the archived reviewer packet and fresh coherent fixtures.
+The driver also pins the complete 94969-byte fix3 report prefix. Round 4 awaits
+independent re-review. All execution gates remain closed.
