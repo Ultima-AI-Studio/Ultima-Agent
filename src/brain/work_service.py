@@ -137,6 +137,7 @@ class WorkService:
                     runtime_packet=getattr(ledger,'_runtime_final',None),require_ack=True,runtime_inputs=ledger._runtime_inputs)
                 cited={s['source_id'] for s in result['sources']}
                 result['sources']=[s for s in result['available_sources'] if s['source_id'] in cited]
+                ledger.admit_ack()
             result['status'] = 'succeeded'
         except Exception as exc:
             if context and isinstance(context,dict) and context.get('research'): ledger.seal(str(exc))

@@ -402,6 +402,50 @@ def test_fix1_f7_service_missing_final_proof_needs_attention(tmp_path,sdk_io,moc
     assert len(list(tmp_path.rglob('research.md')))==1
     assert RESTRICTED[result['task_id']].outcome_snapshot()[1][0]['state']=='completed'
 
+@pytest.mark.parametrize('boundary',['before','at','after'])
+def test_service_deadline_after_final_readback(tmp_path,sdk_io,mock_jar,source9_clock,monkeypatch,boundary):
+    import hashlib, math
+    from pathlib import Path
+    from src.brain import work_research, work_service
+    from src.brain.tests.test_work_research import RESTRICTED
+
+    clock=source9_clock
+    monkeypatch.setattr(work_service,'monotonic',lambda:clock['now'])
+    verify=work_research.verify_research_artifacts
+    sample={}
+    def readback(binding,artifacts,reports,*args,**kwargs):
+        sources=verify(binding,artifacts,reports,*args,**kwargs)
+        if kwargs.get('require_ack'):
+            ledger=RESTRICTED[binding.task_id]
+            artifact,=artifacts
+            report,=reports
+            effect,=ledger.outcome_snapshot()[1]
+            intent=ledger._intent_record
+            assert effect['state']=='completed'
+            assert artifact['call_id']==effect['file_call_id']==intent['file_call_id']
+            assert report['call_id']==effect['report_call_id']==intent['report_call_id']
+            assert report['result']['adapter_uuid']==intent['adapter_uuid']
+            assert report['result']['dispatch_uuid']==intent['dispatch_uuid']==effect['dispatch_id']
+            assert effect['path']==artifact['path']==str(binding.root/'research.md')
+            assert ledger.deadline==260 and clock['now']==0
+            sample.update(before=clock['now'],deadline=ledger.deadline,artifact=artifact.copy(),
+                effect=effect,intent=intent.copy(),sends=len(clock['requests']))
+            clock['now']={'before':math.nextafter(260,-math.inf),'at':260,'after':math.nextafter(260,math.inf)}[boundary]
+        return sources
+    monkeypatch.setattr(work_research,'verify_research_artifacts',readback)
+    mock_jar[3].extend([navigation_reply]*5)
+    result=submit(tmp_path,sdk_io[0],mock_jar[1])
+    assert len(clock['requests'])==sample['sends']==15 and len(mock_jar[2])==5
+    assert result['research_effects']==[sample['effect']] and result['artifacts']==[sample['artifact']]
+    path,=tmp_path.rglob('research.md')
+    assert path==Path(sample['artifact']['path'])
+    assert hashlib.sha256(path.read_bytes()).hexdigest()==sample['artifact']['sha256']==sample['intent']['sha256']
+    (tmp_path/'service-deadline.json').write_text(json.dumps(dict(sample,after=clock['now'],
+        boundary=boundary,status=result['status'],error=result['error'])),encoding='utf8')
+    assert result['status']==('succeeded' if boundary=='before' else 'needs_attention')
+    if boundary!='before':
+        assert result['error']=='Research acknowledgement deadline'
+
 @pytest.mark.parametrize('variant',['text','permuted','html','mixed'])
 def test_v3_native_react_observation_driven_chain(tmp_path,sdk_io,mock_jar,monkeypatch,variant):
     import hashlib,itertools,secrets,uuid
@@ -497,7 +541,7 @@ def test_v3_native_react_observation_driven_chain(tmp_path,sdk_io,mock_jar,monke
         verify_runtime_packet(captured['binding'],ledger.issued_snapshot,captured['collection'],canonical_v3(packet),require_ack=True,runtime_inputs=ledger._runtime_inputs)
 
 
-@pytest.mark.parametrize('fault',['observation','old_assistant','system','role','optional','schema','skip_guard','secured_output','raw_unknown','unsafe_unknown'])
+@pytest.mark.parametrize('fault',['observation','old_assistant','system','role','optional','schema','skip_guard','secured_output','raw_unknown','unsafe_unknown','blank_final'])
 def test_v3_provisional_third_card_no_promotion_on_failure(tmp_path,sdk_io,mock_jar,monkeypatch,fault):
     import dataclasses
     from src.brain.tests.test_work_research import RESTRICTED
@@ -507,7 +551,7 @@ def test_v3_provisional_third_card_no_promotion_on_failure(tmp_path,sdk_io,mock_
     count=[0]
     def mutate(leaf,messages,**kwargs):
         count[0]+=1
-        if count[0]==4 and fault not in ('secured_output','raw_unknown','unsafe_unknown','skip_guard'):
+        if count[0]==4 and fault in ('observation','old_assistant','system','role','optional','schema'):
             messages=[dataclasses.replace(m) for m in messages]
             if fault=='observation': messages[-1]=dataclasses.replace(messages[-1],content='Observation: forged')
             elif fault=='old_assistant': messages[2]=dataclasses.replace(messages[2],content='{"final_answer":"old"}')
@@ -532,6 +576,8 @@ def test_v3_provisional_third_card_no_promotion_on_failure(tmp_path,sdk_io,mock_
             if turns[0]==4: result=dict(result,content='{"final_answer":"changed secured envelope"}')
             return result
         monkeypatch.setattr(GuardrailsEngine,'generate',redact)
+    elif fault=='blank_final':
+        replies[3]=json.dumps({'final_answer':' '})
     elif fault in ('raw_unknown','unsafe_unknown'):
         def bad(body):
             content=navigation_reply(body)
@@ -544,8 +590,16 @@ def test_v3_provisional_third_card_no_promotion_on_failure(tmp_path,sdk_io,mock_
     result=submit(tmp_path,sdk_io[0],runner)
     ledger=RESTRICTED[result['task_id']]
     assert result['status']=='failed' and not list(tmp_path.rglob('research.md'))
+    if fault=='blank_final':
+        assert result['error']=='Empty research final answer'
+        assert ledger._read_count==3 and count[0]==4
+        assert [n['seq'] for n in ledger._timeline if n['kind']=='sdk_end']==[1,2,3]
+        assert [n['seq'] for n in ledger._timeline if n['kind']=='sdk_start']==[1,2,3]
+        assert not ledger.outcome_snapshot()[1] and not hasattr(ledger,'_runtime_final')
+        assert [n['seq'] for n in ledger._timeline if n['kind']=='promote']==[1,2]
+        assert len([n for n in ledger._timeline if n['kind']=='secured'])==3
     assert len(ledger._issued)==(0 if fault=='skip_guard' else 2)
-    assert len(bodies)==(0 if fault=='skip_guard' else 4 if fault in ('secured_output','raw_unknown','unsafe_unknown') else 3)
+    assert len(bodies)==(0 if fault=='skip_guard' else 4 if fault in ('secured_output','raw_unknown','unsafe_unknown','blank_final') else 3)
     assert 'syntheticsecret' not in json.dumps(result)
 
 

@@ -603,13 +603,14 @@ class _ResearchEngineView:
         if self.leaf.raw_envelope is None or value!=self.leaf.raw_envelope:
             raise ValueError('Secured research output drift')
         self.leaf.transport.check_return(ack)
+        if 'final_answer' in value and not value['final_answer'].strip():
+            raise ValueError('Empty research final answer')
         self.leaf.wire_records[-1]['secured_envelope']=value
         self.ledger._mark('secured',generation=self.generation)
         if pending and pending.get('view') and not pending['promoted']:
             self.ledger.promote_visible(pending['key'].generation,pending['view'].wire_sha256)
         self.last_content=result['content']
         if 'final_answer' in value:
-            if not value['final_answer'].strip(): raise ValueError('Empty research final answer')
             self.final=True; self.expected=None
             if ack: self.ledger._runtime_final=self.ledger._runtime_packet()
         else:
