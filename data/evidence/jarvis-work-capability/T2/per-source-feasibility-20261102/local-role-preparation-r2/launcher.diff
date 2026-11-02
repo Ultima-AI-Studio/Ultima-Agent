@@ -1,0 +1,205 @@
+--- frozen/run_remaining_prefix.py
++++ new/run_local_role_prefix.py
+@@ -18,12 +18,12 @@
+ import time
+ 
+ E = Path('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/per-source-feasibility-20261102')
+-PREP = E/'remaining-source-preparation-r2'
+-ACTUAL = E/'remaining-source-actual'
++PREP = E/'local-role-preparation-r2'
++ACTUAL = E/'local-role-actual'
+ # Independently fixed trust anchor; never derive ownership from ACTUAL.resolve().
+-TRUSTED_ACTUAL = Path('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/per-source-feasibility-20261102/remaining-source-actual')
+-CORE = E/'preparation-r2/run_stage_prefix.py'
+-CORE_HASH = '4122c8d0c288689f31899fc59cebf7aabbcc546c46342071134af712d4a9863e'
++TRUSTED_ACTUAL = Path('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/per-source-feasibility-20261102/local-role-actual')
++CORE = PREP/'run_local_role_core.py'
++CORE_HASH = '40fa5629ce45e467f7b714837dc40ecde3e2fa9772199d5aadefcf9d2d8ced3b'
+ OLD_MANIFEST = E/'preparation-r2/manifest.json'
+ OLD_HASH = '02d0cd4ee8ae5f502a7c35cf6c630c07b5bd591922cb00eee1bde7265651e1ca'
+ ORIGINAL = E/'S2-first/first-f53a803-r2/outcome.json'
+@@ -31,7 +31,7 @@
+ REVIEW = E.parent/'review-per-source-probe-r2/verdict.json'
+ REVIEW_HASH = '97585bb9f82f9456cfaf658f9ba73c141f85ea7780401f79c866d627baa5a25c'
+ HEAD = 'f53a803afbb550b20aff2fd95859a563f6c8cc41'
+-ORDER = ('S3', 'S1', 'S4')
++ORDER = ('S4', 'S1')
+ 
+ 
+ def sha(path):
+@@ -107,6 +107,11 @@
+     if (snap['head'] != HEAD or snap['selected_digest'] != auth['digest'] or
+             snap['protected5'] != expected or snap['protected5_unchanged'] is not True):
+         raise ValueError('Snapshot identity proof differs')
++    if (snap.get('source_id') != auth['source_id'] or
++            snap.get('source21_hashes_match') is not True or
++            snap.get('run_root') != auth['run_root'] or
++            snap.get('controller_readonly_metadata_not_trial', {}).get('loaded', {}).get('models') != []):
++        raise ValueError('Root-bound source21 and explicitly empty native residency required')
+     return snap
+ 
+ 
+@@ -114,7 +119,7 @@
+     """All admission checks precede namespace creation, SDK setup and sockets."""
+     trusted_namespace()
+     core = frozen_core()
+-    if (auth['mode'] != 'remaining_source_sdk_prefix' or auth['execute'] is not True or
++    if (auth['mode'] != 'local_role_sdk_prefix' or auth['execute'] is not True or
+             auth['head'] != HEAD or auth['digest'] != core.DIGEST or
+             type(auth['max_native_posts']) is not int or auth['max_native_posts'] != 1 or
+             type(auth['group_total_cap']) is not int or auth['group_total_cap'] != 4):
+@@ -137,14 +142,15 @@
+     old = read(OLD_MANIFEST)
+     for path, digest in {**old['frozen_files'], **old['input_files']}.items():
+         checked(path, digest)
++    validate_preparation_and_originals(auth, manifest)
+     prior = auth['previous_attempts']
+-    if not isinstance(prior, list) or len(prior) > 2:
++    if not isinstance(prior, list) or len(prior) > 1:
+         raise ValueError('Invalid prior attempt count')
+     source = auth['source_id']
+     if source != ORDER[len(prior)] or auth['next_source'] != source:
+         raise ValueError('S2, skipped source, duplicate or retry prohibited')
+-    if type(auth['cumulative_spent_before']) is not int or auth['cumulative_spent_before'] != 1+len(prior):
+-        raise ValueError('Original S2 and every consumed namespace must remain spent')
++    if type(auth['cumulative_spent_before']) is not int or auth['cumulative_spent_before'] != 2+len(prior):
++        raise ValueError('Original S2/S3 and every consumed namespace must remain spent')
+     if auth['cumulative_spent_before']+1 > 4:
+         raise ValueError('Cumulative cap exceeded')
+     known = set()
+@@ -219,10 +225,11 @@
+             phase[0]='trial'
+             with httpx.Client(base_url=core.ORIGIN,trust_env=False,follow_redirects=False,timeout=25) as client:
+                 output=core.run_prefix(owner,client,args.run_root,auth['source_id'],agent_server._research_manifest_digest,
+-                                       input_hashes=old['input_files'])
++                                       input_hashes=old['input_files'],request_proof=canonical_proof(core,auth['source_id']))
++                if output.get('raw_messages') is not None:
++                    verify_messages(core, auth['source_id'], output['raw_messages'], output['schema'], 'raw_messages')
+     except Exception as exc:
+-        output=dict(status='FAILED',source_id=auth['source_id'],error=dict(type=type(exc).__name__,message=str(exc)),
+-                    phase=phase[0],native_posts=sum(r['method']=='POST' for r in records),effects=[],owner_closed=False)
++        output = preserve_failure(output, exc, auth['source_id'], phase[0], records)
+     finally:
+         if owner:
+             owner.close()
+@@ -233,5 +240,120 @@
+     return 0 if output['status']=='PENDING_INDEPENDENT_FACT_REVIEW' else 1
+ 
+ 
++
++
++# New-question admission only. Frozen core/launcher mechanics above remain reused.
++def namespace_inventory(root):
++    refuse_reparse(root)
++    if not root.is_dir():
++        raise ValueError('Original namespace missing')
++    result = {}
++    for path in root.rglob('*'):
++        refuse_reparse(path)
++        result[path.relative_to(root).as_posix()] = 'directory' if path.is_dir() else sha(path)
++    return result
++
++
++def validate_preparation_and_originals(auth, manifest):
++    if auth['first_failures'] != manifest['first_failures']:
++        raise ValueError('Both permanent first failures must remain bound')
++    for item in manifest['first_failures']:
++        checked(item['path'], item['sha256'])
++    inventories = read(PREP/'old-namespace-inventories.json')
++    for root, expected in inventories.items():
++        if namespace_inventory(Path(root)) != expected:
++            raise ValueError('Original namespace inventory differs or omits attempts')
++    # Independent preparation review cannot be supplied by implementer.
++    checked(auth['preparation_review_path'], auth['preparation_review_sha256'])
++    review = read(auth['preparation_review_path'])
++    if (review.get('SPEC') != 'PASS' or review.get('QUALITY') != 'PASS' or
++            review.get('manifest_sha256') != auth['launcher_manifest_sha256']):
++        raise ValueError('Bound independent preparation SPEC/QUALITY PASS required')
++
++
++SENTINEL = '00000000-0000-0000-0000-000000000000'
++
++
++def normalize_projection(core, messages, schema):
++    # Replace issued-token slots only, never arbitrary material substrings.
++    import copy
++    normalized = copy.deepcopy(schema)
++    shapes = normalized['anyOf'][0]['properties']['action_input']['oneOf']
++    token = shapes[0]['properties']['stage_token']['enum'][0]
++    if not isinstance(token, str) or len(token) != 36:
++        raise ValueError('Invalid run token')
++    for shape in shapes:
++        if shape['properties']['stage_token']['enum'] != [token]:
++            raise ValueError('Inconsistent run token')
++    for shape in shapes:
++        shape['properties']['stage_token']['enum'] = [SENTINEL]
++    result = copy.deepcopy(messages)
++    if result[0]['content'] != core.PROMPT+'\nSchema:\n'+core.compact(schema):
++        raise ValueError('System content differs from issued schema')
++    result[0]['content'] = core.PROMPT+'\nSchema:\n'+core.compact(normalized)
++    return result, normalized
++
++
++def verify_messages(core, source, messages, schema, field):
++    template = read(PREP/(source+'-template.json'))
++    projected, normalized = normalize_projection(core, messages, schema)
++    if projected != template[field] or normalized != template['schema']:
++        raise ValueError('Actual projection differs from frozen canonical template')
++    material = core.strict(projected[1]['content'])
++    if core.sha(material['background_original_query'].encode('utf8')) != template['decoded_query_sha256']:
++        raise ValueError('Original decoded query bytes differ')
++
++
++def wire_gate(core, source):
++    from src.brain.agent_server import _research_sampler_schema
++    def before_send(request):
++        if request.method != 'POST':
++            return
++        if str(request.url) != core.ORIGIN+'/api/chat':
++            raise ValueError('Unexpected POST endpoint')
++        body = core.strict(request.content)
++        template = read(PREP/(source+'-template.json'))
++        # Native sampler drops only length limits, so obtain the token from its slots
++        # and instantiate the unchanged strict schema for canonical verification.
++        token = body['format']['anyOf'][0]['properties']['action_input']['oneOf'][0]['properties']['stage_token']['enum'][0]
++        schema = core.strict(core.compact(template['schema']))
++        for shape in schema['anyOf'][0]['properties']['action_input']['oneOf']:
++            shape['properties']['stage_token']['enum'] = [token]
++        verify_messages(core, source, body['messages'], schema, 'preflight_messages')
++        if (body['format'] != _research_sampler_schema(schema) or body['model'] != core.MODEL or
++                body['options'] != dict(num_ctx=16384,temperature=0,num_predict=480) or
++                body['tools'] != [] or any(body[k] is not False for k in ('think','stream','truncate','shift'))):
++            raise ValueError('Actual native request differs from frozen limits')
++    return before_send
++
++
++
++
++def canonical_proof(core, source):
++    # Captured controller callback; no vendor patch, entity rewrite or HTTP hook.
++    check_wire = wire_gate(core, source)
++    def check(body, leaf):
++        import httpx
++        verify_messages(core, source, leaf.expected_raw_messages, leaf.ledger.schema, 'raw_messages')
++        check_wire(httpx.Request('POST', core.ORIGIN+'/api/chat', json=body))
++    return check
++
++
++def preserve_failure(output, exc, source, phase, records):
++    failure = dict(type=type(exc).__name__, message=str(exc), phase=phase,
++                   classification='post_run_audit_failure' if output is not None else 'pre_core_failure')
++    if output is not None:
++        # Preserve every observed effect, stage state, counter, envelope and event.
++        output.setdefault('audit_failures', []).append(failure)
++        output['mechanical_status_before_audit'] = output['status']
++        output['status'] = 'FAILED'
++        return output
++    # Observer rows are send observations, not transport or delivery confirmation.
++    return dict(status='FAILED', source_id=source, error=failure, phase=phase,
++                native_posts=None, native_post_intents=None, transport_delivery='unconfirmed',
++                observed_http_send_rows=len(records), effects=None, owner_closed=False,
++                effects_observation='Unknown: core did not return an observed packet')
++
++
+ if __name__=='__main__':
+     raise SystemExit(main())

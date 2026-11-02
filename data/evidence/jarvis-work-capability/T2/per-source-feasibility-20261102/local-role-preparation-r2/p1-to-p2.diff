@@ -1,0 +1,262 @@
+--- P1/run_local_role_core.py
++++ P2/run_local_role_core.py
+@@ -261,16 +261,24 @@
+ 
+ class NativeLeaf:
+     engine_id = 'ollama'
+-    def __init__(self, client, ledger, runroot, manifest_digest):
++    def __init__(self, client, ledger, runroot, manifest_digest, request_proof=None):
+         self.client,self.ledger,self.runroot = client,ledger,runroot
+         self.manifest_digest = manifest_digest
++        self.request_proof = request_proof
+         self.posts = self.gets = 0
+         self.post_intents = 0
++        self.post_admissions = 0
+         self.wire = []
+ 
+     def io(self, method, path, **kwargs):
+         import httpx
+         self.ledger.stamp('before_'+method+'_'+path)
++        if method == 'POST' and self.request_proof is not None:
++            self.request_proof(kwargs['json'], self)
++            self.ledger.stamp('canonical_proof_complete')
++        # Material comparison, serialization and request construction precede intent
++        # and the final absolute-budget admission; no HTTPX request hooks remain.
++        request = self.client.build_request(method, path, **kwargs)
+         if method=='POST':
+             if self.post_intents: raise ValueError('second native POST prohibited')
+             self.post_intents += 1
+@@ -287,10 +295,13 @@
+         record = dict(method=method,path=path,timeout=dict(connect=timeout.connect,read=timeout.read,
+                                                          write=timeout.write,pool=timeout.pool))
+         if 'json' in kwargs: record['request']=kwargs['json']
++        request.extensions['timeout'] = timeout.as_dict()
+         self.wire.append(record)
+         try:
+-            if method=='POST': self.posts += 1  # observed client dispatch, separate from consumed intent
+-            response = self.client.request(method,path,timeout=timeout,**kwargs)
++            if method=='POST':
++                self.post_admissions += 1
++                self.posts += 1  # public send dispatch attempt; never delivery confirmation
++            response = self.client.send(request)
+             record.update(status=response.status_code,response=response.text,received=self.ledger.clock())
+             self.ledger.stamp('raw_response_'+path)
+             response.raise_for_status()
+@@ -417,6 +428,7 @@
+         if final[0].content!=self.prepared[0].content:
+             raise ValueError('issued schema changed during scanner preflight')
+         leaf=self.inner._inner._engine
++        leaf.expected_raw_messages=self.raw_messages
+         leaf.expected_secured_messages=self.preflight_messages
+         leaf.expected_cards=final_material['local_cards']
+         self.ledger.stamp('scanner_preflight_complete')
+@@ -447,7 +459,7 @@
+         return result
+ 
+ 
+-def run_prefix(owner, client, runroot, source_id, manifest_digest, *, clock=time.monotonic, input_hashes=None):
++def run_prefix(owner, client, runroot, source_id, manifest_digest, *, clock=time.monotonic, input_hashes=None, request_proof=None):
+     """t0 precedes material loading and the original server ask lock."""
+     require_unoptimized()
+     from src.brain import agent_server
+@@ -487,7 +499,7 @@
+         identities={k:id(getattr(owner,k)) for k in ('_config','_engine','_bus','_audit_logger','_capability_policy','_rate_limiter','_energy_monitor')}
+         borrowed=copy(outer); borrowed._inner=copy(outer._inner)
+         assert borrowed._inner._scanners is outer._inner._scanners
+-        leaf=NativeLeaf(client,ledger,runroot,manifest_digest)
++        leaf=NativeLeaf(client,ledger,runroot,manifest_digest,request_proof)
+         borrowed._inner._engine=leaf
+         view=PrefixView(borrowed,ledger,query)
+         view.prepare()
+@@ -528,6 +540,8 @@
+                               schema=ledger.schema,timeline=ledger.timeline,detached_stage=True)
+         if leaf:
+             output.update(wire=leaf.wire,native_posts=leaf.posts,native_post_intents=leaf.post_intents,metadata_gets=leaf.gets,
++                          native_dispatch_count_kind='public_httpx_send_calls_not_delivery_confirmation',
++                          native_post_admissions=leaf.post_admissions,
+                           secured_messages=getattr(leaf,'secured_messages',None),line_mapping=getattr(leaf,'mapping',None),
+                           raw_envelope=getattr(leaf,'raw_envelope',None))
+         if view: output.update(raw_messages=getattr(view,'raw_messages',None),secured_envelope=getattr(view,'secured_envelope',None),
+--- P1/run_local_role_prefix.py
++++ P2/run_local_role_prefix.py
+@@ -18,12 +18,12 @@
+ import time
+ 
+ E = Path('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/per-source-feasibility-20261102')
+-PREP = E/'local-role-preparation'
++PREP = E/'local-role-preparation-r2'
+ ACTUAL = E/'local-role-actual'
+ # Independently fixed trust anchor; never derive ownership from ACTUAL.resolve().
+ TRUSTED_ACTUAL = Path('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/per-source-feasibility-20261102/local-role-actual')
+ CORE = PREP/'run_local_role_core.py'
+-CORE_HASH = '6d7c81000fd8f1854e031ce7ff645103f56b7373491f623a5dd80cffb7c57aa6'
++CORE_HASH = '40fa5629ce45e467f7b714837dc40ecde3e2fa9772199d5aadefcf9d2d8ced3b'
+ OLD_MANIFEST = E/'preparation-r2/manifest.json'
+ OLD_HASH = '02d0cd4ee8ae5f502a7c35cf6c630c07b5bd591922cb00eee1bde7265651e1ca'
+ ORIGINAL = E/'S2-first/first-f53a803-r2/outcome.json'
+@@ -223,14 +223,13 @@
+                 raise ValueError('Bootstrap metadata cap differs')
+             core.save(args.run_root/'bootstrap-readiness.json',dict(requests=records.copy(),native_posts=0,complete_at=time.monotonic()))
+             phase[0]='trial'
+-            with httpx.Client(base_url=core.ORIGIN,trust_env=False,follow_redirects=False,timeout=25, event_hooks={'request':[wire_gate(core, auth['source_id'])]}) as client:
++            with httpx.Client(base_url=core.ORIGIN,trust_env=False,follow_redirects=False,timeout=25) as client:
+                 output=core.run_prefix(owner,client,args.run_root,auth['source_id'],agent_server._research_manifest_digest,
+-                                       input_hashes=old['input_files'])
++                                       input_hashes=old['input_files'],request_proof=canonical_proof(core,auth['source_id']))
+                 if output.get('raw_messages') is not None:
+                     verify_messages(core, auth['source_id'], output['raw_messages'], output['schema'], 'raw_messages')
+     except Exception as exc:
+-        output=dict(status='FAILED',source_id=auth['source_id'],error=dict(type=type(exc).__name__,message=str(exc)),
+-                    phase=phase[0],native_posts=sum(r['method']=='POST' for r in records),effects=[],owner_closed=False)
++        output = preserve_failure(output, exc, auth['source_id'], phase[0], records)
+     finally:
+         if owner:
+             owner.close()
+@@ -328,5 +327,33 @@
+     return before_send
+ 
+ 
++
++
++def canonical_proof(core, source):
++    # Captured controller callback; no vendor patch, entity rewrite or HTTP hook.
++    check_wire = wire_gate(core, source)
++    def check(body, leaf):
++        import httpx
++        verify_messages(core, source, leaf.expected_raw_messages, leaf.ledger.schema, 'raw_messages')
++        check_wire(httpx.Request('POST', core.ORIGIN+'/api/chat', json=body))
++    return check
++
++
++def preserve_failure(output, exc, source, phase, records):
++    failure = dict(type=type(exc).__name__, message=str(exc), phase=phase,
++                   classification='post_run_audit_failure' if output is not None else 'pre_core_failure')
++    if output is not None:
++        # Preserve every observed effect, stage state, counter, envelope and event.
++        output.setdefault('audit_failures', []).append(failure)
++        output['mechanical_status_before_audit'] = output['status']
++        output['status'] = 'FAILED'
++        return output
++    # Observer rows are send observations, not transport or delivery confirmation.
++    return dict(status='FAILED', source_id=source, error=failure, phase=phase,
++                native_posts=None, native_post_intents=None, transport_delivery='unconfirmed',
++                observed_http_send_rows=len(records), effects=None, owner_closed=False,
++                effects_observation='Unknown: core did not return an observed packet')
++
++
+ if __name__=='__main__':
+     raise SystemExit(main())
+--- P1/test_local_role.py
++++ P2/test_local_role.py
+@@ -250,8 +250,8 @@
+         owner._ensure_engine()
+         assert requests==[('GET','/api/tags')]
+         requests.clear()
+-        with httpx.Client(base_url=core.ORIGIN,event_hooks={'request':[h.wire_gate(core,source_id)]}) as client:
+-            out=core.run_prefix(owner,client,tmp_path,source_id,lambda:core.DIGEST,clock=lambda:now[0])
++        with httpx.Client(base_url=core.ORIGIN) as client:
++            out=core.run_prefix(owner,client,tmp_path,source_id,lambda:core.DIGEST,clock=lambda:now[0],request_proof=h.canonical_proof(core,source_id))
+         assert out['status']=='PENDING_INDEPENDENT_FACT_REVIEW',out.get('error')
+         assert requests==[('GET','/api/version'),('GET','/api/tags'),('POST','/api/chat')]
+         assert out['native_posts']==out['native_post_intents']==1 and out['metadata_gets']==2
+@@ -328,3 +328,83 @@
+         leaf.io('GET','/api/version');leaf.io('GET','/api/tags')
+         with pytest.raises(ValueError,match='GET cap'):leaf.io('GET','/api/tags')
+     assert len(requests)==2 and leaf.posts==0
++
++@pytest.mark.parametrize('mode',['delayed_proof','projection_mismatch','happy'])
++def test_pre_admission_canonical_dispatch(tmp_path,monkeypatch,mode):
++    import httpx
++    from src.brain.agent_server import _research_sampler_schema
++    core=h.frozen_core();template=h.read(h.PREP/'S4-template.json')
++    now=[35.99];transport_times=[];observer=[]
++    source=template['source'];view=template['view'];table={int(k):v for k,v in template['table'].items()}
++    ledger=core.StageLedger({},source,view,table,36,lambda:now[0]);ledger.token=h.SENTINEL;ledger.schema=template['schema']
++    body=dict(model=core.MODEL,messages=copy.deepcopy(template['preflight_messages']),format=_research_sampler_schema(template['schema']),
++              options=dict(num_ctx=16384,temperature=0,num_predict=480),tools=[],think=False,stream=False,truncate=False,shift=False)
++    if mode=='projection_mismatch':body['messages'][1]['content']+=' '
++    original_read=h.read
++    def slow_read(path):
++        result=original_read(path)
++        if mode=='delayed_proof' and Path(path).name=='S4-template.json':now[0]=37.
++        return result
++    monkeypatch.setattr(h,'read',slow_read)
++    def transport(request):transport_times.append(now[0]);return httpx.Response(200,json={})
++    with httpx.Client(base_url=core.ORIGIN,transport=httpx.MockTransport(transport)) as client:
++        leaf=core.NativeLeaf(client,ledger,tmp_path,lambda:core.DIGEST,h.canonical_proof(core,'S4'))
++        leaf.expected_raw_messages=template['raw_messages']
++        with core.observe_http(observer,lambda:'trial'):
++            if mode=='happy':leaf.io('POST','/api/chat',json=body)
++            else:
++                with pytest.raises((ValueError,TimeoutError)):leaf.io('POST','/api/chat',json=body)
++    if mode=='happy':
++        assert transport_times==[35.99] and leaf.posts==leaf.post_intents==leaf.post_admissions==1
++        assert observer[0]['method']=='POST'
++    else:
++        assert transport_times==[] and leaf.posts==0 and observer==[]
++        assert leaf.post_intents==leaf.post_admissions==0
++    core.save(tmp_path/'pre-admission-proof.json',dict(mode=mode,deadline=36,transport_times=transport_times,
++              native_posts=leaf.posts,native_post_intents=leaf.post_intents,observer=observer))
++
++
++def test_post_audit_failure_preserves_full_saved_packet(tmp_path,monkeypatch):
++    import httpx
++    core=h.frozen_core();template=h.read(h.PREP/'S4-template.json')
++    holder={};requests=[]
++    original_register=core.register_stage
++    def register(ledger):holder['ledger']=ledger;return original_register(ledger)
++    monkeypatch.setattr(core,'register_stage',register)
++    def transport(req):
++        requests.append((req.method,req.url.path))
++        if req.url.path=='/api/tags':return httpx.Response(200,json={'models':[{'name':core.MODEL,'digest':core.DIGEST}]})
++        if req.url.path=='/api/version':return httpx.Response(200,json={'version':'0.32.15'})
++        ref,card=next(iter(holder['ledger'].table.items()))
++        payload=dict(stage_token=holder['ledger'].token,facts=[dict(claim=card['symbol'] or 'mechanical witness',ref=ref,
++                       ranges=[dict(lo=card['first_line'],hi=card['last_line'])])])
++        return httpx.Response(200,json=dict(model=core.MODEL,message=dict(role='assistant',content=core.compact(dict(action=core.TOOL,action_input=payload))),
++                              done=True,done_reason='stop',prompt_eval_count=4000,eval_count=50))
++    init=httpx.Client.__init__
++    def mock_init(self,*args,**kw):kw['transport']=httpx.MockTransport(transport);init(self,*args,**kw)
++    monkeypatch.setattr(httpx.Client,'__init__',mock_init)
++    owner=core.make_owner(tmp_path/'sdk-home')
++    from openjarvis.core.registry import ToolRegistry
++    try:
++        owner._ensure_engine()
++        with httpx.Client(base_url=core.ORIGIN) as client:
++            original=core.run_prefix(owner,client,tmp_path,'S4',lambda:core.DIGEST,clock=lambda:100.,request_proof=h.canonical_proof(core,'S4'))
++        assert original['status']=='PENDING_INDEPENDENT_FACT_REVIEW'
++        # A labelled synthetic observation proves nonempty effects are not erased.
++        original['effects']=[dict(kind='offline_preservation_sentinel',synthetic=True)]
++        core.save(tmp_path/'outcome.json',original)
++        saved_before=h.read(tmp_path/'outcome.json')
++        output=h.preserve_failure(original,ValueError('forced post-run raw proof rejection'),'S4','trial',[])
++        output['owner_closed']=True
++        core.save(tmp_path/'outcome.json',output)
++        saved_after=h.read(tmp_path/'outcome.json')
++        for key,value in saved_before.items():
++            if key not in ('status','owner_closed'):assert saved_after[key]==value,key
++        assert saved_after['status']=='FAILED' and saved_after['confirmed'] is True
++        assert saved_after['mechanical_status_before_audit']=='PENDING_INDEPENDENT_FACT_REVIEW'
++        assert saved_after['audit_failures'][0]['classification']=='post_run_audit_failure'
++        assert saved_after['native_posts']==saved_after['native_post_intents']==1
++        assert saved_after['stage_payload']['facts'] and saved_after['owner_closed'] is True
++        assert saved_after['timeline'] and saved_after['events'] and saved_after['sdk_result'] and saved_after['wire']
++    finally:
++        owner.close();ToolRegistry._entries().pop(core.TOOL,None)
+--- P1/freeze_local_role.py
++++ P2/freeze_local_role.py
+@@ -46,6 +46,7 @@
+ files[str(h.E.parent/'local-role-design-review-1/verdict.json')]='e7abb30a822a1171d68d9acebb27c0f2b1507a38b34f557bba4c22aadc6c3400'
+ for name in ('run_local_role_core.py','run_local_role_prefix.py','test_local_role.py','test_core_boundaries.py','run_offline_tests.py','freeze_local_role.py','old-namespace-inventories.json','S4-template.json','S1-template.json','prompt.txt','projection-proof.json','core.diff'):
+  files[str(P/name)]=h.sha(P/name)
++files.update(h.read(P/'p1-preservation-before.json'))
+ for path,digest in files.items():h.checked(path,digest)
+ core.save(P/'manifest.json',dict(status='READY_FOR_INDEPENDENT_REVIEW',actual_execution_released=False,actual_network_requests=0,
+  frozen_files=files,first_failures=first,cumulative_spent=2,cumulative_cap=4,order=['S4','S1'],namespace=str(h.ACTUAL),
+@@ -55,5 +56,6 @@
+  limits=['Mock fixtures prove mechanics only; no factual PASS','Two spent permanent failures; no old S2/S3 retry','Root serialization only; no cross-process lock or signed authority service','T2 and original E02 remain pending; no product/source10 change']))
+ oldlauncher=(h.E/'remaining-source-preparation-r2/run_remaining_prefix.py').read_text('utf8')
+ (P/'launcher.diff').write_text(''.join(difflib.unified_diff(oldlauncher.splitlines(True),(P/'run_local_role_prefix.py').read_text('utf8').splitlines(True),fromfile='frozen/run_remaining_prefix.py',tofile='new/run_local_role_prefix.py')),encoding='utf8')
++assert all(h.sha(P/n)==h.sha(h.E/'local-role-preparation'/n) for n in ('S4-template.json','S1-template.json','prompt.txt','projection-proof.json'))
+ assert not h.ACTUAL.exists()
+ print(json.dumps(dict(manifest_sha256=h.sha(P/'manifest.json'),core_sha256=h.CORE_HASH,templates=proof),indent=2))
