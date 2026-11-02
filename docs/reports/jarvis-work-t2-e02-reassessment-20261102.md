@@ -1,6 +1,6 @@
 # T2 E02 当前 8B 研究接口复核
 
-当前阶段：**按需资料查看设计已独审通过，正在拆解实施计划；E02、T2 真实验收尚未通过。** 原工单 `wo-ultimaagent-20261101-0021` 继续执行。
+当前阶段：**设计及实施计划均已独审通过，source10 正在隔离编码第一单元；E02、T2 真实验收尚未通过。** 原工单 `wo-ultimaagent-20261101-0021` 继续执行。
 
 同一候选上的 E01 文件摘要三轮、E03 选区改写三轮及焦点/选区负例已独立通过，结论见[验收汇总](jarvis-work-t2-e01-e03-acceptance-20261102.md)。当前继续解决 E02 研究任务，不越过 T2 推进 T3。
 
@@ -35,3 +35,5 @@
 按需资料查看第三版设计已独审 SPEC PASS/QUALITY PASS（review-3/verdict f6ddd91c），五项意见经两轮修订全部关闭。设计保留文档HTML投影与代码后缀边界，按实际SDK事件/实例认领请求，保留可重建的输入及引用记录，区分HTTPX已下载/应用检查/接纳/保留字节，并统一模型输出JSON格式。只算设计通过，未跑产品或模型验证。
 
 正式设计为[研究资料按需查看方案](../plans/jarvis-work-research-source-navigation-design-20261102.md)，SHA41998861f1a0eeaad1800f61d19642656b0e19fa4b74dcf0e79366d6dc4c0eef。现在按原工单细化代码文件、接口、先失败后通过的测试、同候选回归及独审步骤；源码10、首个实际8B案例和T3均待各自门。新1CLI/8POST额度只是提议，未分配。永久仅当前8B，旧9/9、3/4、1/1封口，KWS/生产保持。
+
+2026-11-03：实施计划独审 SPEC/QUALITY PASS（a65a30ec），唯一非阻断命名勘误已逐字读回修正，正式计划 SHAa8419b77。现有隔离C从244创建 codex/jarvis-work-navigation-v3-source10，H生产0a31不变。代码阶段新跑六文件285PASS及compat8PASS，实际加载产品路径验证通过；compat原有anyio rewrite警告与可选voice reference fallback提示保留，不能称输出全无警告。已派发第一单元实现安全来源投影/页面/canonical v3及重放；后续为请求permit/SDK写入、完整对话/有界transport。代码只放行明确allowlist及隔离测试，首个实际1CLI/8POST尚未分配，模型调用0。旧source9 E01/E03只对旧候选成立；新候选仍须完整SDK、实际E02三轮/真实联网/同版E01E03与负例/原T2审查。KWS、生产进程、其他权重及T3均不变。

@@ -1,0 +1,7 @@
+# Implementation planning concerns handled before first review
+
+Root read both DONE_WITH_CONCERNS reports under handling-reports. Initial proposed new worktree was corrected before review to use existing clean linked C and a future new codex branch, per controller-existing-isolation-ruling. The original plan/report/analysis remain archived; latest plan a0683169/H copy, analysis94fee147, reporta4140fb5 and original report prefix were raw-hash verified. No branch or worktree change occurred.
+
+The remaining concerns are future evidence: actual 8B semantics, complete SDK histories/transport counters, late effects and P4 adapter/native-baseline qualification. None is a claimed runtime success. Existing P4 cleanup may reopen+revalidate identities rather than retain every descendant handle continuously; the plan must preserve its actual authority, not advertise stronger proof. No new native controller is authorized.
+
+Ruling: first independent review of implementable task/interface/test consistency against the approved41998861 design. No reopening of that architecture, but concrete plan gaps or contradictions must be reported. Proposed source10 and first-model budgets remain unallocated. Original continuous-goal authorization and execution method persist; this subordinate plan does not introduce a new model choice or production write. All implementation/source10/model/actual/T3 releases remain false until later concrete execution ruling. E02/T2 NOT_PASSED.
