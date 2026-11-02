@@ -128,3 +128,10 @@ r3 的上下文估算与受控回放两项 Important 已修订。r4 精确方案
 S2与S3原结果均保留且不重跑，累计实际POST为2，S1/S4按停止规则关闭，原组及S3新问题均FAIL，源码10/产品集成/T3—T5仍关闭。本轮没有产品源码修改或新研究文件；启动程序31项检查与既有产品293项测试分别计数。受保护5进程身份及21个产品/契约输入再次核对未变，隔离调用进程均已退出。当前只做一次阶段职责表达假设的设计裁决：现有提示已经要求单来源部分贡献，故不能预先认定提示存在根因；若有新提案，只能独审后另裁决未尝试S4/S1，最多使用原累计上限4中的剩余2次，不得补样本或降低公开E02交付门。
 
 实际包：data/evidence/jarvis-work-capability/T2/per-source-feasibility-20261102/remaining-source-actual/S3/first-f53a803-r2/；独立复核：data/evidence/jarvis-work-capability/T2/review-remaining-source-S3-first/。T2仍未通过，原工单未完成。
+
+
+## 阶段职责澄清设计通过，当前仅准备
+
+中性局部充分性设计0a95e725独立SPEC/QUALITY PASS（e7abb30a）。只把unused_reason的充分性明确为“可见证据能否支撑至少一条相关且符合引用规则的局部论断”，原query以background_original_query完整保留；不是提示根因已证实或模型能力已修复。完整精确提案见docs/plans/jarvis-work-local-role-diagnostic-design-20261102.md。
+
+当前仅准备新的隔离验证程序，S4/S1实际调用尚未放行。若新准备另经独审通过，最多按S4→S1各一次；S2/S3原失败及2次已耗均保留，累计仍不超过4，任一失败/unused立即终止。两份即使都通过也只证明两个局部前缀，不满足原三来源/三轮E02、全流程预算或文件交付，更不自动放行源码10。生产源码/默认模型/KWS/T3—T5不变。
