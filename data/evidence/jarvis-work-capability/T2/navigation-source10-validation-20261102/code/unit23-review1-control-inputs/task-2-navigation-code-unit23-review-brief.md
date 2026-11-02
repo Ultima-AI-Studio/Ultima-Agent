@@ -1,0 +1,40 @@
+# Independent combined U2/U3 integration task review
+
+Review one combined integration task: SPEC compliance then QUALITY. Most-capable review role for coupled concurrency/guard/transport/evidence risks. No subagents. Read this first, then original combined requirements W/task-2-navigation-code-unit23-brief.md SHA16ebc8291dca7e1d3ca92deaff1ec1494decf0f4adeacdd6797e41174db8645c; author SAME report C:\Users\Administrator\.codex\worktrees\jarvis-work-capability-longpaths\UltimaAgent\.superpowers\sdd\jarvis-work-capability-delivery-plan-20261101\task-2-navigation-code-unit2-report.md SHA0bd8a4e9f3e64ebc475dbd3c5e67e2581ab0cd50f20e3dd8d21c7bf803182587; full diff C:\Users\Administrator\.codex\worktrees\jarvis-work-capability-longpaths\UltimaAgent\.superpowers\sdd\jarvis-work-capability-delivery-plan-20261101\task-2-navigation-code-unit23-review-package.txt SHAd8524eccb9d80966005fc5ad52f8cb80dbb11a107410e7561d7cfcbe929f7a7c. BASE494e544788c287defbf1208967444e733df5501a → HEAD0e3e0edeb6d57d7d792dd5f1e40ecad58ee60642. Read diff once (bounded slices if tool output truncates). Do not re-run git, do not reread changed files unless a required hunk is cut mid-function; report any such read.
+
+Binding design41998861, corrected implementation plan a8419b77 are C/docs/plans/jarvis-work-research-source-navigation-{design,implementation}-20261102.md. U1 separately reviewed at494; this task includes a minimal U1 availability correction. Root coalesced planned U2/U3 after concrete shared native-test dependency (V/root-unit23-coalescing-ruling.json), no architecture or acceptance relaxation. Root actual SDK scan f25302c7 diagnosed synthetic placeholder N3 card hitting PII; read W/task-2-navigation-unit23-availability-scan-ruling.md74b5c652. Actual scan_view remains strict, source/catalogue safety unchanged. Only placeholder renderability no longer invokes final actual-exposure scan. Real actual PII-like references intentionally fail closed, rate unmeasured; no metadata exemption or resampling. Verify implementation, do not accept author assurances.
+
+Root exact extra test-file scope V/root-test-context-fixture-extension.json199cad6c: only two fresh-research tests and necessary local helper/imports. Root static AST confirms only those two existing function bodies changed; added fixture research_navigation_entropy decorators=['pytest.fixture']. Inspect whether tests retain their purposes and whether entropy fixture scope is appropriate. Original65 research names/285 suite-qualified IDs are present, but counts/names do not prove assertion strength.
+
+## Global Constraints (verbatim)
+
+- 保留用户已确认可用的 KWS 基线；本次不重选唤醒引擎。
+- 不改变三层架构和单一主脑；不新增第二套 Agent 核心或并行工具注册表。
+- 测试使用每轮隔离目录/会话库；不写真实任务队列、真实记忆或无关用户文件。
+- 本地或云端模型共用工具授权与成果核验；保持现有 `/ask` 的 `query` 和回复字段向后兼容。
+- 不改变现有暂停、Owner、冻结和发布门；正式执行前登记全局主表，遵守根规则的当前 WIP 上限。
+- 技术阶段与 Owner 冻结分别报告；技术检查点 tag 使用明确阶段名，禁止提前打 `frozen`。
+
+附加固定边界：当前和未来仅 `qwen3-8b-uncensored`，digest `6d7230a923426bc1933879eb08a7dafc18e5fc0e7606c459ce98f16e0c7f9330`；永不采用 14B/更大/其他权重、fallback、下载或默认值变更。E01/E03 source9 三轮及 negatives 保留，E02/T2 NOT_PASSED，T3 关闭。source9 9/9、prefix 3/4、offline 1/1 均封闭；source10 为单独候选记账，本文没有分配任何 source/model/actual 预算。
+
+
+## Root reports and task boundaries
+
+V=H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102. Root read DONE_WITH_CONCERNS under handling-reports; concerns are actual model/harness/semantic acceptance still future, strict real-ID PII refusal unmeasured, and trusted harness must export private ledger packets. No claimed product pass. Root independently verified current commit/test source bytes/raw copies, full418 and safecompat8 receipts, SDK22 actual hashes, frozen5, normal index clean and original IDs. No tests rerun by root. Byte-bound root runner60f6ea3d; current full receipt21757553, compat af6f8f91. Compatibility baseline anyio rewrite warning/optional voice fallback persists; report them accurately, no audio occurred. Original full source9/oldactual budgets and failure history remain immutable.
+
+Runtime private export is per-request ledger _runtime_prewrite/_runtime_final plus issued_snapshot, not exposed in public body. Future trusted harness captures it via preparation boundary for independent readback; reviewer should assess whether exported data actually suffices to reconstruct source/projection/nonce/policy/END/native/issued/file/ACK chain. Pure U1 seal_snapshot alone is no runtime authority. Four synthetic packet/file readbacks under V/code/unit23-delivery-covering/temp/test_v3_native_react_observati0..3; independent stdlib process summary V/code/unit23-delivery-readback/external-verification.json. Treat claimed independence against actual test/oracle code, not the summary alone.
+
+## Concrete review lens
+
+1. Single SDK ask_full/real builder/exact enrolled objects/caller nonraising observer/worker claim, shared RLock/admission/seal/deadline ordering and late-effect cutoff. START no instance; composition agent_id native_react is shared, not request authority. Timeout event lacks agent: must retain safe terminal data without broadening permit.
+2. Safe-only inspector/narrow read, configured same guard/policy/preparer under lock, frozen raw bytes restricted, six attempts/18432 emitted-byte accounting including invalid/duplicate/timeout. Source/HTML/renderability/card/witness/version boundaries remain intact.
+3. Complete actual SDK history/persona/mainbrain/tool/default-template preservation; strict action schema/no enums, pending third-page sampler vs promotion; raw+secured exact validation, final artifact proof before ACK, fresh success requires runtime proof unconditionally. No test-only success flags in production.
+4. Same prepared native request bytes, typed options/model/current8B/digest/context flags, metadata/cached-context limitations, byte/status/encoding/counter/time budgets, partial/close/unknown accounting and first-failure retention. Four hashes remain distinct, no hidden retry/unload/other weights. No native-start success inferred from process or synthetic events.
+5. Independent replay/export actually binds original GET/line-domain/view/card/event/wire/raw+secured/generation/intent/file bytes and original path, not a self-reported hash. Exactly one report intent/real SDK write, before/after-intent races and needs_attention after uncertain effects. Preserve ordinary work and historical v2 decode; no fresh v2 authority fallback.
+6. Tests exercise real NativeReAct/registry/worker/guard/scanners/FileWriteTool; inference/transport only simulated, entropy/clock/barriers controlled for deterministic contracts. Dynamic choices/refs from real visible observations; literal independent oracle/counterfactuals, no predetermined winning facts/model score or deleted negative purpose. Check meaningful assertion preservation in rewritten old tests, not just counts.
+
+Inspect unchanged source only for a named concrete integration risk (actual installed SDK paths H:/UltimaAI/UltimaAgent/tools/venv-openjarvis/Lib/site-packages/openjarvis and relevant typed ollama/httpx sources pinned in sdk-sources.json). State each risk/read. No broad crawl or repeated architecture/P4 audit. Do not rerun supplied tests; if a precise code doubt needs a focused safe experiment not answered by logs, report to root with the test proposal. This gate is read-only: no runtime/product/SDK/scanner/lexer/HTTPX imports/tests/model/network/process/UI/audio/install/git/code edits. Stdlib static read/hash/AST only with fixed H python-B-Xutf8.
+
+## Outputs
+
+Create NEW V/review-unit23-1/review.md + verdict.json (SPEC/QUALITY independently PASS/REVISE, exact input paths/hashes, numbered Critical/Important/Minor with concrete file:line+impact+resolution, cannot_verify and scope). Directory not precreated; no overwrite. Full W/task-2-navigation-code-unit23-review-report.md. Reply compact verdicts/findings/hashes. Root owns fixes and later full-branch review/harness release. All model/actual/harness/T3/prod release false, E02/T2 NOT_PASSED.

@@ -1,0 +1,34 @@
+..........................................................F.....         [100%]
+================================== FAILURES ===================================
+_________________ test_v3_inspector_has_only_safe_capability __________________
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/unit2-green/temp/test_v3_inspector_has_only_saf0')
+
+    def test_v3_inspector_has_only_safe_capability(tmp_path):
+        state=setup(tmp_path); inspector=state[4][0]
+        assert not isinstance(inspector,wt._CapabilityTool)
+        assert set(vars(inspector))=={'_catalogue','_read'}
+        assert set(inspector.spec.parameters['properties'])=={'source_id','start_line'}
+        for i in range(1,8):
+>           result=invoke(state,i,INSPECT,dict(source_id='bad',start_line=1))
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+src\brain\tests\test_work_navigation_sdk.py:83: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+src\brain\tests\test_work_navigation_sdk.py:50: in invoke
+    ledger.expect(seq,name,hashlib.sha256(j(args)).hexdigest())
+src\brain\work_tools.py:128: in expect
+    self._live()
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <src.brain.work_tools.WorkLedger object at 0x0000027AA2527D90>
+
+    def _live(self):
+>       if self._sealed: raise ValueError(self.first_failure or 'Navigation sealed')
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       ValueError: Unlinked or failed END
+
+src\brain\work_tools.py:70: ValueError
+=========================== short test summary info ===========================
+FAILED src/brain/tests/test_work_navigation_sdk.py::test_v3_inspector_has_only_safe_capability
+1 failed, 63 passed in 3.11s

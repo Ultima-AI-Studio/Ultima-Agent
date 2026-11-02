@@ -1,0 +1,47 @@
+.........................................................F.............. [ 87%]
+..........                                                               [100%]
+================================== FAILURES ===================================
+__________________ test_v3_writer_real_io_and_external_bytes __________________
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/unit2-green-5/temp/test_v3_writer_real_io_and_ext0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000002B3A3622660>
+
+    def test_v3_writer_real_io_and_external_bytes(tmp_path,monkeypatch):
+        seen=[]; caller=threading.get_ident(); original=wt.FileWriteTool.execute
+        def observe(tool,**args):
+            seen.append((threading.get_ident(),wt._ACTIVE.get(),tuple(tool._allowed_dirs)))
+            return original(tool,**args)
+        monkeypatch.setattr(wt.FileWriteTool,'execute',observe)
+        state=setup(tmp_path); data=read_three(state)
+        result=invoke(state,4,WRITE,data)
+        assert result.success,result.content
+        ledger,b,c,*_=state
+        resolved,bindings=nav.resolve_v3(data,ledger.issued_snapshot,c)
+        oracle=nav.render_v3(resolved,c.catalogue_json,bindings=bindings).content.encode()
+        raw=(tmp_path/'research.md').read_bytes()
+        assert raw==oracle and hashlib.sha256(raw).hexdigest()==json.loads(result.content)['sha256']
+        assert len(result.content.encode())<=3072
+        assert len(seen)==1 and seen[0][0]!=caller and seen[0][1] is None
+        assert len([r for r in ledger.snapshot() if r['tool_name']=='ultima_work_file_write'])==1
+>       assert not invoke(state,5,WRITE,data).success
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+src\brain\tests\test_work_navigation_sdk.py:82: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+src\brain\tests\test_work_navigation_sdk.py:51: in invoke
+    ledger.expect(seq,name,hashlib.sha256(j(args)).hexdigest())
+src\brain\work_tools.py:128: in expect
+    self._live()
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <src.brain.work_tools.WorkLedger object at 0x000002B3A3515BE0>
+
+    def _live(self):
+>       if self._sealed: raise ValueError(self.first_failure or 'Navigation sealed')
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       ValueError: Unlinked or failed END
+
+src\brain\work_tools.py:70: ValueError
+=========================== short test summary info ===========================
+FAILED src/brain/tests/test_work_navigation_sdk.py::test_v3_writer_real_io_and_external_bytes
+1 failed, 81 passed in 3.99s

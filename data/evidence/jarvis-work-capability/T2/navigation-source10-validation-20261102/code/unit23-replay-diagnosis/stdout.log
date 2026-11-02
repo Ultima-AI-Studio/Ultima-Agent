@@ -1,0 +1,32 @@
+F                                                                        [100%]
+================================== FAILURES ===================================
+________________ test_v3_native_react_observation_driven_chain ________________
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/unit23-replay-diagnosis/temp/test_v3_native_react_observati0')
+sdk_io = (<src.brain.browser.channel.BrowserChannel object at 0x0000016422D1AA50>, [('search', 'Research a subject'), ('get', '...'https://example.com/source/3'), ('get', 'https://example.com/source/4'), ('get', 'https://example.com/source/5')], {})
+mock_jar = (<openjarvis.sdk.Jarvis object at 0x0000016422D192B0>, <function _run_work_agent at 0x0000016421D1EAC0>, [{'format': {... {'num_ctx': 16384, 'num_predict': 2048, 'temperature': 0}, ...}], [<function navigation_reply at 0x0000016421D2BCE0>])
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000163D0A002B0>
+
+    def test_v3_native_react_observation_driven_chain(tmp_path,sdk_io,mock_jar,monkeypatch):
+        jar,runner,bodies,replies=mock_jar
+        captured={}; original=server._prepare_research_navigation
+        def prepare(collection,*,binding,ledger):
+            captured.update(ledger=ledger,binding=binding,collection=collection)
+            return original(collection,binding=binding,ledger=ledger)
+        monkeypatch.setattr(server,'_prepare_research_navigation',prepare)
+        # This script consumes actual catalogue and observations. The fixture
+        # transport will not invent SDK observations or issue server-side cards.
+        choose=navigation_reply
+        replies.extend([choose]*5)
+        result=submit(tmp_path,sdk_io[0],runner)
+>       assert result['status']=='succeeded',(result['error'],[(r.get('tool_name'),r.get('error')) for r in captured['ledger'].snapshot() if r.get('error')])
+E       AssertionError: ('Unlinked or failed END', [('ultima_work_research_write', "'ToolSpec' object has no attribute 'spec'")])
+E       assert 'failed' == 'succeeded'
+E         
+E         - succeeded
+E         + failed
+
+src\brain\tests\test_work_navigation_transport.py:55: AssertionError
+=========================== short test summary info ===========================
+FAILED src/brain/tests/test_work_navigation_transport.py::test_v3_native_react_observation_driven_chain
+1 failed in 2.39s

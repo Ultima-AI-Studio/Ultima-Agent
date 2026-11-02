@@ -1,0 +1,33 @@
+F                                                                        [100%]
+================================== FAILURES ===================================
+_____________ test_v3_client_close_does_not_replace_first_failure _____________
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/unit23-close-first-failure-red/temp/test_v3_client_close_does_not_0')
+sdk_io = (<src.brain.browser.channel.BrowserChannel object at 0x000001A11FE2F4D0>, [('search', 'Research a subject'), ('get', '...'https://example.com/source/3'), ('get', 'https://example.com/source/4'), ('get', 'https://example.com/source/5')], {})
+mock_jar = (<openjarvis.sdk.Jarvis object at 0x000001A11FE2DD30>, <function _run_work_agent at 0x000001A11E1CEFC0>, [{'format': {...ser'}], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [])
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001A0BCEA0180>
+
+    def test_v3_client_close_does_not_replace_first_failure(tmp_path,sdk_io,mock_jar,monkeypatch):
+        factory=server._research_client
+        def client():
+            result=factory(); close=result.close
+            def failing_close():
+                close()
+                raise RuntimeError('secondary client close')
+            result.close=failing_close
+            return result
+        monkeypatch.setattr(server,'_research_client',client)
+        mock_jar[3].append('{"final_answer":')
+        result=submit(tmp_path,sdk_io[0],mock_jar[1])
+>       assert result['status']=='failed' and 'secondary' not in result['error']
+E       AssertionError: assert ('failed' == 'failed'
+E         
+E           failed and 'secondary' not in 'secondary client close'
+E         
+E         'secondary' is contained here:
+E           secondary client close)
+
+src\brain\tests\test_work_navigation_transport.py:294: AssertionError
+=========================== short test summary info ===========================
+FAILED src/brain/tests/test_work_navigation_transport.py::test_v3_client_close_does_not_replace_first_failure
+1 failed in 2.25s

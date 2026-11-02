@@ -1,0 +1,1334 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="43" skipped="0" tests="178" time="22.352" timestamp="2026-11-03T01:16:28.985201+08:00" hostname="DESKTOP-B366PQ9"><testcase classname="src.brain.tests.test_work_research" name="test_required_reads_precede_even_an_immediate_final_answer" time="0.783" /><testcase classname="src.brain.tests.test_work_research" name="test_actual_report_write_cites_three_of_five_fetched_sources" time="0.272" /><testcase classname="src.brain.tests.test_work_research" name="test_optional_failed_probe_has_exact_ledger_identity" time="0.074" /><testcase classname="src.brain.tests.test_work_research" name="test_failed_model_action_cannot_use_probe_waiver[same_tool]" time="0.060" /><testcase classname="src.brain.tests.test_work_research" name="test_failed_model_action_cannot_use_probe_waiver[model_metadata]" time="0.058" /><testcase classname="src.brain.tests.test_work_research" name="test_bad_collection_never_reaches_model_or_file[insufficient]" time="0.009" /><testcase classname="src.brain.tests.test_work_research" name="test_bad_collection_never_reaches_model_or_file[same_body]" time="0.010" /><testcase classname="src.brain.tests.test_work_research" name="test_bad_collection_never_reaches_model_or_file[invalid]" time="0.003" /><testcase classname="src.brain.tests.test_work_research" name="test_bad_collection_never_reaches_model_or_file[excess]" time="0.003" /><testcase classname="src.brain.tests.test_work_research" name="test_real_executor_timeout_aborts_before_runner" time="0.005" /><testcase classname="src.brain.tests.test_work_research" name="test_report_refuses_unbound_or_forged_citations[change0]" time="0.033" /><testcase classname="src.brain.tests.test_work_research" name="test_report_refuses_unbound_or_forged_citations[change1]" time="0.034" /><testcase classname="src.brain.tests.test_work_research" name="test_report_refuses_unbound_or_forged_citations[change2]" time="0.036" /><testcase classname="src.brain.tests.test_work_research" name="test_report_refuses_unbound_or_forged_citations[change3]" time="0.034" /><testcase classname="src.brain.tests.test_work_research" name="test_report_refuses_unbound_or_forged_citations[change4]" time="0.034" /><testcase classname="src.brain.tests.test_work_research" name="test_report_refuses_unbound_or_forged_citations[change5]" time="0.038" /><testcase classname="src.brain.tests.test_work_research" name="test_report_refuses_unbound_or_forged_citations[change6]" time="0.036" /><testcase classname="src.brain.tests.test_work_research" name="test_source_candidates_are_data_and_combined_mutation_is_early_rejected" time="0.003" /><testcase classname="src.brain.tests.test_work_research" name="test_unbound_report_writer_fails_without_file" time="0.002" /><testcase classname="src.brain.tests.test_work_research" name="test_cli_source_urls_remain_candidate_data" time="0.030" /><testcase classname="src.brain.tests.test_work_research" name="test_malformed_sdk_search_records_retain_raw_and_diagnostics" time="0.003"><failure message="KeyError: 'b92cd36e-1877-48a3-a584-6d8f6cecb2d2'">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/unit23-research-fixtures-2/temp/test_malformed_sdk_search_reco0')
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x000001EFA0FE4E10&gt;, [], {})
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000001EFA0FF23D0&gt;
+
+    def test_malformed_sdk_search_records_retain_raw_and_diagnostics(tmp_path,sdk_io,monkeypatch):
+        import ddgs
+        class Malformed:
+            def text(self,*a,**kw): return [dict(title='line one\nline two',href=URLS[0],body='snippet')]
+        monkeypatch.setattr(ddgs,'DDGS',Malformed)
+        browser,_,_=sdk_io
+        r=submit(tmp_path,browser,lambda *a,**kw:pytest.fail('malformed source hints reached model'))
+        assert r['status']=='failed'
+&gt;       search=next(x['result'] for x in restricted_records(r) if x.get('tool_name')=='ultima_work_web_search')
+                                         ^^^^^^^^^^^^^^^^^^^^^
+
+src\brain\tests\test_work_research.py:253: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+result = {'request_id': 'r', 'session_id': 's', 'task_id': 'b92cd36e-1877-48a3-a584-6d8f6cecb2d2', 'status': 'failed', ...}
+
+    def restricted_records(result):
+&gt;       ledger=RESTRICTED[result['task_id']]
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       KeyError: 'b92cd36e-1877-48a3-a584-6d8f6cecb2d2'
+
+src\brain\tests\test_work_research.py:12: KeyError</failure></testcase><testcase classname="src.brain.tests.test_work_research" name="test_mandatory_search_failure_cannot_be_waived" time="0.005" /><testcase classname="src.brain.tests.test_work_research" name="test_cross_request_catalogue_is_rejected" time="0.017" /><testcase classname="src.brain.tests.test_work_research" name="test_report_independent_reopen_detects_changed_bytes" time="0.080" /><testcase classname="src.brain.tests.test_work_research" name="test_native_react_uses_bound_report_with_real_sdk_collection" time="0.588" /><testcase classname="src.brain.tests.test_work_research" name="test_preflight_budget_stops_before_starting_next_get" time="0.006" /><testcase classname="src.brain.tests.test_work_research" name="test_source_url_schema_never_grants_authority[True]" time="0.003" /><testcase classname="src.brain.tests.test_work_research" name="test_source_url_schema_never_grants_authority[https://example.com/]" time="0.003" /><testcase classname="src.brain.tests.test_work_research" name="test_source_url_schema_never_grants_authority[bad2]" time="0.003" /><testcase classname="src.brain.tests.test_work_research" name="test_source_url_schema_never_grants_authority[bad3]" time="0.003" /><testcase classname="src.brain.tests.test_work_research" name="test_report_nested_writer_keeps_existing_path_boundary[../escape.md]" time="0.035" /><testcase classname="src.brain.tests.test_work_research" name="test_report_nested_writer_keeps_existing_path_boundary[C:/outside.md]" time="0.034" /><testcase classname="src.brain.tests.test_work_research" name="test_sdk_false_file_success_is_not_report_completion" time="0.062" /><testcase classname="src.brain.tests.test_work_research" name="test_optional_probe_does_not_waive_unexpected_adapter_error" time="0.004" /><testcase classname="src.brain.tests.test_work_research" name="test_native_react_first_messages_include_nested_report_schema[3]" time="0.121" /><testcase classname="src.brain.tests.test_work_research" name="test_native_react_first_messages_include_nested_report_schema[5]" time="0.110" /><testcase classname="src.brain.tests.test_work_research" name="test_source6_nested_action_and_final_only" time="0.466" /><testcase classname="src.brain.tests.test_work_research" name="test_source6_double_report_is_one_mutation" time="0.063" /><testcase classname="src.brain.tests.test_work_research" name="test_source6_only_bound_tool_and_frozen_capture" time="0.083" /><testcase classname="src.brain.tests.test_work_research" name="test_source6_admission_boundary[55-True]" time="0.001" /><testcase classname="src.brain.tests.test_work_research" name="test_source6_admission_boundary[54.9-False]" time="0.001" /><testcase classname="src.brain.tests.test_work_research" name="test_r4a_wire_scope" time="0.445"><failure message="AssertionError: assert [&lt;class 'None... 'dict'&gt;, ...] == [&lt;class 'None...s 'NoneType'&gt;]&#10;  &#10;  At index 3 diff: &lt;class 'dict'&gt; != &lt;class 'NoneType'&gt;&#10;  Left contains 3 more items, first extra item: &lt;class 'dict'&gt;&#10;  Use -v to get more diff">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/unit23-research-fixtures-2/temp/test_r4a_wire_scope0')
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x000001EFA14459D0&gt;, [('search', 'Research a subject'), ('get', '...'https://example.com/source/3'), ('get', 'https://example.com/source/4'), ('get', 'https://example.com/source/5')], {})
+mock_jar = (&lt;openjarvis.sdk.Jarvis object at 0x000001EFA1214950&gt;, &lt;function _run_work_agent at 0x000001EFA0741940&gt;, [{'model': 'q...], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 256, 'temperature': 0}, ...}, ...], [])
+
+    def test_r4a_wire_scope(tmp_path,sdk_io,mock_jar):
+        jar,runner,bodies,replies=mock_jar
+        base=jar._engine
+        final='{"final_answer":"done"}'
+        replies.extend([final,action(report_payload()),final,final])
+        jar.ask_full('ordinary before',agent='native_react',tools=['calculator'],context=False)
+        result=submit(tmp_path,sdk_io[0],runner)
+        jar.ask_full('ordinary after',agent='native_react',tools=['calculator'],context=False)
+        assert result['status']=='succeeded',result['error']
+&gt;       assert [type(b.get('format')) for b in bodies]==[type(None),dict,dict,type(None)]
+E       AssertionError: assert [&lt;class 'None... 'dict'&gt;, ...] == [&lt;class 'None...s 'NoneType'&gt;]
+E         
+E         At index 3 diff: &lt;class 'dict'&gt; != &lt;class 'NoneType'&gt;
+E         Left contains 3 more items, first extra item: &lt;class 'dict'&gt;
+E         Use -v to get more diff
+
+src\brain\tests\test_work_research.py:521: AssertionError</failure></testcase><testcase classname="src.brain.tests.test_work_research" name="test_r4a_bad_final_after_write[{&quot;action&quot;:&quot;calculator&quot;,&quot;action_input&quot;:{},&quot;final_answer&quot;:&quot;x&quot;}]" time="0.451"><failure message="KeyError: 'path'">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/unit23-research-fixtures-2/temp/test_r4a_bad_final_after_write0')
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x000001EFA14704D0&gt;, [('search', 'Research a subject'), ('get', '...'https://example.com/source/3'), ('get', 'https://example.com/source/4'), ('get', 'https://example.com/source/5')], {})
+mock_jar = (&lt;openjarvis.sdk.Jarvis object at 0x000001EFA1475400&gt;, &lt;function _run_work_agent at 0x000001EFA0741940&gt;, [{'format': {..., ...], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [])
+invalid = '{"action":"calculator","action_input":{},"final_answer":"x"}'
+
+    @pytest.mark.parametrize('invalid',['{"action":"calculator","action_input":{},"final_answer":"x"}',
+                                        '{"final_answer":"1","final_answer":"2"}',
+                                        '{"action":"calculator","action_input":"{}"}',
+                                        '{"final_answer":NaN}','{"final_answer":','Final Answer: saved'])
+    def test_r4a_bad_final_after_write(tmp_path,sdk_io,mock_jar,invalid):
+        _,runner,_,replies=mock_jar
+        replies.extend([action(report_payload()),invalid])
+        result=submit(tmp_path,sdk_io[0],runner)
+        assert result['status']=='needs_attention' and not result['artifacts']
+        assert any(e['type']=='inference_end' for e in result['trace'])
+        write=next(x for x in result['tool_results'] if x.get('tool_name')=='ultima_work_file_write' and x['success'])
+&gt;       assert Path(write['path']).read_text(encoding='utf8')==write['content']
+                    ^^^^^^^^^^^^^
+E       KeyError: 'path'
+
+src\brain\tests\test_work_research.py:541: KeyError</failure></testcase><testcase classname="src.brain.tests.test_work_research" name="test_r4a_bad_final_after_write[{&quot;final_answer&quot;:&quot;1&quot;,&quot;final_answer&quot;:&quot;2&quot;}]" time="0.419"><failure message="KeyError: 'path'">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/unit23-research-fixtures-2/temp/test_r4a_bad_final_after_write1')
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x000001EFA10FB850&gt;, [('search', 'Research a subject'), ('get', '...'https://example.com/source/3'), ('get', 'https://example.com/source/4'), ('get', 'https://example.com/source/5')], {})
+mock_jar = (&lt;openjarvis.sdk.Jarvis object at 0x000001EFA140CE50&gt;, &lt;function _run_work_agent at 0x000001EFA0741940&gt;, [{'format': {..., ...], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [])
+invalid = '{"final_answer":"1","final_answer":"2"}'
+
+    @pytest.mark.parametrize('invalid',['{"action":"calculator","action_input":{},"final_answer":"x"}',
+                                        '{"final_answer":"1","final_answer":"2"}',
+                                        '{"action":"calculator","action_input":"{}"}',
+                                        '{"final_answer":NaN}','{"final_answer":','Final Answer: saved'])
+    def test_r4a_bad_final_after_write(tmp_path,sdk_io,mock_jar,invalid):
+        _,runner,_,replies=mock_jar
+        replies.extend([action(report_payload()),invalid])
+        result=submit(tmp_path,sdk_io[0],runner)
+        assert result['status']=='needs_attention' and not result['artifacts']
+        assert any(e['type']=='inference_end' for e in result['trace'])
+        write=next(x for x in result['tool_results'] if x.get('tool_name')=='ultima_work_file_write' and x['success'])
+&gt;       assert Path(write['path']).read_text(encoding='utf8')==write['content']
+                    ^^^^^^^^^^^^^
+E       KeyError: 'path'
+
+src\brain\tests\test_work_research.py:541: KeyError</failure></testcase><testcase classname="src.brain.tests.test_work_research" name="test_r4a_bad_final_after_write[{&quot;action&quot;:&quot;calculator&quot;,&quot;action_input&quot;:&quot;{}&quot;}]" time="0.421"><failure message="KeyError: 'path'">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/unit23-research-fixtures-2/temp/test_r4a_bad_final_after_write2')
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x000001EFA279C650&gt;, [('search', 'Research a subject'), ('get', '...'https://example.com/source/3'), ('get', 'https://example.com/source/4'), ('get', 'https://example.com/source/5')], {})
+mock_jar = (&lt;openjarvis.sdk.Jarvis object at 0x000001EFA13A0AE0&gt;, &lt;function _run_work_agent at 0x000001EFA0741940&gt;, [{'format': {..., ...], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [])
+invalid = '{"action":"calculator","action_input":"{}"}'
+
+    @pytest.mark.parametrize('invalid',['{"action":"calculator","action_input":{},"final_answer":"x"}',
+                                        '{"final_answer":"1","final_answer":"2"}',
+                                        '{"action":"calculator","action_input":"{}"}',
+                                        '{"final_answer":NaN}','{"final_answer":','Final Answer: saved'])
+    def test_r4a_bad_final_after_write(tmp_path,sdk_io,mock_jar,invalid):
+        _,runner,_,replies=mock_jar
+        replies.extend([action(report_payload()),invalid])
+        result=submit(tmp_path,sdk_io[0],runner)
+        assert result['status']=='needs_attention' and not result['artifacts']
+        assert any(e['type']=='inference_end' for e in result['trace'])
+        write=next(x for x in result['tool_results'] if x.get('tool_name')=='ultima_work_file_write' and x['success'])
+&gt;       assert Path(write['path']).read_text(encoding='utf8')==write['content']
+                    ^^^^^^^^^^^^^
+E       KeyError: 'path'
+
+src\brain\tests\test_work_research.py:541: KeyError</failure></testcase><testcase classname="src.brain.tests.test_work_research" name="test_r4a_bad_final_after_write[{&quot;final_answer&quot;:NaN}]" time="0.421"><failure message="KeyError: 'path'">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/unit23-research-fixtures-2/temp/test_r4a_bad_final_after_write3')
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x000001EFA13954D0&gt;, [('search', 'Research a subject'), ('get', '...'https://example.com/source/3'), ('get', 'https://example.com/source/4'), ('get', 'https://example.com/source/5')], {})
+mock_jar = (&lt;openjarvis.sdk.Jarvis object at 0x000001EFA1231B50&gt;, &lt;function _run_work_agent at 0x000001EFA0741940&gt;, [{'format': {..., ...], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [])
+invalid = '{"final_answer":NaN}'
+
+    @pytest.mark.parametrize('invalid',['{"action":"calculator","action_input":{},"final_answer":"x"}',
+                                        '{"final_answer":"1","final_answer":"2"}',
+                                        '{"action":"calculator","action_input":"{}"}',
+                                        '{"final_answer":NaN}','{"final_answer":','Final Answer: saved'])
+    def test_r4a_bad_final_after_write(tmp_path,sdk_io,mock_jar,invalid):
+        _,runner,_,replies=mock_jar
+        replies.extend([action(report_payload()),invalid])
+        result=submit(tmp_path,sdk_io[0],runner)
+        assert result['status']=='needs_attention' and not result['artifacts']
+        assert any(e['type']=='inference_end' for e in result['trace'])
+        write=next(x for x in result['tool_results'] if x.get('tool_name')=='ultima_work_file_write' and x['success'])
+&gt;       assert Path(write['path']).read_text(encoding='utf8')==write['content']
+                    ^^^^^^^^^^^^^
+E       KeyError: 'path'
+
+src\brain\tests\test_work_research.py:541: KeyError</failure></testcase><testcase classname="src.brain.tests.test_work_research" name="test_r4a_bad_final_after_write[{&quot;final_answer&quot;:]" time="0.413"><failure message="KeyError: 'path'">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/unit23-research-fixtures-2/temp/test_r4a_bad_final_after_write4')
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x000001EFA10BAA50&gt;, [('search', 'Research a subject'), ('get', '...'https://example.com/source/3'), ('get', 'https://example.com/source/4'), ('get', 'https://example.com/source/5')], {})
+mock_jar = (&lt;openjarvis.sdk.Jarvis object at 0x000001EFA14066D0&gt;, &lt;function _run_work_agent at 0x000001EFA0741940&gt;, [{'format': {..., ...], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [])
+invalid = '{"final_answer":'
+
+    @pytest.mark.parametrize('invalid',['{"action":"calculator","action_input":{},"final_answer":"x"}',
+                                        '{"final_answer":"1","final_answer":"2"}',
+                                        '{"action":"calculator","action_input":"{}"}',
+                                        '{"final_answer":NaN}','{"final_answer":','Final Answer: saved'])
+    def test_r4a_bad_final_after_write(tmp_path,sdk_io,mock_jar,invalid):
+        _,runner,_,replies=mock_jar
+        replies.extend([action(report_payload()),invalid])
+        result=submit(tmp_path,sdk_io[0],runner)
+        assert result['status']=='needs_attention' and not result['artifacts']
+        assert any(e['type']=='inference_end' for e in result['trace'])
+        write=next(x for x in result['tool_results'] if x.get('tool_name')=='ultima_work_file_write' and x['success'])
+&gt;       assert Path(write['path']).read_text(encoding='utf8')==write['content']
+                    ^^^^^^^^^^^^^
+E       KeyError: 'path'
+
+src\brain\tests\test_work_research.py:541: KeyError</failure></testcase><testcase classname="src.brain.tests.test_work_research" name="test_r4a_bad_final_after_write[Final Answer: saved]" time="0.407"><failure message="KeyError: 'path'">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/unit23-research-fixtures-2/temp/test_r4a_bad_final_after_write5')
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x000001EFA10F4050&gt;, [('search', 'Research a subject'), ('get', '...'https://example.com/source/3'), ('get', 'https://example.com/source/4'), ('get', 'https://example.com/source/5')], {})
+mock_jar = (&lt;openjarvis.sdk.Jarvis object at 0x000001EFA1407330&gt;, &lt;function _run_work_agent at 0x000001EFA0741940&gt;, [{'format': {..., ...], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [])
+invalid = 'Final Answer: saved'
+
+    @pytest.mark.parametrize('invalid',['{"action":"calculator","action_input":{},"final_answer":"x"}',
+                                        '{"final_answer":"1","final_answer":"2"}',
+                                        '{"action":"calculator","action_input":"{}"}',
+                                        '{"final_answer":NaN}','{"final_answer":','Final Answer: saved'])
+    def test_r4a_bad_final_after_write(tmp_path,sdk_io,mock_jar,invalid):
+        _,runner,_,replies=mock_jar
+        replies.extend([action(report_payload()),invalid])
+        result=submit(tmp_path,sdk_io[0],runner)
+        assert result['status']=='needs_attention' and not result['artifacts']
+        assert any(e['type']=='inference_end' for e in result['trace'])
+        write=next(x for x in result['tool_results'] if x.get('tool_name')=='ultima_work_file_write' and x['success'])
+&gt;       assert Path(write['path']).read_text(encoding='utf8')==write['content']
+                    ^^^^^^^^^^^^^
+E       KeyError: 'path'
+
+src\brain\tests\test_work_research.py:541: KeyError</failure></testcase><testcase classname="src.brain.tests.test_work_research" name="test_r4a_stop_on_rejection" time="0.282"><failure message="AssertionError: assert (4 == 1)&#10; +  where 4 = len([{'format': {'anyOf': [{'additionalProperties': False, 'properties': {'action': {...}, 'action_input': {...}}, 'requir...er'}, ...], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 2048, 'temperature': 0}, ...}])">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/unit23-research-fixtures-2/temp/test_r4a_stop_on_rejection0')
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x000001EFA1385CD0&gt;, [('search', 'Research a subject'), ('get', '...'https://example.com/source/3'), ('get', 'https://example.com/source/4'), ('get', 'https://example.com/source/5')], {})
+mock_jar = (&lt;openjarvis.sdk.Jarvis object at 0x000001EFA14064C0&gt;, &lt;function _run_work_agent at 0x000001EFA0741940&gt;, [{'format': {...ion 3", "facts": [{"claim": "A distinct fetched source", "evidence_id": "issued:S3"}]}]}}', '{"final_answer":"done"}'])
+
+    def test_r4a_stop_on_rejection(tmp_path,sdk_io,mock_jar):
+        _,runner,bodies,replies=mock_jar
+        broken=report_payload()
+        broken['sections'][-1]['facts']=[]
+        replies.extend([action(broken),action(report_payload()),'{"final_answer":"done"}'])
+        r=submit(tmp_path,sdk_io[0],runner)
+        assert r['status']=='failed' and not list(tmp_path.rglob('research.md'))
+&gt;       assert len(bodies)==1 and len(replies)==2
+E       AssertionError: assert (4 == 1)
+E        +  where 4 = len([{'format': {'anyOf': [{'additionalProperties': False, 'properties': {'action': {...}, 'action_input': {...}}, 'requir...er'}, ...], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 2048, 'temperature': 0}, ...}])
+
+src\brain\tests\test_work_research.py:551: AssertionError</failure></testcase><testcase classname="src.brain.tests.test_work_research" name="test_r4a_unknown_dispatch" time="0.134" /><testcase classname="src.brain.tests.test_work_research" name="test_r4b_candidate_boundaries" time="0.014" /><testcase classname="src.brain.tests.test_work_research" name="test_r4b_projection[3]" time="0.003" /><testcase classname="src.brain.tests.test_work_research" name="test_r4b_projection[4]" time="0.003" /><testcase classname="src.brain.tests.test_work_research" name="test_r4b_projection[5]" time="0.004" /><testcase classname="src.brain.tests.test_work_research" name="test_r4b_code_witness[ts-return await this.queue.dispatch(item);-1-1-this.queue.dispatch-True]" time="0.019" /><testcase classname="src.brain.tests.test_work_research" name="test_r4b_code_witness[ts-const out = await this.client.send(\n  item,\n  flags\n);-1-4-this.client.send-True]" time="0.002" /><testcase classname="src.brain.tests.test_work_research" name="test_r4b_code_witness[js-let sink = new Writer(item);-1-1-Writer-True]" time="0.002" /><testcase classname="src.brain.tests.test_work_research" name="test_r4b_code_witness[py-def run(self):\n    return self.queue.dispatch(item)-2-2-self.queue.dispatch-True]" time="0.001" /><testcase classname="src.brain.tests.test_work_research" name="test_r4b_code_witness[ts-// new Writer(item);-1-1-Writer-False]" time="0.001" /><testcase classname="src.brain.tests.test_work_research" name="test_r4b_code_witness[ts-const txt = &quot;new Writer(item)&quot;;-1-1-Writer-False]" time="0.001" /><testcase classname="src.brain.tests.test_work_research" name="test_r4b_code_witness[js-const txt = `new Writer(item)`;-1-1-Writer-False]" time="0.001" /><testcase classname="src.brain.tests.test_work_research" name="test_r4b_code_witness[ts-const rx = /Writer\\(item\\)/;-1-1-Writer-False]" time="0.001" /><testcase classname="src.brain.tests.test_work_research" name="test_r4b_code_witness[ts-Logger.warning(&quot;new Writer(item)&quot;);-1-1-Writer-False]" time="0.001" /><testcase classname="src.brain.tests.test_work_research" name="test_r4b_code_witness[ts-declare function Writer(item: Item): Writer;-1-1-Writer-False]" time="0.001" /><testcase classname="src.brain.tests.test_work_research" name="test_r4b_code_witness[ts-const a = await this.sink.dispatch(\n item\n);-1-2-this.sink.dispatch-False]" time="0.001" /><testcase classname="src.brain.tests.test_work_research" name="test_r4b_code_witness[ts-const a = await this.sink.dispatch(item);-1-1-dispatch-False]" time="0.001" /><testcase classname="src.brain.tests.test_work_research" name="test_r4b_code_witness[rb-Writer(item)-1-1-Writer-False]" time="0.001" /><testcase classname="src.brain.tests.test_work_research" name="test_r4b_code_witness[ts-// not actually invoked\nconst w = new Writer(item);-1-1-Writer-False]" time="0.001" /><testcase classname="src.brain.tests.test_work_research" name="test_r4b_partial_write" time="0.061" /><testcase classname="src.brain.tests.test_work_research" name="test_r4b_late_report[before_intent]" time="0.289"><failure message="AssertionError: assert ('failed' == 'needs_attention'&#10;  &#10;  - needs_attention&#10;  + failed)">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/unit23-research-fixtures-2/temp/test_r4b_late_report_before_in0')
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x000001EFA279D9D0&gt;, [('search', 'Research a subject'), ('get', '...'https://example.com/source/3'), ('get', 'https://example.com/source/4'), ('get', 'https://example.com/source/5')], {})
+mock_jar = (&lt;openjarvis.sdk.Jarvis object at 0x000001EFA288E410&gt;, &lt;function _run_work_agent at 0x000001EFA0741940&gt;, [{'format': {...censored', 'options': {'num_ctx': 16384, 'num_predict': 2048, 'temperature': 0}, ...}], ['{"final_answer":"no file"}'])
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000001EF9E797E70&gt;
+stage = 'before_intent'
+
+    @pytest.mark.parametrize('stage',['before_intent','after_intent','r5_between_snapshots'])
+    def test_r4b_late_report(tmp_path,sdk_io,mock_jar,monkeypatch,stage):
+        import concurrent.futures
+        import threading
+        from openjarvis.tools import _stubs
+        from openjarvis.tools.file_write import FileWriteTool
+        from src.brain.work_tools import WorkResearchWriteTool
+        _,runner,bodies,replies=mock_jar
+        entered=threading.Event()
+        release=threading.Event()
+        target=FileWriteTool if stage=='after_intent' else WorkResearchWriteTool
+        name='execute' if stage=='after_intent' else 'run'
+        real=getattr(target,name)
+        def delayed(*args,**kw):
+            entered.set()
+            assert release.wait(10)
+            return real(*args,**kw)
+        monkeypatch.setattr(target,name,delayed)
+        real_submit=_stubs._TOOL_RUNNER.submit
+        actual=[]
+        def dispatch(function,**kw):
+            future=real_submit(function,**kw)
+            if function.__self__.tool_id!='ultima_work_research_write': return future
+            actual.append(future)
+            class Expired:
+                def result(self,timeout):
+                    assert entered.wait(3)
+                    raise concurrent.futures.TimeoutError()
+                def cancel(self): return future.cancel()
+            return Expired()
+        monkeypatch.setattr(_stubs._TOOL_RUNNER,'submit',dispatch)
+        if stage=='r5_between_snapshots':
+            # Deliver the actual SDK timeout response. On reading the compose error,
+            # allow the original worker to finish before the service handles it.
+            original_runner=runner
+            class TimeoutResponse(dict):
+                def __getitem__(self,key):
+                    if key=='compose_error':
+                        release.set()
+                        actual[0].result(timeout=5)
+                    return super().__getitem__(key)
+            def runner(*args,**kwargs):
+                return TimeoutResponse(original_runner(*args,**kwargs))
+        replies.extend([action(report_payload()),'{"final_answer":"no file"}'])
+        try:
+            r=submit(tmp_path,sdk_io[0],runner)
+&gt;           assert r['status']=='needs_attention' and len(bodies)==1
+E           AssertionError: assert ('failed' == 'needs_attention'
+E             
+E             - needs_attention
+E             + failed)
+
+src\brain\tests\test_work_research.py:682: AssertionError</failure></testcase><testcase classname="src.brain.tests.test_work_research" name="test_r4b_late_report[after_intent]" time="0.360"><failure message="AssertionError: assert ('needs_attention' == 'needs_attention'&#10;  &#10;    needs_attention and 4 == 1)&#10; +  where 4 = len([{'format': {'anyOf': [{'additionalProperties': False, 'properties': {'action': {...}, 'action_input': {...}}, 'requir...er'}, ...], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 2048, 'temperature': 0}, ...}])">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/unit23-research-fixtures-2/temp/test_r4b_late_report_after_int0')
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x000001EFA27E6DD0&gt;, [('search', 'Research a subject'), ('get', '...'https://example.com/source/3'), ('get', 'https://example.com/source/4'), ('get', 'https://example.com/source/5')], {})
+mock_jar = (&lt;openjarvis.sdk.Jarvis object at 0x000001EFA288FAC0&gt;, &lt;function _run_work_agent at 0x000001EFA0741940&gt;, [{'format': {...censored', 'options': {'num_ctx': 16384, 'num_predict': 2048, 'temperature': 0}, ...}], ['{"final_answer":"no file"}'])
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000001EFA14A1EF0&gt;
+stage = 'after_intent'
+
+    @pytest.mark.parametrize('stage',['before_intent','after_intent','r5_between_snapshots'])
+    def test_r4b_late_report(tmp_path,sdk_io,mock_jar,monkeypatch,stage):
+        import concurrent.futures
+        import threading
+        from openjarvis.tools import _stubs
+        from openjarvis.tools.file_write import FileWriteTool
+        from src.brain.work_tools import WorkResearchWriteTool
+        _,runner,bodies,replies=mock_jar
+        entered=threading.Event()
+        release=threading.Event()
+        target=FileWriteTool if stage=='after_intent' else WorkResearchWriteTool
+        name='execute' if stage=='after_intent' else 'run'
+        real=getattr(target,name)
+        def delayed(*args,**kw):
+            entered.set()
+            assert release.wait(10)
+            return real(*args,**kw)
+        monkeypatch.setattr(target,name,delayed)
+        real_submit=_stubs._TOOL_RUNNER.submit
+        actual=[]
+        def dispatch(function,**kw):
+            future=real_submit(function,**kw)
+            if function.__self__.tool_id!='ultima_work_research_write': return future
+            actual.append(future)
+            class Expired:
+                def result(self,timeout):
+                    assert entered.wait(3)
+                    raise concurrent.futures.TimeoutError()
+                def cancel(self): return future.cancel()
+            return Expired()
+        monkeypatch.setattr(_stubs._TOOL_RUNNER,'submit',dispatch)
+        if stage=='r5_between_snapshots':
+            # Deliver the actual SDK timeout response. On reading the compose error,
+            # allow the original worker to finish before the service handles it.
+            original_runner=runner
+            class TimeoutResponse(dict):
+                def __getitem__(self,key):
+                    if key=='compose_error':
+                        release.set()
+                        actual[0].result(timeout=5)
+                    return super().__getitem__(key)
+            def runner(*args,**kwargs):
+                return TimeoutResponse(original_runner(*args,**kwargs))
+        replies.extend([action(report_payload()),'{"final_answer":"no file"}'])
+        try:
+            r=submit(tmp_path,sdk_io[0],runner)
+&gt;           assert r['status']=='needs_attention' and len(bodies)==1
+E           AssertionError: assert ('needs_attention' == 'needs_attention'
+E             
+E               needs_attention and 4 == 1)
+E            +  where 4 = len([{'format': {'anyOf': [{'additionalProperties': False, 'properties': {'action': {...}, 'action_input': {...}}, 'requir...er'}, ...], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 2048, 'temperature': 0}, ...}])
+
+src\brain\tests\test_work_research.py:682: AssertionError</failure></testcase><testcase classname="src.brain.tests.test_work_research" name="test_r4b_late_report[r5_between_snapshots]" time="0.284"><failure message="AssertionError: assert ('failed' == 'needs_attention'&#10;  &#10;  - needs_attention&#10;  + failed)">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/unit23-research-fixtures-2/temp/test_r4b_late_report_r5_betwee0')
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x000001EFA28DDC50&gt;, [('search', 'Research a subject'), ('get', '...'https://example.com/source/3'), ('get', 'https://example.com/source/4'), ('get', 'https://example.com/source/5')], {})
+mock_jar = (&lt;openjarvis.sdk.Jarvis object at 0x000001EFA288EA40&gt;, &lt;function _run_work_agent at 0x000001EFA0741940&gt;, [{'format': {...censored', 'options': {'num_ctx': 16384, 'num_predict': 2048, 'temperature': 0}, ...}], ['{"final_answer":"no file"}'])
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000001EFA11552B0&gt;
+stage = 'r5_between_snapshots'
+
+    @pytest.mark.parametrize('stage',['before_intent','after_intent','r5_between_snapshots'])
+    def test_r4b_late_report(tmp_path,sdk_io,mock_jar,monkeypatch,stage):
+        import concurrent.futures
+        import threading
+        from openjarvis.tools import _stubs
+        from openjarvis.tools.file_write import FileWriteTool
+        from src.brain.work_tools import WorkResearchWriteTool
+        _,runner,bodies,replies=mock_jar
+        entered=threading.Event()
+        release=threading.Event()
+        target=FileWriteTool if stage=='after_intent' else WorkResearchWriteTool
+        name='execute' if stage=='after_intent' else 'run'
+        real=getattr(target,name)
+        def delayed(*args,**kw):
+            entered.set()
+            assert release.wait(10)
+            return real(*args,**kw)
+        monkeypatch.setattr(target,name,delayed)
+        real_submit=_stubs._TOOL_RUNNER.submit
+        actual=[]
+        def dispatch(function,**kw):
+            future=real_submit(function,**kw)
+            if function.__self__.tool_id!='ultima_work_research_write': return future
+            actual.append(future)
+            class Expired:
+                def result(self,timeout):
+                    assert entered.wait(3)
+                    raise concurrent.futures.TimeoutError()
+                def cancel(self): return future.cancel()
+            return Expired()
+        monkeypatch.setattr(_stubs._TOOL_RUNNER,'submit',dispatch)
+        if stage=='r5_between_snapshots':
+            # Deliver the actual SDK timeout response. On reading the compose error,
+            # allow the original worker to finish before the service handles it.
+            original_runner=runner
+            class TimeoutResponse(dict):
+                def __getitem__(self,key):
+                    if key=='compose_error':
+                        release.set()
+                        actual[0].result(timeout=5)
+                    return super().__getitem__(key)
+            def runner(*args,**kwargs):
+                return TimeoutResponse(original_runner(*args,**kwargs))
+        replies.extend([action(report_payload()),'{"final_answer":"no file"}'])
+        try:
+            r=submit(tmp_path,sdk_io[0],runner)
+&gt;           assert r['status']=='needs_attention' and len(bodies)==1
+E           AssertionError: assert ('failed' == 'needs_attention'
+E             
+E             - needs_attention
+E             + failed)
+
+src\brain\tests\test_work_research.py:682: AssertionError</failure></testcase><testcase classname="src.brain.tests.test_work_research" name="test_r4_unresolved_backend_refuses_before_inference[None]" time="0.111" /><testcase classname="src.brain.tests.test_work_research" name="test_r4_unresolved_backend_refuses_before_inference[other]" time="0.122" /><testcase classname="src.brain.tests.test_work_research" name="test_r4_invalid_or_invisible_span[True-1]" time="0.003" /><testcase classname="src.brain.tests.test_work_research" name="test_r4_invalid_or_invisible_span[1-False]" time="0.002" /><testcase classname="src.brain.tests.test_work_research" name="test_r4_invalid_or_invisible_span[0-1]" time="0.003" /><testcase classname="src.brain.tests.test_work_research" name="test_r4_invalid_or_invisible_span[2-1]" time="0.003" /><testcase classname="src.brain.tests.test_work_research" name="test_r4_invalid_or_invisible_span[1-9]" time="0.003" /><testcase classname="src.brain.tests.test_work_research" name="test_r4_invalid_or_invisible_span[1001-1001]" time="0.002" /><testcase classname="src.brain.tests.test_work_research" name="test_r4_invalid_or_invisible_span[500-500]" time="0.002" /><testcase classname="src.brain.tests.test_work_research" name="test_r4_projected_html_evidence" time="0.080"><failure message="KeyError: 'result'">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/unit23-research-fixtures-2/temp/test_r4_projected_html_evidenc0')
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x000001EFA25DAAD0&gt;, [('search', 'Research a subject')], {})
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000001EFA296CB40&gt;
+
+    def test_r4_projected_html_evidence(tmp_path,sdk_io,monkeypatch):
+        import httpx
+        from src.brain import work_service
+        def get(method,url,**kw):
+            return httpx.Response(200,headers={'content-type':'text/html'},text='&lt;p&gt;Visible listing '+url+'&lt;/p&gt;',
+                                  request=httpx.Request(method,url))
+        monkeypatch.setattr(httpx,'request',get)
+        r=submit(tmp_path,sdk_io[0],lambda *a,**kw:write_report())
+        assert r['status']=='succeeded'
+        record=next(t for t in r['tool_results'] if t.get('tool_name')=='ultima_work_research_write')
+&gt;       evidence=record['result']['evidence'][0]
+                 ^^^^^^^^^^^^^^^^
+E       KeyError: 'result'
+
+src\brain\tests\test_work_research.py:731: KeyError</failure></testcase><testcase classname="src.brain.tests.test_work_research" name="test_r4_limitations_are_local_claims" time="0.001" /><testcase classname="src.brain.tests.test_work_research" name="test_r4_max_turns_after_committed_write" time="0.120"><failure message="AssertionError: assert ('failed' == 'needs_attention'&#10;  &#10;  - needs_attention&#10;  + failed)">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/unit23-research-fixtures-2/temp/test_r4_max_turns_after_commit0')
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x000001EFA27248D0&gt;, [('search', 'Research a subject'), ('get', '...'https://example.com/source/3'), ('get', 'https://example.com/source/4'), ('get', 'https://example.com/source/5')], {})
+mock_jar = (&lt;openjarvis.sdk.Jarvis object at 0x000001EFA288E410&gt;, &lt;function _run_work_agent at 0x000001EFA0741940&gt;, [], ['{"actio...id": "S3", "heading": "Section 3", "facts": [{"claim": "A distinct fetched source", "evidence_id": "issued:S3"}]}]}}'])
+
+    def test_r4_max_turns_after_committed_write(tmp_path,sdk_io,mock_jar):
+        jar,runner,bodies,replies=mock_jar
+        jar.config.agent.max_turns=1
+        replies.append(action(report_payload()))
+        r=submit(tmp_path,sdk_io[0],runner)
+&gt;       assert r['status']=='needs_attention' and len(bodies)==1 and not r['artifacts']
+E       AssertionError: assert ('failed' == 'needs_attention'
+E         
+E         - needs_attention
+E         + failed)
+
+src\brain\tests\test_work_research.py:755: AssertionError</failure></testcase><testcase classname="src.brain.tests.test_work_research" name="test_r4_research_exception_does_not_leak_to_ordinary" time="0.105" /><testcase classname="src.brain.tests.test_work_research" name="test_r4_exact_named_symbol_and_explicit_failure" time="0.001" /><testcase classname="src.brain.tests.test_work_research" name="test_r5_method_header_is_not_a_call[class Queue {-js]" time="0.001" /><testcase classname="src.brain.tests.test_work_research" name="test_r5_method_header_is_not_a_call[class Queue {-mjs]" time="0.001" /><testcase classname="src.brain.tests.test_work_research" name="test_r5_method_header_is_not_a_call[class Queue {-cjs]" time="0.000" /><testcase classname="src.brain.tests.test_work_research" name="test_r5_method_header_is_not_a_call[class Queue {-ts]" time="0.001" /><testcase classname="src.brain.tests.test_work_research" name="test_r5_method_header_is_not_a_call[const queue = {-js]" time="0.001" /><testcase classname="src.brain.tests.test_work_research" name="test_r5_method_header_is_not_a_call[const queue = {-mjs]" time="0.001" /><testcase classname="src.brain.tests.test_work_research" name="test_r5_method_header_is_not_a_call[const queue = {-cjs]" time="0.000" /><testcase classname="src.brain.tests.test_work_research" name="test_r5_method_header_is_not_a_call[const queue = {-ts]" time="0.001" /><testcase classname="src.brain.tests.test_work_research" name="test_r5_incomplete_statement[interface Queue {\n  dispatch(item)\n  : void;\n}-dispatch]" time="0.001" /><testcase classname="src.brain.tests.test_work_research" name="test_r5_incomplete_statement[const run = () =&gt; {\n  return queue.dispatch(item)\n    .then(done);\n}-queue.dispatch]" time="0.001" /><testcase classname="src.brain.tests.test_work_research" name="test_r5_incomplete_statement[function run() {\n  queue.dispatch(item)\n    (other);\n}-queue.dispatch]" time="0.001" /><testcase classname="src.brain.tests.test_work_research" name="test_r5_comment_cannot_prove_call_on_different_line[py-# head\x0c# note\nx = queue.dispatch(item)]" time="0.000" /><testcase classname="src.brain.tests.test_work_research" name="test_r5_comment_cannot_prove_call_on_different_line[js-// heading\u2028// note\nconst x = queue.dispatch(item);]" time="0.000" /><testcase classname="src.brain.tests.test_work_research" name="test_r5_extracted_html_text_cannot_prove_a_source_statement" time="0.000" /><testcase classname="src.brain.tests.test_work_research" name="test_r5_complete_statement_and_raw_identity[js-lines0-lf]" time="0.001" /><testcase classname="src.brain.tests.test_work_research" name="test_r5_complete_statement_and_raw_identity[js-lines0-crlf]" time="0.001" /><testcase classname="src.brain.tests.test_work_research" name="test_r5_complete_statement_and_raw_identity[ts-lines1-lf]" time="0.001" /><testcase classname="src.brain.tests.test_work_research" name="test_r5_complete_statement_and_raw_identity[ts-lines1-crlf]" time="0.001" /><testcase classname="src.brain.tests.test_work_research" name="test_r5_complete_statement_and_raw_identity[py-lines2-lf]" time="0.001" /><testcase classname="src.brain.tests.test_work_research" name="test_r5_complete_statement_and_raw_identity[py-lines2-crlf]" time="0.001" /><testcase classname="src.brain.tests.test_work_research" name="test_r5_completed_report_includes_sdk_result_and_effect" time="0.376"><failure message="AssertionError: assert ('succeeded' == 'succeeded'&#10;  &#10;    succeeded and 5 == 2)&#10; +  where 5 = len([{'format': {'anyOf': [{'additionalProperties': False, 'properties': {'action': {...}, 'action_input': {...}}, 'requir...ser'}, ...], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 256, 'temperature': 0}, ...}])">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/unit23-research-fixtures-2/temp/test_r5_completed_report_inclu0')
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x000001EFA25D9BD0&gt;, [('search', 'Research a subject'), ('get', '...'https://example.com/source/3'), ('get', 'https://example.com/source/4'), ('get', 'https://example.com/source/5')], {})
+mock_jar = (&lt;openjarvis.sdk.Jarvis object at 0x000001EFA291A2B0&gt;, &lt;function _run_work_agent at 0x000001EFA0741940&gt;, [{'format': {..., ...], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [])
+
+    def test_r5_completed_report_includes_sdk_result_and_effect(tmp_path,sdk_io,mock_jar):
+        _,runner,bodies,replies=mock_jar
+        replies.extend([action(report_payload()),'{"final_answer":"done"}'])
+        returned_sdk=[]
+        def observe(*args,**kwargs):
+            response=runner(*args,**kwargs)
+            returned_sdk.extend(response['tool_results'])
+            return response
+        r=submit(tmp_path,sdk_io[0],observe)
+&gt;       assert r['status']=='succeeded' and len(bodies)==2
+E       AssertionError: assert ('succeeded' == 'succeeded'
+E         
+E           succeeded and 5 == 2)
+E        +  where 5 = len([{'format': {'anyOf': [{'additionalProperties': False, 'properties': {'action': {...}, 'action_input': {...}}, 'requir...ser'}, ...], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 256, 'temperature': 0}, ...}])
+
+src\brain\tests\test_work_research.py:846: AssertionError</failure></testcase><testcase classname="src.brain.tests.test_work_research" name="test_source6_native_boundary[version]" time="0.154" /><testcase classname="src.brain.tests.test_work_research" name="test_source6_native_boundary[digest]" time="0.108" /><testcase classname="src.brain.tests.test_work_research" name="test_source6_native_boundary[manifest]" time="0.108" /><testcase classname="src.brain.tests.test_work_research" name="test_source6_native_boundary[credential]" time="0.123" /><testcase classname="src.brain.tests.test_work_research" name="test_source6_native_boundary[wrapper]" time="0.087" /><testcase classname="src.brain.tests.test_work_research" name="test_source6_native_boundary[origin]" time="0.088" /><testcase classname="src.brain.tests.test_work_research" name="test_source6_native_boundary[raw-coercion]" time="0.101" /><testcase classname="src.brain.tests.test_work_research" name="test_source6_native_boundary[duplicate]" time="0.109" /><testcase classname="src.brain.tests.test_work_research" name="test_source6_native_boundary[nonfinite]" time="0.117" /><testcase classname="src.brain.tests.test_work_research" name="test_source6_native_boundary[native-tool]" time="0.117" /><testcase classname="src.brain.tests.test_work_research" name="test_source6_native_boundary[length]" time="0.107" /><testcase classname="src.brain.tests.test_work_research" name="test_source6_native_boundary[model]" time="0.109" /><testcase classname="src.brain.tests.test_work_research" name="test_source6_native_boundary[empty]" time="0.113" /><testcase classname="src.brain.tests.test_work_research" name="test_source6_native_boundary[overflow]" time="0.107" /><testcase classname="src.brain.tests.test_work_research" name="test_source6_native_boundary[ack-overflow]" time="0.434" /><testcase classname="src.brain.tests.test_work_research" name="test_source6_real_admission[after-action]" time="0.222"><failure message="AssertionError: assert 4 == 1&#10; +  where 4 = len([{'format': {'anyOf': [{'additionalProperties': False, 'properties': {'action': {...}, 'action_input': {...}}, 'requir...er'}, ...], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 2048, 'temperature': 0}, ...}])">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/unit23-research-fixtures-2/temp/test_source6_real_admission_af0')
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x000001EFA27C15D0&gt;, [('search', 'Research a subject'), ('get', '...'https://example.com/source/3'), ('get', 'https://example.com/source/4'), ('get', 'https://example.com/source/5')], {})
+mock_jar = (&lt;openjarvis.sdk.Jarvis object at 0x000001EFA27D5230&gt;, &lt;function _run_work_agent at 0x000001EFA0741940&gt;, [{'format': {...uncensored', 'options': {'num_ctx': 16384, 'num_predict': 2048, 'temperature': 0}, ...}], ['{"final_answer":"saved"}'])
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000001EFA27BAC10&gt;
+stage = 'after-action'
+
+    @pytest.mark.parametrize('stage',['after-action','worker','pre-intent','equal'])
+    def test_source6_real_admission(tmp_path,sdk_io,mock_jar,monkeypatch,stage):
+        from src.brain import work_tools,work_service
+        _,runner,bodies,replies=mock_jar
+        now=[0]
+        monkeypatch.setattr(work_service,'monotonic',lambda:0)
+        monkeypatch.setattr(work_tools,'monotonic',lambda:now[0])
+        from src.brain import work_navigation
+        from types import SimpleNamespace
+        monkeypatch.setattr(work_navigation,'time',SimpleNamespace(monotonic=lambda:now[0]))
+        now[0]=204
+        def authored(body):
+            if stage=='equal': now[0]=205
+            if stage=='after-action': now[0]+=24
+            return action(report_payload())
+        if stage=='worker':
+            original=work_tools.WorkResearchWriteTool.run
+            def delayed(*a,**k):
+                now[0]=205.1
+                return original(*a,**k)
+            monkeypatch.setattr(work_tools.WorkResearchWriteTool,'run',delayed)
+        if stage=='pre-intent':
+            original=work_tools.checked_path
+            def delayed(binding,path):
+                resolved=original(binding,path)
+                if isinstance(path,str) and path.endswith('research.md') and Path(path).is_absolute():
+                    now[0]=205.1
+                return resolved
+            monkeypatch.setattr(work_tools,'checked_path',delayed)
+        replies.extend([authored,'{"final_answer":"saved"}'])
+        r=submit(tmp_path,sdk_io[0],runner)
+        assert r['status']==('succeeded' if stage=='equal' else 'failed'),r['error']
+&gt;       assert len(bodies)==(2 if stage=='equal' else 1)
+E       AssertionError: assert 4 == 1
+E        +  where 4 = len([{'format': {'anyOf': [{'additionalProperties': False, 'properties': {'action': {...}, 'action_input': {...}}, 'requir...er'}, ...], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 2048, 'temperature': 0}, ...}])
+
+src\brain\tests\test_work_research.py:935: AssertionError</failure></testcase><testcase classname="src.brain.tests.test_work_research" name="test_source6_real_admission[worker]" time="0.365"><failure message="AssertionError: assert 4 == 1&#10; +  where 4 = len([{'format': {'anyOf': [{'additionalProperties': False, 'properties': {'action': {...}, 'action_input': {...}}, 'requir...er'}, ...], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 2048, 'temperature': 0}, ...}])">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/unit23-research-fixtures-2/temp/test_source6_real_admission_wo0')
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x000001EFA27F0ED0&gt;, [('search', 'Research a subject'), ('get', '...'https://example.com/source/3'), ('get', 'https://example.com/source/4'), ('get', 'https://example.com/source/5')], {})
+mock_jar = (&lt;openjarvis.sdk.Jarvis object at 0x000001EFA288EDB0&gt;, &lt;function _run_work_agent at 0x000001EFA0741940&gt;, [{'format': {...uncensored', 'options': {'num_ctx': 16384, 'num_predict': 2048, 'temperature': 0}, ...}], ['{"final_answer":"saved"}'])
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000001EF9E7B6CF0&gt;
+stage = 'worker'
+
+    @pytest.mark.parametrize('stage',['after-action','worker','pre-intent','equal'])
+    def test_source6_real_admission(tmp_path,sdk_io,mock_jar,monkeypatch,stage):
+        from src.brain import work_tools,work_service
+        _,runner,bodies,replies=mock_jar
+        now=[0]
+        monkeypatch.setattr(work_service,'monotonic',lambda:0)
+        monkeypatch.setattr(work_tools,'monotonic',lambda:now[0])
+        from src.brain import work_navigation
+        from types import SimpleNamespace
+        monkeypatch.setattr(work_navigation,'time',SimpleNamespace(monotonic=lambda:now[0]))
+        now[0]=204
+        def authored(body):
+            if stage=='equal': now[0]=205
+            if stage=='after-action': now[0]+=24
+            return action(report_payload())
+        if stage=='worker':
+            original=work_tools.WorkResearchWriteTool.run
+            def delayed(*a,**k):
+                now[0]=205.1
+                return original(*a,**k)
+            monkeypatch.setattr(work_tools.WorkResearchWriteTool,'run',delayed)
+        if stage=='pre-intent':
+            original=work_tools.checked_path
+            def delayed(binding,path):
+                resolved=original(binding,path)
+                if isinstance(path,str) and path.endswith('research.md') and Path(path).is_absolute():
+                    now[0]=205.1
+                return resolved
+            monkeypatch.setattr(work_tools,'checked_path',delayed)
+        replies.extend([authored,'{"final_answer":"saved"}'])
+        r=submit(tmp_path,sdk_io[0],runner)
+        assert r['status']==('succeeded' if stage=='equal' else 'failed'),r['error']
+&gt;       assert len(bodies)==(2 if stage=='equal' else 1)
+E       AssertionError: assert 4 == 1
+E        +  where 4 = len([{'format': {'anyOf': [{'additionalProperties': False, 'properties': {'action': {...}, 'action_input': {...}}, 'requir...er'}, ...], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 2048, 'temperature': 0}, ...}])
+
+src\brain\tests\test_work_research.py:935: AssertionError</failure></testcase><testcase classname="src.brain.tests.test_work_research" name="test_source6_real_admission[pre-intent]" time="0.361"><failure message="AssertionError: assert 4 == 1&#10; +  where 4 = len([{'format': {'anyOf': [{'additionalProperties': False, 'properties': {'action': {...}, 'action_input': {...}}, 'requir...er'}, ...], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 2048, 'temperature': 0}, ...}])">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/unit23-research-fixtures-2/temp/test_source6_real_admission_pr0')
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x000001EFA2637AD0&gt;, [('search', 'Research a subject'), ('get', '...'https://example.com/source/3'), ('get', 'https://example.com/source/4'), ('get', 'https://example.com/source/5')], {})
+mock_jar = (&lt;openjarvis.sdk.Jarvis object at 0x000001EFA27D7540&gt;, &lt;function _run_work_agent at 0x000001EFA0741940&gt;, [{'format': {...uncensored', 'options': {'num_ctx': 16384, 'num_predict': 2048, 'temperature': 0}, ...}], ['{"final_answer":"saved"}'])
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000001EFA289BEE0&gt;
+stage = 'pre-intent'
+
+    @pytest.mark.parametrize('stage',['after-action','worker','pre-intent','equal'])
+    def test_source6_real_admission(tmp_path,sdk_io,mock_jar,monkeypatch,stage):
+        from src.brain import work_tools,work_service
+        _,runner,bodies,replies=mock_jar
+        now=[0]
+        monkeypatch.setattr(work_service,'monotonic',lambda:0)
+        monkeypatch.setattr(work_tools,'monotonic',lambda:now[0])
+        from src.brain import work_navigation
+        from types import SimpleNamespace
+        monkeypatch.setattr(work_navigation,'time',SimpleNamespace(monotonic=lambda:now[0]))
+        now[0]=204
+        def authored(body):
+            if stage=='equal': now[0]=205
+            if stage=='after-action': now[0]+=24
+            return action(report_payload())
+        if stage=='worker':
+            original=work_tools.WorkResearchWriteTool.run
+            def delayed(*a,**k):
+                now[0]=205.1
+                return original(*a,**k)
+            monkeypatch.setattr(work_tools.WorkResearchWriteTool,'run',delayed)
+        if stage=='pre-intent':
+            original=work_tools.checked_path
+            def delayed(binding,path):
+                resolved=original(binding,path)
+                if isinstance(path,str) and path.endswith('research.md') and Path(path).is_absolute():
+                    now[0]=205.1
+                return resolved
+            monkeypatch.setattr(work_tools,'checked_path',delayed)
+        replies.extend([authored,'{"final_answer":"saved"}'])
+        r=submit(tmp_path,sdk_io[0],runner)
+        assert r['status']==('succeeded' if stage=='equal' else 'failed'),r['error']
+&gt;       assert len(bodies)==(2 if stage=='equal' else 1)
+E       AssertionError: assert 4 == 1
+E        +  where 4 = len([{'format': {'anyOf': [{'additionalProperties': False, 'properties': {'action': {...}, 'action_input': {...}}, 'requir...er'}, ...], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 2048, 'temperature': 0}, ...}])
+
+src\brain\tests\test_work_research.py:935: AssertionError</failure></testcase><testcase classname="src.brain.tests.test_work_research" name="test_source6_real_admission[equal]" time="0.289"><failure message="AssertionError: Research author admission deadline&#10;assert 'failed' == 'succeeded'&#10;  &#10;  - succeeded&#10;  + failed">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/unit23-research-fixtures-2/temp/test_source6_real_admission_eq0')
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x000001EFA27C3650&gt;, [('search', 'Research a subject'), ('get', '...'https://example.com/source/3'), ('get', 'https://example.com/source/4'), ('get', 'https://example.com/source/5')], {})
+mock_jar = (&lt;openjarvis.sdk.Jarvis object at 0x000001EFA27D7CD0&gt;, &lt;function _run_work_agent at 0x000001EFA0741940&gt;, [{'format': {...uncensored', 'options': {'num_ctx': 16384, 'num_predict': 2048, 'temperature': 0}, ...}], ['{"final_answer":"saved"}'])
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000001EFA14A2120&gt;
+stage = 'equal'
+
+    @pytest.mark.parametrize('stage',['after-action','worker','pre-intent','equal'])
+    def test_source6_real_admission(tmp_path,sdk_io,mock_jar,monkeypatch,stage):
+        from src.brain import work_tools,work_service
+        _,runner,bodies,replies=mock_jar
+        now=[0]
+        monkeypatch.setattr(work_service,'monotonic',lambda:0)
+        monkeypatch.setattr(work_tools,'monotonic',lambda:now[0])
+        from src.brain import work_navigation
+        from types import SimpleNamespace
+        monkeypatch.setattr(work_navigation,'time',SimpleNamespace(monotonic=lambda:now[0]))
+        now[0]=204
+        def authored(body):
+            if stage=='equal': now[0]=205
+            if stage=='after-action': now[0]+=24
+            return action(report_payload())
+        if stage=='worker':
+            original=work_tools.WorkResearchWriteTool.run
+            def delayed(*a,**k):
+                now[0]=205.1
+                return original(*a,**k)
+            monkeypatch.setattr(work_tools.WorkResearchWriteTool,'run',delayed)
+        if stage=='pre-intent':
+            original=work_tools.checked_path
+            def delayed(binding,path):
+                resolved=original(binding,path)
+                if isinstance(path,str) and path.endswith('research.md') and Path(path).is_absolute():
+                    now[0]=205.1
+                return resolved
+            monkeypatch.setattr(work_tools,'checked_path',delayed)
+        replies.extend([authored,'{"final_answer":"saved"}'])
+        r=submit(tmp_path,sdk_io[0],runner)
+&gt;       assert r['status']==('succeeded' if stage=='equal' else 'failed'),r['error']
+E       AssertionError: Research author admission deadline
+E       assert 'failed' == 'succeeded'
+E         
+E         - succeeded
+E         + failed
+
+src\brain\tests\test_work_research.py:934: AssertionError</failure></testcase><testcase classname="src.brain.tests.test_work_research" name="test_source6_executor_denies_before_write[policy]" time="0.365"><failure message="AssertionError: assert ([('native_react', 'file:write', 'ultima_work_research_write')] and 'failed' == 'failed'&#10;  &#10;    failed and 4 == 1)&#10; +  where 4 = len([{'format': {'anyOf': [{'additionalProperties': False, 'properties': {'action': {...}, 'action_input': {...}}, 'requir...er'}, ...], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 2048, 'temperature': 0}, ...}])">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/unit23-research-fixtures-2/temp/test_source6_executor_denies_b0')
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x000001EFA2813450&gt;, [('search', 'Research a subject'), ('get', '...'https://example.com/source/3'), ('get', 'https://example.com/source/4'), ('get', 'https://example.com/source/5')], {})
+mock_jar = (&lt;openjarvis.sdk.Jarvis object at 0x000001EFA27D41B0&gt;, &lt;function _run_work_agent at 0x000001EFA0741940&gt;, [{'format': {... ...], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 2048, 'temperature': 0}, ...}], [])
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000001EFA27B2580&gt;
+gate = 'policy'
+
+    @pytest.mark.parametrize('gate',['policy','rate'])
+    def test_source6_executor_denies_before_write(tmp_path,sdk_io,mock_jar,monkeypatch,gate):
+        jar,runner,bodies,replies=mock_jar
+        checked=[]
+        def deny(*args):
+            checked.append(args)
+            return False if gate=='policy' else (False,10)
+        monkeypatch.setattr(jar._capability_policy if gate=='policy' else jar._rate_limiter,'check',deny)
+        replies.append(action(report_payload()))
+        r=submit(tmp_path,sdk_io[0],runner)
+&gt;       assert checked and r['status']=='failed' and len(bodies)==1
+E       AssertionError: assert ([('native_react', 'file:write', 'ultima_work_research_write')] and 'failed' == 'failed'
+E         
+E           failed and 4 == 1)
+E        +  where 4 = len([{'format': {'anyOf': [{'additionalProperties': False, 'properties': {'action': {...}, 'action_input': {...}}, 'requir...er'}, ...], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 2048, 'temperature': 0}, ...}])
+
+src\brain\tests\test_work_research.py:951: AssertionError</failure></testcase><testcase classname="src.brain.tests.test_work_research" name="test_source6_executor_denies_before_write[rate]" time="0.179" /><testcase classname="src.brain.tests.test_work_research" name="test_source6_secured_material[input]" time="0.166"><failure message="AssertionError: assert 'failed' == 'succeeded'&#10;  &#10;  - succeeded&#10;  + failed">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/unit23-research-fixtures-2/temp/test_source6_secured_material_0')
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x000001EFA25C9FD0&gt;, [('search', 'Research a subject'), ('get', '...'https://example.com/source/3'), ('get', 'https://example.com/source/4'), ('get', 'https://example.com/source/5')], {})
+mock_jar = (&lt;openjarvis.sdk.Jarvis object at 0x000001EFA27D6AF0&gt;, &lt;function _run_work_agent at 0x000001EFA0741940&gt;, [], ['{"actio...m": "A distinct fetched source", "evidence_id": "issued:S3"}]}]}}', '{"final_answer":"contact private@example.test"}'])
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000001EFA25B9FD0&gt;
+stage = 'input'
+
+    @pytest.mark.parametrize('stage',['input','output','oversize','expanded'])
+    def test_source6_secured_material(tmp_path,sdk_io,mock_jar,monkeypatch,stage):
+        jar,runner,bodies,replies=mock_jar
+        material='private@example.test'
+        if stage=='oversize': material='x'*80000
+        if stage=='expanded':
+            monkeypatch.setattr(jar._engine._inner._scanners[0],'redact',lambda s:'x'*80000)
+        replies.extend([action(report_payload()),'{"final_answer":"contact private@example.test"}'])
+        r=submit(tmp_path,sdk_io[0],runner,text=material)
+        if stage in ('oversize','expanded'):
+            assert not bodies and r['status']=='failed'
+        else:
+&gt;           assert r['status']=='succeeded'
+E           AssertionError: assert 'failed' == 'succeeded'
+E             
+E             - succeeded
+E             + failed
+
+src\brain\tests\test_work_research.py:967: AssertionError</failure></testcase><testcase classname="src.brain.tests.test_work_research" name="test_source6_secured_material[output]" time="0.169"><failure message="AssertionError: assert 'failed' == 'succeeded'&#10;  &#10;  - succeeded&#10;  + failed">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/unit23-research-fixtures-2/temp/test_source6_secured_material_1')
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x000001EFA25C95D0&gt;, [('search', 'Research a subject'), ('get', '...'https://example.com/source/3'), ('get', 'https://example.com/source/4'), ('get', 'https://example.com/source/5')], {})
+mock_jar = (&lt;openjarvis.sdk.Jarvis object at 0x000001EFA25E0050&gt;, &lt;function _run_work_agent at 0x000001EFA0741940&gt;, [], ['{"actio...m": "A distinct fetched source", "evidence_id": "issued:S3"}]}]}}', '{"final_answer":"contact private@example.test"}'])
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000001EFA25F9240&gt;
+stage = 'output'
+
+    @pytest.mark.parametrize('stage',['input','output','oversize','expanded'])
+    def test_source6_secured_material(tmp_path,sdk_io,mock_jar,monkeypatch,stage):
+        jar,runner,bodies,replies=mock_jar
+        material='private@example.test'
+        if stage=='oversize': material='x'*80000
+        if stage=='expanded':
+            monkeypatch.setattr(jar._engine._inner._scanners[0],'redact',lambda s:'x'*80000)
+        replies.extend([action(report_payload()),'{"final_answer":"contact private@example.test"}'])
+        r=submit(tmp_path,sdk_io[0],runner,text=material)
+        if stage in ('oversize','expanded'):
+            assert not bodies and r['status']=='failed'
+        else:
+&gt;           assert r['status']=='succeeded'
+E           AssertionError: assert 'failed' == 'succeeded'
+E             
+E             - succeeded
+E             + failed
+
+src\brain\tests\test_work_research.py:967: AssertionError</failure></testcase><testcase classname="src.brain.tests.test_work_research" name="test_source6_secured_material[oversize]" time="0.103" /><testcase classname="src.brain.tests.test_work_research" name="test_source6_secured_material[expanded]" time="0.104" /><testcase classname="src.brain.tests.test_work_research" name="test_source6_reference_membership_and_readback" time="0.086" /><testcase classname="src.brain.tests.test_work_research" name="test_source6_reopen_validates_reference_protocol[unknown-version]" time="0.134" /><testcase classname="src.brain.tests.test_work_research" name="test_source6_reopen_validates_reference_protocol[missing-version]" time="0.080" /><testcase classname="src.brain.tests.test_work_research" name="test_source6_reopen_validates_reference_protocol[altered-submission]" time="0.081" /><testcase classname="src.brain.tests.test_work_research" name="test_source6_reopen_validates_reference_protocol[altered-binding]" time="0.079" /><testcase classname="src.brain.tests.test_work_research" name="test_source6_reopen_validates_reference_protocol[body]" time="0.081"><failure message="KeyError: 'body'">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/unit23-research-fixtures-2/temp/test_source6_reopen_validates_4')
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x000001EFA25DAAD0&gt;, [('search', 'Research a subject'), ('get', '...'https://example.com/source/3'), ('get', 'https://example.com/source/4'), ('get', 'https://example.com/source/5')], {})
+fault = 'body'
+
+    @pytest.mark.parametrize('fault',['unknown-version','missing-version','altered-submission','altered-binding','body','url'])
+    def test_source6_reopen_validates_reference_protocol(tmp_path,sdk_io,fault):
+        from src.brain.work_tools import WorkBinding
+        from src.brain.work_research import verify_research_artifacts
+        result=submit(tmp_path,sdk_io[0],lambda *a,**kw:write_report())
+        assert result['status']=='succeeded'
+        artifact,=result['artifacts']
+        binding=WorkBinding(Path(artifact['path']).parent,'r','s',result['task_id'])
+        record=next(r for r in restricted_records(result) if r.get('tool_name')=='ultima_work_research_write')
+        receipt=record['result']
+        if fault=='unknown-version': receipt['protocol_version']=999
+        if fault=='missing-version': receipt.pop('protocol_version')
+        if fault=='altered-submission':
+            original=json.loads(receipt['submitted_json'])
+            original['sections'][0]['facts'][0]['claim']='Changed prose'
+            receipt['submitted_json']=json.dumps(original)
+        if fault=='altered-binding': receipt['bindings'][0]['citation_first']+=1
+&gt;       if fault=='body': result['available_sources'][0]['body']+=' changed'
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       KeyError: 'body'
+
+src\brain\tests\test_work_research.py:1010: KeyError</failure></testcase><testcase classname="src.brain.tests.test_work_research" name="test_source6_reopen_validates_reference_protocol[url]" time="0.081" /><testcase classname="src.brain.tests.test_work_research" name="test_source6_lock_wait_uses_entry_deadline" time="0.136" /><testcase classname="src.brain.tests.test_work_research" name="test_source7_refuses_invalid_allowance_before_native_generation[-1]" time="0.108" /><testcase classname="src.brain.tests.test_work_research" name="test_source7_refuses_invalid_allowance_before_native_generation[-999]" time="0.109" /><testcase classname="src.brain.tests.test_work_research" name="test_source7_refuses_invalid_allowance_before_native_generation[0]" time="0.113" /><testcase classname="src.brain.tests.test_work_research" name="test_source7_refuses_invalid_allowance_before_native_generation[True]" time="0.124" /><testcase classname="src.brain.tests.test_work_research" name="test_source7_refuses_invalid_allowance_before_native_generation[12.5]" time="0.134" /><testcase classname="src.brain.tests.test_work_research" name="test_source7_refuses_invalid_allowance_before_native_generation[15]" time="0.141" /><testcase classname="src.brain.tests.test_work_research" name="test_source7_bounded_native_author_and_ack[None-expected0]" time="0.490"><failure message="assert [256, 256, 256, 2048, 256] == [2048, 512]&#10;  &#10;  At index 0 diff: 256 != 2048&#10;  Left contains 3 more items, first extra item: 256&#10;  Use -v to get more diff">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/unit23-research-fixtures-2/temp/test_source7_bounded_native_au0')
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x000001EFA25E4BD0&gt;, [('search', 'Research a subject'), ('get', '...'https://example.com/source/3'), ('get', 'https://example.com/source/4'), ('get', 'https://example.com/source/5')], {})
+mock_jar = (&lt;openjarvis.sdk.Jarvis object at 0x000001EFA27D5DE0&gt;, &lt;function _run_work_agent at 0x000001EFA0741940&gt;, [{'format': {..., ...], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [])
+allowance = None, expected = [2048, 512]
+
+    @pytest.mark.parametrize('allowance,expected', [(None,[2048,512]),(32,[32,32]),(8192,[4096,512])])
+    def test_source7_bounded_native_author_and_ack(tmp_path, sdk_io, mock_jar, allowance, expected):
+        _, runner, bodies, replies = mock_jar
+        replies.extend([action(report_payload()),'{"final_answer":"saved"}'])
+        result = WorkService(tmp_path, runner=runner, browser_channel=sdk_io[0], research_preparer=fixture_prepare).submit_work(
+            'Research a subject', request_id='r',session_id='s',context={'research':True},max_tokens=allowance)
+        assert result['status']=='succeeded', result['error']
+&gt;       assert [b['options']['num_predict'] for b in bodies]==expected
+E       assert [256, 256, 256, 2048, 256] == [2048, 512]
+E         
+E         At index 0 diff: 256 != 2048
+E         Left contains 3 more items, first extra item: 256
+E         Use -v to get more diff
+
+src\brain\tests\test_work_research.py:1047: AssertionError</failure></testcase><testcase classname="src.brain.tests.test_work_research" name="test_source7_bounded_native_author_and_ack[32-expected1]" time="0.507"><failure message="assert [32, 32, 32, 32, 32] == [32, 32]&#10;  &#10;  Left contains 3 more items, first extra item: 32&#10;  Use -v to get more diff">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/unit23-research-fixtures-2/temp/test_source7_bounded_native_au1')
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x000001EFA25E49D0&gt;, [('search', 'Research a subject'), ('get', '...'https://example.com/source/3'), ('get', 'https://example.com/source/4'), ('get', 'https://example.com/source/5')], {})
+mock_jar = (&lt;openjarvis.sdk.Jarvis object at 0x000001EFA25E1D30&gt;, &lt;function _run_work_agent at 0x000001EFA0741940&gt;, [{'format': {...}, ...], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 32, 'temperature': 0}, ...}], [])
+allowance = 32, expected = [32, 32]
+
+    @pytest.mark.parametrize('allowance,expected', [(None,[2048,512]),(32,[32,32]),(8192,[4096,512])])
+    def test_source7_bounded_native_author_and_ack(tmp_path, sdk_io, mock_jar, allowance, expected):
+        _, runner, bodies, replies = mock_jar
+        replies.extend([action(report_payload()),'{"final_answer":"saved"}'])
+        result = WorkService(tmp_path, runner=runner, browser_channel=sdk_io[0], research_preparer=fixture_prepare).submit_work(
+            'Research a subject', request_id='r',session_id='s',context={'research':True},max_tokens=allowance)
+        assert result['status']=='succeeded', result['error']
+&gt;       assert [b['options']['num_predict'] for b in bodies]==expected
+E       assert [32, 32, 32, 32, 32] == [32, 32]
+E         
+E         Left contains 3 more items, first extra item: 32
+E         Use -v to get more diff
+
+src\brain\tests\test_work_research.py:1047: AssertionError</failure></testcase><testcase classname="src.brain.tests.test_work_research" name="test_source7_bounded_native_author_and_ack[8192-expected2]" time="0.418"><failure message="assert [256, 256, 256, 2048, 256] == [4096, 512]&#10;  &#10;  At index 0 diff: 256 != 4096&#10;  Left contains 3 more items, first extra item: 256&#10;  Use -v to get more diff">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/unit23-research-fixtures-2/temp/test_source7_bounded_native_au2')
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x000001EFA2B7B250&gt;, [('search', 'Research a subject'), ('get', '...'https://example.com/source/3'), ('get', 'https://example.com/source/4'), ('get', 'https://example.com/source/5')], {})
+mock_jar = (&lt;openjarvis.sdk.Jarvis object at 0x000001EFA25E2410&gt;, &lt;function _run_work_agent at 0x000001EFA0741940&gt;, [{'format': {..., ...], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [])
+allowance = 8192, expected = [4096, 512]
+
+    @pytest.mark.parametrize('allowance,expected', [(None,[2048,512]),(32,[32,32]),(8192,[4096,512])])
+    def test_source7_bounded_native_author_and_ack(tmp_path, sdk_io, mock_jar, allowance, expected):
+        _, runner, bodies, replies = mock_jar
+        replies.extend([action(report_payload()),'{"final_answer":"saved"}'])
+        result = WorkService(tmp_path, runner=runner, browser_channel=sdk_io[0], research_preparer=fixture_prepare).submit_work(
+            'Research a subject', request_id='r',session_id='s',context={'research':True},max_tokens=allowance)
+        assert result['status']=='succeeded', result['error']
+&gt;       assert [b['options']['num_predict'] for b in bodies]==expected
+E       assert [256, 256, 256, 2048, 256] == [4096, 512]
+E         
+E         At index 0 diff: 256 != 4096
+E         Left contains 3 more items, first extra item: 256
+E         Use -v to get more diff
+
+src\brain\tests\test_work_research.py:1047: AssertionError</failure></testcase><testcase classname="src.brain.tests.test_work_research" name="test_source7_http_research_refuses_coercion[True]" time="0.001" /><testcase classname="src.brain.tests.test_work_research" name="test_source7_http_research_refuses_coercion[12.5]" time="0.000" /><testcase classname="src.brain.tests.test_work_research" name="test_source7_http_research_refuses_coercion[15]" time="0.000" /><testcase classname="src.brain.tests.test_work_research" name="test_source7_split_prefix_issued_and_reopened[const result =\n  queue.dispatch(item);-code-queue.dispatch-js]" time="0.013"><failure message="AssertionError: Invalid or duplicate enrollment&#10;assert 'failed' == 'succeeded'&#10;  &#10;  - succeeded&#10;  + failed">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/unit23-research-fixtures-2/temp/test_source7_split_prefix_issu0')
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x000001EFA27F16D0&gt;, [('search', 'Research a subject')], {})
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000001EFA2A83690&gt;
+suffix = 'js', statement = 'const result =\n  queue.dispatch(item);'
+kind = 'code', operation = 'queue.dispatch'
+
+    @pytest.mark.parametrize('suffix',['js','ts'])
+    @pytest.mark.parametrize('statement,kind,operation',[
+        ('const result =\n  queue.dispatch(item);','code','queue.dispatch'),
+        ('const result =\n  logger.warn(item);','limitation','logger.warn'),
+        ('throw new\n  TypeError(item);','limitation','TypeError'),
+    ])
+    def test_source7_split_prefix_issued_and_reopened(tmp_path,sdk_io,monkeypatch,suffix,statement,kind,operation):
+        import httpx
+        from src.brain.work_research import _js_support
+        from src.brain.work_tools import WorkResearchWriteTool
+        code='https://example.com/example.'+suffix
+        urls=[code,*URLS[:2]]
+        def fetch(method,url,**kw):
+            text=statement if url==code else 'Document '+url
+            return httpx.Response(200,headers={'content-type':'text/plain'},text=text,request=httpx.Request(method,url))
+        monkeypatch.setattr(httpx,'request',fetch)
+        def write(*a,**kw):
+            tool=WorkResearchWriteTool()
+            refs=[(k,v) for k,v in tool.cards.items() if v['source_id']=='S1' and v['kind']==kind]
+            assert len(refs)==1
+            key,card=refs[0]
+            assert (card['first_line'],card['last_line'])==(1,2)
+            payload=report_payload()
+            payload['sections'][0]['facts']=[dict(evidence_id=key,claim='Observed '+operation)]
+            assert tool.execute(**payload).success
+            return {}
+        r=submit(tmp_path,sdk_io[0],write,source_urls=urls)
+&gt;       assert r['status']=='succeeded',r['error']
+E       AssertionError: Invalid or duplicate enrollment
+E       assert 'failed' == 'succeeded'
+E         
+E         - succeeded
+E         + failed
+
+src\brain\tests\test_work_research.py:1091: AssertionError</failure></testcase><testcase classname="src.brain.tests.test_work_research" name="test_source7_split_prefix_issued_and_reopened[const result =\n  queue.dispatch(item);-code-queue.dispatch-ts]" time="0.015"><failure message="AssertionError: Invalid or duplicate enrollment&#10;assert 'failed' == 'succeeded'&#10;  &#10;  - succeeded&#10;  + failed">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/unit23-research-fixtures-2/temp/test_source7_split_prefix_issu1')
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x000001EFA26CB250&gt;, [('search', 'Research a subject')], {})
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000001EFA2A83BD0&gt;
+suffix = 'ts', statement = 'const result =\n  queue.dispatch(item);'
+kind = 'code', operation = 'queue.dispatch'
+
+    @pytest.mark.parametrize('suffix',['js','ts'])
+    @pytest.mark.parametrize('statement,kind,operation',[
+        ('const result =\n  queue.dispatch(item);','code','queue.dispatch'),
+        ('const result =\n  logger.warn(item);','limitation','logger.warn'),
+        ('throw new\n  TypeError(item);','limitation','TypeError'),
+    ])
+    def test_source7_split_prefix_issued_and_reopened(tmp_path,sdk_io,monkeypatch,suffix,statement,kind,operation):
+        import httpx
+        from src.brain.work_research import _js_support
+        from src.brain.work_tools import WorkResearchWriteTool
+        code='https://example.com/example.'+suffix
+        urls=[code,*URLS[:2]]
+        def fetch(method,url,**kw):
+            text=statement if url==code else 'Document '+url
+            return httpx.Response(200,headers={'content-type':'text/plain'},text=text,request=httpx.Request(method,url))
+        monkeypatch.setattr(httpx,'request',fetch)
+        def write(*a,**kw):
+            tool=WorkResearchWriteTool()
+            refs=[(k,v) for k,v in tool.cards.items() if v['source_id']=='S1' and v['kind']==kind]
+            assert len(refs)==1
+            key,card=refs[0]
+            assert (card['first_line'],card['last_line'])==(1,2)
+            payload=report_payload()
+            payload['sections'][0]['facts']=[dict(evidence_id=key,claim='Observed '+operation)]
+            assert tool.execute(**payload).success
+            return {}
+        r=submit(tmp_path,sdk_io[0],write,source_urls=urls)
+&gt;       assert r['status']=='succeeded',r['error']
+E       AssertionError: Invalid or duplicate enrollment
+E       assert 'failed' == 'succeeded'
+E         
+E         - succeeded
+E         + failed
+
+src\brain\tests\test_work_research.py:1091: AssertionError</failure></testcase><testcase classname="src.brain.tests.test_work_research" name="test_source7_split_prefix_issued_and_reopened[const result =\n  logger.warn(item);-limitation-logger.warn-js]" time="0.014"><failure message="AssertionError: Invalid or duplicate enrollment&#10;assert 'failed' == 'succeeded'&#10;  &#10;  - succeeded&#10;  + failed">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/unit23-research-fixtures-2/temp/test_source7_split_prefix_issu2')
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x000001EFA2ACDCD0&gt;, [('search', 'Research a subject')], {})
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000001EFA2ADCBB0&gt;
+suffix = 'js', statement = 'const result =\n  logger.warn(item);'
+kind = 'limitation', operation = 'logger.warn'
+
+    @pytest.mark.parametrize('suffix',['js','ts'])
+    @pytest.mark.parametrize('statement,kind,operation',[
+        ('const result =\n  queue.dispatch(item);','code','queue.dispatch'),
+        ('const result =\n  logger.warn(item);','limitation','logger.warn'),
+        ('throw new\n  TypeError(item);','limitation','TypeError'),
+    ])
+    def test_source7_split_prefix_issued_and_reopened(tmp_path,sdk_io,monkeypatch,suffix,statement,kind,operation):
+        import httpx
+        from src.brain.work_research import _js_support
+        from src.brain.work_tools import WorkResearchWriteTool
+        code='https://example.com/example.'+suffix
+        urls=[code,*URLS[:2]]
+        def fetch(method,url,**kw):
+            text=statement if url==code else 'Document '+url
+            return httpx.Response(200,headers={'content-type':'text/plain'},text=text,request=httpx.Request(method,url))
+        monkeypatch.setattr(httpx,'request',fetch)
+        def write(*a,**kw):
+            tool=WorkResearchWriteTool()
+            refs=[(k,v) for k,v in tool.cards.items() if v['source_id']=='S1' and v['kind']==kind]
+            assert len(refs)==1
+            key,card=refs[0]
+            assert (card['first_line'],card['last_line'])==(1,2)
+            payload=report_payload()
+            payload['sections'][0]['facts']=[dict(evidence_id=key,claim='Observed '+operation)]
+            assert tool.execute(**payload).success
+            return {}
+        r=submit(tmp_path,sdk_io[0],write,source_urls=urls)
+&gt;       assert r['status']=='succeeded',r['error']
+E       AssertionError: Invalid or duplicate enrollment
+E       assert 'failed' == 'succeeded'
+E         
+E         - succeeded
+E         + failed
+
+src\brain\tests\test_work_research.py:1091: AssertionError</failure></testcase><testcase classname="src.brain.tests.test_work_research" name="test_source7_split_prefix_issued_and_reopened[const result =\n  logger.warn(item);-limitation-logger.warn-ts]" time="0.015"><failure message="AssertionError: Invalid or duplicate enrollment&#10;assert 'failed' == 'succeeded'&#10;  &#10;  - succeeded&#10;  + failed">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/unit23-research-fixtures-2/temp/test_source7_split_prefix_issu3')
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x000001EFA2ACC1D0&gt;, [('search', 'Research a subject')], {})
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000001EFA2595D30&gt;
+suffix = 'ts', statement = 'const result =\n  logger.warn(item);'
+kind = 'limitation', operation = 'logger.warn'
+
+    @pytest.mark.parametrize('suffix',['js','ts'])
+    @pytest.mark.parametrize('statement,kind,operation',[
+        ('const result =\n  queue.dispatch(item);','code','queue.dispatch'),
+        ('const result =\n  logger.warn(item);','limitation','logger.warn'),
+        ('throw new\n  TypeError(item);','limitation','TypeError'),
+    ])
+    def test_source7_split_prefix_issued_and_reopened(tmp_path,sdk_io,monkeypatch,suffix,statement,kind,operation):
+        import httpx
+        from src.brain.work_research import _js_support
+        from src.brain.work_tools import WorkResearchWriteTool
+        code='https://example.com/example.'+suffix
+        urls=[code,*URLS[:2]]
+        def fetch(method,url,**kw):
+            text=statement if url==code else 'Document '+url
+            return httpx.Response(200,headers={'content-type':'text/plain'},text=text,request=httpx.Request(method,url))
+        monkeypatch.setattr(httpx,'request',fetch)
+        def write(*a,**kw):
+            tool=WorkResearchWriteTool()
+            refs=[(k,v) for k,v in tool.cards.items() if v['source_id']=='S1' and v['kind']==kind]
+            assert len(refs)==1
+            key,card=refs[0]
+            assert (card['first_line'],card['last_line'])==(1,2)
+            payload=report_payload()
+            payload['sections'][0]['facts']=[dict(evidence_id=key,claim='Observed '+operation)]
+            assert tool.execute(**payload).success
+            return {}
+        r=submit(tmp_path,sdk_io[0],write,source_urls=urls)
+&gt;       assert r['status']=='succeeded',r['error']
+E       AssertionError: Invalid or duplicate enrollment
+E       assert 'failed' == 'succeeded'
+E         
+E         - succeeded
+E         + failed
+
+src\brain\tests\test_work_research.py:1091: AssertionError</failure></testcase><testcase classname="src.brain.tests.test_work_research" name="test_source7_split_prefix_issued_and_reopened[throw new\n  TypeError(item);-limitation-TypeError-js]" time="0.014"><failure message="AssertionError: Invalid or duplicate enrollment&#10;assert 'failed' == 'succeeded'&#10;  &#10;  - succeeded&#10;  + failed">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/unit23-research-fixtures-2/temp/test_source7_split_prefix_issu4')
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x000001EFA2ACC150&gt;, [('search', 'Research a subject')], {})
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000001EFA2B6B9A0&gt;
+suffix = 'js', statement = 'throw new\n  TypeError(item);', kind = 'limitation'
+operation = 'TypeError'
+
+    @pytest.mark.parametrize('suffix',['js','ts'])
+    @pytest.mark.parametrize('statement,kind,operation',[
+        ('const result =\n  queue.dispatch(item);','code','queue.dispatch'),
+        ('const result =\n  logger.warn(item);','limitation','logger.warn'),
+        ('throw new\n  TypeError(item);','limitation','TypeError'),
+    ])
+    def test_source7_split_prefix_issued_and_reopened(tmp_path,sdk_io,monkeypatch,suffix,statement,kind,operation):
+        import httpx
+        from src.brain.work_research import _js_support
+        from src.brain.work_tools import WorkResearchWriteTool
+        code='https://example.com/example.'+suffix
+        urls=[code,*URLS[:2]]
+        def fetch(method,url,**kw):
+            text=statement if url==code else 'Document '+url
+            return httpx.Response(200,headers={'content-type':'text/plain'},text=text,request=httpx.Request(method,url))
+        monkeypatch.setattr(httpx,'request',fetch)
+        def write(*a,**kw):
+            tool=WorkResearchWriteTool()
+            refs=[(k,v) for k,v in tool.cards.items() if v['source_id']=='S1' and v['kind']==kind]
+            assert len(refs)==1
+            key,card=refs[0]
+            assert (card['first_line'],card['last_line'])==(1,2)
+            payload=report_payload()
+            payload['sections'][0]['facts']=[dict(evidence_id=key,claim='Observed '+operation)]
+            assert tool.execute(**payload).success
+            return {}
+        r=submit(tmp_path,sdk_io[0],write,source_urls=urls)
+&gt;       assert r['status']=='succeeded',r['error']
+E       AssertionError: Invalid or duplicate enrollment
+E       assert 'failed' == 'succeeded'
+E         
+E         - succeeded
+E         + failed
+
+src\brain\tests\test_work_research.py:1091: AssertionError</failure></testcase><testcase classname="src.brain.tests.test_work_research" name="test_source7_split_prefix_issued_and_reopened[throw new\n  TypeError(item);-limitation-TypeError-ts]" time="0.014"><failure message="AssertionError: Invalid or duplicate enrollment&#10;assert 'failed' == 'succeeded'&#10;  &#10;  - succeeded&#10;  + failed">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/unit23-research-fixtures-2/temp/test_source7_split_prefix_issu5')
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x000001EFA2B0F450&gt;, [('search', 'Research a subject')], {})
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000001EFA2B6BE00&gt;
+suffix = 'ts', statement = 'throw new\n  TypeError(item);', kind = 'limitation'
+operation = 'TypeError'
+
+    @pytest.mark.parametrize('suffix',['js','ts'])
+    @pytest.mark.parametrize('statement,kind,operation',[
+        ('const result =\n  queue.dispatch(item);','code','queue.dispatch'),
+        ('const result =\n  logger.warn(item);','limitation','logger.warn'),
+        ('throw new\n  TypeError(item);','limitation','TypeError'),
+    ])
+    def test_source7_split_prefix_issued_and_reopened(tmp_path,sdk_io,monkeypatch,suffix,statement,kind,operation):
+        import httpx
+        from src.brain.work_research import _js_support
+        from src.brain.work_tools import WorkResearchWriteTool
+        code='https://example.com/example.'+suffix
+        urls=[code,*URLS[:2]]
+        def fetch(method,url,**kw):
+            text=statement if url==code else 'Document '+url
+            return httpx.Response(200,headers={'content-type':'text/plain'},text=text,request=httpx.Request(method,url))
+        monkeypatch.setattr(httpx,'request',fetch)
+        def write(*a,**kw):
+            tool=WorkResearchWriteTool()
+            refs=[(k,v) for k,v in tool.cards.items() if v['source_id']=='S1' and v['kind']==kind]
+            assert len(refs)==1
+            key,card=refs[0]
+            assert (card['first_line'],card['last_line'])==(1,2)
+            payload=report_payload()
+            payload['sections'][0]['facts']=[dict(evidence_id=key,claim='Observed '+operation)]
+            assert tool.execute(**payload).success
+            return {}
+        r=submit(tmp_path,sdk_io[0],write,source_urls=urls)
+&gt;       assert r['status']=='succeeded',r['error']
+E       AssertionError: Invalid or duplicate enrollment
+E       assert 'failed' == 'succeeded'
+E         
+E         - succeeded
+E         + failed
+
+src\brain\tests\test_work_research.py:1091: AssertionError</failure></testcase><testcase classname="src.brain.tests.test_work_research" name="test_source8_sampler_copy_preserves_full_authority" time="0.374" /><testcase classname="src.brain.tests.test_work_research" name="test_source8_property_named_maxlength_is_not_a_keyword" time="0.085"><failure message="ValueError: Research guard boundary bypass">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/unit23-research-fixtures-2/temp/test_source8_property_named_ma0')
+mock_jar = (&lt;openjarvis.sdk.Jarvis object at 0x000001EFA25E3B70&gt;, &lt;function _run_work_agent at 0x000001EFA0741940&gt;, [], ['{"maxLength":"abc"}'])
+
+    def test_source8_property_named_maxlength_is_not_a_keyword(tmp_path,mock_jar):
+        from copy import deepcopy
+        from openjarvis.core.types import Message,Role
+        from src.brain import agent_server
+        _,_,bodies,replies=mock_jar
+        schema={'type':'object','additionalProperties':False,'required':['maxLength'],
+                'properties':{'maxLength':{'type':'string','minLength':1,'maxLength':3,
+                                          'enum':['abc'],'default':'abc'}},
+                'examples':[{'maxLength':'abc'}]}
+        before=deepcopy(schema)
+        expected=deepcopy(schema)
+        del expected['properties']['maxLength']['maxLength']
+        class Ledger:
+            from time import monotonic
+            deadline = monotonic()+260
+            def admit_ack(self): pass
+        replies.append('{"maxLength":"abc"}')
+        with agent_server._research_client() as client:
+            leaf=agent_server._NativeResearchLeaf(client,Ledger())
+&gt;           leaf.generate([Message(role=Role.USER,content='schema copy')],model=agent_server._RESEARCH_MODEL,
+                          temperature=0,max_tokens=32,response_format=schema)
+
+src\brain\tests\test_work_research.py:1164: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = &lt;src.brain.agent_server._NativeResearchLeaf object at 0x000001EFA2AF9B50&gt;
+messages = [Message(role=&lt;Role.USER: 'user'&gt;, content='schema copy', name=None, tool_calls=None, tool_call_id=None, metadata={}, images=None)]
+model = 'qwen3-8b-uncensored', temperature = 0, max_tokens = 32
+response_format = {'type': 'object', 'additionalProperties': False, 'required': ['maxLength'], 'properties': {'maxLength': {'type': 'string', 'minLength': 1, 'maxLength': 3, 'enum': ['abc'], ...}}, ...}
+
+    def generate(self,messages,*,model,temperature,max_tokens,response_format):
+        import hashlib
+        from ollama import ChatResponse
+        from ollama._types import ChatRequest
+        from jsonschema import Draft7Validator
+        from openjarvis.engine._base import messages_to_dicts,estimate_prompt_tokens
+        from openjarvis.security.guardrails import GuardrailsEngine
+        from .work_navigation import canonical_v3
+        class NativeRequest(ChatRequest):
+            truncate: bool = False
+            shift: bool = False
+        # The actual installed guard must call this leaf after its input scan;
+        # matching unscanned messages alone do not establish that boundary.
+        frame=sys._getframe(1)
+        while frame is not None and frame.f_code is not GuardrailsEngine.generate.__code__:
+            frame=frame.f_back
+        if frame is None or frame.f_locals.get('self') is not self.guard:
+&gt;           raise ValueError('Research guard boundary bypass')
+E           ValueError: Research guard boundary bypass
+
+src\brain\agent_server.py:358: ValueError</failure></testcase><testcase classname="src.brain.tests.test_work_research" name="test_source8_full_length_validation_precedes_dispatch[path]" time="0.262"><failure message="AssertionError: assert 4 == 1&#10; +  where 4 = len([{'format': {'anyOf': [{'additionalProperties': False, 'properties': {'action': {...}, 'action_input': {...}}, 'requir...er'}, ...], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 2048, 'temperature': 0}, ...}])">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/unit23-research-fixtures-2/temp/test_source8_full_length_valid0')
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x000001EFA27C9650&gt;, [('search', 'Research a subject'), ('get', '...'https://example.com/source/3'), ('get', 'https://example.com/source/4'), ('get', 'https://example.com/source/5')], {})
+mock_jar = (&lt;openjarvis.sdk.Jarvis object at 0x000001EFA2A38730&gt;, &lt;function _run_work_agent at 0x000001EFA0741940&gt;, [{'format': {... ...], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 2048, 'temperature': 0}, ...}], [])
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000001EFA2AE4360&gt;
+field = 'path'
+
+    @pytest.mark.parametrize('field',['path','title','heading','claim','final_answer'])
+    def test_source8_full_length_validation_precedes_dispatch(tmp_path,sdk_io,mock_jar,monkeypatch,field):
+        from openjarvis.tools.file_write import FileWriteTool
+        jar,runner,bodies,replies=mock_jar
+        owner=jar._engine
+        actual=FileWriteTool.execute
+        writes=[]
+        def write(tool,**kwargs):
+            writes.append(dict(kwargs))
+            return actual(tool,**kwargs)
+        monkeypatch.setattr(FileWriteTool,'execute',write)
+        def draft(body):
+            data=report_payload()
+            if field=='path': data['path']='x'*2049
+            elif field=='title': data['title']='x'*201
+            elif field=='heading': data['sections'][0]['heading']='x'*201
+            elif field=='claim': data['sections'][0]['facts'][0]['claim']='x'*2001
+            return action(data)
+        replies.append(draft)
+        if field=='final_answer': replies.append(json.dumps({'final_answer':'x'*1001}))
+        result=submit(tmp_path,sdk_io[0],runner)
+        assert result['status']==('needs_attention' if field=='final_answer' else 'failed'),result
+&gt;       assert len(bodies)==(2 if field=='final_answer' else 1)
+E       AssertionError: assert 4 == 1
+E        +  where 4 = len([{'format': {'anyOf': [{'additionalProperties': False, 'properties': {'action': {...}, 'action_input': {...}}, 'requir...er'}, ...], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 2048, 'temperature': 0}, ...}])
+
+src\brain\tests\test_work_research.py:1192: AssertionError</failure></testcase><testcase classname="src.brain.tests.test_work_research" name="test_source8_full_length_validation_precedes_dispatch[title]" time="0.359"><failure message="AssertionError: assert 4 == 1&#10; +  where 4 = len([{'format': {'anyOf': [{'additionalProperties': False, 'properties': {'action': {...}, 'action_input': {...}}, 'requir...er'}, ...], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 2048, 'temperature': 0}, ...}])">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/unit23-research-fixtures-2/temp/test_source8_full_length_valid1')
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x000001EFA2B0E9D0&gt;, [('search', 'Research a subject'), ('get', '...'https://example.com/source/3'), ('get', 'https://example.com/source/4'), ('get', 'https://example.com/source/5')], {})
+mock_jar = (&lt;openjarvis.sdk.Jarvis object at 0x000001EFA2A39A70&gt;, &lt;function _run_work_agent at 0x000001EFA0741940&gt;, [{'format': {... ...], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 2048, 'temperature': 0}, ...}], [])
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000001EFA2A830E0&gt;
+field = 'title'
+
+    @pytest.mark.parametrize('field',['path','title','heading','claim','final_answer'])
+    def test_source8_full_length_validation_precedes_dispatch(tmp_path,sdk_io,mock_jar,monkeypatch,field):
+        from openjarvis.tools.file_write import FileWriteTool
+        jar,runner,bodies,replies=mock_jar
+        owner=jar._engine
+        actual=FileWriteTool.execute
+        writes=[]
+        def write(tool,**kwargs):
+            writes.append(dict(kwargs))
+            return actual(tool,**kwargs)
+        monkeypatch.setattr(FileWriteTool,'execute',write)
+        def draft(body):
+            data=report_payload()
+            if field=='path': data['path']='x'*2049
+            elif field=='title': data['title']='x'*201
+            elif field=='heading': data['sections'][0]['heading']='x'*201
+            elif field=='claim': data['sections'][0]['facts'][0]['claim']='x'*2001
+            return action(data)
+        replies.append(draft)
+        if field=='final_answer': replies.append(json.dumps({'final_answer':'x'*1001}))
+        result=submit(tmp_path,sdk_io[0],runner)
+        assert result['status']==('needs_attention' if field=='final_answer' else 'failed'),result
+&gt;       assert len(bodies)==(2 if field=='final_answer' else 1)
+E       AssertionError: assert 4 == 1
+E        +  where 4 = len([{'format': {'anyOf': [{'additionalProperties': False, 'properties': {'action': {...}, 'action_input': {...}}, 'requir...er'}, ...], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 2048, 'temperature': 0}, ...}])
+
+src\brain\tests\test_work_research.py:1192: AssertionError</failure></testcase><testcase classname="src.brain.tests.test_work_research" name="test_source8_full_length_validation_precedes_dispatch[heading]" time="0.261"><failure message="AssertionError: assert 4 == 1&#10; +  where 4 = len([{'format': {'anyOf': [{'additionalProperties': False, 'properties': {'action': {...}, 'action_input': {...}}, 'requir...er'}, ...], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 2048, 'temperature': 0}, ...}])">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/unit23-research-fixtures-2/temp/test_source8_full_length_valid2')
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x000001EFA2A59050&gt;, [('search', 'Research a subject'), ('get', '...'https://example.com/source/3'), ('get', 'https://example.com/source/4'), ('get', 'https://example.com/source/5')], {})
+mock_jar = (&lt;openjarvis.sdk.Jarvis object at 0x000001EFA2A39FF0&gt;, &lt;function _run_work_agent at 0x000001EFA0741940&gt;, [{'format': {... ...], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 2048, 'temperature': 0}, ...}], [])
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000001EFA299E0B0&gt;
+field = 'heading'
+
+    @pytest.mark.parametrize('field',['path','title','heading','claim','final_answer'])
+    def test_source8_full_length_validation_precedes_dispatch(tmp_path,sdk_io,mock_jar,monkeypatch,field):
+        from openjarvis.tools.file_write import FileWriteTool
+        jar,runner,bodies,replies=mock_jar
+        owner=jar._engine
+        actual=FileWriteTool.execute
+        writes=[]
+        def write(tool,**kwargs):
+            writes.append(dict(kwargs))
+            return actual(tool,**kwargs)
+        monkeypatch.setattr(FileWriteTool,'execute',write)
+        def draft(body):
+            data=report_payload()
+            if field=='path': data['path']='x'*2049
+            elif field=='title': data['title']='x'*201
+            elif field=='heading': data['sections'][0]['heading']='x'*201
+            elif field=='claim': data['sections'][0]['facts'][0]['claim']='x'*2001
+            return action(data)
+        replies.append(draft)
+        if field=='final_answer': replies.append(json.dumps({'final_answer':'x'*1001}))
+        result=submit(tmp_path,sdk_io[0],runner)
+        assert result['status']==('needs_attention' if field=='final_answer' else 'failed'),result
+&gt;       assert len(bodies)==(2 if field=='final_answer' else 1)
+E       AssertionError: assert 4 == 1
+E        +  where 4 = len([{'format': {'anyOf': [{'additionalProperties': False, 'properties': {'action': {...}, 'action_input': {...}}, 'requir...er'}, ...], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 2048, 'temperature': 0}, ...}])
+
+src\brain\tests\test_work_research.py:1192: AssertionError</failure></testcase><testcase classname="src.brain.tests.test_work_research" name="test_source8_full_length_validation_precedes_dispatch[claim]" time="0.276"><failure message="AssertionError: assert 4 == 1&#10; +  where 4 = len([{'format': {'anyOf': [{'additionalProperties': False, 'properties': {'action': {...}, 'action_input': {...}}, 'requir...er'}, ...], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 2048, 'temperature': 0}, ...}])">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/unit23-research-fixtures-2/temp/test_source8_full_length_valid3')
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x000001EFA2A313D0&gt;, [('search', 'Research a subject'), ('get', '...'https://example.com/source/3'), ('get', 'https://example.com/source/4'), ('get', 'https://example.com/source/5')], {})
+mock_jar = (&lt;openjarvis.sdk.Jarvis object at 0x000001EFA2A3A570&gt;, &lt;function _run_work_agent at 0x000001EFA0741940&gt;, [{'format': {... ...], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 2048, 'temperature': 0}, ...}], [])
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000001EFA299E6D0&gt;
+field = 'claim'
+
+    @pytest.mark.parametrize('field',['path','title','heading','claim','final_answer'])
+    def test_source8_full_length_validation_precedes_dispatch(tmp_path,sdk_io,mock_jar,monkeypatch,field):
+        from openjarvis.tools.file_write import FileWriteTool
+        jar,runner,bodies,replies=mock_jar
+        owner=jar._engine
+        actual=FileWriteTool.execute
+        writes=[]
+        def write(tool,**kwargs):
+            writes.append(dict(kwargs))
+            return actual(tool,**kwargs)
+        monkeypatch.setattr(FileWriteTool,'execute',write)
+        def draft(body):
+            data=report_payload()
+            if field=='path': data['path']='x'*2049
+            elif field=='title': data['title']='x'*201
+            elif field=='heading': data['sections'][0]['heading']='x'*201
+            elif field=='claim': data['sections'][0]['facts'][0]['claim']='x'*2001
+            return action(data)
+        replies.append(draft)
+        if field=='final_answer': replies.append(json.dumps({'final_answer':'x'*1001}))
+        result=submit(tmp_path,sdk_io[0],runner)
+        assert result['status']==('needs_attention' if field=='final_answer' else 'failed'),result
+&gt;       assert len(bodies)==(2 if field=='final_answer' else 1)
+E       AssertionError: assert 4 == 1
+E        +  where 4 = len([{'format': {'anyOf': [{'additionalProperties': False, 'properties': {'action': {...}, 'action_input': {...}}, 'requir...er'}, ...], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 2048, 'temperature': 0}, ...}])
+
+src\brain\tests\test_work_research.py:1192: AssertionError</failure></testcase><testcase classname="src.brain.tests.test_work_research" name="test_source8_full_length_validation_precedes_dispatch[final_answer]" time="0.374"><failure message="AssertionError: assert 5 == 2&#10; +  where 5 = len([{'format': {'anyOf': [{'additionalProperties': False, 'properties': {'action': {...}, 'action_input': {...}}, 'requir...ser'}, ...], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 256, 'temperature': 0}, ...}])">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/unit23-research-fixtures-2/temp/test_source8_full_length_valid4')
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x000001EFA2990C50&gt;, [('search', 'Research a subject'), ('get', '...'https://example.com/source/3'), ('get', 'https://example.com/source/4'), ('get', 'https://example.com/source/5')], {})
+mock_jar = (&lt;openjarvis.sdk.Jarvis object at 0x000001EFA2A3AAF0&gt;, &lt;function _run_work_agent at 0x000001EFA0741940&gt;, [{'format': {..., ...], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [])
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000001EFA2A1DE10&gt;
+field = 'final_answer'
+
+    @pytest.mark.parametrize('field',['path','title','heading','claim','final_answer'])
+    def test_source8_full_length_validation_precedes_dispatch(tmp_path,sdk_io,mock_jar,monkeypatch,field):
+        from openjarvis.tools.file_write import FileWriteTool
+        jar,runner,bodies,replies=mock_jar
+        owner=jar._engine
+        actual=FileWriteTool.execute
+        writes=[]
+        def write(tool,**kwargs):
+            writes.append(dict(kwargs))
+            return actual(tool,**kwargs)
+        monkeypatch.setattr(FileWriteTool,'execute',write)
+        def draft(body):
+            data=report_payload()
+            if field=='path': data['path']='x'*2049
+            elif field=='title': data['title']='x'*201
+            elif field=='heading': data['sections'][0]['heading']='x'*201
+            elif field=='claim': data['sections'][0]['facts'][0]['claim']='x'*2001
+            return action(data)
+        replies.append(draft)
+        if field=='final_answer': replies.append(json.dumps({'final_answer':'x'*1001}))
+        result=submit(tmp_path,sdk_io[0],runner)
+        assert result['status']==('needs_attention' if field=='final_answer' else 'failed'),result
+&gt;       assert len(bodies)==(2 if field=='final_answer' else 1)
+E       AssertionError: assert 5 == 2
+E        +  where 5 = len([{'format': {'anyOf': [{'additionalProperties': False, 'properties': {'action': {...}, 'action_input': {...}}, 'requir...ser'}, ...], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 256, 'temperature': 0}, ...}])
+
+src\brain\tests\test_work_research.py:1192: AssertionError</failure></testcase><testcase classname="src.brain.tests.test_work_research" name="test_source9_author_declared_budget[260-180]" time="0.114" /><testcase classname="src.brain.tests.test_work_research" name="test_source9_author_declared_budget[150-95]" time="0.142" /><testcase classname="src.brain.tests.test_work_research" name="test_source9_author_declared_budget[55.1-expected2]" time="0.109"><failure message="AssertionError: assert ('author' == 'author'&#10;  &#10;    author and {'connect': 0...9999999999432} == {'connect': 2...0.1 ± 1.0e-07}&#10;  &#10;  Omitting 1 identical items, use -vv to show&#10;  Differing items:&#10;  {'write': 0.09999999999999432} != {'write': 25}&#10;  {'connect': 0.09999999999999432} != {'connect': 25}&#10;  {'pool': 0.09999999999999432} != {'pool': 25}&#10;  Use -v to get more diff)">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/unit23-research-fixtures-2/temp/test_source9_author_declared_b2')
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x000001EFA2CD1150&gt;, [('search', 'Research a subject'), ('get', '...'https://example.com/source/3'), ('get', 'https://example.com/source/4'), ('get', 'https://example.com/source/5')], {})
+mock_jar = (&lt;openjarvis.sdk.Jarvis object at 0x000001EFA2A3B070&gt;, &lt;function _run_work_agent at 0x000001EFA0741940&gt;, [{'format': {...ser'}], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [])
+source9_clock = {'now': 204.9, 'metadata': 0, 'author': 0, 'ack': 0, ...}
+remaining = 55.1, expected = 0.1 ± 1.0e-07
+
+    @pytest.mark.parametrize('remaining,expected', [(260,180),(150,95),(55.1,pytest.approx(.1))])
+    def test_source9_author_declared_budget(tmp_path,sdk_io,mock_jar,source9_clock,remaining,expected):
+        _,runner,bodies,replies=mock_jar
+        state=source9_clock
+        state['now']=260-remaining
+        replies.append('{"final_answer":"refused"}')
+        result=submit(tmp_path,sdk_io[0],runner)
+        assert result['status']=='failed' and len(bodies)==1
+        phase,timeout=state['requests'][-1]
+&gt;       assert phase=='author' and timeout==dict(connect=25,write=25,pool=25,read=expected)
+E       AssertionError: assert ('author' == 'author'
+E         
+E           author and {'connect': 0...9999999999432} == {'connect': 2...0.1 ± 1.0e-07}
+E         
+E         Omitting 1 identical items, use -vv to show
+E         Differing items:
+E         {'write': 0.09999999999999432} != {'write': 25}
+E         {'connect': 0.09999999999999432} != {'connect': 25}
+E         {'pool': 0.09999999999999432} != {'pool': 25}
+E         Use -v to get more diff)
+
+src\brain\tests\test_work_research.py:1243: AssertionError</failure></testcase><testcase classname="src.brain.tests.test_work_research" name="test_source9_31_second_sdk_file_and_ack" time="0.288"><failure message="AssertionError: scripted inactivity timeout&#10;assert 'failed' == 'succeeded'&#10;  &#10;  - succeeded&#10;  + failed">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/unit23-research-fixtures-2/temp/test_source9_31_second_sdk_fil0')
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x000001EFA2A06FD0&gt;, [('search', 'Research a subject'), ('get', '...'https://example.com/source/3'), ('get', 'https://example.com/source/4'), ('get', 'https://example.com/source/5')], {})
+mock_jar = (&lt;openjarvis.sdk.Jarvis object at 0x000001EFA2A3A200&gt;, &lt;function _run_work_agent at 0x000001EFA0741940&gt;, [{'format': {...on 3", "facts": [{"claim": "A distinct fetched source", "evidence_id": "issued:S3"}]}]}}', '{"final_answer":"saved"}'])
+source9_clock = {'now': 234, 'metadata': 10, 'author': 31, 'ack': 0, ...}
+
+    def test_source9_31_second_sdk_file_and_ack(tmp_path,sdk_io,mock_jar,source9_clock):
+        _,runner,bodies,replies=mock_jar
+        state=source9_clock
+        state.update(now=30,metadata=10,author=31)
+        replies.extend([action(report_payload()),'{"final_answer":"saved"}'])
+        result=submit(tmp_path,sdk_io[0],runner)
+&gt;       assert result['status']=='succeeded',result['error']
+E       AssertionError: scripted inactivity timeout
+E       assert 'failed' == 'succeeded'
+E         
+E         - succeeded
+E         + failed
+
+src\brain\tests\test_work_research.py:1252: AssertionError</failure></testcase><testcase classname="src.brain.tests.test_work_research" name="test_source9_no_new_author_at_exhausted_reserve[55]" time="0.111" /><testcase classname="src.brain.tests.test_work_research" name="test_source9_no_new_author_at_exhausted_reserve[54.9]" time="0.108" /><testcase classname="src.brain.tests.test_work_research" name="test_source9_no_new_author_at_exhausted_reserve[0]" time="0.111" /><testcase classname="src.brain.tests.test_work_research" name="test_source9_no_new_author_at_exhausted_reserve[-1]" time="0.100" /><testcase classname="src.brain.tests.test_work_research" name="test_source9_timeout_and_late_results[short-5-succeeded]" time="0.415"><failure message="AssertionError: assert 5 &lt;= 2&#10; +  where 5 = len([{'format': {'anyOf': [{'additionalProperties': False, 'properties': {'action': {...}, 'action_input': {...}}, 'requir...ser'}, ...], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 256, 'temperature': 0}, ...}])">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/unit23-research-fixtures-2/temp/test_source9_timeout_and_late_0')
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x000001EFA2DED150&gt;, [('search', 'Research a subject'), ('get', '...'https://example.com/source/3'), ('get', 'https://example.com/source/4'), ('get', 'https://example.com/source/5')], {})
+mock_jar = (&lt;openjarvis.sdk.Jarvis object at 0x000001EFA2A392E0&gt;, &lt;function _run_work_agent at 0x000001EFA0741940&gt;, [{'format': {..., ...], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [])
+source9_clock = {'now': 255, 'metadata': 0, 'author': 0, 'ack': 0, ...}
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000001EFA2A137E0&gt;
+mode = 'short', ack_read = 5, status = 'succeeded'
+
+    @pytest.mark.parametrize('mode,ack_read,status', [('short',5,'succeeded'),('expired',None,'needs_attention'),
+                                                     ('ack-timeout',25,'needs_attention'),('author-timeout',None,'failed'),
+                                                     ('late-author',None,'failed')])
+    def test_source9_timeout_and_late_results(tmp_path,sdk_io,mock_jar,source9_clock,monkeypatch,mode,ack_read,status):
+        from src.brain import work_tools
+        _,runner,bodies,replies=mock_jar
+        state=source9_clock
+        if mode in ('short','expired'):
+            actual=work_tools.WorkResearchWriteTool.execute
+            def write(tool,**kwargs):
+                result=actual(tool,**kwargs)
+                state['now']=255 if mode=='short' else 260
+                return result
+            monkeypatch.setattr(work_tools.WorkResearchWriteTool,'execute',write)
+        if mode=='ack-timeout': state['ack']=26
+        if mode=='author-timeout': state['author']=181
+        if mode=='late-author': state.update(author=206,overrun=True)
+        replies.extend([action(report_payload()),'{"final_answer":"saved"}'])
+        result=submit(tmp_path,sdk_io[0],runner)
+        assert result['status']==status,result['error']
+        acks=[t['read'] for phase,t in state['requests'] if phase=='ack']
+        assert acks==([] if ack_read is None else [ack_read])
+        committed=mode in ('short','expired','ack-timeout')
+        assert len(list(tmp_path.rglob('research.md')))==int(committed)
+        assert len(result.get('research_effects',[]))==int(committed)
+&gt;       assert len(bodies)&lt;=2
+E       AssertionError: assert 5 &lt;= 2
+E        +  where 5 = len([{'format': {'anyOf': [{'additionalProperties': False, 'properties': {'action': {...}, 'action_input': {...}}, 'requir...ser'}, ...], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 256, 'temperature': 0}, ...}])
+
+src\brain\tests\test_work_research.py:1310: AssertionError</failure></testcase><testcase classname="src.brain.tests.test_work_research" name="test_source9_timeout_and_late_results[expired-None-needs_attention]" time="0.370"><failure message="AssertionError: assert 4 &lt;= 2&#10; +  where 4 = len([{'format': {'anyOf': [{'additionalProperties': False, 'properties': {'action': {...}, 'action_input': {...}}, 'requir...er'}, ...], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 2048, 'temperature': 0}, ...}])">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/unit23-research-fixtures-2/temp/test_source9_timeout_and_late_1')
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x000001EFA26CDED0&gt;, [('search', 'Research a subject'), ('get', '...'https://example.com/source/3'), ('get', 'https://example.com/source/4'), ('get', 'https://example.com/source/5')], {})
+mock_jar = (&lt;openjarvis.sdk.Jarvis object at 0x000001EFA2A3BAC0&gt;, &lt;function _run_work_agent at 0x000001EFA0741940&gt;, [{'format': {...uncensored', 'options': {'num_ctx': 16384, 'num_predict': 2048, 'temperature': 0}, ...}], ['{"final_answer":"saved"}'])
+source9_clock = {'now': 260, 'metadata': 0, 'author': 0, 'ack': 0, ...}
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000001EFA2C7EA50&gt;
+mode = 'expired', ack_read = None, status = 'needs_attention'
+
+    @pytest.mark.parametrize('mode,ack_read,status', [('short',5,'succeeded'),('expired',None,'needs_attention'),
+                                                     ('ack-timeout',25,'needs_attention'),('author-timeout',None,'failed'),
+                                                     ('late-author',None,'failed')])
+    def test_source9_timeout_and_late_results(tmp_path,sdk_io,mock_jar,source9_clock,monkeypatch,mode,ack_read,status):
+        from src.brain import work_tools
+        _,runner,bodies,replies=mock_jar
+        state=source9_clock
+        if mode in ('short','expired'):
+            actual=work_tools.WorkResearchWriteTool.execute
+            def write(tool,**kwargs):
+                result=actual(tool,**kwargs)
+                state['now']=255 if mode=='short' else 260
+                return result
+            monkeypatch.setattr(work_tools.WorkResearchWriteTool,'execute',write)
+        if mode=='ack-timeout': state['ack']=26
+        if mode=='author-timeout': state['author']=181
+        if mode=='late-author': state.update(author=206,overrun=True)
+        replies.extend([action(report_payload()),'{"final_answer":"saved"}'])
+        result=submit(tmp_path,sdk_io[0],runner)
+        assert result['status']==status,result['error']
+        acks=[t['read'] for phase,t in state['requests'] if phase=='ack']
+        assert acks==([] if ack_read is None else [ack_read])
+        committed=mode in ('short','expired','ack-timeout')
+        assert len(list(tmp_path.rglob('research.md')))==int(committed)
+        assert len(result.get('research_effects',[]))==int(committed)
+&gt;       assert len(bodies)&lt;=2
+E       AssertionError: assert 4 &lt;= 2
+E        +  where 4 = len([{'format': {'anyOf': [{'additionalProperties': False, 'properties': {'action': {...}, 'action_input': {...}}, 'requir...er'}, ...], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 2048, 'temperature': 0}, ...}])
+
+src\brain\tests\test_work_research.py:1310: AssertionError</failure></testcase><testcase classname="src.brain.tests.test_work_research" name="test_source9_timeout_and_late_results[ack-timeout-25-needs_attention]" time="0.364"><failure message="AssertionError: assert 4 &lt;= 2&#10; +  where 4 = len([{'format': {'anyOf': [{'additionalProperties': False, 'properties': {'action': {...}, 'action_input': {...}}, 'requir...er'}, ...], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 2048, 'temperature': 0}, ...}])">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/unit23-research-fixtures-2/temp/test_source9_timeout_and_late_2')
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x000001EFA26CF750&gt;, [('search', 'Research a subject'), ('get', '...'https://example.com/source/3'), ('get', 'https://example.com/source/4'), ('get', 'https://example.com/source/5')], {})
+mock_jar = (&lt;openjarvis.sdk.Jarvis object at 0x000001EFA2A3A780&gt;, &lt;function _run_work_agent at 0x000001EFA0741940&gt;, [{'format': {...uncensored', 'options': {'num_ctx': 16384, 'num_predict': 2048, 'temperature': 0}, ...}], ['{"final_answer":"saved"}'])
+source9_clock = {'now': 26, 'metadata': 0, 'author': 0, 'ack': 26, ...}
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000001EFA2C5D0F0&gt;
+mode = 'ack-timeout', ack_read = 25, status = 'needs_attention'
+
+    @pytest.mark.parametrize('mode,ack_read,status', [('short',5,'succeeded'),('expired',None,'needs_attention'),
+                                                     ('ack-timeout',25,'needs_attention'),('author-timeout',None,'failed'),
+                                                     ('late-author',None,'failed')])
+    def test_source9_timeout_and_late_results(tmp_path,sdk_io,mock_jar,source9_clock,monkeypatch,mode,ack_read,status):
+        from src.brain import work_tools
+        _,runner,bodies,replies=mock_jar
+        state=source9_clock
+        if mode in ('short','expired'):
+            actual=work_tools.WorkResearchWriteTool.execute
+            def write(tool,**kwargs):
+                result=actual(tool,**kwargs)
+                state['now']=255 if mode=='short' else 260
+                return result
+            monkeypatch.setattr(work_tools.WorkResearchWriteTool,'execute',write)
+        if mode=='ack-timeout': state['ack']=26
+        if mode=='author-timeout': state['author']=181
+        if mode=='late-author': state.update(author=206,overrun=True)
+        replies.extend([action(report_payload()),'{"final_answer":"saved"}'])
+        result=submit(tmp_path,sdk_io[0],runner)
+        assert result['status']==status,result['error']
+        acks=[t['read'] for phase,t in state['requests'] if phase=='ack']
+        assert acks==([] if ack_read is None else [ack_read])
+        committed=mode in ('short','expired','ack-timeout')
+        assert len(list(tmp_path.rglob('research.md')))==int(committed)
+        assert len(result.get('research_effects',[]))==int(committed)
+&gt;       assert len(bodies)&lt;=2
+E       AssertionError: assert 4 &lt;= 2
+E        +  where 4 = len([{'format': {'anyOf': [{'additionalProperties': False, 'properties': {'action': {...}, 'action_input': {...}}, 'requir...er'}, ...], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 2048, 'temperature': 0}, ...}])
+
+src\brain\tests\test_work_research.py:1310: AssertionError</failure></testcase><testcase classname="src.brain.tests.test_work_research" name="test_source9_timeout_and_late_results[author-timeout-None-failed]" time="0.107" /><testcase classname="src.brain.tests.test_work_research" name="test_source9_timeout_and_late_results[late-author-None-failed]" time="0.109" /></testsuite></testsuites>

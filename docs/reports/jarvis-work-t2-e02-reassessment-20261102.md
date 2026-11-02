@@ -1,6 +1,6 @@
 # T2 E02 当前 8B 研究接口复核
 
-当前阶段：**source10 数据层已有独审检查点，SDK 权限与完整研究循环合并集成中；E02、T2 真实验收尚未通过。** 原工单 `wo-ultimaagent-20261101-0021` 继续执行。
+当前阶段：**source10 联合集成首轮独审 REVISE，正在修复并发 cutoff 与证据重放闭环；E02、T2 真实验收尚未通过。** 原工单 `wo-ultimaagent-20261101-0021` 继续执行。
 
 同一候选上的 E01 文件摘要三轮、E03 选区改写三轮及焦点/选区负例已独立通过，结论见[验收汇总](jarvis-work-t2-e01-e03-acceptance-20261102.md)。当前继续解决 E02 研究任务，不越过 T2 推进 T3。
 
@@ -41,3 +41,5 @@
 Source10第一单元已完成：244→e0b04d6→494e544，仅六个允许路径。安全资料投影/页面/canonical v3/按实际窗口重放及fresh3验证已实现，原v2算法保留。e0完整回归341通过；随后nonce16字节精确性Minor修正，在494相关两文件235通过，不能把341称为494上的重跑结果。最终独审90d57d47/e371a8c3为SPEC/QUALITY PASS，无未闭意见。代码tag jarvis-t2-e02-navigation-unit1-20261103指向494；证据检查点另名unit1-evidence。第一单元只算数据接口，通过不代表实际SDK/8B研究可交付。现已启动第二单元的enrollment/permit/安全preparer/真实SDK worker与FileWriteTool测试；第三单元还需完整对话和原生transport。实际模型调用、新真实验收、harness inert、T3都未放行。生产五个CIM域身份与8756当前8B健康读回一致，根比较器初次JSON日期自动转换误拒已保留说明并用DateKind String纠正，旧基线不改，停止进程0。
 
 联合集成裁定：原生研究回归同时依赖新capability/permit与新phase/history，两批中间无法维持真实全链成功断言，因此U2/U3合并为同一实现/独审单元，不设置伪造成功、skip/xfail或默认v2后退。只调整工作拆分，不改原设计/事实门/预算。第一次完整联合回归369项中82失败已保留，用于迁移旧协议fixtures；这不是新的产品验收失败重入。另有unit2-green-2中的独立失败来自临时PageKey页面的N3哈希被实际PIIScanner当成Mastercard号，根独立重现f25302c7并定位到预检查错误调用实际暴露前scan_view。按已定职责仅移除占位页的实际扫描，保留来源/目录安全和真实inspector返回前严格扫描；该小修复正在联合实现中，完整回归及独审尚待完成。实际返回的PII样式引用仍按原策略拒绝，可用性比例未测，不声称已消除全部误判。允许仅迁移test_work_context两项research fixtures的最小改动，原E01/E03及旧快照不改。源代码494检查点与tag已推送并远端读回，后续修复不在该旧检查点中，未生产集成/未新增模型调用。
+
+首个联合候选0e3e0ed（494→0e3，十个允许文件）完成418项完整回归+8项安全兼容、四组真实SDK/文件的脚本推理读回；这些只算代码测试。最强独审对首候选给SPEC/QUALITY REVISE（8a77a272/report161124eb）：1Critical为timeout observer退出RLock后才seal，可能放行晚到写意图；6Important为原生writer参数/原路径字节与ACK未全绑定、事件顺序/准确阶段/写前prefix重放不足、native版本/权重元数据不可重建、send前timeout重算未应用与拒绝回执缺失、旧between-snapshots负例提前return、None最终packet仍可降级纯数据验证。418+8通过不代表这些性质已通过。根已按源码核实，原作者进入联合fix1/5，以真实反例先RED后GREEN，保持所有旧失败/原冻结门；修完再同一审阅者定向复核。未分配模型、harness inert、实际案例、T3或生产发布。代码和审查输入先锚定为明确REVISE检查点，不代表通过；生产0a31和语音基线保持。

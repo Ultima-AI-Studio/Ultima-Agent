@@ -1,0 +1,298 @@
+....................F....................F.............................. [ 40%]
+.........F........................F..................................... [ 80%]
+................FFFF..............                                       [100%]
+================================== FAILURES ===================================
+________ test_malformed_sdk_search_records_retain_raw_and_diagnostics _________
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/unit23-research-fixtures-4/temp/test_malformed_sdk_search_reco0')
+sdk_io = (<src.brain.browser.channel.BrowserChannel object at 0x00000299216175F0>, [], {})
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000299217341D0>
+
+    def test_malformed_sdk_search_records_retain_raw_and_diagnostics(tmp_path,sdk_io,monkeypatch):
+        import ddgs
+        class Malformed:
+            def text(self,*a,**kw): return [dict(title='line one\nline two',href=URLS[0],body='snippet')]
+        monkeypatch.setattr(ddgs,'DDGS',Malformed)
+        browser,_,_=sdk_io
+        r=submit(tmp_path,browser,lambda *a,**kw:pytest.fail('malformed source hints reached model'))
+        assert r['status']=='failed'
+>       search=next(x['result'] for x in restricted_records(r) if x.get('tool_name')=='ultima_work_web_search')
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+src\brain\tests\test_work_research.py:219: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+.0 = <list_iterator object at 0x0000029920D5EC20>
+
+>   search=next(x['result'] for x in restricted_records(r) if x.get('tool_name')=='ultima_work_web_search')
+                ^^^^^^^^^^^
+E   KeyError: 'result'
+
+src\brain\tests\test_work_research.py:219: KeyError
+_____________________________ test_r4a_wire_scope _____________________________
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/unit23-research-fixtures-4/temp/test_r4a_wire_scope0')
+sdk_io = (<src.brain.browser.channel.BrowserChannel object at 0x0000029922CCD550>, [('search', 'Research a subject'), ('get', '...'https://example.com/source/3'), ('get', 'https://example.com/source/4'), ('get', 'https://example.com/source/5')], {})
+mock_jar = (<openjarvis.sdk.Jarvis object at 0x000002992195CE10>, <function _run_work_agent at 0x0000029920D104A0>, [{'model': 'q...], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 256, 'temperature': 0}, ...}, ...], [])
+
+    def test_r4a_wire_scope(tmp_path,sdk_io,mock_jar):
+        jar,runner,bodies,replies=mock_jar
+        base=jar._engine
+        final='{"final_answer":"done"}'
+        replies.extend([final,action(report_payload()),final,final])
+        jar.ask_full('ordinary before',agent='native_react',tools=['calculator'],context=False)
+        result=submit(tmp_path,sdk_io[0],runner)
+        jar.ask_full('ordinary after',agent='native_react',tools=['calculator'],context=False)
+        assert result['status']=='succeeded',result['error']
+        assert [type(b.get('format')) for b in bodies]==[type(None)]+[dict]*5+[type(None)]
+        assert jar._engine is base and type(base._inner).__name__=='GuardrailsEngine'
+        assert all(b['model']=='qwen3-8b-uncensored' for b in bodies)
+        assert 'ultima_work_research_write' in bodies[1]['messages'][0]['content']
+>       assert 'calculator' not in bodies[1]['messages'][0]['content']
+E       AssertionError: assert 'calculator' not in 'Return exac...ment schema.'
+E         
+E         'calculator' is contained here:
+E           ols (e.g. calculator, web_search,
+E         ?           ++++++++++
+E                shell_exec, file_read) — not the same skill
+E             3. DO NOT call the same skill again — you already have its instructions
+E             4. Synthesize a Final Answer from what you learned...
+E         
+E         ...Full output truncated, use '-vv' to show
+
+src\brain\tests\test_work_research.py:494: AssertionError
+_______________________ test_r4_projected_html_evidence _______________________
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/unit23-research-fixtures-4/temp/test_r4_projected_html_evidenc0')
+sdk_io = (<src.brain.browser.channel.BrowserChannel object at 0x0000029922CAC750>, [('search', 'Research a subject')], {})
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000002991ED36820>
+
+    def test_r4_projected_html_evidence(tmp_path,sdk_io,monkeypatch):
+        import httpx
+        from src.brain import work_service
+        def get(method,url,**kw):
+            return httpx.Response(200,headers={'content-type':'text/html'},text='<p>Visible listing '+url+'</p>',
+                                  request=httpx.Request(method,url))
+        monkeypatch.setattr(httpx,'request',get)
+        r=submit(tmp_path,sdk_io[0],lambda *a,**kw:write_report())
+        assert r['status']=='succeeded'
+        record=next(t for t in restricted_records(r) if t.get('tool_name')=='ultima_work_research_write' and t.get('call_id'))
+        evidence=record['result']['evidence'][0]
+>       assert evidence['text']==r['sources'][0]['text'] and '<p>' not in evidence['text']
+                                 ^^^^^^^^^^^^^^^^^^^^^^^
+E       KeyError: 'text'
+
+src\brain\tests\test_work_research.py:704: KeyError
+___________ test_r5_completed_report_includes_sdk_result_and_effect ___________
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/unit23-research-fixtures-4/temp/test_r5_completed_report_inclu0')
+sdk_io = (<src.brain.browser.channel.BrowserChannel object at 0x0000029922C995D0>, [('search', 'Research a subject'), ('get', '...'https://example.com/source/3'), ('get', 'https://example.com/source/4'), ('get', 'https://example.com/source/5')], {})
+mock_jar = (<openjarvis.sdk.Jarvis object at 0x0000029922C475F0>, <function _run_work_agent at 0x0000029920D104A0>, [{'format': {..., ...], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [])
+
+    def test_r5_completed_report_includes_sdk_result_and_effect(tmp_path,sdk_io,mock_jar):
+        _,runner,bodies,replies=mock_jar
+        replies.extend([action(report_payload()),'{"final_answer":"done"}'])
+        returned_sdk=[]
+        def observe(*args,**kwargs):
+            response=runner(*args,**kwargs)
+            returned_sdk.extend(response['tool_results'])
+            return response
+        r=submit(tmp_path,sdk_io[0],observe)
+        assert r['status']=='succeeded' and len(bodies)==5
+>       assert returned_sdk and [t for t in restricted_records(r) if not t.get('call_id')]==returned_sdk
+E       assert ([{'tool_name': 'ultima_work_research_inspect', 'content': '{"cards":[["N3.43e8adb5d1d5495d","documented","",1,1,1,1]],...ae09436bee63b","seq":4,"sha256":"d697a0ed905dbc0d10034499370d5bc5e133c0881da20dbc6a0b1640ac0c3738"}', 'success': True}] and [{'tool_name'...ccess': True}] == [{'tool_name'...ccess': True}]
+E         
+E         At index 0 diff: {'tool_name': 'ultima_work_research_inspect', 'success': True} != {'tool_name': 'ultima_work_research_inspect', 'content': '{"cards":[["N3.43e8adb5d1d5495d","documented","",1,1,1,1]],"end":1,"lines":[[1,"Fetched distinct body for https://example.com/source/1"]],"next_start":null,"omissions":[],"omitted_cards":0,"source_id":"S1","start":1,"total_lines":1,"v":3,"view_id":"b4188a062faa153c98831907f17a48e22a3dd86eecb992478dd87ff274fd1132"}', 'success': True}
+E         Use -v to get more diff)
+
+src\brain\tests\test_work_research.py:824: AssertionError
+_________ test_source8_full_length_validation_precedes_dispatch[path] _________
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/unit23-research-fixtures-4/temp/test_source8_full_length_valid0')
+sdk_io = (<src.brain.browser.channel.BrowserChannel object at 0x0000029922FCF3D0>, [('search', 'Research a subject'), ('get', '...'https://example.com/source/3'), ('get', 'https://example.com/source/4'), ('get', 'https://example.com/source/5')], {})
+mock_jar = (<openjarvis.sdk.Jarvis object at 0x0000029922E352E0>, <function _run_work_agent at 0x0000029920D104A0>, [{'format': {... ...], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 2048, 'temperature': 0}, ...}], [])
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000029922E6B700>
+field = 'path'
+
+    @pytest.mark.parametrize('field',['path','title','heading','claim','final_answer'])
+    def test_source8_full_length_validation_precedes_dispatch(tmp_path,sdk_io,mock_jar,monkeypatch,field):
+        from openjarvis.tools.file_write import FileWriteTool
+        jar,runner,bodies,replies=mock_jar
+        owner=jar._engine
+        actual=FileWriteTool.execute
+        writes=[]
+        def write(tool,**kwargs):
+            writes.append(dict(kwargs))
+            return actual(tool,**kwargs)
+        monkeypatch.setattr(FileWriteTool,'execute',write)
+        def draft(body):
+            data=report_payload()
+            if field=='path': data['path']='x'*2049
+            elif field=='title': data['title']='x'*201
+            elif field=='heading': data['sections'][0]['heading']='x'*201
+            elif field=='claim': data['sections'][0]['facts'][0]['claim']='x'*2001
+            return action(data)
+        replies.append(draft)
+        if field=='final_answer': replies.append(json.dumps({'final_answer':'x'*1001}))
+        result=submit(tmp_path,sdk_io[0],runner)
+        assert result['status']==('needs_attention' if field=='final_answer' else 'failed'),result
+        assert len(bodies)==(5 if field=='final_answer' else 4)
+        assert len(writes)==(1 if field=='final_answer' else 0)
+        assert len(list(tmp_path.rglob('research.md')))==len(writes)
+        assert not result['artifacts']
+        if field=='final_answer':
+            effect,=result['research_effects']
+            assert effect['state']=='completed' and Path(effect['path']).is_file()
+            assert Path(effect['path']).read_text(encoding='utf8').startswith('# Model title')
+        else:
+            assert not result.get('research_effects')
+>           assert not any(e['type']=='tool_call_start' and e.get('phase')=='research.compose' for e in result['trace'])
+E           assert not True
+E            +  where True = any(<generator object test_source8_full_length_validation_precedes_dispatch.<locals>.<genexpr> at 0x0000029922FF1CB0>)
+
+src\brain\tests\test_work_research.py:1169: AssertionError
+________ test_source8_full_length_validation_precedes_dispatch[title] _________
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/unit23-research-fixtures-4/temp/test_source8_full_length_valid1')
+sdk_io = (<src.brain.browser.channel.BrowserChannel object at 0x0000029922DF6AD0>, [('search', 'Research a subject'), ('get', '...'https://example.com/source/3'), ('get', 'https://example.com/source/4'), ('get', 'https://example.com/source/5')], {})
+mock_jar = (<openjarvis.sdk.Jarvis object at 0x0000029922E36F10>, <function _run_work_agent at 0x0000029920D104A0>, [{'format': {... ...], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 2048, 'temperature': 0}, ...}], [])
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000002992325C2F0>
+field = 'title'
+
+    @pytest.mark.parametrize('field',['path','title','heading','claim','final_answer'])
+    def test_source8_full_length_validation_precedes_dispatch(tmp_path,sdk_io,mock_jar,monkeypatch,field):
+        from openjarvis.tools.file_write import FileWriteTool
+        jar,runner,bodies,replies=mock_jar
+        owner=jar._engine
+        actual=FileWriteTool.execute
+        writes=[]
+        def write(tool,**kwargs):
+            writes.append(dict(kwargs))
+            return actual(tool,**kwargs)
+        monkeypatch.setattr(FileWriteTool,'execute',write)
+        def draft(body):
+            data=report_payload()
+            if field=='path': data['path']='x'*2049
+            elif field=='title': data['title']='x'*201
+            elif field=='heading': data['sections'][0]['heading']='x'*201
+            elif field=='claim': data['sections'][0]['facts'][0]['claim']='x'*2001
+            return action(data)
+        replies.append(draft)
+        if field=='final_answer': replies.append(json.dumps({'final_answer':'x'*1001}))
+        result=submit(tmp_path,sdk_io[0],runner)
+        assert result['status']==('needs_attention' if field=='final_answer' else 'failed'),result
+        assert len(bodies)==(5 if field=='final_answer' else 4)
+        assert len(writes)==(1 if field=='final_answer' else 0)
+        assert len(list(tmp_path.rglob('research.md')))==len(writes)
+        assert not result['artifacts']
+        if field=='final_answer':
+            effect,=result['research_effects']
+            assert effect['state']=='completed' and Path(effect['path']).is_file()
+            assert Path(effect['path']).read_text(encoding='utf8').startswith('# Model title')
+        else:
+            assert not result.get('research_effects')
+>           assert not any(e['type']=='tool_call_start' and e.get('phase')=='research.compose' for e in result['trace'])
+E           assert not True
+E            +  where True = any(<generator object test_source8_full_length_validation_precedes_dispatch.<locals>.<genexpr> at 0x0000029922FF4C70>)
+
+src\brain\tests\test_work_research.py:1169: AssertionError
+_______ test_source8_full_length_validation_precedes_dispatch[heading] ________
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/unit23-research-fixtures-4/temp/test_source8_full_length_valid2')
+sdk_io = (<src.brain.browser.channel.BrowserChannel object at 0x0000029922A10BD0>, [('search', 'Research a subject'), ('get', '...'https://example.com/source/3'), ('get', 'https://example.com/source/4'), ('get', 'https://example.com/source/5')], {})
+mock_jar = (<openjarvis.sdk.Jarvis object at 0x0000029922E37490>, <function _run_work_agent at 0x0000029920D104A0>, [{'format': {... ...], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 2048, 'temperature': 0}, ...}], [])
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000029922A26890>
+field = 'heading'
+
+    @pytest.mark.parametrize('field',['path','title','heading','claim','final_answer'])
+    def test_source8_full_length_validation_precedes_dispatch(tmp_path,sdk_io,mock_jar,monkeypatch,field):
+        from openjarvis.tools.file_write import FileWriteTool
+        jar,runner,bodies,replies=mock_jar
+        owner=jar._engine
+        actual=FileWriteTool.execute
+        writes=[]
+        def write(tool,**kwargs):
+            writes.append(dict(kwargs))
+            return actual(tool,**kwargs)
+        monkeypatch.setattr(FileWriteTool,'execute',write)
+        def draft(body):
+            data=report_payload()
+            if field=='path': data['path']='x'*2049
+            elif field=='title': data['title']='x'*201
+            elif field=='heading': data['sections'][0]['heading']='x'*201
+            elif field=='claim': data['sections'][0]['facts'][0]['claim']='x'*2001
+            return action(data)
+        replies.append(draft)
+        if field=='final_answer': replies.append(json.dumps({'final_answer':'x'*1001}))
+        result=submit(tmp_path,sdk_io[0],runner)
+        assert result['status']==('needs_attention' if field=='final_answer' else 'failed'),result
+        assert len(bodies)==(5 if field=='final_answer' else 4)
+        assert len(writes)==(1 if field=='final_answer' else 0)
+        assert len(list(tmp_path.rglob('research.md')))==len(writes)
+        assert not result['artifacts']
+        if field=='final_answer':
+            effect,=result['research_effects']
+            assert effect['state']=='completed' and Path(effect['path']).is_file()
+            assert Path(effect['path']).read_text(encoding='utf8').startswith('# Model title')
+        else:
+            assert not result.get('research_effects')
+>           assert not any(e['type']=='tool_call_start' and e.get('phase')=='research.compose' for e in result['trace'])
+E           assert not True
+E            +  where True = any(<generator object test_source8_full_length_validation_precedes_dispatch.<locals>.<genexpr> at 0x0000029922FF3030>)
+
+src\brain\tests\test_work_research.py:1169: AssertionError
+________ test_source8_full_length_validation_precedes_dispatch[claim] _________
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/unit23-research-fixtures-4/temp/test_source8_full_length_valid3')
+sdk_io = (<src.brain.browser.channel.BrowserChannel object at 0x0000029924650A50>, [('search', 'Research a subject'), ('get', '...'https://example.com/source/3'), ('get', 'https://example.com/source/4'), ('get', 'https://example.com/source/5')], {})
+mock_jar = (<openjarvis.sdk.Jarvis object at 0x0000029922E37AC0>, <function _run_work_agent at 0x0000029920D104A0>, [{'format': {... ...], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 2048, 'temperature': 0}, ...}], [])
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000029922A275B0>
+field = 'claim'
+
+    @pytest.mark.parametrize('field',['path','title','heading','claim','final_answer'])
+    def test_source8_full_length_validation_precedes_dispatch(tmp_path,sdk_io,mock_jar,monkeypatch,field):
+        from openjarvis.tools.file_write import FileWriteTool
+        jar,runner,bodies,replies=mock_jar
+        owner=jar._engine
+        actual=FileWriteTool.execute
+        writes=[]
+        def write(tool,**kwargs):
+            writes.append(dict(kwargs))
+            return actual(tool,**kwargs)
+        monkeypatch.setattr(FileWriteTool,'execute',write)
+        def draft(body):
+            data=report_payload()
+            if field=='path': data['path']='x'*2049
+            elif field=='title': data['title']='x'*201
+            elif field=='heading': data['sections'][0]['heading']='x'*201
+            elif field=='claim': data['sections'][0]['facts'][0]['claim']='x'*2001
+            return action(data)
+        replies.append(draft)
+        if field=='final_answer': replies.append(json.dumps({'final_answer':'x'*1001}))
+        result=submit(tmp_path,sdk_io[0],runner)
+        assert result['status']==('needs_attention' if field=='final_answer' else 'failed'),result
+        assert len(bodies)==(5 if field=='final_answer' else 4)
+        assert len(writes)==(1 if field=='final_answer' else 0)
+        assert len(list(tmp_path.rglob('research.md')))==len(writes)
+        assert not result['artifacts']
+        if field=='final_answer':
+            effect,=result['research_effects']
+            assert effect['state']=='completed' and Path(effect['path']).is_file()
+            assert Path(effect['path']).read_text(encoding='utf8').startswith('# Model title')
+        else:
+            assert not result.get('research_effects')
+>           assert not any(e['type']=='tool_call_start' and e.get('phase')=='research.compose' for e in result['trace'])
+E           assert not True
+E            +  where True = any(<generator object test_source8_full_length_validation_precedes_dispatch.<locals>.<genexpr> at 0x0000029922FF65A0>)
+
+src\brain\tests\test_work_research.py:1169: AssertionError
+=========================== short test summary info ===========================
+FAILED src/brain/tests/test_work_research.py::test_malformed_sdk_search_records_retain_raw_and_diagnostics
+FAILED src/brain/tests/test_work_research.py::test_r4a_wire_scope - Assertion...
+FAILED src/brain/tests/test_work_research.py::test_r4_projected_html_evidence
+FAILED src/brain/tests/test_work_research.py::test_r5_completed_report_includes_sdk_result_and_effect
+FAILED src/brain/tests/test_work_research.py::test_source8_full_length_validation_precedes_dispatch[path]
+FAILED src/brain/tests/test_work_research.py::test_source8_full_length_validation_precedes_dispatch[title]
+FAILED src/brain/tests/test_work_research.py::test_source8_full_length_validation_precedes_dispatch[heading]
+FAILED src/brain/tests/test_work_research.py::test_source8_full_length_validation_precedes_dispatch[claim]
+8 failed, 170 passed in 32.03s

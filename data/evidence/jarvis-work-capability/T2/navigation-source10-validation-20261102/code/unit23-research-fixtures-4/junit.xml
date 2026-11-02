@@ -1,0 +1,261 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="8" skipped="0" tests="178" time="31.966" timestamp="2026-11-03T01:20:48.974332+08:00" hostname="DESKTOP-B366PQ9"><testcase classname="src.brain.tests.test_work_research" name="test_required_reads_precede_even_an_immediate_final_answer" time="0.931" /><testcase classname="src.brain.tests.test_work_research" name="test_actual_report_write_cites_three_of_five_fetched_sources" time="0.706" /><testcase classname="src.brain.tests.test_work_research" name="test_optional_failed_probe_has_exact_ledger_identity" time="0.479" /><testcase classname="src.brain.tests.test_work_research" name="test_failed_model_action_cannot_use_probe_waiver[same_tool]" time="0.382" /><testcase classname="src.brain.tests.test_work_research" name="test_failed_model_action_cannot_use_probe_waiver[model_metadata]" time="0.406" /><testcase classname="src.brain.tests.test_work_research" name="test_bad_collection_never_reaches_model_or_file[insufficient]" time="0.076" /><testcase classname="src.brain.tests.test_work_research" name="test_bad_collection_never_reaches_model_or_file[same_body]" time="0.093" /><testcase classname="src.brain.tests.test_work_research" name="test_bad_collection_never_reaches_model_or_file[invalid]" time="0.076" /><testcase classname="src.brain.tests.test_work_research" name="test_bad_collection_never_reaches_model_or_file[excess]" time="0.082" /><testcase classname="src.brain.tests.test_work_research" name="test_real_executor_timeout_aborts_before_runner" time="0.084" /><testcase classname="src.brain.tests.test_work_research" name="test_report_refuses_unbound_or_forged_citations[change0]" time="0.082" /><testcase classname="src.brain.tests.test_work_research" name="test_report_refuses_unbound_or_forged_citations[change1]" time="0.094" /><testcase classname="src.brain.tests.test_work_research" name="test_report_refuses_unbound_or_forged_citations[change2]" time="0.091" /><testcase classname="src.brain.tests.test_work_research" name="test_report_refuses_unbound_or_forged_citations[change3]" time="0.098" /><testcase classname="src.brain.tests.test_work_research" name="test_report_refuses_unbound_or_forged_citations[change4]" time="0.083" /><testcase classname="src.brain.tests.test_work_research" name="test_report_refuses_unbound_or_forged_citations[change5]" time="0.087" /><testcase classname="src.brain.tests.test_work_research" name="test_report_refuses_unbound_or_forged_citations[change6]" time="0.082" /><testcase classname="src.brain.tests.test_work_research" name="test_source_candidates_are_data_and_combined_mutation_is_early_rejected" time="0.069" /><testcase classname="src.brain.tests.test_work_research" name="test_unbound_report_writer_fails_without_file" time="0.002" /><testcase classname="src.brain.tests.test_work_research" name="test_cli_source_urls_remain_candidate_data" time="0.028" /><testcase classname="src.brain.tests.test_work_research" name="test_malformed_sdk_search_records_retain_raw_and_diagnostics" time="0.070"><failure message="KeyError: 'result'">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/unit23-research-fixtures-4/temp/test_malformed_sdk_search_reco0')
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x00000299216175F0&gt;, [], {})
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x00000299217341D0&gt;
+
+    def test_malformed_sdk_search_records_retain_raw_and_diagnostics(tmp_path,sdk_io,monkeypatch):
+        import ddgs
+        class Malformed:
+            def text(self,*a,**kw): return [dict(title='line one\nline two',href=URLS[0],body='snippet')]
+        monkeypatch.setattr(ddgs,'DDGS',Malformed)
+        browser,_,_=sdk_io
+        r=submit(tmp_path,browser,lambda *a,**kw:pytest.fail('malformed source hints reached model'))
+        assert r['status']=='failed'
+&gt;       search=next(x['result'] for x in restricted_records(r) if x.get('tool_name')=='ultima_work_web_search')
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+src\brain\tests\test_work_research.py:219: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+.0 = &lt;list_iterator object at 0x0000029920D5EC20&gt;
+
+&gt;   search=next(x['result'] for x in restricted_records(r) if x.get('tool_name')=='ultima_work_web_search')
+                ^^^^^^^^^^^
+E   KeyError: 'result'
+
+src\brain\tests\test_work_research.py:219: KeyError</failure></testcase><testcase classname="src.brain.tests.test_work_research" name="test_mandatory_search_failure_cannot_be_waived" time="0.071" /><testcase classname="src.brain.tests.test_work_research" name="test_cross_request_catalogue_is_rejected" time="0.081" /><testcase classname="src.brain.tests.test_work_research" name="test_report_independent_reopen_detects_changed_bytes" time="1.076" /><testcase classname="src.brain.tests.test_work_research" name="test_native_react_uses_bound_report_with_real_sdk_collection" time="0.470" /><testcase classname="src.brain.tests.test_work_research" name="test_preflight_budget_stops_before_starting_next_get" time="0.070" /><testcase classname="src.brain.tests.test_work_research" name="test_source_url_schema_never_grants_authority[True]" time="0.070" /><testcase classname="src.brain.tests.test_work_research" name="test_source_url_schema_never_grants_authority[https://example.com/]" time="0.065" /><testcase classname="src.brain.tests.test_work_research" name="test_source_url_schema_never_grants_authority[bad2]" time="0.067" /><testcase classname="src.brain.tests.test_work_research" name="test_source_url_schema_never_grants_authority[bad3]" time="0.068" /><testcase classname="src.brain.tests.test_work_research" name="test_report_nested_writer_keeps_existing_path_boundary[../escape.md]" time="0.090" /><testcase classname="src.brain.tests.test_work_research" name="test_report_nested_writer_keeps_existing_path_boundary[C:/outside.md]" time="0.086" /><testcase classname="src.brain.tests.test_work_research" name="test_sdk_false_file_success_is_not_report_completion" time="0.358" /><testcase classname="src.brain.tests.test_work_research" name="test_optional_probe_does_not_waive_unexpected_adapter_error" time="0.079" /><testcase classname="src.brain.tests.test_work_research" name="test_native_react_first_messages_include_nested_report_schema[3]" time="0.084" /><testcase classname="src.brain.tests.test_work_research" name="test_native_react_first_messages_include_nested_report_schema[5]" time="0.092" /><testcase classname="src.brain.tests.test_work_research" name="test_source6_nested_action_and_final_only" time="0.375" /><testcase classname="src.brain.tests.test_work_research" name="test_source6_double_report_is_one_mutation" time="0.395" /><testcase classname="src.brain.tests.test_work_research" name="test_source6_only_bound_tool_and_frozen_capture" time="0.391" /><testcase classname="src.brain.tests.test_work_research" name="test_source6_admission_boundary[55-True]" time="0.001" /><testcase classname="src.brain.tests.test_work_research" name="test_source6_admission_boundary[54.9-False]" time="0.000" /><testcase classname="src.brain.tests.test_work_research" name="test_r4a_wire_scope" time="0.449"><failure message="AssertionError: assert 'calculator' not in 'Return exac...ment schema.'&#10;  &#10;  'calculator' is contained here:&#10;    ols (e.g. calculator, web_search,&#10;  ?           ++++++++++&#10;         shell_exec, file_read) — not the same skill&#10;      3. DO NOT call the same skill again — you already have its instructions&#10;      4. Synthesize a Final Answer from what you learned...&#10;  &#10;  ...Full output truncated, use '-vv' to show">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/unit23-research-fixtures-4/temp/test_r4a_wire_scope0')
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x0000029922CCD550&gt;, [('search', 'Research a subject'), ('get', '...'https://example.com/source/3'), ('get', 'https://example.com/source/4'), ('get', 'https://example.com/source/5')], {})
+mock_jar = (&lt;openjarvis.sdk.Jarvis object at 0x000002992195CE10&gt;, &lt;function _run_work_agent at 0x0000029920D104A0&gt;, [{'model': 'q...], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 256, 'temperature': 0}, ...}, ...], [])
+
+    def test_r4a_wire_scope(tmp_path,sdk_io,mock_jar):
+        jar,runner,bodies,replies=mock_jar
+        base=jar._engine
+        final='{"final_answer":"done"}'
+        replies.extend([final,action(report_payload()),final,final])
+        jar.ask_full('ordinary before',agent='native_react',tools=['calculator'],context=False)
+        result=submit(tmp_path,sdk_io[0],runner)
+        jar.ask_full('ordinary after',agent='native_react',tools=['calculator'],context=False)
+        assert result['status']=='succeeded',result['error']
+        assert [type(b.get('format')) for b in bodies]==[type(None)]+[dict]*5+[type(None)]
+        assert jar._engine is base and type(base._inner).__name__=='GuardrailsEngine'
+        assert all(b['model']=='qwen3-8b-uncensored' for b in bodies)
+        assert 'ultima_work_research_write' in bodies[1]['messages'][0]['content']
+&gt;       assert 'calculator' not in bodies[1]['messages'][0]['content']
+E       AssertionError: assert 'calculator' not in 'Return exac...ment schema.'
+E         
+E         'calculator' is contained here:
+E           ols (e.g. calculator, web_search,
+E         ?           ++++++++++
+E                shell_exec, file_read) — not the same skill
+E             3. DO NOT call the same skill again — you already have its instructions
+E             4. Synthesize a Final Answer from what you learned...
+E         
+E         ...Full output truncated, use '-vv' to show
+
+src\brain\tests\test_work_research.py:494: AssertionError</failure></testcase><testcase classname="src.brain.tests.test_work_research" name="test_r4a_bad_final_after_write[{&quot;action&quot;:&quot;calculator&quot;,&quot;action_input&quot;:{},&quot;final_answer&quot;:&quot;x&quot;}]" time="0.382" /><testcase classname="src.brain.tests.test_work_research" name="test_r4a_bad_final_after_write[{&quot;final_answer&quot;:&quot;1&quot;,&quot;final_answer&quot;:&quot;2&quot;}]" time="0.370" /><testcase classname="src.brain.tests.test_work_research" name="test_r4a_bad_final_after_write[{&quot;action&quot;:&quot;calculator&quot;,&quot;action_input&quot;:&quot;{}&quot;}]" time="0.343" /><testcase classname="src.brain.tests.test_work_research" name="test_r4a_bad_final_after_write[{&quot;final_answer&quot;:NaN}]" time="0.353" /><testcase classname="src.brain.tests.test_work_research" name="test_r4a_bad_final_after_write[{&quot;final_answer&quot;:]" time="0.350" /><testcase classname="src.brain.tests.test_work_research" name="test_r4a_bad_final_after_write[Final Answer: saved]" time="0.450" /><testcase classname="src.brain.tests.test_work_research" name="test_r4a_stop_on_rejection" time="0.271" /><testcase classname="src.brain.tests.test_work_research" name="test_r4a_unknown_dispatch" time="0.082" /><testcase classname="src.brain.tests.test_work_research" name="test_r4b_candidate_boundaries" time="0.129" /><testcase classname="src.brain.tests.test_work_research" name="test_r4b_projection[3]" time="0.004" /><testcase classname="src.brain.tests.test_work_research" name="test_r4b_projection[4]" time="0.003" /><testcase classname="src.brain.tests.test_work_research" name="test_r4b_projection[5]" time="0.003" /><testcase classname="src.brain.tests.test_work_research" name="test_r4b_code_witness[ts-return await this.queue.dispatch(item);-1-1-this.queue.dispatch-True]" time="0.016" /><testcase classname="src.brain.tests.test_work_research" name="test_r4b_code_witness[ts-const out = await this.client.send(\n  item,\n  flags\n);-1-4-this.client.send-True]" time="0.001" /><testcase classname="src.brain.tests.test_work_research" name="test_r4b_code_witness[js-let sink = new Writer(item);-1-1-Writer-True]" time="0.001" /><testcase classname="src.brain.tests.test_work_research" name="test_r4b_code_witness[py-def run(self):\n    return self.queue.dispatch(item)-2-2-self.queue.dispatch-True]" time="0.001" /><testcase classname="src.brain.tests.test_work_research" name="test_r4b_code_witness[ts-// new Writer(item);-1-1-Writer-False]" time="0.001" /><testcase classname="src.brain.tests.test_work_research" name="test_r4b_code_witness[ts-const txt = &quot;new Writer(item)&quot;;-1-1-Writer-False]" time="0.001" /><testcase classname="src.brain.tests.test_work_research" name="test_r4b_code_witness[js-const txt = `new Writer(item)`;-1-1-Writer-False]" time="0.001" /><testcase classname="src.brain.tests.test_work_research" name="test_r4b_code_witness[ts-const rx = /Writer\\(item\\)/;-1-1-Writer-False]" time="0.001" /><testcase classname="src.brain.tests.test_work_research" name="test_r4b_code_witness[ts-Logger.warning(&quot;new Writer(item)&quot;);-1-1-Writer-False]" time="0.001" /><testcase classname="src.brain.tests.test_work_research" name="test_r4b_code_witness[ts-declare function Writer(item: Item): Writer;-1-1-Writer-False]" time="0.001" /><testcase classname="src.brain.tests.test_work_research" name="test_r4b_code_witness[ts-const a = await this.sink.dispatch(\n item\n);-1-2-this.sink.dispatch-False]" time="0.001" /><testcase classname="src.brain.tests.test_work_research" name="test_r4b_code_witness[ts-const a = await this.sink.dispatch(item);-1-1-dispatch-False]" time="0.001" /><testcase classname="src.brain.tests.test_work_research" name="test_r4b_code_witness[rb-Writer(item)-1-1-Writer-False]" time="0.001" /><testcase classname="src.brain.tests.test_work_research" name="test_r4b_code_witness[ts-// not actually invoked\nconst w = new Writer(item);-1-1-Writer-False]" time="0.001" /><testcase classname="src.brain.tests.test_work_research" name="test_r4b_partial_write" time="0.459" /><testcase classname="src.brain.tests.test_work_research" name="test_r4b_late_report[before_intent]" time="0.283" /><testcase classname="src.brain.tests.test_work_research" name="test_r4b_late_report[after_intent]" time="0.340" /><testcase classname="src.brain.tests.test_work_research" name="test_r4b_late_report[r5_between_snapshots]" time="0.283" /><testcase classname="src.brain.tests.test_work_research" name="test_r4_unresolved_backend_refuses_before_inference[None]" time="0.079" /><testcase classname="src.brain.tests.test_work_research" name="test_r4_unresolved_backend_refuses_before_inference[other]" time="0.083" /><testcase classname="src.brain.tests.test_work_research" name="test_r4_invalid_or_invisible_span[True-1]" time="0.068" /><testcase classname="src.brain.tests.test_work_research" name="test_r4_invalid_or_invisible_span[1-False]" time="0.083" /><testcase classname="src.brain.tests.test_work_research" name="test_r4_invalid_or_invisible_span[0-1]" time="0.083" /><testcase classname="src.brain.tests.test_work_research" name="test_r4_invalid_or_invisible_span[2-1]" time="0.083" /><testcase classname="src.brain.tests.test_work_research" name="test_r4_invalid_or_invisible_span[1-9]" time="0.075" /><testcase classname="src.brain.tests.test_work_research" name="test_r4_invalid_or_invisible_span[1001-1001]" time="0.083" /><testcase classname="src.brain.tests.test_work_research" name="test_r4_invalid_or_invisible_span[500-500]" time="0.083" /><testcase classname="src.brain.tests.test_work_research" name="test_r4_projected_html_evidence" time="0.497"><failure message="KeyError: 'text'">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/unit23-research-fixtures-4/temp/test_r4_projected_html_evidenc0')
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x0000029922CAC750&gt;, [('search', 'Research a subject')], {})
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000002991ED36820&gt;
+
+    def test_r4_projected_html_evidence(tmp_path,sdk_io,monkeypatch):
+        import httpx
+        from src.brain import work_service
+        def get(method,url,**kw):
+            return httpx.Response(200,headers={'content-type':'text/html'},text='&lt;p&gt;Visible listing '+url+'&lt;/p&gt;',
+                                  request=httpx.Request(method,url))
+        monkeypatch.setattr(httpx,'request',get)
+        r=submit(tmp_path,sdk_io[0],lambda *a,**kw:write_report())
+        assert r['status']=='succeeded'
+        record=next(t for t in restricted_records(r) if t.get('tool_name')=='ultima_work_research_write' and t.get('call_id'))
+        evidence=record['result']['evidence'][0]
+&gt;       assert evidence['text']==r['sources'][0]['text'] and '&lt;p&gt;' not in evidence['text']
+                                 ^^^^^^^^^^^^^^^^^^^^^^^
+E       KeyError: 'text'
+
+src\brain\tests\test_work_research.py:704: KeyError</failure></testcase><testcase classname="src.brain.tests.test_work_research" name="test_r4_limitations_are_local_claims" time="0.001" /><testcase classname="src.brain.tests.test_work_research" name="test_r4_max_turns_after_committed_write" time="0.333" /><testcase classname="src.brain.tests.test_work_research" name="test_r4_research_exception_does_not_leak_to_ordinary" time="0.098" /><testcase classname="src.brain.tests.test_work_research" name="test_r4_exact_named_symbol_and_explicit_failure" time="0.001" /><testcase classname="src.brain.tests.test_work_research" name="test_r5_method_header_is_not_a_call[class Queue {-js]" time="0.001" /><testcase classname="src.brain.tests.test_work_research" name="test_r5_method_header_is_not_a_call[class Queue {-mjs]" time="0.001" /><testcase classname="src.brain.tests.test_work_research" name="test_r5_method_header_is_not_a_call[class Queue {-cjs]" time="0.001" /><testcase classname="src.brain.tests.test_work_research" name="test_r5_method_header_is_not_a_call[class Queue {-ts]" time="0.001" /><testcase classname="src.brain.tests.test_work_research" name="test_r5_method_header_is_not_a_call[const queue = {-js]" time="0.001" /><testcase classname="src.brain.tests.test_work_research" name="test_r5_method_header_is_not_a_call[const queue = {-mjs]" time="0.001" /><testcase classname="src.brain.tests.test_work_research" name="test_r5_method_header_is_not_a_call[const queue = {-cjs]" time="0.001" /><testcase classname="src.brain.tests.test_work_research" name="test_r5_method_header_is_not_a_call[const queue = {-ts]" time="0.001" /><testcase classname="src.brain.tests.test_work_research" name="test_r5_incomplete_statement[interface Queue {\n  dispatch(item)\n  : void;\n}-dispatch]" time="0.001" /><testcase classname="src.brain.tests.test_work_research" name="test_r5_incomplete_statement[const run = () =&gt; {\n  return queue.dispatch(item)\n    .then(done);\n}-queue.dispatch]" time="0.001" /><testcase classname="src.brain.tests.test_work_research" name="test_r5_incomplete_statement[function run() {\n  queue.dispatch(item)\n    (other);\n}-queue.dispatch]" time="0.001" /><testcase classname="src.brain.tests.test_work_research" name="test_r5_comment_cannot_prove_call_on_different_line[py-# head\x0c# note\nx = queue.dispatch(item)]" time="0.000" /><testcase classname="src.brain.tests.test_work_research" name="test_r5_comment_cannot_prove_call_on_different_line[js-// heading\u2028// note\nconst x = queue.dispatch(item);]" time="0.000" /><testcase classname="src.brain.tests.test_work_research" name="test_r5_extracted_html_text_cannot_prove_a_source_statement" time="0.000" /><testcase classname="src.brain.tests.test_work_research" name="test_r5_complete_statement_and_raw_identity[js-lines0-lf]" time="0.001" /><testcase classname="src.brain.tests.test_work_research" name="test_r5_complete_statement_and_raw_identity[js-lines0-crlf]" time="0.001" /><testcase classname="src.brain.tests.test_work_research" name="test_r5_complete_statement_and_raw_identity[ts-lines1-lf]" time="0.001" /><testcase classname="src.brain.tests.test_work_research" name="test_r5_complete_statement_and_raw_identity[ts-lines1-crlf]" time="0.001" /><testcase classname="src.brain.tests.test_work_research" name="test_r5_complete_statement_and_raw_identity[py-lines2-lf]" time="0.001" /><testcase classname="src.brain.tests.test_work_research" name="test_r5_complete_statement_and_raw_identity[py-lines2-crlf]" time="0.001" /><testcase classname="src.brain.tests.test_work_research" name="test_r5_completed_report_includes_sdk_result_and_effect" time="0.396"><failure message="assert ([{'tool_name': 'ultima_work_research_inspect', 'content': '{&quot;cards&quot;:[[&quot;N3.43e8adb5d1d5495d&quot;,&quot;documented&quot;,&quot;&quot;,1,1,1,1]],...ae09436bee63b&quot;,&quot;seq&quot;:4,&quot;sha256&quot;:&quot;d697a0ed905dbc0d10034499370d5bc5e133c0881da20dbc6a0b1640ac0c3738&quot;}', 'success': True}] and [{'tool_name'...ccess': True}] == [{'tool_name'...ccess': True}]&#10;  &#10;[+2 more lines; full report in element text]">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/unit23-research-fixtures-4/temp/test_r5_completed_report_inclu0')
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x0000029922C995D0&gt;, [('search', 'Research a subject'), ('get', '...'https://example.com/source/3'), ('get', 'https://example.com/source/4'), ('get', 'https://example.com/source/5')], {})
+mock_jar = (&lt;openjarvis.sdk.Jarvis object at 0x0000029922C475F0&gt;, &lt;function _run_work_agent at 0x0000029920D104A0&gt;, [{'format': {..., ...], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [])
+
+    def test_r5_completed_report_includes_sdk_result_and_effect(tmp_path,sdk_io,mock_jar):
+        _,runner,bodies,replies=mock_jar
+        replies.extend([action(report_payload()),'{"final_answer":"done"}'])
+        returned_sdk=[]
+        def observe(*args,**kwargs):
+            response=runner(*args,**kwargs)
+            returned_sdk.extend(response['tool_results'])
+            return response
+        r=submit(tmp_path,sdk_io[0],observe)
+        assert r['status']=='succeeded' and len(bodies)==5
+&gt;       assert returned_sdk and [t for t in restricted_records(r) if not t.get('call_id')]==returned_sdk
+E       assert ([{'tool_name': 'ultima_work_research_inspect', 'content': '{"cards":[["N3.43e8adb5d1d5495d","documented","",1,1,1,1]],...ae09436bee63b","seq":4,"sha256":"d697a0ed905dbc0d10034499370d5bc5e133c0881da20dbc6a0b1640ac0c3738"}', 'success': True}] and [{'tool_name'...ccess': True}] == [{'tool_name'...ccess': True}]
+E         
+E         At index 0 diff: {'tool_name': 'ultima_work_research_inspect', 'success': True} != {'tool_name': 'ultima_work_research_inspect', 'content': '{"cards":[["N3.43e8adb5d1d5495d","documented","",1,1,1,1]],"end":1,"lines":[[1,"Fetched distinct body for https://example.com/source/1"]],"next_start":null,"omissions":[],"omitted_cards":0,"source_id":"S1","start":1,"total_lines":1,"v":3,"view_id":"b4188a062faa153c98831907f17a48e22a3dd86eecb992478dd87ff274fd1132"}', 'success': True}
+E         Use -v to get more diff)
+
+src\brain\tests\test_work_research.py:824: AssertionError</failure></testcase><testcase classname="src.brain.tests.test_work_research" name="test_source6_native_boundary[version]" time="0.101" /><testcase classname="src.brain.tests.test_work_research" name="test_source6_native_boundary[digest]" time="0.095" /><testcase classname="src.brain.tests.test_work_research" name="test_source6_native_boundary[manifest]" time="0.093" /><testcase classname="src.brain.tests.test_work_research" name="test_source6_native_boundary[credential]" time="0.098" /><testcase classname="src.brain.tests.test_work_research" name="test_source6_native_boundary[wrapper]" time="0.087" /><testcase classname="src.brain.tests.test_work_research" name="test_source6_native_boundary[origin]" time="0.080" /><testcase classname="src.brain.tests.test_work_research" name="test_source6_native_boundary[raw-coercion]" time="0.094" /><testcase classname="src.brain.tests.test_work_research" name="test_source6_native_boundary[duplicate]" time="0.096" /><testcase classname="src.brain.tests.test_work_research" name="test_source6_native_boundary[nonfinite]" time="0.150" /><testcase classname="src.brain.tests.test_work_research" name="test_source6_native_boundary[native-tool]" time="0.097" /><testcase classname="src.brain.tests.test_work_research" name="test_source6_native_boundary[length]" time="0.100" /><testcase classname="src.brain.tests.test_work_research" name="test_source6_native_boundary[model]" time="0.099" /><testcase classname="src.brain.tests.test_work_research" name="test_source6_native_boundary[empty]" time="0.084" /><testcase classname="src.brain.tests.test_work_research" name="test_source6_native_boundary[overflow]" time="0.093" /><testcase classname="src.brain.tests.test_work_research" name="test_source6_native_boundary[ack-overflow]" time="0.442" /><testcase classname="src.brain.tests.test_work_research" name="test_source6_real_admission[after-action]" time="0.253" /><testcase classname="src.brain.tests.test_work_research" name="test_source6_real_admission[worker]" time="0.340" /><testcase classname="src.brain.tests.test_work_research" name="test_source6_real_admission[pre-intent]" time="0.331" /><testcase classname="src.brain.tests.test_work_research" name="test_source6_real_admission[equal]" time="0.441" /><testcase classname="src.brain.tests.test_work_research" name="test_source6_executor_denies_before_write[policy]" time="0.293" /><testcase classname="src.brain.tests.test_work_research" name="test_source6_executor_denies_before_write[rate]" time="0.197" /><testcase classname="src.brain.tests.test_work_research" name="test_source6_secured_material[input]" time="0.151" /><testcase classname="src.brain.tests.test_work_research" name="test_source6_secured_material[output]" time="0.384" /><testcase classname="src.brain.tests.test_work_research" name="test_source6_secured_material[oversize]" time="0.099" /><testcase classname="src.brain.tests.test_work_research" name="test_source6_secured_material[expanded]" time="0.082" /><testcase classname="src.brain.tests.test_work_research" name="test_source6_reference_membership_and_readback" time="0.450" /><testcase classname="src.brain.tests.test_work_research" name="test_source6_reopen_validates_reference_protocol[unknown-version]" time="0.430" /><testcase classname="src.brain.tests.test_work_research" name="test_source6_reopen_validates_reference_protocol[missing-version]" time="0.402" /><testcase classname="src.brain.tests.test_work_research" name="test_source6_reopen_validates_reference_protocol[altered-submission]" time="0.454" /><testcase classname="src.brain.tests.test_work_research" name="test_source6_reopen_validates_reference_protocol[altered-binding]" time="0.483" /><testcase classname="src.brain.tests.test_work_research" name="test_source6_reopen_validates_reference_protocol[body]" time="0.398" /><testcase classname="src.brain.tests.test_work_research" name="test_source6_reopen_validates_reference_protocol[url]" time="0.392" /><testcase classname="src.brain.tests.test_work_research" name="test_source6_lock_wait_uses_entry_deadline" time="0.093" /><testcase classname="src.brain.tests.test_work_research" name="test_source7_refuses_invalid_allowance_before_native_generation[-1]" time="0.100" /><testcase classname="src.brain.tests.test_work_research" name="test_source7_refuses_invalid_allowance_before_native_generation[-999]" time="0.089" /><testcase classname="src.brain.tests.test_work_research" name="test_source7_refuses_invalid_allowance_before_native_generation[0]" time="0.083" /><testcase classname="src.brain.tests.test_work_research" name="test_source7_refuses_invalid_allowance_before_native_generation[True]" time="0.086" /><testcase classname="src.brain.tests.test_work_research" name="test_source7_refuses_invalid_allowance_before_native_generation[12.5]" time="0.089" /><testcase classname="src.brain.tests.test_work_research" name="test_source7_refuses_invalid_allowance_before_native_generation[15]" time="0.086" /><testcase classname="src.brain.tests.test_work_research" name="test_source7_bounded_native_author_and_ack[None-expected0]" time="0.399" /><testcase classname="src.brain.tests.test_work_research" name="test_source7_bounded_native_author_and_ack[32-expected1]" time="0.496" /><testcase classname="src.brain.tests.test_work_research" name="test_source7_bounded_native_author_and_ack[8192-expected2]" time="0.480" /><testcase classname="src.brain.tests.test_work_research" name="test_source7_http_research_refuses_coercion[True]" time="0.000" /><testcase classname="src.brain.tests.test_work_research" name="test_source7_http_research_refuses_coercion[12.5]" time="0.000" /><testcase classname="src.brain.tests.test_work_research" name="test_source7_http_research_refuses_coercion[15]" time="0.000" /><testcase classname="src.brain.tests.test_work_research" name="test_source7_split_prefix_issued_and_reopened[const result =\n  queue.dispatch(item);-code-queue.dispatch-js]" time="0.379" /><testcase classname="src.brain.tests.test_work_research" name="test_source7_split_prefix_issued_and_reopened[const result =\n  queue.dispatch(item);-code-queue.dispatch-ts]" time="0.415" /><testcase classname="src.brain.tests.test_work_research" name="test_source7_split_prefix_issued_and_reopened[const result =\n  logger.warn(item);-limitation-logger.warn-js]" time="0.399" /><testcase classname="src.brain.tests.test_work_research" name="test_source7_split_prefix_issued_and_reopened[const result =\n  logger.warn(item);-limitation-logger.warn-ts]" time="0.374" /><testcase classname="src.brain.tests.test_work_research" name="test_source7_split_prefix_issued_and_reopened[throw new\n  TypeError(item);-limitation-TypeError-js]" time="0.406" /><testcase classname="src.brain.tests.test_work_research" name="test_source7_split_prefix_issued_and_reopened[throw new\n  TypeError(item);-limitation-TypeError-ts]" time="0.412" /><testcase classname="src.brain.tests.test_work_research" name="test_source8_sampler_copy_preserves_full_authority" time="0.392" /><testcase classname="src.brain.tests.test_work_research" name="test_source8_property_named_maxlength_is_not_a_keyword" time="0.071" /><testcase classname="src.brain.tests.test_work_research" name="test_source8_full_length_validation_precedes_dispatch[path]" time="0.246"><failure message="assert not True&#10; +  where True = any(&lt;generator object test_source8_full_length_validation_precedes_dispatch.&lt;locals&gt;.&lt;genexpr&gt; at 0x0000029922FF1CB0&gt;)">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/unit23-research-fixtures-4/temp/test_source8_full_length_valid0')
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x0000029922FCF3D0&gt;, [('search', 'Research a subject'), ('get', '...'https://example.com/source/3'), ('get', 'https://example.com/source/4'), ('get', 'https://example.com/source/5')], {})
+mock_jar = (&lt;openjarvis.sdk.Jarvis object at 0x0000029922E352E0&gt;, &lt;function _run_work_agent at 0x0000029920D104A0&gt;, [{'format': {... ...], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 2048, 'temperature': 0}, ...}], [])
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x0000029922E6B700&gt;
+field = 'path'
+
+    @pytest.mark.parametrize('field',['path','title','heading','claim','final_answer'])
+    def test_source8_full_length_validation_precedes_dispatch(tmp_path,sdk_io,mock_jar,monkeypatch,field):
+        from openjarvis.tools.file_write import FileWriteTool
+        jar,runner,bodies,replies=mock_jar
+        owner=jar._engine
+        actual=FileWriteTool.execute
+        writes=[]
+        def write(tool,**kwargs):
+            writes.append(dict(kwargs))
+            return actual(tool,**kwargs)
+        monkeypatch.setattr(FileWriteTool,'execute',write)
+        def draft(body):
+            data=report_payload()
+            if field=='path': data['path']='x'*2049
+            elif field=='title': data['title']='x'*201
+            elif field=='heading': data['sections'][0]['heading']='x'*201
+            elif field=='claim': data['sections'][0]['facts'][0]['claim']='x'*2001
+            return action(data)
+        replies.append(draft)
+        if field=='final_answer': replies.append(json.dumps({'final_answer':'x'*1001}))
+        result=submit(tmp_path,sdk_io[0],runner)
+        assert result['status']==('needs_attention' if field=='final_answer' else 'failed'),result
+        assert len(bodies)==(5 if field=='final_answer' else 4)
+        assert len(writes)==(1 if field=='final_answer' else 0)
+        assert len(list(tmp_path.rglob('research.md')))==len(writes)
+        assert not result['artifacts']
+        if field=='final_answer':
+            effect,=result['research_effects']
+            assert effect['state']=='completed' and Path(effect['path']).is_file()
+            assert Path(effect['path']).read_text(encoding='utf8').startswith('# Model title')
+        else:
+            assert not result.get('research_effects')
+&gt;           assert not any(e['type']=='tool_call_start' and e.get('phase')=='research.compose' for e in result['trace'])
+E           assert not True
+E            +  where True = any(&lt;generator object test_source8_full_length_validation_precedes_dispatch.&lt;locals&gt;.&lt;genexpr&gt; at 0x0000029922FF1CB0&gt;)
+
+src\brain\tests\test_work_research.py:1169: AssertionError</failure></testcase><testcase classname="src.brain.tests.test_work_research" name="test_source8_full_length_validation_precedes_dispatch[title]" time="0.230"><failure message="assert not True&#10; +  where True = any(&lt;generator object test_source8_full_length_validation_precedes_dispatch.&lt;locals&gt;.&lt;genexpr&gt; at 0x0000029922FF4C70&gt;)">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/unit23-research-fixtures-4/temp/test_source8_full_length_valid1')
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x0000029922DF6AD0&gt;, [('search', 'Research a subject'), ('get', '...'https://example.com/source/3'), ('get', 'https://example.com/source/4'), ('get', 'https://example.com/source/5')], {})
+mock_jar = (&lt;openjarvis.sdk.Jarvis object at 0x0000029922E36F10&gt;, &lt;function _run_work_agent at 0x0000029920D104A0&gt;, [{'format': {... ...], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 2048, 'temperature': 0}, ...}], [])
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000002992325C2F0&gt;
+field = 'title'
+
+    @pytest.mark.parametrize('field',['path','title','heading','claim','final_answer'])
+    def test_source8_full_length_validation_precedes_dispatch(tmp_path,sdk_io,mock_jar,monkeypatch,field):
+        from openjarvis.tools.file_write import FileWriteTool
+        jar,runner,bodies,replies=mock_jar
+        owner=jar._engine
+        actual=FileWriteTool.execute
+        writes=[]
+        def write(tool,**kwargs):
+            writes.append(dict(kwargs))
+            return actual(tool,**kwargs)
+        monkeypatch.setattr(FileWriteTool,'execute',write)
+        def draft(body):
+            data=report_payload()
+            if field=='path': data['path']='x'*2049
+            elif field=='title': data['title']='x'*201
+            elif field=='heading': data['sections'][0]['heading']='x'*201
+            elif field=='claim': data['sections'][0]['facts'][0]['claim']='x'*2001
+            return action(data)
+        replies.append(draft)
+        if field=='final_answer': replies.append(json.dumps({'final_answer':'x'*1001}))
+        result=submit(tmp_path,sdk_io[0],runner)
+        assert result['status']==('needs_attention' if field=='final_answer' else 'failed'),result
+        assert len(bodies)==(5 if field=='final_answer' else 4)
+        assert len(writes)==(1 if field=='final_answer' else 0)
+        assert len(list(tmp_path.rglob('research.md')))==len(writes)
+        assert not result['artifacts']
+        if field=='final_answer':
+            effect,=result['research_effects']
+            assert effect['state']=='completed' and Path(effect['path']).is_file()
+            assert Path(effect['path']).read_text(encoding='utf8').startswith('# Model title')
+        else:
+            assert not result.get('research_effects')
+&gt;           assert not any(e['type']=='tool_call_start' and e.get('phase')=='research.compose' for e in result['trace'])
+E           assert not True
+E            +  where True = any(&lt;generator object test_source8_full_length_validation_precedes_dispatch.&lt;locals&gt;.&lt;genexpr&gt; at 0x0000029922FF4C70&gt;)
+
+src\brain\tests\test_work_research.py:1169: AssertionError</failure></testcase><testcase classname="src.brain.tests.test_work_research" name="test_source8_full_length_validation_precedes_dispatch[heading]" time="0.334"><failure message="assert not True&#10; +  where True = any(&lt;generator object test_source8_full_length_validation_precedes_dispatch.&lt;locals&gt;.&lt;genexpr&gt; at 0x0000029922FF3030&gt;)">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/unit23-research-fixtures-4/temp/test_source8_full_length_valid2')
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x0000029922A10BD0&gt;, [('search', 'Research a subject'), ('get', '...'https://example.com/source/3'), ('get', 'https://example.com/source/4'), ('get', 'https://example.com/source/5')], {})
+mock_jar = (&lt;openjarvis.sdk.Jarvis object at 0x0000029922E37490&gt;, &lt;function _run_work_agent at 0x0000029920D104A0&gt;, [{'format': {... ...], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 2048, 'temperature': 0}, ...}], [])
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x0000029922A26890&gt;
+field = 'heading'
+
+    @pytest.mark.parametrize('field',['path','title','heading','claim','final_answer'])
+    def test_source8_full_length_validation_precedes_dispatch(tmp_path,sdk_io,mock_jar,monkeypatch,field):
+        from openjarvis.tools.file_write import FileWriteTool
+        jar,runner,bodies,replies=mock_jar
+        owner=jar._engine
+        actual=FileWriteTool.execute
+        writes=[]
+        def write(tool,**kwargs):
+            writes.append(dict(kwargs))
+            return actual(tool,**kwargs)
+        monkeypatch.setattr(FileWriteTool,'execute',write)
+        def draft(body):
+            data=report_payload()
+            if field=='path': data['path']='x'*2049
+            elif field=='title': data['title']='x'*201
+            elif field=='heading': data['sections'][0]['heading']='x'*201
+            elif field=='claim': data['sections'][0]['facts'][0]['claim']='x'*2001
+            return action(data)
+        replies.append(draft)
+        if field=='final_answer': replies.append(json.dumps({'final_answer':'x'*1001}))
+        result=submit(tmp_path,sdk_io[0],runner)
+        assert result['status']==('needs_attention' if field=='final_answer' else 'failed'),result
+        assert len(bodies)==(5 if field=='final_answer' else 4)
+        assert len(writes)==(1 if field=='final_answer' else 0)
+        assert len(list(tmp_path.rglob('research.md')))==len(writes)
+        assert not result['artifacts']
+        if field=='final_answer':
+            effect,=result['research_effects']
+            assert effect['state']=='completed' and Path(effect['path']).is_file()
+            assert Path(effect['path']).read_text(encoding='utf8').startswith('# Model title')
+        else:
+            assert not result.get('research_effects')
+&gt;           assert not any(e['type']=='tool_call_start' and e.get('phase')=='research.compose' for e in result['trace'])
+E           assert not True
+E            +  where True = any(&lt;generator object test_source8_full_length_validation_precedes_dispatch.&lt;locals&gt;.&lt;genexpr&gt; at 0x0000029922FF3030&gt;)
+
+src\brain\tests\test_work_research.py:1169: AssertionError</failure></testcase><testcase classname="src.brain.tests.test_work_research" name="test_source8_full_length_validation_precedes_dispatch[claim]" time="0.245"><failure message="assert not True&#10; +  where True = any(&lt;generator object test_source8_full_length_validation_precedes_dispatch.&lt;locals&gt;.&lt;genexpr&gt; at 0x0000029922FF65A0&gt;)">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/unit23-research-fixtures-4/temp/test_source8_full_length_valid3')
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x0000029924650A50&gt;, [('search', 'Research a subject'), ('get', '...'https://example.com/source/3'), ('get', 'https://example.com/source/4'), ('get', 'https://example.com/source/5')], {})
+mock_jar = (&lt;openjarvis.sdk.Jarvis object at 0x0000029922E37AC0&gt;, &lt;function _run_work_agent at 0x0000029920D104A0&gt;, [{'format': {... ...], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 2048, 'temperature': 0}, ...}], [])
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x0000029922A275B0&gt;
+field = 'claim'
+
+    @pytest.mark.parametrize('field',['path','title','heading','claim','final_answer'])
+    def test_source8_full_length_validation_precedes_dispatch(tmp_path,sdk_io,mock_jar,monkeypatch,field):
+        from openjarvis.tools.file_write import FileWriteTool
+        jar,runner,bodies,replies=mock_jar
+        owner=jar._engine
+        actual=FileWriteTool.execute
+        writes=[]
+        def write(tool,**kwargs):
+            writes.append(dict(kwargs))
+            return actual(tool,**kwargs)
+        monkeypatch.setattr(FileWriteTool,'execute',write)
+        def draft(body):
+            data=report_payload()
+            if field=='path': data['path']='x'*2049
+            elif field=='title': data['title']='x'*201
+            elif field=='heading': data['sections'][0]['heading']='x'*201
+            elif field=='claim': data['sections'][0]['facts'][0]['claim']='x'*2001
+            return action(data)
+        replies.append(draft)
+        if field=='final_answer': replies.append(json.dumps({'final_answer':'x'*1001}))
+        result=submit(tmp_path,sdk_io[0],runner)
+        assert result['status']==('needs_attention' if field=='final_answer' else 'failed'),result
+        assert len(bodies)==(5 if field=='final_answer' else 4)
+        assert len(writes)==(1 if field=='final_answer' else 0)
+        assert len(list(tmp_path.rglob('research.md')))==len(writes)
+        assert not result['artifacts']
+        if field=='final_answer':
+            effect,=result['research_effects']
+            assert effect['state']=='completed' and Path(effect['path']).is_file()
+            assert Path(effect['path']).read_text(encoding='utf8').startswith('# Model title')
+        else:
+            assert not result.get('research_effects')
+&gt;           assert not any(e['type']=='tool_call_start' and e.get('phase')=='research.compose' for e in result['trace'])
+E           assert not True
+E            +  where True = any(&lt;generator object test_source8_full_length_validation_precedes_dispatch.&lt;locals&gt;.&lt;genexpr&gt; at 0x0000029922FF65A0&gt;)
+
+src\brain\tests\test_work_research.py:1169: AssertionError</failure></testcase><testcase classname="src.brain.tests.test_work_research" name="test_source8_full_length_validation_precedes_dispatch[final_answer]" time="0.357" /><testcase classname="src.brain.tests.test_work_research" name="test_source9_author_declared_budget[260-180]" time="0.095" /><testcase classname="src.brain.tests.test_work_research" name="test_source9_author_declared_budget[150-95]" time="0.101" /><testcase classname="src.brain.tests.test_work_research" name="test_source9_author_declared_budget[55.1-expected2]" time="0.097" /><testcase classname="src.brain.tests.test_work_research" name="test_source9_31_second_sdk_file_and_ack" time="0.397" /><testcase classname="src.brain.tests.test_work_research" name="test_source9_no_new_author_at_exhausted_reserve[55]" time="0.090" /><testcase classname="src.brain.tests.test_work_research" name="test_source9_no_new_author_at_exhausted_reserve[54.9]" time="0.091" /><testcase classname="src.brain.tests.test_work_research" name="test_source9_no_new_author_at_exhausted_reserve[0]" time="0.092" /><testcase classname="src.brain.tests.test_work_research" name="test_source9_no_new_author_at_exhausted_reserve[-1]" time="0.098" /><testcase classname="src.brain.tests.test_work_research" name="test_source9_timeout_and_late_results[short-5-succeeded]" time="0.389" /><testcase classname="src.brain.tests.test_work_research" name="test_source9_timeout_and_late_results[expired-None-needs_attention]" time="0.310" /><testcase classname="src.brain.tests.test_work_research" name="test_source9_timeout_and_late_results[ack-timeout-25-needs_attention]" time="0.390" /><testcase classname="src.brain.tests.test_work_research" name="test_source9_timeout_and_late_results[author-timeout-None-failed]" time="0.091" /><testcase classname="src.brain.tests.test_work_research" name="test_source9_timeout_and_late_results[late-author-None-failed]" time="0.099" /></testsuite></testsuites>

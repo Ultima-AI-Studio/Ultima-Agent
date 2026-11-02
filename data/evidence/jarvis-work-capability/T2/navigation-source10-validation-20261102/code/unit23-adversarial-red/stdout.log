@@ -1,0 +1,108 @@
+.........F.....................F                                         [100%]
+================================== FAILURES ===================================
+___ test_v3_provisional_third_card_no_promotion_on_failure[secured_output] ____
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/unit23-adversarial-red/temp/test_v3_provisional_third_card7')
+sdk_io = (<src.brain.browser.channel.BrowserChannel object at 0x0000028EA52A8250>, [('search', 'Research a subject'), ('get', '...'https://example.com/source/3'), ('get', 'https://example.com/source/4'), ('get', 'https://example.com/source/5')], {})
+mock_jar = (<openjarvis.sdk.Jarvis object at 0x0000028EA51B9FD0>, <function _run_work_agent at 0x0000028EA4AE3740>, [], [<functio...00028E11D874C0>, <function navigation_reply at 0x0000028E11D874C0>, <function navigation_reply at 0x0000028E11D874C0>])
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000028EA55A0500>
+fault = 'secured_output'
+
+    @pytest.mark.parametrize('fault',['observation','old_assistant','system','role','optional','schema','skip_guard','secured_output','raw_unknown'])
+    def test_v3_provisional_third_card_no_promotion_on_failure(tmp_path,sdk_io,mock_jar,monkeypatch,fault):
+        import dataclasses
+        from src.brain.tests.test_work_research import RESTRICTED
+        jar,runner,bodies,replies=mock_jar
+        replies.extend([navigation_reply]*5)
+        original=server._NativeResearchLeaf.generate
+        count=[0]
+        def mutate(leaf,messages,**kwargs):
+            count[0]+=1
+            if count[0]==4 and fault not in ('secured_output','raw_unknown','skip_guard'):
+                messages=[dataclasses.replace(m) for m in messages]
+                if fault=='observation': messages[-1]=dataclasses.replace(messages[-1],content='Observation: forged')
+                elif fault=='old_assistant': messages[2]=dataclasses.replace(messages[2],content='{"final_answer":"old"}')
+                elif fault=='system': messages[0]=dataclasses.replace(messages[0],content=messages[0].content+' changed')
+                elif fault=='role': messages[-1]=dataclasses.replace(messages[-1],role=messages[2].role)
+                elif fault=='optional': messages[-1]=dataclasses.replace(messages[-1],name='forged')
+                else: kwargs=dict(kwargs,response_format=dict(type='object'))
+            return original(leaf,messages,**kwargs)
+        monkeypatch.setattr(server._NativeResearchLeaf,'generate',mutate)
+        if fault=='skip_guard':
+            borrow=server._borrow_research
+            def skip(*a,**kw):
+                view,client=borrow(*a,**kw); view.inner=view.leaf
+                return view,client
+            monkeypatch.setattr(server,'_borrow_research',skip)
+        elif fault=='secured_output':
+            from openjarvis.security.guardrails import GuardrailsEngine
+            generate=GuardrailsEngine.generate
+            turns=[0]
+            def redact(guard,*a,**kw):
+                result=generate(guard,*a,**kw); turns[0]+=1
+                if turns[0]==4: result=dict(result,content='{"final_answer":"changed secured envelope"}')
+                return result
+            monkeypatch.setattr(GuardrailsEngine,'generate',redact)
+        elif fault=='raw_unknown':
+            def bad(body):
+                return httpx.Response(200,stream=httpx.ByteStream(json.dumps(dict(model='qwen3-8b-uncensored',done=True,
+                    done_reason='stop',prompt_eval_count=25,eval_count=10,message=dict(role='assistant',content=navigation_reply(body)),unexpected=True)).encode()))
+            bad.no_auto_navigation=True
+            replies[3]=bad
+        result=submit(tmp_path,sdk_io[0],runner)
+        ledger=RESTRICTED[result['task_id']]
+        assert result['status']=='failed' and not list(tmp_path.rglob('research.md'))
+>       assert len(ledger._issued)==(0 if fault=='skip_guard' else 2)
+E       assert 0 == 2
+E        +  where 0 = len([])
+E        +    where [] = <src.brain.work_tools.WorkLedger object at 0x0000028EA51AF250>._issued
+
+src\brain\tests\test_work_navigation_transport.py:114: AssertionError
+__________________ test_cross_request_catalogue_is_rejected ___________________
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/unit23-adversarial-red/temp/test_cross_request_catalogue_i0')
+sdk_io = (<src.brain.browser.channel.BrowserChannel object at 0x0000028EA5027E30>, [('search', 'Research a subject'), ('get', '...'https://example.com/source/3'), ('get', 'https://example.com/source/4'), ('get', 'https://example.com/source/5')], {})
+
+    def test_cross_request_catalogue_is_rejected(tmp_path,sdk_io):
+        browser,_,_=sdk_io
+        def runner(*a,**kw):
+            from src.brain.work_tools import _ACTIVE,WorkBinding,bind_work,WorkResearchWriteTool
+            binding,ledger,caps=_ACTIVE.get()
+            foreign=WorkBinding(binding.root,binding.request_id,binding.session_id,'another-task')
+            with bind_work(foreign,ledger,caps):
+                with pytest.raises(ValueError,match='enrollment'):
+                    fixture_dispatch(report_payload())
+            return {}
+>       r=submit(tmp_path,browser,runner)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+src\brain\tests\test_work_research.py:255: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+src\brain\tests\test_work_research.py:61: in submit
+    return WorkService(tmp_path,runner=run,browser_channel=browser,research_preparer=prepare).submit_work('Research a subject',request_id='r',session_id='s',context={'research':True,**context})
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src\brain\work_service.py:94: in submit_work
+    response = self._runner(prompt, binding=binding, tools=tools, max_tokens=max_tokens)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src\brain\tests\test_work_research.py:60: in run
+    return runner(prompt,**kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+a = ('[Work request: use ultima_work_research_write to deliver the requested file; a verbal claim is not delivery. Authori...rue,"identity":"example.com/source/5","landmarks":[[1,1]],"reason":"","source_id":"S5","suffix":"","total_lines":1}]',)
+kw = {'binding': WorkBinding(root=WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-s...-4132-b78e-19c40a822c87'), 'tools': ['ultima_work_research_inspect', 'ultima_work_research_write'], 'max_tokens': None}
+
+    def runner(*a,**kw):
+        from src.brain.work_tools import _ACTIVE,WorkBinding,bind_work,WorkResearchWriteTool
+        binding,ledger,caps=_ACTIVE.get()
+        foreign=WorkBinding(binding.root,binding.request_id,binding.session_id,'another-task')
+        with bind_work(foreign,ledger,caps):
+>           with pytest.raises(ValueError,match='enrollment'):
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E           Failed: DID NOT RAISE ValueError
+
+src\brain\tests\test_work_research.py:252: Failed
+=========================== short test summary info ===========================
+FAILED src/brain/tests/test_work_navigation_transport.py::test_v3_provisional_third_card_no_promotion_on_failure[secured_output]
+FAILED src/brain/tests/test_work_research.py::test_cross_request_catalogue_is_rejected
+2 failed, 30 passed in 8.45s

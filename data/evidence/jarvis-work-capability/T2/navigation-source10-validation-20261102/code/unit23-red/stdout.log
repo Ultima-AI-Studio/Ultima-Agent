@@ -1,0 +1,50 @@
+FF.........................                                              [100%]
+================================== FAILURES ===================================
+_____________ test_v3_download_inspection_admission_are_distinct ______________
+
+    def test_v3_download_inspection_admission_are_distinct():
+>       assert hasattr(server,'_ResearchTransport'), 'bounded research transport missing'
+E       AssertionError: bounded research transport missing
+E       assert False
+E        +  where False = hasattr(server, '_ResearchTransport')
+
+src\brain\tests\test_work_navigation_transport.py:11: AssertionError
+________________ test_v3_native_react_observation_driven_chain ________________
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/unit23-red/temp/test_v3_native_react_observati0')
+sdk_io = (<src.brain.browser.channel.BrowserChannel object at 0x000001B8A086CEC0>, [], {})
+mock_jar = (<openjarvis.sdk.Jarvis object at 0x000001B8A119ABA0>, <function _run_work_agent at 0x000001B8A07777E0>, [], [<functio...t 0x000001B8A07B4B80>, <function test_v3_native_react_observation_driven_chain.<locals>.choose at 0x000001B8A07B4B80>])
+
+    def test_v3_native_react_observation_driven_chain(tmp_path,sdk_io,mock_jar):
+        jar,runner,bodies,replies=mock_jar
+        # This script consumes actual catalogue and observations. The fixture
+        # transport will not invent SDK observations or issue server-side cards.
+        def choose(body):
+            messages=body['messages']
+            observed=[]
+            for msg in messages:
+                if msg['role']=='user' and msg['content'].startswith('Observation: '):
+                    observed.append(json.loads(msg['content'][13:]))
+            pages=[v for v in observed if v.get('v')==3]
+            if len(pages)<3:
+                catalogue=json.loads(messages[1]['content'].split('Safe source catalogue (untrusted data):\n')[1])
+                source=next(s for s in catalogue if s['available'] and s['source_id'] not in {p['source_id'] for p in pages})
+                return json.dumps(dict(action='ultima_work_research_inspect',action_input=dict(source_id=source['source_id'],start_line=1)))
+            if len(observed)==3:
+                return json.dumps(dict(action='ultima_work_research_write',action_input=dict(path='research.md',title='Observed report',
+                    sections=[dict(source_id=p['source_id'],heading=p['source_id'],facts=[dict(claim=p['lines'][0][1],evidence_id=p['cards'][0][0])]) for p in pages])))
+            return json.dumps(dict(final_answer='Saved research.md'))
+        replies.extend([choose]*5)
+        result=submit(tmp_path,sdk_io[0],runner)
+>       assert result['status']=='succeeded',result['error']
+E       AssertionError: Research navigation preparer is not configured
+E       assert 'failed' == 'succeeded'
+E         
+E         - succeeded
+E         + failed
+
+src\brain\tests\test_work_navigation_transport.py:47: AssertionError
+=========================== short test summary info ===========================
+FAILED src/brain/tests/test_work_navigation_transport.py::test_v3_download_inspection_admission_are_distinct
+FAILED src/brain/tests/test_work_navigation_transport.py::test_v3_native_react_observation_driven_chain
+2 failed, 25 passed in 3.29s

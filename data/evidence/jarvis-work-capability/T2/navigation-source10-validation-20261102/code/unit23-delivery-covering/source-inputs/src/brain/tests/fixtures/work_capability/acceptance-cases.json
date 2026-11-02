@@ -1,0 +1,69 @@
+{
+  "revision": 2,
+  "e01": {
+    "request": "把以下三条材料整理为摘要，保存到本次指定目录的summary.md。",
+    "facts": [
+      "项目代号是松林",
+      "交付形式是Markdown文档",
+      "截止日期是2026年11月8日"
+    ],
+    "required_facts": [
+      "松林",
+      "Markdown",
+      "2026年11月8日"
+    ],
+    "output_name": "summary.md",
+    "no_new_facts": true,
+    "output_authority": "trusted startup output_root plus server-generated request directory; no authority from query/context/model",
+    "request_directory": "server-generated UUID, recorded in receipt"
+  },
+  "e02": {
+    "topic": "Jarvis.ceo桌面端的任务架构与现有开源接入",
+    "source_policy": "三条去重的官方源码/文档引用，受控回放与真实联网分开",
+    "min_sources": 3
+  },
+  "e03": {
+    "window_title": "UltimaAgent Work Acceptance Fixture",
+    "text": "本次项目代号为松林，交付物为Markdown文档，截止日期为2026年11月8日。",
+    "operation": "整理为三条要点",
+    "focus_change": "拒绝向另一个窗口写入"
+  },
+  "e04": {
+    "request": "刚才那份文档补一段结论",
+    "expected_target": "e01交付物",
+    "other_session": "不得继承此目标"
+  },
+  "e05": {
+    "preference": "报告先给结论再给依据",
+    "negative_classes": [
+      "synthetic_credential",
+      "external_instruction"
+    ]
+  },
+  "e06": {
+    "faults": [
+      "write_denied",
+      "readback_mismatch",
+      "network_unavailable"
+    ],
+    "must_not_succeed": true,
+    "read_retry_limit": 2
+  },
+  "e07": {
+    "faults": [
+      "lost_response_after_commit",
+      "cancel_before_commit",
+      "cancel_after_commit",
+      "worker_restart"
+    ],
+    "repeat_side_effects": 0
+  },
+  "e08": {
+    "channels": [
+      "text",
+      "voice"
+    ],
+    "same_task_service": true,
+    "owner_voice_acceptance": "required at T5"
+  }
+}

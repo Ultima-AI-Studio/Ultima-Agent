@@ -1,0 +1,24 @@
+F                                                                        [100%]
+================================== FAILURES ===================================
+_______________ test_v3_timeout_retains_original_terminal_event _______________
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/unit23-timeout-readback-red/temp/test_v3_timeout_retains_origin0')
+
+    def test_v3_timeout_retains_original_terminal_event(tmp_path):
+        from openjarvis.core.events import Event,EventType
+        state=setup(tmp_path); ledger=state[0]
+        args=dict(source_id='S1',start_line=1)
+        ledger.expect(1,INSPECT,hashlib.sha256(j(args)).hexdigest())
+        for kind,data in ((EventType.TOOL_CALL_START,dict(tool=INSPECT,agent='native_react',arguments=args)),
+                          (EventType.TOOL_TIMEOUT,dict(tool=INSPECT,timeout=5))):
+            ledger.observe_navigation(Event(kind,1234.125,data),caller_id=threading.get_ident(),binding_key=state[3].binding_key)
+>       assert 'timeout' in ledger.first_failure.lower()
+E       AssertionError: assert 'timeout' in 'unexpected navigation event'
+E        +  where 'unexpected navigation event' = <built-in method lower of str object at 0x0000026B1B8A5520>()
+E        +    where <built-in method lower of str object at 0x0000026B1B8A5520> = 'Unexpected navigation event'.lower
+E        +      where 'Unexpected navigation event' = <src.brain.work_tools.WorkLedger object at 0x0000026BA3BD9D30>.first_failure
+
+src\brain\tests\test_work_navigation_sdk.py:268: AssertionError
+=========================== short test summary info ===========================
+FAILED src/brain/tests/test_work_navigation_sdk.py::test_v3_timeout_retains_original_terminal_event
+1 failed in 1.96s

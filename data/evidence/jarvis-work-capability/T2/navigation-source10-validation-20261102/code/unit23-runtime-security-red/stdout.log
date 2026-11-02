@@ -1,0 +1,113 @@
+.F.........F............                                                 [100%]
+================================== FAILURES ===================================
+________________ test_v3_native_react_observation_driven_chain ________________
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/unit23-runtime-security-red/temp/test_v3_native_react_observati0')
+sdk_io = (<src.brain.browser.channel.BrowserChannel object at 0x0000025BA1ADABA0>, [('search', 'Research a subject'), ('get', '...'https://example.com/source/3'), ('get', 'https://example.com/source/4'), ('get', 'https://example.com/source/5')], {})
+mock_jar = (<openjarvis.sdk.Jarvis object at 0x0000025BA1AD9160>, <function _run_work_agent at 0x0000025B9FE16980>, [{'format': {..., ...], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [])
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000025BA0E60D60>
+
+    def test_v3_native_react_observation_driven_chain(tmp_path,sdk_io,mock_jar,monkeypatch):
+        jar,runner,bodies,replies=mock_jar
+        captured={}; original=server._prepare_research_navigation
+        def prepare(collection,*,binding,ledger):
+            captured.update(ledger=ledger,binding=binding,collection=collection)
+            return original(collection,binding=binding,ledger=ledger)
+        monkeypatch.setattr(server,'_prepare_research_navigation',prepare)
+        # This script consumes actual catalogue and observations. The fixture
+        # transport will not invent SDK observations or issue server-side cards.
+        choose=navigation_reply
+        replies.extend([choose]*5)
+        result=submit(tmp_path,sdk_io[0],runner)
+        assert result['status']=='succeeded',result['error']
+        assert len(bodies)==5
+        assert [b['options']['num_predict'] for b in bodies]==[256,256,256,2048,256]
+        assert result['artifacts'][0]['path'].endswith('research.md')
+        ledger=captured['ledger']
+        assert hasattr(ledger,'_runtime_final'), 'native proof appendix missing'
+        from src.brain.work_research import verify_runtime_packet
+        verify_runtime_packet(captured['binding'],ledger.issued_snapshot,captured['collection'],ledger._runtime_final,require_ack=True)
+        packet=json.loads(ledger._runtime_final)
+        packet['wires'][0]['entity']=packet['wires'][0]['entity'].replace('Research a subject','changed subject')
+        from src.brain.work_navigation import canonical_v3
+        with pytest.raises(ValueError):
+            verify_runtime_packet(captured['binding'],ledger.issued_snapshot,captured['collection'],canonical_v3(packet),require_ack=True)
+        packet=json.loads(ledger._runtime_final)
+        end=json.loads(packet['events'][-1])
+        end['data']['metadata']['file_call_id']='00000000-0000-0000-0000-000000000001'
+        packet['events'][-1]=json.dumps(end)
+>       with pytest.raises(ValueError,match='writer'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+src\brain\tests\test_work_navigation_transport.py:72: Failed
+___ test_v3_provisional_third_card_no_promotion_on_failure[unsafe_unknown] ____
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/unit23-runtime-security-red/temp/test_v3_provisional_third_card9')
+sdk_io = (<src.brain.browser.channel.BrowserChannel object at 0x0000025BA1390B90>, [('search', 'Research a subject'), ('get', '...'https://example.com/source/3'), ('get', 'https://example.com/source/4'), ('get', 'https://example.com/source/5')], {})
+mock_jar = (<openjarvis.sdk.Jarvis object at 0x0000025BA16C19C0>, <function _run_work_agent at 0x0000025B9FE16980>, [{'format': {... {'num_ctx': 16384, 'num_predict': 2048, 'temperature': 0}, ...}], [<function navigation_reply at 0x0000025BA0E43BA0>])
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000025BA1351010>
+fault = 'unsafe_unknown'
+
+    @pytest.mark.parametrize('fault',['observation','old_assistant','system','role','optional','schema','skip_guard','secured_output','raw_unknown','unsafe_unknown'])
+    def test_v3_provisional_third_card_no_promotion_on_failure(tmp_path,sdk_io,mock_jar,monkeypatch,fault):
+        import dataclasses
+        from src.brain.tests.test_work_research import RESTRICTED
+        jar,runner,bodies,replies=mock_jar
+        replies.extend([navigation_reply]*5)
+        original=server._NativeResearchLeaf.generate
+        count=[0]
+        def mutate(leaf,messages,**kwargs):
+            count[0]+=1
+            if count[0]==4 and fault not in ('secured_output','raw_unknown','unsafe_unknown','skip_guard'):
+                messages=[dataclasses.replace(m) for m in messages]
+                if fault=='observation': messages[-1]=dataclasses.replace(messages[-1],content='Observation: forged')
+                elif fault=='old_assistant': messages[2]=dataclasses.replace(messages[2],content='{"final_answer":"old"}')
+                elif fault=='system': messages[0]=dataclasses.replace(messages[0],content=messages[0].content+' changed')
+                elif fault=='role': messages[-1]=dataclasses.replace(messages[-1],role=messages[2].role)
+                elif fault=='optional': messages[-1]=dataclasses.replace(messages[-1],name='forged')
+                else: kwargs=dict(kwargs,response_format=dict(type='object'))
+            return original(leaf,messages,**kwargs)
+        monkeypatch.setattr(server._NativeResearchLeaf,'generate',mutate)
+        if fault=='skip_guard':
+            borrow=server._borrow_research
+            def skip(*a,**kw):
+                view,client=borrow(*a,**kw); view.inner=view.leaf
+                return view,client
+            monkeypatch.setattr(server,'_borrow_research',skip)
+        elif fault=='secured_output':
+            from openjarvis.security.guardrails import GuardrailsEngine
+            generate=GuardrailsEngine.generate
+            turns=[0]
+            def redact(self,*a,**kw):
+                result=generate(self,*a,**kw); turns[0]+=1
+                if turns[0]==4: result=dict(result,content='{"final_answer":"changed secured envelope"}')
+                return result
+            monkeypatch.setattr(GuardrailsEngine,'generate',redact)
+        elif fault in ('raw_unknown','unsafe_unknown'):
+            def bad(body):
+                content=navigation_reply(body)
+                if fault=='unsafe_unknown': content=json.dumps(dict(json.loads(content),extra='password = syntheticsecret'))
+                return httpx.Response(200,stream=httpx.ByteStream(json.dumps(dict(model='qwen3-8b-uncensored',done=True,
+                    done_reason='stop',prompt_eval_count=25,eval_count=10,message=dict(role='assistant',content=content),
+                    **({'unexpected':True} if fault=='raw_unknown' else {}))).encode()))
+            bad.no_auto_navigation=True
+            replies[3]=bad
+        result=submit(tmp_path,sdk_io[0],runner)
+        ledger=RESTRICTED[result['task_id']]
+        assert result['status']=='failed' and not list(tmp_path.rglob('research.md'))
+        assert len(ledger._issued)==(0 if fault=='skip_guard' else 2)
+        assert len(bodies)==(0 if fault=='skip_guard' else 4 if fault in ('secured_output','raw_unknown','unsafe_unknown') else 3)
+>       assert 'syntheticsecret' not in json.dumps(result)
+E       assert 'syntheticsecret' not in '{"request_i...lines": 1}]}'
+E         
+E         'syntheticsecret' is contained here:
+E         ?                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      ...
+E         
+E         ...Full output truncated, use '-vv' to show
+
+src\brain\tests\test_work_navigation_transport.py:125: AssertionError
+=========================== short test summary info ===========================
+FAILED src/brain/tests/test_work_navigation_transport.py::test_v3_native_react_observation_driven_chain
+FAILED src/brain/tests/test_work_navigation_transport.py::test_v3_provisional_third_card_no_promotion_on_failure[unsafe_unknown]
+2 failed, 22 passed in 5.40s

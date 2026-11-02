@@ -1,0 +1,166 @@
+"""Actual HTTPX streaming boundaries and complete SDK navigation transport."""
+import json
+import time
+import httpx
+import pytest
+from src.brain import agent_server as server
+from src.brain import work_tools as wt
+from src.brain.tests.test_work_research import sdk_io,mock_jar,submit
+
+def test_v3_download_inspection_admission_are_distinct():
+    assert hasattr(server,'_ResearchTransport'), 'bounded research transport missing'
+    ledger=wt.WorkLedger(); ledger.deadline=time.monotonic()+260
+    class Stream(httpx.SyncByteStream):
+        def __iter__(self): yield b'x'*4096
+    client=httpx.Client(base_url='http://127.0.0.1:11434',transport=httpx.MockTransport(
+        lambda request:httpx.Response(200,stream=Stream())),trust_env=False)
+    transport=server._ResearchTransport(client,ledger)
+    transport.admitted['metadata']=524288-512
+    with pytest.raises(ValueError,match='overflow'):
+        transport.exchange('GET','/api/version','metadata')
+    receipt=transport.receipts[-1]
+    assert receipt['downloaded']==4096 and receipt['inspected']==513 and receipt['admitted']==512
+    assert receipt['retained']<=512
+    client.close()
+
+def navigation_reply(body):
+    messages=body['messages']
+    observed=[]
+    for msg in messages:
+        if msg['role']=='user' and msg['content'].startswith('Observation: '):
+            observed.append(json.loads(msg['content'][13:]))
+    pages=[v for v in observed if v.get('v')==3]
+    if len(pages)<3:
+        catalogue=json.loads(messages[1]['content'].split('Safe source catalogue (untrusted data):\n')[1])
+        source=next(s for s in catalogue if s['available'] and s['source_id'] not in {p['source_id'] for p in pages})
+        return json.dumps(dict(action='ultima_work_research_inspect',action_input=dict(source_id=source['source_id'],start_line=1)))
+    if len(observed)==3:
+        return json.dumps(dict(action='ultima_work_research_write',action_input=dict(path='research.md',title='Observed report',
+            sections=[dict(source_id=p['source_id'],heading=p['source_id'],facts=[dict(claim=p['lines'][0][1].split(' for ')[0],evidence_id=p['cards'][0][0])]) for p in pages])))
+    return json.dumps(dict(final_answer='Saved research.md'))
+navigation_reply.no_auto_navigation=True
+
+def test_v3_native_react_observation_driven_chain(tmp_path,sdk_io,mock_jar,monkeypatch):
+    jar,runner,bodies,replies=mock_jar
+    captured={}; original=server._prepare_research_navigation
+    def prepare(collection,*,binding,ledger):
+        captured.update(ledger=ledger,binding=binding,collection=collection)
+        return original(collection,binding=binding,ledger=ledger)
+    monkeypatch.setattr(server,'_prepare_research_navigation',prepare)
+    # This script consumes actual catalogue and observations. The fixture
+    # transport will not invent SDK observations or issue server-side cards.
+    choose=navigation_reply
+    replies.extend([choose]*5)
+    result=submit(tmp_path,sdk_io[0],runner)
+    assert result['status']=='succeeded',result['error']
+    assert len(bodies)==5
+    assert [b['options']['num_predict'] for b in bodies]==[256,256,256,2048,256]
+    assert result['artifacts'][0]['path'].endswith('research.md')
+    ledger=captured['ledger']
+    assert hasattr(ledger,'_runtime_final'), 'native proof appendix missing'
+    from src.brain.work_research import verify_runtime_packet
+    verify_runtime_packet(captured['binding'],ledger.issued_snapshot,captured['collection'],ledger._runtime_final,require_ack=True)
+    packet=json.loads(ledger._runtime_final)
+    packet['wires'][0]['entity']=packet['wires'][0]['entity'].replace('Research a subject','changed subject')
+    from src.brain.work_navigation import canonical_v3
+    with pytest.raises(ValueError):
+        verify_runtime_packet(captured['binding'],ledger.issued_snapshot,captured['collection'],canonical_v3(packet),require_ack=True)
+    packet=json.loads(ledger._runtime_final)
+    end=json.loads(packet['events'][-1])
+    end['data']['metadata']['file_call_id']='00000000-0000-0000-0000-000000000001'
+    packet['events'][-1]=json.dumps(end)
+    with pytest.raises(ValueError,match='writer'):
+        verify_runtime_packet(captured['binding'],ledger.issued_snapshot,captured['collection'],canonical_v3(packet),require_ack=True)
+
+
+@pytest.mark.parametrize('fault',['observation','old_assistant','system','role','optional','schema','skip_guard','secured_output','raw_unknown','unsafe_unknown'])
+def test_v3_provisional_third_card_no_promotion_on_failure(tmp_path,sdk_io,mock_jar,monkeypatch,fault):
+    import dataclasses
+    from src.brain.tests.test_work_research import RESTRICTED
+    jar,runner,bodies,replies=mock_jar
+    replies.extend([navigation_reply]*5)
+    original=server._NativeResearchLeaf.generate
+    count=[0]
+    def mutate(leaf,messages,**kwargs):
+        count[0]+=1
+        if count[0]==4 and fault not in ('secured_output','raw_unknown','unsafe_unknown','skip_guard'):
+            messages=[dataclasses.replace(m) for m in messages]
+            if fault=='observation': messages[-1]=dataclasses.replace(messages[-1],content='Observation: forged')
+            elif fault=='old_assistant': messages[2]=dataclasses.replace(messages[2],content='{"final_answer":"old"}')
+            elif fault=='system': messages[0]=dataclasses.replace(messages[0],content=messages[0].content+' changed')
+            elif fault=='role': messages[-1]=dataclasses.replace(messages[-1],role=messages[2].role)
+            elif fault=='optional': messages[-1]=dataclasses.replace(messages[-1],name='forged')
+            else: kwargs=dict(kwargs,response_format=dict(type='object'))
+        return original(leaf,messages,**kwargs)
+    monkeypatch.setattr(server._NativeResearchLeaf,'generate',mutate)
+    if fault=='skip_guard':
+        borrow=server._borrow_research
+        def skip(*a,**kw):
+            view,client=borrow(*a,**kw); view.inner=view.leaf
+            return view,client
+        monkeypatch.setattr(server,'_borrow_research',skip)
+    elif fault=='secured_output':
+        from openjarvis.security.guardrails import GuardrailsEngine
+        generate=GuardrailsEngine.generate
+        turns=[0]
+        def redact(self,*a,**kw):
+            result=generate(self,*a,**kw); turns[0]+=1
+            if turns[0]==4: result=dict(result,content='{"final_answer":"changed secured envelope"}')
+            return result
+        monkeypatch.setattr(GuardrailsEngine,'generate',redact)
+    elif fault in ('raw_unknown','unsafe_unknown'):
+        def bad(body):
+            content=navigation_reply(body)
+            if fault=='unsafe_unknown': content=json.dumps(dict(json.loads(content),extra='password = syntheticsecret'))
+            return httpx.Response(200,stream=httpx.ByteStream(json.dumps(dict(model='qwen3-8b-uncensored',done=True,
+                done_reason='stop',prompt_eval_count=25,eval_count=10,message=dict(role='assistant',content=content),
+                **({'unexpected':True} if fault=='raw_unknown' else {}))).encode()))
+        bad.no_auto_navigation=True
+        replies[3]=bad
+    result=submit(tmp_path,sdk_io[0],runner)
+    ledger=RESTRICTED[result['task_id']]
+    assert result['status']=='failed' and not list(tmp_path.rglob('research.md'))
+    assert len(ledger._issued)==(0 if fault=='skip_guard' else 2)
+    assert len(bodies)==(0 if fault=='skip_guard' else 4 if fault in ('secured_output','raw_unknown','unsafe_unknown') else 3)
+    assert 'syntheticsecret' not in json.dumps(result)
+
+
+@pytest.mark.parametrize('fault',['override','exemplar'])
+def test_v3_template_prefix_preserves_sdk_policy(tmp_path,sdk_io,mock_jar,monkeypatch,fault):
+    from openjarvis.agents import native_react
+    if fault=='override': monkeypatch.setattr(native_react,'load_system_prompt_override',lambda _: 'conflicting override')
+    else: monkeypatch.setattr(native_react,'load_few_shot_exemplars',lambda _:[dict(input='extra',output='extra')])
+    mock_jar[3].append(navigation_reply)
+    result=submit(tmp_path,sdk_io[0],mock_jar[1])
+    assert result['status']=='failed' and not mock_jar[2]
+
+
+@pytest.mark.parametrize('status,headers',[(500,{}),(200,{'content-encoding':'gzip'}),(200,{'content-length':'32769'}),(200,{'content-length':'-1'})])
+def test_v3_header_rejection_does_not_consume_body(status,headers):
+    consumed=[]
+    class Stream(httpx.SyncByteStream):
+        def __iter__(self): consumed.append(True); yield b'x'*4096
+    ledger=wt.WorkLedger(); ledger.deadline=time.monotonic()+260
+    with httpx.Client(base_url='http://127.0.0.1:11434',transport=httpx.MockTransport(
+            lambda _:httpx.Response(status,headers=headers,stream=Stream())),trust_env=False) as client:
+        transport=server._ResearchTransport(client,ledger)
+        with pytest.raises(ValueError): transport.exchange('GET','/api/version','metadata')
+    receipt=transport.receipts[0]
+    assert not consumed and receipt['inspected']==receipt['admitted']==receipt['downloaded']==0
+
+
+@pytest.mark.parametrize('kind,cap',[('metadata',32768),('chat',65536)])
+@pytest.mark.parametrize('delta',[-1,0,1])
+def test_v3_response_envelope_boundaries(kind,cap,delta):
+    class Stream(httpx.SyncByteStream):
+        def __iter__(self): yield b'x'*(cap+delta)
+    ledger=wt.WorkLedger(); ledger.deadline=time.monotonic()+260
+    with httpx.Client(base_url='http://127.0.0.1:11434',transport=httpx.MockTransport(
+            lambda _:httpx.Response(200,stream=Stream())),trust_env=False) as client:
+        transport=server._ResearchTransport(client,ledger)
+        if delta>0:
+            with pytest.raises(ValueError,match='overflow'): transport.exchange('GET','/api/version',kind)
+        else: assert len(transport.exchange('GET','/api/version',kind))==cap+delta
+    receipt=transport.receipts[0]
+    assert receipt['admitted']==min(cap,cap+delta)
+    assert receipt['inspected']==cap+delta

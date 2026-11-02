@@ -1,0 +1,49 @@
+....................F................F.................................. [ 17%]
+........................................................................ [ 34%]
+........................................................................ [ 51%]
+........................................................................ [ 69%]
+........................................................................ [ 86%]
+........................................................                 [100%]
+================================== FAILURES ===================================
+________ test_malformed_sdk_search_records_retain_raw_and_diagnostics _________
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/unit23-final-covering/temp/test_malformed_sdk_search_reco0')
+sdk_io = (<src.brain.browser.channel.BrowserChannel object at 0x0000014EA26E24C0>, [], {})
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000014EA38FA950>
+
+    def test_malformed_sdk_search_records_retain_raw_and_diagnostics(tmp_path,sdk_io,monkeypatch):
+        import ddgs
+        class Malformed:
+            def text(self,*a,**kw): return [dict(title='line one\nline two',href=URLS[0],body='snippet')]
+        monkeypatch.setattr(ddgs,'DDGS',Malformed)
+        browser,_,_=sdk_io
+        r=submit(tmp_path,browser,lambda *a,**kw:pytest.fail('malformed source hints reached model'))
+        assert r['status']=='failed'
+        search=next(x['result'] for x in restricted_records(r) if x.get('tool_name')=='ultima_work_web_search')
+>       assert search['body'] and search['parser_diagnostics'] and search['results']==[]
+E       AssertionError: assert ('### Document 1\nSource: https://example.com/source/1\nSummary: Discovery only\n\n---\n\n### Document 2\nSource: https...rce/4\nSummary: Discovery only\n\n---\n\n### Document 5\nSource: https://example.com/source/5\nSummary: Discovery only' and [])
+
+src\brain\tests\test_work_research.py:234: AssertionError
+_________________ test_source6_double_report_is_one_mutation __________________
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/unit23-final-covering/temp/test_source6_double_report_is_0')
+sdk_io = (<src.brain.browser.channel.BrowserChannel object at 0x0000014EA3F3D050>, [('search', 'Research a subject'), ('get', '...'https://example.com/source/3'), ('get', 'https://example.com/source/4'), ('get', 'https://example.com/source/5')], {})
+
+    def test_source6_double_report_is_one_mutation(tmp_path, sdk_io):
+        def twice(*a, **kw):
+            write_report()
+            from src.brain.work_tools import WorkResearchWriteTool
+            with pytest.raises(ValueError): WorkResearchWriteTool()
+            return {}
+        result = submit(tmp_path, sdk_io[0], twice)
+>       assert result['status'] == 'needs_attention'
+E       AssertionError: assert 'succeeded' == 'needs_attention'
+E         
+E         - needs_attention
+E         + succeeded
+
+src\brain\tests\test_work_research.py:451: AssertionError
+=========================== short test summary info ===========================
+FAILED src/brain/tests/test_work_research.py::test_malformed_sdk_search_records_retain_raw_and_diagnostics
+FAILED src/brain/tests/test_work_research.py::test_source6_double_report_is_one_mutation
+2 failed, 414 passed in 59.09s

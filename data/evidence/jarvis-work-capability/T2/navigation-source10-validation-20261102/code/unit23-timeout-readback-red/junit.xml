@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="1" time="1.918" timestamp="2026-11-03T01:40:37.831746+08:00" hostname="DESKTOP-B366PQ9"><testcase classname="src.brain.tests.test_work_navigation_sdk" name="test_v3_timeout_retains_original_terminal_event" time="0.848"><failure message="AssertionError: assert 'timeout' in 'unexpected navigation event'&#10; +  where 'unexpected navigation event' = &lt;built-in method lower of str object at 0x0000026B1B8A5520&gt;()&#10; +    where &lt;built-in method lower of str object at 0x0000026B1B8A5520&gt; = 'Unexpected navigation event'.lower&#10; +      where 'Unexpected navigation event' = &lt;src.brain.work_tools.WorkLedger object at 0x0000026BA3BD9D30&gt;.first_failure">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/unit23-timeout-readback-red/temp/test_v3_timeout_retains_origin0')
+
+    def test_v3_timeout_retains_original_terminal_event(tmp_path):
+        from openjarvis.core.events import Event,EventType
+        state=setup(tmp_path); ledger=state[0]
+        args=dict(source_id='S1',start_line=1)
+        ledger.expect(1,INSPECT,hashlib.sha256(j(args)).hexdigest())
+        for kind,data in ((EventType.TOOL_CALL_START,dict(tool=INSPECT,agent='native_react',arguments=args)),
+                          (EventType.TOOL_TIMEOUT,dict(tool=INSPECT,timeout=5))):
+            ledger.observe_navigation(Event(kind,1234.125,data),caller_id=threading.get_ident(),binding_key=state[3].binding_key)
+&gt;       assert 'timeout' in ledger.first_failure.lower()
+E       AssertionError: assert 'timeout' in 'unexpected navigation event'
+E        +  where 'unexpected navigation event' = &lt;built-in method lower of str object at 0x0000026B1B8A5520&gt;()
+E        +    where &lt;built-in method lower of str object at 0x0000026B1B8A5520&gt; = 'Unexpected navigation event'.lower
+E        +      where 'Unexpected navigation event' = &lt;src.brain.work_tools.WorkLedger object at 0x0000026BA3BD9D30&gt;.first_failure
+
+src\brain\tests\test_work_navigation_sdk.py:268: AssertionError</failure></testcase></testsuite></testsuites>

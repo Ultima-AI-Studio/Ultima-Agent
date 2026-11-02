@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="2" skipped="0" tests="27" time="3.246" timestamp="2026-11-03T01:06:21.633647+08:00" hostname="DESKTOP-B366PQ9"><testcase classname="src.brain.tests.test_work_navigation_transport" name="test_v3_download_inspection_admission_are_distinct" time="0.002"><failure message="AssertionError: bounded research transport missing&#10;assert False&#10; +  where False = hasattr(server, '_ResearchTransport')">def test_v3_download_inspection_admission_are_distinct():
+&gt;       assert hasattr(server,'_ResearchTransport'), 'bounded research transport missing'
+E       AssertionError: bounded research transport missing
+E       assert False
+E        +  where False = hasattr(server, '_ResearchTransport')
+
+src\brain\tests\test_work_navigation_transport.py:11: AssertionError</failure></testcase><testcase classname="src.brain.tests.test_work_navigation_transport" name="test_v3_native_react_observation_driven_chain" time="0.180"><failure message="AssertionError: Research navigation preparer is not configured&#10;assert 'failed' == 'succeeded'&#10;  &#10;  - succeeded&#10;  + failed">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/unit23-red/temp/test_v3_native_react_observati0')
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x000001B8A086CEC0&gt;, [], {})
+mock_jar = (&lt;openjarvis.sdk.Jarvis object at 0x000001B8A119ABA0&gt;, &lt;function _run_work_agent at 0x000001B8A07777E0&gt;, [], [&lt;functio...t 0x000001B8A07B4B80&gt;, &lt;function test_v3_native_react_observation_driven_chain.&lt;locals&gt;.choose at 0x000001B8A07B4B80&gt;])
+
+    def test_v3_native_react_observation_driven_chain(tmp_path,sdk_io,mock_jar):
+        jar,runner,bodies,replies=mock_jar
+        # This script consumes actual catalogue and observations. The fixture
+        # transport will not invent SDK observations or issue server-side cards.
+        def choose(body):
+            messages=body['messages']
+            observed=[]
+            for msg in messages:
+                if msg['role']=='user' and msg['content'].startswith('Observation: '):
+                    observed.append(json.loads(msg['content'][13:]))
+            pages=[v for v in observed if v.get('v')==3]
+            if len(pages)&lt;3:
+                catalogue=json.loads(messages[1]['content'].split('Safe source catalogue (untrusted data):\n')[1])
+                source=next(s for s in catalogue if s['available'] and s['source_id'] not in {p['source_id'] for p in pages})
+                return json.dumps(dict(action='ultima_work_research_inspect',action_input=dict(source_id=source['source_id'],start_line=1)))
+            if len(observed)==3:
+                return json.dumps(dict(action='ultima_work_research_write',action_input=dict(path='research.md',title='Observed report',
+                    sections=[dict(source_id=p['source_id'],heading=p['source_id'],facts=[dict(claim=p['lines'][0][1],evidence_id=p['cards'][0][0])]) for p in pages])))
+            return json.dumps(dict(final_answer='Saved research.md'))
+        replies.extend([choose]*5)
+        result=submit(tmp_path,sdk_io[0],runner)
+&gt;       assert result['status']=='succeeded',result['error']
+E       AssertionError: Research navigation preparer is not configured
+E       assert 'failed' == 'succeeded'
+E         
+E         - succeeded
+E         + failed
+
+src\brain\tests\test_work_navigation_transport.py:47: AssertionError</failure></testcase><testcase classname="src.brain.tests.test_work_navigation_sdk" name="test_v3_writer_real_io_and_external_bytes" time="0.299" /><testcase classname="src.brain.tests.test_work_navigation_sdk" name="test_v3_inspector_has_only_safe_capability" time="0.050" /><testcase classname="src.brain.tests.test_work_navigation_sdk" name="test_v3_invalid_attempt_not_refunded" time="0.023" /><testcase classname="src.brain.tests.test_work_navigation_sdk" name="test_v3_enrolled_identity_and_nonraising_observer" time="0.027" /><testcase classname="src.brain.tests.test_work_navigation_sdk" name="test_v3_invalid_write_zero_file[path]" time="0.037" /><testcase classname="src.brain.tests.test_work_navigation_sdk" name="test_v3_invalid_write_zero_file[ref]" time="0.046" /><testcase classname="src.brain.tests.test_work_navigation_sdk" name="test_v3_invalid_write_zero_file[source]" time="0.046" /><testcase classname="src.brain.tests.test_work_navigation_sdk" name="test_v3_invalid_write_zero_file[unread]" time="0.047" /><testcase classname="src.brain.tests.test_work_navigation_sdk" name="test_v3_service_preparer_uses_checked_configured_scanners" time="0.148" /><testcase classname="src.brain.tests.test_work_navigation_sdk" name="test_v3_missing_preparer_never_collects_or_composes" time="0.003" /><testcase classname="src.brain.tests.test_work_navigation_sdk" name="test_v3_intent_race_and_ack_failure_preserve_effect[before_intent]" time="0.048" /><testcase classname="src.brain.tests.test_work_navigation_sdk" name="test_v3_intent_race_and_ack_failure_preserve_effect[after_intent]" time="0.050" /><testcase classname="src.brain.tests.test_work_navigation_sdk" name="test_v3_observer_fails_closed[wrong_agent]" time="0.019" /><testcase classname="src.brain.tests.test_work_navigation_sdk" name="test_v3_observer_fails_closed[wrong_args]" time="0.019" /><testcase classname="src.brain.tests.test_work_navigation_sdk" name="test_v3_observer_fails_closed[duplicate_start]" time="0.019" /><testcase classname="src.brain.tests.test_work_navigation_sdk" name="test_v3_observer_fails_closed[missing_start]" time="0.020" /><testcase classname="src.brain.tests.test_work_navigation_sdk" name="test_v3_observer_fails_closed[wrong_metadata]" time="0.021" /><testcase classname="src.brain.tests.test_work_navigation_sdk" name="test_v3_observer_fails_closed[missing_end]" time="0.020" /><testcase classname="src.brain.tests.test_work_navigation_sdk" name="test_v3_observer_fails_closed[late_end]" time="0.020" /><testcase classname="src.brain.tests.test_work_navigation_sdk" name="test_v3_exact_enrollment_permit[duplicate_enroll]" time="0.020" /><testcase classname="src.brain.tests.test_work_navigation_sdk" name="test_v3_exact_enrollment_permit[second_object]" time="0.019" /><testcase classname="src.brain.tests.test_work_navigation_sdk" name="test_v3_exact_enrollment_permit[skip_callback]" time="0.019" /><testcase classname="src.brain.tests.test_work_navigation_sdk" name="test_v3_exact_enrollment_permit[throwing_subscriber]" time="0.022" /><testcase classname="src.brain.tests.test_work_navigation_sdk" name="test_v3_file_success_does_not_substitute_bytes[false_success]" time="0.048" /><testcase classname="src.brain.tests.test_work_navigation_sdk" name="test_v3_file_success_does_not_substitute_bytes[wrong_bytes]" time="0.049" /></testsuite></testsuites>

@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="2" skipped="0" tests="24" time="5.353" timestamp="2026-11-03T01:25:48.626338+08:00" hostname="DESKTOP-B366PQ9"><testcase classname="src.brain.tests.test_work_navigation_transport" name="test_v3_download_inspection_admission_are_distinct" time="0.002" /><testcase classname="src.brain.tests.test_work_navigation_transport" name="test_v3_native_react_observation_driven_chain" time="0.868"><failure message="Failed: DID NOT RAISE ValueError">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/unit23-runtime-security-red/temp/test_v3_native_react_observati0')
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x0000025BA1ADABA0&gt;, [('search', 'Research a subject'), ('get', '...'https://example.com/source/3'), ('get', 'https://example.com/source/4'), ('get', 'https://example.com/source/5')], {})
+mock_jar = (&lt;openjarvis.sdk.Jarvis object at 0x0000025BA1AD9160&gt;, &lt;function _run_work_agent at 0x0000025B9FE16980&gt;, [{'format': {..., ...], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [])
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x0000025BA0E60D60&gt;
+
+    def test_v3_native_react_observation_driven_chain(tmp_path,sdk_io,mock_jar,monkeypatch):
+        jar,runner,bodies,replies=mock_jar
+        captured={}; original=server._prepare_research_navigation
+        def prepare(collection,*,binding,ledger):
+            captured.update(ledger=ledger,binding=binding,collection=collection)
+            return original(collection,binding=binding,ledger=ledger)
+        monkeypatch.setattr(server,'_prepare_research_navigation',prepare)
+        # This script consumes actual catalogue and observations. The fixture
+        # transport will not invent SDK observations or issue server-side cards.
+        choose=navigation_reply
+        replies.extend([choose]*5)
+        result=submit(tmp_path,sdk_io[0],runner)
+        assert result['status']=='succeeded',result['error']
+        assert len(bodies)==5
+        assert [b['options']['num_predict'] for b in bodies]==[256,256,256,2048,256]
+        assert result['artifacts'][0]['path'].endswith('research.md')
+        ledger=captured['ledger']
+        assert hasattr(ledger,'_runtime_final'), 'native proof appendix missing'
+        from src.brain.work_research import verify_runtime_packet
+        verify_runtime_packet(captured['binding'],ledger.issued_snapshot,captured['collection'],ledger._runtime_final,require_ack=True)
+        packet=json.loads(ledger._runtime_final)
+        packet['wires'][0]['entity']=packet['wires'][0]['entity'].replace('Research a subject','changed subject')
+        from src.brain.work_navigation import canonical_v3
+        with pytest.raises(ValueError):
+            verify_runtime_packet(captured['binding'],ledger.issued_snapshot,captured['collection'],canonical_v3(packet),require_ack=True)
+        packet=json.loads(ledger._runtime_final)
+        end=json.loads(packet['events'][-1])
+        end['data']['metadata']['file_call_id']='00000000-0000-0000-0000-000000000001'
+        packet['events'][-1]=json.dumps(end)
+&gt;       with pytest.raises(ValueError,match='writer'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+src\brain\tests\test_work_navigation_transport.py:72: Failed</failure></testcase><testcase classname="src.brain.tests.test_work_navigation_transport" name="test_v3_provisional_third_card_no_promotion_on_failure[observation]" time="0.268" /><testcase classname="src.brain.tests.test_work_navigation_transport" name="test_v3_provisional_third_card_no_promotion_on_failure[old_assistant]" time="0.261" /><testcase classname="src.brain.tests.test_work_navigation_transport" name="test_v3_provisional_third_card_no_promotion_on_failure[system]" time="0.251" /><testcase classname="src.brain.tests.test_work_navigation_transport" name="test_v3_provisional_third_card_no_promotion_on_failure[role]" time="0.279" /><testcase classname="src.brain.tests.test_work_navigation_transport" name="test_v3_provisional_third_card_no_promotion_on_failure[optional]" time="0.274" /><testcase classname="src.brain.tests.test_work_navigation_transport" name="test_v3_provisional_third_card_no_promotion_on_failure[schema]" time="0.275" /><testcase classname="src.brain.tests.test_work_navigation_transport" name="test_v3_provisional_third_card_no_promotion_on_failure[skip_guard]" time="0.115" /><testcase classname="src.brain.tests.test_work_navigation_transport" name="test_v3_provisional_third_card_no_promotion_on_failure[secured_output]" time="0.315" /><testcase classname="src.brain.tests.test_work_navigation_transport" name="test_v3_provisional_third_card_no_promotion_on_failure[raw_unknown]" time="0.288" /><testcase classname="src.brain.tests.test_work_navigation_transport" name="test_v3_provisional_third_card_no_promotion_on_failure[unsafe_unknown]" time="0.271"><failure message="assert 'syntheticsecret' not in '{&quot;request_i...lines&quot;: 1}]}'&#10;  &#10;  'syntheticsecret' is contained here:&#10;[+3 more lines; full report in element text]">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code/unit23-runtime-security-red/temp/test_v3_provisional_third_card9')
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x0000025BA1390B90&gt;, [('search', 'Research a subject'), ('get', '...'https://example.com/source/3'), ('get', 'https://example.com/source/4'), ('get', 'https://example.com/source/5')], {})
+mock_jar = (&lt;openjarvis.sdk.Jarvis object at 0x0000025BA16C19C0&gt;, &lt;function _run_work_agent at 0x0000025B9FE16980&gt;, [{'format': {... {'num_ctx': 16384, 'num_predict': 2048, 'temperature': 0}, ...}], [&lt;function navigation_reply at 0x0000025BA0E43BA0&gt;])
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x0000025BA1351010&gt;
+fault = 'unsafe_unknown'
+
+    @pytest.mark.parametrize('fault',['observation','old_assistant','system','role','optional','schema','skip_guard','secured_output','raw_unknown','unsafe_unknown'])
+    def test_v3_provisional_third_card_no_promotion_on_failure(tmp_path,sdk_io,mock_jar,monkeypatch,fault):
+        import dataclasses
+        from src.brain.tests.test_work_research import RESTRICTED
+        jar,runner,bodies,replies=mock_jar
+        replies.extend([navigation_reply]*5)
+        original=server._NativeResearchLeaf.generate
+        count=[0]
+        def mutate(leaf,messages,**kwargs):
+            count[0]+=1
+            if count[0]==4 and fault not in ('secured_output','raw_unknown','unsafe_unknown','skip_guard'):
+                messages=[dataclasses.replace(m) for m in messages]
+                if fault=='observation': messages[-1]=dataclasses.replace(messages[-1],content='Observation: forged')
+                elif fault=='old_assistant': messages[2]=dataclasses.replace(messages[2],content='{"final_answer":"old"}')
+                elif fault=='system': messages[0]=dataclasses.replace(messages[0],content=messages[0].content+' changed')
+                elif fault=='role': messages[-1]=dataclasses.replace(messages[-1],role=messages[2].role)
+                elif fault=='optional': messages[-1]=dataclasses.replace(messages[-1],name='forged')
+                else: kwargs=dict(kwargs,response_format=dict(type='object'))
+            return original(leaf,messages,**kwargs)
+        monkeypatch.setattr(server._NativeResearchLeaf,'generate',mutate)
+        if fault=='skip_guard':
+            borrow=server._borrow_research
+            def skip(*a,**kw):
+                view,client=borrow(*a,**kw); view.inner=view.leaf
+                return view,client
+            monkeypatch.setattr(server,'_borrow_research',skip)
+        elif fault=='secured_output':
+            from openjarvis.security.guardrails import GuardrailsEngine
+            generate=GuardrailsEngine.generate
+            turns=[0]
+            def redact(self,*a,**kw):
+                result=generate(self,*a,**kw); turns[0]+=1
+                if turns[0]==4: result=dict(result,content='{"final_answer":"changed secured envelope"}')
+                return result
+            monkeypatch.setattr(GuardrailsEngine,'generate',redact)
+        elif fault in ('raw_unknown','unsafe_unknown'):
+            def bad(body):
+                content=navigation_reply(body)
+                if fault=='unsafe_unknown': content=json.dumps(dict(json.loads(content),extra='password = syntheticsecret'))
+                return httpx.Response(200,stream=httpx.ByteStream(json.dumps(dict(model='qwen3-8b-uncensored',done=True,
+                    done_reason='stop',prompt_eval_count=25,eval_count=10,message=dict(role='assistant',content=content),
+                    **({'unexpected':True} if fault=='raw_unknown' else {}))).encode()))
+            bad.no_auto_navigation=True
+            replies[3]=bad
+        result=submit(tmp_path,sdk_io[0],runner)
+        ledger=RESTRICTED[result['task_id']]
+        assert result['status']=='failed' and not list(tmp_path.rglob('research.md'))
+        assert len(ledger._issued)==(0 if fault=='skip_guard' else 2)
+        assert len(bodies)==(0 if fault=='skip_guard' else 4 if fault in ('secured_output','raw_unknown','unsafe_unknown') else 3)
+&gt;       assert 'syntheticsecret' not in json.dumps(result)
+E       assert 'syntheticsecret' not in '{"request_i...lines": 1}]}'
+E         
+E         'syntheticsecret' is contained here:
+E         ?                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      ...
+E         
+E         ...Full output truncated, use '-vv' to show
+
+src\brain\tests\test_work_navigation_transport.py:125: AssertionError</failure></testcase><testcase classname="src.brain.tests.test_work_navigation_transport" name="test_v3_template_prefix_preserves_sdk_policy[override]" time="0.103" /><testcase classname="src.brain.tests.test_work_navigation_transport" name="test_v3_template_prefix_preserves_sdk_policy[exemplar]" time="0.107" /><testcase classname="src.brain.tests.test_work_navigation_transport" name="test_v3_header_rejection_does_not_consume_body[500-headers0]" time="0.001" /><testcase classname="src.brain.tests.test_work_navigation_transport" name="test_v3_header_rejection_does_not_consume_body[200-headers1]" time="0.001" /><testcase classname="src.brain.tests.test_work_navigation_transport" name="test_v3_header_rejection_does_not_consume_body[200-headers2]" time="0.001" /><testcase classname="src.brain.tests.test_work_navigation_transport" name="test_v3_header_rejection_does_not_consume_body[200-headers3]" time="0.001" /><testcase classname="src.brain.tests.test_work_navigation_transport" name="test_v3_response_envelope_boundaries[-1-metadata-32768]" time="0.001" /><testcase classname="src.brain.tests.test_work_navigation_transport" name="test_v3_response_envelope_boundaries[-1-chat-65536]" time="0.001" /><testcase classname="src.brain.tests.test_work_navigation_transport" name="test_v3_response_envelope_boundaries[0-metadata-32768]" time="0.001" /><testcase classname="src.brain.tests.test_work_navigation_transport" name="test_v3_response_envelope_boundaries[0-chat-65536]" time="0.001" /><testcase classname="src.brain.tests.test_work_navigation_transport" name="test_v3_response_envelope_boundaries[1-metadata-32768]" time="0.001" /><testcase classname="src.brain.tests.test_work_navigation_transport" name="test_v3_response_envelope_boundaries[1-chat-65536]" time="0.001" /></testsuite></testsuites>
