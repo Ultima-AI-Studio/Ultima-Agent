@@ -1,0 +1,28 @@
+...............................................F.....                    [100%]
+================================== FAILURES ===================================
+________ test_private_port_probe_requires_definitive_refusal[111-True] ________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000002C95507DB00>
+code = 111, closed = True
+
+    @pytest.mark.parametrize('code,closed',[(10061,True),(111,True),(10060,False),(0,False)])
+    def test_private_port_probe_requires_definitive_refusal(monkeypatch,code,closed):
+        clock=Clock(); budget=a.Deadline(clock=clock); budget.phase='cleanup'; p4=a.load_p4(); probes=[]
+        class Probe:
+            def __init__(self): self.closed=False; probes.append(self)
+            def settimeout(self,value): pass
+            def connect_ex(self,address): return code
+            def close(self): self.closed=True
+        monkeypatch.setattr(p4.socket,'socket',Probe)
+        with a.PrivateIO(p4,budget) as io:
+            probe=p4.socket.socket(); probe.settimeout(1)
+            try: probe.connect_ex(('127.0.0.1',18799))
+            finally: probe.close()
+>           assert io.port_closed is closed
+E           assert False is True
+E            +  where False = <source10_adapter.PrivateIO object at 0x000002C99DC3FAC0>.port_closed
+
+..\..\harness\test_adapter.py:256: AssertionError
+=========================== short test summary info ===========================
+FAILED ..\..\harness\test_adapter.py::test_private_port_probe_requires_definitive_refusal[111-True]
+1 failed, 52 passed in 1.32s
