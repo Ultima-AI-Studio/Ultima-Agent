@@ -1,0 +1,92 @@
+{
+  "schema": 1,
+  "scope": "TASK4C_CONCRETE_INERT_ROOT_CALLER_PREPARATION_REVIEW",
+  "candidate": "118ba152b007c30d358c8bc44c51aabe8ae820f0",
+  "caller_manifest_sha256": "83a55d081afd4ca945b18284097885041737bdbf9ad40d0674f1b0394ec58dfd",
+  "harness_manifest_sha256": "935b3e3b1f42790c6bd3d7ebd88164f4cc47a9de9a1703557f5da0c59806bcb5",
+  "spec": "FAIL",
+  "quality": "NEEDS_FIXES",
+  "spec_verdict": "FAIL",
+  "quality_verdict": "NEEDS_FIXES",
+  "findings": [
+    {
+      "id": "RC-01",
+      "severity": "P1",
+      "fileline": "root-inert-invocation.py:141-145",
+      "problem": "The digest-checked harness manifest and the manifest supplying executable module digests are separate reads. If the manifest and adapter are replaced after line 141, checked_import executes the replacement using its replacement digest before the next control scan. The same check-then-reopen pattern separates the verdict and historical proof hashes from the JSON actually interpreted at lines 157–160 and 237–238.",
+      "required_fix": "For each pinned JSON control, read bytes once, compare the sealed digest, and decode that buffer. Exercise a mocked second-read substitution and assert no unapproved definitions or identities are used."
+    },
+    {
+      "id": "RC-02",
+      "severity": "P1",
+      "fileline": "root-inert-invocation.py:229-240",
+      "problem": "Freshness is checked before the folder and release hash I/O, P4 loading, package and source scans, and historical proof reads. A valid 1-second release can expire during those operations. The 275-second work budget still admits P4 loading or the first native scan. The authority expiry check at line 257 only refuses later, after native effects.",
+      "required_fix": "Recheck the bound release and its expiry at each admission to P4/native work and immediately before delegation, after potentially blocking prerequisite I/O. Mock a stall before the first such boundary and verify zero calls after expiry."
+    },
+    {
+      "id": "RC-03",
+      "severity": "P1",
+      "fileline": "root-inert-invocation.py:212-221,270-275",
+      "problem": "If the exclusive claim open raises before creating the file (for example a transient permission or sharing error), consumed stays false and the invocation exits with no terminal consumption evidence. The same still-current release can be used by another invocation once the error clears. Failed write/close after successful open is a different, tested case.",
+      "required_fix": "Establish a durable one-use allocation boundary under ROOT control that fails closed even when the caller cannot create its claim. If the existing filesystem protocol cannot represent that failure, return it to ROOT for a protocol ruling before release. Include a mocked pre-creation open failure followed by replay."
+    },
+    {
+      "id": "RC-04",
+      "severity": "P1",
+      "fileline": "root-inert-invocation.py:223-231",
+      "problem": "The exclusion scan checks three canonical files and only the newly generated UUID directory. An existing V/inert/<different UUID>/attempt.json with missing global markers is ignored. The new UUID selects another attempt despite the requirement to refuse existing attempt evidence.",
+      "required_fix": "Check the fixed inert namespace for evidence of a prior attempt under any UUID before P4 entry and fail closed on residual or unreadable state. Add a mock for an orphan attempt with a different UUID and preserve its bytes."
+    },
+    {
+      "id": "RC-05",
+      "severity": "P1",
+      "fileline": "root-inert-invocation.py:248-265",
+      "problem": "After creating the baseline, the caller binds a reread from disk. After creating authority it never compares the canonical authority to the exact bytes it issued. check_controls omits both dynamic objects. A change from port 18765 to 8756 in this interval survives adapter.inert_admit (adapter.py:1081-1095 permits this port). The harness can pin the replacement as its initial operational state and use it unchanged. Even a complete subsequent witness proves only the admitted port. The test at test_root_inert_invocation.py:182-187 reads an undisturbed authority.",
+      "required_fix": "Bind both documents to the exact serialized bytes generated in memory and protect those bindings across handoff through actual harness admission, with no writable substitution window. Confirm the existing trusted admission/witness uses those bindings. If that requires an interface change, seek ROOT ruling before editing the accepted harness. Test a replaced authority before admission and require zero off-scope launches."
+    },
+    {
+      "id": "RC-06",
+      "severity": "P2",
+      "fileline": "root-inert-invocation.py:265-280",
+      "problem": "An ineligible witness can return with the original failure in inv.budget.failure (adapter.py:1003-1011). If a subsequent controls check raises, first_cause is set to this later exception. Line 279 then skips the original failure, although the two failures have different causes and times.",
+      "required_fix": "Capture the returned original failure before supplemental checks and keep any later control failure as a separate veto. Cover the combined ineligible-witness plus control-drift case and preserve the returned witness verbatim."
+    },
+    {
+      "id": "RC-07",
+      "severity": "P1",
+      "fileline": "root-inert-invocation.py:79-89,281-288",
+      "problem": "The final eligible JSON is written directly to its canonical path before flush/fsync and close succeed. A flush that exposes all bytes followed by fsync/close failure can leave a complete parseable ELIGIBLE_FOR_ROOT_REVIEW result even though publication raised. The claim prevents a retry but cannot tell a later reader whether result closure succeeded.",
+      "required_fix": "Prepare and durably close a new outside-case result before publishing it atomically with no replacement, or have ROOT define equivalent independent close-success evidence. Reject orphan and uncertain writes. Mock a failure after all bytes are visible and require no consumable canonical eligible result."
+    }
+  ],
+  "cannot_verify": [
+    "Actual native identities, port availability, ownership, launch, cleanup, timing, and durable production-filesystem behavior were outside preparation scope."
+  ],
+  "checks": [
+    "Read full requirements, full author report, five-file contextual diff and schema addendum. Verified named input SHA-256s.",
+    "Read all five raw command lines, outputs and JUnit counts. Independently verified 160 before/after raw copy digests at each of five stages. Final 50/0/0/0, no selection. No suite rerun.",
+    "Focused definition inspections for timing adoption/parent binding, imports, P4/P1 identity, schema 11 and operational pins, and RootInvocation witness/failure handling. No runtime calls."
+  ],
+  "reviewed_hashes": {
+    "C:\\Users\\Administrator\\.codex\\worktrees\\jarvis-work-capability-longpaths\\UltimaAgent\\.superpowers\\sdd\\jarvis-work-capability-delivery-plan-20261101\\task-4-inert-root-invocation-review-brief.md": "4658b0ddd0793cdd22e224e88f473f65d951f41b1add5618e55fcf570ab3b64f",
+    "C:\\Users\\Administrator\\.codex\\worktrees\\jarvis-work-capability-longpaths\\UltimaAgent\\.superpowers\\sdd\\jarvis-work-capability-delivery-plan-20261101\\task-4-inert-root-invocation-brief.md": "af9218f13d2cdf0d8707fc1f690ef593d465a778cb359e72712b5ec5a1500e47",
+    "C:\\Users\\Administrator\\.codex\\worktrees\\jarvis-work-capability-longpaths\\UltimaAgent\\.superpowers\\sdd\\jarvis-work-capability-delivery-plan-20261101\\task-4-inert-root-invocation-report.md": "06ba572d5ea287ba21a48b0fdddd186fbd05b3741f44428e1dd621df1d49d99e",
+    "C:\\Users\\Administrator\\.codex\\worktrees\\jarvis-work-capability-longpaths\\UltimaAgent\\.superpowers\\sdd\\jarvis-work-capability-delivery-plan-20261101\\task-4-inert-root-invocation-review-package.txt": "f57d7593f3947a7a5ac6691e1f72e57fa5eb16e76ca429c1c472afc5fb3c6844",
+    "H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\navigation-source10-validation-20261102\\code\\root-inert-caller-before-review.json": "ea0b02a3b3a5a1265db25cc7b6c502d7fb6916c47e63924c4551f8b09a1e3a62",
+    "H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\navigation-source10-validation-20261102\\inert-root-caller-preparation-authority.json": "02a9428d05ee4bc2625803e997661571970968d690f7b3fc77a76eaff15799a3",
+    "H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\navigation-source10-validation-20261102\\harness-code-gate.json": "9842547ee2532bd39c388187d33a95be7764e2b1f5a12ddfbc07874258a3bca2",
+    "H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\navigation-source10-validation-20261102\\harness-review-5\\verdict.json": "7d1d239f7b83148b90d266b29579ce937d02aeb0071838d666d5aaf94803030c",
+    "H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\navigation-source10-validation-20261102\\harness-review-5\\review.md": "7e4ada38af9219d3a9edf4b8e629198407c6e130b563a9c6b5cbc9c08b7c983c",
+    "H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\navigation-source10-validation-20261102\\code\\inert-root-caller-preparation-20261102T222847075613Z\\receipt.json": "c4b7afb9601801b04af0b11096f2fcd9cb45b7ecfe559def2c21ebe0772af682",
+    "C:\\Users\\Administrator\\.codex\\worktrees\\jarvis-work-capability-longpaths\\UltimaAgent\\.superpowers\\sdd\\jarvis-work-capability-delivery-plan-20261101\\root-inert-invocation.py": "912e612575a9a6d17d00e2f29fc245629c8c7119653ce4a882f3941540513035",
+    "C:\\Users\\Administrator\\.codex\\worktrees\\jarvis-work-capability-longpaths\\UltimaAgent\\.superpowers\\sdd\\jarvis-work-capability-delivery-plan-20261101\\test_root_inert_invocation.py": "a4c987aaea01d3adffaac48d28b2445aead050452338275177a176d28deaacbe",
+    "C:\\Users\\Administrator\\.codex\\worktrees\\jarvis-work-capability-longpaths\\UltimaAgent\\.superpowers\\sdd\\jarvis-work-capability-delivery-plan-20261101\\inert-root-release-template.json": "ad8091c955e2c3a1d82ac1df721fd775b7d24b80c775e47d2e948b197b7b1ee3",
+    "C:\\Users\\Administrator\\.codex\\worktrees\\jarvis-work-capability-longpaths\\UltimaAgent\\.superpowers\\sdd\\jarvis-work-capability-delivery-plan-20261101\\inert-root-caller-manifest.json": "83a55d081afd4ca945b18284097885041737bdbf9ad40d0674f1b0394ec58dfd",
+    "C:\\Users\\Administrator\\.codex\\worktrees\\jarvis-work-capability-longpaths\\UltimaAgent\\.superpowers\\sdd\\jarvis-work-capability-delivery-plan-20261101\\run-inert-root-caller-checks.py": "ef2f6314d34c6cdc352040136e20ebdb2d53937b0e52736264a6b252bf2af472",
+    "review_inputs": "888aa2fac0dd5618fe4bf97955d5ae584b434b05bda0fd461e3814c2d4cf0517",
+    "schema_addendum": "fd7b0e350a3bbde93d43bf44f67754bec484089739e6b6d37110988d1bf6fa1b",
+    "final_junit": "1ee7f282257a23dc66faf2e900f4e9ddb9985558b507be2d4b5987afdf80f561"
+  },
+  "execution_released": false,
+  "T2": "NOT_PASSED"
+}
