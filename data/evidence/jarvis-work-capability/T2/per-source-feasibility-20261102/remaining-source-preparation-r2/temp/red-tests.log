@@ -1,0 +1,135 @@
+..FFFFF........................                                          [100%]
+================================== FAILURES ===================================
+________________ test_real_windows_junction_refused[namespace] ________________
+
+admitted = ({'mode': 'remaining_source_sdk_prefix', 'execute': True, 'head': 'f53a803afbb550b20aff2fd95859a563f6c8cc41', 'digest'....1548657, 'available_ram_bytes': 12884901888, 'commit_headroom_bytes': 17179869184, 'gpu_free_bytes': 8589934592, ...})
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/per-source-feasibility-20261102/remaining-source-preparation-r2/pytest-offline/test_real_windows_junction_ref0')
+boundary = 'namespace'
+
+    @pytest.mark.parametrize('boundary',['namespace','source','prior_attempt'])
+    def test_real_windows_junction_refused(admitted,tmp_path,boundary):
+        auth,root,_=admitted
+        outside=tmp_path/'outside-namespace'; outside.mkdir()
+        if boundary=='namespace':
+            link=h.ACTUAL; target=outside
+        elif boundary=='source':
+            h.ACTUAL.mkdir(); link=h.ACTUAL/'S3'; target=outside
+        else:
+            add_prior(auth,'S3','first')
+            link=h.ACTUAL/'S3/first'; target=outside/'first'
+            link.rename(target)
+            auth['source_id']=auth['next_source']='S1'
+            root=h.ACTUAL/'S1/second'; auth['run_root']=str(root)
+        result=subprocess.run(['cmd','/c','mklink','/J',str(link),str(target)],capture_output=True,text=True)
+        assert result.returncode==0,result.stderr
+        def contents():
+            return {str(f.relative_to(outside)):f.read_bytes() for f in outside.rglob('*') if f.is_file()}
+        baseline=contents()
+        try:
+            assert link.is_junction() and not link.is_symlink()
+>           with pytest.raises(ValueError,match='[Rr]eparse'):
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E           Failed: DID NOT RAISE ValueError
+
+test_remaining_prefix.py:89: Failed
+_________________ test_real_windows_junction_refused[source] __________________
+
+admitted = ({'mode': 'remaining_source_sdk_prefix', 'execute': True, 'head': 'f53a803afbb550b20aff2fd95859a563f6c8cc41', 'digest'....3285313, 'available_ram_bytes': 12884901888, 'commit_headroom_bytes': 17179869184, 'gpu_free_bytes': 8589934592, ...})
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/per-source-feasibility-20261102/remaining-source-preparation-r2/pytest-offline/test_real_windows_junction_ref1')
+boundary = 'source'
+
+    @pytest.mark.parametrize('boundary',['namespace','source','prior_attempt'])
+    def test_real_windows_junction_refused(admitted,tmp_path,boundary):
+        auth,root,_=admitted
+        outside=tmp_path/'outside-namespace'; outside.mkdir()
+        if boundary=='namespace':
+            link=h.ACTUAL; target=outside
+        elif boundary=='source':
+            h.ACTUAL.mkdir(); link=h.ACTUAL/'S3'; target=outside
+        else:
+            add_prior(auth,'S3','first')
+            link=h.ACTUAL/'S3/first'; target=outside/'first'
+            link.rename(target)
+            auth['source_id']=auth['next_source']='S1'
+            root=h.ACTUAL/'S1/second'; auth['run_root']=str(root)
+        result=subprocess.run(['cmd','/c','mklink','/J',str(link),str(target)],capture_output=True,text=True)
+        assert result.returncode==0,result.stderr
+        def contents():
+            return {str(f.relative_to(outside)):f.read_bytes() for f in outside.rglob('*') if f.is_file()}
+        baseline=contents()
+        try:
+            assert link.is_junction() and not link.is_symlink()
+>           with pytest.raises(ValueError,match='[Rr]eparse'):
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E           Failed: DID NOT RAISE ValueError
+
+test_remaining_prefix.py:89: Failed
+______________ test_real_windows_junction_refused[prior_attempt] ______________
+
+admitted = ({'mode': 'remaining_source_sdk_prefix', 'execute': True, 'head': 'f53a803afbb550b20aff2fd95859a563f6c8cc41', 'digest'....4214993, 'available_ram_bytes': 12884901888, 'commit_headroom_bytes': 17179869184, 'gpu_free_bytes': 8589934592, ...})
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/per-source-feasibility-20261102/remaining-source-preparation-r2/pytest-offline/test_real_windows_junction_ref2')
+boundary = 'prior_attempt'
+
+    @pytest.mark.parametrize('boundary',['namespace','source','prior_attempt'])
+    def test_real_windows_junction_refused(admitted,tmp_path,boundary):
+        auth,root,_=admitted
+        outside=tmp_path/'outside-namespace'; outside.mkdir()
+        if boundary=='namespace':
+            link=h.ACTUAL; target=outside
+        elif boundary=='source':
+            h.ACTUAL.mkdir(); link=h.ACTUAL/'S3'; target=outside
+        else:
+            add_prior(auth,'S3','first')
+            link=h.ACTUAL/'S3/first'; target=outside/'first'
+            link.rename(target)
+            auth['source_id']=auth['next_source']='S1'
+            root=h.ACTUAL/'S1/second'; auth['run_root']=str(root)
+        result=subprocess.run(['cmd','/c','mklink','/J',str(link),str(target)],capture_output=True,text=True)
+        assert result.returncode==0,result.stderr
+        def contents():
+            return {str(f.relative_to(outside)):f.read_bytes() for f in outside.rglob('*') if f.is_file()}
+        baseline=contents()
+        try:
+            assert link.is_junction() and not link.is_symlink()
+>           with pytest.raises(ValueError,match='[Rr]eparse'):
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E           AssertionError: Regex pattern did not match.
+E             Expected regex: '[Rr]eparse'
+E             Actual message: 'Prior source or exact runroot differs'
+
+test_remaining_prefix.py:89: AssertionError
+______________ test_actual_constant_cannot_redefine_trusted_root ______________
+
+admitted = ({'mode': 'remaining_source_sdk_prefix', 'execute': True, 'head': 'f53a803afbb550b20aff2fd95859a563f6c8cc41', 'digest'....5210972, 'available_ram_bytes': 12884901888, 'commit_headroom_bytes': 17179869184, 'gpu_free_bytes': 8589934592, ...})
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/per-source-feasibility-20261102/remaining-source-preparation-r2/pytest-offline/test_actual_constant_cannot_re0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000208C916D150>
+
+    def test_actual_constant_cannot_redefine_trusted_root(admitted,tmp_path,monkeypatch):
+        auth,_,_=admitted
+        monkeypatch.setattr(h,'ACTUAL',tmp_path/'redirected')
+        root=h.ACTUAL/'S3/first'; auth['run_root']=str(root)
+>       with pytest.raises(ValueError,match='[Tt]rusted'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+test_remaining_prefix.py:103: Failed
+___________________ test_noncanonical_attempt_alias_refused ___________________
+
+admitted = ({'mode': 'remaining_source_sdk_prefix', 'execute': True, 'head': 'f53a803afbb550b20aff2fd95859a563f6c8cc41', 'digest'....5906725, 'available_ram_bytes': 12884901888, 'commit_headroom_bytes': 17179869184, 'gpu_free_bytes': 8589934592, ...})
+
+    def test_noncanonical_attempt_alias_refused(admitted):
+        auth,root,_=admitted
+        aliased=root.parent/'unused/..'/root.name
+        auth['run_root']=str(aliased)
+>       with pytest.raises(ValueError):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+test_remaining_prefix.py:112: Failed
+=========================== short test summary info ===========================
+FAILED test_remaining_prefix.py::test_real_windows_junction_refused[namespace]
+FAILED test_remaining_prefix.py::test_real_windows_junction_refused[source]
+FAILED test_remaining_prefix.py::test_real_windows_junction_refused[prior_attempt]
+FAILED test_remaining_prefix.py::test_actual_constant_cannot_redefine_trusted_root
+FAILED test_remaining_prefix.py::test_noncanonical_attempt_alias_refused - Fa...
+5 failed, 26 passed in 4.71s

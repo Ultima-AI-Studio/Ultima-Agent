@@ -1,0 +1,184 @@
+--- P1/run_remaining_prefix.py
++++ P2/run_remaining_prefix.py
+@@ -13,12 +13,15 @@
+ import math
+ import os
+ from pathlib import Path
++import stat
+ import subprocess
+ import time
+ 
+ E = Path('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/per-source-feasibility-20261102')
+-PREP = E/'remaining-source-preparation'
++PREP = E/'remaining-source-preparation-r2'
+ ACTUAL = E/'remaining-source-actual'
++# Independently fixed trust anchor; never derive ownership from ACTUAL.resolve().
++TRUSTED_ACTUAL = Path('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/per-source-feasibility-20261102/remaining-source-actual')
+ CORE = E/'preparation-r2/run_stage_prefix.py'
+ CORE_HASH = '4122c8d0c288689f31899fc59cebf7aabbcc546c46342071134af712d4a9863e'
+ OLD_MANIFEST = E/'preparation-r2/manifest.json'
+@@ -48,6 +51,39 @@
+         return out
+     return json.loads(Path(path).read_text(encoding='utf-8-sig'), object_pairs_hook=unique,
+                       parse_constant=lambda x: (_ for _ in ()).throw(ValueError(x)))
++
++
++def refuse_reparse(path):
++    # Inspect unresolved ancestors: resolve() hides Windows junctions.
++    for part in (Path(path), *Path(path).parents):
++        try:
++            info = part.lstat()
++        except FileNotFoundError:
++            continue
++        if stat.S_ISLNK(info.st_mode) or getattr(info, 'st_file_attributes', 0) & 0x400:
++            raise ValueError('Reparse points are not authorized in managed paths')
++
++
++def trusted_namespace():
++    refuse_reparse(TRUSTED_ACTUAL)
++    refuse_reparse(ACTUAL)
++    if ACTUAL != TRUSTED_ACTUAL or TRUSTED_ACTUAL.resolve() != TRUSTED_ACTUAL:
++        raise ValueError('Actual namespace differs from fixed trusted root')
++    return TRUSTED_ACTUAL.resolve()
++
++
++def managed_run(path, source):
++    raw = Path(path)
++    refuse_reparse(raw)
++    trusted = trusted_namespace()
++    if (not raw.is_absolute() or '..' in raw.parts or source not in ORDER or
++            not raw.name or ':' in raw.name or
++            raw != TRUSTED_ACTUAL/source/raw.name):
++        raise ValueError('Noncanonical managed attempt path')
++    resolved = raw.resolve()
++    if resolved != raw or resolved.parent != trusted/source or not resolved.is_relative_to(trusted):
++        raise ValueError('Attempt outside fixed trusted namespace')
++    return resolved
+ 
+ 
+ def frozen_core():
+@@ -76,6 +112,7 @@
+ 
+ def validate(auth, runroot, *, now=None):
+     """All admission checks precede namespace creation, SDK setup and sockets."""
++    trusted_namespace()
+     core = frozen_core()
+     if (auth['mode'] != 'remaining_source_sdk_prefix' or auth['execute'] is not True or
+             auth['head'] != HEAD or auth['digest'] != core.DIGEST or
+@@ -112,10 +149,11 @@
+         raise ValueError('Cumulative cap exceeded')
+     known = set()
+     for index, item in enumerate(prior):
+-        root = Path(item['run_root']).resolve()
+-        if item['source_id'] != ORDER[index] or root.parent != (ACTUAL/ORDER[index]).resolve():
++        root = managed_run(item['run_root'], ORDER[index])
++        if item['source_id'] != ORDER[index]:
+             raise ValueError('Prior source or exact runroot differs')
+         packet = root/'outcome.json'
++        refuse_reparse(packet)
+         checked(packet, item['outcome_sha256'])
+         outcome = read(packet)
+         checked(item['review_path'], item['review_sha256'])
+@@ -131,21 +169,20 @@
+         known.add(root)
+     # Inspect the complete namespace; root may not omit failed/zero-POST attempts.
+     existing = set()
+-    if ACTUAL.is_symlink():
+-        raise ValueError('Actual namespace must not be a symlink')
+     if ACTUAL.exists():
+         for directory in ACTUAL.iterdir():
+-            if directory.name not in ORDER or not directory.is_dir() or directory.is_symlink():
++            refuse_reparse(directory)
++            if directory.name not in ORDER or not directory.is_dir():
+                 raise ValueError('Unexpected actual namespace entry')
+             for child in directory.iterdir():
+-                if not child.is_dir() or child.is_symlink():
++                refuse_reparse(child)
++                if not child.is_dir():
+                     raise ValueError('Unexpected attempt entry')
+-                existing.add(child.resolve())
++                existing.add(managed_run(child, directory.name))
+     if existing != known:
+         raise ValueError('Unlisted, failed, preexisting or repeated attempt')
+-    root = Path(runroot).resolve()
+-    if (root != Path(auth['run_root']).resolve() or root.parent != (ACTUAL/source).resolve()
+-            or root.exists() or not root.name or (ACTUAL/source).is_symlink()):
++    root = managed_run(runroot, source)
++    if (root != managed_run(auth['run_root'], source) or root.exists()):
+         raise ValueError('Exclusive controller-unique exact source runroot required')
+     snap = snapshot_gate(auth, now)
+     return core, old, snap
+--- P1/test_remaining_prefix.py
++++ P2/test_remaining_prefix.py
+@@ -36,6 +36,7 @@
+     save(tmp_path/'S2-first-root-reconciliation.json',baseline)
+     monkeypatch.setattr(h,'E',tmp_path)
+     monkeypatch.setattr(h,'ACTUAL',tmp_path/'actual-fixture')
++    monkeypatch.setattr(h,'TRUSTED_ACTUAL',tmp_path/'actual-fixture',raising=False)
+     snap=dict(captured_unix=time.time(),available_ram_bytes=12*2**30,
+               commit_headroom_bytes=16*2**30,gpu_free_bytes=8*2**30,
+               head=h.HEAD,selected_digest=h.frozen_core().DIGEST,
+@@ -62,6 +63,55 @@
+     monkeypatch.setattr(h,'CORE',tampered)
+     with pytest.raises(ValueError,match='Hash mismatch'):
+         h.frozen_core()
++
++
++@pytest.mark.parametrize('boundary',['namespace','source','prior_attempt'])
++def test_real_windows_junction_refused(admitted,tmp_path,boundary):
++    auth,root,_=admitted
++    outside=tmp_path/'outside-namespace'; outside.mkdir()
++    if boundary=='namespace':
++        link=h.ACTUAL; target=outside
++    elif boundary=='source':
++        h.ACTUAL.mkdir(); link=h.ACTUAL/'S3'; target=outside
++    else:
++        add_prior(auth,'S3','first')
++        link=h.ACTUAL/'S3/first'; target=outside/'first'
++        link.rename(target)
++        auth['source_id']=auth['next_source']='S1'
++        root=h.ACTUAL/'S1/second'; auth['run_root']=str(root)
++    result=subprocess.run(['cmd','/c','mklink','/J',str(link),str(target)],capture_output=True,text=True)
++    assert result.returncode==0,result.stderr
++    def contents():
++        return {str(f.relative_to(outside)):('directory',None) if f.is_dir() else ('file',f.read_bytes())
++                for f in outside.rglob('*')}
++    baseline=contents()
++    try:
++        assert link.is_junction() and not link.is_symlink()
++        with pytest.raises(ValueError,match='[Rr]eparse'):
++            h.validate(auth,root)
++        assert contents()==baseline and not root.exists()
++        save(tmp_path/'junction-proof.json',dict(boundary=boundary,is_junction=True,is_symlink=False,
++             target_outside_namespace=not target.is_relative_to(h.TRUSTED_ACTUAL),
++             off_namespace_writes_during_validation=0,run_leaf_created=False))
++    finally:
++        os.rmdir(link)  # remove only this test-created junction, never target content
++
++
++def test_actual_constant_cannot_redefine_trusted_root(admitted,tmp_path,monkeypatch):
++    auth,_,_=admitted
++    monkeypatch.setattr(h,'ACTUAL',tmp_path/'redirected')
++    root=h.ACTUAL/'S3/first'; auth['run_root']=str(root)
++    with pytest.raises(ValueError,match='[Tt]rusted'):
++        h.validate(auth,root)
++    assert not h.ACTUAL.exists()
++
++
++def test_noncanonical_attempt_alias_refused(admitted):
++    auth,root,_=admitted
++    aliased=root.parent/'unused/..'/root.name
++    auth['run_root']=str(aliased)
++    with pytest.raises(ValueError):
++        h.validate(auth,aliased)
+ 
+ 
+ @pytest.mark.parametrize('mode',['S2','skip','spent','duplicate','original_hash','core_hash','stale',
+--- P1/controller-disposition-proposal.md
++++ P2/controller-disposition-proposal.md
+@@ -15,3 +15,5 @@
+ At least three relevant grounded completed sections and coverage still require independent later assessment. Missing S2 cannot support a manager/provider-selection claim. No original-group/E02/overall-coverage promotion is authorized; public frozen five and original E02 three-run requirements stand. Source10, product/default changes and T3-T5 remain closed.
+ 
+ Independent code-quality and SPEC review plus root release are required before any actual inference. Offline MockTransport is only mechanical proof, never factual acceptance. Reviewers must assess authority admission, cumulative accounting, snapshot binding, unchanged template delegation and remaining coverage gap. This proposal itself grants no execution authority.
++
++Revision r2 corrects only managed path ownership. Windows reparse points (including directory junctions) are refused by lstat on unresolved paths and every existing ancestor. The literal trusted actual namespace is independent of the runtime ACTUAL value; canonical run ownership is compared against that fixed anchor and literal source/attempt components. The same checks apply before reading prior packets and while enumerating existing attempts. Real Windows junction tests use only owned preparation fixtures and demonstrate rejection at namespace, source and prior-attempt boundaries, with no network or target changes during validation. The controller still must serialize releases; no hostile concurrent filesystem mutation protection is claimed.
