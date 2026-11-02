@@ -1,0 +1,268 @@
+{
+  "head": "e0b04d6a68f7851d2dfc6c516bc7701896355b69",
+  "static_only": true,
+  "interfaces": [
+    {
+      "file": "src/brain/work_navigation.py",
+      "name": "canonical_v3",
+      "signature": "value: object",
+      "returns": "bytes",
+      "line": 20
+    },
+    {
+      "file": "src/brain/work_navigation.py",
+      "name": "ScanPolicy",
+      "fields": [
+        "scanners: tuple[object, ...]",
+        "mode: str",
+        "policy_json: bytes",
+        "policy_sha256: str"
+      ],
+      "line": 53
+    },
+    {
+      "file": "src/brain/work_navigation.py",
+      "name": "SourceV3",
+      "fields": [
+        "source_id: str",
+        "identity_json: bytes",
+        "domain: str",
+        "suffix: str",
+        "total_lines: int",
+        "safe_line_pairs: tuple[tuple[int, str], ...]",
+        "omissions: tuple[tuple[int, int, str], ...]",
+        "anchors_json: bytes",
+        "available: bool",
+        "reason: str"
+      ],
+      "line": 61
+    },
+    {
+      "file": "src/brain/work_navigation.py",
+      "name": "CatalogueV3",
+      "fields": [
+        "binding_key: BindingKey",
+        "nonce: str",
+        "policy_sha256: str",
+        "sources: tuple[SourceV3, ...]",
+        "catalogue_json: bytes",
+        "catalogue_sha256: str"
+      ],
+      "line": 75
+    },
+    {
+      "file": "src/brain/work_navigation.py",
+      "name": "PageKey",
+      "fields": [
+        "generation: int",
+        "seq: int",
+        "dispatch_uuid: str",
+        "adapter_uuid: str"
+      ],
+      "line": 85
+    },
+    {
+      "file": "src/brain/work_navigation.py",
+      "name": "ViewV3",
+      "fields": [
+        "view_id: str",
+        "source_id: str",
+        "start: int",
+        "end: int",
+        "wire_json: bytes",
+        "wire_sha256: str",
+        "cards_json: bytes"
+      ],
+      "line": 93
+    },
+    {
+      "file": "src/brain/work_navigation.py",
+      "name": "IssuedSnapshotV3",
+      "fields": [
+        "binding_key: BindingKey",
+        "nonce: str",
+        "catalogue_sha256: str",
+        "generation: int",
+        "views_json: bytes",
+        "replay_json: bytes",
+        "manifest_sha256: str"
+      ],
+      "line": 104
+    },
+    {
+      "file": "src/brain/work_navigation.py",
+      "name": "make_scan_policy",
+      "signature": "scanners: tuple[object, ...], mode: str",
+      "returns": "ScanPolicy",
+      "line": 141
+    },
+    {
+      "file": "src/brain/work_navigation.py",
+      "name": "validate_scan_policy",
+      "signature": "policy: ScanPolicy, expected: ScanPolicy | None=None",
+      "returns": null,
+      "line": 146
+    },
+    {
+      "file": "src/brain/work_navigation.py",
+      "name": "scan_view",
+      "signature": "view: ViewV3, policy: ScanPolicy",
+      "returns": "ViewV3",
+      "line": 163
+    },
+    {
+      "file": "src/brain/work_navigation.py",
+      "name": "build_page",
+      "signature": "catalogue: CatalogueV3, source_id: str, start_line: int, key: PageKey",
+      "returns": "ViewV3",
+      "line": 289
+    },
+    {
+      "file": "src/brain/work_navigation.py",
+      "name": "prepare_navigation",
+      "signature": "collection, binding, scanners: ScanPolicy, *, get_records_json: bytes, deadline: float",
+      "returns": "CatalogueV3",
+      "line": 350
+    },
+    {
+      "file": "src/brain/work_navigation.py",
+      "name": "v3_writer_schema",
+      "signature": "",
+      "returns": "dict",
+      "line": 394
+    },
+    {
+      "file": "src/brain/work_navigation.py",
+      "name": "seal_snapshot",
+      "signature": "catalogue, collection, get_records_json, policy, reads, *, generation",
+      "returns": null,
+      "line": 411
+    },
+    {
+      "file": "src/brain/work_navigation.py",
+      "name": "resolve_v3",
+      "signature": "submitted: dict, issued_snapshot: IssuedSnapshotV3, collection",
+      "returns": "tuple[dict, list[dict]]",
+      "line": 432
+    },
+    {
+      "file": "src/brain/work_navigation.py",
+      "name": "render_v3",
+      "signature": "payload, sources_json, *, bindings",
+      "returns": null,
+      "line": 496
+    },
+    {
+      "file": "src/brain/work_research.py",
+      "name": "canonical_url",
+      "signature": "value",
+      "returns": null,
+      "line": 15
+    },
+    {
+      "file": "src/brain/work_research.py",
+      "name": "candidate_inputs",
+      "signature": "query, source_urls",
+      "returns": null,
+      "line": 34
+    },
+    {
+      "file": "src/brain/work_research.py",
+      "name": "ResearchCollection",
+      "fields": [
+        "catalogue_json: str",
+        "trace_json: str",
+        "attempts_json: str",
+        "ignored_failure_ids: tuple[str, ...]",
+        "search_query: str"
+      ],
+      "line": 52
+    },
+    {
+      "file": "src/brain/work_research.py",
+      "name": "ResearchCollectionError",
+      "fields": [],
+      "line": 60
+    },
+    {
+      "file": "src/brain/work_research.py",
+      "name": "collect_research",
+      "signature": "query, source_urls, *, binding, ledger, capabilities",
+      "returns": null,
+      "line": 68
+    },
+    {
+      "file": "src/brain/work_research.py",
+      "name": "bound_sources",
+      "signature": "sources_json, binding=None",
+      "returns": null,
+      "line": 140
+    },
+    {
+      "file": "src/brain/work_research.py",
+      "name": "RenderedReport",
+      "fields": [
+        "content: str",
+        "cited_source_ids: tuple[str, ...]",
+        "evidence: tuple[dict, ...]"
+      ],
+      "line": 162
+    },
+    {
+      "file": "src/brain/work_research.py",
+      "name": "source_pack",
+      "signature": "sources",
+      "returns": null,
+      "line": 195
+    },
+    {
+      "file": "src/brain/work_research.py",
+      "name": "reference_cards",
+      "signature": "catalogue",
+      "returns": null,
+      "line": 407
+    },
+    {
+      "file": "src/brain/work_research.py",
+      "name": "reference_schema",
+      "signature": "table",
+      "returns": null,
+      "line": 454
+    },
+    {
+      "file": "src/brain/work_research.py",
+      "name": "resolve_references",
+      "signature": "payload, table, catalogue",
+      "returns": null,
+      "line": 469
+    },
+    {
+      "file": "src/brain/work_research.py",
+      "name": "render_research_report",
+      "signature": "payload, sources_json, *, bindings=None",
+      "returns": null,
+      "line": 491
+    },
+    {
+      "file": "src/brain/work_research.py",
+      "name": "prepare_navigation",
+      "signature": "collection, binding, scanners, *, get_records_json: bytes, deadline: float",
+      "returns": null,
+      "line": 529
+    },
+    {
+      "file": "src/brain/work_research.py",
+      "name": "resolve_v3",
+      "signature": "submitted, issued_snapshot, collection",
+      "returns": null,
+      "line": 534
+    },
+    {
+      "file": "src/brain/work_research.py",
+      "name": "verify_research_artifacts",
+      "signature": "binding, artifacts, report_records, sources_json, *, require_reference=False, required_version: int | None=None, issued_snapshot=None",
+      "returns": null,
+      "line": 539
+    }
+  ]
+}

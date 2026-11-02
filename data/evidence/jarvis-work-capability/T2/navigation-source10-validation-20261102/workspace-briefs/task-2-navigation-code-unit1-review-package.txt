@@ -1,0 +1,1270 @@
+BASE 244d2120abcd6b8d7744f74a05bd22de46a2d3a5
+HEAD e0b04d6a68f7851d2dfc6c516bc7701896355b69
+
+Commits
+e0b04d6 feat: add canonical research navigation views
+
+Stat
+ ...k-research-source-navigation-design-20261102.md |  78 ++++
+ ...ch-source-navigation-implementation-20261102.md | 159 +++++++
+ .../jarvis-work-research-navigation-v3-20261102.md |  15 +
+ src/brain/tests/test_work_navigation.py            | 378 +++++++++++++++
+ src/brain/work_navigation.py                       | 517 +++++++++++++++++++++
+ src/brain/work_research.py                         |  36 +-
+ 6 files changed, 1180 insertions(+), 3 deletions(-)
+
+Full diff (-U10)
+diff --git a/docs/plans/jarvis-work-research-source-navigation-design-20261102.md b/docs/plans/jarvis-work-research-source-navigation-design-20261102.md
+new file mode 100644
+index 0000000..17e4af7
+--- /dev/null
++++ b/docs/plans/jarvis-work-research-source-navigation-design-20261102.md
+@@ -0,0 +1,78 @@
++# T2 E02 · Let the 8B author inspect its sources
++
++Revision 3, correcting the remaining F1 and F4 details. Design for wo-ultimaagent-20261101-0021, 2026-11-02. One candidate for independent design review. Source10, model calls, actual execution and T3 release = false. The original fixed question, required factual coverage, negative cases, real file, real network and Owner gates stand.
++
++## 1. What changes at the product boundary
++
++After successful SDK search and GET, give the current author a compact catalogue. Let it choose windows of the already fetched sources within one NativeReAct conversation. The next generation receives each real inspector observation alongside the original question. Once sufficient distinct sources have actually been shown, the author can submit one report. This makes “never inspected”, “inspected but uncited” and “cited but unsupported” distinguishable. No server-authored facts, model score or predetermined source order enters the task.
++
++**PROVED.** Source9 used 13,888 prompt tokens and selected S1 in all five sections. None of 22 claims had adequate support at its cited location. Duplicate-source rejection prevented the file. The closed S3 and S4 single-source stages both ended normally with unused and zero facts. S4 already had a direct execution card and local-role instructions. On the same product bytes E01 and E03 passed three fixed cases apiece through ordinary SDK tool feedback. These results establish tool execution in those cases. Factual improvement from navigation is a **HYPOTHESIS**. Whether this 8B will look at relevant windows, distinguish the Jarvis.ceo donor from the OpenJarvis floor, explain conditions and alternatives, and finish on time is **UNKNOWN**. The closed offline attempt entered zero comparisons. Native100ns versus legacy CIM precision mismatch is established, outer stall cause unknown, terminal missing and original base identity uncaptured.
++
++| Location and proposed interface | Responsibility |
++|---|---|
++| work_service.py, existing submit_work(...) | Preserve /ask and work JSON and trusted startup gates. Only explicit research uses v3. Start the same 260 s deadline at entry. Collect once with existing collect_research including search/GET policies, attempts, duplicate and failure accounting. Freeze the exact captured request material and collection before composition. Disable collection capabilities for composition. |
++| work_research.py, prepare_navigation(collection, binding, scanners) → frozen CatalogueV3 | Trusted preparation verifies successful GET call linkage, request/session/task, final URL, normalized URL, body and decoded SHA-256. Preserve collected bytes and projection separately in the existing restricted evidence boundary. Build a second, safe immutable view as below. Immutable canonical compact JSON in UTF-8 (sorted keys, no NaN), SHA-256 over exact bytes. |
++| work_tools.py, WorkInspectTool(BaseTool).execute(**params) → ToolResult, WorkResearchWriteTool, WorkLedger | Register only a tool class under ultima_work_research_inspect in the existing ToolRegistry. Within bind_work the SDK name builder constructs the inspector and writer; their zero-argument constructors enroll those exact instances during the single permitted build epoch. Only the enrolled writer constructs the nested WorkWriteTool on that caller thread. Inspector captures only safe catalogue and restricted ledger operations, never browser/provider/path/raw catalogue. Writer holds frozen original evidence for validation. Worker execute uses captured instances, never resolves authority from worker ContextVar or model input. Keep mutable generation, receipts and dispatches under the per-request ledger RLock. |
++| agent_server.py, existing _run_work_agent and _ResearchEngineView.generate(messages, **kwargs) | Preserve one Jarvis.ask_full(query, agent='native_react', tools=[inspector,writer], context=False, max_tokens=allowance). Validate actual installed wrapper shapes and two bound tools. Research view retains the real system/tool instructions, user query and SDK history, replacing the one pinned output-format prefix and adding compact phase rules as specified below. Refuse unexpected templates, extra exemplars, rewritten or compressed history, roles or capability descriptions. No synthetic observations. Add a request-local monotonically increasing generation ID and ledger operations expect(seq,name,args_hash), claim(seq,name,args_hash,adapter_id), confirm_end(seq,event), promote_visible(generation,wire_hash), freeze_for_write(generation) and seal(reason). Keep SDK START/END correlation on caller thread under _ask_lock. |
++| work_research.py, resolve_v3(submitted, issued_snapshot, collection), verify_research_artifacts(..., required_version=3) | Resolve only the frozen current-request issued witnesses. Render model text with the validated evidence and server URLs. Link SDK write, exact original path and reopened bytes. For the fixed case bind the independently specified basename research.md and fresh request root before generation; reject another writer path and verify that exact file outside the process. Keep work_verifier.verify_artifacts as the file check. |
++
++The installed sdk.py:271,443 builds fresh tool objects then runs the registered NativeReActAgent. native_react.py:225–360 calls generate(messages), parses the action, calls ToolExecutor.execute(ToolCall), appends “Observation: ” plus ToolResult.content as a USER message and continues. tools/_stubs.py:381–462 publishes START/END on the caller and runs BaseTool.execute on the bounded worker pool. ToolSpec, ToolResult and registry creation stay on that SDK path. Agent name alone does not identify a request.
++
++**SDK constraint.** Jarvis.__init__ accepts config/engine_key/model and ask_full accepts tool names. Neither accepts a per-call engine instance. Retain the existing checked request-only shallow copies in _borrow_research and the owned leaf/client, as an explicit installed-version dependency. No modification of the singleton, SDK source, tool executor, shared bus policy, scanner settings, engine defaults or /ask chat path. Private wrapper mismatch stops before composition. The agent's public constructor accepts an engine but changing to a separately assembled agent would require proving all existing security and telemetry wiring again. Pin the six SDK source hashes in preparation/sdk-sources.json and the additional used registry/tools/guard/scanner files for future candidate review.
++
++## 2. Exactly what can be inspected and cited
++
++| Boundary | v3 rule |
++|---|---|
++| Trusted input | Up to five already accepted GETs. For a source truncated at GET, >256 KiB decoded UTF-8, >1,024 lines, invalid hash, or unsupported coordinate map, mark unavailable with reason. Identity/hash or GET-ledger mismatch aborts request. Accept raw-coordinate code only for identity text/body with LF/CRLF. Accept documented HTML in extracted-text coordinates only for the original documented suffixes under the reconstruction rule below. Never map HTML projected line numbers to raw markup. Unknown suffix can be listed but cannot supply a witness. Require three mutually distinct normalized URLs and decoded-body digests with at least one legal final-page card each before the first POST. |
++| Security before any tool output | Inside trusted preparation use the same configured SDK scanners on the complete original text and on individual numbered lines. In BLOCK mode a full-text finding blocks the source. Otherwise remove entire affected lines even under WARN. For each coordinate domain require sequential whole-text redact output to equal the concatenated individually redacted lines with original separators, and scan the redacted projection for residual findings. If mapping, scanner behavior or separators disagree, deny the whole source. Exclude dirty lines from all text, operation labels and anchors, keep only line number/reason. Scan catalogue labels, action descriptions and complete serialized observation before exposure. Security exclusions cannot be reversed by another page. Frozen original data remain available only to trusted verification. |
++| Catalogue ≤4,096 UTF-8 bytes | Per source give S label, safe final host/path identity, suffix, line count, available/omitted reason and neutral navigation landmarks. Landmarks are up to eight evenly spaced eligible anchor coordinates and literal operation names in source order (for docs, coordinates only). Drop whole landmarks from the end round-robin until fit. If mandatory identities cannot fit or safely identify provenance, fail. No claim, ranking, preferred sources or citation handles. Catalogue is data. |
++| ToolSpec | Closed object {source_id: S1…S5, start_line: integer 1…1024}. One call reads at most 24 consecutive original line positions starting there, never beyond EOF. Return compact JSON {v,source_id,view_id,start,end,total_lines,lines,cards,omissions,next_start}. lines are [original_line,text], cards are [ref,kind,operation,anchor_first,anchor_last,citation_first,citation_last]. Missing lines explicitly tagged security or size; next_start advances past the examined range. No URL, file path, raw read, arbitrary search string, network, queue or memory facility. |
++| Size and selection | At most 3,072 serialized UTF-8 bytes including metadata per observation, eight cards, six successful or attempted reads per request, 18,432 bytes total. First reserve bounded omission-run metadata, then add full lines in order, skipping oversized individual lines; never split a line. Add cards only from actually fitting lines, stopping at card or byte cap. Remove whole trailing entries as required to fit, record size omissions or count of omitted cards, fail if metadata alone exceeds cap. Duplicate same start/source or invalid requests fail, no replay. Different starts may overlap, all calls count. |
++| Evidence construction | In trusted preparation reuse _anchors, _python_witnesses, _js_tokens, _fact_evidence and complete-statement limits from source9. Validate anchors on original source, filter through the safe lines. Per window choose in ascending (first,last,kind,symbol) order, no relevance selection. Use up to eight contiguous actually returned lines around the ≤8-line anchor as in v2, stopping at every gap. A model may discuss local conditions/alternatives visible in that citation and submit separate atomic claims with other issued witnesses. Nearby activity alone does not prove a control dependency. |
++
++Keep the known JS/TS this/super receiver defect outside this candidate. This isolates the new ability to inspect and keeps existing anchor semantics. Missing operations cannot be cited as direct witnesses. An explicitly scoped future receiver change would need baseline v2 and stage projections, real multiline this/super and ordinary receiver positives, broken continuations, strings, comments and unrelated-keyword negatives, exact-token/anchor and final-visible diffs, unchanged Python support and old receipt reopening. No offline gain is claimed. Navigation need not yield enough expressible evidence in a given case.
++
++## 3. Issuance, one write and reopening
++
++| State under request ledger lock | Admission and terminal behavior |
++|---|---|
++| READY → EXPECT(tool,args_digest,seq) | Each generation validates its exact prior assistant/observation chain against the ledger. Closed ReAct JSON union contains one action with object arguments or one nonempty final_answer. Start with inspect/refuse. Count only distinct URL/body identities with at least one actually visible, issued card; the pending third read is provisional only for constructing this turn’s sampler. At the read limit permit only eligible write or final. Prewrite final means refusal/failure. No arbitrary final-answer success. |
++| EXPECT → START → STAGED | Caller-thread subscription checks bound object identity, SDK tool name, canonical args digest and single expected sequence; allocate dispatch UUID at START. Insist on one pending dispatch. Worker atomically claims matching (request,seq,tool,args_digest), records adapter UUID, hashes, complete safe observation and prospective handles before returning. END must succeed once, match worker record by linked UUID, exact observation bytes, caller and request. Never infer success from reply text or ask_full's stripped tool_results. Timeout, absent START/END, out-of-order or late receipt seals first failure, bars further admission. |
++| STAGED → ISSUED | At the next leaf, after guard input scanning and immediately before transport, compare the exact SDK USER observation including prefix and every previously issued observation with the expected ordered secure bytes. Any change, redaction, clipping or missing history aborts before POST. Stage prospective handles only; promote atomically only after this exact POST returns a valid complete raw envelope, the full secured envelope also validates and matches the raw action/args or final. Thus the current action may cite what its own input actually contained. For deciding if the **current sampler** may offer write, count the pending confirmed observation provisionally as well as issued reads; the worker requires promotion before consuming authority. Failure never issues new usable handles. |
++| ISSUED → FROZEN → WRITE_INTENT | On secured writer action freeze ordered issued set at that generation; no more reads. Consume the one report reservation on actual SDK writer dispatch, check captured identities, every reference and distinctness, render completely, call checked_path then existing nested WorkWriteTool → real SDK FileWriteTool(allowed_dirs=[root]). Exactly one consumed intent, no public file tool offered. No direct bound invocation may bypass confirmed SDK START on v3. Invalid inputs give zero file writes. |
++| CONFIRMED → ACK → CLOSED | Require one successful writer END, exact report/file adapter IDs and completed effect, verified binding/root, file bytes and independent render before final-only ACK. Service reopens again and external acceptance independently opens and hashes the real file. Missing END, unknown/partial writes, timeouts with unresolved writer, readback or ACK failure after an effect → needs_attention and retain all evidence. Pre-effect confirmed rejection → failed. Close on observed deadline/disconnect/cutoff, freeze first outcome and disable late worker admissions; record late effects separately. Never retry or mask first failure. |
++
++**Exact replay format.** Define J(x) as UTF-8 of Python json.dumps(x, sort_keys=True, ensure_ascii=False, allow_nan=False, separators=(',',':')), no BOM, newline, surrogate, float, coercion or Unicode normalization in authority fields. H(x) is lowercase hex SHA-256 of bytes. UUIDs lowercase canonical hyphenated strings; nonce is 16 random bytes as 32 lowercase hex, generated once and sealed. Bind B=[request_id,session_id,task_id]. Source identity U=[S,final_url,normalized_url,GET-adapter-UUID,decoded-body-hash,projected-text-hash,domain,policy-hash]. Policy hash covers exact extractor, scanner/backend versions, configured mode/order, witness, paging, serialization and render rules. View ID = H(J(["view3",nonce,B,U,start,end,seq,dispatchUUID,adapterUUID])); full 64 hex. Ref = "N3."+H(J(["card3",viewID,kind,symbol-or-empty,anchorFirst,anchorLast,citeFirst,citeLast,H(J(anchorLinePairs)),H(J(citationLinePairs))]))[:16]. Int coordinates are original 1-based positions within the declared domain. Canonical line pairs include complete text; fail on a collision. View ID precedes ref allocation, so neither depends on its own rendered hash.
++
++Before admitting the actual send, compare the complete ordered secured message dicts with the phase-specific expected system, original safe query, and every accepted assistant action and USER observation; include role and all optional fields. Pin these at admission from trusted build inputs, actual validated responses and confirmed tool records; reject cumulative guard rewrites, synthetic/substituted history, unknown fields or unsafe evidence. Retain four distinct hashes: H(J(secured message dicts)), H(J(strict Draft7 schema)), H(J(sampler projection)), and H(actual request entity bytes). Build the validated native request including model, message dicts, projected format, options, flags and empty tools. Serialize once as J(model_dump(exclude_none=True,mode='json')), build HTTPX request with content=those bytes (application/json, no content encoding); compare prepared request.content byte-for-byte and check all options against the exact phase policy immediately before send. Send that same prepared request. Never reconstruct transport evidence from redacted message hashes. Seal the safe entity bytes, original source and projection identities, nonce, scan policy, template hashes, complete safe pages/omissions/cards, END arguments/record/hash, dispatch sequence, timestamps, generation and raw/secured complete response hashes in the independent packet. For successful issuance retain the safe complete outer raw response, strict parsed raw and secured envelopes and policy/config inputs required to replay both checks. Changed options/schema/system/old actions, unknown extras, incomplete raw JSON or invalid or changed secured action/args/final, or inability to retain exact safe replay evidence, seals before promotion/dispatch. Failed/unsafe receipts retain counters, status and safe digests only; no raw secret persistence. Raw preflight sources stay within existing restricted evidence rules. A falsified or missing replay link rejects the file.
++
++Writer arguments retain path/title/sections[3..5] with unique source_id/heading/facts[1..6], each fact {claim,evidence_id}. Constant schema uses string bounds and v3 handle syntax with no reference enums. Keep v2 text limits, reject extra keys, verify request/path, exact symbol and witness, kind, citation under original GET, URL/body uniqueness, authorized visible lines, and ≥3 independent sources server-side. Resolve v3 rendering against that card's immutable actually issued view, never v2 _source_view or the union of windows. Receipt protocol_version=3 binds submitted and resolved payload, ordered bindings, safe view records, report/file IDs and byte SHA-256. External replay recomputes from sealed GETs, actual confirmed read/event/wire records and submitted facts, compares exact lines/UUIDs/hash chain to the separately sealed packet manifest, then re-renders and reopens. Mechanical linkage and syntax do not decide factual entailment. Independent review checks every claim against its cited passage, local conditions and alternatives, attribution to the two distinct projects and original task coverage.
++
++**Historical version boundary.** Preserve protocol 2 source_pack, ordinal/card selection, renderer visibility and exact reconstruction unchanged for historical v2 readback. Unversioned archived receipts only through explicitly historical readback. New v3 writes/ACK/service verifier require exactly version 3. Unknown version, missing original immutable data, unknown/foreign/stale/unissued handle, hash drift, cross-window span or v2 ID under v3 fails closed. No automatic migration. This proposed v3 supersedes only the research input, read availability, reference issuance and per-request generation budget of the internal v2 contract for a future approved candidate. Existing execution/evidence/reference specs and receipts remain historical authorities.
++
++**Availability and HTML (F1).** Reproduce BrowserChannel.fetch_public's pinned HTMLParser/“ ”.join(parts) projection from the entire stored decoded HTML, omitting script/style content, and compare exact text/hash to collection.text. Bind extractor source hash 9d7cab4749f27dbc08f1b246e03c8a6f8a059acb74692802a1326216e00ef86d, Python/HTMLParser identity and policy at collection and independent replay. Both domains meet size/coordinate limits. For nonidentity HTML, any finding in raw markup makes the entire source unavailable because no raw-to-projection safety map is asserted; separately scan the projected document, exclude dirty projected lines under the page policy. For anchors, availability, issuance, writing and reopening, use the lowercased suffix of PurePosixPath(urlsplit(final_url).path). Documented witnesses allow exactly the empty suffix, .md, .rst, .txt, .htm, .html and .adoc, as in source9. HTML MIME chooses extracted-text coordinates only within that allowed set. HTML at .ts, .py or an unknown suffix can be listed but yields neither documented nor raw-code cards. Pin original final URL and suffix for attribution. Every reported citation labels raw L or extracted-text L explicitly. Code always keeps original source9 language and complete-statement validation. For each source deterministically evaluate legal starts 1..line_count with the same final renderer until existence is proved, within the original deadline. Use fixed-width placeholders for IDs identical in encoding and length to actual lowercase-hex production IDs. Do not publish the winning page or guide selection from existence results. After final byte trimming discard every card missing any anchor/citation line, recheck exact ordered contiguous text and recalculate omission counts to a stable fit. Availability requires ≥1 actual fitting card on such a page. A page returning only lines counts as a read and issues zero cards. Replay with exact IDs on actual dispatch.
++
++**Worker permit (F2).** The SDK caller creates each named tool during one ledger enrollment epoch, which closes before first generation only if one exact object of each required class was seen. No prebuilt stand-in. Duplicate construction seals; unbound instances have no permit. Inspector BaseTool constructor extracts only a frozen safe catalogue and narrow read capability with a private per-object identity, retaining no raw caps, file writer or browser. Enroll by object identity, never equality or model-supplied IDs. START has only tool/agent/arguments. Ignore unrelated caller/binding events, require correct agent and single EXPECT on the bound caller, then compare name and canonical argument digest. In a non-raising callback under RLock, validate completely before publishing the unique pending permit; any exception or discrepancy seals and invalidates the permit before releasing lock. Never rely on propagating subscriber exceptions. Worker creates adapter UUID and atomically claims pending permit by enrolled object identity, seq/name/args/binding; missing observer or ledger seal denies execution. File intent atomically rechecks live seal/deadline, claimed writer, unique reservation, path and dispatch before real SDK write. After an admitted intent uncertain outcome remains an effect. Worker metadata carries exact dispatch UUID, adapter UUID and seq; END must match those, bound ledger identity, name/args, success and complete bounded ToolResult.content. Max 3,072 UTF-8 bytes for both inspector and writer visible results (including compact path receipt); require checked path/result fits before intent. A missing/failed END, synthetic loop-guard rejection (no START), capacity exhaustion, timeout or late worker never promotes. On timeout seal first, keep original timeout/END history and any late effect. Test skipped/throwing subscriber before permit, second same-binding object with same args, duplicate/wrong START, missing or changed metadata, wrong result text, late/failed END and timeout before/after intent. Before intent no file action; after intent retain uncertainty and independently inspect any file.
++
++## 4. Bound the first decision
++
++| Budget | Proposed envelope, unallocated |
++|---|---|
++| Native attempts | One isolated CLI for the original fixed E02 question and original four controlled sources, one search/four GETs in controlled collection. One agent, ≤6 inspect actions, ≤1 SDK report dispatch/real write, ≤1 final-only ACK, ≤8 total native chat POST starts (charged immediately before each send, including incomplete starts), zero retries. Reserve room for writer+ACK. No stage-per-source loop. |
++| Prompt and output | Every secured request uses same digest, temperature 0, num_ctx 16384, think/stream/truncate/shift false, native tools empty, full Draft7 on raw and secured outputs, existing sampler projection only. Cap J([secured messages,strict schema]) at 32,768 UTF-8 bytes and require estimator + schema + 512 + output ≤16,384 before dispatch, check actual returned counts. Before write eligible, min(request allowance,256) output; write-capable turn min(allowance,2048); final ACK min(allowance,256). Reject overflow or changed history without compaction. |
++| Time | Original 260 s monotonic service deadline includes collection (existing 120 s subcap), lock wait and all turns. Require >55 s at each prewrite POST and ≥55 s at writer action/admission/intent; read timeouts min(180,remaining−55) prewrite and min(25,remaining) ACK. Recheck on return, before dispatch, after readback and ACK. Immediately after metadata, refuse an expired reservation before send and retain its admission-failure record. Metadata/connect/write/pool ≤25 s clipped to remaining applicable time. Inspector SDK timeout 5 s; existing writer timeout 30 s. Existing client 300 s / outer 315 s sealing, no renewal. Inactivity timeouts do not guarantee hard cancellation. Preserve unknowns on disconnect. |
++
++**Transport accounting (F3/F4).** Maintain separate counters for attempted generation, metadata GET, POST send reservation, completed POST, HTTPX-observed body download, application-inspected bytes, admitted/retained bytes and ambiguity. One version and one tags GET per generation, ≤16 GET sends, no redirects/retry. Before metadata reserve that generation and minimum remaining time; a failed metadata check consumes the generation, records zero POST starts, then seals. Recheck deadline after metadata and again at send. Immediately before handing the prepared POST to HTTPX atomically charge one POST-start slot plus its full entity length; no refund even for partial connect/write/response. Network acceptance or exact bytes received by peer may be unknown. Hard caps for chat request entities 49,152 bytes each / 393,216 total; prior history escaped on every send counts each time. Metadata GET entities empty. Responses use HTTPX.send(...,stream=True) with identity Accept-Encoding. Check status, encoding and Content-Length before buffering and close immediately on inadmissible headers/status. Use one iter_raw(chunk_size=512) iterator for the whole response. For a yielded block compute remaining = min(entity allowance, cumulative allowance); inspect and admit at most the remaining prefix. If the block extends beyond that prefix, inspect exactly one extra byte as an overflow sentinel, charge it only to application-inspected bytes and seal without further buffering or promotion. Track admitted bytes cumulatively without refund; retained validation buffers never exceed admitted bytes. Hard admission/retention limits for all outcomes are metadata 32,768 bytes per entity / 524,288 cumulative and chat 65,536 per entity / 524,288 cumulative. In a finally path around body iteration/close, record the last observable response.num_bytes_downloaded per response (sum once per response, preserve partial/unknown counts), including oversized underlying blocks already downloaded before the application inspected slices. Record both admitted and inspected bytes, including the sentinel separately, even if the error body is discarded. For a response rejected before consuming its stream, record the observed counter and zero application consumption. If no response object/counter exists, mark the HTTPX count unknown. Record first failure if read or close raises. HTTPX download overshoot is observable and has no cap+1 guarantee. Socket/TLS/peer totals remain unknown. No unbounded response.content call or retry. The 260 s service time is admission/observation, not guaranteed cancellation. Preserve any unresolved write and first failure. The estimator + 512 + output guard is a rejection prefilter; native overflow rejection, pinned truncate/shift=false and full successful wire evidence remain required. Cached prompt_eval_count cannot certify full context.
++
++**Format (F5).** In the closed research view match the exact once-only pinned native_react default prefix from “You are a ReAct agent.” through “Final Answer: <your answer>” and its two newlines before “# Using Skills”. Its UTF-8 SHA-256 is f1ac2c27009f1759da22b3dfc6f301d0912ba8370f1dd3964433421910474621; default template a062f71243cd4986a2f2034cf3946912196fd4f4499394815cb0d3a1c522579b. Replace that prefix alone with: “Return exactly one JSON object matching the phase schema. Use action and object action_input for one permitted SDK tool, or final_answer for refusal or the authorized final acknowledgement. Write prose style applies inside user-facing text only.” Retain literal SDK tool descriptions, remaining template, persona and safety rules. Interpret voice/final style only within user-facing strings; no extra grounded/thought keys. Pin startup-resolved template, rendered tool descriptions (including overrides or their required absence), absent exemplars, persona and mainbrain baseline to the reviewed candidate. Unrecognized format clauses, conflicting overrides or old text-format directive surviving replacement block the first send. Ordinary chat template is untouched.
++
++**Worked admission envelope.** For the future deterministic positive use three distinct safe text fixtures with one single-line, ≤32 ASCII character variable sentence per page, short names/URLs and no control chars. Test builds five exact prepared entities (three inspect actions, writer, ACK); each bound here counts UTF-8 bytes after outer escaping. Saved full SDK system string occupied 3,772 bytes and original fixed query string 776. Allow 8,192 for complete replaced system including two SDK descriptions and phase text, 4,096 for user query/catalogue/authorized root, 4,096 for native format and options and 512 for outer structure/role overhead. Require each short action+complete one-card observation pair ≤1,024 additional encoded bytes; allow another 2,048 on final turn for complete 3-section writer arguments and actual writer result. Thus five request upper bounds are 16,896, 17,920, 18,944, 19,968 and 23,040 bytes, 96,768 total, below both caps. Strict versus sampler schema delta must fit 1,024 bytes for this example: even 24,064 chars/4 + 11×4 +512+2,048 = 8,620 estimated tokens. Check all component bounds, actual prepared bytes and actual full-SDK model-visible system at candidate-test time; an oversized real history stops. A separate static UTF-8 serialization using the complete retained SDK template/persona, substituted two-tool descriptions, original query, three illustrative page observations, actual-width dummy handles, writer envelope and ACK history took 6,744 / 7,218 / 7,693 / 10,192 / 8,138 bytes (39,985 total). It counted the larger strict schema in place of its sampler projection. revision-2/analysis.json contains the size-only calculation and exact inputs. These are static examples, not SDK execution, runtime qualification or proof of full context. Production cases do not get this fixture-specific size allowance.
++
++1. Independently approve design and a candidate-only change domain. Register v3 protocol and red tests first. Exercise actual SDK NativeReAct, ToolRegistry, guard, events, worker executor and SDK file write in isolated roots; replace model inference alone with scripted envelopes. Use original controlled collection fixtures through existing SDK tools. Assert one successful inspect→observe→write→ACK chain with exact three distinct sources, file bytes/hash and sealed replay, including compact schema size and real thread crossing.
++   The scripted inference boundary consumes the actual secured query/catalogue and real ordered USER observations. For neutral fixtures vary text and GET/session IDs, permute catalogue order, assign new nonces, then derive next source/start from observed catalogue and claims from read text with returned handles. A separate oracle uses fixture bytes and original projected coordinates, confirms dispatched GET/inspect+wire linkage, three distinct supported claims, real writer identity/path and external reopened content. Permutation and changed text must change source attribution/claim or handle as appropriate. Substitute a stale handle, a fabricated observation, old text or an omitted third card and require rejection or independent semantic-oracle failure as applicable. No prewritten winners. In separate fixtures serve identical safe HTML at an extensionless and a .html documentation path versus .ts, .py and .unknown paths; expect documented cards only for the two allowed forms, irrespective of MIME. Add three safe HTML docs and mixed code/docs positives, hidden script/style, projection drift, all-redacted, all-oversize, empty or otherwise unrenderable sources (three usable absent ⇒ zero POST). Mutate only system, earlier assistant, options, schema, nonce, view or current observation, strip END linkage, skip callback, partial-send/partial-body/over-cap error, expire after metadata, inspect on a writer-capable turn, and fail secured output after successful raw turn. At the future raw-stream test boundary deliver one 4,096-byte underlying block when the metadata/body allowance has 512 bytes left. Assert independently that HTTPX download increases by 4,096, application inspection by 513 (including one sentinel), admission by 512 and retention by at most 512. Check per-response and cumulative totals, early close, non-2xx/invalid headers without body consumption and an exception after partial read; each failure charges its original send and promotes zero handles. Verify all counters, zero unauthorized promotion, first failure and original effect status. No scripted path certifies comprehension.
++2. Implement smallest delta in the four listed product files plus research tests. Negative tests cover overlapping/concurrent requests, stale worker after timeout/close, missing END, forged observation/prompt injection, wrong issuer/URL/source/window, no actual read, skipped guard, unknown/foreign/v2 IDs, renderer/receipt tampering, positive HTML/mixed docs and code, unsupported coordinate mappings, mixed newlines, overlong/redacted/multiline secret/unicode lines, scanner change, original GET mismatch, omitted lines/cards and duplicate sources. Exercise cap±1 bytes/lines/calls/tokens/time, context truncation and early/duplicate writer/final. Verify zero file calls on rejection; inject post-intent timeout, wrong bytes and ACK failure and preserve needs_attention evidence. Test historical v2 replay and fresh v3 refusal to downgrade, /ask and ordinary work regressions. No tests have been run for this proposal.
++3. Independently review the exact candidate, isolated harness and readiness. Reuse E01/E03/P4 launch, loopback start, owned identity and retained-handle cleanup primitives. If native precision is required collect a separate new native identity baseline, bind it to this run and keep legacy snapshots intact. Do not start if preflight cannot establish identity, protected roots, owned shutdown and packet sealing. No new controller. Root alone may allocate the distinct first-case counters above. Capture complete trace and sealed external readback; stop on first missing confirmation, deadline, fact/coverage failure or side effect mismatch. No next case automatically.
++4. A passing first case can count only with identical fixed fixture, candidate and independent evidence. Original acceptance needs three consecutive same-candidate controlled passes, separate verified real search/GET run, fresh same-candidate E01/E03 and negatives, original T2 independent review, then later E04–E08 and Owner/release gates. Protect production, real queue/memory, KWS, unrelated processes and defaults. No fallback/download and no 14B/larger/other weights ever. Only qwen3-8b-uncensored at 6d7230a923426bc1933879eb08a7dafc18e5fc0e7606c459ce98f16e0c7f9330.
++
++Source9 cumulative source-change budget 9/9 closed, source-prefix POST 3/4 closed (S1 and fourth slot unavailable), offline batch 1/1 closed with zero representation/model data. All historical failures retained. Source21 and C HEAD unchanged. New candidate/model/actual/T3 release = false.
+diff --git a/docs/plans/jarvis-work-research-source-navigation-implementation-20261102.md b/docs/plans/jarvis-work-research-source-navigation-implementation-20261102.md
+new file mode 100644
+index 0000000..bc2d379
+--- /dev/null
++++ b/docs/plans/jarvis-work-research-source-navigation-implementation-20261102.md
+@@ -0,0 +1,159 @@
++# T2 E02 Source Navigation v3 Implementation Plan
++
++> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking. 本下属计划不授权实现或新建代理；执行方式及 change-domain 由 root 后续具体裁定。
++
++**Goal:** 在原 wo-ultimaagent-20261101-0021/T2 内，让同一个 8B NativeReAct 作者检查已采集来源的安全窗口，再以真正可见的 v3 引用交付一次文件。
++
++**Architecture:** 保留 WorkService、SDK ToolRegistry/NativeReAct/worker、GuardrailsEngine/InstrumentedEngine 和实际 FileWriteTool。一个专门的纯数据模块承载安全投影、页面与可重放记录；WorkLedger 持有请求内权限和状态；现有 research engine view 校验完整历史、阶段 schema 与 native transport。保持历史 v2 重开路径，fresh research 只写 v3。
++
++**Tech Stack:** Python、已安装 OpenJarvis 1.0.4、jsonschema Draft7、Pygments/现有 Python AST witness、HTTPX 公共 streaming API、Ollama typed ChatRequest；不新增依赖。
++
++**Spec:** `H:/UltimaAI/UltimaAgent/docs/plans/jarvis-work-research-source-navigation-design-20261102.md`，SHA256 `41998861f1a0eeaad1800f61d19642656b0e19fa4b74dcf0e79366d6dc4c0eef`；归档 `T/source-navigation-design-20261102/revision-3/design.md`。独立 review-3 SPEC/QUALITY PASS `f6ddd91cfe4fed313a249d2a82402abad66ec4fbec16dd58912180c7268a6198`。本计划是该固定设计的执行细化；设计数值、原始固定问题、四来源和事实要求仍为权威。
++
++## Global Constraints
++
++- 保留用户已确认可用的 KWS 基线；本次不重选唤醒引擎。
++- 不改变三层架构和单一主脑；不新增第二套 Agent 核心或并行工具注册表。
++- 测试使用每轮隔离目录/会话库；不写真实任务队列、真实记忆或无关用户文件。
++- 本地或云端模型共用工具授权与成果核验；保持现有 `/ask` 的 `query` 和回复字段向后兼容。
++- 不改变现有暂停、Owner、冻结和发布门；正式执行前登记全局主表，遵守根规则的当前 WIP 上限。
++- 技术阶段与 Owner 冻结分别报告；技术检查点 tag 使用明确阶段名，禁止提前打 `frozen`。
++
++附加固定边界：当前和未来仅 `qwen3-8b-uncensored`，digest `6d7230a923426bc1933879eb08a7dafc18e5fc0e7606c459ce98f16e0c7f9330`；永不采用 14B/更大/其他权重、fallback、下载或默认值变更。E01/E03 source9 三轮及 negatives 保留，E02/T2 NOT_PASSED，T3 关闭。source9 9/9、prefix 3/4、offline 1/1 均封闭；source10 为单独候选记账，本文没有分配任何 source/model/actual 预算。
++
++## Review Focus
++
++1. 同一安全 HTML 在不同后缀、无卡页面或全脱敏 页面不得错误授予写权限；Task 1 `test_v3_html_suffix_and_renderable_availability`。
++2. SDK START 不携带对象指针、worker 不继承 ContextVar，第二个同参实例/吞异常订阅者不得取得 permit；Task 2 `test_v3_enrolled_identity_and_nonraising_observer`。
++3. 第三次 inspect 的观察在本轮 sampler 可临时计数，但 raw/secured/完整历史任一失败均不能签发引用；Task 3 `test_v3_provisional_third_card_no_promotion_on_failure`。
++4. HTTPX 大块预读/close 异常不得被记成 cap+1 下载或退款；Task 3 `test_v3_download_inspection_admission_are_distinct`。
++5. write intent 后超时、ACK 或读回失败必须保留 needs_attention 和晚到 effect，禁止重复写；Task 2/3 `test_v3_intent_race_and_ack_failure_preserve_effect`。
++
++## 范围、基线与执行前门
++
++缩写：C=`C:/Users/Administrator/.codex/worktrees/jarvis-work-capability-longpaths/UltimaAgent`；H=`H:/UltimaAI/UltimaAgent`；T=`H/data/evidence/jarvis-work-capability/T2`；I=`T/navigation-implementation-plan-20261102`。以下命令内 H/T 应替换为上述绝对路径；PowerShell 变量在命令节给出。当前 C HEAD=`244d2120abcd6b8d7744f74a05bd22de46a2d3a5`，生产 H HEAD=`0a31d84169ba8e151ec2f9a2c6fea958804daa5b`。本次只写计划/analysis/report，未创建候选、未执行测试。
++
++root 已核实 C 是 linked worktree、非 submodule，tracked clean/index empty，当前在 `codex/jarvis-work-capability` 的 C244。依 `using-git-worktrees` Step0，已有隔离时不再创建另一个 worktree；root 放行后才在现有 C=`C:/Users/Administrator/.codex/worktrees/jarvis-work-capability-longpaths/UltimaAgent` 从 `244d2120abcd6b8d7744f74a05bd22de46a2d3a5` 创建 NEW `codex/jarvis-work-navigation-v3-source10` 分支。保留原 branch/ref 与历史 source9 snapshots，H 生产仍 `0a31d84169ba8e151ec2f9a2c6fea958804daa5b`。本次不执行 branch/worktree 操作。执行前核对 C244 tracked/index、H HEAD、历史 source21 manifest、SDK 源 hash、模型默认配置/manifest、既有独立评审及冻结输入；未授权漂移中止并交 root。
++
++允许产品改动的完整清单：
++
++- 新增 `src/brain/work_navigation.py`；修改 `src/brain/work_research.py`、`work_tools.py`、`work_service.py`、`agent_server.py`。
++- 新增 `src/brain/tests/test_work_navigation.py`、`test_work_navigation_sdk.py`、`test_work_navigation_transport.py`；修改 `src/brain/tests/test_work_research.py`。`work_verifier.py` 只读复用 `verify_artifacts(binding,write_candidates)`，不改通用文件判断。
++- 新增 `docs/specs/jarvis-work-research-navigation-v3-20261102.md`，仅登记此设计的 v3 接口/替代范围与 sealed packet 字段。候选需逐字复制本 approved design 与本 implementation plan 到相同 `docs/plans/` 路径；文档复制不修改其内容。
++- 验证适配代码/测试/argv/env/receipt/manifest 只在 NEW `T/navigation-source10-validation-20261102/` 下创建，不纳入产品。不得编辑旧 P4/控制样本/历史 evidence。
++
++保留 `native-read-budget-source9/frozen-inputs.json` 的五项原始 hash：evidence protocol `d641bd1a…`、execution contract `ae721d8b…`、capability contract `99ebc2de…`、delivery plan `78d6d0e2…`、acceptance-cases.json `e8d8c0e7…`，执行者使用原 JSON 的完整值。另保留 reference v2 文档/样本及历史 source21 snapshot/manifest 的全部原始字节与 hash；历史快照不变不等于要求实现后的候选产品 hash 仍等于 source9。未来 source10 仅允许本计划 allowlist 中经放行的文件改变，并生成单独的 candidate expected-hash manifest/commit；未改文件仍须匹配基线，新增/修改文件绑定新 hash，不能覆写旧 source21 manifest 或以新计划覆盖历史权限。每次任务提交精确路径，无 `git add .`、push、tag、生产切换。
++
++## 静态确认的集成位置
++
++`WorkService.submit_work` 现有 collection 在 63–78 行，fresh cards/source_pack 在 73–96 行，最终 verifier 在 132–135 行；全部 fresh 入口切换到 v3。`work_tools.py` 的 `WorkCapabilities`/`WorkLedger`/`bind_work`、writer 299 行及 nested writer 保留结构。`agent_server.py` `_borrow_research` 305 行、view 335 行、`_run_work_agent` 431 行与 startup WorkService 1104 行承担请求本地 wiring。
++
++已读取安装 SDK `sdk.py::ask_full/_run_agent`、`cli/ask.py::_build_tools`：只接受名称列表，通用名称执行 `tool_cls()`，不能传 tool object 或 engine=。现有 shallow-copy Jarvis._engine + InstrumentedEngine._inner + GuardrailsEngine._engine 的 checked borrow 保留。`security/scanner.py` 实际接口为 `scan(text)->ScanResult.findings`、`redact(text)->str`，不是虚构 inspect API。`tools/_stubs.py` START 只有 tool/arguments/agent，END 有 success/result/metadata；SDK caller 发布，worker 执行，END result 截断上限10240字符，v3 完整结果另限3072 UTF-8 bytes，因而不能依赖截断文本恢复证据。SDK agent 标识是 `native_react`，不能当请求 UUID。
++
++### Task 1：安全投影、最终页面、canonical v3 及重放（独立纯数据单元）
++
++**Files:** Create `src/brain/work_navigation.py`、`src/brain/tests/test_work_navigation.py`、v3 spec；Modify `src/brain/work_research.py`（wrapper/版本分派，保留所有 v2 算法）。
++
++**Interfaces（新增项目接口，不是 SDK API）：**
++
++- 新模块只在顶层导入 stdlib；不导入 work_tools/agent_server。`BindingKey = tuple[str,str,str]`，数据类均 frozen；集合使用 tuple/bytes，禁止冻结 dataclass 内藏可变 dict。
++- `ScanPolicy(scanners:tuple[object,...], mode:str, policy_json:bytes, policy_sha256:str)`：可信准备持有的实际配置 scanner 顺序/后端版本/hash；不进入 inspector。每次 preparation 检验 scanner 配置，composition borrow 再核对同一对象/顺序及 policy。
++- `SourceV3(source_id:str, identity_json:bytes, domain:str, suffix:str, total_lines:int, safe_line_pairs:tuple[tuple[int,str],...], omissions:tuple[tuple[int,int,str],...], anchors_json:bytes, available:bool, reason:str)`；identity_json 包含设计 U 全字段，raw body 不在此类。
++- `CatalogueV3(binding_key:BindingKey, nonce:str, policy_sha256:str, sources:tuple[SourceV3,...], catalogue_json:bytes, catalogue_sha256:str)`；safe only。nonce 一次生成32小写hex。原 `ResearchCollection` 和本次 GET ledger 冻结为受限的 `collection_json:bytes` 与 `get_records_json:bytes`，writer/replay 持有，不出现在 inspector。
++- `PageKey(generation:int, seq:int, dispatch_uuid:str, adapter_uuid:str)`；`ViewV3(view_id:str, source_id:str, start:int, end:int, wire_json:bytes, wire_sha256:str, cards_json:bytes)`。
++- `canonical_v3(value:object)->bytes` 实现 J 的精确限制；`build_page(catalogue:CatalogueV3, source_id:str, start_line:int, key:PageKey)->ViewV3`；`v3_writer_schema()->dict` 返回固定有界 schema，无 ref 枚举。
++- `work_research.prepare_navigation(collection,binding,scanners:ScanPolicy,*,get_records_json:bytes,deadline:float)->CatalogueV3` 在函数内导入新模块，复用本文件 `_anchors/_python_witnesses/_js_tokens/_fact_evidence`；新模块通过函数内 import 调用这些原 helpers，模块初始化时无反向依赖。
++- `IssuedSnapshotV3(binding_key:BindingKey, nonce:str, catalogue_sha256:str, generation:int, views_json:bytes, replay_json:bytes, manifest_sha256:str)`；`resolve_v3(submitted:dict, issued_snapshot:IssuedSnapshotV3, collection:ResearchCollection)->tuple[dict,list[dict]]`（resolved payload/ordered bindings）。`verify_research_artifacts(..., require_reference=False, required_version:int|None=None, issued_snapshot:IssuedSnapshotV3|None=None)` 增加 keyword；生产 fresh 必传3+snapshot。`required_version=None` 只允许显式历史调用保留 v2/原 unversioned reopening；未知 version 一律拒绝，不能自动 downgrade。
++
++- [ ] **RED：先登记 v3 spec 并写断言。** `test_v3_canonical_identity_replay`：独立 J/H oracle 计算 view/ref，改 nonce/B/U/seq/UUID/行字节均改变；拒绝 floats、surrogate、非规范 UUID、碰撞；未知/旧/外国/未签发/跨窗口 ref 均拒绝。`test_v2_archival_bytes_unchanged_and_fresh_requires_v3` 保留 source9 source_pack、ordinal/card/render visibility 与历史 receipt 字节，fresh required_version=3 遇 v2/unversioned 失败。
++- [ ] **RED：写安全/页面具体断言。** `test_v3_line_security_projection` 用真正配置 scanner 覆盖 BLOCK/WARN/REDACT、多行 secret/Unicode/CRLF/LF/混合分隔符、全段/逐行 redaction 不一致/残余 findings，脏行不出文本、label、anchor。`test_v3_html_suffix_and_renderable_availability`：相同 HTML 在 extensionless/.html 可出 documented card，在 .ts/.py/.unknown 无卡；所有 documented 后缀逐一参数化；script/style 隐藏，projection hash 漂移失败，raw HTML finding 整源 unavailable。all-redacted/oversize/empty/unrenderable 少于三可用源→zero POST。
++- [ ] **RED：写边界断言。** `test_v3_final_fit_and_omissions` 覆盖256KiB、1024行、4096目录、3072观察、24行、8卡的 ±1 与 escaping；先 omission metadata，完整行不切断，最终 trimming 丢弃不完整 anchor/citation、稳定 omission counts；全部 legal starts existence test 使用相同 renderer/fixed-width IDs，目录不泄露获胜页/偏好。只返回行也计 read、零 card。源重复 URL/body、GET mismatch、GET truncated、unsupported coordinates 按设计 unavailable/abort 区分。
++- [ ] 运行下方 `unit1-red` 命令，预期因 v3 接口尚未存在而失败；保存首个失败，不以旧 v2 PASS 代替 RED。
++- [ ] **GREEN：实现上述接口。** 检验完整原 GET linkage/body/projection hash，精确复现 BrowserChannel HTMLParser 与 `" ".join(parts)`，绑定 extractor `9d7cab4749f27dbc08f1b246e03c8a6f8a059acb74692802a1326216e00ef86d` 与 Python/HTMLParser 身份。code 仍原 witness 和完整 statement；this/super defect 不修。页面按(first,last,kind,symbol)，8行 contiguous citation，gap 截断，不做事实/相关性选择。所有公开字符串与完整序列化观察扫描通过才可返回。
++- [ ] 运行 `unit1-green`；要求全部断言绿、独立重放与 v2 字节对照通过，再提交精确三产品/测试/spec路径：`git commit -m "feat: add canonical research navigation views"`。
++
++### Task 2：请求 enrollment、permit、writer 与 service binding（真实 SDK worker 单元）
++
++**Files:** Modify `work_tools.py`、`work_service.py`、`work_research.py`（验证调用）；Create `test_work_navigation_sdk.py`；Modify `test_work_research.py` 的 fresh 测试 fixture/调用。只在 agent_server 添加下一段定义的 preparer 与 startup wiring，不提前替换 engine loop。
++
++**Interfaces：**
++
++- `WorkService.__init__(..., research_preparer=None)` 新增 keyword，普通 work 不调用；显式 research 未配置则 fail closed。实际 startup 注入 `agent_server._prepare_research_navigation(collection,*,binding,ledger)->CatalogueV3`。该回调在 `_ask_lock` 与 ledger 原 deadline 下取得 `get_jarvis()`、ensure_engine、复用 `_checked_research_security(owner)->ScanPolicy` 检查现有实际 wrapper/config/scanners，然后调用 Task1 prepare；不会建立 native client 或发 metadata。callback 输入 collection 是服务已冻结的本次对象，GET records 来自 ledger，不接受 model/context 提供 scanners。测试真实构造同类 SDK wrapper，替换底层推理/transport，不能把 scanner 换成 no-op。
++- `WorkCapabilities` 增加 `navigation:CatalogueV3|None=None`（使用 TYPE_CHECKING/延迟注解），`research_json` 保存 writer 专用原 collection；fresh `cards_json=None`。service 冻结原 query、用户 context、capture_json、collection 与 GET 记录，清 browser/provider/replace 的 composition 能力，公开 available_sources/trace 仅安全目录/摘要，原始正文仅原受限证据域。先准备后编 prompt，prompt 仅 safe catalogue、原安全问题和授权目录，无 v2 source_pack/预签发 cards。
++- `_checked_research_security` 是现 `_borrow_research` 检查的项目本地提取，返回实际 guard scanner tuple+policy（不实例化第二套 scanner、不改 scanner settings）；`_borrow_research` 重检身份/策略保持一致。callback 与 borrow 之间的任何配置变更封闭失败。
++- `WorkLedger` 的单个现有 RLock 保护 navigation state：binding、caller ID、enrollment flag、精确 enrolled object refs、generation/seq、expected action digest、single permit、dispatch/adapter IDs、staged/issued ordered views、seen starts、6次 read计数/18432总字节、write frozen snapshot/intent/effect、first failure、sealed flag。保留普通 work 的现 record/outcome API。
++- 新方法 `open_enrollment(binding,caller_id)->None`、`enroll(name:str,instance:object)->None`、`close_enrollment()->None`；`expect(seq:int,name:str,args_hash:str)->None`；`claim(seq:int,name:str,args_hash:str,adapter_id:str,*,instance:object)->str` 返回 dispatch UUID；`confirm_end(seq:int,event:object)->None`；`promote_visible(generation:int,wire_hash:str)->None`；`freeze_for_write(generation:int)->IssuedSnapshotV3`；`seal(reason:str)->None`。新增 `observe_navigation(event,*,caller_id:int,binding_key:BindingKey)->None` 为不向 SDK 抛异常的 callback，内部异常先 seal+invalid permit。返回值/命名由后任务直接消费。
++- `WorkInspectTool(BaseTool)` 注册 `ultima_work_research_inspect`，零参数 `__init__` 只捕获 safe CatalogueV3、narrow read capability/私有对象身份，不继承保留 raw caps 的 `_CapabilityTool`。`execute(**params)->ToolResult` claim后 build_page；metadata 写 seq/dispatch_uuid/adapter_uuid/binding，stage完整 bytes，不直接 issue；timeout5秒。
++- `WorkResearchWriteTool` 零参数构造时 enroll exact object，并在同 caller 构造 nested `WorkWriteTool`；captured writer 的 execute 使用 v3 claim/已冻结 snapshot/单 reservation；禁止 direct bound invoke 绕 START。完整 render+checked_path+<=3072结果预检都在 intent前；固定用例 path预绑定 `research.md`。现 nested SDK FileWriteTool(allowed_dirs=[root]) 真写一次，结果 protocol_version=3，绑定 submitted/resolved/ordered bindings/view/replay/report+file IDs/byte hash；不提供 public file tool。普通 work 原路径不变。
++
++- [ ] **RED：** `test_v3_service_preparer_uses_checked_configured_scanners` 断言 service collection只做一次、清collection能力、callback看到相同GET records/冻结capture，scan policy变化拒绝；未配置 callback零compose。`test_v3_enrolled_identity_and_nonraising_observer` 用真实 openjarvis.cli.ask._build_tools（经 ToolRegistry lookup）/ToolExecutor worker：两工具恰好各构造一次；worker无 `_ACTIVE` 仍可由captured能力执行；unbound/第二实例/duplicate enrollment/跳过callback/订阅者抛异常/错误START agent或args/重复START/metadata失配/缺END/late END都零permit或封闭，零文件调用。START 没有对象字段，不能伪造比较；permit真正对象检查在worker claim。
++- [ ] **RED：** `test_v3_inspector_has_only_safe_capability` 检查 inspector 实例无raw/browser/provider/path/writer，参数仅 source_id/start_line、额外字段拒绝；6次尝试包括invalid/重复，7次拒绝，不返还byte/read计数。`test_v3_writer_real_io_and_external_bytes` 用 real SDK FileWriteTool，外部独立 pathlib.read_bytes+hash 等于独立 oracle render，恰一write；错误path/ref/issuer/source/URL/window/未读/少三源/重复body均zero SDK file调用。
++- [ ] **RED：** `test_v3_intent_race_and_ack_failure_preserve_effect` 在intent前/后通过线程 barrier 控制 seal/deadline，真实worker跨线程，前者零写，后者保留effect/needs_attention，late结果独立登记、不覆盖first failure，不重试。缺END、false file success、wrong bytes同样失败；同/异请求并发不串权。
++- [ ] 运行 `unit2-red`，预期缺少 enrollment/preparer/inspect 或旧 direct writer 被新断言拒绝。保留旧 suite 每个negative目的：fresh测试通过真实 SDK chain取得ref，不再 `report_payload` 读 cards_json 或直接 writer；历史 v2测试明确隔离只readback，不可为保持旧测试引入fresh v2分支。
++- [ ] **GREEN：** 实现 service/callback/ledger/tools。Task2 尚无 engine时，SDK测试用真实 ToolExecutor消费 ledger.expect/测试确认的投影记录，不声称完整产品成功；service端到端成功由Task3完成。历史 witness/renderer测试仍可单独测v2，fresh直接调用writer测试必须改成拒绝断言或真实dispatch。
++- [ ] 运行 `unit2-green` 和已完成Task1，验证登记/真实SDK IO/原negative目的保留后精确提交：`git commit -m "feat: bind research inspector and writer permits"`。
++
++### Task 3：完整 SDK conversation、阶段/历史、bounded native transport（集成单元）
++
++**Files:** Modify `agent_server.py`、`work_service.py`（fresh version3最终verify）、`work_tools.py`（仅所需阶段接线）、`test_work_research.py`；Create `test_work_navigation_transport.py`；扩展Task2 SDK测试的完整链。
++
++**Interfaces：** 保留 `_run_work_agent(query,*,binding,tools,max_tokens=None)`、`_borrow_research(owner,binding,ledger,caps,prompt)`、`_ResearchEngineView.generate(messages,**kwargs)`、`_NativeResearchLeaf.generate(messages,*,model,temperature,max_tokens,response_format)`。view在第一次generate前关闭enrollment，要求两精确对象，核对当前SDK max_turns足够容纳六read/write/ACK（不足则拒绝，不修改全局默认）；`_run_work_agent` 在 bind_work/ask_lock 内 open_enrollment，单次 `jars.ask_full(query,agent='native_react',tools=['ultima_work_research_inspect','ultima_work_research_write'],context=False,max_tokens=allowance)`。调用后及finally seal、close own client/unsubscribe；不关闭 borrowed owner。
++
++view每次分配单调generation，保留完整SDK system、原query、assistant action及`USER 'Observation: '+content` history。pin system/template/persona/mainbrain/两tool descriptions/absent exemplars及完整optional fields；只一次替换设计固定prefix（prefix SHA `f1ac2c27009f1759da22b3dfc6f301d0912ba8370f1dd3964433421910474621`，template `a062f71243cd4986a2f2034cf3946912196fd4f4499394815cb0d3a1c522579b`）。不能继续现代码用protocol覆盖整个system。阶段schema只inspect/refuse，三distinct visible source后write可用，read-limit后write/refuse，write确认/独立文件verify后final-only ACK；只本轮已确认pending observation可临时参与sampler资格，不提前issue。secured writer返回后freeze；worker实际dispatch前必须已promote。current action选inspect时仍允许，只要未freeze/read cap；writer-capable turn对inspect也按write-capable output budget2048验证。
++
++leaf在真实 guard扫描输入之后校验全secured message dict与phase expected，保留四hash（secured messages/strict schema/sampler/entity）。typed request一次J序列化，`client.build_request(...,content=bytes)`验证prepared content/options后对同一request `client.send(request,stream=True)`；raw完整输出验证后由view校验secured输出等价，二者均成功才ledger.promote_visible。raw仅进入受限safe replay packet，unsafe失败仅safe digest/counter，不持久化secret。无SDK/tool_executor修改。
++
++- [ ] **RED：** `test_v3_native_react_observation_driven_chain` 真实 NativeReAct/registry/worker/events/guard/scanner/SDK FileWriteTool，一层scripted inference+HTTP transport替换。脚本从真实secured catalogue与观察选择下一source/start、从实际行构造claim和返回ref，不预装S1/S2/S3答案。独立oracle从fixture原字节/原坐标核对三distinct claims、GET→dispatch→view→wire→write→ACK→外部bytes。参数化catalogue顺序、fixture短文本、GET/session ID/nonce，断言相应source attribution/claim/ref改变；stale handle、伪观察、旧text、少第三卡触发reject或独立语义oracle失败。3安全HTML和mixed docs/code亦正向。
++- [ ] **RED：** `test_v3_provisional_third_card_no_promotion_on_failure` 对本轮observation、早期assistant/system/role/optional字段/options/schema/nonce/view单独改动，skip guard、截短history、secured redaction/raw成功secured失败、incomplete raw JSON、unknown fields、错误tool/final全部zero promotion与zero新增dispatch。`test_v3_template_prefix_preserves_sdk_policy` exact一次替换、保留技能/两工具/persona/mainbrain，conflictingoverride/未知模板/extra exemplar zero first POST；普通ask原template不变。
++- [ ] **RED：** `test_v3_download_inspection_admission_are_distinct` 在真实HTTPX streaming transport边界给4096底层块，remaining512：observed download增4096，inspected增513，admitted512，retained<=512；每response finally只累计一次。非2xx/encoding/Content-Length失败零application body消费但记录observable count；partial read/close异常、metadata失败/过期、connect/write/partialsend保留原generation/POST reservation、不refund、无promotion。unknown counter/peer总量明确null，不声称network cap+1。
++- [ ] **RED：** `test_v3_envelopes_deadlines_and_effects` 参数化32,768 prompt+strict bytes、49,152/393,216 POST bytes、metadata32,768/524,288、chat65,536/524,288、6 reads/8POST/16GET、token+512/output<=16384、55秒边界和260秒入口deadline；metadata后/send前/return后/dispatch/readback/ACK重检。prewrite output<=256，write-capable<=2048，ACK<=256；prewrite read min(180,R-55)，ACK min(25,R)，connect/write/pool/metadata<=25按剩余裁剪。partial/timeout/late write/ACK失败保留needs_attention，first error不被close error覆盖，零retry。拒绝overflow/compaction，不把cached prompt_eval_count当全context证明。
++- [ ] 运行 `unit3-red`，应暴露现view覆盖system、单writer/v2、response.content无界读取、无promotion链等断言失败。保留首RED log。
++- [ ] **GREEN：** 实现phase/history/transport并接回Task2。sdk源码hash集合复制 `T/e03-resume-20261102/preparation/sdk-sources.json` 的六文件基线并增加实际使用registry/cli ask/guard/scanner/runtime/file tool/events源hash；review时锁定，不改SDK。seal exactsafe packet：GET/projection/nonce/policy/template/pages/omissions/cards/dispatch/END args+metadata/generation/times/raw+secured envelopes/wire/hash manifest，replay重算逐项后独立render+read bytes。service/ACK fresh verifier显式required_version=3，不用 v2 `_source_view`/窗口union恢复。
++- [ ] 运行 `unit3-green`，完整SDK正反链绿，再运行全部回归与preservation；由独立review审完整candidate，封存commit+SDK/input/env/command/log/JUnit/receipt/hash快照后才可能申请actual。精确提交：`git commit -m "feat: integrate bounded native research navigation"`。
++
++## 统一命令、RED/GREEN receipts 与旧测试保存
++
++以下仅为未来执行命令，当前未运行。候选release后设置PowerShell `$py='H:/UltimaAI/UltimaAgent/tools/venv-openjarvis/Scripts/python.exe'`，`$candidate='C:/Users/Administrator/.codex/worktrees/jarvis-work-capability-longpaths/UltimaAgent'`，`$r='H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261102/code'`。cd `$candidate`。每次stage必须独占NEW目录；保存完整argv/env/import-path/source hash/退出码、stdout stderr、JUnit及receipt，不覆盖RED。
++
++沿用source9 suite隔离规则：TEMP/TMP/TMPDIR/OPENJARVIS_HOME/XDG_CACHE_HOME/HF_HOME/TORCH_HOME/MPLCONFIGDIR/NUMBA_CACHE_DIR各指向`$r/<stage>-env/<key>`；HF_HUB_OFFLINE=1、HF_HUB_DISABLE_TELEMETRY=1、NO_PROXY localhost/127.0.0.1/::1；候选路径在sys.path首并验证已加载产品路径。新navigation测试禁外部和实际11434连接，仅真实SDK+mock transport；原SSE/delivery保留其原ephemeral loopback用途。
++
++精确pytest argv模板：
++
++```powershell
++& $py -B -X utf8 -m pytest src/brain/tests/test_work_navigation.py -q -p no:cacheprovider "--basetemp=$r/unit1-red-temp" "--junitxml=$r/unit1-red.xml"
++& $py -B -X utf8 -m pytest src/brain/tests/test_work_navigation.py -q -p no:cacheprovider "--basetemp=$r/unit1-green-temp" "--junitxml=$r/unit1-green.xml"
++& $py -B -X utf8 -m pytest src/brain/tests/test_work_navigation.py src/brain/tests/test_work_navigation_sdk.py -q -p no:cacheprovider "--basetemp=$r/unit2-red-temp" "--junitxml=$r/unit2-red.xml"
++& $py -B -X utf8 -m pytest src/brain/tests/test_work_navigation.py src/brain/tests/test_work_navigation_sdk.py -q -p no:cacheprovider "--basetemp=$r/unit2-green-temp" "--junitxml=$r/unit2-green.xml"
++& $py -B -X utf8 -m pytest src/brain/tests/test_work_navigation.py src/brain/tests/test_work_navigation_sdk.py src/brain/tests/test_work_navigation_transport.py -q -p no:cacheprovider "--basetemp=$r/unit3-red-temp" "--junitxml=$r/unit3-red.xml"
++& $py -B -X utf8 -m pytest src/brain/tests/test_work_navigation.py src/brain/tests/test_work_navigation_sdk.py src/brain/tests/test_work_navigation_transport.py -q -p no:cacheprovider "--basetemp=$r/unit3-green-temp" "--junitxml=$r/unit3-green.xml"
++```
++
++baseline与最终full命令都覆盖真实历史六文件：`test_work_research.py test_work_context.py test_work_delivery.py test_agent_server_sse.py browser/tests/test_browser_channel_s3.py test_interaction.py`（均加`src/brain/`）；完整命令如下，baseline不包含尚未创建的三new files，final另加已列三new files：
++
++```powershell
++& $py -B -X utf8 -m pytest src/brain/tests/test_work_research.py src/brain/tests/test_work_context.py src/brain/tests/test_work_delivery.py src/brain/tests/test_agent_server_sse.py src/brain/browser/tests/test_browser_channel_s3.py src/brain/tests/test_interaction.py -q -p no:cacheprovider "--basetemp=$r/baseline-temp" "--junitxml=$r/baseline.xml"
++& $py -B -X utf8 -m pytest src/brain/tests/test_work_research.py src/brain/tests/test_work_context.py src/brain/tests/test_work_delivery.py src/brain/tests/test_agent_server_sse.py src/brain/browser/tests/test_browser_channel_s3.py src/brain/tests/test_interaction.py src/brain/tests/test_work_navigation.py src/brain/tests/test_work_navigation_sdk.py src/brain/tests/test_work_navigation_transport.py -q -p no:cacheprovider "--basetemp=$r/full-temp" "--junitxml=$r/full.xml"
++```
++
++兼容8项必须独立安全launcher，不能裸跑legacy against H：从 `T/native-read-budget-source9/run_compat.py` 复制到NEW `$r/run_compat.py`，只将checkout/evidence改为candidate/$r，保持预加载、排除H路径、`test_agent_tools_extend.ROOT=$r/compat-sandbox`与import断言。命令 `& $py -B -X utf8 "$r/run_compat.py"`，`compat.xml/compat-loaded-paths.json/compat-receipt.json`。baseline也独立NEW `baseline-compat`副本，以免覆盖。旧293=source9 covering285+compat8，仅历史；本候选真实count由新JUnit计算，保留原280 suite-qualified identities与新增13目的，不删/skip/xfail。fresh测试机械fixture改造允许名字保留、目的增严，保存AST diff/identity映射、旧v2独立replay对照。zero tests now。
++
++### Task 4：独立candidate review后的小适配与分门验证（不属于代码三个unit）
++
++**Files:** NEW `T/navigation-source10-validation-20261102/harness/{adapter.py,test_adapter.py,run_checks.py,headless_proof.py,README.md,manifest.json}`、NEW `code/` receipts、NEW将来actual各轮目录；只读 `T/e03-resume-20261102/preparation-r4/controller.py` 与对应manifest/reviews。不得改旧P4或另造native controller。
++
++**Interfaces:** 小 adapter 复用 P4 `Owned(folder,env).launch(argv,role)/discover()/cleanup(port=None)`、`assert_listener(owned,port,server_argv)`、原受信 authority/source/native proof校验与输出 inventory/first result retention。P4通过P1 `acceptance_adapter.identity(pid)`取得native GetProcessTimes，launcher的`process_times(proc)`使用Popen retained handle；`cleanup`通过原`terminate_owned`重开并复核身份，不得声称所有后代一直由retained handle控制。P4 controller SHA `8b8fb6fdf4868b3bb8cea61daaf402e5336f86167d0be84e04c455586d98706f`，manifest `d3d49198d8e544ac5335f404163b98fb3b92333cb85ee81d3508a7b22eda47b1`。新增 `run_case(authority_path:Path,ledger_path:Path)->dict` 仅映射原E02固定问题/四受控来源、candidate启动argv、v3 packet/外部readback及8POST计数；不能调用P4 execute去运行错误E03 case，也不能把原P4 source_check绑定直接当source10许可。adapter明确source10 manifest/原T2 ledger schema扩展，由root独立审批；owned primitives自身不变。
++
++- [ ] **先静态准备与review：** 精确hash pin P4 helper及依赖，只导入其无side-effect定义，单独审adapter新authority映射、候选argv/隔离root/受控ports/packet封存、first-result保留与native100ns身份读法。原legacy CIM ticks/精度不可与native FILETIME精确相等比较；如需native baseline，单独NEW收集并绑定本次run，旧baseline永不重写。未知父/子/creation身份不授予kill，保留unknown；不杀共享Ollama或无关进程。
++- [ ] **RED→GREEN deterministic harness tests：** `test_adapter_rejects_wrong_candidate_budget_and_baseline`、`test_adapter_first_failure_retained_and_no_next_case`、`test_adapter_reuses_owned_cleanup_and_retains_unknown_effect` 参数化source/hash/default/model/nativeprecision/authority过期/CLI超时/nonzero/invalidJSON/partialpacket/missingEND/readback/cleanup失败；断言不自动下个case，原product result与overall独立，未确认native starts不能报0。命令 `& $py -B -X utf8 "$r/../harness/run_checks.py" adapter`，driver保存精确pytest argv，JUnit `harness/adapter.xml`、receipt/log。只mock实际launch/transport；不能计actual合格。
++- [ ] **另行release inert harness qualification：** `& $py -B -X utf8 "$r/../harness/headless_proof.py"` 使用原P4 ownership/loopback/cleanup与纯惰性listener，无产品问答/模型/外网/UI，验证source10原E02 query完整argv roundtrip、owned redirector/base/listener identity、原P4身份复核/cleanup、端口关闭、protected before/after相同、315秒outer封存。该命令同样当前未授权运行；如果无法复用P4无新controller实现native精度，停在concern交root，不用历史CIM伪证通过。
++- [ ] **candidate+harness双独立审查与snapshot sealing：** 全three-unit commit、allowlist diff、SDK hashes、模板/默认值、历史source21 snapshot/manifest与frozen5/oldartifact preservation、独立source10 expected-hash manifest及allowlist差异、code/full/compat与harness receipts确认，无未决blocker；model/actual仍false，root单独决定首次allocation。不得用“测试通过”预填Owner或T2 PASS。
++- [ ] **仅root新分配后actual首例：** 原controlled E02固定问题与原四来源，最多1CLI、1search/4GET、6inspect、1write、1ACK、8native POST starts、260service/300client/315outer，0retry。发起命令 `& $py -B -X utf8 "$r/../harness/adapter.py" --case E02-controlled-1`，adapter只读root签发具体authority/ledger，首次result不可覆盖。收完整真实secured/wire/raw/END/replay包、外部真实research.md bytes/hash、事实/条件/替代/两项目归属及原题覆盖独立审查；任何失败/缺确认/超时/副作用差异立即停止，不自动nextcase。
++- [ ] **原验收仍必需：** 首例若完全相同fixture/candidate及独立证据通过才可计入三轮；后两轮各自root allocation/review，任何candidate改动重启same-candidate三轮要求，历史失败继续保留。另行真实免费search/GET联网验证≥3去重来源、引用事实与文件；再fresh同candidate E01/E03+negatives、原T2独立review；后续E04–E08/Owner/release不由此开启。不得以脚本positive代替8B理解、以controlled代替realnetwork、以source9 E01/E03替代candidate回归。
++
++## 自审与交付状态
++
++设计§1 wiring→Task2/3；§2安全/HTML/页→Task1；§3 enrollment/issuance/write/replay/v2→Task1/2/3；§4 schema/history/transport/budget→Task3；原P4/acceptance→Task4。五项Review Focus都有具名测试/owner；引用signature仅在前任务定义后消费，无未定义SDK API；纯数据类型避免import cycle。测试按失败原因与真实SDK/独立fixture oracle区分，不增加模型事实评分器。三个代码unit加单独验证任务，没有机械scaffold review unit；实施体量保持在固定设计边界内。
++
++当前仅静态读取/普通hash/文档写入；没有product/SDK/scanner/lexer/HTTPX runtime import，没有测试/模型/网络/进程实验，无subagent。implementation/source10/model/actual/T3 release全部false。待root独立plan review与具体执行裁定。运行语义未知项保留：8B实际导航/理解、真实SDK安全history大小、deadline晚到effects、native precision新baseline与harness适配资格。它们是后续证据门，不是允许改协议或放宽预算的理由。
++
++
+diff --git a/docs/specs/jarvis-work-research-navigation-v3-20261102.md b/docs/specs/jarvis-work-research-navigation-v3-20261102.md
+new file mode 100644
+index 0000000..d249765
+--- /dev/null
++++ b/docs/specs/jarvis-work-research-navigation-v3-20261102.md
+@@ -0,0 +1,15 @@
++# Research navigation protocol 3
++
++Task1 pure-data contract, 2026-11-03. The approved navigation design is binding.
++J is strict sorted compact UTF-8 JSON: no floats, surrogates, non-string keys or coercion.
++U=[source ID,final URL,normalized URL,canonical GET UUID,body SHA256,projection SHA256,domain,policy SHA256].
++B=[request,session,task]. View=SHA256(J([view3,nonce,B,U,start,end,seq,dispatch UUID,adapter UUID])).
++Card=N3.+SHA256(J([card3,view,kind,symbol,anchorFirst,anchorLast,citeFirst,citeLast,SHA256(J(anchorPairs)),SHA256(J(citePairs))]))[:16].
++
++Frozen public classes contain only safe tuples/bytes; restricted collection and GET ledger stay with the writer. ScanPolicy captures actual ordered SDK scanners, mode, source/backend configuration identity and paging/extractor/render version. Preparation verifies GET result, attempt and START/END linkage, original body and reconstructed HTML projection. Scanner changes, original identity/hash and GET mismatch abort; unsupported coordinates, truncation, oversized sources, raw HTML findings and unrenderable pages are unavailable. Require three distinct available URL/body pairs.
++
++Catalogue <=4096 bytes, pages <=3072 bytes, <=24 original positions, <=8 cards, <=8 contiguous citation lines. Full lines only; omissions reserve metadata and stabilize after trimming. No relevance ranking. Existence checks use identical renderer and fixed width IDs without publishing a winning window.
++
++Restricted replay JSON version 3 contains catalogue (safe frozen source fields and catalogue bytes), policy JSON, collection JSON, GET records JSON, and ordered reads. Each read contains PageKey, source/start and exact wire JSON plus wire SHA256; later ledger integration must populate reads only after confirmed END and successful transport promotion. The snapshot seals SHA256 of replay_json independently of views_json. Pure-data tests construct sealed packets; they do not certify promotion. Replay rebuilds original projections, pages and card hashes and rejects stale/foreign/unissued/cross-window references. v3 rendering uses only the specific issued page. Fresh verification requires required_version=3 and snapshot; required_version=None is historical compatibility. v2 algorithms remain unchanged.
++
++Security boundary: build_page is a deterministic safe-data renderer. Before SDK return/staging/exposure, the trusted narrow read callable MUST call scan_view(view, captured_policy). The inspector holds only catalogue plus that callable. scan_view revalidates the exact scanner objects/configuration policy, complete actual serialized wire and every decoded public string; availability stand-ins never certify a later wire. Policy seals actual navigation/witness source hashes and verifies the pinned BrowserChannel source hash. seal_snapshot is a data-packet constructor, not an issuance capability; only the later ledger can supply confirmed issued reads.
+diff --git a/src/brain/tests/test_work_navigation.py b/src/brain/tests/test_work_navigation.py
+new file mode 100644
+index 0000000..81de454
+--- /dev/null
++++ b/src/brain/tests/test_work_navigation.py
+@@ -0,0 +1,378 @@
++"""Independent oracles for safe research navigation; no live sockets."""
++import dataclasses
++import hashlib
++import importlib.util
++import json
++import socket
++import time
++from types import SimpleNamespace
++import uuid
++import pytest
++from src.brain import work_research as research
++
++
++def nav():
++    assert importlib.util.find_spec('src.brain.work_navigation'), 'v3 safe navigation module missing'
++    from src.brain import work_navigation
++    return work_navigation
++
++
++def j(x):
++    return json.dumps(x, sort_keys=True, ensure_ascii=False, allow_nan=False, separators=(',', ':')).encode()
++
++
++def h(x):
++    return hashlib.sha256(x).hexdigest()
++
++
++@pytest.fixture(autouse=True)
++def deny_network(monkeypatch):
++    def denied(*a, **kw):
++        raise AssertionError('live network forbidden')
++    monkeypatch.setattr(socket.socket, 'connect', denied)
++    monkeypatch.setattr(socket, 'getaddrinfo', denied)
++
++
++def policy(mode='warn'):
++    from openjarvis.security.scanner import SecretScanner, PIIScanner
++    return nav().make_scan_policy((SecretScanner(), PIIScanner()), mode)
++
++
++def fixture(texts=None, suffix='.md', html=False):
++    texts = texts or ['Source one explains local usage.', 'Source two records its conditions.', 'Source three documents alternatives.']
++    sources, records, attempts, trace = [], [], [], []
++    binding = SimpleNamespace(request_id='request', session_id='session', task_id='task')
++    ids = vars(binding)
++    for i, text in enumerate(texts, 1):
++        call = str(uuid.UUID(int=i))
++        sdk = str(uuid.UUID(int=100+i))
++        url = f'https://example.org/source{i}{suffix}'
++        body = '<p>'+text+'</p><script>hidden()</script><style>hidden</style>' if html else text
++        raw = dict(success=True, requested_url=url, final_url=url, dedupe_url=url, source_id=f'original{i}', fetched_at='fixed', status_code=200, content_type='text/html' if html else 'text/plain', truncated=False, body=body, text=text, decoded_body_sha256=h(body.encode()))
++        sources.append(dict(raw, source_id=f'S{i}', adapter_source_id=raw['source_id'], read_call_id=call, **ids))
++        records.append(dict(call_id=call, tool_name='ultima_work_http_get', success=True, result=raw, **ids))
++        attempts.append(dict(sdk_call_id=sdk, adapter_call_id=call, tool_name='ultima_work_http_get', success=True, **ids))
++        for kind in ('tool_call_start', 'tool_call_end'):
++            data=dict(tool='ultima_work_http_get',arguments=dict(url=url)) if kind=='tool_call_start' else dict(tool='ultima_work_http_get',success=True,metadata=dict(records[-1]))
++            trace.append(dict(sdk_call_id=sdk, type=kind, data=data, **ids))
++    collection = research.ResearchCollection(json.dumps(sources), json.dumps(trace), json.dumps(attempts), (), 'question')
++    return collection, binding, j(records)
++
++
++def prepare(texts=None, **kw):
++    c, b, records = fixture(texts, **kw)
++    p = policy()
++    return research.prepare_navigation(c, b, p, get_records_json=records, deadline=time.monotonic()+30), c, b, records, p
++
++
++def key(seq=1):
++    return nav().PageKey(1, seq, str(uuid.UUID(int=30+seq)), str(uuid.UUID(int=60+seq)))
++
++
++def test_v3_canonical_identity_replay():
++    n = nav()
++    assert n.canonical_v3({'z':'汉字','a':[True,None,1]}) == j({'z':'汉字','a':[True,None,1]})
++    for bad in (1.0, float('nan'), {'x':'\ud800'}, {1:'key'}, (1,), {'x':b'bytes'}):
++        with pytest.raises((ValueError, TypeError)): n.canonical_v3(bad)
++    cat, *_ = prepare()
++    page = n.build_page(cat, 'S1', 1, key())
++    wire = json.loads(page.wire_json)
++    identity = json.loads(cat.sources[0].identity_json)
++    expected = h(j(['view3',cat.nonce,list(cat.binding_key),identity,1,1,1,key().dispatch_uuid,key().adapter_uuid]))
++    assert page.view_id == expected
++    ref, kind, op, a, z, left, right = wire['cards'][0]
++    pairs = wire['lines']
++    assert ref == 'N3.'+h(j(['card3',expected,kind,op,a,z,left,right,h(j(pairs)),h(j(pairs))]))[:16]
++    for changed in (dataclasses.replace(cat,nonce='a'*32),dataclasses.replace(cat,binding_key=('other','session','task'))):
++        assert n.build_page(changed,'S1',1,key()).view_id != expected
++    assert n.build_page(cat,'S1',1,key(2)).view_id != expected
++    for field in ('dispatch_uuid','adapter_uuid'):
++        changed=dataclasses.replace(key(),**{field:str(uuid.UUID(int=999))})
++        assert n.build_page(cat,'S1',1,changed).view_id != expected
++    with pytest.raises(ValueError): n.build_page(cat,'S1',1,dataclasses.replace(key(),dispatch_uuid=key().dispatch_uuid.upper().replace('-', '')))
++
++
++@pytest.mark.parametrize('mode',['block','warn','redact'])
++def test_v3_line_security_projection(mode):
++    n = nav()
++    text = 'Safe 文本\r\npassword = "syntheticsecret"\nSafe tail.'
++    c,b,r = fixture([text,'Other safe source.','Another safe source.','Fourth safe source.'])
++    cat = research.prepare_navigation(c,b,policy(mode),get_records_json=r,deadline=time.monotonic()+30)
++    source = cat.sources[0]
++    assert 'syntheticsecret' not in repr(source)
++    if mode == 'block': assert not source.available
++    else:
++        assert dict(source.safe_line_pairs) == {1:'Safe 文本',3:'Safe tail.'}
++        page = json.loads(n.build_page(cat,'S1',1,key()).wire_json)
++        assert page['omissions'] == [[2,2,'security']]
++        assert all(not (card[5] <= 2 <= card[6]) for card in page['cards'])
++
++
++@pytest.mark.parametrize('suffix',['','.md','.rst','.txt','.htm','.html','.adoc','.ts','.py','.unknown'])
++def test_v3_html_suffix_and_renderable_availability(suffix):
++    n = nav()
++    c,b,r = fixture(suffix=suffix, html=True)
++    if suffix in ('.ts','.py','.unknown'):
++        with pytest.raises(ValueError,match='three'): research.prepare_navigation(c,b,policy(),get_records_json=r,deadline=time.monotonic()+30)
++    else:
++        cat = research.prepare_navigation(c,b,policy(),get_records_json=r,deadline=time.monotonic()+30)
++        page = n.build_page(cat,'S1',1,key())
++        assert b'hidden' not in page.wire_json
++        assert json.loads(page.wire_json)['cards'][0][1] == 'documented'
++        assert cat.sources[0].domain == 'extracted-text'
++
++
++@pytest.mark.parametrize('fault',['body','projection','get','truncated','duplicate','coordinates','raw_html_secret'])
++def test_v3_provenance_rejects_before_composition(fault):
++    n=nav()
++    c,b,r=fixture(html=fault in ('projection','raw_html_secret'))
++    sources=json.loads(c.catalogue_json); records=json.loads(r)
++    if fault=='body': sources[0]['decoded_body_sha256']='0'*64
++    elif fault=='projection': sources[0]['text']='forged'
++    elif fault=='get': records[0]['result']['body']='forged'
++    elif fault=='truncated':
++        sources[0]['truncated']=True; records[0]['result']['truncated']=True
++    elif fault=='duplicate':
++        sources[1]['dedupe_url']=sources[0]['dedupe_url']
++    elif fault=='coordinates':
++        sources[0]['body']=sources[0]['text']='unsupported\u2028separator'; sources[0]['decoded_body_sha256']=h(sources[0]['body'].encode())
++        records[0]['result'].update({k:sources[0][k] for k in ('body','text','decoded_body_sha256')})
++    else:
++        sources[0]['body'] += '<!-- password = "syntheticsecret" -->'; sources[0]['decoded_body_sha256']=h(sources[0]['body'].encode())
++        records[0]['result'].update({k:sources[0][k] for k in ('body','decoded_body_sha256')})
++    if fault!='get':
++        records[0]['result'].update({k:sources[0][k] for k in ('body','text','decoded_body_sha256')})
++    trace=json.loads(c.trace_json)
++    for i,record in enumerate(records): trace[i*2+1]['data']['metadata']['result']=dict(record['result'])
++    c=dataclasses.replace(c,catalogue_json=json.dumps(sources),trace_json=json.dumps(trace))
++    with pytest.raises(ValueError): research.prepare_navigation(c,b,policy(),get_records_json=j(records),deadline=time.monotonic()+30)
++
++
++def test_v3_final_fit_and_omissions():
++    n=nav()
++    text='\n'.join(['First operation documented.','"\\汉'*2000]+[f'Line {i} meaningful.' for i in range(3,40)])
++    cat,*_=prepare([text,'Other document.','Third document.'])
++    assert len(cat.catalogue_json)<=4096
++    page=n.build_page(cat,'S1',1,key()); wire=json.loads(page.wire_json)
++    assert len(page.wire_json)<=3072 and wire['end']==24 and wire['next_start']==25
++    assert [2,2,'size'] in wire['omissions'] and 2 not in dict(wire['lines'])
++    assert len(wire['cards'])<=8
++    for _,_,_,a,z,l,r in wire['cards']:
++        assert z-a<8 and r-l<8 and all(i in dict(wire['lines']) for i in range(l,r+1))
++    with pytest.raises(ValueError): n.build_page(cat,'S1',True,key())
++    with pytest.raises(ValueError): n.build_page(cat,'S1',40,key())
++
++
++@pytest.mark.parametrize('text',['','x'*262145,'\n'.join(['line']*1025),'x'*6000,'password = "syntheticsecret"'])
++def test_v3_three_renderable_sources_required(text):
++    c,b,r=fixture([text,'Other safe source.','Third safe source.'])
++    with pytest.raises(ValueError,match='three'): research.prepare_navigation(c,b,policy(),get_records_json=r,deadline=time.monotonic()+30)
++
++
++def test_v2_archival_bytes_unchanged_and_fresh_requires_v3():
++    n=nav(); c,b,r=fixture()
++    before=(research.source_pack(json.loads(c.catalogue_json)),research.reference_cards(c.catalogue_json))
++    cat=research.prepare_navigation(c,b,policy(),get_records_json=r,deadline=time.monotonic()+30)
++    assert before==(research.source_pack(json.loads(c.catalogue_json)),research.reference_cards(c.catalogue_json))
++    for version in (None,2,4):
++        record=dict(call_id='report',request_id=b.request_id,session_id=b.session_id,task_id=b.task_id,result=dict(file_call_id='file',payload_json='{}'))
++        if version is not None: record['result']['protocol_version']=version
++        with pytest.raises(ValueError,match='protocol|version|snapshot'):
++            research.verify_research_artifacts(b,[dict(call_id='file')],[record],c.catalogue_json,required_version=3)
++
++
++def test_v3_policy_and_sealed_replay():
++    n=nav(); cat,c,b,r,p=prepare()
++    n.validate_scan_policy(p,p)
++    with pytest.raises(ValueError): n.validate_scan_policy(dataclasses.replace(p,scanners=tuple(reversed(p.scanners))),p)
++    reads=[n.build_page(cat,f'S{i}',1,key(i)) for i in range(1,4)]
++    snapshot=n.seal_snapshot(cat,c,r,p,tuple(zip([key(i) for i in range(1,4)],reads)),generation=2)
++    submitted=dict(path='research.md',title='Research',sections=[dict(source_id=f'S{i}',heading=f'Source {i}',facts=[dict(claim='The document describes local behavior.',evidence_id=json.loads(reads[i-1].wire_json)['cards'][0][0])]) for i in range(1,4)])
++    resolved, bindings=n.resolve_v3(submitted,snapshot,c)
++    rendered=n.render_v3(resolved,c.catalogue_json,bindings=bindings)
++    assert len(bindings)==3 and 'extracted-text' not in rendered.content and 'raw L' in rendered.content
++    for bad in ('N3.'+'0'*16,'old.1',json.loads(reads[1].wire_json)['cards'][0][0]):
++        forged=json.loads(json.dumps(submitted)); forged['sections'][0]['facts'][0]['evidence_id']=bad
++        with pytest.raises(ValueError): n.resolve_v3(forged,snapshot,c)
++    with pytest.raises(ValueError): n.resolve_v3(submitted,dataclasses.replace(snapshot,nonce='f'*32),c)
++    with pytest.raises(ValueError): n.resolve_v3(submitted,dataclasses.replace(snapshot,replay_json=snapshot.replay_json+b' '),c)
++
++
++def test_v3_complete_wire_security_check():
++    n=nav(); cat,*_=prepare(); p=policy()
++    view=n.build_page(cat,'S1',1,key())
++    assert n.scan_view(view,p)==view
++    wire=json.loads(view.wire_json); wire['metadata']='password = "syntheticsecret"'
++    raw=j(wire)
++    with pytest.raises(ValueError,match='Unsafe'): n.scan_view(dataclasses.replace(view,wire_json=raw,wire_sha256=h(raw)),p)
++
++
++def test_v3_get_end_linkage_is_required():
++    n=nav(); c,b,r=fixture()
++    events=json.loads(c.trace_json)
++    events[1]['data']['success']=False
++    c=dataclasses.replace(c,trace_json=json.dumps(events))
++    with pytest.raises(ValueError,match='GET'): research.prepare_navigation(c,b,policy(),get_records_json=r,deadline=time.monotonic()+30)
++
++
++@pytest.mark.parametrize('count',[1023,1024,1025])
++def test_v3_line_count_cap(count):
++    c,b,r=fixture(['\n'.join(['plain']*count),'Second source.','Third source.'])
++    if count>1024:
++        with pytest.raises(ValueError,match='three'): research.prepare_navigation(c,b,policy(),get_records_json=r,deadline=time.monotonic()+30)
++    else:
++        cat=research.prepare_navigation(c,b,policy(),get_records_json=r,deadline=time.monotonic()+30)
++        assert cat.sources[0].total_lines==count
++
++
++@pytest.mark.parametrize('size',[262143,262144,262145])
++def test_v3_decoded_byte_cap(size):
++    text='Header\n\n'+'x'*(size-8)
++    c,b,r=fixture([text,'Second source.','Third source.'])
++    if size>262144:
++        with pytest.raises(ValueError,match='three'): research.prepare_navigation(c,b,policy(),get_records_json=r,deadline=time.monotonic()+30)
++    else:
++        cat=research.prepare_navigation(c,b,policy(),get_records_json=r,deadline=time.monotonic()+30)
++        assert cat.sources[0].available
++
++
++@pytest.mark.parametrize('count',[23,24,25])
++def test_v3_page_position_cap_and_zero_card_read(count):
++    n=nav(); cat,*_=prepare(['\n'.join(['line']*count),'Second source.','Third source.'])
++    page=json.loads(n.build_page(cat,'S1',1,key()).wire_json)
++    assert page['end']==min(24,count)
++    source=dataclasses.replace(cat.sources[0],anchors_json=b'[]')
++    blank=n.build_page(dataclasses.replace(cat,sources=(source,)+cat.sources[1:]),'S1',1,key())
++    assert json.loads(blank.wire_json)['lines'] and json.loads(blank.cards_json)==[]
++
++
++@pytest.mark.parametrize('count',[7,8,9])
++def test_v3_card_cap(count):
++    n=nav(); cat,*_=prepare(['\n'.join([f'call{i}()' for i in range(count)]),'second()','third()'],suffix='.py')
++    page=json.loads(n.build_page(cat,'S1',1,key()).wire_json)
++    assert len(page['cards'])==min(count,8)
++    assert page['omitted_cards']==max(0,count-8)
++
++
++def test_v3_hash_identity_mutations_and_collision(monkeypatch):
++    n=nav(); cat,*_=prepare(); view=n.build_page(cat,'S1',1,key())
++    source=cat.sources[0]; identity=json.loads(source.identity_json); identity[5]='f'*64
++    changed=dataclasses.replace(source,identity_json=j(identity))
++    assert n.build_page(dataclasses.replace(cat,sources=(changed,)+cat.sources[1:]),'S1',1,key()).view_id!=view.view_id
++    changed=dataclasses.replace(source,safe_line_pairs=((1,'Changed line.'),))
++    mutated=n.build_page(dataclasses.replace(cat,sources=(changed,)+cat.sources[1:]),'S1',1,key())
++    assert mutated.cards_json!=view.cards_json
++    changed=dataclasses.replace(source,anchors_json=j([[1,1,'documented',''],[1,1,'documented','']]))
++    with pytest.raises(ValueError,match='collision'): n.build_page(dataclasses.replace(cat,sources=(changed,)+cat.sources[1:]),'S1',1,key())
++
++
++def test_v3_inconsistent_redaction_and_residuals(monkeypatch):
++    from openjarvis.security.scanner import SecretScanner
++    n=nav(); c,b,r=fixture(['Safe\npassword = "syntheticsecret"\nTail','Other','Third'])
++    original=SecretScanner.redact
++    def disagree(self,text):
++        return original(self,text) if '\n' not in text else 'changed whole document'
++    monkeypatch.setattr(SecretScanner,'redact',disagree)
++    with pytest.raises(ValueError,match='three'): research.prepare_navigation(c,b,policy(),get_records_json=r,deadline=time.monotonic()+30)
++    monkeypatch.setattr(SecretScanner,'redact',lambda self,text:text)
++    with pytest.raises(ValueError,match='three'): research.prepare_navigation(c,b,policy(),get_records_json=r,deadline=time.monotonic()+30)
++
++
++def test_v3_policy_pins_actual_rules_and_extractor():
++    n=nav(); p=policy(); data=json.loads(p.policy_json)
++    from pathlib import Path
++    assert data['navigation_sha256']==h(Path(n.__file__).read_bytes())
++    assert data['witness_sha256']==h(Path(research.__file__).read_bytes())
++    assert data['extractor']==h(Path(n.__file__).with_name('browser').joinpath('channel.py').read_bytes())
++
++
++def test_v3_middle_window_replay_does_not_use_v2_visibility():
++    n=nav()
++    text='\n'.join(f'Documentation row {i}: records local conditions and alternatives.' for i in range(1,1001))
++    cat,c,b,r,p=prepare([text,'Second distinct source.','Third distinct source.'])
++    assert 501 not in dict(research._source_view(json.loads(c.catalogue_json)[0],3)['lines'])
++    pages=[n.build_page(cat,'S1',501,key(1)),n.build_page(cat,'S2',1,key(2)),n.build_page(cat,'S3',1,key(3))]
++    snapshot=n.seal_snapshot(cat,c,r,p,tuple(zip([key(i) for i in range(1,4)],pages)),generation=2)
++    payload=dict(path='research.md',title='Title',sections=[dict(source_id=f'S{i}',heading=f'Heading {i}',facts=[dict(claim='The source describes conditions.',evidence_id=json.loads(pages[i-1].cards_json)[0][0])]) for i in range(1,4)])
++    resolved,bindings=n.resolve_v3(payload,snapshot,c)
++    assert 'raw L501' in n.render_v3(resolved,c.catalogue_json,bindings=bindings).content
++    for field in ('wire_sha256','wire','key'):
++        packet=json.loads(snapshot.replay_json)
++        if field=='wire_sha256': packet['reads'][0][field]='0'*64
++        elif field=='wire': packet['reads'][0][field]['lines'][0][1]='forged line'
++        else: packet['reads'][0][field]['seq']=99
++        raw=j(packet)
++        forged=dataclasses.replace(snapshot,replay_json=raw,manifest_sha256=h(raw))
++        with pytest.raises(ValueError): n.resolve_v3(payload,forged,c)
++
++
++def test_v3_existence_checks_later_legal_starts_without_hint():
++    n=nav()
++    text='\n'.join(['x'*4000]*25+['','Available late paragraph.'])
++    cat,*_=prepare([text,'Second source.','Third source.'])
++    assert cat.sources[0].available
++    assert not json.loads(n.build_page(cat,'S1',1,key()).cards_json)
++    assert json.loads(n.build_page(cat,'S1',27,key()).cards_json)
++    assert b'winning' not in cat.catalogue_json and b'preferred' not in cat.catalogue_json
++
++
++@pytest.mark.parametrize('delta',[-1,0,1])
++def test_v3_exact_page_serialized_byte_boundary(delta):
++    n=nav(); cat,*_=prepare()
++    source=dataclasses.replace(cat.sources[0],anchors_json=b'[]',safe_line_pairs=((1,''),))
++    cat=dataclasses.replace(cat,sources=(source,)+cat.sources[1:])
++    empty=json.loads(n.build_page(cat,'S1',1,key()).wire_json)
++    overhead=len(j(empty))
++    text='x'*(3072-overhead+delta)
++    source=dataclasses.replace(source,safe_line_pairs=((1,text),))
++    wire=json.loads(n.build_page(dataclasses.replace(cat,sources=(source,)+cat.sources[1:]),'S1',1,key()).wire_json)
++    if delta<=0:
++        assert dict(wire['lines'])[1]==text and len(j(wire))==3072+delta
++    else:
++        assert wire['lines']==[] and wire['omissions']==[[1,1,'size']]
++
++
++@pytest.mark.parametrize('delta',[-1,0,1])
++def test_v3_exact_mandatory_catalogue_byte_boundary(delta):
++    n=nav(); cat,c,b,r,p=prepare()
++    mandatory=json.loads(cat.catalogue_json)
++    for entry in mandatory: entry['landmarks']=[]
++    padding=4096-len(j(mandatory))+delta
++    sources=json.loads(c.catalogue_json); records=json.loads(r); trace=json.loads(c.trace_json)
++    for i,source in enumerate(sources):
++        extra=padding//3+(i<padding%3)
++        old=source['final_url']; new=old[:-3]+'a'*extra+'.md'
++        for field in ('requested_url','final_url','dedupe_url'): source[field]=new
++        records[i]['result'].update({field:new for field in ('requested_url','final_url','dedupe_url')})
++        trace[i*2]['data']['arguments']['url']=new
++        trace[i*2+1]['data']['metadata']['result']=dict(records[i]['result'])
++    c=dataclasses.replace(c,catalogue_json=json.dumps(sources),trace_json=json.dumps(trace))
++    if delta>0:
++        with pytest.raises(ValueError,match='Mandatory'): research.prepare_navigation(c,b,p,get_records_json=j(records),deadline=time.monotonic()+30)
++    else:
++        out=research.prepare_navigation(c,b,p,get_records_json=j(records),deadline=time.monotonic()+30)
++        assert len(out.catalogue_json)==4096+delta
++        assert all(not entry['landmarks'] for entry in json.loads(out.catalogue_json))
++
++
++def test_v3_fresh_artifact_reopening_and_tamper(tmp_path):
++    n=nav(); cat,c,b,r,p=prepare()
++    from src.brain.work_tools import WorkBinding
++    binding=WorkBinding(tmp_path,b.request_id,b.session_id,b.task_id)
++    pages=[n.build_page(cat,f'S{i}',1,key(i)) for i in range(1,4)]
++    snapshot=n.seal_snapshot(cat,c,r,p,tuple(zip([key(i) for i in range(1,4)],pages)),generation=2)
++    submitted=dict(path='research.md',title='Title',sections=[dict(source_id=f'S{i}',heading=f'Section {i}',facts=[dict(claim='The source records local behavior.',evidence_id=json.loads(pages[i-1].cards_json)[0][0])]) for i in range(1,4)])
++    resolved,bindings=n.resolve_v3(submitted,snapshot,c)
++    rendered=n.render_v3(resolved,c.catalogue_json,bindings=bindings)
++    path=tmp_path/'research.md'; path.write_bytes(rendered.content.encode())
++    artifact=dict(call_id='file',path=str(path),sha256=h(path.read_bytes()))
++    record=dict(call_id='report',**vars(b),result=dict(protocol_version=3,file_call_id='file',submitted_json=json.dumps(submitted),payload_json=json.dumps(resolved),bindings=bindings,cited_source_ids=list(rendered.cited_source_ids),evidence=list(rendered.evidence)))
++    assert len(research.verify_research_artifacts(binding,[artifact],[record],c.catalogue_json,required_version=3,issued_snapshot=snapshot))==3
++    path.write_bytes(b'tampered')
++    with pytest.raises(ValueError,match='readback'): research.verify_research_artifacts(binding,[artifact],[record],c.catalogue_json,required_version=3,issued_snapshot=snapshot)
++
++
++def test_v3_incomplete_python_is_unavailable_without_aborting_other_sources():
++    c,b,r=fixture(["'''",'one()','two()','three()'],suffix='.py')
++    cat=research.prepare_navigation(c,b,policy(),get_records_json=r,deadline=time.monotonic()+30)
++    assert not cat.sources[0].available and sum(s.available for s in cat.sources)==3
+diff --git a/src/brain/work_navigation.py b/src/brain/work_navigation.py
+new file mode 100644
+index 0000000..00cb8e1
+--- /dev/null
++++ b/src/brain/work_navigation.py
+@@ -0,0 +1,517 @@
++"""Safe immutable navigation data and restricted replay; no runtime authority."""
++from dataclasses import dataclass, asdict, replace
++import hashlib
++from html.parser import HTMLParser
++import inspect
++import json
++from pathlib import Path, PurePosixPath
++import platform
++import re
++import time
++import tokenize
++from urllib.parse import urlsplit, urlunsplit
++import uuid
++
++BindingKey = tuple[str, str, str]
++EXTRACTOR_SHA256 = '9d7cab4749f27dbc08f1b246e03c8a6f8a059acb74692802a1326216e00ef86d'
++DOC_SUFFIXES = ('', '.md', '.rst', '.txt', '.htm', '.html', '.adoc')
++
++
++def canonical_v3(value: object) -> bytes:
++    def check(v):
++        if v is None or type(v) in (bool, int): return
++        if type(v) is str:
++            if any(0xd800 <= ord(c) <= 0xdfff for c in v): raise ValueError('Surrogate in canonical JSON')
++            return
++        if type(v) is list:
++            for item in v: check(item)
++            return
++        if type(v) is dict and all(type(k) is str for k in v):
++            for k, item in v.items(): check(k); check(item)
++            return
++        raise ValueError('Unsupported canonical JSON type')
++    check(value)
++    return json.dumps(value, sort_keys=True, ensure_ascii=False, allow_nan=False, separators=(',', ':')).encode('utf8')
++
++
++def _h(raw):
++    return hashlib.sha256(raw).hexdigest()
++
++
++def _load(raw):
++    obj = json.loads(raw)
++    if canonical_v3(obj) != raw: raise ValueError('Noncanonical sealed JSON')
++    return obj
++
++
++def _uuid(value):
++    if type(value) is not str or str(uuid.UUID(value)) != value: raise ValueError('Noncanonical UUID')
++    return value
++
++
++@dataclass(frozen=True)
++class ScanPolicy:
++    scanners: tuple[object, ...]
++    mode: str
++    policy_json: bytes
++    policy_sha256: str
++
++
++@dataclass(frozen=True)
++class SourceV3:
++    source_id: str
++    identity_json: bytes
++    domain: str
++    suffix: str
++    total_lines: int
++    safe_line_pairs: tuple[tuple[int, str], ...]
++    omissions: tuple[tuple[int, int, str], ...]
++    anchors_json: bytes
++    available: bool
++    reason: str
++
++
++@dataclass(frozen=True)
++class CatalogueV3:
++    binding_key: BindingKey
++    nonce: str
++    policy_sha256: str
++    sources: tuple[SourceV3, ...]
++    catalogue_json: bytes
++    catalogue_sha256: str
++
++
++@dataclass(frozen=True)
++class PageKey:
++    generation: int
++    seq: int
++    dispatch_uuid: str
++    adapter_uuid: str
++
++
++@dataclass(frozen=True)
++class ViewV3:
++    view_id: str
++    source_id: str
++    start: int
++    end: int
++    wire_json: bytes
++    wire_sha256: str
++    cards_json: bytes
++
++
++@dataclass(frozen=True)
++class IssuedSnapshotV3:
++    binding_key: BindingKey
++    nonce: str
++    catalogue_sha256: str
++    generation: int
++    views_json: bytes
++    replay_json: bytes
++    manifest_sha256: str
++
++
++def _policy_data(scanners, mode):
++    if type(scanners) is not tuple or not scanners or mode not in ('block', 'warn', 'redact'):
++        raise ValueError('Missing configured scanner policy')
++    extractor_path=Path(__file__).with_name('browser')/'channel.py'
++    if _h(extractor_path.read_bytes())!=EXTRACTOR_SHA256:
++        raise ValueError('Pinned BrowserChannel extractor drift')
++    descriptors=[]
++    for scanner in scanners:
++        cls=type(scanner)
++        if not callable(getattr(scanner,'scan',None)) or not callable(getattr(scanner,'redact',None)):
++            raise ValueError('Invalid scanner')
++        path=inspect.getsourcefile(cls)
++        if not path: raise ValueError('Scanner source identity unavailable')
++        backend=getattr(scanner,'_rust_impl',None)
++        backend_module=inspect.getmodule(type(backend)) if backend is not None else None
++        backend_path=getattr(backend_module,'__file__',None)
++        descriptors.append(dict(name=cls.__module__+'.'+cls.__qualname__,source_sha256=_h(Path(path).read_bytes()),
++            backend=type(backend).__module__+'.'+type(backend).__qualname__,
++            backend_sha256=_h(Path(backend_path).read_bytes()) if backend_path else None,
++            patterns=repr(getattr(scanner,'PATTERNS',None))))
++    return dict(v=3,scanners=descriptors,mode=mode,extractor=EXTRACTOR_SHA256,
++        navigation_sha256=_h(Path(__file__).read_bytes()),
++        witness_sha256=_h(Path(__file__).with_name('work_research.py').read_bytes()),
++        python=platform.python_version(),htmlparser=_h(Path(inspect.getsourcefile(HTMLParser)).read_bytes()),
++        witness='source9-unchanged',serialization='J3',paging=[262144,1024,4096,3072,24,8,8],render='issued-page-v3')
++
++
++def make_scan_policy(scanners: tuple[object, ...], mode: str) -> ScanPolicy:
++    raw=canonical_v3(_policy_data(scanners,mode))
++    return ScanPolicy(scanners,mode,raw,_h(raw))
++
++
++def validate_scan_policy(policy: ScanPolicy, expected: ScanPolicy | None = None):
++    raw=canonical_v3(_policy_data(policy.scanners,policy.mode))
++    if raw!=policy.policy_json or _h(raw)!=policy.policy_sha256: raise ValueError('Scanner policy drift')
++    if expected is not None and (policy.policy_json!=expected.policy_json or len(policy.scanners)!=len(expected.scanners)
++            or any(a is not b for a,b in zip(policy.scanners,expected.scanners))):
++        raise ValueError('Scanner object/order drift')
++
++
++def _findings(text, policy):
++    return any(not s.scan(text).clean for s in policy.scanners)
++
++
++def _redact(text, policy):
++    for scanner in policy.scanners: text=scanner.redact(text)
++    return text
++
++
++def scan_view(view: ViewV3, policy: ScanPolicy) -> ViewV3:
++    """Mandatory final observation check by the trusted inspector before return."""
++    validate_scan_policy(policy)
++    def unsafe(value):
++        if isinstance(value,str): return _findings(value,policy)
++        if isinstance(value,list): return any(unsafe(v) for v in value)
++        if isinstance(value,dict): return any(unsafe(k) or unsafe(v) for k,v in value.items())
++        return False
++    if (_h(view.wire_json)!=view.wire_sha256 or _findings(view.wire_json.decode('utf8'),policy)
++            or unsafe(_load(view.wire_json))):
++        raise ValueError('Unsafe complete observation')
++    return view
++
++
++def _projection(body, kind):
++    if 'html' not in kind: return body
++    class Text(HTMLParser):
++        def __init__(self): super().__init__(); self.parts=[]; self.skip=0
++        def handle_starttag(self,tag,attrs):
++            if tag in ('script','style'): self.skip+=1
++        def handle_endtag(self,tag):
++            if tag in ('script','style'): self.skip=max(0,self.skip-1)
++        def handle_data(self,data):
++            if not self.skip: self.parts.append(data)
++    parser=Text(); parser.feed(body)
++    return ' '.join(parser.parts)
++
++
++def _normalize(url):
++    p=urlsplit(url)
++    if p.scheme not in ('http','https') or not p.hostname or p.username or p.password or p.fragment:
++        raise ValueError('Unsafe source identity')
++    host=p.hostname.lower()
++    if ':' in host: host='['+host+']'
++    if p.port not in (None,80 if p.scheme=='http' else 443): host+=':'+str(p.port)
++    return urlunsplit((p.scheme.lower(),host,p.path or '/',p.query,''))
++
++
++def _runs(omitted):
++    runs=[]
++    for line,reason in sorted(omitted.items()):
++        if runs and runs[-1][1]+1==line and runs[-1][2]==reason: runs[-1][1]=line
++        else: runs.append([line,line,reason])
++    return runs
++
++
++def _linked_sources(collection, binding, records):
++    from .work_research import bound_sources
++    sources=list(bound_sources(collection.catalogue_json,binding).values())
++    if len(sources)>5: raise ValueError('Too many sources')
++    attempts=json.loads(collection.attempts_json); trace=json.loads(collection.trace_json)
++    for index,source in enumerate(sources,1):
++        if source['source_id']!='S'+str(index): raise ValueError('Invalid source labels')
++        call=_uuid(source['read_call_id'])
++        matching=[r for r in records if r.get('call_id')==call]
++        if len(matching)!=1: raise ValueError('GET ledger mismatch')
++        record=matching[0]
++        ids={k:getattr(binding,k) for k in ('request_id','session_id','task_id')}
++        if record.get('tool_name')!='ultima_work_http_get' or record.get('success') is not True or any(record.get(k)!=v for k,v in ids.items()):
++            raise ValueError('GET binding mismatch')
++        original={k:v for k,v in source.items() if k not in (*ids,'read_call_id','adapter_source_id')}
++        original['source_id']=source['adapter_source_id']
++        if record.get('result')!=original: raise ValueError('GET original result mismatch')
++        matches=[a for a in attempts if a.get('adapter_call_id')==call and a.get('tool_name')=='ultima_work_http_get']
++        if len(matches)!=1 or matches[0].get('success') is not True or any(matches[0].get(k)!=v for k,v in ids.items()):
++            raise ValueError('GET attempt linkage mismatch')
++        sdk=_uuid(matches[0]['sdk_call_id'])
++        events=[e for e in trace if e.get('sdk_call_id')==sdk]
++        if [e.get('type') for e in events]!=['tool_call_start','tool_call_end'] or any(any(e.get(k)!=v for k,v in ids.items()) or e.get('data',{}).get('tool')!='ultima_work_http_get' for e in events):
++            raise ValueError('GET event linkage mismatch')
++        start,end=events[0]['data'],events[1]['data']
++        metadata=end.get('metadata',{})
++        if (start.get('arguments')!={'url':source['requested_url']} or end.get('success') is not True
++                or metadata.get('call_id')!=call or metadata.get('result')!=record['result']
++                or metadata.get('success') is not True or any(metadata.get(k)!=v for k,v in ids.items())):
++            raise ValueError('GET START/END result linkage mismatch')
++        if _h(source['body'].encode('utf8'))!=source['decoded_body_sha256']: raise ValueError('Body hash drift')
++        if _normalize(source['final_url'])!=source['dedupe_url']: raise ValueError('Normalized URL mismatch')
++        if _projection(source['body'],source.get('content_type',''))!=source['text']: raise ValueError('Projection hash drift')
++    if len({s['dedupe_url'] for s in sources})!=len(sources) or len({s['decoded_body_sha256'] for s in sources})!=len(sources):
++        raise ValueError('Duplicate source URL/body')
++    return sources
++
++
++def _safe_source(source, policy):
++    from .work_research import _anchors, _python_witnesses, _js_tokens, _fact_evidence
++    body,text=source['body'],source['text']
++    domain='extracted-text' if 'html' in source.get('content_type','') else 'raw'
++    suffix=PurePosixPath(urlsplit(source['final_url']).path).suffix.lower()
++    identity=[source['source_id'],source['final_url'],source['dedupe_url'],source['read_call_id'],
++              source['decoded_body_sha256'],_h(text.encode('utf8')),domain,policy.policy_sha256]
++    if any(_findings(value,policy) for value in identity) or _findings(canonical_v3(identity).decode(),policy):
++        raise ValueError('Unsafe source provenance identity')
++    rows=text.splitlines(); reason=''; safe=[]; omitted={}; anchors=[]
++    if source.get('truncated'): reason='get-truncated'
++    elif len(body.encode('utf8'))>262144 or len(text.encode('utf8'))>262144: reason='source-size'
++    elif len(body.splitlines())>1024 or len(rows)>1024: reason='source-lines'
++    elif any(re.search(r'\r(?!\n)|[\v\f\x1c-\x1e\x85\u2028\u2029]',v) for v in (body,text)): reason='unsupported-coordinates'
++    elif domain=='extracted-text' and _findings(body,policy): reason='unsafe-html'
++    elif domain=='extracted-text' and suffix not in DOC_SUFFIXES: reason='unsupported-suffix'
++    elif policy.mode=='block' and _findings(text,policy): reason='security-block'
++    else:
++        segments=text.splitlines(keepends=True)
++        redacted=_redact(text,policy)
++        if redacted!=''.join(_redact(line,policy) for line in segments) or _findings(redacted,policy):
++            reason='security-map'
++        else:
++            for i,line in enumerate(rows,1):
++                if _findings(line,policy) or _redact(line,policy)!=line: omitted[i]='security'
++                else: safe.append((i,line))
++            visible=dict(safe); syntax=None
++            try:
++                if suffix=='.py': syntax=list(_python_witnesses(body))
++                elif suffix in ('.js','.ts','.mjs','.cjs'): syntax=_js_tokens(body,suffix)
++                for a,z,kind,op in sorted(set(_anchors(source,visible,syntax))):
++                    if not 1<=a<=z<a+8 or any(i not in visible for i in range(a,z+1)): continue
++                    witness=dict(claim=op or 'witness',kind=kind,first_line=a,last_line=z)
++                    if kind=='code': witness['symbol']=op
++                    _fact_evidence(witness,source,visible,syntax)
++                    if not _findings(op,policy): anchors.append([a,z,kind,op])
++            except (SyntaxError,ValueError,tokenize.TokenError):
++                anchors=[]
++    return SourceV3(source['source_id'],canonical_v3(identity),domain,suffix,len(rows),tuple(safe),
++                    tuple(tuple(r) for r in _runs(omitted)),canonical_v3(anchors),not bool(reason),reason)
++
++
++def build_page(catalogue: CatalogueV3, source_id: str, start_line: int, key: PageKey) -> ViewV3:
++    if not re.fullmatch('[0-9a-f]{32}',catalogue.nonce): raise ValueError('Invalid nonce')
++    if len(catalogue.binding_key)!=3 or any(type(x) is not str or not x for x in catalogue.binding_key): raise ValueError('Invalid binding')
++    for n in (key.generation,key.seq):
++        if type(n) is not int or not 1<=n<=2147483647: raise ValueError('Invalid page sequence')
++    _uuid(key.dispatch_uuid); _uuid(key.adapter_uuid)
++    source=next((s for s in catalogue.sources if s.source_id==source_id),None)
++    if source is None or not source.available: raise ValueError('Unavailable source')
++    if type(start_line) is not int or not 1<=start_line<=source.total_lines: raise ValueError('Invalid start line')
++    end=min(source.total_lines,start_line+23)
++    view_id=_h(canonical_v3(['view3',catalogue.nonce,list(catalogue.binding_key),json.loads(source.identity_json),
++                           start_line,end,key.seq,key.dispatch_uuid,key.adapter_uuid]))
++    safe=dict(source.safe_line_pairs)
++    omitted={i:reason for a,z,reason in source.omissions for i in range(max(a,start_line),min(z,end)+1)}
++    wire=dict(v=3,source_id=source_id,view_id=view_id,start=start_line,end=end,total_lines=source.total_lines,
++              lines=[],cards=[],omissions=[],omitted_cards=0,next_start=end+1 if end<source.total_lines else None)
++    def encoded():
++        wire['omissions']=_runs(omitted)
++        return canonical_v3(wire)
++    for line in range(start_line,end+1):
++        if line not in safe: omitted.setdefault(line,'security')
++        else: omitted[line]='size'
++    if len(encoded())>3072: raise ValueError('Page metadata exceeds cap')
++    for line in range(start_line,end+1):
++        if line not in safe: continue
++        wire['lines'].append([line,safe[line]]); omitted.pop(line,None)
++        if len(encoded())>3072:
++            wire['lines'].pop(); omitted[line]='size'
++    visible=dict(wire['lines']); candidates=[]
++    for a,z,kind,op in json.loads(source.anchors_json):
++        if not start_line<=a<=z<=end or any(i not in visible for i in range(a,z+1)): continue
++        left,right=a,z; padding=7-(z-a)
++        for _ in range(padding//2):
++            if left-1 not in visible: break
++            left-=1
++        for _ in range(padding-padding//2):
++            if right+1 not in visible: break
++            right+=1
++        ap=[[i,visible[i]] for i in range(a,z+1)]; cp=[[i,visible[i]] for i in range(left,right+1)]
++        ref='N3.'+_h(canonical_v3(['card3',view_id,kind,op,a,z,left,right,_h(canonical_v3(ap)),_h(canonical_v3(cp))]))[:16]
++        card=[ref,kind,op,a,z,left,right]
++        if any(old[0]==ref for old in candidates): raise ValueError('Reference collision')
++        candidates.append(card)
++    wire['omitted_cards']=len(candidates)
++    # Metadata digit growth can require dropping trailing lines; never cut a line.
++    while len(encoded())>3072 and wire['lines']:
++        line,_=wire['lines'].pop(); omitted[line]='size'
++    visible=dict(wire['lines'])
++    candidates=[c for c in candidates if all(i in visible for i in range(c[5],c[6]+1))]
++    total=len(candidates)
++    wire['omitted_cards']=total
++    for card in candidates:
++        if len(wire['cards'])==8: break
++        wire['cards'].append(card); wire['omitted_cards']=total-len(wire['cards'])
++        if len(encoded())>3072:
++            wire['cards'].pop(); wire['omitted_cards']=total-len(wire['cards']); break
++    raw=encoded()
++    if len(raw)>3072: raise ValueError('Page fit failure')
++    return ViewV3(view_id,source_id,start_line,end,raw,_h(raw),canonical_v3(wire['cards']))
++
++
++def prepare_navigation(collection, binding, scanners: ScanPolicy, *, get_records_json: bytes, deadline: float) -> CatalogueV3:
++    if time.monotonic()>=deadline: raise ValueError('Navigation preparation deadline')
++    validate_scan_policy(scanners)
++    records=json.loads(get_records_json)
++    originals=_linked_sources(collection,binding,records)
++    sources=tuple(_safe_source(s,scanners) for s in originals)
++    b=tuple(getattr(binding,k) for k in ('request_id','session_id','task_id'))
++    nonce=uuid.uuid4().hex
++    cat=CatalogueV3(b,nonce,scanners.policy_sha256,sources,b'', '')
++    available=[]
++    for source in sources:
++        fits=False
++        if source.available:
++            for start in range(1,source.total_lines+1):
++                if time.monotonic()>=deadline: raise ValueError('Navigation preparation deadline')
++                view=build_page(cat,source.source_id,start,PageKey(1,2147483647,str(uuid.UUID(int=1)),str(uuid.UUID(int=2))))
++                scan_view(view,scanners)
++                if json.loads(view.cards_json): fits=True; break
++        available.append(replace(source,available=fits,reason=source.reason or ('' if fits else 'unrenderable')))
++    sources=tuple(available); cat=replace(cat,sources=sources)
++    if sum(s.available for s in sources)<3: raise ValueError('Research needs three renderable distinct sources before composition')
++    entries=[]
++    for source in sources:
++        anchors=json.loads(source.anchors_json)
++        eligible=anchors if len(anchors)<=8 else [anchors[round(i*(len(anchors)-1)/7)] for i in range(8)]
++        landmarks=[[a,z,op] if source.suffix not in DOC_SUFFIXES else [a,z] for a,z,_,op in eligible] if source.available else []
++        url=json.loads(source.identity_json)[1]; p=urlsplit(url)
++        label=p.netloc+p.path
++        if _findings(label,scanners): raise ValueError('Unsafe catalogue identity')
++        entries.append(dict(source_id=source.source_id,identity=label,suffix=source.suffix,total_lines=source.total_lines,
++                            available=source.available,reason=source.reason,landmarks=landmarks))
++    while len(canonical_v3(entries))>4096:
++        changed=False
++        for entry in reversed(entries):
++            if entry['landmarks']:
++                entry['landmarks'].pop(); changed=True
++                if len(canonical_v3(entries))<=4096: break
++        if not changed: raise ValueError('Mandatory catalogue identities exceed cap')
++    raw=canonical_v3(entries)
++    if _findings(raw.decode('utf8'),scanners): raise ValueError('Unsafe catalogue')
++    validate_scan_policy(scanners)
++    return replace(cat,catalogue_json=raw,catalogue_sha256=_h(raw))
++
++
++def v3_writer_schema() -> dict:
++    def obj(**props): return dict(type='object',additionalProperties=False,properties=props,required=list(props))
++    def text(n): return dict(type='string',minLength=1,maxLength=n)
++    def array(items,a,z): return dict(type='array',items=items,minItems=a,maxItems=z)
++    fact=obj(claim=text(2000),evidence_id=dict(type='string',pattern=r'^N3\.[0-9a-f]{16}$',minLength=19,maxLength=19))
++    section=obj(source_id=dict(type='string',pattern=r'^S[1-5]$',minLength=2,maxLength=2),heading=text(200),facts=array(fact,1,6))
++    return obj(path=text(2048),title=text(200),sections=array(section,3,5))
++
++
++def _source_packet(source):
++    result=asdict(source)
++    for k in ('identity_json','anchors_json'): result[k]=json.loads(result[k])
++    result['safe_line_pairs']=[list(x) for x in source.safe_line_pairs]
++    result['omissions']=[list(x) for x in source.omissions]
++    return result
++
++
++def seal_snapshot(catalogue, collection, get_records_json, policy, reads, *, generation):
++    """Seal already issued reads; caller ledger alone proves issuance authority."""
++    validate_scan_policy(policy)
++    if not 1<=len(reads)<=6: raise ValueError('Invalid read count')
++    records=[]; seen=set()
++    for key,view in reads:
++        if (view.source_id,view.start) in seen or key.generation>=generation: raise ValueError('Unissued or duplicate page')
++        seen.add((view.source_id,view.start))
++        expected=build_page(catalogue,view.source_id,view.start,key)
++        if expected!=view: raise ValueError('Read wire mismatch')
++        scan_view(view,policy)
++        records.append(dict(key=asdict(key),source_id=view.source_id,start=view.start,wire=json.loads(view.wire_json),wire_sha256=view.wire_sha256))
++    packet=dict(v=3,binding_key=list(catalogue.binding_key),nonce=catalogue.nonce,policy=json.loads(policy.policy_json),
++        catalogue=json.loads(catalogue.catalogue_json),catalogue_sha256=catalogue.catalogue_sha256,
++        sources=[_source_packet(s) for s in catalogue.sources],collection=asdict(collection),get_records=json.loads(get_records_json),reads=records,generation=generation)
++    packet['collection']['ignored_failure_ids']=list(collection.ignored_failure_ids)
++    raw=canonical_v3(packet)
++    views=canonical_v3([r['wire'] for r in records])
++    return IssuedSnapshotV3(catalogue.binding_key,catalogue.nonce,catalogue.catalogue_sha256,generation,views,raw,_h(raw))
++
++
++def resolve_v3(submitted: dict, issued_snapshot: IssuedSnapshotV3, collection) -> tuple[dict, list[dict]]:
++    from jsonschema import Draft7Validator
++    from types import SimpleNamespace
++    from .work_research import _fact_evidence
++    snapshot=issued_snapshot
++    if _h(snapshot.replay_json)!=snapshot.manifest_sha256: raise ValueError('Replay manifest drift')
++    packet=_load(snapshot.replay_json)
++    if packet.get('v')!=3 or packet['binding_key']!=list(snapshot.binding_key) or packet['nonce']!=snapshot.nonce or packet['generation']!=snapshot.generation or packet['catalogue_sha256']!=snapshot.catalogue_sha256:
++        raise ValueError('Foreign snapshot binding')
++    original=asdict(collection); original['ignored_failure_ids']=list(collection.ignored_failure_ids)
++    if packet['collection']!=original: raise ValueError('Original collection drift')
++    # Restore the real configured SDK scanners from the sealed policy; no substitute scanner.
++    from openjarvis.security.scanner import SecretScanner, PIIScanner
++    factories={c.__module__+'.'+c.__qualname__:c for c in (SecretScanner,PIIScanner)}
++    try: scanners=tuple(factories[d['name']]() for d in packet['policy']['scanners'])
++    except KeyError as exc: raise ValueError('Unknown replay scanner backend') from exc
++    policy=make_scan_policy(scanners,packet['policy']['mode'])
++    if json.loads(policy.policy_json)!=packet['policy']: raise ValueError('Replay policy drift')
++    binding=SimpleNamespace(**dict(zip(('request_id','session_id','task_id'),snapshot.binding_key)))
++    cat=prepare_navigation(collection,binding,policy,get_records_json=canonical_v3(packet['get_records']),deadline=time.monotonic()+30)
++    cat=replace(cat,nonce=snapshot.nonce)
++    if cat.catalogue_sha256!=snapshot.catalogue_sha256 or json.loads(cat.catalogue_json)!=packet['catalogue'] or [_source_packet(s) for s in cat.sources]!=packet['sources']:
++        raise ValueError('Safe source reconstruction drift')
++    reads=packet['reads']
++    if not 1<=len(reads)<=6 or canonical_v3([r['wire'] for r in reads])!=snapshot.views_json: raise ValueError('Issued views drift')
++    issued={}; seen=set(); sequences=set(); dispatches=set(); adapters=set()
++    for read in reads:
++        key=PageKey(**read['key']); source_id=read['source_id']; start=read['start']
++        if key.generation>=snapshot.generation or key.seq in sequences or key.dispatch_uuid in dispatches or key.adapter_uuid in adapters or (source_id,start) in seen:
++            raise ValueError('Duplicate or unissued read')
++        sequences.add(key.seq); dispatches.add(key.dispatch_uuid); adapters.add(key.adapter_uuid); seen.add((source_id,start))
++        view=scan_view(build_page(cat,source_id,start,key),policy)
++        if json.loads(view.wire_json)!=read['wire'] or view.wire_sha256!=read['wire_sha256']: raise ValueError('Issued page replay drift')
++        for card in json.loads(view.cards_json):
++            ref=card[0]
++            if ref in issued: raise ValueError('Reference collision')
++            issued[ref]=(card,view)
++    if not Draft7Validator(v3_writer_schema()).is_valid(submitted):
++        raise ValueError('Invalid v3 submitted schema')
++    resolved=json.loads(canonical_v3(submitted)); bindings=[]; sources={s['source_id']:s for s in json.loads(collection.catalogue_json)}
++    used=[]
++    for section in resolved['sections']:
++        sid=section['source_id']
++        if sid in used or sid not in sources: raise ValueError('Duplicate or unknown source section')
++        used.append(sid)
++        for fact in section['facts']:
++            ref=fact.pop('evidence_id')
++            if ref not in issued: raise ValueError('Unknown or unissued reference')
++            card,view=issued[ref]
++            if view.source_id!=sid: raise ValueError('Foreign reference')
++            _,kind,op,a,z,left,right=card
++            fact.update(kind=kind,first_line=a,last_line=z)
++            if kind=='code': fact['symbol']=op
++            visible=dict(json.loads(view.wire_json)['lines'])
++            _fact_evidence(fact,sources[sid],visible)
++            source=sources[sid]
++            binding_card={k:source[k] for k in ('source_id','final_url','decoded_body_sha256','read_call_id','request_id','session_id','task_id')}
++            binding_card.update(evidence_id=ref,kind=kind,symbol=op,first_line=a,last_line=z,citation_first=left,citation_last=right,
++                domain=next(s.domain for s in cat.sources if s.source_id==sid),view_id=view.view_id,view_json=view.wire_json.decode())
++            bindings.append(binding_card)
++    if len({sources[s]['dedupe_url'] for s in used})<3 or len({sources[s]['decoded_body_sha256'] for s in used})<3: raise ValueError('Three distinct sources required')
++    return resolved,bindings
++
++
++def render_v3(payload, sources_json, *, bindings):
++    from .work_research import RenderedReport, bound_sources, _text, _escape, _fact_evidence
++    sources=bound_sources(sources_json); lines=['# '+_escape(_text(payload['title'],200)),'']; evidence=[]; cited=[]
++    index=0
++    for section in payload['sections']:
++        sid=section['source_id']; source=sources[sid]
++        if sid in cited: raise ValueError('Duplicate section')
++        lines+=['## '+_escape(_text(section['heading'],200)),source['final_url'],'']
++        for fact in section['facts']:
++            card=bindings[index]; index+=1
++            if card['source_id']!=sid: raise ValueError('Foreign citation')
++            view=json.loads(card['view_json']); visible=dict(view['lines'])
++            support=_fact_evidence(fact,source,visible)
++            left,right=card['citation_first'],card['citation_last']
++            support.update(citation_first=left,citation_last=right,citation_text='\n'.join(visible[i] for i in range(left,right+1)),domain=card['domain'])
++            evidence.append(support)
++            label={'documented':'文档说明','code':'代码观察','limitation':'该处标注'}[support['kind']]
++            lines.append(f"- {label}（{card['domain']} L{left}–L{right}，依据 L{support['first_line']}–L{support['last_line']}）"+_escape(support['claim']))
++        cited.append(sid); lines.append('')
++    if index!=len(bindings) or len(cited)<3 or len({sources[s]['dedupe_url'] for s in cited})<3 or len({sources[s]['decoded_body_sha256'] for s in cited})<3:
++        raise ValueError('Invalid v3 rendering bindings')
++    return RenderedReport('\n'.join(lines),tuple(cited),tuple(evidence))
+diff --git a/src/brain/work_research.py b/src/brain/work_research.py
+index ca6f93f..b4ac4c8 100644
+--- a/src/brain/work_research.py
++++ b/src/brain/work_research.py
+@@ -519,39 +519,69 @@ def render_research_report(payload,sources_json,*,bindings=None):
+                 citation = f'L{left}–L{right}，依据 {citation}'
+             evidence.append(support)
+             label = {'documented':'文档说明','code':'代码观察','limitation':'该处标注'}[support['kind']]
+             lines.append(f"- {label}（{citation}）"+_escape(support['claim']))
+         lines.append(''); cited.append(source_id)
+     if len({sources[s]['dedupe_url'] for s in cited})<3 or len({sources[s]['decoded_body_sha256'] for s in cited})<3:
+         raise ValueError('Report requires three distinct cited source URL/body identities')
+     return RenderedReport('\n'.join(lines),tuple(cited),tuple(evidence))
+ 
+ 
+-def verify_research_artifacts(binding,artifacts,report_records,sources_json,*,require_reference=False):
++def prepare_navigation(collection,binding,scanners,*,get_records_json:bytes,deadline:float):
++    from .work_navigation import prepare_navigation as prepare
++    return prepare(collection,binding,scanners,get_records_json=get_records_json,deadline=deadline)
++
++
++def resolve_v3(submitted,issued_snapshot,collection):
++    from .work_navigation import resolve_v3 as resolve
++    return resolve(submitted,issued_snapshot,collection)
++
++
++def verify_research_artifacts(binding,artifacts,report_records,sources_json,*,require_reference=False,
++                              required_version:int|None=None,issued_snapshot=None):
+     from .work_tools import checked_path
+     source_map=bound_sources(sources_json,binding)
+     if not report_records: raise ValueError('No successful bound research report write')
+     reports={r['result']['file_call_id']:r for r in report_records}
+     cited=set()
+     for artifact in artifacts:
+         record=reports.get(artifact['call_id'])
+         if not record or any(record.get(k)!=getattr(binding,k) for k in ('request_id','session_id','task_id')):
+             raise ValueError('Research artifact has no current report-to-file call linkage')
+         result = record['result']
++        version=result.get('protocol_version')
++        if required_version not in (None,3) or (version is not None and (type(version) is not int or version not in (2,3))):
++            raise ValueError('Unsupported research protocol version')
++        if required_version==3 and (version!=3 or issued_snapshot is None):
++            raise ValueError('Fresh research requires protocol version 3 and snapshot')
+         payload = json.loads(result['payload_json'])
+-        if 'protocol_version' in result or require_reference:
++        if version==3:
++            from .work_navigation import resolve_v3, render_v3
++            if issued_snapshot is None: raise ValueError('Missing v3 issued snapshot')
++            packet=json.loads(issued_snapshot.replay_json)
++            original=packet['collection']
++            collection=ResearchCollection(original['catalogue_json'],original['trace_json'],original['attempts_json'],
++                tuple(original['ignored_failure_ids']),original['search_query'])
++            if json.loads(collection.catalogue_json)!=json.loads(sources_json): raise ValueError('Original v3 sources drift')
++            resolved,bindings=resolve_v3(json.loads(result['submitted_json']),issued_snapshot,collection)
++            if resolved!=payload or bindings!=result['bindings'] or checked_path(binding,payload['path'])!=checked_path(binding,artifact['path']):
++                raise ValueError('Research v3 reference readback mismatch')
++            rendered=render_v3(payload,sources_json,bindings=bindings)
++        elif 'protocol_version' in result or require_reference:
+             if type(result.get('protocol_version')) is not int or result['protocol_version'] != 2:
+                 raise ValueError('Unsupported research reference protocol')
+             resolved, bindings = resolve_references(json.loads(result['submitted_json']),reference_cards(sources_json),sources_json)
+             if resolved != payload or bindings != result['bindings'] or checked_path(binding,payload['path']) != checked_path(binding,artifact['path']):
+                 raise ValueError('Research reference readback mismatch')
+-        rendered=render_research_report(payload,sources_json,bindings=result.get("bindings"))
++            rendered=render_research_report(payload,sources_json,bindings=result.get("bindings"))
++        else:
++            rendered=render_research_report(payload,sources_json,bindings=result.get("bindings"))
+         raw=checked_path(binding,artifact['path']).read_bytes()
+         if hashlib.sha256(raw).hexdigest()!=artifact['sha256'] or raw.decode('utf8').replace('\r\n','\n')!=rendered.content.replace('\r\n','\n'):
+             raise ValueError('Research rendered report independent readback mismatch')
+         if list(rendered.cited_source_ids)!=record['result']['cited_source_ids']:
+             raise ValueError('Research citation receipt mismatch')
+         if list(rendered.evidence)!=record['result']['evidence']:
+             raise ValueError('Research fact evidence mismatch')
+         cited.update(rendered.cited_source_ids)
+     if len(cited)<3: raise ValueError('Research has fewer than three actually cited fetched sources')
+     return [source_map[s] for s in source_map if s in cited]

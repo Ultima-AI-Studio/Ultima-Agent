@@ -1,0 +1,88 @@
+BASE e0b04d6a68f7851d2dfc6c516bc7701896355b69
+HEAD 494e544788c287defbf1208967444e733df5501a
+
+Commits
+494e544 fix: preserve all sixteen random navigation nonce bytes
+
+Stat
+ src/brain/tests/test_work_navigation.py | 13 +++++++++++++
+ src/brain/work_navigation.py            |  3 ++-
+ 2 files changed, 15 insertions(+), 1 deletion(-)
+
+Fix diff
+diff --git a/src/brain/tests/test_work_navigation.py b/src/brain/tests/test_work_navigation.py
+index 81de454..9467256 100644
+--- a/src/brain/tests/test_work_navigation.py
++++ b/src/brain/tests/test_work_navigation.py
+@@ -369,10 +369,23 @@ def test_v3_fresh_artifact_reopening_and_tamper(tmp_path):
+     record=dict(call_id='report',**vars(b),result=dict(protocol_version=3,file_call_id='file',submitted_json=json.dumps(submitted),payload_json=json.dumps(resolved),bindings=bindings,cited_source_ids=list(rendered.cited_source_ids),evidence=list(rendered.evidence)))
+     assert len(research.verify_research_artifacts(binding,[artifact],[record],c.catalogue_json,required_version=3,issued_snapshot=snapshot))==3
+     path.write_bytes(b'tampered')
+     with pytest.raises(ValueError,match='readback'): research.verify_research_artifacts(binding,[artifact],[record],c.catalogue_json,required_version=3,issued_snapshot=snapshot)
+ 
+ 
+ def test_v3_incomplete_python_is_unavailable_without_aborting_other_sources():
+     c,b,r=fixture(["'''",'one()','two()','three()'],suffix='.py')
+     cat=research.prepare_navigation(c,b,policy(),get_records_json=r,deadline=time.monotonic()+30)
+     assert not cat.sources[0].available and sum(s.available for s in cat.sources)==3
++
++
++def test_v3_nonce_preserves_all_sixteen_random_bytes_once(monkeypatch):
++    import secrets
++    calls=[]
++    def random_bytes(size):
++        calls.append(size)
++        assert size==16
++        return b'\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f'
++    monkeypatch.setattr(secrets,'token_bytes',random_bytes)
++    cat,*_=prepare()
++    assert cat.nonce=='000102030405060708090a0b0c0d0e0f'
++    assert calls==[16]
+diff --git a/src/brain/work_navigation.py b/src/brain/work_navigation.py
+index 00cb8e1..c166fb5 100644
+--- a/src/brain/work_navigation.py
++++ b/src/brain/work_navigation.py
+@@ -1,19 +1,20 @@
+ """Safe immutable navigation data and restricted replay; no runtime authority."""
+ from dataclasses import dataclass, asdict, replace
+ import hashlib
+ from html.parser import HTMLParser
+ import inspect
+ import json
+ from pathlib import Path, PurePosixPath
+ import platform
+ import re
++import secrets
+ import time
+ import tokenize
+ from urllib.parse import urlsplit, urlunsplit
+ import uuid
+ 
+ BindingKey = tuple[str, str, str]
+ EXTRACTOR_SHA256 = '9d7cab4749f27dbc08f1b246e03c8a6f8a059acb74692802a1326216e00ef86d'
+ DOC_SUFFIXES = ('', '.md', '.rst', '.txt', '.htm', '.html', '.adoc')
+ 
+ 
+@@ -347,21 +348,21 @@ def build_page(catalogue: CatalogueV3, source_id: str, start_line: int, key: Pag
+     return ViewV3(view_id,source_id,start_line,end,raw,_h(raw),canonical_v3(wire['cards']))
+ 
+ 
+ def prepare_navigation(collection, binding, scanners: ScanPolicy, *, get_records_json: bytes, deadline: float) -> CatalogueV3:
+     if time.monotonic()>=deadline: raise ValueError('Navigation preparation deadline')
+     validate_scan_policy(scanners)
+     records=json.loads(get_records_json)
+     originals=_linked_sources(collection,binding,records)
+     sources=tuple(_safe_source(s,scanners) for s in originals)
+     b=tuple(getattr(binding,k) for k in ('request_id','session_id','task_id'))
+-    nonce=uuid.uuid4().hex
++    nonce=secrets.token_hex(16)
+     cat=CatalogueV3(b,nonce,scanners.policy_sha256,sources,b'', '')
+     available=[]
+     for source in sources:
+         fits=False
+         if source.available:
+             for start in range(1,source.total_lines+1):
+                 if time.monotonic()>=deadline: raise ValueError('Navigation preparation deadline')
+                 view=build_page(cat,source.source_id,start,PageKey(1,2147483647,str(uuid.UUID(int=1)),str(uuid.UUID(int=2))))
+                 scan_view(view,scanners)
+                 if json.loads(view.cards_json): fits=True; break

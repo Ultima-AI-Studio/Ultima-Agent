@@ -1,0 +1,37 @@
+SPEC: REVISE. QUALITY: PASS. One Minor exact-spec mismatch; no Critical or Important finding.
+
+Task-scoped independent SDD SPEC+QUALITY review of original T2/source10 unit1: BASE244d2120abcd6b8d7744f74a05bd22de46a2d3a5..HEADe0b04d6a68f7851d2dfc6c516bc7701896355b69. Read requirements, author report as claims, and full diff. The initial large output truncated; missing portions were recovered in bounded diff slices. No tests, runtime/product imports, git, subagents, network/model/audio/UI or process experiments. Only authorized NEW review outputs were written; the preexisting review-unit1-1 directory was empty. Product, index and refs untouched.
+
+Strengths / checked requirements:
+- src/brain/work_navigation.py:21-113,289-353: strict canonical JSON rejects unsupported types/coercion/surrogates; frozen tuple/bytes records; U, B, view and card hashes bind source/window/exact line bytes, nonce and dispatch identities.
+- src/brain/work_navigation.py:114-250: actual scanner/backend/source identities and ordered mode policy are pinned; GET ledger/result/attempt/START/END/body/projection linkage is checked. scan_view checks exact wire bytes and decoded public strings (163-176).
+- src/brain/work_navigation.py:251-392: whole-line exclusion, redaction equivalence/residual checks, raw HTML findings and suffix/domain restrictions, original witness reuse, final whole-line/contiguous-card fit, omission metadata, legal-start availability and bounded neutral catalogue are implemented. No new relevance/fact oracle or this/super correction.
+- src/brain/work_navigation.py:411-517: pure sealing is separate from runtime issuance; replay recomputes original sources, policy, pages/cards and exact particular window against the sealed manifest. Writer schema is constant and bounded. Existing text/witness validation and explicit coordinate labels are reused.
+- src/brain/work_research.py:530-593: local wrappers and explicit verifier dispatch preserve historical algorithms, reject unknown versions, and require snapshot+version3 when fresh required_version=3 is specified.
+- src/brain/tests/test_work_navigation.py:72-378: independent J/H formulas, real configured scanners, projection/suffix/provenance failures, size/position/card boundary cases, middle-window replay outside v2 visibility, wire/key/hash tamper rejection and real temporary-file reopen/tamper. Supplied final341 evidence was reviewed, not re-run.
+
+Findings:
+1. Minor — src/brain/work_navigation.py:357 uses uuid.uuid4().hex for nonce. Binding design Exact replay format requires16 random bytes encoded as32 lowercase hex. UUIDv4 fixes version/variant bits, providing122 random bits with fixed structure, rather than the exact128-random-bit contract. This is not an observed collision or demonstrated security exploit; the hash-chain behavior otherwise matches. Required resolution: secrets.token_hex(16) or equivalent16-byte cryptographic randomness, generated once, with a deterministic focused test proving all supplied random bytes survive (including UUID version/variant positions). Avoid probabilistic uniqueness/entropy tests. Current identity tests do not distinguish the two. SPEC REVISE until corrected or explicitly ruled by design authority; QUALITY PASS with this Minor correction. Critical: none. Important: none. No other Minor finding.
+
+Named checks outside diff (static text only):
+- Scanner configuration/reconstruction risk: src/brain/agent_server.py:305-332 and installed H SDK security/scanner.py. Checked product security allows actual SecretScanner/PIIScanner classes in configured order; their Rust-backed constructors have no additional constructor configuration. Default-only replay support is consistent with that boundary; unknown scanners remain fail-closed.
+- HTML reconstruction risk: BrowserChannel.fetch_public, src/brain/browser/channel.py:132-181. Lowercased MIME, script/style skip counter and space-joined parts match the new projection. No fetch was performed.
+- Original witness, paragraph and historical visibility risk: unchanged bound_sources/_text, _fact_evidence/_anchors and old renderer/reference helpers in src/brain/work_research.py. The new path reuses paragraph and witness checks and does not use v2 _source_view as v3 authorization. These were focused reads for those concrete risks, not a general crawl.
+
+Inputs / evidence (SHA256):
+- Full diff package133683 bytes:39e391cef7c73cff5aaa431dc0143b84be96ac9ab4d536eb13ce1d3390eccfcb.
+- Implementer requirements brief:a5447a8628e1e4b5d7a6c4ea9370c980f3c068c863a947360dd5d7f8cb2c0260.
+- Review brief:735548c61c5ab8232efe1fd4f78a42b1c8cba37289315d5b2b9164a565e7b434.
+- Author report:51432c361f71f9d17dcfc638c4d493ad1e85a19396cb77b2b301870e0aa2659b.
+- Root before-review readback:35476e488b92f25862c9b5a9e4267a64b39672ab6a351ae5bce3c701bee651ab.
+- Root input-path clarification:57cc9491aa6453c4694ed300f5ee47039e5d6638c66d755d9418d4609b571d0d. Its explicit mapping confirms original generic brief_sha256 names review brief735548c6, not implementer requirementsa5447a86. No input edit occurred; original receipt was preserved.
+- Final unit1-covering-v2-final receipt:b4184da221c2ebbcdc1b2bdf6db95f01e3d88b79df74636bfde545be49be1c60. Supplied341 tests/0failures/0errors/0skips, v2 runner60f6ea3d, unchanged before/after source maps and root exact commit/blob/raw-copy matching. New tests run by reviewer0. Final output clean; earlier failures remain retained. Historical compat8 known preexisting warning/diagnostic was not re-run or mislabeled pristine.
+- Product navigation:ab32d5831f385402149752ddefefa868117a95703cc9900aa88803e706ab8b69; research:6772f852cd3ee468e79461ee579c0444b486918e1bf4e5f53f17496da7ce3b4d; navigation tests:aa47106786a331b36ca6aa51e4d192fdb27691503e066bc62fd750f27d96dab0; v3 spec:46a6e05571056720effc35d3b98ceeecae46af7a07eae9328b9a029abc11442f.
+
+Cannot verify / later gates:
+1. U2: actual trusted narrow callable invokes captured-policy scan_view before SDK staging/exposure; inspector retains only safe catalogue+narrow capability; borrow rechecks actual configured policy; exact object enrollment, START-worker-END, attempted-read/byte limits and real file intent/I/O. Preparation placeholders are availability proof only.
+2. U2/U3: actual successful END and exact secured/native send+response promotion before issuing handles; ordered monotonic ledger admissions, request ownership and independently sealed transport/event chain. seal_snapshot is pure data and alone grants no issuance authority.
+3. U3: full secured/raw schema/history/native transport/deadlines/counters, fresh-v3 writer/ACK/service verification and late effects, plus complete candidate regressions. Existing production callers intentionally remain unswitched in unit1.
+4. Future candidate/harness review and separate actual allocation: real model navigation/comprehension/factual entailment, same-candidate controlled three rounds, real-network sources, E01/E03/negative preservation, external file acceptance and original T2 review. None is certified by341 tests or this static review.
+
+Scope flags: code-review only; new tests0; runtime imports/git/subagents/model/network/actual/harness-inert/T3/production release all false. E02/T2 NOT_PASSED. No allocation, Owner freeze, release or reopening of closed source9 budgets implied.

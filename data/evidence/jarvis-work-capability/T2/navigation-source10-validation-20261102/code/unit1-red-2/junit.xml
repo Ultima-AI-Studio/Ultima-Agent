@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="3" skipped="0" tests="45" time="1.229" timestamp="2026-11-03T00:21:36.480088+08:00" hostname="DESKTOP-B366PQ9"><testcase classname="src.brain.tests.test_work_navigation" name="test_v3_canonical_identity_replay" time="0.049" /><testcase classname="src.brain.tests.test_work_navigation" name="test_v3_line_security_projection[block]" time="0.007" /><testcase classname="src.brain.tests.test_work_navigation" name="test_v3_line_security_projection[warn]" time="0.008" /><testcase classname="src.brain.tests.test_work_navigation" name="test_v3_line_security_projection[redact]" time="0.008" /><testcase classname="src.brain.tests.test_work_navigation" name="test_v3_html_suffix_and_renderable_availability[]" time="0.007" /><testcase classname="src.brain.tests.test_work_navigation" name="test_v3_html_suffix_and_renderable_availability[.md]" time="0.007" /><testcase classname="src.brain.tests.test_work_navigation" name="test_v3_html_suffix_and_renderable_availability[.rst]" time="0.007" /><testcase classname="src.brain.tests.test_work_navigation" name="test_v3_html_suffix_and_renderable_availability[.txt]" time="0.007" /><testcase classname="src.brain.tests.test_work_navigation" name="test_v3_html_suffix_and_renderable_availability[.htm]" time="0.007" /><testcase classname="src.brain.tests.test_work_navigation" name="test_v3_html_suffix_and_renderable_availability[.html]" time="0.006" /><testcase classname="src.brain.tests.test_work_navigation" name="test_v3_html_suffix_and_renderable_availability[.adoc]" time="0.007" /><testcase classname="src.brain.tests.test_work_navigation" name="test_v3_html_suffix_and_renderable_availability[.ts]" time="0.003" /><testcase classname="src.brain.tests.test_work_navigation" name="test_v3_html_suffix_and_renderable_availability[.py]" time="0.003" /><testcase classname="src.brain.tests.test_work_navigation" name="test_v3_html_suffix_and_renderable_availability[.unknown]" time="0.003" /><testcase classname="src.brain.tests.test_work_navigation" name="test_v3_provenance_rejects_before_composition[body]" time="0.002" /><testcase classname="src.brain.tests.test_work_navigation" name="test_v3_provenance_rejects_before_composition[projection]" time="0.002" /><testcase classname="src.brain.tests.test_work_navigation" name="test_v3_provenance_rejects_before_composition[get]" time="0.002" /><testcase classname="src.brain.tests.test_work_navigation" name="test_v3_provenance_rejects_before_composition[truncated]" time="0.005" /><testcase classname="src.brain.tests.test_work_navigation" name="test_v3_provenance_rejects_before_composition[duplicate]" time="0.002" /><testcase classname="src.brain.tests.test_work_navigation" name="test_v3_provenance_rejects_before_composition[coordinates]" time="0.005" /><testcase classname="src.brain.tests.test_work_navigation" name="test_v3_provenance_rejects_before_composition[raw_html_secret]" time="0.005" /><testcase classname="src.brain.tests.test_work_navigation" name="test_v3_final_fit_and_omissions" time="0.013" /><testcase classname="src.brain.tests.test_work_navigation" name="test_v3_three_renderable_sources_required[]" time="0.005" /><testcase classname="src.brain.tests.test_work_navigation" name="test_v3_three_renderable_sources_required[text1]" time="0.008" /><testcase classname="src.brain.tests.test_work_navigation" name="test_v3_three_renderable_sources_required[text2]" time="0.005" /><testcase classname="src.brain.tests.test_work_navigation" name="test_v3_three_renderable_sources_required[text3]" time="0.006" /><testcase classname="src.brain.tests.test_work_navigation" name="test_v3_three_renderable_sources_required[password = &quot;syntheticsecret&quot;]" time="0.006" /><testcase classname="src.brain.tests.test_work_navigation" name="test_v2_archival_bytes_unchanged_and_fresh_requires_v3" time="0.405" /><testcase classname="src.brain.tests.test_work_navigation" name="test_v3_policy_and_sealed_replay" time="0.106"><failure message="jsonschema.exceptions.ValidationError: 'old.1' does not match '^N3\\.[0-9a-f]{16}$'&#10;&#10;Failed validating 'pattern' in schema['properties']['sections']['items']['properties']['facts']['items']['properties']['evidence_id']:&#10;    {'type': 'string',&#10;     'pattern': '^N3\\.[0-9a-f]{16}$',&#10;     'minLength': 19,&#10;     'maxLength': 19}&#10;&#10;On instance['sections'][0]['facts'][0]['evidence_id']:&#10;    'old.1'">def test_v3_policy_and_sealed_replay():
+        n=nav(); cat,c,b,r,p=prepare()
+        n.validate_scan_policy(p,p)
+        with pytest.raises(ValueError): n.validate_scan_policy(dataclasses.replace(p,scanners=tuple(reversed(p.scanners))),p)
+        reads=[n.build_page(cat,f'S{i}',1,key(i)) for i in range(1,4)]
+        snapshot=n.seal_snapshot(cat,c,r,p,tuple(zip([key(i) for i in range(1,4)],reads)),generation=2)
+        submitted=dict(path='research.md',title='Research',sections=[dict(source_id=f'S{i}',heading=f'Source {i}',facts=[dict(claim='The document describes local behavior.',evidence_id=json.loads(reads[i-1].wire_json)['cards'][0][0])]) for i in range(1,4)])
+        resolved, bindings=n.resolve_v3(submitted,snapshot,c)
+        rendered=n.render_v3(resolved,c.catalogue_json,bindings=bindings)
+        assert len(bindings)==3 and 'extracted-text' not in rendered.content and 'raw L' in rendered.content
+        for bad in ('N3.'+'0'*16,'old.1',json.loads(reads[1].wire_json)['cards'][0][0]):
+            forged=json.loads(json.dumps(submitted)); forged['sections'][0]['facts'][0]['evidence_id']=bad
+&gt;           with pytest.raises(ValueError): n.resolve_v3(forged,snapshot,c)
+                                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+src\brain\tests\test_work_navigation.py:188: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+src\brain\work_navigation.py:448: in resolve_v3
+    Draft7Validator(v3_writer_schema()).validate(submitted)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = Draft7Validator(schema={'additionalProperties': False, 'properties': {'path': {'maxLength': 2048, 'minLength': 1, 'typ... 'minLength': 1, 'type': 'string'}}, 'required': ['path', 'title', 'sections'], 'type': 'object'}, format_checker=None)
+args = ({'path': 'research.md', 'title': 'Research', 'sections': [{'source_id': 'S1', 'heading': 'Source 1', 'facts': [{'clai...: 'Source 3', 'facts': [{'claim': 'The document describes local behavior.', 'evidence_id': 'N3.8e7416ef20910a9f'}]}]},)
+kwargs = {}
+
+    def validate(self, *args, **kwargs):
+        for error in self.iter_errors(*args, **kwargs):
+&gt;           raise error
+E           jsonschema.exceptions.ValidationError: 'old.1' does not match '^N3\\.[0-9a-f]{16}$'
+E           
+E           Failed validating 'pattern' in schema['properties']['sections']['items']['properties']['facts']['items']['properties']['evidence_id']:
+E               {'type': 'string',
+E                'pattern': '^N3\\.[0-9a-f]{16}$',
+E                'minLength': 19,
+E                'maxLength': 19}
+E           
+E           On instance['sections'][0]['facts'][0]['evidence_id']:
+E               'old.1'
+
+H:\UltimaAI\UltimaAgent\tools\venv-openjarvis\Lib\site-packages\jsonschema\validators.py:450: ValidationError</failure></testcase><testcase classname="src.brain.tests.test_work_navigation" name="test_v3_complete_wire_security_check" time="0.009"><failure message="Failed: DID NOT RAISE ValueError">def test_v3_complete_wire_security_check():
+        n=nav(); cat,*_=prepare(); p=policy()
+        view=n.build_page(cat,'S1',1,key())
+        assert n.scan_view(view,p)==view
+        wire=json.loads(view.wire_json); wire['metadata']='password = "syntheticsecret"'
+        raw=j(wire)
+&gt;       with pytest.raises(ValueError,match='Unsafe'): n.scan_view(dataclasses.replace(view,wire_json=raw,wire_sha256=h(raw)),p)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+src\brain\tests\test_work_navigation.py:199: Failed</failure></testcase><testcase classname="src.brain.tests.test_work_navigation" name="test_v3_get_end_linkage_is_required" time="0.006"><failure message="Failed: DID NOT RAISE ValueError">def test_v3_get_end_linkage_is_required():
+        n=nav(); c,b,r=fixture()
+        events=json.loads(c.trace_json)
+        events[1]['data']['success']=False
+        c=dataclasses.replace(c,trace_json=json.dumps(events))
+&gt;       with pytest.raises(ValueError,match='GET'): research.prepare_navigation(c,b,policy(),get_records_json=r,deadline=time.monotonic()+30)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+src\brain\tests\test_work_navigation.py:207: Failed</failure></testcase><testcase classname="src.brain.tests.test_work_navigation" name="test_v3_line_count_cap[1023]" time="0.022" /><testcase classname="src.brain.tests.test_work_navigation" name="test_v3_line_count_cap[1024]" time="0.021" /><testcase classname="src.brain.tests.test_work_navigation" name="test_v3_line_count_cap[1025]" time="0.004" /><testcase classname="src.brain.tests.test_work_navigation" name="test_v3_decoded_byte_cap[262143]" time="0.028" /><testcase classname="src.brain.tests.test_work_navigation" name="test_v3_decoded_byte_cap[262144]" time="0.029" /><testcase classname="src.brain.tests.test_work_navigation" name="test_v3_decoded_byte_cap[262145]" time="0.008" /><testcase classname="src.brain.tests.test_work_navigation" name="test_v3_page_position_cap_and_zero_card_read[23]" time="0.010" /><testcase classname="src.brain.tests.test_work_navigation" name="test_v3_page_position_cap_and_zero_card_read[24]" time="0.010" /><testcase classname="src.brain.tests.test_work_navigation" name="test_v3_page_position_cap_and_zero_card_read[25]" time="0.010" /><testcase classname="src.brain.tests.test_work_navigation" name="test_v3_card_cap[7]" time="0.009" /><testcase classname="src.brain.tests.test_work_navigation" name="test_v3_card_cap[8]" time="0.009" /><testcase classname="src.brain.tests.test_work_navigation" name="test_v3_card_cap[9]" time="0.009" /><testcase classname="src.brain.tests.test_work_navigation" name="test_v3_hash_identity_mutations_and_collision" time="0.007" /><testcase classname="src.brain.tests.test_work_navigation" name="test_v3_inconsistent_redaction_and_residuals" time="0.008" /></testsuite></testsuites>

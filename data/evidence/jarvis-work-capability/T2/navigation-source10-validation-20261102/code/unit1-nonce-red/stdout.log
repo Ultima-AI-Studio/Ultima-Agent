@@ -1,0 +1,28 @@
+........................................................F............... [ 30%]
+........................................................................ [ 61%]
+........................................................................ [ 91%]
+...................                                                      [100%]
+================================== FAILURES ===================================
+____________ test_v3_nonce_preserves_all_sixteen_random_bytes_once ____________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000022A05EAC130>
+
+    def test_v3_nonce_preserves_all_sixteen_random_bytes_once(monkeypatch):
+        import secrets
+        calls=[]
+        def random_bytes(size):
+            calls.append(size)
+            assert size==16
+            return b'\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f'
+        monkeypatch.setattr(secrets,'token_bytes',random_bytes)
+        cat,*_=prepare()
+>       assert cat.nonce=='000102030405060708090a0b0c0d0e0f'
+E       AssertionError: assert '0ca84040673f...2369750d8cc82' == '000102030405...90a0b0c0d0e0f'
+E         
+E         - 000102030405060708090a0b0c0d0e0f
+E         + 0ca84040673f4f2ea482369750d8cc82
+
+src\brain\tests\test_work_navigation.py:390: AssertionError
+=========================== short test summary info ===========================
+FAILED src/brain/tests/test_work_navigation.py::test_v3_nonce_preserves_all_sixteen_random_bytes_once
+1 failed, 234 passed in 14.01s

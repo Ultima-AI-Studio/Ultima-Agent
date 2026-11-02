@@ -1,0 +1,15 @@
+.............................................F..                         [100%]
+================================== FAILURES ===================================
+_______________ test_v3_policy_pins_actual_rules_and_extractor ________________
+
+    def test_v3_policy_pins_actual_rules_and_extractor():
+        n=nav(); p=policy(); data=json.loads(p.policy_json)
+        from pathlib import Path
+>       assert data['navigation_sha256']==h(Path(n.__file__).read_bytes())
+               ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       KeyError: 'navigation_sha256'
+
+src\brain\tests\test_work_navigation.py:277: KeyError
+=========================== short test summary info ===========================
+FAILED src/brain/tests/test_work_navigation.py::test_v3_policy_pins_actual_rules_and_extractor
+1 failed, 47 passed in 1.59s

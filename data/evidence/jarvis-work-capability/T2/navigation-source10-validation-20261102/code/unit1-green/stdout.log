@@ -1,0 +1,47 @@
+............................F                                            [100%]
+================================== FAILURES ===================================
+______________________ test_v3_policy_and_sealed_replay _______________________
+
+    def test_v3_policy_and_sealed_replay():
+        n=nav(); cat,c,b,r,p=prepare()
+        n.validate_scan_policy(p,p)
+        with pytest.raises(ValueError): n.validate_scan_policy(dataclasses.replace(p,scanners=tuple(reversed(p.scanners))),p)
+        reads=[n.build_page(cat,f'S{i}',1,key(i)) for i in range(1,4)]
+        snapshot=n.seal_snapshot(cat,c,r,p,tuple(zip([key(i) for i in range(1,4)],reads)),generation=2)
+        submitted=dict(path='research.md',title='Research',sections=[dict(source_id=f'S{i}',heading=f'Source {i}',facts=[dict(claim='The document describes local behavior.',evidence_id=json.loads(reads[i-1].wire_json)['cards'][0][0])]) for i in range(1,4)])
+        resolved, bindings=n.resolve_v3(submitted,snapshot,c)
+        rendered=n.render_v3(resolved,c.catalogue_json,bindings=bindings)
+        assert len(bindings)==3 and 'extracted-text' not in rendered.content and 'raw L' in rendered.content
+        for bad in ('N3.'+'0'*16,'old.1',json.loads(reads[1].wire_json)['cards'][0][0]):
+            forged=json.loads(json.dumps(submitted)); forged['sections'][0]['facts'][0]['evidence_id']=bad
+>           with pytest.raises(ValueError): n.resolve_v3(forged,snapshot,c)
+                                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+src\brain\tests\test_work_navigation.py:188: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+src\brain\work_navigation.py:448: in resolve_v3
+    Draft7Validator(v3_writer_schema()).validate(submitted)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = Draft7Validator(schema={'additionalProperties': False, 'properties': {'path': {'maxLength': 2048, 'minLength': 1, 'typ... 'minLength': 1, 'type': 'string'}}, 'required': ['path', 'title', 'sections'], 'type': 'object'}, format_checker=None)
+args = ({'path': 'research.md', 'title': 'Research', 'sections': [{'source_id': 'S1', 'heading': 'Source 1', 'facts': [{'clai...: 'Source 3', 'facts': [{'claim': 'The document describes local behavior.', 'evidence_id': 'N3.944ed9841245fdf2'}]}]},)
+kwargs = {}
+
+    def validate(self, *args, **kwargs):
+        for error in self.iter_errors(*args, **kwargs):
+>           raise error
+E           jsonschema.exceptions.ValidationError: 'old.1' does not match '^N3\\.[0-9a-f]{16}$'
+E           
+E           Failed validating 'pattern' in schema['properties']['sections']['items']['properties']['facts']['items']['properties']['evidence_id']:
+E               {'type': 'string',
+E                'pattern': '^N3\\.[0-9a-f]{16}$',
+E                'minLength': 19,
+E                'maxLength': 19}
+E           
+E           On instance['sections'][0]['facts'][0]['evidence_id']:
+E               'old.1'
+
+H:\UltimaAI\UltimaAgent\tools\venv-openjarvis\Lib\site-packages\jsonschema\validators.py:450: ValidationError
+=========================== short test summary info ===========================
+FAILED src/brain/tests/test_work_navigation.py::test_v3_policy_and_sealed_replay
+1 failed, 28 passed in 1.08s

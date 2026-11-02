@@ -1,6 +1,6 @@
 # T2 E02 当前 8B 研究接口复核
 
-当前阶段：**设计及实施计划均已独审通过，source10 正在隔离编码第一单元；E02、T2 真实验收尚未通过。** 原工单 `wo-ultimaagent-20261101-0021` 继续执行。
+当前阶段：**source10 数据层已有独审检查点，SDK 权限与完整研究循环合并集成中；E02、T2 真实验收尚未通过。** 原工单 `wo-ultimaagent-20261101-0021` 继续执行。
 
 同一候选上的 E01 文件摘要三轮、E03 选区改写三轮及焦点/选区负例已独立通过，结论见[验收汇总](jarvis-work-t2-e01-e03-acceptance-20261102.md)。当前继续解决 E02 研究任务，不越过 T2 推进 T3。
 
@@ -37,3 +37,7 @@
 正式设计为[研究资料按需查看方案](../plans/jarvis-work-research-source-navigation-design-20261102.md)，SHA41998861f1a0eeaad1800f61d19642656b0e19fa4b74dcf0e79366d6dc4c0eef。现在按原工单细化代码文件、接口、先失败后通过的测试、同候选回归及独审步骤；源码10、首个实际8B案例和T3均待各自门。新1CLI/8POST额度只是提议，未分配。永久仅当前8B，旧9/9、3/4、1/1封口，KWS/生产保持。
 
 2026-11-03：实施计划独审 SPEC/QUALITY PASS（a65a30ec），唯一非阻断命名勘误已逐字读回修正，正式计划 SHAa8419b77。现有隔离C从244创建 codex/jarvis-work-navigation-v3-source10，H生产0a31不变。代码阶段新跑六文件285PASS及compat8PASS，实际加载产品路径验证通过；compat原有anyio rewrite警告与可选voice reference fallback提示保留，不能称输出全无警告。已派发第一单元实现安全来源投影/页面/canonical v3及重放；后续为请求permit/SDK写入、完整对话/有界transport。代码只放行明确allowlist及隔离测试，首个实际1CLI/8POST尚未分配，模型调用0。旧source9 E01/E03只对旧候选成立；新候选仍须完整SDK、实际E02三轮/真实联网/同版E01E03与负例/原T2审查。KWS、生产进程、其他权重及T3均不变。
+
+Source10第一单元已完成：244→e0b04d6→494e544，仅六个允许路径。安全资料投影/页面/canonical v3/按实际窗口重放及fresh3验证已实现，原v2算法保留。e0完整回归341通过；随后nonce16字节精确性Minor修正，在494相关两文件235通过，不能把341称为494上的重跑结果。最终独审90d57d47/e371a8c3为SPEC/QUALITY PASS，无未闭意见。代码tag jarvis-t2-e02-navigation-unit1-20261103指向494；证据检查点另名unit1-evidence。第一单元只算数据接口，通过不代表实际SDK/8B研究可交付。现已启动第二单元的enrollment/permit/安全preparer/真实SDK worker与FileWriteTool测试；第三单元还需完整对话和原生transport。实际模型调用、新真实验收、harness inert、T3都未放行。生产五个CIM域身份与8756当前8B健康读回一致，根比较器初次JSON日期自动转换误拒已保留说明并用DateKind String纠正，旧基线不改，停止进程0。
+
+联合集成裁定：原生研究回归同时依赖新capability/permit与新phase/history，两批中间无法维持真实全链成功断言，因此U2/U3合并为同一实现/独审单元，不设置伪造成功、skip/xfail或默认v2后退。只调整工作拆分，不改原设计/事实门/预算。第一次完整联合回归369项中82失败已保留，用于迁移旧协议fixtures；这不是新的产品验收失败重入。另有unit2-green-2中的独立失败来自临时PageKey页面的N3哈希被实际PIIScanner当成Mastercard号，根独立重现f25302c7并定位到预检查错误调用实际暴露前scan_view。按已定职责仅移除占位页的实际扫描，保留来源/目录安全和真实inspector返回前严格扫描；该小修复正在联合实现中，完整回归及独审尚待完成。实际返回的PII样式引用仍按原策略拒绝，可用性比例未测，不声称已消除全部误判。允许仅迁移test_work_context两项research fixtures的最小改动，原E01/E03及旧快照不改。源代码494检查点与tag已推送并远端读回，后续修复不在该旧检查点中，未生产集成/未新增模型调用。
