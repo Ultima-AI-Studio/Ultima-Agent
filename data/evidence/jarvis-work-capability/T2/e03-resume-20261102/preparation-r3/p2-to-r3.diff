@@ -1,0 +1,224 @@
+--- preparation-r2/controller.py
++++ preparation-r3/controller.py
+@@ -1,5 +1,6 @@
+-"""Revision 2 original acceptance evidence controller. Root alone releases a case."""
++"""Revision 3 original acceptance evidence controller. Root alone releases a case."""
+ from __future__ import annotations
++import base64
+ import argparse, ctypes as C, datetime as dt, hashlib, json, os, socket, stat, subprocess, sys, time, uuid
+ from pathlib import Path
+ import urllib.request
+@@ -64,7 +65,7 @@
+         require(Path(name).name==name,'Unsafe package entry')
+         require(sha(no_reparse(P/name))==digest,'Preparation file drift')
+     approval_path=no_reparse(R/'controller-preparation-approval.json'); approval=load(approval_path)
+-    review_path=no_reparse(R/'review-preparation-2/review.md')
++    review_path=no_reparse(R/'review-preparation-3/review.md')
+     require(approval.get('schema')==2 and approval.get('overall')=='PASS' and approval.get('reviewer')=='root-independent','Independent preparation approval required')
+     require(approval.get('preparation_manifest_sha256')==sha(P/'manifest.json') and approval.get('review_sha256')==sha(review_path),'Current review mismatch')
+     require(authority.get('approval_sha256')==sha(approval_path),'Approval binding mismatch')
+@@ -114,6 +115,27 @@
+     try: return [pointer[i] for i in range(count.value)]
+     finally: kernel.LocalFree(C.cast(pointer,W.HLOCAL))
+ 
++def process_snapshot(pids=None,proof=None):
++    # Encode commandlines as UTF16LE base64 inside the child PowerShell process.
++    # The wire JSON is ASCII; strict decoding never guesses GB2312/UTF8 or replaces.
++    query='Get-CimInstance Win32_Process'
++    if pids is not None:
++        require(pids and all(type(pid) is int and pid>0 for pid in pids),'Exact PID scope required')
++        query+=' -Filter "'+ ' OR '.join('ProcessId='+str(pid) for pid in pids)+'"'
++    script=query+' | ForEach-Object { [pscustomobject]@{ProcessId=[int]$_.ProcessId;ParentProcessId=[int]$_.ParentProcessId;CommandLineBase64=[Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes([string]$_.CommandLine))} } | ConvertTo-Json -Compress'
++    raw=subprocess.check_output(['powershell.exe','-NoProfile','-NonInteractive','-Command',script],creationflags=subprocess.CREATE_NO_WINDOW,timeout=15)
++    records=json.loads(raw.decode('ascii',errors='strict') or '[]')
++    if isinstance(records,dict): records=[records]
++    snapshot={}
++    for row in records:
++        row=dict(row);row['CommandLine']=base64.b64decode(row['CommandLineBase64'],validate=True).decode('utf-16-le',errors='strict');snapshot[row['ProcessId']]=row
++    if proof is not None:
++        require(pids is not None,'Raw proof must be scoped to owned PIDs')
++        Path(proof).with_suffix('.raw').write_bytes(raw)
++        save(proof,{'transport':'ASCII JSON with base64 UTF16LE commandline','raw_sha256':hashlib.sha256(raw).hexdigest(),'raw_hex':raw.hex(),'records':snapshot})
++    return snapshot
++
++
+ def process_times(proc):
+     from ctypes import wintypes as W
+     kernel=C.WinDLL('kernel32'); kernel.GetProcessTimes.argtypes=[W.HANDLE,*([C.POINTER(W.FILETIME)]*4)]
+@@ -130,7 +152,7 @@
+         self.allowed_exes={str(Path(sys.executable)).lower(),identity(os.getpid())['exe'].lower()}
+         self.forbidden={x['pid'] for x in protected()}
+     def discover(self):
+-        snapshot=old.process_snapshot()
++        snapshot=process_snapshot()
+         for item in self.launchers:
+             proc=item['proc']; created,exited=process_times(proc)
+             require(created==item['identity']['created_filetime'],'Launcher creation drift')
+@@ -150,6 +172,23 @@
+                 previous=self.known.get(pid)
+                 require(previous is None or previous['identity']==key,'Owned PID reuse')
+                 self.known[pid]={'identity':key,'role':item['role'],'argv':row['CommandLine'],'parent':proc.pid}
++        # Inspect below validated interpreter children too. New nested identities
++        # have no original launch authority: record and fail, never terminate.
++        for parent_pid,parent in list(self.known.items()):
++            if parent_pid not in snapshot: continue
++            try: require(identity(parent_pid)==parent['identity'],'Known parent identity drift')
++            except OSError: continue
++            pending=[(parent_pid,parent['identity']['created_filetime'])]; visited=set()
++            while pending:
++                ancestor,created=pending.pop()
++                if ancestor in visited: continue
++                visited.add(ancestor)
++                for pid,row in snapshot.items():
++                    if row['ParentProcessId']!=ancestor or pid in self.known or pid in self.auxiliary: continue
++                    key=identity(pid)
++                    if key['created_filetime']<created: continue
++                    self.errors.append({'discovery':'unknown-nested-descendant','identity':key,'parent':ancestor,'authority':'none'})
++                    pending.append((pid,key['created_filetime']))
+         save(self.folder/'owned-tree.json',{'processes':list(self.known.values()),'auxiliary':list(self.auxiliary.values()),'stale_rejected':self.stale,'errors':self.errors})
+         require(not self.errors,'Owned discovery ambiguity')
+         return snapshot
+@@ -176,8 +215,8 @@
+         for item in sorted(self.known.values(),key=lambda x:x['identity']['pid'] in roots):
+             key=item['identity']; pid=key['pid']
+             try:
+-                if pid in old.process_snapshot(): terminate_owned(key)
+-                absent=pid not in old.process_snapshot()
++                if pid in process_snapshot(): terminate_owned(key)
++                absent=pid not in process_snapshot()
+                 require(absent,'Owned PID remains')
+                 records.append({'identity':key,'absent':True})
+             except Exception as exc: self.errors.append({'cleanup':pid,'error':str(exc)}); records.append({'identity':key,'absent':False})
+@@ -187,10 +226,10 @@
+         # Let console auxiliaries exit naturally; no parent-only termination.
+         deadline=time.monotonic()+3
+         while self.auxiliary and time.monotonic()<deadline:
+-            snapshot=old.process_snapshot()
++            snapshot=process_snapshot()
+             if not any(pid in snapshot for pid in self.auxiliary): break
+             time.sleep(.05)
+-        snapshot=old.process_snapshot()
++        snapshot=process_snapshot()
+         for pid,item in self.auxiliary.items():
+             if pid in snapshot: self.errors.append({'auxiliary_remains':item})
+             else: records.append({'identity':item['identity'],'absent':True,'authority':'observe-only'})
+@@ -231,12 +270,41 @@
+     if root.exists(): walk(root)
+     return records
+ 
++def inventory_map(records):
++    require(isinstance(records,list),'Output inventory unavailable')
++    values={}
++    for item in records:
++        require(isinstance(item,dict) and all(isinstance(item.get(k),str) for k in ('path','bytes_hex','sha256')),'Incomplete inventory record')
++        path=item['path'];require(path not in values,'Duplicate inventory path')
++        raw=bytes.fromhex(item['bytes_hex']);require(hashlib.sha256(raw).hexdigest()==item['sha256'],'Inventory bytes/hash contradiction')
++        values[path]={'sha256':item['sha256'],'bytes_hex':raw.hex()}
++    return values
++
++def reconcile_effects(expected,effects):
++    require(expected is not None,'Accepted final state unavailable')
++    required_unknown=('outputs_unknown','effects_unknown','logs_flush_unknown','fixture_owner_unknown')
++    require(not any(k in effects for k in required_unknown) and not effects.get('product_result_conflict') and not (expected.get('cli_count',1)>0 and 'product_unknown' in effects),'Final effects unknown')
++    require(expected['windows'] is None or 'windows_unknown' not in effects,'Required final window unknown')
++    require(inventory_map(effects.get('outputs'))==inventory_map(expected['outputs']),'Final output set/bytes/hash changed')
++    if expected['windows'] is not None:
++        require(effects.get('windows')==expected['windows'],'Final owned window identity/text/selection/caret changed')
++    return 'PASS'
++
+ def read_artifacts(folder,result):
+-    task=uuid_text(result.get('task_id')); artifacts=[]
++    task=uuid_text(result.get('task_id')); artifacts=[]; attempts=[]
+     for item in result.get('artifacts',[]):
+-        path=artifact_path(folder,task,item.get('path')); raw=path.read_bytes()
+-        artifacts.append(dict(item,text=raw.decode('utf-8'),external_sha256=hashlib.sha256(raw).hexdigest()))
++        attempt={'claimed_artifact':item};attempts.append(attempt)
++        try:
++            path=artifact_path(folder,task,item.get('path')); raw=path.read_bytes()
++            attempt.update(path=str(path),bytes_hex=raw.hex(),sha256=hashlib.sha256(raw).hexdigest())
++            text=raw.decode('utf-8');artifacts.append(dict(item,text=text,external_sha256=attempt['sha256']))
++        except Exception as exc:
++            attempt.update(error=str(exc),error_type=type(exc).__name__);raise
++        finally:
++            save(folder/'external-readback-attempts.json',attempts)
++            save(folder/'external-artifacts.json',artifacts)
+     return artifacts
++
+ 
+ def ids(item,result):
+     require(all(item.get(k)==result[k] for k in ('request_id','session_id','task_id')),'Run identity mismatch')
+@@ -257,7 +325,8 @@
+     require(len(artifacts)==1 and Path(artifacts[0]['path']).name==expected,'Exact output set required')
+     artifact=artifacts[0]; ids(artifact,result)
+     require(artifact.get('verified') is True and artifact['sha256']==artifact['external_sha256'],'Service/external hash mismatch')
+-    require({x['path'] for x in inventory}=={artifact['path']},'Unrelated/unreported output')
++    expected_inventory={artifact['path']:{'sha256':artifact['external_sha256'],'bytes_hex':artifact['text'].encode('utf-8').hex()}}
++    require(inventory_map(inventory)==expected_inventory,'Unrelated/missing/contradictory output bytes/hash')
+     records=[x for x in result.get('tool_results',[]) if 'call_id' in x]
+     writes=[x for x in records if x.get('tool_name')=='ultima_work_file_write']
+     require(len(writes)==1 and writes[0].get('success') is True,'One completed actual write required')
+@@ -312,7 +381,13 @@
+         except Exception as exc: evidence['logs_flush_unknown']=str(exc)
+         try:
+             raw=(self.folder/'cli.stdout').read_text(encoding='utf-8'); evidence['raw_cli_preserved']='cli.stdout'
+-            self.result=json.loads(raw); save(self.folder/'product-result.json',self.result)
++            observed=json.loads(raw); save(self.folder/'pre-cleanup-product-observed.json',observed)
++            original=self.folder/'product-result.json'
++            if original.exists():
++                evidence['product_result_conflict']=load(original)!=observed
++                self.result=load(original)
++            else:
++                self.result=observed;save(original,self.result)
+         except Exception as exc: evidence['product_unknown']=str(exc)
+         evidence['completed_inferences']=[x for x in (self.result or {}).get('trace',[]) if x.get('type')=='inference_end']
+         try: evidence['outputs']=output_inventory(self.folder)
+@@ -344,6 +419,7 @@
+             after=self.observe('negative-'+scenario+'-after')
+             require(rejected and not sends and [x['text'] for x in after]==[x['text'] for x in baseline] and output_inventory(self.folder)==before_files,'Negative refusal/mutation/text/file failure')
+             failures.append({'scenario':scenario,'capture':capture,'changed_windows':current,'foreground':focus,'rejected':rejected,'error':error,'sends':list(sends),'texts_files_unchanged':True})
++        self.accepted_effects={'outputs':before_files,'windows':after,'cli_count':0}
+         save(self.folder/'negative-evidence.json',{'cases':failures,'mutation_sends':sends,'model_requests':0}); return {'mechanical':'PASS','facts':'PENDING_ROOT_INDEPENDENT_REVIEW'}
+ 
+ def execute(case,folder,authority_path,ledger_path):
+@@ -351,7 +427,7 @@
+     source_check(); before=protected(); native=native_proof(root_proof) # BEFORE fixture/UI, negative included
+     folder.mkdir(parents=True,exist_ok=False)
+     save(folder/'admission.json',{'authority':authority,'ledger':ledger,'native':native})
+-    sys.path.insert(0,str(ROOT)); context=Case(case,folder,environment(folder)); review=None; errors=[]; baseline=None
++    sys.path.insert(0,str(ROOT)); context=Case(case,folder,environment(folder)); review=None; errors=[]; baseline=None; expected_effects=None
+     try:
+         from src.brain.tests import work_context_acceptance as h
+         validate_authority(case,folder,authority_path,ledger_path,active=True)
+@@ -361,7 +437,8 @@
+             require(owner and owner['role']=='fixture' and all(t['pid']==fixture['pid'] and t['process_created_filetime']==owner['identity']['created_filetime'] for t in fixture['targets']),'Actual fixture owner mismatch')
+             context.fixture_ready=True; baseline=context.observe('baseline')
+             require(len(baseline)==2 and baseline[0]['text']==h.CASES['e03']['text'],'Frozen fixture mismatch')
+-        if case=='e03-negative': review=context.negative(baseline)
++        if case=='e03-negative':
++            review=context.negative(baseline); expected_effects=context.accepted_effects
+         else:
+             sock=socket.socket(); sock.bind(('127.0.0.1',0)); context.port=sock.getsockname()[1]; sock.close()
+             argv=['-B','-m','src.brain.agent_server','--port',str(context.port),'--runtime-root',str(folder/'runtime'),'--work-output-root',str(folder/'outputs'),'--isolated']
+@@ -386,13 +463,21 @@
+             require(cli.returncode==0,'Nonzero CLI exit; generation may continue')
+             events=[x for x in context.result.get('trace',[]) if x.get('type')=='inference_end']; require(1<=len(events)<=10 and all(x.get('data',{}).get('model')==MODEL for x in events),'Completed inference proof missing')
+             artifacts=read_artifacts(folder,context.result); windows=context.observe('final-windows') if context.fixture_ready else None
+-            review=mechanical(case,folder,context.result,artifacts,baseline,windows,output_inventory(folder)); save(folder/'mechanical-review.json',review)
++            observed_inventory=output_inventory(folder)
++            save(folder/'mechanical-inputs.json',{'artifacts':artifacts,'baseline':baseline,'windows':windows,'outputs':observed_inventory})
++            review=mechanical(case,folder,context.result,artifacts,baseline,windows,observed_inventory)
++            expected_effects={'outputs':observed_inventory,'windows':windows,'cli_count':1}
++            save(folder/'accepted-effects.json',expected_effects)
++            save(folder/'mechanical-review.json',review)
+     except Exception as exc: errors.append({'harness':str(exc),'type':type(exc).__name__})
+     finally:
+         try: effects=context.effects() # ALWAYS before target destruction/server termination
+         except Exception as exc:
+             effects={'effects_unknown':str(exc)}; save(folder/'pre-cleanup-effects.json',effects); errors.append({'effects':str(exc)})
+         save(folder/'pre-cleanup-effects.json',effects)
++        if review:
++            try: reconcile_effects(expected_effects,effects)
++            except Exception as exc: errors.append({'final_effects_consistency':str(exc)})
+         try: save(folder/'native-after.json',native_proof(root_proof))
+         except Exception as exc: errors.append({'native_boundary':str(exc)})
+         try: cleanup=context.owned.cleanup(context.port)
