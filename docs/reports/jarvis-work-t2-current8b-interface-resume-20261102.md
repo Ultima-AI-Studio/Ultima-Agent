@@ -1,5 +1,7 @@
 # T2 当前社区8B研究接口修复接续
 
+> 当前状态（2026-11-02）：T2 BLOCKED。用户已明确选择研究也仅用当前社区8B、保留T2未通过。14B提案未采用、0调用；本轮3次POST保留，S1和新增调用关闭，默认模型及语音保持。
+
 **当前阶段：T2未通过，当前社区8B的逐来源研究设计r2已独立SPEC/QUALITY PASS。源码9代码293项通过，但真实研究首轮结构/事实FAIL、零交付。按用户本轮要求仅完成新设计审查；S2实验、源码10、14B、T3—T5均未放行。**
 
 2026-11-02，原单 `wo-ultimaagent-20261101-0021`、阶段 `wo-ultimaagent-20261101-0021-t2`。用户明确选择“继续当前社区修改版8B：先修正研究工具接口”。官方8B对照提案未采用，不下载新模型、不更改生产默认/KWS。
@@ -146,3 +148,8 @@ S2与S3原结果均保留且不重跑，累计实际POST为2，S1/S4按停止规
 研究后续的控制面选择提案见docs/plans/jarvis-work-t2-research-model-decision-20261102.md：维持当前社区8B与原验收则保留T2未通过；或由用户选择研究专用本机qwen2.5:14b，先单次只读隔离资格验证，默认8B/语音不变。14B安装摘要已重新核验，但实际调用0、没有模型切换授权。资格验证必须另做精确准备及独审，旧3次保留、最多使用总上限4中的最后一次，不自动放行产品或改变三来源三轮验收。
 
 运行：data/evidence/jarvis-work-capability/T2/per-source-feasibility-20261102/local-role-actual/S4/first-f53a803-role-r2/；独审：data/evidence/jarvis-work-capability/T2/review-local-role-S4-first/；状态机回执：data/evidence/jarvis-work-capability/T2/per-source-feasibility-20261102/queue-closure.json。受保护5进程及21项产品/契约输入再次核对保持，隔离运行进程已退出；没有录音、播放或修改KWS。
+
+
+## 用户最终选择：研究也仅用当前8B
+
+用户明确答复：“研究也只用当前8B，保留T2未通过”。该选择已落入user-research-scope-decision.json及current-run控制状态；14B方案标记未采用、实际调用仍0，不再等待模型范围答复。本轮T2保持BLOCKED，不恢复S1、不新增协议变体/模型调用，不进入源码10或T3—T5，不降低原E02验收。任务索引仅更新本条阻塞原因并追加用户选择注记，45条其他记录、真实失败重入计数2及所有原始证据保持。当前默认/研究模型均为同一社区8B，KWS/语音链路未改。
