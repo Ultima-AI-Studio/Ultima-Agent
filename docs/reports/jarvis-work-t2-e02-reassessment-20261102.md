@@ -121,3 +121,5 @@ Task2独审PASS/APPROVED（847ac7e0/8e72e25f），原RC01-09维持关闭，无�
 实际inert2独立读回PASS_INERT_ONLY（4a2e7e46）：单次新额度c54776d8/真实TTY2635/GO一次；原query774字节、固定输入、封存索引、原生保护5身份与canonical/pending/预期序列化全部核验。观察69.8283116秒，315秒门内；模型0、产品CLI0，未测试研究理解/SDK完成协议。旧inert1永久FAIL不重开；开始原Task4既定的原资料零推理设计，仅当前8B，原persona/scanner/输入不缩减，未授予画像运行或模型额度。
 
 原Task4下一步设计R3：ae077cc9设计/beb9ea6b计划/b371c413报告，原4914与8408字节报告前缀均保留，三版逐一封存。真实隔离get_jarvis、人设2479B、扫描器、请求级SDK写入/END/ACK/读回保持；仅推理和资料HTTP用私有测试传输。SDK启动健康检查计入16元数据步骤总额。原生SSRF会正常检查四个固定URL，允许其公开域名raw.githubusercontent.com的只读DNS，原生DNS/缓存/数据包未测量值保留null；未执行DNS测试或画像。不引入操作系统安全改造。独立审查验证具体接口与预算后才能准备代码，仍需后续代码审查、独立Root时限观察和单次运行额度。
+
+原资料零推理方案首轮独审FAIL/NEEDS_FIXES：OP-D01额外Ollama默认客户端、OP-D02继承的SSRF失败放行开关、OP-D03写入/END信息丢失前的观测、OP-D04嵌套收集数据的封闭发布校验，四项Important。审查报告0a95f7c7/verdict7e846b55，Root逐字读回并核验91个哈希与R3归档（e2a6074d）；原设计者进行第1/5轮限定修订。没有重复执行旧E03/E01，也未调用模型、运行画像或改生产。真实source10、同候选回归、T2/T3和Owner门仍未通过。
