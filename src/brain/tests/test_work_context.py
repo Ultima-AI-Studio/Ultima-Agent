@@ -91,6 +91,20 @@ def test_focus_loss_reobserves_bound_edit_and_never_targets_foreground_window():
     assert n.sent == 1
 
 
+def test_selection_change_during_before_send_never_writes():
+    p, n = provider()
+    c = p.capture_work_context()
+
+    def change_selection():
+        n.state['start_utf16'] = 0
+
+    with pytest.raises(ValueError):
+        p.replace_selection(c, '不得写入', before_send=change_selection)
+
+    assert n.sent == 0
+    assert n.state['text'] == 'A😀B正文C'
+
+
 def test_monotonic_age_not_wall_clock():
     now = [0.0]
     p, n = provider(clock=lambda: now[0])

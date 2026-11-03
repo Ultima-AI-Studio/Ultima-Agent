@@ -171,6 +171,10 @@ class WorkContextProvider:
         raw=o['text'].encode('utf-16-le')
         expected=(raw[:2*o['start_utf16']]+content.encode('utf-16-le')+raw[2*o['end_utf16']:]).decode('utf-16-le')
         before_send()  # durable within request ledger BEFORE potentially committed send
+        # The ledger callback may take time while the user changes the selected range.
+        # Re-observe the same captured HWND immediately before sending the edit.
+        current,_=self._observe(t,foreground=False)
+        if current!=o: raise ValueError('Selection target changed before write')
         self._native.replace(t,content)
         after=self.verify_replacement(context,expected)
         return dict(verified=True,before=o,after=after,expected_text=expected,sha256=digest(expected),source=context['source'])
