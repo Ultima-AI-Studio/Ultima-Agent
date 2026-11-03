@@ -1,0 +1,27 @@
+# Task4-PORT-REV2 FIX1 independent re-review
+
+**Spec PASS · Quality APPROVED · PORT2-I01 ADDRESSED.** Candidate 118ba152b007c30d358c8bc44c51aabe8ae820f0. Base manifest a5b16aed8d8386d2e2018262a6e75677f00b958cb3553154af987a6658fe376d. Reviewed manifest 3d0b47c9102b969d75685cc07b65623a9764e51cfdeaaee687431d45ec6916c1. No new Critical, Important or Minor findings. The 21 earlier closures stand.
+
+## Port proof
+
+At adapter.py:112–117 the original timeout hint checks positive remaining time to the private allocation expiry. Deadline.clip independently requires positive enclosing-phase time and limits the hint before the raw setter is invoked. This fixes the original counterexample in which the constructor consumed all three private seconds with seven seconds left in cleanup. The separate phase-exhaustion case consumes both seconds of a phase-clipped allowance. Both cases now admit zero raw setters and zero connects.
+
+Checked the coupling that made an early exception consequential. Original pinned preparation-r4/controller.py:241–246 and adapter.py:1065–1070 issue the hint before their local try/finally. At adapter.py:138–143 the enclosing scope registers the probe before returning it, and adapter.py:192–200 closes a registered unclosed probe and restores the five borrowed bindings. The shared connect-time cap, strict refusal verdict, original cutoff and one-connect behavior are unchanged. test_adapter.py:1204–1219,1230–1233,1253–1273,1281–1299 records raw setters, counts closes, and checks the original cleanup in both mode labels and the real substantive observer. Live-budget cases still apply the normal hint and the clipped connect timeout.
+
+## Independently read evidence
+
+- Recomputed all companion input and six current file hashes, checked the sealed base manifest and members, and verified the appended report's original 16,751-byte prefix still has SHA-256 6fe4229e31c6fe19cbf33e2e02092b52d437d82d87a976a830dbb4984c491603. Current report length is 41,676 bytes. C118 was current with an empty tracked/index status.
+- For each of the five FIX1 stages, verified the receipt, raw stdout/stderr, XML, six source copies, and source-before/source-after hashes. All five before/after pairs equal 59ae72f60808663d9d043d3c1d9cfb7a58a5d04784808a829dee5b0e3e88a8b4. Rehashed the 76 pinned inputs. Checked that the final six file copies match current files and that both before/after flags are true for all stages.
+- All six RED XML failures show one raw setter where an empty list was required. They cover the private and phase cutoff at original cleanup in both modes and at substantive observation. Focused GREEN was 46/46. The first covering run was 218/219, the isolated integer case passed on the same six file hashes, then the diagnostic covering run passed 219/219 in 41.00 seconds. Raw final argv uses the fixed H Python -B -X utf8 and no selection. Driver/pytest exits were 0/0 and stderr was empty. Compared classname/name IDs directly. Both covering runs have identical 219 IDs, including all 216 base IDs and three phase-exhaustion additions. Latest receipt 1ed7af1a03f00a4691b2ea839df04c8272b0b705bed04031bb9b7aa61404a8aa, JUnit 5d2e997719a39b323bc323de275d5dc3d8805566d3fde39ca17d42640a73d215. No reviewer suite rerun or new mock was necessary.
+
+## Diagnostic change and unresolved evidence
+
+Checked the unchanged fixture boundary at src/brain/tests/test_work_navigation_transport.py:46–52. Its success assertion occurs before returning the ledger to the caller, before the integer mutation or PrivateIO. The failed XML reports “Unlinked or failed END”. Independently opened the associated audit.db immutable/read-only. Three successful research_inspect entries precede one failed research_write, all with empty findings. Audit SHA-256 61620d3a4c4417f1bd93f18d4a973d8c8e622692ed7621c0db7f8d993d38a8dc.
+
+The added branch at test_adapter.py:20–60 runs on the fixture assertion failure. The genuine call, its success requirement and the subsequent test assertions remain. The handler takes up to two ledgers, eight records each, two recent events and four staged links per event. Error labels come from literal exception arguments in three pinned sources, with unknown text represented by its digest and length. Result/metadata comparisons produce booleans. The branch prints this fixture summary and re-raises. Checked event serialization, record fields and linkage against src/brain/work_tools.py:167–209,252–267,370–372,541–564. The pinned synthetic writer records the exception text/type on failure. The latest passing run did not exercise this new failure-only output.
+
+The old audit identifies a failed write. It does not identify the writer exception or establish order dependence. The isolated and latest covering passes do not establish reliability or a repair. Retain that unknown for zero-inference original-corpus profiling and same-candidate E01/E03/T2 interpretation. Real SDK write, END, ACK and reopen still require their own evidence.
+
+## Scope
+
+Approval applies to this exact preparation revision. No native or model operation was performed. Native ownership, real Windows refusal latency and product/model qualification remain unverified. Current8B, fixed 275/310/315 phases, 260/300/315 service/client/outer limits and zero retries remain in force. Old actual allocation is PERMANENT_FAIL, 1/1 consumed and zero remaining. Execution remains unreleased, model calls zero, E02/T2 NOT_PASSED. No new allocation, T3, Owner or production approval.
