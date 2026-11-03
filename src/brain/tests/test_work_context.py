@@ -122,6 +122,61 @@ def test_readonly_capture_does_not_expose_mutation(tmp_path):
     assert r['status']=='succeeded' and n.sent==0
 
 
+def _fixture_text_initializer():
+    from src.brain.tests import work_context_acceptance
+    initialize = getattr(work_context_acceptance, 'initialize_fixture_text', None)
+    assert callable(initialize), 'fixture initializer must set and verify text before publishing readiness'
+    return work_context_acceptance, initialize
+
+
+def test_fixture_initial_text_must_be_set_and_read_back_before_ready():
+    harness, initialize = _fixture_text_initializer()
+    expected = harness.CASES['e03']['text']
+    state = {'text': ''}
+    calls = []
+
+    def set_text(value):
+        calls.append(('set', value))
+        state['text'] = value
+        return True
+
+    def read_text():
+        calls.append(('read', state['text']))
+        return state['text']
+
+    receipt = initialize(set_text, read_text, expected)
+
+    assert calls[0] == ('set', expected)
+    assert calls[1] == ('read', expected)
+    assert receipt == {
+        'verified': True,
+        'utf16_units': len(expected.encode('utf-16le')) // 2,
+        'sha256_utf16le': hashlib.sha256(expected.encode('utf-16le')).hexdigest(),
+    }
+
+
+def test_fixture_text_readback_mismatch_fails_closed():
+    harness, initialize = _fixture_text_initializer()
+    expected = harness.CASES['e03']['text']
+    now = [0.0]
+    reads = []
+
+    def read_text():
+        reads.append('')
+        return ''
+
+    with pytest.raises(ValueError, match='fixture initial text readback mismatch'):
+        initialize(
+            lambda value: True,
+            read_text,
+            expected,
+            timeout_seconds=0.0,
+            monotonic=lambda: now[0],
+            sleep=lambda seconds: now.__setitem__(0, now[0] + seconds),
+        )
+    assert reads == ['']
+
+
 @pytest.mark.parametrize('companion',['UNRELATED companion content','prefixactual replacement','actual replacement ','actual replacement\n'])
 def test_companion_must_equal_exact_replacement(tmp_path,companion):
     p,n=provider()

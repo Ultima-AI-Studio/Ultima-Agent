@@ -34,6 +34,34 @@ def wait_for(predicate,seconds=30):
     raise TimeoutError('Acceptance prerequisite timed out')
 
 
+def initialize_fixture_text(set_text,read_text,expected,*,timeout_seconds=1.0,poll_seconds=.02,monotonic=time.monotonic,sleep=time.sleep):
+    if not set_text(expected): raise ValueError('fixture initial text SetWindowText failed')
+    expected_raw=expected.encode('utf-16le')
+    expected_units=len(expected_raw)//2
+    expected_hash=hashlib.sha256(expected_raw).hexdigest()
+    deadline=monotonic()+timeout_seconds
+    while True:
+        actual=read_text()
+        if actual==expected:
+            return {'verified':True,'utf16_units':expected_units,'sha256_utf16le':expected_hash}
+        if monotonic()>=deadline:
+            actual_raw=actual.encode('utf-16le')
+            raise ValueError(
+                'fixture initial text readback mismatch '
+                f'expected_utf16_units={expected_units} expected_sha256={expected_hash} '
+                f'actual_utf16_units={len(actual_raw)//2} actual_sha256={hashlib.sha256(actual_raw).hexdigest()}'
+            )
+        sleep(min(poll_seconds,max(0.0,deadline-monotonic())))
+
+
+def read_fixture_edit_text(native,control_hwnd):
+    length=native.send(control_hwnd,0x000E)
+    if length>65535: raise ValueError('Fixture edit text too large')
+    text=C.create_unicode_buffer(length+1)
+    native.send(control_hwnd,0x000D,length+1,C.addressof(text))
+    return text.value
+
+
 def fixture(folder):
     from src.brain.work_context import Win32Edit
     native=Win32Edit(); u=native.u
@@ -48,12 +76,25 @@ def fixture(folder):
     u.AttachThreadInput.argtypes=[W.DWORD,W.DWORD,W.BOOL]; u.AttachThreadInput.restype=W.BOOL
     native.k.GetCurrentThreadId.restype=W.DWORD; native.k.GetCurrentThreadId.argtypes=[]
     targets=[]
+    expected_texts=[]
     for index,title in enumerate((CASES['e03']['window_title'],CASES['e03']['window_title']+' Other')):
         h=u.CreateWindowExW(0,'STATIC',title,0x10CF0000,150+index*80,150+index*80,700,250,None,None,None,None)
         text=CASES['e03']['text'] if index==0 else 'UNRELATED OWNED FIXTURE — DO NOT CHANGE'
         ch=u.CreateWindowExW(0,'EDIT',text,0x508100C4,10,10,660,180,h,None,None,None)
         if not h or not ch: raise OSError('Fixture window creation failed')
         targets.append(dict(hwnd=int(h),control_hwnd=int(ch),pid=os.getpid(),process_created_filetime=native.created(os.getpid()),title=title,**{'class':'Edit'},allowed_operations=['capture','replace_selection'],max_age_seconds=300))
+        expected_texts.append(text)
+    initial_readbacks=[]
+    for index,(target,text) in enumerate(zip(targets,expected_texts)):
+        def set_text(value,control_hwnd=target['control_hwnd']):
+            buffer=C.create_unicode_buffer(value)
+            return bool(native.send(control_hwnd,0x000C,0,C.addressof(buffer)))
+        before_activation=initialize_fixture_text(
+            set_text,
+            lambda control_hwnd=target['control_hwnd']: read_fixture_edit_text(native,control_hwnd),
+            text,
+        )
+        initial_readbacks.append({'index':index,'hwnd':target['hwnd'],'control_hwnd':target['control_hwnd'],'before_activation':before_activation})
     def activate(index=0,select=True):
         t=targets[index]
         native.identity(t,foreground=False)
@@ -74,8 +115,20 @@ def fixture(folder):
             with (folder/'activation.jsonl').open('a',encoding='utf-8') as log: log.write(json.dumps(record)+'\n')
         native.send(t['control_hwnd'],0x00B1,0,-1 if select else 1)
     activate()
-    save(folder/'fixture.json',{'targets':targets,'pid':os.getpid()})
+    for index,(target,text) in enumerate(zip(targets,expected_texts)):
+        observed=native.observe(target,foreground=False)
+        units=len(text.encode('utf-16le'))//2
+        if observed['text']!=text or (index==0 and (observed['start_utf16']!=0 or observed['end_utf16']!=units)):
+            raise ValueError('Fixture activation text/selection readback mismatch')
+        initial_readbacks[index]['after_activation']={
+            'verified':observed['text']==text,
+            'utf16_units':len(observed['text'].encode('utf-16le'))//2,
+            'sha256_utf16le':hashlib.sha256(observed['text'].encode('utf-16le')).hexdigest(),
+            'start_utf16':observed['start_utf16'],'end_utf16':observed['end_utf16'],
+        }
+    save(folder/'fixture-initial-readback.json',{'status':'PASS','targets':initial_readbacks})
     save(folder/'policy.json',{'version':1,'targets':[targets[0]]})
+    save(folder/'fixture.json',{'targets':targets,'pid':os.getpid()})
     msg=W.MSG()
     try:
         while not (folder/'stop').exists():
