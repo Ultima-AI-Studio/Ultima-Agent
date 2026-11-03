@@ -16,13 +16,18 @@ class Native:
                           title='Fixture', **{'class': 'Edit'}, text='A😀B正文C',
                           start_utf16=4, end_utf16=6, editable=True, password=False)
         self.sent = 0
+        self.sent_to = []
         self.timeout = False
+        self.foreground = True
 
-    def observe(self, target):
+    def observe(self, target, *, foreground=True):
+        if foreground and not self.foreground:
+            raise ValueError('Foreground/focus changed')
         return dict(self.state)
 
     def replace(self, target, content):
         self.sent += 1
+        self.sent_to.append(target['hwnd'])
         self.state['text'] = 'A😀B' + content + 'C'
         self.state['end_utf16'] = self.state['start_utf16'] + len(content.encode('utf-16-le')) // 2
         self.state['start_utf16'] = self.state['end_utf16']
@@ -62,6 +67,28 @@ def test_stale_state_never_writes(change):
     with pytest.raises(ValueError):
         p.replace_selection(c, 'new', before_send=lambda: None)
     assert n.sent == 0
+
+
+def test_focus_loss_reobserves_bound_edit_and_never_targets_foreground_window():
+    p, n = provider()
+    c = p.capture_work_context()
+    n.foreground = False
+
+    assert p.validate_work_target(c)
+    result = p.replace_selection(c, '新文', before_send=lambda: None)
+
+    assert result['verified']
+    assert n.sent == 1
+    assert n.sent_to == [10]
+    assert n.state['text'] == 'A😀B新文C'
+
+    n.foreground = True
+    stale = p.capture_work_context()
+    n.foreground = False
+    n.state['start_utf16'] = 0
+    with pytest.raises(ValueError):
+        p.replace_selection(stale, '不得写入', before_send=lambda: None)
+    assert n.sent == 1
 
 
 def test_monotonic_age_not_wall_clock():

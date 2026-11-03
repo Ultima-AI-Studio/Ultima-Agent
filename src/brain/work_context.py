@@ -125,8 +125,8 @@ class WorkContextProvider:
             if hasattr(self._native,'identity'): self._native.identity(t,foreground=False)
             self._targets.append(json.dumps(t,sort_keys=True))
 
-    def _observe(self,target):
-        o=self._native.observe(target)
+    def _observe(self,target,*,foreground=True):
+        o=self._native.observe(target,foreground=foreground)
         if any(o[k]!=target[k] for k in IDENTITY): raise ValueError('Target changed')
         if o.get('password') or not o.get('editable'): raise ValueError('Protected or unsupported Edit')
         raw=o['text'].encode('utf-16-le')
@@ -157,7 +157,8 @@ class WorkContextProvider:
     def validate_work_target(self,context):
         try:
             t,o=self._get(context)
-            current,_=self._observe(t)
+            # Re-read the captured HWND and selection; replacement is sent to this HWND directly.
+            current,_=self._observe(t,foreground=False)
             return current==o
         except (ValueError,OSError,TimeoutError,UnicodeError): return False
 
@@ -177,7 +178,7 @@ class WorkContextProvider:
     def verify_replacement(self,context,expected):
         t,original=self._get(context)
         # A completed edit may leave an empty caret selection; don't require a range here.
-        o=self._native.observe(t)
+        o=self._native.observe(t,foreground=False)
         caret=original['start_utf16']+(len(expected.encode('utf-16-le'))-len(original['text'].encode('utf-16-le')))//2+original['end_utf16']-original['start_utf16']
         if any(o[k]!=t[k] for k in IDENTITY) or o['text']!=expected or (o['start_utf16'],o['end_utf16'])!=(caret,caret):
             raise ValueError('Independent target readback mismatch')
