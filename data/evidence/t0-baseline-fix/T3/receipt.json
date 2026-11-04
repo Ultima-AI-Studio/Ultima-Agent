@@ -1,0 +1,27 @@
+{
+  "链路号": "wo-ultimaagent-20261103-0025 / resume / 20261104T051135087209Z",
+  "执行端": "Codex coding executor; H:/UltimaAI/UltimaAgent; branch codex/voice-fsmn-new-path",
+  "完成状态": "PASS / READY_FOR_REVIEW: T0 RED_CONFIRMED, T1 GREEN, T2 FULL_GREEN; independent audit, Owner experience, and freeze tag remain pending",
+  "根因结论": "The four 0022 closeout reds were respectively an outdated agent-input assertion, a 10-o'clock deterministic-time boundary bug plus outdated routing expectation, a read-only queue projection incompatible with valid queue/stage card paths, and a missing already-locked soxr dependency in the mandated full-gate venv. T2 resume additionally exposed a stripped-host PATH omission and a disclosed pre-existing millisecond timestamp race outside the 0025 write domain.",
+  "产出路径": [
+    "src/brain/interaction.py",
+    "src/brain/queue_source.py",
+    "src/brain/routing/tests/test_mainbrain_rules_prompt.py",
+    "src/brain/routing/tests/test_routing_integration.py",
+    "src/brain/tests/test_queue_source.py",
+    "data/evidence/t0-baseline-fix/",
+    "docs/plans/t0-baseline-fix-plan-20261103.md",
+    "docs/reports/t0-baseline-fix-20261103.md",
+    "tasks/queue/wo-ultimaagent-20261103-0025--t0-baseline-fix.md"
+  ],
+  "验收证据": {
+    "T0": "PASS / RED_CONFIRMED; four named failures reproduced and classified",
+    "T1": "PASS / GREEN; targeted 11 passed; cumulative 32 passed plus 2 subtests",
+    "T2": "PASS / FULL_GREEN; exit 0; 932 passed, 36 warnings, 120 subtests passed in 142.52s; JUnit 1052/1052 with 0 failures/errors/skips",
+    "junit": "data/evidence/t0-baseline-fix/T2/full-src-resume/junit.xml",
+    "gate": "data/evidence/t0-baseline-fix/T2/gate.json",
+    "readback": "data/evidence/t0-baseline-fix/T2/readback.json"
+  },
+  "越界声明": "No production-default, mainbrain model/inference, KWS/wakeword baseline, voice/daemon, 0022 commit/tag/push, or unrelated-work staging. No protected process stop/restart; no microphone, recording, or playback. Existing unrelated dirty files, including agent_server.py and tasks/tasks.json, remain excluded.",
+  "环境声明": "Windows PowerShell; tools/venv-openjarvis/Scripts/python.exe; Python 3.13.16; soxr 1.1.0 import verified; existing Ollama directory prepended to the resumed host PATH; default Python312 not used. Tests used isolated basetemp/cache directories."
+}

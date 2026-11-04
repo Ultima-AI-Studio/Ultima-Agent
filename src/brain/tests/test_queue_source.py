@@ -219,6 +219,42 @@ class QueueSourceTests(unittest.TestCase):
         self.assertIsNone(pseudo_streaming.terminal_reason)
         self.assertEqual(before, after)
 
+    def test_queue_and_stage_cards_inside_library_are_readable(self) -> None:
+        queue_card = self.root / "queue" / "queued-work--card.md"
+        queue_card.parent.mkdir(parents=True, exist_ok=True)
+        queue_card.write_text("# 队列工单标题\n", encoding="utf-8")
+        stage_card = self.root / "queue" / "stages" / "parent-work" / "t1.md"
+        stage_card.parent.mkdir(parents=True, exist_ok=True)
+        stage_card.write_text("# 阶段工单标题\n", encoding="utf-8")
+        queued = record("queued-work")
+        queued["card_path"] = f"{self.root.name}/queue/{queue_card.name}"
+        stage = record("parent-work-t1")
+        stage["card_path"] = str(stage_card)
+        self.storage.index_path.write_text(
+            json.dumps([queued, stage], ensure_ascii=False), encoding="utf-8"
+        )
+
+        snapshot = read_queue_status(self.root)
+
+        self.assertTrue(snapshot.ok)
+        self.assertEqual(["队列工单标题", "阶段工单标题"], [item.title_zh for item in snapshot.tasks])
+
+    def test_card_path_outside_library_still_fails_closed(self) -> None:
+        outside = self.root.parent / "outside-task-card.md"
+        outside.write_text("# 不应读取\n", encoding="utf-8")
+        task = record("outside-card")
+        task["card_path"] = str(outside)
+        self.storage.index_path.write_text(
+            json.dumps([task], ensure_ascii=False), encoding="utf-8"
+        )
+        try:
+            snapshot = read_queue_status(self.root)
+        finally:
+            outside.unlink()
+
+        self.assertFalse(snapshot.ok)
+        self.assertIn("card_path 越出任务库目录", snapshot.message)
+
     def test_missing_corrupt_and_illegal_storage_fail_closed(self) -> None:
         missing_root = self.root / "missing"
         missing_root.mkdir()

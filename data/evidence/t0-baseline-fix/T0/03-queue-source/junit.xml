@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="1" time="0.670" timestamp="2026-11-04T10:43:34.410589+08:00" hostname="DESKTOP-B366PQ9"><testcase classname="src.brain.tests.test_queue_source.QueueSourceTests" name="test_production_library_readable_without_mutation" time="0.358"><failure message="AssertionError: False is not true">self = &lt;test_queue_source.QueueSourceTests testMethod=test_production_library_readable_without_mutation&gt;
+
+    def test_production_library_readable_without_mutation(self) -&gt; None:
+        # 生产库回归：可读（含 TERMINATED 终态，缺陷修复验证）且只读不改动
+        production = PROJECT_ROOT / "tasks"
+        before = hashlib.sha256((production / "tasks.json").read_bytes()).hexdigest()
+        snapshot = read_queue_status(production)
+        after = hashlib.sha256((production / "tasks.json").read_bytes()).hexdigest()
+&gt;       self.assertTrue(snapshot.ok)
+E       AssertionError: False is not true
+
+src\brain\tests\test_queue_source.py:213: AssertionError</failure></testcase></testsuite></testsuites>

@@ -57,6 +57,13 @@ def test_time_intent_is_allowed_to_agent(tmp_path) -> None:
         "src.brain.agent_client.ask_agent", return_value="现在是十二点。"
     ) as ask, patch("src.brain.interaction.get_reply_verifier", return_value=verifier):
         reply = InteractionLoop(tmp_path / "queue").handle("现在几点")
-    assert reply.text == "现在是十二点。"
-    assert reply.reason == "Agent 回答"
-    ask.assert_called_once()
+    assert reply.text.startswith("现在是")
+    assert reply.text.endswith("。")
+    assert reply.reason == "时间查询"
+    ask.assert_not_called()
+    verifier.verify.assert_not_called()
+
+
+@pytest.mark.parametrize(("hour", "spoken"), [(1, "一"), (9, "九"), (10, "十"), (11, "十一"), (12, "十二")])
+def test_time_hour_boundaries_are_spoken_without_index_error(hour: int, spoken: str) -> None:
+    assert InteractionLoop._cn_hour(hour) == spoken

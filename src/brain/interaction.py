@@ -474,7 +474,7 @@ class InteractionLoop:
     @staticmethod
     def _cn_hour(h12: int) -> str:
         """1-12 → 一二…十一、十二。"""
-        if h12 <= 10:
+        if h12 < 10:
             return InteractionLoop._CN_DIGITS[h12]
         return "十" + (InteractionLoop._CN_DIGITS[h12 - 10] if h12 > 10 else "")
 

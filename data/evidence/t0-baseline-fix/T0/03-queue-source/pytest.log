@@ -1,0 +1,28 @@
+============================= test session starts =============================
+platform win32 -- Python 3.13.16, pytest-9.2.0, pluggy-1.7.0 -- H:\UltimaAI\UltimaAgent\tools\venv-openjarvis\Scripts\python.exe
+cachedir: data\evidence\t0-baseline-fix\T0\03-queue-source\pytest-cache
+rootdir: H:\UltimaAI\UltimaAgent
+plugins: anyio-4.15.1, langsmith-0.14.12
+collecting ... collected 1 item
+
+src/brain/tests/test_queue_source.py::QueueSourceTests::test_production_library_readable_without_mutation FAILED [100%]
+
+================================== FAILURES ===================================
+_____ QueueSourceTests.test_production_library_readable_without_mutation ______
+
+self = <test_queue_source.QueueSourceTests testMethod=test_production_library_readable_without_mutation>
+
+    def test_production_library_readable_without_mutation(self) -> None:
+        # 生产库回归：可读（含 TERMINATED 终态，缺陷修复验证）且只读不改动
+        production = PROJECT_ROOT / "tasks"
+        before = hashlib.sha256((production / "tasks.json").read_bytes()).hexdigest()
+        snapshot = read_queue_status(production)
+        after = hashlib.sha256((production / "tasks.json").read_bytes()).hexdigest()
+>       self.assertTrue(snapshot.ok)
+E       AssertionError: False is not true
+
+src\brain\tests\test_queue_source.py:213: AssertionError
+- generated xml file: H:\UltimaAI\UltimaAgent\data\evidence\t0-baseline-fix\T0\03-queue-source\junit.xml -
+=========================== short test summary info ===========================
+FAILED src/brain/tests/test_queue_source.py::QueueSourceTests::test_production_library_readable_without_mutation - AssertionError: False is not true
+============================== 1 failed in 0.70s ==============================

@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="1" time="0.317" timestamp="2026-11-04T10:43:36.843457+08:00" hostname="DESKTOP-B366PQ9"><testcase classname="src.voice-next.test_live" name="test_discontinuity_reset_clears_framers_and_model_cache" time="0.012"><failure message="ModuleNotFoundError: No module named 'soxr'">def test_discontinuity_reset_clears_framers_and_model_cache():
+        import live
+        class Spotter:
+            def __init__(self):self.resets=0
+            def reset_all(self):self.resets+=1
+        obj=live.Resident.__new__(live.Resident)
+        obj.input_rate=48000;obj.spotter=Spotter();obj.generation=2
+&gt;       obj.reset_audio();first=obj.resampler
+        ^^^^^^^^^^^^^^^^^
+
+src\voice-next\test_live.py:79: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = &lt;live.Resident object at 0x000001D9A9684EC0&gt;
+
+    def reset_audio(self):
+&gt;       import soxr
+E       ModuleNotFoundError: No module named 'soxr'
+
+src\voice-next\live.py:81: ModuleNotFoundError</failure></testcase></testsuite></testsuites>

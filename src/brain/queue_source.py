@@ -26,6 +26,7 @@ STATE_ZH = {
 ANOMALY_STATES = frozenset({"FAILED", "BLOCKED"})
 _TERMINAL_STATES = frozenset({"COMPLETED", "FAILED", "BLOCKED", "CANCELLED", "TERMINATED"})
 _TITLE = re.compile(r"^\s*-\s*\*\*标题\*\*\s*[：:]\s*(.+?)\s*$", re.M)
+_HEADING = re.compile(r"^#\s+(.+?)\s*$", re.M)
 
 
 class QueueReadError(ValueError):
@@ -126,20 +127,28 @@ def _read_title(storage: QueueStorage, record: dict[str, Any]) -> str:
     raw_path = record["card_path"]
     if not isinstance(raw_path, str) or not raw_path:
         raise QueueReadError("card_path 非法")
-    path = Path(raw_path)
-    path = path if path.is_absolute() else storage.root / path
-    path = path.resolve()
-    cards_root = storage.cards_dir.resolve()
-    if not path.is_relative_to(cards_root) or path.parent.name != record["task_id"]:
-        raise QueueReadError("card_path 越出任务卡目录")
+    path = _resolve_card_path(storage, raw_path)
     try:
         text = path.read_text(encoding="utf-8-sig")
     except OSError as exc:
         raise QueueReadError(f"任务卡读取失败：{record['task_id']}") from exc
-    match = _TITLE.search(text)
+    match = _TITLE.search(text) or _HEADING.search(text)
     if not match or not match.group(1).strip():
         raise QueueReadError(f"任务卡缺少中文标题：{record['task_id']}")
     return match.group(1).strip()
+
+
+def _resolve_card_path(storage: QueueStorage, raw_path: str) -> Path:
+    path = Path(raw_path)
+    if not path.is_absolute():
+        if path.parts and path.parts[0].casefold() == storage.root.name.casefold():
+            path = storage.root.parent / path
+        else:
+            path = storage.root / path
+    path = path.resolve()
+    if not path.is_relative_to(storage.root.resolve()):
+        raise QueueReadError("card_path 越出任务库目录")
+    return path
 
 
 def _timestamp(value: Any, name: str) -> datetime:

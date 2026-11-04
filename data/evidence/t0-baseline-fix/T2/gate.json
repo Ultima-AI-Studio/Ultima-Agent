@@ -1,0 +1,76 @@
+{
+  "work_order_id": "wo-ultimaagent-20261103-0025",
+  "run_id": "20261104T051135087209Z",
+  "stage": "T2",
+  "status": "PASS",
+  "red_green": "FULL_GREEN",
+  "interpreter": {
+    "path": "tools/venv-openjarvis/Scripts/python.exe",
+    "version": "3.13.16"
+  },
+  "command": "python -m pytest src -q --tb=short --junitxml=data/evidence/t0-baseline-fix/T2/full-src-resume/junit.xml --basetemp=data/evidence/t0-baseline-fix/T2/full-src-resume/tmp -o cache_dir=data/evidence/t0-baseline-fix/T2/full-src-resume/pytest-cache",
+  "environment_adjustment": "Prepended the existing Ollama install directory C:/Users/Administrator/AppData/Local/Programs/Ollama to the resumed host PATH; no dependency install or service restart was performed.",
+  "result": "932 passed, 36 warnings, 120 subtests passed in 142.52s",
+  "exit_code": 0,
+  "junit": "data/evidence/t0-baseline-fix/T2/full-src-resume/junit.xml",
+  "pytest_log": "data/evidence/t0-baseline-fix/T2/full-src-resume/pytest.log",
+  "junit_counts": {
+    "tests": 1052,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "time_seconds": 142.472
+  },
+  "original_red_nodes": {
+    "test_agent_server_keeps_user_question_separate": "PASS",
+    "test_time_intent_is_allowed_to_agent": "PASS",
+    "test_production_library_readable_without_mutation": "PASS",
+    "test_discontinuity_reset_clears_framers_and_model_cache": "PASS"
+  },
+  "attempts": [
+    {
+      "path": "data/evidence/t0-baseline-fix/T2/full-src-resume-attempt1",
+      "exit_code": 1,
+      "result": "930 passed, 2 failed, 36 warnings, 120 subtests passed in 169.89s",
+      "failures": [
+        "src/brain/tests/test_connectivity_m6.py::TestC1Environment::test_ollama_has_brains",
+        "src/brain/tests/test_connectivity_m6.py::TestC2Entry::test_jarvis_ask_real_inference"
+      ],
+      "classification": "environment: resumed host PATH omitted the installed Ollama CLI; targeted readback passed 2/2 after PATH correction"
+    },
+    {
+      "path": "data/evidence/t0-baseline-fix/T2/full-src-resume-attempt2",
+      "exit_code": 1,
+      "result": "931 passed, 1 failed, 36 warnings, 120 subtests passed in 150.90s",
+      "failures": [
+        "src/brain/memory/tests/test_preference_p2.py::TestPreferenceStore::test_upsert_idempotent"
+      ],
+      "classification": "pre-existing timing race outside 0025: consecutive millisecond-resolution timestamps collided"
+    },
+    {
+      "path": "data/evidence/t0-baseline-fix/T2/full-src-resume-attempt3",
+      "exit_code": 1,
+      "result": "931 passed, 1 failed, 36 warnings, 120 subtests passed in 150.94s",
+      "failures": [
+        "src/brain/memory/tests/test_preference_p2.py::TestPreferenceStore::test_upsert_idempotent"
+      ],
+      "classification": "same reproduced timing race; no code/test weakening was applied"
+    },
+    {
+      "path": "data/evidence/t0-baseline-fix/T2/full-src-resume",
+      "exit_code": 0,
+      "result": "932 passed, 36 warnings, 120 subtests passed in 142.52s",
+      "failures": []
+    }
+  ],
+  "diagnostics": {
+    "connectivity": "data/evidence/t0-baseline-fix/T2/connectivity-diagnosis",
+    "preference_timing": "data/evidence/t0-baseline-fix/T2/preference-timing-diagnosis",
+    "preference_timing_reproduction": "6 PASS / 4 FAIL across 10 isolated unchanged runs"
+  },
+  "readback": "data/evidence/t0-baseline-fix/T2/readback.json",
+  "kws_baseline_modified": false,
+  "protected_process_identities_unchanged": true,
+  "process_stop_or_restart_performed": false,
+  "microphone_or_playback_used": false
+}

@@ -1,0 +1,191 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="4" skipped="0" tests="9" time="26.101" timestamp="2026-11-04T10:49:42.847918+08:00" hostname="DESKTOP-B366PQ9"><testcase classname="src.brain.routing.tests.test_mainbrain_rules_prompt" name="test_agent_server_keeps_user_question_separate" time="22.573" /><testcase classname="src.brain.routing.tests.test_routing_integration" name="test_time_intent_is_allowed_to_agent" time="0.014"><failure message="IndexError: string index out of range">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/t0-baseline-fix/T1/pre-implementation/tmp/test_time_intent_is_allowed_to0')
+
+    def test_time_intent_is_allowed_to_agent(tmp_path) -&gt; None:
+        verifier = Mock()
+        verifier.verify.return_value = VerificationResult(
+            accepted=True,
+            text="现在是十二点。",
+            issues=(),
+            grounded_checked=False,
+            semantic_similarity=0.1,
+        )
+        with patch("src.brain.agent_client.agent_healthy", return_value=True), patch(
+            "src.brain.agent_client.ask_agent", return_value="现在是十二点。"
+        ) as ask, patch("src.brain.interaction.get_reply_verifier", return_value=verifier):
+&gt;           reply = InteractionLoop(tmp_path / "queue").handle("现在几点")
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+src\brain\routing\tests\test_routing_integration.py:59: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = &lt;src.brain.interaction.InteractionLoop object at 0x000001E7A012B770&gt;
+text = '现在几点', detail_task_id = None, asr_confidence = None
+asr_corrected = False
+
+    def handle(
+        self,
+        text: str | None,
+        *,
+        detail_task_id: str | None = None,
+        asr_confidence: float | None = None,
+        asr_corrected: bool = False,
+    ) -&gt; InteractionResponse:
+        """Route one utterance through the interaction state machine."""
+        normalized = _normalize_utterance(text)
+        if not normalized:
+            return self._respond(False, True, "", "空输入", self.phase)
+    
+        # 0a. 无实质内容（纯标点/符号，如 ASR 空输出"."）：用户唤醒后未接指令/声音过轻
+        #     → 直接引导，不进入 14B 兜底（否则干等 30~50s 后播一句废话，体验=喊了没反应）。
+        if not re.search(r"[\u4e00-\u9fffA-Za-z0-9]", normalized):
+            return self._respond(True, True, "在呢，请说。", "唤醒确认", self.phase)
+    
+        # 0. 纯唤醒词回声引导：ASR 只识别出 profile 中的唤醒称呼及其尾音时，
+        #    说明用户喊完唤醒词后未接指令，直接给引导语，
+        #    不进入 14B 兜底（否则干等 30s+ 后静默，体验=喊了没反应）。
+        if _WAKE_ECHO_ONLY.match(normalized):
+            return self._respond(True, True, "在呢，请说。", "唤醒确认", self.phase)
+    
+        # 用户设置指令是窄边界、工具执行路径：必须先于通用路由门和队列调整，
+        # 否则“改成”会被队列调整吞掉，“以后叫…唤醒我”也可能被误判为听不清。
+        wakeword_change = self._try_wakeword_change(normalized)
+        if wakeword_change is not None:
+            return wakeword_change
+    
+        # 已登记且带明确天气上下文的近音可走确定性天气路径；孤立近音片段仍把
+        # 原文交给路由门 ABSTAIN，避免未知噪声借纠错绕过入口门。
+        route_text = normalized if _is_contextual_weather_correction(text, normalized) else text
+        routed = self._route_before_agent(
+            route_text,
+            asr_confidence=asr_confidence,
+            asr_corrected=asr_corrected,
+        )
+        if routed is not None:
+            return routed
+    
+        # 1. 具体调整指令优先（插队 / 改优先级）——防被泛意图吞掉
+        adjusted = self._try_adjust_command(normalized)
+        if adjusted is not None:
+            return adjusted
+    
+        # 1.4 天气直达（2026-10-29 新增，此处提前于征询/确认判断）：
+        #     含"怎么样/如何/行不行"的天气句（如"明天上海的天气怎么样"）必须先走
+        #     天气直达，否则被 _CONSULT_INTENT 的"怎么样"拦截 → 误触发队列征询
+        #     （真机 22:14 复现：简单天气查询被征询"插队/改优先级/确认"）。
+        weather_reply = self._try_weather_fallback(normalized)
+        if weather_reply is not None:
+            return weather_reply
+        # 时间/日期直达（置于天气之后，防"这星期天气怎么样"被时间意图截胡）
+&gt;       time_reply = self._try_time_fallback(normalized)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+src\brain\interaction.py:150: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = &lt;src.brain.interaction.InteractionLoop object at 0x000001E7A012B770&gt;
+text = '现在几点'
+
+    def _try_time_fallback(self, text: str) -&gt; InteractionResponse | None:
+        """时间意图直达：返回一句话时间回答；非时间意图返回 None 走后续路径。"""
+        if not self._TIME_INTENT.search(text):
+            return None
+        import datetime as _dt
+    
+        _now = _dt.datetime.now()
+        _weekdays = "一二三四五六日"
+        _h = _now.hour
+        if _h &lt; 5:
+            _period = "凌晨"
+        elif _h &lt; 9:
+            _period = "早上"
+        elif _h &lt; 12:
+            _period = "上午"
+        elif _h &lt; 14:
+            _period = "中午"
+        elif _h &lt; 18:
+            _period = "下午"
+        else:
+            _period = "晚上"
+        # 用「X时Y分」规避 CV3 对「X点Y分+星期X」句式的确定性漏内容
+        # （2026-11-01 实测：「现在是下午三点五十二分，星期日。」连合 3 次仅 1.2s 只出声尾；
+        # 「三时五十二分」版本 8.92s 完整）。
+        _h12 = _h % 12 or 12
+        _min_part = "整" if _now.minute == 0 else f"{self._cn_minute(_now.minute)}分"
+&gt;       answer = f"现在是{_period}{self._cn_hour(_h12)}时{_min_part}，星期{_weekdays[_now.weekday()]}。"
+                                ^^^^^^^^^^^^^^^^^^^
+
+src\brain\interaction.py:519: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+h12 = 10
+
+    @staticmethod
+    def _cn_hour(h12: int) -&gt; str:
+        """1-12 → 一二…十一、十二。"""
+        if h12 &lt;= 10:
+&gt;           return InteractionLoop._CN_DIGITS[h12]
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E           IndexError: string index out of range
+
+src\brain\interaction.py:478: IndexError</failure></testcase><testcase classname="src.brain.routing.tests.test_routing_integration" name="test_time_hour_boundaries_are_spoken_without_index_error[1-\u4e00]" time="0.001" /><testcase classname="src.brain.routing.tests.test_routing_integration" name="test_time_hour_boundaries_are_spoken_without_index_error[9-\u4e5d]" time="0.000" /><testcase classname="src.brain.routing.tests.test_routing_integration" name="test_time_hour_boundaries_are_spoken_without_index_error[10-\u5341]" time="0.001"><failure message="IndexError: string index out of range">hour = 10, spoken = '十'
+
+    @pytest.mark.parametrize(("hour", "spoken"), [(1, "一"), (9, "九"), (10, "十"), (11, "十一"), (12, "十二")])
+    def test_time_hour_boundaries_are_spoken_without_index_error(hour: int, spoken: str) -&gt; None:
+&gt;       assert InteractionLoop._cn_hour(hour) == spoken
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+src\brain\routing\tests\test_routing_integration.py:69: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+h12 = 10
+
+    @staticmethod
+    def _cn_hour(h12: int) -&gt; str:
+        """1-12 → 一二…十一、十二。"""
+        if h12 &lt;= 10:
+&gt;           return InteractionLoop._CN_DIGITS[h12]
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E           IndexError: string index out of range
+
+src\brain\interaction.py:478: IndexError</failure></testcase><testcase classname="src.brain.routing.tests.test_routing_integration" name="test_time_hour_boundaries_are_spoken_without_index_error[11-\u5341\u4e00]" time="0.001" /><testcase classname="src.brain.routing.tests.test_routing_integration" name="test_time_hour_boundaries_are_spoken_without_index_error[12-\u5341\u4e8c]" time="0.001" /><testcase classname="src.brain.tests.test_queue_source.QueueSourceTests" name="test_queue_and_stage_cards_inside_library_are_readable" time="0.016"><failure message="AssertionError: False is not true">self = &lt;test_queue_source.QueueSourceTests testMethod=test_queue_and_stage_cards_inside_library_are_readable&gt;
+
+    def test_queue_and_stage_cards_inside_library_are_readable(self) -&gt; None:
+        queue_card = self.root / "queue" / "queued-work--card.md"
+        queue_card.parent.mkdir(parents=True, exist_ok=True)
+        queue_card.write_text("# 队列工单标题\n", encoding="utf-8")
+        stage_card = self.root / "queue" / "stages" / "parent-work" / "t1.md"
+        stage_card.parent.mkdir(parents=True, exist_ok=True)
+        stage_card.write_text("# 阶段工单标题\n", encoding="utf-8")
+        queued = record("queued-work")
+        queued["card_path"] = f"{self.root.name}/queue/{queue_card.name}"
+        stage = record("parent-work-t1")
+        stage["card_path"] = str(stage_card)
+        self.storage.index_path.write_text(
+            json.dumps([queued, stage], ensure_ascii=False), encoding="utf-8"
+        )
+    
+        snapshot = read_queue_status(self.root)
+    
+&gt;       self.assertTrue(snapshot.ok)
+E       AssertionError: False is not true
+
+src\brain\tests\test_queue_source.py:239: AssertionError</failure></testcase><testcase classname="src.brain.tests.test_queue_source.QueueSourceTests" name="test_card_path_outside_library_still_fails_closed" time="0.012"><failure message="AssertionError: 'card_path 越出任务库目录' not found in '状态读取失败：card_path 越出任务卡目录'">self = &lt;test_queue_source.QueueSourceTests testMethod=test_card_path_outside_library_still_fails_closed&gt;
+
+    def test_card_path_outside_library_still_fails_closed(self) -&gt; None:
+        outside = self.root.parent / "outside-task-card.md"
+        outside.write_text("# 不应读取\n", encoding="utf-8")
+        task = record("outside-card")
+        task["card_path"] = str(outside)
+        self.storage.index_path.write_text(
+            json.dumps([task], ensure_ascii=False), encoding="utf-8"
+        )
+        try:
+            snapshot = read_queue_status(self.root)
+        finally:
+            outside.unlink()
+    
+        self.assertFalse(snapshot.ok)
+&gt;       self.assertIn("card_path 越出任务库目录", snapshot.message)
+E       AssertionError: 'card_path 越出任务库目录' not found in '状态读取失败：card_path 越出任务卡目录'
+
+src\brain\tests\test_queue_source.py:256: AssertionError</failure></testcase></testsuite></testsuites>

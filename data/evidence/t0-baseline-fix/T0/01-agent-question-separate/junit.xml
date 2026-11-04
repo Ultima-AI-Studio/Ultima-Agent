@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="1" time="81.854" timestamp="2026-11-04T10:42:07.992424+08:00" hostname="DESKTOP-B366PQ9"><testcase classname="src.brain.routing.tests.test_mainbrain_rules_prompt" name="test_agent_server_keeps_user_question_separate" time="41.596"><failure message="AssertionError: assert '[当前时间：2026-11-04 10:42 星期三（北京时间）] 第一问' == '第一问'&#10;  &#10;  - 第一问&#10;  + [当前时间：2026-11-04 10:42 星期三（北京时间）] 第一问">monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000002C08FF26B10&gt;
+
+    def test_agent_server_keeps_user_question_separate(monkeypatch) -&gt; None:
+        jarvis = Mock()
+        jarvis.ask_full.side_effect = [
+            {"content": "第一轮。", "tool_results": [], "usage": {}},
+            {"content": "第二轮。", "tool_results": [], "usage": {}},
+        ]
+        monkeypatch.setattr(agent_server, "get_jarvis", lambda: jarvis)
+        monkeypatch.setattr(agent_server, "EVENT_BUS", Mock())
+        with patch.object(Path, "read_text", side_effect=AssertionError("per-turn read")):
+            agent_server.ask_once("第一问")
+            agent_server.ask_once("第二问")
+        assert jarvis.ask_full.call_count == 2
+        for call, question in zip(jarvis.ask_full.call_args_list, ("第一问", "第二问"), strict=True):
+&gt;           assert call.args[0] == question
+E           AssertionError: assert '[当前时间：2026-11-04 10:42 星期三（北京时间）] 第一问' == '第一问'
+E             
+E             - 第一问
+E             + [当前时间：2026-11-04 10:42 星期三（北京时间）] 第一问
+
+src\brain\routing\tests\test_mainbrain_rules_prompt.py:34: AssertionError</failure></testcase></testsuite></testsuites>
