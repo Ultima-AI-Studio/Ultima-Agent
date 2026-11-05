@@ -109,6 +109,6 @@ P0-1 Prompt 注入边界与四层优先级规则；P0-2 记忆写入 PoisonGuard
 - **裁决**：T4 按「环境既有失败豁免」收口。执行端 BLOCKED 守门记录保留不改（`T4/gate.json`、T5 回执原判留痕）；主脑裁决另档 `data/evidence/jarvis-p0/T4/main-brain-exemption-ruling.json`。
 - **环境债（另立专项单，不占本单额度）**：DEBT-ENV-01 测试环境注入 Ollama PATH（或测试内自备）；DEBT-ENV-02 真推理测试改 8B 或按显存容量前置跳过。
 - **竞态项**：`test_preference_p2` 毫秒时间戳竞态本轮未触发，不属本次豁免范围。
-- **收口执行**：本单写域 commit + tag `ultimaagent-jarvis-p0-20261103` + 免代理 push；全局主表 0023 置 frozen/done；北极星清单同步；0024 按 WIP 重派。
+- **收口执行（2026-11-05 已完成）**：本单写域 commit `0f944aaa`（89 文件，+5034/−63，含溯源订正、两轮审计 Critical 关闭、KWS 回正、62 份真证据；pytest 运行临时目录已 .gitignore 排除未入库）+ 补充 commit `baa36198`（剔除误入的 T1/T2 basetemp 符号链接）→ main 快进至 `baa36198` → tag `ultimaagent-jarvis-p0-20261103`（annotated，指向 baa36198）→ 已推送远端 main（`34ac0c79..baa36198`，远端 main 实测 `baa3619861cae09e407836d7db8b6d9cf4283143`，tag 对象 `aa8cab6057002dfee4812873bed67aa02ed6d60a`）；全局主表 0023 置 frozen；北极星清单同步；0024 按 WIP 重派。
 - **Owner 真实体验**：仍为 deferred；tag/阶段报告/T5 回执均标注该遗留，不宣称完整 V1 冻结。
 
