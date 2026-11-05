@@ -1,0 +1,43 @@
+--- parent/code/fixture_adapter.py
++++ guidance/code/fixture_adapter.py
+@@ -192,11 +192,15 @@
+     kernel.GetCurrentThreadId.restype=W.DWORD; kernel.GetCurrentThreadId.argtypes=[]
+     targets=[]; expected_texts=[]
+     for index,title in enumerate((harness.CASES['e03']['window_title'],harness.CASES['e03']['window_title']+' Other')):
+-        window=user32.CreateWindowExW(NO_ACTIVATE|APP_WINDOW,'STATIC',title,0x10CF0000,150+index*80,150+index*80,700,280,None,None,None,None)
++        window=user32.CreateWindowExW(NO_ACTIVATE|APP_WINDOW,'STATIC',title,0x10CF0000,150+index*80,150+index*80,700,320,None,None,None,None)
+         text=harness.CASES['e03']['text'] if index==0 else 'UNRELATED OWNED FIXTURE — DO NOT CHANGE'
+         control=user32.CreateWindowExW(0,'EDIT',text,0x508100C4,10,10,660,180,window,None,None,None)
+         if not window or not control:
+             raise OSError('Fixture window creation failed')
++        guidance=user32.CreateWindowExW(0,'STATIC','测试期间请勿点击、输入或切换窗口，等待结束通知。',
++                                       0x50000001,10,238,660,28,window,1002,None,None)
++        if not guidance:
++            raise OSError('Fixture guidance creation failed')
+         targets.append(dict(hwnd=int(window),control_hwnd=int(control),pid=os.getpid(),
+                             process_created_filetime=native.created(os.getpid()),title=title,
+                             **{'class':'Edit'},allowed_operations=['capture','replace_selection'],
+--- parent/code/fixture_manual_start.py
++++ guidance/code/fixture_manual_start.py
+@@ -90,7 +90,7 @@
+         pid=W.DWORD(); user32.GetWindowThreadProcessId(hwnd,C.byref(pid))
+         require(pid.value==os.getpid(), 'Manual start control is not owned')
+     owned(window)
+-    button=user32.CreateWindowExW(0,'BUTTON','开始测试（请暂停键盘输入）',0x50010000,
++    button=user32.CreateWindowExW(0,'BUTTON','开始测试（结束前请勿点击、输入或切换窗口）',0x50010000,
+                                   10,200,660,28,window,START_BUTTON_ID,None,None)
+     require(bool(button), 'Manual start button creation failed')
+     get_long=getattr(user32,'GetWindowLongPtrW',None) or user32.GetWindowLongW
+--- parent/code/test_fixture_manual_start.py
++++ guidance/code/test_fixture_manual_start.py
+@@ -159,8 +159,8 @@
+     calls=[];state={'next':100,'armed':False,'foreground':900,'focus':901};texts={};selections={};windows=[]
+     def create(exstyle,cls,title,style,*args):
+         state['next']+=1;hwnd=state['next']
+-        if cls=='STATIC':windows.append((hwnd,exstyle))
+-        else:texts[hwnd]=title;selections[hwnd]=(0,0)
++        if cls=='STATIC' and args[4] is None:windows.append((hwnd,exstyle))
++        elif cls=='EDIT':texts[hwnd]=title;selections[hwnd]=(0,0)
+         return hwnd
+     def foreground(hwnd):
+         assert state['armed'],'Fixture stole foreground before operator Start'

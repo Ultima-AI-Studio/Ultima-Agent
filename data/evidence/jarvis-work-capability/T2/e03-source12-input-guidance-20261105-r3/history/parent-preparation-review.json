@@ -1,0 +1,70 @@
+{
+  "reviewer": "root-independent",
+  "agent": "/root/review_e03_manual_start",
+  "scope": "e03-round1-acceptance-package",
+  "candidate": "7975e477665c02820fa235b73d203718bd33b2c9",
+  "candidate_manifest_sha256": "2cd5080b041e83afeeffe4747e1a10840e402c08be234d2b6ae15dccf59b841f",
+  "manifest_sha256": "a720ad4f77d56689321da3fb9cfbae557890f22607260b1e621b0819c7aec5a3",
+  "parent_manifest_sha256": "a4fdb70c9e062b34cec82b1cbe2b9443d51386fd651269023b824d38531ea43d",
+  "verdict": "PASS",
+  "assessment": {
+    "ready_to_merge": "Yes, as a preparation-only package",
+    "reasoning": "The sealed implementation follows the explicit Start handoff plan while retaining the original product, admission, audit, effect, cleanup and independent factual-review gates. No concrete Critical, Important or Minor defect was identified in the reviewed static scope. This PASS does not establish native click/focus behavior, authorize another case, accept product facts or grant E03 credit.",
+    "case_authority_issued": false,
+    "acceptance_credit": false,
+    "retry_authorized": false
+  },
+  "strengths": [
+    "Both owned windows use NO_ACTIVATE and APP_WINDOW; primary raise uses SWP_NOACTIVATE; no AttachThreadInput or input-injection fallback.",
+    "Exact parent/button/WM_COMMAND/notification matching, bounded pump, monotonic deadline and stop checks surround aggregate released-key check; failures precede activation/publication.",
+    "Ordinary foreground/focus requests require actual focus verification before selection; later activation requires existing owned foreground and has no foreign-focus fallback.",
+    "Parent callback remains referenced; restoration verifies the replaced callback; button destruction is in nested finally on success/failure.",
+    "Backend validates receipt against launched fixture PID and primary HWND before initial readback, audit, baseline or product startup.",
+    "New runtime module is sealed through RUNTIME_FILES; original authority/proof/final pre-CLI admission checks remain.",
+    "Tests exercise notification, wait, held keys, stop, focus refusal, callback restore, child cleanup, actual fixture wiring and backend rejection with fake native calls."
+  ],
+  "findings": [],
+  "issues_by_severity": {"Critical": [], "Important": [], "Minor": []},
+  "verification": {
+    "sealed_files_checked": 54,
+    "sealed_file_hash_or_size_mismatches": [],
+    "provenance_source_or_destination_hash_mismatches": [],
+    "exact_diff_matches_parent_and_current_bytes": true,
+    "changed_code_files": ["code/acceptance_backend.py", "code/acceptance_entry.py", "code/fixture_adapter.py", "code/fixture_manual_start.py", "code/test_acceptance_backend.py", "code/test_fixture_manual_start.py"],
+    "modules_independently_ast_parsed": 14,
+    "current_source_files_independently_hash_checked": 41,
+    "current_dependencies_independently_hash_checked": 7,
+    "source_dependency_mismatches": [],
+    "project_git_head": "e06a1e8ad5b91a23f0d12ae9482c0bbeba1716f6",
+    "runtime_git_head": "7975e477665c02820fa235b73d203718bd33b2c9",
+    "tests": {
+      "method": "Read sealed RED/GREEN logs and test source; did not execute tests",
+      "recorded_final_result": "124 passed in 6.79s",
+      "recorded_composition": "99 retained plus 25 new",
+      "red_evidence": ["Missing handoff implementation", "Missing backend handoff rejection", "Fixture activating before Start", "Primary button visibility operation absent"]
+    },
+    "release_directory_present": false,
+    "actual_directory_present": false,
+    "preserved_previous_terminal_sha256": "4a43a012578ff53563f65f925821d1d3e7228a0ab2e26ca36b12aba7f89322f9",
+    "preserved_previous_result_review_sha256": "eabd5491fb3e07a3eb8765214095bb1c3203fd2f3fa5c90b351135c49754f3a7"
+  },
+  "declined_to_judge": [
+    {"behavior": "Real mouse notification delivery, waiting-window nonactivation and Windows foreground permission", "reason": "Live UI execution is expressly outside this read-only review. Native mocks verify wiring and control flow, not Windows behavior."},
+    {"behavior": "Current runtime import resolution", "reason": "The import probe was blocked by automatic approval and was not retried. Static source binding and hashes were inspected; historical import receipts are not current execution proof."},
+    {"behavior": "Current protected-process and voice health", "reason": "No live process or service inspection was performed by this reviewer; supplemental operational receipts are outside the sealed implementation review."},
+    {"behavior": "Independent rehash of all 1346 SDK files", "reason": "The sealed static-readback receipt reports these matches, but this reviewer independently rehashed the 41 source files and seven listed dependencies only."},
+    {"behavior": "Identity of the previous EM_REPLACESEL sender and causes of older failures", "reason": "Concurrent typing confirms a handoff timing conflict but does not identify the sender or resolve every historical failure."},
+    {"behavior": "Product facts, successful rewrite, E03 credit or completion of T2", "reason": "This package contains no new actual case or product result. The previous case remains FAIL and its case/result-review allocations remain consumed."}
+  ],
+  "recommendations": [
+    "Preserve this PASS as preparation-only evidence bound to this exact manifest.",
+    "Any later explicitly allocated case must retain fresh original proof/authority checks and fail on click timeout, held keys, refused focus, audit drift or other original gates.",
+    "Record eventual native click/focus observations separately; do not promote offline mocks or historical import receipts into live proof."
+  ],
+  "limits": [
+    "Review performed personally without subagents, filesystem writes, reviewed-code imports or execution, tests, keyboard queries, UI operations, model calls, audio calls or network requests.",
+    "Automatic approval rejected the combined documentation-write/import-probe action with blocked by policy; review did not execute or reattempt it.",
+    "PASS grants no actual UI/model allocation, retry, result review, fact acceptance, E03 credit or later-stage release."
+  ],
+  "persistence": "Root faithfully recorded the independent agent verdict, verification, all findings and all declined-to-judge items; strengths condensed without changing meaning."
+}

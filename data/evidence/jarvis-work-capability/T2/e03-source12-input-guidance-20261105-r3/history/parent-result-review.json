@@ -1,0 +1,85 @@
+{
+  "reviewer": "root-independent",
+  "agent": "/root/review_e03_manual_start_result",
+  "scope": "e03-round1-result-review",
+  "manifest_sha256": "a720ad4f77d56689321da3fb9cfbae557890f22607260b1e621b0819c7aec5a3",
+  "candidate": "7975e477665c02820fa235b73d203718bd33b2c9",
+  "candidate_manifest_sha256": "2cd5080b041e83afeeffe4747e1a10840e402c08be234d2b6ae15dccf59b841f",
+  "terminal_sha256": "5e01990413eb6697b1287b3ae3ee86da3dc77a4c995fa7e8ffe778b59bdd969d",
+  "result_evidence_manifest_sha256": "63f02e369782af47d15de1cd64ca126ac4f26cff8dc2bff7e8643a32027624be",
+  "evidence_review": "PASS",
+  "case_acceptance": "FAIL",
+  "mechanical": "FAIL",
+  "facts": "NOT_EVALUABLE_NO_PRODUCT_OUTPUT",
+  "rewrite": "NOT_EVALUABLE_NO_PRODUCT_OUTPUT",
+  "acceptance_credit": false,
+  "e03_credit": 0,
+  "retry_authorized": false,
+  "case_remaining": 0,
+  "result_review_remaining_after_this_review": 0,
+  "verification": {
+    "method": "Readonly file inspection and standard-library JSON/hash processing; reviewed source was read, never imported or executed.",
+    "preparation_sealed_files_checked": 54,
+    "preparation_hash_or_size_mismatches": [],
+    "result_evidence_files_checked": 46,
+    "result_hash_or_size_mismatches": [],
+    "actual_files_missing_from_result_manifest": [],
+    "actual_case_directories": ["e03-round1"],
+    "user_approval_sha256_verified": "106a6fcb599fff44ef1c1987ac613dfe6a7111c4b7daf4eaefc44f0dacd631fc",
+    "preparation_review_sha256_verified": "ab03cd2114ce3350c9cfbadcbbb4ae9a6f37d0cc7898cc33af305c6941c20ffd",
+    "authority_proof_hash_matches": true,
+    "admission_authority_equals_release_authority": true,
+    "admission_proof_equals_release_proof": true,
+    "live_stdout_json_equals_terminal": true,
+    "live_stderr_empty": true,
+    "cleanup_receipt_equals_terminal_cleanup": true,
+    "attempt": 1,
+    "execution_exit_code": 2,
+    "model": "qwen3-8b-uncensored",
+    "model_digest": "6d7230a923426bc1933879eb08a7dafc18e5fc0e7606c459ce98f16e0c7f9330"
+  },
+  "findings": [
+    {
+      "id": "RESULT-FAIL-SECONDARY-SELECTION",
+      "classification": "Confirmed case failure",
+      "evidence": ["actual/e03-round1/baseline.json", "actual/e03-round1/dispatch-baseline.json", "actual/e03-round1/pre-cleanup-windows.json", "code/acceptance_backend.py:84-91", "code/acceptance_backend.py:139-149"],
+      "assessment": "Primary text remains 41 UTF-16 units with selection [0,41]. Secondary text remains 39 UTF-16 units, but its selection changes from [0,0] at baseline to [39,39] at dispatch and pre-cleanup. The frozen secondary-selection requirement therefore fails. The source places this check before admit_cli(), cli_count increment and CLI launch. This supports the terminal ValueError Frozen fixture selection mismatch and work_cli_count 0. No weakening of the gate is justified by this result."
+    },
+    {
+      "id": "TEXT-AND-FACTS",
+      "classification": "Verified unchanged input; product facts not evaluable",
+      "assessment": "Independently decoded raw UTF-8 JSON and recomputed UTF-16LE hashes for all three snapshots. Primary hash is 69867afb7063d8fa99fbe714dbe7f9c75f0272b47b2ca288b6e633b80a6a379d; secondary hash is fd914d31fab8a2a85e9fa2dc2920d7270295676f8a8da4a2af6ffa2412e6ec9d. Input facts remain 项目代号松林、交付物Markdown文档、截止2026年11月8日. No cli.stdout, product-result.json, rewrite.md or output file exists in the actual case. Preserved input facts cannot substitute for successful product factual review."
+    },
+    {
+      "id": "HANDOFF-THIS-CASE",
+      "classification": "Successful bounded handoff observation, incomplete end-to-end result",
+      "assessment": "READY and ACCEPTED receipts bind to the same fixture PID, window and button. Start was accepted in 6.170398 seconds within the 15-second bound, with keyboard_clear true. Both activation records are PASS and cross_thread_attached false. Initial readback verifies the expected text and selections; the primary remains unchanged through cleanup. This establishes that explicit Start and initial activation worked in this case and the previous primary-clearing symptom was not observed here. It does not establish general reliability or resolve earlier failures; this case still failed the later secondary-selection gate."
+    },
+    {
+      "id": "ORIGIN-MOUSE-FOCUS-ANCESTORS",
+      "classification": "Relevant diagnostic evidence with attribution limits",
+      "assessment": "Raw input-origin entries 409, 411 and 412 for secondary control HWND 10817342 contain ancestor entry 408/message 513 (WM_LBUTTONDOWN). Entries 411 and 412 also contain entry 410/message 7 (WM_SETFOCUS) nested beneath that mouse-down ancestor. Their timestamps are 12:58:47.364242-12:58:47.367152Z, approximately 3.22 seconds after Start acceptance and after the initial baseline interval ended at 12:58:45.264300Z. This is evidence of secondary-control mouse-message/focus dispatch during the interval in which the caret changed. It is consistent with a possible mechanism, but does not identify a human or sending process, prove a physical mouse action, or capture the exact caret transition. The caret-change cause remains unestablished."
+    },
+    {
+      "id": "AUDIT-SCOPE",
+      "classification": "Structural PASS with limited event coverage",
+      "assessment": "The raw main audit has six records: two starts, two WM_NULL probe records and two stops; its reported input_events 0 and programmatic_events 0 are accurate for those recorded categories. Input-origin has 14 message records plus start and complete stop, zero reported errors and zero open frames. Most direct records are IME messages. Because the ancestor evidence includes WM_LBUTTONDOWN and WM_SETFOCUS, input_events 0 must not be summarized as proof that no mouse/focus activity occurred. Sender identity remains unknown."
+    },
+    {
+      "id": "STARTUP-CLEANUP-BOUNDARIES",
+      "classification": "Recorded cleanup and protected-state evidence consistent",
+      "assessment": "The isolated server started on allocated port 64387 and returned health for the exact current 8B model before the pre-CLI rejection. Thus CLI count 0 does not mean no server startup or no case activity. Cleanup reports PASS and port_closed true. Its nine process identities match the supplemental readback's nine absent original identities, including two observe-only conhost identities. The seven protected identities in the supplemental readback equal the release proof identities, with all match flags true; official voice is recorded ready and fresh. This reviewer verified the receipts and bindings, not current live processes or services."
+    }
+  ],
+  "discrepancies_requiring_evidence_correction": [],
+  "limits": [
+    "Raw terminal facts remains PENDING_ROOT_INDEPENDENT_REVIEW. Preserve that terminal unchanged; record this NOT_EVALUABLE_NO_PRODUCT_OUTPUT conclusion separately.",
+    "Shared native inference count remains unknown/null. CLI count 0 and absence of this case's product request do not establish a shared-daemon inference count of zero.",
+    "The server log contains a voice-reference fallback configuration warning; it does not itself prove an audio action. No audio action is recorded for this case.",
+    "Historical test receipts and preparation review were not rerun. Runtime source/dependency/SDK verification reported by preflight was not independently re-executed in this result review.",
+    "This was the single authorized independent readonly review. No subagents, writes, reviewed-code imports or execution, tests, UI/keyboard/model/audio/network calls, Git mutations, authority issuance or retries were performed.",
+    "Prior automatic-approval rejections of import-probe and push actions were not retried.",
+    "Previous failed cases remain historical failures. This result grants no positive or negative E03 acceptance credit, no new case, no code-change preparation, and no later-stage release."
+  ],
+  "disposition": "Evidence review PASS; this E03 round1 remains FAIL, product facts and rewrite are not evaluable, T2 remains blocked, and both this case allocation and this result-review allocation are consumed."
+}
