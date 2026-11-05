@@ -1,0 +1,389 @@
+FFFFFFFFFFFFFF                                                           [100%]
+================================== FAILURES ===================================
+___ test_entry_source_precedes_dispatch_and_preserves_arguments_and_result ____
+
+factory = <function factory.<locals>.make at 0x000002D1E1C16020>
+
+    def test_entry_source_precedes_dispatch_and_preserves_arguments_and_result(factory):
+        events, order, seen = [], [], []
+        def read_source():
+            order.append('source')
+            return {'ok': True, 'device_type': 1, 'origin_id': 2}
+        def original(*args):
+            order.append('dispatch')
+            seen.append(args)
+            return 90210
+>       audit = recorder(factory, events, read_source=read_source)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+code\test_fixture_input_origin.py:41: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+code\test_fixture_input_origin.py:29: in recorder
+    return factory(**options)
+           ^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+kwargs = {'read_source': <function test_entry_source_precedes_dispatch_and_preserves_arguments_and_result.<locals>.read_source ...lambda> at 0x000002D1E1C16200>, 'emit': <built-in method append of list object at 0x000002D1E1BE6D00>, 'pid': 123, ...}
+
+    def make(**kwargs):
+>       assert hasattr(adapter, 'InputOriginRecorder'), 'fixture lacks input-origin observation'
+E       AssertionError: fixture lacks input-origin observation
+E       assert False
+E        +  where False = hasattr(adapter, 'InputOriginRecorder')
+
+code\test_fixture_input_origin.py:13: AssertionError
+_________ test_nested_completion_order_does_not_reverse_causal_order __________
+
+factory = <function factory.<locals>.make at 0x000002D1E1C15F80>
+
+    def test_nested_completion_order_does_not_reverse_causal_order(factory):
+        events = []
+>       audit = recorder(factory, events)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+code\test_fixture_input_origin.py:54: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+code\test_fixture_input_origin.py:29: in recorder
+    return factory(**options)
+           ^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+kwargs = {'read_source': <function recorder.<locals>.<lambda> at 0x000002D1E1C15EE0>, 'read_send_flags': <function recorder.<lo...lambda> at 0x000002D1E1C15800>, 'emit': <built-in method append of list object at 0x000002D1E2CE1B00>, 'pid': 123, ...}
+
+    def make(**kwargs):
+>       assert hasattr(adapter, 'InputOriginRecorder'), 'fixture lacks input-origin observation'
+E       AssertionError: fixture lacks input-origin observation
+E       assert False
+E        +  where False = hasattr(adapter, 'InputOriginRecorder')
+
+code\test_fixture_input_origin.py:13: AssertionError
+_____________ test_unlogged_parent_is_preserved_in_child_ancestry _____________
+
+factory = <function factory.<locals>.make at 0x000002D1E1C14EA0>
+
+    def test_unlogged_parent_is_preserved_in_child_ancestry(factory):
+        events = []
+>       audit = recorder(factory, events)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+code\test_fixture_input_origin.py:70: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+code\test_fixture_input_origin.py:29: in recorder
+    return factory(**options)
+           ^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+kwargs = {'read_source': <function recorder.<locals>.<lambda> at 0x000002D1E1C15E40>, 'read_send_flags': <function recorder.<lo...lambda> at 0x000002D1E1C15BC0>, 'emit': <built-in method append of list object at 0x000002D1E2CDA800>, 'pid': 123, ...}
+
+    def make(**kwargs):
+>       assert hasattr(adapter, 'InputOriginRecorder'), 'fixture lacks input-origin observation'
+E       AssertionError: fixture lacks input-origin observation
+E       assert False
+E        +  where False = hasattr(adapter, 'InputOriginRecorder')
+
+code\test_fixture_input_origin.py:13: AssertionError
+__ test_origin_labels_do_not_claim_a_human_or_sender_process[0-unavailable] ___
+
+factory = <function factory.<locals>.make at 0x000002D1E1C77920>, origin_id = 0
+expected = 'unavailable'
+
+    @pytest.mark.parametrize('origin_id,expected', [
+        (0, 'unavailable'), (1, 'hardware_or_uiaccess'),
+        (2, 'injected_non_uiaccess'), (4, 'system'), (16, 'unrecognized'),
+    ])
+    def test_origin_labels_do_not_claim_a_human_or_sender_process(factory, origin_id, expected):
+        events = []
+>       audit = recorder(factory, events, read_source=lambda: {'ok': True, 'device_type': 1, 'origin_id': origin_id})
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+code\test_fixture_input_origin.py:88: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+code\test_fixture_input_origin.py:29: in recorder
+    return factory(**options)
+           ^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+kwargs = {'read_source': <function test_origin_labels_do_not_claim_a_human_or_sender_process.<locals>.<lambda> at 0x000002D1E1C...lambda> at 0x000002D1E1C77C40>, 'emit': <built-in method append of list object at 0x000002D1E2D36100>, 'pid': 123, ...}
+
+    def make(**kwargs):
+>       assert hasattr(adapter, 'InputOriginRecorder'), 'fixture lacks input-origin observation'
+E       AssertionError: fixture lacks input-origin observation
+E       assert False
+E        +  where False = hasattr(adapter, 'InputOriginRecorder')
+
+code\test_fixture_input_origin.py:13: AssertionError
+_ test_origin_labels_do_not_claim_a_human_or_sender_process[1-hardware_or_uiaccess] _
+
+factory = <function factory.<locals>.make at 0x000002D1E1C14A40>, origin_id = 1
+expected = 'hardware_or_uiaccess'
+
+    @pytest.mark.parametrize('origin_id,expected', [
+        (0, 'unavailable'), (1, 'hardware_or_uiaccess'),
+        (2, 'injected_non_uiaccess'), (4, 'system'), (16, 'unrecognized'),
+    ])
+    def test_origin_labels_do_not_claim_a_human_or_sender_process(factory, origin_id, expected):
+        events = []
+>       audit = recorder(factory, events, read_source=lambda: {'ok': True, 'device_type': 1, 'origin_id': origin_id})
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+code\test_fixture_input_origin.py:88: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+code\test_fixture_input_origin.py:29: in recorder
+    return factory(**options)
+           ^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+kwargs = {'read_source': <function test_origin_labels_do_not_claim_a_human_or_sender_process.<locals>.<lambda> at 0x000002D1E1C...lambda> at 0x000002D1E2D28220>, 'emit': <built-in method append of list object at 0x000002D1E2D34200>, 'pid': 123, ...}
+
+    def make(**kwargs):
+>       assert hasattr(adapter, 'InputOriginRecorder'), 'fixture lacks input-origin observation'
+E       AssertionError: fixture lacks input-origin observation
+E       assert False
+E        +  where False = hasattr(adapter, 'InputOriginRecorder')
+
+code\test_fixture_input_origin.py:13: AssertionError
+_ test_origin_labels_do_not_claim_a_human_or_sender_process[2-injected_non_uiaccess] _
+
+factory = <function factory.<locals>.make at 0x000002D1E2D28720>, origin_id = 2
+expected = 'injected_non_uiaccess'
+
+    @pytest.mark.parametrize('origin_id,expected', [
+        (0, 'unavailable'), (1, 'hardware_or_uiaccess'),
+        (2, 'injected_non_uiaccess'), (4, 'system'), (16, 'unrecognized'),
+    ])
+    def test_origin_labels_do_not_claim_a_human_or_sender_process(factory, origin_id, expected):
+        events = []
+>       audit = recorder(factory, events, read_source=lambda: {'ok': True, 'device_type': 1, 'origin_id': origin_id})
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+code\test_fixture_input_origin.py:88: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+code\test_fixture_input_origin.py:29: in recorder
+    return factory(**options)
+           ^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+kwargs = {'read_source': <function test_origin_labels_do_not_claim_a_human_or_sender_process.<locals>.<lambda> at 0x000002D1E2D...lambda> at 0x000002D1E2D289A0>, 'emit': <built-in method append of list object at 0x000002D1E2CF6940>, 'pid': 123, ...}
+
+    def make(**kwargs):
+>       assert hasattr(adapter, 'InputOriginRecorder'), 'fixture lacks input-origin observation'
+E       AssertionError: fixture lacks input-origin observation
+E       assert False
+E        +  where False = hasattr(adapter, 'InputOriginRecorder')
+
+code\test_fixture_input_origin.py:13: AssertionError
+_____ test_origin_labels_do_not_claim_a_human_or_sender_process[4-system] _____
+
+factory = <function factory.<locals>.make at 0x000002D1E2D28E00>, origin_id = 4
+expected = 'system'
+
+    @pytest.mark.parametrize('origin_id,expected', [
+        (0, 'unavailable'), (1, 'hardware_or_uiaccess'),
+        (2, 'injected_non_uiaccess'), (4, 'system'), (16, 'unrecognized'),
+    ])
+    def test_origin_labels_do_not_claim_a_human_or_sender_process(factory, origin_id, expected):
+        events = []
+>       audit = recorder(factory, events, read_source=lambda: {'ok': True, 'device_type': 1, 'origin_id': origin_id})
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+code\test_fixture_input_origin.py:88: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+code\test_fixture_input_origin.py:29: in recorder
+    return factory(**options)
+           ^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+kwargs = {'read_source': <function test_origin_labels_do_not_claim_a_human_or_sender_process.<locals>.<lambda> at 0x000002D1E2D...lambda> at 0x000002D1E2D291C0>, 'emit': <built-in method append of list object at 0x000002D1E2D26D40>, 'pid': 123, ...}
+
+    def make(**kwargs):
+>       assert hasattr(adapter, 'InputOriginRecorder'), 'fixture lacks input-origin observation'
+E       AssertionError: fixture lacks input-origin observation
+E       assert False
+E        +  where False = hasattr(adapter, 'InputOriginRecorder')
+
+code\test_fixture_input_origin.py:13: AssertionError
+_ test_origin_labels_do_not_claim_a_human_or_sender_process[16-unrecognized] __
+
+factory = <function factory.<locals>.make at 0x000002D1E2D29620>, origin_id = 16
+expected = 'unrecognized'
+
+    @pytest.mark.parametrize('origin_id,expected', [
+        (0, 'unavailable'), (1, 'hardware_or_uiaccess'),
+        (2, 'injected_non_uiaccess'), (4, 'system'), (16, 'unrecognized'),
+    ])
+    def test_origin_labels_do_not_claim_a_human_or_sender_process(factory, origin_id, expected):
+        events = []
+>       audit = recorder(factory, events, read_source=lambda: {'ok': True, 'device_type': 1, 'origin_id': origin_id})
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+code\test_fixture_input_origin.py:88: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+code\test_fixture_input_origin.py:29: in recorder
+    return factory(**options)
+           ^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+kwargs = {'read_source': <function test_origin_labels_do_not_claim_a_human_or_sender_process.<locals>.<lambda> at 0x000002D1E2D...lambda> at 0x000002D1E2D299E0>, 'emit': <built-in method append of list object at 0x000002D1E2D25B80>, 'pid': 123, ...}
+
+    def make(**kwargs):
+>       assert hasattr(adapter, 'InputOriginRecorder'), 'fixture lacks input-origin observation'
+E       AssertionError: fixture lacks input-origin observation
+E       assert False
+E        +  where False = hasattr(adapter, 'InputOriginRecorder')
+
+code\test_fixture_input_origin.py:13: AssertionError
+_ test_observation_failure_is_explicit_and_does_not_prevent_original_dispatch _
+
+factory = <function factory.<locals>.make at 0x000002D1E2D29DA0>
+
+    def test_observation_failure_is_explicit_and_does_not_prevent_original_dispatch(factory):
+        events, calls = [], []
+        def source_failure():
+            raise OSError('PRIVATE EXCEPTION PAYLOAD')
+>       audit = recorder(factory, events, read_source=source_failure)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+code\test_fixture_input_origin.py:99: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+code\test_fixture_input_origin.py:29: in recorder
+    return factory(**options)
+           ^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+kwargs = {'read_source': <function test_observation_failure_is_explicit_and_does_not_prevent_original_dispatch.<locals>.source_...lambda> at 0x000002D1E2D29E40>, 'emit': <built-in method append of list object at 0x000002D1E2CC5D00>, 'pid': 123, ...}
+
+    def make(**kwargs):
+>       assert hasattr(adapter, 'InputOriginRecorder'), 'fixture lacks input-origin observation'
+E       AssertionError: fixture lacks input-origin observation
+E       assert False
+E        +  where False = hasattr(adapter, 'InputOriginRecorder')
+
+code\test_fixture_input_origin.py:13: AssertionError
+__________ test_sink_failure_marks_incomplete_and_preserves_dispatch __________
+
+factory = <function factory.<locals>.make at 0x000002D1E2D2A340>
+
+    def test_sink_failure_marks_incomplete_and_preserves_dispatch(factory):
+        def broken_sink(event):
+            raise OSError('disk full')
+>       audit = recorder(factory, [], emit=broken_sink)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+code\test_fixture_input_origin.py:110: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+code\test_fixture_input_origin.py:29: in recorder
+    return factory(**options)
+           ^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+kwargs = {'read_source': <function recorder.<locals>.<lambda> at 0x000002D1E2D29BC0>, 'read_send_flags': <function recorder.<lo...test_sink_failure_marks_incomplete_and_preserves_dispatch.<locals>.broken_sink at 0x000002D1E2D2A2A0>, 'pid': 123, ...}
+
+    def make(**kwargs):
+>       assert hasattr(adapter, 'InputOriginRecorder'), 'fixture lacks input-origin observation'
+E       AssertionError: fixture lacks input-origin observation
+E       assert False
+E        +  where False = hasattr(adapter, 'InputOriginRecorder')
+
+code\test_fixture_input_origin.py:13: AssertionError
+___________ test_original_exception_propagates_and_unwinds_nesting ____________
+
+factory = <function factory.<locals>.make at 0x000002D1E2D2A0C0>
+
+    def test_original_exception_propagates_and_unwinds_nesting(factory):
+        events = []
+>       audit = recorder(factory, events)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+code\test_fixture_input_origin.py:118: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+code\test_fixture_input_origin.py:29: in recorder
+    return factory(**options)
+           ^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+kwargs = {'read_source': <function recorder.<locals>.<lambda> at 0x000002D1E2D2A8E0>, 'read_send_flags': <function recorder.<lo...lambda> at 0x000002D1E2D2A980>, 'emit': <built-in method append of list object at 0x000002D1E2D24180>, 'pid': 123, ...}
+
+    def make(**kwargs):
+>       assert hasattr(adapter, 'InputOriginRecorder'), 'fixture lacks input-origin observation'
+E       AssertionError: fixture lacks input-origin observation
+E       assert False
+E        +  where False = hasattr(adapter, 'InputOriginRecorder')
+
+code\test_fixture_input_origin.py:13: AssertionError
+__________________ test_disabled_observation_is_transparent ___________________
+
+factory = <function factory.<locals>.make at 0x000002D1E2D2AF20>
+
+    def test_disabled_observation_is_transparent(factory):
+        def forbidden():
+            pytest.fail('disabled observation queried input source')
+        events = []
+>       audit = recorder(factory, events, read_source=forbidden)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+code\test_fixture_input_origin.py:133: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+code\test_fixture_input_origin.py:29: in recorder
+    return factory(**options)
+           ^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+kwargs = {'read_source': <function test_disabled_observation_is_transparent.<locals>.forbidden at 0x000002D1E2D2A660>, 'read_se...lambda> at 0x000002D1E2D2AFC0>, 'emit': <built-in method append of list object at 0x000002D1E2CC7BC0>, 'pid': 123, ...}
+
+    def make(**kwargs):
+>       assert hasattr(adapter, 'InputOriginRecorder'), 'fixture lacks input-origin observation'
+E       AssertionError: fixture lacks input-origin observation
+E       assert False
+E        +  where False = hasattr(adapter, 'InputOriginRecorder')
+
+code\test_fixture_input_origin.py:13: AssertionError
+______ test_sidecar_never_serializes_key_payloads_or_raw_values_from_api ______
+
+factory = <function factory.<locals>.make at 0x000002D1E1C14A40>
+
+    def test_sidecar_never_serializes_key_payloads_or_raw_values_from_api(factory):
+        events = []
+>       audit = recorder(factory, events, read_source=lambda: {'ok': True, 'device_type': 1, 'origin_id': 2, 'text': 'PRIVATE'})
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+code\test_fixture_input_origin.py:140: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+code\test_fixture_input_origin.py:29: in recorder
+    return factory(**options)
+           ^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+kwargs = {'read_source': <function test_sidecar_never_serializes_key_payloads_or_raw_values_from_api.<locals>.<lambda> at 0x000...lambda> at 0x000002D1E1C14C20>, 'emit': <built-in method append of list object at 0x000002D1E1BE7E00>, 'pid': 123, ...}
+
+    def make(**kwargs):
+>       assert hasattr(adapter, 'InputOriginRecorder'), 'fixture lacks input-origin observation'
+E       AssertionError: fixture lacks input-origin observation
+E       assert False
+E        +  where False = hasattr(adapter, 'InputOriginRecorder')
+
+code\test_fixture_input_origin.py:13: AssertionError
+________ test_win32_reader_uses_typed_fields_and_retains_failure_code _________
+
+    def test_win32_reader_uses_typed_fields_and_retains_failure_code():
+>       assert hasattr(adapter, 'bind_input_source_reader'), 'fixture lacks Win32 input source reader'
+E       AssertionError: fixture lacks Win32 input source reader
+E       assert False
+E        +  where False = hasattr(adapter, 'bind_input_source_reader')
+
+code\test_fixture_input_origin.py:148: AssertionError
+=========================== short test summary info ===========================
+FAILED code/test_fixture_input_origin.py::test_entry_source_precedes_dispatch_and_preserves_arguments_and_result
+FAILED code/test_fixture_input_origin.py::test_nested_completion_order_does_not_reverse_causal_order
+FAILED code/test_fixture_input_origin.py::test_unlogged_parent_is_preserved_in_child_ancestry
+FAILED code/test_fixture_input_origin.py::test_origin_labels_do_not_claim_a_human_or_sender_process[0-unavailable]
+FAILED code/test_fixture_input_origin.py::test_origin_labels_do_not_claim_a_human_or_sender_process[1-hardware_or_uiaccess]
+FAILED code/test_fixture_input_origin.py::test_origin_labels_do_not_claim_a_human_or_sender_process[2-injected_non_uiaccess]
+FAILED code/test_fixture_input_origin.py::test_origin_labels_do_not_claim_a_human_or_sender_process[4-system]
+FAILED code/test_fixture_input_origin.py::test_origin_labels_do_not_claim_a_human_or_sender_process[16-unrecognized]
+FAILED code/test_fixture_input_origin.py::test_observation_failure_is_explicit_and_does_not_prevent_original_dispatch
+FAILED code/test_fixture_input_origin.py::test_sink_failure_marks_incomplete_and_preserves_dispatch
+FAILED code/test_fixture_input_origin.py::test_original_exception_propagates_and_unwinds_nesting
+FAILED code/test_fixture_input_origin.py::test_disabled_observation_is_transparent
+FAILED code/test_fixture_input_origin.py::test_sidecar_never_serializes_key_payloads_or_raw_values_from_api
+FAILED code/test_fixture_input_origin.py::test_win32_reader_uses_typed_fields_and_retains_failure_code
+14 failed in 0.23s

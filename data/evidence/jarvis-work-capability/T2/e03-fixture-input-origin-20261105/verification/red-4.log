@@ -1,0 +1,107 @@
+.................................FFF                                     [100%]
+================================== FAILURES ===================================
+____ test_controller_requires_correlated_sidecar_before_audit_pass[absent] ____
+
+factory = <function factory.<locals>.make at 0x000001BBB3F32480>
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-fixture-input-origin-20261105/verification/tmp-red4/test_controller_requires_corre0')
+mode = 'absent'
+
+    @pytest.mark.parametrize('mode', ['absent', 'complete', 'missing_input'])
+    def test_controller_requires_correlated_sidecar_before_audit_pass(factory, tmp_path, mode):
+        from pathlib import Path
+        root = Path(r'H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e03-source12-20261105-r31-preflight-log-isolation\actual\e03-round2')
+        fixture = json.loads((root / 'fixture.json').read_text())
+        legacy = (root / 'fixture-events.jsonl').read_bytes()
+        path = tmp_path / 'fixture-events.jsonl'
+        path.write_bytes(legacy)
+        if mode != 'absent':
+            events = []
+            audit = recorder(factory, events, pid=fixture['pid'])
+            audit.start([item['control_hwnd'] for item in fixture['targets']])
+            wrapped = audit.wrap(lambda *args: 0, enabled=lambda: True, observed=lambda m: True)
+            for line in legacy.splitlines():
+                row = json.loads(line)
+                if row['type'] == 'edit-message' and (mode == 'complete' or row['message_id'] == 0):
+                    wrapped(row['hwnd'], row['message_id'], 0, 0)
+            audit.finish()
+            (tmp_path / 'fixture-input-origin.jsonl').write_text(''.join(json.dumps(row) + '\n' for row in events), encoding='utf-8')
+        if mode == 'complete':
+            result = controller_audit()(path, fixture)
+            assert result['input_origin']['message_records'] == 17
+        else:
+>           with pytest.raises((ValueError, FileNotFoundError)):
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E           Failed: DID NOT RAISE any of (ValueError, FileNotFoundError)
+
+code\test_fixture_input_origin.py:330: Failed
+___ test_controller_requires_correlated_sidecar_before_audit_pass[complete] ___
+
+factory = <function factory.<locals>.make at 0x000001BBB3F32B60>
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-fixture-input-origin-20261105/verification/tmp-red4/test_controller_requires_corre1')
+mode = 'complete'
+
+    @pytest.mark.parametrize('mode', ['absent', 'complete', 'missing_input'])
+    def test_controller_requires_correlated_sidecar_before_audit_pass(factory, tmp_path, mode):
+        from pathlib import Path
+        root = Path(r'H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e03-source12-20261105-r31-preflight-log-isolation\actual\e03-round2')
+        fixture = json.loads((root / 'fixture.json').read_text())
+        legacy = (root / 'fixture-events.jsonl').read_bytes()
+        path = tmp_path / 'fixture-events.jsonl'
+        path.write_bytes(legacy)
+        if mode != 'absent':
+            events = []
+            audit = recorder(factory, events, pid=fixture['pid'])
+            audit.start([item['control_hwnd'] for item in fixture['targets']])
+            wrapped = audit.wrap(lambda *args: 0, enabled=lambda: True, observed=lambda m: True)
+            for line in legacy.splitlines():
+                row = json.loads(line)
+                if row['type'] == 'edit-message' and (mode == 'complete' or row['message_id'] == 0):
+                    wrapped(row['hwnd'], row['message_id'], 0, 0)
+            audit.finish()
+            (tmp_path / 'fixture-input-origin.jsonl').write_text(''.join(json.dumps(row) + '\n' for row in events), encoding='utf-8')
+        if mode == 'complete':
+            result = controller_audit()(path, fixture)
+>           assert result['input_origin']['message_records'] == 17
+                   ^^^^^^^^^^^^^^^^^^^^^^
+E           KeyError: 'input_origin'
+
+code\test_fixture_input_origin.py:328: KeyError
+_ test_controller_requires_correlated_sidecar_before_audit_pass[missing_input] _
+
+factory = <function factory.<locals>.make at 0x000001BBB50B72E0>
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-fixture-input-origin-20261105/verification/tmp-red4/test_controller_requires_corre2')
+mode = 'missing_input'
+
+    @pytest.mark.parametrize('mode', ['absent', 'complete', 'missing_input'])
+    def test_controller_requires_correlated_sidecar_before_audit_pass(factory, tmp_path, mode):
+        from pathlib import Path
+        root = Path(r'H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e03-source12-20261105-r31-preflight-log-isolation\actual\e03-round2')
+        fixture = json.loads((root / 'fixture.json').read_text())
+        legacy = (root / 'fixture-events.jsonl').read_bytes()
+        path = tmp_path / 'fixture-events.jsonl'
+        path.write_bytes(legacy)
+        if mode != 'absent':
+            events = []
+            audit = recorder(factory, events, pid=fixture['pid'])
+            audit.start([item['control_hwnd'] for item in fixture['targets']])
+            wrapped = audit.wrap(lambda *args: 0, enabled=lambda: True, observed=lambda m: True)
+            for line in legacy.splitlines():
+                row = json.loads(line)
+                if row['type'] == 'edit-message' and (mode == 'complete' or row['message_id'] == 0):
+                    wrapped(row['hwnd'], row['message_id'], 0, 0)
+            audit.finish()
+            (tmp_path / 'fixture-input-origin.jsonl').write_text(''.join(json.dumps(row) + '\n' for row in events), encoding='utf-8')
+        if mode == 'complete':
+            result = controller_audit()(path, fixture)
+            assert result['input_origin']['message_records'] == 17
+        else:
+>           with pytest.raises((ValueError, FileNotFoundError)):
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E           Failed: DID NOT RAISE any of (ValueError, FileNotFoundError)
+
+code\test_fixture_input_origin.py:330: Failed
+=========================== short test summary info ===========================
+FAILED code/test_fixture_input_origin.py::test_controller_requires_correlated_sidecar_before_audit_pass[absent]
+FAILED code/test_fixture_input_origin.py::test_controller_requires_correlated_sidecar_before_audit_pass[complete]
+FAILED code/test_fixture_input_origin.py::test_controller_requires_correlated_sidecar_before_audit_pass[missing_input]
+3 failed, 33 passed in 0.38s

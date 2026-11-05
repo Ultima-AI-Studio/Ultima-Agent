@@ -1,0 +1,80 @@
+--- R31/preparation/fixture_adapter.py
++++ preparation/code/fixture_adapter.py
+@@ -11,6 +11,8 @@
+ import sys
+ import threading
+ import time
++from fixture_input_origin import (InputOriginRecorder, bind_input_source_reader, EXTRA_MESSAGES,
++                                  validate_origin_records, validate_origin_audit)
+ 
+ AUDIT_MESSAGES={
+     0x0000:('WM_NULL','probe'),
+@@ -100,7 +102,7 @@
+         raise ValueError('Edit text readback unavailable')
+     return buffer.value
+ 
+-def _install_audit(user32,kernel,control_hwnd,pid,folder,index):
++def _install_audit(user32,kernel,control_hwnd,pid,folder,index,origin=None):
+     get_long=getattr(user32,'GetWindowLongPtrW',user32.GetWindowLongW)
+     set_long=getattr(user32,'SetWindowLongPtrW',user32.SetWindowLongW)
+     get_long.argtypes=[W.HWND,C.c_int]; get_long.restype=C.c_void_p
+@@ -157,6 +159,9 @@
+             state['error']=True
+         return result
+ 
++    if origin is not None:
++        wndproc=origin.wrap(wndproc,enabled=lambda:state['enabled'],
++                           observed=lambda message:message_kind(message) is not None or message in EXTRA_MESSAGES)
+     callback=C.WINFUNCTYPE(C.c_ssize_t,W.HWND,W.UINT,W.WPARAM,W.LPARAM)(wndproc)
+     previous=set_long(control_hwnd,-4,C.cast(callback,C.c_void_p))
+     if not previous:
+@@ -207,9 +212,16 @@
+             set_text,lambda control_hwnd=target['control_hwnd']:harness.read_fixture_edit_text(native,control_hwnd),text)
+         initial_readbacks.append({'index':index,'hwnd':target['hwnd'],'control_hwnd':target['control_hwnd'],'before_activation':before})
+ 
++    origin_path=folder/'fixture-input-origin.jsonl'
++    origin_lock=threading.Lock()
++    origin=InputOriginRecorder(
++        read_source=bind_input_source_reader(user32),
++        read_send_flags=lambda:int(user32.InSendMessageEx(None)),
++        emit=lambda record:_append_record(origin_path,record,origin_lock),
++        pid=os.getpid(),thread_id=lambda:int(kernel.GetCurrentThreadId()))
+     audit_handles=[]
+     for index,target in enumerate(targets):
+-        audit_handles.append(_install_audit(user32,kernel,target['control_hwnd'],target['pid'],folder,index))
++        audit_handles.append(_install_audit(user32,kernel,target['control_hwnd'],target['pid'],folder,index,origin))
+ 
+     def activate(index=0,select=True):
+         target=targets[index]
+@@ -247,6 +259,8 @@
+                 'sha256_utf16le':hashlib.sha256(observed['text'].encode('utf-16le')).hexdigest(),
+                 'start_utf16':observed['start_utf16'],'end_utf16':observed['end_utf16'],
+             }
++        if not origin.start([target['control_hwnd'] for target in targets]):
++            raise ValueError('Fixture input-origin audit start failed')
+         for item in audit_handles:
+             _append_record(item['path'],{
+                 'schema':1,'type':'audit-start','recorded_at_utc':dt.datetime.now(dt.timezone.utc).isoformat(),
+@@ -254,6 +268,8 @@
+             item['state']['enabled']=True
+         for target in targets:
+             native.send(target['control_hwnd'],0x0000,0,0)
++        if not origin.summary()['complete']:
++            raise ValueError('Fixture input-origin audit preflight incomplete')
+         harness.save(folder/'fixture-initial-readback.json',{'status':'PASS','targets':initial_readbacks})
+         harness.save(folder/'policy.json',{'version':1,'targets':[targets[0]]})
+         harness.save(folder/'fixture.json',{'targets':targets,'pid':os.getpid()})
+@@ -270,10 +286,12 @@
+     finally:
+         for item in audit_handles:
+             item['state']['enabled']=False
++        origin_summary=origin.finish()
++        for item in audit_handles:
+             _append_record(item['path'],{
+                 'schema':1,'type':'audit-stop','recorded_at_utc':dt.datetime.now(dt.timezone.utc).isoformat(),
+                 'hwnd':item['hwnd'],'pid':os.getpid(),'window_index':item['index'],
+-                'audit_read_error':item['state']['error']},item['lock'])
++                'audit_read_error':item['state']['error'] or not origin_summary['complete']},item['lock'])
+             set_long=getattr(user32,'SetWindowLongPtrW',user32.SetWindowLongW)
+             set_long.argtypes=[W.HWND,C.c_int,C.c_void_p]; set_long.restype=C.c_void_p
+             set_long(item['hwnd'],-4,C.c_void_p(item['old_proc']))

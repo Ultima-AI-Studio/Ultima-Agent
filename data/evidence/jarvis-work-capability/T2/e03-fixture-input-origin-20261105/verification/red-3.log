@@ -1,0 +1,397 @@
+.....................FFFFFFFFFFF                                         [100%]
+================================== FAILURES ===================================
+_________ test_sidecar_live_and_closed_validation_require_both_probes _________
+
+factory = <function factory.<locals>.make at 0x000001C9E7336520>
+
+    def test_sidecar_live_and_closed_validation_require_both_probes(factory):
+        events = complete_records(factory)
+>       assert validate(events)['message_records'] == 2
+               ^^^^^^^^^^^^^^^^
+
+code\test_fixture_input_origin.py:249: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+events = [{'schema': 1, 'type': 'origin-start', 'pid': 123, 'controls': [77, 88]}, {'entry_id': 1, 'message_id': 0, 'hwnd': 77,...message_id': 0, 'hwnd': 88, 'schema': 1, ...}, {'schema': 1, 'type': 'origin-stop', 'pid': 123, 'complete': True, ...}]
+closed = True
+
+    def validate(events, *, closed=True):
+>       assert hasattr(adapter, 'validate_origin_records'), 'sidecar completeness gate missing'
+E       AssertionError: sidecar completeness gate missing
+E       assert False
+E        +  where False = hasattr(adapter, 'validate_origin_records')
+
+code\test_fixture_input_origin.py:243: AssertionError
+_ test_sidecar_rejects_unbound_incomplete_or_payload_bearing_records[<lambda>0] _
+
+factory = <function factory.<locals>.make at 0x000001C9E7337100>
+change = <function <lambda> at 0x000001C9E73899E0>
+
+    @pytest.mark.parametrize('change', [
+        lambda events: events[1].update(wparam=99),
+        lambda events: events[1].update(pid=999),
+        lambda events: events[1].update(hwnd=999),
+        lambda events: events[1].update(send_flags_at_entry=None),
+        lambda events: events[1]['source'].update(origin='human'),
+        lambda events: events[1].update(entered_ns=10000),
+        lambda events: events[2].update(entry_id=events[1]['entry_id']),
+        lambda events: events[-1].update(emitted_records=99),
+        lambda events: events[-1].update(complete=False),
+        lambda events: events[1].update(ancestors_truncated=True),
+    ])
+    def test_sidecar_rejects_unbound_incomplete_or_payload_bearing_records(factory, change):
+        events = complete_records(factory)
+        change(events)
+        with pytest.raises(ValueError):
+>           validate(events)
+
+code\test_fixture_input_origin.py:274: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+events = [{'schema': 1, 'type': 'origin-start', 'pid': 123, 'controls': [77, 88]}, {'entry_id': 1, 'message_id': 0, 'hwnd': 77,...message_id': 0, 'hwnd': 88, 'schema': 1, ...}, {'schema': 1, 'type': 'origin-stop', 'pid': 123, 'complete': True, ...}]
+closed = True
+
+    def validate(events, *, closed=True):
+>       assert hasattr(adapter, 'validate_origin_records'), 'sidecar completeness gate missing'
+E       AssertionError: sidecar completeness gate missing
+E       assert False
+E        +  where False = hasattr(adapter, 'validate_origin_records')
+
+code\test_fixture_input_origin.py:243: AssertionError
+_ test_sidecar_rejects_unbound_incomplete_or_payload_bearing_records[<lambda>1] _
+
+factory = <function factory.<locals>.make at 0x000001C9E7336C00>
+change = <function <lambda> at 0x000001C9E7389A80>
+
+    @pytest.mark.parametrize('change', [
+        lambda events: events[1].update(wparam=99),
+        lambda events: events[1].update(pid=999),
+        lambda events: events[1].update(hwnd=999),
+        lambda events: events[1].update(send_flags_at_entry=None),
+        lambda events: events[1]['source'].update(origin='human'),
+        lambda events: events[1].update(entered_ns=10000),
+        lambda events: events[2].update(entry_id=events[1]['entry_id']),
+        lambda events: events[-1].update(emitted_records=99),
+        lambda events: events[-1].update(complete=False),
+        lambda events: events[1].update(ancestors_truncated=True),
+    ])
+    def test_sidecar_rejects_unbound_incomplete_or_payload_bearing_records(factory, change):
+        events = complete_records(factory)
+        change(events)
+        with pytest.raises(ValueError):
+>           validate(events)
+
+code\test_fixture_input_origin.py:274: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+events = [{'schema': 1, 'type': 'origin-start', 'pid': 123, 'controls': [77, 88]}, {'entry_id': 1, 'message_id': 0, 'hwnd': 77,...message_id': 0, 'hwnd': 88, 'schema': 1, ...}, {'schema': 1, 'type': 'origin-stop', 'pid': 123, 'complete': True, ...}]
+closed = True
+
+    def validate(events, *, closed=True):
+>       assert hasattr(adapter, 'validate_origin_records'), 'sidecar completeness gate missing'
+E       AssertionError: sidecar completeness gate missing
+E       assert False
+E        +  where False = hasattr(adapter, 'validate_origin_records')
+
+code\test_fixture_input_origin.py:243: AssertionError
+_ test_sidecar_rejects_unbound_incomplete_or_payload_bearing_records[<lambda>2] _
+
+factory = <function factory.<locals>.make at 0x000001C9E7336AC0>
+change = <function <lambda> at 0x000001C9E7389B20>
+
+    @pytest.mark.parametrize('change', [
+        lambda events: events[1].update(wparam=99),
+        lambda events: events[1].update(pid=999),
+        lambda events: events[1].update(hwnd=999),
+        lambda events: events[1].update(send_flags_at_entry=None),
+        lambda events: events[1]['source'].update(origin='human'),
+        lambda events: events[1].update(entered_ns=10000),
+        lambda events: events[2].update(entry_id=events[1]['entry_id']),
+        lambda events: events[-1].update(emitted_records=99),
+        lambda events: events[-1].update(complete=False),
+        lambda events: events[1].update(ancestors_truncated=True),
+    ])
+    def test_sidecar_rejects_unbound_incomplete_or_payload_bearing_records(factory, change):
+        events = complete_records(factory)
+        change(events)
+        with pytest.raises(ValueError):
+>           validate(events)
+
+code\test_fixture_input_origin.py:274: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+events = [{'schema': 1, 'type': 'origin-start', 'pid': 123, 'controls': [77, 88]}, {'entry_id': 1, 'message_id': 0, 'hwnd': 999...message_id': 0, 'hwnd': 88, 'schema': 1, ...}, {'schema': 1, 'type': 'origin-stop', 'pid': 123, 'complete': True, ...}]
+closed = True
+
+    def validate(events, *, closed=True):
+>       assert hasattr(adapter, 'validate_origin_records'), 'sidecar completeness gate missing'
+E       AssertionError: sidecar completeness gate missing
+E       assert False
+E        +  where False = hasattr(adapter, 'validate_origin_records')
+
+code\test_fixture_input_origin.py:243: AssertionError
+_ test_sidecar_rejects_unbound_incomplete_or_payload_bearing_records[<lambda>3] _
+
+factory = <function factory.<locals>.make at 0x000001C9E73342C0>
+change = <function <lambda> at 0x000001C9E7389BC0>
+
+    @pytest.mark.parametrize('change', [
+        lambda events: events[1].update(wparam=99),
+        lambda events: events[1].update(pid=999),
+        lambda events: events[1].update(hwnd=999),
+        lambda events: events[1].update(send_flags_at_entry=None),
+        lambda events: events[1]['source'].update(origin='human'),
+        lambda events: events[1].update(entered_ns=10000),
+        lambda events: events[2].update(entry_id=events[1]['entry_id']),
+        lambda events: events[-1].update(emitted_records=99),
+        lambda events: events[-1].update(complete=False),
+        lambda events: events[1].update(ancestors_truncated=True),
+    ])
+    def test_sidecar_rejects_unbound_incomplete_or_payload_bearing_records(factory, change):
+        events = complete_records(factory)
+        change(events)
+        with pytest.raises(ValueError):
+>           validate(events)
+
+code\test_fixture_input_origin.py:274: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+events = [{'schema': 1, 'type': 'origin-start', 'pid': 123, 'controls': [77, 88]}, {'entry_id': 1, 'message_id': 0, 'hwnd': 77,...message_id': 0, 'hwnd': 88, 'schema': 1, ...}, {'schema': 1, 'type': 'origin-stop', 'pid': 123, 'complete': True, ...}]
+closed = True
+
+    def validate(events, *, closed=True):
+>       assert hasattr(adapter, 'validate_origin_records'), 'sidecar completeness gate missing'
+E       AssertionError: sidecar completeness gate missing
+E       assert False
+E        +  where False = hasattr(adapter, 'validate_origin_records')
+
+code\test_fixture_input_origin.py:243: AssertionError
+_ test_sidecar_rejects_unbound_incomplete_or_payload_bearing_records[<lambda>4] _
+
+factory = <function factory.<locals>.make at 0x000001C9E73354E0>
+change = <function <lambda> at 0x000001C9E7389C60>
+
+    @pytest.mark.parametrize('change', [
+        lambda events: events[1].update(wparam=99),
+        lambda events: events[1].update(pid=999),
+        lambda events: events[1].update(hwnd=999),
+        lambda events: events[1].update(send_flags_at_entry=None),
+        lambda events: events[1]['source'].update(origin='human'),
+        lambda events: events[1].update(entered_ns=10000),
+        lambda events: events[2].update(entry_id=events[1]['entry_id']),
+        lambda events: events[-1].update(emitted_records=99),
+        lambda events: events[-1].update(complete=False),
+        lambda events: events[1].update(ancestors_truncated=True),
+    ])
+    def test_sidecar_rejects_unbound_incomplete_or_payload_bearing_records(factory, change):
+        events = complete_records(factory)
+        change(events)
+        with pytest.raises(ValueError):
+>           validate(events)
+
+code\test_fixture_input_origin.py:274: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+events = [{'schema': 1, 'type': 'origin-start', 'pid': 123, 'controls': [77, 88]}, {'entry_id': 1, 'message_id': 0, 'hwnd': 77,...message_id': 0, 'hwnd': 88, 'schema': 1, ...}, {'schema': 1, 'type': 'origin-stop', 'pid': 123, 'complete': True, ...}]
+closed = True
+
+    def validate(events, *, closed=True):
+>       assert hasattr(adapter, 'validate_origin_records'), 'sidecar completeness gate missing'
+E       AssertionError: sidecar completeness gate missing
+E       assert False
+E        +  where False = hasattr(adapter, 'validate_origin_records')
+
+code\test_fixture_input_origin.py:243: AssertionError
+_ test_sidecar_rejects_unbound_incomplete_or_payload_bearing_records[<lambda>5] _
+
+factory = <function factory.<locals>.make at 0x000001C9E7334D60>
+change = <function <lambda> at 0x000001C9E7389D00>
+
+    @pytest.mark.parametrize('change', [
+        lambda events: events[1].update(wparam=99),
+        lambda events: events[1].update(pid=999),
+        lambda events: events[1].update(hwnd=999),
+        lambda events: events[1].update(send_flags_at_entry=None),
+        lambda events: events[1]['source'].update(origin='human'),
+        lambda events: events[1].update(entered_ns=10000),
+        lambda events: events[2].update(entry_id=events[1]['entry_id']),
+        lambda events: events[-1].update(emitted_records=99),
+        lambda events: events[-1].update(complete=False),
+        lambda events: events[1].update(ancestors_truncated=True),
+    ])
+    def test_sidecar_rejects_unbound_incomplete_or_payload_bearing_records(factory, change):
+        events = complete_records(factory)
+        change(events)
+        with pytest.raises(ValueError):
+>           validate(events)
+
+code\test_fixture_input_origin.py:274: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+events = [{'schema': 1, 'type': 'origin-start', 'pid': 123, 'controls': [77, 88]}, {'entry_id': 1, 'message_id': 0, 'hwnd': 77,...message_id': 0, 'hwnd': 88, 'schema': 1, ...}, {'schema': 1, 'type': 'origin-stop', 'pid': 123, 'complete': True, ...}]
+closed = True
+
+    def validate(events, *, closed=True):
+>       assert hasattr(adapter, 'validate_origin_records'), 'sidecar completeness gate missing'
+E       AssertionError: sidecar completeness gate missing
+E       assert False
+E        +  where False = hasattr(adapter, 'validate_origin_records')
+
+code\test_fixture_input_origin.py:243: AssertionError
+_ test_sidecar_rejects_unbound_incomplete_or_payload_bearing_records[<lambda>6] _
+
+factory = <function factory.<locals>.make at 0x000001C9E73356C0>
+change = <function <lambda> at 0x000001C9E7389DA0>
+
+    @pytest.mark.parametrize('change', [
+        lambda events: events[1].update(wparam=99),
+        lambda events: events[1].update(pid=999),
+        lambda events: events[1].update(hwnd=999),
+        lambda events: events[1].update(send_flags_at_entry=None),
+        lambda events: events[1]['source'].update(origin='human'),
+        lambda events: events[1].update(entered_ns=10000),
+        lambda events: events[2].update(entry_id=events[1]['entry_id']),
+        lambda events: events[-1].update(emitted_records=99),
+        lambda events: events[-1].update(complete=False),
+        lambda events: events[1].update(ancestors_truncated=True),
+    ])
+    def test_sidecar_rejects_unbound_incomplete_or_payload_bearing_records(factory, change):
+        events = complete_records(factory)
+        change(events)
+        with pytest.raises(ValueError):
+>           validate(events)
+
+code\test_fixture_input_origin.py:274: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+events = [{'schema': 1, 'type': 'origin-start', 'pid': 123, 'controls': [77, 88]}, {'entry_id': 1, 'message_id': 0, 'hwnd': 77,...message_id': 0, 'hwnd': 88, 'schema': 1, ...}, {'schema': 1, 'type': 'origin-stop', 'pid': 123, 'complete': True, ...}]
+closed = True
+
+    def validate(events, *, closed=True):
+>       assert hasattr(adapter, 'validate_origin_records'), 'sidecar completeness gate missing'
+E       AssertionError: sidecar completeness gate missing
+E       assert False
+E        +  where False = hasattr(adapter, 'validate_origin_records')
+
+code\test_fixture_input_origin.py:243: AssertionError
+_ test_sidecar_rejects_unbound_incomplete_or_payload_bearing_records[<lambda>7] _
+
+factory = <function factory.<locals>.make at 0x000001C9E73371A0>
+change = <function <lambda> at 0x000001C9E7389E40>
+
+    @pytest.mark.parametrize('change', [
+        lambda events: events[1].update(wparam=99),
+        lambda events: events[1].update(pid=999),
+        lambda events: events[1].update(hwnd=999),
+        lambda events: events[1].update(send_flags_at_entry=None),
+        lambda events: events[1]['source'].update(origin='human'),
+        lambda events: events[1].update(entered_ns=10000),
+        lambda events: events[2].update(entry_id=events[1]['entry_id']),
+        lambda events: events[-1].update(emitted_records=99),
+        lambda events: events[-1].update(complete=False),
+        lambda events: events[1].update(ancestors_truncated=True),
+    ])
+    def test_sidecar_rejects_unbound_incomplete_or_payload_bearing_records(factory, change):
+        events = complete_records(factory)
+        change(events)
+        with pytest.raises(ValueError):
+>           validate(events)
+
+code\test_fixture_input_origin.py:274: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+events = [{'schema': 1, 'type': 'origin-start', 'pid': 123, 'controls': [77, 88]}, {'entry_id': 1, 'message_id': 0, 'hwnd': 77,...message_id': 0, 'hwnd': 88, 'schema': 1, ...}, {'schema': 1, 'type': 'origin-stop', 'pid': 123, 'complete': True, ...}]
+closed = True
+
+    def validate(events, *, closed=True):
+>       assert hasattr(adapter, 'validate_origin_records'), 'sidecar completeness gate missing'
+E       AssertionError: sidecar completeness gate missing
+E       assert False
+E        +  where False = hasattr(adapter, 'validate_origin_records')
+
+code\test_fixture_input_origin.py:243: AssertionError
+_ test_sidecar_rejects_unbound_incomplete_or_payload_bearing_records[<lambda>8] _
+
+factory = <function factory.<locals>.make at 0x000001C9E7335C60>
+change = <function <lambda> at 0x000001C9E7389EE0>
+
+    @pytest.mark.parametrize('change', [
+        lambda events: events[1].update(wparam=99),
+        lambda events: events[1].update(pid=999),
+        lambda events: events[1].update(hwnd=999),
+        lambda events: events[1].update(send_flags_at_entry=None),
+        lambda events: events[1]['source'].update(origin='human'),
+        lambda events: events[1].update(entered_ns=10000),
+        lambda events: events[2].update(entry_id=events[1]['entry_id']),
+        lambda events: events[-1].update(emitted_records=99),
+        lambda events: events[-1].update(complete=False),
+        lambda events: events[1].update(ancestors_truncated=True),
+    ])
+    def test_sidecar_rejects_unbound_incomplete_or_payload_bearing_records(factory, change):
+        events = complete_records(factory)
+        change(events)
+        with pytest.raises(ValueError):
+>           validate(events)
+
+code\test_fixture_input_origin.py:274: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+events = [{'schema': 1, 'type': 'origin-start', 'pid': 123, 'controls': [77, 88]}, {'entry_id': 1, 'message_id': 0, 'hwnd': 77,...essage_id': 0, 'hwnd': 88, 'schema': 1, ...}, {'schema': 1, 'type': 'origin-stop', 'pid': 123, 'complete': False, ...}]
+closed = True
+
+    def validate(events, *, closed=True):
+>       assert hasattr(adapter, 'validate_origin_records'), 'sidecar completeness gate missing'
+E       AssertionError: sidecar completeness gate missing
+E       assert False
+E        +  where False = hasattr(adapter, 'validate_origin_records')
+
+code\test_fixture_input_origin.py:243: AssertionError
+_ test_sidecar_rejects_unbound_incomplete_or_payload_bearing_records[<lambda>9] _
+
+factory = <function factory.<locals>.make at 0x000001C9E73354E0>
+change = <function <lambda> at 0x000001C9E7389F80>
+
+    @pytest.mark.parametrize('change', [
+        lambda events: events[1].update(wparam=99),
+        lambda events: events[1].update(pid=999),
+        lambda events: events[1].update(hwnd=999),
+        lambda events: events[1].update(send_flags_at_entry=None),
+        lambda events: events[1]['source'].update(origin='human'),
+        lambda events: events[1].update(entered_ns=10000),
+        lambda events: events[2].update(entry_id=events[1]['entry_id']),
+        lambda events: events[-1].update(emitted_records=99),
+        lambda events: events[-1].update(complete=False),
+        lambda events: events[1].update(ancestors_truncated=True),
+    ])
+    def test_sidecar_rejects_unbound_incomplete_or_payload_bearing_records(factory, change):
+        events = complete_records(factory)
+        change(events)
+        with pytest.raises(ValueError):
+>           validate(events)
+
+code\test_fixture_input_origin.py:274: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+events = [{'schema': 1, 'type': 'origin-start', 'pid': 123, 'controls': [77, 88]}, {'entry_id': 1, 'message_id': 0, 'hwnd': 77,...message_id': 0, 'hwnd': 88, 'schema': 1, ...}, {'schema': 1, 'type': 'origin-stop', 'pid': 123, 'complete': True, ...}]
+closed = True
+
+    def validate(events, *, closed=True):
+>       assert hasattr(adapter, 'validate_origin_records'), 'sidecar completeness gate missing'
+E       AssertionError: sidecar completeness gate missing
+E       assert False
+E        +  where False = hasattr(adapter, 'validate_origin_records')
+
+code\test_fixture_input_origin.py:243: AssertionError
+=========================== short test summary info ===========================
+FAILED code/test_fixture_input_origin.py::test_sidecar_live_and_closed_validation_require_both_probes
+FAILED code/test_fixture_input_origin.py::test_sidecar_rejects_unbound_incomplete_or_payload_bearing_records[<lambda>0]
+FAILED code/test_fixture_input_origin.py::test_sidecar_rejects_unbound_incomplete_or_payload_bearing_records[<lambda>1]
+FAILED code/test_fixture_input_origin.py::test_sidecar_rejects_unbound_incomplete_or_payload_bearing_records[<lambda>2]
+FAILED code/test_fixture_input_origin.py::test_sidecar_rejects_unbound_incomplete_or_payload_bearing_records[<lambda>3]
+FAILED code/test_fixture_input_origin.py::test_sidecar_rejects_unbound_incomplete_or_payload_bearing_records[<lambda>4]
+FAILED code/test_fixture_input_origin.py::test_sidecar_rejects_unbound_incomplete_or_payload_bearing_records[<lambda>5]
+FAILED code/test_fixture_input_origin.py::test_sidecar_rejects_unbound_incomplete_or_payload_bearing_records[<lambda>6]
+FAILED code/test_fixture_input_origin.py::test_sidecar_rejects_unbound_incomplete_or_payload_bearing_records[<lambda>7]
+FAILED code/test_fixture_input_origin.py::test_sidecar_rejects_unbound_incomplete_or_payload_bearing_records[<lambda>8]
+FAILED code/test_fixture_input_origin.py::test_sidecar_rejects_unbound_incomplete_or_payload_bearing_records[<lambda>9]
+11 failed, 21 passed in 0.28s

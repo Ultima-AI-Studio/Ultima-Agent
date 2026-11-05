@@ -1,0 +1,26 @@
+--- R31/preparation/controller.py
++++ preparation/code/controller.py
+@@ -127,10 +127,22 @@
+                 'Fixture audit startup probes incomplete or unexpected event arrived')
+     require(all(count>=1 for count in probe_counts.values()) and set(probe_counts)==expected_controls,
+             'Fixture audit hook probe missing')
++    origin=fixture_audit.validate_origin_audit(Path(path).with_name('fixture-input-origin.jsonl'),
++                                              fixture,require_closed=require_closed)
++    expected_counts={str(control):{} for control in expected_controls}
++    for record in records:
++        if record['type']=='edit-message':
++            counts=expected_counts[str(record['hwnd'])]; key=str(record['message_id'])
++            counts[key]=counts.get(key,0)+1
++    origin_counts={control:{key:value for key,value in counts.items()
++                            if fixture_audit.message_kind(int(key)) is not None}
++                   for control,counts in origin['control_message_counts'].items()}
++    require(origin_counts==expected_counts,'Fixture input-origin/legacy message counts differ')
+     return {'status':'PASS','sha256':hashlib.sha256(raw).hexdigest(),'bytes':len(raw),'records':len(records),
+             'input_events':input_events,'programmatic_events':programmatic_events,
+             'probe_events':sum(probe_counts.values()),
+-            'message_counts':{str(key):message_counts[key] for key in sorted(message_counts)},'raw_payloads':0}
++            'message_counts':{str(key):message_counts[key] for key in sorted(message_counts)},'raw_payloads':0,
++            'input_origin':origin}
+ 
+ def _unique_pairs(pairs):
+     result={}

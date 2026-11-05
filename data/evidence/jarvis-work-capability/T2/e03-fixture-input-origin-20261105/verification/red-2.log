@@ -1,0 +1,57 @@
+.................FFF.                                                    [100%]
+================================== FAILURES ===================================
+___________ test_clock_failure_does_not_suppress_original_dispatch ____________
+
+factory = <function factory.<locals>.make at 0x000001846DFA9440>
+
+    def test_clock_failure_does_not_suppress_original_dispatch(factory):
+        def broken_clock():
+            raise OSError('clock observation failed')
+        audit = recorder(factory, [], clock_ns=broken_clock)
+>       assert audit.wrap(lambda *args: 13, enabled=lambda: True, observed=lambda m: True)(77, 0x100, 0, 0) == 13
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+code\test_fixture_input_origin.py:168: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+code\fixture_input_origin.py:96: in dispatch
+    entered_ns, entered_utc = self.clock_ns(), self.clock_utc()
+                              ^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    def broken_clock():
+>       raise OSError('clock observation failed')
+E       OSError: clock observation failed
+
+code\test_fixture_input_origin.py:166: OSError
+____________ test_lifecycle_records_bind_owned_controls_and_counts ____________
+
+factory = <function factory.<locals>.make at 0x000001846DFA8A40>
+
+    def test_lifecycle_records_bind_owned_controls_and_counts(factory):
+        events = []
+        audit = recorder(factory, events)
+>       assert hasattr(audit, 'start') and hasattr(audit, 'finish'), 'sidecar lifecycle is missing'
+E       AssertionError: sidecar lifecycle is missing
+E       assert (False)
+E        +  where False = hasattr(<fixture_input_origin.InputOriginRecorder object at 0x000001846F192A90>, 'start')
+
+code\test_fixture_input_origin.py:176: AssertionError
+___________ test_failed_sidecar_stop_can_never_skip_fixture_cleanup ___________
+
+factory = <function factory.<locals>.make at 0x000001846E00BC40>
+
+    def test_failed_sidecar_stop_can_never_skip_fixture_cleanup(factory):
+        def broken_sink(event):
+            raise OSError('sidecar unavailable')
+        audit = recorder(factory, [], emit=broken_sink)
+>       assert hasattr(audit, 'finish'), 'safe sidecar finish is missing'
+E       AssertionError: safe sidecar finish is missing
+E       assert False
+E        +  where False = hasattr(<fixture_input_origin.InputOriginRecorder object at 0x000001846F17D010>, 'finish')
+
+code\test_fixture_input_origin.py:190: AssertionError
+=========================== short test summary info ===========================
+FAILED code/test_fixture_input_origin.py::test_clock_failure_does_not_suppress_original_dispatch
+FAILED code/test_fixture_input_origin.py::test_lifecycle_records_bind_owned_controls_and_counts
+FAILED code/test_fixture_input_origin.py::test_failed_sidecar_stop_can_never_skip_fixture_cleanup
+3 failed, 18 passed in 0.25s

@@ -5,7 +5,7 @@
 - original_work_order_id: wo-ultimaagent-20261101-0021
 - revision: 2
 - authorization: 用户“那按顺序开始推进吧”；批准按已提交的工作能力契约与计划顺序执行，保留最终 Owner 验收和发布门。
-- 状态：用户已选择当前社区8B并修正研究接口；T2设计/SDK边界预审执行中。源码5/217测试代码门通过、真实E02及诊断4失败保持；下一源码6未放行，T3—T5未放行，生产/KWS不动。
+- 状态：T2真实工作验收仍BLOCKED。最新R31单例已消费且FAIL：初始41 UTF-16，冻结基线为空，server/CLI前停止（work_cli_count=0）；cleanup与protected boundaries PASS，输入来源无法确认。已完成输入来源观察补丁的离线准备（36项测试），未新增实跑/模型调用，独立审查未进行。已纠正跨候选验收归属：source12目录内round1 PASS来自旧118ba候选；当前7975候选已核实正例0、负例0，后续验收须从round1开始。当前8B、生产语音/KWS及历史失败保持，E01/E02和T3—T5未放行。报告：`docs/reports/jarvis-work-t2-e03-r31-diagnosis-20261105.md`。
 - 计划：docs/plans/jarvis-work-capability-delivery-plan-20261101.md
 - 契约：docs/specs/jarvis-work-capability-contract-20261101.md
 - 草案检查点：ultimaagent-jarvis-work-plan-draft-20261101 @ f6eb808348302cec55bddcf44ee03f5b5736c4d9
@@ -110,3 +110,42 @@ b6ab85b代码独审通过，217唯一测试通过；唯一当前8B原题E02机�
 ## 用户选择当前社区8B，接续接口修复
 
 2026-11-02用户明确“继续当前社区修改版8B：先修正研究工具接口”。官方8B对照提案未选、不执行。保留旧源码5/控制器上限5及诊断4次全失败；同原单恢复接口设计与真实SDK MockTransport预审，无源码或模型推理放行。下一源码累计6，控制器本次限含一次独立代码审查修正在内最多新增两候选到7，不重置历史；模型权重/生产默认/KWS/后续阶段不变。见data/evidence/jarvis-work-capability/T2/interface-resume-20261102/resume-disposition.json。
+
+
+## 逐来源设计r2已复审，真实门仍未通过
+
+2026-11-02：源码9候选7c201a3a代码293项/独审PASS，原生超限资格PASS；唯一受控E02完整回复结构与事实均FAIL，0文件，0/3成功。源9累计2POST（负例1+E02一次），失败全部保留。用户明确继续当前社区8B并先审新的逐来源设计，14B提案未选/0POST。新设计b1290ae6独立SPEC/QUALITY PASS253bf87c，r1三问题已关闭；本轮仅设计审查，拟议S2一次只读前缀及剩余三来源检查尚未放行，源码10、生产集成、T3—T5仍关闭。T2状态BLOCKED，原单未完成，累计源码9/限9与真实重入计数2保持。见docs/plans/jarvis-work-per-source-research-design-20261102.md及docs/reports/jarvis-work-per-source-design-review-20261102.md。
+
+## 2026-11-04 有界恢复 source12/r13（单例已消费）
+
+用户授权的一次恢复轮次已按顺序执行：source12候选 7975e477665c02820fa235b73d203718bd33b2c9；r13准备包由 root-independent 独立审查 PASS；控制器级case scope固定为 e03-round2、整数case_cap=1。只启动一次 CLI，本次无重试。
+
+CLI成功捕获批准的主fixture与完整41 UTF-16选区，但本地 qwen3-8b-uncensored 加载期间 Ollama HTTP 500：llama-server无法分配350060544字节CUDA_Host buffer并退出。没有完成推理/工具调用、没有改写、没有输出文件或 rewrite.md。baseline.json 与 pre-cleanup-windows.json 哈希相同；第二个非目标窗口保持不变。独立结果复核为 CONFIRMED_FAIL / NOT_ACCEPTED：facts=NOT_EVALUATED，mechanical=FAIL，target=PASS，file=FAIL，cleanup=PASS，boundaries=PASS；actual_native_start_count=null，不得当作0。
+
+本轮代码竞态/焦点测试42项与控制器包129项通过；此前T2计划门仍为84 passed、2项既有E02研究失败。本次未能验证选区改写修复，T2继续BLOCKED，T3—T5未放行。当前恢复授权已消费；不启动新用例、不切14B、不改生产语音/KWS或默认模型。
+
+证据根：data/evidence/jarvis-work-capability/T2/e03-source12-20261104-recovery5/。准备审查：review/independent-review.md；结果复核：actual/e03-round2/independent-review.md（SHA-256 47708e3cf2f6dd6beddb10c2f30409e4f02c5ed09dabdeeda58c069b2401c1e4）；终端SHA-256 dea1eae1f68e980fdd36c0ee747731a6430a8581ab725e4673049fa50ff8c107；单例release、execution receipt及保护边界收据在verification/和actual/e03-round2/。
+## 2026-11-04 recovery6 R16/R17 补记（原工单和验收门不变）
+
+R16准备包经root-independent审查PASS，因Windows PowerShell默认编码读取UTF-8授权JSON失败，在预检与release前退出；完整包保存在`data/evidence/jarvis-work-capability/T2/e03-source12-20261104-recovery6-fixture-r16-reviewed-prelaunch-failclosed/`。R17修复UTF-8读取后，准备包独立审查PASS并只签发一次E03 round2 recovery-diagnostic authority/release。
+
+该唯一R17启动随后在产品用例目录创建前失败：固定`preparation/controller.py`仍读取旧`review/independent-review.md`，而R17 approval绑定`review/independent-review-r17.md`；两份审查文件SHA分别为`20239698263e07bb686bdaf97301a081e8ff544a620255b63a0f5cd31961eaa0`与`a4baef589766d920c54916600866a4b7a9febe27c72f09e418222964980d1b8d`，控制器的`Current review mismatch`校验因此拒绝。控制器先校验authority，再创建case目录；该检查发生在fixture/server/CLI路径之前。外层Windows PowerShell把Python stderr作为NativeCommandError处理并以1退出，完整traceback未保留。
+
+本次没有case目录、terminal、product-result或rewrite.md。代码控制流表明没有到达CLI启动；terminal中的`work_cli_count`与`actual_native_start_count`仍为null，因为没有terminal/运行计数收据。R17本地8B元数据预检为GET-only且未推理。五个保护进程的身份与预检基线匹配。R17的一次性authority已消费，不重跑；T2仍冻结，T3—T5未放行，生产语音/KWS和默认模型未改。
+
+证据：准备manifest SHA-256 `1fcb1738fefa8bcbe99d85114f84d2770dc5bbb944863df8db5ad7e99099d242`；R17独立审查 JSON `20c04bc61c79ebfa6ec0e3e65eab2ef2a65fa7b6149cbfae174d470428c36917`；执行收据 `verification/controller-execution-r17.json`；根因对照 `verification/controller-execution-r17-adjudication.json`；T2队列冻结读回 `verification/t2-queue-block-r17.json`。继续真实验收需先修正controller审查路径绑定、修复runner对native stderr的捕获，再由用户重新授权一例新隔离诊断。
+## 2026-11-04 R22/R23 缓存门恢复状态
+
+R22准备manifest SHA-256 `75632ea7bfaf699678dc8f2e15ec37c0308e2d614db3d21c00a8eba159f3734b` 的root-independent准备审查为FAIL/NEEDS_FIXES（review JSON SHA-256 `0e387c06a85d8658c46ac57ebcaadc957b8acc281740a3570b1e2dfeb9cc099c`）：当前候选工作树根及 `src/brain` 下有两处 `.pytest_cache`，R22封存/核验/运行门未检查该缓存。R22失败证据与之前R9/R20/R21失败全部保留；本次没有approval、ledger、native preflight、authority、release、execution或`actual/e03-round2`。
+
+R23工作包仍是草案，candidate `7975e477665c02820fa235b73d203718bd33b2c9` 与产品源码/夹具不变；finalizer、verifier、runner已加入 `.pytest_cache` 拒绝检查，Python 11个文件及PowerShell 2个脚本语法PASS。缓存删除凭据列出两目录、6个文件及SHA-256，状态 `PENDING_USER_CLEANUP`。尝试清除目录被本机自动策略以 `blocked by policy` 拒绝，故尚未封存/独立复审；没有执行模型预检或产品用例。当前授权仅允许在新包审查PASS后运行一次8B E03 round2 recovery-diagnostic，且不授予验收分。
+
+T2仍BLOCKED。后续仍按原序完成E03三轮与负例、同候选E01回归，再以当前8B处理E02；T2出口未满足前不进入T3—T5。R13、R16/R17及此前所有失败条目作为历史保留，不以本草案、语法检查或文档更新代替产品验收。
+
+## 2026-11-04 R26 当前恢复结果
+
+R26准备 manifest `ff318d8f2f24e6708318a831cc0a32e15bba8583c889d0207767aaeef7f73957` 经root-independent review PASS；活动授权已绑定当前R9 fixture recovery回复，R25 PID-reuse与sealed-receipt两项阻塞已在准备包复核中关闭。只运行一次 E03 round2，execution receipt显示 runner COMPLETED / exit 2，但产品终态 FAIL：初始fixture readback 41 UTF-16正确，冻结基线在同 HWND/PID 上读到“、”单字符，因此 `Frozen fixture mismatch` 在server/CLI启动前触发。`work_cli_count=0`，`product_result_sha256=null`，`facts=PENDING_ROOT_INDEPENDENT_REVIEW`。cleanup因 `QueryFullProcessImageName` 失败和 `Owned discovery ambiguity` 为FAIL；最终7条进程清理记录均 absent，protected boundaries PASS。该新单例额度已消耗，无重试/验收分；T2仍blocked。细节见 `docs/reports/jarvis-work-t2-e03-recovery26-result-20261104.md` 和证据目录 `data/evidence/jarvis-work-capability/T2/e03-source12-20261104-recovery26-runtime-and-pid-bindings/`。
+
+## 2026-11-05 R31结果与当前候选验收归属校正
+
+T2真实工作验收仍BLOCKED。最新R31单例已消费且FAIL：初始41 UTF-16，冻结基线为空，server/CLI前停止（work_cli_count=0）；cleanup与protected boundaries PASS，输入来源无法确认。已完成输入来源观察补丁的离线准备（36项测试），未新增实跑/模型调用，独立审查未进行。已纠正跨候选验收归属：source12目录内round1 PASS来自旧118ba候选；当前7975候选已核实正例0、负例0，后续验收须从round1开始。当前8B、生产语音/KWS及历史失败保持，E01/E02和T3—T5未放行。报告：`docs/reports/jarvis-work-t2-e03-r31-diagnosis-20261105.md`。
