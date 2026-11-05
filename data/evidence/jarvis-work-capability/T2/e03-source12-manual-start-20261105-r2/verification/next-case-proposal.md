@@ -1,3 +1,5 @@
+> CONSUMED: User authorized this proposal at request_user_input_async/call_86673027f22a4d9080b1ddefbd7a4935/0. One case ran and failed before CLI; one independent result review completed. No retry or remaining allocation. The following proposal is historical.
+
 # One E03 round1 with explicit Start handoff
 
 Prepared proposal only; no authority or actual allocation. Original work order wo-ultimaagent-20261101-0021.

@@ -14,3 +14,5 @@ Final: Ruling: Product facts/E03/T2 completion - remain unevaluated/not passed; 
 Final: deferred minors: none. Preserve this evidence workspace under original WO requirements; no deletion.
 
 Checkpoint: project86c322ae / mirrorf8b7a8c4 and local tag completed. Push action blocked by automatic approval (blocked by policy), not executed/retried. Readonly remote heads unchanged and tag absent. Final synchronization task remains open. Goal turn remains progress, not an unchanged blocker recurrence.
+
+2026-11-05T13:16:28.061835+00:00: One authorized manual Start E03 ran, accepted Start in6.17s, primary0,41/text intact, secondary caret0,0->39,39/text intact; FAIL beforeCLI0, no outputs. One authorized independent evidence reviewPASS, product facts not evaluable. Mouse/focus ancestor evidence found; user confirmed clicking elsewhere after Start, recorded separately. Cleanup9 original identities absent, protected7match and voice ready/fresh. Both allocations consumed; no retry; original failure retained. Goal turn progress, no unchanged-blocker streak.
