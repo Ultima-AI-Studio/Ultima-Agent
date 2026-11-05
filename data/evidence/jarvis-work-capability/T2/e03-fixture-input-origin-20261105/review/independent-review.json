@@ -1,0 +1,43 @@
+{
+  "schema": 1,
+  "recorded_by": "root from independent reviewer final response",
+  "reviewer": "/root/review_fixture_origin_preparation",
+  "manifest_sha256": "90926b30faaed229eee1e8b206b506ac53a39fa7fe9b0a17a8bb2d751717515b",
+  "verdict": "NEEDS_FIXES",
+  "scope": "offline preparation only",
+  "findings": [
+    {
+      "id": "ORIGIN-PREFIX-01",
+      "priority": "P2",
+      "file": "code/fixture_input_origin.py",
+      "line": 87,
+      "issue": "Ancestor identity and intervals are checked, but transitive ancestor prefixes are not. A recorded P->C->G trace can incorrectly pass if G ancestors is changed from [P,C] to [C] and depth from 2 to 1. Conflicting descriptions of an unlogged ancestor ID also need rejection."
+    }
+  ],
+  "package_files_verified": 25,
+  "external_bindings_verified": 32,
+  "r31_sealed_objects_verified": 334,
+  "candidate_sources_verified": 41,
+  "candidate_credit_correction": "CONFIRMED",
+  "current_candidate_counts": {
+    "terminals": 5,
+    "failed": 5,
+    "cli_submissions": 1,
+    "positive_passed": 0,
+    "negative_passed": 0
+  },
+  "status_snapshots_and_store": "MATCH",
+  "current_product_or_queue_state_consumers_found": false,
+  "legacy_state_consumer_risk": "Historical one-time source10 scripts read removed keys; they are not authorized for replay. Migrate or use preserved snapshot before any future reuse.",
+  "tests_rerun": false,
+  "live_cases": 0,
+  "model_calls": 0,
+  "source_mutations": 0,
+  "declined_to_judge": [
+    "live Windows APIs and cleanup",
+    "future fixture-only runtime wrapper",
+    "R31 actor identity",
+    "new product acceptance",
+    "all external schema consumers and current protected runtime state"
+  ]
+}

@@ -5,7 +5,7 @@
 - original_work_order_id: wo-ultimaagent-20261101-0021
 - revision: 2
 - authorization: 用户“那按顺序开始推进吧”；批准按已提交的工作能力契约与计划顺序执行，保留最终 Owner 验收和发布门。
-- 状态：T2真实工作验收仍BLOCKED。最新R31单例已消费且FAIL：初始41 UTF-16，冻结基线为空，server/CLI前停止（work_cli_count=0）；cleanup与protected boundaries PASS，输入来源无法确认。已完成输入来源观察补丁的离线准备（36项测试），未新增实跑/模型调用，独立审查未进行。已纠正跨候选验收归属：source12目录内round1 PASS来自旧118ba候选；当前7975候选已核实正例0、负例0，后续验收须从round1开始。当前8B、生产语音/KWS及历史失败保持，E01/E02和T3—T5未放行。报告：`docs/reports/jarvis-work-t2-e03-r31-diagnosis-20261105.md`。
+- 状态：T2仍BLOCKED。R31已FAIL且单例耗尽：41 UTF-16初始文本随后变空，server/CLI前停止，cleanup与boundaries PASS；输入来源无法确认。输入来源诊断补丁首次独审发现ORIGIN-PREFIX-01，最小修订后同一reviewer限定复核PASS（fix1 manifest c6cf3099…735c2），42项离线测试通过；现场根因尚未查明。旧候选PASS不得计入当前7975：独立核对5份失败终态、1次CLI，当前正例0/负例0。下一步准备仅夹具诊断wrapper；没有新运行额度，不启动产品/模型。正式验收从当前E03 round1开始，随后同候选E01再E02；仅当前8B，T3—T5未放行。报告：`docs/reports/jarvis-work-t2-e03-input-origin-review-20261105.md`。
 - 计划：docs/plans/jarvis-work-capability-delivery-plan-20261101.md
 - 契约：docs/specs/jarvis-work-capability-contract-20261101.md
 - 草案检查点：ultimaagent-jarvis-work-plan-draft-20261101 @ f6eb808348302cec55bddcf44ee03f5b5736c4d9
@@ -149,3 +149,7 @@ R26准备 manifest `ff318d8f2f24e6708318a831cc0a32e15bba8583c889d0207767aaeef7f7
 ## 2026-11-05 R31结果与当前候选验收归属校正
 
 T2真实工作验收仍BLOCKED。最新R31单例已消费且FAIL：初始41 UTF-16，冻结基线为空，server/CLI前停止（work_cli_count=0）；cleanup与protected boundaries PASS，输入来源无法确认。已完成输入来源观察补丁的离线准备（36项测试），未新增实跑/模型调用，独立审查未进行。已纠正跨候选验收归属：source12目录内round1 PASS来自旧118ba候选；当前7975候选已核实正例0、负例0，后续验收须从round1开始。当前8B、生产语音/KWS及历史失败保持，E01/E02和T3—T5未放行。报告：`docs/reports/jarvis-work-t2-e03-r31-diagnosis-20261105.md`。
+
+## 2026-11-05 输入来源补丁独审闭合
+
+T2仍BLOCKED。R31已FAIL且单例耗尽：41 UTF-16初始文本随后变空，server/CLI前停止，cleanup与boundaries PASS；输入来源无法确认。输入来源诊断补丁首次独审发现ORIGIN-PREFIX-01，最小修订后同一reviewer限定复核PASS（fix1 manifest c6cf3099…735c2），42项离线测试通过；现场根因尚未查明。旧候选PASS不得计入当前7975：独立核对5份失败终态、1次CLI，当前正例0/负例0。下一步准备仅夹具诊断wrapper；没有新运行额度，不启动产品/模型。正式验收从当前E03 round1开始，随后同候选E01再E02；仅当前8B，T3—T5未放行。报告：`docs/reports/jarvis-work-t2-e03-input-origin-review-20261105.md`。

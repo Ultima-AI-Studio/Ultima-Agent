@@ -1,0 +1,24 @@
+--- base/code/fixture_input_origin.py
++++ fix1/code/fixture_input_origin.py
+@@ -41,7 +41,7 @@
+             'entered_ns', 'entered_at_utc', 'exited_ns', 'exited_at_utc', 'source',
+             'send_flags_at_entry', 'parent_entry_id', 'parent_message_id',
+             'ancestors', 'ancestors_truncated', 'depth', 'dispatch_returned'}
+-    by_id, probes = {}, set()
++    by_id, probes, lineages = {}, set(), {}
+     control_counts = {str(control): {} for control in controls}
+     for row in messages:
+         _require(isinstance(row, dict) and set(row) == keys, 'origin record keys invalid')
+@@ -77,6 +77,12 @@
+         _require(row['parent_entry_id'] == (ancestors[-1]['entry_id'] if ancestors else None)
+                  and row['parent_message_id'] == (ancestors[-1]['message_id'] if ancestors else None),
+                  'origin parent mismatch')
++        chain = [(item['entry_id'], item['message_id'], item['hwnd']) for item in ancestors]
++        chain.append((row['entry_id'], row['message_id'], row['hwnd']))
++        for position, (entry_id, message_id, hwnd) in enumerate(chain):
++            description = (message_id, hwnd, row['tid'], tuple(chain[:position]))
++            _require(lineages.setdefault(entry_id, description) == description,
++                     'origin ancestor identity/prefix inconsistent')
+         by_id[row['entry_id']] = row
+         counts = control_counts[str(row['hwnd'])]
+         key = str(row['message_id'])

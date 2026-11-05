@@ -1,0 +1,65 @@
+--- base/code/test_fixture_input_origin.py
++++ fix1/code/test_fixture_input_origin.py
+@@ -244,6 +244,62 @@
+     return adapter.validate_origin_records(events, pid=123, controls=[77, 88], require_closed=closed)
+ 
+ 
++def nested_records(factory, *, parent_observed=True, middle_observed=True):
++    events = []
++    audit = recorder(factory, events)
++    audit.start([77, 88])
++    def original(hwnd, message, wparam, lparam):
++        if message == 0x100:
++            wrapped(hwnd, 0x101, 0, 0)
++        elif message == 0x101:
++            wrapped(hwnd, 0x102, 0, 0)
++            wrapped(hwnd, 0x103, 0, 0)
++        return 0
++    wrapped = audit.wrap(original, enabled=lambda: True,
++                         observed=lambda message: (parent_observed or message != 0x100)
++                         and (middle_observed or message != 0x101))
++    wrapped(77, 0, 0, 0)
++    wrapped(88, 0, 0, 0)
++    wrapped(77, 0x100, 0, 0)
++    audit.finish()
++    return events
++
++
++@pytest.mark.parametrize('parent_observed,middle_observed', [(True, True), (False, True), (False, False)])
++def test_nested_recorded_and_unlogged_parent_lineages_pass(factory, parent_observed, middle_observed):
++    assert validate(nested_records(factory, parent_observed=parent_observed,
++                                   middle_observed=middle_observed))['status'] == 'PASS'
++
++
++def test_rejects_missing_transitive_ancestor_even_when_counts_and_intervals_match(factory):
++    events = nested_records(factory)
++    grandchild = next(row for row in events if row.get('message_id') == 0x102)
++    grandchild['ancestors'] = grandchild['ancestors'][1:]
++    grandchild['depth'] = 1
++    # Parent C and all counts/intervals remain unchanged; only P was hidden.
++    with pytest.raises(ValueError, match='ancestor.*consistent'):
++        validate(events)
++
++
++def test_rejects_conflicting_identity_for_unlogged_ancestor(factory):
++    events = nested_records(factory, parent_observed=False)
++    grandchild = next(row for row in events if row.get('message_id') == 0x102)
++    grandchild['ancestors'][0]['message_id'] = 0x104
++    # P has no separate record, but C and G must describe the same P identity.
++    with pytest.raises(ValueError, match='ancestor.*consistent'):
++        validate(events)
++
++
++def test_rejects_conflicting_prefix_for_unlogged_ancestor(factory):
++    events = nested_records(factory, parent_observed=False, middle_observed=False)
++    sibling = next(row for row in events if row.get('message_id') == 0x103)
++    sibling['ancestors'] = sibling['ancestors'][1:]
++    sibling['depth'] = 1
++    # Neither P nor C has its own record; the two children must agree on C's chain.
++    with pytest.raises(ValueError, match='ancestor.*consistent'):
++        validate(events)
++
++
+ def test_sidecar_live_and_closed_validation_require_both_probes(factory):
+     events = complete_records(factory)
+     assert validate(events)['message_records'] == 2

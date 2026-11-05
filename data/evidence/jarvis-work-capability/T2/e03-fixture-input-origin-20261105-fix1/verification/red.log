@@ -1,0 +1,35 @@
+..FF                                                                     [100%]
+================================== FAILURES ===================================
+_ test_rejects_missing_transitive_ancestor_even_when_counts_and_intervals_match _
+
+factory = <function factory.<locals>.make at 0x00000203C0AC3240>
+
+    def test_rejects_missing_transitive_ancestor_even_when_counts_and_intervals_match(factory):
+        events = nested_records(factory)
+        grandchild = next(row for row in events if row.get('message_id') == 0x102)
+        grandchild['ancestors'] = grandchild['ancestors'][1:]
+        grandchild['depth'] = 1
+        # Parent C and all counts/intervals remain unchanged; only P was hidden.
+>       with pytest.raises(ValueError, match='ancestor.*consistent'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e03-fixture-input-origin-20261105-fix1\code\test_fixture_input_origin.py:277: Failed
+___________ test_rejects_conflicting_identity_for_unlogged_ancestor ___________
+
+factory = <function factory.<locals>.make at 0x00000203C1C3A200>
+
+    def test_rejects_conflicting_identity_for_unlogged_ancestor(factory):
+        events = nested_records(factory, parent_observed=False)
+        grandchild = next(row for row in events if row.get('message_id') == 0x102)
+        grandchild['ancestors'][0]['message_id'] = 0x104
+        # P has no separate record, but C and G must describe the same P identity.
+>       with pytest.raises(ValueError, match='ancestor.*consistent'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e03-fixture-input-origin-20261105-fix1\code\test_fixture_input_origin.py:286: Failed
+=========================== short test summary info ===========================
+FAILED ::test_rejects_missing_transitive_ancestor_even_when_counts_and_intervals_match
+FAILED ::test_rejects_conflicting_identity_for_unlogged_ancestor - Failed: DI...
+2 failed, 2 passed, 33 deselected in 0.49s

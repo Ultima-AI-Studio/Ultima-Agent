@@ -1,0 +1,20 @@
+...F                                                                     [100%]
+================================== FAILURES ===================================
+____________ test_rejects_conflicting_prefix_for_unlogged_ancestor ____________
+
+factory = <function factory.<locals>.make at 0x000001AE4B7D65C0>
+
+    def test_rejects_conflicting_prefix_for_unlogged_ancestor(factory):
+        events = nested_records(factory, parent_observed=False, middle_observed=False)
+        sibling = next(row for row in events if row.get('message_id') == 0x103)
+        sibling['ancestors'] = sibling['ancestors'][1:]
+        sibling['depth'] = 1
+        # Neither P nor C has its own record; the two children must agree on C's chain.
+>       with pytest.raises(ValueError, match='ancestor.*consistent'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e03-fixture-input-origin-20261105-fix1\code\test_fixture_input_origin.py:299: Failed
+=========================== short test summary info ===========================
+FAILED ::test_rejects_conflicting_prefix_for_unlogged_ancestor - Failed: DID ...
+1 failed, 3 passed, 35 deselected in 0.27s
