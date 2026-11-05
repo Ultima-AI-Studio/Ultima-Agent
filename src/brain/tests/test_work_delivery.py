@@ -19,6 +19,7 @@ def write_runner(query, **kwargs):
 def test_delivery(tmp_path):
     result = submit(tmp_path, write_runner)
     assert result['status'] == 'succeeded', result
+    assert result['content'] == '已保存'
     assert result['error'] is None
     a = result['artifacts'][0]
     assert Path(a['path']).is_absolute() and a['verified'] is True
@@ -61,6 +62,40 @@ def test_write_failure(tmp_path, monkeypatch):
     from openjarvis.core.types import ToolResult
     monkeypatch.setattr(FileWriteTool, 'execute', lambda *a, **kw: ToolResult(tool_name='file_write', success=False, content='denied'))
     assert submit(tmp_path, write_runner)['status'] != 'succeeded'
+
+
+def test_failed_tool_cannot_keep_model_completion_claim(tmp_path):
+    calls = []
+    claim = '已完成要点整理并保存至rewrite.md。'
+    tool_failure = dict(success=False, content="No module named 'src.brain.environment_upgrade'")
+
+    def runner(*args, **kwargs):
+        calls.append(kwargs['binding'].task_id)
+        return dict(content=claim, tool_results=[tool_failure])
+
+    result = submit(tmp_path, runner)
+    assert result['status'] == 'failed'
+    assert result['error'] == 'A work tool failed; execution will not be replayed'
+    assert result['artifacts'] == []
+    assert result['tool_results'] == [tool_failure]
+    assert len(calls) == 1
+    assert '未完成' in result['content'] and claim not in result['content']
+    assert not list(tmp_path.rglob('*.md'))
+
+
+def test_runner_exception_has_truthful_failure_content_without_replay(tmp_path):
+    calls = []
+
+    def runner(*args, **kwargs):
+        calls.append(kwargs['binding'].task_id)
+        raise RuntimeError('controlled runner failure')
+
+    result = submit(tmp_path, runner)
+    assert result['status'] == 'failed'
+    assert result['error'] == 'controlled runner failure'
+    assert result['artifacts'] == [] and result['tool_results'] == []
+    assert len(calls) == 1
+    assert '未完成' in result['content']
 
 
 @pytest.mark.parametrize('damage', ['tamper', 'delete'])

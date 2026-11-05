@@ -130,7 +130,7 @@ def test_selection_tool_and_independent_verification(tmp_path):
         assert WorkWriteTool().execute(path='rewrite.md', content='改写').success
         return {'content':'saved'}
     r = WorkService(tmp_path, runner=run, context_provider=p).submit_work('rewrite', request_id='r', session_id='s', context={'capture_current':True,'replace_selection':True})
-    assert r['status'] == 'succeeded', r
+    assert r['status'] == 'succeeded', json.dumps(r, ensure_ascii=True)
     assert n.state['text'] == 'A😀B改写C' and n.sent == 1
     assert r['context_results'][0]['verified']
     assert not p.validate_work_target(r['work_context'])  # released at request end
@@ -142,15 +142,20 @@ def test_uncertain_ui_write_even_failed_tool_needs_attention(tmp_path):
     def run(*a, **kw):
         from src.brain.work_tools import WorkReplaceTool
         assert not WorkReplaceTool().execute(content='改写').success
-        return {'content':'failed'}
+        return {'content':'已完成要点整理并保存至rewrite.md。'}
     r = WorkService(tmp_path, runner=run, context_provider=p).submit_work('rewrite', request_id='r', session_id='s', context={'capture_current':True,'replace_selection':True})
-    assert r['status'] == 'needs_attention' and n.sent == 1, r
+    assert r['status'] == 'needs_attention' and n.sent == 1, json.dumps(r, ensure_ascii=True)
     assert any(x.get('may_have_committed') for x in r['tool_results'])
+    assert '未完成' in r['content'] and '可能' in r['content']
+    assert '已完成' not in r['content'] and '已保存' not in r['content']
+    assert r['error'] == 'A work tool failed; execution will not be replayed'
+    assert r['artifacts'] == []
 
 
 def test_requested_missing_capture_cannot_deliver(tmp_path):
     r = WorkService(tmp_path, runner=lambda *a, **k: pytest.fail('no model when capture unavailable')).submit_work('rewrite', request_id='r', session_id='s', context={'capture_current':True})
     assert r['status'] == 'failed' and r['error']
+    assert '未完成' in r['content']
 
 
 def test_readonly_capture_does_not_expose_mutation(tmp_path):
