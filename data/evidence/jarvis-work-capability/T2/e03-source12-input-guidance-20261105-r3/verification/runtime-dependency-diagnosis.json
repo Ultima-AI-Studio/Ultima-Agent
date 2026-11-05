@@ -1,0 +1,84 @@
+{
+  "recorded_at": "2026-11-05T14:23:48.825631+00:00",
+  "method": "Static UTF-8 source, standard-library AST/hash and readonly Git inspection only. No product import, execution or tests.",
+  "candidate": "7975e477665c02820fa235b73d203718bd33b2c9",
+  "candidate_manifest": {
+    "path": "H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\e03-source12-20261105-r31-preflight-log-isolation\\candidate-manifest-r13.json",
+    "bytes": 171946,
+    "sha256": "2cd5080b041e83afeeffe4747e1a10840e402c08be234d2b6ae15dccf59b841f"
+  },
+  "call_chain": [
+    {
+      "file": "src/brain/work_tools.py",
+      "line": 577,
+      "statement": "from .exec.channel import LocalExecChannel",
+      "observation": "Inside WorkReplaceTool.run before capture/channel registration/before_send."
+    },
+    {
+      "file": "src/brain/exec/channel.py",
+      "line": 26,
+      "statement": "from ..environment_upgrade import scan_processes",
+      "observation": "Unconditional module-level import."
+    },
+    {
+      "file": "src/brain/environment_upgrade.py",
+      "observation": "Absent from pinned runtime and candidate source_files inventory; present but untracked in main project."
+    }
+  ],
+  "existing_module": {
+    "path": "H:\\UltimaAI\\UltimaAgent\\src\\brain\\environment_upgrade.py",
+    "bytes": 9248,
+    "sha256": "a4cb891bb217aac90ba6ca51e5fdfa57bb8ce0d5698d6b6958b1aecbca682c1b"
+  },
+  "existing_module_git_status": "?? src/brain/environment_upgrade.py",
+  "existing_module_tracked": false,
+  "runtime_module_exists": false,
+  "module_in_manifest": false,
+  "candidate_source_entries": 41,
+  "existing_module_relative_imports": [
+    "from .environment import EnvironmentSnapshot, capture_snapshot, scan_hardware, scan_disks, scan_apps"
+  ],
+  "runtime_environment": {
+    "path": "C:\\Users\\Administrator\\.codex\\worktrees\\jarvis-work-capability-r25-runtime-complete\\src\\brain\\environment.py",
+    "bytes": 12985,
+    "sha256": "0eb842f7f260bad2e8a2e4c86648a841afd8141a7a469a23136bc2d5629a4b5e"
+  },
+  "required_environment_names": [
+    "EnvironmentSnapshot",
+    "capture_snapshot",
+    "scan_hardware",
+    "scan_disks",
+    "scan_apps"
+  ],
+  "missing_environment_names": [],
+  "local_dependency_chain_static_result": "The missing module imports only existing .environment names plus standard-library modules; no further missing local module on this specific chain.",
+  "general_closure_not_proven": true,
+  "process_scan_note": "scan_processes is defined on import; it calls PowerShell only if invoked. WorkReplaceTool supplies an approved-target observer. Static reading is not execution proof.",
+  "failure_content": {
+    "file": {
+      "path": "C:\\Users\\Administrator\\.codex\\worktrees\\jarvis-work-capability-r25-runtime-complete\\src\\brain\\work_service.py",
+      "bytes": 12211,
+      "sha256": "d56e0004531ad7f14d51e4d01c3e65cd5b1f5dded90accd18f4d28be9ea5a56f"
+    },
+    "assigned_model_content_line": 98,
+    "rejected_tool_line": 106,
+    "exception_status_line": 151,
+    "exception_error_line": 152,
+    "observation": "The except branch changes status/error but retains model content assigned earlier; the actual failed case therefore exposes a success claim."
+  },
+  "proposed_change": {
+    "path": "H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\e03-source12-input-guidance-20261105-r3\\verification\\source13-proposed-change.diff",
+    "bytes": 10197,
+    "sha256": "a046f7d56de68a78065674cbf21bd51030b1d12588504e101680990bca2b81e8"
+  },
+  "proposal_applied": false,
+  "product_source_changed": false,
+  "tests_executed": false,
+  "actual_cases_started": 0,
+  "limitations": [
+    "No dynamic import resolution verified.",
+    "No guarantee of general model reliability from one correct draft.",
+    "Fresh source candidate and runtime package must be reviewed before another separately allocated actual case.",
+    "Original terminal, candidate, source files and sealed evidence remain unchanged."
+  ]
+}

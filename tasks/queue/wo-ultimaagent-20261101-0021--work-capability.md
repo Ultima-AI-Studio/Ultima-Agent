@@ -5,7 +5,7 @@
 - original_work_order_id: wo-ultimaagent-20261101-0021
 - revision: 2
 - authorization: 用户“那按顺序开始推进吧”；批准按已提交的工作能力契约与计划顺序执行，保留最终 Owner 验收和发布门。
-- 状态：T2仍BLOCKED。当前7975候选E03 round1已按授权仅运行一次并FAIL：启动审计发现额外事件，主样本41→0的EM_REPLACESEL已复现，CLI/本例产品推理提交0，无产品结果或rewrite.md。发送者未知，键盘来源标签不能归责真人或进程。清理/闭合审计/保护边界PASS，副窗口原始文本哈希保持，七保护身份与语音ready/fresh保持。独立实际证据复核PASS，但案例FAIL、事实不可评价；额度及一次结果独审均耗尽，不重试。当前E03正例0/负例0，全部旧失败和后续门保留。
+- 状态：T2仍BLOCKED。R3持续提示版E03仅运行一次，窗口文本与选区保持，CLI1、当前8B完成2次推理；替换工具缺少src.brain.environment_upgrade而FAIL，未替换、未生成rewrite.md。三事实草稿通过，但最终回复错误宣称已保存。独立证据复核PASS、案例和完成声明门FAIL；本次用例与结果复核额度均耗尽、未重试。12本例身份消失、7保护身份匹配、语音ready/fresh；当前累计8失败/CLI2、正例0/负例0。两项产品缺陷的静态诊断和源码13定点方案已准备但未实施；原验收、旧失败、仅8B及后续门保留，远端同步未完成。
 - 计划：docs/plans/jarvis-work-capability-delivery-plan-20261101.md
 - 契约：docs/specs/jarvis-work-capability-contract-20261101.md
 - 草案检查点：ultimaagent-jarvis-work-plan-draft-20261101 @ f6eb808348302cec55bddcf44ee03f5b5736c4d9
@@ -207,3 +207,9 @@ T2仍BLOCKED。上一单例/结果复核均耗尽并FAIL，正例0/负例0、7�
 T2仍BLOCKED。R3持续操作提示已实现：点击开始后仍显示鼠标/键盘/窗口切换暂停要求；124项离线回归和独立准备审查PASS（manifest 0195699e7fe5…）。原产品/选区/副窗口/时限门保持，无新增实际用例或authority。7保护身份匹配、语音ready/fresh；前7失败、正例0/负例0和耗尽额度保留。下一步一例当前8B E03及一次独立结果复核提案已准备，待新单例授权。远端同步仍待此前策略阻断。
 
 报告：docs/reports/jarvis-work-t2-e03-input-guidance-preparation-20261105.md。
+
+## 2026-11-05 R3持续提示版单例与独立结果复核完成
+
+T2仍BLOCKED。R3持续提示版E03仅运行一次，窗口文本与选区保持，CLI1、当前8B完成2次推理；替换工具缺少src.brain.environment_upgrade而FAIL，未替换、未生成rewrite.md。三事实草稿通过，但最终回复错误宣称已保存。独立证据复核PASS、案例和完成声明门FAIL；本次用例与结果复核额度均耗尽、未重试。12本例身份消失、7保护身份匹配、语音ready/fresh；当前累计8失败/CLI2、正例0/负例0。两项产品缺陷的静态诊断和源码13定点方案已准备但未实施；原验收、旧失败、仅8B及后续门保留，远端同步未完成。
+
+报告：`docs/reports/jarvis-work-t2-e03-input-guidance-result-20261105.md`。独审收据SHA-256：`a6f669d02ef055788e7ebdcda08bcd834e4b8a44f89ea17382899536b0764dc7`。修复提案：`docs/plans/jarvis-work-e03-runtime-dependency-fix-plan-20261105.md`。该提案尚未释放新的源码/实跑额度，原terminal保持不变。

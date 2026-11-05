@@ -1,3 +1,5 @@
+> CONSUMED: explicit approval call_e5ec88e4cdf4454ab35c587eb3b71261/0 allocated this one case and one result review. Both completed; case FAIL, no retry. See independent-result-review.json. This document is not a reusable authority.
+
 # One E03 round1 with persistent operator guidance
 
 Proposal only. Original WO wo-ultimaagent-20261101-0021. Manifest0195699e7fe521d9aaa5da8ec01bedb53533cdc3a2364ea42496f142f6d07352, preparation root-independent PASS. Candidate7975e477665c02820fa235b73d203718bd33b2c9; current qwen3-8b-uncensored only.

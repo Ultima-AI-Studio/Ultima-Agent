@@ -12,3 +12,6 @@ Final: Ruling: Current voice/protection - root readonly snapshot7match/voice rea
 Final: Ruling: Product rewrite/facts/E03/T2 - no new case, no credit; historical FAIL and spent allocations retained.
 Final: Ruling: Historical event attribution - operator confirmation supports interference, not identification of all native senders.
 Final: deferred minors none. Evidence workspace preserved per original WO; no deletion. Remote push not retried after prior automatic block.
+
+2026-11-05T14:26:55.741458+00:00: Authorized R3 case ran once: CLI1, two completed8B inferences, missing environment_upgrade caused tool failure, no rewrite. Independent result evidence PASS, draft facts PASS, final completion claim FAIL; case FAIL,0credit. Review a6f669d02ef055788e7ebdcda08bcd834e4b8a44f89ea17382899536b0764dc7. Case/result-review remaining0. Static dependency and failure-content diagnosis plus concrete unapplied source13 proposal saved. No source edit or extra case.
+Result ruling: preserve original terminal and all history; raw facts PENDING remains raw, separate independent verdict says FAIL_FALSE_COMPLETION. Receipt-based cleanup/protection is not reviewer live inspection. Native inference total and post-disconnect activity remain unknown. Existing124 tests are historical preparation evidence, not repair validation. Remote push remains blocked; no retry.
