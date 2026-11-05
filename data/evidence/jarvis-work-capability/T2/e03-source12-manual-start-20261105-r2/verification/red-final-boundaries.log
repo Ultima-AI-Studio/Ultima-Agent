@@ -1,0 +1,102 @@
+FFFF                                                                     [100%]
+================================== FAILURES ===================================
+___ test_proof_expiring_during_live_inspection_stops_before_next_effect[1] ____
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-source12-acceptance-20261105-r1/verification/tmp-boundaries-red/test_proof_expiring_during_liv0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001F419EACE90>
+inspection = 1
+
+    @pytest.mark.parametrize('inspection', [1,2])
+    def test_proof_expiring_during_live_inspection_stops_before_next_effect(tmp_path,monkeypatch,inspection):
+        entry,authority,proof=package(tmp_path,monkeypatch);backend=Backend(tmp_path,proof)
+        original=backend.inspect
+        def slow_inspection():
+            result=original()
+            if backend.calls.count('inspect')==inspection:
+                monkeypatch.setattr(entry,'utcnow',lambda:NOW+dt.timedelta(seconds=61))
+            return result
+        backend.inspect=slow_inspection
+        if inspection==1:
+>           with pytest.raises(ValueError,match='proof'):entry.run_once(tmp_path,backend_factory=lambda root:backend)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E           Failed: DID NOT RAISE ValueError
+
+data\evidence\jarvis-work-capability\T2\e03-source12-acceptance-20261105-r1\code\test_acceptance_entry.py:192: Failed
+___ test_proof_expiring_during_live_inspection_stops_before_next_effect[2] ____
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-source12-acceptance-20261105-r1/verification/tmp-boundaries-red/test_proof_expiring_during_liv1')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001F419EAC180>
+inspection = 2
+
+    @pytest.mark.parametrize('inspection', [1,2])
+    def test_proof_expiring_during_live_inspection_stops_before_next_effect(tmp_path,monkeypatch,inspection):
+        entry,authority,proof=package(tmp_path,monkeypatch);backend=Backend(tmp_path,proof)
+        original=backend.inspect
+        def slow_inspection():
+            result=original()
+            if backend.calls.count('inspect')==inspection:
+                monkeypatch.setattr(entry,'utcnow',lambda:NOW+dt.timedelta(seconds=61))
+            return result
+        backend.inspect=slow_inspection
+        if inspection==1:
+            with pytest.raises(ValueError,match='proof'):entry.run_once(tmp_path,backend_factory=lambda root:backend)
+            assert not (tmp_path/'actual').exists() and 'start' not in backend.calls
+        else:
+            result=entry.run_once(tmp_path,backend_factory=lambda root:backend)
+>           assert result['overall']=='FAIL' and backend.cli_count==0
+E           AssertionError: assert ('PENDING_FACT_REVIEW' == 'FAIL'
+E             
+E             - FAIL
+E             + PENDING_FACT_REVIEW)
+
+data\evidence\jarvis-work-capability\T2\e03-source12-acceptance-20261105-r1\code\test_acceptance_entry.py:196: AssertionError
+__ test_mechanical_flag_without_product_receipt_cannot_be_pending_acceptance __
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-source12-acceptance-20261105-r1/verification/tmp-boundaries-red/test_mechanical_flag_without_p0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001F419F7C4D0>
+
+    def test_mechanical_flag_without_product_receipt_cannot_be_pending_acceptance(tmp_path,monkeypatch):
+        entry,authority,proof=package(tmp_path,monkeypatch);backend=Backend(tmp_path,proof)
+        original=backend.product
+        def missing_receipt(revalidate):
+            result=original(revalidate);(backend.folder/'product-result.json').unlink();return result
+        backend.product=missing_receipt
+        result=entry.run_once(tmp_path,backend_factory=lambda root:backend)
+>       assert result['overall']=='FAIL' and any(x['stage']=='evidence' for x in result['errors'])
+E       AssertionError: assert ('PENDING_FACT_REVIEW' == 'FAIL'
+E         
+E         - FAIL
+E         + PENDING_FACT_REVIEW)
+
+data\evidence\jarvis-work-capability\T2\e03-source12-acceptance-20261105-r1\code\test_acceptance_entry.py:206: AssertionError
+________ test_stop_marker_error_still_attempts_reviewed_owned_cleanup _________
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-source12-acceptance-20261105-r1/verification/tmp-boundaries-red/test_stop_marker_error_still_a0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001F419F89590>
+
+    def test_stop_marker_error_still_attempts_reviewed_owned_cleanup(tmp_path,monkeypatch):
+        native,calls=backend(tmp_path);start(native,tmp_path)
+        (native.folder/'stop').touch()
+        def fail_touch():raise OSError('stop marker write failed')
+        module=importlib.import_module('acceptance_backend')
+        monkeypatch.setattr(module,'safe_path',lambda path:SimpleNamespace(touch=fail_touch))
+>       result=native.close()
+               ^^^^^^^^^^^^^^
+
+data\evidence\jarvis-work-capability\T2\e03-source12-acceptance-20261105-r1\code\test_acceptance_backend.py:167: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+data\evidence\jarvis-work-capability\T2\e03-source12-acceptance-20261105-r1\code\acceptance_backend.py:170: in close
+    safe_path(self.folder/'stop').touch()
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+>   def fail_touch():raise OSError('stop marker write failed')
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   OSError: stop marker write failed
+
+data\evidence\jarvis-work-capability\T2\e03-source12-acceptance-20261105-r1\code\test_acceptance_backend.py:164: OSError
+=========================== short test summary info ===========================
+FAILED data/evidence/jarvis-work-capability/T2/e03-source12-acceptance-20261105-r1/code/test_acceptance_entry.py::test_proof_expiring_during_live_inspection_stops_before_next_effect[1]
+FAILED data/evidence/jarvis-work-capability/T2/e03-source12-acceptance-20261105-r1/code/test_acceptance_entry.py::test_proof_expiring_during_live_inspection_stops_before_next_effect[2]
+FAILED data/evidence/jarvis-work-capability/T2/e03-source12-acceptance-20261105-r1/code/test_acceptance_entry.py::test_mechanical_flag_without_product_receipt_cannot_be_pending_acceptance
+FAILED data/evidence/jarvis-work-capability/T2/e03-source12-acceptance-20261105-r1/code/test_acceptance_backend.py::test_stop_marker_error_still_attempts_reviewed_owned_cleanup
+4 failed, 45 deselected in 0.79s

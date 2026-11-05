@@ -1,0 +1,110 @@
+...............FFF                                                       [100%]
+================================== FAILURES ===================================
+_ test_actual_native_button_adapter_restores_callback_and_destroys_button[False] _
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-source12-manual-start-20261105-r2/verification/tmp-manual-green/test_actual_native_button_adap0')
+held = False
+
+    @pytest.mark.parametrize('held',[False,True])
+    def test_actual_native_button_adapter_restores_callback_and_destroys_button(tmp_path,held):
+        m=module();u,calls,state=fake_user32(held=held)
+        if held:
+            with pytest.raises(ValueError,match='keyboard'):m.manual_start(u,11,tmp_path)
+            assert not (tmp_path/'manual-start.json').exists()
+        else:
+>           m.manual_start(u,11,tmp_path)
+
+H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e03-source12-manual-start-20261105-r2\code\test_fixture_manual_start.py:134: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e03-source12-manual-start-20261105-r2\code\fixture_manual_start.py:134: in manual_start
+    result=wait_for_start(pump_once,
+H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e03-source12-manual-start-20261105-r2\code\fixture_manual_start.py:36: in wait_for_start
+    clicked = pump_once()
+              ^^^^^^^^^^^
+H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e03-source12-manual-start-20261105-r2\code\fixture_manual_start.py:130: in pump_once
+    user32.DispatchMessageW(C.byref(msg))
+H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e03-source12-manual-start-20261105-r2\code\test_fixture_manual_start.py:98: in __call__
+    def __call__(self,*args):return self.call(*args)
+                                    ^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+pointer = <cparam 'P' (0x000002930DC36C10)>
+
+    def dispatch(pointer):
+        msg=C.cast(pointer,C.POINTER(W.MSG)).contents
+>       return prototype(state['proc'])(msg.hwnd,msg.message,msg.wParam,msg.lParam)
+                                        ^^^^^^^^
+E       AttributeError: 'MSG' object has no attribute 'hwnd'. Did you mean: 'hWnd'?
+
+H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e03-source12-manual-start-20261105-r2\code\test_fixture_manual_start.py:114: AttributeError
+_ test_actual_native_button_adapter_restores_callback_and_destroys_button[True] _
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-source12-manual-start-20261105-r2/verification/tmp-manual-green/test_actual_native_button_adap1')
+held = True
+
+    @pytest.mark.parametrize('held',[False,True])
+    def test_actual_native_button_adapter_restores_callback_and_destroys_button(tmp_path,held):
+        m=module();u,calls,state=fake_user32(held=held)
+        if held:
+>           with pytest.raises(ValueError,match='keyboard'):m.manual_start(u,11,tmp_path)
+                                                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e03-source12-manual-start-20261105-r2\code\test_fixture_manual_start.py:131: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e03-source12-manual-start-20261105-r2\code\fixture_manual_start.py:134: in manual_start
+    result=wait_for_start(pump_once,
+H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e03-source12-manual-start-20261105-r2\code\fixture_manual_start.py:36: in wait_for_start
+    clicked = pump_once()
+              ^^^^^^^^^^^
+H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e03-source12-manual-start-20261105-r2\code\fixture_manual_start.py:130: in pump_once
+    user32.DispatchMessageW(C.byref(msg))
+H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e03-source12-manual-start-20261105-r2\code\test_fixture_manual_start.py:98: in __call__
+    def __call__(self,*args):return self.call(*args)
+                                    ^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+pointer = <cparam 'P' (0x000002930DC0FB10)>
+
+    def dispatch(pointer):
+        msg=C.cast(pointer,C.POINTER(W.MSG)).contents
+>       return prototype(state['proc'])(msg.hwnd,msg.message,msg.wParam,msg.lParam)
+                                        ^^^^^^^^
+E       AttributeError: 'MSG' object has no attribute 'hwnd'. Did you mean: 'hWnd'?
+
+H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e03-source12-manual-start-20261105-r2\code\test_fixture_manual_start.py:114: AttributeError
+________________ test_completed_manual_start_cannot_be_reused _________________
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-source12-manual-start-20261105-r2/verification/tmp-manual-green/test_completed_manual_start_ca0')
+
+    def test_completed_manual_start_cannot_be_reused(tmp_path):
+>       m=module();u,calls,state=fake_user32();m.manual_start(u,11,tmp_path)
+                                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e03-source12-manual-start-20261105-r2\code\test_fixture_manual_start.py:143: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e03-source12-manual-start-20261105-r2\code\fixture_manual_start.py:134: in manual_start
+    result=wait_for_start(pump_once,
+H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e03-source12-manual-start-20261105-r2\code\fixture_manual_start.py:36: in wait_for_start
+    clicked = pump_once()
+              ^^^^^^^^^^^
+H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e03-source12-manual-start-20261105-r2\code\fixture_manual_start.py:130: in pump_once
+    user32.DispatchMessageW(C.byref(msg))
+H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e03-source12-manual-start-20261105-r2\code\test_fixture_manual_start.py:98: in __call__
+    def __call__(self,*args):return self.call(*args)
+                                    ^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+pointer = <cparam 'P' (0x000002930DC36760)>
+
+    def dispatch(pointer):
+        msg=C.cast(pointer,C.POINTER(W.MSG)).contents
+>       return prototype(state['proc'])(msg.hwnd,msg.message,msg.wParam,msg.lParam)
+                                        ^^^^^^^^
+E       AttributeError: 'MSG' object has no attribute 'hwnd'. Did you mean: 'hWnd'?
+
+H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e03-source12-manual-start-20261105-r2\code\test_fixture_manual_start.py:114: AttributeError
+=========================== short test summary info ===========================
+FAILED ::test_actual_native_button_adapter_restores_callback_and_destroys_button[False]
+FAILED ::test_actual_native_button_adapter_restores_callback_and_destroys_button[True]
+FAILED ::test_completed_manual_start_cannot_be_reused - AttributeError: 'MSG'...
+3 failed, 15 passed in 0.35s

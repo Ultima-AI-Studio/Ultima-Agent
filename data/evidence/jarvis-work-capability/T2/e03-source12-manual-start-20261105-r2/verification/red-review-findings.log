@@ -1,0 +1,223 @@
+FFFFF..                                                                  [100%]
+================================== FAILURES ===================================
+__ test_persistent_stop_error_runs_actual_owned_cleanup_and_retains_failure ___
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-source12-acceptance-20261105-r1-fix1/verification/tmp-review-red/test_persistent_stop_error_run0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000024FC999C180>
+
+    def test_persistent_stop_error_runs_actual_owned_cleanup_and_retains_failure(tmp_path,monkeypatch):
+        import io
+        import subprocess
+        import time
+        native,calls=backend(tmp_path);start(native,tmp_path)
+        owner=native.context.owned
+        tree=ast.parse((Path(__file__).parent/'controller.py').read_text(encoding='utf-8-sig'))
+        cls=next(node for node in tree.body if isinstance(node,ast.ClassDef) and node.name=='Owned')
+        cleanup=next(node for node in cls.body if isinstance(node,ast.FunctionDef) and node.name=='cleanup')
+        identities=[dict(pid=500+i,created_filetime=100+i,exe='owned-test.exe') for i in range(3)]
+        live={row['pid']:row for row in identities};terminated=[];waited=[]
+        def terminate(key):
+            assert live[key['pid']]==key
+            terminated.append(key);del live[key['pid']]
+        namespace={'subprocess':subprocess,'time':time,'process_snapshot':lambda:dict(live),
+                   'terminate_owned':terminate,'require':importlib.import_module('package_io').require,'save':put}
+        exec(compile(ast.Module(body=[cleanup],type_ignores=[]),'<actual Owned.cleanup>','exec'),namespace)
+        owner.cleanup=lambda port:namespace['cleanup'](owner,port)
+        owner.errors=[];owner.auxiliary={};owner.logs=[io.StringIO(),io.StringIO()]
+        owner.known={row['pid']:{'identity':row} for row in identities}
+        owner.launchers=[dict(role=role,proc=SimpleNamespace(pid=row['pid'],wait=lambda timeout:waited.append(timeout)))
+                         for role,row in zip(('fixture','server','cli'),identities)]
+        original_touch=Path.touch;attempts=[]
+        def persistent_failure(path,*args,**kwargs):
+            if path==native.folder/'stop':
+                attempts.append(path);raise OSError('persistent marker write failure')
+            return original_touch(path,*args,**kwargs)
+        monkeypatch.setattr(Path,'touch',persistent_failure)
+>       result=native.close()
+               ^^^^^^^^^^^^^^
+
+H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e03-source12-acceptance-20261105-r1-fix1\code\test_acceptance_backend.py:200: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e03-source12-acceptance-20261105-r1-fix1\code\acceptance_backend.py:173: in close
+    result = self.context.owned.cleanup(self.context.port)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e03-source12-acceptance-20261105-r1-fix1\code\test_acceptance_backend.py:189: in <lambda>
+    owner.cleanup=lambda port:namespace['cleanup'](owner,port)
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+<actual Owned.cleanup>:469: in cleanup
+    ???
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-source12-acceptance-20261105-r1-fix1/verification/tmp-review-red/test_persistent_stop_error_run0/actual/e03-round1/stop')
+args = (), kwargs = {}
+
+    def persistent_failure(path,*args,**kwargs):
+        if path==native.folder/'stop':
+>           attempts.append(path);raise OSError('persistent marker write failure')
+                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E           OSError: persistent marker write failure
+
+H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e03-source12-acceptance-20261105-r1-fix1\code\test_acceptance_backend.py:197: OSError
+_ test_command_or_observe_expiry_denies_cli_using_real_admission[proof-command] _
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-source12-acceptance-20261105-r1-fix1/verification/tmp-review-red/test_command_or_observe_expiry0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000024FC999DF30>
+phase = 'command', gate = 'proof'
+
+    @pytest.mark.parametrize('phase',['command','observe'])
+    @pytest.mark.parametrize('gate',['proof','authority'])
+    def test_command_or_observe_expiry_denies_cli_using_real_admission(tmp_path,monkeypatch,phase,gate):
+        import datetime as dt
+        from test_acceptance_entry import NOW,package
+        native,calls=backend(tmp_path)
+        entry,authority,proof=package(tmp_path,monkeypatch)
+        if gate=='authority':
+            authority['expires_at']=(NOW+dt.timedelta(seconds=1)).isoformat()
+            put(tmp_path/'release/authority.json',authority)
+        initial=59 if gate=='proof' else 0;expired=61 if gate=='proof' else 2
+        monkeypatch.setattr(entry,'utcnow',lambda:NOW+dt.timedelta(seconds=initial))
+        native.inspect=lambda:proof
+        original_start=native.start
+        def slow_start(folder):
+            original_start(folder)
+            original_command=native.context.command;original_observe=native.context.observe
+            def command():
+                original_command()
+                if phase=='command':monkeypatch.setattr(entry,'utcnow',lambda:NOW+dt.timedelta(seconds=expired))
+            def observe(label):
+                result=original_observe(label)
+                if phase=='observe' and label=='dispatch-baseline':
+                    monkeypatch.setattr(entry,'utcnow',lambda:NOW+dt.timedelta(seconds=expired))
+                return result
+            native.context.command=command;native.context.observe=observe
+        native.start=slow_start
+        result=entry.run_once(tmp_path,backend_factory=lambda root:native)
+        assert result['overall']=='FAIL' and result['work_cli_count']==0
+>       assert ('observe','dispatch-baseline') in calls
+E       AssertionError: assert ('observe', 'dispatch-baseline') in []
+
+H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e03-source12-acceptance-20261105-r1-fix1\code\test_acceptance_backend.py:238: AssertionError
+_ test_command_or_observe_expiry_denies_cli_using_real_admission[proof-observe] _
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-source12-acceptance-20261105-r1-fix1/verification/tmp-review-red/test_command_or_observe_expiry1')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000024FC9A6E690>
+phase = 'observe', gate = 'proof'
+
+    @pytest.mark.parametrize('phase',['command','observe'])
+    @pytest.mark.parametrize('gate',['proof','authority'])
+    def test_command_or_observe_expiry_denies_cli_using_real_admission(tmp_path,monkeypatch,phase,gate):
+        import datetime as dt
+        from test_acceptance_entry import NOW,package
+        native,calls=backend(tmp_path)
+        entry,authority,proof=package(tmp_path,monkeypatch)
+        if gate=='authority':
+            authority['expires_at']=(NOW+dt.timedelta(seconds=1)).isoformat()
+            put(tmp_path/'release/authority.json',authority)
+        initial=59 if gate=='proof' else 0;expired=61 if gate=='proof' else 2
+        monkeypatch.setattr(entry,'utcnow',lambda:NOW+dt.timedelta(seconds=initial))
+        native.inspect=lambda:proof
+        original_start=native.start
+        def slow_start(folder):
+            original_start(folder)
+            original_command=native.context.command;original_observe=native.context.observe
+            def command():
+                original_command()
+                if phase=='command':monkeypatch.setattr(entry,'utcnow',lambda:NOW+dt.timedelta(seconds=expired))
+            def observe(label):
+                result=original_observe(label)
+                if phase=='observe' and label=='dispatch-baseline':
+                    monkeypatch.setattr(entry,'utcnow',lambda:NOW+dt.timedelta(seconds=expired))
+                return result
+            native.context.command=command;native.context.observe=observe
+        native.start=slow_start
+        result=entry.run_once(tmp_path,backend_factory=lambda root:native)
+        assert result['overall']=='FAIL' and result['work_cli_count']==0
+>       assert ('observe','dispatch-baseline') in calls
+E       AssertionError: assert ('observe', 'dispatch-baseline') in []
+
+H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e03-source12-acceptance-20261105-r1-fix1\code\test_acceptance_backend.py:238: AssertionError
+_ test_command_or_observe_expiry_denies_cli_using_real_admission[authority-command] _
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-source12-acceptance-20261105-r1-fix1/verification/tmp-review-red/test_command_or_observe_expiry2')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000024FCAC59E10>
+phase = 'command', gate = 'authority'
+
+    @pytest.mark.parametrize('phase',['command','observe'])
+    @pytest.mark.parametrize('gate',['proof','authority'])
+    def test_command_or_observe_expiry_denies_cli_using_real_admission(tmp_path,monkeypatch,phase,gate):
+        import datetime as dt
+        from test_acceptance_entry import NOW,package
+        native,calls=backend(tmp_path)
+        entry,authority,proof=package(tmp_path,monkeypatch)
+        if gate=='authority':
+            authority['expires_at']=(NOW+dt.timedelta(seconds=1)).isoformat()
+            put(tmp_path/'release/authority.json',authority)
+        initial=59 if gate=='proof' else 0;expired=61 if gate=='proof' else 2
+        monkeypatch.setattr(entry,'utcnow',lambda:NOW+dt.timedelta(seconds=initial))
+        native.inspect=lambda:proof
+        original_start=native.start
+        def slow_start(folder):
+            original_start(folder)
+            original_command=native.context.command;original_observe=native.context.observe
+            def command():
+                original_command()
+                if phase=='command':monkeypatch.setattr(entry,'utcnow',lambda:NOW+dt.timedelta(seconds=expired))
+            def observe(label):
+                result=original_observe(label)
+                if phase=='observe' and label=='dispatch-baseline':
+                    monkeypatch.setattr(entry,'utcnow',lambda:NOW+dt.timedelta(seconds=expired))
+                return result
+            native.context.command=command;native.context.observe=observe
+        native.start=slow_start
+        result=entry.run_once(tmp_path,backend_factory=lambda root:native)
+        assert result['overall']=='FAIL' and result['work_cli_count']==0
+>       assert ('observe','dispatch-baseline') in calls
+E       AssertionError: assert ('observe', 'dispatch-baseline') in []
+
+H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e03-source12-acceptance-20261105-r1-fix1\code\test_acceptance_backend.py:238: AssertionError
+_ test_command_or_observe_expiry_denies_cli_using_real_admission[authority-observe] _
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-source12-acceptance-20261105-r1-fix1/verification/tmp-review-red/test_command_or_observe_expiry3')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000024FCAC597B0>
+phase = 'observe', gate = 'authority'
+
+    @pytest.mark.parametrize('phase',['command','observe'])
+    @pytest.mark.parametrize('gate',['proof','authority'])
+    def test_command_or_observe_expiry_denies_cli_using_real_admission(tmp_path,monkeypatch,phase,gate):
+        import datetime as dt
+        from test_acceptance_entry import NOW,package
+        native,calls=backend(tmp_path)
+        entry,authority,proof=package(tmp_path,monkeypatch)
+        if gate=='authority':
+            authority['expires_at']=(NOW+dt.timedelta(seconds=1)).isoformat()
+            put(tmp_path/'release/authority.json',authority)
+        initial=59 if gate=='proof' else 0;expired=61 if gate=='proof' else 2
+        monkeypatch.setattr(entry,'utcnow',lambda:NOW+dt.timedelta(seconds=initial))
+        native.inspect=lambda:proof
+        original_start=native.start
+        def slow_start(folder):
+            original_start(folder)
+            original_command=native.context.command;original_observe=native.context.observe
+            def command():
+                original_command()
+                if phase=='command':monkeypatch.setattr(entry,'utcnow',lambda:NOW+dt.timedelta(seconds=expired))
+            def observe(label):
+                result=original_observe(label)
+                if phase=='observe' and label=='dispatch-baseline':
+                    monkeypatch.setattr(entry,'utcnow',lambda:NOW+dt.timedelta(seconds=expired))
+                return result
+            native.context.command=command;native.context.observe=observe
+        native.start=slow_start
+        result=entry.run_once(tmp_path,backend_factory=lambda root:native)
+        assert result['overall']=='FAIL' and result['work_cli_count']==0
+>       assert ('observe','dispatch-baseline') in calls
+E       AssertionError: assert ('observe', 'dispatch-baseline') in []
+
+H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e03-source12-acceptance-20261105-r1-fix1\code\test_acceptance_backend.py:238: AssertionError
+=========================== short test summary info ===========================
+FAILED ::test_persistent_stop_error_runs_actual_owned_cleanup_and_retains_failure
+FAILED ::test_command_or_observe_expiry_denies_cli_using_real_admission[proof-command]
+FAILED ::test_command_or_observe_expiry_denies_cli_using_real_admission[proof-observe]
+FAILED ::test_command_or_observe_expiry_denies_cli_using_real_admission[authority-command]
+FAILED ::test_command_or_observe_expiry_denies_cli_using_real_admission[authority-observe]
+5 failed, 2 passed, 11 deselected in 1.63s

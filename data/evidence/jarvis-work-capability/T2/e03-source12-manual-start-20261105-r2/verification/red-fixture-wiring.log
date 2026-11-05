@@ -1,0 +1,85 @@
+F                                                                        [100%]
+================================== FAILURES ===================================
+_ test_real_fixture_definition_waits_before_focus_and_creates_nonactivating_windows _
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-source12-manual-start-20261105-r2/verification/tmp-fixture-wiring-red/test_real_fixture_definition_w0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000294AC99C180>
+
+    def test_real_fixture_definition_waits_before_focus_and_creates_nonactivating_windows(tmp_path,monkeypatch):
+        import sys
+        f=importlib.import_module('fixture_adapter');m=module()
+        calls=[];state={'next':100,'armed':False,'foreground':900,'focus':901};texts={};selections={};windows=[]
+        def create(exstyle,cls,title,style,*args):
+            state['next']+=1;hwnd=state['next']
+            if cls=='STATIC':windows.append((hwnd,exstyle))
+            else:texts[hwnd]=title;selections[hwnd]=(0,0)
+            return hwnd
+        def foreground(hwnd):
+            assert state['armed'],'Fixture stole foreground before operator Start'
+            calls.append('foreground');state['foreground']=hwnd;return True
+        def focus(hwnd):calls.append('focus');state['focus']=hwnd;return 0
+        def send(hwnd,message,w=0,l=0):
+            if message==0xC:texts[hwnd]=C.wstring_at(l)
+            if message==0xB1:
+                assert state['armed'];calls.append('select')
+                selections[hwnd]=(w,len(texts[hwnd]) if l==-1 else l)
+            return 1
+        u=SimpleNamespace(**{name:Fn(lambda *args:1) for name in (
+            'ShowWindow','DestroyWindow','PeekMessageW','TranslateMessage','DispatchMessageW',
+            'SetWindowLongPtrW','SetWindowLongW','InSendMessageEx')})
+        u.CreateWindowExW=Fn(create);u.SetForegroundWindow=Fn(foreground);u.SetFocus=Fn(focus)
+        u.GetForegroundWindow=Fn(lambda:state['foreground']);u.GetWindowThreadProcessId=Fn(lambda *args:88)
+        u.AttachThreadInput=Fn(lambda *args:calls.append('attach') or True)
+        k=SimpleNamespace(GetCurrentThreadId=Fn(lambda:77))
+        n=SimpleNamespace(u=u,k=k,created=lambda pid:99,send=send,identity=lambda *args,**kw:None,
+            focused=lambda:(state['foreground'],state['focus']))
+        n.observe=lambda target,**kw:dict(text=texts[target['control_hwnd']],
+            start_utf16=selections[target['control_hwnd']][0],end_utf16=selections[target['control_hwnd']][1])
+        def save(path,value):
+            path.write_text(json.dumps(value),encoding='utf-8')
+            if path.name=='fixture.json':(tmp_path/'stop').touch()
+        def initialize(set_text,read_text,expected):
+            set_text(expected);assert read_text()==expected
+            return {'verified':True}
+        harness=SimpleNamespace(CASES={'e03':{'text':'fixed source','window_title':'fixture'}},save=save,
+                                initialize_fixture_text=initialize,read_fixture_edit_text=lambda native,hwnd:texts[hwnd])
+        monkeypatch.setitem(sys.modules,'src.brain.tests',SimpleNamespace(work_context_acceptance=harness))
+        monkeypatch.setitem(sys.modules,'src.brain.work_context',SimpleNamespace(Win32Edit=lambda:n))
+        origin=SimpleNamespace(start=lambda controls:True,summary=lambda:{'complete':True},finish=lambda:{'complete':True})
+        monkeypatch.setattr(f,'InputOriginRecorder',lambda **kw:origin)
+        monkeypatch.setattr(f,'bind_input_source_reader',lambda user:lambda:None)
+        monkeypatch.setattr(f,'_append_record',lambda *args:None)
+        monkeypatch.setattr(f,'_install_audit',lambda user,kernel,hwnd,pid,folder,index,origin:dict(
+            hwnd=hwnd,old_proc=1,path=folder/'events',lock=None,index=index,state={'enabled':False,'error':False}))
+        def start_button(user,window,folder):
+            assert not calls;calls.append('manual-start');state['armed']=True
+        monkeypatch.setattr(f,'manual_start',start_button,raising=False)
+        monkeypatch.setattr(f,'activate_owned',m.activate_owned,raising=False)
+        monkeypatch.setattr(f,'NO_ACTIVATE',m.NO_ACTIVATE,raising=False)
+        monkeypatch.setattr(f,'APP_WINDOW',m.APP_WINDOW,raising=False)
+>       assert f.fixture(tmp_path,tmp_path/'candidate')==0
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e03-source12-manual-start-20261105-r2\code\test_fixture_manual_start.py:201: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e03-source12-manual-start-20261105-r2\code\fixture_adapter.py:250: in fixture
+    activate()
+H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e03-source12-manual-start-20261105-r2\code\fixture_adapter.py:239: in activate
+    record['set_foreground_return']=bool(user32.SetForegroundWindow(target['hwnd']))
+                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e03-source12-manual-start-20261105-r2\code\test_fixture_manual_start.py:98: in __call__
+    def __call__(self,*args):return self.call(*args)
+                                    ^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+hwnd = 101
+
+    def foreground(hwnd):
+>       assert state['armed'],'Fixture stole foreground before operator Start'
+E       AssertionError: Fixture stole foreground before operator Start
+E       assert False
+
+H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e03-source12-manual-start-20261105-r2\code\test_fixture_manual_start.py:159: AssertionError
+=========================== short test summary info ===========================
+FAILED ::test_real_fixture_definition_waits_before_focus_and_creates_nonactivating_windows
+1 failed, 18 deselected in 0.28s

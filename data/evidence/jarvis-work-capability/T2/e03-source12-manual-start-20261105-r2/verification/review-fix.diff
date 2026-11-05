@@ -1,0 +1,255 @@
+--- base/code/controller.py
++++ fix1/code/controller.py
+@@ -466,7 +466,8 @@
+         records=[]
+         try: self.discover()
+         except Exception as exc: self.errors.append({'discovery_error':str(exc)})
+-        (self.folder/'stop').touch()
++        try: (self.folder/'stop').touch()
++        except Exception as exc: self.errors.append({'stop_marker_error':str(exc)})
+         for item in self.launchers:
+             if item['role']=='fixture':
+                 try: item['proc'].wait(timeout=3)
+--- base/code/acceptance_entry.py
++++ fix1/code/acceptance_entry.py
+@@ -38,6 +38,12 @@
+     result = dt.datetime.fromisoformat(value)
+     require(result.tzinfo is not None, 'Timezone-aware timestamp required')
+     return result
++
++
++def check_admission_time(authority, proof, now):
++    issued, expires = timestamp(authority['issued_at']), timestamp(authority['expires_at'])
++    require(issued <= now < expires and 0 < (expires-issued).total_seconds() <= 120, 'Expired or expanded admission')
++    require(0 <= (now-timestamp(proof['recorded_at'])).total_seconds() <= 60, 'Stale or future native proof')
+ 
+ 
+ def verify_package(root):
+@@ -108,13 +114,11 @@
+             and authority['retry_authorized'] is False and authority['acceptance_credit'] is False
+             and authority['prior_reviews'] == [], 'Single round1 allocation required')
+     require(isinstance(authority['user_authorization'], str) and authority['user_authorization'].strip(), 'User authorization missing')
+-    issued, expires = timestamp(authority['issued_at']), timestamp(authority['expires_at'])
+-    require(issued <= now < expires and 0 < (expires-issued).total_seconds() <= 120, 'Expired or expanded admission')
+     proof_path = child(root, authority['proof_path'])
+     require(proof_path.parent == root/'release/preflight' and proof_path.suffix == '.json', 'Canonical proof path required')
+     require(sha(proof_path) == authority['proof_sha256'], 'Native proof hash mismatch')
+     proof = load(proof_path)
+-    require(0 <= (now-timestamp(proof['recorded_at'])).total_seconds() <= 60, 'Stale or future native proof')
++    check_admission_time(authority, proof, now)
+     assert_proof(root, proof)
+     folder = child(root, 'actual/' + CASE)
+     if not active and folder.exists():
+@@ -169,9 +173,15 @@
+         assert_same_live(admission['proof'], backend.inspect())
+         require(validate_release(root, utcnow(), active=True) == admission, 'Active release changed during inspection')
+ 
++    def admit_cli():
++        require(validate_release(root, utcnow(), active=True) == admission, 'Active release changed before CLI')
++        # File reads may themselves take time. Sample again after all binding
++        # checks, without refreshing the original proof or running native I/O.
++        check_admission_time(admission['authority'], admission['proof'], utcnow())
++
+     try:
+         backend.start(folder)
+-        review = backend.product(revalidate)
++        review = backend.product(revalidate, admit_cli)
+         require(review.get('mechanical') == 'PASS' and review.get('facts') == 'PENDING_ROOT_INDEPENDENT_REVIEW', 'Mechanical review incomplete')
+     except Exception as exc:
+         errors.append({'stage':'execute', 'type':type(exc).__name__, 'error':str(exc)})
+--- base/code/acceptance_backend.py
++++ fix1/code/acceptance_backend.py
+@@ -114,7 +114,7 @@
+         self.baseline_rows = self.context.observe('baseline')
+         self._check_baseline(self.baseline_rows)
+ 
+-    def product(self, revalidate):
++    def product(self, revalidate, admit_cli):
+         require(self.context is not None and self.context.fixture_ready and self.baseline_rows is not None, 'Verified fixture required')
+         c, context, folder = self.controller, self.context, self.folder
+         require(context.cli_count == 0, 'Only one CLI submission allowed')
+@@ -138,6 +138,7 @@
+         context.command()
+         self.baseline_rows = context.observe('dispatch-baseline')
+         self._check_baseline(self.baseline_rows)
++        admit_cli()
+         context.cli_count += 1
+         cli = context.owned.launch(cli_argv,'cli')
+         c.old.wait_cli(cli,folder); context.owned.flush()
+--- base/code/test_acceptance_backend.py
++++ fix1/code/test_acceptance_backend.py
+@@ -114,7 +114,7 @@
+     native,calls=backend(tmp_path)
+     with pytest.raises(FileNotFoundError):native.controller.source_check()
+     start(native,tmp_path)
+-    result=native.product(lambda:calls.append(('revalidate',)))
++    result=native.product(lambda:calls.append(('revalidate',)),lambda:calls.append(('admit-cli',)))
+     assert result=={'mechanical':'PASS','facts':'PENDING_ROOT_INDEPENDENT_REVIEW'}
+     native.effects();assert native.close()['status']=='PASS';assert native.audit()['status']=='PASS'
+     launches=[row for row in calls if row[0]=='launch']
+@@ -122,7 +122,7 @@
+     cli=launches[-1][2]
+     assert cli[:6]==['-B','-m','src.brain.cli','--work','--current-window','--replace-selection']
+     assert cli[-1]=='original fixed request'
+-    assert calls.index(('revalidate',))<calls.index(('activate',))<calls.index(('observe','dispatch-baseline'))<calls.index(launches[-1])
++    assert calls.index(('revalidate',))<calls.index(('activate',))<calls.index(('observe','dispatch-baseline'))<calls.index(('admit-cli',))<calls.index(launches[-1])
+     assert ('wait',315) in calls and ('reconcile',) in calls and native.cli_count==1
+     argv=json.loads((tmp_path/'actual/e03-round1/argv.json').read_text(encoding='utf-8'))
+     assert (argv['CLI_timeout'],argv['SDK_timeout'],argv['controller_wait'])==(300,1800,315)
+@@ -131,7 +131,7 @@
+ @pytest.mark.parametrize('drift',['text','identity','selection'])
+ def test_changed_dispatch_baseline_refuses_before_cli(tmp_path,drift):
+     native,calls=backend(tmp_path,drift=drift);start(native,tmp_path)
+-    with pytest.raises(ValueError):native.product(lambda:None)
++    with pytest.raises(ValueError):native.product(lambda:None,lambda:None)
+     assert not any(row[:2]==('launch','cli') for row in calls)
+     assert native.cli_count==0
+     native.effects();assert native.close()['status']=='PASS'
+@@ -147,7 +147,7 @@
+ def test_failed_final_release_check_does_not_activate_or_submit(tmp_path):
+     native,calls=backend(tmp_path);start(native,tmp_path)
+     def reject():raise ValueError('expired proof')
+-    with pytest.raises(ValueError,match='expired proof'):native.product(reject)
++    with pytest.raises(ValueError,match='expired proof'):native.product(reject,lambda:None)
+     assert ('activate',) not in calls and native.cli_count==0
+     native.effects();native.close()
+ 
+@@ -167,3 +167,105 @@
+     result=native.close()
+     assert result['status']=='FAIL' and result['stop_error']
+     assert any(row[0]=='cleanup' for row in calls)
++
++
++def test_persistent_stop_error_runs_actual_owned_cleanup_and_retains_failure(tmp_path,monkeypatch):
++    import io
++    import subprocess
++    import time
++    native,calls=backend(tmp_path);start(native,tmp_path)
++    owner=native.context.owned
++    tree=ast.parse((Path(__file__).parent/'controller.py').read_text(encoding='utf-8-sig'))
++    cls=next(node for node in tree.body if isinstance(node,ast.ClassDef) and node.name=='Owned')
++    cleanup=next(node for node in cls.body if isinstance(node,ast.FunctionDef) and node.name=='cleanup')
++    identities=[dict(pid=500+i,created_filetime=100+i,exe='owned-test.exe') for i in range(3)]
++    live={row['pid']:row for row in identities};terminated=[];waited=[]
++    def terminate(key):
++        assert live[key['pid']]==key
++        terminated.append(key);del live[key['pid']]
++    namespace={'subprocess':subprocess,'time':time,'process_snapshot':lambda:dict(live),
++               'terminate_owned':terminate,'require':importlib.import_module('package_io').require,'save':put}
++    exec(compile(ast.Module(body=[cleanup],type_ignores=[]),'<actual Owned.cleanup>','exec'),namespace)
++    owner.cleanup=lambda port:namespace['cleanup'](owner,port)
++    owner.errors=[];owner.auxiliary={};owner.logs=[io.StringIO(),io.StringIO()]
++    owner.known={row['pid']:{'identity':row} for row in identities}
++    owner.launchers=[dict(role=role,proc=SimpleNamespace(pid=row['pid'],wait=lambda timeout:waited.append(timeout)))
++                     for role,row in zip(('fixture','server','cli'),identities)]
++    original_touch=Path.touch;attempts=[]
++    def persistent_failure(path,*args,**kwargs):
++        if path==native.folder/'stop':
++            attempts.append(path);raise OSError('persistent marker write failure')
++        return original_touch(path,*args,**kwargs)
++    monkeypatch.setattr(Path,'touch',persistent_failure)
++    result=native.close()
++    assert result['status']=='FAIL' and len(attempts)==2
++    assert terminated==identities and not live and len(waited)==4
++    assert all(stream.closed for stream in owner.logs)
++    receipt=json.loads((native.folder/'cleanup.json').read_text(encoding='utf-8'))
++    assert receipt['status']=='FAIL' and all(row['absent'] for row in receipt['processes'])
++    assert any('stop_marker_error' in row for row in receipt['errors'])
++
++
++@pytest.mark.parametrize('phase',['command','observe'])
++@pytest.mark.parametrize('gate',['proof','authority'])
++def test_command_or_observe_expiry_denies_cli_using_real_admission(tmp_path,monkeypatch,phase,gate):
++    import datetime as dt
++    from test_acceptance_entry import NOW,package
++    native,calls=backend(tmp_path)
++    entry,authority,proof=package(tmp_path,monkeypatch)
++    if gate=='authority':
++        authority['expires_at']=(NOW+dt.timedelta(seconds=1)).isoformat()
++        put(tmp_path/'release/authority.json',authority)
++    initial=59 if gate=='proof' else 0;expired=61 if gate=='proof' else 2
++    monkeypatch.setattr(entry,'utcnow',lambda:NOW+dt.timedelta(seconds=initial))
++    native.inspected=True;native.inspect=lambda:proof
++    original_start=native.start
++    def slow_start(folder):
++        original_start(folder)
++        original_command=native.context.command;original_observe=native.context.observe
++        def command():
++            original_command()
++            if phase=='command':monkeypatch.setattr(entry,'utcnow',lambda:NOW+dt.timedelta(seconds=expired))
++        def observe(label):
++            result=original_observe(label)
++            if phase=='observe' and label=='dispatch-baseline':
++                monkeypatch.setattr(entry,'utcnow',lambda:NOW+dt.timedelta(seconds=expired))
++            return result
++        native.context.command=command;native.context.observe=observe
++    native.start=slow_start
++    result=entry.run_once(tmp_path,backend_factory=lambda root:native)
++    assert result['overall']=='FAIL' and result['work_cli_count']==0
++    assert ('observe','dispatch-baseline') in calls
++    assert not any(row[:2]==('launch','cli') for row in calls)
++    assert result['cleanup']['status']=='PASS'
++    assert json.loads((tmp_path/'release/preflight/test.json').read_text(encoding='utf-8'))==proof
++
++
++@pytest.mark.parametrize('change',['binding','clock_during_check'])
++def test_final_submission_check_rechecks_binding_and_samples_time_after_reads(tmp_path,monkeypatch,change):
++    import datetime as dt
++    from test_acceptance_entry import NOW,package
++    native,calls=backend(tmp_path);entry,authority,proof=package(tmp_path,monkeypatch)
++    native.inspected=True;native.inspect=lambda:proof
++    original_start=native.start;verify=entry.verify_package
++    def start_and_change(folder):
++        original_start(folder);observe=native.context.observe
++        def modified(label):
++            result=observe(label)
++            if label=='dispatch-baseline':
++                if change=='binding':
++                    authority['scope']='fixture-only-diagnostic';put(tmp_path/'release/authority.json',authority)
++                else:
++                    def slow_verify(root):
++                        value=verify(root)
++                        monkeypatch.setattr(entry,'utcnow',lambda:NOW+dt.timedelta(seconds=61))
++                        return value
++                    monkeypatch.setattr(entry,'verify_package',slow_verify)
++            return result
++        native.context.observe=modified
++    native.start=start_and_change
++    result=entry.run_once(tmp_path,backend_factory=lambda root:native)
++    assert result['overall']=='FAIL' and result['work_cli_count']==0
++    assert ('observe','dispatch-baseline') in calls
++    assert not any(row[:2]==('launch','cli') for row in calls)
++    assert result['cleanup']['status']=='PASS'
+--- base/code/test_acceptance_entry.py
++++ fix1/code/test_acceptance_entry.py
+@@ -116,7 +116,7 @@
+         self.calls.append('start');self.folder=folder
+         assert (folder/'admission.json').exists()
+         if self.fail=='start': raise RuntimeError('start failed')
+-    def product(self,revalidate):
++    def product(self,revalidate,admit_cli):
+         revalidate();self.calls.append('product');self.cli_count+=1
+         if self.fail=='product': raise RuntimeError('product failed')
+         put(self.folder/'product-result.json', {'test_only':True})
+@@ -199,8 +199,8 @@
+ def test_mechanical_flag_without_product_receipt_cannot_be_pending_acceptance(tmp_path,monkeypatch):
+     entry,authority,proof=package(tmp_path,monkeypatch);backend=Backend(tmp_path,proof)
+     original=backend.product
+-    def missing_receipt(revalidate):
+-        result=original(revalidate);(backend.folder/'product-result.json').unlink();return result
++    def missing_receipt(revalidate,admit_cli):
++        result=original(revalidate,admit_cli);(backend.folder/'product-result.json').unlink();return result
+     backend.product=missing_receipt
+     result=entry.run_once(tmp_path,backend_factory=lambda root:backend)
+     assert result['overall']=='FAIL' and any(x['stage']=='evidence' for x in result['errors'])
+@@ -209,8 +209,8 @@
+ def test_sealed_wrapper_drift_during_case_invalidates_final_boundary(tmp_path,monkeypatch):
+     entry,authority,proof=package(tmp_path,monkeypatch);backend=Backend(tmp_path,proof)
+     original=backend.product
+-    def change_wrapper(revalidate):
+-        result=original(revalidate);(tmp_path/'code/package_io.py').write_text('# drift\n');return result
++    def change_wrapper(revalidate,admit_cli):
++        result=original(revalidate,admit_cli);(tmp_path/'code/package_io.py').write_text('# drift\n');return result
+     backend.product=change_wrapper
+     result=entry.run_once(tmp_path,backend_factory=lambda root:backend)
+     assert result['overall']=='FAIL' and any(x['stage']=='boundaries' for x in result['errors'])

@@ -1,0 +1,129 @@
+FFFFF                                                                    [100%]
+================================== FAILURES ===================================
+__ test_invalid_operator_handoff_refuses_before_baseline_or_product[missing] __
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-source12-manual-start-20261105-r2/verification/tmp-handoff-red/test_invalid_operator_handoff_0')
+fault = 'missing'
+
+    @pytest.mark.parametrize('fault',['missing','pid','window','keyboard','automatic'])
+    def test_invalid_operator_handoff_refuses_before_baseline_or_product(tmp_path,fault):
+        native,calls=backend(tmp_path);native.inspect()
+        folder=tmp_path/'actual/e03-round1';folder.mkdir(parents=True)
+        def ready(predicate,seconds):
+            value=predicate();path=folder/'manual-start.json'
+            if fault=='missing':path.unlink()
+            else:
+                data=json.loads(path.read_text(encoding='utf-8'))
+                key,replacement={'pid':('pid',99),'window':('window_hwnd',99),'keyboard':('keyboard_clear',False),
+                                 'automatic':('requested_by','automatic')}[fault]
+                data[key]=replacement;put(path,data)
+            return value
+        native.harness.wait_for=ready
+>       with pytest.raises((FileNotFoundError,ValueError)):native.start(folder)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE any of (FileNotFoundError, ValueError)
+
+H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e03-source12-manual-start-20261105-r2\code\test_acceptance_backend.py:179: Failed
+____ test_invalid_operator_handoff_refuses_before_baseline_or_product[pid] ____
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-source12-manual-start-20261105-r2/verification/tmp-handoff-red/test_invalid_operator_handoff_1')
+fault = 'pid'
+
+    @pytest.mark.parametrize('fault',['missing','pid','window','keyboard','automatic'])
+    def test_invalid_operator_handoff_refuses_before_baseline_or_product(tmp_path,fault):
+        native,calls=backend(tmp_path);native.inspect()
+        folder=tmp_path/'actual/e03-round1';folder.mkdir(parents=True)
+        def ready(predicate,seconds):
+            value=predicate();path=folder/'manual-start.json'
+            if fault=='missing':path.unlink()
+            else:
+                data=json.loads(path.read_text(encoding='utf-8'))
+                key,replacement={'pid':('pid',99),'window':('window_hwnd',99),'keyboard':('keyboard_clear',False),
+                                 'automatic':('requested_by','automatic')}[fault]
+                data[key]=replacement;put(path,data)
+            return value
+        native.harness.wait_for=ready
+>       with pytest.raises((FileNotFoundError,ValueError)):native.start(folder)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE any of (FileNotFoundError, ValueError)
+
+H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e03-source12-manual-start-20261105-r2\code\test_acceptance_backend.py:179: Failed
+__ test_invalid_operator_handoff_refuses_before_baseline_or_product[window] ___
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-source12-manual-start-20261105-r2/verification/tmp-handoff-red/test_invalid_operator_handoff_2')
+fault = 'window'
+
+    @pytest.mark.parametrize('fault',['missing','pid','window','keyboard','automatic'])
+    def test_invalid_operator_handoff_refuses_before_baseline_or_product(tmp_path,fault):
+        native,calls=backend(tmp_path);native.inspect()
+        folder=tmp_path/'actual/e03-round1';folder.mkdir(parents=True)
+        def ready(predicate,seconds):
+            value=predicate();path=folder/'manual-start.json'
+            if fault=='missing':path.unlink()
+            else:
+                data=json.loads(path.read_text(encoding='utf-8'))
+                key,replacement={'pid':('pid',99),'window':('window_hwnd',99),'keyboard':('keyboard_clear',False),
+                                 'automatic':('requested_by','automatic')}[fault]
+                data[key]=replacement;put(path,data)
+            return value
+        native.harness.wait_for=ready
+>       with pytest.raises((FileNotFoundError,ValueError)):native.start(folder)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE any of (FileNotFoundError, ValueError)
+
+H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e03-source12-manual-start-20261105-r2\code\test_acceptance_backend.py:179: Failed
+_ test_invalid_operator_handoff_refuses_before_baseline_or_product[keyboard] __
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-source12-manual-start-20261105-r2/verification/tmp-handoff-red/test_invalid_operator_handoff_3')
+fault = 'keyboard'
+
+    @pytest.mark.parametrize('fault',['missing','pid','window','keyboard','automatic'])
+    def test_invalid_operator_handoff_refuses_before_baseline_or_product(tmp_path,fault):
+        native,calls=backend(tmp_path);native.inspect()
+        folder=tmp_path/'actual/e03-round1';folder.mkdir(parents=True)
+        def ready(predicate,seconds):
+            value=predicate();path=folder/'manual-start.json'
+            if fault=='missing':path.unlink()
+            else:
+                data=json.loads(path.read_text(encoding='utf-8'))
+                key,replacement={'pid':('pid',99),'window':('window_hwnd',99),'keyboard':('keyboard_clear',False),
+                                 'automatic':('requested_by','automatic')}[fault]
+                data[key]=replacement;put(path,data)
+            return value
+        native.harness.wait_for=ready
+>       with pytest.raises((FileNotFoundError,ValueError)):native.start(folder)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE any of (FileNotFoundError, ValueError)
+
+H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e03-source12-manual-start-20261105-r2\code\test_acceptance_backend.py:179: Failed
+_ test_invalid_operator_handoff_refuses_before_baseline_or_product[automatic] _
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-source12-manual-start-20261105-r2/verification/tmp-handoff-red/test_invalid_operator_handoff_4')
+fault = 'automatic'
+
+    @pytest.mark.parametrize('fault',['missing','pid','window','keyboard','automatic'])
+    def test_invalid_operator_handoff_refuses_before_baseline_or_product(tmp_path,fault):
+        native,calls=backend(tmp_path);native.inspect()
+        folder=tmp_path/'actual/e03-round1';folder.mkdir(parents=True)
+        def ready(predicate,seconds):
+            value=predicate();path=folder/'manual-start.json'
+            if fault=='missing':path.unlink()
+            else:
+                data=json.loads(path.read_text(encoding='utf-8'))
+                key,replacement={'pid':('pid',99),'window':('window_hwnd',99),'keyboard':('keyboard_clear',False),
+                                 'automatic':('requested_by','automatic')}[fault]
+                data[key]=replacement;put(path,data)
+            return value
+        native.harness.wait_for=ready
+>       with pytest.raises((FileNotFoundError,ValueError)):native.start(folder)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE any of (FileNotFoundError, ValueError)
+
+H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e03-source12-manual-start-20261105-r2\code\test_acceptance_backend.py:179: Failed
+=========================== short test summary info ===========================
+FAILED ::test_invalid_operator_handoff_refuses_before_baseline_or_product[missing]
+FAILED ::test_invalid_operator_handoff_refuses_before_baseline_or_product[pid]
+FAILED ::test_invalid_operator_handoff_refuses_before_baseline_or_product[window]
+FAILED ::test_invalid_operator_handoff_refuses_before_baseline_or_product[keyboard]
+FAILED ::test_invalid_operator_handoff_refuses_before_baseline_or_product[automatic]
+5 failed, 18 deselected in 0.99s
