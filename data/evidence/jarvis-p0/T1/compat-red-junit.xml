@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="3" time="39.135" timestamp="2026-11-04T14:33:50.605049+08:00" hostname="DESKTOP-B366PQ9"><testcase classname="src.brain.routing.tests.test_mainbrain_rules_prompt" name="test_startup_prompt_combines_jarvis_and_authoritative_rule_block" time="0.002" /><testcase classname="src.brain.routing.tests.test_mainbrain_rules_prompt" name="test_agent_server_keeps_user_question_separate" time="35.157"><failure message="AssertionError: assert None&#10; +  where None = &lt;function fullmatch at 0x0000019F13E62480&gt;('\\[当前时间：\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2} 星期[一二三四五六日]（北京时间）\\] 第一问', '===TRUSTED_CONTEXT_START===\n[当前时间：2026-11-04 14:33 星期三（北京时间）]\n===TRUSTED_CONTEXT_END===\n===USER_SPEECH_START===\n第一问\n===USER_SPEECH_END===')&#10; +    where &lt;function fullmatch at 0x0000019F13E62480&gt; = re.fullmatch">monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x0000019F1845E9E0&gt;
+
+    def test_agent_server_keeps_user_question_separate(monkeypatch) -&gt; None:
+        jarvis = Mock()
+        event_bus = Mock()
+        jarvis.ask_full.side_effect = [
+            {"content": "第一轮。", "tool_results": [], "usage": {}},
+            {"content": "第二轮。", "tool_results": [], "usage": {}},
+        ]
+        monkeypatch.setattr(agent_server, "get_jarvis", lambda: jarvis)
+        monkeypatch.setattr(agent_server, "EVENT_BUS", event_bus)
+        with patch.object(Path, "read_text", side_effect=AssertionError("per-turn read")):
+            agent_server.ask_once("第一问")
+            agent_server.ask_once("第二问")
+        assert jarvis.ask_full.call_count == 2
+        for call, question in zip(jarvis.ask_full.call_args_list, ("第一问", "第二问"), strict=True):
+&gt;           assert re.fullmatch(
+                rf"\[当前时间：\d{{4}}-\d{{2}}-\d{{2}} \d{{2}}:\d{{2}} 星期[一二三四五六日]（北京时间）\] {question}",
+                call.args[0],
+            )
+E           AssertionError: assert None
+E            +  where None = &lt;function fullmatch at 0x0000019F13E62480&gt;('\\[当前时间：\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2} 星期[一二三四五六日]（北京时间）\\] 第一问', '===TRUSTED_CONTEXT_START===\n[当前时间：2026-11-04 14:33 星期三（北京时间）]\n===TRUSTED_CONTEXT_END===\n===USER_SPEECH_START===\n第一问\n===USER_SPEECH_END===')
+E            +    where &lt;function fullmatch at 0x0000019F13E62480&gt; = re.fullmatch
+
+src\brain\routing\tests\test_mainbrain_rules_prompt.py:36: AssertionError</failure></testcase><testcase classname="src.brain.routing.tests.test_mainbrain_rules_prompt" name="test_every_native_react_turn_has_cached_rules_in_system_message" time="0.034" /></testsuite></testsuites>

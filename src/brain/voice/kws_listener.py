@@ -27,7 +27,9 @@ from src.brain.voice.tts import tts_synthesize
 from src.brain.voice.asr import asr_transcribe
 from src.brain.voice._resample import mix_to_mono, resample_to_16k
 from src.brain.voice.input_probe import resolve_input
+from src.brain.voice.session_restart import SessionRestartGuard
 from src.brain.voice.voice_profile import load_profile
+from src.brain.voice.wake_matching import WakePhraseMatcher
 
 # ── 路径/设备（与 live_mic.py 一致，真机已验证） ──────────────────
 REAL_QUEUE = ROOT / "tasks"
@@ -57,9 +59,9 @@ _KWS_ARGS = dict(
     keywords_file=str(ROOT / "models" / "sherpa" / "kws" / "keywords.txt"),
     num_threads=2,
     max_active_paths=8,
-    keywords_score=1.0,
-    # 2026-10-29 对齐 daemon DEFECT-008：说完即报，不等静音帧确认（防"第一遍听不见"）
-    num_trailing_blanks=0,
+    # 冻结值见 docs/specs/kws-wakeup-params-baseline.md 第三节；此处禁止独立调参。
+    keywords_score=2.0,
+    num_trailing_blanks=8,
     provider="cpu",
 )
 # 唤醒灵敏度（对齐 daemon 调优 0.08；调低更灵敏/易误报，可用 KWS_THRESHOLD 覆盖）
@@ -156,6 +158,9 @@ class KwsListener:
             line.strip() for line in Path(_KWS_ARGS["keywords_file"]).read_text(encoding="utf-8").splitlines()
             if line.strip()
         )
+        self._wake_matcher = WakePhraseMatcher.from_keyword_lines(self._keywords)
+        self._restart_guard = SessionRestartGuard(interval_seconds=50.0)
+        self.session_restart_count = 0
         self._keywords_mtime_ns = self._keyword_mtime()
         self._failed_keywords_mtime_ns: int | None = None
         self.skip_vad_count = 0
@@ -189,6 +194,7 @@ class KwsListener:
             self.kws = replacement
             self._stream = replacement_stream
             self._keywords = keywords
+            self._wake_matcher = WakePhraseMatcher.from_keyword_lines(keywords)
             self._keywords_mtime_ns = self._keyword_mtime()
             self._failed_keywords_mtime_ns = None
         print(f"KWS_RELOADED pid={os.getpid()} keywords={len(keywords)}", flush=True)
@@ -253,13 +259,18 @@ class KwsListener:
             block = block.flatten()
         block = block.astype(np.float32, copy=False)
         raw_rms = float(np.sqrt(np.mean(block ** 2))) if len(block) else 0.0
+        if self._restart_guard.should_restart(active_audio=raw_rms >= KWS_VAD_ENERGY):
+            with self._reload_lock:
+                self._stream = self.kws.create_stream()
+                self.session_restart_count += 1
+            self._log_count("KWS_SESSION_RESTART", self.session_restart_count, "interval=50s")
         if raw_rms >= KWS_VAD_ENERGY:
             self._pending_activity = True
         peak = float(np.abs(block).max())
         block = block * self._next_gain(peak)
         hit = self._detect(block)
         self._pending_activity = False
-        if hit != "":
+        if hit != "" and self._wake_matcher.matches(hit):
             self.pre_filter_pass_count += 1
             self._log_count("PRE_FILTER_PASS", self.pre_filter_pass_count, f"rms={raw_rms:.6f}")
             return hit

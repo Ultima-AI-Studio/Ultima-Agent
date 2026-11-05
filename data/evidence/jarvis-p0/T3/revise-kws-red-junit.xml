@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="1" time="8.103" timestamp="2026-11-04T22:18:44.363901+08:00" hostname="DESKTOP-B366PQ9"><testcase classname="src.brain.voice.tests.test_jarvis_p0_voice" name="test_kws_listener_refreshes_only_its_stream_and_fuzzy_matches" time="0.080"><failure message="assert 1.0 == 2.0 ± 2.0e-06&#10;  &#10;  comparison failed&#10;  Obtained: 1.0&#10;  Expected: 2.0 ± 2.0e-06">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-p0/T3/revise-kws-red-basetemp/test_kws_listener_refreshes_on0')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000001968962E9E0&gt;
+
+    def test_kws_listener_refreshes_only_its_stream_and_fuzzy_matches(
+        tmp_path: Path,
+        monkeypatch,
+    ) -&gt; None:
+        import numpy as np
+    
+        fake_sounddevice = types.ModuleType("sounddevice")
+        fake_sherpa = types.ModuleType("sherpa_onnx")
+    
+        class FakeStream:
+            def accept_waveform(self, _sample_rate, _samples) -&gt; None:
+                return None
+    
+        class FakeSpotter:
+            def __init__(self, **kwargs) -&gt; None:
+                self.created = 0
+                self.kwargs = kwargs
+    
+            def create_stream(self):
+                self.created += 1
+                return FakeStream()
+    
+            def is_ready(self, _stream) -&gt; bool:
+                return False
+    
+        fake_sherpa.KeywordSpotter = FakeSpotter
+        monkeypatch.setitem(sys.modules, "sounddevice", fake_sounddevice)
+        monkeypatch.setitem(sys.modules, "sherpa_onnx", fake_sherpa)
+        sys.modules.pop("src.brain.voice.kws_listener", None)
+        import src.brain.voice as voice_package
+    
+        monkeypatch.delattr(voice_package, "kws_listener", raising=False)
+        kws_listener = importlib.import_module("src.brain.voice.kws_listener")
+    
+        keywords = tmp_path / "keywords.txt"
+        keywords.write_text("j iǎ w éi s ī @贾维斯\n", encoding="utf-8")
+        monkeypatch.setitem(kws_listener._KWS_ARGS, "keywords_file", str(keywords))
+        listener = kws_listener.KwsListener()
+        assert listener.kws.kwargs["keywords_threshold"] == pytest.approx(0.08)
+&gt;       assert listener.kws.kwargs["keywords_score"] == pytest.approx(2.0)
+E       assert 1.0 == 2.0 ± 2.0e-06
+E         
+E         comparison failed
+E         Obtained: 1.0
+E         Expected: 2.0 ± 2.0e-06
+
+src\brain\voice\tests\test_jarvis_p0_voice.py:154: AssertionError</failure></testcase></testsuite></testsuites>

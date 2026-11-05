@@ -32,8 +32,10 @@ from typing import Any, Callable, Optional
 
 try:
     from ..events import emit_event
+    from ..memory_write_boundary import guarded_memory_write
 except ImportError:  # 兼容 src/brain 在 sys.path 时的顶层 loop 包
     from events import emit_event
+    from memory_write_boundary import guarded_memory_write
 
 from .params import (
     ExecutionParams,
@@ -273,7 +275,8 @@ class BrainLoop:
         if not query:
             return None
         try:
-            entry = self.memory.write(
+            entry = guarded_memory_write(
+                self.memory,
                 "working", query,
                 kind="pending_interrupt", trusted=True, source="brain.loop.interrupt",
                 meta={
@@ -462,8 +465,15 @@ class BrainLoop:
 
         # ⑬ 记忆归档（L9，经闸门）
         try:
-            self.memory.write("working", summary, kind="reflection", trusted=True,
-                              source="brain.loop", meta={"flow_id": flow_id, "task_id": record.task_id})
+            guarded_memory_write(
+                self.memory,
+                "working",
+                summary,
+                kind="reflection",
+                trusted=True,
+                source="brain.loop",
+                meta={"flow_id": flow_id, "task_id": record.task_id},
+            )
             archived = True
         except Exception:  # noqa: BLE001 - 记忆写入失败不阻断主链路（best-effort）
             archived = False

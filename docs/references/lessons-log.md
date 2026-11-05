@@ -275,6 +275,8 @@
 ## 变更日志
 | v2.4 | 2026-10-31 | 新增 L34 Codex 派发 stdin 中文编码坑（UTF-8 字节直写 BaseStream 修复，0008 十一次重派 PID 28420 exit=1 → 十二次重派 PID 29968 exit=0） |
 | v2.5 | 2026-11-01 | 新增 L35 agent_server 8756 "查新闻" 500 根因链（旧进程未加载 0016/0017 + Qwen3 thinking 空 content + you.com 不可达吞 fallback；修复=启动脚本注入 OPENJARVIS_WEB_SEARCH_ENGINE=duckduckgo + 重启，实测 200 grounded=true） |
+| v2.6 | 2026-11-04 | 新增 L36 kws_listener.py 参数与权威基线漂移（score=1.0/num_trailing_blanks=0 vs 基线 2.0/8）+ 基线文档"产品主入口"声明与实测运行入口（daemon）不一致 |
+| v2.7 | 2026-11-05 | 新增 L37 T4 全量回归两项环境既有失败（测试子进程 PATH 缺 Ollama 目录 + jarvis ask 14B 真实推理在 12GB 卡 cudaMalloc OOM）；处置=主脑豁免裁决收口 + 两项登记环境债（测试环境注入 PATH / 真推理测试改 8B 或加显存前置） |
 
 ## L35 agent_server 8756 "查新闻" 500 根因链（2026-11-01 · 实测修复）
 
@@ -287,4 +289,24 @@
 - **验证**：`POST /ask "查一下今天的新浪新闻"` → 200；路由门 ALLOW（"查一下"命中）→ 8B 决策调用 ultima_web_search → DDG 返回 5 条真实新浪来源 → 0017 结构化回复 `grounded=true`、`confidence=0.9`、≤2 句无营销，`structured_degraded=false`。
 - **教训**：① 进程重启前先核对启动时间，旧进程排障是浪费轮次；② 外部 API 首选引擎不可达时，检查工具级硬超时是否会吞掉内置 fallback；③ 改引擎走环境变量注入启动脚本（项目内可回退），不直接改 venv 库。
 - **遗留**：无。
+- **复发**：0（首登记）
+
+## L36 kws_listener.py 参数与权威基线漂移 + 文档-运行入口不一致（2026-11-04 · 0023 T3 绑定证据实测）
+
+- **现象**：0023（Jarvis P0）T3 绑定证据未闭合——执行端回执"产品入口仍 score=1.0/trailing=0 vs 权威回放 2.0/8"。
+- **实测**：`src/brain/voice/kws_listener.py` L62/L64 = `keywords_score=1.0`、`num_trailing_blanks=0`；`docs/specs/kws-wakeup-params-baseline.md` 权威 = `score=2.0` / `trailing=8`（2026-10-30 #133 落地值）；`KWS_THRESHOLD=0.08` 已对齐。运行中语音进程= `data/logs/voice-listen-daemon.py`（PID 24812/24276，venv-asr，创建 11-03 17:38:54）——非 kws_listener。
+- **根因**：10-30 基线更新（score 2.0/8）主要落在 daemon 实现；kws_listener.py 参数未同步更新，形成历史漂移；且基线文档声明"适用入口 kws_listener.py（产品主入口）"，与实测运行入口（daemon）不一致——文档声明 ≠ 运行时事实。
+- **教训**：① 权威基线文档更新后，必须把每个实现入口（daemon / kws_listener）与基线逐项 diff，只改一处=漂移温床；② "产品主入口"类声明需与实际运行进程核对后再采信；③ 验收前把权威基线与全部实现入口逐项核对，不能只信文档汇总。
+- **处置**：0023 主脑裁决授权有界修复——kws_listener.py 回正 `score=2.0/num_trailing_blanks=8`（消除漂移=回正冻结值，非新调参；不影响运行中 daemon）。
+- **遗留**：北极星清单 kws 行、voice-profile 相关文档如需同步入口声明时另行核对。
+- **复发**：1（首登记）
+
+## L37 T4 全量回归两项环境既有失败（Ollama PATH + 14B 显存容量）（2026-11-04 · 0023 修复轮实测）
+
+- **现象**：0023 修复轮（PID 21280，run 20261104T141335097160Z）T4 全树 `tools/venv-openjarvis/Scripts/python.exe -m pytest src -q` exit=1：`979 passed, 2 failed, 120 subtests passed`（junit `data/evidence/jarvis-p0/T4/full-green4-junit.xml`）。失败1 `test_connectivity_m6.py::TestC1Environment::test_ollama_has_brains`：`FileNotFoundError: [WinError 2]`——测试子进程 PATH 不含 Ollama 安装目录；失败2 `TestC2Entry::test_jarvis_ask_real_inference`：`jarvis ask` exit 1，Ollama HTTP 500、llama-server `cudaMalloc failed: out of memory`（KV cache 申请 2,818,572,288 字节；qwen2.5:14b ~9GB + KV + 开销 > 启动时可用 10,453 MiB）。
+- **首轮对照（定性关键）**：同两个测试在首轮 `T4/full-green3-junit.xml` 中均无 failure 标签（`test_ollama_has_brains` time=0.062、`test_jarvis_ask_real_inference` time=24.418，即 PASS）→ 修复轮代码仅改 kws_listener 参数回正 + P0-3 接线，与两项连通性测试零交叉 → 判为环境差异/波动，非本单回归。
+- **根因**：① 测试依赖调用者 shell 的 PATH，未自带 Ollama 目录注入（执行端进程内 PATH 修正后 `ollama list` exit 0，但该修正未落到 pytest 子进程）；② `test_jarvis_ask_real_inference` 以 qwen2.5:14b 真实推理为断言对象，14B（9GB+2.8GB KV）超出 12GB 卡可用显存（当前实测 free 9,116 MiB，需求 ~11.8GB；用户 11-02 已裁定 14B 仅留库、不作运行候选，backend 默认 `memory_llm_model=qwen2.5:14b` 为历史遗留）。
+- **处置**：主脑 2026-11-05 裁决 T4 按"环境既有失败豁免"收口，裁决另档 `data/evidence/jarvis-p0/T4/main-brain-exemption-ruling.json`；执行端 BLOCKED 守门记录保留不改（gate/回执原判留痕）。两项登记环境债：DEBT-ENV-01 测试环境 PATH 注入 Ollama 目录（或测试内自备）；DEBT-ENV-02 真推理测试改 8B 或按显存容量前置跳过（另立专项单，不占 0023 额度）。
+- **教训**：① 全量回归红色用例必须与首轮同用例逐项对照定性，同测试首轮 PASS 是"环境波动非回归"的直接证据；② 12GB 卡上 14B 不得作为任何自动化测试的真实推理对象（模型策略=8B 唯一运行候选）；③ 测试依赖外部进程（Ollama/PATH）时须自带环境准备，禁止依赖调用者 shell 环境。
+- **遗留**：DEBT-ENV-01/02 待专项单闭环；Owner 真实体验仍为延期验收项。
 - **复发**：0（首登记）

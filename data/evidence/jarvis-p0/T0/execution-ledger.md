@@ -1,0 +1,14 @@
+# SDD ledger — plan: data/evidence/jarvis-p0/T0/implementation-plan.md
+
+- Pre-flight: T1 produces bounded prompt input consumed only by `agent_server`; T2 is independent; T3 preserves `asr_transcribe` for existing callers and replaces only internal dispatch.
+- Ruling: work in the user-supplied checkout rather than a HEAD-based linked worktree — task-relevant baseline contains untracked source/research files that a new worktree would omit — cost if wrong: unrelated changes could enter the commit, mitigated by exact-path/hunk staging and staged-diff readback.
+- Ruling: do not repair the pre-existing KWS parameter drift — the work order forbids production-default changes — cost if wrong: the historical tracked entry remains inconsistent with the authority document and must be handled by a separately authorized order.
+- Ruling: keep Owner real-experience acceptance as a separate closing gate — automated tests and offline replay cannot substitute for it — cost if wrong: development can be tagged but the work order cannot honestly be called closed/frozen.
+- T0: complete; RED 931 passed/1 failed/120 subtests, root cause child PATH; GREEN 932 passed/0 failed/120 subtests; no product implementation changed.
+- T1: complete; focused RED 9 failed/1 passed, focused GREEN 10 passed, compatibility RED 1 failed/2 passed exposed the obsolete unbounded-input assertion, cumulative GREEN 45 passed; speech remains byte-for-byte data and unsafe optional context is omitted.
+- T2: complete; functional RED 3 failed/25 passed exposed SSN punctuation handling and an over-specific classification assertion, focused GREEN 28 passed, cumulative GREEN 73 passed; 10 injection, 8 secret, and 3 uppercase samples blocked, with 0/100 normal false positives and zero rejected storage calls.
+- T3: complete; RED was missing voice policy modules, focused GREEN 8 passed, existing voice regression 90 passed, cumulative GREEN 163 passed; frozen-parameter saved-WAV replay matched 7/8 positives and 0/8 false wakes, and local-first ASR returned sherpa-onnx text `查天气。` without microphone, playback, or voice-process restart.
+- Audit round 1: FAIL; fixed-boundary forgery and missing real memory-write integration were Critical, product KWS baseline binding and DockWright copyright name were Important.
+- Audit remediation: T1 RED 1 failed/10 passed then GREEN 11 passed with nonce-bound JSON; T2 RED collection error then GREEN 30 passed plus 35 product integration tests; DockWright headers corrected to `Adel Elo`.
+- Audit round 2: Critical remediation PASS, overall REVISE. T3 was downgraded to BLOCKED because the authoritative 2.0/8 replay is not bound to the pre-existing 1.0/0 product defaults.
+- T4: BLOCKED; post-audit cumulative 201 passed and commit-scope 433 passed/46 subtests, but full working tree remains 977 passed/1 unrelated untracked flaky failure/120 subtests. Owner experience absent; no stage, commit, tag, or push.

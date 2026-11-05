@@ -1,0 +1,64 @@
+{
+  "work_order": "wo-ultimaagent-20261103-0023",
+  "stage": "T1",
+  "status": "GREEN",
+  "executor": "Codex",
+  "red": {
+    "command": "tools/venv-openjarvis/Scripts/python.exe -m pytest src/brain/tests/test_prompt_boundary_p0.py -q --disable-warnings",
+    "exit_code": 1,
+    "summary": "9 failed, 1 passed",
+    "evidence": "data/evidence/jarvis-p0/T1/red2-junit.xml",
+    "sha256": "59ff5398cebc6286b3b2a53115e28f87d413cdb9b071737224e5be5728e22faf"
+  },
+  "green": {
+    "command": "tools/venv-openjarvis/Scripts/python.exe -m pytest src/brain/tests/test_prompt_boundary_p0.py -q --disable-warnings",
+    "exit_code": 0,
+    "summary": "10 passed",
+    "evidence": "data/evidence/jarvis-p0/T1/green-junit.xml",
+    "sha256": "c2022f213bfad6d78422f725780a1f7cadb9ebdb56f485080e800f3654a01e46"
+  },
+  "compatibility_red": {
+    "exit_code": 1,
+    "summary": "1 failed, 2 passed; legacy assertion expected unbounded time-plus-question text",
+    "evidence": "data/evidence/jarvis-p0/T1/compat-red-junit.xml",
+    "sha256": "24ca48b9606b14321076f625809d27711104f5283930dfdd2835070091480b5c"
+  },
+  "cumulative_green": {
+    "exit_code": 0,
+    "summary": "45 passed",
+    "evidence": "data/evidence/jarvis-p0/T1/cumulative-junit.xml",
+    "sha256": "57de8c26a8a0eb0010c335246e61a5858f3e170842fca80c6a9ae406f18b5f35"
+  },
+  "acceptance": {
+    "adversarial_speech_samples": 5,
+    "speech_preservation_ratio": 1.0,
+    "unsafe_selected_text_blocked": true,
+    "priority_order": [
+      "signature_preservation",
+      "content_preservation",
+      "self_correction",
+      "context_formatting"
+    ]
+  },
+  "voice_process_restarted": false,
+  "production_defaults_changed": false,
+  "frozen_0016_0017_semantics_changed": false,
+  "out_of_scope_changes": []
+  ,
+  "audit_remediation": {
+    "finding": "Fixed boundary markers could be forged inside user speech.",
+    "red": {
+      "exit_code": 1,
+      "summary": "1 failed, 10 passed",
+      "evidence": "data/evidence/jarvis-p0/T1/audit-red-junit.xml",
+      "sha256": "ee5b1e454482ea7a06e7711f1842ed182a7d1bc6ae5a3bb6aa75319ae54d8ed9"
+    },
+    "green": {
+      "exit_code": 0,
+      "summary": "11 passed",
+      "evidence": "data/evidence/jarvis-p0/T1/audit-green-junit.xml",
+      "sha256": "df6297296e20b8a96b46674573f3c44da9775ba229dd459425d8e297e06cf273"
+    },
+    "resolution": "Each turn uses a collision-checked 128-bit random nonce and JSON string payload; forged fixed/trusted markers remain data."
+  }
+}

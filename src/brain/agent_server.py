@@ -1,7 +1,7 @@
 """Ultima Agent 智能体服务器（常驻进程，venv-openjarvis 运行）。
 
 三层架构中的"智能体服务器"层：薄壳（文字 CLI / 语音 daemon / 悬浮球壳）
-通过本机 HTTP 接口调用本地 14B 主脑的自主对话循环（底座 OpenJarvis Agent 循环）。
+通过本机 HTTP 接口调用本地 8B 主脑的自主对话循环（底座 OpenJarvis Agent 循环）。
 
 接口：
 - GET  /health   → 服务状态（模型 / agent / 已注册工具清单）
@@ -10,7 +10,7 @@
 设计约束：
 - 仅标准库 + openjarvis + UltimaAgent 自有模块；
 - 工具注册：import agent_tools_ultima 触发 ToolRegistry 装饰器注册；
-- 模型：ollama + qwen2.5:14b（本地主脑）；agent：simple（ReAct 工具循环）。
+- 模型：ollama + qwen3-8b-uncensored（本地主脑）；agent：simple（ReAct 工具循环）。
 """
 
 from __future__ import annotations
@@ -49,6 +49,8 @@ JARVIS_PERSONA_PATH = (
 )
 MAINBRAIN_RULES_PATH = PROJECT_ROOT / "docs" / "specs" / "mainbrain-rules-baseline.md"
 
+from src.brain.prompt_boundary import PROMPT_SECURITY_RULES, build_user_data  # noqa: E402
+
 
 def _read_required_prompt(path: Path, label: str) -> str:
     try:
@@ -69,7 +71,7 @@ def _load_mainbrain_system_prompt() -> str:
     block = re.search(r"```\s*\r?\n(.*?)\r?\n```", baseline, re.DOTALL)
     if block is None or not block.group(1).strip():
         raise RuntimeError("mainbrain rules baseline has no embeddable rule block")
-    return f"{persona}\n\n{block.group(1).strip()}"
+    return f"{persona}\n\n{block.group(1).strip()}\n\n{PROMPT_SECURITY_RULES}"
 
 
 MAINBRAIN_SYSTEM_PROMPT = _load_mainbrain_system_prompt()
@@ -508,7 +510,7 @@ def _constrain_reply(
 
 
 def ask_once(query: str, max_tokens: int | None = None) -> dict[str, Any]:
-    """执行一轮自主对话：本地 14B 自主决定直接回答或调用工具（并发串行化）。
+    """执行一轮自主对话：本地 8B 自主决定直接回答或调用工具（并发串行化）。
 
     全程向事件总线发布真实事件（四角壳 HUD 消费）：
     - 收到提问 → message_in（w-agent 流：用户消息）
@@ -528,7 +530,10 @@ def ask_once(query: str, max_tokens: int | None = None) -> dict[str, Any]:
         _time_ctx = "[当前时间：{0:%Y-%m-%d} {0:%H:%M} 星期{1}（北京时间）]".format(
             _now, _weekdays[_now.weekday()]
         )
-        query_with_ctx = f"{_time_ctx} {query}"
+        query_with_ctx = build_user_data(
+            speech=query,
+            trusted_context=_time_ctx,
+        ).render()
         result = j.ask_full(
             query_with_ctx,
             agent=AGENT,
@@ -681,7 +686,7 @@ class _Handler(BaseHTTPRequestHandler):
         route = parsed.path.rstrip("/") or "/"
         query = parse_qs(parsed.query)
         if route == "/health":
-            # 返回 14B 实际可调用的工具白名单，而非全部注册工具
+            # 返回 8B 实际可调用的工具白名单，而非全部注册工具
             self._send_json(200, {"ok": True, "model": MODEL, "agent": AGENT, "tools": TOOLS})
             return
         if route == "/events":

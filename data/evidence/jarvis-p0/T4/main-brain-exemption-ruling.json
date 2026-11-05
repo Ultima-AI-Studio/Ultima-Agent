@@ -1,0 +1,55 @@
+{
+  "work_order": "wo-ultimaagent-20261103-0023",
+  "stage": "T4",
+  "ruling": "EXEMPT_ACCEPT_ENV_DEBT",
+  "ruled_at": "2026-11-05",
+  "ruled_by": "主脑（豆包）",
+  "basis": "用户 2026-11-05 拍板方案 A｜按环境既有失败豁免收口",
+  "executor_original_verdict": "BLOCKED（执行端按「竞态外失败如实报告不豁免」口径诚实守门，未收口、未 commit/tag/push）",
+  "executor_runs": [
+    "首轮 run 20261104T060115840819Z（PID 13684，终态 BLOCKED/REVISE）",
+    "修复轮 run 20261104T141335097160Z（PID 21280，2026-11-04 22:13:35→22:42:30，终态 BLOCKED/REVISE）"
+  ],
+  "full_regression": {
+    "runner": "tools/venv-openjarvis/Scripts/python.exe",
+    "command": "python -m pytest src -q --disable-warnings --basetemp data/evidence/jarvis-p0/T4/revise-full-basetemp --junitxml data/evidence/jarvis-p0/T4/full-green4-junit.xml",
+    "exit_code": 1,
+    "summary": "979 passed, 2 failed, 120 subtests passed",
+    "junit": "data/evidence/jarvis-p0/T4/full-green4-junit.xml",
+    "junit_size_bytes": 143281,
+    "junit_sha256_prefix": "4718e8f5a9c7f7d5027c5d6785716e39a5ce4542a17db928a9"
+  },
+  "exempted_failures": [
+    {
+      "test": "src/brain/tests/test_connectivity_m6.py::TestC1Environment::test_ollama_has_brains",
+      "error": "FileNotFoundError: [WinError 2] — 测试子进程 PATH 不含 Ollama 安装目录",
+      "classification": "env_path",
+      "why_exempt": "测试环境前提缺失，非产品代码缺陷；执行端在进程内修正 PATH 后 `ollama list` exit=0（模型 qwen2.5:14b 可见），但该修正未落到 pytest 子进程",
+      "first_round_comparison": "首轮 T4/full-green3-junit.xml 中该测试无 failure 标签，time=0.062 即 PASS",
+      "code_cross_check": "本轮代码改动仅 kws_listener 参数回正 2.0/8 + P0-3 接线（wake_matching/session_restart），与本测试零交叉"
+    },
+    {
+      "test": "src/brain/tests/test_connectivity_m6.py::TestC2Entry::test_jarvis_ask_real_inference",
+      "error": "jarvis ask exit 1 — Ollama HTTP 500 / llama-server cudaMalloc failed: out of memory（KV cache 申请 2,818,572,288 字节）",
+      "classification": "env_gpu_capacity",
+      "why_exempt": "qwen2.5:14b（~9GB 权重）+ 2.82GB KV cache 需约 11.8GB 显存；RTX 3080 Ti 12GB 卡实测 total 12288 / free 9116 MiB（修复轮诊断时 used 1634 / free 10453 MiB），稳定超出容量；用户 2026-11-02 已裁定 14B 仅留库、不作运行候选（主脑永久 8B），backend 默认 memory_llm_model=qwen2.5:14b 为历史遗留",
+      "first_round_comparison": "首轮 T4/full-green3-junit.xml 中该测试无 failure 标签，time=24.418 即 PASS（当次环境可跑通）",
+      "executor_scope_decision": "执行端标注 Non-exempt T4 failure 并停在本步之前（未改模型/参数/服务），主脑复核后改判为环境既有豁免",
+      "code_cross_check": "同 test_ollama_has_brains，本轮代码与本测试零交叉"
+    }
+  ],
+  "excluded_from_exemption": [
+    "test_preference_p2 毫秒时间戳竞态：本轮未触发（首轮已按既有豁免口径登记 a2/a3、0022 记录），不属本次豁免范围"
+  ],
+  "code_change_diff_scope": "kws_listener.py：参数回正 keywords_score 1.0→2.0、num_trailing_blanks 0→8（threshold=0.08 不动）+ 接入 WakePhraseMatcher / SessionRestartGuard（P0-3）；src/memory poison_guard/writer；src/brain prompt_boundary / memory_write_boundary / brain_loop / agent_server；asr 转写后端可插拔。以上与两项连通性测试无交叉。",
+  "env_debt_registered": [
+    "DEBT-ENV-01：测试子进程 PATH 不含 Ollama 目录（test_ollama_has_brains）——需在测试环境注入 PATH 或测试内自备环境准备",
+    "DEBT-ENV-02：test_jarvis_ask_real_inference 以 qwen2.5:14b 真实推理为断言对象，12GB 卡容量不足——需改 8B 或按显存容量前置跳过"
+  ],
+  "owner_experience": "deferred（2026-11-04 用户确认「真实体验当前不可用」；真机验证另行安排，冻结 tag 与回执标注该遗留，不宣称完整 V1 冻结）",
+  "closure": {
+    "commit": "pending",
+    "tag": "ultimaagent-jarvis-p0-20261103",
+    "push": "pending"
+  }
+}

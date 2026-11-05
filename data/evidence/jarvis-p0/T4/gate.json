@@ -1,0 +1,65 @@
+{
+  "work_order": "wo-ultimaagent-20261103-0023",
+  "stage": "T4",
+  "status": "BLOCKED",
+  "executor": "Codex",
+  "full_worktree_regression": {
+    "command": "tools/venv-openjarvis/Scripts/python.exe -m pytest src -q --disable-warnings --basetemp data/evidence/jarvis-p0/T4/revise-full-basetemp --junitxml data/evidence/jarvis-p0/T4/full-green4-junit.xml",
+    "latest_exit_code": 1,
+    "latest_summary": "979 passed, 2 failed, 120 subtests passed",
+    "latest_failures": [
+      "src/brain/tests/test_connectivity_m6.py::TestC1Environment::test_ollama_has_brains - child process PATH did not contain the installed Ollama directory",
+      "src/brain/tests/test_connectivity_m6.py::TestC2Entry::test_jarvis_ask_real_inference - jarvis ask returned exit 1"
+    ],
+    "evidence": "data/evidence/jarvis-p0/T4/full-green4-junit.xml",
+    "sha256": "4718e8f5a9c7f7d5027c5d6785716e39a5ce4542a17db928a93f489a75d57dd6"
+  },
+  "process_local_path_diagnostic": {
+    "command": "prepend C:/Users/Administrator/AppData/Local/Programs/Ollama to child PATH, then rerun the two connectivity tests",
+    "exit_code": 1,
+    "summary": "1 passed, 1 failed; Ollama discovery recovered but jarvis ask still failed",
+    "failure": "Ollama HTTP 500: llama-server CUDA out of memory while allocating a 2818572288-byte KV-cache buffer for qwen2.5:14b",
+    "evidence": [
+      "data/evidence/jarvis-p0/T4/revise-connectivity-junit.xml",
+      "data/evidence/jarvis-p0/T4/revise-connectivity-diagnostic.json"
+    ],
+    "junit_sha256": "da88fc682dffca3156fad5199cb16dd8364d72a0224987cf05493b2ae7164167",
+    "diagnostic_sha256": "d8ed247bed1b5fdb3ea219859c7c3ece6a7814f37a495154dba78bfa997dd526"
+  },
+  "authorized_flaky_exception": {
+    "test": "src/brain/memory/tests/test_preference_p2.py::TestPreferenceStore::test_upsert_idempotent",
+    "triggered_in_latest_full_run": false,
+    "exemption_applied": false,
+    "reason": "The latest failure is outside the sole authorized millisecond-timestamp race exemption."
+  },
+  "work_order_and_tracked_regression": {
+    "exit_code": 0,
+    "summary": "433 passed, 46 subtests passed",
+    "evidence": "data/evidence/jarvis-p0/T4/commit-scope-r2-junit.xml",
+    "sha256": "f612c5cd24cb3361203dc376effb2bfd3dd9c4e9a2f66e95dd9d39beddc776d6"
+  },
+  "post_audit_cumulative": {
+    "exit_code": 0,
+    "summary": "201 passed",
+    "evidence": "data/evidence/jarvis-p0/T4/audit-cumulative-green-junit.xml",
+    "sha256": "6f18e07f2fc399aeec1d74631dca0d8dcfd45ffb49d44850f04cc6e0703ddf12"
+  },
+  "independent_audit": {
+    "round_1": "FAIL with two Critical and two Important findings",
+    "round_2": "Critical remediation PASS; overall REVISE",
+    "evidence": "data/evidence/jarvis-p0/T4/independent-audit-r2.md"
+  },
+  "blocking_conditions": [
+    "Full working-tree pytest is not green because real local inference fails with Ollama CUDA out-of-memory; this is outside the authorized preference timestamp race exemption."
+  ],
+  "git": {
+    "head_before": "34ac0c79bfc4252c46bd5128dcc25f5caa4c3d58",
+    "commit_created": false,
+    "tag_created": false,
+    "push_attempted": false,
+    "reason": "The bounded REVISE closeout requires a green full-tree run or only the authorized timestamp race; the current Ollama OOM is a non-exempt failure."
+  },
+  "voice_process_restarted": false,
+  "other_production_defaults_changed": false,
+  "owner_real_experience": "deferred; current real experience is unavailable and no complete V1 freeze is claimed"
+}

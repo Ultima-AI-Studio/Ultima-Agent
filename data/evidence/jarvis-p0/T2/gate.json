@@ -1,0 +1,62 @@
+{
+  "work_order": "wo-ultimaagent-20261103-0023",
+  "stage": "T2",
+  "status": "GREEN",
+  "executor": "Codex",
+  "red": {
+    "command": "tools/venv-openjarvis/Scripts/python.exe -m pytest src/memory/tests/test_poison_guard_p0.py -q --disable-warnings",
+    "exit_code": 1,
+    "summary": "3 failed, 25 passed; SSN label punctuation uncovered a missing pattern and classification assertions were too narrow for donor-order matches",
+    "evidence": "data/evidence/jarvis-p0/T2/green-junit.xml",
+    "sha256": "45f0f8ba6561b6c09bfadf1cf1997ba6af415445a762031ae9c7ef6e948c507b"
+  },
+  "green": {
+    "exit_code": 0,
+    "summary": "28 passed",
+    "evidence": "data/evidence/jarvis-p0/T2/green2-junit.xml",
+    "sha256": "996aeeed045a56b4036453ac5063dd9cc6254d1dab161f76ecefc2b2ffe97c07"
+  },
+  "cumulative_green": {
+    "exit_code": 0,
+    "summary": "73 passed",
+    "evidence": "data/evidence/jarvis-p0/T2/cumulative-junit.xml",
+    "sha256": "72a0992cd82740d34053fca971b0516999895169b78c8ad0da7432250b950fa2"
+  },
+  "acceptance": {
+    "injection_samples_blocked": 10,
+    "secret_samples_blocked": 8,
+    "uppercase_instruction_samples_blocked": 3,
+    "normal_records_reviewed": 100,
+    "normal_records_false_positives": 0,
+    "minimum_length_inclusive": 5,
+    "maximum_length_inclusive": 500,
+    "rejected_storage_calls": 0
+  },
+  "production_memory_written": false,
+  "real_user_files_written": false,
+  "production_defaults_changed": false,
+  "out_of_scope_changes": []
+  ,
+  "audit_remediation": {
+    "finding": "The guard was initially isolated from the product memory-write path.",
+    "red": {
+      "exit_code": 2,
+      "summary": "collection error: product memory_write_boundary did not exist",
+      "evidence": "data/evidence/jarvis-p0/T2/audit-red-junit.xml",
+      "sha256": "412b8073d9e834b81635a31dff9e2a667e95aad65cd41dd2adf470f9e8e86a99"
+    },
+    "green": {
+      "exit_code": 0,
+      "summary": "30 passed",
+      "evidence": "data/evidence/jarvis-p0/T2/audit-green-junit.xml",
+      "sha256": "a54f6618f7f95b86084611cf8b5c7e09d64bc904f8f96ce4ab0027fda219e349"
+    },
+    "product_integration": {
+      "exit_code": 0,
+      "summary": "35 passed",
+      "evidence": "data/evidence/jarvis-p0/T2/integration-green-junit.xml",
+      "sha256": "0635f750e7afbbc62be9dec98548bc04693bd0798ae9fc916143c13a73929025"
+    },
+    "resolution": "The guarded seam now wraps both tracked BrainLoop memory writes before MemoryLayers.write is invoked."
+  }
+}

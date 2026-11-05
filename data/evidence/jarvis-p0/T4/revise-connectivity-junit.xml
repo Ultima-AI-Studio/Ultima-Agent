@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="2" time="29.859" timestamp="2026-11-04T22:27:29.975249+08:00" hostname="DESKTOP-B366PQ9"><testcase classname="src.brain.tests.test_connectivity_m6.TestC1Environment" name="test_ollama_has_brains" time="0.097" /><testcase classname="src.brain.tests.test_connectivity_m6.TestC2Entry" name="test_jarvis_ask_real_inference" time="29.406"><failure message="AssertionError: 1 != 0">self = &lt;test_connectivity_m6.TestC2Entry testMethod=test_jarvis_ask_real_inference&gt;
+
+    def test_jarvis_ask_real_inference(self) -&gt; None:
+        r = subprocess.run(
+            [str(ROOT / "tools" / "venv-openjarvis" / "Scripts" / "jarvis.exe"),
+             "ask", "计算 15 乘以 23 等于多少，只给结果"],
+            capture_output=True, text=True, encoding="utf-8", errors="replace",
+            timeout=240,
+        )
+&gt;       self.assertEqual(r.returncode, 0)
+E       AssertionError: 1 != 0
+
+src\brain\tests\test_connectivity_m6.py:64: AssertionError</failure></testcase></testsuite></testsuites>

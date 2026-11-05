@@ -24,6 +24,11 @@ if __package__ in (None, ""):
 
 from src.brain.voice.resources import CV3_RUNTIME_PYTHON
 from src.brain.voice._resample import resample_to_16k
+from src.brain.voice.transcription_backends import (
+    BackendUnavailable,
+    TranscriptionBackend,
+    TranscriptionRouter,
+)
 
 # 写域 vendor（pkg_resources shim），注入推理子进程 PYTHONPATH
 _VENDOR_DIR = Path(__file__).resolve().parent / "_vendor"
@@ -107,6 +112,7 @@ _SHERPA_SR = 16000
 _ASR_RECOGNIZER = None
 _ASR_VAD = None
 _ASR_SHERPA_READY = None  # None=未探测 True/False=探测结果
+_OPTIONAL_CLOUD_BACKENDS: dict[str, TranscriptionBackend] = {}
 
 
 def _sherpa_asr_available() -> bool:
@@ -317,6 +323,46 @@ def _run_whisper_legacy(wav: Path, model: str = "base", timeout: int = 300) -> d
     )
 
 
+def register_cloud_transcription_backend(name: str, backend: TranscriptionBackend) -> None:
+    """Register an opt-in cloud adapter after all local backends.
+
+    No cloud backend is installed or enabled by default.
+    """
+    if not name or name in _OPTIONAL_CLOUD_BACKENDS:
+        raise ValueError(f"invalid or duplicate cloud backend name: {name!r}")
+    _OPTIONAL_CLOUD_BACKENDS[name] = backend
+
+
+def _build_transcription_router(timeout: int) -> TranscriptionRouter:
+    router = TranscriptionRouter()
+
+    def sherpa_backend(wav: Path) -> dict:
+        if not _sherpa_asr_available():
+            raise BackendUnavailable("sherpa-onnx model or runtime unavailable")
+        return _run_sherpa(wav)
+
+    def daemon_backend(wav: Path) -> dict:
+        try:
+            from src.brain.voice.daemon import daemon_asr_transcribe
+        except Exception as exc:
+            raise BackendUnavailable(f"daemon import failed: {exc}") from exc
+        result = daemon_asr_transcribe(wav, timeout=timeout)
+        if result is None or not result.get("ok"):
+            raise BackendUnavailable("faster-whisper daemon unavailable")
+        return result
+
+    router.register("sherpa-onnx", sherpa_backend)
+    router.register("faster-whisper-daemon", daemon_backend)
+    router.register("faster-whisper-local", _run_faster_whisper)
+    router.register(
+        "openai-whisper-local",
+        lambda wav: _run_whisper_legacy(wav, "base", timeout),
+    )
+    for name, backend in _OPTIONAL_CLOUD_BACKENDS.items():
+        router.register(name, backend, is_cloud=True)
+    return router
+
+
 def asr_transcribe(wav_path: str | Path, model: str = "auto", timeout: int = 600) -> dict:
     """转写 WAV 为文本。返回 dict（含 ok/text/language/model/wav）。
 
@@ -328,38 +374,7 @@ def asr_transcribe(wav_path: str | Path, model: str = "auto", timeout: int = 600
     if not wav.is_file():
         raise FileNotFoundError(f"音频不存在: {wav}")
     if model == "auto":
-        # 识别主链路切换（2026-10-27 Owner 拍板，按 10-26 调研结论）：
-        # sherpa-onnx SenseVoice（离线，中文 CER 7-10% < faster-whisper ~20%，
-        # 专治弱信号/噪声）升级为首选；faster-whisper medium（daemon 热缓存）降为兜底。
-        # 弱信号补偿：_run_sherpa 内置自适应增益（SenseVoice 对 <0.05 峰值偏差大的
-        # 历史问题，由增益归一化解决，不依赖 GAIN 后置）。
-        if _sherpa_asr_available():
-            try:
-                result = _run_sherpa(wav)
-                if result.get("ok") and result.get("text"):
-                    return result
-                if result.get("ok") and not result.get("text"):
-                    print(f"ASR sherpa empty text, fallback daemon: {wav.name}")
-            except Exception as exc:
-                print(f"ASR sherpa unavailable, fallback daemon: {exc}")
-
-        # 兜底1：常驻 faster-whisper medium（daemon 热缓存）
-        try:
-            from src.brain.voice.daemon import daemon_asr_transcribe
-
-            daemon_result = daemon_asr_transcribe(wav, timeout=timeout)
-            if daemon_result is not None and daemon_result.get("ok"):
-                return daemon_result
-            if daemon_result is not None and not daemon_result.get("ok"):
-                print(f"ASR daemon transcribe failed, fallback cold-start: {daemon_result.get('error')}")
-        except Exception as exc:  # 常驻通道任何异常均回退，不影响主链路
-            print(f"ASR daemon unavailable, fallback cold-start: {exc}")
-
-        # 兜底2：faster-whisper 冷启动 → legacy whisper base
-        try:
-            return _run_faster_whisper(wav)
-        except RuntimeError as faster_error:
-            return _run_whisper_legacy(wav, "base", timeout)
+        return _build_transcription_router(timeout).transcribe(wav)
     return _run_whisper_legacy(wav, model, timeout)
 
 

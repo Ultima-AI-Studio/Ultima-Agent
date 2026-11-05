@@ -1,0 +1,89 @@
+{
+  "work_order": "wo-ultimaagent-20261103-0023",
+  "stage": "T3",
+  "status": "GREEN",
+  "technical_logic_status": "GREEN",
+  "executor": "Codex",
+  "red": {
+    "command": "tools/venv-openjarvis/Scripts/python.exe -m pytest src/brain/voice/tests/test_jarvis_p0_voice.py -q --disable-warnings",
+    "exit_code": 2,
+    "summary": "collection error: session_restart module not yet implemented",
+    "evidence": "data/evidence/jarvis-p0/T3/red-junit.xml",
+    "sha256": "2497907240de97aa361d32595c2970d9b0bd3c425a5958942cd52502d814edb8"
+  },
+  "green": {
+    "exit_code": 0,
+    "summary": "8 passed",
+    "evidence": "data/evidence/jarvis-p0/T3/green3-junit.xml",
+    "sha256": "2ee075f7e9fa9b49d96cf1dcd72fd83ede215f6a06891916f99cc2813f49ab20"
+  },
+  "revise_kws_baseline_repair": {
+    "red": {
+      "command": "tools/venv-openjarvis/Scripts/python.exe -m pytest src/brain/voice/tests/test_jarvis_p0_voice.py::test_kws_listener_refreshes_only_its_stream_and_fuzzy_matches -q --disable-warnings",
+      "exit_code": 1,
+      "summary": "1 failed; product KeywordSpotter received keywords_score=1.0 instead of frozen 2.0",
+      "evidence": "data/evidence/jarvis-p0/T3/revise-kws-red-junit.xml",
+      "sha256": "2622b586d998f0cc185bfdb7f23142314cf3c3a6abaec618a4b70d42e730ab0f"
+    },
+    "green": {
+      "exit_code": 0,
+      "summary": "1 passed; product KeywordSpotter received threshold=0.08, score=2.0, trailing_blanks=8",
+      "evidence": "data/evidence/jarvis-p0/T3/revise-kws-green-junit.xml",
+      "sha256": "24b91b3a23552e6638986adb5656ccd2974a31d551676fd510a04a00421ce3e4"
+    },
+    "suite": {
+      "exit_code": 0,
+      "summary": "8 passed",
+      "evidence": "data/evidence/jarvis-p0/T3/revise-kws-suite-junit.xml",
+      "sha256": "ba5e9d57398830d1ee9854cac7404eb7fe211473f29071d3a0214da11ef35aa1"
+    },
+    "authoritative_baseline": "docs/specs/kws-wakeup-params-baseline.md section 3"
+  },
+  "voice_regression": {
+    "exit_code": 0,
+    "summary": "90 passed",
+    "evidence": "data/evidence/jarvis-p0/T3/voice-regression-junit.xml",
+    "sha256": "1c3cd28caae490adc954a0c5a524ccab5e9073f96c5a089c11ce00be8d260605"
+  },
+  "cumulative_green": {
+    "exit_code": 0,
+    "summary": "163 passed",
+    "evidence": "data/evidence/jarvis-p0/T3/cumulative-junit.xml",
+    "sha256": "c21956fb0ab95e3342e4ed15935e9130633dec72297ad864ef7687f3b1bc59b2"
+  },
+  "offline_kws": {
+    "command": "tools/venv-asr/Scripts/python.exe -X utf8 data/evidence/jarvis-p0/T3/offline_kws_replay.py",
+    "exit_code": 0,
+    "positive_hits": "7/8",
+    "false_wakes": "0/8",
+    "historical_baseline": "7/8 positive, 0/8 false wakes",
+    "not_worse": true,
+    "evidence": "data/evidence/jarvis-p0/T3/offline-kws-replay.json",
+    "sha256": "0c8f3daf6412bb7b66bb71a82dc24286ce90b8db0189fbfb4eb7f836c7898f2c"
+  },
+  "local_transcription": {
+    "command": "tools/venv-asr/Scripts/python.exe -X utf8 data/evidence/jarvis-p0/T3/local_asr_smoke.py",
+    "exit_code": 0,
+    "backend": "sherpa-onnx",
+    "text": "查天气。",
+    "evidence": "data/evidence/jarvis-p0/T3/local-asr-smoke.json",
+    "sha256": "bd0f1998b0ea54b9eddc898b6df99b0d98922a9baed9b335f8e3ca4844efd7d2"
+  },
+  "acceptance": {
+    "levenshtein_ratio": "<0.35",
+    "restart_interval_seconds": 50,
+    "local_backend_first": "sherpa-onnx",
+    "cloud_backend_default_enabled": false,
+    "upper_asr_signature_changed": false
+  },
+  "environment": {
+    "microphone_used": false,
+    "playback_used": false,
+    "voice_process_restarted": false,
+    "other_production_defaults_changed": false,
+    "preexisting_kws_listener_parameter_drift_repaired": true,
+    "drift_ruling": "Main-brain 2026-11-04 bounded REVISE authorization permits only restoring keywords_score=2.0 and num_trailing_blanks=8; KWS_THRESHOLD remains 0.08."
+  },
+  "blocking_condition": null,
+  "out_of_scope_changes": []
+}

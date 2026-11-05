@@ -1,0 +1,26 @@
+{
+  "链路号": "wo-ultimaagent-20261103-0023/T0-T5/20261104",
+  "执行端": "Codex primary; 2026-11-04 bounded REVISE repair under main-brain ruling; no third independent audit",
+  "完成状态": "BLOCKED / REVISE; authorized KWS baseline drift repaired and verified, but a non-exempt T4 failure prevents commit, tag, push, closure, or freeze",
+  "根因结论": "KWS product entry is now bound to frozen threshold=0.08, score=2.0, trailing_blanks=8. T4 cannot close: after the documented child-PATH correction, Ollama discovery passes but real jarvis inference still returns HTTP 500 because llama-server cannot allocate a 2818572288-byte CUDA KV-cache buffer for qwen2.5:14b. The authorized test_preference_p2 millisecond race did not trigger and no exemption was applied. Owner real experience is a deferred acceptance item; no complete V1 freeze is claimed.",
+  "产出路径": [
+    "src/brain/prompt_boundary.py",
+    "src/brain/memory_write_boundary.py",
+    "src/memory/poison_guard.py",
+    "src/memory/writer.py",
+    "src/brain/voice/wake_matching.py",
+    "src/brain/voice/session_restart.py",
+    "src/brain/voice/transcription_backends.py",
+    "data/evidence/jarvis-p0/T0-T5",
+    "docs/reports/stage-jarvis-p0-20261103.md"
+  ],
+  "验收证据": {
+    "T1": "11 passed after nonce-boundary remediation",
+    "T2": "30 guard tests + 35 real-write integration tests passed",
+    "T3": "Baseline binding RED 1 failed then GREEN 1 passed; product KeywordSpotter receives 0.08/2.0/8; prior 8 logic, 90 voice-regression, saved-WAV 7/8 positive and 0/8 false wakes remain recorded",
+    "T4": "Full worktree exit 1: 979 passed, 2 failed, 120 subtests; process-local Ollama PATH diagnostic rerun: 1 passed, 1 failed; persistent failure is real jarvis inference CUDA OOM",
+    "independent_audit": "Historical round 2 Critical remediation PASS / overall REVISE; main-brain ruling forbids a third audit"
+  },
+  "越界声明": "Only the authorized KWS frozen-value correction and its regression assertion were added in this repair round. No P1 or AGPL code, main-brain model/inference change, other production-default change, 0016/0017 semantic change, unrelated staging, commit, tag, or push was performed.",
+  "环境声明": "Python 3.13.16 / pytest 9.2.0 in tools/venv-openjarvis; isolated pytest basetemp and TEMP/TMP; no microphone or playback; voice PIDs 24812/24276 retain creation time 2026-11-03 17:38:54 and were not restarted. Owner real experience=deferred, pending separate physical-device validation."
+}
