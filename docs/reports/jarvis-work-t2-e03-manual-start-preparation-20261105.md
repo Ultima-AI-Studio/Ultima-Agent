@@ -23,3 +23,5 @@ Manifest SHA-256：`a720ad4f77d56689321da3fb9cfbae557890f22607260b1e621b0819c7ae
 独立准备审查回执：`independent-preparation-review.json`，SHA-256 `ab03cd2114ce3350c9cfbadcbbb4ae9a6f37d0cc7898cc33af305c6941c20ffd`。Reviewer 单独核对 54 项封存文件、14 模块 AST、41 项源码和 7 项依赖，以及真实字节差异和 RED/GREEN 日志；没有执行测试或 UI。1346 个 SDK 文件和当前保护/语音状态由 Root 的只读收据核对，未宣称 reviewer 也做了现场检查。
 
 准备交付已形成项目与镜像检查点；提交、tag 和远端核对的实际结果以本包 `verification/sync-receipt.json` 为准。真实运行及事实验收仍待下一次单例授权。
+
+同步异常：项目准备提交 `86c322ae399441308a8c79fdbb4ffee947e9813d`、镜像准备提交 `f8b7a8c4646fb2d121705ff2cbbb14fb7a918988` 及两仓本地 tag `ultimaagent-t2-e03-manual-start-20261105` 已完成。自动审批以 `blocked by policy` 拒绝推送与远端核对组合命令，命令未执行，未重试推送。随后只读 ls-remote 确认远端仍为之前的项目 `e06a1e8a`、镜像 `bb5e55e1`，没有新 tag；不能声称 GitHub 已同步。详见 `verification/sync-receipt.json`。

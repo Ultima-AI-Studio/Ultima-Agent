@@ -189,3 +189,5 @@ T2仍BLOCKED。用户确认上次20:19:45激活时正在输入；这确认交接
 T2仍BLOCKED。用户确认前次激活时正在输入；显式开始交接修复已完成，124项离线测试PASS，准备包 a720ad4f77d5… 独审PASS且无阻塞项。未新增实际UI、产品/模型/音频调用或authority。7保护身份与语音ready/fresh保持。下一步是用户点击开始的一例8B E03 round1及一次产出独立复核提案；前例及结果独审额度均耗尽，需新单例分配。当前正例0/负例0和全部原门/失败保持。
 
 报告：docs/reports/jarvis-work-t2-e03-manual-start-preparation-20261105.md。独审回执 SHA-256：ab03cd2114ce3350c9cfbadcbbb4ae9a6f37d0cc7898cc33af305c6941c20ffd。
+
+同步补记：准备包已独审PASS并在两仓本地提交/tag；自动审批拒绝推送组合命令（blocked by policy），只读远端核对仍为旧分支头且无新tag，GitHub同步未完成。单例提案保持，无新authority或运行。

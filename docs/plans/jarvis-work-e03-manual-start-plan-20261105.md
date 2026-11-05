@@ -27,7 +27,7 @@ Task:
 - [x] Verify real adapter wiring via isolated function definitions and mocked native calls; tests must open no windows, query no input devices and invoke no model.
 - [x] Run the existing focused suite plus the meaningful new regressions once after fixes. Verify hashes/AST/candidate cleanliness; do not reuse old PASS as current evidence.
 - [x] Seal the package, run fresh independent preparation review under the original work-order gate, address concrete findings, and preserve all prior verdicts.
-- [x] Record current status, mirror the plan/report, commit/tag/push. Prepare the one-case operator handoff proposal; do not run it without a new explicit allocation.
+- [ ] Record current status, mirror the plan/report, commit/tag/push. Prepare the one-case operator handoff proposal; do not run it without a new explicit allocation.
 
 Review focus:
 - Waiting windows do not steal focus or share the previous application's input queue.
@@ -44,3 +44,5 @@ Primary API references:
 - https://learn.microsoft.com/en-us/windows/win32/api/winuser/ne-winuser-input_message_origin_id
 
 Preparation review PASS for manifest a720ad4f77d56689321da3fb9cfbae557890f22607260b1e621b0819c7aec5a3. No findings. Commit/tag/push outcome is recorded separately in the package verification/sync-receipt.json. The sealed package plan remains the pre-review snapshot; this project plan is the completion ledger. No actual case has been allocated or run.
+
+Sync exception: local project/mirror commits and tag completed; automatic approval rejected the push/readback command with blocked by policy before execution. Readonly ls-remote still shows previous branch heads and no new tag. Push remains incomplete, so the final sync task above remains open.
