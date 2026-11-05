@@ -2,6 +2,8 @@
 
 原工单 wo-ultimaagent-20261101-0021，日期 2026-11-05。
 
+**后续实跑状态：** 下文记录执行前的准备检查点。用户随后授权的一次正式round1已FAIL于夹具启动检查，CLI0、无产品产物；独立证据复核PASS，案例FAIL，额度耗尽。详见同目录 jarvis-work-t2-e03-round1-result-20261105.md。
+
 **当前候选 E03 round1 的正式入口已完成，99 项离线测试通过，独立审查两项阻塞问题均已闭合。尚未签发产品用例 authority，也没有在本轮调用模型或操作测试窗口。T2 仍 BLOCKED，当前候选正例 0、负例 0。**
 
 前一轮用户授权的一次夹具诊断已 COMPLETE/UNCHANGED：两窗口 41/39 UTF-16 文本保持，cleanup/audit/boundaries PASS；额度已耗尽。这证明该次没有复现清空，不能证明 R31 间歇问题已根治，也不计 E03 验收成绩。旧 round1 PASS 属于旧候选；正式验收从当前候选 round1 开始。

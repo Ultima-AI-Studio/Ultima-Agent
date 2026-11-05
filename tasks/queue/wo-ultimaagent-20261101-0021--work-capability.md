@@ -5,7 +5,7 @@
 - original_work_order_id: wo-ultimaagent-20261101-0021
 - revision: 2
 - authorization: 用户“那按顺序开始推进吧”；批准按已提交的工作能力契约与计划顺序执行，保留最终 Owner 验收和发布门。
-- 状态：T2仍BLOCKED。单次夹具诊断已COMPLETE/UNCHANGED且额度耗尽，无验收分。当前7975候选E03 round1入口fix1已封存（manifest a4fdb70c…31ea43d），99项离线测试PASS；首次独审的清理和提交过期两项P1已由同一reviewer闭合PASS。7个保护身份匹配、官方语音ready/fresh；未签发新authority，未启动本轮产品/模型/UI。等待一例当前8B正式round1范围确认；原60秒凭据新鲜度、120秒准入及300/1800/315秒产品时限保持。当前正例0/负例0，其后E03剩余正例/负例、同候选E01、8B E02和T3—T5/Owner门均保留。
+- 状态：T2仍BLOCKED。当前7975候选E03 round1已按授权仅运行一次并FAIL：启动审计发现额外事件，主样本41→0的EM_REPLACESEL已复现，CLI/本例产品推理提交0，无产品结果或rewrite.md。发送者未知，键盘来源标签不能归责真人或进程。清理/闭合审计/保护边界PASS，副窗口原始文本哈希保持，七保护身份与语音ready/fresh保持。独立实际证据复核PASS，但案例FAIL、事实不可评价；额度及一次结果独审均耗尽，不重试。当前E03正例0/负例0，全部旧失败和后续门保留。
 - 计划：docs/plans/jarvis-work-capability-delivery-plan-20261101.md
 - 契约：docs/specs/jarvis-work-capability-contract-20261101.md
 - 草案检查点：ultimaagent-jarvis-work-plan-draft-20261101 @ f6eb808348302cec55bddcf44ee03f5b5736c4d9
@@ -171,3 +171,9 @@ T2仍BLOCKED。上轮单次夹具诊断已COMPLETE/UNCHANGED且额度耗尽，�
 T2仍BLOCKED。单次夹具诊断已COMPLETE/UNCHANGED且额度耗尽，无验收分。当前7975候选E03 round1入口fix1已封存（manifest a4fdb70c…31ea43d），99项离线测试PASS；首次独审的清理和提交过期两项P1已由同一reviewer闭合PASS。7个保护身份匹配、官方语音ready/fresh；未签发新authority，未启动本轮产品/模型/UI。等待一例当前8B正式round1范围确认；原60秒凭据新鲜度、120秒准入及300/1800/315秒产品时限保持。当前正例0/负例0，其后E03剩余正例/负例、同候选E01、8B E02和T3—T5/Owner门均保留。
 
 报告：docs/reports/jarvis-work-t2-e03-round1-entry-20261105.md。准备包独审不构成实际用例authority或事实验收；基包NEEDS_FIXES和全部旧失败仍保留。
+
+## 2026-11-05 正式round1单例结果及独立复核
+
+T2仍BLOCKED。当前7975候选E03 round1已按授权仅运行一次并FAIL：启动审计发现额外事件，主样本41→0的EM_REPLACESEL已复现，CLI/本例产品推理提交0，无产品结果或rewrite.md。发送者未知，键盘来源标签不能归责真人或进程。清理/闭合审计/保护边界PASS，副窗口原始文本哈希保持，七保护身份与语音ready/fresh保持。独立实际证据复核PASS，但案例FAIL、事实不可评价；额度及一次结果独审均耗尽，不重试。当前E03正例0/负例0，全部旧失败和后续门保留。
+
+Terminal SHA-256: 4a43a012578ff53563f65f925821d1d3e7228a0ab2e26ca36b12aba7f89322f9。独立结果收据 SHA-256: eabd5491fb3e07a3eb8765214095bb1c3203fd2f3fa5c90b351135c49754f3a7。报告：docs/reports/jarvis-work-t2-e03-round1-result-20261105.md。下次实跑前须解决夹具激活后的非预期输入，不能跳过审计或复用本次额度。

@@ -59,3 +59,7 @@ Base manifest 7078209f8881b4278a07c121b280bf7a9704ccb2a38aca2a3eed8c3e8781eb0d r
 ## Prepared checkpoint result
 
 Fix1 manifest a4fdb70c9e062b34cec82b1cbe2b9443d51386fd651269023b824d38531ea43d passed same-reviewer closure after the two original blocking findings. 99 offline tests passed. The full delivery goal remains active and T2 remains BLOCKED; current E03 positive count is zero. The latest explicit fixture-only grant has been consumed; the separately prepared one-case proposal is verification/next-case-proposal.md. No product authority or actual directory exists.
+
+## Later authorized single-case disposition
+
+Preparation checkpoint remains valid as history. The user subsequently authorized one E03 round1 and one readonly result review. That allocation is now consumed: FAIL in startup fixture audit, CLI/model submissions zero, no product output; independent evidence review PASS, case acceptance FAIL, facts NOT_EVALUABLE_NO_PRODUCT_OUTPUT. The current actual/release directories are retained. No retry or subsequent case is released. See docs/reports/jarvis-work-t2-e03-round1-result-20261105.md.
