@@ -1,0 +1,111 @@
+{
+  "reviewer": "/root/review_e03_source13_code",
+  "scope": "Fresh independent read-only whole-change code/package review of source13",
+  "verdict": "PASS",
+  "assessment": "The bounded offline implementation matches the plan and fixes the two observed failure mechanisms without introducing a replay path or changing successful delivery content. This verdict establishes scoped code/package readiness only; it does not establish actual E03 delivery, production acceptance, or whole-goal completion.",
+  "bindings": {
+    "base_candidate": "7975e477665c02820fa235b73d203718bd33b2c9",
+    "candidate": "269aca511d88412dbb9c15d23911138469a37aa2",
+    "candidate_root": "C:\\Users\\Administrator\\.codex\\worktrees\\jarvis-e03-source13\\UltimaAgent",
+    "candidate_manifest_sha256": "1201e883c213c2d95cdb63c9e8ab796e07264cbe1f3a866c33ea0a455ba29634",
+    "review_package_manifest_sha256": "2d6948d3eabc1b0fad1e422cb66577bd4bc658a3b87eb22f306595c646a4b9ea",
+    "sealed_file_count": 32
+  },
+  "independent_verification": {
+    "candidate_HEAD_matches": true,
+    "four_changed_source_test_files_match_candidate": true,
+    "sealed_file_hash_and_size_mismatches": [],
+    "candidate_source_files_rehashed": 50,
+    "candidate_source_hash_mismatches": [],
+    "dependencies_rehashed": 7,
+    "sdk_files_rehashed": 1346,
+    "dependency_and_sdk_hash_mismatches": [],
+    "sealed_diff_matches_fresh_git_diff_bytes": true,
+    "fresh_AST_local_dependency_closure": {
+      "roots": ["src.brain.work_service", "src.brain.work_tools", "src.brain.work_context"],
+      "explicit_relative_import_modules": 18,
+      "matches_recorded_closure": true,
+      "missing_modules": [],
+      "unresolved_relative_package_imports": [],
+      "modules_missing_from_candidate_inventory": []
+    },
+    "dependency_origin_sha256": "a4cb891bb217aac90ba6ca51e5fdfa57bb8ce0d5698d6b6958b1aecbca682c1b",
+    "parent_manifest_hash_matches": true,
+    "pinned_environment_preserved": {
+      "candidate_and_parent_sha256": "0eb842f7f260bad2e8a2e4c86648a841afd8141a7a469a23136bc2d5629a4b5e",
+      "different_main_environment_sha256": "3d741aeb9ecce7d2b52291e27a8b53c97e65074f6c4fe44b476985ee89e15151"
+    },
+    "reviewed_code_or_tests_executed": false
+  },
+  "strengths": [
+    {
+      "location": "src/brain/environment_upgrade.py:24; src/brain/exec/channel.py:26; src/brain/work_tools.py:577",
+      "assessment": "The missing module is an exact copy of the recorded existing implementation, with current origin and destination hashes independently checked. Static inspection confirms the actual WorkReplaceTool -> LocalExecChannel -> environment_upgrade -> environment import chain, and all five names imported from the preserved environment module exist."
+    },
+    {
+      "location": "src/brain/work_service.py:141-155",
+      "assessment": "The exception path determines recorded effects before assigning server-owned failure content. No-effect failures say the task is incomplete; successful or possibly committed mutations retain needs_attention and explicit uncertainty. The change does not depend on a runner response existing, does not swallow the error, and does not alter tool records, trace, existing artifact fields, or replay behavior."
+    },
+    {
+      "location": "src/brain/tests/test_work_delivery.py:67-98",
+      "assessment": "Regression tests exercise WorkService with a failed tool result carrying the observed misleading completion claim and with a runner exception before return. They check failed status, retained error/tool evidence, absent artifacts, truthful content, and exactly one runner invocation."
+    },
+    {
+      "location": "src/brain/tests/test_work_context.py:124-158",
+      "assessment": "The dependency regression exercises the real replacement tool and channel with a fake native boundary. The lost-response test mutates the fake target before raising, verifies exactly one native send, retains may_have_committed, and requires needs_attention plus incomplete/uncertain content. This tests meaningful behavior rather than mirroring source text."
+    },
+    {
+      "location": "src/brain/tests/test_work_delivery.py:19-28; verification/dependency-red.log; verification/dependency-green-content-red.log; verification/source13-work-suite-isolated.log",
+      "assessment": "Successful delivery text and independent file hashes remain checked. Preserved RED evidence distinguishes the missing dependency from the remaining false-completion defect. The sealed final selected-suite log reports 460 passed, and earlier collection and 319-pass/141-failure runs remain visible with their test-isolation diagnosis."
+    }
+  ],
+  "findings": {"Critical": [], "Important": [], "Minor": []},
+  "plan_alignment": {
+    "existing_meaningful_dependency_regression_reused": "Aligned; it exercises the failing import through the actual tool path.",
+    "fresh_isolated_worktree": "Aligned; candidate provenance is explicit and the pinned environment.py was preserved.",
+    "offline_selected_work_suite": "Aligned with the bounded repair and prohibition on broad native/audio execution.",
+    "test_isolation_correction": "Aligned; the harness sets OPENJARVIS_HOME before pytest collection, with no production change to bypass research gates.",
+    "retention_of_historical_failures": "Aligned; failures are preserved and are not represented as successful runs.",
+    "scope_creep_or_new_live_authority": "None identified in the reviewed implementation and package."
+  },
+  "declined_to_judge": [
+    {
+      "behavior": "Actual E03 selected-text replacement, companion delivery, factual fidelity, native focus/selection handling, and user-visible runtime success",
+      "reason": "This is an offline code/package review. Fake native inputs and fake inference do not establish actual-case success; no new live allocation was used."
+    },
+    {
+      "behavior": "General installation or import completeness beyond the traversed explicit local imports and enumerated hashes",
+      "reason": "AST closure and inventories do not prove dynamic imports, every third-party dependency, resource availability, or every runtime branch."
+    },
+    {
+      "behavior": "Full operational correctness of environment_upgrade network scanning, process scanning, profile persistence, and health reporting",
+      "reason": "The bounded fix restores exact existing bytes for the selection-path dependency. Those broader facilities are not exercised by this path and were not run."
+    },
+    {
+      "behavior": "T4-wide recovery, cancellation, restart idempotency, and comprehensive partial-artifact recovery",
+      "reason": "The two-line change preserves existing error, artifact, and effect handling; it does not implement the broader recovery contract. No T4 acceptance is implied."
+    },
+    {
+      "behavior": "Fresh independent reproduction of the reported 460-test execution",
+      "reason": "The review instructions prohibit running reviewed tests or importing product code. I inspected the sealed logs, harness, guard receipt, and relevant tests instead."
+    },
+    {
+      "behavior": "Whole-machine isolation and absence of all native/external effects during historical test runs",
+      "reason": "The guard intercepts Python socket/subprocess operations only. Its receipt records four owned loopback connections, one owned junction, zero denials, and zero remaining owned listeners; this is not an operating-system sandbox or whole-home audit."
+    },
+    {
+      "behavior": "Production startup under an existing user SDK home or prompt override",
+      "reason": "The successful suite uses a fresh isolated SDK home. The retained default-home failures remain relevant environmental evidence and are not a production-startup pass."
+    },
+    {
+      "behavior": "Whole-goal completion, Owner approval, remote push, or authorization for another actual case",
+      "reason": "These are outside this review's technical authority. Actual R3 E03 remains FAIL with no transferred acceptance credit."
+    }
+  ],
+  "recommendation": "Record this as the single scoped offline code/package review result. Preserve R3 FAIL and prepare any later explicit single-case proposal against this exact candidate and runtime manifest; do not convert this PASS into live authorization or E03 acceptance.",
+  "authority_issued": false,
+  "new_actual_cases": 0,
+  "new_model_calls": 0,
+  "actual_R3_E03": "FAIL_UNCHANGED",
+  "whole_goal_complete": false
+}

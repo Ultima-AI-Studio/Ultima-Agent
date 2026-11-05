@@ -213,3 +213,15 @@ T2仍BLOCKED。R3持续操作提示已实现：点击开始后仍显示鼠标/�
 T2仍BLOCKED。R3持续提示版E03仅运行一次，窗口文本与选区保持，CLI1、当前8B完成2次推理；替换工具缺少src.brain.environment_upgrade而FAIL，未替换、未生成rewrite.md。三事实草稿通过，但最终回复错误宣称已保存。独立证据复核PASS、案例和完成声明门FAIL；本次用例与结果复核额度均耗尽、未重试。12本例身份消失、7保护身份匹配、语音ready/fresh；当前累计8失败/CLI2、正例0/负例0。两项产品缺陷的静态诊断和源码13定点方案已准备但未实施；原验收、旧失败、仅8B及后续门保留，远端同步未完成。
 
 报告：`docs/reports/jarvis-work-t2-e03-input-guidance-result-20261105.md`。独审收据SHA-256：`a6f669d02ef055788e7ebdcda08bcd834e4b8a44f89ea17382899536b0764dc7`。修复提案：`docs/plans/jarvis-work-e03-runtime-dependency-fix-plan-20261105.md`。该提案尚未释放新的源码/实跑额度，原terminal保持不变。
+
+## 2026-11-05 source13离线定点修复范围
+
+依据用户持续推进原目标授权，控制器释放两项已独立证实缺陷的离线最小修复：补入现有environment_upgrade依赖、失败时覆盖未核实完成声明。保留源码12及所有旧失败/修复历史，下一候选累计13，限一次实现及最多一次审查修正；不新增实际用例/模型/音频或Owner权限。具体写域和门见data/evidence/jarvis-work-capability/T2/source13-runtime-dependency-failure-content-20261105/controller-offline-release.json。当前E03仍0/3、负例0，T2未通过。
+
+## 2026-11-06 source13离线修复通过，新入口独审中
+
+源码13候选269aca5补齐既有运行时依赖并纠正失败完成声明；6定向/460工作回归和独立代码审查PASS。补齐原9模块485项及8项兼容测试，原479全部保留；旧交互单测的嵌入连接被守卫拦截后仅隔离该测试依赖，484/1失败证据保留，不作为生产语义路由通过。新E03准备包130PASS、manifest8454953c172a245a8b0ca9f826949b1f002b8bf4f9db06f2ad9de05dde21d101，正独立审查；无新实际用例/authority，R3FAIL/源码12八失败及耗尽额度保留。当前新候选E03正例0/3、负例0，T2未通过；7保护身份匹配、官方语音ready/fresh。报告：docs/reports/jarvis-work-t2-e03-source13-offline-fix-20261105.md。
+
+## 2026-11-06 source13新入口独审PASS，待新单例分配
+
+独立准备审查PASS，43封存/57源码/7依赖/1346SDK哈希一致，130准备测试及485/8补充回归经证据复核。新入口manifest8454953c172a245a8b0ca9f826949b1f002b8bf4f9db06f2ad9de05dde21d101；无新authority/actual，原R3耗尽额度与FAIL保留。下一步仅提案一次当前8B E03 round1加一次只读独立产出复核，失败不重试；当前新候选0/3和负例0，T2及后续门保持。报告：docs/reports/jarvis-work-t2-e03-source13-preparation-20261106.md。

@@ -1,0 +1,163 @@
+--- parent/code/acceptance_entry.py
++++ source13/code/acceptance_entry.py
+@@ -11,8 +11,8 @@
+ 
+ from package_io import child, load, require, safe_path, save_new, sha
+ 
+-HEAD = '7975e477665c02820fa235b73d203718bd33b2c9'
+-CANDIDATE_MANIFEST = '2cd5080b041e83afeeffe4747e1a10840e402c08be234d2b6ae15dccf59b841f'
++HEAD = '269aca511d88412dbb9c15d23911138469a37aa2'
++CANDIDATE_MANIFEST = '957669cb3463eab549df80f0b8fc6345c244daa2f613925abe8622d0aab3d9d3'
+ MODEL = 'qwen3-8b-uncensored'
+ DIGEST = '6d7230a923426bc1933879eb08a7dafc18e5fc0e7606c459ce98f16e0c7f9330'
+ CASE = 'e03-round1'
+@@ -22,7 +22,7 @@
+                  'code/fixture_manual_start.py',
+                  'code/controller.py', 'code/fixture_adapter.py', 'code/fixture_input_origin.py',
+                  'code/source_candidate_guard.py', 'preparation-support/acceptance_adapter.py',
+-                 'inputs/protected-baseline.json'}
++                 'inputs/protected-baseline.json', 'inputs/candidate-runtime-manifest.json'}
+ AUTH_FIELDS = {'schema', 'issuer', 'scope', 'case', 'candidate', 'candidate_manifest_sha256',
+                'model', 'digest', 'manifest_sha256', 'review_sha256', 'proof_path', 'proof_sha256',
+                'case_cap', 'product_cli_cap', 'audio_actions', 'retry_authorized', 'acceptance_credit',
+--- parent/code/controller.py
++++ source13/code/controller.py
+@@ -6,7 +6,7 @@
+ import urllib.request
+ P=Path(__file__).resolve().parent
+ P1=P.parent/'preparation-support'
+-if hashlib.sha256((P1/'acceptance_adapter.py').read_bytes()).hexdigest()!='641a77d4d48ccfaf9659766f29283abea878c3b3ce7ebfd4831cca8b34c751cc': raise RuntimeError('P1 changed')
++if hashlib.sha256((P1/'acceptance_adapter.py').read_bytes()).hexdigest()!='585baca27b572364e2078e960281f20261f675738299df5633e91b74a4ca19cc': raise RuntimeError('P1 changed')
+ sys.path.insert(0,str(P1))
+ import acceptance_adapter as old
+ import source_candidate_guard as candidate_guard
+--- parent/code/source_candidate_guard.py
++++ source13/code/source_candidate_guard.py
+@@ -1,4 +1,4 @@
+-"""Read-only admission guard for the fixed source12 focus-handoff candidate."""
++"""Read-only admission guard for the fixed source13 dependency/content candidate."""
+ from __future__ import annotations
+ 
+ import ast
+@@ -11,11 +11,11 @@
+ import subprocess
+ from typing import Any
+ 
+-ROOT = Path(r"C:/Users/Administrator/.codex/worktrees/jarvis-work-capability-r25-runtime-complete")
+-MANIFEST = Path(r"H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-source12-20261105-r31-preflight-log-isolation/candidate-manifest-r13.json")
+-EXPECTED_MANIFEST_SHA256 = "2cd5080b041e83afeeffe4747e1a10840e402c08be234d2b6ae15dccf59b841f"
+-EXPECTED_CANDIDATE = "7975e477665c02820fa235b73d203718bd33b2c9"
+-EXPECTED_BRANCH = "codex/jarvis-work-navigation-v3-source12-r25-runtime"
++ROOT = Path(r"C:/Users/Administrator/.codex/worktrees/jarvis-e03-source13/UltimaAgent")
++MANIFEST = Path(r"H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-source13-runtime-fix-20261105-r1/inputs/candidate-runtime-manifest.json")
++EXPECTED_MANIFEST_SHA256 = "957669cb3463eab549df80f0b8fc6345c244daa2f613925abe8622d0aab3d9d3"
++EXPECTED_CANDIDATE = "269aca511d88412dbb9c15d23911138469a37aa2"
++EXPECTED_BRANCH = "codex/jarvis-work-source13-runtime-failure"
+ EXPECTED_MODEL_DIGEST = "6d7230a923426bc1933879eb08a7dafc18e5fc0e7606c459ce98f16e0c7f9330"
+ EXPECTED_MODEL_ALIAS = "qwen3-8b-uncensored"
+ EXPECTED_NATIVE_VERSION = "0.32.15"
+@@ -91,6 +91,7 @@
+     except (UnicodeError, json.JSONDecodeError) as exc:
+         raise CandidateError(f"{label} JSON unreadable") from exc
+     _need(isinstance(value, dict), f"{label} JSON shape")
++    _need(value.get("candidate") == EXPECTED_CANDIDATE, f"{label} receipt candidate mismatch")
+     counts = value.get("counts")
+     _need(isinstance(counts, dict), f"{label} counts missing")
+     _need(type(counts.get("tests")) is int and counts["tests"] >= minimum, f"{label} pass count missing")
+@@ -261,6 +262,11 @@
+         imported_paths.add(target)
+ 
+     _need(found and imported_paths, "work-agent dynamic import closure could not be established")
++    # E03 reaches LocalExecChannel lazily, outside legacy tool registration.
++    # Pin that observed execution dependency and its transitive local imports.
++    exec_channel = _resolve_project_import(root, ("src", "brain", "exec", "channel"), required=True)
++    _need(exec_channel is not None, "E03 local execution channel missing")
++    imported_paths.add(exec_channel)
+     _verify_project_import_closure(root, imported_paths, pinned_source_paths)
+ 
+ _EXPECTED_SDK_COMPONENT_NAMES = frozenset({"openjarvis", "openjarvis_rust", "openjarvis-1.0.4.dist-info", "openjarvis_rust-0.1.0.dist-info"})
+@@ -399,8 +405,8 @@
+     _verify_hash(gate.get("report_path"), gate.get("report_sha256"), "source10 code review report")
+ 
+     tests = manifest.get("final_code_tests")
+-    _need(isinstance(tests, dict) and tests.get("covering") == 479 and tests.get("compat") == 8, "source10 test inventory mismatch")
+-    _verify_receipt(tests.get("full_receipt"), tests.get("full_sha256"), "source10 covering receipt", 479)
++    _need(isinstance(tests, dict) and tests.get("covering") == 485 and tests.get("compat") == 8, "source10 test inventory mismatch")
++    _verify_receipt(tests.get("full_receipt"), tests.get("full_sha256"), "source10 covering receipt", 485)
+     _verify_receipt(tests.get("compat_receipt"), tests.get("compat_sha256"), "source10 compatibility receipt", 8)
+     _verify_hash(manifest.get("original_corpus_readback"), manifest.get("original_corpus_readback_sha256"), "source10 corpus readback")
+     _verify_hash(manifest.get("last_protected_readback"), manifest.get("last_protected_readback_sha256"), "source10 protected readback")
+--- parent/code/test_source13_admission.py
++++ source13/code/test_source13_admission.py
+@@ -0,0 +1,60 @@
++"""Admission rejects the observed missing lazy dependency before any live call."""
++import hashlib
++import json
++
++import pytest
++
++import source_candidate_guard as guard
++
++
++def runtime(tmp_path, *, dependency=True, pin_dependency=True):
++    root = tmp_path / 'repo'
++    files = {
++        'src/brain/agent_server.py':
++            'import importlib\ndef _ensure_tools_registered():\n    importlib.import_module(".agent_tools_ultima", __package__)\n',
++        'src/brain/agent_tools_ultima.py': '',
++        'src/brain/exec/channel.py': 'from ..environment_upgrade import scan_processes\n',
++        'src/brain/environment.py': 'class EnvironmentSnapshot: pass\n',
++    }
++    if dependency:
++        files['src/brain/environment_upgrade.py'] = 'from .environment import EnvironmentSnapshot\ndef scan_processes(): pass\n'
++    pins = set()
++    for name, text in files.items():
++        path = root / name
++        path.parent.mkdir(parents=True, exist_ok=True)
++        path.write_text(text, encoding='utf8')
++        if pin_dependency or name != 'src/brain/environment_upgrade.py':
++            pins.add(path.resolve())
++    return root.resolve(), pins
++
++
++@pytest.mark.parametrize('dependency,pinned,expected', [
++    (False, False, 'unresolved project runtime import src.brain.environment_upgrade'),
++    (True, False, 'unbound project runtime import src/brain/environment_upgrade.py'),
++])
++def test_missing_or_unpinned_lazy_exec_dependency_rejected_before_launch(tmp_path, dependency, pinned, expected):
++    root, pins = runtime(tmp_path, dependency=dependency, pin_dependency=pinned)
++    with pytest.raises(guard.CandidateError, match=expected):
++        guard._verify_work_agent_dynamic_imports(root, pins)
++
++
++def test_pinned_lazy_exec_dependency_and_original_registration_are_accepted(tmp_path):
++    root, pins = runtime(tmp_path)
++    guard._verify_work_agent_dynamic_imports(root, pins)
++
++
++@pytest.mark.parametrize('candidate', ['7975e477665c02820fa235b73d203718bd33b2c9', None])
++def test_historical_or_unbound_test_receipt_cannot_admit_new_candidate(tmp_path, candidate):
++    path = tmp_path / 'receipt.json'
++    path.write_text(json.dumps(dict(candidate=candidate, counts=dict(tests=485, failures=0, errors=0, skipped=0),
++                                    exit_code=0, source_unchanged=True)), encoding='utf8')
++    with pytest.raises(guard.CandidateError, match='receipt candidate mismatch'):
++        guard._verify_receipt(str(path), hashlib.sha256(path.read_bytes()).hexdigest(), 'covering', 485)
++
++
++def test_current_candidate_receipt_is_accepted(tmp_path):
++    path = tmp_path / 'receipt.json'
++    path.write_text(json.dumps(dict(candidate=guard.EXPECTED_CANDIDATE,
++                                    counts=dict(tests=485, failures=0, errors=0, skipped=0),
++                                    exit_code=0, source_unchanged=True)), encoding='utf8')
++    guard._verify_receipt(str(path), hashlib.sha256(path.read_bytes()).hexdigest(), 'covering', 485)
+--- parent/preparation-support/acceptance_adapter.py
++++ source13/preparation-support/acceptance_adapter.py
+@@ -5,7 +5,7 @@
+ import argparse, ctypes as C, hashlib, json, os, socket, stat, subprocess, sys, time
+ from pathlib import Path
+ import urllib.request
+-ROOT=Path('C:/Users/Administrator/.codex/worktrees/jarvis-work-capability-r25-runtime-complete')
++ROOT=Path('C:/Users/Administrator/.codex/worktrees/jarvis-e03-source13/UltimaAgent')
+ R=Path('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-source12-20261105-r31-preflight-log-isolation')
+ PREP=R/'preparation'
+ def preflight_paths(environ=None,root=None):

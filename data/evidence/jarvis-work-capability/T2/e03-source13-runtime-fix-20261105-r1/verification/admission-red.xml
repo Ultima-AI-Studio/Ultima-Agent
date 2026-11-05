@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="4" skipped="0" tests="6" time="0.157" timestamp="2026-11-05T23:54:49.600271+08:00" hostname="DESKTOP-B366PQ9"><testcase classname="code.test_source13_admission" name="test_missing_or_unpinned_lazy_exec_dependency_rejected_before_launch[False-False-unresolved project runtime import src.brain.environment_upgrade]" time="0.015"><failure message="Failed: DID NOT RAISE CandidateError">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-source13-runtime-fix-20261105-r1/verification/tmp-admission-red/test_missing_or_unpinned_lazy_0')
+dependency = False, pinned = False
+expected = 'unresolved project runtime import src.brain.environment_upgrade'
+
+    @pytest.mark.parametrize('dependency,pinned,expected', [
+        (False, False, 'unresolved project runtime import src.brain.environment_upgrade'),
+        (True, False, 'unbound project runtime import src/brain/environment_upgrade.py'),
+    ])
+    def test_missing_or_unpinned_lazy_exec_dependency_rejected_before_launch(tmp_path, dependency, pinned, expected):
+        root, pins = runtime(tmp_path, dependency=dependency, pin_dependency=pinned)
+&gt;       with pytest.raises(guard.CandidateError, match=expected):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE CandidateError
+
+code\test_source13_admission.py:37: Failed</failure></testcase><testcase classname="code.test_source13_admission" name="test_missing_or_unpinned_lazy_exec_dependency_rejected_before_launch[True-False-unbound project runtime import src/brain/environment_upgrade.py]" time="0.008"><failure message="Failed: DID NOT RAISE CandidateError">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-source13-runtime-fix-20261105-r1/verification/tmp-admission-red/test_missing_or_unpinned_lazy_1')
+dependency = True, pinned = False
+expected = 'unbound project runtime import src/brain/environment_upgrade.py'
+
+    @pytest.mark.parametrize('dependency,pinned,expected', [
+        (False, False, 'unresolved project runtime import src.brain.environment_upgrade'),
+        (True, False, 'unbound project runtime import src/brain/environment_upgrade.py'),
+    ])
+    def test_missing_or_unpinned_lazy_exec_dependency_rejected_before_launch(tmp_path, dependency, pinned, expected):
+        root, pins = runtime(tmp_path, dependency=dependency, pin_dependency=pinned)
+&gt;       with pytest.raises(guard.CandidateError, match=expected):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE CandidateError
+
+code\test_source13_admission.py:37: Failed</failure></testcase><testcase classname="code.test_source13_admission" name="test_pinned_lazy_exec_dependency_and_original_registration_are_accepted" time="0.007" /><testcase classname="code.test_source13_admission" name="test_historical_or_unbound_test_receipt_cannot_admit_new_candidate[7975e477665c02820fa235b73d203718bd33b2c9]" time="0.010"><failure message="Failed: DID NOT RAISE CandidateError">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-source13-runtime-fix-20261105-r1/verification/tmp-admission-red/test_historical_or_unbound_tes0')
+candidate = '7975e477665c02820fa235b73d203718bd33b2c9'
+
+    @pytest.mark.parametrize('candidate', ['7975e477665c02820fa235b73d203718bd33b2c9', None])
+    def test_historical_or_unbound_test_receipt_cannot_admit_new_candidate(tmp_path, candidate):
+        path = tmp_path / 'receipt.json'
+        path.write_text(json.dumps(dict(candidate=candidate, counts=dict(tests=485, failures=0, errors=0, skipped=0),
+                                        exit_code=0, source_unchanged=True)), encoding='utf8')
+&gt;       with pytest.raises(guard.CandidateError, match='receipt candidate mismatch'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE CandidateError
+
+code\test_source13_admission.py:51: Failed</failure></testcase><testcase classname="code.test_source13_admission" name="test_historical_or_unbound_test_receipt_cannot_admit_new_candidate[None]" time="0.008"><failure message="Failed: DID NOT RAISE CandidateError">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-source13-runtime-fix-20261105-r1/verification/tmp-admission-red/test_historical_or_unbound_tes1')
+candidate = None
+
+    @pytest.mark.parametrize('candidate', ['7975e477665c02820fa235b73d203718bd33b2c9', None])
+    def test_historical_or_unbound_test_receipt_cannot_admit_new_candidate(tmp_path, candidate):
+        path = tmp_path / 'receipt.json'
+        path.write_text(json.dumps(dict(candidate=candidate, counts=dict(tests=485, failures=0, errors=0, skipped=0),
+                                        exit_code=0, source_unchanged=True)), encoding='utf8')
+&gt;       with pytest.raises(guard.CandidateError, match='receipt candidate mismatch'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE CandidateError
+
+code\test_source13_admission.py:51: Failed</failure></testcase><testcase classname="code.test_source13_admission" name="test_current_candidate_receipt_is_accepted" time="0.009" /></testsuite></testsuites>

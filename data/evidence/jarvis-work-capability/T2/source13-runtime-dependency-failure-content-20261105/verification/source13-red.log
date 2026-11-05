@@ -1,0 +1,103 @@
+.FFFFF                                                                   [100%]
+================================== FAILURES ===================================
+_____________ test_failed_tool_cannot_keep_model_completion_claim _____________
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/source13-runtime-dependency-failure-content-20261105/verification/tmp-source13-red/test_failed_tool_cannot_keep_m0')
+
+    def test_failed_tool_cannot_keep_model_completion_claim(tmp_path):
+        calls = []
+        claim = '已完成要点整理并保存至rewrite.md。'
+        tool_failure = dict(success=False, content="No module named 'src.brain.environment_upgrade'")
+    
+        def runner(*args, **kwargs):
+            calls.append(kwargs['binding'].task_id)
+            return dict(content=claim, tool_results=[tool_failure])
+    
+        result = submit(tmp_path, runner)
+        assert result['status'] == 'failed'
+        assert result['error'] == 'A work tool failed; execution will not be replayed'
+        assert result['artifacts'] == []
+        assert result['tool_results'] == [tool_failure]
+        assert len(calls) == 1
+>       assert '未完成' in result['content'] and claim not in result['content']
+E       AssertionError: assert ('未完成' in '已完成要点整理并保存至rewrite.md。')
+
+src\brain\tests\test_work_delivery.py:82: AssertionError
+______ test_runner_exception_has_truthful_failure_content_without_replay ______
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/source13-runtime-dependency-failure-content-20261105/verification/tmp-source13-red/test_runner_exception_has_trut0')
+
+    def test_runner_exception_has_truthful_failure_content_without_replay(tmp_path):
+        calls = []
+    
+        def runner(*args, **kwargs):
+            calls.append(kwargs['binding'].task_id)
+            raise RuntimeError('controlled runner failure')
+    
+        result = submit(tmp_path, runner)
+        assert result['status'] == 'failed'
+        assert result['error'] == 'controlled runner failure'
+        assert result['artifacts'] == [] and result['tool_results'] == []
+        assert len(calls) == 1
+>       assert '未完成' in result['content']
+E       AssertionError: assert '未完成' in ''
+
+src\brain\tests\test_work_delivery.py:98: AssertionError
+______________ test_selection_tool_and_independent_verification _______________
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/source13-runtime-dependency-failure-content-20261105/verification/tmp-source13-red/test_selection_tool_and_indepe0')
+
+    def test_selection_tool_and_independent_verification(tmp_path):
+        p, n = provider()
+        def run(*a, **kw):
+            from src.brain.work_tools import WorkReplaceTool
+            assert WorkReplaceTool().execute(content='改写').success
+            assert WorkWriteTool().execute(path='rewrite.md', content='改写').success
+            return {'content':'saved'}
+        r = WorkService(tmp_path, runner=run, context_provider=p).submit_work('rewrite', request_id='r', session_id='s', context={'capture_current':True,'replace_selection':True})
+>       assert r['status'] == 'succeeded', r
+E       AssertionError: {'request_id': 'r', 'session_id': 's', 'task_id': '3c5455f2-ec82-4a46-aab7-9b31e0a7e944', 'status': 'failed', ...}
+E       assert 'failed' == 'succeeded'
+E         
+E         - succeeded
+E         + failed
+
+src\brain\tests\test_work_context.py:133: AssertionError
+__________ test_uncertain_ui_write_even_failed_tool_needs_attention ___________
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/source13-runtime-dependency-failure-content-20261105/verification/tmp-source13-red/test_uncertain_ui_write_even_f0')
+
+    def test_uncertain_ui_write_even_failed_tool_needs_attention(tmp_path):
+        p, n = provider()
+        n.timeout = True
+        def run(*a, **kw):
+            from src.brain.work_tools import WorkReplaceTool
+            assert not WorkReplaceTool().execute(content='改写').success
+            return {'content':'已完成要点整理并保存至rewrite.md。'}
+        r = WorkService(tmp_path, runner=run, context_provider=p).submit_work('rewrite', request_id='r', session_id='s', context={'capture_current':True,'replace_selection':True})
+>       assert r['status'] == 'needs_attention' and n.sent == 1, r
+E       AssertionError: {'request_id': 'r', 'session_id': 's', 'task_id': '289e2e07-2ccb-4d36-9775-a03ce07e1051', 'status': 'failed', ...}
+E       assert ('failed' == 'needs_attention'
+E         
+E         - needs_attention
+E         + failed)
+
+src\brain\tests\test_work_context.py:147: AssertionError
+________________ test_requested_missing_capture_cannot_deliver ________________
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/source13-runtime-dependency-failure-content-20261105/verification/tmp-source13-red/test_requested_missing_capture0')
+
+    def test_requested_missing_capture_cannot_deliver(tmp_path):
+        r = WorkService(tmp_path, runner=lambda *a, **k: pytest.fail('no model when capture unavailable')).submit_work('rewrite', request_id='r', session_id='s', context={'capture_current':True})
+        assert r['status'] == 'failed' and r['error']
+>       assert '未完成' in r['content']
+E       AssertionError: assert '未完成' in ''
+
+src\brain\tests\test_work_context.py:158: AssertionError
+=========================== short test summary info ===========================
+FAILED src/brain/tests/test_work_delivery.py::test_failed_tool_cannot_keep_model_completion_claim
+FAILED src/brain/tests/test_work_delivery.py::test_runner_exception_has_truthful_failure_content_without_replay
+FAILED src/brain/tests/test_work_context.py::test_selection_tool_and_independent_verification
+FAILED src/brain/tests/test_work_context.py::test_uncertain_ui_write_even_failed_tool_needs_attention
+FAILED src/brain/tests/test_work_context.py::test_requested_missing_capture_cannot_deliver
+5 failed, 1 passed, 82 deselected in 2.10s

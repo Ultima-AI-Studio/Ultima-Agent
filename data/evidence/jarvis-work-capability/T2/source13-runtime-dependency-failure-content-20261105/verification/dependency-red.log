@@ -1,0 +1,25 @@
+F                                                                        [100%]
+================================== FAILURES ===================================
+______________ test_selection_tool_and_independent_verification _______________
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/source13-runtime-dependency-failure-content-20261105/verification/tmp-dependency-red/test_selection_tool_and_indepe0')
+
+    def test_selection_tool_and_independent_verification(tmp_path):
+        p, n = provider()
+        def run(*a, **kw):
+            from src.brain.work_tools import WorkReplaceTool
+            assert WorkReplaceTool().execute(content='改写').success
+            assert WorkWriteTool().execute(path='rewrite.md', content='改写').success
+            return {'content':'saved'}
+        r = WorkService(tmp_path, runner=run, context_provider=p).submit_work('rewrite', request_id='r', session_id='s', context={'capture_current':True,'replace_selection':True})
+>       assert r['status'] == 'succeeded', json.dumps(r, ensure_ascii=True)
+E       AssertionError: {"request_id": "r", "session_id": "s", "task_id": "15aeecdf-78f2-4e1e-9545-e76d01dad143", "status": "failed", "content": "", "artifacts": [], "error": "assert False\n +  where False = ToolResult(tool_name='ultima_work_replace_selection', content=\"No module named 'src.brain.environment_upgrade'\", succe...e-9545-e76d01dad143', 'error': \"No module named 'src.brain.environment_upgrade'\", 'error_type': 'ModuleNotFoundError'}).success\n +    where ToolResult(tool_name='ultima_work_replace_selection', content=\"No module named 'src.brain.environment_upgrade'\", succe...e-9545-e76d01dad143', 'error': \"No module named 'src.brain.environment_upgrade'\", 'error_type': 'ModuleNotFoundError'}) = execute(content='\u6539\u5199')\n +      where execute = <src.brain.work_tools.WorkReplaceTool object at 0x0000018CA0EFAA50>.execute\n +        where <src.brain.work_tools.WorkReplaceTool object at 0x0000018CA0EFAA50> = <class 'src.brain.work_tools.WorkReplaceTool'>()", "tool_results": [{"call_id": "1d387fc5-31eb-43a7-8ac9-36e0fb397b78", "tool_name": "ultima_work_replace_selection", "success": false, "request_id": "r", "session_id": "s", "task_id": "15aeecdf-78f2-4e1e-9545-e76d01dad143", "error": "No module named 'src.brain.environment_upgrade'", "error_type": "ModuleNotFoundError"}], "work_context": {"schema_version": 1, "capture_id": "960d9697-1080-48d9-9b56-e84be373b9c5", "available": true, "missing": [], "source": "win32.standard_edit", "captured_at": "2026-11-05T14:48:31.426857+00:00", "window": {"hwnd": 10, "control_hwnd": 11, "pid": 12, "process_created_filetime": 13, "title": "Fixture", "class": "Edit"}, "selection": {"start_utf16": 4, "end_utf16": 6, "text": "\u6b63\u6587"}, "text_sha256": "bb45ab945b130b0cadc71b32d67c141566c866504564cba994efe584be4a6708", "page": null}}
+E       assert 'failed' == 'succeeded'
+E         
+E         - succeeded
+E         + failed
+
+src\brain\tests\test_work_context.py:133: AssertionError
+=========================== short test summary info ===========================
+FAILED src/brain/tests/test_work_context.py::test_selection_tool_and_independent_verification
+1 failed in 0.93s

@@ -1,0 +1,23 @@
+.F                                                                       [100%]
+================================== FAILURES ===================================
+__________ test_uncertain_ui_write_even_failed_tool_needs_attention ___________
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/source13-runtime-dependency-failure-content-20261105/verification/tmp-dependency-green-content-red/test_uncertain_ui_write_even_f0')
+
+    def test_uncertain_ui_write_even_failed_tool_needs_attention(tmp_path):
+        p, n = provider()
+        n.timeout = True
+        def run(*a, **kw):
+            from src.brain.work_tools import WorkReplaceTool
+            assert not WorkReplaceTool().execute(content='改写').success
+            return {'content':'已完成要点整理并保存至rewrite.md。'}
+        r = WorkService(tmp_path, runner=run, context_provider=p).submit_work('rewrite', request_id='r', session_id='s', context={'capture_current':True,'replace_selection':True})
+        assert r['status'] == 'needs_attention' and n.sent == 1, json.dumps(r, ensure_ascii=True)
+        assert any(x.get('may_have_committed') for x in r['tool_results'])
+>       assert '未完成' in r['content'] and '可能' in r['content']
+E       AssertionError: assert ('未完成' in '已完成要点整理并保存至rewrite.md。')
+
+src\brain\tests\test_work_context.py:149: AssertionError
+=========================== short test summary info ===========================
+FAILED src/brain/tests/test_work_context.py::test_uncertain_ui_write_even_failed_tool_needs_attention
+1 failed, 1 passed in 0.97s

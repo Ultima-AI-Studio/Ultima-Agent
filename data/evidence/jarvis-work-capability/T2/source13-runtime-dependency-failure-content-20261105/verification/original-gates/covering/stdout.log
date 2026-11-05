@@ -1,0 +1,98 @@
+........................................................................ [ 14%]
+........................................................................ [ 29%]
+........................................................................ [ 44%]
+........................................................................ [ 59%]
+.F...................................................................... [ 74%]
+........................................................................ [ 89%]
+.....................................................                    [100%]
+================================== FAILURES ===================================
+__________ TestInteractionLoop.test_query_then_consult_then_confirm ___________
+
+self = <test_interaction.TestInteractionLoop testMethod=test_query_then_consult_then_confirm>
+
+    def test_query_then_consult_then_confirm(self):
+        """征询闭环：查询 → 征询 → 确认 → 待命。"""
+        # 查询
+        r1 = self.loop.handle("查一下任务状态")
+        self.assertTrue(r1.handled)
+        self.assertTrue(r1.ok)
+        self.assertEqual(r1.state.phase, "pending_confirm")
+        # 征询
+        r2 = self.loop.handle("你觉得怎么样")
+        self.assertTrue(r2.handled)
+        self.assertIn("你觉得怎么样", r2.text)
+        # 确认
+>       r3 = self.loop.handle("确认")
+             ^^^^^^^^^^^^^^^^^^^^^^
+
+src\brain\tests\test_interaction.py:129: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+src\brain\interaction.py:134: in handle
+    routed = self._route_before_agent(
+src\brain\interaction.py:273: in _route_before_agent
+    decision = get_intent_gate().route(
+src\brain\routing\intent_gate.py:123: in route
+    allow_score, deny_score = self._similarity_scores(value)
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src\brain\routing\intent_gate.py:162: in _similarity_scores
+    prototypes = self._embedding_channel.embed((*ALLOW_PROTOTYPES, *DENY_PROTOTYPES))
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src\brain\routing\intent_gate.py:66: in embed
+    with urlopen(request, timeout=30) as response:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\..\..\AppData\Local\Doubao\User Data\sandbox_runtime\bases\772984f6fd3a8ae0ae7d2422cd7c2bfa\python\Lib\urllib\request.py:189: in urlopen
+    return opener.open(url, data, timeout)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\..\..\AppData\Local\Doubao\User Data\sandbox_runtime\bases\772984f6fd3a8ae0ae7d2422cd7c2bfa\python\Lib\urllib\request.py:489: in open
+    response = self._open(req, data)
+               ^^^^^^^^^^^^^^^^^^^^^
+..\..\..\..\AppData\Local\Doubao\User Data\sandbox_runtime\bases\772984f6fd3a8ae0ae7d2422cd7c2bfa\python\Lib\urllib\request.py:506: in _open
+    result = self._call_chain(self.handle_open, protocol, protocol +
+..\..\..\..\AppData\Local\Doubao\User Data\sandbox_runtime\bases\772984f6fd3a8ae0ae7d2422cd7c2bfa\python\Lib\urllib\request.py:466: in _call_chain
+    result = func(*args)
+             ^^^^^^^^^^^
+..\..\..\..\AppData\Local\Doubao\User Data\sandbox_runtime\bases\772984f6fd3a8ae0ae7d2422cd7c2bfa\python\Lib\urllib\request.py:1360: in http_open
+    return self.do_open(http.client.HTTPConnection, req)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\..\..\AppData\Local\Doubao\User Data\sandbox_runtime\bases\772984f6fd3a8ae0ae7d2422cd7c2bfa\python\Lib\urllib\request.py:1331: in do_open
+    h.request(req.get_method(), req.selector, req.data, headers,
+..\..\..\..\AppData\Local\Doubao\User Data\sandbox_runtime\bases\772984f6fd3a8ae0ae7d2422cd7c2bfa\python\Lib\http\client.py:1386: in request
+    self._send_request(method, url, body, headers, encode_chunked)
+..\..\..\..\AppData\Local\Doubao\User Data\sandbox_runtime\bases\772984f6fd3a8ae0ae7d2422cd7c2bfa\python\Lib\http\client.py:1432: in _send_request
+    self.endheaders(body, encode_chunked=encode_chunked)
+..\..\..\..\AppData\Local\Doubao\User Data\sandbox_runtime\bases\772984f6fd3a8ae0ae7d2422cd7c2bfa\python\Lib\http\client.py:1381: in endheaders
+    self._send_output(message_body, encode_chunked=encode_chunked)
+..\..\..\..\AppData\Local\Doubao\User Data\sandbox_runtime\bases\772984f6fd3a8ae0ae7d2422cd7c2bfa\python\Lib\http\client.py:1141: in _send_output
+    self.send(msg)
+..\..\..\..\AppData\Local\Doubao\User Data\sandbox_runtime\bases\772984f6fd3a8ae0ae7d2422cd7c2bfa\python\Lib\http\client.py:1085: in send
+    self.connect()
+..\..\..\..\AppData\Local\Doubao\User Data\sandbox_runtime\bases\772984f6fd3a8ae0ae7d2422cd7c2bfa\python\Lib\http\client.py:1051: in connect
+    self.sock = self._create_connection(
+..\..\..\..\AppData\Local\Doubao\User Data\sandbox_runtime\bases\772984f6fd3a8ae0ae7d2422cd7c2bfa\python\Lib\socket.py:853: in create_connection
+    sock.connect(sa)
+H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\source13-runtime-dependency-failure-content-20261105\verification\offline_guards.py:39: in connect
+    _reject('connect', address)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+kind = 'connect', target = ('::1', 11434, 0, 0)
+
+    def _reject(kind, target):
+        _denied.append({'kind': kind, 'target': str(target)[:250]})
+>       raise AssertionError(f'Offline verification blocked {kind}: {target}')
+E       AssertionError: Offline verification blocked connect: ('::1', 11434, 0, 0)
+
+H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\source13-runtime-dependency-failure-content-20261105\verification\offline_guards.py:18: AssertionError
+------------------------------ Captured log call ------------------------------
+WARNING  src.brain.voice.voice_profile:voice_profile.py:174 voice reference audio unavailable or invalid; using L1 Jarvis reference: C:\Users\Administrator\.codex\worktrees\jarvis-e03-source13\UltimaAgent\data\voice\yangmi-ref\yangmi_cv3_full_s6_v54.wav
+WARNING  src.brain.voice.voice_profile:voice_profile.py:174 voice reference audio unavailable or invalid; using L1 Jarvis reference: C:\Users\Administrator\.codex\worktrees\jarvis-e03-source13\UltimaAgent\data\voice\jarvis-ref\jarvis_voice_ref_pcm16.wav
+WARNING  src.brain.voice.voice_profile:voice_profile.py:174 voice reference audio unavailable or invalid; using L1 Jarvis reference: C:\Users\Administrator\.codex\worktrees\jarvis-e03-source13\UltimaAgent\data\voice\yangmi-ref\yangmi_cv3_full_s6_v54.wav
+WARNING  src.brain.voice.voice_profile:voice_profile.py:174 voice reference audio unavailable or invalid; using L1 Jarvis reference: C:\Users\Administrator\.codex\worktrees\jarvis-e03-source13\UltimaAgent\data\voice\jarvis-ref\jarvis_voice_ref_pcm16.wav
+WARNING  src.brain.voice.voice_profile:voice_profile.py:174 voice reference audio unavailable or invalid; using L1 Jarvis reference: C:\Users\Administrator\.codex\worktrees\jarvis-e03-source13\UltimaAgent\data\voice\yangmi-ref\yangmi_cv3_full_s6_v54.wav
+WARNING  src.brain.voice.voice_profile:voice_profile.py:174 voice reference audio unavailable or invalid; using L1 Jarvis reference: C:\Users\Administrator\.codex\worktrees\jarvis-e03-source13\UltimaAgent\data\voice\jarvis-ref\jarvis_voice_ref_pcm16.wav
+WARNING  src.brain.voice.voice_profile:voice_profile.py:174 voice reference audio unavailable or invalid; using L1 Jarvis reference: C:\Users\Administrator\.codex\worktrees\jarvis-e03-source13\UltimaAgent\data\voice\yangmi-ref\yangmi_cv3_full_s6_v54.wav
+WARNING  src.brain.voice.voice_profile:voice_profile.py:174 voice reference audio unavailable or invalid; using L1 Jarvis reference: C:\Users\Administrator\.codex\worktrees\jarvis-e03-source13\UltimaAgent\data\voice\jarvis-ref\jarvis_voice_ref_pcm16.wav
+WARNING  src.brain.voice.voice_profile:voice_profile.py:174 voice reference audio unavailable or invalid; using L1 Jarvis reference: C:\Users\Administrator\.codex\worktrees\jarvis-e03-source13\UltimaAgent\data\voice\yangmi-ref\yangmi_cv3_full_s6_v54.wav
+WARNING  src.brain.voice.voice_profile:voice_profile.py:174 voice reference audio unavailable or invalid; using L1 Jarvis reference: C:\Users\Administrator\.codex\worktrees\jarvis-e03-source13\UltimaAgent\data\voice\jarvis-ref\jarvis_voice_ref_pcm16.wav
+=========================== short test summary info ===========================
+FAILED src/brain/tests/test_interaction.py::TestInteractionLoop::test_query_then_consult_then_confirm
+1 failed, 484 passed in 112.86s (0:01:52)
