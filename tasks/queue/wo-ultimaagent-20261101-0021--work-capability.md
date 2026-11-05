@@ -5,7 +5,7 @@
 - original_work_order_id: wo-ultimaagent-20261101-0021
 - revision: 2
 - authorization: 用户“那按顺序开始推进吧”；批准按已提交的工作能力契约与计划顺序执行，保留最终 Owner 验收和发布门。
-- 状态：T2仍BLOCKED。R31已FAIL且单例耗尽：41 UTF-16初始文本随后变空，server/CLI前停止，cleanup与boundaries PASS；输入来源无法确认。输入来源诊断补丁首次独审发现ORIGIN-PREFIX-01，最小修订后同一reviewer限定复核PASS（fix1 manifest c6cf3099…735c2），42项离线测试通过；现场根因尚未查明。旧候选PASS不得计入当前7975：独立核对5份失败终态、1次CLI，当前正例0/负例0。下一步准备仅夹具诊断wrapper；没有新运行额度，不启动产品/模型。正式验收从当前E03 round1开始，随后同候选E01再E02；仅当前8B，T3—T5未放行。报告：`docs/reports/jarvis-work-t2-e03-input-origin-review-20261105.md`。
+- 状态：T2仍BLOCKED。单次夹具诊断程序已准备，87项离线测试PASS，manifest c9fa33fa…c7f7b9f4；用户已授权一次独审，通过后运行一次fixture-origin-01。当前仅获有条件授权，独审/新authority/现场运行尚未完成；不调用产品、模型或音频，失败不重试，无验收分。R31失败及其耗尽额度保留；输入来源补丁的独审闭合PASS保留。当前7975候选正例0/负例0，正式E03仍从round1开始，其后同候选E01、E02；仅当前8B，T3—T5未放行。报告：`docs/reports/jarvis-work-t2-fixture-only-preparation-20261105.md`。
 - 计划：docs/plans/jarvis-work-capability-delivery-plan-20261101.md
 - 契约：docs/specs/jarvis-work-capability-contract-20261101.md
 - 草案检查点：ultimaagent-jarvis-work-plan-draft-20261101 @ f6eb808348302cec55bddcf44ee03f5b5736c4d9
@@ -153,3 +153,11 @@ T2真实工作验收仍BLOCKED。最新R31单例已消费且FAIL：初始41 UTF-
 ## 2026-11-05 输入来源补丁独审闭合
 
 T2仍BLOCKED。R31已FAIL且单例耗尽：41 UTF-16初始文本随后变空，server/CLI前停止，cleanup与boundaries PASS；输入来源无法确认。输入来源诊断补丁首次独审发现ORIGIN-PREFIX-01，最小修订后同一reviewer限定复核PASS（fix1 manifest c6cf3099…735c2），42项离线测试通过；现场根因尚未查明。旧候选PASS不得计入当前7975：独立核对5份失败终态、1次CLI，当前正例0/负例0。下一步准备仅夹具诊断wrapper；没有新运行额度，不启动产品/模型。正式验收从当前E03 round1开始，随后同候选E01再E02；仅当前8B，T3—T5未放行。报告：`docs/reports/jarvis-work-t2-e03-input-origin-review-20261105.md`。
+
+## 2026-11-05 夹具诊断程序及有条件授权
+
+T2仍BLOCKED。单次夹具诊断程序已准备，87项离线测试PASS，manifest c9fa33fa…c7f7b9f4；用户已授权一次独审，通过后运行一次fixture-origin-01。当前仅获有条件授权，独审/新authority/现场运行尚未完成；不调用产品、模型或音频，失败不重试，无验收分。R31失败及其耗尽额度保留；输入来源补丁的独审闭合PASS保留。当前7975候选正例0/负例0，正式E03仍从round1开始，其后同候选E01、E02；仅当前8B，T3—T5未放行。报告：`docs/reports/jarvis-work-t2-fixture-only-preparation-20261105.md`。
+
+## 2026-11-05 单次夹具诊断完成，未复现清空
+
+T2仍BLOCKED。用户授权的一次夹具诊断已完成：R1独审P1来源接口缺陷在fix1修正，同一reviewer闭合PASS（manifest c0af805d…837eb4fb），90项离线测试通过。fixture-origin-01仅运行一次，COMPLETE/UNCHANGED，10.704秒；41/39 UTF-16文本哈希保持，未见EM_REPLACESEL，cleanup/audit/boundaries PASS，七个保护身份和语音ready/fresh保持。额度1/1耗尽，不重试，无产品/模型/音频调用或验收分；R31间歇原因仍未知。下一步准备当前7975候选E03 round1正式验收包，需其自身独审/authority和原门；当前正例0/负例0，其后同候选E01、8B的E02；T3—T5未放行。报告：docs/reports/jarvis-work-t2-fixture-only-result-20261105.md。

@@ -1,0 +1,31 @@
+{
+  "schema": 1,
+  "recorded_by": "root from independent reviewer final response",
+  "reviewer": "root-independent",
+  "reviewer_agent": "/root/review_fixture_only_r1",
+  "scope": "fixture-only-diagnostic-package",
+  "manifest_sha256": "c9fa33fa2c41ea7808b846c7f1529a5021853d1454fdcb3ac7e56709c7f7b9f4",
+  "verdict": "NEEDS_FIXES",
+  "findings": [
+    {
+      "id": "FIXTURE-SOURCE-ENTRY-01",
+      "priority": "P1",
+      "file": "code/native_bridge.py",
+      "line": 53,
+      "dependency": "code/controller.py:178",
+      "issue": "controller.source_check unconditionally reads code/inputs.json, which is absent from this package. It would fail before admission/UI and also in postflight. The mocked success lambda did not cover the copied dependency's path binding.",
+      "required_fix": "Bind a source-check interface appropriate to the diagnostic package, retaining candidate/source verification, and test the real dependency interface."
+    }
+  ],
+  "sealed_files_verified": 30,
+  "python_files_ast_parsed": 11,
+  "copied_dependencies_verified": 8,
+  "candidate_sources_verified": 41,
+  "actual_and_release_absent": true,
+  "recorded_offline_tests": 87,
+  "reviewer_tests_run": false,
+  "new_live_cases": 0,
+  "new_model_calls": 0,
+  "runtime_release_allowed": false,
+  "not_evaluated": ["live Windows focus/IME", "native scheduling and cleanup races", "reproduction and real elapsed time", "product acceptance"]
+}

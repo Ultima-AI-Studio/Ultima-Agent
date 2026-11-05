@@ -1,0 +1,21 @@
+F                                                                        [100%]
+================================== FAILURES ===================================
+__________ test_wrong_interpreter_stops_before_loading_native_bridge __________
+
+api = <module 'fixture_diagnostic' from 'H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\e03-fixture-only-diagnostic-20261105-r1\\code\\fixture_diagnostic.py'>
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-fixture-only-diagnostic-20261105-r1/verification/tmp-red-interpreter/test_wrong_interpreter_stops_b0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001461A3CC050>
+
+    def test_wrong_interpreter_stops_before_loading_native_bridge(api, tmp_path, monkeypatch):
+        release(api, tmp_path)
+        monkeypatch.setattr(api.sys, 'executable', r'C:\other\python.exe')
+>       with pytest.raises(ValueError, match='interpreter'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AssertionError: Regex pattern did not match.
+E         Expected regex: 'interpreter'
+E         Actual message: 'Unexpected controller import'
+
+H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e03-fixture-only-diagnostic-20261105-r1\code\test_fixture_diagnostic.py:219: AssertionError
+=========================== short test summary info ===========================
+FAILED ::test_wrong_interpreter_stops_before_loading_native_bridge - Assertio...
+1 failed, 37 deselected in 0.32s

@@ -1,0 +1,38 @@
+FF                                                                       [100%]
+================================== FAILURES ===================================
+_________ test_consumed_case_is_rejected_before_constructing_backend __________
+
+api = <module 'fixture_diagnostic' from 'H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\e03-fixture-only-diagnostic-20261105-r1\\code\\fixture_diagnostic.py'>
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-fixture-only-diagnostic-20261105-r1/verification/tmp-red-reentry/test_consumed_case_is_rejected0')
+
+    def test_consumed_case_is_rejected_before_constructing_backend(api, tmp_path):
+        release(api, tmp_path)
+        (tmp_path/'actual/fixture-origin-01').mkdir(parents=True)
+        constructed=[]
+        def factory(root):
+            constructed.append(root)
+            return FakeBackend()
+        with pytest.raises(FileExistsError):
+            api.run_once(tmp_path,now=NOW,backend_factory=factory)
+>       assert constructed==[]
+E       AssertionError: assert [WindowsPath(...s_rejected0')] == []
+E         
+E         Left contains one more item: WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-fixture-only-diagnostic-20261105-r1/verification/tmp-red-reentry/test_consumed_case_is_rejected0')
+E         Use -v to get more diff
+
+H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e03-fixture-only-diagnostic-20261105-r1\code\test_fixture_diagnostic.py:207: AssertionError
+______ test_protected_pid_reuse_between_native_and_cim_reads_is_rejected ______
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-fixture-only-diagnostic-20261105-r1/verification/tmp-red-reentry/test_protected_pid_reuse_betwe0')
+
+    def test_protected_pid_reuse_between_native_and_cim_reads_is_rejected(tmp_path):
+        native,calls=bridge(tmp_path,cim_drift=True)
+>       with pytest.raises(ValueError): native.preflight()
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e03-fixture-only-diagnostic-20261105-r1\code\test_native_bridge.py:94: Failed
+=========================== short test summary info ===========================
+FAILED ::test_consumed_case_is_rejected_before_constructing_backend - Asserti...
+FAILED ::test_protected_pid_reuse_between_native_and_cim_reads_is_rejected - ...
+2 failed, 43 deselected in 0.35s

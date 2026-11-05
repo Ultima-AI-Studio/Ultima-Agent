@@ -1,0 +1,148 @@
+FFF                                                                      [100%]
+================================== FAILURES ===================================
+____ test_bridge_checks_candidate_without_legacy_package_inputs[preflight] ____
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-fixture-only-diagnostic-20261105-r1-fix1/verification/tmp-fix-red/test_bridge_checks_candidate_w0')
+phase = 'preflight'
+
+    @pytest.mark.parametrize('phase', ['preflight', 'postflight'])
+    def test_bridge_checks_candidate_without_legacy_package_inputs(tmp_path, phase):
+        native,calls=bridge(tmp_path)
+        # Reproduce the review finding using the actual copied function definition.
+        with pytest.raises(FileNotFoundError, match='inputs.json'):
+            native.controller.source_check()
+        assert not (tmp_path/'code/inputs.json').exists()
+        before=native._protected()
+        if phase=='preflight':
+>           assert native.preflight()==before
+                   ^^^^^^^^^^^^^^^^^^
+
+data\evidence\jarvis-work-capability\T2\e03-fixture-only-diagnostic-20261105-r1-fix1\code\test_native_bridge.py:91: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+data\evidence\jarvis-work-capability\T2\e03-fixture-only-diagnostic-20261105-r1-fix1\code\native_bridge.py:53: in preflight
+    candidate = self.controller.source_check()
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+<actual legacy source_check>:178: in source_check
+    ???
+data\evidence\jarvis-work-capability\T2\e03-fixture-only-diagnostic-20261105-r1-fix1\code\fixture_diagnostic.py:44: in load
+    raw = Path(path).read_bytes()
+          ^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Administrator\AppData\Local\Doubao\User Data\sandbox_runtime\bases\772984f6fd3a8ae0ae7d2422cd7c2bfa\python\Lib\pathlib\_abc.py:625: in read_bytes
+    with self.open(mode='rb') as f:
+         ^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-fixture-only-diagnostic-20261105-r1-fix1/verification/tmp-fix-red/test_bridge_checks_candidate_w0/code/inputs.json')
+mode = 'rb', buffering = -1, encoding = None, errors = None, newline = None
+
+    def open(self, mode='r', buffering=-1, encoding=None,
+             errors=None, newline=None):
+        """
+        Open the file pointed to by this path and return a file object, as
+        the built-in open() function does.
+        """
+        if "b" not in mode:
+            encoding = io.text_encoding(encoding)
+>       return io.open(self, mode, buffering, encoding, errors, newline)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       FileNotFoundError: [Errno 2] No such file or directory: 'H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\e03-fixture-only-diagnostic-20261105-r1-fix1\\verification\\tmp-fix-red\\test_bridge_checks_candidate_w0\\code\\inputs.json'
+
+C:\Users\Administrator\AppData\Local\Doubao\User Data\sandbox_runtime\bases\772984f6fd3a8ae0ae7d2422cd7c2bfa\python\Lib\pathlib\_local.py:537: FileNotFoundError
+___ test_bridge_checks_candidate_without_legacy_package_inputs[postflight] ____
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-fixture-only-diagnostic-20261105-r1-fix1/verification/tmp-fix-red/test_bridge_checks_candidate_w1')
+phase = 'postflight'
+
+    @pytest.mark.parametrize('phase', ['preflight', 'postflight'])
+    def test_bridge_checks_candidate_without_legacy_package_inputs(tmp_path, phase):
+        native,calls=bridge(tmp_path)
+        # Reproduce the review finding using the actual copied function definition.
+        with pytest.raises(FileNotFoundError, match='inputs.json'):
+            native.controller.source_check()
+        assert not (tmp_path/'code/inputs.json').exists()
+        before=native._protected()
+        if phase=='preflight':
+            assert native.preflight()==before
+        else:
+>           assert native.postflight(before)['status']=='PASS'
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+data\evidence\jarvis-work-capability\T2\e03-fixture-only-diagnostic-20261105-r1-fix1\code\test_native_bridge.py:93: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+data\evidence\jarvis-work-capability\T2\e03-fixture-only-diagnostic-20261105-r1-fix1\code\native_bridge.py:128: in postflight
+    candidate = self.controller.source_check()
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+<actual legacy source_check>:178: in source_check
+    ???
+data\evidence\jarvis-work-capability\T2\e03-fixture-only-diagnostic-20261105-r1-fix1\code\fixture_diagnostic.py:44: in load
+    raw = Path(path).read_bytes()
+          ^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Administrator\AppData\Local\Doubao\User Data\sandbox_runtime\bases\772984f6fd3a8ae0ae7d2422cd7c2bfa\python\Lib\pathlib\_abc.py:625: in read_bytes
+    with self.open(mode='rb') as f:
+         ^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-fixture-only-diagnostic-20261105-r1-fix1/verification/tmp-fix-red/test_bridge_checks_candidate_w1/code/inputs.json')
+mode = 'rb', buffering = -1, encoding = None, errors = None, newline = None
+
+    def open(self, mode='r', buffering=-1, encoding=None,
+             errors=None, newline=None):
+        """
+        Open the file pointed to by this path and return a file object, as
+        the built-in open() function does.
+        """
+        if "b" not in mode:
+            encoding = io.text_encoding(encoding)
+>       return io.open(self, mode, buffering, encoding, errors, newline)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       FileNotFoundError: [Errno 2] No such file or directory: 'H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\e03-fixture-only-diagnostic-20261105-r1-fix1\\verification\\tmp-fix-red\\test_bridge_checks_candidate_w1\\code\\inputs.json'
+
+C:\Users\Administrator\AppData\Local\Doubao\User Data\sandbox_runtime\bases\772984f6fd3a8ae0ae7d2422cd7c2bfa\python\Lib\pathlib\_local.py:537: FileNotFoundError
+____________ test_candidate_guard_rejection_prevents_window_start _____________
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-fixture-only-diagnostic-20261105-r1-fix1/verification/tmp-fix-red/test_candidate_guard_rejection0')
+
+    def test_candidate_guard_rejection_prevents_window_start(tmp_path):
+        native,calls=bridge(tmp_path)
+        def reject_candidate():
+            raise ValueError('Pinned candidate manifest rejected')
+        native.controller.candidate_guard.verify_current_candidate=reject_candidate
+        with pytest.raises(ValueError, match='Pinned candidate manifest rejected'):
+>           native.preflight()
+
+data\evidence\jarvis-work-capability\T2\e03-fixture-only-diagnostic-20261105-r1-fix1\code\test_native_bridge.py:104: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+data\evidence\jarvis-work-capability\T2\e03-fixture-only-diagnostic-20261105-r1-fix1\code\native_bridge.py:53: in preflight
+    candidate = self.controller.source_check()
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+<actual legacy source_check>:178: in source_check
+    ???
+data\evidence\jarvis-work-capability\T2\e03-fixture-only-diagnostic-20261105-r1-fix1\code\fixture_diagnostic.py:44: in load
+    raw = Path(path).read_bytes()
+          ^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Administrator\AppData\Local\Doubao\User Data\sandbox_runtime\bases\772984f6fd3a8ae0ae7d2422cd7c2bfa\python\Lib\pathlib\_abc.py:625: in read_bytes
+    with self.open(mode='rb') as f:
+         ^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-fixture-only-diagnostic-20261105-r1-fix1/verification/tmp-fix-red/test_candidate_guard_rejection0/code/inputs.json')
+mode = 'rb', buffering = -1, encoding = None, errors = None, newline = None
+
+    def open(self, mode='r', buffering=-1, encoding=None,
+             errors=None, newline=None):
+        """
+        Open the file pointed to by this path and return a file object, as
+        the built-in open() function does.
+        """
+        if "b" not in mode:
+            encoding = io.text_encoding(encoding)
+>       return io.open(self, mode, buffering, encoding, errors, newline)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       FileNotFoundError: [Errno 2] No such file or directory: 'H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\e03-fixture-only-diagnostic-20261105-r1-fix1\\verification\\tmp-fix-red\\test_candidate_guard_rejection0\\code\\inputs.json'
+
+C:\Users\Administrator\AppData\Local\Doubao\User Data\sandbox_runtime\bases\772984f6fd3a8ae0ae7d2422cd7c2bfa\python\Lib\pathlib\_local.py:537: FileNotFoundError
+=========================== short test summary info ===========================
+FAILED data/evidence/jarvis-work-capability/T2/e03-fixture-only-diagnostic-20261105-r1-fix1/code/test_native_bridge.py::test_bridge_checks_candidate_without_legacy_package_inputs[preflight]
+FAILED data/evidence/jarvis-work-capability/T2/e03-fixture-only-diagnostic-20261105-r1-fix1/code/test_native_bridge.py::test_bridge_checks_candidate_without_legacy_package_inputs[postflight]
+FAILED data/evidence/jarvis-work-capability/T2/e03-fixture-only-diagnostic-20261105-r1-fix1/code/test_native_bridge.py::test_candidate_guard_rejection_prevents_window_start
+3 failed, 6 deselected in 0.43s

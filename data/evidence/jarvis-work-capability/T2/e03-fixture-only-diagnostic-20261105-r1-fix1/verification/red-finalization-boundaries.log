@@ -1,0 +1,123 @@
+..FFFFFF                                                                 [100%]
+================================== FAILURES ===================================
+______ test_admitted_failures_never_skip_cleanup_or_consume_twice[close] ______
+
+api = <module 'fixture_diagnostic' from 'H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\e03-fixture-only-diagnostic-20261105-r1\\code\\fixture_diagnostic.py'>
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-fixture-only-diagnostic-20261105-r1/verification/tmp-red-final/test_admitted_failures_never_s2')
+failure = 'close'
+
+    @pytest.mark.parametrize('failure', ['start', 'capture', 'close', 'postflight', 'audit'])
+    def test_admitted_failures_never_skip_cleanup_or_consume_twice(api, tmp_path, failure):
+        backend = FakeBackend(failure=failure)
+        result = claimed_run(api, tmp_path, backend)
+        assert 'close' in backend.calls and 'postflight' in backend.calls and 'audit' in backend.calls
+        assert result['diagnostic_status'] == 'INCOMPLETE'
+>       assert result['phenomenon'] == 'UNKNOWN'
+E       AssertionError: assert 'UNCHANGED' == 'UNKNOWN'
+E         
+E         - UNKNOWN
+E         + UNCHANGED
+
+H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e03-fixture-only-diagnostic-20261105-r1\code\test_fixture_diagnostic.py:112: AssertionError
+___ test_admitted_failures_never_skip_cleanup_or_consume_twice[postflight] ____
+
+api = <module 'fixture_diagnostic' from 'H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\e03-fixture-only-diagnostic-20261105-r1\\code\\fixture_diagnostic.py'>
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-fixture-only-diagnostic-20261105-r1/verification/tmp-red-final/test_admitted_failures_never_s3')
+failure = 'postflight'
+
+    @pytest.mark.parametrize('failure', ['start', 'capture', 'close', 'postflight', 'audit'])
+    def test_admitted_failures_never_skip_cleanup_or_consume_twice(api, tmp_path, failure):
+        backend = FakeBackend(failure=failure)
+        result = claimed_run(api, tmp_path, backend)
+        assert 'close' in backend.calls and 'postflight' in backend.calls and 'audit' in backend.calls
+        assert result['diagnostic_status'] == 'INCOMPLETE'
+>       assert result['phenomenon'] == 'UNKNOWN'
+E       AssertionError: assert 'UNCHANGED' == 'UNKNOWN'
+E         
+E         - UNKNOWN
+E         + UNCHANGED
+
+H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e03-fixture-only-diagnostic-20261105-r1\code\test_fixture_diagnostic.py:112: AssertionError
+______ test_admitted_failures_never_skip_cleanup_or_consume_twice[audit] ______
+
+api = <module 'fixture_diagnostic' from 'H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\e03-fixture-only-diagnostic-20261105-r1\\code\\fixture_diagnostic.py'>
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-fixture-only-diagnostic-20261105-r1/verification/tmp-red-final/test_admitted_failures_never_s4')
+failure = 'audit'
+
+    @pytest.mark.parametrize('failure', ['start', 'capture', 'close', 'postflight', 'audit'])
+    def test_admitted_failures_never_skip_cleanup_or_consume_twice(api, tmp_path, failure):
+        backend = FakeBackend(failure=failure)
+        result = claimed_run(api, tmp_path, backend)
+        assert 'close' in backend.calls and 'postflight' in backend.calls and 'audit' in backend.calls
+        assert result['diagnostic_status'] == 'INCOMPLETE'
+>       assert result['phenomenon'] == 'UNKNOWN'
+E       AssertionError: assert 'UNCHANGED' == 'UNKNOWN'
+E         
+E         - UNKNOWN
+E         + UNCHANGED
+
+H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e03-fixture-only-diagnostic-20261105-r1\code\test_fixture_diagnostic.py:112: AssertionError
+_______________ test_dangling_junction_attributes_are_rejected ________________
+
+api = <module 'fixture_diagnostic' from 'H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\e03-fixture-only-diagnostic-20261105-r1\\code\\fixture_diagnostic.py'>
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-fixture-only-diagnostic-20261105-r1/verification/tmp-red-final/test_dangling_junction_attribu0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000002758ACDD5B0>
+
+    def test_dangling_junction_attributes_are_rejected(api, tmp_path, monkeypatch):
+        from types import SimpleNamespace
+        target = tmp_path / 'dangling-junction'
+        original = Path.lstat
+        monkeypatch.setattr(Path, 'lstat', lambda path: SimpleNamespace(st_mode=0o40755, st_file_attributes=0x400)
+                            if path == target else original(path))
+>       with pytest.raises(ValueError, match='Reparse'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e03-fixture-only-diagnostic-20261105-r1\code\test_fixture_diagnostic.py:211: Failed
+______________ test_start_requires_completed_readonly_preflight _______________
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-fixture-only-diagnostic-20261105-r1/verification/tmp-red-final/test_start_requires_completed_0')
+
+    def test_start_requires_completed_readonly_preflight(tmp_path):
+        native,calls=bridge(tmp_path)
+        folder=tmp_path/'case'; folder.mkdir()
+>       with pytest.raises(ValueError, match='preflight'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e03-fixture-only-diagnostic-20261105-r1\code\test_native_bridge.py:98: Failed
+_________ test_unexpected_product_scope_still_cleans_only_owned_tree __________
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-fixture-only-diagnostic-20261105-r1/verification/tmp-red-final/test_unexpected_product_scope_0')
+
+    def test_unexpected_product_scope_still_cleans_only_owned_tree(tmp_path):
+        native,calls=bridge(tmp_path)
+        native.preflight()
+        folder=tmp_path/'case'; folder.mkdir()
+        native.start(folder)
+        native.context.cli_count=1
+>       assert native.close()['status']=='FAIL'
+               ^^^^^^^^^^^^^^
+
+H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e03-fixture-only-diagnostic-20261105-r1\code\test_native_bridge.py:109: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e03-fixture-only-diagnostic-20261105-r1\code\native_bridge.py:112: in close
+    require(self.context.port is None and self.context.cli_count == 0, 'Unexpected product scope')
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+value = False, message = 'Unexpected product scope'
+
+    def require(value, message):
+        if not value:
+>           raise ValueError(message)
+E           ValueError: Unexpected product scope
+
+H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e03-fixture-only-diagnostic-20261105-r1\code\fixture_diagnostic.py:29: ValueError
+=========================== short test summary info ===========================
+FAILED ::test_admitted_failures_never_skip_cleanup_or_consume_twice[close] - ...
+FAILED ::test_admitted_failures_never_skip_cleanup_or_consume_twice[postflight]
+FAILED ::test_admitted_failures_never_skip_cleanup_or_consume_twice[audit] - ...
+FAILED ::test_dangling_junction_attributes_are_rejected - Failed: DID NOT RAI...
+FAILED ::test_start_requires_completed_readonly_preflight - Failed: DID NOT R...
+FAILED ::test_unexpected_product_scope_still_cleans_only_owned_tree - ValueEr...
+6 failed, 2 passed, 34 deselected in 0.56s

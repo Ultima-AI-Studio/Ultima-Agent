@@ -1,0 +1,107 @@
+...................................FFFF                                  [100%]
+================================== FAILURES ===================================
+_______________ test_dangling_link_is_rejected_before_any_write _______________
+
+api = <module 'fixture_diagnostic' from 'H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\e03-fixture-only-diagnostic-20261105-r1\\code\\fixture_diagnostic.py'>
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-fixture-only-diagnostic-20261105-r1/verification/tmp-red-bridge/test_dangling_link_is_rejected0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001C3674DC2B0>
+
+    def test_dangling_link_is_rejected_before_any_write(api, tmp_path, monkeypatch):
+        target = tmp_path / 'dangling'
+        original = Path.is_symlink
+        monkeypatch.setattr(Path, 'is_symlink', lambda path: path == target or original(path))
+>       with pytest.raises(ValueError, match='Reparse'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e03-fixture-only-diagnostic-20261105-r1\code\test_fixture_diagnostic.py:201: Failed
+_________ test_native_bridge_uses_only_fixture_and_original_observer __________
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-fixture-only-diagnostic-20261105-r1/verification/tmp-red-bridge/test_native_bridge_uses_only_f0')
+
+    def test_native_bridge_uses_only_fixture_and_original_observer(tmp_path):
+>       native,calls=bridge(tmp_path)
+                     ^^^^^^^^^^^^^^^^
+
+H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e03-fixture-only-diagnostic-20261105-r1\code\test_native_bridge.py:61: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e03-fixture-only-diagnostic-20261105-r1\code\test_native_bridge.py:10: in bridge
+    native = importlib.import_module('native_bridge')
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\..\..\AppData\Local\Doubao\User Data\sandbox_runtime\bases\772984f6fd3a8ae0ae7d2422cd7c2bfa\python\Lib\importlib\__init__.py:88: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+<frozen importlib._bootstrap>:1404: in _gcd_import
+    ???
+<frozen importlib._bootstrap>:1369: in _find_and_load
+    ???
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+name = 'native_bridge', import_ = <function _gcd_import at 0x000001C362DC04A0>
+
+>   ???
+E   ModuleNotFoundError: No module named 'native_bridge'
+
+<frozen importlib._bootstrap>:1333: ModuleNotFoundError
+______________ test_protected_command_drift_stops_before_fixture ______________
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-fixture-only-diagnostic-20261105-r1/verification/tmp-red-bridge/test_protected_command_drift_s0')
+
+    def test_protected_command_drift_stops_before_fixture(tmp_path):
+>       native,calls=bridge(tmp_path,command_drift=True)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e03-fixture-only-diagnostic-20261105-r1\code\test_native_bridge.py:79: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e03-fixture-only-diagnostic-20261105-r1\code\test_native_bridge.py:10: in bridge
+    native = importlib.import_module('native_bridge')
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\..\..\AppData\Local\Doubao\User Data\sandbox_runtime\bases\772984f6fd3a8ae0ae7d2422cd7c2bfa\python\Lib\importlib\__init__.py:88: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+<frozen importlib._bootstrap>:1404: in _gcd_import
+    ???
+<frozen importlib._bootstrap>:1369: in _find_and_load
+    ???
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+name = 'native_bridge', import_ = <function _gcd_import at 0x000001C362DC04A0>
+
+>   ???
+E   ModuleNotFoundError: No module named 'native_bridge'
+
+<frozen importlib._bootstrap>:1333: ModuleNotFoundError
+_________________ test_watchdog_writes_only_owned_stop_marker _________________
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-fixture-only-diagnostic-20261105-r1/verification/tmp-red-bridge/test_watchdog_writes_only_owne0')
+
+    def test_watchdog_writes_only_owned_stop_marker(tmp_path):
+>       native,calls=bridge(tmp_path)
+                     ^^^^^^^^^^^^^^^^
+
+H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e03-fixture-only-diagnostic-20261105-r1\code\test_native_bridge.py:85: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e03-fixture-only-diagnostic-20261105-r1\code\test_native_bridge.py:10: in bridge
+    native = importlib.import_module('native_bridge')
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\..\..\AppData\Local\Doubao\User Data\sandbox_runtime\bases\772984f6fd3a8ae0ae7d2422cd7c2bfa\python\Lib\importlib\__init__.py:88: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+<frozen importlib._bootstrap>:1404: in _gcd_import
+    ???
+<frozen importlib._bootstrap>:1369: in _find_and_load
+    ???
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+name = 'native_bridge', import_ = <function _gcd_import at 0x000001C362DC04A0>
+
+>   ???
+E   ModuleNotFoundError: No module named 'native_bridge'
+
+<frozen importlib._bootstrap>:1333: ModuleNotFoundError
+=========================== short test summary info ===========================
+FAILED ::test_dangling_link_is_rejected_before_any_write - Failed: DID NOT RA...
+FAILED ::test_native_bridge_uses_only_fixture_and_original_observer - ModuleN...
+FAILED ::test_protected_command_drift_stops_before_fixture - ModuleNotFoundEr...
+FAILED ::test_watchdog_writes_only_owned_stop_marker - ModuleNotFoundError: N...
+4 failed, 35 passed in 1.07s
