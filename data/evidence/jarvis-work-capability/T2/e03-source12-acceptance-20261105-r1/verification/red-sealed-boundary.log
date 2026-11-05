@@ -1,0 +1,24 @@
+F                                                                        [100%]
+================================== FAILURES ===================================
+______ test_sealed_wrapper_drift_during_case_invalidates_final_boundary _______
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-source12-acceptance-20261105-r1/verification/tmp-sealed-red/test_sealed_wrapper_drift_duri0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000186B356C180>
+
+    def test_sealed_wrapper_drift_during_case_invalidates_final_boundary(tmp_path,monkeypatch):
+        entry,authority,proof=package(tmp_path,monkeypatch);backend=Backend(tmp_path,proof)
+        original=backend.product
+        def change_wrapper(revalidate):
+            result=original(revalidate);(tmp_path/'code/package_io.py').write_text('# drift\n');return result
+        backend.product=change_wrapper
+        result=entry.run_once(tmp_path,backend_factory=lambda root:backend)
+>       assert result['overall']=='FAIL' and any(x['stage']=='boundaries' for x in result['errors'])
+E       AssertionError: assert ('PENDING_FACT_REVIEW' == 'FAIL'
+E         
+E         - FAIL
+E         + PENDING_FACT_REVIEW)
+
+data\evidence\jarvis-work-capability\T2\e03-source12-acceptance-20261105-r1\code\test_acceptance_entry.py:216: AssertionError
+=========================== short test summary info ===========================
+FAILED data/evidence/jarvis-work-capability/T2/e03-source12-acceptance-20261105-r1/code/test_acceptance_entry.py::test_sealed_wrapper_drift_during_case_invalidates_final_boundary
+1 failed, 38 deselected in 0.37s

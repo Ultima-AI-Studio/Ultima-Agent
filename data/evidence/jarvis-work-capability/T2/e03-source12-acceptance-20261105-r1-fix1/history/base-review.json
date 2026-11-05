@@ -1,0 +1,56 @@
+{
+  "reviewer": "root-independent",
+  "review_agent": "/root/review_e03_round1_entry",
+  "scope": "e03-round1-acceptance-package",
+  "candidate": "7975e477665c02820fa235b73d203718bd33b2c9",
+  "manifest_sha256": "7078209f8881b4278a07c121b280bf7a9704ccb2a38aca2a3eed8c3e8781eb0d",
+  "verdict": "NEEDS_FIXES",
+  "recorded_by": "root",
+  "recorded_at": "2026-11-05T11:00:01.938165+00:00",
+  "findings": [
+    {
+      "id": "OWNED-STOP-CLEANUP-01",
+      "priority": "P1",
+      "file": "code/acceptance_backend.py",
+      "line": 168,
+      "dependency": "code/controller.py:469",
+      "finding": "Outer stop marker failure is caught, but actual Owned.cleanup repeats touch without a guard and can skip exact-owned termination, waits, log closure and cleanup receipt.",
+      "required": "Catch marker failure inside actual cleanup, retain FAIL and continue exact-owned cleanup. Test the actual cleanup definition with a persistent marker write error."
+    },
+    {
+      "id": "PRE-SUBMIT-EXPIRY-01",
+      "priority": "P1",
+      "file": "code/acceptance_backend.py",
+      "line": 136,
+      "dependency": "code/controller.py:631",
+      "finding": "After final full revalidate, command can wait 10s and observe 15s before CLI submission, crossing original proof freshness or authority expiry.",
+      "required": "Preserve pre-activation full checks and recheck original binding/time immediately after dispatch observation before CLI; do not issue or refresh proof. Test proof and authority expiry during command/observe."
+    }
+  ],
+  "independent_checks": [
+    "29 sealed file sizes and hashes",
+    "8 exact copies and provenance",
+    "6 exact IO helper AST source segments",
+    "12 Python AST parses",
+    "41 candidate source hashes",
+    "actual and release absent"
+  ],
+  "not_run": [
+    "code imports",
+    "tests",
+    "UI",
+    "model",
+    "audio",
+    "network",
+    "actual-case authority"
+  ],
+  "limitations": [
+    "Real focus/IME, R31 cause, current runtime state, inference/latency, three facts and window/rewrite output not verified."
+  ],
+  "grants": {
+    "actual_case_authority": false,
+    "acceptance_credit": false,
+    "retry": false,
+    "next_round": false
+  }
+}
