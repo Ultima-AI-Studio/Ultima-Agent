@@ -1,0 +1,518 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="20" skipped="0" tests="23" time="1.519" timestamp="2026-11-06T01:11:52.526404+08:00" hostname="DESKTOP-B366PQ9"><testcase classname="code.test_round2_predecessor" name="test_round2_admits_one_matching_predecessor_and_keeps_new_facts_pending" time="0.050"><failure message="AssertionError: assert ('e03-round1' == 'e03-round2'&#10;  &#10;  - e03-round2&#10;  ?          ^&#10;  + e03-round1&#10;  ?          ^)">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-source13-round2-20261106/verification/tmp-predecessor-red/test_round2_admits_one_matchin0')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000001E57D17A190&gt;
+
+    def test_round2_admits_one_matching_predecessor_and_keeps_new_facts_pending(tmp_path,monkeypatch):
+        entry,authority,proof = package(tmp_path,monkeypatch)
+&gt;       assert entry.CASE == 'e03-round2' and entry.SCOPE == 'e03-round2-acceptance'
+E       AssertionError: assert ('e03-round1' == 'e03-round2'
+E         
+E         - e03-round2
+E         ?          ^
+E         + e03-round1
+E         ?          ^)
+
+code\test_round2_predecessor.py:42: AssertionError</failure></testcase><testcase classname="code.test_round2_predecessor" name="test_ineligible_predecessor_rejected_even_when_new_package_is_resealed[terminal.json-candidate-old-candidate]" time="0.068"><failure message="Failed: DID NOT RAISE ValueError">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-source13-round2-20261106/verification/tmp-predecessor-red/test_ineligible_predecessor_re0')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000001E57D17AB10&gt;
+file = 'terminal.json', field = 'candidate', value = 'old-candidate'
+
+    @pytest.mark.parametrize('file,field,value', [
+        ('terminal.json','candidate','old-candidate'),
+        ('terminal.json','case','e03-round2'),
+        ('terminal.json','overall','FAIL'),
+        ('terminal.json','mechanical','FAIL'),
+        ('terminal.json','errors',[{'stage':'cleanup','error':'failed'}]),
+        ('review.json','reviewer','root-self'),
+        ('review.json','scope','e03-round1-acceptance-package'),
+        ('review.json','candidate','old-candidate'),
+        ('review.json','facts_verdict','FAIL'),
+        ('review.json','final_claim_verdict','FAIL'),
+        ('review.json','candidate_runtime_manifest_sha256','old-runtime'),
+        ('registration.json','case_verdict','FAIL'),
+        ('registration.json','acceptance_credit',False),
+        ('registration.json','positive_passed',2),
+        ('registration.json','same_candidate_terminals',2),
+    ])
+    def test_ineligible_predecessor_rejected_even_when_new_package_is_resealed(tmp_path,monkeypatch,file,field,value):
+        entry,authority,proof=package(tmp_path,monkeypatch)
+        path=tmp_path/'inputs/prior-round1'/file;data=read(path);data[field]=value;put(path,data)
+        rebind_prior(tmp_path,entry,authority)
+&gt;       with pytest.raises(ValueError,match='[Pp]redecessor'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+code\test_round2_predecessor.py:73: Failed</failure></testcase><testcase classname="code.test_round2_predecessor" name="test_ineligible_predecessor_rejected_even_when_new_package_is_resealed[terminal.json-case-e03-round2]" time="0.066"><failure message="Failed: DID NOT RAISE ValueError">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-source13-round2-20261106/verification/tmp-predecessor-red/test_ineligible_predecessor_re1')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000001E57D219910&gt;
+file = 'terminal.json', field = 'case', value = 'e03-round2'
+
+    @pytest.mark.parametrize('file,field,value', [
+        ('terminal.json','candidate','old-candidate'),
+        ('terminal.json','case','e03-round2'),
+        ('terminal.json','overall','FAIL'),
+        ('terminal.json','mechanical','FAIL'),
+        ('terminal.json','errors',[{'stage':'cleanup','error':'failed'}]),
+        ('review.json','reviewer','root-self'),
+        ('review.json','scope','e03-round1-acceptance-package'),
+        ('review.json','candidate','old-candidate'),
+        ('review.json','facts_verdict','FAIL'),
+        ('review.json','final_claim_verdict','FAIL'),
+        ('review.json','candidate_runtime_manifest_sha256','old-runtime'),
+        ('registration.json','case_verdict','FAIL'),
+        ('registration.json','acceptance_credit',False),
+        ('registration.json','positive_passed',2),
+        ('registration.json','same_candidate_terminals',2),
+    ])
+    def test_ineligible_predecessor_rejected_even_when_new_package_is_resealed(tmp_path,monkeypatch,file,field,value):
+        entry,authority,proof=package(tmp_path,monkeypatch)
+        path=tmp_path/'inputs/prior-round1'/file;data=read(path);data[field]=value;put(path,data)
+        rebind_prior(tmp_path,entry,authority)
+&gt;       with pytest.raises(ValueError,match='[Pp]redecessor'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+code\test_round2_predecessor.py:73: Failed</failure></testcase><testcase classname="code.test_round2_predecessor" name="test_ineligible_predecessor_rejected_even_when_new_package_is_resealed[terminal.json-overall-FAIL]" time="0.067"><failure message="Failed: DID NOT RAISE ValueError">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-source13-round2-20261106/verification/tmp-predecessor-red/test_ineligible_predecessor_re2')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000001E57D15AAD0&gt;
+file = 'terminal.json', field = 'overall', value = 'FAIL'
+
+    @pytest.mark.parametrize('file,field,value', [
+        ('terminal.json','candidate','old-candidate'),
+        ('terminal.json','case','e03-round2'),
+        ('terminal.json','overall','FAIL'),
+        ('terminal.json','mechanical','FAIL'),
+        ('terminal.json','errors',[{'stage':'cleanup','error':'failed'}]),
+        ('review.json','reviewer','root-self'),
+        ('review.json','scope','e03-round1-acceptance-package'),
+        ('review.json','candidate','old-candidate'),
+        ('review.json','facts_verdict','FAIL'),
+        ('review.json','final_claim_verdict','FAIL'),
+        ('review.json','candidate_runtime_manifest_sha256','old-runtime'),
+        ('registration.json','case_verdict','FAIL'),
+        ('registration.json','acceptance_credit',False),
+        ('registration.json','positive_passed',2),
+        ('registration.json','same_candidate_terminals',2),
+    ])
+    def test_ineligible_predecessor_rejected_even_when_new_package_is_resealed(tmp_path,monkeypatch,file,field,value):
+        entry,authority,proof=package(tmp_path,monkeypatch)
+        path=tmp_path/'inputs/prior-round1'/file;data=read(path);data[field]=value;put(path,data)
+        rebind_prior(tmp_path,entry,authority)
+&gt;       with pytest.raises(ValueError,match='[Pp]redecessor'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+code\test_round2_predecessor.py:73: Failed</failure></testcase><testcase classname="code.test_round2_predecessor" name="test_ineligible_predecessor_rejected_even_when_new_package_is_resealed[terminal.json-mechanical-FAIL]" time="0.067"><failure message="Failed: DID NOT RAISE ValueError">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-source13-round2-20261106/verification/tmp-predecessor-red/test_ineligible_predecessor_re3')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000001E57D15A580&gt;
+file = 'terminal.json', field = 'mechanical', value = 'FAIL'
+
+    @pytest.mark.parametrize('file,field,value', [
+        ('terminal.json','candidate','old-candidate'),
+        ('terminal.json','case','e03-round2'),
+        ('terminal.json','overall','FAIL'),
+        ('terminal.json','mechanical','FAIL'),
+        ('terminal.json','errors',[{'stage':'cleanup','error':'failed'}]),
+        ('review.json','reviewer','root-self'),
+        ('review.json','scope','e03-round1-acceptance-package'),
+        ('review.json','candidate','old-candidate'),
+        ('review.json','facts_verdict','FAIL'),
+        ('review.json','final_claim_verdict','FAIL'),
+        ('review.json','candidate_runtime_manifest_sha256','old-runtime'),
+        ('registration.json','case_verdict','FAIL'),
+        ('registration.json','acceptance_credit',False),
+        ('registration.json','positive_passed',2),
+        ('registration.json','same_candidate_terminals',2),
+    ])
+    def test_ineligible_predecessor_rejected_even_when_new_package_is_resealed(tmp_path,monkeypatch,file,field,value):
+        entry,authority,proof=package(tmp_path,monkeypatch)
+        path=tmp_path/'inputs/prior-round1'/file;data=read(path);data[field]=value;put(path,data)
+        rebind_prior(tmp_path,entry,authority)
+&gt;       with pytest.raises(ValueError,match='[Pp]redecessor'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+code\test_round2_predecessor.py:73: Failed</failure></testcase><testcase classname="code.test_round2_predecessor" name="test_ineligible_predecessor_rejected_even_when_new_package_is_resealed[terminal.json-errors-value4]" time="0.065"><failure message="Failed: DID NOT RAISE ValueError">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-source13-round2-20261106/verification/tmp-predecessor-red/test_ineligible_predecessor_re4')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000001E57DA48450&gt;
+file = 'terminal.json', field = 'errors'
+value = [{'stage': 'cleanup', 'error': 'failed'}]
+
+    @pytest.mark.parametrize('file,field,value', [
+        ('terminal.json','candidate','old-candidate'),
+        ('terminal.json','case','e03-round2'),
+        ('terminal.json','overall','FAIL'),
+        ('terminal.json','mechanical','FAIL'),
+        ('terminal.json','errors',[{'stage':'cleanup','error':'failed'}]),
+        ('review.json','reviewer','root-self'),
+        ('review.json','scope','e03-round1-acceptance-package'),
+        ('review.json','candidate','old-candidate'),
+        ('review.json','facts_verdict','FAIL'),
+        ('review.json','final_claim_verdict','FAIL'),
+        ('review.json','candidate_runtime_manifest_sha256','old-runtime'),
+        ('registration.json','case_verdict','FAIL'),
+        ('registration.json','acceptance_credit',False),
+        ('registration.json','positive_passed',2),
+        ('registration.json','same_candidate_terminals',2),
+    ])
+    def test_ineligible_predecessor_rejected_even_when_new_package_is_resealed(tmp_path,monkeypatch,file,field,value):
+        entry,authority,proof=package(tmp_path,monkeypatch)
+        path=tmp_path/'inputs/prior-round1'/file;data=read(path);data[field]=value;put(path,data)
+        rebind_prior(tmp_path,entry,authority)
+&gt;       with pytest.raises(ValueError,match='[Pp]redecessor'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+code\test_round2_predecessor.py:73: Failed</failure></testcase><testcase classname="code.test_round2_predecessor" name="test_ineligible_predecessor_rejected_even_when_new_package_is_resealed[review.json-reviewer-root-self]" time="0.062"><failure message="Failed: DID NOT RAISE ValueError">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-source13-round2-20261106/verification/tmp-predecessor-red/test_ineligible_predecessor_re5')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000001E57DA49150&gt;
+file = 'review.json', field = 'reviewer', value = 'root-self'
+
+    @pytest.mark.parametrize('file,field,value', [
+        ('terminal.json','candidate','old-candidate'),
+        ('terminal.json','case','e03-round2'),
+        ('terminal.json','overall','FAIL'),
+        ('terminal.json','mechanical','FAIL'),
+        ('terminal.json','errors',[{'stage':'cleanup','error':'failed'}]),
+        ('review.json','reviewer','root-self'),
+        ('review.json','scope','e03-round1-acceptance-package'),
+        ('review.json','candidate','old-candidate'),
+        ('review.json','facts_verdict','FAIL'),
+        ('review.json','final_claim_verdict','FAIL'),
+        ('review.json','candidate_runtime_manifest_sha256','old-runtime'),
+        ('registration.json','case_verdict','FAIL'),
+        ('registration.json','acceptance_credit',False),
+        ('registration.json','positive_passed',2),
+        ('registration.json','same_candidate_terminals',2),
+    ])
+    def test_ineligible_predecessor_rejected_even_when_new_package_is_resealed(tmp_path,monkeypatch,file,field,value):
+        entry,authority,proof=package(tmp_path,monkeypatch)
+        path=tmp_path/'inputs/prior-round1'/file;data=read(path);data[field]=value;put(path,data)
+        rebind_prior(tmp_path,entry,authority)
+&gt;       with pytest.raises(ValueError,match='[Pp]redecessor'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+code\test_round2_predecessor.py:73: Failed</failure></testcase><testcase classname="code.test_round2_predecessor" name="test_ineligible_predecessor_rejected_even_when_new_package_is_resealed[review.json-scope-e03-round1-acceptance-package]" time="0.064"><failure message="Failed: DID NOT RAISE ValueError">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-source13-round2-20261106/verification/tmp-predecessor-red/test_ineligible_predecessor_re6')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000001E57D1B65D0&gt;
+file = 'review.json', field = 'scope', value = 'e03-round1-acceptance-package'
+
+    @pytest.mark.parametrize('file,field,value', [
+        ('terminal.json','candidate','old-candidate'),
+        ('terminal.json','case','e03-round2'),
+        ('terminal.json','overall','FAIL'),
+        ('terminal.json','mechanical','FAIL'),
+        ('terminal.json','errors',[{'stage':'cleanup','error':'failed'}]),
+        ('review.json','reviewer','root-self'),
+        ('review.json','scope','e03-round1-acceptance-package'),
+        ('review.json','candidate','old-candidate'),
+        ('review.json','facts_verdict','FAIL'),
+        ('review.json','final_claim_verdict','FAIL'),
+        ('review.json','candidate_runtime_manifest_sha256','old-runtime'),
+        ('registration.json','case_verdict','FAIL'),
+        ('registration.json','acceptance_credit',False),
+        ('registration.json','positive_passed',2),
+        ('registration.json','same_candidate_terminals',2),
+    ])
+    def test_ineligible_predecessor_rejected_even_when_new_package_is_resealed(tmp_path,monkeypatch,file,field,value):
+        entry,authority,proof=package(tmp_path,monkeypatch)
+        path=tmp_path/'inputs/prior-round1'/file;data=read(path);data[field]=value;put(path,data)
+        rebind_prior(tmp_path,entry,authority)
+&gt;       with pytest.raises(ValueError,match='[Pp]redecessor'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+code\test_round2_predecessor.py:73: Failed</failure></testcase><testcase classname="code.test_round2_predecessor" name="test_ineligible_predecessor_rejected_even_when_new_package_is_resealed[review.json-candidate-old-candidate]" time="0.062"><failure message="Failed: DID NOT RAISE ValueError">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-source13-round2-20261106/verification/tmp-predecessor-red/test_ineligible_predecessor_re7')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000001E57D1B7020&gt;
+file = 'review.json', field = 'candidate', value = 'old-candidate'
+
+    @pytest.mark.parametrize('file,field,value', [
+        ('terminal.json','candidate','old-candidate'),
+        ('terminal.json','case','e03-round2'),
+        ('terminal.json','overall','FAIL'),
+        ('terminal.json','mechanical','FAIL'),
+        ('terminal.json','errors',[{'stage':'cleanup','error':'failed'}]),
+        ('review.json','reviewer','root-self'),
+        ('review.json','scope','e03-round1-acceptance-package'),
+        ('review.json','candidate','old-candidate'),
+        ('review.json','facts_verdict','FAIL'),
+        ('review.json','final_claim_verdict','FAIL'),
+        ('review.json','candidate_runtime_manifest_sha256','old-runtime'),
+        ('registration.json','case_verdict','FAIL'),
+        ('registration.json','acceptance_credit',False),
+        ('registration.json','positive_passed',2),
+        ('registration.json','same_candidate_terminals',2),
+    ])
+    def test_ineligible_predecessor_rejected_even_when_new_package_is_resealed(tmp_path,monkeypatch,file,field,value):
+        entry,authority,proof=package(tmp_path,monkeypatch)
+        path=tmp_path/'inputs/prior-round1'/file;data=read(path);data[field]=value;put(path,data)
+        rebind_prior(tmp_path,entry,authority)
+&gt;       with pytest.raises(ValueError,match='[Pp]redecessor'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+code\test_round2_predecessor.py:73: Failed</failure></testcase><testcase classname="code.test_round2_predecessor" name="test_ineligible_predecessor_rejected_even_when_new_package_is_resealed[review.json-facts_verdict-FAIL]" time="0.105"><failure message="Failed: DID NOT RAISE ValueError">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-source13-round2-20261106/verification/tmp-predecessor-red/test_ineligible_predecessor_re8')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000001E57D22DC50&gt;
+file = 'review.json', field = 'facts_verdict', value = 'FAIL'
+
+    @pytest.mark.parametrize('file,field,value', [
+        ('terminal.json','candidate','old-candidate'),
+        ('terminal.json','case','e03-round2'),
+        ('terminal.json','overall','FAIL'),
+        ('terminal.json','mechanical','FAIL'),
+        ('terminal.json','errors',[{'stage':'cleanup','error':'failed'}]),
+        ('review.json','reviewer','root-self'),
+        ('review.json','scope','e03-round1-acceptance-package'),
+        ('review.json','candidate','old-candidate'),
+        ('review.json','facts_verdict','FAIL'),
+        ('review.json','final_claim_verdict','FAIL'),
+        ('review.json','candidate_runtime_manifest_sha256','old-runtime'),
+        ('registration.json','case_verdict','FAIL'),
+        ('registration.json','acceptance_credit',False),
+        ('registration.json','positive_passed',2),
+        ('registration.json','same_candidate_terminals',2),
+    ])
+    def test_ineligible_predecessor_rejected_even_when_new_package_is_resealed(tmp_path,monkeypatch,file,field,value):
+        entry,authority,proof=package(tmp_path,monkeypatch)
+        path=tmp_path/'inputs/prior-round1'/file;data=read(path);data[field]=value;put(path,data)
+        rebind_prior(tmp_path,entry,authority)
+&gt;       with pytest.raises(ValueError,match='[Pp]redecessor'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+code\test_round2_predecessor.py:73: Failed</failure></testcase><testcase classname="code.test_round2_predecessor" name="test_ineligible_predecessor_rejected_even_when_new_package_is_resealed[review.json-final_claim_verdict-FAIL]" time="0.068"><failure message="Failed: DID NOT RAISE ValueError">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-source13-round2-20261106/verification/tmp-predecessor-red/test_ineligible_predecessor_re9')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000001E57D1DD390&gt;
+file = 'review.json', field = 'final_claim_verdict', value = 'FAIL'
+
+    @pytest.mark.parametrize('file,field,value', [
+        ('terminal.json','candidate','old-candidate'),
+        ('terminal.json','case','e03-round2'),
+        ('terminal.json','overall','FAIL'),
+        ('terminal.json','mechanical','FAIL'),
+        ('terminal.json','errors',[{'stage':'cleanup','error':'failed'}]),
+        ('review.json','reviewer','root-self'),
+        ('review.json','scope','e03-round1-acceptance-package'),
+        ('review.json','candidate','old-candidate'),
+        ('review.json','facts_verdict','FAIL'),
+        ('review.json','final_claim_verdict','FAIL'),
+        ('review.json','candidate_runtime_manifest_sha256','old-runtime'),
+        ('registration.json','case_verdict','FAIL'),
+        ('registration.json','acceptance_credit',False),
+        ('registration.json','positive_passed',2),
+        ('registration.json','same_candidate_terminals',2),
+    ])
+    def test_ineligible_predecessor_rejected_even_when_new_package_is_resealed(tmp_path,monkeypatch,file,field,value):
+        entry,authority,proof=package(tmp_path,monkeypatch)
+        path=tmp_path/'inputs/prior-round1'/file;data=read(path);data[field]=value;put(path,data)
+        rebind_prior(tmp_path,entry,authority)
+&gt;       with pytest.raises(ValueError,match='[Pp]redecessor'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+code\test_round2_predecessor.py:73: Failed</failure></testcase><testcase classname="code.test_round2_predecessor" name="test_ineligible_predecessor_rejected_even_when_new_package_is_resealed[review.json-candidate_runtime_manifest_sha256-old-runtime]" time="0.064"><failure message="Failed: DID NOT RAISE ValueError">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-source13-round2-20261106/verification/tmp-predecessor-red/test_ineligible_predecessor_re10')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000001E57DBA5090&gt;
+file = 'review.json', field = 'candidate_runtime_manifest_sha256'
+value = 'old-runtime'
+
+    @pytest.mark.parametrize('file,field,value', [
+        ('terminal.json','candidate','old-candidate'),
+        ('terminal.json','case','e03-round2'),
+        ('terminal.json','overall','FAIL'),
+        ('terminal.json','mechanical','FAIL'),
+        ('terminal.json','errors',[{'stage':'cleanup','error':'failed'}]),
+        ('review.json','reviewer','root-self'),
+        ('review.json','scope','e03-round1-acceptance-package'),
+        ('review.json','candidate','old-candidate'),
+        ('review.json','facts_verdict','FAIL'),
+        ('review.json','final_claim_verdict','FAIL'),
+        ('review.json','candidate_runtime_manifest_sha256','old-runtime'),
+        ('registration.json','case_verdict','FAIL'),
+        ('registration.json','acceptance_credit',False),
+        ('registration.json','positive_passed',2),
+        ('registration.json','same_candidate_terminals',2),
+    ])
+    def test_ineligible_predecessor_rejected_even_when_new_package_is_resealed(tmp_path,monkeypatch,file,field,value):
+        entry,authority,proof=package(tmp_path,monkeypatch)
+        path=tmp_path/'inputs/prior-round1'/file;data=read(path);data[field]=value;put(path,data)
+        rebind_prior(tmp_path,entry,authority)
+&gt;       with pytest.raises(ValueError,match='[Pp]redecessor'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+code\test_round2_predecessor.py:73: Failed</failure></testcase><testcase classname="code.test_round2_predecessor" name="test_ineligible_predecessor_rejected_even_when_new_package_is_resealed[registration.json-case_verdict-FAIL]" time="0.057"><failure message="Failed: DID NOT RAISE ValueError">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-source13-round2-20261106/verification/tmp-predecessor-red/test_ineligible_predecessor_re11')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000001E57DB20AD0&gt;
+file = 'registration.json', field = 'case_verdict', value = 'FAIL'
+
+    @pytest.mark.parametrize('file,field,value', [
+        ('terminal.json','candidate','old-candidate'),
+        ('terminal.json','case','e03-round2'),
+        ('terminal.json','overall','FAIL'),
+        ('terminal.json','mechanical','FAIL'),
+        ('terminal.json','errors',[{'stage':'cleanup','error':'failed'}]),
+        ('review.json','reviewer','root-self'),
+        ('review.json','scope','e03-round1-acceptance-package'),
+        ('review.json','candidate','old-candidate'),
+        ('review.json','facts_verdict','FAIL'),
+        ('review.json','final_claim_verdict','FAIL'),
+        ('review.json','candidate_runtime_manifest_sha256','old-runtime'),
+        ('registration.json','case_verdict','FAIL'),
+        ('registration.json','acceptance_credit',False),
+        ('registration.json','positive_passed',2),
+        ('registration.json','same_candidate_terminals',2),
+    ])
+    def test_ineligible_predecessor_rejected_even_when_new_package_is_resealed(tmp_path,monkeypatch,file,field,value):
+        entry,authority,proof=package(tmp_path,monkeypatch)
+        path=tmp_path/'inputs/prior-round1'/file;data=read(path);data[field]=value;put(path,data)
+        rebind_prior(tmp_path,entry,authority)
+&gt;       with pytest.raises(ValueError,match='[Pp]redecessor'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+code\test_round2_predecessor.py:73: Failed</failure></testcase><testcase classname="code.test_round2_predecessor" name="test_ineligible_predecessor_rejected_even_when_new_package_is_resealed[registration.json-acceptance_credit-False]" time="0.059"><failure message="Failed: DID NOT RAISE ValueError">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-source13-round2-20261106/verification/tmp-predecessor-red/test_ineligible_predecessor_re12')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000001E57DB21610&gt;
+file = 'registration.json', field = 'acceptance_credit', value = False
+
+    @pytest.mark.parametrize('file,field,value', [
+        ('terminal.json','candidate','old-candidate'),
+        ('terminal.json','case','e03-round2'),
+        ('terminal.json','overall','FAIL'),
+        ('terminal.json','mechanical','FAIL'),
+        ('terminal.json','errors',[{'stage':'cleanup','error':'failed'}]),
+        ('review.json','reviewer','root-self'),
+        ('review.json','scope','e03-round1-acceptance-package'),
+        ('review.json','candidate','old-candidate'),
+        ('review.json','facts_verdict','FAIL'),
+        ('review.json','final_claim_verdict','FAIL'),
+        ('review.json','candidate_runtime_manifest_sha256','old-runtime'),
+        ('registration.json','case_verdict','FAIL'),
+        ('registration.json','acceptance_credit',False),
+        ('registration.json','positive_passed',2),
+        ('registration.json','same_candidate_terminals',2),
+    ])
+    def test_ineligible_predecessor_rejected_even_when_new_package_is_resealed(tmp_path,monkeypatch,file,field,value):
+        entry,authority,proof=package(tmp_path,monkeypatch)
+        path=tmp_path/'inputs/prior-round1'/file;data=read(path);data[field]=value;put(path,data)
+        rebind_prior(tmp_path,entry,authority)
+&gt;       with pytest.raises(ValueError,match='[Pp]redecessor'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+code\test_round2_predecessor.py:73: Failed</failure></testcase><testcase classname="code.test_round2_predecessor" name="test_ineligible_predecessor_rejected_even_when_new_package_is_resealed[registration.json-positive_passed-2]" time="0.063"><failure message="Failed: DID NOT RAISE ValueError">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-source13-round2-20261106/verification/tmp-predecessor-red/test_ineligible_predecessor_re13')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000001E57DB39650&gt;
+file = 'registration.json', field = 'positive_passed', value = 2
+
+    @pytest.mark.parametrize('file,field,value', [
+        ('terminal.json','candidate','old-candidate'),
+        ('terminal.json','case','e03-round2'),
+        ('terminal.json','overall','FAIL'),
+        ('terminal.json','mechanical','FAIL'),
+        ('terminal.json','errors',[{'stage':'cleanup','error':'failed'}]),
+        ('review.json','reviewer','root-self'),
+        ('review.json','scope','e03-round1-acceptance-package'),
+        ('review.json','candidate','old-candidate'),
+        ('review.json','facts_verdict','FAIL'),
+        ('review.json','final_claim_verdict','FAIL'),
+        ('review.json','candidate_runtime_manifest_sha256','old-runtime'),
+        ('registration.json','case_verdict','FAIL'),
+        ('registration.json','acceptance_credit',False),
+        ('registration.json','positive_passed',2),
+        ('registration.json','same_candidate_terminals',2),
+    ])
+    def test_ineligible_predecessor_rejected_even_when_new_package_is_resealed(tmp_path,monkeypatch,file,field,value):
+        entry,authority,proof=package(tmp_path,monkeypatch)
+        path=tmp_path/'inputs/prior-round1'/file;data=read(path);data[field]=value;put(path,data)
+        rebind_prior(tmp_path,entry,authority)
+&gt;       with pytest.raises(ValueError,match='[Pp]redecessor'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+code\test_round2_predecessor.py:73: Failed</failure></testcase><testcase classname="code.test_round2_predecessor" name="test_ineligible_predecessor_rejected_even_when_new_package_is_resealed[registration.json-same_candidate_terminals-2]" time="0.061"><failure message="Failed: DID NOT RAISE ValueError">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-source13-round2-20261106/verification/tmp-predecessor-red/test_ineligible_predecessor_re14')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000001E57DB39700&gt;
+file = 'registration.json', field = 'same_candidate_terminals', value = 2
+
+    @pytest.mark.parametrize('file,field,value', [
+        ('terminal.json','candidate','old-candidate'),
+        ('terminal.json','case','e03-round2'),
+        ('terminal.json','overall','FAIL'),
+        ('terminal.json','mechanical','FAIL'),
+        ('terminal.json','errors',[{'stage':'cleanup','error':'failed'}]),
+        ('review.json','reviewer','root-self'),
+        ('review.json','scope','e03-round1-acceptance-package'),
+        ('review.json','candidate','old-candidate'),
+        ('review.json','facts_verdict','FAIL'),
+        ('review.json','final_claim_verdict','FAIL'),
+        ('review.json','candidate_runtime_manifest_sha256','old-runtime'),
+        ('registration.json','case_verdict','FAIL'),
+        ('registration.json','acceptance_credit',False),
+        ('registration.json','positive_passed',2),
+        ('registration.json','same_candidate_terminals',2),
+    ])
+    def test_ineligible_predecessor_rejected_even_when_new_package_is_resealed(tmp_path,monkeypatch,file,field,value):
+        entry,authority,proof=package(tmp_path,monkeypatch)
+        path=tmp_path/'inputs/prior-round1'/file;data=read(path);data[field]=value;put(path,data)
+        rebind_prior(tmp_path,entry,authority)
+&gt;       with pytest.raises(ValueError,match='[Pp]redecessor'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+code\test_round2_predecessor.py:73: Failed</failure></testcase><testcase classname="code.test_round2_predecessor" name="test_predecessor_dependency_cannot_be_omitted_from_new_seal[terminal.json]" time="0.043"><failure message="Failed: DID NOT RAISE ValueError">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-source13-round2-20261106/verification/tmp-predecessor-red/test_predecessor_dependency_ca0')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000001E57DA99EF0&gt;
+file = 'terminal.json'
+
+    @pytest.mark.parametrize('file',['terminal.json','review.json','registration.json'])
+    def test_predecessor_dependency_cannot_be_omitted_from_new_seal(tmp_path,monkeypatch,file):
+        entry,authority,proof=package(tmp_path,monkeypatch)
+        path='inputs/prior-round1/'+file
+        manifest=read(tmp_path/'manifest.json');manifest['files']=[r for r in manifest['files'] if r['path']!=path]
+        put(tmp_path/'manifest.json',manifest)
+&gt;       with pytest.raises(ValueError,match='[Rr]untime dependency'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+code\test_round2_predecessor.py:86: Failed</failure></testcase><testcase classname="code.test_round2_predecessor" name="test_predecessor_dependency_cannot_be_omitted_from_new_seal[review.json]" time="0.043"><failure message="Failed: DID NOT RAISE ValueError">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-source13-round2-20261106/verification/tmp-predecessor-red/test_predecessor_dependency_ca1')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000001E57DA9A3F0&gt;
+file = 'review.json'
+
+    @pytest.mark.parametrize('file',['terminal.json','review.json','registration.json'])
+    def test_predecessor_dependency_cannot_be_omitted_from_new_seal(tmp_path,monkeypatch,file):
+        entry,authority,proof=package(tmp_path,monkeypatch)
+        path='inputs/prior-round1/'+file
+        manifest=read(tmp_path/'manifest.json');manifest['files']=[r for r in manifest['files'] if r['path']!=path]
+        put(tmp_path/'manifest.json',manifest)
+&gt;       with pytest.raises(ValueError,match='[Rr]untime dependency'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+code\test_round2_predecessor.py:86: Failed</failure></testcase><testcase classname="code.test_round2_predecessor" name="test_predecessor_dependency_cannot_be_omitted_from_new_seal[registration.json]" time="0.043"><failure message="Failed: DID NOT RAISE ValueError">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-source13-round2-20261106/verification/tmp-predecessor-red/test_predecessor_dependency_ca2')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000001E57DBB6600&gt;
+file = 'registration.json'
+
+    @pytest.mark.parametrize('file',['terminal.json','review.json','registration.json'])
+    def test_predecessor_dependency_cannot_be_omitted_from_new_seal(tmp_path,monkeypatch,file):
+        entry,authority,proof=package(tmp_path,monkeypatch)
+        path='inputs/prior-round1/'+file
+        manifest=read(tmp_path/'manifest.json');manifest['files']=[r for r in manifest['files'] if r['path']!=path]
+        put(tmp_path/'manifest.json',manifest)
+&gt;       with pytest.raises(ValueError,match='[Rr]untime dependency'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+code\test_round2_predecessor.py:86: Failed</failure></testcase><testcase classname="code.test_round2_predecessor" name="test_authority_requires_exact_predecessor_receipts[terminal_sha256]" time="0.045" /><testcase classname="code.test_round2_predecessor" name="test_authority_requires_exact_predecessor_receipts[review_sha256]" time="0.046" /><testcase classname="code.test_round2_predecessor" name="test_authority_requires_exact_predecessor_receipts[registration_sha256]" time="0.041" /><testcase classname="code.test_round2_predecessor" name="test_prior_round1_authority_does_not_allocate_round2" time="0.041"><failure message="AttributeError: 'NoneType' object has no attribute 'inspect'">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-source13-round2-20261106/verification/tmp-predecessor-red/test_prior_round1_authority_do0')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000001E57DAA2EB0&gt;
+
+    def test_prior_round1_authority_does_not_allocate_round2(tmp_path,monkeypatch):
+        entry,authority,proof=package(tmp_path,monkeypatch)
+        authority.update(case='e03-round1',scope='e03-round1-acceptance',prior_reviews=[])
+        put(tmp_path/'release/authority.json',authority)
+        made=[]
+&gt;       with pytest.raises(ValueError):entry.run_once(tmp_path,backend_factory=lambda root:made.append(root))
+                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+code\test_round2_predecessor.py:104: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+root = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-source13-round2-20261106/verification/tmp-predecessor-red/test_prior_round1_authority_do0')
+backend_factory = &lt;function test_prior_round1_authority_does_not_allocate_round2.&lt;locals&gt;.&lt;lambda&gt; at 0x000001E57DA9B100&gt;
+
+    def run_once(root, *, backend_factory=None):
+        root = safe_path(root)
+        admission = validate_release(root, utcnow())
+        backend = make_backend(root, backend_factory)
+&gt;       assert_same_live(admission['proof'], backend.inspect())
+                                             ^^^^^^^^^^^^^^^
+E       AttributeError: 'NoneType' object has no attribute 'inspect'
+
+code\acceptance_entry.py:163: AttributeError</failure></testcase></testsuite></testsuites>

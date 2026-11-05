@@ -1,0 +1,361 @@
+--- parent/code/acceptance_entry.py
++++ code/acceptance_entry.py
+@@ -1,4 +1,4 @@
+-"""One reviewed E03 round1 entry; no default release or self-approved facts."""
++"""One reviewed E03 round2 entry, bound to one independently passed predecessor."""
+ from __future__ import annotations
+ 
+ import argparse
+@@ -15,14 +15,16 @@
+ CANDIDATE_MANIFEST = '957669cb3463eab549df80f0b8fc6345c244daa2f613925abe8622d0aab3d9d3'
+ MODEL = 'qwen3-8b-uncensored'
+ DIGEST = '6d7230a923426bc1933879eb08a7dafc18e5fc0e7606c459ce98f16e0c7f9330'
+-CASE = 'e03-round1'
+-SCOPE = 'e03-round1-acceptance'
++CASE = 'e03-round2'
++SCOPE = 'e03-round2-acceptance'
+ PYTHON = Path(r'H:\UltimaAI\UltimaAgent\tools\venv-openjarvis\Scripts\python.exe')
+ RUNTIME_FILES = {'code/acceptance_entry.py', 'code/acceptance_backend.py', 'code/package_io.py',
+                  'code/fixture_manual_start.py',
+                  'code/controller.py', 'code/fixture_adapter.py', 'code/fixture_input_origin.py',
+                  'code/source_candidate_guard.py', 'preparation-support/acceptance_adapter.py',
+-                 'inputs/protected-baseline.json', 'inputs/candidate-runtime-manifest.json'}
++                 'inputs/protected-baseline.json', 'inputs/candidate-runtime-manifest.json',
++                 'inputs/prior-round1/terminal.json', 'inputs/prior-round1/review.json',
++                 'inputs/prior-round1/registration.json'}
+ AUTH_FIELDS = {'schema', 'issuer', 'scope', 'case', 'candidate', 'candidate_manifest_sha256',
+                'model', 'digest', 'manifest_sha256', 'review_sha256', 'proof_path', 'proof_sha256',
+                'case_cap', 'product_cli_cap', 'audio_actions', 'retry_authorized', 'acceptance_credit',
+@@ -45,6 +47,46 @@
+     issued, expires = timestamp(authority['issued_at']), timestamp(authority['expires_at'])
+     require(issued <= now < expires and 0 < (expires-issued).total_seconds() <= 120, 'Expired or expanded admission')
+     require(0 <= (now-timestamp(proof['recorded_at'])).total_seconds() <= 60, 'Stale or future native proof')
++
++
++def predecessor_review(root):
++    terminal_path = child(root, 'inputs/prior-round1/terminal.json')
++    review_path = child(root, 'inputs/prior-round1/review.json')
++    registration_path = child(root, 'inputs/prior-round1/registration.json')
++    terminal, review, registration = (load(path) for path in (terminal_path, review_path, registration_path))
++    require(all(row.get('case') == 'e03-round1' and row.get('candidate') == HEAD
++                for row in (terminal, review, registration)), 'Predecessor case/candidate mismatch')
++    require(terminal.get('scope') == 'e03-round1-acceptance'
++            and terminal.get('overall') == 'PENDING_FACT_REVIEW'
++            and terminal.get('mechanical') == 'PASS'
++            and terminal.get('facts') == 'PENDING_ROOT_INDEPENDENT_REVIEW'
++            and terminal.get('acceptance_credit') is False and terminal.get('errors') == []
++            and type(terminal.get('work_cli_count')) is int and terminal['work_cli_count'] == 1
++            and all(terminal.get(key, {}).get('status') == 'PASS' for key in ('cleanup', 'audit', 'boundaries')),
++            'Predecessor raw terminal not eligible')
++    require(review.get('reviewer') == 'root-independent' and review.get('scope') == 'e03-round1-result-review'
++            and all(review.get(key) == 'PASS' for key in ('evidence_verdict', 'case_verdict', 'mechanical_verdict',
++                    'facts_verdict', 'target_verdict', 'file_verdict', 'final_claim_verdict', 'cleanup_verdict'))
++            and review.get('candidate_runtime_manifest_sha256') == CANDIDATE_MANIFEST
++            and review.get('preparation_manifest_sha256') == terminal.get('package_manifest_sha256')
++            and review.get('product_result_sha256') == terminal.get('product_result_sha256'),
++            'Predecessor independent result not eligible')
++    execution = review.get('execution', {})
++    require(execution.get('model') == MODEL and execution.get('model_digest') == DIGEST
++            and type(execution.get('work_cli_launches')) is int and execution['work_cli_launches'] == 1
++            and execution.get('automatic_retry_recorded') is False, 'Predecessor execution mismatch')
++    terminal_hash, review_hash = sha(terminal_path), sha(review_path)
++    require(review.get('terminal_sha256') == terminal_hash
++            and registration.get('terminal_sha256') == terminal_hash
++            and registration.get('result_review_sha256') == review_hash, 'Predecessor receipt hash mismatch')
++    require(all(registration.get(key) == 'PASS' for key in ('case_verdict', 'facts', 'delivery', 'final_claim'))
++            and registration.get('acceptance_credit') is True and registration.get('negative_passed') is False
++            and all(type(registration.get(key)) is int and registration[key] == value for key, value in
++                    (('E03_credit', 1), ('same_candidate_terminals', 1), ('cumulative_work_cli_count', 1),
++                     ('current_case_work_cli_count', 1), ('positive_passed', 1), ('positive_required', 3))),
++            'Predecessor registration not eligible')
++    return dict(case='e03-round1', candidate=HEAD, terminal_sha256=terminal_hash,
++                review_sha256=review_hash, registration_sha256=sha(registration_path))
+ 
+ 
+ def verify_package(root):
+@@ -68,6 +110,7 @@
+              for f in (root/directory).glob('*.py')}
+     require(found == {p for p in paths if p.endswith('.py') and p.split('/')[0] in ('code', 'preparation-support')},
+             'Unsealed Python module')
++    predecessor_review(root)
+     return sha(root/'manifest.json')
+ 
+ 
+@@ -76,7 +119,7 @@
+     path = child(root, 'release/independent-review.json')
+     review = load(path)
+     require(review.get('reviewer') == 'root-independent' and review.get('verdict') == 'PASS'
+-            and review.get('scope') == 'e03-round1-acceptance-package'
++            and review.get('scope') == SCOPE + '-package'
+             and review.get('manifest_sha256') == digest and review.get('candidate') == HEAD,
+             'Matching independent package review required')
+     return digest, sha(path)
+@@ -106,14 +149,14 @@
+     manifest_hash, review_hash = reviewed_package(root)
+     authority = load(child(root, 'release/authority.json'))
+     require(set(authority) == AUTH_FIELDS and authority['schema'] == 1 and authority['issuer'] == 'root', 'Authority fields invalid')
+-    require(authority['scope'] == SCOPE and authority['case'] == CASE, 'Only original round1 scope allowed')
++    require(authority['scope'] == SCOPE and authority['case'] == CASE, 'Only original round2 scope allowed')
+     require(authority['candidate'] == HEAD and authority['candidate_manifest_sha256'] == CANDIDATE_MANIFEST
+             and authority['model'] == MODEL and authority['digest'] == DIGEST, 'Authority candidate/model mismatch')
+     require(authority['manifest_sha256'] == manifest_hash and authority['review_sha256'] == review_hash, 'Authority package/review mismatch')
+     require(all(type(authority[key]) is int and authority[key] == value
+                 for key, value in (('case_cap',1),('product_cli_cap',1),('audio_actions',0)))
+             and authority['retry_authorized'] is False and authority['acceptance_credit'] is False
+-            and authority['prior_reviews'] == [], 'Single round1 allocation required')
++            and authority['prior_reviews'] == [predecessor_review(root)], 'Single round2 allocation with predecessor required')
+     require(isinstance(authority['user_authorization'], str) and authority['user_authorization'].strip(), 'User authorization missing')
+     proof_path = child(root, authority['proof_path'])
+     require(proof_path.parent == root/'release/preflight' and proof_path.suffix == '.json', 'Canonical proof path required')
+@@ -123,7 +166,7 @@
+     assert_proof(root, proof)
+     folder = child(root, 'actual/' + CASE)
+     if not active and folder.exists():
+-        raise FileExistsError('Single round1 allocation already consumed')
++        raise FileExistsError('Single round2 allocation already consumed')
+     require(not active or folder.is_dir(), 'Active allocation missing')
+     names = {p.name for p in folder.parent.iterdir()} if folder.parent.exists() else set()
+     require(names == ({CASE} if active else set()), 'Unexpected actual-case state')
+--- parent/code/source_candidate_guard.py
++++ code/source_candidate_guard.py
+@@ -12,7 +12,7 @@
+ from typing import Any
+ 
+ ROOT = Path(r"C:/Users/Administrator/.codex/worktrees/jarvis-e03-source13/UltimaAgent")
+-MANIFEST = Path(r"H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-source13-runtime-fix-20261105-r1/inputs/candidate-runtime-manifest.json")
++MANIFEST = Path(r"H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-source13-round2-20261106/inputs/candidate-runtime-manifest.json")
+ EXPECTED_MANIFEST_SHA256 = "957669cb3463eab549df80f0b8fc6345c244daa2f613925abe8622d0aab3d9d3"
+ EXPECTED_CANDIDATE = "269aca511d88412dbb9c15d23911138469a37aa2"
+ EXPECTED_BRANCH = "codex/jarvis-work-source13-runtime-failure"
+--- parent/code/test_acceptance_backend.py
++++ code/test_acceptance_backend.py
+@@ -111,7 +111,7 @@
+ 
+ 
+ def start(native,tmp_path):
+-    native.inspect();folder=tmp_path/'actual/e03-round1';folder.mkdir(parents=True);native.start(folder)
++    native.inspect();folder=tmp_path/'actual/e03-round2';folder.mkdir(parents=True);native.start(folder)
+ 
+ 
+ def test_original_fixture_server_cli_path_and_final_revalidation_order(tmp_path):
+@@ -128,7 +128,7 @@
+     assert cli[-1]=='original fixed request'
+     assert calls.index(('revalidate',))<calls.index(('activate',))<calls.index(('observe','dispatch-baseline'))<calls.index(('admit-cli',))<calls.index(launches[-1])
+     assert ('wait',315) in calls and ('reconcile',) in calls and native.cli_count==1
+-    argv=json.loads((tmp_path/'actual/e03-round1/argv.json').read_text(encoding='utf-8'))
++    argv=json.loads((tmp_path/'actual/e03-round2/argv.json').read_text(encoding='utf-8'))
+     assert (argv['CLI_timeout'],argv['SDK_timeout'],argv['controller_wait'])==(300,1800,315)
+ 
+ 
+@@ -157,7 +157,7 @@
+ 
+ 
+ def test_uninspected_backend_cannot_start_fixture(tmp_path):
+-    native,calls=backend(tmp_path);folder=tmp_path/'actual/e03-round1';folder.mkdir(parents=True)
++    native,calls=backend(tmp_path);folder=tmp_path/'actual/e03-round2';folder.mkdir(parents=True)
+     with pytest.raises(ValueError,match='preflight'):native.start(folder)
+     assert calls==[]
+ 
+@@ -165,7 +165,7 @@
+ @pytest.mark.parametrize('fault',['missing','pid','window','keyboard','automatic'])
+ def test_invalid_operator_handoff_refuses_before_baseline_or_product(tmp_path,fault):
+     native,calls=backend(tmp_path);native.inspect()
+-    folder=tmp_path/'actual/e03-round1';folder.mkdir(parents=True)
++    folder=tmp_path/'actual/e03-round2';folder.mkdir(parents=True)
+     def ready(predicate,seconds):
+         value=predicate();path=folder/'manual-start.json'
+         if fault=='missing':path.unlink()
+--- parent/code/test_acceptance_entry.py
++++ code/test_acceptance_entry.py
+@@ -13,6 +13,38 @@
+ def put(path, value):
+     path.parent.mkdir(parents=True, exist_ok=True)
+     path.write_text(json.dumps(value), encoding='utf-8')
++
++
++def prior_material(tmp_path, entry):
++    paths = {'terminal':'inputs/prior-round1/terminal.json',
++             'review':'inputs/prior-round1/review.json',
++             'registration':'inputs/prior-round1/registration.json'}
++    terminal = dict(case='e03-round1', candidate=entry.HEAD, scope='e03-round1-acceptance',
++                    overall='PENDING_FACT_REVIEW', mechanical='PASS', facts='PENDING_ROOT_INDEPENDENT_REVIEW',
++                    acceptance_credit=False, work_cli_count=1, errors=[],
++                    package_manifest_sha256='c'*64, product_result_sha256='d'*64,
++                    cleanup={'status':'PASS'}, audit={'status':'PASS'}, boundaries={'status':'PASS'})
++    put(tmp_path/paths['terminal'], terminal)
++    review = dict(reviewer='root-independent', scope='e03-round1-result-review', case='e03-round1',
++                  candidate=entry.HEAD, candidate_runtime_manifest_sha256=entry.CANDIDATE_MANIFEST,
++                  preparation_manifest_sha256='c'*64, product_result_sha256='d'*64,
++                  terminal_sha256=entry.sha(tmp_path/paths['terminal']),
++                  execution=dict(model=entry.MODEL, model_digest=entry.DIGEST, work_cli_launches=1,
++                                 automatic_retry_recorded=False),
++                  **{k:'PASS' for k in ('evidence_verdict','case_verdict','mechanical_verdict','facts_verdict',
++                                       'target_verdict','file_verdict','final_claim_verdict','cleanup_verdict')})
++    put(tmp_path/paths['review'], review)
++    registration = dict(case='e03-round1',candidate=entry.HEAD,terminal_sha256=entry.sha(tmp_path/paths['terminal']),
++                        result_review_sha256=entry.sha(tmp_path/paths['review']),case_verdict='PASS',facts='PASS',
++                        delivery='PASS',final_claim='PASS',acceptance_credit=True,E03_credit=1,
++                        same_candidate_terminals=1,cumulative_work_cli_count=1,current_case_work_cli_count=1,
++                        positive_passed=1,positive_required=3,negative_passed=False)
++    put(tmp_path/paths['registration'], registration)
++    binding = dict(case='e03-round1',candidate=entry.HEAD,
++                   terminal_sha256=entry.sha(tmp_path/paths['terminal']),
++                   review_sha256=entry.sha(tmp_path/paths['review']),
++                   registration_sha256=entry.sha(tmp_path/paths['registration']))
++    return set(paths.values()), [binding]
+ 
+ 
+ def package(tmp_path, monkeypatch):
+@@ -24,14 +56,15 @@
+         path=tmp_path/name; path.parent.mkdir(parents=True, exist_ok=True)
+         path.write_text('# sealed test dependency\n', encoding='utf-8')
+     put(tmp_path/'inputs/protected-baseline.json', {'protected5':rows[:5], 'protected_listener_pair':rows[5:]})
++    prior_paths, prior_reviews = prior_material(tmp_path, entry)
+     manifest=dict(schema=1, scope=entry.SCOPE, case=entry.CASE, package_root=str(tmp_path),
+                   candidate=entry.HEAD, candidate_manifest_sha256=entry.CANDIDATE_MANIFEST,
+                   python_executable=str(entry.PYTHON), model=entry.MODEL, digest=entry.DIGEST,
+                   case_cap=1, retry_authorized=False,
+                   files=[dict(path=name, bytes=(tmp_path/name).stat().st_size,
+-                              sha256=entry.sha(tmp_path/name)) for name in sorted(entry.RUNTIME_FILES)])
++                              sha256=entry.sha(tmp_path/name)) for name in sorted(entry.RUNTIME_FILES | prior_paths)])
+     put(tmp_path/'manifest.json', manifest)
+-    review=dict(reviewer='root-independent', verdict='PASS', scope='e03-round1-acceptance-package',
++    review=dict(reviewer='root-independent', verdict='PASS', scope=entry.SCOPE+'-package',
+                 manifest_sha256=entry.sha(tmp_path/'manifest.json'), candidate=entry.HEAD)
+     put(tmp_path/'release/independent-review.json', review)
+     proof=dict(schema=1, scope=entry.SCOPE, recorded_at=NOW.isoformat(),
+@@ -47,7 +80,7 @@
+                    review_sha256=entry.sha(tmp_path/'release/independent-review.json'),
+                    proof_path='release/preflight/test.json', proof_sha256=entry.sha(tmp_path/'release/preflight/test.json'),
+                    case_cap=1, product_cli_cap=1, audio_actions=0, retry_authorized=False,
+-                   acceptance_credit=False, prior_reviews=[], user_authorization='Explicit test-only authority',
++                   acceptance_credit=False, prior_reviews=prior_reviews, user_authorization='Explicit test-only authority',
+                    issued_at=NOW.isoformat(), expires_at=(NOW+dt.timedelta(seconds=120)).isoformat())
+     put(tmp_path/'release/authority.json', authority)
+     return entry, authority, proof
+@@ -68,7 +101,7 @@
+ 
+ 
+ @pytest.mark.parametrize('field,value', [
+-    ('scope','fixture-only-diagnostic'),('case','e03-round2'),('candidate','old'),
++    ('scope','fixture-only-diagnostic'),('case','e03-round1'),('candidate','old'),
+     ('model','qwen2.5:14b'),('digest','wrong'),('case_cap',True),('case_cap',2),
+     ('product_cli_cap',2),('audio_actions',1),('retry_authorized',True),
+     ('acceptance_credit',True),('prior_reviews',[{'case':'old-round1','verdict':'PASS'}]),
+@@ -155,7 +188,7 @@
+     assert result['overall']=='FAIL' and result['acceptance_credit'] is False
+     assert all(name in backend.calls for name in ('effects','close','audit'))
+     assert backend.calls[-1]=='inspect'
+-    assert (tmp_path/'actual/e03-round1/terminal.json').exists()
++    assert (tmp_path/'actual'/entry.CASE/'terminal.json').exists()
+     with pytest.raises(FileExistsError):entry.run_once(tmp_path,backend_factory=lambda root:backend)
+ 
+ 
+--- /dev/null
++++ code/test_round2_predecessor.py
+@@ -0,0 +1,105 @@
++import json
++
++import pytest
++
++from test_acceptance_entry import Backend, NOW, package, put
++
++
++def read(path):
++    return json.loads(path.read_text(encoding='utf-8'))
++
++
++def reseal(root, entry, authority):
++    manifest = read(root/'manifest.json')
++    for row in manifest['files']:
++        row.update(bytes=(root/row['path']).stat().st_size, sha256=entry.sha(root/row['path']))
++    put(root/'manifest.json', manifest)
++    review = read(root/'release/independent-review.json')
++    review['manifest_sha256'] = entry.sha(root/'manifest.json')
++    put(root/'release/independent-review.json', review)
++    authority.update(manifest_sha256=entry.sha(root/'manifest.json'),
++                     review_sha256=entry.sha(root/'release/independent-review.json'))
++    put(root/'release/authority.json', authority)
++
++
++def rebind_prior(root, entry, authority):
++    folder = root/'inputs/prior-round1'
++    review = read(folder/'review.json')
++    review['terminal_sha256'] = entry.sha(folder/'terminal.json')
++    put(folder/'review.json', review)
++    registration = read(folder/'registration.json')
++    registration.update(terminal_sha256=entry.sha(folder/'terminal.json'),
++                        result_review_sha256=entry.sha(folder/'review.json'))
++    put(folder/'registration.json', registration)
++    authority['prior_reviews'] = [dict(case='e03-round1',candidate=entry.HEAD,
++        terminal_sha256=entry.sha(folder/'terminal.json'),review_sha256=entry.sha(folder/'review.json'),
++        registration_sha256=entry.sha(folder/'registration.json'))]
++    reseal(root,entry,authority)
++
++
++def test_round2_admits_one_matching_predecessor_and_keeps_new_facts_pending(tmp_path,monkeypatch):
++    entry,authority,proof = package(tmp_path,monkeypatch)
++    assert entry.CASE == 'e03-round2' and entry.SCOPE == 'e03-round2-acceptance'
++    backend = Backend(tmp_path,proof)
++    result = entry.run_once(tmp_path,backend_factory=lambda root:backend)
++    assert result['case']=='e03-round2' and result['work_cli_count']==1
++    assert result['facts']=='PENDING_ROOT_INDEPENDENT_REVIEW' and result['acceptance_credit'] is False
++    assert not (tmp_path/'actual/e03-round1').exists()
++    assert (tmp_path/'actual/e03-round2/terminal.json').is_file()
++    assert len(authority['prior_reviews'])==1
++
++
++@pytest.mark.parametrize('file,field,value', [
++    ('terminal.json','candidate','old-candidate'),
++    ('terminal.json','case','e03-round2'),
++    ('terminal.json','overall','FAIL'),
++    ('terminal.json','mechanical','FAIL'),
++    ('terminal.json','errors',[{'stage':'cleanup','error':'failed'}]),
++    ('review.json','reviewer','root-self'),
++    ('review.json','scope','e03-round1-acceptance-package'),
++    ('review.json','candidate','old-candidate'),
++    ('review.json','facts_verdict','FAIL'),
++    ('review.json','final_claim_verdict','FAIL'),
++    ('review.json','candidate_runtime_manifest_sha256','old-runtime'),
++    ('registration.json','case_verdict','FAIL'),
++    ('registration.json','acceptance_credit',False),
++    ('registration.json','positive_passed',2),
++    ('registration.json','same_candidate_terminals',2),
++])
++def test_ineligible_predecessor_rejected_even_when_new_package_is_resealed(tmp_path,monkeypatch,file,field,value):
++    entry,authority,proof=package(tmp_path,monkeypatch)
++    path=tmp_path/'inputs/prior-round1'/file;data=read(path);data[field]=value;put(path,data)
++    rebind_prior(tmp_path,entry,authority)
++    with pytest.raises(ValueError,match='[Pp]redecessor'):
++        entry.verify_package(tmp_path)
++    made=[]
++    with pytest.raises(ValueError):entry.run_once(tmp_path,backend_factory=lambda root:made.append(root))
++    assert made==[] and not (tmp_path/'actual').exists()
++
++
++@pytest.mark.parametrize('file',['terminal.json','review.json','registration.json'])
++def test_predecessor_dependency_cannot_be_omitted_from_new_seal(tmp_path,monkeypatch,file):
++    entry,authority,proof=package(tmp_path,monkeypatch)
++    path='inputs/prior-round1/'+file
++    manifest=read(tmp_path/'manifest.json');manifest['files']=[r for r in manifest['files'] if r['path']!=path]
++    put(tmp_path/'manifest.json',manifest)
++    with pytest.raises(ValueError,match='[Rr]untime dependency'):
++        entry.verify_package(tmp_path)
++
++
++@pytest.mark.parametrize('field',['terminal_sha256','review_sha256','registration_sha256'])
++def test_authority_requires_exact_predecessor_receipts(tmp_path,monkeypatch,field):
++    entry,authority,proof=package(tmp_path,monkeypatch)
++    authority['prior_reviews'][0][field]='0'*64;put(tmp_path/'release/authority.json',authority)
++    made=[]
++    with pytest.raises(ValueError):entry.run_once(tmp_path,backend_factory=lambda root:made.append(root))
++    assert not made and not (tmp_path/'actual').exists()
++
++
++def test_prior_round1_authority_does_not_allocate_round2(tmp_path,monkeypatch):
++    entry,authority,proof=package(tmp_path,monkeypatch)
++    authority.update(case='e03-round1',scope='e03-round1-acceptance',prior_reviews=[])
++    put(tmp_path/'release/authority.json',authority)
++    made=[]
++    with pytest.raises(ValueError):entry.run_once(tmp_path,backend_factory=lambda root:made.append(root))
++    assert not made and not (tmp_path/'actual').exists()

@@ -1,0 +1,601 @@
+FFFFFFFFFFFFFFFFFFF...F                                                  [100%]
+================================== FAILURES ===================================
+___ test_round2_admits_one_matching_predecessor_and_keeps_new_facts_pending ___
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-source13-round2-20261106/verification/tmp-predecessor-red/test_round2_admits_one_matchin0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001E57D17A190>
+
+    def test_round2_admits_one_matching_predecessor_and_keeps_new_facts_pending(tmp_path,monkeypatch):
+        entry,authority,proof = package(tmp_path,monkeypatch)
+>       assert entry.CASE == 'e03-round2' and entry.SCOPE == 'e03-round2-acceptance'
+E       AssertionError: assert ('e03-round1' == 'e03-round2'
+E         
+E         - e03-round2
+E         ?          ^
+E         + e03-round1
+E         ?          ^)
+
+code\test_round2_predecessor.py:42: AssertionError
+_ test_ineligible_predecessor_rejected_even_when_new_package_is_resealed[terminal.json-candidate-old-candidate] _
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-source13-round2-20261106/verification/tmp-predecessor-red/test_ineligible_predecessor_re0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001E57D17AB10>
+file = 'terminal.json', field = 'candidate', value = 'old-candidate'
+
+    @pytest.mark.parametrize('file,field,value', [
+        ('terminal.json','candidate','old-candidate'),
+        ('terminal.json','case','e03-round2'),
+        ('terminal.json','overall','FAIL'),
+        ('terminal.json','mechanical','FAIL'),
+        ('terminal.json','errors',[{'stage':'cleanup','error':'failed'}]),
+        ('review.json','reviewer','root-self'),
+        ('review.json','scope','e03-round1-acceptance-package'),
+        ('review.json','candidate','old-candidate'),
+        ('review.json','facts_verdict','FAIL'),
+        ('review.json','final_claim_verdict','FAIL'),
+        ('review.json','candidate_runtime_manifest_sha256','old-runtime'),
+        ('registration.json','case_verdict','FAIL'),
+        ('registration.json','acceptance_credit',False),
+        ('registration.json','positive_passed',2),
+        ('registration.json','same_candidate_terminals',2),
+    ])
+    def test_ineligible_predecessor_rejected_even_when_new_package_is_resealed(tmp_path,monkeypatch,file,field,value):
+        entry,authority,proof=package(tmp_path,monkeypatch)
+        path=tmp_path/'inputs/prior-round1'/file;data=read(path);data[field]=value;put(path,data)
+        rebind_prior(tmp_path,entry,authority)
+>       with pytest.raises(ValueError,match='[Pp]redecessor'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+code\test_round2_predecessor.py:73: Failed
+_ test_ineligible_predecessor_rejected_even_when_new_package_is_resealed[terminal.json-case-e03-round2] _
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-source13-round2-20261106/verification/tmp-predecessor-red/test_ineligible_predecessor_re1')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001E57D219910>
+file = 'terminal.json', field = 'case', value = 'e03-round2'
+
+    @pytest.mark.parametrize('file,field,value', [
+        ('terminal.json','candidate','old-candidate'),
+        ('terminal.json','case','e03-round2'),
+        ('terminal.json','overall','FAIL'),
+        ('terminal.json','mechanical','FAIL'),
+        ('terminal.json','errors',[{'stage':'cleanup','error':'failed'}]),
+        ('review.json','reviewer','root-self'),
+        ('review.json','scope','e03-round1-acceptance-package'),
+        ('review.json','candidate','old-candidate'),
+        ('review.json','facts_verdict','FAIL'),
+        ('review.json','final_claim_verdict','FAIL'),
+        ('review.json','candidate_runtime_manifest_sha256','old-runtime'),
+        ('registration.json','case_verdict','FAIL'),
+        ('registration.json','acceptance_credit',False),
+        ('registration.json','positive_passed',2),
+        ('registration.json','same_candidate_terminals',2),
+    ])
+    def test_ineligible_predecessor_rejected_even_when_new_package_is_resealed(tmp_path,monkeypatch,file,field,value):
+        entry,authority,proof=package(tmp_path,monkeypatch)
+        path=tmp_path/'inputs/prior-round1'/file;data=read(path);data[field]=value;put(path,data)
+        rebind_prior(tmp_path,entry,authority)
+>       with pytest.raises(ValueError,match='[Pp]redecessor'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+code\test_round2_predecessor.py:73: Failed
+_ test_ineligible_predecessor_rejected_even_when_new_package_is_resealed[terminal.json-overall-FAIL] _
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-source13-round2-20261106/verification/tmp-predecessor-red/test_ineligible_predecessor_re2')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001E57D15AAD0>
+file = 'terminal.json', field = 'overall', value = 'FAIL'
+
+    @pytest.mark.parametrize('file,field,value', [
+        ('terminal.json','candidate','old-candidate'),
+        ('terminal.json','case','e03-round2'),
+        ('terminal.json','overall','FAIL'),
+        ('terminal.json','mechanical','FAIL'),
+        ('terminal.json','errors',[{'stage':'cleanup','error':'failed'}]),
+        ('review.json','reviewer','root-self'),
+        ('review.json','scope','e03-round1-acceptance-package'),
+        ('review.json','candidate','old-candidate'),
+        ('review.json','facts_verdict','FAIL'),
+        ('review.json','final_claim_verdict','FAIL'),
+        ('review.json','candidate_runtime_manifest_sha256','old-runtime'),
+        ('registration.json','case_verdict','FAIL'),
+        ('registration.json','acceptance_credit',False),
+        ('registration.json','positive_passed',2),
+        ('registration.json','same_candidate_terminals',2),
+    ])
+    def test_ineligible_predecessor_rejected_even_when_new_package_is_resealed(tmp_path,monkeypatch,file,field,value):
+        entry,authority,proof=package(tmp_path,monkeypatch)
+        path=tmp_path/'inputs/prior-round1'/file;data=read(path);data[field]=value;put(path,data)
+        rebind_prior(tmp_path,entry,authority)
+>       with pytest.raises(ValueError,match='[Pp]redecessor'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+code\test_round2_predecessor.py:73: Failed
+_ test_ineligible_predecessor_rejected_even_when_new_package_is_resealed[terminal.json-mechanical-FAIL] _
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-source13-round2-20261106/verification/tmp-predecessor-red/test_ineligible_predecessor_re3')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001E57D15A580>
+file = 'terminal.json', field = 'mechanical', value = 'FAIL'
+
+    @pytest.mark.parametrize('file,field,value', [
+        ('terminal.json','candidate','old-candidate'),
+        ('terminal.json','case','e03-round2'),
+        ('terminal.json','overall','FAIL'),
+        ('terminal.json','mechanical','FAIL'),
+        ('terminal.json','errors',[{'stage':'cleanup','error':'failed'}]),
+        ('review.json','reviewer','root-self'),
+        ('review.json','scope','e03-round1-acceptance-package'),
+        ('review.json','candidate','old-candidate'),
+        ('review.json','facts_verdict','FAIL'),
+        ('review.json','final_claim_verdict','FAIL'),
+        ('review.json','candidate_runtime_manifest_sha256','old-runtime'),
+        ('registration.json','case_verdict','FAIL'),
+        ('registration.json','acceptance_credit',False),
+        ('registration.json','positive_passed',2),
+        ('registration.json','same_candidate_terminals',2),
+    ])
+    def test_ineligible_predecessor_rejected_even_when_new_package_is_resealed(tmp_path,monkeypatch,file,field,value):
+        entry,authority,proof=package(tmp_path,monkeypatch)
+        path=tmp_path/'inputs/prior-round1'/file;data=read(path);data[field]=value;put(path,data)
+        rebind_prior(tmp_path,entry,authority)
+>       with pytest.raises(ValueError,match='[Pp]redecessor'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+code\test_round2_predecessor.py:73: Failed
+_ test_ineligible_predecessor_rejected_even_when_new_package_is_resealed[terminal.json-errors-value4] _
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-source13-round2-20261106/verification/tmp-predecessor-red/test_ineligible_predecessor_re4')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001E57DA48450>
+file = 'terminal.json', field = 'errors'
+value = [{'stage': 'cleanup', 'error': 'failed'}]
+
+    @pytest.mark.parametrize('file,field,value', [
+        ('terminal.json','candidate','old-candidate'),
+        ('terminal.json','case','e03-round2'),
+        ('terminal.json','overall','FAIL'),
+        ('terminal.json','mechanical','FAIL'),
+        ('terminal.json','errors',[{'stage':'cleanup','error':'failed'}]),
+        ('review.json','reviewer','root-self'),
+        ('review.json','scope','e03-round1-acceptance-package'),
+        ('review.json','candidate','old-candidate'),
+        ('review.json','facts_verdict','FAIL'),
+        ('review.json','final_claim_verdict','FAIL'),
+        ('review.json','candidate_runtime_manifest_sha256','old-runtime'),
+        ('registration.json','case_verdict','FAIL'),
+        ('registration.json','acceptance_credit',False),
+        ('registration.json','positive_passed',2),
+        ('registration.json','same_candidate_terminals',2),
+    ])
+    def test_ineligible_predecessor_rejected_even_when_new_package_is_resealed(tmp_path,monkeypatch,file,field,value):
+        entry,authority,proof=package(tmp_path,monkeypatch)
+        path=tmp_path/'inputs/prior-round1'/file;data=read(path);data[field]=value;put(path,data)
+        rebind_prior(tmp_path,entry,authority)
+>       with pytest.raises(ValueError,match='[Pp]redecessor'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+code\test_round2_predecessor.py:73: Failed
+_ test_ineligible_predecessor_rejected_even_when_new_package_is_resealed[review.json-reviewer-root-self] _
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-source13-round2-20261106/verification/tmp-predecessor-red/test_ineligible_predecessor_re5')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001E57DA49150>
+file = 'review.json', field = 'reviewer', value = 'root-self'
+
+    @pytest.mark.parametrize('file,field,value', [
+        ('terminal.json','candidate','old-candidate'),
+        ('terminal.json','case','e03-round2'),
+        ('terminal.json','overall','FAIL'),
+        ('terminal.json','mechanical','FAIL'),
+        ('terminal.json','errors',[{'stage':'cleanup','error':'failed'}]),
+        ('review.json','reviewer','root-self'),
+        ('review.json','scope','e03-round1-acceptance-package'),
+        ('review.json','candidate','old-candidate'),
+        ('review.json','facts_verdict','FAIL'),
+        ('review.json','final_claim_verdict','FAIL'),
+        ('review.json','candidate_runtime_manifest_sha256','old-runtime'),
+        ('registration.json','case_verdict','FAIL'),
+        ('registration.json','acceptance_credit',False),
+        ('registration.json','positive_passed',2),
+        ('registration.json','same_candidate_terminals',2),
+    ])
+    def test_ineligible_predecessor_rejected_even_when_new_package_is_resealed(tmp_path,monkeypatch,file,field,value):
+        entry,authority,proof=package(tmp_path,monkeypatch)
+        path=tmp_path/'inputs/prior-round1'/file;data=read(path);data[field]=value;put(path,data)
+        rebind_prior(tmp_path,entry,authority)
+>       with pytest.raises(ValueError,match='[Pp]redecessor'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+code\test_round2_predecessor.py:73: Failed
+_ test_ineligible_predecessor_rejected_even_when_new_package_is_resealed[review.json-scope-e03-round1-acceptance-package] _
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-source13-round2-20261106/verification/tmp-predecessor-red/test_ineligible_predecessor_re6')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001E57D1B65D0>
+file = 'review.json', field = 'scope', value = 'e03-round1-acceptance-package'
+
+    @pytest.mark.parametrize('file,field,value', [
+        ('terminal.json','candidate','old-candidate'),
+        ('terminal.json','case','e03-round2'),
+        ('terminal.json','overall','FAIL'),
+        ('terminal.json','mechanical','FAIL'),
+        ('terminal.json','errors',[{'stage':'cleanup','error':'failed'}]),
+        ('review.json','reviewer','root-self'),
+        ('review.json','scope','e03-round1-acceptance-package'),
+        ('review.json','candidate','old-candidate'),
+        ('review.json','facts_verdict','FAIL'),
+        ('review.json','final_claim_verdict','FAIL'),
+        ('review.json','candidate_runtime_manifest_sha256','old-runtime'),
+        ('registration.json','case_verdict','FAIL'),
+        ('registration.json','acceptance_credit',False),
+        ('registration.json','positive_passed',2),
+        ('registration.json','same_candidate_terminals',2),
+    ])
+    def test_ineligible_predecessor_rejected_even_when_new_package_is_resealed(tmp_path,monkeypatch,file,field,value):
+        entry,authority,proof=package(tmp_path,monkeypatch)
+        path=tmp_path/'inputs/prior-round1'/file;data=read(path);data[field]=value;put(path,data)
+        rebind_prior(tmp_path,entry,authority)
+>       with pytest.raises(ValueError,match='[Pp]redecessor'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+code\test_round2_predecessor.py:73: Failed
+_ test_ineligible_predecessor_rejected_even_when_new_package_is_resealed[review.json-candidate-old-candidate] _
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-source13-round2-20261106/verification/tmp-predecessor-red/test_ineligible_predecessor_re7')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001E57D1B7020>
+file = 'review.json', field = 'candidate', value = 'old-candidate'
+
+    @pytest.mark.parametrize('file,field,value', [
+        ('terminal.json','candidate','old-candidate'),
+        ('terminal.json','case','e03-round2'),
+        ('terminal.json','overall','FAIL'),
+        ('terminal.json','mechanical','FAIL'),
+        ('terminal.json','errors',[{'stage':'cleanup','error':'failed'}]),
+        ('review.json','reviewer','root-self'),
+        ('review.json','scope','e03-round1-acceptance-package'),
+        ('review.json','candidate','old-candidate'),
+        ('review.json','facts_verdict','FAIL'),
+        ('review.json','final_claim_verdict','FAIL'),
+        ('review.json','candidate_runtime_manifest_sha256','old-runtime'),
+        ('registration.json','case_verdict','FAIL'),
+        ('registration.json','acceptance_credit',False),
+        ('registration.json','positive_passed',2),
+        ('registration.json','same_candidate_terminals',2),
+    ])
+    def test_ineligible_predecessor_rejected_even_when_new_package_is_resealed(tmp_path,monkeypatch,file,field,value):
+        entry,authority,proof=package(tmp_path,monkeypatch)
+        path=tmp_path/'inputs/prior-round1'/file;data=read(path);data[field]=value;put(path,data)
+        rebind_prior(tmp_path,entry,authority)
+>       with pytest.raises(ValueError,match='[Pp]redecessor'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+code\test_round2_predecessor.py:73: Failed
+_ test_ineligible_predecessor_rejected_even_when_new_package_is_resealed[review.json-facts_verdict-FAIL] _
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-source13-round2-20261106/verification/tmp-predecessor-red/test_ineligible_predecessor_re8')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001E57D22DC50>
+file = 'review.json', field = 'facts_verdict', value = 'FAIL'
+
+    @pytest.mark.parametrize('file,field,value', [
+        ('terminal.json','candidate','old-candidate'),
+        ('terminal.json','case','e03-round2'),
+        ('terminal.json','overall','FAIL'),
+        ('terminal.json','mechanical','FAIL'),
+        ('terminal.json','errors',[{'stage':'cleanup','error':'failed'}]),
+        ('review.json','reviewer','root-self'),
+        ('review.json','scope','e03-round1-acceptance-package'),
+        ('review.json','candidate','old-candidate'),
+        ('review.json','facts_verdict','FAIL'),
+        ('review.json','final_claim_verdict','FAIL'),
+        ('review.json','candidate_runtime_manifest_sha256','old-runtime'),
+        ('registration.json','case_verdict','FAIL'),
+        ('registration.json','acceptance_credit',False),
+        ('registration.json','positive_passed',2),
+        ('registration.json','same_candidate_terminals',2),
+    ])
+    def test_ineligible_predecessor_rejected_even_when_new_package_is_resealed(tmp_path,monkeypatch,file,field,value):
+        entry,authority,proof=package(tmp_path,monkeypatch)
+        path=tmp_path/'inputs/prior-round1'/file;data=read(path);data[field]=value;put(path,data)
+        rebind_prior(tmp_path,entry,authority)
+>       with pytest.raises(ValueError,match='[Pp]redecessor'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+code\test_round2_predecessor.py:73: Failed
+_ test_ineligible_predecessor_rejected_even_when_new_package_is_resealed[review.json-final_claim_verdict-FAIL] _
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-source13-round2-20261106/verification/tmp-predecessor-red/test_ineligible_predecessor_re9')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001E57D1DD390>
+file = 'review.json', field = 'final_claim_verdict', value = 'FAIL'
+
+    @pytest.mark.parametrize('file,field,value', [
+        ('terminal.json','candidate','old-candidate'),
+        ('terminal.json','case','e03-round2'),
+        ('terminal.json','overall','FAIL'),
+        ('terminal.json','mechanical','FAIL'),
+        ('terminal.json','errors',[{'stage':'cleanup','error':'failed'}]),
+        ('review.json','reviewer','root-self'),
+        ('review.json','scope','e03-round1-acceptance-package'),
+        ('review.json','candidate','old-candidate'),
+        ('review.json','facts_verdict','FAIL'),
+        ('review.json','final_claim_verdict','FAIL'),
+        ('review.json','candidate_runtime_manifest_sha256','old-runtime'),
+        ('registration.json','case_verdict','FAIL'),
+        ('registration.json','acceptance_credit',False),
+        ('registration.json','positive_passed',2),
+        ('registration.json','same_candidate_terminals',2),
+    ])
+    def test_ineligible_predecessor_rejected_even_when_new_package_is_resealed(tmp_path,monkeypatch,file,field,value):
+        entry,authority,proof=package(tmp_path,monkeypatch)
+        path=tmp_path/'inputs/prior-round1'/file;data=read(path);data[field]=value;put(path,data)
+        rebind_prior(tmp_path,entry,authority)
+>       with pytest.raises(ValueError,match='[Pp]redecessor'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+code\test_round2_predecessor.py:73: Failed
+_ test_ineligible_predecessor_rejected_even_when_new_package_is_resealed[review.json-candidate_runtime_manifest_sha256-old-runtime] _
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-source13-round2-20261106/verification/tmp-predecessor-red/test_ineligible_predecessor_re10')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001E57DBA5090>
+file = 'review.json', field = 'candidate_runtime_manifest_sha256'
+value = 'old-runtime'
+
+    @pytest.mark.parametrize('file,field,value', [
+        ('terminal.json','candidate','old-candidate'),
+        ('terminal.json','case','e03-round2'),
+        ('terminal.json','overall','FAIL'),
+        ('terminal.json','mechanical','FAIL'),
+        ('terminal.json','errors',[{'stage':'cleanup','error':'failed'}]),
+        ('review.json','reviewer','root-self'),
+        ('review.json','scope','e03-round1-acceptance-package'),
+        ('review.json','candidate','old-candidate'),
+        ('review.json','facts_verdict','FAIL'),
+        ('review.json','final_claim_verdict','FAIL'),
+        ('review.json','candidate_runtime_manifest_sha256','old-runtime'),
+        ('registration.json','case_verdict','FAIL'),
+        ('registration.json','acceptance_credit',False),
+        ('registration.json','positive_passed',2),
+        ('registration.json','same_candidate_terminals',2),
+    ])
+    def test_ineligible_predecessor_rejected_even_when_new_package_is_resealed(tmp_path,monkeypatch,file,field,value):
+        entry,authority,proof=package(tmp_path,monkeypatch)
+        path=tmp_path/'inputs/prior-round1'/file;data=read(path);data[field]=value;put(path,data)
+        rebind_prior(tmp_path,entry,authority)
+>       with pytest.raises(ValueError,match='[Pp]redecessor'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+code\test_round2_predecessor.py:73: Failed
+_ test_ineligible_predecessor_rejected_even_when_new_package_is_resealed[registration.json-case_verdict-FAIL] _
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-source13-round2-20261106/verification/tmp-predecessor-red/test_ineligible_predecessor_re11')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001E57DB20AD0>
+file = 'registration.json', field = 'case_verdict', value = 'FAIL'
+
+    @pytest.mark.parametrize('file,field,value', [
+        ('terminal.json','candidate','old-candidate'),
+        ('terminal.json','case','e03-round2'),
+        ('terminal.json','overall','FAIL'),
+        ('terminal.json','mechanical','FAIL'),
+        ('terminal.json','errors',[{'stage':'cleanup','error':'failed'}]),
+        ('review.json','reviewer','root-self'),
+        ('review.json','scope','e03-round1-acceptance-package'),
+        ('review.json','candidate','old-candidate'),
+        ('review.json','facts_verdict','FAIL'),
+        ('review.json','final_claim_verdict','FAIL'),
+        ('review.json','candidate_runtime_manifest_sha256','old-runtime'),
+        ('registration.json','case_verdict','FAIL'),
+        ('registration.json','acceptance_credit',False),
+        ('registration.json','positive_passed',2),
+        ('registration.json','same_candidate_terminals',2),
+    ])
+    def test_ineligible_predecessor_rejected_even_when_new_package_is_resealed(tmp_path,monkeypatch,file,field,value):
+        entry,authority,proof=package(tmp_path,monkeypatch)
+        path=tmp_path/'inputs/prior-round1'/file;data=read(path);data[field]=value;put(path,data)
+        rebind_prior(tmp_path,entry,authority)
+>       with pytest.raises(ValueError,match='[Pp]redecessor'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+code\test_round2_predecessor.py:73: Failed
+_ test_ineligible_predecessor_rejected_even_when_new_package_is_resealed[registration.json-acceptance_credit-False] _
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-source13-round2-20261106/verification/tmp-predecessor-red/test_ineligible_predecessor_re12')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001E57DB21610>
+file = 'registration.json', field = 'acceptance_credit', value = False
+
+    @pytest.mark.parametrize('file,field,value', [
+        ('terminal.json','candidate','old-candidate'),
+        ('terminal.json','case','e03-round2'),
+        ('terminal.json','overall','FAIL'),
+        ('terminal.json','mechanical','FAIL'),
+        ('terminal.json','errors',[{'stage':'cleanup','error':'failed'}]),
+        ('review.json','reviewer','root-self'),
+        ('review.json','scope','e03-round1-acceptance-package'),
+        ('review.json','candidate','old-candidate'),
+        ('review.json','facts_verdict','FAIL'),
+        ('review.json','final_claim_verdict','FAIL'),
+        ('review.json','candidate_runtime_manifest_sha256','old-runtime'),
+        ('registration.json','case_verdict','FAIL'),
+        ('registration.json','acceptance_credit',False),
+        ('registration.json','positive_passed',2),
+        ('registration.json','same_candidate_terminals',2),
+    ])
+    def test_ineligible_predecessor_rejected_even_when_new_package_is_resealed(tmp_path,monkeypatch,file,field,value):
+        entry,authority,proof=package(tmp_path,monkeypatch)
+        path=tmp_path/'inputs/prior-round1'/file;data=read(path);data[field]=value;put(path,data)
+        rebind_prior(tmp_path,entry,authority)
+>       with pytest.raises(ValueError,match='[Pp]redecessor'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+code\test_round2_predecessor.py:73: Failed
+_ test_ineligible_predecessor_rejected_even_when_new_package_is_resealed[registration.json-positive_passed-2] _
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-source13-round2-20261106/verification/tmp-predecessor-red/test_ineligible_predecessor_re13')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001E57DB39650>
+file = 'registration.json', field = 'positive_passed', value = 2
+
+    @pytest.mark.parametrize('file,field,value', [
+        ('terminal.json','candidate','old-candidate'),
+        ('terminal.json','case','e03-round2'),
+        ('terminal.json','overall','FAIL'),
+        ('terminal.json','mechanical','FAIL'),
+        ('terminal.json','errors',[{'stage':'cleanup','error':'failed'}]),
+        ('review.json','reviewer','root-self'),
+        ('review.json','scope','e03-round1-acceptance-package'),
+        ('review.json','candidate','old-candidate'),
+        ('review.json','facts_verdict','FAIL'),
+        ('review.json','final_claim_verdict','FAIL'),
+        ('review.json','candidate_runtime_manifest_sha256','old-runtime'),
+        ('registration.json','case_verdict','FAIL'),
+        ('registration.json','acceptance_credit',False),
+        ('registration.json','positive_passed',2),
+        ('registration.json','same_candidate_terminals',2),
+    ])
+    def test_ineligible_predecessor_rejected_even_when_new_package_is_resealed(tmp_path,monkeypatch,file,field,value):
+        entry,authority,proof=package(tmp_path,monkeypatch)
+        path=tmp_path/'inputs/prior-round1'/file;data=read(path);data[field]=value;put(path,data)
+        rebind_prior(tmp_path,entry,authority)
+>       with pytest.raises(ValueError,match='[Pp]redecessor'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+code\test_round2_predecessor.py:73: Failed
+_ test_ineligible_predecessor_rejected_even_when_new_package_is_resealed[registration.json-same_candidate_terminals-2] _
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-source13-round2-20261106/verification/tmp-predecessor-red/test_ineligible_predecessor_re14')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001E57DB39700>
+file = 'registration.json', field = 'same_candidate_terminals', value = 2
+
+    @pytest.mark.parametrize('file,field,value', [
+        ('terminal.json','candidate','old-candidate'),
+        ('terminal.json','case','e03-round2'),
+        ('terminal.json','overall','FAIL'),
+        ('terminal.json','mechanical','FAIL'),
+        ('terminal.json','errors',[{'stage':'cleanup','error':'failed'}]),
+        ('review.json','reviewer','root-self'),
+        ('review.json','scope','e03-round1-acceptance-package'),
+        ('review.json','candidate','old-candidate'),
+        ('review.json','facts_verdict','FAIL'),
+        ('review.json','final_claim_verdict','FAIL'),
+        ('review.json','candidate_runtime_manifest_sha256','old-runtime'),
+        ('registration.json','case_verdict','FAIL'),
+        ('registration.json','acceptance_credit',False),
+        ('registration.json','positive_passed',2),
+        ('registration.json','same_candidate_terminals',2),
+    ])
+    def test_ineligible_predecessor_rejected_even_when_new_package_is_resealed(tmp_path,monkeypatch,file,field,value):
+        entry,authority,proof=package(tmp_path,monkeypatch)
+        path=tmp_path/'inputs/prior-round1'/file;data=read(path);data[field]=value;put(path,data)
+        rebind_prior(tmp_path,entry,authority)
+>       with pytest.raises(ValueError,match='[Pp]redecessor'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+code\test_round2_predecessor.py:73: Failed
+_ test_predecessor_dependency_cannot_be_omitted_from_new_seal[terminal.json] __
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-source13-round2-20261106/verification/tmp-predecessor-red/test_predecessor_dependency_ca0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001E57DA99EF0>
+file = 'terminal.json'
+
+    @pytest.mark.parametrize('file',['terminal.json','review.json','registration.json'])
+    def test_predecessor_dependency_cannot_be_omitted_from_new_seal(tmp_path,monkeypatch,file):
+        entry,authority,proof=package(tmp_path,monkeypatch)
+        path='inputs/prior-round1/'+file
+        manifest=read(tmp_path/'manifest.json');manifest['files']=[r for r in manifest['files'] if r['path']!=path]
+        put(tmp_path/'manifest.json',manifest)
+>       with pytest.raises(ValueError,match='[Rr]untime dependency'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+code\test_round2_predecessor.py:86: Failed
+__ test_predecessor_dependency_cannot_be_omitted_from_new_seal[review.json] ___
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-source13-round2-20261106/verification/tmp-predecessor-red/test_predecessor_dependency_ca1')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001E57DA9A3F0>
+file = 'review.json'
+
+    @pytest.mark.parametrize('file',['terminal.json','review.json','registration.json'])
+    def test_predecessor_dependency_cannot_be_omitted_from_new_seal(tmp_path,monkeypatch,file):
+        entry,authority,proof=package(tmp_path,monkeypatch)
+        path='inputs/prior-round1/'+file
+        manifest=read(tmp_path/'manifest.json');manifest['files']=[r for r in manifest['files'] if r['path']!=path]
+        put(tmp_path/'manifest.json',manifest)
+>       with pytest.raises(ValueError,match='[Rr]untime dependency'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+code\test_round2_predecessor.py:86: Failed
+_ test_predecessor_dependency_cannot_be_omitted_from_new_seal[registration.json] _
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-source13-round2-20261106/verification/tmp-predecessor-red/test_predecessor_dependency_ca2')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001E57DBB6600>
+file = 'registration.json'
+
+    @pytest.mark.parametrize('file',['terminal.json','review.json','registration.json'])
+    def test_predecessor_dependency_cannot_be_omitted_from_new_seal(tmp_path,monkeypatch,file):
+        entry,authority,proof=package(tmp_path,monkeypatch)
+        path='inputs/prior-round1/'+file
+        manifest=read(tmp_path/'manifest.json');manifest['files']=[r for r in manifest['files'] if r['path']!=path]
+        put(tmp_path/'manifest.json',manifest)
+>       with pytest.raises(ValueError,match='[Rr]untime dependency'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+code\test_round2_predecessor.py:86: Failed
+____________ test_prior_round1_authority_does_not_allocate_round2 _____________
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-source13-round2-20261106/verification/tmp-predecessor-red/test_prior_round1_authority_do0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001E57DAA2EB0>
+
+    def test_prior_round1_authority_does_not_allocate_round2(tmp_path,monkeypatch):
+        entry,authority,proof=package(tmp_path,monkeypatch)
+        authority.update(case='e03-round1',scope='e03-round1-acceptance',prior_reviews=[])
+        put(tmp_path/'release/authority.json',authority)
+        made=[]
+>       with pytest.raises(ValueError):entry.run_once(tmp_path,backend_factory=lambda root:made.append(root))
+                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+code\test_round2_predecessor.py:104: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+root = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-source13-round2-20261106/verification/tmp-predecessor-red/test_prior_round1_authority_do0')
+backend_factory = <function test_prior_round1_authority_does_not_allocate_round2.<locals>.<lambda> at 0x000001E57DA9B100>
+
+    def run_once(root, *, backend_factory=None):
+        root = safe_path(root)
+        admission = validate_release(root, utcnow())
+        backend = make_backend(root, backend_factory)
+>       assert_same_live(admission['proof'], backend.inspect())
+                                             ^^^^^^^^^^^^^^^
+E       AttributeError: 'NoneType' object has no attribute 'inspect'
+
+code\acceptance_entry.py:163: AttributeError
+=========================== short test summary info ===========================
+FAILED code/test_round2_predecessor.py::test_round2_admits_one_matching_predecessor_and_keeps_new_facts_pending
+FAILED code/test_round2_predecessor.py::test_ineligible_predecessor_rejected_even_when_new_package_is_resealed[terminal.json-candidate-old-candidate]
+FAILED code/test_round2_predecessor.py::test_ineligible_predecessor_rejected_even_when_new_package_is_resealed[terminal.json-case-e03-round2]
+FAILED code/test_round2_predecessor.py::test_ineligible_predecessor_rejected_even_when_new_package_is_resealed[terminal.json-overall-FAIL]
+FAILED code/test_round2_predecessor.py::test_ineligible_predecessor_rejected_even_when_new_package_is_resealed[terminal.json-mechanical-FAIL]
+FAILED code/test_round2_predecessor.py::test_ineligible_predecessor_rejected_even_when_new_package_is_resealed[terminal.json-errors-value4]
+FAILED code/test_round2_predecessor.py::test_ineligible_predecessor_rejected_even_when_new_package_is_resealed[review.json-reviewer-root-self]
+FAILED code/test_round2_predecessor.py::test_ineligible_predecessor_rejected_even_when_new_package_is_resealed[review.json-scope-e03-round1-acceptance-package]
+FAILED code/test_round2_predecessor.py::test_ineligible_predecessor_rejected_even_when_new_package_is_resealed[review.json-candidate-old-candidate]
+FAILED code/test_round2_predecessor.py::test_ineligible_predecessor_rejected_even_when_new_package_is_resealed[review.json-facts_verdict-FAIL]
+FAILED code/test_round2_predecessor.py::test_ineligible_predecessor_rejected_even_when_new_package_is_resealed[review.json-final_claim_verdict-FAIL]
+FAILED code/test_round2_predecessor.py::test_ineligible_predecessor_rejected_even_when_new_package_is_resealed[review.json-candidate_runtime_manifest_sha256-old-runtime]
+FAILED code/test_round2_predecessor.py::test_ineligible_predecessor_rejected_even_when_new_package_is_resealed[registration.json-case_verdict-FAIL]
+FAILED code/test_round2_predecessor.py::test_ineligible_predecessor_rejected_even_when_new_package_is_resealed[registration.json-acceptance_credit-False]
+FAILED code/test_round2_predecessor.py::test_ineligible_predecessor_rejected_even_when_new_package_is_resealed[registration.json-positive_passed-2]
+FAILED code/test_round2_predecessor.py::test_ineligible_predecessor_rejected_even_when_new_package_is_resealed[registration.json-same_candidate_terminals-2]
+FAILED code/test_round2_predecessor.py::test_predecessor_dependency_cannot_be_omitted_from_new_seal[terminal.json]
+FAILED code/test_round2_predecessor.py::test_predecessor_dependency_cannot_be_omitted_from_new_seal[review.json]
+FAILED code/test_round2_predecessor.py::test_predecessor_dependency_cannot_be_omitted_from_new_seal[registration.json]
+FAILED code/test_round2_predecessor.py::test_prior_round1_authority_does_not_allocate_round2
+20 failed, 3 passed in 1.56s
