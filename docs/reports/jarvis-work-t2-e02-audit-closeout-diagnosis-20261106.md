@@ -10,7 +10,8 @@
 2. 真正的卡点：`profile.py` 的审计器被拒绝时**只记事件次数、然后抛异常**，失败封存只落 `failure-summary.json` 与 `closed-index.json`，**从不落 `audit.denied` 明细**；上层只把 `audit_clean / scope_clean / eager_clean` 三个布尔塞进计数器。于是 E02 只能看到三个 `false`，无法回答"哪个事件、在哪一行被拒"。
 3. 本次已在**独立诊断包**内补上证据采集：拒绝时记录事件名与调用帧（最多 6 帧、最多 64 条），失败封存时额外写 `audit-denied-events.json`；**候选判定逻辑一行未动**。
 4. 验证：新增 3 条离线契约测试，全量固定契约 **564 项全通过（564 passed / exit_code=0）**，白名单、依赖、包内文件三项核对均为 `True`。
-5. 仍未完成的部分：**真正"哪个事件被拒"还没取到值**。本次改造只让下一次失败能留下证据；而要取到这次 run 的实际拒绝点，必须再实跑一次冷导入，而授权 `profile_limit=1 / retry=0` 已耗尽，没有新的授权不能跑。
+5. 从失败 run 自己的产物里已定位到失败机制：**产品本身是成功的**（研究文件已写出、字节与哈希对得上、确认回执齐全），失败发生在收尾判定那一步；三个 `false` 里只有一个是真的原因，`eager_clean` 是被提前中断带出来的假阳性（详见第二节之二）。
+6. 仍缺的只剩一个值：**"哪个事件、哪一行被拒"**。它只能由一次实跑产生，而这次实跑需要授权文件，授权文件由独立的 Root 端签发、原包已消费，主脑无法自签（详见第六节）。
 
 ## 二、根因（代码层，按函数定位）
 
@@ -21,6 +22,40 @@
 | `profile.py` `def run_profile` 失败分支 | 只写 `failure-summary.json`、`closed-index.json` | 失败封存里没有审计明细 |
 | `profile.py` `def selected_counters` | 把 `audit_clean / scope_clean / eager_clean` 三个布尔写入计数器 | 下游只能看到三个 `false` |
 | `profile.py` `def mechanical_counters` | 三项必须为 `True`，否则不判为候选 | 三个 `false` 直接堵死，且无法定性 |
+
+## 二之二、这次 run 的失败机制（已从产物直接定位）
+
+依据失败 run 自己的产物，不需要重跑：`process/worker.stderr`、`control/terminal.json`、`worker/case/profile-first-result.json`、`worker/case/failure-summary.json`。
+
+**失败栈**（原文摘录）：
+
+```
+profile.py line 570, in private_scope
+    require(not dirty,'Private scope refusal or cleanup invalidates outcome')
+ValueError: Private scope refusal or cleanup invalidates outcome
+```
+
+（新诊断包里同一行位移到 591，逻辑未改。）
+
+**产品侧是成功的**：`product_status=succeeded`；`research.md` 已写出 711 字节、sha `a7e7e590…` 与记录一致；`ack_attempted / ack_admitted / ack_verified` 全为真；`file_verified_before_ack=True`；`native_posts=6`、`sdk_inference_start=6`、`sdk_inference_end=6`、`writer_end_confirmed=True`、`observer_incomplete=False`。
+
+**收尾判定 `dirty` 共 7 个可能来源，逐项核对结果**：
+
+| 来源 | 实测值 | 是否触发脏 |
+| --- | --- | --- |
+| `audit.denied` 非空 | 非空（`audit_clean=False` 即由此得出） | **是（唯一真因）** |
+| `budget.refused` | 0（`metadata_refused=0`） | 否 |
+| `browser.refused` | 0（`browser_refused=0`，含 DNS） | 否 |
+| `browser.dns.refused` | 0（`ssrf` 全部记录 `refused=0`） | 否 |
+| research 客户端重复构造 | `research_constructors=1`，无重复 | 否 |
+| 各计数器 `refused` | `owner_refused=0`、`research_refused=0`、`native_refused=0` | 否 |
+| `cleanup.errors` | 空（`secondary_errors=[]`） | 否 |
+
+**由此得出两点**：
+1. 三个 `false` 里真正的、唯一的原因是**审计器记录了一次拒绝**；其余六个来源全部干净。
+2. `eager_clean=False` 是**假阳性**：`private_scope` 的收尾判定先抛异常，此时 `ExitStack` 还没退出，`own_ollama_types` 的 `finally`（它才会算 `clean`）根本没执行，`eager_clean` 取到的是初始化时的默认 `False`。它不代表 eager 阶段独立出了故障。
+
+也就是说：E02 的失败不是"产品做不出来"，而是"产品做成了，但过程中有一次外部调用被审计器拦下、异常被吞掉只留计数，于是收尾判定判脏"。差的就是这一个事件名与行号。
 
 ## 三、本次改动（仅新增证据，不改变判定）
 
@@ -70,14 +105,15 @@
 
 - 没有修改候选判定：`selected_counters` / `mechanical_counters` 一行未动，`audit_clean / scope_clean / eager_clean` 的语义与门限保持原样。
 - 没有覆盖原精确绑定包 `e02-source13-cold-import-20261106`：原包只读，未写入任何内容。
-- 没有跑真实冷导入：授权 `call_c6b188dbc9514611ad330bb3b8829619` 的实跑与复核已用完，`retry=0`；本次不产生新的通过结论，也不消耗授权。
+- 没有跑真实冷导入，也**无法由主脑自行跑**：原包 `code\entry.py` 把包根写死在源码里，并强制校验"脚本自身路径必须等于包根下的 `code\entry.py`"；完整一轮要先有 Root 端签发的 `release/release.json`（原包该目录已消费为空），子进程模式又要等父进程先写 `entry-grant.json`，没有父进程会一直空转。自行伪造授权文件等于把"独立 Root 控制"这条前提拆掉，所以没有做。
 - 没有改父级 `manifest.json` / `entry-manifest.json`：它们仍绑定原包 `profile.py`（`5c837adb…`）与 `test_profile.py`（`c9a3142c…`）的哈希；新包只改了自己的 `package_root / members / test_ids`。
 - 没有走独立准备评审：原 README 要求"整包改动需独立准备评审"，本次未触发。
 
-## 六、下一步（两种，需拍板）
+## 六、下一步（需拍板，按代价从小到大）
 
-1. **要真正定性**：批准一次冷导入实跑（或由执行端在授权恢复后跑一次），失败时读 `runs\<run>\audit-denied-events.json`，即可看到"哪个事件、哪个文件第几行"。
-2. **要先把这套证据能力纳入正式流程**：把本诊断包提交独立准备评审，通过后再考虑替换正式包内的 `profile.py` / `test_profile.py`。
+1. **只差一个值，且必须由授权方产生**：让 Root 端签发一次新的 `release.json`（不是主脑自签），用本诊断包跑一轮，失败时读 `runs\<run>\audit-denied-events.json`，就能看到"哪个事件、哪个文件第几行"。这是唯一能真正闭合 E02 的动作。
+2. **再省一步的替代**：把审计落盘点从"`run_profile` 失败分支"前移到"`private_scope` 收尾判定抛出之前"，这样即使不判脏、也能随时看到拒绝记录；改动更小，但仍要一次授权才能取到历史那次 run 的值。
+3. **要纳入正式流程**：把本诊断包提交独立准备评审，通过后再考虑替换正式包内的 `profile.py` / `test_profile.py`。
 
 ## 七、产物清单
 
