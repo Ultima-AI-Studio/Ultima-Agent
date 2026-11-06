@@ -545,9 +545,11 @@ def checked_native_identity(version_bytes,tags_bytes,manifest_digest):
         raise ValueError('Unsupported native metadata identity')
     matches=[]
     for model in tags['models']:
-        if (not isinstance(model,dict) or set(model)-{'name','model','modified_at','size','digest','details'}
+        if (not isinstance(model,dict) or set(model)-{'name','model','modified_at','size','digest','details','capabilities'}
                 or not all(type(model.get(k)) is str for k in ('name','digest'))
                 or ('size' in model and (type(model['size']) is not int or not 0<=model['size']<2**63))
+                or ('capabilities' in model and (type(model['capabilities']) is not list
+                    or not all(type(value) is str for value in model['capabilities'])))
                 or ('model' in model and model['model']!=model['name'])):
             raise ValueError('Invalid native model metadata')
         if model['name'] in (_RESEARCH_MODEL,_RESEARCH_MODEL+':latest'): matches.append(model['digest'])
