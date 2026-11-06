@@ -27,3 +27,7 @@ run 91fb07e8-91dd-4ffb-9389-fea9c02bf285；UTC 2026-11-06T18:18:24.2217476+00:00
 下一步具体方案：H:\UltimaAI\UltimaAgent\docs\plans\jarvis-work-e02-native-write-failure-diagnostics-proposal-20261107.md。优先补齐研究write首次拒绝原因的安全有限诊断，保持END/事实门，避免继续盲跑；本轮不修改该冻结候选，也不再调用模型。
 
 远端push仍受此前自动审批blocked by policy阻断；本轮仅本地commit/tag和UltimaDocs逐字镜像，没有重试或绕行。
+
+## 2026-11-07 后续只读勘误（不改原运行结论）
+
+原文“具体异常文本只进入ToolResult”表述不准确。_CapabilityTool.execute同时将error字符串和error_type写入ledger记录；WorkService.submit_work在最终研究回执中仅保留error_type，裁剪掉error。现存落盘材料仍不能还原具体write拒绝原因。该纠正只说明丢失位置，FAIL/清理PASS/POST尝试5/null原生总数及独审结论不变。

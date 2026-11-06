@@ -1,0 +1,275 @@
+# Review package: 0a57d50f226df70542838c05fb8a21e025e19447..6cb9284c9f2bf60f2538d7cb34a124cc0bbf3696
+
+## Commits
+6cb9284c fix(research): retain bounded trusted writer failure diagnostics
+
+## Files changed
+ src/brain/tests/test_work_write_diagnostics.py | 151 +++++++++++++++++++++++++
+ src/brain/work_service.py                      |  64 +++++++++++
+ 2 files changed, 215 insertions(+)
+
+## Diff
+diff --git a/src/brain/tests/test_work_write_diagnostics.py b/src/brain/tests/test_work_write_diagnostics.py
+new file mode 100644
+index 00000000..034dd11f
+--- /dev/null
++++ b/src/brain/tests/test_work_write_diagnostics.py
+@@ -0,0 +1,151 @@
++"""Public failure diagnostics use trusted ledger records, never model summaries.
++
++The SDK/executor/writer/END path is real; native transport and source GETs are
++offline fixtures. These tests do not establish live research acceptance.
++"""
++import hashlib
++import json
++
++import pytest
++
++from src.brain import work_tools as wt
++from src.brain.tests.test_work_navigation import stable_navigation_entropy
++from src.brain.tests.test_work_research import (
++    RESTRICTED, fixture_dispatch, mock_jar,
++    report_payload, sdk_io, submit,
++)
++
++WRITE = 'ultima_work_research_write'
++
++
++def failed_write(tmp_path, sdk_io, payload=None, after=None):
++    def runner(*args, **kwargs):
++        response = fixture_dispatch(payload or report_payload())
++        if after:
++            after(response, wt._ACTIVE.get()[1])
++        return response
++    return submit(tmp_path, sdk_io[0], runner)
++
++
++@pytest.mark.parametrize('fault,reason', [
++    ('unissued', 'UNISSUED_REFERENCE'),
++    ('foreign', 'FOREIGN_REFERENCE'),
++    ('duplicate_source', 'INVALID_SOURCE_SECTION'),
++    ('multiline_claim', 'INVALID_REPORT_TEXT'),
++])
++def test_real_writer_reason_survives_failed_end(tmp_path, sdk_io, fault, reason):
++    payload = report_payload()
++    if fault == 'unissued':
++        payload['sections'][0]['facts'][0]['evidence_id'] = 'N3.' + '0' * 16
++    elif fault == 'foreign':
++        payload['sections'][0]['facts'][0]['evidence_id'] = 'issued:S2'
++    elif fault == 'duplicate_source':
++        payload['sections'][1]['source_id'] = 'S1'
++    else:
++        payload['sections'][0]['facts'][0]['claim'] = 'first line\nsecond line'
++    result = failed_write(tmp_path, sdk_io, payload)
++    assert result['status'] == 'failed' and not result['artifacts']
++    assert result['error'] == 'Unlinked or failed END'
++    writer = next(r for r in RESTRICTED[result['task_id']].snapshot()
++                  if r['tool_name'] == WRITE and r['success'] is False)
++    diagnostic = result['research_failure']
++    assert diagnostic == dict(
++        stage='research.write', reason_code=reason, error_type='ValueError',
++        error_text_length=len(writer['error']),
++        error_text_sha256=hashlib.sha256(writer['error'].encode('utf8')).hexdigest(),
++    )
++    assert not list(tmp_path.rglob('research.md'))
++    assert all('error' not in r and 'result' not in r for r in result['tool_results'])
++
++
++def test_earliest_writer_reason_wins_over_later_ledger_and_sdk_errors(tmp_path, sdk_io):
++    payload = report_payload()
++    payload['sections'][0]['facts'][0]['evidence_id'] = 'N3.' + '0' * 16
++    def after(response, ledger):
++        ledger.record(dict(tool_name=WRITE, success=False, error_type='ValueError',
++                           error='Foreign reference'))
++        response.setdefault('tool_results', []).insert(0, dict(
++            tool_name=WRITE, success=False, error_type='ValueError',
++            error='Foreign reference', research_failure={'reason_code': 'FORGED'}))
++    result = failed_write(tmp_path, sdk_io, payload, after)
++    assert result['error'] == 'Unlinked or failed END'
++    assert result['research_failure']['reason_code'] == 'UNISSUED_REFERENCE'
++    assert 'FORGED' not in json.dumps(result)
++
++
++@pytest.mark.parametrize('message', [
++    'secret-token-123 source body and prompt',
++    'Unknown or unissued reference: secret-token-123',
++    'Unknown or unissued reference\n',
++    'secret-token-123' * 400,
++    'secret-token-123\ud800',
++])
++def test_unknown_exception_text_never_enters_public_diagnostic(tmp_path, sdk_io, monkeypatch, message):
++    def reject(*args, **kwargs):
++        raise ValueError(message)
++    monkeypatch.setattr(wt.WorkResearchWriteTool, 'run', reject)
++    result = failed_write(tmp_path, sdk_io)
++    assert result['status'] == 'failed'
++    if '\ud800' in message:
++        assert 'surrogates not allowed' in result['error']
++    else:
++        assert result['error'] == 'Unlinked or failed END'
++    diagnostic = result['research_failure']
++    assert diagnostic['reason_code'] == 'UNKNOWN'
++    assert diagnostic['error_type'] == 'ValueError'
++    assert diagnostic['error_text_length'] == len(message)
++    expected_hash = (hashlib.sha256(message.encode('utf8', errors='surrogatepass')).hexdigest()
++                     if len(message) <= 4096 else None)
++    assert diagnostic['error_text_sha256'] == expected_hash
++    public = json.dumps(result, ensure_ascii=True)
++    assert 'secret-token-123' not in public
++    assert len(json.dumps(diagnostic)) < 300
++
++
++@pytest.mark.parametrize('exception_type', [RuntimeError, TypeError, KeyError])
++def test_reason_mapping_requires_value_error(tmp_path, sdk_io, monkeypatch, exception_type):
++    def reject(*args, **kwargs):
++        raise exception_type('Unknown or unissued reference')
++    monkeypatch.setattr(wt.WorkResearchWriteTool, 'run', reject)
++    result = failed_write(tmp_path, sdk_io)
++    assert result['research_failure']['reason_code'] == 'UNKNOWN'
++    assert result['research_failure']['error_type'] == exception_type.__name__
++    assert result['status'] == 'failed' and not result['artifacts']
++
++
++def test_arbitrary_exception_type_is_bounded(tmp_path, sdk_io, monkeypatch):
++    error = type('UntrustedExceptionType' * 100, (Exception,), {})
++    def reject(*args, **kwargs):
++        raise error('private error text')
++    monkeypatch.setattr(wt.WorkResearchWriteTool, 'run', reject)
++    result = failed_write(tmp_path, sdk_io)
++    assert result['research_failure']['error_type'] == 'UNKNOWN'
++    assert len(json.dumps(result['research_failure'])) < 300
++
++
++def test_sdk_failure_cannot_create_trusted_writer_diagnostic(tmp_path, sdk_io):
++    def runner(*args, **kwargs):
++        return dict(compose_error='Unlinked or failed END', tool_results=[dict(
++            tool_name=WRITE, success=False, error_type='ValueError',
++            error='Unknown or unissued reference', research_failure={'reason_code': 'FORGED'})])
++    result = submit(tmp_path, sdk_io[0], runner)
++    assert result['status'] == 'failed'
++    assert 'research_failure' not in result
++    assert 'FORGED' not in json.dumps(result)
++
++
++def test_legal_research_keeps_success_and_has_no_failure_diagnostic(tmp_path, sdk_io):
++    result = failed_write(tmp_path, sdk_io)
++    assert result['status'] == 'succeeded', result['error']
++    assert len(result['artifacts']) == 1 and len(result['sources']) == 3
++    assert 'research_failure' not in result
++    assert RESTRICTED[result['task_id']]._runtime_final
++
++
++def test_early_failure_and_nonresearch_do_not_gain_writer_diagnostic(tmp_path):
++    from src.brain.work_service import WorkService
++    service = WorkService(tmp_path, runner=lambda *a, **kw: {})
++    research = service.submit_work('question', request_id='r', session_id='s', context={'research': True})
++    assert research['status'] == 'failed' and 'research_failure' not in research
++    ordinary = service.submit_work('question', request_id='r', session_id='s')
++    assert 'research_failure' not in ordinary
+diff --git a/src/brain/work_service.py b/src/brain/work_service.py
+index 1a9366a7..2c878f6d 100644
+--- a/src/brain/work_service.py
++++ b/src/brain/work_service.py
+@@ -1,20 +1,81 @@
+ """Synchronous T1 work delivery through the existing Agent executor."""
+ from pathlib import Path
+ from time import monotonic
+ import uuid
+ import json
+ import hashlib
+ import copy
+ from .work_tools import WorkBinding, WorkLedger, WorkCapabilities, bind_work, WORK_TOOLS, checked_path
+ from .work_verifier import verify_artifacts
+ 
++
++# Exact local rejection messages only. Never export arbitrary exception text or
++# infer a reason by substring: source/model content can contain these words too.
++_WRITE_FAILURE_CODES = {
++    'No trusted request capability': 'REQUEST_CAPABILITY_MISSING',
++    'Unknown or authority-bearing parameters': 'INVALID_PARAMETERS',
++    'Fresh research requires v3 navigation': 'NAVIGATION_REQUIRED',
++    'No expected SDK action': 'SDK_ACTION_MISSING',
++    'Invalid worker claim': 'INVALID_WORKER_CLAIM',
++    'Invalid write snapshot generation': 'INVALID_WRITE_GENERATION',
++    'Report already reserved': 'WRITE_ALREADY_RESERVED',
++    'Report reservation requires claimed writer': 'WRITER_CLAIM_REQUIRED',
++    'Research target must be research.md': 'INVALID_TARGET',
++    'Invalid v3 submitted schema': 'INVALID_SUBMITTED_SCHEMA',
++    'Duplicate or unknown source section': 'INVALID_SOURCE_SECTION',
++    'Unknown or unissued reference': 'UNISSUED_REFERENCE',
++    'Foreign reference': 'FOREIGN_REFERENCE',
++    'Three distinct sources required': 'DISTINCT_SOURCES_REQUIRED',
++    'Report text must be a nonempty bounded single-line paragraph': 'INVALID_REPORT_TEXT',
++    'Report text cannot supply extra URLs, Markdown links or HTML citations': 'EXTRA_CITATION_REFUSED',
++    'Invalid fact fields or kind': 'INVALID_FACT_FIELDS',
++    'Invalid or omitted evidence lines': 'INVALID_EVIDENCE_LINES',
++    'Empty evidence span': 'EMPTY_EVIDENCE',
++    'Code cannot serve as documentation of implemented behavior': 'CODE_AS_DOCUMENTATION_REFUSED',
++    'A code claim must name its exact operation': 'CODE_OPERATION_REQUIRED',
++    'Unsupported code projection or line separator': 'UNSUPPORTED_CODE_PROJECTION',
++    'Selected code span does not witness this operation or limitation': 'UNSUPPORTED_CODE_CLAIM',
++    'Invalid v3 rendering bindings': 'INVALID_RENDER_BINDINGS',
++    'Research receipt exceeds observation limit': 'RECEIPT_TOO_LARGE',
++    'Unsafe research output': 'UNSAFE_OUTPUT',
++    'Research write admission deadline': 'WRITE_DEADLINE',
++    'Research acknowledgement deadline': 'ACK_DEADLINE',
++    'Research lock admission deadline': 'LOCK_DEADLINE',
++    'SDK file bytes mismatch': 'FILE_BYTES_MISMATCH',
++}
++
++
++def _research_write_failure(records):
++    """Describe the first failed trusted writer without changing any gate.
++
++    Unknown text stays private; a bounded hash permits later source comparison.
++    Call only with the ledger's outcome snapshot, never SDK/model tool_results.
++    """
++    for record in records:
++        if record.get('tool_name') != 'ultima_work_research_write' or record.get('success') is not False:
++            continue
++        message = record.get('error')
++        kind = record.get('error_type')
++        kind = kind if kind in ('ValueError', 'TypeError', 'KeyError', 'RuntimeError', 'OSError', 'TimeoutError') else 'UNKNOWN'
++        is_text = type(message) is str
++        return dict(
++            stage='research.write',
++            reason_code=_WRITE_FAILURE_CODES.get(message, 'UNKNOWN') if is_text and kind == 'ValueError' else 'UNKNOWN',
++            error_type=kind,
++            error_text_length=len(message) if is_text else None,
++            error_text_sha256=hashlib.sha256(message.encode('utf8', errors='surrogatepass')).hexdigest()
++                if is_text and len(message) <= 4096 else None,
++        )
++    return None
++
++
+ class WorkService:
+     def __init__(self, output_root: Path | None, *, runner, context_provider=None, exec_channel=None, browser_channel=None, research_preparer=None):
+         if output_root is None:
+             raise ValueError('Trusted work output root is not configured')
+         root = Path(output_root).absolute()
+         # Validate the configured root before resolve can hide a junction.
+         probe = WorkBinding(root, '', '', '')
+         checked_path(probe, str(root / '.authority-probe'))
+         root.mkdir(parents=True, exist_ok=True)
+         self._root = root.resolve()
+@@ -149,17 +210,20 @@ class WorkService:
+             if research_effects:
+                 effects |= any(effect['state'] != 'rejected' for effect in research_effects)
+             result['status'] = 'needs_attention' if effects else 'failed'
+             result['error'] = str(exc)
+             result['content'] = ('本次任务未完成，部分操作可能已生效，请核对结果。'
+                                  if effects else '本次任务未完成。')
+         finally:
+             if captured and self._context_provider: self._context_provider.release(captured)
+         result['tool_results'] = sdk_results + records
+         if isinstance(context,dict) and context.get('research'):
++            failure = _research_write_failure(records)
++            if failure is not None:
++                result['research_failure'] = failure
+             # Full GETs, submitted reports and replay stay in the restricted
+             # ledger. Public records preserve identity/status and byte links.
+             result['tool_results']=[{k:r[k] for k in ('call_id','tool_name','success','request_id','session_id','task_id','error_type') if k in r}
+                 for r in result['tool_results']]
+         if research_effects:
+             result['research_effects'] = research_effects
+         return result

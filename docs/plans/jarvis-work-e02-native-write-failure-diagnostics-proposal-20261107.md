@@ -17,3 +17,21 @@
 3. 只有新授权明确包含运行且独审PASS，才再运行一次当前8B、原题、原四来源研究，并一次只读独立结果复核；失败不重试。成功仍须原SDK packet、research.md写入/ACK/两次读回、逐事实引用和原清理/时间门。
 
 本提案尚未实施、未分配新模型调用。无UI、音频或生产服务操作，禁止14B。原CLI1/search1/GET4/inspect6/write1/ACK1/nativePOST8、service260/client300/root275/cleanup310/seal315秒不变。E02/T2未通过；当前新候选受控0/3，后续真实联网及同候选E01/E03等原门保留。
+
+## 2026-11-07 已授权接续与归因纠正
+
+用户call_948abbc3ba2948a9b3441d57051d9b27已授权本补修、必要独审、通过后一例研究及一次结果复核，失败不重试。当前不再请求同一范围。
+
+只读复核进一步明确：_CapabilityTool.execute已将error及error_type写入WorkLedger.record；真正丢失详细原因的位置是WorkService最终研究回执的字段裁剪。上份结果报告“文本只进入ToolResult”不准确，已追加勘误；旧实际失败及SHA不改。优先只改work_service.py输出有限原因码，尽量不改work_tools/END校验。
+
+## Task 1: 有限写入诊断与离线准备
+
+新隔离候选基于0a57d50。真实SDK离线fixture复现writer拒绝后仅剩通用END错误；从可信ledger首个失败writer记录导出封闭原因码/阶段/有限类型，未知文本不直接落盘。与旧status/error/END拒绝行为并存，不放宽成功门，不相信SDK/model伪造的tool_results诊断。验证最早原因、后续END遮蔽、未知/敏感文本不泄漏、合法路径和拒绝门；相关离线回归、候选重绑、封存独审及本地commit/tag/镜像。
+
+## Task 2: 审查通过后的单例与结果复核
+
+准备独审PASS和提交读回后签发一次TTL120秒分配，原题四来源当前8B跑一例，失败不重试。保留实际首结果/有限原因码/证据/清理及保护身份，做一次只读独立复核，按实情登记研究信用并提交/tag/镜像。原E02/T2与同候选其他现场门不得借用旧信用。
+
+## Review Focus
+
+只从可信ledger选择最早writer失败；稳定诊断与任意异常/模型文本严格隔离；新增数据不能成为成功判据或改变END拒绝顺序；原schema/API成功与失败行为、模型/预算/时限/保护身份不变；新候选来源绑定与旧失败完整保留。
