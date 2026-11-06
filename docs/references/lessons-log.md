@@ -369,3 +369,47 @@
 - **根因**：`C:/Users/Administrator/.gitconfig` 里除全局 `http.proxy=http://127.0.0.1:1080`、`https.proxy=http://127.0.0.1:1080` 之外，还有一条 `http.https://github.com.proxy=http://127.0.0.1:1083`。git 按 URL 精确匹配的代理优先级高于全局代理，于是所有 github.com 请求都走已失效的 1083 端口（同一端口用 curl 测也是 `curl: (7) Failed to connect ... after 2033 ms`）。全局代理是好的，报错文案却统一指向 `127.0.0.1`，容易误判。
 - **规避**：① 遇到"代理连不上"先 `git config --list --show-origin | Select-String -Pattern 'proxy'`，分清全局代理与按 URL 的专属代理，别只看 `http.proxy`；② 用单次覆盖跑通，不改全局配置：`git -c 'http.https://github.com.proxy=http://127.0.0.1:7897' push origin <ref>`；③ 推送后用 `git ls-remote` 回读核对，且回读命令必须带同样的 `-c` 覆盖，否则 `ls-remote` 会因同一个 1083 再报一次错，被误当成"推送没成"；④ 本机实测可用端口为 1080 与 7897，1083 与 7890/7891 均不通。
 - **复发**：2（分支与标签各失败一次，图案相同）
+
+## L45 无头截图验单页动效的两个假象：虚拟时间不走 CSS 过渡 / 无头窗口有最小宽度（工具链 · 2026-11-06）
+
+- **现象**：① 用 `msedge --headless=new --virtual-time-budget=12000 --screenshot` 截单页 HTML，元素靠 CSS `transition` 做位移时只走到半程（环停在中央偏右一点、步骤文字近乎透明），看起来像"定位规则失效 / 元素丢失"；② 加 `--run-all-compositor-stages-before-draw --disable-new-content-rendering-timeout` 后现象不变；③ 用 `--window-size=390,844` 截窄屏，图确实是 390 宽，但右侧输入栏控件被切，疑似布局溢出。
+- **根因**：① `--virtual-time-budget` 只快进 `setTimeout`/定时器，CSS transition 走的是真实时钟，页面加载到截图真实只过了不到 1 秒，过渡自然停在起始段；DOM 里 `class="orb-wrap focus"` 已正确挂载，规则本身没问题；② Edge 无头窗口受系统最小窗口宽度限制，`--window-size=390` 时 `innerWidth` 实测 470，布局按 470 排，截图仍按 390 输出，于是"看起来溢出"。同一次量测：`vw:470`、`composer.right:447`、`send.right:437`，控件实际都在容器内。
+- **规避**：① 验动效终止态必须走真实时钟：`--remote-debugging-port` 起无头实例，`/json` 取 page target，`ClientWebSocket` 发 `Page.captureScreenshot`，等够秒数再抓；不要用虚拟时间判断过渡结果；② 判定"是否真溢出"用 `Runtime.evaluate` 读 `innerWidth` + `getBoundingClientRect`，不靠目测截图；③ 验窄屏必须发 `Emulation.setDeviceMetricsOverride`（width/height/deviceScaleFactor/mobile）设视口，不能只靠 `--window-size`；④ 抓 page target 要按 `url -like 'file:*'` 过滤，否则可能截到 Edge 自身的同步提示页；⑤ PowerShell 里 `ClientWebSocket.SendAsync`/`ReceiveAsync` 传裸 `byte[]` 会报 "Multiple ambiguous overloads"，必须包 `[ArraySegment[byte]]`。
+- **复发**：3（虚拟时间误判 2 次、窄屏误判 1 次）
+
+## L46 Canvas 重设尺寸会清空画面，绘制循环必须与尺寸回调解耦（前端 · 2026-11-06）
+
+- **现象**：粒子环元素用 CSS transition 从 340px 缩到 186px 并位移后，整块 canvas 一片空白；同一时刻 rAF 循环并未报错。
+- **根因**：给 `canvas.width/height` 赋值会立即清空画布内容；重设发生在过渡中间，若其后没有马上补画一帧（或 rAF 恰被挂起），画面就留白。原实现把绘制与调度写在一个 `draw()` 里，递归 rAF 依赖上一帧是否执行，尺寸变化时容易断链。
+- **规避**：① 拆成 `paint(ts)` 纯绘制 + `loop(ts)` 负责 `requestAnimationFrame`；② `ResizeObserver` 回调里设完 `canvas.width/height` 后立刻调一次 `paint(performance.now())` 补帧；③ `prefers-reduced-motion: reduce` 分支末尾同样补一帧，因为该分支不跑循环；④ 验收判据是"缩小后画面仍在"，不是"代码里有 resize 处理"。
+- **复发**：1
+## L47 卡片"从 0 展开"用 grid 行高过渡，别用 max-height；占位列表会让展开先撑满空框（前端 · 2026-11-06）
+
+- **现象**：给右栏步骤区补"卡片淡入 + 展开"时，第一版用 `max-height:0 → 220px` 过渡，展开过程前 60% 几乎没有高度变化（先快后停），且不同内容高度要反复调数值。第二版改用 `grid-template-rows:0fr → 1fr`，展开顺滑，但卡片一展开就是最终高度（内容区一片空白），文字随后才逐条淡入，看起来像"空框先撑满"。
+- **根因**：① `max-height` 过渡是线性作用于一个远大于真实高度的上限，缓动曲线被拉平；grid 的 `0fr → 1fr` 直接对真实内容高度做插值，曲线正确；② 步骤行用 `opacity:0` 隐藏但仍在文档流里占位，容器高度在展开开始时就等于"全部步骤"的高度，于是空框先到顶。这是"透明 ≠ 折叠"的必然结果。
+- **规避**：① 通用展开用 `display:grid;grid-template-rows:0fr` + 内层 `min-height:0;overflow:hidden`，`open` 时 `1fr`；② 若希望容器随内容增长，占位行也必须收到 0（`max-height:0` 或折叠），不能只做透明；③ 若接受"先有框再有字"（原片就是这个节奏：卡片先张开、内容再填入），保持占位即可，但必须让第一条内容在展开完成前出现，否则空框会被看成加载失败；④ 验收要抓三个点：展开中、内容满、收起后，只看终态会漏掉中间态异常。
+- **复发**：1
+
+## L48 接口候选池的三条建模铁律：声明即契约、一池一标的、快不等于对（数据源 · 2026-11-06）
+
+- **现象**：给常见问答做"配置表 + 自动巡检"时连续翻车三次。① `weather.today` 首选被换成 26ms 的实况接口 `sk_2d`，它没有今日最高/最低，模板填不出高低温；② 把 `dingzhi` 的 `provides` 写成了 `temperature/condition/wind/temp_range`，它靠 33ms 直接上位，实际只覆盖今天和今夜；③ 把恒生与道指放进同一个意图、把伦敦金与 COMEX 放进同一个意图，自动升权会把道指当恒生报、把期货价当现货价报。
+- **根因**：覆盖度门禁只比对"候选声明的 `provides`"与"意图要求的 `requires_coverage`"，**声明是人工写的，门禁无法验证字段真假**——写宽了等于开后门。另外排序只按延迟，而"延迟最低"与"答得全"是两件事；不同标的放同一池，等于允许系统用一个品种的价答另一个品种的问题。
+- **规避**：① `provides` 按实测字段写，不确定就不写；宁可少声明、让它降级，也不要把模板要用的字段写宽；② 一个意图只对应一个标的，候选只能是**同标的不同源**，不同标的必须拆成独立意图（伦敦金/COMEX、恒生/道指/纳指各一条）；③ 覆盖度不足一票否决，不论多快；④ 换首选加"快 20% 以上"门槛，避免每天抖动；⑤ 备选掉线只记录不报警，只有"某意图无可用首选"才判失败，否则巡检天天红等于没红。
+- **验收判据**：看"首选能不能填满模板"和"每个意图的候选是不是同一标的"，而不是看"首选是不是最快"。
+- **复发**：1
+
+## L49 降级备用要"先比覆盖字段、再比延迟"，否则最快那条恰好答不了关键问题（数据源 · 2026-11-06）
+
+- **现象**：建路器给 `weather.today` 建备用，排在第二位的备选是 `sk_2d`（28ms，全场最快），而不是 `dingzhi`（164ms）。但 `sk_2d` 只有温湿度，说不了晴/雨；`dingzhi` 能给温度和天气现象。"今天天气怎么样"最缺的恰恰是晴雨。
+- **根因**：完整源（字段全覆盖）按延迟排序没问题；降级源（字段不全）也照抄了按延迟排序。延迟低只说明它快，不说明它还能答出多少。
+- **规避**：① 降级源排序改为"覆盖必需字段的比例降序、比例相同再比延迟"；② 把 `coverage_ratio` 与 `missing_fields` 写进候选，回复时能直接说缺什么；③ 建路与巡检两处必须用同一套排序，否则建的时候对、巡检一跑又换回去。
+- **验收判据**：看备用位上的源"能答出几条必需字段"，不是看它多快。
+- **复发**：1
+
+## L50 巡检判"坏"要连续失败，单轮 3 次采样挂 1 次不算（数据源 · 2026-11-06）
+
+- **现象**：巡检第二轮，`open-meteo` 这一轮 3 次采样里挂了 1 次（`http:URLError`），当场被降出备选位，`changelog` 里多了一条角色变化；下一轮它又正常了。照这么跑，每天都会因为一次超时来回换角色。
+- **根因**：升降级只看本轮 `ok_rate >= 0.9`，等于"一次超时即判坏"。配置里本来就有 `demotion.fail_streak = 3`（连续失败才让位），但代码没读它。
+- **规避**：① 健康判定改为"本轮成功率过半 且 连续失败轮数未到 3"，`fail_streak` 由 `apply_health` 维护；② 换首选仍保留"快 20% 以上"门槛，两道门一起防抖；③ 验收要看"连续跑三轮角色有没有变化"，只看一轮看不出来。
+- **验收判据**：连续三轮巡检，除耗时数字外，角色与 `changelog` 不新增变化。
+- **复发**：1

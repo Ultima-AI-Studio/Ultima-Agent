@@ -1,0 +1,273 @@
+{
+  "schema_version": 1,
+  "note": "已验证可用的公共接口登记册。建路器只从本文件取候选，不凭空猜接口；新增条目必须在实测中通过全部四关（200/可解码/格式与关键字段/负载非空壳）才可登记。实测失败（含返回空数据的）一律写进 rejected，避免重复踩坑。",
+  "created_at": "2026-11-06T13:40:00+08:00",
+  "probe_note": "assets[].provides 按实测字段写，不确定就不写；写宽会让覆盖度门禁失效。",
+  "vendors": [
+    {
+      "id": "sina-hq",
+      "name": "新浪财经行情",
+      "endpoint_template": "https://hq.sinajs.cn/list={code}",
+      "headers": {
+        "Referer": "https://finance.sina.com.cn"
+      },
+      "expect": {
+        "kind": "text",
+        "must_contain": [
+          "hq_str_"
+        ],
+        "min_payload_bytes": 40
+      },
+      "trust": "verified_public",
+      "assets": [
+        {
+          "asset": "index.cn",
+          "code": "sh000001",
+          "display_name": "上证指数",
+          "unit": "点",
+          "provides": ["price", "change_pct", "volume", "name"]
+        },
+        {
+          "asset": "stock.cn",
+          "code": "{symbol}",
+          "display_name": "A股个股",
+          "unit": "元",
+          "runtime_args": ["symbol"],
+          "provides": ["price", "change_pct", "volume", "name"]
+        },
+        {
+          "asset": "gold.intl",
+          "code": "hf_XAU",
+          "display_name": "伦敦金现",
+          "unit": "美元/盎司",
+          "provides": ["price", "change_pct"]
+        },
+        {
+          "asset": "gold.comex",
+          "code": "hf_GC",
+          "display_name": "COMEX 黄金",
+          "unit": "美元/盎司",
+          "provides": ["price", "change_pct"]
+        },
+        {
+          "asset": "gold.cn",
+          "code": "gds_AUTD",
+          "display_name": "黄金T+D",
+          "unit": "元/克",
+          "provides": ["price", "change_pct"]
+        },
+        {
+          "asset": "silver.intl",
+          "code": "hf_XAG",
+          "display_name": "伦敦银现",
+          "unit": "美元/盎司",
+          "provides": ["price", "change_pct"]
+        },
+        {
+          "asset": "oil.wti",
+          "code": "hf_CL",
+          "display_name": "纽约原油",
+          "unit": "美元/桶",
+          "provides": ["price", "change_pct"]
+        },
+        {
+          "asset": "oil.brent",
+          "code": "hf_OIL",
+          "display_name": "布伦特原油",
+          "unit": "美元/桶",
+          "provides": ["price", "change_pct"]
+        },
+        {
+          "asset": "fx.usdcny",
+          "code": "fx_susdcny",
+          "display_name": "美元兑人民币",
+          "unit": "",
+          "provides": ["rate"]
+        },
+        {
+          "asset": "index.hk",
+          "code": "hkHSI",
+          "display_name": "恒生指数",
+          "unit": "点",
+          "provides": ["price", "change_pct", "volume", "name"]
+        },
+        {
+          "asset": "index.us.dji",
+          "code": "gb_$dji",
+          "display_name": "道琼斯",
+          "unit": "点",
+          "provides": ["price", "change_pct", "name"]
+        },
+        {
+          "asset": "index.us.ixic",
+          "code": "gb_$ixic",
+          "display_name": "纳斯达克",
+          "unit": "点",
+          "provides": ["price", "change_pct", "name"]
+        }
+      ]
+    },
+    {
+      "id": "tencent-quote",
+      "name": "腾讯行情",
+      "endpoint_template": "https://qt.gtimg.cn/q={code}",
+      "headers": {},
+      "expect": {
+        "kind": "text",
+        "must_contain": [
+          "v_"
+        ],
+        "min_payload_bytes": 40
+      },
+      "trust": "verified_public",
+      "assets": [
+        {
+          "asset": "index.cn",
+          "code": "sh000001",
+          "display_name": "上证指数",
+          "unit": "点",
+          "provides": ["price", "change_pct", "name"]
+        },
+        {
+          "asset": "index.hk",
+          "code": "hkHSI",
+          "display_name": "恒生指数",
+          "unit": "点",
+          "provides": ["price", "change_pct"]
+        }
+      ]
+    },
+    {
+      "id": "itboy-weather",
+      "name": "itboy 天气",
+      "endpoint_template": "http://t.weather.itboy.net/api/weather/city/{city_code}",
+      "headers": {},
+      "expect": {
+        "kind": "json",
+        "must_contain": [
+          "cityInfo",
+          "data"
+        ],
+        "min_payload_bytes": 300
+      },
+      "trust": "verified_public",
+      "assets": [
+        {
+          "asset": "weather.cn.today",
+          "display_name": "今天天气",
+          "provides": ["temperature", "condition", "wind", "humidity", "temp_range", "forecast7"]
+        },
+        {
+          "asset": "weather.cn.forecast",
+          "display_name": "未来天气",
+          "provides": ["temperature", "condition", "temp_range", "forecast7"]
+        }
+      ]
+    },
+    {
+      "id": "wttr-weather",
+      "name": "wttr.in",
+      "endpoint_template": "https://wttr.in/{city}?format=j1&lang=zh",
+      "headers": {},
+      "expect": {
+        "kind": "json",
+        "must_contain": [
+          "current_condition"
+        ],
+        "min_payload_bytes": 500
+      },
+      "trust": "verified_public",
+      "assets": [
+        {
+          "asset": "weather.cn.today",
+          "display_name": "今天天气",
+          "provides": ["temperature", "condition", "wind", "humidity", "temp_range", "forecast7"]
+        },
+        {
+          "asset": "weather.cn.forecast",
+          "display_name": "未来天气",
+          "provides": ["condition", "temp_range", "forecast7"]
+        }
+      ]
+    },
+    {
+      "id": "open-meteo",
+      "name": "open-meteo",
+      "endpoint_template": "https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}&daily=temperature_2m_max,temperature_2m_min,weather_code&timezone=Asia%2FShanghai",
+      "headers": {},
+      "expect": {
+        "kind": "json",
+        "must_contain": [
+          "daily"
+        ],
+        "min_payload_bytes": 200
+      },
+      "trust": "verified_public",
+      "scope": "default_city_only",
+      "assets": [
+        {
+          "asset": "weather.cn.today",
+          "display_name": "今天天气",
+          "provides": ["condition", "temp_range"]
+        },
+        {
+          "asset": "weather.cn.forecast",
+          "display_name": "未来天气",
+          "provides": ["condition", "temp_range"]
+        }
+      ]
+    },
+    {
+      "id": "weathercn-dingzhi",
+      "name": "中国天气网 dingzhi",
+      "endpoint_template": "http://d1.weather.com.cn/dingzhi/{city_code}.html",
+      "headers": {
+        "Referer": "http://www.weather.com.cn/"
+      },
+      "expect": {
+        "kind": "text",
+        "must_contain": [
+          "var cityDZ"
+        ],
+        "min_payload_bytes": 200
+      },
+      "trust": "verified_public",
+      "assets": [
+        {
+          "asset": "weather.cn.today",
+          "display_name": "今天天气（仅今天/今夜）",
+          "provides": ["temperature", "condition"]
+        }
+      ]
+    },
+    {
+      "id": "weathercn-sk2d",
+      "name": "中国天气网实况",
+      "endpoint_template": "http://d1.weather.com.cn/sk_2d/{city_code}.html",
+      "headers": {
+        "Referer": "http://www.weather.com.cn/"
+      },
+      "expect": {
+        "kind": "text",
+        "must_contain": [
+          "var dataSK"
+        ],
+        "min_payload_bytes": 100
+      },
+      "trust": "verified_public",
+      "assets": [
+        {
+          "asset": "weather.cn.today",
+          "display_name": "今天实况（仅温湿度）",
+          "provides": ["temperature", "humidity"]
+        }
+      ]
+    }
+  ],
+  "rejected": [
+    {
+      "endpoint": "https://hq.sinajs.cn/list=hf_DINIW",
+      "reason": "HTTP 200 且返回 var hq_str_hf_DINIW=\"\";，负载为空串（24B），没有数据。证明 200 + 键存在不等于有值，必须加负载非空门槛。"
+    }
+  ]
+}
