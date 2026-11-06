@@ -5,7 +5,7 @@
 - original_work_order_id: wo-ultimaagent-20261101-0021
 - revision: 2
 - authorization: 用户“那按顺序开始推进吧”；批准按已提交的工作能力契约与计划顺序执行，保留最终 Owner 验收和发布门。
-- 状态：E01固定3/3、E03三正一负PASS；E02原资料零推理单例FAIL，原SDK冷导入hostname被profile审计拒绝，未交付；失败证据独立复核通过，清理及七保护身份点时PASS。单例/复核额度均耗尽，不重试，冷导入补修提案待授权；E02/T2未过。
+- 状态：E01固定3/3、E03三正一负PASS；E02冷导入补修完成，561项profile及89项入口回归、独立准备复核PASS。旧失败保留；Owner已授权复核通过后一次零推理接线验证及结果复核，实际运行尚未开始，E02/T2未过。
 - 计划：docs/plans/jarvis-work-capability-delivery-plan-20261101.md
 - 契约：docs/specs/jarvis-work-capability-contract-20261101.md
 - 草案检查点：ultimaagent-jarvis-work-plan-draft-20261101 @ f6eb808348302cec55bddcf44ee03f5b5736c4d9
@@ -338,3 +338,8 @@ E01固定3/3及E03三正一负PASS；E02 HELLO余量补修89项离线检查及�
 ## 2026-11-06 E02原资料单例实际失败并独立复核保全
 
 E01固定3/3、E03三正一负PASS；E02原资料零推理单例FAIL，原SDK冷导入hostname被profile审计拒绝，未交付；失败证据独立复核通过，清理及七保护身份点时PASS。单例/复核额度均耗尽，不重试，冷导入补修提案待授权；E02/T2未过。
+
+## 2026-11-06 冷导入兼容准备通过
+
+E01固定3/3、E03三正一负PASS；E02冷导入补修完成，561项profile及89项入口回归、独立准备复核PASS。旧失败保留；Owner已授权复核通过后一次零推理接线验证及结果复核，实际运行尚未开始，E02/T2未过。
+报告：docs/reports/jarvis-work-t2-e02-source13-cold-import-result-20261106.md。当前新候选为 H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-source13-cold-import-20261106；旧 B/E 失败和 release 不复用。

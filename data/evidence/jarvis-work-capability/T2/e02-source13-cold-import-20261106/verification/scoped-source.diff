@@ -1,0 +1,178 @@
+--- H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-source13-profile-binding-20261106\profile-preparation\profile.py
++++ H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-source13-cold-import-20261106\profile-preparation\profile.py
+@@ -182,6 +182,9 @@
+         self.ordinary_http=None; self.os_packets=None
+     def __call__(self,event,args):
+         if not self.enabled:
++            return
++        # platform.machine() reads local Windows metadata during cold SDK import.
++        if event=='socket.gethostname':
+             return
+         if event=='socket.getaddrinfo' and _DNS.get():
+             if args and args[0]=='raw.githubusercontent.com': return
+--- H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-source13-profile-binding-20261106\profile-preparation\test_profile.py
++++ H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-source13-cold-import-20261106\profile-preparation\test_profile.py
+@@ -3318,3 +3318,33 @@
+     with pytest.raises(ValueError):
+         with p.private_scope(folder,pins,admission): pytest.fail('rejected entry exposed SDK')
+     assert calls==[] and list(folder.iterdir())==([] if bad!='not_empty' else [folder/'old'])
++
++
++@pytest.mark.parametrize('role',['worker','reader'])
++def test_real_sdk_cold_import(role,tmp_path):
++    """No eager fixture or warmed platform: the original SDK runs in a new PID."""
++    import os
++    import subprocess
++    p=implementation()
++    forbidden={'OLLAMA_HOST','OLLAMA_API_KEY','OLLAMA_MODELS','PYTHONPATH','PYTHONHOME','PYTHONSTARTUP',
++        'OPENJARVIS_HOME','OPENJARVIS_CONFIG','XDG_DATA_HOME','XDG_CACHE_HOME','TMP','TEMP','TMPDIR','OPENJARVIS_SSRF_FAIL_OPEN'}
++    env={k:v for k,v in os.environ.items() if k.upper() not in forbidden and not k.upper().endswith('_PROXY')}
++    result=tmp_path/'result.json'
++    command=[str(p.PY),'-I','-B','-X','utf8',str(HERE.parent/'cold/cold_import_probe.py'),role,str(tmp_path/'cold'),str(result)]
++    run=subprocess.run(command,env=env,cwd=HERE,capture_output=True,timeout=45,creationflags=subprocess.CREATE_NO_WINDOW)
++    (tmp_path/'stdout.txt').write_bytes(run.stdout);(tmp_path/'stderr.txt').write_bytes(run.stderr)
++    assert result.exists(),run.stderr.decode('utf-8','replace')
++    value=json.loads(result.read_bytes())
++    assert run.returncode==0 and value['outcome']=='PASS',value
++    assert value['pid']!=os.getpid() and value['platform_cache_cold'] and value['real_sdk_not_preloaded']
++    assert value['real_types_and_early_close'] and value['boundary_stopped'] and value['eager_audit']['eager']['clean']
++    assert value['research_submissions']==value['model_calls']==value['profile_invocations']==0
++    assert value['audit_events'] and set(value['audit_events'])=={'socket.gethostname'}
++    assert value['refused_io']==[] and value['runtime_authority'] is False
++
++
++@pytest.mark.parametrize('event',['socket.gethostname_extra','socket.gethostname.exfiltrate'])
++def test_hostname_exception_is_exact(event):
++    p=implementation();audit=p.WorkerAudit()
++    with pytest.raises(ValueError):audit(event,())
++    assert audit.denied=={event:1}
+--- H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-source13-root-entry-20261106\code\controls.py
++++ H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-source13-cold-import-20261106\code\controls.py
+@@ -15,12 +15,12 @@
+ from package_io import require,read,sha,digest,canonical,decode,load,safe_path,save_new
+ 
+ PY=Path(r'H:\UltimaAI\UltimaAgent\tools\venv-openjarvis\Scripts\python.exe')
+-BASE_MANIFEST=Path(r'H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-source13-profile-binding-20261106\profile-preparation\manifest.json')
++BASE_MANIFEST=Path(r'H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-source13-cold-import-20261106\profile-preparation\manifest.json')
+ CANDIDATE='269aca511d88412dbb9c15d23911138469a37aa2'
+ MODEL_DIGEST='6d7230a923426bc1933879eb08a7dafc18e5fc0e7606c459ce98f16e0c7f9330'
+ SCOPE='ORIGINAL_CORPUS_ZERO_INFERENCE_PROFILE'
+ source=BASE_MANIFEST.parent/'profile.py'
+-if hashlib.sha256(source.read_bytes()).hexdigest()!='41361a399e1f8a8bf69b79514478fabd3e3931b00f5bc900c439cc99e02fb392':raise ValueError('Profile source drift')
++if hashlib.sha256(source.read_bytes()).hexdigest()!='5c837adbdd6fa7aaee6d0ed7da9e6b2992c5df613d41a88326db6799f5a60985':raise ValueError('Profile source drift')
+ spec=importlib.util.spec_from_file_location('source13_root_profile',source)
+ PROFILE=importlib.util.module_from_spec(spec);spec.loader.exec_module(PROFILE)
+ 
+--- H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-source13-root-entry-20261106\code\entry.py
++++ H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-source13-cold-import-20261106\code\entry.py
+@@ -9,7 +9,7 @@
+ from package_io import require,load,save_new,sha,safe_path
+ from controls import Context,WorkerControls,ReaderControls,PROFILE,PY,same,exact,native_key
+ 
+-ROOT=Path(r'H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-source13-root-entry-20261106')
++ROOT=Path(r'H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-source13-cold-import-20261106')
+ FORBIDDEN={'OLLAMA_HOST','OLLAMA_API_KEY','OLLAMA_MODELS','PYTHONPATH','PYTHONHOME','PYTHONSTARTUP',
+     'OPENJARVIS_HOME','OPENJARVIS_CONFIG','XDG_DATA_HOME','XDG_CACHE_HOME','TMP','TEMP','TMPDIR','OPENJARVIS_SSRF_FAIL_OPEN'}
+ 
+--- H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-source13-root-entry-20261106\verification\execute-profile-once.py
++++ H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-source13-cold-import-20261106\verification\execute-profile-once.py
+@@ -10,7 +10,7 @@
+ assert Path(sys.executable).resolve()==PY.resolve() and sys.flags.isolated and sys.flags.dont_write_bytecode
+ assert not (E/'release').exists() and not (E/'runs').exists() and not (E/'execution/root-invocation.json').exists()
+ scope=load(E/'execution/scope-approval.json');preflight=load(E/'execution/preflight-v2.json')
+-assert scope['question_id']=='call_e2d3b965cd22479087e7a5b013e77e65' and scope['root_entry_limit']==scope['actual_profile_limit']==1
++assert scope['question_id']=='call_c6b188dbc9514611ad330bb3b8829619' and scope['root_entry_limit']==scope['actual_profile_limit']==1
+ assert preflight['status']=='PASS_POINT_IN_TIME_PREFLIGHT' and len(preflight['protected'])==7
+ entry=load(E/'entry-manifest.json');review=load(E/'review/independent-preparation-review.json');gate=load(E/'verification/code-preparation-gate.json')
+ assert sha(E/'entry-manifest.json')==scope['entry_manifest_sha256']==review['manifest_sha256']==gate['manifest_sha256']
+--- H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-source13-root-entry-20261106\verification\profile-once-preflight.py
++++ H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-source13-cold-import-20261106\verification\profile-once-preflight.py
+@@ -8,15 +8,17 @@
+     with p.open('x',encoding='utf-8') as stream:json.dump(v,stream,ensure_ascii=False,indent=2)
+ def require(ok,message):
+     if not ok:raise ValueError(message)
+-assert sha(E/'entry-manifest.json')=='8b63f148aa43f923b85ac5fa97a40a358e4eff5ab85e7adb2dde8f29951e542f'
+-assert sha(E/'manifest.json')=='22fec32700802661d9d238a76a616efe4292bd6504b3fc723e48984048cfe591'
++review=load(E/'review/independent-preparation-review.json')
++assert review['verdict']=='PASS'
++assert sha(E/'entry-manifest.json')==review['manifest_sha256']
++assert sha(E/'manifest.json')==review['package_manifest_sha256']
+ for row in load(E/'manifest.json')['files']:assert sha(E/row['path'])==row['sha256'],row['path']
+ entry=load(E/'entry-manifest.json')
+ for name,digest in entry['files'].items():assert sha(Path(name))==digest,name
+ base=load(Path(entry['base_profile_manifest_path']))
+ for name,digest in base['files'].items():assert sha(Path(name))==digest,name
+ assert not (E/'release').exists() and not (E/'runs').exists()
+-work=E/'execution';assert load(work/'scope-approval.json')['question_id']=='call_e2d3b965cd22479087e7a5b013e77e65'
++work=E/'execution';assert load(work/'scope-approval.json')['question_id']=='call_c6b188dbc9514611ad330bb3b8829619'
+ # Extract the unchanged read-only native helpers; no termination/controller module execution.
+ helper=E.parent/'e01-source13-round3-20261106'
+ ns=globals()
+--- H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-source13-root-entry-20261106\verification\profile-once-postcheck.py
++++ H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-source13-cold-import-20261106\verification\profile-once-postcheck.py
+@@ -1,4 +1,4 @@
+-"""Read-only exact-identity postcheck and immutable failed-result inventory."""
++"""Read-only exact-identity postcheck and immutable single-result inventory."""
+ from pathlib import Path
+ import ast,base64,ctypes as C,datetime as dt,hashlib,json,subprocess
+ E=Path(__file__).resolve().parents[1]
+@@ -15,8 +15,9 @@
+     nodes=[n for n in ast.parse(path.read_bytes()).body if isinstance(n,ast.FunctionDef) and n.name in names]
+     exec(compile(ast.Module(body=nodes,type_ignores=[]),str(path),'exec'))
+ release=load(E/'release/release.json');run=E/'runs'/release['run_id'];terminal=load(run/'control/terminal.json')
+-assert terminal['status']=='FAIL' and terminal['mechanical']=='FAIL' and terminal['acceptance_credit'] is False
+-assert terminal==load(E/'execution/root.stdout') and load(E/'execution/root-exit.json')['exit_code']==1
++assert terminal['status'] in ('FAIL','PENDING_RESULT_REVIEW') and terminal['acceptance_credit'] is False
++assert terminal==load(E/'execution/root.stdout')
++assert load(E/'execution/root-exit.json')['exit_code']==(0 if terminal['status']=='PENDING_RESULT_REVIEW' else 1)
+ assert load(E/'release/consumed.json')['consumed']==1
+ baseline=load(E/'inputs/protected-baseline.json');expected=baseline['protected5']+baseline['protected_listener_pair']
+ owned=[row['identity'] for row in terminal['cleanup']['processes']]+[load(E/'release/consumed.json')['root_native']]
+@@ -44,29 +45,28 @@
+ except Exception as exc:proof.update(status='FAIL_POSTCHECK',errors=[dict(type=type(exc).__name__,message=str(exc))])
+ save(E/'execution/postcheck.json',proof)
+ assert proof['status']=='PASS_POINT_IN_TIME_POSTCHECK'
+-stderr=(run/'process/worker.stderr').read_text(encoding='utf-8')
+-assert 'socket.gethostname()' in stderr and "ValueError: Unexpected audited operation" in stderr
+-assert not (run/'worker/case/service-first-result.json').exists() and not (run/'worker/case/profile-first-result.json').exists()
+-assert not (run/'control/reader-go.json').exists() and not list(run.rglob('research.md'))
+-summary=dict(recorded_at=dt.datetime.now(dt.timezone.utc).isoformat(),run_id=release['run_id'],execution='FAIL',
+-    root_entry_invocations=1,profile_invocations=1,reader_invocations=0,retry=0,
+-    root_elapsed_seconds=(terminal['observed_at_ns']-terminal['origin_ns'])/10**9,
+-    error_surface=terminal['error'],root_cause='Ollama eager Client initialization calls platform.machine -> platform.uname -> socket.gethostname; WorkerAudit rejects all socket.* except scoped getaddrinfo.',
+-    failure_stage='private_scope entry / own_ollama_types, before run_profile body and real SDK research submission',
+-    inference_reached=False,SDK_research_submission_reached=False,research_artifact_produced=False,
+-    counters_basis='Failure traceback and reviewed control flow; no structured profile-first result produced.',
+-    actual_model_calls_observed=0,native_network_packets=None,native_DNS_calls=None,
++
++artifacts=sorted(run.rglob('research.md'))
++reader_started=(run/'control/reader-go.json').exists()
++first_path=run/'worker/case/profile-first-result.json'
++summary=dict(recorded_at=dt.datetime.now(dt.timezone.utc).isoformat(),run_id=release['run_id'],
++    execution=terminal['status'],mechanical=terminal['mechanical'],root_entry_invocations=1,retry=0,
++    root_elapsed_seconds=(terminal['observed_at_ns']-terminal['origin_ns'])/10**9,error_surface=terminal['error'],
++    first_profile_result_present=first_path.exists(),reader_started=reader_started,
++    research_artifacts=[dict(path=p.relative_to(E).as_posix(),sha256=sha(p),bytes=p.stat().st_size) for p in artifacts],
++    model_and_network_counts='Independent result review must reconcile original counters; no OS-wide measurement',
++    native_network_packets=None,native_DNS_calls=None,
+     cleanup=terminal['cleanup']['status'],protected_match_count=len(proof['protected']),owned_plus_root_absent=len(proof['owned']),
+-    preparation_verdict_unchanged='PASS_PREPARATION_ONLY',E02='NOT_PASSED',T2='NOT_PASSED',
+-    remaining_root_invocations=0,remaining_result_reviews=1,independent_result_review='PENDING',next_runtime_authority=False)
++    E02='NOT_PASSED',T2='NOT_PASSED',remaining_root_invocations=0,remaining_result_reviews=1,
++    independent_result_review='PENDING',next_runtime_authority=False)
+ save(E/'execution/root-result-readback.json',summary)
+ members={p for folder in (run,E/'release',E/'execution') for p in folder.rglob('*') if p.is_file()}
+ members.update({E/'entry-manifest.json',E/'manifest.json',E/'review/independent-preparation-review.json',
+     E/'verification/code-preparation-gate.json',Path(__file__),E/'verification/profile-once-preflight.py',E/'verification/execute-profile-once.py'})
+-manifest=dict(recorded_at=dt.datetime.now(dt.timezone.utc).isoformat(),scope='ONE_AUTHORIZED_PROFILE_FAILED_RESULT',
+-    run_id=release['run_id'],execution='FAIL',runtime_authority=False,
++manifest=dict(recorded_at=dt.datetime.now(dt.timezone.utc).isoformat(),scope='ONE_AUTHORIZED_COLD_IMPORT_PROFILE_RESULT',
++    run_id=release['run_id'],execution=terminal['status'],runtime_authority=False,
+     files=[dict(path=p.relative_to(E).as_posix(),bytes=p.stat().st_size,sha256=sha(p)) for p in sorted(members)])
+ save(E/'execution/result-manifest.json',manifest)
+-print(json.dumps(dict(run_id=release['run_id'],execution='FAIL',elapsed=summary['root_elapsed_seconds'],
+-    postcheck=proof['status'],protected=7,owned_plus_root_absent=4,result_files=len(members),
+-    result_manifest_sha256=sha(E/'execution/result-manifest.json'),reader_started=False,delivery=False,retry=False)))
++print(json.dumps(dict(run_id=release['run_id'],execution=terminal['status'],elapsed=summary['root_elapsed_seconds'],
++    postcheck=proof['status'],protected=len(proof['protected']),owned_plus_root_absent=len(proof['owned']),result_files=len(members),
++    result_manifest_sha256=sha(E/'execution/result-manifest.json'),reader_started=reader_started,artifacts=len(artifacts),retry=False)))
