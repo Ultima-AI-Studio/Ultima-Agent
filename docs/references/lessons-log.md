@@ -279,6 +279,7 @@
 | v2.7 | 2026-11-05 | 新增 L37 T4 全量回归两项环境既有失败（测试子进程 PATH 缺 Ollama 目录 + jarvis ask 14B 真实推理在 12GB 卡 cudaMalloc OOM）；处置=主脑豁免裁决收口 + 两项登记环境债（测试环境注入 PATH / 真推理测试改 8B 或加显存前置） |
 | v2.8 | 2026-11-06 | 新增 L39-L42 抖音热榜视频提取四坑（纯 HTTP 返回空壳 / 详情页跳精选页但 SSR 数据可直读 / SSR 分片是 JSON 字符串字面量必先解码 / CDN 直链需 Referer 且签名有时效）；配套链路 `H:\UltimaAI\_shared\tools\scrapling-test\`（hot_fetch.py + hot_video.py + 播放页模板） |
 | v2.9 | 2026-11-06 | 新增 L43 Windows 桌面自动化四处系统级限制（USER_CONTROL 控制权让路需重试 / SetForegroundWindow 前台锁定 / UI 树 500 元素上限 / 13 窗口 UIA 读不出 + README 门控参数在本机不存在）；配套配置文档 `docs/specs/windows-mcp-executor-channel.md`，能力清单「执行」组新增「操作桌面窗口和按钮」 |
+| v3.0 | 2026-11-06 | 新增 L44 git 推送"代理连不上"假象（github.com 单独配 1083 失效端口，全局 1080 正常）；处置=单次 `-c` 覆盖到 7897 推分支与标签，`ls-remote` 带同覆盖回读确认 `6b433698` 已在远端 |
 
 ## L35 agent_server 8756 "查新闻" 500 根因链（2026-11-01 · 实测修复）
 
@@ -361,3 +362,10 @@
 - **根因**：① 控制权门控是设计内的「人在用时 AI 让路」，空闲即还权，不是失败也不是排队；② Windows 前台锁定策略禁止非前台进程抢焦点；③ UI 树默认上限 500 元素（`WINDOWS_MCP_MAX_TREE_ELEMENTS`），聊天类大窗口吃光预算；④ 部分应用（Electron 类）不吐 UIA 元素；⑤ 文档版本与本机包版本脱节（服务自报 4.1.6 vs 包 0.8.8）。
 - **规避**：① 调用层必须写「被拒 → 等 2 秒 → 最多重试 10 次」，全失败才判失败并上报，不能一次被拒就当任务失败；② 不依赖 `switch`，改点击目标窗口可见区域激活，或对未被遮挡的窗口直接按坐标点击；③ 调高 `WINDOWS_MCP_MAX_TREE_ELEMENTS`、配 `WINDOWS_MCP_EXCLUDE_PROCESSES` 排除干扰进程，紧急时用 `region` + `Screenshot` 按坐标点击（注意图片会缩放，坐标按 900/747 ≈ 1.204 反算）；④ UIA 超时用 `WINDOWS_MCP_UIA_CONNECTION_TIMEOUT_MS`（默认 2000）/ `WINDOWS_MCP_UIA_TRANSACTION_TIMEOUT_MS`（默认 5000），读不出的窗口一律走截图；⑤ 门控参数以本机 `serve --help` 为准，不信 README。
 - **复发**：1（同会话内 ① 复现 3 次（两次点击 + 一次启动）、② 复现 1 次、④ 每轮快照都在报）
+
+## L44 git 推送报"代理连不上"实为 github.com 单独配了失效端口（工具链 · 2026-11-06）
+
+- **现象**：`git push origin codex/voice-fsmn-new-path` 连续两次报 `fatal: unable to access 'https://github.com/Ultima-AI-Studio/Ultima-Agent.git/': Failed to connect to github.com:443 over proxy 127.0.0.1 after 2067 ms / 2063 ms`，看起来像本机代理整体挂了。但同一时刻 `curl -x http://127.0.0.1:1080 -I https://github.com` 返回 200、`Test-NetConnection 127.0.0.1 -Port 1080` 为 True。
+- **根因**：`C:/Users/Administrator/.gitconfig` 里除全局 `http.proxy=http://127.0.0.1:1080`、`https.proxy=http://127.0.0.1:1080` 之外，还有一条 `http.https://github.com.proxy=http://127.0.0.1:1083`。git 按 URL 精确匹配的代理优先级高于全局代理，于是所有 github.com 请求都走已失效的 1083 端口（同一端口用 curl 测也是 `curl: (7) Failed to connect ... after 2033 ms`）。全局代理是好的，报错文案却统一指向 `127.0.0.1`，容易误判。
+- **规避**：① 遇到"代理连不上"先 `git config --list --show-origin | Select-String -Pattern 'proxy'`，分清全局代理与按 URL 的专属代理，别只看 `http.proxy`；② 用单次覆盖跑通，不改全局配置：`git -c 'http.https://github.com.proxy=http://127.0.0.1:7897' push origin <ref>`；③ 推送后用 `git ls-remote` 回读核对，且回读命令必须带同样的 `-c` 覆盖，否则 `ls-remote` 会因同一个 1083 再报一次错，被误当成"推送没成"；④ 本机实测可用端口为 1080 与 7897，1083 与 7890/7891 均不通。
+- **复发**：2（分支与标签各失败一次，图案相同）
