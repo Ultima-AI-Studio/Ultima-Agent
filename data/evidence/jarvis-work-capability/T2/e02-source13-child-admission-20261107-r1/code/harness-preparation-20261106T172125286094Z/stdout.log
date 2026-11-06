@@ -1,0 +1,1070 @@
+FFFFFFFFFFFFFFFFF                                                        [100%]
+================================== FAILURES ===================================
+_______ test_recovery_full_admit_observation_role[child-no-subprocess] ________
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-source13-child-admission-20261107-r1/code/harness-preparation-20261106T172125286094Z/temp/test_recovery_full_admit_obser0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000022E238EFE10>
+child = True
+
+    @pytest.mark.parametrize('child',[True,False],ids=['child-no-subprocess','parent-full-snapshot'])
+    def test_recovery_full_admit_observation_role(tmp_path,monkeypatch,child):
+        f=child_admission_fixture(tmp_path,monkeypatch,child)
+>       context,p4=a.admit(f['authority_path'],f['ledger_path'],child=child,budget=f['budget'])
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+..\..\harness\test_adapter.py:1381: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+..\..\harness\adapter.py:392: in admit
+    budget.call('source admission',check_inputs)
+..\..\harness\adapter.py:70: in call
+    try: result=function(*args,**kwargs)
+                ^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\harness\adapter.py:254: in check_inputs
+    require(sha(V/'inputs/scope.json')==PREPARATION_SHA,'Offline preparation scope drift')
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\harness\adapter.py:227: in sha
+    def sha(path): return observed_io('observed hash '+str(path),lambda:hashlib.sha256(Path(path).read_bytes()).hexdigest())
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\harness\adapter.py:225: in observed_io
+    return budget.call(label,function) if budget is not None else function()
+                                                                  ^^^^^^^^^^
+..\..\harness\adapter.py:227: in <lambda>
+    def sha(path): return observed_io('observed hash '+str(path),lambda:hashlib.sha256(Path(path).read_bytes()).hexdigest())
+                                                                                       ^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Administrator\AppData\Local\Doubao\User Data\sandbox_runtime\bases\772984f6fd3a8ae0ae7d2422cd7c2bfa\python\Lib\pathlib\_abc.py:625: in read_bytes
+    with self.open(mode='rb') as f:
+         ^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-source13-child-admission-20261107-r1/code/harness-preparation-20261106T172125286094Z/temp/test_recovery_full_admit_obser0/inputs/scope.json')
+mode = 'rb', buffering = -1, encoding = None, errors = None, newline = None
+
+    def open(self, mode='r', buffering=-1, encoding=None,
+             errors=None, newline=None):
+        """
+        Open the file pointed to by this path and return a file object, as
+        the built-in open() function does.
+        """
+        if "b" not in mode:
+            encoding = io.text_encoding(encoding)
+>       return io.open(self, mode, buffering, encoding, errors, newline)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       FileNotFoundError: [Errno 2] No such file or directory: 'H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\e02-source13-child-admission-20261107-r1\\code\\harness-preparation-20261106T172125286094Z\\temp\\test_recovery_full_admit_obser0\\inputs\\scope.json'
+
+C:\Users\Administrator\AppData\Local\Doubao\User Data\sandbox_runtime\bases\772984f6fd3a8ae0ae7d2422cd7c2bfa\python\Lib\pathlib\_local.py:537: FileNotFoundError
+_______ test_recovery_full_admit_observation_role[parent-full-snapshot] _______
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-source13-child-admission-20261107-r1/code/harness-preparation-20261106T172125286094Z/temp/test_recovery_full_admit_obser1')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000022E236EEFD0>
+child = False
+
+    @pytest.mark.parametrize('child',[True,False],ids=['child-no-subprocess','parent-full-snapshot'])
+    def test_recovery_full_admit_observation_role(tmp_path,monkeypatch,child):
+        f=child_admission_fixture(tmp_path,monkeypatch,child)
+>       context,p4=a.admit(f['authority_path'],f['ledger_path'],child=child,budget=f['budget'])
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+..\..\harness\test_adapter.py:1381: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+..\..\harness\adapter.py:392: in admit
+    budget.call('source admission',check_inputs)
+..\..\harness\adapter.py:70: in call
+    try: result=function(*args,**kwargs)
+                ^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\harness\adapter.py:254: in check_inputs
+    require(sha(V/'inputs/scope.json')==PREPARATION_SHA,'Offline preparation scope drift')
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\harness\adapter.py:227: in sha
+    def sha(path): return observed_io('observed hash '+str(path),lambda:hashlib.sha256(Path(path).read_bytes()).hexdigest())
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\harness\adapter.py:225: in observed_io
+    return budget.call(label,function) if budget is not None else function()
+                                                                  ^^^^^^^^^^
+..\..\harness\adapter.py:227: in <lambda>
+    def sha(path): return observed_io('observed hash '+str(path),lambda:hashlib.sha256(Path(path).read_bytes()).hexdigest())
+                                                                                       ^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Administrator\AppData\Local\Doubao\User Data\sandbox_runtime\bases\772984f6fd3a8ae0ae7d2422cd7c2bfa\python\Lib\pathlib\_abc.py:625: in read_bytes
+    with self.open(mode='rb') as f:
+         ^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-source13-child-admission-20261107-r1/code/harness-preparation-20261106T172125286094Z/temp/test_recovery_full_admit_obser1/inputs/scope.json')
+mode = 'rb', buffering = -1, encoding = None, errors = None, newline = None
+
+    def open(self, mode='r', buffering=-1, encoding=None,
+             errors=None, newline=None):
+        """
+        Open the file pointed to by this path and return a file object, as
+        the built-in open() function does.
+        """
+        if "b" not in mode:
+            encoding = io.text_encoding(encoding)
+>       return io.open(self, mode, buffering, encoding, errors, newline)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       FileNotFoundError: [Errno 2] No such file or directory: 'H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\e02-source13-child-admission-20261107-r1\\code\\harness-preparation-20261106T172125286094Z\\temp\\test_recovery_full_admit_obser1\\inputs\\scope.json'
+
+C:\Users\Administrator\AppData\Local\Doubao\User Data\sandbox_runtime\bases\772984f6fd3a8ae0ae7d2422cd7c2bfa\python\Lib\pathlib\_local.py:537: FileNotFoundError
+____ test_recovery_full_admit_rejects_drift_before_dispatch[expired-True] _____
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-source13-child-admission-20261107-r1/code/harness-preparation-20261106T172125286094Z/temp/test_recovery_full_admit_rejec0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000022E24AB6570>
+child = True, fault = 'expired'
+
+    @pytest.mark.parametrize('child',[True,False])
+    @pytest.mark.parametrize('fault',['expired','precision','missing-listener','changed-native','wrong-parent','changed-proof-hash'])
+    def test_recovery_full_admit_rejects_drift_before_dispatch(tmp_path,monkeypatch,child,fault):
+        f=child_admission_fixture(tmp_path,monkeypatch,child)
+        if fault=='expired': f['proof']['recorded_at']=(dt.datetime.now(dt.timezone.utc)-dt.timedelta(seconds=61)).isoformat()
+        elif fault=='precision': f['proof']['precision']='milliseconds'
+        elif fault=='missing-listener': f['proof']['protected']=f['identities'][:-1]
+        elif fault=='changed-native': f['native'][106]['created_filetime']+=1
+        elif fault=='wrong-parent': f['native'][9000]=dict(f['native'][9000],created_filetime=1)
+        elif fault=='changed-proof-hash': f['proof']['unexpected']='not bound'
+        # Only these synthetic fixture files are rewritten; the real admission
+        # validator must reject the faulty proof or live native observation.
+        f['proof_path'].write_text(json.dumps(f['proof']),encoding='utf8')
+        if fault!='changed-proof-hash':
+            f['authority']['native_preflight_sha256']=a.sha(f['proof_path'])
+            f['authority_path'].write_text(json.dumps(f['authority']),encoding='utf8')
+        with pytest.raises(ValueError):
+>           a.admit(f['authority_path'],f['ledger_path'],child=child,budget=f['budget'])
+
+..\..\harness\test_adapter.py:1406: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+..\..\harness\adapter.py:392: in admit
+    budget.call('source admission',check_inputs)
+..\..\harness\adapter.py:70: in call
+    try: result=function(*args,**kwargs)
+                ^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\harness\adapter.py:254: in check_inputs
+    require(sha(V/'inputs/scope.json')==PREPARATION_SHA,'Offline preparation scope drift')
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\harness\adapter.py:227: in sha
+    def sha(path): return observed_io('observed hash '+str(path),lambda:hashlib.sha256(Path(path).read_bytes()).hexdigest())
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\harness\adapter.py:225: in observed_io
+    return budget.call(label,function) if budget is not None else function()
+                                                                  ^^^^^^^^^^
+..\..\harness\adapter.py:227: in <lambda>
+    def sha(path): return observed_io('observed hash '+str(path),lambda:hashlib.sha256(Path(path).read_bytes()).hexdigest())
+                                                                                       ^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Administrator\AppData\Local\Doubao\User Data\sandbox_runtime\bases\772984f6fd3a8ae0ae7d2422cd7c2bfa\python\Lib\pathlib\_abc.py:625: in read_bytes
+    with self.open(mode='rb') as f:
+         ^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-source13-child-admission-20261107-r1/code/harness-preparation-20261106T172125286094Z/temp/test_recovery_full_admit_rejec0/inputs/scope.json')
+mode = 'rb', buffering = -1, encoding = None, errors = None, newline = None
+
+    def open(self, mode='r', buffering=-1, encoding=None,
+             errors=None, newline=None):
+        """
+        Open the file pointed to by this path and return a file object, as
+        the built-in open() function does.
+        """
+        if "b" not in mode:
+            encoding = io.text_encoding(encoding)
+>       return io.open(self, mode, buffering, encoding, errors, newline)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       FileNotFoundError: [Errno 2] No such file or directory: 'H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\e02-source13-child-admission-20261107-r1\\code\\harness-preparation-20261106T172125286094Z\\temp\\test_recovery_full_admit_rejec0\\inputs\\scope.json'
+
+C:\Users\Administrator\AppData\Local\Doubao\User Data\sandbox_runtime\bases\772984f6fd3a8ae0ae7d2422cd7c2bfa\python\Lib\pathlib\_local.py:537: FileNotFoundError
+____ test_recovery_full_admit_rejects_drift_before_dispatch[expired-False] ____
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-source13-child-admission-20261107-r1/code/harness-preparation-20261106T172125286094Z/temp/test_recovery_full_admit_rejec1')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000022E2398FDF0>
+child = False, fault = 'expired'
+
+    @pytest.mark.parametrize('child',[True,False])
+    @pytest.mark.parametrize('fault',['expired','precision','missing-listener','changed-native','wrong-parent','changed-proof-hash'])
+    def test_recovery_full_admit_rejects_drift_before_dispatch(tmp_path,monkeypatch,child,fault):
+        f=child_admission_fixture(tmp_path,monkeypatch,child)
+        if fault=='expired': f['proof']['recorded_at']=(dt.datetime.now(dt.timezone.utc)-dt.timedelta(seconds=61)).isoformat()
+        elif fault=='precision': f['proof']['precision']='milliseconds'
+        elif fault=='missing-listener': f['proof']['protected']=f['identities'][:-1]
+        elif fault=='changed-native': f['native'][106]['created_filetime']+=1
+        elif fault=='wrong-parent': f['native'][9000]=dict(f['native'][9000],created_filetime=1)
+        elif fault=='changed-proof-hash': f['proof']['unexpected']='not bound'
+        # Only these synthetic fixture files are rewritten; the real admission
+        # validator must reject the faulty proof or live native observation.
+        f['proof_path'].write_text(json.dumps(f['proof']),encoding='utf8')
+        if fault!='changed-proof-hash':
+            f['authority']['native_preflight_sha256']=a.sha(f['proof_path'])
+            f['authority_path'].write_text(json.dumps(f['authority']),encoding='utf8')
+        with pytest.raises(ValueError):
+>           a.admit(f['authority_path'],f['ledger_path'],child=child,budget=f['budget'])
+
+..\..\harness\test_adapter.py:1406: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+..\..\harness\adapter.py:392: in admit
+    budget.call('source admission',check_inputs)
+..\..\harness\adapter.py:70: in call
+    try: result=function(*args,**kwargs)
+                ^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\harness\adapter.py:254: in check_inputs
+    require(sha(V/'inputs/scope.json')==PREPARATION_SHA,'Offline preparation scope drift')
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\harness\adapter.py:227: in sha
+    def sha(path): return observed_io('observed hash '+str(path),lambda:hashlib.sha256(Path(path).read_bytes()).hexdigest())
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\harness\adapter.py:225: in observed_io
+    return budget.call(label,function) if budget is not None else function()
+                                                                  ^^^^^^^^^^
+..\..\harness\adapter.py:227: in <lambda>
+    def sha(path): return observed_io('observed hash '+str(path),lambda:hashlib.sha256(Path(path).read_bytes()).hexdigest())
+                                                                                       ^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Administrator\AppData\Local\Doubao\User Data\sandbox_runtime\bases\772984f6fd3a8ae0ae7d2422cd7c2bfa\python\Lib\pathlib\_abc.py:625: in read_bytes
+    with self.open(mode='rb') as f:
+         ^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-source13-child-admission-20261107-r1/code/harness-preparation-20261106T172125286094Z/temp/test_recovery_full_admit_rejec1/inputs/scope.json')
+mode = 'rb', buffering = -1, encoding = None, errors = None, newline = None
+
+    def open(self, mode='r', buffering=-1, encoding=None,
+             errors=None, newline=None):
+        """
+        Open the file pointed to by this path and return a file object, as
+        the built-in open() function does.
+        """
+        if "b" not in mode:
+            encoding = io.text_encoding(encoding)
+>       return io.open(self, mode, buffering, encoding, errors, newline)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       FileNotFoundError: [Errno 2] No such file or directory: 'H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\e02-source13-child-admission-20261107-r1\\code\\harness-preparation-20261106T172125286094Z\\temp\\test_recovery_full_admit_rejec1\\inputs\\scope.json'
+
+C:\Users\Administrator\AppData\Local\Doubao\User Data\sandbox_runtime\bases\772984f6fd3a8ae0ae7d2422cd7c2bfa\python\Lib\pathlib\_local.py:537: FileNotFoundError
+___ test_recovery_full_admit_rejects_drift_before_dispatch[precision-True] ____
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-source13-child-admission-20261107-r1/code/harness-preparation-20261106T172125286094Z/temp/test_recovery_full_admit_rejec2')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000022E24B4D7B0>
+child = True, fault = 'precision'
+
+    @pytest.mark.parametrize('child',[True,False])
+    @pytest.mark.parametrize('fault',['expired','precision','missing-listener','changed-native','wrong-parent','changed-proof-hash'])
+    def test_recovery_full_admit_rejects_drift_before_dispatch(tmp_path,monkeypatch,child,fault):
+        f=child_admission_fixture(tmp_path,monkeypatch,child)
+        if fault=='expired': f['proof']['recorded_at']=(dt.datetime.now(dt.timezone.utc)-dt.timedelta(seconds=61)).isoformat()
+        elif fault=='precision': f['proof']['precision']='milliseconds'
+        elif fault=='missing-listener': f['proof']['protected']=f['identities'][:-1]
+        elif fault=='changed-native': f['native'][106]['created_filetime']+=1
+        elif fault=='wrong-parent': f['native'][9000]=dict(f['native'][9000],created_filetime=1)
+        elif fault=='changed-proof-hash': f['proof']['unexpected']='not bound'
+        # Only these synthetic fixture files are rewritten; the real admission
+        # validator must reject the faulty proof or live native observation.
+        f['proof_path'].write_text(json.dumps(f['proof']),encoding='utf8')
+        if fault!='changed-proof-hash':
+            f['authority']['native_preflight_sha256']=a.sha(f['proof_path'])
+            f['authority_path'].write_text(json.dumps(f['authority']),encoding='utf8')
+        with pytest.raises(ValueError):
+>           a.admit(f['authority_path'],f['ledger_path'],child=child,budget=f['budget'])
+
+..\..\harness\test_adapter.py:1406: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+..\..\harness\adapter.py:392: in admit
+    budget.call('source admission',check_inputs)
+..\..\harness\adapter.py:70: in call
+    try: result=function(*args,**kwargs)
+                ^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\harness\adapter.py:254: in check_inputs
+    require(sha(V/'inputs/scope.json')==PREPARATION_SHA,'Offline preparation scope drift')
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\harness\adapter.py:227: in sha
+    def sha(path): return observed_io('observed hash '+str(path),lambda:hashlib.sha256(Path(path).read_bytes()).hexdigest())
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\harness\adapter.py:225: in observed_io
+    return budget.call(label,function) if budget is not None else function()
+                                                                  ^^^^^^^^^^
+..\..\harness\adapter.py:227: in <lambda>
+    def sha(path): return observed_io('observed hash '+str(path),lambda:hashlib.sha256(Path(path).read_bytes()).hexdigest())
+                                                                                       ^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Administrator\AppData\Local\Doubao\User Data\sandbox_runtime\bases\772984f6fd3a8ae0ae7d2422cd7c2bfa\python\Lib\pathlib\_abc.py:625: in read_bytes
+    with self.open(mode='rb') as f:
+         ^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-source13-child-admission-20261107-r1/code/harness-preparation-20261106T172125286094Z/temp/test_recovery_full_admit_rejec2/inputs/scope.json')
+mode = 'rb', buffering = -1, encoding = None, errors = None, newline = None
+
+    def open(self, mode='r', buffering=-1, encoding=None,
+             errors=None, newline=None):
+        """
+        Open the file pointed to by this path and return a file object, as
+        the built-in open() function does.
+        """
+        if "b" not in mode:
+            encoding = io.text_encoding(encoding)
+>       return io.open(self, mode, buffering, encoding, errors, newline)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       FileNotFoundError: [Errno 2] No such file or directory: 'H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\e02-source13-child-admission-20261107-r1\\code\\harness-preparation-20261106T172125286094Z\\temp\\test_recovery_full_admit_rejec2\\inputs\\scope.json'
+
+C:\Users\Administrator\AppData\Local\Doubao\User Data\sandbox_runtime\bases\772984f6fd3a8ae0ae7d2422cd7c2bfa\python\Lib\pathlib\_local.py:537: FileNotFoundError
+___ test_recovery_full_admit_rejects_drift_before_dispatch[precision-False] ___
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-source13-child-admission-20261107-r1/code/harness-preparation-20261106T172125286094Z/temp/test_recovery_full_admit_rejec3')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000022E24C72B50>
+child = False, fault = 'precision'
+
+    @pytest.mark.parametrize('child',[True,False])
+    @pytest.mark.parametrize('fault',['expired','precision','missing-listener','changed-native','wrong-parent','changed-proof-hash'])
+    def test_recovery_full_admit_rejects_drift_before_dispatch(tmp_path,monkeypatch,child,fault):
+        f=child_admission_fixture(tmp_path,monkeypatch,child)
+        if fault=='expired': f['proof']['recorded_at']=(dt.datetime.now(dt.timezone.utc)-dt.timedelta(seconds=61)).isoformat()
+        elif fault=='precision': f['proof']['precision']='milliseconds'
+        elif fault=='missing-listener': f['proof']['protected']=f['identities'][:-1]
+        elif fault=='changed-native': f['native'][106]['created_filetime']+=1
+        elif fault=='wrong-parent': f['native'][9000]=dict(f['native'][9000],created_filetime=1)
+        elif fault=='changed-proof-hash': f['proof']['unexpected']='not bound'
+        # Only these synthetic fixture files are rewritten; the real admission
+        # validator must reject the faulty proof or live native observation.
+        f['proof_path'].write_text(json.dumps(f['proof']),encoding='utf8')
+        if fault!='changed-proof-hash':
+            f['authority']['native_preflight_sha256']=a.sha(f['proof_path'])
+            f['authority_path'].write_text(json.dumps(f['authority']),encoding='utf8')
+        with pytest.raises(ValueError):
+>           a.admit(f['authority_path'],f['ledger_path'],child=child,budget=f['budget'])
+
+..\..\harness\test_adapter.py:1406: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+..\..\harness\adapter.py:392: in admit
+    budget.call('source admission',check_inputs)
+..\..\harness\adapter.py:70: in call
+    try: result=function(*args,**kwargs)
+                ^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\harness\adapter.py:254: in check_inputs
+    require(sha(V/'inputs/scope.json')==PREPARATION_SHA,'Offline preparation scope drift')
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\harness\adapter.py:227: in sha
+    def sha(path): return observed_io('observed hash '+str(path),lambda:hashlib.sha256(Path(path).read_bytes()).hexdigest())
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\harness\adapter.py:225: in observed_io
+    return budget.call(label,function) if budget is not None else function()
+                                                                  ^^^^^^^^^^
+..\..\harness\adapter.py:227: in <lambda>
+    def sha(path): return observed_io('observed hash '+str(path),lambda:hashlib.sha256(Path(path).read_bytes()).hexdigest())
+                                                                                       ^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Administrator\AppData\Local\Doubao\User Data\sandbox_runtime\bases\772984f6fd3a8ae0ae7d2422cd7c2bfa\python\Lib\pathlib\_abc.py:625: in read_bytes
+    with self.open(mode='rb') as f:
+         ^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-source13-child-admission-20261107-r1/code/harness-preparation-20261106T172125286094Z/temp/test_recovery_full_admit_rejec3/inputs/scope.json')
+mode = 'rb', buffering = -1, encoding = None, errors = None, newline = None
+
+    def open(self, mode='r', buffering=-1, encoding=None,
+             errors=None, newline=None):
+        """
+        Open the file pointed to by this path and return a file object, as
+        the built-in open() function does.
+        """
+        if "b" not in mode:
+            encoding = io.text_encoding(encoding)
+>       return io.open(self, mode, buffering, encoding, errors, newline)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       FileNotFoundError: [Errno 2] No such file or directory: 'H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\e02-source13-child-admission-20261107-r1\\code\\harness-preparation-20261106T172125286094Z\\temp\\test_recovery_full_admit_rejec3\\inputs\\scope.json'
+
+C:\Users\Administrator\AppData\Local\Doubao\User Data\sandbox_runtime\bases\772984f6fd3a8ae0ae7d2422cd7c2bfa\python\Lib\pathlib\_local.py:537: FileNotFoundError
+_ test_recovery_full_admit_rejects_drift_before_dispatch[missing-listener-True] _
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-source13-child-admission-20261107-r1/code/harness-preparation-20261106T172125286094Z/temp/test_recovery_full_admit_rejec4')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000022E24C73550>
+child = True, fault = 'missing-listener'
+
+    @pytest.mark.parametrize('child',[True,False])
+    @pytest.mark.parametrize('fault',['expired','precision','missing-listener','changed-native','wrong-parent','changed-proof-hash'])
+    def test_recovery_full_admit_rejects_drift_before_dispatch(tmp_path,monkeypatch,child,fault):
+        f=child_admission_fixture(tmp_path,monkeypatch,child)
+        if fault=='expired': f['proof']['recorded_at']=(dt.datetime.now(dt.timezone.utc)-dt.timedelta(seconds=61)).isoformat()
+        elif fault=='precision': f['proof']['precision']='milliseconds'
+        elif fault=='missing-listener': f['proof']['protected']=f['identities'][:-1]
+        elif fault=='changed-native': f['native'][106]['created_filetime']+=1
+        elif fault=='wrong-parent': f['native'][9000]=dict(f['native'][9000],created_filetime=1)
+        elif fault=='changed-proof-hash': f['proof']['unexpected']='not bound'
+        # Only these synthetic fixture files are rewritten; the real admission
+        # validator must reject the faulty proof or live native observation.
+        f['proof_path'].write_text(json.dumps(f['proof']),encoding='utf8')
+        if fault!='changed-proof-hash':
+            f['authority']['native_preflight_sha256']=a.sha(f['proof_path'])
+            f['authority_path'].write_text(json.dumps(f['authority']),encoding='utf8')
+        with pytest.raises(ValueError):
+>           a.admit(f['authority_path'],f['ledger_path'],child=child,budget=f['budget'])
+
+..\..\harness\test_adapter.py:1406: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+..\..\harness\adapter.py:392: in admit
+    budget.call('source admission',check_inputs)
+..\..\harness\adapter.py:70: in call
+    try: result=function(*args,**kwargs)
+                ^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\harness\adapter.py:254: in check_inputs
+    require(sha(V/'inputs/scope.json')==PREPARATION_SHA,'Offline preparation scope drift')
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\harness\adapter.py:227: in sha
+    def sha(path): return observed_io('observed hash '+str(path),lambda:hashlib.sha256(Path(path).read_bytes()).hexdigest())
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\harness\adapter.py:225: in observed_io
+    return budget.call(label,function) if budget is not None else function()
+                                                                  ^^^^^^^^^^
+..\..\harness\adapter.py:227: in <lambda>
+    def sha(path): return observed_io('observed hash '+str(path),lambda:hashlib.sha256(Path(path).read_bytes()).hexdigest())
+                                                                                       ^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Administrator\AppData\Local\Doubao\User Data\sandbox_runtime\bases\772984f6fd3a8ae0ae7d2422cd7c2bfa\python\Lib\pathlib\_abc.py:625: in read_bytes
+    with self.open(mode='rb') as f:
+         ^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-source13-child-admission-20261107-r1/code/harness-preparation-20261106T172125286094Z/temp/test_recovery_full_admit_rejec4/inputs/scope.json')
+mode = 'rb', buffering = -1, encoding = None, errors = None, newline = None
+
+    def open(self, mode='r', buffering=-1, encoding=None,
+             errors=None, newline=None):
+        """
+        Open the file pointed to by this path and return a file object, as
+        the built-in open() function does.
+        """
+        if "b" not in mode:
+            encoding = io.text_encoding(encoding)
+>       return io.open(self, mode, buffering, encoding, errors, newline)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       FileNotFoundError: [Errno 2] No such file or directory: 'H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\e02-source13-child-admission-20261107-r1\\code\\harness-preparation-20261106T172125286094Z\\temp\\test_recovery_full_admit_rejec4\\inputs\\scope.json'
+
+C:\Users\Administrator\AppData\Local\Doubao\User Data\sandbox_runtime\bases\772984f6fd3a8ae0ae7d2422cd7c2bfa\python\Lib\pathlib\_local.py:537: FileNotFoundError
+_ test_recovery_full_admit_rejects_drift_before_dispatch[missing-listener-False] _
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-source13-child-admission-20261107-r1/code/harness-preparation-20261106T172125286094Z/temp/test_recovery_full_admit_rejec5')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000022E24B875C0>
+child = False, fault = 'missing-listener'
+
+    @pytest.mark.parametrize('child',[True,False])
+    @pytest.mark.parametrize('fault',['expired','precision','missing-listener','changed-native','wrong-parent','changed-proof-hash'])
+    def test_recovery_full_admit_rejects_drift_before_dispatch(tmp_path,monkeypatch,child,fault):
+        f=child_admission_fixture(tmp_path,monkeypatch,child)
+        if fault=='expired': f['proof']['recorded_at']=(dt.datetime.now(dt.timezone.utc)-dt.timedelta(seconds=61)).isoformat()
+        elif fault=='precision': f['proof']['precision']='milliseconds'
+        elif fault=='missing-listener': f['proof']['protected']=f['identities'][:-1]
+        elif fault=='changed-native': f['native'][106]['created_filetime']+=1
+        elif fault=='wrong-parent': f['native'][9000]=dict(f['native'][9000],created_filetime=1)
+        elif fault=='changed-proof-hash': f['proof']['unexpected']='not bound'
+        # Only these synthetic fixture files are rewritten; the real admission
+        # validator must reject the faulty proof or live native observation.
+        f['proof_path'].write_text(json.dumps(f['proof']),encoding='utf8')
+        if fault!='changed-proof-hash':
+            f['authority']['native_preflight_sha256']=a.sha(f['proof_path'])
+            f['authority_path'].write_text(json.dumps(f['authority']),encoding='utf8')
+        with pytest.raises(ValueError):
+>           a.admit(f['authority_path'],f['ledger_path'],child=child,budget=f['budget'])
+
+..\..\harness\test_adapter.py:1406: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+..\..\harness\adapter.py:392: in admit
+    budget.call('source admission',check_inputs)
+..\..\harness\adapter.py:70: in call
+    try: result=function(*args,**kwargs)
+                ^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\harness\adapter.py:254: in check_inputs
+    require(sha(V/'inputs/scope.json')==PREPARATION_SHA,'Offline preparation scope drift')
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\harness\adapter.py:227: in sha
+    def sha(path): return observed_io('observed hash '+str(path),lambda:hashlib.sha256(Path(path).read_bytes()).hexdigest())
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\harness\adapter.py:225: in observed_io
+    return budget.call(label,function) if budget is not None else function()
+                                                                  ^^^^^^^^^^
+..\..\harness\adapter.py:227: in <lambda>
+    def sha(path): return observed_io('observed hash '+str(path),lambda:hashlib.sha256(Path(path).read_bytes()).hexdigest())
+                                                                                       ^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Administrator\AppData\Local\Doubao\User Data\sandbox_runtime\bases\772984f6fd3a8ae0ae7d2422cd7c2bfa\python\Lib\pathlib\_abc.py:625: in read_bytes
+    with self.open(mode='rb') as f:
+         ^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-source13-child-admission-20261107-r1/code/harness-preparation-20261106T172125286094Z/temp/test_recovery_full_admit_rejec5/inputs/scope.json')
+mode = 'rb', buffering = -1, encoding = None, errors = None, newline = None
+
+    def open(self, mode='r', buffering=-1, encoding=None,
+             errors=None, newline=None):
+        """
+        Open the file pointed to by this path and return a file object, as
+        the built-in open() function does.
+        """
+        if "b" not in mode:
+            encoding = io.text_encoding(encoding)
+>       return io.open(self, mode, buffering, encoding, errors, newline)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       FileNotFoundError: [Errno 2] No such file or directory: 'H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\e02-source13-child-admission-20261107-r1\\code\\harness-preparation-20261106T172125286094Z\\temp\\test_recovery_full_admit_rejec5\\inputs\\scope.json'
+
+C:\Users\Administrator\AppData\Local\Doubao\User Data\sandbox_runtime\bases\772984f6fd3a8ae0ae7d2422cd7c2bfa\python\Lib\pathlib\_local.py:537: FileNotFoundError
+_ test_recovery_full_admit_rejects_drift_before_dispatch[changed-native-True] _
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-source13-child-admission-20261107-r1/code/harness-preparation-20261106T172125286094Z/temp/test_recovery_full_admit_rejec6')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000022E24C8E8A0>
+child = True, fault = 'changed-native'
+
+    @pytest.mark.parametrize('child',[True,False])
+    @pytest.mark.parametrize('fault',['expired','precision','missing-listener','changed-native','wrong-parent','changed-proof-hash'])
+    def test_recovery_full_admit_rejects_drift_before_dispatch(tmp_path,monkeypatch,child,fault):
+        f=child_admission_fixture(tmp_path,monkeypatch,child)
+        if fault=='expired': f['proof']['recorded_at']=(dt.datetime.now(dt.timezone.utc)-dt.timedelta(seconds=61)).isoformat()
+        elif fault=='precision': f['proof']['precision']='milliseconds'
+        elif fault=='missing-listener': f['proof']['protected']=f['identities'][:-1]
+        elif fault=='changed-native': f['native'][106]['created_filetime']+=1
+        elif fault=='wrong-parent': f['native'][9000]=dict(f['native'][9000],created_filetime=1)
+        elif fault=='changed-proof-hash': f['proof']['unexpected']='not bound'
+        # Only these synthetic fixture files are rewritten; the real admission
+        # validator must reject the faulty proof or live native observation.
+        f['proof_path'].write_text(json.dumps(f['proof']),encoding='utf8')
+        if fault!='changed-proof-hash':
+            f['authority']['native_preflight_sha256']=a.sha(f['proof_path'])
+            f['authority_path'].write_text(json.dumps(f['authority']),encoding='utf8')
+        with pytest.raises(ValueError):
+>           a.admit(f['authority_path'],f['ledger_path'],child=child,budget=f['budget'])
+
+..\..\harness\test_adapter.py:1406: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+..\..\harness\adapter.py:392: in admit
+    budget.call('source admission',check_inputs)
+..\..\harness\adapter.py:70: in call
+    try: result=function(*args,**kwargs)
+                ^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\harness\adapter.py:254: in check_inputs
+    require(sha(V/'inputs/scope.json')==PREPARATION_SHA,'Offline preparation scope drift')
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\harness\adapter.py:227: in sha
+    def sha(path): return observed_io('observed hash '+str(path),lambda:hashlib.sha256(Path(path).read_bytes()).hexdigest())
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\harness\adapter.py:225: in observed_io
+    return budget.call(label,function) if budget is not None else function()
+                                                                  ^^^^^^^^^^
+..\..\harness\adapter.py:227: in <lambda>
+    def sha(path): return observed_io('observed hash '+str(path),lambda:hashlib.sha256(Path(path).read_bytes()).hexdigest())
+                                                                                       ^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Administrator\AppData\Local\Doubao\User Data\sandbox_runtime\bases\772984f6fd3a8ae0ae7d2422cd7c2bfa\python\Lib\pathlib\_abc.py:625: in read_bytes
+    with self.open(mode='rb') as f:
+         ^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-source13-child-admission-20261107-r1/code/harness-preparation-20261106T172125286094Z/temp/test_recovery_full_admit_rejec6/inputs/scope.json')
+mode = 'rb', buffering = -1, encoding = None, errors = None, newline = None
+
+    def open(self, mode='r', buffering=-1, encoding=None,
+             errors=None, newline=None):
+        """
+        Open the file pointed to by this path and return a file object, as
+        the built-in open() function does.
+        """
+        if "b" not in mode:
+            encoding = io.text_encoding(encoding)
+>       return io.open(self, mode, buffering, encoding, errors, newline)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       FileNotFoundError: [Errno 2] No such file or directory: 'H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\e02-source13-child-admission-20261107-r1\\code\\harness-preparation-20261106T172125286094Z\\temp\\test_recovery_full_admit_rejec6\\inputs\\scope.json'
+
+C:\Users\Administrator\AppData\Local\Doubao\User Data\sandbox_runtime\bases\772984f6fd3a8ae0ae7d2422cd7c2bfa\python\Lib\pathlib\_local.py:537: FileNotFoundError
+_ test_recovery_full_admit_rejects_drift_before_dispatch[changed-native-False] _
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-source13-child-admission-20261107-r1/code/harness-preparation-20261106T172125286094Z/temp/test_recovery_full_admit_rejec7')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000022E24CAFE70>
+child = False, fault = 'changed-native'
+
+    @pytest.mark.parametrize('child',[True,False])
+    @pytest.mark.parametrize('fault',['expired','precision','missing-listener','changed-native','wrong-parent','changed-proof-hash'])
+    def test_recovery_full_admit_rejects_drift_before_dispatch(tmp_path,monkeypatch,child,fault):
+        f=child_admission_fixture(tmp_path,monkeypatch,child)
+        if fault=='expired': f['proof']['recorded_at']=(dt.datetime.now(dt.timezone.utc)-dt.timedelta(seconds=61)).isoformat()
+        elif fault=='precision': f['proof']['precision']='milliseconds'
+        elif fault=='missing-listener': f['proof']['protected']=f['identities'][:-1]
+        elif fault=='changed-native': f['native'][106]['created_filetime']+=1
+        elif fault=='wrong-parent': f['native'][9000]=dict(f['native'][9000],created_filetime=1)
+        elif fault=='changed-proof-hash': f['proof']['unexpected']='not bound'
+        # Only these synthetic fixture files are rewritten; the real admission
+        # validator must reject the faulty proof or live native observation.
+        f['proof_path'].write_text(json.dumps(f['proof']),encoding='utf8')
+        if fault!='changed-proof-hash':
+            f['authority']['native_preflight_sha256']=a.sha(f['proof_path'])
+            f['authority_path'].write_text(json.dumps(f['authority']),encoding='utf8')
+        with pytest.raises(ValueError):
+>           a.admit(f['authority_path'],f['ledger_path'],child=child,budget=f['budget'])
+
+..\..\harness\test_adapter.py:1406: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+..\..\harness\adapter.py:392: in admit
+    budget.call('source admission',check_inputs)
+..\..\harness\adapter.py:70: in call
+    try: result=function(*args,**kwargs)
+                ^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\harness\adapter.py:254: in check_inputs
+    require(sha(V/'inputs/scope.json')==PREPARATION_SHA,'Offline preparation scope drift')
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\harness\adapter.py:227: in sha
+    def sha(path): return observed_io('observed hash '+str(path),lambda:hashlib.sha256(Path(path).read_bytes()).hexdigest())
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\harness\adapter.py:225: in observed_io
+    return budget.call(label,function) if budget is not None else function()
+                                                                  ^^^^^^^^^^
+..\..\harness\adapter.py:227: in <lambda>
+    def sha(path): return observed_io('observed hash '+str(path),lambda:hashlib.sha256(Path(path).read_bytes()).hexdigest())
+                                                                                       ^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Administrator\AppData\Local\Doubao\User Data\sandbox_runtime\bases\772984f6fd3a8ae0ae7d2422cd7c2bfa\python\Lib\pathlib\_abc.py:625: in read_bytes
+    with self.open(mode='rb') as f:
+         ^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-source13-child-admission-20261107-r1/code/harness-preparation-20261106T172125286094Z/temp/test_recovery_full_admit_rejec7/inputs/scope.json')
+mode = 'rb', buffering = -1, encoding = None, errors = None, newline = None
+
+    def open(self, mode='r', buffering=-1, encoding=None,
+             errors=None, newline=None):
+        """
+        Open the file pointed to by this path and return a file object, as
+        the built-in open() function does.
+        """
+        if "b" not in mode:
+            encoding = io.text_encoding(encoding)
+>       return io.open(self, mode, buffering, encoding, errors, newline)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       FileNotFoundError: [Errno 2] No such file or directory: 'H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\e02-source13-child-admission-20261107-r1\\code\\harness-preparation-20261106T172125286094Z\\temp\\test_recovery_full_admit_rejec7\\inputs\\scope.json'
+
+C:\Users\Administrator\AppData\Local\Doubao\User Data\sandbox_runtime\bases\772984f6fd3a8ae0ae7d2422cd7c2bfa\python\Lib\pathlib\_local.py:537: FileNotFoundError
+__ test_recovery_full_admit_rejects_drift_before_dispatch[wrong-parent-True] __
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-source13-child-admission-20261107-r1/code/harness-preparation-20261106T172125286094Z/temp/test_recovery_full_admit_rejec8')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000022E24A6ACF0>
+child = True, fault = 'wrong-parent'
+
+    @pytest.mark.parametrize('child',[True,False])
+    @pytest.mark.parametrize('fault',['expired','precision','missing-listener','changed-native','wrong-parent','changed-proof-hash'])
+    def test_recovery_full_admit_rejects_drift_before_dispatch(tmp_path,monkeypatch,child,fault):
+        f=child_admission_fixture(tmp_path,monkeypatch,child)
+        if fault=='expired': f['proof']['recorded_at']=(dt.datetime.now(dt.timezone.utc)-dt.timedelta(seconds=61)).isoformat()
+        elif fault=='precision': f['proof']['precision']='milliseconds'
+        elif fault=='missing-listener': f['proof']['protected']=f['identities'][:-1]
+        elif fault=='changed-native': f['native'][106]['created_filetime']+=1
+        elif fault=='wrong-parent': f['native'][9000]=dict(f['native'][9000],created_filetime=1)
+        elif fault=='changed-proof-hash': f['proof']['unexpected']='not bound'
+        # Only these synthetic fixture files are rewritten; the real admission
+        # validator must reject the faulty proof or live native observation.
+        f['proof_path'].write_text(json.dumps(f['proof']),encoding='utf8')
+        if fault!='changed-proof-hash':
+            f['authority']['native_preflight_sha256']=a.sha(f['proof_path'])
+            f['authority_path'].write_text(json.dumps(f['authority']),encoding='utf8')
+        with pytest.raises(ValueError):
+>           a.admit(f['authority_path'],f['ledger_path'],child=child,budget=f['budget'])
+
+..\..\harness\test_adapter.py:1406: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+..\..\harness\adapter.py:392: in admit
+    budget.call('source admission',check_inputs)
+..\..\harness\adapter.py:70: in call
+    try: result=function(*args,**kwargs)
+                ^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\harness\adapter.py:254: in check_inputs
+    require(sha(V/'inputs/scope.json')==PREPARATION_SHA,'Offline preparation scope drift')
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\harness\adapter.py:227: in sha
+    def sha(path): return observed_io('observed hash '+str(path),lambda:hashlib.sha256(Path(path).read_bytes()).hexdigest())
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\harness\adapter.py:225: in observed_io
+    return budget.call(label,function) if budget is not None else function()
+                                                                  ^^^^^^^^^^
+..\..\harness\adapter.py:227: in <lambda>
+    def sha(path): return observed_io('observed hash '+str(path),lambda:hashlib.sha256(Path(path).read_bytes()).hexdigest())
+                                                                                       ^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Administrator\AppData\Local\Doubao\User Data\sandbox_runtime\bases\772984f6fd3a8ae0ae7d2422cd7c2bfa\python\Lib\pathlib\_abc.py:625: in read_bytes
+    with self.open(mode='rb') as f:
+         ^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-source13-child-admission-20261107-r1/code/harness-preparation-20261106T172125286094Z/temp/test_recovery_full_admit_rejec8/inputs/scope.json')
+mode = 'rb', buffering = -1, encoding = None, errors = None, newline = None
+
+    def open(self, mode='r', buffering=-1, encoding=None,
+             errors=None, newline=None):
+        """
+        Open the file pointed to by this path and return a file object, as
+        the built-in open() function does.
+        """
+        if "b" not in mode:
+            encoding = io.text_encoding(encoding)
+>       return io.open(self, mode, buffering, encoding, errors, newline)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       FileNotFoundError: [Errno 2] No such file or directory: 'H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\e02-source13-child-admission-20261107-r1\\code\\harness-preparation-20261106T172125286094Z\\temp\\test_recovery_full_admit_rejec8\\inputs\\scope.json'
+
+C:\Users\Administrator\AppData\Local\Doubao\User Data\sandbox_runtime\bases\772984f6fd3a8ae0ae7d2422cd7c2bfa\python\Lib\pathlib\_local.py:537: FileNotFoundError
+_ test_recovery_full_admit_rejects_drift_before_dispatch[wrong-parent-False] __
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-source13-child-admission-20261107-r1/code/harness-preparation-20261106T172125286094Z/temp/test_recovery_full_admit_rejec9')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000022E251D0BB0>
+child = False, fault = 'wrong-parent'
+
+    @pytest.mark.parametrize('child',[True,False])
+    @pytest.mark.parametrize('fault',['expired','precision','missing-listener','changed-native','wrong-parent','changed-proof-hash'])
+    def test_recovery_full_admit_rejects_drift_before_dispatch(tmp_path,monkeypatch,child,fault):
+        f=child_admission_fixture(tmp_path,monkeypatch,child)
+        if fault=='expired': f['proof']['recorded_at']=(dt.datetime.now(dt.timezone.utc)-dt.timedelta(seconds=61)).isoformat()
+        elif fault=='precision': f['proof']['precision']='milliseconds'
+        elif fault=='missing-listener': f['proof']['protected']=f['identities'][:-1]
+        elif fault=='changed-native': f['native'][106]['created_filetime']+=1
+        elif fault=='wrong-parent': f['native'][9000]=dict(f['native'][9000],created_filetime=1)
+        elif fault=='changed-proof-hash': f['proof']['unexpected']='not bound'
+        # Only these synthetic fixture files are rewritten; the real admission
+        # validator must reject the faulty proof or live native observation.
+        f['proof_path'].write_text(json.dumps(f['proof']),encoding='utf8')
+        if fault!='changed-proof-hash':
+            f['authority']['native_preflight_sha256']=a.sha(f['proof_path'])
+            f['authority_path'].write_text(json.dumps(f['authority']),encoding='utf8')
+        with pytest.raises(ValueError):
+>           a.admit(f['authority_path'],f['ledger_path'],child=child,budget=f['budget'])
+
+..\..\harness\test_adapter.py:1406: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+..\..\harness\adapter.py:392: in admit
+    budget.call('source admission',check_inputs)
+..\..\harness\adapter.py:70: in call
+    try: result=function(*args,**kwargs)
+                ^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\harness\adapter.py:254: in check_inputs
+    require(sha(V/'inputs/scope.json')==PREPARATION_SHA,'Offline preparation scope drift')
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\harness\adapter.py:227: in sha
+    def sha(path): return observed_io('observed hash '+str(path),lambda:hashlib.sha256(Path(path).read_bytes()).hexdigest())
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\harness\adapter.py:225: in observed_io
+    return budget.call(label,function) if budget is not None else function()
+                                                                  ^^^^^^^^^^
+..\..\harness\adapter.py:227: in <lambda>
+    def sha(path): return observed_io('observed hash '+str(path),lambda:hashlib.sha256(Path(path).read_bytes()).hexdigest())
+                                                                                       ^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Administrator\AppData\Local\Doubao\User Data\sandbox_runtime\bases\772984f6fd3a8ae0ae7d2422cd7c2bfa\python\Lib\pathlib\_abc.py:625: in read_bytes
+    with self.open(mode='rb') as f:
+         ^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-source13-child-admission-20261107-r1/code/harness-preparation-20261106T172125286094Z/temp/test_recovery_full_admit_rejec9/inputs/scope.json')
+mode = 'rb', buffering = -1, encoding = None, errors = None, newline = None
+
+    def open(self, mode='r', buffering=-1, encoding=None,
+             errors=None, newline=None):
+        """
+        Open the file pointed to by this path and return a file object, as
+        the built-in open() function does.
+        """
+        if "b" not in mode:
+            encoding = io.text_encoding(encoding)
+>       return io.open(self, mode, buffering, encoding, errors, newline)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       FileNotFoundError: [Errno 2] No such file or directory: 'H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\e02-source13-child-admission-20261107-r1\\code\\harness-preparation-20261106T172125286094Z\\temp\\test_recovery_full_admit_rejec9\\inputs\\scope.json'
+
+C:\Users\Administrator\AppData\Local\Doubao\User Data\sandbox_runtime\bases\772984f6fd3a8ae0ae7d2422cd7c2bfa\python\Lib\pathlib\_local.py:537: FileNotFoundError
+_ test_recovery_full_admit_rejects_drift_before_dispatch[changed-proof-hash-True] _
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-source13-child-admission-20261107-r1/code/harness-preparation-20261106T172125286094Z/temp/test_recovery_full_admit_rejec10')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000022E238C77D0>
+child = True, fault = 'changed-proof-hash'
+
+    @pytest.mark.parametrize('child',[True,False])
+    @pytest.mark.parametrize('fault',['expired','precision','missing-listener','changed-native','wrong-parent','changed-proof-hash'])
+    def test_recovery_full_admit_rejects_drift_before_dispatch(tmp_path,monkeypatch,child,fault):
+        f=child_admission_fixture(tmp_path,monkeypatch,child)
+        if fault=='expired': f['proof']['recorded_at']=(dt.datetime.now(dt.timezone.utc)-dt.timedelta(seconds=61)).isoformat()
+        elif fault=='precision': f['proof']['precision']='milliseconds'
+        elif fault=='missing-listener': f['proof']['protected']=f['identities'][:-1]
+        elif fault=='changed-native': f['native'][106]['created_filetime']+=1
+        elif fault=='wrong-parent': f['native'][9000]=dict(f['native'][9000],created_filetime=1)
+        elif fault=='changed-proof-hash': f['proof']['unexpected']='not bound'
+        # Only these synthetic fixture files are rewritten; the real admission
+        # validator must reject the faulty proof or live native observation.
+        f['proof_path'].write_text(json.dumps(f['proof']),encoding='utf8')
+        if fault!='changed-proof-hash':
+            f['authority']['native_preflight_sha256']=a.sha(f['proof_path'])
+            f['authority_path'].write_text(json.dumps(f['authority']),encoding='utf8')
+        with pytest.raises(ValueError):
+>           a.admit(f['authority_path'],f['ledger_path'],child=child,budget=f['budget'])
+
+..\..\harness\test_adapter.py:1406: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+..\..\harness\adapter.py:392: in admit
+    budget.call('source admission',check_inputs)
+..\..\harness\adapter.py:70: in call
+    try: result=function(*args,**kwargs)
+                ^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\harness\adapter.py:254: in check_inputs
+    require(sha(V/'inputs/scope.json')==PREPARATION_SHA,'Offline preparation scope drift')
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\harness\adapter.py:227: in sha
+    def sha(path): return observed_io('observed hash '+str(path),lambda:hashlib.sha256(Path(path).read_bytes()).hexdigest())
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\harness\adapter.py:225: in observed_io
+    return budget.call(label,function) if budget is not None else function()
+                                                                  ^^^^^^^^^^
+..\..\harness\adapter.py:227: in <lambda>
+    def sha(path): return observed_io('observed hash '+str(path),lambda:hashlib.sha256(Path(path).read_bytes()).hexdigest())
+                                                                                       ^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Administrator\AppData\Local\Doubao\User Data\sandbox_runtime\bases\772984f6fd3a8ae0ae7d2422cd7c2bfa\python\Lib\pathlib\_abc.py:625: in read_bytes
+    with self.open(mode='rb') as f:
+         ^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-source13-child-admission-20261107-r1/code/harness-preparation-20261106T172125286094Z/temp/test_recovery_full_admit_rejec10/inputs/scope.json')
+mode = 'rb', buffering = -1, encoding = None, errors = None, newline = None
+
+    def open(self, mode='r', buffering=-1, encoding=None,
+             errors=None, newline=None):
+        """
+        Open the file pointed to by this path and return a file object, as
+        the built-in open() function does.
+        """
+        if "b" not in mode:
+            encoding = io.text_encoding(encoding)
+>       return io.open(self, mode, buffering, encoding, errors, newline)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       FileNotFoundError: [Errno 2] No such file or directory: 'H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\e02-source13-child-admission-20261107-r1\\code\\harness-preparation-20261106T172125286094Z\\temp\\test_recovery_full_admit_rejec10\\inputs\\scope.json'
+
+C:\Users\Administrator\AppData\Local\Doubao\User Data\sandbox_runtime\bases\772984f6fd3a8ae0ae7d2422cd7c2bfa\python\Lib\pathlib\_local.py:537: FileNotFoundError
+_ test_recovery_full_admit_rejects_drift_before_dispatch[changed-proof-hash-False] _
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-source13-child-admission-20261107-r1/code/harness-preparation-20261106T172125286094Z/temp/test_recovery_full_admit_rejec11')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000022E24C39790>
+child = False, fault = 'changed-proof-hash'
+
+    @pytest.mark.parametrize('child',[True,False])
+    @pytest.mark.parametrize('fault',['expired','precision','missing-listener','changed-native','wrong-parent','changed-proof-hash'])
+    def test_recovery_full_admit_rejects_drift_before_dispatch(tmp_path,monkeypatch,child,fault):
+        f=child_admission_fixture(tmp_path,monkeypatch,child)
+        if fault=='expired': f['proof']['recorded_at']=(dt.datetime.now(dt.timezone.utc)-dt.timedelta(seconds=61)).isoformat()
+        elif fault=='precision': f['proof']['precision']='milliseconds'
+        elif fault=='missing-listener': f['proof']['protected']=f['identities'][:-1]
+        elif fault=='changed-native': f['native'][106]['created_filetime']+=1
+        elif fault=='wrong-parent': f['native'][9000]=dict(f['native'][9000],created_filetime=1)
+        elif fault=='changed-proof-hash': f['proof']['unexpected']='not bound'
+        # Only these synthetic fixture files are rewritten; the real admission
+        # validator must reject the faulty proof or live native observation.
+        f['proof_path'].write_text(json.dumps(f['proof']),encoding='utf8')
+        if fault!='changed-proof-hash':
+            f['authority']['native_preflight_sha256']=a.sha(f['proof_path'])
+            f['authority_path'].write_text(json.dumps(f['authority']),encoding='utf8')
+        with pytest.raises(ValueError):
+>           a.admit(f['authority_path'],f['ledger_path'],child=child,budget=f['budget'])
+
+..\..\harness\test_adapter.py:1406: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+..\..\harness\adapter.py:392: in admit
+    budget.call('source admission',check_inputs)
+..\..\harness\adapter.py:70: in call
+    try: result=function(*args,**kwargs)
+                ^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\harness\adapter.py:254: in check_inputs
+    require(sha(V/'inputs/scope.json')==PREPARATION_SHA,'Offline preparation scope drift')
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\harness\adapter.py:227: in sha
+    def sha(path): return observed_io('observed hash '+str(path),lambda:hashlib.sha256(Path(path).read_bytes()).hexdigest())
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\harness\adapter.py:225: in observed_io
+    return budget.call(label,function) if budget is not None else function()
+                                                                  ^^^^^^^^^^
+..\..\harness\adapter.py:227: in <lambda>
+    def sha(path): return observed_io('observed hash '+str(path),lambda:hashlib.sha256(Path(path).read_bytes()).hexdigest())
+                                                                                       ^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Administrator\AppData\Local\Doubao\User Data\sandbox_runtime\bases\772984f6fd3a8ae0ae7d2422cd7c2bfa\python\Lib\pathlib\_abc.py:625: in read_bytes
+    with self.open(mode='rb') as f:
+         ^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-source13-child-admission-20261107-r1/code/harness-preparation-20261106T172125286094Z/temp/test_recovery_full_admit_rejec11/inputs/scope.json')
+mode = 'rb', buffering = -1, encoding = None, errors = None, newline = None
+
+    def open(self, mode='r', buffering=-1, encoding=None,
+             errors=None, newline=None):
+        """
+        Open the file pointed to by this path and return a file object, as
+        the built-in open() function does.
+        """
+        if "b" not in mode:
+            encoding = io.text_encoding(encoding)
+>       return io.open(self, mode, buffering, encoding, errors, newline)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       FileNotFoundError: [Errno 2] No such file or directory: 'H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\e02-source13-child-admission-20261107-r1\\code\\harness-preparation-20261106T172125286094Z\\temp\\test_recovery_full_admit_rejec11\\inputs\\scope.json'
+
+C:\Users\Administrator\AppData\Local\Doubao\User Data\sandbox_runtime\bases\772984f6fd3a8ae0ae7d2422cd7c2bfa\python\Lib\pathlib\_local.py:537: FileNotFoundError
+__ test_recovery_parent_still_rejects_full_protected_snapshot_drift[parent] ___
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-source13-child-admission-20261107-r1/code/harness-preparation-20261106T172125286094Z/temp/test_recovery_parent_still_rej0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000022E251CB3E0>
+fault = 'parent'
+
+    @pytest.mark.parametrize('fault',['parent','command','cim-created'])
+    def test_recovery_parent_still_rejects_full_protected_snapshot_drift(tmp_path,monkeypatch,fault):
+        f=child_admission_fixture(tmp_path,monkeypatch,False)
+        if fault=='parent': f['rows'][106]['ParentProcessId']+=1
+        elif fault=='command': f['rows'][106]['CommandLine']='unbound command'
+        else: f['rows'][106]['CreationFileTime']+=1000
+        with pytest.raises(ValueError):
+>           a.admit(f['authority_path'],f['ledger_path'],budget=f['budget'])
+
+..\..\harness\test_adapter.py:1418: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+..\..\harness\adapter.py:392: in admit
+    budget.call('source admission',check_inputs)
+..\..\harness\adapter.py:70: in call
+    try: result=function(*args,**kwargs)
+                ^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\harness\adapter.py:254: in check_inputs
+    require(sha(V/'inputs/scope.json')==PREPARATION_SHA,'Offline preparation scope drift')
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\harness\adapter.py:227: in sha
+    def sha(path): return observed_io('observed hash '+str(path),lambda:hashlib.sha256(Path(path).read_bytes()).hexdigest())
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\harness\adapter.py:225: in observed_io
+    return budget.call(label,function) if budget is not None else function()
+                                                                  ^^^^^^^^^^
+..\..\harness\adapter.py:227: in <lambda>
+    def sha(path): return observed_io('observed hash '+str(path),lambda:hashlib.sha256(Path(path).read_bytes()).hexdigest())
+                                                                                       ^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Administrator\AppData\Local\Doubao\User Data\sandbox_runtime\bases\772984f6fd3a8ae0ae7d2422cd7c2bfa\python\Lib\pathlib\_abc.py:625: in read_bytes
+    with self.open(mode='rb') as f:
+         ^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-source13-child-admission-20261107-r1/code/harness-preparation-20261106T172125286094Z/temp/test_recovery_parent_still_rej0/inputs/scope.json')
+mode = 'rb', buffering = -1, encoding = None, errors = None, newline = None
+
+    def open(self, mode='r', buffering=-1, encoding=None,
+             errors=None, newline=None):
+        """
+        Open the file pointed to by this path and return a file object, as
+        the built-in open() function does.
+        """
+        if "b" not in mode:
+            encoding = io.text_encoding(encoding)
+>       return io.open(self, mode, buffering, encoding, errors, newline)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       FileNotFoundError: [Errno 2] No such file or directory: 'H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\e02-source13-child-admission-20261107-r1\\code\\harness-preparation-20261106T172125286094Z\\temp\\test_recovery_parent_still_rej0\\inputs\\scope.json'
+
+C:\Users\Administrator\AppData\Local\Doubao\User Data\sandbox_runtime\bases\772984f6fd3a8ae0ae7d2422cd7c2bfa\python\Lib\pathlib\_local.py:537: FileNotFoundError
+__ test_recovery_parent_still_rejects_full_protected_snapshot_drift[command] __
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-source13-child-admission-20261107-r1/code/harness-preparation-20261106T172125286094Z/temp/test_recovery_parent_still_rej1')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000022E24C26A40>
+fault = 'command'
+
+    @pytest.mark.parametrize('fault',['parent','command','cim-created'])
+    def test_recovery_parent_still_rejects_full_protected_snapshot_drift(tmp_path,monkeypatch,fault):
+        f=child_admission_fixture(tmp_path,monkeypatch,False)
+        if fault=='parent': f['rows'][106]['ParentProcessId']+=1
+        elif fault=='command': f['rows'][106]['CommandLine']='unbound command'
+        else: f['rows'][106]['CreationFileTime']+=1000
+        with pytest.raises(ValueError):
+>           a.admit(f['authority_path'],f['ledger_path'],budget=f['budget'])
+
+..\..\harness\test_adapter.py:1418: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+..\..\harness\adapter.py:392: in admit
+    budget.call('source admission',check_inputs)
+..\..\harness\adapter.py:70: in call
+    try: result=function(*args,**kwargs)
+                ^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\harness\adapter.py:254: in check_inputs
+    require(sha(V/'inputs/scope.json')==PREPARATION_SHA,'Offline preparation scope drift')
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\harness\adapter.py:227: in sha
+    def sha(path): return observed_io('observed hash '+str(path),lambda:hashlib.sha256(Path(path).read_bytes()).hexdigest())
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\harness\adapter.py:225: in observed_io
+    return budget.call(label,function) if budget is not None else function()
+                                                                  ^^^^^^^^^^
+..\..\harness\adapter.py:227: in <lambda>
+    def sha(path): return observed_io('observed hash '+str(path),lambda:hashlib.sha256(Path(path).read_bytes()).hexdigest())
+                                                                                       ^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Administrator\AppData\Local\Doubao\User Data\sandbox_runtime\bases\772984f6fd3a8ae0ae7d2422cd7c2bfa\python\Lib\pathlib\_abc.py:625: in read_bytes
+    with self.open(mode='rb') as f:
+         ^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-source13-child-admission-20261107-r1/code/harness-preparation-20261106T172125286094Z/temp/test_recovery_parent_still_rej1/inputs/scope.json')
+mode = 'rb', buffering = -1, encoding = None, errors = None, newline = None
+
+    def open(self, mode='r', buffering=-1, encoding=None,
+             errors=None, newline=None):
+        """
+        Open the file pointed to by this path and return a file object, as
+        the built-in open() function does.
+        """
+        if "b" not in mode:
+            encoding = io.text_encoding(encoding)
+>       return io.open(self, mode, buffering, encoding, errors, newline)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       FileNotFoundError: [Errno 2] No such file or directory: 'H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\e02-source13-child-admission-20261107-r1\\code\\harness-preparation-20261106T172125286094Z\\temp\\test_recovery_parent_still_rej1\\inputs\\scope.json'
+
+C:\Users\Administrator\AppData\Local\Doubao\User Data\sandbox_runtime\bases\772984f6fd3a8ae0ae7d2422cd7c2bfa\python\Lib\pathlib\_local.py:537: FileNotFoundError
+_ test_recovery_parent_still_rejects_full_protected_snapshot_drift[cim-created] _
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-source13-child-admission-20261107-r1/code/harness-preparation-20261106T172125286094Z/temp/test_recovery_parent_still_rej2')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000022DD3823BB0>
+fault = 'cim-created'
+
+    @pytest.mark.parametrize('fault',['parent','command','cim-created'])
+    def test_recovery_parent_still_rejects_full_protected_snapshot_drift(tmp_path,monkeypatch,fault):
+        f=child_admission_fixture(tmp_path,monkeypatch,False)
+        if fault=='parent': f['rows'][106]['ParentProcessId']+=1
+        elif fault=='command': f['rows'][106]['CommandLine']='unbound command'
+        else: f['rows'][106]['CreationFileTime']+=1000
+        with pytest.raises(ValueError):
+>           a.admit(f['authority_path'],f['ledger_path'],budget=f['budget'])
+
+..\..\harness\test_adapter.py:1418: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+..\..\harness\adapter.py:392: in admit
+    budget.call('source admission',check_inputs)
+..\..\harness\adapter.py:70: in call
+    try: result=function(*args,**kwargs)
+                ^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\harness\adapter.py:254: in check_inputs
+    require(sha(V/'inputs/scope.json')==PREPARATION_SHA,'Offline preparation scope drift')
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\harness\adapter.py:227: in sha
+    def sha(path): return observed_io('observed hash '+str(path),lambda:hashlib.sha256(Path(path).read_bytes()).hexdigest())
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\harness\adapter.py:225: in observed_io
+    return budget.call(label,function) if budget is not None else function()
+                                                                  ^^^^^^^^^^
+..\..\harness\adapter.py:227: in <lambda>
+    def sha(path): return observed_io('observed hash '+str(path),lambda:hashlib.sha256(Path(path).read_bytes()).hexdigest())
+                                                                                       ^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Administrator\AppData\Local\Doubao\User Data\sandbox_runtime\bases\772984f6fd3a8ae0ae7d2422cd7c2bfa\python\Lib\pathlib\_abc.py:625: in read_bytes
+    with self.open(mode='rb') as f:
+         ^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-source13-child-admission-20261107-r1/code/harness-preparation-20261106T172125286094Z/temp/test_recovery_parent_still_rej2/inputs/scope.json')
+mode = 'rb', buffering = -1, encoding = None, errors = None, newline = None
+
+    def open(self, mode='r', buffering=-1, encoding=None,
+             errors=None, newline=None):
+        """
+        Open the file pointed to by this path and return a file object, as
+        the built-in open() function does.
+        """
+        if "b" not in mode:
+            encoding = io.text_encoding(encoding)
+>       return io.open(self, mode, buffering, encoding, errors, newline)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       FileNotFoundError: [Errno 2] No such file or directory: 'H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\e02-source13-child-admission-20261107-r1\\code\\harness-preparation-20261106T172125286094Z\\temp\\test_recovery_parent_still_rej2\\inputs\\scope.json'
+
+C:\Users\Administrator\AppData\Local\Doubao\User Data\sandbox_runtime\bases\772984f6fd3a8ae0ae7d2422cd7c2bfa\python\Lib\pathlib\_local.py:537: FileNotFoundError
+=========================== short test summary info ===========================
+FAILED ..\..\harness\test_adapter.py::test_recovery_full_admit_observation_role[child-no-subprocess]
+FAILED ..\..\harness\test_adapter.py::test_recovery_full_admit_observation_role[parent-full-snapshot]
+FAILED ..\..\harness\test_adapter.py::test_recovery_full_admit_rejects_drift_before_dispatch[expired-True]
+FAILED ..\..\harness\test_adapter.py::test_recovery_full_admit_rejects_drift_before_dispatch[expired-False]
+FAILED ..\..\harness\test_adapter.py::test_recovery_full_admit_rejects_drift_before_dispatch[precision-True]
+FAILED ..\..\harness\test_adapter.py::test_recovery_full_admit_rejects_drift_before_dispatch[precision-False]
+FAILED ..\..\harness\test_adapter.py::test_recovery_full_admit_rejects_drift_before_dispatch[missing-listener-True]
+FAILED ..\..\harness\test_adapter.py::test_recovery_full_admit_rejects_drift_before_dispatch[missing-listener-False]
+FAILED ..\..\harness\test_adapter.py::test_recovery_full_admit_rejects_drift_before_dispatch[changed-native-True]
+FAILED ..\..\harness\test_adapter.py::test_recovery_full_admit_rejects_drift_before_dispatch[changed-native-False]
+FAILED ..\..\harness\test_adapter.py::test_recovery_full_admit_rejects_drift_before_dispatch[wrong-parent-True]
+FAILED ..\..\harness\test_adapter.py::test_recovery_full_admit_rejects_drift_before_dispatch[wrong-parent-False]
+FAILED ..\..\harness\test_adapter.py::test_recovery_full_admit_rejects_drift_before_dispatch[changed-proof-hash-True]
+FAILED ..\..\harness\test_adapter.py::test_recovery_full_admit_rejects_drift_before_dispatch[changed-proof-hash-False]
+FAILED ..\..\harness\test_adapter.py::test_recovery_parent_still_rejects_full_protected_snapshot_drift[parent]
+FAILED ..\..\harness\test_adapter.py::test_recovery_parent_still_rejects_full_protected_snapshot_drift[command]
+FAILED ..\..\harness\test_adapter.py::test_recovery_parent_still_rejects_full_protected_snapshot_drift[cim-created]
+17 failed in 6.64s

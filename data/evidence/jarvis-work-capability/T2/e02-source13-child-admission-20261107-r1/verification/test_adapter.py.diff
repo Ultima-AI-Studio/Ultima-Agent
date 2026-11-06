@@ -1,0 +1,96 @@
+--- preserved/test_adapter.py
++++ recovery/test_adapter.py
+@@ -1330,3 +1330,93 @@
+         assert probe.timeouts==[] # mandatory scope close despite hint-before-try
+     if probe.connects:
+         assert probe.connects[0]['timeout']==pytest.approx(scenario['effective'])
++
++
++def child_admission_fixture(tmp_path,monkeypatch,child):
++    """Real admit/native validation; replace only OS observations and package setup."""
++    p4=a.load_p4(); budget=a.Deadline()
++    identities=[dict(pid=100+i,created_filetime=100000+i,exe=str(a.PY)) for i in range(7)]
++    rows=protected_fixture(tmp_path,monkeypatch,p4,identities)
++    parent=dict(pid=9000,created_filetime=90000,exe=str(a.PY))
++    native={key['pid']:dict(key) for key in identities}; native[parent['pid']]=parent
++    monkeypatch.setattr(p4,'identity',lambda pid:native[pid])
++    queries=[]
++    def snapshot(pids=None):
++        queries.append(pids)
++        # The former child path invokes this boundary and would create an
++        # unregistered PowerShell descendant before clearance. Never launch it.
++        if child: raise AssertionError('child admission attempted a subprocess-backed process snapshot')
++        return rows
++    monkeypatch.setattr(p4,'process_snapshot',snapshot)
++    monkeypatch.setattr(p4,'listener_owner',lambda port:[])
++    monkeypatch.setattr(a,'load_p4',lambda:p4)
++    (tmp_path/'inputs').mkdir()
++    (tmp_path/'inputs/scope.json').write_bytes((a.V/'inputs/scope.json').read_bytes())
++    monkeypatch.setattr(a,'V',tmp_path)
++    # Source/package/metadata checks have independent retained coverage; keep
++    # the complete authority, hash, age, native and parent binding path real.
++    monkeypatch.setattr(a,'package_check',lambda p4:None)
++    monkeypatch.setattr(a,'check_import_origins',lambda:None)
++    monkeypatch.setattr(a,'operational_pins',lambda mode,budget:{'offline-package':'bound'})
++    authority,ledger,now=documents()
++    authority['parent_timing']=dict(origin_ns=budget.origin_ns,run_id=budget.run_id,
++        clock_domain=a.CLOCK_DOMAIN,parent_identity=parent)
++    folder=tmp_path/'actual/E02-controlled-1'
++    if child:
++        folder.mkdir(parents=True); a.save_new(folder/'attempt.json',dict(case='E02-controlled-1'))
++    (tmp_path/'controller-authority').mkdir(); (tmp_path/'native-preflight').mkdir()
++    ledger_path=tmp_path/'controller-ledger.json'; a.save_new(ledger_path,ledger)
++    a.save_new(tmp_path/'harness-approval.json',dict(fixture='already independently covered'))
++    proof=a.load(a.T/'e02-source13-real-controlled-preparation-20261107-r1/native-preflight/E02-controlled-1.json')
++    proof.update(recorded_at=now.isoformat(),protected=identities)
++    proof_path=tmp_path/'native-preflight/E02-controlled-1.json'; a.save_new(proof_path,proof)
++    authority.update(ledger_sha256=a.sha(ledger_path),approval_sha256=a.sha(tmp_path/'harness-approval.json'),
++        native_preflight_sha256=a.sha(proof_path),folder=str(folder),port=18799)
++    authority_path=tmp_path/'controller-authority/E02-controlled-1.json';a.save_new(authority_path,authority)
++    return dict(p4=p4,budget=budget,authority=authority,authority_path=authority_path,ledger_path=ledger_path,
++        proof=proof,proof_path=proof_path,native=native,identities=identities,rows=rows,queries=queries,folder=folder)
++
++
++@pytest.mark.parametrize('child',[True,False],ids=['child-no-subprocess','parent-full-snapshot'])
++def test_recovery_full_admit_observation_role(tmp_path,monkeypatch,child):
++    f=child_admission_fixture(tmp_path,monkeypatch,child)
++    context,p4=a.admit(f['authority_path'],f['ledger_path'],child=child,budget=f['budget'])
++    assert context['folder']==f['folder'] and context['mode']=='actual'
++    assert context['baseline']['protected']==f['identities']
++    assert context['budget'].origin_ns==f['authority']['parent_timing']['origin_ns']
++    assert f['queries']==([] if child else [[100,101,102,103,104,105,106]])
++    assert not (f['folder']/'child-clearance.consumed.json').exists()
++
++
++@pytest.mark.parametrize('child',[True,False])
++@pytest.mark.parametrize('fault',['expired','precision','missing-listener','changed-native','wrong-parent','changed-proof-hash'])
++def test_recovery_full_admit_rejects_drift_before_dispatch(tmp_path,monkeypatch,child,fault):
++    f=child_admission_fixture(tmp_path,monkeypatch,child)
++    if fault=='expired': f['proof']['recorded_at']=(dt.datetime.now(dt.timezone.utc)-dt.timedelta(seconds=61)).isoformat()
++    elif fault=='precision': f['proof']['precision']='milliseconds'
++    elif fault=='missing-listener': f['proof']['protected']=f['identities'][:-1]
++    elif fault=='changed-native': f['native'][106]['created_filetime']+=1
++    elif fault=='wrong-parent': f['native'][9000]=dict(f['native'][9000],created_filetime=1)
++    elif fault=='changed-proof-hash': f['proof']['unexpected']='not bound'
++    # Only these synthetic fixture files are rewritten; the real admission
++    # validator must reject the faulty proof or live native observation.
++    f['proof_path'].write_text(json.dumps(f['proof']),encoding='utf8')
++    if fault!='changed-proof-hash':
++        f['authority']['native_preflight_sha256']=a.sha(f['proof_path'])
++        f['authority_path'].write_text(json.dumps(f['authority']),encoding='utf8')
++    with pytest.raises(ValueError):
++        a.admit(f['authority_path'],f['ledger_path'],child=child,budget=f['budget'])
++    assert not (f['folder']/'child-clearance.consumed.json').exists()
++    assert not (f['folder']/'product-result.json').exists()
++
++
++@pytest.mark.parametrize('fault',['parent','command','cim-created'])
++def test_recovery_parent_still_rejects_full_protected_snapshot_drift(tmp_path,monkeypatch,fault):
++    f=child_admission_fixture(tmp_path,monkeypatch,False)
++    if fault=='parent': f['rows'][106]['ParentProcessId']+=1
++    elif fault=='command': f['rows'][106]['CommandLine']='unbound command'
++    else: f['rows'][106]['CreationFileTime']+=1000
++    with pytest.raises(ValueError):
++        a.admit(f['authority_path'],f['ledger_path'],budget=f['budget'])
++    assert len(f['queries'])==1
++    assert not f['folder'].exists()

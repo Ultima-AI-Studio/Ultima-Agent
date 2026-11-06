@@ -1,0 +1,43 @@
+F................                                                        [100%]
+================================== FAILURES ===================================
+_______ test_recovery_full_admit_observation_role[child-no-subprocess] ________
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-source13-child-admission-20261107-r1/code/harness-preparation-20261106T172319441476Z/temp/test_recovery_full_admit_obser0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000023D2054FE10>
+child = True
+
+    @pytest.mark.parametrize('child',[True,False],ids=['child-no-subprocess','parent-full-snapshot'])
+    def test_recovery_full_admit_observation_role(tmp_path,monkeypatch,child):
+        f=child_admission_fixture(tmp_path,monkeypatch,child)
+>       context,p4=a.admit(f['authority_path'],f['ledger_path'],child=child,budget=f['budget'])
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+..\..\harness\test_adapter.py:1383: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+..\..\harness\adapter.py:400: in admit
+    require(a.get('native_preflight_sha256')==sha(proofpath),'Native preflight binding'); budget.call('native admission baseline',check_native_baseline,proof,p4)
+                                                                                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\harness\adapter.py:70: in call
+    try: result=function(*args,**kwargs)
+                ^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\harness\adapter.py:329: in check_native_baseline
+    validate_protected_members(identities,p4)
+..\..\harness\adapter.py:341: in validate_protected_members
+    snapshot=p4.process_snapshot(pids=sorted(x['pid'] for x in identities))
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+pids = [100, 101, 102, 103, 104, 105, ...]
+
+    def snapshot(pids=None):
+        queries.append(pids)
+        # The former child path invokes this boundary and would create an
+        # unregistered PowerShell descendant before clearance. Never launch it.
+>       if child: raise AssertionError('child admission attempted a subprocess-backed process snapshot')
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AssertionError: child admission attempted a subprocess-backed process snapshot
+
+..\..\harness\test_adapter.py:1348: AssertionError
+=========================== short test summary info ===========================
+FAILED ..\..\harness\test_adapter.py::test_recovery_full_admit_observation_role[child-no-subprocess]
+1 failed, 16 passed in 8.53s

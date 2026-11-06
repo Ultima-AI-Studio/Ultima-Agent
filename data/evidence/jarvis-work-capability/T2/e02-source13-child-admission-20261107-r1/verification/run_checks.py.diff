@@ -1,0 +1,46 @@
+--- preserved/run_checks.py
++++ recovery/run_checks.py
+@@ -29,8 +29,15 @@
+     return files
+ 
+ def main():
+-    if sys.argv[1:] != ['adapter'] or Path(sys.executable).resolve() != PY.resolve() or not sys.flags.dont_write_bytecode or sys.flags.utf8_mode != 1:
+-        raise ValueError('Fixed H Python -B -X utf8 and adapter required')
++    if len(sys.argv)!=2 or sys.argv[1] not in ('adapter','recovery','base-a','base-b') or Path(sys.executable).resolve() != PY.resolve() or not sys.flags.dont_write_bytecode or sys.flags.utf8_mode != 1:
++        raise ValueError('Fixed H Python -B -X utf8 and a fixed offline group required')
++    group=sys.argv[1]
++    tree=ast.parse((HERE/'test_adapter.py').read_bytes())
++    names=[node.name for node in tree.body if isinstance(node,ast.FunctionDef) and node.name.startswith('test_')]
++    original=[name for name in names if not name.startswith('test_recovery_')]
++    recovery=[name for name in names if name.startswith('test_recovery_')]
++    selected={'adapter':names,'recovery':recovery,'base-a':original[:len(original)//2],'base-b':original[len(original)//2:]}[group]
++    if not selected:raise ValueError('Empty offline group')
+     before = snapshot()
+     for path in HERE.glob('*.py'): ast.parse(path.read_text('utf8'),filename=str(path))
+     run = V/'code'/('harness-preparation-'+dt.datetime.now(dt.timezone.utc).strftime('%Y%m%dT%H%M%S%fZ'))
+@@ -47,10 +54,15 @@
+     guard=V/'verification/offline_pytest.py'
+     guard_before=digest(guard)
+     (run/'harness-source/offline_pytest.py').write_bytes(guard.read_bytes())
+-    argv = [str(PY), '-I', '-B', '-X', 'utf8', str(guard), str(HERE/'test_adapter.py'), '-q', '-p', 'no:cacheprovider', '--basetemp='+str(run/'temp'), '--junitxml='+str(run/'harness/adapter.xml')]
++    argv = [str(PY), '-I', '-B', '-X', 'utf8', str(guard), *[str(HERE/'test_adapter.py')+'::'+name for name in selected], '-q', '-p', 'no:cacheprovider', '--basetemp='+str(run/'temp'), '--junitxml='+str(run/'harness/adapter.xml')]
+     env = {key:value for key,value in os.environ.items() if not key.upper().endswith('_PROXY') and not key.upper().startswith(('OLLAMA_','OPENJARVIS_','PYTHON','PYTEST','ULTIMA_ADAPTER_'))}
+     env.update(PYTHONDONTWRITEBYTECODE='1', PYTHONIOENCODING='utf-8', PYTEST_DISABLE_PLUGIN_AUTOLOAD='1', TEMP=str(run), TMP=str(run),OPENJARVIS_HOME=str(run/'owned-env/openjarvis'),HF_HOME=str(run/'owned-env/hf'),XDG_CACHE_HOME=str(run/'owned-env/cache'))
+-    result = subprocess.run(argv,cwd=run,env=env,stdout=subprocess.PIPE,stderr=subprocess.PIPE,timeout=90,creationflags=subprocess.CREATE_NO_WINDOW)
++    timed_out=False
++    try:
++        result = subprocess.run(argv,cwd=run,env=env,stdout=subprocess.PIPE,stderr=subprocess.PIPE,timeout=90,creationflags=subprocess.CREATE_NO_WINDOW)
++    except subprocess.TimeoutExpired as exc:
++        timed_out=True
++        result=subprocess.CompletedProcess(argv,124,exc.stdout or b'',(exc.stderr or b'')+b'\nOffline shard exceeded original 90 second bound; no acceptance credit.\n')
+     (run/'stdout.log').write_bytes(result.stdout)
+     (run/'stderr.log').write_bytes(result.stderr)
+     after_error=None
+@@ -62,6 +74,7 @@
+     unchanged=harness_before==harness_after and members_after==names and digest(guard)==guard_before
+     exit_code=result.returncode if unchanged and before==after and after_error is None else 2
+     receipt = dict(argv=argv,cwd=str(run),exit_code=exit_code,pytest_exit_code=result.returncode,snapshot_after_error=after_error,inputs_unchanged=before==after,harness_before=harness_before,harness_after=harness_after,harness_members_after=sorted(members_after),harness_unchanged=unchanged,controlled_environment={key:env[key] for key in ('PYTHONDONTWRITEBYTECODE','PYTHONIOENCODING','PYTEST_DISABLE_PLUGIN_AUTOLOAD','TEMP','TMP','OPENJARVIS_HOME','HF_HOME','XDG_CACHE_HOME')},kind='mocked-boundary-unit-only',inert=False,actual=False,model_calls=0,product_launches=0,T2='NOT_PASSED',files=harness_after)
++    receipt.update(group=group,selected_test_functions=selected,timeout_seconds=90,timed_out=timed_out)
+     (run/'receipt.json').write_text(json.dumps(receipt,indent=2),encoding='utf8')
+     print(result.stdout.decode('utf8').strip().splitlines()[-1:] or ['No pytest stdout'])
+     if result.stderr: print(result.stderr.decode('utf8')[-2000:],end='',file=sys.stderr)
