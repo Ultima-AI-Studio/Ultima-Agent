@@ -8,6 +8,67 @@ import copy
 from .work_tools import WorkBinding, WorkLedger, WorkCapabilities, bind_work, WORK_TOOLS, checked_path
 from .work_verifier import verify_artifacts
 
+
+# Exact local rejection messages only. Never export arbitrary exception text or
+# infer a reason by substring: source/model content can contain these words too.
+_WRITE_FAILURE_CODES = {
+    'No trusted request capability': 'REQUEST_CAPABILITY_MISSING',
+    'Unknown or authority-bearing parameters': 'INVALID_PARAMETERS',
+    'Fresh research requires v3 navigation': 'NAVIGATION_REQUIRED',
+    'No expected SDK action': 'SDK_ACTION_MISSING',
+    'Invalid worker claim': 'INVALID_WORKER_CLAIM',
+    'Invalid write snapshot generation': 'INVALID_WRITE_GENERATION',
+    'Report already reserved': 'WRITE_ALREADY_RESERVED',
+    'Report reservation requires claimed writer': 'WRITER_CLAIM_REQUIRED',
+    'Research target must be research.md': 'INVALID_TARGET',
+    'Invalid v3 submitted schema': 'INVALID_SUBMITTED_SCHEMA',
+    'Duplicate or unknown source section': 'INVALID_SOURCE_SECTION',
+    'Unknown or unissued reference': 'UNISSUED_REFERENCE',
+    'Foreign reference': 'FOREIGN_REFERENCE',
+    'Three distinct sources required': 'DISTINCT_SOURCES_REQUIRED',
+    'Report text must be a nonempty bounded single-line paragraph': 'INVALID_REPORT_TEXT',
+    'Report text cannot supply extra URLs, Markdown links or HTML citations': 'EXTRA_CITATION_REFUSED',
+    'Invalid fact fields or kind': 'INVALID_FACT_FIELDS',
+    'Invalid or omitted evidence lines': 'INVALID_EVIDENCE_LINES',
+    'Empty evidence span': 'EMPTY_EVIDENCE',
+    'Code cannot serve as documentation of implemented behavior': 'CODE_AS_DOCUMENTATION_REFUSED',
+    'A code claim must name its exact operation': 'CODE_OPERATION_REQUIRED',
+    'Unsupported code projection or line separator': 'UNSUPPORTED_CODE_PROJECTION',
+    'Selected code span does not witness this operation or limitation': 'UNSUPPORTED_CODE_CLAIM',
+    'Invalid v3 rendering bindings': 'INVALID_RENDER_BINDINGS',
+    'Research receipt exceeds observation limit': 'RECEIPT_TOO_LARGE',
+    'Unsafe research output': 'UNSAFE_OUTPUT',
+    'Research write admission deadline': 'WRITE_DEADLINE',
+    'Research acknowledgement deadline': 'ACK_DEADLINE',
+    'Research lock admission deadline': 'LOCK_DEADLINE',
+    'SDK file bytes mismatch': 'FILE_BYTES_MISMATCH',
+}
+
+
+def _research_write_failure(records):
+    """Describe the first failed trusted writer without changing any gate.
+
+    Unknown text stays private; a bounded hash permits later source comparison.
+    Call only with the ledger's outcome snapshot, never SDK/model tool_results.
+    """
+    for record in records:
+        if record.get('tool_name') != 'ultima_work_research_write' or record.get('success') is not False:
+            continue
+        message = record.get('error')
+        kind = record.get('error_type')
+        kind = kind if kind in ('ValueError', 'TypeError', 'KeyError', 'RuntimeError', 'OSError', 'TimeoutError') else 'UNKNOWN'
+        is_text = type(message) is str
+        return dict(
+            stage='research.write',
+            reason_code=_WRITE_FAILURE_CODES.get(message, 'UNKNOWN') if is_text and kind == 'ValueError' else 'UNKNOWN',
+            error_type=kind,
+            error_text_length=len(message) if is_text else None,
+            error_text_sha256=hashlib.sha256(message.encode('utf8', errors='surrogatepass')).hexdigest()
+                if is_text and len(message) <= 4096 else None,
+        )
+    return None
+
+
 class WorkService:
     def __init__(self, output_root: Path | None, *, runner, context_provider=None, exec_channel=None, browser_channel=None, research_preparer=None):
         if output_root is None:
@@ -156,6 +217,9 @@ class WorkService:
             if captured and self._context_provider: self._context_provider.release(captured)
         result['tool_results'] = sdk_results + records
         if isinstance(context,dict) and context.get('research'):
+            failure = _research_write_failure(records)
+            if failure is not None:
+                result['research_failure'] = failure
             # Full GETs, submitted reports and replay stay in the restricted
             # ledger. Public records preserve identity/status and byte links.
             result['tool_results']=[{k:r[k] for k in ('call_id','tool_name','success','request_id','session_id','task_id','error_type') if k in r}
