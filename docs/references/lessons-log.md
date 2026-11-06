@@ -277,6 +277,7 @@
 | v2.5 | 2026-11-01 | 新增 L35 agent_server 8756 "查新闻" 500 根因链（旧进程未加载 0016/0017 + Qwen3 thinking 空 content + you.com 不可达吞 fallback；修复=启动脚本注入 OPENJARVIS_WEB_SEARCH_ENGINE=duckduckgo + 重启，实测 200 grounded=true） |
 | v2.6 | 2026-11-04 | 新增 L36 kws_listener.py 参数与权威基线漂移（score=1.0/num_trailing_blanks=0 vs 基线 2.0/8）+ 基线文档"产品主入口"声明与实测运行入口（daemon）不一致 |
 | v2.7 | 2026-11-05 | 新增 L37 T4 全量回归两项环境既有失败（测试子进程 PATH 缺 Ollama 目录 + jarvis ask 14B 真实推理在 12GB 卡 cudaMalloc OOM）；处置=主脑豁免裁决收口 + 两项登记环境债（测试环境注入 PATH / 真推理测试改 8B 或加显存前置） |
+| v2.8 | 2026-11-06 | 新增 L39-L42 抖音热榜视频提取四坑（纯 HTTP 返回空壳 / 详情页跳精选页但 SSR 数据可直读 / SSR 分片是 JSON 字符串字面量必先解码 / CDN 直链需 Referer 且签名有时效）；配套链路 `H:\UltimaAI\_shared\tools\scrapling-test\`（hot_fetch.py + hot_video.py + 播放页模板） |
 
 ## L35 agent_server 8756 "查新闻" 500 根因链（2026-11-01 · 实测修复）
 
@@ -319,3 +320,31 @@
 - **教训**：① 派发前置检查不能只看进程名，必须叠加"证据目录/工作树近 N 分钟写盘"信号（本例 0021 在写 `data/evidence/jarvis-work-capability/T2/e03-source12-20261105-r30-*`）；② 主表 blocked 不等于实况没跑，授权恢复轮期间应先把主表改 executing；③ 用户在 App 里手动发起的执行端与派发器拉起的是两套形态，WIP 计数要按"实际在写盘的工作"而不是按进程名。
 - **遗留**：前置检查脚本（dispatch 前置探针）待补"活跃写盘"判定项；0024 待 0021 收口后按 WIP 重派。
 - **复发**：0（首登记）
+
+## L39 抖音热榜纯 HTTP 抓取返回 200 但正文是空壳（工具链/静默失败 · 2026-11-06）
+
+- **现象**：`scrapling extract get https://www.douyin.com/hot` 返回 200，HTML 落地 72,911 字节，但 `<body>` 为空，只剩 `_$jsvmprt` 开头的 JS 挑战脚本，Markdown 产物 0 字节。抓取命令"成功"，数据一条没有。
+- **根因**：抖音用 JS 挑战拦截无浏览器执行环境的请求，HTTP 层伪装 TLS 指纹过不去；状态码和文件大小都不能证明拿到了正文。
+- **规避**：热榜必须走浏览器渲染模式（`extract fetch` + `--disable-resources` + `--wait-selector 'a[href^="/hot/"]'`），实测 5.1 秒拿到 97 万字节完整页面；抓完必须校验正文含榜单条目（`/hot/` 链接数 > 0），不能只看 exit code 和文件大小。
+- **复发**：1（本会话首次实测即踩中）
+
+## L40 热榜条目详情页在浏览器里跳精选页弹窗，改读 SSR 数据可绕过（工具链 · 2026-11-06）
+
+- **现象**：未登录浏览器打开 `https://www.douyin.com/hot/2731877/BLG战胜DK晋级半决赛` 被重定向到 `https://www.douyin.com/jingxuan?modal_id=7671977518265650478`，三次分别拿到导航壳 / 漫威解说 / 钓鱼视频，全部与榜单条目无关；而同批次的 WTT 条目却正常。同一条目后来改用 SSR 直读，一次成功。
+- **根因**：未登录态下详情页有跳精选页弹窗逻辑，跳转后的 `modal_id` 与榜单条目不保证对应（成因未完全验证）；但跳转发生在 UI 呈现层，页面 HTML 本身携带的 SSR 数据仍是该话题的。
+- **规避**：不要"打开页面看"，直接抓 HTML 读 SSR 里的 `hotList` 与 `video` 对象；BLG 那条改走 SSR 后标题、画面（BLG vs DK 比赛画面 + "BLG3比0横扫DK"字幕）、文件大小三项全部对上。判据：只要 SSR 里 `hotTitle` 与榜单标题一致，就说明数据这条对了。
+- **复发**：1（同一坑本会话撞过三次才定位到"UI 跳转不影响 SSR 数据"）
+
+## L41 抖音详情页 SSR 是 JSON 字符串字面量，直接搜字段名必 0 命中（工具链 · 2026-11-06）
+
+- **现象**：在详情页 HTML 里搜 `"playAddr":[` 返回 0 命中，据此误判"页面里没有视频地址"，转而去读 `<video>` 标签，`currentSrc` 又是空，白绕一圈。
+- **根因**：页面用 Next.js 风格分片 `self.__pace_f.push([1,"..."])`，每段内容是被转义后的 JSON 字符串字面量，HTML 里实际形态是 `\"playAddr\":[`；不先解码就搜原始字段名必然搜不到。
+- **规避**：先用正则 `self\.__pace_f\.push\(\[1,("(?:[^"\\]|\\.)*")\]\)` 取出每段字符串，逐个 `json.loads` 解码后拼接成 payload，再在 payload 里搜字段。本会话此坑踩中两次。
+- **复发**：2
+
+## L42 抖音视频 CDN 直链需 Referer 且签名有时效（工具链/外部依赖 · 2026-11-06）
+
+- **现象**：对 `v26-web.douyinvod.com` 的视频地址做 `Range: bytes=0-1023` 请求，不带 Referer 返回 403 Forbidden；带 `Referer: https://www.douyin.com/` + Chrome UA 返回 206、`Content-Type: video/mp4`、首 8 字节 `ftyp`。
+- **根因**：CDN 做来源页防盗链校验。
+- **规避**：下载必须带 Referer 与桌面 Chrome UA；地址含时间戳和签名（单条 557 字符），每次从当天详情页现取，禁止硬编码复用；验证取流成功要看状态码 206 + `ftyp` 头，不只看文件非空。
+- **复发**：1
