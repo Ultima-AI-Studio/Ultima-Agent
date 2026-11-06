@@ -1,0 +1,47 @@
+{
+  "scope": "R1-followup pending launch and qualification reserve",
+  "user_approval_sha256": "0bd9d1550f6e36898e0a0519eb31bae93cd43f9989cbb12a6c2f931c77fdf080",
+  "original_cutoffs_seconds": {
+    "work": 275,
+    "profile_cleanup": 310,
+    "seal": 315
+  },
+  "origin_renewed": false,
+  "calculation": "15*(2*members+3)+10*members+2*launchers+(18 if console or prospective/pending role else 0)+5+15*remaining_queries",
+  "pending_members": "max(actual known, prelaunch known + 2)",
+  "pending_launchers": "max(actual launchers, prelaunch launchers + 1)",
+  "pending_queries": "3 before launch; 2 after launch; 1 after discover; 0 after exact CIM query; cleared only after exact membership and retained handle checks",
+  "guard_locations": [
+    "before native launch",
+    "through HELLO wait",
+    "after HELLO validation",
+    "before discovery",
+    "after discovery/before exact query",
+    "after exact query",
+    "after retained handle acquisition"
+  ],
+  "usual_no_console_established_reserves_seconds": [
+    132,
+    214
+  ],
+  "prospective_role_reserves_seconds": [
+    195,
+    277
+  ],
+  "normal_reader_launch_before_origin_seconds": 38,
+  "pending_hello_reserves_seconds": [
+    180,
+    262
+  ],
+  "pending_hello_latest_origin_seconds": [
+    135,
+    53
+  ],
+  "tradeoff": "Conservative admission can reject an otherwise timely consumer; it does not grant the full275/310 as useful waiting time.",
+  "limits": [
+    "Synthetic query/process/clock effects only; original cleanup/deadline wrappers exercised.",
+    "Extra actual known members increase reservation before further queries; arbitrary unknown trees/native/filesystem failures are not a cleanup guarantee.",
+    "Five seconds is a local proof margin, not a hard bound on arbitrary I/O."
+  ],
+  "runtime_authority": false
+}

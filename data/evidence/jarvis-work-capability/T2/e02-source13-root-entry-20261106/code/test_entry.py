@@ -236,3 +236,104 @@ def test_stall_reserves_real_privateio_termination_and_owned_cleanup(tmp_path,st
     assert not alive and all(log.closed for log in owned.logs)
     assert len(entered)==2 and all(left>=10*10**9 for _,left in entered)
     assert result['cleanup']['status']=='PASS' and f.clock[0]<=ORIGIN+315*10**9
+
+
+@pytest.mark.parametrize('role',['worker','reader'])
+@pytest.mark.parametrize('arrival',['safe','late','read_slip'])
+def test_delayed_hello_keeps_queries_and_unregistered_interpreter_reserve(tmp_path,monkeypatch,role,arrival):
+    """Production start/qualification; original cleanup and deadline I/O; OS only is synthetic."""
+    import ast
+    import io as streams
+    from types import MethodType
+    import native_observation as native
+    f=fixture(tmp_path);alive=set();entered=[];queries=[];discoveries=[]
+    Deadline,PrivateIO=native.deadline_io()
+    budget=Deadline(clock=lambda:f.clock[0]);budget.origin_ns=ORIGIN;budget.phase='seal'
+    safe_at=134 if role=='worker' else 52
+    hello_at=(182 if role=='worker' else 100) if arrival=='late' else safe_at
+    script='Get-CimInstance Win32_Process | ForEach-Object { [pscustomobject]@{ProcessId=[int]$_.ProcessId;ParentProcessId=[int]$_.ParentProcessId;CreationFileTime=[Int64]$_.CreationDate.ToFileTimeUtc();CommandLineBase64=[Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes([string]$_.CommandLine))} } | ConvertTo-Json -Compress'
+    def advance(seconds):f.clock[0]+=int(seconds*10**9)
+    def raw_query(argv,**kw):
+        assert kw['timeout']>=15  # Original calls must retain their entire bounded allowance.
+        queries.append(f.clock[0]);advance(15);return b'[]'
+    def terminate(key):
+        entered.append((key['pid'],budget.remaining_ns()));advance(10);alive.discard(key['pid'])
+    helper=SimpleNamespace(ROOT=f.root,subprocess=SimpleNamespace(check_output=raw_query,TimeoutExpired=TimeoutError),
+        time=SimpleNamespace(monotonic=lambda:f.clock[0]/10**9,sleep=advance),socket=SimpleNamespace(),
+        terminate_owned=terminate,save=lambda *args:None)
+    private=PrivateIO(helper,budget);private.__enter__()
+    key=WORKER if role=='worker' else READER
+    launcher=LAUNCHER if role=='worker' else dict(LAUNCHER,pid=919)
+    owned=SimpleNamespace(folder=f.context.process,known={},launchers=[],logs=[],errors=[],auxiliary={},forbidden={81})
+    backend=native.NativeBackend.__new__(native.NativeBackend)
+    backend.context=f.context;backend.origin=ORIGIN;backend.owned=None;backend.pending=None
+    backend.observers={};backend.arguments={};backend.environment={};backend.budget=budget;backend.controller=helper;backend.io=private
+    command=['python']
+    def snapshot(**kwargs):
+        helper.subprocess.check_output(['powershell.exe','-NoProfile','-NonInteractive','-Command',script],timeout=15)
+        return {pid:dict(ProcessId=pid,CreationFileTime=(key if pid==key['pid'] else launcher)['created_filetime'],
+            ParentProcessId=launcher['pid'] if pid==key['pid'] else os.getpid(),CommandLine=' '.join(command)) for pid in alive}
+    def discover():
+        rows=snapshot();discoveries.append(f.clock[0])
+        if len(discoveries)>1:  # Interpreter becomes visible after the launch snapshot.
+            owned.known[key['pid']]=dict(identity=key,role=role,parent=launcher['pid'])
+            owned.auxiliary[777]=dict(identity=dict(key,pid=777),authority='observe-only')
+        return rows
+    def proc(pid):return SimpleNamespace(pid=pid,wait=lambda timeout:advance(2))
+    if role=='reader':
+        for oldkey in (WORKER,LAUNCHER):owned.known[oldkey['pid']]=dict(identity=oldkey,role='worker')
+        owned.launchers.append(dict(identity=LAUNCHER,role='worker',proc=proc(LAUNCHER['pid'])))
+        owned.logs.extend([streams.StringIO(),streams.StringIO()])
+        backend.owned=owned  # Completed worker remains registered, though already absent.
+    def launch(argv,launched_role):
+        assert launched_role==role;command[1:]=argv
+        owned.known[launcher['pid']]=dict(identity=launcher,role=role,parent=os.getpid())
+        owned.launchers.append(dict(identity=launcher,role=role,argv=argv,proc=proc(launcher['pid'])))
+        owned.logs.extend([streams.StringIO(),streams.StringIO()]);alive.update((key['pid'],launcher['pid']))
+        discover()
+    owned.launch=launch;owned.discover=discover
+    helper.Owned=lambda *args:owned;helper.process_snapshot=snapshot
+    helper.argv_parse=lambda value:command
+    helper.snapshot_identity_matches=lambda k,row:k['pid']==row['ProcessId'] and k['created_filetime']==row['CreationFileTime']
+    closed_handles=[]
+    backend.api=SimpleNamespace(identity=lambda pid:dict(key),open=lambda pid:pid+1000,
+        times=lambda handle:(key['created_filetime'],0),close=closed_handles.append)
+    def pause():
+        advance(1)
+        if f.clock[0]>=ORIGIN+hello_at*10**9 and not (f.control/(role+'-hello.json')).exists():
+            put(f.control/(role+'-hello.json'),dict(schema=1,role=role,run_id=RUN,entry_nonce=NONCE,
+                pid=key['pid'],executable=str(c.PY),root_manifest_sha256=f.context.manifest_sha))
+    backend.pause=pause
+    if arrival=='read_slip':
+        original=e.check_hello
+        def slow_read(*args):original(*args);advance(2)
+        monkeypatch.setattr(e,'check_hello',slow_read)
+    tree=ast.parse((native.HELPER/'code/controller.py').read_bytes())
+    cls=next(node for node in tree.body if isinstance(node,ast.ClassDef) and node.name=='Owned')
+    cleanup=next(node for node in cls.body if isinstance(node,ast.FunctionDef) and node.name=='cleanup')
+    ns=dict(process_snapshot=snapshot,terminate_owned=lambda k:helper.terminate_owned(k),require=c.require,
+        subprocess=helper.subprocess,time=helper.time,save=lambda *args:helper.save(*args))
+    exec(compile(ast.Module(body=[cleanup],type_ignores=[]),'unchanged-Owned.cleanup','exec'),ns)
+    owned.cleanup=MethodType(ns['cleanup'],owned)
+    qualified=None;failure=None;cleanup_result=None;cleanup_error=None
+    try:
+        try:qualified=e.start(f.context,backend,role,ORIGIN)
+        except (ValueError,TimeoutError) as exc:failure=exc
+        queries_before_cleanup=len(queries)
+        try:
+            cleanup_result=backend.cleanup()
+            snapshot()  # Same full15s final protected identity observation budget.
+            budget.post('final protected readback and proof')
+        except (ValueError,TimeoutError,AssertionError) as exc:cleanup_error=exc
+    finally:backend.close()
+    assert cleanup_error is None,repr(cleanup_error)
+    assert cleanup_result['status']=='PASS',cleanup_result
+    assert not alive and all(log.closed for log in owned.logs)
+    assert len(entered)==2 and all(left>=10*10**9 for _,left in entered)
+    assert budget.origin_ns==ORIGIN and f.clock[0]<=ORIGIN+315*10**9
+    if arrival=='safe':
+        assert failure is None and qualified['identity']==key
+        assert queries_before_cleanup==3 and len(closed_handles)==1  # Launch + both real qualification calls.
+    else:
+        assert qualified is None and failure is not None
+        assert queries_before_cleanup==1 and not closed_handles  # Refuse before spending either qualification call.

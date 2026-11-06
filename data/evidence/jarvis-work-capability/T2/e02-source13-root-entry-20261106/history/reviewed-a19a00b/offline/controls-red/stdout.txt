@@ -1,0 +1,660 @@
+FF.FFFFFFFFFFFFFFFFFFFFFFFF......                                        [100%]
+================================== FAILURES ===================================
+__________ test_admission_is_accepted_by_unchanged_profile_consumer ___________
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-source13-root-entry-20261106/offline/controls-red/temp/test_admission_is_accepted_by_0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000002877F50BE10>
+
+    def test_admission_is_accepted_by_unchanged_profile_consumer(tmp_path,monkeypatch):
+>       f=fixture(tmp_path);admitted(f)
+                            ^^^^^^^^^^^
+
+test_controls.py:89: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+test_controls.py:69: in admitted
+    f.context.consume(ROOT_KEY,ORIGIN)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <controls.Context object at 0x000002877F50EF90>
+args = ({'pid': 917, 'created_filetime': 134384100000000001, 'exe': 'C:\\Python\\python.exe'}, 1000000000)
+
+>   def consume(self,*args):raise ValueError('Unconfigured allocation')
+                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   ValueError: Unconfigured allocation
+
+controls.py:20: ValueError
+____________ test_allocation_is_exclusive_across_context_instances ____________
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-source13-root-entry-20261106/offline/controls-red/temp/test_allocation_is_exclusive_a0')
+
+    def test_allocation_is_exclusive_across_context_instances(tmp_path):
+>       f=fixture(tmp_path);f.context.consume(ROOT_KEY,ORIGIN)
+                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+test_controls.py:101: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <controls.Context object at 0x000002877F594A50>
+args = ({'pid': 917, 'created_filetime': 134384100000000001, 'exe': 'C:\\Python\\python.exe'}, 1000000000)
+
+>   def consume(self,*args):raise ValueError('Unconfigured allocation')
+                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   ValueError: Unconfigured allocation
+
+controls.py:20: ValueError
+__________________ test_worker_capability_cannot_admit_twice __________________
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-source13-root-entry-20261106/offline/controls-red/temp/test_worker_capability_cannot_0')
+
+    def test_worker_capability_cannot_admit_twice(tmp_path):
+>       f=fixture(tmp_path);admitted(f);control=c.WorkerControls(f.context)
+                            ^^^^^^^^^^^
+
+test_controls.py:115: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+test_controls.py:69: in admitted
+    f.context.consume(ROOT_KEY,ORIGIN)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <controls.Context object at 0x000002877F8CC510>
+args = ({'pid': 917, 'created_filetime': 134384100000000001, 'exe': 'C:\\Python\\python.exe'}, 1000000000)
+
+>   def consume(self,*args):raise ValueError('Unconfigured allocation')
+                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   ValueError: Unconfigured allocation
+
+controls.py:20: ValueError
+___________ test_worker_rejects_mismatched_root_binding[candidate] ____________
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-source13-root-entry-20261106/offline/controls-red/temp/test_worker_rejects_mismatched0')
+change = 'candidate'
+
+    @pytest.mark.parametrize('change', ['candidate','model','manifest','profile','unknown','five','pid','clock','expired','proxy_pins'])
+    def test_worker_rejects_mismatched_root_binding(tmp_path,change):
+>       f=fixture(tmp_path);admitted(f);pins=f.context.pins()
+                            ^^^^^^^^^^^
+
+test_controls.py:122: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+test_controls.py:69: in admitted
+    f.context.consume(ROOT_KEY,ORIGIN)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <controls.Context object at 0x000002877F8CCB00>
+args = ({'pid': 917, 'created_filetime': 134384100000000001, 'exe': 'C:\\Python\\python.exe'}, 1000000000)
+
+>   def consume(self,*args):raise ValueError('Unconfigured allocation')
+                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   ValueError: Unconfigured allocation
+
+controls.py:20: ValueError
+_____________ test_worker_rejects_mismatched_root_binding[model] ______________
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-source13-root-entry-20261106/offline/controls-red/temp/test_worker_rejects_mismatched1')
+change = 'model'
+
+    @pytest.mark.parametrize('change', ['candidate','model','manifest','profile','unknown','five','pid','clock','expired','proxy_pins'])
+    def test_worker_rejects_mismatched_root_binding(tmp_path,change):
+>       f=fixture(tmp_path);admitted(f);pins=f.context.pins()
+                            ^^^^^^^^^^^
+
+test_controls.py:122: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+test_controls.py:69: in admitted
+    f.context.consume(ROOT_KEY,ORIGIN)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <controls.Context object at 0x000002877F89B650>
+args = ({'pid': 917, 'created_filetime': 134384100000000001, 'exe': 'C:\\Python\\python.exe'}, 1000000000)
+
+>   def consume(self,*args):raise ValueError('Unconfigured allocation')
+                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   ValueError: Unconfigured allocation
+
+controls.py:20: ValueError
+____________ test_worker_rejects_mismatched_root_binding[manifest] ____________
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-source13-root-entry-20261106/offline/controls-red/temp/test_worker_rejects_mismatched2')
+change = 'manifest'
+
+    @pytest.mark.parametrize('change', ['candidate','model','manifest','profile','unknown','five','pid','clock','expired','proxy_pins'])
+    def test_worker_rejects_mismatched_root_binding(tmp_path,change):
+>       f=fixture(tmp_path);admitted(f);pins=f.context.pins()
+                            ^^^^^^^^^^^
+
+test_controls.py:122: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+test_controls.py:69: in admitted
+    f.context.consume(ROOT_KEY,ORIGIN)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <controls.Context object at 0x000002877F689480>
+args = ({'pid': 917, 'created_filetime': 134384100000000001, 'exe': 'C:\\Python\\python.exe'}, 1000000000)
+
+>   def consume(self,*args):raise ValueError('Unconfigured allocation')
+                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   ValueError: Unconfigured allocation
+
+controls.py:20: ValueError
+____________ test_worker_rejects_mismatched_root_binding[profile] _____________
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-source13-root-entry-20261106/offline/controls-red/temp/test_worker_rejects_mismatched3')
+change = 'profile'
+
+    @pytest.mark.parametrize('change', ['candidate','model','manifest','profile','unknown','five','pid','clock','expired','proxy_pins'])
+    def test_worker_rejects_mismatched_root_binding(tmp_path,change):
+>       f=fixture(tmp_path);admitted(f);pins=f.context.pins()
+                            ^^^^^^^^^^^
+
+test_controls.py:122: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+test_controls.py:69: in admitted
+    f.context.consume(ROOT_KEY,ORIGIN)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <controls.Context object at 0x000002877F6898C0>
+args = ({'pid': 917, 'created_filetime': 134384100000000001, 'exe': 'C:\\Python\\python.exe'}, 1000000000)
+
+>   def consume(self,*args):raise ValueError('Unconfigured allocation')
+                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   ValueError: Unconfigured allocation
+
+controls.py:20: ValueError
+____________ test_worker_rejects_mismatched_root_binding[unknown] _____________
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-source13-root-entry-20261106/offline/controls-red/temp/test_worker_rejects_mismatched4')
+change = 'unknown'
+
+    @pytest.mark.parametrize('change', ['candidate','model','manifest','profile','unknown','five','pid','clock','expired','proxy_pins'])
+    def test_worker_rejects_mismatched_root_binding(tmp_path,change):
+>       f=fixture(tmp_path);admitted(f);pins=f.context.pins()
+                            ^^^^^^^^^^^
+
+test_controls.py:122: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+test_controls.py:69: in admitted
+    f.context.consume(ROOT_KEY,ORIGIN)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <controls.Context object at 0x000002877F59B050>
+args = ({'pid': 917, 'created_filetime': 134384100000000001, 'exe': 'C:\\Python\\python.exe'}, 1000000000)
+
+>   def consume(self,*args):raise ValueError('Unconfigured allocation')
+                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   ValueError: Unconfigured allocation
+
+controls.py:20: ValueError
+______________ test_worker_rejects_mismatched_root_binding[five] ______________
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-source13-root-entry-20261106/offline/controls-red/temp/test_worker_rejects_mismatched5')
+change = 'five'
+
+    @pytest.mark.parametrize('change', ['candidate','model','manifest','profile','unknown','five','pid','clock','expired','proxy_pins'])
+    def test_worker_rejects_mismatched_root_binding(tmp_path,change):
+>       f=fixture(tmp_path);admitted(f);pins=f.context.pins()
+                            ^^^^^^^^^^^
+
+test_controls.py:122: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+test_controls.py:69: in admitted
+    f.context.consume(ROOT_KEY,ORIGIN)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <controls.Context object at 0x000002877F599750>
+args = ({'pid': 917, 'created_filetime': 134384100000000001, 'exe': 'C:\\Python\\python.exe'}, 1000000000)
+
+>   def consume(self,*args):raise ValueError('Unconfigured allocation')
+                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   ValueError: Unconfigured allocation
+
+controls.py:20: ValueError
+______________ test_worker_rejects_mismatched_root_binding[pid] _______________
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-source13-root-entry-20261106/offline/controls-red/temp/test_worker_rejects_mismatched6')
+change = 'pid'
+
+    @pytest.mark.parametrize('change', ['candidate','model','manifest','profile','unknown','five','pid','clock','expired','proxy_pins'])
+    def test_worker_rejects_mismatched_root_binding(tmp_path,change):
+>       f=fixture(tmp_path);admitted(f);pins=f.context.pins()
+                            ^^^^^^^^^^^
+
+test_controls.py:122: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+test_controls.py:69: in admitted
+    f.context.consume(ROOT_KEY,ORIGIN)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <controls.Context object at 0x000002877F545E50>
+args = ({'pid': 917, 'created_filetime': 134384100000000001, 'exe': 'C:\\Python\\python.exe'}, 1000000000)
+
+>   def consume(self,*args):raise ValueError('Unconfigured allocation')
+                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   ValueError: Unconfigured allocation
+
+controls.py:20: ValueError
+_____________ test_worker_rejects_mismatched_root_binding[clock] ______________
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-source13-root-entry-20261106/offline/controls-red/temp/test_worker_rejects_mismatched7')
+change = 'clock'
+
+    @pytest.mark.parametrize('change', ['candidate','model','manifest','profile','unknown','five','pid','clock','expired','proxy_pins'])
+    def test_worker_rejects_mismatched_root_binding(tmp_path,change):
+>       f=fixture(tmp_path);admitted(f);pins=f.context.pins()
+                            ^^^^^^^^^^^
+
+test_controls.py:122: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+test_controls.py:69: in admitted
+    f.context.consume(ROOT_KEY,ORIGIN)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <controls.Context object at 0x000002877F5445F0>
+args = ({'pid': 917, 'created_filetime': 134384100000000001, 'exe': 'C:\\Python\\python.exe'}, 1000000000)
+
+>   def consume(self,*args):raise ValueError('Unconfigured allocation')
+                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   ValueError: Unconfigured allocation
+
+controls.py:20: ValueError
+____________ test_worker_rejects_mismatched_root_binding[expired] _____________
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-source13-root-entry-20261106/offline/controls-red/temp/test_worker_rejects_mismatched8')
+change = 'expired'
+
+    @pytest.mark.parametrize('change', ['candidate','model','manifest','profile','unknown','five','pid','clock','expired','proxy_pins'])
+    def test_worker_rejects_mismatched_root_binding(tmp_path,change):
+>       f=fixture(tmp_path);admitted(f);pins=f.context.pins()
+                            ^^^^^^^^^^^
+
+test_controls.py:122: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+test_controls.py:69: in admitted
+    f.context.consume(ROOT_KEY,ORIGIN)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <controls.Context object at 0x000002877F8BC3D0>
+args = ({'pid': 917, 'created_filetime': 134384100000000001, 'exe': 'C:\\Python\\python.exe'}, 1000000000)
+
+>   def consume(self,*args):raise ValueError('Unconfigured allocation')
+                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   ValueError: Unconfigured allocation
+
+controls.py:20: ValueError
+___________ test_worker_rejects_mismatched_root_binding[proxy_pins] ___________
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-source13-root-entry-20261106/offline/controls-red/temp/test_worker_rejects_mismatched9')
+change = 'proxy_pins'
+
+    @pytest.mark.parametrize('change', ['candidate','model','manifest','profile','unknown','five','pid','clock','expired','proxy_pins'])
+    def test_worker_rejects_mismatched_root_binding(tmp_path,change):
+>       f=fixture(tmp_path);admitted(f);pins=f.context.pins()
+                            ^^^^^^^^^^^
+
+test_controls.py:122: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+test_controls.py:69: in admitted
+    f.context.consume(ROOT_KEY,ORIGIN)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <controls.Context object at 0x000002877F8BEA50>
+args = ({'pid': 917, 'created_filetime': 134384100000000001, 'exe': 'C:\\Python\\python.exe'}, 1000000000)
+
+>   def consume(self,*args):raise ValueError('Unconfigured allocation')
+                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   ValueError: Unconfigured allocation
+
+controls.py:20: ValueError
+______ test_current_import_path_is_derived_without_mutating_old_manifest ______
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-source13-root-entry-20261106/offline/controls-red/temp/test_current_import_path_is_de0')
+
+    def test_current_import_path_is_derived_without_mutating_old_manifest(tmp_path):
+>       f=fixture(tmp_path);before=c.BASE_MANIFEST.read_bytes();pins=f.context.pins()
+                                                                     ^^^^^^^^^^^^^^^^
+
+test_controls.py:140: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <controls.Context object at 0x000002877F6A9300>
+
+>   def pins(self):raise ValueError('Unconfigured root pins')
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   ValueError: Unconfigured root pins
+
+controls.py:19: ValueError
+_______ test_two_reader_observations_match_original_consumer_and_origin _______
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-source13-root-entry-20261106/offline/controls-red/temp/test_two_reader_observations_m0')
+
+    def test_two_reader_observations_match_original_consumer_and_origin(tmp_path):
+>       f=fixture(tmp_path);first=closed(f);reader=c.ReaderControls(f.context)
+                                  ^^^^^^^^^
+
+test_controls.py:147: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+test_controls.py:75: in closed
+    admitted(f)
+test_controls.py:69: in admitted
+    f.context.consume(ROOT_KEY,ORIGIN)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <controls.Context object at 0x000002877F6047D0>
+args = ({'pid': 917, 'created_filetime': 134384100000000001, 'exe': 'C:\\Python\\python.exe'}, 1000000000)
+
+>   def consume(self,*args):raise ValueError('Unconfigured allocation')
+                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   ValueError: Unconfigured allocation
+
+controls.py:20: ValueError
+_________ test_reader_rejects_unobserved_or_mutated_completion[exit] __________
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-source13-root-entry-20261106/offline/controls-red/temp/test_reader_rejects_unobserved0')
+change = 'exit'
+
+    @pytest.mark.parametrize('change', ['exit','signal','identity','claim','file','clock','timeback','late','capture','extra_exit'])
+    def test_reader_rejects_unobserved_or_mutated_completion(tmp_path,change):
+>       f=fixture(tmp_path);first=closed(f);reader=c.ReaderControls(f.context)
+                                  ^^^^^^^^^
+
+test_controls.py:160: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+test_controls.py:75: in closed
+    admitted(f)
+test_controls.py:69: in admitted
+    f.context.consume(ROOT_KEY,ORIGIN)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <controls.Context object at 0x000002877F604D10>
+args = ({'pid': 917, 'created_filetime': 134384100000000001, 'exe': 'C:\\Python\\python.exe'}, 1000000000)
+
+>   def consume(self,*args):raise ValueError('Unconfigured allocation')
+                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   ValueError: Unconfigured allocation
+
+controls.py:20: ValueError
+________ test_reader_rejects_unobserved_or_mutated_completion[signal] _________
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-source13-root-entry-20261106/offline/controls-red/temp/test_reader_rejects_unobserved1')
+change = 'signal'
+
+    @pytest.mark.parametrize('change', ['exit','signal','identity','claim','file','clock','timeback','late','capture','extra_exit'])
+    def test_reader_rejects_unobserved_or_mutated_completion(tmp_path,change):
+>       f=fixture(tmp_path);first=closed(f);reader=c.ReaderControls(f.context)
+                                  ^^^^^^^^^
+
+test_controls.py:160: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+test_controls.py:75: in closed
+    admitted(f)
+test_controls.py:69: in admitted
+    f.context.consume(ROOT_KEY,ORIGIN)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <controls.Context object at 0x000002877F6A76A0>
+args = ({'pid': 917, 'created_filetime': 134384100000000001, 'exe': 'C:\\Python\\python.exe'}, 1000000000)
+
+>   def consume(self,*args):raise ValueError('Unconfigured allocation')
+                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   ValueError: Unconfigured allocation
+
+controls.py:20: ValueError
+_______ test_reader_rejects_unobserved_or_mutated_completion[identity] ________
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-source13-root-entry-20261106/offline/controls-red/temp/test_reader_rejects_unobserved2')
+change = 'identity'
+
+    @pytest.mark.parametrize('change', ['exit','signal','identity','claim','file','clock','timeback','late','capture','extra_exit'])
+    def test_reader_rejects_unobserved_or_mutated_completion(tmp_path,change):
+>       f=fixture(tmp_path);first=closed(f);reader=c.ReaderControls(f.context)
+                                  ^^^^^^^^^
+
+test_controls.py:160: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+test_controls.py:75: in closed
+    admitted(f)
+test_controls.py:69: in admitted
+    f.context.consume(ROOT_KEY,ORIGIN)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <controls.Context object at 0x000002877F66FCD0>
+args = ({'pid': 917, 'created_filetime': 134384100000000001, 'exe': 'C:\\Python\\python.exe'}, 1000000000)
+
+>   def consume(self,*args):raise ValueError('Unconfigured allocation')
+                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   ValueError: Unconfigured allocation
+
+controls.py:20: ValueError
+_________ test_reader_rejects_unobserved_or_mutated_completion[claim] _________
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-source13-root-entry-20261106/offline/controls-red/temp/test_reader_rejects_unobserved3')
+change = 'claim'
+
+    @pytest.mark.parametrize('change', ['exit','signal','identity','claim','file','clock','timeback','late','capture','extra_exit'])
+    def test_reader_rejects_unobserved_or_mutated_completion(tmp_path,change):
+>       f=fixture(tmp_path);first=closed(f);reader=c.ReaderControls(f.context)
+                                  ^^^^^^^^^
+
+test_controls.py:160: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+test_controls.py:75: in closed
+    admitted(f)
+test_controls.py:69: in admitted
+    f.context.consume(ROOT_KEY,ORIGIN)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <controls.Context object at 0x000002877F7CEB70>
+args = ({'pid': 917, 'created_filetime': 134384100000000001, 'exe': 'C:\\Python\\python.exe'}, 1000000000)
+
+>   def consume(self,*args):raise ValueError('Unconfigured allocation')
+                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   ValueError: Unconfigured allocation
+
+controls.py:20: ValueError
+_________ test_reader_rejects_unobserved_or_mutated_completion[file] __________
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-source13-root-entry-20261106/offline/controls-red/temp/test_reader_rejects_unobserved4')
+change = 'file'
+
+    @pytest.mark.parametrize('change', ['exit','signal','identity','claim','file','clock','timeback','late','capture','extra_exit'])
+    def test_reader_rejects_unobserved_or_mutated_completion(tmp_path,change):
+>       f=fixture(tmp_path);first=closed(f);reader=c.ReaderControls(f.context)
+                                  ^^^^^^^^^
+
+test_controls.py:160: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+test_controls.py:75: in closed
+    admitted(f)
+test_controls.py:69: in admitted
+    f.context.consume(ROOT_KEY,ORIGIN)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <controls.Context object at 0x000002877F5F68F0>
+args = ({'pid': 917, 'created_filetime': 134384100000000001, 'exe': 'C:\\Python\\python.exe'}, 1000000000)
+
+>   def consume(self,*args):raise ValueError('Unconfigured allocation')
+                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   ValueError: Unconfigured allocation
+
+controls.py:20: ValueError
+_________ test_reader_rejects_unobserved_or_mutated_completion[clock] _________
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-source13-root-entry-20261106/offline/controls-red/temp/test_reader_rejects_unobserved5')
+change = 'clock'
+
+    @pytest.mark.parametrize('change', ['exit','signal','identity','claim','file','clock','timeback','late','capture','extra_exit'])
+    def test_reader_rejects_unobserved_or_mutated_completion(tmp_path,change):
+>       f=fixture(tmp_path);first=closed(f);reader=c.ReaderControls(f.context)
+                                  ^^^^^^^^^
+
+test_controls.py:160: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+test_controls.py:75: in closed
+    admitted(f)
+test_controls.py:69: in admitted
+    f.context.consume(ROOT_KEY,ORIGIN)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <controls.Context object at 0x000002877F885B50>
+args = ({'pid': 917, 'created_filetime': 134384100000000001, 'exe': 'C:\\Python\\python.exe'}, 1000000000)
+
+>   def consume(self,*args):raise ValueError('Unconfigured allocation')
+                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   ValueError: Unconfigured allocation
+
+controls.py:20: ValueError
+_______ test_reader_rejects_unobserved_or_mutated_completion[timeback] ________
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-source13-root-entry-20261106/offline/controls-red/temp/test_reader_rejects_unobserved6')
+change = 'timeback'
+
+    @pytest.mark.parametrize('change', ['exit','signal','identity','claim','file','clock','timeback','late','capture','extra_exit'])
+    def test_reader_rejects_unobserved_or_mutated_completion(tmp_path,change):
+>       f=fixture(tmp_path);first=closed(f);reader=c.ReaderControls(f.context)
+                                  ^^^^^^^^^
+
+test_controls.py:160: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+test_controls.py:75: in closed
+    admitted(f)
+test_controls.py:69: in admitted
+    f.context.consume(ROOT_KEY,ORIGIN)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <controls.Context object at 0x000002877F8CB2D0>
+args = ({'pid': 917, 'created_filetime': 134384100000000001, 'exe': 'C:\\Python\\python.exe'}, 1000000000)
+
+>   def consume(self,*args):raise ValueError('Unconfigured allocation')
+                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   ValueError: Unconfigured allocation
+
+controls.py:20: ValueError
+_________ test_reader_rejects_unobserved_or_mutated_completion[late] __________
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-source13-root-entry-20261106/offline/controls-red/temp/test_reader_rejects_unobserved7')
+change = 'late'
+
+    @pytest.mark.parametrize('change', ['exit','signal','identity','claim','file','clock','timeback','late','capture','extra_exit'])
+    def test_reader_rejects_unobserved_or_mutated_completion(tmp_path,change):
+>       f=fixture(tmp_path);first=closed(f);reader=c.ReaderControls(f.context)
+                                  ^^^^^^^^^
+
+test_controls.py:160: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+test_controls.py:75: in closed
+    admitted(f)
+test_controls.py:69: in admitted
+    f.context.consume(ROOT_KEY,ORIGIN)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <controls.Context object at 0x000002877F8CBF50>
+args = ({'pid': 917, 'created_filetime': 134384100000000001, 'exe': 'C:\\Python\\python.exe'}, 1000000000)
+
+>   def consume(self,*args):raise ValueError('Unconfigured allocation')
+                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   ValueError: Unconfigured allocation
+
+controls.py:20: ValueError
+________ test_reader_rejects_unobserved_or_mutated_completion[capture] ________
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-source13-root-entry-20261106/offline/controls-red/temp/test_reader_rejects_unobserved8')
+change = 'capture'
+
+    @pytest.mark.parametrize('change', ['exit','signal','identity','claim','file','clock','timeback','late','capture','extra_exit'])
+    def test_reader_rejects_unobserved_or_mutated_completion(tmp_path,change):
+>       f=fixture(tmp_path);first=closed(f);reader=c.ReaderControls(f.context)
+                                  ^^^^^^^^^
+
+test_controls.py:160: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+test_controls.py:75: in closed
+    admitted(f)
+test_controls.py:69: in admitted
+    f.context.consume(ROOT_KEY,ORIGIN)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <controls.Context object at 0x000002877F7D1A20>
+args = ({'pid': 917, 'created_filetime': 134384100000000001, 'exe': 'C:\\Python\\python.exe'}, 1000000000)
+
+>   def consume(self,*args):raise ValueError('Unconfigured allocation')
+                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   ValueError: Unconfigured allocation
+
+controls.py:20: ValueError
+______ test_reader_rejects_unobserved_or_mutated_completion[extra_exit] _______
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-source13-root-entry-20261106/offline/controls-red/temp/test_reader_rejects_unobserved9')
+change = 'extra_exit'
+
+    @pytest.mark.parametrize('change', ['exit','signal','identity','claim','file','clock','timeback','late','capture','extra_exit'])
+    def test_reader_rejects_unobserved_or_mutated_completion(tmp_path,change):
+>       f=fixture(tmp_path);first=closed(f);reader=c.ReaderControls(f.context)
+                                  ^^^^^^^^^
+
+test_controls.py:160: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+test_controls.py:75: in closed
+    admitted(f)
+test_controls.py:69: in admitted
+    f.context.consume(ROOT_KEY,ORIGIN)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <controls.Context object at 0x000002877F7DE2E0>
+args = ({'pid': 917, 'created_filetime': 134384100000000001, 'exe': 'C:\\Python\\python.exe'}, 1000000000)
+
+>   def consume(self,*args):raise ValueError('Unconfigured allocation')
+                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   ValueError: Unconfigured allocation
+
+controls.py:20: ValueError
+______ test_final_readback_refuses_drift_even_with_same_first_reference _______
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-source13-root-entry-20261106/offline/controls-red/temp/test_final_readback_refuses_dr0')
+
+    def test_final_readback_refuses_drift_even_with_same_first_reference(tmp_path):
+>       f=fixture(tmp_path);first=closed(f);reader=c.ReaderControls(f.context)
+                                  ^^^^^^^^^
+
+test_controls.py:177: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+test_controls.py:75: in closed
+    admitted(f)
+test_controls.py:69: in admitted
+    f.context.consume(ROOT_KEY,ORIGIN)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <controls.Context object at 0x000002877F8AFD70>
+args = ({'pid': 917, 'created_filetime': 134384100000000001, 'exe': 'C:\\Python\\python.exe'}, 1000000000)
+
+>   def consume(self,*args):raise ValueError('Unconfigured allocation')
+                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   ValueError: Unconfigured allocation
+
+controls.py:20: ValueError
+=========================== short test summary info ===========================
+FAILED test_controls.py::test_admission_is_accepted_by_unchanged_profile_consumer
+FAILED test_controls.py::test_allocation_is_exclusive_across_context_instances
+FAILED test_controls.py::test_worker_capability_cannot_admit_twice - ValueErr...
+FAILED test_controls.py::test_worker_rejects_mismatched_root_binding[candidate]
+FAILED test_controls.py::test_worker_rejects_mismatched_root_binding[model]
+FAILED test_controls.py::test_worker_rejects_mismatched_root_binding[manifest]
+FAILED test_controls.py::test_worker_rejects_mismatched_root_binding[profile]
+FAILED test_controls.py::test_worker_rejects_mismatched_root_binding[unknown]
+FAILED test_controls.py::test_worker_rejects_mismatched_root_binding[five] - ...
+FAILED test_controls.py::test_worker_rejects_mismatched_root_binding[pid] - V...
+FAILED test_controls.py::test_worker_rejects_mismatched_root_binding[clock]
+FAILED test_controls.py::test_worker_rejects_mismatched_root_binding[expired]
+FAILED test_controls.py::test_worker_rejects_mismatched_root_binding[proxy_pins]
+FAILED test_controls.py::test_current_import_path_is_derived_without_mutating_old_manifest
+FAILED test_controls.py::test_two_reader_observations_match_original_consumer_and_origin
+FAILED test_controls.py::test_reader_rejects_unobserved_or_mutated_completion[exit]
+FAILED test_controls.py::test_reader_rejects_unobserved_or_mutated_completion[signal]
+FAILED test_controls.py::test_reader_rejects_unobserved_or_mutated_completion[identity]
+FAILED test_controls.py::test_reader_rejects_unobserved_or_mutated_completion[claim]
+FAILED test_controls.py::test_reader_rejects_unobserved_or_mutated_completion[file]
+FAILED test_controls.py::test_reader_rejects_unobserved_or_mutated_completion[clock]
+FAILED test_controls.py::test_reader_rejects_unobserved_or_mutated_completion[timeback]
+FAILED test_controls.py::test_reader_rejects_unobserved_or_mutated_completion[late]
+FAILED test_controls.py::test_reader_rejects_unobserved_or_mutated_completion[capture]
+FAILED test_controls.py::test_reader_rejects_unobserved_or_mutated_completion[extra_exit]
+FAILED test_controls.py::test_final_readback_refuses_drift_even_with_same_first_reference
+26 failed, 7 passed in 1.28s

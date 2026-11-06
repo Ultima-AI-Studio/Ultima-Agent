@@ -61,6 +61,7 @@ def start(ctx,native,role,origin):
         native.require_cleanup_room()
         ctx._time(origin,275 if role=='worker' else 315,exclusive=True);native.pause()
     value=load(path);check_hello(ctx,role,value)
+    native.require_cleanup_room()
     observed=native.qualify(role,value)
     exact(observed,{'identity','launcher','parent_pid','argv_sha256'},'Native role observation')
     native_key(observed['identity']);native_key(observed['launcher'])

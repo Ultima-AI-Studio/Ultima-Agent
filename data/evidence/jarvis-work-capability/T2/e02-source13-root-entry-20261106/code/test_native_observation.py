@@ -95,6 +95,7 @@ def qualification_fixture(tmp_path):
     launcher=dict(KEY,pid=418,created_filetime=KEY['created_filetime']-1)
     row=dict(ProcessId=417,CreationFileTime=KEY['created_filetime'],ParentProcessId=418,CommandLine='python fixed')
     owned=owner();owned.known[417].update(parent=418,argv='python fixed')
+    owned.known[418]=dict(identity=launcher,role='worker');owned.auxiliary={}
     owned.launchers=[dict(identity=launcher,role='worker',argv=['fixed'],proc=SimpleNamespace(pid=418))]
     owned.discover=lambda:{417:row}
     obj.controller=SimpleNamespace(process_snapshot=lambda **kw:{417:row},argv_parse=lambda value:value.split(),
@@ -102,6 +103,8 @@ def qualification_fixture(tmp_path):
     obj.owned=owned;obj.api=api;obj.observers={};obj.arguments={'worker':['fixed']}
     obj.context=SimpleNamespace(clock=api.now,process=tmp_path,_time=lambda *a,**k:api.now())
     obj.origin=100
+    Deadline,_=n.deadline_io();obj.budget=Deadline(clock=api.now);obj.budget.origin_ns=obj.origin
+    obj.pending=dict(role='worker',members=2,launchers=1,queries=2)
     return obj,api,row
 
 
@@ -114,7 +117,7 @@ def test_native_role_requires_registered_argv_parent_and_retained_actual_handle(
 
 
 def test_parent_wait_after_admission_keeps_original_seal_window(tmp_path):
-    obj,api,row=qualification_fixture(tmp_path);obj.budget=SimpleNamespace(phase='work')
+    obj,api,row=qualification_fixture(tmp_path);obj.budget.phase='work'
     obj.qualify('worker',{'pid':417})
     try:
         assert obj.poll('worker')['exit_code']==0

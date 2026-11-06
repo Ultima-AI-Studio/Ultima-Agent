@@ -49,7 +49,7 @@ def cleanup_no_listener(io,owned):
     return result
 
 
-def cleanup_reservation(owned,additional=0):
+def cleanup_reservation(owned,additional=0,*,pending=None):
     """Conservative admission reserve for the unchanged, registered Owned tree.
 
     Per helper source: discovery, two snapshots/member, final snapshot, protected
@@ -59,21 +59,27 @@ def cleanup_reservation(owned,additional=0):
     Unexpected discovery failures remain failures, never a cleanup guarantee.
     """
     require(additional in (0,2),'Only a fixed new role pair may be reserved')
+    require(not additional or pending is None,'Previous role qualification is still pending')
     members=len(owned.known) if owned is not None else 0
     launchers=len(owned.launchers) if owned is not None else 0
     auxiliary=bool(owned is not None and owned.auxiliary)
     members+=additional;launchers+=int(bool(additional))
+    queries=3 if additional else 0
+    if pending is not None:
+        members=max(members,pending['members']);launchers=max(launchers,pending['launchers'])
+        queries=pending['queries']
+    # A late interpreter/console may not yet occur in Owned's launch snapshot.
+    # Keep its cost through HELLO and every still-pending qualification call.
+    auxiliary=auxiliary or bool(additional) or pending is not None
     reserve=15*(2*members+3)+10*members+2*launchers+(18 if auxiliary else 0)+5
-    # Startup and qualification each use the existing snapshot helper: three
-    # bounded calls before waiting. Their time cannot consume the cleanup reserve.
-    return reserve+(45 if additional else 0)
+    return reserve+15*queries
 
 
 class NativeBackend:
     """Fixed wiring to the accepted Owned helper, with no new termination method."""
     def __init__(self,context,origin):
         from entry import clean_environment
-        self.context,self.origin=context,origin;self.owned=None;self.observers={};self.arguments={};self.io=None
+        self.context,self.origin=context,origin;self.owned=None;self.pending=None;self.observers={};self.arguments={};self.io=None
         context._release(True);context._time(origin,275,exclusive=True)
         require('OPENJARVIS_SSRF_FAIL_OPEN' not in {k.upper() for k in os.environ},'SSRF override is not normal configuration')
         self.environment=clean_environment(dict(os.environ))
@@ -108,7 +114,7 @@ class NativeBackend:
     def root_identity(self):return self.budget.call('root native identity',self.controller.identity,os.getpid())
 
     def require_cleanup_room(self,additional=0):
-        reserve=cleanup_reservation(self.owned,additional)
+        reserve=cleanup_reservation(self.owned,additional,pending=self.pending)
         require(self.budget.remaining_ns('seal')>reserve*10**9,'Original allowance reserved for Owned cleanup')
 
     def protected(self):
@@ -138,32 +144,46 @@ class NativeBackend:
 
     def start(self,role):
         require(role in ('worker','reader') and role not in self.arguments,'One launch per fixed role')
+        self.require_cleanup_room(additional=2)
         self.budget.phase='work' if role=='worker' else 'seal'
         if self.owned is None:self.owned=self.controller.Owned(self.context.process,self.environment)
+        self.pending=dict(role=role,members=len(self.owned.known)+2,launchers=len(self.owned.launchers)+1,queries=3)
         argv=['-I','-B','-X','utf8',str(self.context.root/'code/entry.py'),'--role',role,'--run-id',self.context.run_id]
         self.arguments[role]=argv
         previous=list(sys.path)
         try:
             sys.path.insert(0,str(self.controller.ROOT))
+            self.require_cleanup_room()
             self.io.launch(self.owned,argv,role)
+            self.pending['queries']=2
         finally:sys.path[:]=previous
 
     def qualify(self,role,hello):
         require(role in ('worker','reader') and role not in self.observers,'One retained observation per role')
+        require(self.pending is not None and self.pending['role']==role and self.pending['queries']==2,
+            'Matching pending role qualification required')
         self.context._time(self.origin,275 if role=='worker' else 315,exclusive=True)
-        self.owned.discover();pid=hello['pid'];item=self.owned.known.get(pid)
+        self.require_cleanup_room()
+        self.owned.discover();self.pending['queries']=1
+        self.require_cleanup_room()  # Reconcile newly discovered membership before another query.
+        pid=hello['pid'];item=self.owned.known.get(pid)
         require(item is not None and item.get('role')==role and pid not in self.owned.forbidden,'HELLO not a registered Owned role')
         launchers=[item for item in self.owned.launchers if item['role']==role]
         require(len(launchers)==1,'Exactly one retained launcher')
         launcher=launchers[0]['identity'];key=item['identity']
         snapshot=self.controller.process_snapshot(pids=[pid],proof=self.context.process/(role+'-argv.json'))
+        self.pending['queries']=0
+        self.require_cleanup_room()
         row=snapshot.get(pid)
         require(row is not None and self.controller.snapshot_identity_matches(key,row),'Native role creation differs from CIM')
         parent=os.getpid() if pid==launcher['pid'] else launcher['pid']
         require(row['ParentProcessId']==item['parent']==parent and launcher['created_filetime']<=key['created_filetime']
             and self.controller.argv_parse(row['CommandLine'])[1:]==self.arguments[role],'Native parent/complete argv mismatch')
+        require(self.owned.known.get(launcher['pid'],{}).get('identity')==launcher,'Launcher missing from Owned membership')
         observer=RetainedExit(self.owned,key,role,api=self.api,clock=self.context.clock)
         self.observers[role]=observer
+        self.require_cleanup_room()
+        self.pending=None  # Both exact role members are now known; retain actual costs from here.
         return dict(identity=deepcopy(key),launcher=deepcopy(launcher),parent_pid=parent,
             argv_sha256=hashlib.sha256(row['CommandLine'].encode('utf-16le')).hexdigest())
 
