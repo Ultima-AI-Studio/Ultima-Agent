@@ -55,20 +55,24 @@ def protected_record(ctx,native,name,origin):
 
 
 def start(ctx,native,role,origin):
+    native.require_cleanup_room(additional=2)
     native.start(role);path=ctx.control/(role+'-hello.json')
     while not available(path):
+        native.require_cleanup_room()
         ctx._time(origin,275 if role=='worker' else 315,exclusive=True);native.pause()
     value=load(path);check_hello(ctx,role,value)
     observed=native.qualify(role,value)
     exact(observed,{'identity','launcher','parent_pid','argv_sha256'},'Native role observation')
     native_key(observed['identity']);native_key(observed['launcher'])
     require(observed['identity']['pid']==value['pid'],'HELLO is not native process authority')
+    native.require_cleanup_room()
     return observed
 
 
 def wait_worker(ctx,native,origin):
     seen=set()
     while True:
+        native.require_cleanup_room()
         value=native.poll('worker')
         for label,name,seconds in (('work','service-first-result.json',275),('cleanup','profile-first-result.json',310)):
             if label not in seen:
@@ -129,6 +133,7 @@ def execute(context,origin,backend_factory):
         save_new(ctx.control/'reader-go.json',dict(schema=1,run_id=ctx.run_id,entry_nonce=ctx.release['entry_nonce'],
             root_manifest_sha256=ctx.manifest_sha,native=reader,worker_observation_sha256=sha(ctx.control/'worker-observation.json')))
         while reader_exit is None:
+            native.require_cleanup_room()
             ctx._time(origin,315);reader_exit=native.poll('reader')
             if reader_exit is None:native.pause()
         save_new(ctx.control/'reader-exit.json',reader_exit)

@@ -314,3 +314,9 @@ T2仍未通过。候选269aca5与当前8B的E03固定正例3/3保持，负例尚
 当前269aca5与当前8B的E01固定3/3、E03三正例及负例已PASS；E02绑定准备及独审PASS后，原固定runner一次557/557通过，外层入口计划与23份来源/6项接口基线已完成。下一步内联实现具体RootControls并离线验证；actual/profile/模型/结果复核额度0，E02/T2及后续门未过。
 
 报告：docs/reports/jarvis-work-t2-e02-source13-root-entry-baseline-20261106.md；计划：docs/plans/jarvis-work-e02-source13-root-entry-plan-20261106.md。固定runner收据SHA 3a28c854b249b5d9863167b8ef4a97667b4735918c1c14471da842ad9ed2e8e3，无重试，不代表实际profile或研究能力。
+
+## 2026-11-06 E02外层入口R1修复离线通过，当前源码独审待分配
+
+E01固定3/3与E03三正一负已PASS；E02外层入口独审NEEDS_FIXES，唯一Important清理余量问题已完成一次有界修复及83项离线检查。当前源码尚待新的只读独立复核，准备门未放行；实际profile/模型/结果复核额度0，E02/T2及后续门不变。
+
+报告：docs/reports/jarvis-work-t2-e02-source13-root-entry-preparation-20261106.md。当前284项manifest 2975e0f947be408baaa4222f8dd9fd4fbd1cb481adf005f38ea1bc4d8b91c3aa；独审原始结论与旧227项包完整保留。

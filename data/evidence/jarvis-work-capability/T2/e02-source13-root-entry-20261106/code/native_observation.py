@@ -49,6 +49,26 @@ def cleanup_no_listener(io,owned):
     return result
 
 
+def cleanup_reservation(owned,additional=0):
+    """Conservative admission reserve for the unchanged, registered Owned tree.
+
+    Per helper source: discovery, two snapshots/member, final snapshot, protected
+    proof; each may take15s. Preserve full10s termination/member and2s launcher
+    waits. Console observation can start one15s query before its3s window closes.
+    Five seconds are held for fixed local reopens/sealing (still deadline checked).
+    Unexpected discovery failures remain failures, never a cleanup guarantee.
+    """
+    require(additional in (0,2),'Only a fixed new role pair may be reserved')
+    members=len(owned.known) if owned is not None else 0
+    launchers=len(owned.launchers) if owned is not None else 0
+    auxiliary=bool(owned is not None and owned.auxiliary)
+    members+=additional;launchers+=int(bool(additional))
+    reserve=15*(2*members+3)+10*members+2*launchers+(18 if auxiliary else 0)+5
+    # Startup and qualification each use the existing snapshot helper: three
+    # bounded calls before waiting. Their time cannot consume the cleanup reserve.
+    return reserve+(45 if additional else 0)
+
+
 class NativeBackend:
     """Fixed wiring to the accepted Owned helper, with no new termination method."""
     def __init__(self,context,origin):
@@ -86,6 +106,10 @@ class NativeBackend:
         module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module);return module
 
     def root_identity(self):return self.budget.call('root native identity',self.controller.identity,os.getpid())
+
+    def require_cleanup_room(self,additional=0):
+        reserve=cleanup_reservation(self.owned,additional)
+        require(self.budget.remaining_ns('seal')>reserve*10**9,'Original allowance reserved for Owned cleanup')
 
     def protected(self):
         path=HELPER/'code/acceptance_backend.py';self.pinned(path)

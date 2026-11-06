@@ -36,6 +36,7 @@ class NativeDouble:
     """Only OS process work is replaced. All gates, grants and readbacks remain real."""
     def __init__(self,f,fail=None):self.f=f;self.fail=fail;self.started=[];self.cleanups=0;self.closed=False;self.polled=set()
     def root_identity(self):return ROOT_KEY
+    def require_cleanup_room(self,additional=0):pass
     def protected(self):
         if self.fail=='protected' and self.started:return self.f.expected[:5]
         return self.f.expected
@@ -54,7 +55,7 @@ class NativeDouble:
         if role not in self.polled:
             if role=='worker':
                 c.WorkerControls(f.context).admit(f.case,f.context.pins())
-                f.clock[0]=ORIGIN+3
+                f.clock[0]=max(f.clock[0],ORIGIN+3)
                 worker_files(f)
                 if self.fail=='work_late':f.clock[0]=ORIGIN+275*10**9
                 elif self.fail=='cleanup_late':f.clock[0]=ORIGIN+310*10**9+1
@@ -169,3 +170,69 @@ def test_concrete_reader_controls_through_original_read_profile(tmp_path,monkeyp
     result=original(folder,first,p4,controls=controls,pins=pins)
     assert result['status']=='candidate_mechanical_verified',result
     assert controls.calls==2 and len(controls.observations)==2 and len(result['released_members'])==4
+
+
+@pytest.mark.parametrize('stalled_role',['worker','reader'])
+def test_stall_reserves_real_privateio_termination_and_owned_cleanup(tmp_path,stalled_role):
+    """Unchanged Owned.cleanup + Deadline/PrivateIO; only OS calls are simulated."""
+    import ast
+    import io as streams
+    from types import MethodType
+    import native_observation as native
+    f=fixture(tmp_path,folders=False);entered=[];alive=set()
+    Deadline,PrivateIO=native.deadline_io()
+    budget=Deadline(clock=lambda:f.clock[0]);budget.origin_ns=ORIGIN;budget.phase='seal'
+    script='Get-CimInstance Win32_Process | ForEach-Object { [pscustomobject]@{ProcessId=[int]$_.ProcessId;ParentProcessId=[int]$_.ParentProcessId;CreationFileTime=[Int64]$_.CreationDate.ToFileTimeUtc();CommandLineBase64=[Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes([string]$_.CommandLine))} } | ConvertTo-Json -Compress'
+    def advance(seconds):f.clock[0]+=int(seconds*10**9)
+    def raw_query(argv,**kw):advance(15);return b'[]'
+    def raw_terminate(key):
+        entered.append((key['pid'],budget.remaining_ns()));advance(10);alive.discard(key['pid'])
+    helper=SimpleNamespace(subprocess=SimpleNamespace(check_output=raw_query,TimeoutExpired=TimeoutError),
+        time=SimpleNamespace(monotonic=lambda:f.clock[0]/10**9,sleep=advance),socket=SimpleNamespace(),
+        terminate_owned=raw_terminate,save=lambda *args:None)
+    private=PrivateIO(helper,budget);private.__enter__()
+    def snapshot():
+        helper.subprocess.check_output(['powershell.exe','-NoProfile','-NonInteractive','-Command',script],timeout=15)
+        return {pid:{} for pid in alive}
+    tree=ast.parse((native.HELPER/'code/controller.py').read_bytes())
+    cls=next(n for n in tree.body if isinstance(n,ast.ClassDef) and n.name=='Owned')
+    method=next(n for n in cls.body if isinstance(n,ast.FunctionDef) and n.name=='cleanup')
+    namespace=dict(process_snapshot=snapshot,terminate_owned=lambda key:helper.terminate_owned(key),
+        require=c.require,subprocess=helper.subprocess,time=helper.time,save=lambda *args:helper.save(*args))
+    exec(compile(ast.Module(body=[method],type_ignores=[]),'unchanged-Owned.cleanup','exec'),namespace)
+    owned=SimpleNamespace(folder=f.context.process,known={},launchers=[],logs=[streams.StringIO(),streams.StringIO()],
+        errors=[],auxiliary={},discover=snapshot)
+    owned.cleanup=MethodType(namespace['cleanup'],owned)
+    class StalledNative(NativeDouble):
+        def require_cleanup_room(self,additional=0):
+            reserve=native.cleanup_reservation(owned,additional)
+            if budget.remaining_ns('seal')<=reserve*10**9:raise TimeoutError('Existing cleanup allowance reserved')
+        def start(self,role):
+            super().start(role)
+            keys=[WORKER,LAUNCHER] if role=='worker' else [READER,dict(LAUNCHER,pid=919)]
+            for key in keys:owned.known[key['pid']]=dict(identity=key,role=role);alive.add(key['pid'])
+            proc=SimpleNamespace(pid=keys[1]['pid'],wait=lambda timeout:advance(2))
+            owned.launchers.append(dict(proc=proc,role=role))
+        def poll(self,role):
+            if role!=stalled_role:
+                result=super().poll(role)
+                for key,item in owned.known.items():
+                    if item['role']==role:alive.discard(key)
+                return result
+            if role=='worker' and not (f.case/'service-first-result.json').exists():
+                put(f.case/'service-first-result.json',dict(status='succeeded'))
+            return None
+        def pause(self):advance(1)
+        def cleanup(self):
+            self.cleanups+=1
+            return native.cleanup_no_listener(private,owned)
+        def protected(self):
+            if self.cleanups:advance(15)  # current exact7 final CIM observation
+            return super().protected()
+        def close(self):private.__exit__(None,None,None);super().close()
+    backend=StalledNative(f)
+    result=e.execute(f.context,ORIGIN,lambda *args:backend)
+    assert result['status']=='FAIL' and result['acceptance_credit'] is False
+    assert not alive and all(log.closed for log in owned.logs)
+    assert len(entered)==2 and all(left>=10*10**9 for _,left in entered)
+    assert result['cleanup']['status']=='PASS' and f.clock[0]<=ORIGIN+315*10**9
