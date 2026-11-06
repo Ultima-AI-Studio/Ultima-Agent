@@ -1,0 +1,113 @@
+{
+  "recorded_at": "2026-11-06T04:42:39.955858+00:00",
+  "controller": "root",
+  "decision": "ACCEPT_CURRENT_NEGATIVE_PASS",
+  "review_sha256": "a4f5efc616ea83ab30c5752bd9fae914dda684a8222b7a1c3a9a630d4979b6c5",
+  "result_manifest_sha256": "f2e78b61a40f9f185ce8668568422e11083a44399d73710628df3cb7f1ed70e8",
+  "regrading": {
+    "Critical": 0,
+    "Important": 0,
+    "Minor": 0
+  },
+  "decline_dispositions": [
+    {
+      "reviewer_item": {
+        "scope": "focus-only 完整 replace_selection、before_send 和最终写入前重读链",
+        "reason": "本次焦点场景只调用 validate_work_target，没有执行该完整替换链；不能由只读重观察推定完整链通过。",
+        "evidence": "H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-source13-negative-20261106/code/controller.py:721"
+      },
+      "controller_ruling": "ACCEPT_SCOPE_LIMIT",
+      "effect": "No broader acceptance claim or new execution authority; retain the original independent evidence and pending later-stage gates."
+    },
+    {
+      "reviewer_item": {
+        "scope": "选区在 before_send 之后才变化的竞态及成功写入后的验证",
+        "reason": "本次选区在产品操作前已经改变，并在初次 validate_work_target 处被拒绝，未到达 before_send 后的再次重读、native.replace 或 verify_replacement。",
+        "evidence": "C:/Users/Administrator/.codex/worktrees/jarvis-e03-source13/UltimaAgent/src/brain/work_context.py:173"
+      },
+      "controller_ruling": "ACCEPT_SCOPE_LIMIT",
+      "effect": "No broader acceptance claim or new execution authority; retain the original independent evidence and pending later-stage gates."
+    },
+    {
+      "reviewer_item": {
+        "scope": "生成内容事实正确性",
+        "reason": "没有生成内容，facts_scope 不适用；不能预填生成内容事实 PASS。",
+        "evidence": "H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-source13-negative-20261106/actual/e03-negative/negative-evidence.json:253"
+      },
+      "controller_ruling": "ACCEPT_SCOPE_LIMIT",
+      "effect": "No broader acceptance claim or new execution authority; retain the original independent evidence and pending later-stage gates."
+    },
+    {
+      "reviewer_item": {
+        "scope": "三个既有正例的事实正确性重新裁定",
+        "reason": "授权仅覆盖本次负例结果。已检查九份资格原件、独立收据、同候选绑定、不同 task 和递增完成时间，但不重新分配旧结果复核。"
+      },
+      "controller_ruling": "ACCEPT_SCOPE_LIMIT",
+      "effect": "No broader acceptance claim or new execution authority; retain the original independent evidence and pending later-stage gates."
+    },
+    {
+      "reviewer_item": {
+        "scope": "此刻或未来的现场存活、语音持续 ready、下一次执行准入",
+        "reason": "reviewer 未查询现场。12:22:03 后查是 root 保存的时点观察，未来执行仍需自己的有效授权和 fresh proof。",
+        "evidence": "H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-source13-negative-20261106/verification/result-protected-readback.json:158"
+      },
+      "controller_ruling": "ACCEPT_SCOPE_LIMIT",
+      "effect": "No broader acceptance claim or new execution authority; retain the original independent evidence and pending later-stage gates."
+    },
+    {
+      "reviewer_item": {
+        "scope": "输入发送者的进程身份或硬件来源归因",
+        "reason": "输入审计记录完整性可检查，但 sender_process_identified=false，source origin_id 为 unavailable；它不提供发送进程或人的身份鉴定。",
+        "evidence": "H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-source13-negative-20261106/code/fixture_input_origin.py:105"
+      },
+      "controller_ruling": "ACCEPT_SCOPE_LIMIT",
+      "effect": "No broader acceptance claim or new execution authority; retain the original independent evidence and pending later-stage gates."
+    },
+    {
+      "reviewer_item": {
+        "scope": "native 引擎底层总启动数、断连后生成行为及产品服务器端口关闭",
+        "reason": "原记录保留 actual_native_start_count:null 和 generation_after_disconnect:unknown；本例没有产品服务器、CLI 或推理，不能借本例给这些未执行行为签发结论。",
+        "evidence": "H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-source13-negative-20261106/actual/e03-negative/pre-cleanup-effects.json:3"
+      },
+      "controller_ruling": "ACCEPT_SCOPE_LIMIT",
+      "effect": "No broader acceptance claim or new execution authority; retain the original independent evidence and pending later-stage gates."
+    },
+    {
+      "reviewer_item": {
+        "scope": "255 项准备测试或 485/8 产品回归在当前时刻重新通过",
+        "reason": "只解析封存测试报告及静态 AST，没有执行测试。255 是归档最终 XML 中的计数，不能表述为 reviewer 的重跑结果。"
+      },
+      "controller_ruling": "ACCEPT_SCOPE_LIMIT",
+      "effect": "No broader acceptance claim or new execution authority; retain the original independent evidence and pending later-stage gates."
+    },
+    {
+      "reviewer_item": {
+        "scope": "E01、E02、T2 出口、Owner 验收和整体目标完成",
+        "reason": "均超出本次 e03-negative-result-review；本 PASS 和负例 credit 建议不签发后续权限或整体完成结论。"
+      },
+      "controller_ruling": "ACCEPT_SCOPE_LIMIT",
+      "effect": "No broader acceptance claim or new execution authority; retain the original independent evidence and pending later-stage gates."
+    }
+  ],
+  "considered_non_findings": [
+    {
+      "subject": "focus-only 没有拒写",
+      "assessment": "不是本次缺陷。E03 契约允许重新观察，且用户批准的具体范围明确为 focus 重观察；实际原生读取和返回值满足该范围。",
+      "evidence": "C:/Users/Administrator/.codex/worktrees/jarvis-e03-source13/UltimaAgent/docs/specs/jarvis-work-capability-contract-20261101.md:48"
+    },
+    {
+      "subject": "选区拒绝是否由审计代理制造",
+      "assessment": "不是代理拒绝。记录包含成功的原目标 fresh observe 和产品 ValueError，before_send 与 native_write_attempts 均为空；代理 RuntimeError 属另一条失败路径。",
+      "evidence": "H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-source13-negative-20261106/code/controller.py:694"
+    },
+    {
+      "subject": "pre-cleanup-effects 中缺少 cli.stdout",
+      "assessment": "本例零 CLI，通用 effects 收集器保留 product_unknown、native_start_count:null 和断连生成 unknown 与实际路径相符，不表示存在未复核的生成内容，也不应擅自改成零或 PASS。",
+      "evidence": "H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-source13-negative-20261106/actual/e03-negative/pre-cleanup-effects.json:3"
+    }
+  ],
+  "transcription_correction": "H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\e03-source13-negative-20261106\\verification\\result-review-serialization-correction.json",
+  "raw_terminal_changed": false,
+  "next_live_case_authorized": false,
+  "whole_goal_complete": false
+}
