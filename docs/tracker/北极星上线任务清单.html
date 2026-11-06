@@ -150,7 +150,7 @@
   <section class="known">
     <h2>当前已知问题（随冻结版本发布，不再无限深挖）</h2>
     <ul id="knownList"></ul>
-    <button class="reset" id="resetBtn">重置所有勾选</button>
+    <button class="reset" id="resetBtn">恢复默认勾选</button>
   </section>
 
   <footer>数据保存在本机浏览器（localStorage）· 版本 2026-11-06</footer>
@@ -209,12 +209,12 @@ const KNOWN = [
 
 const KEY = "ua-northstar-checklist-v1";
 let filter = "all";
-let doneSet = new Set(
-  TASKS.filter(t => t.st === "done").map(t => t.id)
-);
+// 代码里标 done 的项目永远算完成；本地勾选只能追加，不能覆盖或把它们清空
+const CODE_DONE = TASKS.filter(t => t.st === "done").map(t => t.id);
+let doneSet = new Set(CODE_DONE);
 try{
   const saved = JSON.parse(localStorage.getItem(KEY) || "null");
-  if (saved && Array.isArray(saved)) doneSet = new Set(saved.filter(id => TASKS.some(t => t.id === id)));
+  if (saved && Array.isArray(saved)) saved.forEach(id => { if (TASKS.some(t => t.id === id)) doneSet.add(id); });
 }catch(e){}
 
 function save(){
@@ -299,8 +299,8 @@ document.querySelectorAll(".filter").forEach(f => {
 });
 
 document.getElementById("resetBtn").addEventListener("click", () => {
-  if (confirm("确定重置所有勾选吗？进度数据将清空。")){
-    doneSet = new Set(); save(); render();
+  if (confirm("确定清空手动勾选吗？代码里已完成的项目不受影响。")){
+    doneSet = new Set(CODE_DONE); save(); render();
   }
 });
 
