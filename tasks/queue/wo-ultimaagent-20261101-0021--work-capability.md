@@ -5,7 +5,7 @@
 - original_work_order_id: wo-ultimaagent-20261101-0021
 - revision: 2
 - authorization: 用户“那按顺序开始推进吧”；批准按已提交的工作能力契约与计划顺序执行，保留最终 Owner 验收和发布门。
-- 状态：E01同候选3/3、E03三正一负PASS；E02子进程准入补修272项离线检查与独立准备审查PASS，旧实际FAIL保留，按现有授权进入新一例当前8B研究及结果独审；E02/T2未过。
+- 状态：E01同候选3/3、E03三正一负PASS；E02子进程准入补修272项/独审PASS后单例到达CLI1、受控search1/GET4，metadata校验FAIL；清理PASS、结果独审FAIL_CONFIRMED、研究0/3，原两轮失败保留，额度耗尽。
 - 计划：docs/plans/jarvis-work-capability-delivery-plan-20261101.md
 - 契约：docs/specs/jarvis-work-capability-contract-20261101.md
 - 草案检查点：ultimaagent-jarvis-work-plan-draft-20261101 @ f6eb808348302cec55bddcf44ee03f5b5736c4d9
@@ -383,3 +383,8 @@ E01同候选3/3、E03三正一负PASS；E02真实首例启动阶段FAIL，CLI0/�
 
 E01同候选3/3、E03三正一负PASS；E02子进程准入补修272项离线检查与独立准备审查PASS，旧实际FAIL保留，按现有授权进入新一例当前8B研究及结果独审；E02/T2未过。
 报告：docs/reports/jarvis-work-t2-e02-source13-child-admission-ready-20261107.md。
+
+## 2026-11-07 子进程恢复单例：metadata校验失败
+
+E01同候选3/3、E03三正一负PASS；E02子进程准入补修272项/独审PASS后单例到达CLI1、受控search1/GET4，metadata校验FAIL；清理PASS、结果独审FAIL_CONFIRMED、研究0/3，原两轮失败保留，额度耗尽。
+报告：docs/reports/jarvis-work-t2-e02-source13-child-admission-result-20261107.md。下一步：docs/plans/jarvis-work-e02-source13-native-metadata-compat-proposal-20261107.md。
