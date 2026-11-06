@@ -1,0 +1,232 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="13" skipped="0" tests="14" time="4.590" timestamp="2026-11-06T12:58:59.574906+08:00" hostname="DESKTOP-B366PQ9"><testcase classname="code.test_acceptance_backend" name="test_e01_real_file_readback_uses_no_ui_and_keeps_original_deadlines" time="0.127"><failure message="AssertionError: E01 must never launch a fixture or observer&#10;assert 'fixture' in ('server', 'cli')">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e01-source13-round1-20261106/verification/tmp-e01-backend-red-boundary/test_e01_real_file_readback_us0')
+
+    def test_e01_real_file_readback_uses_no_ui_and_keeps_original_deadlines(tmp_path):
+        native, calls = backend(tmp_path)
+&gt;       start(native, tmp_path)
+
+code\test_acceptance_backend.py:107: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+code\test_acceptance_backend.py:102: in start
+    native.start(folder)
+code\acceptance_backend.py:103: in start
+    self.context.owned.launch(c.fixture_command(self.folder),'fixture')
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = &lt;test_acceptance_backend.backend.&lt;locals&gt;.Owned object at 0x0000023817A57E00&gt;
+argv = ['forbidden-test-fixture'], role = 'fixture'
+
+    def launch(self, argv, role):
+        calls.append(('launch', role, argv))
+&gt;       assert role in ('server', 'cli'), 'E01 must never launch a fixture or observer'
+E       AssertionError: E01 must never launch a fixture or observer
+E       assert 'fixture' in ('server', 'cli')
+
+code\test_acceptance_backend.py:37: AssertionError</failure></testcase><testcase classname="code.test_acceptance_backend" name="test_e01_failed_delivery_is_not_mechanical_pass_and_cleanup_still_runs[missing]" time="0.386"><failure message="assert 0 == 1">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e01-source13-round1-20261106/verification/tmp-e01-backend-red-boundary/test_e01_failed_delivery_is_no0')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x0000023817A2B360&gt;
+fault = 'missing'
+
+    @pytest.mark.parametrize('fault', ['missing','tampered','hash','old-file','extra','identity','mutation','model','exit'])
+    def test_e01_failed_delivery_is_not_mechanical_pass_and_cleanup_still_runs(tmp_path, monkeypatch, fault):
+        gate, authority, proof = package(tmp_path, monkeypatch)
+        native, calls = backend(tmp_path, fault)
+        native.inspected = True
+        native.inspect = lambda:proof
+        result = gate.run_once(tmp_path, backend_factory=lambda root:native)
+        assert result['overall'] == 'FAIL' and result['acceptance_credit'] is False
+&gt;       assert result['work_cli_count'] == 1
+E       assert 0 == 1
+
+code\test_acceptance_backend.py:141: AssertionError</failure></testcase><testcase classname="code.test_acceptance_backend" name="test_e01_failed_delivery_is_not_mechanical_pass_and_cleanup_still_runs[tampered]" time="0.324"><failure message="assert 0 == 1">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e01-source13-round1-20261106/verification/tmp-e01-backend-red-boundary/test_e01_failed_delivery_is_no1')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x0000023817A2B230&gt;
+fault = 'tampered'
+
+    @pytest.mark.parametrize('fault', ['missing','tampered','hash','old-file','extra','identity','mutation','model','exit'])
+    def test_e01_failed_delivery_is_not_mechanical_pass_and_cleanup_still_runs(tmp_path, monkeypatch, fault):
+        gate, authority, proof = package(tmp_path, monkeypatch)
+        native, calls = backend(tmp_path, fault)
+        native.inspected = True
+        native.inspect = lambda:proof
+        result = gate.run_once(tmp_path, backend_factory=lambda root:native)
+        assert result['overall'] == 'FAIL' and result['acceptance_credit'] is False
+&gt;       assert result['work_cli_count'] == 1
+E       assert 0 == 1
+
+code\test_acceptance_backend.py:141: AssertionError</failure></testcase><testcase classname="code.test_acceptance_backend" name="test_e01_failed_delivery_is_not_mechanical_pass_and_cleanup_still_runs[hash]" time="0.378"><failure message="assert 0 == 1">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e01-source13-round1-20261106/verification/tmp-e01-backend-red-boundary/test_e01_failed_delivery_is_no2')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x0000023818325D90&gt;
+fault = 'hash'
+
+    @pytest.mark.parametrize('fault', ['missing','tampered','hash','old-file','extra','identity','mutation','model','exit'])
+    def test_e01_failed_delivery_is_not_mechanical_pass_and_cleanup_still_runs(tmp_path, monkeypatch, fault):
+        gate, authority, proof = package(tmp_path, monkeypatch)
+        native, calls = backend(tmp_path, fault)
+        native.inspected = True
+        native.inspect = lambda:proof
+        result = gate.run_once(tmp_path, backend_factory=lambda root:native)
+        assert result['overall'] == 'FAIL' and result['acceptance_credit'] is False
+&gt;       assert result['work_cli_count'] == 1
+E       assert 0 == 1
+
+code\test_acceptance_backend.py:141: AssertionError</failure></testcase><testcase classname="code.test_acceptance_backend" name="test_e01_failed_delivery_is_not_mechanical_pass_and_cleanup_still_runs[old-file]" time="0.384"><failure message="assert 0 == 1">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e01-source13-round1-20261106/verification/tmp-e01-backend-red-boundary/test_e01_failed_delivery_is_no3')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x0000023817A0BF00&gt;
+fault = 'old-file'
+
+    @pytest.mark.parametrize('fault', ['missing','tampered','hash','old-file','extra','identity','mutation','model','exit'])
+    def test_e01_failed_delivery_is_not_mechanical_pass_and_cleanup_still_runs(tmp_path, monkeypatch, fault):
+        gate, authority, proof = package(tmp_path, monkeypatch)
+        native, calls = backend(tmp_path, fault)
+        native.inspected = True
+        native.inspect = lambda:proof
+        result = gate.run_once(tmp_path, backend_factory=lambda root:native)
+        assert result['overall'] == 'FAIL' and result['acceptance_credit'] is False
+&gt;       assert result['work_cli_count'] == 1
+E       assert 0 == 1
+
+code\test_acceptance_backend.py:141: AssertionError</failure></testcase><testcase classname="code.test_acceptance_backend" name="test_e01_failed_delivery_is_not_mechanical_pass_and_cleanup_still_runs[extra]" time="0.360"><failure message="assert 0 == 1">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e01-source13-round1-20261106/verification/tmp-e01-backend-red-boundary/test_e01_failed_delivery_is_no4')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x0000023818814270&gt;
+fault = 'extra'
+
+    @pytest.mark.parametrize('fault', ['missing','tampered','hash','old-file','extra','identity','mutation','model','exit'])
+    def test_e01_failed_delivery_is_not_mechanical_pass_and_cleanup_still_runs(tmp_path, monkeypatch, fault):
+        gate, authority, proof = package(tmp_path, monkeypatch)
+        native, calls = backend(tmp_path, fault)
+        native.inspected = True
+        native.inspect = lambda:proof
+        result = gate.run_once(tmp_path, backend_factory=lambda root:native)
+        assert result['overall'] == 'FAIL' and result['acceptance_credit'] is False
+&gt;       assert result['work_cli_count'] == 1
+E       assert 0 == 1
+
+code\test_acceptance_backend.py:141: AssertionError</failure></testcase><testcase classname="code.test_acceptance_backend" name="test_e01_failed_delivery_is_not_mechanical_pass_and_cleanup_still_runs[identity]" time="0.344"><failure message="assert 0 == 1">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e01-source13-round1-20261106/verification/tmp-e01-backend-red-boundary/test_e01_failed_delivery_is_no5')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x00000238184C8650&gt;
+fault = 'identity'
+
+    @pytest.mark.parametrize('fault', ['missing','tampered','hash','old-file','extra','identity','mutation','model','exit'])
+    def test_e01_failed_delivery_is_not_mechanical_pass_and_cleanup_still_runs(tmp_path, monkeypatch, fault):
+        gate, authority, proof = package(tmp_path, monkeypatch)
+        native, calls = backend(tmp_path, fault)
+        native.inspected = True
+        native.inspect = lambda:proof
+        result = gate.run_once(tmp_path, backend_factory=lambda root:native)
+        assert result['overall'] == 'FAIL' and result['acceptance_credit'] is False
+&gt;       assert result['work_cli_count'] == 1
+E       assert 0 == 1
+
+code\test_acceptance_backend.py:141: AssertionError</failure></testcase><testcase classname="code.test_acceptance_backend" name="test_e01_failed_delivery_is_not_mechanical_pass_and_cleanup_still_runs[mutation]" time="0.482"><failure message="assert 0 == 1">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e01-source13-round1-20261106/verification/tmp-e01-backend-red-boundary/test_e01_failed_delivery_is_no6')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x00000238184CBE50&gt;
+fault = 'mutation'
+
+    @pytest.mark.parametrize('fault', ['missing','tampered','hash','old-file','extra','identity','mutation','model','exit'])
+    def test_e01_failed_delivery_is_not_mechanical_pass_and_cleanup_still_runs(tmp_path, monkeypatch, fault):
+        gate, authority, proof = package(tmp_path, monkeypatch)
+        native, calls = backend(tmp_path, fault)
+        native.inspected = True
+        native.inspect = lambda:proof
+        result = gate.run_once(tmp_path, backend_factory=lambda root:native)
+        assert result['overall'] == 'FAIL' and result['acceptance_credit'] is False
+&gt;       assert result['work_cli_count'] == 1
+E       assert 0 == 1
+
+code\test_acceptance_backend.py:141: AssertionError</failure></testcase><testcase classname="code.test_acceptance_backend" name="test_e01_failed_delivery_is_not_mechanical_pass_and_cleanup_still_runs[model]" time="0.437"><failure message="assert 0 == 1">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e01-source13-round1-20261106/verification/tmp-e01-backend-red-boundary/test_e01_failed_delivery_is_no7')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x0000023817A66F30&gt;
+fault = 'model'
+
+    @pytest.mark.parametrize('fault', ['missing','tampered','hash','old-file','extra','identity','mutation','model','exit'])
+    def test_e01_failed_delivery_is_not_mechanical_pass_and_cleanup_still_runs(tmp_path, monkeypatch, fault):
+        gate, authority, proof = package(tmp_path, monkeypatch)
+        native, calls = backend(tmp_path, fault)
+        native.inspected = True
+        native.inspect = lambda:proof
+        result = gate.run_once(tmp_path, backend_factory=lambda root:native)
+        assert result['overall'] == 'FAIL' and result['acceptance_credit'] is False
+&gt;       assert result['work_cli_count'] == 1
+E       assert 0 == 1
+
+code\test_acceptance_backend.py:141: AssertionError</failure></testcase><testcase classname="code.test_acceptance_backend" name="test_e01_failed_delivery_is_not_mechanical_pass_and_cleanup_still_runs[exit]" time="0.328"><failure message="assert 0 == 1">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e01-source13-round1-20261106/verification/tmp-e01-backend-red-boundary/test_e01_failed_delivery_is_no8')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x00000238183EB200&gt;
+fault = 'exit'
+
+    @pytest.mark.parametrize('fault', ['missing','tampered','hash','old-file','extra','identity','mutation','model','exit'])
+    def test_e01_failed_delivery_is_not_mechanical_pass_and_cleanup_still_runs(tmp_path, monkeypatch, fault):
+        gate, authority, proof = package(tmp_path, monkeypatch)
+        native, calls = backend(tmp_path, fault)
+        native.inspected = True
+        native.inspect = lambda:proof
+        result = gate.run_once(tmp_path, backend_factory=lambda root:native)
+        assert result['overall'] == 'FAIL' and result['acceptance_credit'] is False
+&gt;       assert result['work_cli_count'] == 1
+E       assert 0 == 1
+
+code\test_acceptance_backend.py:141: AssertionError</failure></testcase><testcase classname="code.test_acceptance_backend" name="test_server_health_delay_can_expire_original_admission_without_cli[proof]" time="0.336"><failure message="AssertionError: assert ('cleanup', 18759) in [('launch', 'fixture', ['forbidden-test-fixture']), ('flush',), ('cleanup', None)]">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e01-source13-round1-20261106/verification/tmp-e01-backend-red-boundary/test_server_health_delay_can_e0')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000002381831DA90&gt;
+deadline = 'proof'
+
+    @pytest.mark.parametrize('deadline', ['proof','authority'])
+    def test_server_health_delay_can_expire_original_admission_without_cli(tmp_path, monkeypatch, deadline):
+        gate, authority, proof = package(tmp_path, monkeypatch)
+        if deadline == 'authority':
+            authority['expires_at'] = (NOW+dt.timedelta(seconds=1)).isoformat()
+            put(tmp_path / 'release/authority.json',authority)
+        native, calls = backend(tmp_path)
+        native.inspected = True
+        native.inspect = lambda:proof
+        original = native.harness.wait_for
+        def slow_health(predicate, seconds):
+            result = original(predicate,seconds)
+            monkeypatch.setattr(gate,'utcnow',lambda:NOW+dt.timedelta(seconds=61 if deadline == 'proof' else 2))
+            return result
+        native.harness.wait_for = slow_health
+        result = gate.run_once(tmp_path, backend_factory=lambda root:native)
+        assert result['overall'] == 'FAIL' and result['work_cli_count'] == 0
+        assert not any(row[:2] == ('launch','cli') for row in calls)
+&gt;       assert ('cleanup',18759) in calls
+E       AssertionError: assert ('cleanup', 18759) in [('launch', 'fixture', ['forbidden-test-fixture']), ('flush',), ('cleanup', None)]
+
+code\test_acceptance_backend.py:164: AssertionError</failure></testcase><testcase classname="code.test_acceptance_backend" name="test_server_health_delay_can_expire_original_admission_without_cli[authority]" time="0.398"><failure message="AssertionError: assert ('cleanup', 18759) in [('launch', 'fixture', ['forbidden-test-fixture']), ('flush',), ('cleanup', None)]">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e01-source13-round1-20261106/verification/tmp-e01-backend-red-boundary/test_server_health_delay_can_e1')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000002381831D8D0&gt;
+deadline = 'authority'
+
+    @pytest.mark.parametrize('deadline', ['proof','authority'])
+    def test_server_health_delay_can_expire_original_admission_without_cli(tmp_path, monkeypatch, deadline):
+        gate, authority, proof = package(tmp_path, monkeypatch)
+        if deadline == 'authority':
+            authority['expires_at'] = (NOW+dt.timedelta(seconds=1)).isoformat()
+            put(tmp_path / 'release/authority.json',authority)
+        native, calls = backend(tmp_path)
+        native.inspected = True
+        native.inspect = lambda:proof
+        original = native.harness.wait_for
+        def slow_health(predicate, seconds):
+            result = original(predicate,seconds)
+            monkeypatch.setattr(gate,'utcnow',lambda:NOW+dt.timedelta(seconds=61 if deadline == 'proof' else 2))
+            return result
+        native.harness.wait_for = slow_health
+        result = gate.run_once(tmp_path, backend_factory=lambda root:native)
+        assert result['overall'] == 'FAIL' and result['work_cli_count'] == 0
+        assert not any(row[:2] == ('launch','cli') for row in calls)
+&gt;       assert ('cleanup',18759) in calls
+E       AssertionError: assert ('cleanup', 18759) in [('launch', 'fixture', ['forbidden-test-fixture']), ('flush',), ('cleanup', None)]
+
+code\test_acceptance_backend.py:164: AssertionError</failure></testcase><testcase classname="code.test_acceptance_backend" name="test_uninspected_start_cannot_launch_any_process" time="0.028" /><testcase classname="code.test_acceptance_backend" name="test_unexpected_fixture_evidence_is_rejected" time="0.029"><failure message="AssertionError: E01 must never launch a fixture or observer&#10;assert 'fixture' in ('server', 'cli')">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e01-source13-round1-20261106/verification/tmp-e01-backend-red-boundary/test_unexpected_fixture_eviden0')
+
+    def test_unexpected_fixture_evidence_is_rejected(tmp_path):
+        native, calls = backend(tmp_path)
+&gt;       start(native,tmp_path)
+
+code\test_acceptance_backend.py:177: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+code\test_acceptance_backend.py:102: in start
+    native.start(folder)
+code\acceptance_backend.py:103: in start
+    self.context.owned.launch(c.fixture_command(self.folder),'fixture')
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = &lt;test_acceptance_backend.backend.&lt;locals&gt;.Owned object at 0x00000238183CD160&gt;
+argv = ['forbidden-test-fixture'], role = 'fixture'
+
+    def launch(self, argv, role):
+        calls.append(('launch', role, argv))
+&gt;       assert role in ('server', 'cli'), 'E01 must never launch a fixture or observer'
+E       AssertionError: E01 must never launch a fixture or observer
+E       assert 'fixture' in ('server', 'cli')
+
+code\test_acceptance_backend.py:37: AssertionError</failure></testcase></testsuite></testsuites>

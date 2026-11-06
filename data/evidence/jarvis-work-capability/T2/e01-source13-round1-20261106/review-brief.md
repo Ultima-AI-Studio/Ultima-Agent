@@ -1,0 +1,11 @@
+# E01 round1 independent preparation review brief
+
+Review scope is e01-round1-acceptance-package. Product candidate269aca511d88412dbb9c15d23911138469a37aa2 remains frozen and tracked-clean. Project checkpoint before this package is c4c21b565686b15f7731fc6ecf59032a9bfe0934; this uncommitted package is defined by manifest.json, not by project HEAD. Parent negative package and three positive originals are immutable.
+
+Review the plan, original R01/R02/R03/R05/R08 and E01/T2 contract, this package, its 208 fresh offline checks and retained RED evidence, and the new path against the existing positive backend in sibling e03-source13-round3-20261106. Check all sealed hashes, original predecessor pairs and current runtime-manifest source/dependency/SDK bindings. No live case is authorized by preparation review.
+
+Focus: four eligible same-candidate E03 results before native construction; negative facts correctly NOT_APPLICABLE; exact one-CLI E01 scope; source/model/identity/deadline revalidation immediately before submission; no fixture, window, input, research or audio branch; trusted fixed summary.md output and existing actual tool/service/external readback evidence; effects before cleanup and independent facts still pending. Generic no-fixture windows_unknown is not a failed required window observation because E01 expected windows is None; never relabel native inference totals or generation-after-disconnect unknown as zero.
+
+Whole-package independent review only. Read files and use standard-library parsing/hashing plus read-only Git queries; do not import product/native/controller/test modules, run tests, call models/services/network, manipulate UI/audio/processes, change Git, or spawn agents. Report only code/path/evidence defects within this preparation and decline actual E01 facts, future environment availability and T2/Owner completion. All previous real failures remain preserved.
+
+Return a bounded JSON report with reviewer=root-independent, exact scope, candidate, manifest_sha256, verdict=PASS or NEEDS_FIXES, preparation_only=true, findings with severity/evidence, verified_counts, and declined_to_judge. Preparation PASS does not allocate a real case or result review. Use decimal strings for any FILETIME values if reporting them. Root will preserve and adjudicate the report outside the seal.

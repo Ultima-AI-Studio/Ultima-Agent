@@ -1,0 +1,44 @@
+........................................................................ [ 34%]
+.....................................................................F.. [ 69%]
+....................F...........................................         [100%]
+================================== FAILURES ===================================
+_ test_negative_admits_three_matching_predecessors_and_keeps_new_facts_pending _
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e01-source13-round1-20261106/verification/tmp-e01-final-green/test_negative_admits_three_mat0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000002549F393EE0>
+
+    def test_negative_admits_three_matching_predecessors_and_keeps_new_facts_pending(tmp_path,monkeypatch):
+        entry,authority,proof = package(tmp_path,monkeypatch)
+        assert entry.CASE == 'e01-round1' and entry.SCOPE == 'e01-round1-acceptance'
+        backend = Backend(tmp_path,proof)
+        result = entry.run_once(tmp_path,backend_factory=lambda root:backend)
+        assert result['case']=='e01-round1' and result['work_cli_count']==1
+        assert result['facts']=='PENDING_ROOT_INDEPENDENT_REVIEW' and result['acceptance_credit'] is False
+        assert not (tmp_path/'actual/e03-round1').exists()
+>       assert (tmp_path/'actual/e03-negative/terminal.json').is_file()
+E       AssertionError: assert False
+E        +  where False = is_file()
+E        +    where is_file = (WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e01-source13-round1-20261106/verification/tmp-e01-final-green/test_negative_admits_three_mat0') / 'actual/e03-negative/terminal.json').is_file
+
+code\test_round2_predecessor.py:48: AssertionError
+__ test_three_distinct_passes_admit_only_negative_and_do_not_pregrant_facts ___
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e01-source13-round1-20261106/verification/tmp-e01-final-green/test_three_distinct_passes_adm0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000002549F392F20>
+
+    def test_three_distinct_passes_admit_only_negative_and_do_not_pregrant_facts(tmp_path,monkeypatch):
+        entry,authority,proof=package(tmp_path,monkeypatch)
+        backend=Backend(tmp_path,proof)
+        result=entry.run_once(tmp_path,backend_factory=lambda root:backend)
+        assert result['case']=='e01-round1' and result['work_cli_count']==1
+        assert result['facts']=='PENDING_ROOT_INDEPENDENT_REVIEW' and result['acceptance_credit'] is False
+>       assert (tmp_path/'actual/e03-negative/terminal.json').is_file()
+E       AssertionError: assert False
+E        +  where False = is_file()
+E        +    where is_file = (WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e01-source13-round1-20261106/verification/tmp-e01-final-green/test_three_distinct_passes_adm0') / 'actual/e03-negative/terminal.json').is_file
+
+code\test_round3_predecessors.py:33: AssertionError
+=========================== short test summary info ===========================
+FAILED code/test_round2_predecessor.py::test_negative_admits_three_matching_predecessors_and_keeps_new_facts_pending
+FAILED code/test_round3_predecessors.py::test_three_distinct_passes_admit_only_negative_and_do_not_pregrant_facts
+2 failed, 206 passed in 95.40s (0:01:35)
