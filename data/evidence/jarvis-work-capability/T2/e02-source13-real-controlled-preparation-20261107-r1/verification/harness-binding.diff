@@ -1,0 +1,139 @@
+--- H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\navigation-source10-validation-20261103-inert2\harness\adapter.py
++++ H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-source13-real-controlled-preparation-20261106\harness\adapter.py
+@@ -22,12 +22,12 @@
+ HERE=Path(__file__).resolve().parent
+ V=HERE.parent
+ T=V.parent
+-C=Path('C:/Users/Administrator/.codex/worktrees/jarvis-work-capability-longpaths/UltimaAgent')
+-P4=T/'e03-resume-20261102/preparation-r4/controller.py'
+-P1=P4.parent.parent/'preparation/acceptance_adapter.py'
+-MANIFEST_SHA='cdfbfb059f889ef9e92221c503dffe2ca7fa08106ebf4968bcc26037f214be50'
+-PREPARATION_SHA='f3dcea80f720f903cc98ce77d1f8b9461ca4ad9b4e87e9d9d8c8b89262ae118a'
+-CANDIDATE='118ba152b007c30d358c8bc44c51aabe8ae820f0'
++C=Path('C:/Users/Administrator/.codex/worktrees/jarvis-e03-source13/UltimaAgent')
++P4=T/'e01-source13-round3-20261106/code/controller.py'
++P1=P4.parent.parent/'preparation-support/acceptance_adapter.py'
++MANIFEST_SHA='5badf78414d3cb6a13145b98dbc1e3fa0ce08e4e5f79fc2948244e2118f16121'
++PREPARATION_SHA='38a38c9c0c2e27cc998603fef60ee64efd44a07661167500f7274c0e807a69f6'
++CANDIDATE='269aca511d88412dbb9c15d23911138469a37aa2'
+ MODEL='qwen3-8b-uncensored'
+ CASE='E02-controlled-1'
+ BUDGETS=dict(cli=1,search=1,GET=4,inspect=6,write=1,ACK=1,native_POST=8,service_seconds=260,client_seconds=300,outer_seconds=315,retry=0)
+@@ -37,6 +37,16 @@
+ CLOCK_DOMAIN='monotonic_ns;same-host='+socket.gethostname()
+ _ENCLOSING=ContextVar('source10_root_enclosing',default=None)
+ _OBSERVING=ContextVar('source10_root_observing',default=None)
++
++INPUTS_PATH=V/'inputs/input-manifest.json'
++BINDINGS_PATH=V/'code/bindings.py'
++BINDINGS_SHA='831c1b303c55e77fcfcd9e9742e1e4bd9995b553df36848e067fc3da84526c45'
++PROTECTED_BASELINE=T/'e02-source13-exact-probe-20261106/inputs/protected-baseline.json'
++SDK_SOURCES=('H:\\UltimaAI\\UltimaAgent\\tools\\venv-openjarvis\\Lib\\site-packages\\openjarvis\\_rust_bridge.py', 'H:\\UltimaAI\\UltimaAgent\\tools\\venv-openjarvis\\Lib\\site-packages\\openjarvis\\agents\\_stubs.py', 'H:\\UltimaAI\\UltimaAgent\\tools\\venv-openjarvis\\Lib\\site-packages\\openjarvis\\agents\\native_react.py', 'H:\\UltimaAI\\UltimaAgent\\tools\\venv-openjarvis\\Lib\\site-packages\\openjarvis\\agents\\prompt_loader.py', 'H:\\UltimaAI\\UltimaAgent\\tools\\venv-openjarvis\\Lib\\site-packages\\openjarvis\\cli\\ask.py', 'H:\\UltimaAI\\UltimaAgent\\tools\\venv-openjarvis\\Lib\\site-packages\\openjarvis\\core\\config.py', 'H:\\UltimaAI\\UltimaAgent\\tools\\venv-openjarvis\\Lib\\site-packages\\openjarvis\\core\\events.py', 'H:\\UltimaAI\\UltimaAgent\\tools\\venv-openjarvis\\Lib\\site-packages\\openjarvis\\core\\registry.py', 'H:\\UltimaAI\\UltimaAgent\\tools\\venv-openjarvis\\Lib\\site-packages\\openjarvis\\core\\types.py', 'H:\\UltimaAI\\UltimaAgent\\tools\\venv-openjarvis\\Lib\\site-packages\\openjarvis\\engine\\_base.py', 'H:\\UltimaAI\\UltimaAgent\\tools\\venv-openjarvis\\Lib\\site-packages\\openjarvis\\engine\\_stubs.py', 'H:\\UltimaAI\\UltimaAgent\\tools\\venv-openjarvis\\Lib\\site-packages\\openjarvis\\engine\\ollama.py', 'H:\\UltimaAI\\UltimaAgent\\tools\\venv-openjarvis\\Lib\\site-packages\\openjarvis\\sdk.py', 'H:\\UltimaAI\\UltimaAgent\\tools\\venv-openjarvis\\Lib\\site-packages\\openjarvis\\security\\capabilities.py', 'H:\\UltimaAI\\UltimaAgent\\tools\\venv-openjarvis\\Lib\\site-packages\\openjarvis\\security\\guardrails.py', 'H:\\UltimaAI\\UltimaAgent\\tools\\venv-openjarvis\\Lib\\site-packages\\openjarvis\\security\\runtime.py', 'H:\\UltimaAI\\UltimaAgent\\tools\\venv-openjarvis\\Lib\\site-packages\\openjarvis\\security\\scanner.py', 'H:\\UltimaAI\\UltimaAgent\\tools\\venv-openjarvis\\Lib\\site-packages\\openjarvis\\telemetry\\instrumented_engine.py', 'H:\\UltimaAI\\UltimaAgent\\tools\\venv-openjarvis\\Lib\\site-packages\\openjarvis\\tools\\_stubs.py', 'H:\\UltimaAI\\UltimaAgent\\tools\\venv-openjarvis\\Lib\\site-packages\\openjarvis\\tools\\description_loader.py', 'H:\\UltimaAI\\UltimaAgent\\tools\\venv-openjarvis\\Lib\\site-packages\\openjarvis\\tools\\file_read.py', 'H:\\UltimaAI\\UltimaAgent\\tools\\venv-openjarvis\\Lib\\site-packages\\openjarvis\\tools\\file_write.py')
++if hashlib.sha256(BINDINGS_PATH.read_bytes()).hexdigest()!=BINDINGS_SHA:raise ValueError('Binding source drift')
++_binding_spec=importlib.util.spec_from_file_location('source13_real_input_bindings',BINDINGS_PATH)
++bindings=importlib.util.module_from_spec(_binding_spec);_binding_spec.loader.exec_module(bindings)
++
+ 
+ class Deadline:
+     """One integer-nanosecond invocation allowance. Earlier origins only."""
+@@ -240,28 +250,14 @@
+ def check_inputs():
+     require(Path(sys.executable).resolve()==PY.resolve(),'Exact authorized interpreter required')
+     require(not sys.flags.optimize and sys.flags.dont_write_bytecode and sys.flags.utf8_mode==1,'Python -B -X utf8 required')
+-    require(sha(V/'source10-candidate-manifest.json')==MANIFEST_SHA,'Source10 manifest drift')
+-    require(sha(V/'harness-preparation-authority.json')==PREPARATION_SHA,'Preparation authority drift')
+-    m=load(V/'source10-candidate-manifest.json'); prep=load(V/'harness-preparation-authority.json')
+-    require(m['candidate']==CANDIDATE and Path(m['candidate_root'])==C,'Candidate mismatch')
+-    require(prep['kind']=='source10_harness_preparation_only' and prep['candidate_manifest_sha256']==MANIFEST_SHA and prep['actual'] is False and prep['model_calls']==0,'Preparation fields')
+-    files=dict(m['source_files'],**m['sdk22'],**m['dependencies'])
+-    files[m['model']['policy_path']]=m['model']['policy_sha256']
+-    files[m['model']['local_manifest_path']]=m['model']['local_manifest_observed_sha256']
+-    for key in ('path','report_path'): files[m['code_gate'][key]]=m['code_gate']['sha256' if key=='path' else 'report_sha256']
+-    files[m['historical_source21_path']]=m['historical_source21_sha256']
+-    files[m['original_corpus_readback']]=m['original_corpus_readback_sha256']
+-    files[str(V/'harness-deadline-design/root-decision.json')]='144be9bc0a63294f5fd4e75c7cbe06f8e2ad2d51df36d0b11896d2455a0b4d47'
+-    files[str(V/'source10-candidate-manifest.json')]=MANIFEST_SHA
+-    files[str(V/'harness-preparation-authority.json')]=PREPARATION_SHA
+-    current={p:sha(p) for p in files}
+-    require(current==files,'Pinned source/SDK/dependency/model/policy drift')
+-    return current
++    require(sha(INPUTS_PATH)==MANIFEST_SHA and sha(BINDINGS_PATH)==BINDINGS_SHA,'Source13 input/source drift')
++    require(sha(V/'inputs/scope.json')==PREPARATION_SHA,'Offline preparation scope drift')
++    fixed=bindings.load_inputs(INPUTS_PATH)
++    return dict(fixed['files'],**{str(INPUTS_PATH):MANIFEST_SHA,str(BINDINGS_PATH):BINDINGS_SHA,str(V/'inputs/scope.json'):PREPARATION_SHA})
+ 
+ def check_import_origins():
+     from importlib.machinery import PathFinder
+-    manifest=load(V/'source10-candidate-manifest.json')
+-    for raw in manifest['sdk22']:
++    for raw in SDK_SOURCES:
+         path=Path(raw); site=next(p for p in path.parents if p.name=='site-packages')
+         name='.'.join(path.relative_to(site).with_suffix('').parts)
+         cached=sys.modules.get(name)
+@@ -286,17 +282,20 @@
+     finally: sys.path[:]=previous
+ 
+ def load_p4():
+-    require(sha(P4)=='8b8fb6fdf4868b3bb8cea61daaf402e5336f86167d0be84e04c455586d98706f','P4 drift')
+-    require(sha(P1)=='d91ddf5e44a19d6143ee8657f1e0946617eb1c77197c399d017ace39cad02da4','P1 drift')
++    require(sha(P4)=='5e7a636c0e1f7330bf140fa212c2d51569b389aac93cb9b84840b51ba5ade2ea','P4 drift')
++    require(sha(P1)=='585baca27b572364e2078e960281f20261f675738299df5633e91b74a4ca19cc','P1 drift')
+     cached=sys.modules.get('acceptance_adapter')
+     require(cached is None or Path(getattr(cached,'__file__','')).resolve()==P1.resolve(),'Unexpected cached acceptance_adapter')
+     if cached is not None: require(getattr(cached,'__source10_verified_sha__',None)==sha(P1),'Unverified cached acceptance_adapter')
+     spec=importlib.util.spec_from_file_location('source10_p4_definitions',P4)
+     module=importlib.util.module_from_spec(spec); paths=list(sys.path)
+-    try: spec.loader.exec_module(module)
++    try:
++        sys.path.insert(0,str(P4.parent))
++        spec.loader.exec_module(module)
+     finally: sys.path[:]=paths
+     require(Path(module.old.__file__).resolve()==P1.resolve(),'P1 import origin')
+     module.old.__source10_verified_sha__=sha(P1)
++    module.old.PROTECTED_BASELINE=PROTECTED_BASELINE
+     return module
+ 
+ def stamp(value):
+@@ -331,10 +330,20 @@
+     return identities
+ 
+ def validate_protected_members(identities,p4):
+-    require(len(identities)==5 and len({x['pid'] for x in identities})==5,'Protected exact five baseline')
+-    expected=p4.protected()  # Original legacy prerequisite returns CURRENT native identities.
++    require(type(identities) is list and len(identities)==7 and len({x['pid'] for x in identities})==7,'Exact protected member inventory: seven required')
++    baseline=load(PROTECTED_BASELINE)
++    rows=baseline.get('protected5',[])+baseline.get('protected_listener_pair',[])
++    require(baseline.get('protected_process_count')==7 and len(rows)==7,'Seven accepted protected baseline rows')
++    expected=[{k:row[k] for k in ('pid','created_filetime','exe')} for row in rows]
+     require({x['pid']:x for x in identities}=={x['pid']:x for x in expected},'Exact protected member binding')
++    require({x['pid']:x for x in p4.protected()}=={x['pid']:x for x in expected},'Protected live inventory drift')
+     require(all(type(x['created_filetime']) is int and x['created_filetime']>0 and p4.identity(x['pid'])==x for x in identities),'Exact native identity drift')
++    snapshot=p4.process_snapshot(pids=sorted(x['pid'] for x in identities))
++    for row,key in zip(rows,expected):
++        current=snapshot.get(row['pid'])
++        require(current is not None and current['ParentProcessId']==row['parent_pid'],'Protected parent drift')
++        require(p4.snapshot_identity_matches(key,current),'Protected CIM identity drift')
++        require(hashlib.sha256(current['CommandLine'].encode('utf-16le')).hexdigest()==row['command_line_sha256'],'Protected command drift')
+     return identities
+ 
+ def package_check(p4):
+@@ -346,7 +355,7 @@
+ 
+ def operational_paths(mode):
+     common=[HERE/name for name in ('adapter.py','test_adapter.py','run_checks.py','headless_proof.py','README.md','manifest.json')]
+-    common+=[V/'harness-approval.json',P1.parent.parent/'runtime-before.json']
++    common+=[V/'harness-approval.json',PROTECTED_BASELINE]
+     return common+([V/'inert-authority.json',V/'inert-native-baseline.json'] if mode=='inert' else [V/'controller-authority'/f'{CASE}.json',V/'controller-ledger.json',V/'native-preflight'/f'{CASE}.json'])
+ 
+ def operational_pins(mode,budget):
+@@ -389,8 +398,8 @@
+     require(a.get('ledger_sha256')==sha(ledger_path) and a.get('approval_sha256')==sha(V/'harness-approval.json'),'Ledger/approval binding')
+     proofpath=p4.no_reparse(V/'native-preflight'/f'{CASE}.json'); proof=budget.call('native proof read',load,proofpath)
+     require(a.get('native_preflight_sha256')==sha(proofpath),'Native preflight binding'); budget.call('native admission baseline',check_native_baseline,proof,p4)
+-    m=load(V/'source10-candidate-manifest.json')
+-    local_manifest=budget.call('local model manifest read',Path(m['model']['local_manifest_path']).read_bytes)
++    m=bindings.load_inputs(INPUTS_PATH)
++    local_manifest=budget.call('local model manifest read',Path(m['model_manifest_path']).read_bytes)
+     budget.call('local native metadata verification',p4.old.metadata_valid,dict(ok=True,model=MODEL,agent='native_react'),proof['version'],proof['tags'],local_manifest)
+     folder=p4.no_reparse(V/'actual'/CASE)
+     require(a.get('folder')==str(folder) and type(a.get('port')) is int and 1024<=a['port']<=65535 and a['port']!=11434,'Case root/port')

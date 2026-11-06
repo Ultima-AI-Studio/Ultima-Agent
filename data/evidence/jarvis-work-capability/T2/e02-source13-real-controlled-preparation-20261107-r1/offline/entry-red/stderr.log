@@ -1,0 +1,492 @@
+test_accepts_reviewed_package_and_current_grant (test_entry.RootAllocation.test_accepts_reviewed_package_and_current_grant) ... ERROR
+test_author_review_is_not_independent (test_entry.RootAllocation.test_author_review_is_not_independent) ... ERROR
+test_changed_harness_approval (test_entry.RootAllocation.test_changed_harness_approval) ... ERROR
+test_changed_manifest (test_entry.RootAllocation.test_changed_manifest) ... ERROR
+test_changed_source (test_entry.RootAllocation.test_changed_source) ... ERROR
+test_exactly_one_call_after_exclusive_consumption (test_entry.RootAllocation.test_exactly_one_call_after_exclusive_consumption) ... ERROR
+test_expired_grant (test_entry.RootAllocation.test_expired_grant) ... ERROR
+test_extended_ttl (test_entry.RootAllocation.test_extended_ttl) ... ERROR
+test_failure_stays_consumed (test_entry.RootAllocation.test_failure_stays_consumed) ... ERROR
+test_future_grant (test_entry.RootAllocation.test_future_grant) ... ERROR
+test_grant_cannot_supply_clock_or_parent (test_entry.RootAllocation.test_grant_cannot_supply_clock_or_parent) ... 
+  test_grant_cannot_supply_clock_or_parent (test_entry.RootAllocation.test_grant_cannot_supply_clock_or_parent) (key='parent_identity') ... ERROR
+  test_grant_cannot_supply_clock_or_parent (test_entry.RootAllocation.test_grant_cannot_supply_clock_or_parent) (key='origin_ns') ... ERROR
+test_missing_grant (test_entry.RootAllocation.test_missing_grant) ... ERROR
+test_missing_independent_review (test_entry.RootAllocation.test_missing_independent_review) ... ERROR
+test_no_grant_no_released_call (test_entry.RootAllocation.test_no_grant_no_released_call) ... ERROR
+test_nonpass_review (test_entry.RootAllocation.test_nonpass_review) ... ERROR
+test_old_zero_inference_allocation (test_entry.RootAllocation.test_old_zero_inference_allocation) ... ERROR
+test_other_model (test_entry.RootAllocation.test_other_model) ... ERROR
+test_second_case_or_retry (test_entry.RootAllocation.test_second_case_or_retry) ... 
+  test_second_case_or_retry (test_entry.RootAllocation.test_second_case_or_retry) (field='case', value='E02-controlled-2') ... ERROR
+  test_second_case_or_retry (test_entry.RootAllocation.test_second_case_or_retry) (field='retry', value=1) ... ERROR
+  test_second_case_or_retry (test_entry.RootAllocation.test_second_case_or_retry) (field='actual_case_allocation', value=2) ... ERROR
+  test_second_case_or_retry (test_entry.RootAllocation.test_second_case_or_retry) (field='result_review_allocation', value=0) ... ERROR
+  test_second_case_or_retry (test_entry.RootAllocation.test_second_case_or_retry) (field='actual_case_allocation', value=True) ... ERROR
+test_traversal_manifest (test_entry.RootAllocation.test_traversal_manifest) ... ERROR
+test_wrong_candidate_or_digest (test_entry.RootAllocation.test_wrong_candidate_or_digest) ... 
+  test_wrong_candidate_or_digest (test_entry.RootAllocation.test_wrong_candidate_or_digest) (key='candidate') ... ERROR
+  test_wrong_candidate_or_digest (test_entry.RootAllocation.test_wrong_candidate_or_digest) (key='model_digest') ... ERROR
+test_wrong_root (test_entry.RootAllocation.test_wrong_root) ... ERROR
+
+======================================================================
+ERROR: test_accepts_reviewed_package_and_current_grant (test_entry.RootAllocation.test_accepts_reviewed_package_and_current_grant)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-source13-real-controlled-preparation-20261106\tests\test_entry.py", line 36, in test_accepts_reviewed_package_and_current_grant
+    self.assertEqual(e.read_release(self.root,self.package(),self.now),self.grant)
+                                              ~~~~~~~~~~~~^^
+  File "H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-source13-real-controlled-preparation-20261106\tests\test_entry.py", line 30, in package
+    def package(self):return e.read_ready(self.root)
+                             ~~~~~~~~~~~~^^^^^^^^^^^
+  File "H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-source13-real-controlled-preparation-20261106\code\entry.py", line 10, in read_ready
+    def read_ready(root):raise NotImplementedError('T3 preparation gate')
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+NotImplementedError: T3 preparation gate
+
+======================================================================
+ERROR: test_author_review_is_not_independent (test_entry.RootAllocation.test_author_review_is_not_independent)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-source13-real-controlled-preparation-20261106\tests\test_entry.py", line 40, in test_author_review_is_not_independent
+    self.review['reviewer']='author';write(self.root/'review/independent-preparation-review.json',self.review);self.reject_ready()
+                                                                                                               ~~~~~~~~~~~~~~~~~^^
+  File "H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-source13-real-controlled-preparation-20261106\tests\test_entry.py", line 32, in reject_ready
+    with self.assertRaises((ValueError,FileNotFoundError)):self.package()
+                                                           ~~~~~~~~~~~~^^
+  File "H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-source13-real-controlled-preparation-20261106\tests\test_entry.py", line 30, in package
+    def package(self):return e.read_ready(self.root)
+                             ~~~~~~~~~~~~^^^^^^^^^^^
+  File "H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-source13-real-controlled-preparation-20261106\code\entry.py", line 10, in read_ready
+    def read_ready(root):raise NotImplementedError('T3 preparation gate')
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+NotImplementedError: T3 preparation gate
+
+======================================================================
+ERROR: test_changed_harness_approval (test_entry.RootAllocation.test_changed_harness_approval)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-source13-real-controlled-preparation-20261106\tests\test_entry.py", line 76, in test_changed_harness_approval
+    self.approval['review_sha256']='0'*64;write(self.root/'harness-approval.json',self.approval);self.reject_ready()
+                                                                                                 ~~~~~~~~~~~~~~~~~^^
+  File "H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-source13-real-controlled-preparation-20261106\tests\test_entry.py", line 32, in reject_ready
+    with self.assertRaises((ValueError,FileNotFoundError)):self.package()
+                                                           ~~~~~~~~~~~~^^
+  File "H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-source13-real-controlled-preparation-20261106\tests\test_entry.py", line 30, in package
+    def package(self):return e.read_ready(self.root)
+                             ~~~~~~~~~~~~^^^^^^^^^^^
+  File "H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-source13-real-controlled-preparation-20261106\code\entry.py", line 10, in read_ready
+    def read_ready(root):raise NotImplementedError('T3 preparation gate')
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+NotImplementedError: T3 preparation gate
+
+======================================================================
+ERROR: test_changed_manifest (test_entry.RootAllocation.test_changed_manifest)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-source13-real-controlled-preparation-20261106\tests\test_entry.py", line 46, in test_changed_manifest
+    self.manifest['actual_released']=True;write(self.root/'manifest.json',self.manifest);self.reject_ready()
+                                                                                         ~~~~~~~~~~~~~~~~~^^
+  File "H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-source13-real-controlled-preparation-20261106\tests\test_entry.py", line 32, in reject_ready
+    with self.assertRaises((ValueError,FileNotFoundError)):self.package()
+                                                           ~~~~~~~~~~~~^^
+  File "H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-source13-real-controlled-preparation-20261106\tests\test_entry.py", line 30, in package
+    def package(self):return e.read_ready(self.root)
+                             ~~~~~~~~~~~~^^^^^^^^^^^
+  File "H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-source13-real-controlled-preparation-20261106\code\entry.py", line 10, in read_ready
+    def read_ready(root):raise NotImplementedError('T3 preparation gate')
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+NotImplementedError: T3 preparation gate
+
+======================================================================
+ERROR: test_changed_source (test_entry.RootAllocation.test_changed_source)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-source13-real-controlled-preparation-20261106\tests\test_entry.py", line 44, in test_changed_source
+    (self.root/'code/entry.py').write_bytes(b'drift');self.reject_ready()
+                                                      ~~~~~~~~~~~~~~~~~^^
+  File "H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-source13-real-controlled-preparation-20261106\tests\test_entry.py", line 32, in reject_ready
+    with self.assertRaises((ValueError,FileNotFoundError)):self.package()
+                                                           ~~~~~~~~~~~~^^
+  File "H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-source13-real-controlled-preparation-20261106\tests\test_entry.py", line 30, in package
+    def package(self):return e.read_ready(self.root)
+                             ~~~~~~~~~~~~^^^^^^^^^^^
+  File "H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-source13-real-controlled-preparation-20261106\code\entry.py", line 10, in read_ready
+    def read_ready(root):raise NotImplementedError('T3 preparation gate')
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+NotImplementedError: T3 preparation gate
+
+======================================================================
+ERROR: test_exactly_one_call_after_exclusive_consumption (test_entry.RootAllocation.test_exactly_one_call_after_exclusive_consumption)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-source13-real-controlled-preparation-20261106\tests\test_entry.py", line 88, in test_exactly_one_call_after_exclusive_consumption
+    result=e.run_once(self.root)
+  File "H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-source13-real-controlled-preparation-20261106\code\entry.py", line 13, in run_once
+    def run_once(root):raise NotImplementedError('T3 exclusive consumption')
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+NotImplementedError: T3 exclusive consumption
+
+======================================================================
+ERROR: test_expired_grant (test_entry.RootAllocation.test_expired_grant)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-source13-real-controlled-preparation-20261106\tests\test_entry.py", line 56, in test_expired_grant
+    self.grant['expires_at']=self.now.isoformat();write(self.root/'release/user-allocation.json',self.grant);self.reject_release()
+                                                                                                             ~~~~~~~~~~~~~~~~~~~^^
+  File "H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-source13-real-controlled-preparation-20261106\tests\test_entry.py", line 34, in reject_release
+    with self.assertRaises((ValueError,FileNotFoundError)):e.read_release(self.root,self.package(),self.now)
+                                                                                    ~~~~~~~~~~~~^^
+  File "H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-source13-real-controlled-preparation-20261106\tests\test_entry.py", line 30, in package
+    def package(self):return e.read_ready(self.root)
+                             ~~~~~~~~~~~~^^^^^^^^^^^
+  File "H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-source13-real-controlled-preparation-20261106\code\entry.py", line 10, in read_ready
+    def read_ready(root):raise NotImplementedError('T3 preparation gate')
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+NotImplementedError: T3 preparation gate
+
+======================================================================
+ERROR: test_extended_ttl (test_entry.RootAllocation.test_extended_ttl)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-source13-real-controlled-preparation-20261106\tests\test_entry.py", line 58, in test_extended_ttl
+    self.grant['expires_at']=(self.now+dt.timedelta(seconds=121)).isoformat();write(self.root/'release/user-allocation.json',self.grant);self.reject_release()
+                                                                                                                                         ~~~~~~~~~~~~~~~~~~~^^
+  File "H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-source13-real-controlled-preparation-20261106\tests\test_entry.py", line 34, in reject_release
+    with self.assertRaises((ValueError,FileNotFoundError)):e.read_release(self.root,self.package(),self.now)
+                                                                                    ~~~~~~~~~~~~^^
+  File "H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-source13-real-controlled-preparation-20261106\tests\test_entry.py", line 30, in package
+    def package(self):return e.read_ready(self.root)
+                             ~~~~~~~~~~~~^^^^^^^^^^^
+  File "H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-source13-real-controlled-preparation-20261106\code\entry.py", line 10, in read_ready
+    def read_ready(root):raise NotImplementedError('T3 preparation gate')
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+NotImplementedError: T3 preparation gate
+
+======================================================================
+ERROR: test_failure_stays_consumed (test_entry.RootAllocation.test_failure_stays_consumed)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-source13-real-controlled-preparation-20261106\tests\test_entry.py", line 94, in test_failure_stays_consumed
+    result=e.run_once(self.root)
+  File "H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-source13-real-controlled-preparation-20261106\code\entry.py", line 13, in run_once
+    def run_once(root):raise NotImplementedError('T3 exclusive consumption')
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+NotImplementedError: T3 exclusive consumption
+
+======================================================================
+ERROR: test_future_grant (test_entry.RootAllocation.test_future_grant)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-source13-real-controlled-preparation-20261106\tests\test_entry.py", line 60, in test_future_grant
+    self.grant['issued_at']=(self.now+dt.timedelta(seconds=1)).isoformat();write(self.root/'release/user-allocation.json',self.grant);self.reject_release()
+                                                                                                                                      ~~~~~~~~~~~~~~~~~~~^^
+  File "H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-source13-real-controlled-preparation-20261106\tests\test_entry.py", line 34, in reject_release
+    with self.assertRaises((ValueError,FileNotFoundError)):e.read_release(self.root,self.package(),self.now)
+                                                                                    ~~~~~~~~~~~~^^
+  File "H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-source13-real-controlled-preparation-20261106\tests\test_entry.py", line 30, in package
+    def package(self):return e.read_ready(self.root)
+                             ~~~~~~~~~~~~^^^^^^^^^^^
+  File "H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-source13-real-controlled-preparation-20261106\code\entry.py", line 10, in read_ready
+    def read_ready(root):raise NotImplementedError('T3 preparation gate')
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+NotImplementedError: T3 preparation gate
+
+======================================================================
+ERROR: test_grant_cannot_supply_clock_or_parent (test_entry.RootAllocation.test_grant_cannot_supply_clock_or_parent) (key='parent_identity')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-source13-real-controlled-preparation-20261106\tests\test_entry.py", line 70, in test_grant_cannot_supply_clock_or_parent
+    grant=dict(self.grant);grant[key]=1;write(self.root/'release/user-allocation.json',grant);self.reject_release()
+                                                                                              ~~~~~~~~~~~~~~~~~~~^^
+  File "H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-source13-real-controlled-preparation-20261106\tests\test_entry.py", line 34, in reject_release
+    with self.assertRaises((ValueError,FileNotFoundError)):e.read_release(self.root,self.package(),self.now)
+                                                                                    ~~~~~~~~~~~~^^
+  File "H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-source13-real-controlled-preparation-20261106\tests\test_entry.py", line 30, in package
+    def package(self):return e.read_ready(self.root)
+                             ~~~~~~~~~~~~^^^^^^^^^^^
+  File "H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-source13-real-controlled-preparation-20261106\code\entry.py", line 10, in read_ready
+    def read_ready(root):raise NotImplementedError('T3 preparation gate')
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+NotImplementedError: T3 preparation gate
+
+======================================================================
+ERROR: test_grant_cannot_supply_clock_or_parent (test_entry.RootAllocation.test_grant_cannot_supply_clock_or_parent) (key='origin_ns')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-source13-real-controlled-preparation-20261106\tests\test_entry.py", line 70, in test_grant_cannot_supply_clock_or_parent
+    grant=dict(self.grant);grant[key]=1;write(self.root/'release/user-allocation.json',grant);self.reject_release()
+                                                                                              ~~~~~~~~~~~~~~~~~~~^^
+  File "H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-source13-real-controlled-preparation-20261106\tests\test_entry.py", line 34, in reject_release
+    with self.assertRaises((ValueError,FileNotFoundError)):e.read_release(self.root,self.package(),self.now)
+                                                                                    ~~~~~~~~~~~~^^
+  File "H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-source13-real-controlled-preparation-20261106\tests\test_entry.py", line 30, in package
+    def package(self):return e.read_ready(self.root)
+                             ~~~~~~~~~~~~^^^^^^^^^^^
+  File "H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-source13-real-controlled-preparation-20261106\code\entry.py", line 10, in read_ready
+    def read_ready(root):raise NotImplementedError('T3 preparation gate')
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+NotImplementedError: T3 preparation gate
+
+======================================================================
+ERROR: test_missing_grant (test_entry.RootAllocation.test_missing_grant)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-source13-real-controlled-preparation-20261106\tests\test_entry.py", line 54, in test_missing_grant
+    (self.root/'release/user-allocation.json').unlink();self.reject_release()
+                                                        ~~~~~~~~~~~~~~~~~~~^^
+  File "H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-source13-real-controlled-preparation-20261106\tests\test_entry.py", line 34, in reject_release
+    with self.assertRaises((ValueError,FileNotFoundError)):e.read_release(self.root,self.package(),self.now)
+                                                                                    ~~~~~~~~~~~~^^
+  File "H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-source13-real-controlled-preparation-20261106\tests\test_entry.py", line 30, in package
+    def package(self):return e.read_ready(self.root)
+                             ~~~~~~~~~~~~^^^^^^^^^^^
+  File "H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-source13-real-controlled-preparation-20261106\code\entry.py", line 10, in read_ready
+    def read_ready(root):raise NotImplementedError('T3 preparation gate')
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+NotImplementedError: T3 preparation gate
+
+======================================================================
+ERROR: test_missing_independent_review (test_entry.RootAllocation.test_missing_independent_review)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-source13-real-controlled-preparation-20261106\tests\test_entry.py", line 38, in test_missing_independent_review
+    (self.root/'review/independent-preparation-review.json').unlink();self.reject_ready()
+                                                                      ~~~~~~~~~~~~~~~~~^^
+  File "H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-source13-real-controlled-preparation-20261106\tests\test_entry.py", line 32, in reject_ready
+    with self.assertRaises((ValueError,FileNotFoundError)):self.package()
+                                                           ~~~~~~~~~~~~^^
+  File "H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-source13-real-controlled-preparation-20261106\tests\test_entry.py", line 30, in package
+    def package(self):return e.read_ready(self.root)
+                             ~~~~~~~~~~~~^^^^^^^^^^^
+  File "H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-source13-real-controlled-preparation-20261106\code\entry.py", line 10, in read_ready
+    def read_ready(root):raise NotImplementedError('T3 preparation gate')
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+NotImplementedError: T3 preparation gate
+
+======================================================================
+ERROR: test_no_grant_no_released_call (test_entry.RootAllocation.test_no_grant_no_released_call)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-source13-real-controlled-preparation-20261106\tests\test_entry.py", line 80, in test_no_grant_no_released_call
+    with self.assertRaises((ValueError,FileNotFoundError)):e.run_once(self.root)
+                                                           ~~~~~~~~~~^^^^^^^^^^^
+  File "H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-source13-real-controlled-preparation-20261106\code\entry.py", line 13, in run_once
+    def run_once(root):raise NotImplementedError('T3 exclusive consumption')
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+NotImplementedError: T3 exclusive consumption
+
+======================================================================
+ERROR: test_nonpass_review (test_entry.RootAllocation.test_nonpass_review)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-source13-real-controlled-preparation-20261106\tests\test_entry.py", line 42, in test_nonpass_review
+    self.review['verdict']='NEEDS_FIXES';write(self.root/'review/independent-preparation-review.json',self.review);self.reject_ready()
+                                                                                                                   ~~~~~~~~~~~~~~~~~^^
+  File "H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-source13-real-controlled-preparation-20261106\tests\test_entry.py", line 32, in reject_ready
+    with self.assertRaises((ValueError,FileNotFoundError)):self.package()
+                                                           ~~~~~~~~~~~~^^
+  File "H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-source13-real-controlled-preparation-20261106\tests\test_entry.py", line 30, in package
+    def package(self):return e.read_ready(self.root)
+                             ~~~~~~~~~~~~^^^^^^^^^^^
+  File "H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-source13-real-controlled-preparation-20261106\code\entry.py", line 10, in read_ready
+    def read_ready(root):raise NotImplementedError('T3 preparation gate')
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+NotImplementedError: T3 preparation gate
+
+======================================================================
+ERROR: test_old_zero_inference_allocation (test_entry.RootAllocation.test_old_zero_inference_allocation)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-source13-real-controlled-preparation-20261106\tests\test_entry.py", line 62, in test_old_zero_inference_allocation
+    self.grant['question_id']='call_e9e5dd014d9b43f4b529f09bd2487d52';write(self.root/'release/user-allocation.json',self.grant);self.reject_release()
+                                                                                                                                 ~~~~~~~~~~~~~~~~~~~^^
+  File "H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-source13-real-controlled-preparation-20261106\tests\test_entry.py", line 34, in reject_release
+    with self.assertRaises((ValueError,FileNotFoundError)):e.read_release(self.root,self.package(),self.now)
+                                                                                    ~~~~~~~~~~~~^^
+  File "H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-source13-real-controlled-preparation-20261106\tests\test_entry.py", line 30, in package
+    def package(self):return e.read_ready(self.root)
+                             ~~~~~~~~~~~~^^^^^^^^^^^
+  File "H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-source13-real-controlled-preparation-20261106\code\entry.py", line 10, in read_ready
+    def read_ready(root):raise NotImplementedError('T3 preparation gate')
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+NotImplementedError: T3 preparation gate
+
+======================================================================
+ERROR: test_other_model (test_entry.RootAllocation.test_other_model)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-source13-real-controlled-preparation-20261106\tests\test_entry.py", line 52, in test_other_model
+    self.grant['model']='qwen2.5:14b';write(self.root/'release/user-allocation.json',self.grant);self.reject_release()
+                                                                                                 ~~~~~~~~~~~~~~~~~~~^^
+  File "H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-source13-real-controlled-preparation-20261106\tests\test_entry.py", line 34, in reject_release
+    with self.assertRaises((ValueError,FileNotFoundError)):e.read_release(self.root,self.package(),self.now)
+                                                                                    ~~~~~~~~~~~~^^
+  File "H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-source13-real-controlled-preparation-20261106\tests\test_entry.py", line 30, in package
+    def package(self):return e.read_ready(self.root)
+                             ~~~~~~~~~~~~^^^^^^^^^^^
+  File "H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-source13-real-controlled-preparation-20261106\code\entry.py", line 10, in read_ready
+    def read_ready(root):raise NotImplementedError('T3 preparation gate')
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+NotImplementedError: T3 preparation gate
+
+======================================================================
+ERROR: test_second_case_or_retry (test_entry.RootAllocation.test_second_case_or_retry) (field='case', value='E02-controlled-2')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-source13-real-controlled-preparation-20261106\tests\test_entry.py", line 66, in test_second_case_or_retry
+    grant=dict(self.grant);grant[field]=value;write(self.root/'release/user-allocation.json',grant);self.reject_release()
+                                                                                                    ~~~~~~~~~~~~~~~~~~~^^
+  File "H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-source13-real-controlled-preparation-20261106\tests\test_entry.py", line 34, in reject_release
+    with self.assertRaises((ValueError,FileNotFoundError)):e.read_release(self.root,self.package(),self.now)
+                                                                                    ~~~~~~~~~~~~^^
+  File "H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-source13-real-controlled-preparation-20261106\tests\test_entry.py", line 30, in package
+    def package(self):return e.read_ready(self.root)
+                             ~~~~~~~~~~~~^^^^^^^^^^^
+  File "H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-source13-real-controlled-preparation-20261106\code\entry.py", line 10, in read_ready
+    def read_ready(root):raise NotImplementedError('T3 preparation gate')
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+NotImplementedError: T3 preparation gate
+
+======================================================================
+ERROR: test_second_case_or_retry (test_entry.RootAllocation.test_second_case_or_retry) (field='retry', value=1)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-source13-real-controlled-preparation-20261106\tests\test_entry.py", line 66, in test_second_case_or_retry
+    grant=dict(self.grant);grant[field]=value;write(self.root/'release/user-allocation.json',grant);self.reject_release()
+                                                                                                    ~~~~~~~~~~~~~~~~~~~^^
+  File "H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-source13-real-controlled-preparation-20261106\tests\test_entry.py", line 34, in reject_release
+    with self.assertRaises((ValueError,FileNotFoundError)):e.read_release(self.root,self.package(),self.now)
+                                                                                    ~~~~~~~~~~~~^^
+  File "H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-source13-real-controlled-preparation-20261106\tests\test_entry.py", line 30, in package
+    def package(self):return e.read_ready(self.root)
+                             ~~~~~~~~~~~~^^^^^^^^^^^
+  File "H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-source13-real-controlled-preparation-20261106\code\entry.py", line 10, in read_ready
+    def read_ready(root):raise NotImplementedError('T3 preparation gate')
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+NotImplementedError: T3 preparation gate
+
+======================================================================
+ERROR: test_second_case_or_retry (test_entry.RootAllocation.test_second_case_or_retry) (field='actual_case_allocation', value=2)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-source13-real-controlled-preparation-20261106\tests\test_entry.py", line 66, in test_second_case_or_retry
+    grant=dict(self.grant);grant[field]=value;write(self.root/'release/user-allocation.json',grant);self.reject_release()
+                                                                                                    ~~~~~~~~~~~~~~~~~~~^^
+  File "H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-source13-real-controlled-preparation-20261106\tests\test_entry.py", line 34, in reject_release
+    with self.assertRaises((ValueError,FileNotFoundError)):e.read_release(self.root,self.package(),self.now)
+                                                                                    ~~~~~~~~~~~~^^
+  File "H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-source13-real-controlled-preparation-20261106\tests\test_entry.py", line 30, in package
+    def package(self):return e.read_ready(self.root)
+                             ~~~~~~~~~~~~^^^^^^^^^^^
+  File "H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-source13-real-controlled-preparation-20261106\code\entry.py", line 10, in read_ready
+    def read_ready(root):raise NotImplementedError('T3 preparation gate')
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+NotImplementedError: T3 preparation gate
+
+======================================================================
+ERROR: test_second_case_or_retry (test_entry.RootAllocation.test_second_case_or_retry) (field='result_review_allocation', value=0)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-source13-real-controlled-preparation-20261106\tests\test_entry.py", line 66, in test_second_case_or_retry
+    grant=dict(self.grant);grant[field]=value;write(self.root/'release/user-allocation.json',grant);self.reject_release()
+                                                                                                    ~~~~~~~~~~~~~~~~~~~^^
+  File "H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-source13-real-controlled-preparation-20261106\tests\test_entry.py", line 34, in reject_release
+    with self.assertRaises((ValueError,FileNotFoundError)):e.read_release(self.root,self.package(),self.now)
+                                                                                    ~~~~~~~~~~~~^^
+  File "H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-source13-real-controlled-preparation-20261106\tests\test_entry.py", line 30, in package
+    def package(self):return e.read_ready(self.root)
+                             ~~~~~~~~~~~~^^^^^^^^^^^
+  File "H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-source13-real-controlled-preparation-20261106\code\entry.py", line 10, in read_ready
+    def read_ready(root):raise NotImplementedError('T3 preparation gate')
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+NotImplementedError: T3 preparation gate
+
+======================================================================
+ERROR: test_second_case_or_retry (test_entry.RootAllocation.test_second_case_or_retry) (field='actual_case_allocation', value=True)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-source13-real-controlled-preparation-20261106\tests\test_entry.py", line 66, in test_second_case_or_retry
+    grant=dict(self.grant);grant[field]=value;write(self.root/'release/user-allocation.json',grant);self.reject_release()
+                                                                                                    ~~~~~~~~~~~~~~~~~~~^^
+  File "H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-source13-real-controlled-preparation-20261106\tests\test_entry.py", line 34, in reject_release
+    with self.assertRaises((ValueError,FileNotFoundError)):e.read_release(self.root,self.package(),self.now)
+                                                                                    ~~~~~~~~~~~~^^
+  File "H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-source13-real-controlled-preparation-20261106\tests\test_entry.py", line 30, in package
+    def package(self):return e.read_ready(self.root)
+                             ~~~~~~~~~~~~^^^^^^^^^^^
+  File "H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-source13-real-controlled-preparation-20261106\code\entry.py", line 10, in read_ready
+    def read_ready(root):raise NotImplementedError('T3 preparation gate')
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+NotImplementedError: T3 preparation gate
+
+======================================================================
+ERROR: test_traversal_manifest (test_entry.RootAllocation.test_traversal_manifest)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-source13-real-controlled-preparation-20261106\tests\test_entry.py", line 74, in test_traversal_manifest
+    self.manifest['files']['../escape']='0'*64;write(self.root/'manifest.json',self.manifest);self.reject_ready()
+                                                                                              ~~~~~~~~~~~~~~~~~^^
+  File "H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-source13-real-controlled-preparation-20261106\tests\test_entry.py", line 32, in reject_ready
+    with self.assertRaises((ValueError,FileNotFoundError)):self.package()
+                                                           ~~~~~~~~~~~~^^
+  File "H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-source13-real-controlled-preparation-20261106\tests\test_entry.py", line 30, in package
+    def package(self):return e.read_ready(self.root)
+                             ~~~~~~~~~~~~^^^^^^^^^^^
+  File "H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-source13-real-controlled-preparation-20261106\code\entry.py", line 10, in read_ready
+    def read_ready(root):raise NotImplementedError('T3 preparation gate')
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+NotImplementedError: T3 preparation gate
+
+======================================================================
+ERROR: test_wrong_candidate_or_digest (test_entry.RootAllocation.test_wrong_candidate_or_digest) (key='candidate')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-source13-real-controlled-preparation-20261106\tests\test_entry.py", line 50, in test_wrong_candidate_or_digest
+    grant=dict(self.grant);grant[key]='other';write(self.root/'release/user-allocation.json',grant);self.reject_release()
+                                                                                                    ~~~~~~~~~~~~~~~~~~~^^
+  File "H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-source13-real-controlled-preparation-20261106\tests\test_entry.py", line 34, in reject_release
+    with self.assertRaises((ValueError,FileNotFoundError)):e.read_release(self.root,self.package(),self.now)
+                                                                                    ~~~~~~~~~~~~^^
+  File "H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-source13-real-controlled-preparation-20261106\tests\test_entry.py", line 30, in package
+    def package(self):return e.read_ready(self.root)
+                             ~~~~~~~~~~~~^^^^^^^^^^^
+  File "H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-source13-real-controlled-preparation-20261106\code\entry.py", line 10, in read_ready
+    def read_ready(root):raise NotImplementedError('T3 preparation gate')
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+NotImplementedError: T3 preparation gate
+
+======================================================================
+ERROR: test_wrong_candidate_or_digest (test_entry.RootAllocation.test_wrong_candidate_or_digest) (key='model_digest')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-source13-real-controlled-preparation-20261106\tests\test_entry.py", line 50, in test_wrong_candidate_or_digest
+    grant=dict(self.grant);grant[key]='other';write(self.root/'release/user-allocation.json',grant);self.reject_release()
+                                                                                                    ~~~~~~~~~~~~~~~~~~~^^
+  File "H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-source13-real-controlled-preparation-20261106\tests\test_entry.py", line 34, in reject_release
+    with self.assertRaises((ValueError,FileNotFoundError)):e.read_release(self.root,self.package(),self.now)
+                                                                                    ~~~~~~~~~~~~^^
+  File "H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-source13-real-controlled-preparation-20261106\tests\test_entry.py", line 30, in package
+    def package(self):return e.read_ready(self.root)
+                             ~~~~~~~~~~~~^^^^^^^^^^^
+  File "H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-source13-real-controlled-preparation-20261106\code\entry.py", line 10, in read_ready
+    def read_ready(root):raise NotImplementedError('T3 preparation gate')
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+NotImplementedError: T3 preparation gate
+
+======================================================================
+ERROR: test_wrong_root (test_entry.RootAllocation.test_wrong_root)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-source13-real-controlled-preparation-20261106\tests\test_entry.py", line 72, in test_wrong_root
+    with self.assertRaises(ValueError):e.read_ready(self.root/'other')
+                                       ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+  File "H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-source13-real-controlled-preparation-20261106\code\entry.py", line 10, in read_ready
+    def read_ready(root):raise NotImplementedError('T3 preparation gate')
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+NotImplementedError: T3 preparation gate
+
+----------------------------------------------------------------------
+Ran 21 tests in 0.350s
+
+FAILED (errors=27)

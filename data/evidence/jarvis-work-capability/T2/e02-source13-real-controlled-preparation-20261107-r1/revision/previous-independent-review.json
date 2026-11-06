@@ -1,0 +1,72 @@
+{
+  "schema": 1,
+  "reviewer": "root-independent",
+  "verdict": "NEEDS_FIXES",
+  "scope": "Current source13 current8B real controlled first-case offline preparation only",
+  "manifest_sha256": "9f7ffce882e07861fd83c043e85ffdaa586b37dfb1041135d12c688996388964",
+  "candidate": "269aca511d88412dbb9c15d23911138469a37aa2",
+  "main_commit": "7e986e5fefa0ad9d19dd8268cffea519b5fc26e0",
+  "base_commit": "a969e35bbd1a54c3fd7e4dc5306804901ccb7560",
+  "model": "qwen3-8b-uncensored",
+  "model_digest": "6d7230a923426bc1933879eb08a7dafc18e5fc0e7606c459ce98f16e0c7f9330",
+  "actual_run_authorized": false,
+  "acceptance_credit": false,
+  "E02": "NOT_PASSED",
+  "T2": "NOT_PASSED",
+  "tests_run": 0,
+  "runtime_calls": 0,
+  "reviewed_utc": "2026-11-06T16:40:21.4482619Z",
+  "findings": [
+    {
+      "id": "PREP-I01",
+      "severity": "Important",
+      "priority": 1,
+      "file": "H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\e02-source13-real-controlled-preparation-20261106\\code\\entry.py",
+      "line": 60,
+      "title": "Sealed Windows manifest is always rejected by required-member string comparison",
+      "impact": "The sole proposed real entry cannot reach independent-review or allocation validation even after those prerequisites exist: manifest.json uses code\\entry.py and other backslash keys, whereas read_ready requires literal code/entry.py and five other forward-slash strings. Python string-set membership does not normalize Windows separators. The package therefore raises Complete preparation source set required unconditionally. This blocks Task 3 readiness and any PASS_PREPARATION_ONLY disposition.",
+      "evidence": [
+        "Independently read the actual 172-key sealed manifest: none of the required slash-prefixed code/, harness/, inputs/ strings exists.",
+        "verification/prepare_review.py:70 serializes str(p.relative_to(N)), producing Windows backslashes.",
+        "tests/test_entry.py:19 creates hand-written forward-slash keys, so the saved 25 passing entry tests miss the real serializer/reader incompatibility."
+      ],
+      "recommendation": "Make the manifest producer and required-member reader use one canonical relative-path representation, while retaining traversal and hash checks. Add a regression using the actual preparation serializer/path representation and a read-only readiness check of the newly sealed package with synthetic review/allocation confined to a separate fixture. Preserve this failed manifest and review; do not relabel them PASS."
+    }
+  ],
+  "strengths": [
+    "All 172 outer-manifest members and all 1544 input-manifest members independently hash-match, with zero missing or mismatched files.",
+    "Frozen candidate/model/corpus and exact budgets are bound; legacy candidate/five-member baselines cannot satisfy current bindings.",
+    "Actual child installs browser source fixtures and trusted observers without replacing native HTTPX Client.send or HTTPTransport. Unit-only SSRF fallback and UUID4 entropy adaptation are confined to test fixtures.",
+    "Entry consumes a fresh grant exclusively before the original RootInvocation; runtime authority retains the same parent clock and 275/310/315 boundaries.",
+    "Original cleanup, complete export verification, exact file/byte readback, first failure preservation and independent root witness remain in the harness. No acceptance is awarded from mechanical success."
+  ],
+  "checks_performed": [
+    "Read the approved preparation plan, reentry steps 5-6, capability contract, research execution contract, Source Navigation v3 design excerpts, ledger rulings and execution-proposal.md.",
+    "Read entry.py and bindings.py; inspected adapted harness diff and actual admission, protected identities, native dispatch, export/readback, cleanup and root witness paths.",
+    "Hashed manifest.json and every 172 outer member and 1544 bound input directly with SHA256; all matched.",
+    "Read original and adapted test function declarations: 71 original function names retained, no missing names.",
+    "Read saved receipts and final JUnit: 219 harness cases, zero errors/failures/skips; saved input 14, identity/transport 10 and entry 25 tests passed; historical read-only SDK replay receipt passed. No tests were run by reviewer.",
+    "Read replay implementation and receipt: it uses immutable prior SDK packet and file with readonly=True and explicitly assigns zero real-research credit.",
+    "Confirmed actual and release directories are absent by filesystem inspection.",
+    "Verified the required-member incompatibility by direct source and manifest inspection only; no entry import or execution."
+  ],
+  "declined_to_judge": [
+    {
+      "behavior": "Actual inference, research factual quality, citations, successful cleanup and live protected process identity",
+      "reason": "No new actual allocation exists. This is preparation review only; no model, process, network, UI or audio operations were authorized."
+    },
+    {
+      "behavior": "Real public-network retrieval and native Rust DNS behavior",
+      "reason": "Controlled browser sources and unit Python fallback are explicitly limited evidence; real network acceptance remains a separate E02 gate."
+    },
+    {
+      "behavior": "Production random-ID PII false positive rate",
+      "reason": "The retained unit failure and stable test entropy do not establish actual-run frequency; scanners and actual entropy remain unchanged."
+    },
+    {
+      "behavior": "Publication helpers being prepared outside sealed N, future commit/tag/mirror and remote synchronization",
+      "reason": "Not part of this immutable runtime preparation manifest review; no push or mutation beyond this review report is authorized."
+    }
+  ],
+  "write_scope": "Only this report created with exclusive CreateNew; no source, manifest, state, historical evidence or other file changed."
+}

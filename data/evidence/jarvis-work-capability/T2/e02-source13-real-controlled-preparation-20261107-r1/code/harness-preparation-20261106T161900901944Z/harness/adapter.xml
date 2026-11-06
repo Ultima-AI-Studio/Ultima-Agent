@@ -1,0 +1,286 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="5" skipped="0" tests="219" time="63.730" timestamp="2026-11-07T00:19:01.956582+08:00" hostname="DESKTOP-B366PQ9"><testcase classname="harness.test_adapter" name="test_adapter_rejects_wrong_candidate_budget_and_baseline[candidate]" time="0.001" /><testcase classname="harness.test_adapter" name="test_adapter_rejects_wrong_candidate_budget_and_baseline[budget]" time="0.000" /><testcase classname="harness.test_adapter" name="test_adapter_rejects_wrong_candidate_budget_and_baseline[baseline]" time="0.000" /><testcase classname="harness.test_adapter" name="test_adapter_rejects_wrong_candidate_budget_and_baseline[expired]" time="0.000" /><testcase classname="harness.test_adapter" name="test_adapter_rejects_wrong_candidate_budget_and_baseline[kind]" time="0.000" /><testcase classname="harness.test_adapter" name="test_adapter_rejects_wrong_candidate_budget_and_baseline[schema]" time="0.000" /><testcase classname="harness.test_adapter" name="test_adapter_rejects_wrong_candidate_budget_and_baseline[model]" time="0.000" /><testcase classname="harness.test_adapter" name="test_adapter_rejects_wrong_candidate_budget_and_baseline[source]" time="0.001" /><testcase classname="harness.test_adapter" name="test_adapter_rejects_wrong_candidate_budget_and_baseline[defaults]" time="0.000" /><testcase classname="harness.test_adapter" name="test_adapter_rejects_wrong_candidate_budget_and_baseline[hash]" time="0.000" /><testcase classname="harness.test_adapter" name="test_adapter_rejects_wrong_candidate_budget_and_baseline[retry]" time="0.000" /><testcase classname="harness.test_adapter" name="test_pinned_import_rejects_cached_acceptance_adapter" time="0.001" /><testcase classname="harness.test_adapter" name="test_adapter_first_failure_retained_and_no_next_case[timeout]" time="1.692" /><testcase classname="harness.test_adapter" name="test_adapter_first_failure_retained_and_no_next_case[nonzero]" time="1.507" /><testcase classname="harness.test_adapter" name="test_adapter_first_failure_retained_and_no_next_case[invalidJSON]" time="1.140" /><testcase classname="harness.test_adapter" name="test_adapter_first_failure_retained_and_no_next_case[partialpacket]" time="1.311" /><testcase classname="harness.test_adapter" name="test_adapter_first_failure_retained_and_no_next_case[missingEND]" time="1.903" /><testcase classname="harness.test_adapter" name="test_adapter_first_failure_retained_and_no_next_case[cleanup]" time="1.225"><failure message="AssertionError: assert 'cleanup terminate_owned: cleanup blocked' in 'packet and external readback: Canonical UUID4 required'">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-source13-real-controlled-preparation-20261106/code/harness-preparation-20261106T161900901944Z/temp/test_adapter_first_failure_ret5')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x00000158A1A98E10&gt;
+failure = 'cleanup'
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x00000158A157DA30&gt;, [('search', 'Research a subject'), ('get', '...'https://example.com/source/2'), ('get', 'https://example.com/source/3'), ('get', 'https://example.com/source/4')], {})
+mock_jar = (&lt;openjarvis.sdk.Jarvis object at 0x00000158A19FC6E0&gt;, &lt;function _run_work_agent at 0x00000158A0E393A0&gt;, [{'format': {..., ...], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [])
+
+    @pytest.mark.parametrize('failure',['timeout','nonzero','invalidJSON','partialpacket','missingEND','cleanup','finalboundary','transientextra'])
+    def test_adapter_first_failure_retained_and_no_next_case(tmp_path,monkeypatch,failure,sdk_io,mock_jar):
+        first,ledger=synthetic_bundle(tmp_path,sdk_io,mock_jar,monkeypatch)
+        p4=a.load_p4()
+        protected=[dict(pid=pid,created_filetime=100,exe=sys.executable) for pid in range(51,58)]
+        protected_rows=protected_fixture(tmp_path,monkeypatch,p4,protected)
+        monkeypatch.setattr(p4,'identity',lambda pid:dict(pid=pid,created_filetime=100,exe=sys.executable))
+        monkeypatch.setattr(p4,'process_times',lambda proc:(100,0))
+        monkeypatch.setattr(p4,'process_snapshot',lambda *args,**kwargs:dict(protected_rows))
+        monkeypatch.setattr(p4,'terminate_owned',lambda key:None)
+        monkeypatch.setattr(p4,'listener_owner',lambda port:[7891])
+        class Probe:
+            def settimeout(self,value): pass
+            def connect_ex(self,address): return a.errno.ECONNREFUSED
+            def close(self): pass
+        monkeypatch.setattr(p4.socket,'socket',Probe)
+        if failure in ('partialpacket','missingEND'):
+            export=a.load(tmp_path/'trusted-export.json')
+            if failure=='partialpacket': export['members']['runtime']['sha256']='0'*64
+            else: export['END']=False
+            (tmp_path/'trusted-export.json').write_text(json.dumps(export),encoding='utf8')
+        pin_reads=[]
+        def pins():
+            pin_reads.append(1)
+            return {'drift':'changed'} if failure=='finalboundary' and len(pin_reads)&gt;=3 else {}
+        monkeypatch.setattr(a,'check_inputs',pins)
+        if failure=='transientextra':
+            save=a.save_new
+            def transient(path,value):
+                save(path,value)
+                if Path(path).name=='accepted-effects.json': (tmp_path/'outputs'/first['task_id']/'transient.md').write_bytes(b'known transient effect')
+            monkeypatch.setattr(a,'save_new',transient)
+        launches=[]
+        class Proc:
+            def __init__(self,cli):
+                self.pid=7892 if cli else 7891; self.returncode=2 if cli and failure=='nonzero' else 0
+            def wait(self,timeout=None):
+                if failure=='timeout' and timeout and timeout&gt;3: raise TimeoutError('CLI timeout')
+                if failure=='transientextra' and timeout and timeout&lt;=3: (tmp_path/'outputs'/first['task_id']/'transient.md').unlink(missing_ok=True)
+                return self.returncode
+        def launch(argv,env,out,err):
+            launches.append(argv)
+            if '--research' in argv: out.write('{broken' if failure=='invalidJSON' else json.dumps(first)); out.flush()
+            return Proc('--research' in argv)
+        # Patch only the actual launcher boundary; real P4 Owned.launch/discover/cleanup execute.
+        root=a.C
+        monkeypatch.syspath_prepend(str(root))
+        from src.brain.tests import work_context_acceptance as helper
+        monkeypatch.setattr(helper,'launch',launch)
+        if failure=='cleanup':
+            monkeypatch.setattr(p4,'terminate_owned',lambda key: (_ for _ in ()).throw(OSError('cleanup blocked')))
+            monkeypatch.setattr(p4,'process_snapshot',lambda *args,**kwargs:dict(protected_rows) | {pid:dict(ProcessId=pid,CreationFileTime=100,ParentProcessId=0,CommandLine='') for pid in (7891,7892)})
+        baseline=dict(candidate=a.CANDIDATE,precision='FILETIME100ns',recorded_at=dt.datetime.now(dt.timezone.utc).isoformat(),protected=protected)
+        context=dict(folder=tmp_path,port=18799,request_id='r',session_id='s',baseline=baseline,authority={},ledger={})
+        result=a.execute_case(context,p4)
+        assert len(launches)&lt;=2
+        assert result['work_cli_attempts']==1
+        assert result['actual_native_start_count'] is None
+        assert result['overall']=='FAIL'
+        assert result['next_case'] is False
+        expected={'timeout':'CLI timeout','nonzero':'CLI nonzero','invalidJSON':'Expecting property name','partialpacket':'Export member digest','missingEND':'Missing complete packet or END','cleanup':'cleanup terminate_owned: cleanup blocked','finalboundary':'final-boundary: Input drift','transientextra':'pre-cleanup-effects: Observed pre-cleanup output drift'}
+&gt;       assert expected[failure] in result['first_failure']
+E       AssertionError: assert 'cleanup terminate_owned: cleanup blocked' in 'packet and external readback: Canonical UUID4 required'
+
+..\..\harness\test_adapter.py:177: AssertionError</failure></testcase><testcase classname="harness.test_adapter" name="test_adapter_first_failure_retained_and_no_next_case[finalboundary]" time="1.304"><failure message="AssertionError: assert 'final-boundary: Input drift' in 'packet and external readback: Canonical UUID4 required'">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-source13-real-controlled-preparation-20261106/code/harness-preparation-20261106T161900901944Z/temp/test_adapter_first_failure_ret6')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x00000158A1BAE8D0&gt;
+failure = 'finalboundary'
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x000001587EBEB350&gt;, [('search', 'Research a subject'), ('get', '...'https://example.com/source/2'), ('get', 'https://example.com/source/3'), ('get', 'https://example.com/source/4')], {})
+mock_jar = (&lt;openjarvis.sdk.Jarvis object at 0x000001587EB9DC50&gt;, &lt;function _run_work_agent at 0x00000158A0E393A0&gt;, [{'format': {..., ...], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [])
+
+    @pytest.mark.parametrize('failure',['timeout','nonzero','invalidJSON','partialpacket','missingEND','cleanup','finalboundary','transientextra'])
+    def test_adapter_first_failure_retained_and_no_next_case(tmp_path,monkeypatch,failure,sdk_io,mock_jar):
+        first,ledger=synthetic_bundle(tmp_path,sdk_io,mock_jar,monkeypatch)
+        p4=a.load_p4()
+        protected=[dict(pid=pid,created_filetime=100,exe=sys.executable) for pid in range(51,58)]
+        protected_rows=protected_fixture(tmp_path,monkeypatch,p4,protected)
+        monkeypatch.setattr(p4,'identity',lambda pid:dict(pid=pid,created_filetime=100,exe=sys.executable))
+        monkeypatch.setattr(p4,'process_times',lambda proc:(100,0))
+        monkeypatch.setattr(p4,'process_snapshot',lambda *args,**kwargs:dict(protected_rows))
+        monkeypatch.setattr(p4,'terminate_owned',lambda key:None)
+        monkeypatch.setattr(p4,'listener_owner',lambda port:[7891])
+        class Probe:
+            def settimeout(self,value): pass
+            def connect_ex(self,address): return a.errno.ECONNREFUSED
+            def close(self): pass
+        monkeypatch.setattr(p4.socket,'socket',Probe)
+        if failure in ('partialpacket','missingEND'):
+            export=a.load(tmp_path/'trusted-export.json')
+            if failure=='partialpacket': export['members']['runtime']['sha256']='0'*64
+            else: export['END']=False
+            (tmp_path/'trusted-export.json').write_text(json.dumps(export),encoding='utf8')
+        pin_reads=[]
+        def pins():
+            pin_reads.append(1)
+            return {'drift':'changed'} if failure=='finalboundary' and len(pin_reads)&gt;=3 else {}
+        monkeypatch.setattr(a,'check_inputs',pins)
+        if failure=='transientextra':
+            save=a.save_new
+            def transient(path,value):
+                save(path,value)
+                if Path(path).name=='accepted-effects.json': (tmp_path/'outputs'/first['task_id']/'transient.md').write_bytes(b'known transient effect')
+            monkeypatch.setattr(a,'save_new',transient)
+        launches=[]
+        class Proc:
+            def __init__(self,cli):
+                self.pid=7892 if cli else 7891; self.returncode=2 if cli and failure=='nonzero' else 0
+            def wait(self,timeout=None):
+                if failure=='timeout' and timeout and timeout&gt;3: raise TimeoutError('CLI timeout')
+                if failure=='transientextra' and timeout and timeout&lt;=3: (tmp_path/'outputs'/first['task_id']/'transient.md').unlink(missing_ok=True)
+                return self.returncode
+        def launch(argv,env,out,err):
+            launches.append(argv)
+            if '--research' in argv: out.write('{broken' if failure=='invalidJSON' else json.dumps(first)); out.flush()
+            return Proc('--research' in argv)
+        # Patch only the actual launcher boundary; real P4 Owned.launch/discover/cleanup execute.
+        root=a.C
+        monkeypatch.syspath_prepend(str(root))
+        from src.brain.tests import work_context_acceptance as helper
+        monkeypatch.setattr(helper,'launch',launch)
+        if failure=='cleanup':
+            monkeypatch.setattr(p4,'terminate_owned',lambda key: (_ for _ in ()).throw(OSError('cleanup blocked')))
+            monkeypatch.setattr(p4,'process_snapshot',lambda *args,**kwargs:dict(protected_rows) | {pid:dict(ProcessId=pid,CreationFileTime=100,ParentProcessId=0,CommandLine='') for pid in (7891,7892)})
+        baseline=dict(candidate=a.CANDIDATE,precision='FILETIME100ns',recorded_at=dt.datetime.now(dt.timezone.utc).isoformat(),protected=protected)
+        context=dict(folder=tmp_path,port=18799,request_id='r',session_id='s',baseline=baseline,authority={},ledger={})
+        result=a.execute_case(context,p4)
+        assert len(launches)&lt;=2
+        assert result['work_cli_attempts']==1
+        assert result['actual_native_start_count'] is None
+        assert result['overall']=='FAIL'
+        assert result['next_case'] is False
+        expected={'timeout':'CLI timeout','nonzero':'CLI nonzero','invalidJSON':'Expecting property name','partialpacket':'Export member digest','missingEND':'Missing complete packet or END','cleanup':'cleanup terminate_owned: cleanup blocked','finalboundary':'final-boundary: Input drift','transientextra':'pre-cleanup-effects: Observed pre-cleanup output drift'}
+&gt;       assert expected[failure] in result['first_failure']
+E       AssertionError: assert 'final-boundary: Input drift' in 'packet and external readback: Canonical UUID4 required'
+
+..\..\harness\test_adapter.py:177: AssertionError</failure></testcase><testcase classname="harness.test_adapter" name="test_adapter_first_failure_retained_and_no_next_case[transientextra]" time="1.413"><failure message="AssertionError: assert 'pre-cleanup-effects: Observed pre-cleanup output drift' in 'packet and external readback: Canonical UUID4 required'">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-source13-real-controlled-preparation-20261106/code/harness-preparation-20261106T161900901944Z/temp/test_adapter_first_failure_ret7')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x00000158A19A38D0&gt;
+failure = 'transientextra'
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x00000158A19B8380&gt;, [('search', 'Research a subject'), ('get', '...'https://example.com/source/2'), ('get', 'https://example.com/source/3'), ('get', 'https://example.com/source/4')], {})
+mock_jar = (&lt;openjarvis.sdk.Jarvis object at 0x00000158A1C2FC70&gt;, &lt;function _run_work_agent at 0x00000158A0E393A0&gt;, [{'format': {..., ...], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [])
+
+    @pytest.mark.parametrize('failure',['timeout','nonzero','invalidJSON','partialpacket','missingEND','cleanup','finalboundary','transientextra'])
+    def test_adapter_first_failure_retained_and_no_next_case(tmp_path,monkeypatch,failure,sdk_io,mock_jar):
+        first,ledger=synthetic_bundle(tmp_path,sdk_io,mock_jar,monkeypatch)
+        p4=a.load_p4()
+        protected=[dict(pid=pid,created_filetime=100,exe=sys.executable) for pid in range(51,58)]
+        protected_rows=protected_fixture(tmp_path,monkeypatch,p4,protected)
+        monkeypatch.setattr(p4,'identity',lambda pid:dict(pid=pid,created_filetime=100,exe=sys.executable))
+        monkeypatch.setattr(p4,'process_times',lambda proc:(100,0))
+        monkeypatch.setattr(p4,'process_snapshot',lambda *args,**kwargs:dict(protected_rows))
+        monkeypatch.setattr(p4,'terminate_owned',lambda key:None)
+        monkeypatch.setattr(p4,'listener_owner',lambda port:[7891])
+        class Probe:
+            def settimeout(self,value): pass
+            def connect_ex(self,address): return a.errno.ECONNREFUSED
+            def close(self): pass
+        monkeypatch.setattr(p4.socket,'socket',Probe)
+        if failure in ('partialpacket','missingEND'):
+            export=a.load(tmp_path/'trusted-export.json')
+            if failure=='partialpacket': export['members']['runtime']['sha256']='0'*64
+            else: export['END']=False
+            (tmp_path/'trusted-export.json').write_text(json.dumps(export),encoding='utf8')
+        pin_reads=[]
+        def pins():
+            pin_reads.append(1)
+            return {'drift':'changed'} if failure=='finalboundary' and len(pin_reads)&gt;=3 else {}
+        monkeypatch.setattr(a,'check_inputs',pins)
+        if failure=='transientextra':
+            save=a.save_new
+            def transient(path,value):
+                save(path,value)
+                if Path(path).name=='accepted-effects.json': (tmp_path/'outputs'/first['task_id']/'transient.md').write_bytes(b'known transient effect')
+            monkeypatch.setattr(a,'save_new',transient)
+        launches=[]
+        class Proc:
+            def __init__(self,cli):
+                self.pid=7892 if cli else 7891; self.returncode=2 if cli and failure=='nonzero' else 0
+            def wait(self,timeout=None):
+                if failure=='timeout' and timeout and timeout&gt;3: raise TimeoutError('CLI timeout')
+                if failure=='transientextra' and timeout and timeout&lt;=3: (tmp_path/'outputs'/first['task_id']/'transient.md').unlink(missing_ok=True)
+                return self.returncode
+        def launch(argv,env,out,err):
+            launches.append(argv)
+            if '--research' in argv: out.write('{broken' if failure=='invalidJSON' else json.dumps(first)); out.flush()
+            return Proc('--research' in argv)
+        # Patch only the actual launcher boundary; real P4 Owned.launch/discover/cleanup execute.
+        root=a.C
+        monkeypatch.syspath_prepend(str(root))
+        from src.brain.tests import work_context_acceptance as helper
+        monkeypatch.setattr(helper,'launch',launch)
+        if failure=='cleanup':
+            monkeypatch.setattr(p4,'terminate_owned',lambda key: (_ for _ in ()).throw(OSError('cleanup blocked')))
+            monkeypatch.setattr(p4,'process_snapshot',lambda *args,**kwargs:dict(protected_rows) | {pid:dict(ProcessId=pid,CreationFileTime=100,ParentProcessId=0,CommandLine='') for pid in (7891,7892)})
+        baseline=dict(candidate=a.CANDIDATE,precision='FILETIME100ns',recorded_at=dt.datetime.now(dt.timezone.utc).isoformat(),protected=protected)
+        context=dict(folder=tmp_path,port=18799,request_id='r',session_id='s',baseline=baseline,authority={},ledger={})
+        result=a.execute_case(context,p4)
+        assert len(launches)&lt;=2
+        assert result['work_cli_attempts']==1
+        assert result['actual_native_start_count'] is None
+        assert result['overall']=='FAIL'
+        assert result['next_case'] is False
+        expected={'timeout':'CLI timeout','nonzero':'CLI nonzero','invalidJSON':'Expecting property name','partialpacket':'Export member digest','missingEND':'Missing complete packet or END','cleanup':'cleanup terminate_owned: cleanup blocked','finalboundary':'final-boundary: Input drift','transientextra':'pre-cleanup-effects: Observed pre-cleanup output drift'}
+&gt;       assert expected[failure] in result['first_failure']
+E       AssertionError: assert 'pre-cleanup-effects: Observed pre-cleanup output drift' in 'packet and external readback: Canonical UUID4 required'
+
+..\..\harness\test_adapter.py:177: AssertionError</failure></testcase><testcase classname="harness.test_adapter" name="test_adapter_reuses_owned_cleanup_and_retains_unknown_effect" time="0.018" /><testcase classname="harness.test_adapter" name="test_real_manifest_detects_input_hash_drift[source_files]" time="0.014" /><testcase classname="harness.test_adapter" name="test_real_manifest_detects_input_hash_drift[sdk22]" time="0.036" /><testcase classname="harness.test_adapter" name="test_real_manifest_detects_input_hash_drift[policy]" time="0.021" /><testcase classname="harness.test_adapter" name="test_real_manifest_detects_input_hash_drift[model]" time="0.021" /><testcase classname="harness.test_adapter" name="test_missing_or_preparation_authority_never_constructs_owned" time="0.459" /><testcase classname="harness.test_adapter" name="test_native_baseline_requires_exact_integer_filetime[legacy-CIM-0]" time="0.019" /><testcase classname="harness.test_adapter" name="test_native_baseline_requires_exact_integer_filetime[FILETIME100ns-1]" time="0.028" /><testcase classname="harness.test_adapter" name="test_native_baseline_requires_exact_integer_filetime[FILETIME100ns-0]" time="0.020" /><testcase classname="harness.test_adapter" name="test_real_export_reader_rejects_partial_or_missing_end[False-False]" time="0.021" /><testcase classname="harness.test_adapter" name="test_real_export_reader_rejects_partial_or_missing_end[True-False]" time="0.021" /><testcase classname="harness.test_adapter" name="test_original_browser_fixture_preserves_bodies_without_native_send_observer" time="0.006" /><testcase classname="harness.test_adapter" name="test_runtime_inputs_captured_at_real_freeze_before_packet_exists" time="0.012" /><testcase classname="harness.test_adapter" name="test_inert_requires_separate_concrete_authority" time="0.002" /><testcase classname="harness.test_adapter" name="test_real_external_readback_validates_hash_bytes_inventory_and_root[hash]" time="0.021" /><testcase classname="harness.test_adapter" name="test_real_external_readback_validates_hash_bytes_inventory_and_root[bytes]" time="0.022" /><testcase classname="harness.test_adapter" name="test_real_external_readback_validates_hash_bytes_inventory_and_root[extra]" time="0.027" /><testcase classname="harness.test_adapter" name="test_real_external_readback_validates_hash_bytes_inventory_and_root[escape]" time="0.020" /><testcase classname="harness.test_adapter" name="test_real_external_readback_validates_hash_bytes_inventory_and_root[none]" time="0.025" /><testcase classname="harness.test_adapter" name="test_deadline_preclaim_charged_parent_no_rebase" time="0.000" /><testcase classname="harness.test_adapter" name="test_deadline_strict_admission_inclusive_return[274999999999-True]" time="0.001" /><testcase classname="harness.test_adapter" name="test_deadline_strict_admission_inclusive_return[275000000000-False]" time="0.001" /><testcase classname="harness.test_adapter" name="test_deadline_strict_admission_inclusive_return[275000000001-False]" time="0.000" /><testcase classname="harness.test_adapter" name="test_private_snapshot_timeouts_decrease_late_return_and_restore" time="0.018" /><testcase classname="harness.test_adapter" name="test_real_popen_identity_wait_clipping_and_restoration" time="0.018" /><testcase classname="harness.test_adapter" name="test_termination_full_ten_second_admission[9.999999999-False]" time="0.016" /><testcase classname="harness.test_adapter" name="test_termination_full_ten_second_admission[10-True]" time="0.017" /><testcase classname="harness.test_adapter" name="test_termination_full_ten_second_admission[11-True]" time="0.016" /><testcase classname="harness.test_adapter" name="test_private_port_probe_requires_definitive_refusal[10061-True]" time="0.016" /><testcase classname="harness.test_adapter" name="test_private_port_probe_requires_definitive_refusal[111-False]" time="0.015" /><testcase classname="harness.test_adapter" name="test_private_port_probe_requires_definitive_refusal[10060-False]" time="0.021" /><testcase classname="harness.test_adapter" name="test_private_port_probe_requires_definitive_refusal[0-False]" time="0.017" /><testcase classname="harness.test_adapter" name="test_enclosing_witness_timely_exact315_late_and_permanent[314999999999-True]" time="0.001" /><testcase classname="harness.test_adapter" name="test_enclosing_witness_timely_exact315_late_and_permanent[315000000000-True]" time="0.001" /><testcase classname="harness.test_adapter" name="test_enclosing_witness_timely_exact315_late_and_permanent[315000000001-False]" time="0.000" /><testcase classname="harness.test_adapter" name="test_original_p1_primitive_overrun_closes_handle_and_never_later_succeeds" time="0.016" /><testcase classname="harness.test_adapter" name="test_original_p1_identity_mismatch_never_terminates" time="0.017" /><testcase classname="harness.test_adapter" name="test_real_p4_cleanup_native_snapshot_and_original_termination[2]" time="0.023" /><testcase classname="harness.test_adapter" name="test_real_p4_cleanup_native_snapshot_and_original_termination[4]" time="0.021" /><testcase classname="harness.test_adapter" name="test_real_p4_cleanup_native_snapshot_and_original_termination[7]" time="0.021" /><testcase classname="harness.test_adapter" name="test_launch_registration_failure_retains_possible_effect_and_wraps_wait" time="0.018" /><testcase classname="harness.test_adapter" name="test_launch_failure_before_registration_retains_unknown_live_effect" time="0.020" /><testcase classname="harness.test_adapter" name="test_readiness_late_listener_cannot_dispatch" time="0.017" /><testcase classname="harness.test_adapter" name="test_cleanup_uncertainty_is_never_pass[missing_snapshot]" time="0.017" /><testcase classname="harness.test_adapter" name="test_cleanup_uncertainty_is_never_pass[log_close]" time="0.018" /><testcase classname="harness.test_adapter" name="test_cleanup_uncertainty_is_never_pass[socket_timeout]" time="0.021" /><testcase classname="harness.test_adapter" name="test_private_bindings_shared_identity_survives_two_exception_scopes" time="0.050" /><testcase classname="harness.test_adapter" name="test_root_observes_closed_package_after_return_no_missing_or_late_promotion[none-False]" time="0.045" /><testcase classname="harness.test_adapter" name="test_root_observes_closed_package_after_return_no_missing_or_late_promotion[seal-index.json-False]" time="0.040" /><testcase classname="harness.test_adapter" name="test_root_observes_closed_package_after_return_no_missing_or_late_promotion[data-False]" time="0.045" /><testcase classname="harness.test_adapter" name="test_root_observes_closed_package_after_return_no_missing_or_late_promotion[none-True]" time="0.038" /><testcase classname="harness.test_adapter" name="test_missing_witness_or_uncertain_proof_never_eligible" time="0.000" /><testcase classname="harness.test_adapter" name="test_client_at_work_cutoff_retains_first_result_but_cannot_validate_or_pass" time="0.113" /><testcase classname="harness.test_adapter" name="test_cleanup_discovers_later_matching_child_without_count_truncation" time="0.022" /><testcase classname="harness.test_adapter" name="test_private_cleanup_unknown_nested_or_reused_identity_never_authorizes_kill[nested]" time="0.019" /><testcase classname="harness.test_adapter" name="test_private_cleanup_unknown_nested_or_reused_identity_never_authorizes_kill[drift]" time="0.028" /><testcase classname="harness.test_adapter" name="test_clipped_wait_preserves_timeout_exception_and_private_sleep_overshoot" time="0.018" /><testcase classname="harness.test_adapter" name="test_fix1_h05_unrelated_protected_five_rejected" time="0.018" /><testcase classname="harness.test_adapter" name="test_fix1_h06_alternate_interpreter_same_flags_rejected" time="0.001" /><testcase classname="harness.test_adapter" name="test_fix1_h01_one_use_native_child_clearance[flags]" time="0.033" /><testcase classname="harness.test_adapter" name="test_fix1_h01_one_use_native_child_clearance[identity]" time="0.045" /><testcase classname="harness.test_adapter" name="test_fix1_h01_one_use_native_child_clearance[attempt]" time="0.054" /><testcase classname="harness.test_adapter" name="test_fix1_h01_one_use_native_child_clearance[replay]" time="0.044" /><testcase classname="harness.test_adapter" name="test_fix1_h01_one_use_native_child_clearance[none]" time="0.034" /><testcase classname="harness.test_adapter" name="test_fix1_h04_native_member_set_not_vacuous[empty]" time="0.019" /><testcase classname="harness.test_adapter" name="test_fix1_h04_native_member_set_not_vacuous[subset]" time="0.020" /><testcase classname="harness.test_adapter" name="test_fix1_h04_native_member_set_not_vacuous[parent]" time="0.018" /><testcase classname="harness.test_adapter" name="test_fix1_h04_native_member_set_not_vacuous[none]" time="0.023" /><testcase classname="harness.test_adapter" name="test_fix1_h12_socket_timeout_reclipped_at_connect" time="0.019" /><testcase classname="harness.test_adapter" name="test_fix1_h12_setup_overrun_cannot_admit_connect_and_still_closes" time="0.017" /><testcase classname="harness.test_adapter" name="test_fix1_h13_service_cli_invariants[request_id]" time="0.001" /><testcase classname="harness.test_adapter" name="test_fix1_h13_service_cli_invariants[session_id]" time="0.000" /><testcase classname="harness.test_adapter" name="test_fix1_h13_service_cli_invariants[task_id]" time="0.000" /><testcase classname="harness.test_adapter" name="test_fix1_h13_service_cli_invariants[status]" time="0.000" /><testcase classname="harness.test_adapter" name="test_fix1_h13_service_cli_invariants[artifacts]" time="0.000" /><testcase classname="harness.test_adapter" name="test_fix1_h13_service_cli_invariants[none]" time="0.000" /><testcase classname="harness.test_adapter" name="test_fix1_h08_first_cause_cleanup_then_boundary_never_replaced" time="0.000" /><testcase classname="harness.test_adapter" name="test_fix1_h14_observer_late_first_read_stops_following_io" time="0.003" /><testcase classname="harness.test_adapter" name="test_fix1_genuine_synthetic_export_and_external_readback" time="1.425"><failure message="ValueError: Canonical UUID4 required">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-source13-real-controlled-preparation-20261106/code/harness-preparation-20261106T161900901944Z/temp/test_fix1_genuine_synthetic_ex0')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x00000158A0E633F0&gt;
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x00000158A1B23550&gt;, [('search', 'Research a subject'), ('get', '...'https://example.com/source/2'), ('get', 'https://example.com/source/3'), ('get', 'https://example.com/source/4')], {})
+mock_jar = (&lt;openjarvis.sdk.Jarvis object at 0x00000158A1BB9C10&gt;, &lt;function _run_work_agent at 0x00000158A0E393A0&gt;, [{'format': {..., ...], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [])
+
+    def test_fix1_genuine_synthetic_export_and_external_readback(tmp_path,monkeypatch,sdk_io,mock_jar):
+        result,ledger=synthetic_bundle(tmp_path,sdk_io,mock_jar,monkeypatch)
+&gt;       verified=a.verify_exports(tmp_path,result,a.load_p4())
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+..\..\harness\test_adapter.py:720: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+..\..\harness\adapter.py:834: in verify_exports
+    verify_readback(folder,result,p4,rendered.content,readonly=readonly)
+..\..\harness\adapter.py:846: in verify_readback
+    else: artifacts=p4.read_artifacts(folder,result)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\..\e01-source13-round3-20261106\code\controller.py:555: in read_artifacts
+    task=uuid_text(result.get('task_id')); artifacts=[]; attempts=[]
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\..\e01-source13-round3-20261106\code\controller.py:162: in uuid_text
+    require(str(parsed)==value and parsed.version==4,'Canonical UUID4 required')
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+ok = False, message = 'Canonical UUID4 required'
+
+    def require(ok,message):
+&gt;       if not ok: raise ValueError(message)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       ValueError: Canonical UUID4 required
+
+..\..\..\e01-source13-round3-20261106\code\controller.py:28: ValueError</failure></testcase><testcase classname="harness.test_adapter" name="test_fix1_h07_sizable_and_max_safe_raw_representation[3145728]" time="1.190" /><testcase classname="harness.test_adapter" name="test_fix1_h07_sizable_and_max_safe_raw_representation[4194304]" time="1.592" /><testcase classname="harness.test_adapter" name="test_fix1_h07_unsafe_completed_values_never_exported" time="0.922" /><testcase classname="harness.test_adapter" name="test_fix1_h03_closed_output_drift_rejected[remove]" time="0.023" /><testcase classname="harness.test_adapter" name="test_fix1_h03_closed_output_drift_rejected[replace]" time="0.025" /><testcase classname="harness.test_adapter" name="test_fix1_h03_closed_output_drift_rejected[extra]" time="0.029" /><testcase classname="harness.test_adapter" name="test_fix1_h09_late_operational_drift_rejected[harness]" time="0.087" /><testcase classname="harness.test_adapter" name="test_fix1_h09_late_operational_drift_rejected[approval]" time="0.086" /><testcase classname="harness.test_adapter" name="test_fix1_h09_late_operational_drift_rejected[authority]" time="0.086" /><testcase classname="harness.test_adapter" name="test_fix1_h09_late_operational_drift_rejected[baseline]" time="0.081" /><testcase classname="harness.test_adapter" name="test_fix1_h06_cached_sdk_import_origin_rejected" time="0.004" /><testcase classname="harness.test_adapter" name="test_fix1_h10_driver_drift_fails_even_with_pytest_zero[harness]" time="0.099" /><testcase classname="harness.test_adapter" name="test_fix1_h10_driver_drift_fails_even_with_pytest_zero[input]" time="0.156" /><testcase classname="harness.test_adapter" name="test_fix1_h10_driver_drift_fails_even_with_pytest_zero[addition]" time="0.096" /><testcase classname="harness.test_adapter" name="test_fix1_h10_driver_drift_fails_even_with_pytest_zero[none]" time="0.092" /><testcase classname="harness.test_adapter" name="test_fix1_h11_import_path_restored_on_failure" time="0.001" /><testcase classname="harness.test_adapter" name="test_fix1_h02_substantive_closed_witness_positive_and_faults[none]" time="0.759" /><testcase classname="harness.test_adapter" name="test_fix1_h02_substantive_closed_witness_positive_and_faults[protected-empty]" time="0.730" /><testcase classname="harness.test_adapter" name="test_fix1_h02_substantive_closed_witness_positive_and_faults[native-subset]" time="0.734" /><testcase classname="harness.test_adapter" name="test_fix1_h02_substantive_closed_witness_positive_and_faults[cleanup-subset]" time="0.792" /><testcase classname="harness.test_adapter" name="test_fix1_h02_substantive_closed_witness_positive_and_faults[missing-exchange]" time="0.462" /><testcase classname="harness.test_adapter" name="test_fix1_h02_substantive_closed_witness_positive_and_faults[wrong-endpoint]" time="0.759" /><testcase classname="harness.test_adapter" name="test_fix1_h02_substantive_closed_witness_positive_and_faults[wrong-listener]" time="0.939" /><testcase classname="harness.test_adapter" name="test_fix1_h02_substantive_closed_witness_positive_and_faults[wrong-response]" time="0.744" /><testcase classname="harness.test_adapter" name="test_fix1_h02_substantive_closed_witness_positive_and_faults[nonboolean-response]" time="0.774" /><testcase classname="harness.test_adapter" name="test_fix1_h02_substantive_closed_witness_positive_and_faults[late-exchange]" time="0.750" /><testcase classname="harness.test_adapter" name="test_fix1_h02_substantive_closed_witness_positive_and_faults[no-parent-exchange]" time="0.837" /><testcase classname="harness.test_adapter" name="test_fix1_h02_substantive_closed_witness_positive_and_faults[empty-task-directory]" time="0.805" /><testcase classname="harness.test_adapter" name="test_fix1_h01_actual_child_entry_dispatch_is_canonical_once[missing-isolated]" time="0.021" /><testcase classname="harness.test_adapter" name="test_fix1_h01_actual_child_entry_dispatch_is_canonical_once[port]" time="0.024" /><testcase classname="harness.test_adapter" name="test_fix1_h01_actual_child_entry_dispatch_is_canonical_once[extra-policy]" time="0.020" /><testcase classname="harness.test_adapter" name="test_fix1_h01_actual_child_entry_dispatch_is_canonical_once[duplicate]" time="0.023" /><testcase classname="harness.test_adapter" name="test_fix1_h01_actual_child_entry_dispatch_is_canonical_once[none]" time="0.039" /><testcase classname="harness.test_adapter" name="test_fix2_h01_two_native_base_siblings_refuse_clearance_without_truncation" time="0.019" /><testcase classname="harness.test_adapter" name="test_fix2_h01_only_intended_base_can_consume[launcher]" time="0.030" /><testcase classname="harness.test_adapter" name="test_fix2_h01_only_intended_base_can_consume[other]" time="0.032" /><testcase classname="harness.test_adapter" name="test_fix2_h01_only_intended_base_can_consume[base]" time="0.030" /><testcase classname="harness.test_adapter" name="test_fix2_n02_actual_post_clearance_setup_cannot_start_product" time="0.032" /><testcase classname="harness.test_adapter" name="test_fix2_n01_coherent_unchecked_member_never_raw_export[top]" time="1.021" /><testcase classname="harness.test_adapter" name="test_fix2_n01_coherent_unchecked_member_never_raw_export[wire]" time="1.223" /><testcase classname="harness.test_adapter" name="test_fix2_n01_coherent_unchecked_member_never_raw_export[transport]" time="1.215" /><testcase classname="harness.test_adapter" name="test_fix2_n01_coherent_unchecked_member_never_raw_export[event]" time="1.206" /><testcase classname="harness.test_adapter" name="test_fix2_n01_clock_named_unchecked_metadata_has_no_numeric_exemption" time="1.223" /><testcase classname="harness.test_adapter" name="test_fix2_h14_first_directory_overrun_stops_iteration_and_further_io" time="0.023" /><testcase classname="harness.test_adapter" name="test_fix2_n02_inert_post_clearance_setup_cannot_start_listener[False]" time="0.038" /><testcase classname="harness.test_adapter" name="test_fix2_n02_inert_post_clearance_setup_cannot_start_listener[True]" time="0.035" /><testcase classname="harness.test_adapter" name="test_fix2_n03_equal_pre_cleanup_inventory_positive" time="0.025" /><testcase classname="harness.test_adapter" name="test_fix3_f1_exact_coherent_metadata_counter_never_published[duplicate]" time="0.990" /><testcase classname="harness.test_adapter" name="test_fix3_f1_exact_coherent_metadata_counter_never_published[entity]" time="0.822" /><testcase classname="harness.test_adapter" name="test_fix3_f2_observation_ack_is_genuine_scanned_prose" time="1.279"><failure message="ValueError: Canonical UUID4 required">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-source13-real-controlled-preparation-20261106/code/harness-preparation-20261106T161900901944Z/temp/test_fix3_f2_observation_ack_i0')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x00000158A0E24DE0&gt;
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x00000158A320BCF0&gt;, [('search', 'Research a subject'), ('get', '...'https://example.com/source/2'), ('get', 'https://example.com/source/3'), ('get', 'https://example.com/source/4')], {})
+mock_jar = (&lt;openjarvis.sdk.Jarvis object at 0x00000158A3E7B5F0&gt;, &lt;function _run_work_agent at 0x00000158A0E393A0&gt;, [{'format': {..., ...], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [])
+
+    def test_fix3_f2_observation_ack_is_genuine_scanned_prose(tmp_path,monkeypatch,sdk_io,mock_jar):
+        from dataclasses import asdict
+        from src.brain.work_navigation import canonical_v3
+        from src.brain.work_research import verify_runtime_packet
+        from src.brain.tests.test_work_navigation_transport import rewrite_response
+        result,ledger=synthetic_bundle(tmp_path,sdk_io,mock_jar,monkeypatch,write=False)
+        answer='Observation: the report is complete.'
+        assert all(s.scan(answer).clean for s in ledger._policy.scanners)
+        packet=json.loads(ledger._runtime_final); value=dict(final_answer=answer)
+        rewrite_response(packet,len(packet['wires'])-1,value,canonical_v3(value).decode())
+        raw=canonical_v3(packet)
+        verify_runtime_packet(ledger._binding,ledger.issued_snapshot,ledger._collection,raw,require_ack=True,runtime_inputs=ledger._runtime_inputs)
+        ledger._runtime_final=raw; result['content']=answer
+        a.save_new(tmp_path/'service-first-result.json',result); a.save_new(tmp_path/'runtime-inputs.json',asdict(ledger._runtime_inputs))
+        a.export_completed(tmp_path,ledger,result)
+&gt;       assert a.verify_exports(tmp_path,result,a.load_p4())['native_POST_attempts']==5
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+..\..\harness\test_adapter.py:1111: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+..\..\harness\adapter.py:834: in verify_exports
+    verify_readback(folder,result,p4,rendered.content,readonly=readonly)
+..\..\harness\adapter.py:846: in verify_readback
+    else: artifacts=p4.read_artifacts(folder,result)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\..\e01-source13-round3-20261106\code\controller.py:555: in read_artifacts
+    task=uuid_text(result.get('task_id')); artifacts=[]; attempts=[]
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\..\e01-source13-round3-20261106\code\controller.py:162: in uuid_text
+    require(str(parsed)==value and parsed.version==4,'Canonical UUID4 required')
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+ok = False, message = 'Canonical UUID4 required'
+
+    def require(ok,message):
+&gt;       if not ok: raise ValueError(message)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       ValueError: Canonical UUID4 required
+
+..\..\..\e01-source13-round3-20261106\code\controller.py:28: ValueError</failure></testcase><testcase classname="harness.test_adapter" name="test_fix3_f2_data_member_cap_writer_observer_agree[256]" time="0.200" /><testcase classname="harness.test_adapter" name="test_fix3_f2_data_member_cap_writer_observer_agree[257]" time="0.091" /><testcase classname="harness.test_adapter" name="test_fix3_f1_strict_duplicate_decoder_at_each_depth[{&quot;x&quot;:0,&quot;x&quot;:1}]" time="0.001" /><testcase classname="harness.test_adapter" name="test_fix3_f1_strict_duplicate_decoder_at_each_depth[{&quot;outer&quot;:[{&quot;x&quot;:&quot;first&quot;,&quot;x&quot;:&quot;last&quot;}]}]" time="0.001" /><testcase classname="harness.test_adapter" name="test_fix3_f1_strict_duplicate_decoder_at_each_depth[{&quot;a&quot;:1,&quot;\\u0061&quot;:2}]" time="0.001" /><testcase classname="harness.test_adapter" name="test_fix3_f1_duplicate_actual_timeout_json_boundary_never_published" time="0.955" /><testcase classname="harness.test_adapter" name="test_fix3_f2_index_reservation_never_exempts_other_data[nested]" time="0.079" /><testcase classname="harness.test_adapter" name="test_fix3_f2_index_reservation_never_exempts_other_data[suffix]" time="0.311" /><testcase classname="harness.test_adapter" name="test_fix3_f2_index_reservation_never_exempts_other_data[other]" time="0.141" /><testcase classname="harness.test_adapter" name="test_fix3_f2_inert_no_descendants_includes_empty_directories[absent]" time="0.002" /><testcase classname="harness.test_adapter" name="test_fix3_f2_inert_no_descendants_includes_empty_directories[empty-root]" time="0.003" /><testcase classname="harness.test_adapter" name="test_fix3_f2_inert_no_descendants_includes_empty_directories[empty-task]" time="0.003" /><testcase classname="harness.test_adapter" name="test_fix3_f2_inert_no_descendants_includes_empty_directories[file]" time="0.002" /><testcase classname="harness.test_adapter" name="test_fix4_f1_producer_types_before_publication[digits]" time="0.779" /><testcase classname="harness.test_adapter" name="test_fix4_f1_producer_types_before_publication[nested-digits]" time="1.184" /><testcase classname="harness.test_adapter" name="test_fix4_f1_producer_types_before_publication[integer]" time="1.149" /><testcase classname="harness.test_adapter" name="test_fix4_f1_producer_types_before_publication[bool]" time="1.089" /><testcase classname="harness.test_adapter" name="test_fix4_f1_producer_types_before_publication[null]" time="0.875" /><testcase classname="harness.test_adapter" name="test_fix4_f1_producer_types_before_publication[list]" time="1.477" /><testcase classname="harness.test_adapter" name="test_fix4_f1_producer_types_before_publication[peer]" time="0.781" /><testcase classname="harness.test_adapter" name="test_fix4_f1_producer_types_before_publication[latency]" time="1.170" /><testcase classname="harness.test_adapter" name="test_fix4_f1_producer_types_before_publication[tag-family]" time="1.077" /><testcase classname="harness.test_adapter" name="test_fix4_f1_archived_reviewer_packet[False]" time="0.173" /><testcase classname="harness.test_adapter" name="test_fix4_f1_archived_reviewer_packet[True]" time="0.189" /><testcase classname="harness.test_adapter" name="test_port_rev2_real_cleanup_delayed_refusal[sufficient-inert]" time="0.025" /><testcase classname="harness.test_adapter" name="test_port_rev2_real_cleanup_delayed_refusal[sufficient-actual]" time="0.020" /><testcase classname="harness.test_adapter" name="test_port_rev2_real_cleanup_delayed_refusal[clipped-sufficient-inert]" time="0.020" /><testcase classname="harness.test_adapter" name="test_port_rev2_real_cleanup_delayed_refusal[clipped-sufficient-actual]" time="0.020" /><testcase classname="harness.test_adapter" name="test_port_rev2_real_cleanup_delayed_refusal[clipped-unknown-inert]" time="0.025" /><testcase classname="harness.test_adapter" name="test_port_rev2_real_cleanup_delayed_refusal[clipped-unknown-actual]" time="0.018" /><testcase classname="harness.test_adapter" name="test_port_rev2_real_cleanup_delayed_refusal[exact-cutoff-inert]" time="0.017" /><testcase classname="harness.test_adapter" name="test_port_rev2_real_cleanup_delayed_refusal[exact-cutoff-actual]" time="0.037" /><testcase classname="harness.test_adapter" name="test_port_rev2_real_cleanup_delayed_refusal[setup-sufficient-inert]" time="0.023" /><testcase classname="harness.test_adapter" name="test_port_rev2_real_cleanup_delayed_refusal[setup-sufficient-actual]" time="0.023" /><testcase classname="harness.test_adapter" name="test_port_rev2_real_cleanup_delayed_refusal[setup-unknown-inert]" time="0.035" /><testcase classname="harness.test_adapter" name="test_port_rev2_real_cleanup_delayed_refusal[setup-unknown-actual]" time="0.031" /><testcase classname="harness.test_adapter" name="test_port_rev2_real_cleanup_delayed_refusal[zero-before-connect-inert]" time="0.020" /><testcase classname="harness.test_adapter" name="test_port_rev2_real_cleanup_delayed_refusal[zero-before-connect-actual]" time="0.017" /><testcase classname="harness.test_adapter" name="test_port_rev2_real_cleanup_delayed_refusal[phase-expired-before-hint-inert]" time="0.020" /><testcase classname="harness.test_adapter" name="test_port_rev2_real_cleanup_delayed_refusal[phase-expired-before-hint-actual]" time="0.017" /><testcase classname="harness.test_adapter" name="test_port_rev2_real_cleanup_delayed_refusal[10035-inert]" time="0.021" /><testcase classname="harness.test_adapter" name="test_port_rev2_real_cleanup_delayed_refusal[10035-actual]" time="0.022" /><testcase classname="harness.test_adapter" name="test_port_rev2_real_cleanup_delayed_refusal[10060-inert]" time="0.021" /><testcase classname="harness.test_adapter" name="test_port_rev2_real_cleanup_delayed_refusal[10060-actual]" time="0.020" /><testcase classname="harness.test_adapter" name="test_port_rev2_real_cleanup_delayed_refusal[open-inert]" time="0.019" /><testcase classname="harness.test_adapter" name="test_port_rev2_real_cleanup_delayed_refusal[open-actual]" time="0.019" /><testcase classname="harness.test_adapter" name="test_port_rev2_real_cleanup_delayed_refusal[other-inert]" time="0.021" /><testcase classname="harness.test_adapter" name="test_port_rev2_real_cleanup_delayed_refusal[other-actual]" time="0.024" /><testcase classname="harness.test_adapter" name="test_port_rev2_real_cleanup_delayed_refusal[missing-inert]" time="0.035" /><testcase classname="harness.test_adapter" name="test_port_rev2_real_cleanup_delayed_refusal[missing-actual]" time="0.033" /><testcase classname="harness.test_adapter" name="test_port_rev2_real_cleanup_delayed_refusal[error-inert]" time="0.036" /><testcase classname="harness.test_adapter" name="test_port_rev2_real_cleanup_delayed_refusal[error-actual]" time="0.022" /><testcase classname="harness.test_adapter" name="test_port_rev2_real_cleanup_delayed_refusal[late-phase-inert]" time="0.017" /><testcase classname="harness.test_adapter" name="test_port_rev2_real_cleanup_delayed_refusal[late-phase-actual]" time="0.018" /><testcase classname="harness.test_adapter" name="test_port_rev2_real_cleanup_delayed_refusal[late-private-cap-inert]" time="0.017" /><testcase classname="harness.test_adapter" name="test_port_rev2_real_cleanup_delayed_refusal[late-private-cap-actual]" time="0.037" /><testcase classname="harness.test_adapter" name="test_port_rev2_real_substantive_observer_delayed_refusal[sufficient]" time="0.781" /><testcase classname="harness.test_adapter" name="test_port_rev2_real_substantive_observer_delayed_refusal[clipped-sufficient]" time="0.816" /><testcase classname="harness.test_adapter" name="test_port_rev2_real_substantive_observer_delayed_refusal[clipped-unknown]" time="0.741" /><testcase classname="harness.test_adapter" name="test_port_rev2_real_substantive_observer_delayed_refusal[exact-cutoff]" time="0.733" /><testcase classname="harness.test_adapter" name="test_port_rev2_real_substantive_observer_delayed_refusal[zero-before-connect]" time="0.862" /><testcase classname="harness.test_adapter" name="test_port_rev2_real_substantive_observer_delayed_refusal[phase-expired-before-hint]" time="0.822" /><testcase classname="harness.test_adapter" name="test_port_rev2_real_substantive_observer_delayed_refusal[late-phase]" time="0.841" /><testcase classname="harness.test_adapter" name="test_port_rev2_real_substantive_observer_delayed_refusal[setup-sufficient]" time="0.775" /><testcase classname="harness.test_adapter" name="test_port_rev2_real_substantive_observer_delayed_refusal[setup-unknown]" time="0.753" /><testcase classname="harness.test_adapter" name="test_port_rev2_real_substantive_observer_delayed_refusal[10035]" time="0.828" /><testcase classname="harness.test_adapter" name="test_port_rev2_real_substantive_observer_delayed_refusal[10060]" time="0.746" /><testcase classname="harness.test_adapter" name="test_port_rev2_real_substantive_observer_delayed_refusal[open]" time="0.723" /><testcase classname="harness.test_adapter" name="test_port_rev2_real_substantive_observer_delayed_refusal[error]" time="0.719" /><testcase classname="harness.test_adapter" name="test_port_rev2_real_substantive_observer_delayed_refusal[late-private-cap]" time="0.819" /></testsuite></testsuites>

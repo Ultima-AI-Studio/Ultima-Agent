@@ -5,7 +5,7 @@
 - original_work_order_id: wo-ultimaagent-20261101-0021
 - revision: 2
 - authorization: 用户“那按顺序开始推进吧”；批准按已提交的工作能力契约与计划顺序执行，保留最终 Owner 验收和发布门。
-- 状态：E01固定3/3、E03三正一负PASS；E02真实8B研究harness离线适配完成（219原回归+10边界+1SDK复放），连同输入检查244项通过；Task3入口/整体独审待完成，无实跑额度，E02/T2未过。
+- 状态：E01同候选3/3、E03三正一负PASS；E02真实8B首例准备270项离线检查、独立审查及读回PASS，等待新真实单例/结果独审分配。没有实跑，E02/T2未过。
 - 计划：docs/plans/jarvis-work-capability-delivery-plan-20261101.md
 - 契约：docs/specs/jarvis-work-capability-contract-20261101.md
 - 草案检查点：ultimaagent-jarvis-work-plan-draft-20261101 @ f6eb808348302cec55bddcf44ee03f5b5736c4d9
@@ -368,3 +368,8 @@ E01固定3/3、E03三正一负PASS；E02零推理接线及独审PASS后，当前
 
 E01固定3/3、E03三正一负PASS；E02真实8B研究harness离线适配完成（219原回归+10边界+1SDK复放），连同输入检查244项通过；Task3入口/整体独审待完成，无实跑额度，E02/T2未过。
 报告：docs/reports/jarvis-work-t2-e02-source13-real-harness-preparation-20261107.md。
+
+## 2026-11-07 当前8B真实首例准备就绪
+
+E01同候选3/3、E03三正一负PASS；E02真实8B首例准备270项离线检查、独立审查及读回PASS，等待新真实单例/结果独审分配。没有实跑，E02/T2未过。
+报告：docs/reports/jarvis-work-t2-e02-source13-real-controlled-ready-20261107.md。
