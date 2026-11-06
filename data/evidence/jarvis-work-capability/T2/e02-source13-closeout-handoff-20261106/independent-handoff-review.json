@@ -1,0 +1,87 @@
+{
+  "schema": 1,
+  "kind": "INDEPENDENT_EXTERNAL_DIAGNOSTIC_HANDOFF_REVIEW",
+  "reviewer": "root/review_e02_external_closeout_handoff",
+  "verdict": "NEEDS_FIXES",
+  "credit": "DIAGNOSTIC_ONLY",
+  "tests_run": 0,
+  "runtime_invocations": 0,
+  "runtime_authority": false,
+  "acceptance_credit": false,
+  "e02": "NOT_PASSED",
+  "t2": "NOT_PASSED",
+  "snapshot_verification": {
+    "sha256_mismatches": 0,
+    "files": 71
+  },
+  "findings": [
+    {
+      "category": "technical",
+      "severity": "P1",
+      "function": "_inside_import/_import_probe",
+      "file": "snapshot/profile-preparation/profile.py",
+      "finding": "Any frozen importlib ancestor excuses any socket creation; bind scans arbitrary arguments and admits IPv4, localhost and list addresses. This exceeds the one observed urllib3 IPv6 import probe and does not retain other socket refusal rules.",
+      "id": "F1",
+      "fix": "In a new candidate restrict to hash-pinned urllib3.util.connection._has_ipv6 invoked by its module initialization, the owned initialization phase/thread, AF_INET6/SOCK_STREAM/protocol 0 creation and exact positional bind address (::1,0) on the same tracked socket. End allowance after initialization and retain sticky refusal elsewhere. Verify unrelated importer, wrong family/type/address/port/socket, repeat and post-import refusals with targeted offline checks. This is trusted-code validation, not an adversarial OS boundary.",
+      "lines": "185-224"
+    },
+    {
+      "severity": "P1",
+      "file": "snapshot/review/independent-preparation-review.json",
+      "category": "procedure",
+      "id": "F2",
+      "fix": "Preserve original records with accurate diagnostic disposition. Freeze repaired candidate and obtain genuine independent preparation review before any newly allocated runtime; do not backdate or upgrade old gates.",
+      "finding": "actual_reviewer identifies executing session; root-independent is schema compatibility only. Neither that record nor current retrospective review satisfies independent preparation before these runs."
+    },
+    {
+      "severity": "P1",
+      "file": "inputs/manifest-audit.json",
+      "category": "provenance",
+      "id": "F3",
+      "fix": "Preserve incoming package and mismatches; construct a new consistent immutable manifest for future work, classify inherited absolute bindings explicitly, retain existing failed runs. Do not overwrite incoming manifests or claim full package integrity.",
+      "finding": "Outer 3845 bindings have 8 recorded mismatches including scope approval, preflight, review and gate plus four pycache files; entry55 and profile1462 have no recorded mismatches. Current snapshot71 independently hashes clean but cannot repair historical outer provenance."
+    },
+    {
+      "severity": "P2",
+      "file": "snapshot/profile-preparation/profile.py",
+      "category": "documentation",
+      "function": "private_scope/own_ollama_types",
+      "id": "F4",
+      "fix": "Correct causation in new disposition; distinguish primary error, cleanup_closed and secondary_errors. No rerun needed to establish these source semantics.",
+      "finding": "Claim that eager finally never executed is unsupported: ExitStack invokes enrolled context exits during exception unwind, and eager clean explicitly requires primary is None. A propagated private scope exception can make eager_clean false even when cleanup executed."
+    },
+    {
+      "severity": "P2",
+      "file": "incoming handoff",
+      "category": "evidence_gap",
+      "id": "F5",
+      "fix": "Preserve all surviving failures, logs and consumed records; label missing evidence and do not assert exhaustive failure-history verification.",
+      "finding": "Early OFFLINE failing directories reportedly deleted; this review cannot recover or independently establish their full contents."
+    }
+  ],
+  "accepted_technical_change": {
+    "description": "TOOL_CALL_END reconstruction order tool,success,latency,result,metadata,agent agrees with installed openjarvis/tools/_stubs.py lines452-460. Producer-order correction is justified; preserve values, metadata filtering and byte comparison. No justification to weaken guards to fit mocks.",
+    "file": "snapshot/profile-preparation/profile.py"
+  },
+  "evidence_credit": [
+    "Snapshot terminal records mechanical PASS, pending result review, cleanup PASS and acceptance false.",
+    "Reader result records distinct fresh reader and two observations with matching digests and exit0; establishes diagnostic write/readback plumbing, not real model research.",
+    "711-byte Controlled profile research.md is materialized; six mock SDK events and zero inference cannot establish actual current8B reasoning or fact quality.",
+    "Expected-event receipt records exactly one socket creation and one bind in connection.py _has_ipv6; installed urllib3 source creates AF_INET6 and binds ::1 port0. This supports diagnosis, not a general import allowance.",
+    "Same-session 27/27 review is useful supporting evidence, not independent authority. This review did not repeat all 27 checks."
+  ],
+  "next_actions": [
+    "Make minimal offline repaired candidate preserving failures and original current8B/product defaults; tighten probe ownership and keep source-backed ordering fix.",
+    "Run targeted offline regression checks only under parent authorized preparation, then bind source, dependencies, scope and immutable receipts in a new package.",
+    "Independent preparation review must precede a separately allocated runtime; this report grants none. Existing verifiable diagnostic data need not be rerun merely for a signature.",
+    "Actual E02 requires current8B fixed-candidate repeated controlled research, required real-network flow, at least three deduplicated fact-supported citations and actual file/readbacks under original contract gates; retain T2 NOT_PASSED until its full requirements hold."
+  ],
+  "declined_to_judge": [
+    "OS-wide network silence or adversarial containment",
+    "Live process or production status",
+    "Fresh test pass or all 27 checks independently recomputed",
+    "Real current8B inference quality, fact correctness and three-round acceptance",
+    "Validity of retrospective approvals or authority for another run",
+    "Missing deleted early failure evidence"
+  ]
+}

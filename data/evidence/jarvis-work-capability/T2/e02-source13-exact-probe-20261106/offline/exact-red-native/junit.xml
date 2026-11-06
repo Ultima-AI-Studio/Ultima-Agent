@@ -1,0 +1,284 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="16" skipped="0" tests="18" time="3.766" timestamp="2026-11-06T23:15:07.426627+08:00" hostname="DESKTOP-B366PQ9"><properties><property name="interpreter" value="H:\UltimaAI\UltimaAgent\tools\venv-openjarvis\Scripts\python.exe" /><property name="python" value="3.13.16 (main, Oct 14 2026, 01:05:56) [MSC v.1944 64 bit (AMD64)]" /><property name="import_path" value="[&quot;C:\\Users\\Administrator\\AppData\\Local\\Doubao\\User Data\\sandbox_runtime\\bases\\772984f6fd3a8ae0ae7d2422cd7c2bfa\\python\\python313.zip&quot;, &quot;C:\\Users\\Administrator\\AppData\\Local\\Doubao\\User Data\\sandbox_runtime\\bases\\772984f6fd3a8ae0ae7d2422cd7c2bfa\\python\\DLLs&quot;, &quot;C:\\Users\\Administrator\\AppData\\Local\\Doubao\\User Data\\sandbox_runtime\\bases\\772984f6fd3a8ae0ae7d2422cd7c2bfa\\python\\Lib&quot;, &quot;C:\\Users\\Administrator\\AppData\\Local\\Doubao\\User Data\\sandbox_runtime\\bases\\772984f6fd3a8ae0ae7d2422cd7c2bfa\\python&quot;, &quot;H:\\UltimaAI\\UltimaAgent\\tools\\venv-openjarvis&quot;, &quot;H:\\UltimaAI\\UltimaAgent\\tools\\venv-openjarvis\\Lib\\site-packages&quot;]" /><property name="pytest" value="9.2.0" /><property name="httpx" value="0.28.1" /><property name="openjarvis" value="1.0.4" /></properties><testcase classname="test_profile" name="test_probe_rejects_unrelated_import" time="0.081"><failure message="Failed: DID NOT RAISE ValueError">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-source13-exact-probe-20261106/offline/exact-red-native/temp/test_probe_rejects_unrelated_i0')
+
+    def test_probe_rejects_unrelated_import(tmp_path):
+        p=implementation();audit=p.WorkerAudit()
+        source=tmp_path/'unrelated_import.py'
+        source.write_text("audit('socket.__new__',(object(),23,1,0))\n",encoding='utf-8')
+        spec=importlib.util.spec_from_file_location('unrelated_import',source)
+        module=importlib.util.module_from_spec(spec);module.audit=audit
+&gt;       with pytest.raises(ValueError):spec.loader.exec_module(module)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+test_profile.py:3446: Failed</failure></testcase><testcase classname="test_profile" name="test_probe_rejects_constructor_drift[family]" time="0.041"><failure message="Failed: DID NOT RAISE ValueError">variant = 'family'
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000002224C24D220&gt;
+
+    @pytest.mark.parametrize('variant',['family','type','protocol','short','extra','object'])
+    def test_probe_rejects_constructor_drift(variant,monkeypatch):
+        import socket
+        p=implementation();audit=p.WorkerAudit();monkeypatch.setattr(p,'_inside_import',lambda:True)
+        sock=socket.socket.__new__(socket.socket)
+        args=(sock,23,1,0)
+        if variant=='family':args=(sock,2,1,0)
+        elif variant=='type':args=(sock,23,2,0)
+        elif variant=='protocol':args=(sock,23,1,6)
+        elif variant=='short':args=(sock,23,1)
+        elif variant=='extra':args=(*args,0)
+        elif variant=='object':args=(object(),23,1,0)
+&gt;       with pytest.raises(ValueError):audit('socket.__new__',args)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+test_profile.py:3462: Failed</failure></testcase><testcase classname="test_profile" name="test_probe_rejects_constructor_drift[type]" time="0.035"><failure message="Failed: DID NOT RAISE ValueError">variant = 'type'
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000002224CBCD940&gt;
+
+    @pytest.mark.parametrize('variant',['family','type','protocol','short','extra','object'])
+    def test_probe_rejects_constructor_drift(variant,monkeypatch):
+        import socket
+        p=implementation();audit=p.WorkerAudit();monkeypatch.setattr(p,'_inside_import',lambda:True)
+        sock=socket.socket.__new__(socket.socket)
+        args=(sock,23,1,0)
+        if variant=='family':args=(sock,2,1,0)
+        elif variant=='type':args=(sock,23,2,0)
+        elif variant=='protocol':args=(sock,23,1,6)
+        elif variant=='short':args=(sock,23,1)
+        elif variant=='extra':args=(*args,0)
+        elif variant=='object':args=(object(),23,1,0)
+&gt;       with pytest.raises(ValueError):audit('socket.__new__',args)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+test_profile.py:3462: Failed</failure></testcase><testcase classname="test_profile" name="test_probe_rejects_constructor_drift[protocol]" time="0.035"><failure message="Failed: DID NOT RAISE ValueError">variant = 'protocol'
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000002224CBAE330&gt;
+
+    @pytest.mark.parametrize('variant',['family','type','protocol','short','extra','object'])
+    def test_probe_rejects_constructor_drift(variant,monkeypatch):
+        import socket
+        p=implementation();audit=p.WorkerAudit();monkeypatch.setattr(p,'_inside_import',lambda:True)
+        sock=socket.socket.__new__(socket.socket)
+        args=(sock,23,1,0)
+        if variant=='family':args=(sock,2,1,0)
+        elif variant=='type':args=(sock,23,2,0)
+        elif variant=='protocol':args=(sock,23,1,6)
+        elif variant=='short':args=(sock,23,1)
+        elif variant=='extra':args=(*args,0)
+        elif variant=='object':args=(object(),23,1,0)
+&gt;       with pytest.raises(ValueError):audit('socket.__new__',args)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+test_profile.py:3462: Failed</failure></testcase><testcase classname="test_profile" name="test_probe_rejects_constructor_drift[short]" time="0.037"><failure message="Failed: DID NOT RAISE ValueError">variant = 'short'
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000002224CB69F20&gt;
+
+    @pytest.mark.parametrize('variant',['family','type','protocol','short','extra','object'])
+    def test_probe_rejects_constructor_drift(variant,monkeypatch):
+        import socket
+        p=implementation();audit=p.WorkerAudit();monkeypatch.setattr(p,'_inside_import',lambda:True)
+        sock=socket.socket.__new__(socket.socket)
+        args=(sock,23,1,0)
+        if variant=='family':args=(sock,2,1,0)
+        elif variant=='type':args=(sock,23,2,0)
+        elif variant=='protocol':args=(sock,23,1,6)
+        elif variant=='short':args=(sock,23,1)
+        elif variant=='extra':args=(*args,0)
+        elif variant=='object':args=(object(),23,1,0)
+&gt;       with pytest.raises(ValueError):audit('socket.__new__',args)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+test_profile.py:3462: Failed</failure></testcase><testcase classname="test_profile" name="test_probe_rejects_constructor_drift[extra]" time="0.038"><failure message="Failed: DID NOT RAISE ValueError">variant = 'extra'
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000002224CB6A9C0&gt;
+
+    @pytest.mark.parametrize('variant',['family','type','protocol','short','extra','object'])
+    def test_probe_rejects_constructor_drift(variant,monkeypatch):
+        import socket
+        p=implementation();audit=p.WorkerAudit();monkeypatch.setattr(p,'_inside_import',lambda:True)
+        sock=socket.socket.__new__(socket.socket)
+        args=(sock,23,1,0)
+        if variant=='family':args=(sock,2,1,0)
+        elif variant=='type':args=(sock,23,2,0)
+        elif variant=='protocol':args=(sock,23,1,6)
+        elif variant=='short':args=(sock,23,1)
+        elif variant=='extra':args=(*args,0)
+        elif variant=='object':args=(object(),23,1,0)
+&gt;       with pytest.raises(ValueError):audit('socket.__new__',args)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+test_profile.py:3462: Failed</failure></testcase><testcase classname="test_profile" name="test_probe_rejects_constructor_drift[object]" time="0.039"><failure message="Failed: DID NOT RAISE ValueError">variant = 'object'
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000002224FCEB250&gt;
+
+    @pytest.mark.parametrize('variant',['family','type','protocol','short','extra','object'])
+    def test_probe_rejects_constructor_drift(variant,monkeypatch):
+        import socket
+        p=implementation();audit=p.WorkerAudit();monkeypatch.setattr(p,'_inside_import',lambda:True)
+        sock=socket.socket.__new__(socket.socket)
+        args=(sock,23,1,0)
+        if variant=='family':args=(sock,2,1,0)
+        elif variant=='type':args=(sock,23,2,0)
+        elif variant=='protocol':args=(sock,23,1,6)
+        elif variant=='short':args=(sock,23,1)
+        elif variant=='extra':args=(*args,0)
+        elif variant=='object':args=(object(),23,1,0)
+&gt;       with pytest.raises(ValueError):audit('socket.__new__',args)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+test_profile.py:3462: Failed</failure></testcase><testcase classname="test_profile" name="test_probe_rejects_bind_drift[other_socket]" time="0.046"><failure message="Failed: DID NOT RAISE ValueError">variant = 'other_socket'
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000002224FC01550&gt;
+
+    @pytest.mark.parametrize('variant',['other_socket','ipv4','localhost','port','address_extra','nonpositional','repeat'])
+    def test_probe_rejects_bind_drift(variant,monkeypatch):
+        import socket
+        p=implementation();audit=p.WorkerAudit();monkeypatch.setattr(p,'_inside_import',lambda:True)
+        sock=socket.socket.__new__(socket.socket);other=socket.socket.__new__(socket.socket)
+        audit('socket.__new__',(sock,23,1,0))
+        args=(sock,('::1',0))
+        if variant=='other_socket':args=(other,('::1',0))
+        elif variant=='ipv4':args=(sock,('127.0.0.1',0))
+        elif variant=='localhost':args=(sock,('localhost',0))
+        elif variant=='port':args=(sock,('::1',11434))
+        elif variant=='address_extra':args=(sock,('::1',0,0,0))
+        elif variant=='nonpositional':args=(sock,('192.0.2.1',1234),('::1',0))
+        elif variant=='repeat':audit('socket.bind',args)
+&gt;       with pytest.raises(ValueError):audit('socket.bind',args)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+test_profile.py:3480: Failed</failure></testcase><testcase classname="test_profile" name="test_probe_rejects_bind_drift[ipv4]" time="0.037"><failure message="Failed: DID NOT RAISE ValueError">variant = 'ipv4'
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000002224FCF7C50&gt;
+
+    @pytest.mark.parametrize('variant',['other_socket','ipv4','localhost','port','address_extra','nonpositional','repeat'])
+    def test_probe_rejects_bind_drift(variant,monkeypatch):
+        import socket
+        p=implementation();audit=p.WorkerAudit();monkeypatch.setattr(p,'_inside_import',lambda:True)
+        sock=socket.socket.__new__(socket.socket);other=socket.socket.__new__(socket.socket)
+        audit('socket.__new__',(sock,23,1,0))
+        args=(sock,('::1',0))
+        if variant=='other_socket':args=(other,('::1',0))
+        elif variant=='ipv4':args=(sock,('127.0.0.1',0))
+        elif variant=='localhost':args=(sock,('localhost',0))
+        elif variant=='port':args=(sock,('::1',11434))
+        elif variant=='address_extra':args=(sock,('::1',0,0,0))
+        elif variant=='nonpositional':args=(sock,('192.0.2.1',1234),('::1',0))
+        elif variant=='repeat':audit('socket.bind',args)
+&gt;       with pytest.raises(ValueError):audit('socket.bind',args)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+test_profile.py:3480: Failed</failure></testcase><testcase classname="test_profile" name="test_probe_rejects_bind_drift[localhost]" time="0.041"><failure message="Failed: DID NOT RAISE ValueError">variant = 'localhost'
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000002224CE29F40&gt;
+
+    @pytest.mark.parametrize('variant',['other_socket','ipv4','localhost','port','address_extra','nonpositional','repeat'])
+    def test_probe_rejects_bind_drift(variant,monkeypatch):
+        import socket
+        p=implementation();audit=p.WorkerAudit();monkeypatch.setattr(p,'_inside_import',lambda:True)
+        sock=socket.socket.__new__(socket.socket);other=socket.socket.__new__(socket.socket)
+        audit('socket.__new__',(sock,23,1,0))
+        args=(sock,('::1',0))
+        if variant=='other_socket':args=(other,('::1',0))
+        elif variant=='ipv4':args=(sock,('127.0.0.1',0))
+        elif variant=='localhost':args=(sock,('localhost',0))
+        elif variant=='port':args=(sock,('::1',11434))
+        elif variant=='address_extra':args=(sock,('::1',0,0,0))
+        elif variant=='nonpositional':args=(sock,('192.0.2.1',1234),('::1',0))
+        elif variant=='repeat':audit('socket.bind',args)
+&gt;       with pytest.raises(ValueError):audit('socket.bind',args)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+test_profile.py:3480: Failed</failure></testcase><testcase classname="test_profile" name="test_probe_rejects_bind_drift[port]" time="0.037" /><testcase classname="test_profile" name="test_probe_rejects_bind_drift[address_extra]" time="0.034"><failure message="Failed: DID NOT RAISE ValueError">variant = 'address_extra'
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000002224C2E7930&gt;
+
+    @pytest.mark.parametrize('variant',['other_socket','ipv4','localhost','port','address_extra','nonpositional','repeat'])
+    def test_probe_rejects_bind_drift(variant,monkeypatch):
+        import socket
+        p=implementation();audit=p.WorkerAudit();monkeypatch.setattr(p,'_inside_import',lambda:True)
+        sock=socket.socket.__new__(socket.socket);other=socket.socket.__new__(socket.socket)
+        audit('socket.__new__',(sock,23,1,0))
+        args=(sock,('::1',0))
+        if variant=='other_socket':args=(other,('::1',0))
+        elif variant=='ipv4':args=(sock,('127.0.0.1',0))
+        elif variant=='localhost':args=(sock,('localhost',0))
+        elif variant=='port':args=(sock,('::1',11434))
+        elif variant=='address_extra':args=(sock,('::1',0,0,0))
+        elif variant=='nonpositional':args=(sock,('192.0.2.1',1234),('::1',0))
+        elif variant=='repeat':audit('socket.bind',args)
+&gt;       with pytest.raises(ValueError):audit('socket.bind',args)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+test_profile.py:3480: Failed</failure></testcase><testcase classname="test_profile" name="test_probe_rejects_bind_drift[nonpositional]" time="0.037"><failure message="Failed: DID NOT RAISE ValueError">variant = 'nonpositional'
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000002224E2BF930&gt;
+
+    @pytest.mark.parametrize('variant',['other_socket','ipv4','localhost','port','address_extra','nonpositional','repeat'])
+    def test_probe_rejects_bind_drift(variant,monkeypatch):
+        import socket
+        p=implementation();audit=p.WorkerAudit();monkeypatch.setattr(p,'_inside_import',lambda:True)
+        sock=socket.socket.__new__(socket.socket);other=socket.socket.__new__(socket.socket)
+        audit('socket.__new__',(sock,23,1,0))
+        args=(sock,('::1',0))
+        if variant=='other_socket':args=(other,('::1',0))
+        elif variant=='ipv4':args=(sock,('127.0.0.1',0))
+        elif variant=='localhost':args=(sock,('localhost',0))
+        elif variant=='port':args=(sock,('::1',11434))
+        elif variant=='address_extra':args=(sock,('::1',0,0,0))
+        elif variant=='nonpositional':args=(sock,('192.0.2.1',1234),('::1',0))
+        elif variant=='repeat':audit('socket.bind',args)
+&gt;       with pytest.raises(ValueError):audit('socket.bind',args)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+test_profile.py:3480: Failed</failure></testcase><testcase classname="test_profile" name="test_probe_rejects_bind_drift[repeat]" time="0.036"><failure message="Failed: DID NOT RAISE ValueError">variant = 'repeat'
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x00000222500CD490&gt;
+
+    @pytest.mark.parametrize('variant',['other_socket','ipv4','localhost','port','address_extra','nonpositional','repeat'])
+    def test_probe_rejects_bind_drift(variant,monkeypatch):
+        import socket
+        p=implementation();audit=p.WorkerAudit();monkeypatch.setattr(p,'_inside_import',lambda:True)
+        sock=socket.socket.__new__(socket.socket);other=socket.socket.__new__(socket.socket)
+        audit('socket.__new__',(sock,23,1,0))
+        args=(sock,('::1',0))
+        if variant=='other_socket':args=(other,('::1',0))
+        elif variant=='ipv4':args=(sock,('127.0.0.1',0))
+        elif variant=='localhost':args=(sock,('localhost',0))
+        elif variant=='port':args=(sock,('::1',11434))
+        elif variant=='address_extra':args=(sock,('::1',0,0,0))
+        elif variant=='nonpositional':args=(sock,('192.0.2.1',1234),('::1',0))
+        elif variant=='repeat':audit('socket.bind',args)
+&gt;       with pytest.raises(ValueError):audit('socket.bind',args)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+test_profile.py:3480: Failed</failure></testcase><testcase classname="test_profile" name="test_probe_rejects_second_constructor" time="0.034"><failure message="Failed: DID NOT RAISE ValueError">monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x00000222500CC050&gt;
+
+    def test_probe_rejects_second_constructor(monkeypatch):
+        import socket
+        p=implementation();audit=p.WorkerAudit();monkeypatch.setattr(p,'_inside_import',lambda:True)
+        first=socket.socket.__new__(socket.socket);second=socket.socket.__new__(socket.socket)
+        audit('socket.__new__',(first,23,1,0))
+&gt;       with pytest.raises(ValueError):audit('socket.__new__',(second,23,1,0))
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+test_profile.py:3489: Failed</failure></testcase><testcase classname="test_profile" name="test_probe_incomplete_pair_is_not_clean" time="0.041"><failure message="assert True is False">monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000002224FD3EDB0&gt;
+
+    def test_probe_incomplete_pair_is_not_clean(monkeypatch):
+        import socket
+        p=implementation();audit=p.WorkerAudit();monkeypatch.setattr(p,'_inside_import',lambda:True)
+        sock=socket.socket.__new__(socket.socket);audit('socket.__new__',(sock,23,1,0))
+&gt;       assert p.audit_closeout(audit)['clean'] is False
+E       assert True is False
+
+test_profile.py:3497: AssertionError</failure></testcase><testcase classname="test_profile" name="test_probe_open_socket_is_not_clean" time="0.035"><failure message="assert True is False">monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000002224CBB6830&gt;
+
+    def test_probe_open_socket_is_not_clean(monkeypatch):
+        import socket
+        p=implementation();audit=p.WorkerAudit();monkeypatch.setattr(p,'_inside_import',lambda:True)
+        sock=socket.socket.__new__(socket.socket);audit('socket.__new__',(sock,23,1,0));audit('socket.bind',(sock,('::1',0)))
+        # Offline closeout double only; no native socket is opened by this test.
+        audit._probe_socket=SimpleNamespace(fileno=lambda:7)
+&gt;       assert p.audit_closeout(audit)['clean'] is False
+E       assert True is False
+
+test_profile.py:3506: AssertionError</failure></testcase><testcase classname="test_profile" name="test_real_urllib3_probe_closes_in_fresh_process" time="0.791" /></testsuite></testsuites>

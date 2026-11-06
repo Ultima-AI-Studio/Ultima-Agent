@@ -1,0 +1,320 @@
+--- H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-source13-audit-closeout-20261106\profile-preparation\profile.py
++++ H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-source13-exact-probe-20261106\profile-preparation\profile.py
+@@ -16,6 +16,7 @@
+ from pathlib import Path
+ import re
+ import sys
++import socket as _socket
+ import threading
+ import time
+ import traceback
+@@ -166,7 +167,7 @@
+         sys.path.insert(0,pins['candidate_root'])
+         try: yield dict(audit=audit,eager=eager,eager_audit=eager_audit)
+         finally:
+-            if sys.exc_info()[1] is None: require(not audit.denied,'Reader audited refusal invalidates outcome')
++            if sys.exc_info()[1] is None: require(not audit.denied and audit.probe_closed(),'Reader audited refusal or probe cleanup invalidates outcome')
+ 
+ 
+ class RootControls:
+@@ -179,49 +180,50 @@
+ 
+ _SITE_LIMIT=32
+ _SITE_FRAMES=10
+-_LOOPBACK_PROBE_HOSTS={'::1','127.0.0.1','localhost'}
++_PROBE_ORIGIN=PY.parent.parent/'Lib/site-packages/urllib3/util/connection.py'
++_PROBE_SOURCE_SHA256='2633bbdb69731e5ccb5cf4e4afd65605d86c7979cc5633126f50c92d5ad74a74'
+ 
+ 
+ def _inside_import():
+-    """True when the audited call runs inside a module body being executed.
+-
+-    Used only to separate third-party import-time capability probes from
+-    operations the product itself performs.
+-    """
++    """Only the pinned urllib3 _has_ipv6(::1) module-initialization call."""
++    module=sys.modules.get('urllib3.util.connection')
++    if module is None or getattr(getattr(module,'__spec__',None),'_initializing',False) is not True:
++        return False
++    function=getattr(module,'_has_ipv6',None)
+     frame=sys._getframe(1)
+     while frame is not None:
+-        if frame.f_code.co_filename.startswith('<frozen importlib.'):
+-            return True
++        if (frame.f_code is getattr(function,'__code__',None)
++                and frame.f_code.co_name=='_has_ipv6'
++                and Path(frame.f_code.co_filename)==_PROBE_ORIGIN
++                and frame.f_globals is module.__dict__ and frame.f_locals.get('host')=='::1'):
++            caller=frame.f_back
++            return (caller is not None and caller.f_code.co_name=='<module>'
++                    and Path(caller.f_code.co_filename)==_PROBE_ORIGIN
++                    and caller.f_globals is frame.f_globals
++                    and digest(_PROBE_ORIGIN.read_bytes())==_PROBE_SOURCE_SHA256)
+         frame=frame.f_back
+     return False
+ 
+ 
+-def _import_probe(event,args):
+-    """The two harmless halves of a loopback capability probe at import time.
+-
+-    A third party may create a socket and bind an ephemeral port on the
+-    loopback interface to learn whether the host supports a protocol family.
+-    Only those two events are excused, only while a module body is executing,
+-    and a bind is excused only when its target is loopback with port zero.
+-    Everything else stays denied: connect, send, listen, and any bind that
+-    names a real interface or a real port.
+-    """
+-    if not _inside_import():
++def _import_probe(event,args,audit):
++    """One typed socket and its exact bind, owned by this audited import."""
++    if event not in ('socket.__new__','socket.bind') or not _inside_import():
+         return False
+     if event=='socket.__new__':
++        if (audit._probe_socket is not None or len(args)!=4
++                or not isinstance(args[0],_socket.SocketType)
++                or not all(type(v) is int for v in args[1:])
++                or args[1:]!=(int(_socket.AF_INET6),int(_socket.SOCK_STREAM),0)):
++            return False
++        audit._probe_socket=args[0]
+         return True
+-    if event=='socket.bind':
+-        # CPython raises socket.bind with (socket, address); scan every argument
+-        # so the check does not depend on that positional layout.
+-        try:
+-            for value in args:
+-                if isinstance(value,(tuple,list)) and len(value)>=2:
+-                    host=str(value[0]).lower(); port=value[1]
+-                    if host in _LOOPBACK_PROBE_HOSTS and type(port) is int and port==0:
+-                        return True
+-        except BaseException:
+-            return False
+-    return False
++    if (len(args)!=2 or args[0] is not audit._probe_socket or audit._probe_socket is None
++            or audit._probe_bound or type(args[1]) is not tuple or len(args[1])!=2
++            or type(args[1][0]) is not str or args[1][0]!='::1'
++            or type(args[1][1]) is not int or args[1][1]!=0):
++        return False
++    audit._probe_bound=True
++    return True
+ 
+ 
+ def _audit_site(event):
+@@ -246,8 +248,15 @@
+     def __init__(self):
+         self.denied={}; self.enabled=True; self.denied_sites=[]
+         self.expected={}; self.expected_sites=[]
++        self._probe_socket=None; self._probe_bound=False
+         self.denied_sites_truncated=False; self.expected_sites_truncated=False
+         self.ordinary_http=None; self.os_packets=None
++    def probe_closed(self):
++        if self._probe_socket is None:
++            return not self.expected
++        return (isinstance(self._probe_socket,_socket.SocketType) and self._probe_bound
++                and self.expected=={'socket.__new__':1,'socket.bind':1}
++                and self._probe_socket.fileno()==-1)
+     def __call__(self,event,args):
+         if not self.enabled:
+             return
+@@ -258,12 +267,9 @@
+             if args and args[0]=='raw.githubusercontent.com': return
+         if (event.startswith('socket.') or event.startswith('subprocess.') or
+             event in ('os.system','os.startfile','os.startfile/2','os.posix_spawn','os.spawn')):
+-            # Import-time loopback capability probe: a third party opens a socket and
+-            # binds an ephemeral port on the loopback interface while its own module
+-            # body executes. Both events are still receipted as expected. Connect,
+-            # send, listen and every non-loopback or fixed-port bind stay denied, so
+-            # an excused socket cannot reach anything.
+-            if _import_probe(event,args):
++            # Only the pinned urllib3 IPv6 probe is exempted; keep its ownership
++            # until closeout and require that same socket to have been closed.
++            if _import_probe(event,args,self):
+                 self.expected[event]=self.expected.get(event,0)+1
+                 if len(self.expected_sites)<_SITE_LIMIT: self.expected_sites.append(_audit_site(event))
+                 else: self.expected_sites_truncated=True
+@@ -552,12 +558,13 @@
+ 
+ 
+ def audit_closeout(audit):
+-    return dict(clean=not bool(audit.denied),denied=dict(audit.denied),
++    return dict(clean=not bool(audit.denied) and audit.probe_closed(),denied=dict(audit.denied),
+                 denied_sites=list(getattr(audit,'denied_sites',[])),
+                 site_truncated=bool(getattr(audit,'denied_sites_truncated',False)),
+                 expected=dict(getattr(audit,'expected',{})),
+                 expected_sites=list(getattr(audit,'expected_sites',[])),
+                 expected_truncated=bool(getattr(audit,'expected_sites_truncated',False)),
++                expected_probe_closed=audit.probe_closed(),
+                 ordinary_http=None,os_packets=None,native_activity=None)
+ 
+ @contextmanager
+@@ -645,7 +652,7 @@
+                 if server._jars is not None: server._jars.close()
+             except BaseException as exc:
+                 cleanup['errors'].append(type(exc).__name__[:80])
+-            dirty=(bool(audit.denied) or budget.refused!=0 or browser['refused']!=0
++            dirty=(bool(audit.denied) or not audit.probe_closed() or budget.refused!=0 or browser['refused']!=0
+                    or browser.get('dns',{}).get('refused',0)!=0
+                    or state.get('refused',0)!=0
+                    or any(record.get('refused',0) for record in counters.values())
+@@ -1639,9 +1646,9 @@
+     if not getattr(audit,'expected',{}): return None
+     path=folder/'audit-expected-events.json'
+     if path.exists(): return None
+-    receipt=dict(format=1,kind='EXPECTED_IMPORT_PROBE_RECEIPT',clean=not bool(audit.denied),
++    receipt=dict(format=1,kind='EXPECTED_IMPORT_PROBE_RECEIPT',clean=not bool(audit.denied) and audit.probe_closed(),
+                  expected=dict(audit.expected),expected_sites=list(audit.expected_sites),
+-                 expected_truncated=bool(audit.expected_sites_truncated),
++                 expected_truncated=bool(audit.expected_sites_truncated),expected_probe_closed=audit.probe_closed(),
+                  frame_limit=_SITE_FRAMES,site_limit=_SITE_LIMIT)
+     return write_new(path,receipt)
+ 
+--- H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-source13-audit-closeout-20261106\profile-preparation\test_profile.py
++++ H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-source13-exact-probe-20261106\profile-preparation\test_profile.py
+@@ -3400,7 +3400,8 @@
+ 
+ 
+ def test_import_time_socket_probe_is_expected_but_connect_is_not(monkeypatch):
+-    p=implementation(); audit=p.WorkerAudit(); sock=object()
++    import socket
++    p=implementation(); audit=p.WorkerAudit(); sock=socket.socket.__new__(socket.socket)
+     monkeypatch.setattr(p,'_inside_import',lambda: True)
+     audit('socket.__new__',(sock,23,1,0))
+     audit('socket.bind',(sock,('::1',0)))
+@@ -3421,17 +3422,107 @@
+     assert p.audit_closeout(audit)['clean'] is False
+ 
+ 
+-def test_expected_probe_receipt_is_written_on_clean_closeout(tmp_path):
++def test_expected_probe_receipt_is_written_on_clean_closeout(tmp_path,monkeypatch):
++    import socket
+     p=implementation(); folder=tmp_path/'case'; folder.mkdir(); audit=p.WorkerAudit()
+-    audit.expected={'socket.__new__':1}; audit.expected_sites=[p._audit_site('socket.__new__')]
++    monkeypatch.setattr(p,'_inside_import',lambda:True)
++    sock=socket.socket.__new__(socket.socket)
++    audit('socket.__new__',(sock,23,1,0));audit('socket.bind',(sock,('::1',0)))
+     first=p.write_expected_evidence(folder,audit)
+     path=folder/'audit-expected-events.json'
+     value=json.loads(path.read_bytes())
+     assert first==p.digest(path.read_bytes())
+     assert value['kind']=='EXPECTED_IMPORT_PROBE_RECEIPT' and value['clean'] is True
+-    assert value['expected']=={'socket.__new__':1}
++    assert value['expected']=={'socket.__new__':1,'socket.bind':1}
++    assert value['expected_probe_closed'] is True
+     assert value['expected_sites'][0]['event']=='socket.__new__'
+     assert value['frame_limit']==p._SITE_FRAMES and value['site_limit']==p._SITE_LIMIT
+     assert p.write_expected_evidence(folder,audit) is None
+     empty=tmp_path/'empty'; empty.mkdir()
+     assert p.write_expected_evidence(empty,p.WorkerAudit()) is None
++
++
++def test_probe_rejects_unrelated_import(tmp_path):
++    p=implementation();audit=p.WorkerAudit()
++    source=tmp_path/'unrelated_import.py'
++    source.write_text("audit('socket.__new__',(object(),23,1,0))\n",encoding='utf-8')
++    spec=importlib.util.spec_from_file_location('unrelated_import',source)
++    module=importlib.util.module_from_spec(spec);module.audit=audit
++    with pytest.raises(ValueError):spec.loader.exec_module(module)
++    assert audit.denied=={'socket.__new__':1}
++
++
++@pytest.mark.parametrize('variant',['family','type','protocol','short','extra','object'])
++def test_probe_rejects_constructor_drift(variant,monkeypatch):
++    import socket
++    p=implementation();audit=p.WorkerAudit();monkeypatch.setattr(p,'_inside_import',lambda:True)
++    sock=socket.socket.__new__(socket.socket)
++    args=(sock,23,1,0)
++    if variant=='family':args=(sock,2,1,0)
++    elif variant=='type':args=(sock,23,2,0)
++    elif variant=='protocol':args=(sock,23,1,6)
++    elif variant=='short':args=(sock,23,1)
++    elif variant=='extra':args=(*args,0)
++    elif variant=='object':args=(object(),23,1,0)
++    with pytest.raises(ValueError):audit('socket.__new__',args)
++    assert audit.denied=={'socket.__new__':1}
++
++
++@pytest.mark.parametrize('variant',['other_socket','ipv4','localhost','port','address_extra','nonpositional','repeat'])
++def test_probe_rejects_bind_drift(variant,monkeypatch):
++    import socket
++    p=implementation();audit=p.WorkerAudit();monkeypatch.setattr(p,'_inside_import',lambda:True)
++    sock=socket.socket.__new__(socket.socket);other=socket.socket.__new__(socket.socket)
++    audit('socket.__new__',(sock,23,1,0))
++    args=(sock,('::1',0))
++    if variant=='other_socket':args=(other,('::1',0))
++    elif variant=='ipv4':args=(sock,('127.0.0.1',0))
++    elif variant=='localhost':args=(sock,('localhost',0))
++    elif variant=='port':args=(sock,('::1',11434))
++    elif variant=='address_extra':args=(sock,('::1',0,0,0))
++    elif variant=='nonpositional':args=(sock,('192.0.2.1',1234),('::1',0))
++    elif variant=='repeat':audit('socket.bind',args)
++    with pytest.raises(ValueError):audit('socket.bind',args)
++    assert audit.denied=={'socket.bind':1}
++
++
++def test_probe_rejects_second_constructor(monkeypatch):
++    import socket
++    p=implementation();audit=p.WorkerAudit();monkeypatch.setattr(p,'_inside_import',lambda:True)
++    first=socket.socket.__new__(socket.socket);second=socket.socket.__new__(socket.socket)
++    audit('socket.__new__',(first,23,1,0))
++    with pytest.raises(ValueError):audit('socket.__new__',(second,23,1,0))
++    assert audit.denied=={'socket.__new__':1}
++
++
++def test_probe_incomplete_pair_is_not_clean(monkeypatch):
++    import socket
++    p=implementation();audit=p.WorkerAudit();monkeypatch.setattr(p,'_inside_import',lambda:True)
++    sock=socket.socket.__new__(socket.socket);audit('socket.__new__',(sock,23,1,0))
++    assert p.audit_closeout(audit)['clean'] is False
++
++
++def test_probe_open_socket_is_not_clean(monkeypatch):
++    import socket
++    p=implementation();audit=p.WorkerAudit();monkeypatch.setattr(p,'_inside_import',lambda:True)
++    sock=socket.socket.__new__(socket.socket);audit('socket.__new__',(sock,23,1,0));audit('socket.bind',(sock,('::1',0)))
++    # Offline closeout double only; no native socket is opened by this test.
++    audit._probe_socket=SimpleNamespace(fileno=lambda:7)
++    assert p.audit_closeout(audit)['clean'] is False
++
++
++def test_real_urllib3_probe_closes_in_fresh_process(tmp_path):
++    import os,subprocess
++    p=implementation();result=tmp_path/'probe.json'
++    forbidden={'OLLAMA_HOST','OLLAMA_API_KEY','OLLAMA_MODELS','PYTHONPATH','PYTHONHOME','PYTHONSTARTUP','OPENJARVIS_HOME','OPENJARVIS_CONFIG','XDG_DATA_HOME','XDG_CACHE_HOME','TMP','TEMP','TMPDIR','OPENJARVIS_SSRF_FAIL_OPEN'}
++    env={k:v for k,v in os.environ.items() if k.upper() not in forbidden and not k.upper().endswith('_PROXY')}
++    command=[str(p.PY),'-I','-B','-X','utf8',str(HERE.parent/'cold/urllib3_probe.py'),str(result)]
++    run=subprocess.run(command,cwd=HERE,env=env,capture_output=True,timeout=45,creationflags=subprocess.CREATE_NO_WINDOW)
++    (tmp_path/'stdout.txt').write_bytes(run.stdout);(tmp_path/'stderr.txt').write_bytes(run.stderr)
++    assert result.exists(),run.stderr.decode('utf-8','replace')
++    value=json.loads(result.read_bytes())
++    assert run.returncode==0 and value['outcome']=='PASS',value
++    assert value['pid']!=os.getpid() and value['closed_at_return']==[True]
++    assert value['audit']['clean'] and value['events']==['socket.__new__','socket.bind']
++    assert value['unclean_before_close']==[True]
++    assert value['profile_runs']==value['model_calls']==0
+--- H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-source13-cold-import-20261106\code\entry.py
++++ H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-source13-exact-probe-20261106\code\entry.py
+@@ -9,7 +9,7 @@
+ from package_io import require,load,save_new,sha,safe_path
+ from controls import Context,WorkerControls,ReaderControls,PROFILE,PY,same,exact,native_key
+ 
+-ROOT=Path(r'H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-source13-cold-import-20261106')
++ROOT=Path(r'H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-source13-exact-probe-20261106')
+ FORBIDDEN={'OLLAMA_HOST','OLLAMA_API_KEY','OLLAMA_MODELS','PYTHONPATH','PYTHONHOME','PYTHONSTARTUP',
+     'OPENJARVIS_HOME','OPENJARVIS_CONFIG','XDG_DATA_HOME','XDG_CACHE_HOME','TMP','TEMP','TMPDIR','OPENJARVIS_SSRF_FAIL_OPEN'}
+ 
+--- H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-source13-cold-import-20261106\code\controls.py
++++ H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-source13-exact-probe-20261106\code\controls.py
+@@ -15,12 +15,12 @@
+ from package_io import require,read,sha,digest,canonical,decode,load,safe_path,save_new
+ 
+ PY=Path(r'H:\UltimaAI\UltimaAgent\tools\venv-openjarvis\Scripts\python.exe')
+-BASE_MANIFEST=Path(r'H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-source13-cold-import-20261106\profile-preparation\manifest.json')
++BASE_MANIFEST=Path(r'H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-source13-exact-probe-20261106\profile-preparation\manifest.json')
+ CANDIDATE='269aca511d88412dbb9c15d23911138469a37aa2'
+ MODEL_DIGEST='6d7230a923426bc1933879eb08a7dafc18e5fc0e7606c459ce98f16e0c7f9330'
+ SCOPE='ORIGINAL_CORPUS_ZERO_INFERENCE_PROFILE'
+ source=BASE_MANIFEST.parent/'profile.py'
+-if hashlib.sha256(source.read_bytes()).hexdigest()!='5c837adbdd6fa7aaee6d0ed7da9e6b2992c5df613d41a88326db6799f5a60985':raise ValueError('Profile source drift')
++if hashlib.sha256(source.read_bytes()).hexdigest()!='444081b115829e29d9203601091fac5303b0facb4f7b65ae0f9101b63400f29e':raise ValueError('Profile source drift')
+ spec=importlib.util.spec_from_file_location('source13_root_profile',source)
+ PROFILE=importlib.util.module_from_spec(spec);spec.loader.exec_module(PROFILE)
+ 
