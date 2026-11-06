@@ -1,0 +1,1223 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="38" skipped="0" tests="38" time="6.242" timestamp="2026-11-06T13:46:06.463986+08:00" hostname="DESKTOP-B366PQ9"><testcase classname="code.test_e01_round2_prerequisite" name="test_round2_scope_requires_five_ordered_credentials" time="0.024"><failure message="AssertionError: assert ('e01-round1' == 'e01-round2'&#10;  &#10;  - e01-round2&#10;  ?          ^&#10;  + e01-round1&#10;  ?          ^)">material = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e01-source13-round2-20261106/verification/tmp-round2-prerequisite-red2/test_round2_scope_requires_fiv0')
+
+    def test_round2_scope_requires_five_ordered_credentials(material):
+&gt;       assert entry.CASE == 'e01-round2' and entry.SCOPE == 'e01-round2-acceptance'
+E       AssertionError: assert ('e01-round1' == 'e01-round2'
+E         
+E         - e01-round2
+E         ?          ^
+E         + e01-round1
+E         ?          ^)
+
+code\test_e01_round2_prerequisite.py:38: AssertionError</failure></testcase><testcase classname="code.test_e01_round2_prerequisite" name="test_missing_e01_first_round_cannot_be_ignored[terminal]" time="0.123"><failure message="Failed: DID NOT RAISE any of (ValueError, FileNotFoundError)">material = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e01-source13-round2-20261106/verification/tmp-round2-prerequisite-red2/test_missing_e01_first_round_c0')
+name = 'terminal'
+
+    @pytest.mark.parametrize('name',['terminal','review','registration'])
+    def test_missing_e01_first_round_cannot_be_ignored(material,name):
+        (material/'inputs/prior-e01-round1'/(name+'.json')).unlink()
+&gt;       with pytest.raises((ValueError,FileNotFoundError)):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE any of (ValueError, FileNotFoundError)
+
+code\test_e01_round2_prerequisite.py:47: Failed</failure></testcase><testcase classname="code.test_e01_round2_prerequisite" name="test_missing_e01_first_round_cannot_be_ignored[review]" time="0.102"><failure message="Failed: DID NOT RAISE any of (ValueError, FileNotFoundError)">material = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e01-source13-round2-20261106/verification/tmp-round2-prerequisite-red2/test_missing_e01_first_round_c1')
+name = 'review'
+
+    @pytest.mark.parametrize('name',['terminal','review','registration'])
+    def test_missing_e01_first_round_cannot_be_ignored(material,name):
+        (material/'inputs/prior-e01-round1'/(name+'.json')).unlink()
+&gt;       with pytest.raises((ValueError,FileNotFoundError)):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE any of (ValueError, FileNotFoundError)
+
+code\test_e01_round2_prerequisite.py:47: Failed</failure></testcase><testcase classname="code.test_e01_round2_prerequisite" name="test_missing_e01_first_round_cannot_be_ignored[registration]" time="0.150"><failure message="Failed: DID NOT RAISE any of (ValueError, FileNotFoundError)">material = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e01-source13-round2-20261106/verification/tmp-round2-prerequisite-red2/test_missing_e01_first_round_c2')
+name = 'registration'
+
+    @pytest.mark.parametrize('name',['terminal','review','registration'])
+    def test_missing_e01_first_round_cannot_be_ignored(material,name):
+        (material/'inputs/prior-e01-round1'/(name+'.json')).unlink()
+&gt;       with pytest.raises((ValueError,FileNotFoundError)):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE any of (ValueError, FileNotFoundError)
+
+code\test_e01_round2_prerequisite.py:47: Failed</failure></testcase><testcase classname="code.test_e01_round2_prerequisite" name="test_ineligible_first_round_stops_after_consistent_rehash[terminal-candidate-old]" time="0.141"><failure message="Failed: DID NOT RAISE ValueError">material = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e01-source13-round2-20261106/verification/tmp-round2-prerequisite-red2/test_ineligible_first_round_st0')
+name = 'terminal', field = 'candidate', value = 'old'
+
+    @pytest.mark.parametrize('name,field,value',[
+        ('terminal','candidate','old'),('terminal','scope','e03-round1-acceptance'),
+        ('terminal','overall','FAIL'),('terminal','mechanical','FAIL'),
+        ('terminal','acceptance_credit',True),('terminal','work_cli_count',True),
+        ('terminal','work_cli_count',2),('terminal','retry_authorized',True),
+        ('terminal','cleanup.status','FAIL'),('terminal','errors',[{'error':'failure retained'}]),
+        ('review','reviewer','root'),('review','scope','e01-round1-acceptance-package'),
+        ('review','facts_verdict','FAIL'),('review','file_verdict','FAIL'),
+        ('review','final_claim_verdict','FAIL'),('review','cleanup_verdict','FAIL'),
+        ('review','target_verdict','PASS'),('review','independent_from_preparation_reviewer',False),
+        ('review','no_new_facts.verdict','FAIL'),
+        ('review','execution.model','unapproved-model'),('review','execution.model_digest','0'*64),
+        ('review','execution.work_cli_launches',2),('review','execution.automatic_retry_recorded',True),
+        ('review','recommendation.acceptance_credit_recommended',False),
+        ('registration','facts','FAIL'),('registration','acceptance_credit',False),
+        ('registration','positive_passed',0),('registration','positive_required',2),
+        ('registration','same_candidate_e01_terminals',2),
+        ('registration','E03_prerequisite_registration_sha256','0'*64),
+        ('registration','artifact_sha256','0'*64),('registration','current_case_work_cli_count',0),
+    ])
+    def test_ineligible_first_round_stops_after_consistent_rehash(material,name,field,value):
+        path = material/'inputs/prior-e01-round1'/(name+'.json')
+        data = load(path)
+        target = data
+        keys = field.split('.')
+        for key in keys[:-1]: target = target[key]
+        target[keys[-1]] = value
+        put(path,data)
+        rebind(material)
+&gt;       with pytest.raises(ValueError): entry.predecessor_reviews(material)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+code\test_e01_round2_prerequisite.py:80: Failed</failure></testcase><testcase classname="code.test_e01_round2_prerequisite" name="test_ineligible_first_round_stops_after_consistent_rehash[terminal-scope-e03-round1-acceptance]" time="0.178"><failure message="Failed: DID NOT RAISE ValueError">material = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e01-source13-round2-20261106/verification/tmp-round2-prerequisite-red2/test_ineligible_first_round_st1')
+name = 'terminal', field = 'scope', value = 'e03-round1-acceptance'
+
+    @pytest.mark.parametrize('name,field,value',[
+        ('terminal','candidate','old'),('terminal','scope','e03-round1-acceptance'),
+        ('terminal','overall','FAIL'),('terminal','mechanical','FAIL'),
+        ('terminal','acceptance_credit',True),('terminal','work_cli_count',True),
+        ('terminal','work_cli_count',2),('terminal','retry_authorized',True),
+        ('terminal','cleanup.status','FAIL'),('terminal','errors',[{'error':'failure retained'}]),
+        ('review','reviewer','root'),('review','scope','e01-round1-acceptance-package'),
+        ('review','facts_verdict','FAIL'),('review','file_verdict','FAIL'),
+        ('review','final_claim_verdict','FAIL'),('review','cleanup_verdict','FAIL'),
+        ('review','target_verdict','PASS'),('review','independent_from_preparation_reviewer',False),
+        ('review','no_new_facts.verdict','FAIL'),
+        ('review','execution.model','unapproved-model'),('review','execution.model_digest','0'*64),
+        ('review','execution.work_cli_launches',2),('review','execution.automatic_retry_recorded',True),
+        ('review','recommendation.acceptance_credit_recommended',False),
+        ('registration','facts','FAIL'),('registration','acceptance_credit',False),
+        ('registration','positive_passed',0),('registration','positive_required',2),
+        ('registration','same_candidate_e01_terminals',2),
+        ('registration','E03_prerequisite_registration_sha256','0'*64),
+        ('registration','artifact_sha256','0'*64),('registration','current_case_work_cli_count',0),
+    ])
+    def test_ineligible_first_round_stops_after_consistent_rehash(material,name,field,value):
+        path = material/'inputs/prior-e01-round1'/(name+'.json')
+        data = load(path)
+        target = data
+        keys = field.split('.')
+        for key in keys[:-1]: target = target[key]
+        target[keys[-1]] = value
+        put(path,data)
+        rebind(material)
+&gt;       with pytest.raises(ValueError): entry.predecessor_reviews(material)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+code\test_e01_round2_prerequisite.py:80: Failed</failure></testcase><testcase classname="code.test_e01_round2_prerequisite" name="test_ineligible_first_round_stops_after_consistent_rehash[terminal-overall-FAIL]" time="0.160"><failure message="Failed: DID NOT RAISE ValueError">material = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e01-source13-round2-20261106/verification/tmp-round2-prerequisite-red2/test_ineligible_first_round_st2')
+name = 'terminal', field = 'overall', value = 'FAIL'
+
+    @pytest.mark.parametrize('name,field,value',[
+        ('terminal','candidate','old'),('terminal','scope','e03-round1-acceptance'),
+        ('terminal','overall','FAIL'),('terminal','mechanical','FAIL'),
+        ('terminal','acceptance_credit',True),('terminal','work_cli_count',True),
+        ('terminal','work_cli_count',2),('terminal','retry_authorized',True),
+        ('terminal','cleanup.status','FAIL'),('terminal','errors',[{'error':'failure retained'}]),
+        ('review','reviewer','root'),('review','scope','e01-round1-acceptance-package'),
+        ('review','facts_verdict','FAIL'),('review','file_verdict','FAIL'),
+        ('review','final_claim_verdict','FAIL'),('review','cleanup_verdict','FAIL'),
+        ('review','target_verdict','PASS'),('review','independent_from_preparation_reviewer',False),
+        ('review','no_new_facts.verdict','FAIL'),
+        ('review','execution.model','unapproved-model'),('review','execution.model_digest','0'*64),
+        ('review','execution.work_cli_launches',2),('review','execution.automatic_retry_recorded',True),
+        ('review','recommendation.acceptance_credit_recommended',False),
+        ('registration','facts','FAIL'),('registration','acceptance_credit',False),
+        ('registration','positive_passed',0),('registration','positive_required',2),
+        ('registration','same_candidate_e01_terminals',2),
+        ('registration','E03_prerequisite_registration_sha256','0'*64),
+        ('registration','artifact_sha256','0'*64),('registration','current_case_work_cli_count',0),
+    ])
+    def test_ineligible_first_round_stops_after_consistent_rehash(material,name,field,value):
+        path = material/'inputs/prior-e01-round1'/(name+'.json')
+        data = load(path)
+        target = data
+        keys = field.split('.')
+        for key in keys[:-1]: target = target[key]
+        target[keys[-1]] = value
+        put(path,data)
+        rebind(material)
+&gt;       with pytest.raises(ValueError): entry.predecessor_reviews(material)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+code\test_e01_round2_prerequisite.py:80: Failed</failure></testcase><testcase classname="code.test_e01_round2_prerequisite" name="test_ineligible_first_round_stops_after_consistent_rehash[terminal-mechanical-FAIL]" time="0.127"><failure message="Failed: DID NOT RAISE ValueError">material = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e01-source13-round2-20261106/verification/tmp-round2-prerequisite-red2/test_ineligible_first_round_st3')
+name = 'terminal', field = 'mechanical', value = 'FAIL'
+
+    @pytest.mark.parametrize('name,field,value',[
+        ('terminal','candidate','old'),('terminal','scope','e03-round1-acceptance'),
+        ('terminal','overall','FAIL'),('terminal','mechanical','FAIL'),
+        ('terminal','acceptance_credit',True),('terminal','work_cli_count',True),
+        ('terminal','work_cli_count',2),('terminal','retry_authorized',True),
+        ('terminal','cleanup.status','FAIL'),('terminal','errors',[{'error':'failure retained'}]),
+        ('review','reviewer','root'),('review','scope','e01-round1-acceptance-package'),
+        ('review','facts_verdict','FAIL'),('review','file_verdict','FAIL'),
+        ('review','final_claim_verdict','FAIL'),('review','cleanup_verdict','FAIL'),
+        ('review','target_verdict','PASS'),('review','independent_from_preparation_reviewer',False),
+        ('review','no_new_facts.verdict','FAIL'),
+        ('review','execution.model','unapproved-model'),('review','execution.model_digest','0'*64),
+        ('review','execution.work_cli_launches',2),('review','execution.automatic_retry_recorded',True),
+        ('review','recommendation.acceptance_credit_recommended',False),
+        ('registration','facts','FAIL'),('registration','acceptance_credit',False),
+        ('registration','positive_passed',0),('registration','positive_required',2),
+        ('registration','same_candidate_e01_terminals',2),
+        ('registration','E03_prerequisite_registration_sha256','0'*64),
+        ('registration','artifact_sha256','0'*64),('registration','current_case_work_cli_count',0),
+    ])
+    def test_ineligible_first_round_stops_after_consistent_rehash(material,name,field,value):
+        path = material/'inputs/prior-e01-round1'/(name+'.json')
+        data = load(path)
+        target = data
+        keys = field.split('.')
+        for key in keys[:-1]: target = target[key]
+        target[keys[-1]] = value
+        put(path,data)
+        rebind(material)
+&gt;       with pytest.raises(ValueError): entry.predecessor_reviews(material)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+code\test_e01_round2_prerequisite.py:80: Failed</failure></testcase><testcase classname="code.test_e01_round2_prerequisite" name="test_ineligible_first_round_stops_after_consistent_rehash[terminal-acceptance_credit-True]" time="0.147"><failure message="Failed: DID NOT RAISE ValueError">material = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e01-source13-round2-20261106/verification/tmp-round2-prerequisite-red2/test_ineligible_first_round_st4')
+name = 'terminal', field = 'acceptance_credit', value = True
+
+    @pytest.mark.parametrize('name,field,value',[
+        ('terminal','candidate','old'),('terminal','scope','e03-round1-acceptance'),
+        ('terminal','overall','FAIL'),('terminal','mechanical','FAIL'),
+        ('terminal','acceptance_credit',True),('terminal','work_cli_count',True),
+        ('terminal','work_cli_count',2),('terminal','retry_authorized',True),
+        ('terminal','cleanup.status','FAIL'),('terminal','errors',[{'error':'failure retained'}]),
+        ('review','reviewer','root'),('review','scope','e01-round1-acceptance-package'),
+        ('review','facts_verdict','FAIL'),('review','file_verdict','FAIL'),
+        ('review','final_claim_verdict','FAIL'),('review','cleanup_verdict','FAIL'),
+        ('review','target_verdict','PASS'),('review','independent_from_preparation_reviewer',False),
+        ('review','no_new_facts.verdict','FAIL'),
+        ('review','execution.model','unapproved-model'),('review','execution.model_digest','0'*64),
+        ('review','execution.work_cli_launches',2),('review','execution.automatic_retry_recorded',True),
+        ('review','recommendation.acceptance_credit_recommended',False),
+        ('registration','facts','FAIL'),('registration','acceptance_credit',False),
+        ('registration','positive_passed',0),('registration','positive_required',2),
+        ('registration','same_candidate_e01_terminals',2),
+        ('registration','E03_prerequisite_registration_sha256','0'*64),
+        ('registration','artifact_sha256','0'*64),('registration','current_case_work_cli_count',0),
+    ])
+    def test_ineligible_first_round_stops_after_consistent_rehash(material,name,field,value):
+        path = material/'inputs/prior-e01-round1'/(name+'.json')
+        data = load(path)
+        target = data
+        keys = field.split('.')
+        for key in keys[:-1]: target = target[key]
+        target[keys[-1]] = value
+        put(path,data)
+        rebind(material)
+&gt;       with pytest.raises(ValueError): entry.predecessor_reviews(material)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+code\test_e01_round2_prerequisite.py:80: Failed</failure></testcase><testcase classname="code.test_e01_round2_prerequisite" name="test_ineligible_first_round_stops_after_consistent_rehash[terminal-work_cli_count-True]" time="0.156"><failure message="Failed: DID NOT RAISE ValueError">material = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e01-source13-round2-20261106/verification/tmp-round2-prerequisite-red2/test_ineligible_first_round_st5')
+name = 'terminal', field = 'work_cli_count', value = True
+
+    @pytest.mark.parametrize('name,field,value',[
+        ('terminal','candidate','old'),('terminal','scope','e03-round1-acceptance'),
+        ('terminal','overall','FAIL'),('terminal','mechanical','FAIL'),
+        ('terminal','acceptance_credit',True),('terminal','work_cli_count',True),
+        ('terminal','work_cli_count',2),('terminal','retry_authorized',True),
+        ('terminal','cleanup.status','FAIL'),('terminal','errors',[{'error':'failure retained'}]),
+        ('review','reviewer','root'),('review','scope','e01-round1-acceptance-package'),
+        ('review','facts_verdict','FAIL'),('review','file_verdict','FAIL'),
+        ('review','final_claim_verdict','FAIL'),('review','cleanup_verdict','FAIL'),
+        ('review','target_verdict','PASS'),('review','independent_from_preparation_reviewer',False),
+        ('review','no_new_facts.verdict','FAIL'),
+        ('review','execution.model','unapproved-model'),('review','execution.model_digest','0'*64),
+        ('review','execution.work_cli_launches',2),('review','execution.automatic_retry_recorded',True),
+        ('review','recommendation.acceptance_credit_recommended',False),
+        ('registration','facts','FAIL'),('registration','acceptance_credit',False),
+        ('registration','positive_passed',0),('registration','positive_required',2),
+        ('registration','same_candidate_e01_terminals',2),
+        ('registration','E03_prerequisite_registration_sha256','0'*64),
+        ('registration','artifact_sha256','0'*64),('registration','current_case_work_cli_count',0),
+    ])
+    def test_ineligible_first_round_stops_after_consistent_rehash(material,name,field,value):
+        path = material/'inputs/prior-e01-round1'/(name+'.json')
+        data = load(path)
+        target = data
+        keys = field.split('.')
+        for key in keys[:-1]: target = target[key]
+        target[keys[-1]] = value
+        put(path,data)
+        rebind(material)
+&gt;       with pytest.raises(ValueError): entry.predecessor_reviews(material)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+code\test_e01_round2_prerequisite.py:80: Failed</failure></testcase><testcase classname="code.test_e01_round2_prerequisite" name="test_ineligible_first_round_stops_after_consistent_rehash[terminal-work_cli_count-2]" time="0.127"><failure message="Failed: DID NOT RAISE ValueError">material = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e01-source13-round2-20261106/verification/tmp-round2-prerequisite-red2/test_ineligible_first_round_st6')
+name = 'terminal', field = 'work_cli_count', value = 2
+
+    @pytest.mark.parametrize('name,field,value',[
+        ('terminal','candidate','old'),('terminal','scope','e03-round1-acceptance'),
+        ('terminal','overall','FAIL'),('terminal','mechanical','FAIL'),
+        ('terminal','acceptance_credit',True),('terminal','work_cli_count',True),
+        ('terminal','work_cli_count',2),('terminal','retry_authorized',True),
+        ('terminal','cleanup.status','FAIL'),('terminal','errors',[{'error':'failure retained'}]),
+        ('review','reviewer','root'),('review','scope','e01-round1-acceptance-package'),
+        ('review','facts_verdict','FAIL'),('review','file_verdict','FAIL'),
+        ('review','final_claim_verdict','FAIL'),('review','cleanup_verdict','FAIL'),
+        ('review','target_verdict','PASS'),('review','independent_from_preparation_reviewer',False),
+        ('review','no_new_facts.verdict','FAIL'),
+        ('review','execution.model','unapproved-model'),('review','execution.model_digest','0'*64),
+        ('review','execution.work_cli_launches',2),('review','execution.automatic_retry_recorded',True),
+        ('review','recommendation.acceptance_credit_recommended',False),
+        ('registration','facts','FAIL'),('registration','acceptance_credit',False),
+        ('registration','positive_passed',0),('registration','positive_required',2),
+        ('registration','same_candidate_e01_terminals',2),
+        ('registration','E03_prerequisite_registration_sha256','0'*64),
+        ('registration','artifact_sha256','0'*64),('registration','current_case_work_cli_count',0),
+    ])
+    def test_ineligible_first_round_stops_after_consistent_rehash(material,name,field,value):
+        path = material/'inputs/prior-e01-round1'/(name+'.json')
+        data = load(path)
+        target = data
+        keys = field.split('.')
+        for key in keys[:-1]: target = target[key]
+        target[keys[-1]] = value
+        put(path,data)
+        rebind(material)
+&gt;       with pytest.raises(ValueError): entry.predecessor_reviews(material)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+code\test_e01_round2_prerequisite.py:80: Failed</failure></testcase><testcase classname="code.test_e01_round2_prerequisite" name="test_ineligible_first_round_stops_after_consistent_rehash[terminal-retry_authorized-True]" time="0.140"><failure message="Failed: DID NOT RAISE ValueError">material = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e01-source13-round2-20261106/verification/tmp-round2-prerequisite-red2/test_ineligible_first_round_st7')
+name = 'terminal', field = 'retry_authorized', value = True
+
+    @pytest.mark.parametrize('name,field,value',[
+        ('terminal','candidate','old'),('terminal','scope','e03-round1-acceptance'),
+        ('terminal','overall','FAIL'),('terminal','mechanical','FAIL'),
+        ('terminal','acceptance_credit',True),('terminal','work_cli_count',True),
+        ('terminal','work_cli_count',2),('terminal','retry_authorized',True),
+        ('terminal','cleanup.status','FAIL'),('terminal','errors',[{'error':'failure retained'}]),
+        ('review','reviewer','root'),('review','scope','e01-round1-acceptance-package'),
+        ('review','facts_verdict','FAIL'),('review','file_verdict','FAIL'),
+        ('review','final_claim_verdict','FAIL'),('review','cleanup_verdict','FAIL'),
+        ('review','target_verdict','PASS'),('review','independent_from_preparation_reviewer',False),
+        ('review','no_new_facts.verdict','FAIL'),
+        ('review','execution.model','unapproved-model'),('review','execution.model_digest','0'*64),
+        ('review','execution.work_cli_launches',2),('review','execution.automatic_retry_recorded',True),
+        ('review','recommendation.acceptance_credit_recommended',False),
+        ('registration','facts','FAIL'),('registration','acceptance_credit',False),
+        ('registration','positive_passed',0),('registration','positive_required',2),
+        ('registration','same_candidate_e01_terminals',2),
+        ('registration','E03_prerequisite_registration_sha256','0'*64),
+        ('registration','artifact_sha256','0'*64),('registration','current_case_work_cli_count',0),
+    ])
+    def test_ineligible_first_round_stops_after_consistent_rehash(material,name,field,value):
+        path = material/'inputs/prior-e01-round1'/(name+'.json')
+        data = load(path)
+        target = data
+        keys = field.split('.')
+        for key in keys[:-1]: target = target[key]
+        target[keys[-1]] = value
+        put(path,data)
+        rebind(material)
+&gt;       with pytest.raises(ValueError): entry.predecessor_reviews(material)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+code\test_e01_round2_prerequisite.py:80: Failed</failure></testcase><testcase classname="code.test_e01_round2_prerequisite" name="test_ineligible_first_round_stops_after_consistent_rehash[terminal-cleanup.status-FAIL]" time="0.124"><failure message="Failed: DID NOT RAISE ValueError">material = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e01-source13-round2-20261106/verification/tmp-round2-prerequisite-red2/test_ineligible_first_round_st8')
+name = 'terminal', field = 'cleanup.status', value = 'FAIL'
+
+    @pytest.mark.parametrize('name,field,value',[
+        ('terminal','candidate','old'),('terminal','scope','e03-round1-acceptance'),
+        ('terminal','overall','FAIL'),('terminal','mechanical','FAIL'),
+        ('terminal','acceptance_credit',True),('terminal','work_cli_count',True),
+        ('terminal','work_cli_count',2),('terminal','retry_authorized',True),
+        ('terminal','cleanup.status','FAIL'),('terminal','errors',[{'error':'failure retained'}]),
+        ('review','reviewer','root'),('review','scope','e01-round1-acceptance-package'),
+        ('review','facts_verdict','FAIL'),('review','file_verdict','FAIL'),
+        ('review','final_claim_verdict','FAIL'),('review','cleanup_verdict','FAIL'),
+        ('review','target_verdict','PASS'),('review','independent_from_preparation_reviewer',False),
+        ('review','no_new_facts.verdict','FAIL'),
+        ('review','execution.model','unapproved-model'),('review','execution.model_digest','0'*64),
+        ('review','execution.work_cli_launches',2),('review','execution.automatic_retry_recorded',True),
+        ('review','recommendation.acceptance_credit_recommended',False),
+        ('registration','facts','FAIL'),('registration','acceptance_credit',False),
+        ('registration','positive_passed',0),('registration','positive_required',2),
+        ('registration','same_candidate_e01_terminals',2),
+        ('registration','E03_prerequisite_registration_sha256','0'*64),
+        ('registration','artifact_sha256','0'*64),('registration','current_case_work_cli_count',0),
+    ])
+    def test_ineligible_first_round_stops_after_consistent_rehash(material,name,field,value):
+        path = material/'inputs/prior-e01-round1'/(name+'.json')
+        data = load(path)
+        target = data
+        keys = field.split('.')
+        for key in keys[:-1]: target = target[key]
+        target[keys[-1]] = value
+        put(path,data)
+        rebind(material)
+&gt;       with pytest.raises(ValueError): entry.predecessor_reviews(material)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+code\test_e01_round2_prerequisite.py:80: Failed</failure></testcase><testcase classname="code.test_e01_round2_prerequisite" name="test_ineligible_first_round_stops_after_consistent_rehash[terminal-errors-value9]" time="0.135"><failure message="Failed: DID NOT RAISE ValueError">material = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e01-source13-round2-20261106/verification/tmp-round2-prerequisite-red2/test_ineligible_first_round_st9')
+name = 'terminal', field = 'errors', value = [{'error': 'failure retained'}]
+
+    @pytest.mark.parametrize('name,field,value',[
+        ('terminal','candidate','old'),('terminal','scope','e03-round1-acceptance'),
+        ('terminal','overall','FAIL'),('terminal','mechanical','FAIL'),
+        ('terminal','acceptance_credit',True),('terminal','work_cli_count',True),
+        ('terminal','work_cli_count',2),('terminal','retry_authorized',True),
+        ('terminal','cleanup.status','FAIL'),('terminal','errors',[{'error':'failure retained'}]),
+        ('review','reviewer','root'),('review','scope','e01-round1-acceptance-package'),
+        ('review','facts_verdict','FAIL'),('review','file_verdict','FAIL'),
+        ('review','final_claim_verdict','FAIL'),('review','cleanup_verdict','FAIL'),
+        ('review','target_verdict','PASS'),('review','independent_from_preparation_reviewer',False),
+        ('review','no_new_facts.verdict','FAIL'),
+        ('review','execution.model','unapproved-model'),('review','execution.model_digest','0'*64),
+        ('review','execution.work_cli_launches',2),('review','execution.automatic_retry_recorded',True),
+        ('review','recommendation.acceptance_credit_recommended',False),
+        ('registration','facts','FAIL'),('registration','acceptance_credit',False),
+        ('registration','positive_passed',0),('registration','positive_required',2),
+        ('registration','same_candidate_e01_terminals',2),
+        ('registration','E03_prerequisite_registration_sha256','0'*64),
+        ('registration','artifact_sha256','0'*64),('registration','current_case_work_cli_count',0),
+    ])
+    def test_ineligible_first_round_stops_after_consistent_rehash(material,name,field,value):
+        path = material/'inputs/prior-e01-round1'/(name+'.json')
+        data = load(path)
+        target = data
+        keys = field.split('.')
+        for key in keys[:-1]: target = target[key]
+        target[keys[-1]] = value
+        put(path,data)
+        rebind(material)
+&gt;       with pytest.raises(ValueError): entry.predecessor_reviews(material)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+code\test_e01_round2_prerequisite.py:80: Failed</failure></testcase><testcase classname="code.test_e01_round2_prerequisite" name="test_ineligible_first_round_stops_after_consistent_rehash[review-reviewer-root]" time="0.143"><failure message="Failed: DID NOT RAISE ValueError">material = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e01-source13-round2-20261106/verification/tmp-round2-prerequisite-red2/test_ineligible_first_round_st10')
+name = 'review', field = 'reviewer', value = 'root'
+
+    @pytest.mark.parametrize('name,field,value',[
+        ('terminal','candidate','old'),('terminal','scope','e03-round1-acceptance'),
+        ('terminal','overall','FAIL'),('terminal','mechanical','FAIL'),
+        ('terminal','acceptance_credit',True),('terminal','work_cli_count',True),
+        ('terminal','work_cli_count',2),('terminal','retry_authorized',True),
+        ('terminal','cleanup.status','FAIL'),('terminal','errors',[{'error':'failure retained'}]),
+        ('review','reviewer','root'),('review','scope','e01-round1-acceptance-package'),
+        ('review','facts_verdict','FAIL'),('review','file_verdict','FAIL'),
+        ('review','final_claim_verdict','FAIL'),('review','cleanup_verdict','FAIL'),
+        ('review','target_verdict','PASS'),('review','independent_from_preparation_reviewer',False),
+        ('review','no_new_facts.verdict','FAIL'),
+        ('review','execution.model','unapproved-model'),('review','execution.model_digest','0'*64),
+        ('review','execution.work_cli_launches',2),('review','execution.automatic_retry_recorded',True),
+        ('review','recommendation.acceptance_credit_recommended',False),
+        ('registration','facts','FAIL'),('registration','acceptance_credit',False),
+        ('registration','positive_passed',0),('registration','positive_required',2),
+        ('registration','same_candidate_e01_terminals',2),
+        ('registration','E03_prerequisite_registration_sha256','0'*64),
+        ('registration','artifact_sha256','0'*64),('registration','current_case_work_cli_count',0),
+    ])
+    def test_ineligible_first_round_stops_after_consistent_rehash(material,name,field,value):
+        path = material/'inputs/prior-e01-round1'/(name+'.json')
+        data = load(path)
+        target = data
+        keys = field.split('.')
+        for key in keys[:-1]: target = target[key]
+        target[keys[-1]] = value
+        put(path,data)
+        rebind(material)
+&gt;       with pytest.raises(ValueError): entry.predecessor_reviews(material)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+code\test_e01_round2_prerequisite.py:80: Failed</failure></testcase><testcase classname="code.test_e01_round2_prerequisite" name="test_ineligible_first_round_stops_after_consistent_rehash[review-scope-e01-round1-acceptance-package]" time="0.171"><failure message="Failed: DID NOT RAISE ValueError">material = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e01-source13-round2-20261106/verification/tmp-round2-prerequisite-red2/test_ineligible_first_round_st11')
+name = 'review', field = 'scope', value = 'e01-round1-acceptance-package'
+
+    @pytest.mark.parametrize('name,field,value',[
+        ('terminal','candidate','old'),('terminal','scope','e03-round1-acceptance'),
+        ('terminal','overall','FAIL'),('terminal','mechanical','FAIL'),
+        ('terminal','acceptance_credit',True),('terminal','work_cli_count',True),
+        ('terminal','work_cli_count',2),('terminal','retry_authorized',True),
+        ('terminal','cleanup.status','FAIL'),('terminal','errors',[{'error':'failure retained'}]),
+        ('review','reviewer','root'),('review','scope','e01-round1-acceptance-package'),
+        ('review','facts_verdict','FAIL'),('review','file_verdict','FAIL'),
+        ('review','final_claim_verdict','FAIL'),('review','cleanup_verdict','FAIL'),
+        ('review','target_verdict','PASS'),('review','independent_from_preparation_reviewer',False),
+        ('review','no_new_facts.verdict','FAIL'),
+        ('review','execution.model','unapproved-model'),('review','execution.model_digest','0'*64),
+        ('review','execution.work_cli_launches',2),('review','execution.automatic_retry_recorded',True),
+        ('review','recommendation.acceptance_credit_recommended',False),
+        ('registration','facts','FAIL'),('registration','acceptance_credit',False),
+        ('registration','positive_passed',0),('registration','positive_required',2),
+        ('registration','same_candidate_e01_terminals',2),
+        ('registration','E03_prerequisite_registration_sha256','0'*64),
+        ('registration','artifact_sha256','0'*64),('registration','current_case_work_cli_count',0),
+    ])
+    def test_ineligible_first_round_stops_after_consistent_rehash(material,name,field,value):
+        path = material/'inputs/prior-e01-round1'/(name+'.json')
+        data = load(path)
+        target = data
+        keys = field.split('.')
+        for key in keys[:-1]: target = target[key]
+        target[keys[-1]] = value
+        put(path,data)
+        rebind(material)
+&gt;       with pytest.raises(ValueError): entry.predecessor_reviews(material)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+code\test_e01_round2_prerequisite.py:80: Failed</failure></testcase><testcase classname="code.test_e01_round2_prerequisite" name="test_ineligible_first_round_stops_after_consistent_rehash[review-facts_verdict-FAIL]" time="0.142"><failure message="Failed: DID NOT RAISE ValueError">material = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e01-source13-round2-20261106/verification/tmp-round2-prerequisite-red2/test_ineligible_first_round_st12')
+name = 'review', field = 'facts_verdict', value = 'FAIL'
+
+    @pytest.mark.parametrize('name,field,value',[
+        ('terminal','candidate','old'),('terminal','scope','e03-round1-acceptance'),
+        ('terminal','overall','FAIL'),('terminal','mechanical','FAIL'),
+        ('terminal','acceptance_credit',True),('terminal','work_cli_count',True),
+        ('terminal','work_cli_count',2),('terminal','retry_authorized',True),
+        ('terminal','cleanup.status','FAIL'),('terminal','errors',[{'error':'failure retained'}]),
+        ('review','reviewer','root'),('review','scope','e01-round1-acceptance-package'),
+        ('review','facts_verdict','FAIL'),('review','file_verdict','FAIL'),
+        ('review','final_claim_verdict','FAIL'),('review','cleanup_verdict','FAIL'),
+        ('review','target_verdict','PASS'),('review','independent_from_preparation_reviewer',False),
+        ('review','no_new_facts.verdict','FAIL'),
+        ('review','execution.model','unapproved-model'),('review','execution.model_digest','0'*64),
+        ('review','execution.work_cli_launches',2),('review','execution.automatic_retry_recorded',True),
+        ('review','recommendation.acceptance_credit_recommended',False),
+        ('registration','facts','FAIL'),('registration','acceptance_credit',False),
+        ('registration','positive_passed',0),('registration','positive_required',2),
+        ('registration','same_candidate_e01_terminals',2),
+        ('registration','E03_prerequisite_registration_sha256','0'*64),
+        ('registration','artifact_sha256','0'*64),('registration','current_case_work_cli_count',0),
+    ])
+    def test_ineligible_first_round_stops_after_consistent_rehash(material,name,field,value):
+        path = material/'inputs/prior-e01-round1'/(name+'.json')
+        data = load(path)
+        target = data
+        keys = field.split('.')
+        for key in keys[:-1]: target = target[key]
+        target[keys[-1]] = value
+        put(path,data)
+        rebind(material)
+&gt;       with pytest.raises(ValueError): entry.predecessor_reviews(material)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+code\test_e01_round2_prerequisite.py:80: Failed</failure></testcase><testcase classname="code.test_e01_round2_prerequisite" name="test_ineligible_first_round_stops_after_consistent_rehash[review-file_verdict-FAIL]" time="0.137"><failure message="Failed: DID NOT RAISE ValueError">material = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e01-source13-round2-20261106/verification/tmp-round2-prerequisite-red2/test_ineligible_first_round_st13')
+name = 'review', field = 'file_verdict', value = 'FAIL'
+
+    @pytest.mark.parametrize('name,field,value',[
+        ('terminal','candidate','old'),('terminal','scope','e03-round1-acceptance'),
+        ('terminal','overall','FAIL'),('terminal','mechanical','FAIL'),
+        ('terminal','acceptance_credit',True),('terminal','work_cli_count',True),
+        ('terminal','work_cli_count',2),('terminal','retry_authorized',True),
+        ('terminal','cleanup.status','FAIL'),('terminal','errors',[{'error':'failure retained'}]),
+        ('review','reviewer','root'),('review','scope','e01-round1-acceptance-package'),
+        ('review','facts_verdict','FAIL'),('review','file_verdict','FAIL'),
+        ('review','final_claim_verdict','FAIL'),('review','cleanup_verdict','FAIL'),
+        ('review','target_verdict','PASS'),('review','independent_from_preparation_reviewer',False),
+        ('review','no_new_facts.verdict','FAIL'),
+        ('review','execution.model','unapproved-model'),('review','execution.model_digest','0'*64),
+        ('review','execution.work_cli_launches',2),('review','execution.automatic_retry_recorded',True),
+        ('review','recommendation.acceptance_credit_recommended',False),
+        ('registration','facts','FAIL'),('registration','acceptance_credit',False),
+        ('registration','positive_passed',0),('registration','positive_required',2),
+        ('registration','same_candidate_e01_terminals',2),
+        ('registration','E03_prerequisite_registration_sha256','0'*64),
+        ('registration','artifact_sha256','0'*64),('registration','current_case_work_cli_count',0),
+    ])
+    def test_ineligible_first_round_stops_after_consistent_rehash(material,name,field,value):
+        path = material/'inputs/prior-e01-round1'/(name+'.json')
+        data = load(path)
+        target = data
+        keys = field.split('.')
+        for key in keys[:-1]: target = target[key]
+        target[keys[-1]] = value
+        put(path,data)
+        rebind(material)
+&gt;       with pytest.raises(ValueError): entry.predecessor_reviews(material)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+code\test_e01_round2_prerequisite.py:80: Failed</failure></testcase><testcase classname="code.test_e01_round2_prerequisite" name="test_ineligible_first_round_stops_after_consistent_rehash[review-final_claim_verdict-FAIL]" time="0.121"><failure message="Failed: DID NOT RAISE ValueError">material = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e01-source13-round2-20261106/verification/tmp-round2-prerequisite-red2/test_ineligible_first_round_st14')
+name = 'review', field = 'final_claim_verdict', value = 'FAIL'
+
+    @pytest.mark.parametrize('name,field,value',[
+        ('terminal','candidate','old'),('terminal','scope','e03-round1-acceptance'),
+        ('terminal','overall','FAIL'),('terminal','mechanical','FAIL'),
+        ('terminal','acceptance_credit',True),('terminal','work_cli_count',True),
+        ('terminal','work_cli_count',2),('terminal','retry_authorized',True),
+        ('terminal','cleanup.status','FAIL'),('terminal','errors',[{'error':'failure retained'}]),
+        ('review','reviewer','root'),('review','scope','e01-round1-acceptance-package'),
+        ('review','facts_verdict','FAIL'),('review','file_verdict','FAIL'),
+        ('review','final_claim_verdict','FAIL'),('review','cleanup_verdict','FAIL'),
+        ('review','target_verdict','PASS'),('review','independent_from_preparation_reviewer',False),
+        ('review','no_new_facts.verdict','FAIL'),
+        ('review','execution.model','unapproved-model'),('review','execution.model_digest','0'*64),
+        ('review','execution.work_cli_launches',2),('review','execution.automatic_retry_recorded',True),
+        ('review','recommendation.acceptance_credit_recommended',False),
+        ('registration','facts','FAIL'),('registration','acceptance_credit',False),
+        ('registration','positive_passed',0),('registration','positive_required',2),
+        ('registration','same_candidate_e01_terminals',2),
+        ('registration','E03_prerequisite_registration_sha256','0'*64),
+        ('registration','artifact_sha256','0'*64),('registration','current_case_work_cli_count',0),
+    ])
+    def test_ineligible_first_round_stops_after_consistent_rehash(material,name,field,value):
+        path = material/'inputs/prior-e01-round1'/(name+'.json')
+        data = load(path)
+        target = data
+        keys = field.split('.')
+        for key in keys[:-1]: target = target[key]
+        target[keys[-1]] = value
+        put(path,data)
+        rebind(material)
+&gt;       with pytest.raises(ValueError): entry.predecessor_reviews(material)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+code\test_e01_round2_prerequisite.py:80: Failed</failure></testcase><testcase classname="code.test_e01_round2_prerequisite" name="test_ineligible_first_round_stops_after_consistent_rehash[review-cleanup_verdict-FAIL]" time="0.131"><failure message="Failed: DID NOT RAISE ValueError">material = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e01-source13-round2-20261106/verification/tmp-round2-prerequisite-red2/test_ineligible_first_round_st15')
+name = 'review', field = 'cleanup_verdict', value = 'FAIL'
+
+    @pytest.mark.parametrize('name,field,value',[
+        ('terminal','candidate','old'),('terminal','scope','e03-round1-acceptance'),
+        ('terminal','overall','FAIL'),('terminal','mechanical','FAIL'),
+        ('terminal','acceptance_credit',True),('terminal','work_cli_count',True),
+        ('terminal','work_cli_count',2),('terminal','retry_authorized',True),
+        ('terminal','cleanup.status','FAIL'),('terminal','errors',[{'error':'failure retained'}]),
+        ('review','reviewer','root'),('review','scope','e01-round1-acceptance-package'),
+        ('review','facts_verdict','FAIL'),('review','file_verdict','FAIL'),
+        ('review','final_claim_verdict','FAIL'),('review','cleanup_verdict','FAIL'),
+        ('review','target_verdict','PASS'),('review','independent_from_preparation_reviewer',False),
+        ('review','no_new_facts.verdict','FAIL'),
+        ('review','execution.model','unapproved-model'),('review','execution.model_digest','0'*64),
+        ('review','execution.work_cli_launches',2),('review','execution.automatic_retry_recorded',True),
+        ('review','recommendation.acceptance_credit_recommended',False),
+        ('registration','facts','FAIL'),('registration','acceptance_credit',False),
+        ('registration','positive_passed',0),('registration','positive_required',2),
+        ('registration','same_candidate_e01_terminals',2),
+        ('registration','E03_prerequisite_registration_sha256','0'*64),
+        ('registration','artifact_sha256','0'*64),('registration','current_case_work_cli_count',0),
+    ])
+    def test_ineligible_first_round_stops_after_consistent_rehash(material,name,field,value):
+        path = material/'inputs/prior-e01-round1'/(name+'.json')
+        data = load(path)
+        target = data
+        keys = field.split('.')
+        for key in keys[:-1]: target = target[key]
+        target[keys[-1]] = value
+        put(path,data)
+        rebind(material)
+&gt;       with pytest.raises(ValueError): entry.predecessor_reviews(material)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+code\test_e01_round2_prerequisite.py:80: Failed</failure></testcase><testcase classname="code.test_e01_round2_prerequisite" name="test_ineligible_first_round_stops_after_consistent_rehash[review-target_verdict-PASS]" time="0.133"><failure message="Failed: DID NOT RAISE ValueError">material = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e01-source13-round2-20261106/verification/tmp-round2-prerequisite-red2/test_ineligible_first_round_st16')
+name = 'review', field = 'target_verdict', value = 'PASS'
+
+    @pytest.mark.parametrize('name,field,value',[
+        ('terminal','candidate','old'),('terminal','scope','e03-round1-acceptance'),
+        ('terminal','overall','FAIL'),('terminal','mechanical','FAIL'),
+        ('terminal','acceptance_credit',True),('terminal','work_cli_count',True),
+        ('terminal','work_cli_count',2),('terminal','retry_authorized',True),
+        ('terminal','cleanup.status','FAIL'),('terminal','errors',[{'error':'failure retained'}]),
+        ('review','reviewer','root'),('review','scope','e01-round1-acceptance-package'),
+        ('review','facts_verdict','FAIL'),('review','file_verdict','FAIL'),
+        ('review','final_claim_verdict','FAIL'),('review','cleanup_verdict','FAIL'),
+        ('review','target_verdict','PASS'),('review','independent_from_preparation_reviewer',False),
+        ('review','no_new_facts.verdict','FAIL'),
+        ('review','execution.model','unapproved-model'),('review','execution.model_digest','0'*64),
+        ('review','execution.work_cli_launches',2),('review','execution.automatic_retry_recorded',True),
+        ('review','recommendation.acceptance_credit_recommended',False),
+        ('registration','facts','FAIL'),('registration','acceptance_credit',False),
+        ('registration','positive_passed',0),('registration','positive_required',2),
+        ('registration','same_candidate_e01_terminals',2),
+        ('registration','E03_prerequisite_registration_sha256','0'*64),
+        ('registration','artifact_sha256','0'*64),('registration','current_case_work_cli_count',0),
+    ])
+    def test_ineligible_first_round_stops_after_consistent_rehash(material,name,field,value):
+        path = material/'inputs/prior-e01-round1'/(name+'.json')
+        data = load(path)
+        target = data
+        keys = field.split('.')
+        for key in keys[:-1]: target = target[key]
+        target[keys[-1]] = value
+        put(path,data)
+        rebind(material)
+&gt;       with pytest.raises(ValueError): entry.predecessor_reviews(material)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+code\test_e01_round2_prerequisite.py:80: Failed</failure></testcase><testcase classname="code.test_e01_round2_prerequisite" name="test_ineligible_first_round_stops_after_consistent_rehash[review-independent_from_preparation_reviewer-False]" time="0.124"><failure message="Failed: DID NOT RAISE ValueError">material = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e01-source13-round2-20261106/verification/tmp-round2-prerequisite-red2/test_ineligible_first_round_st17')
+name = 'review', field = 'independent_from_preparation_reviewer', value = False
+
+    @pytest.mark.parametrize('name,field,value',[
+        ('terminal','candidate','old'),('terminal','scope','e03-round1-acceptance'),
+        ('terminal','overall','FAIL'),('terminal','mechanical','FAIL'),
+        ('terminal','acceptance_credit',True),('terminal','work_cli_count',True),
+        ('terminal','work_cli_count',2),('terminal','retry_authorized',True),
+        ('terminal','cleanup.status','FAIL'),('terminal','errors',[{'error':'failure retained'}]),
+        ('review','reviewer','root'),('review','scope','e01-round1-acceptance-package'),
+        ('review','facts_verdict','FAIL'),('review','file_verdict','FAIL'),
+        ('review','final_claim_verdict','FAIL'),('review','cleanup_verdict','FAIL'),
+        ('review','target_verdict','PASS'),('review','independent_from_preparation_reviewer',False),
+        ('review','no_new_facts.verdict','FAIL'),
+        ('review','execution.model','unapproved-model'),('review','execution.model_digest','0'*64),
+        ('review','execution.work_cli_launches',2),('review','execution.automatic_retry_recorded',True),
+        ('review','recommendation.acceptance_credit_recommended',False),
+        ('registration','facts','FAIL'),('registration','acceptance_credit',False),
+        ('registration','positive_passed',0),('registration','positive_required',2),
+        ('registration','same_candidate_e01_terminals',2),
+        ('registration','E03_prerequisite_registration_sha256','0'*64),
+        ('registration','artifact_sha256','0'*64),('registration','current_case_work_cli_count',0),
+    ])
+    def test_ineligible_first_round_stops_after_consistent_rehash(material,name,field,value):
+        path = material/'inputs/prior-e01-round1'/(name+'.json')
+        data = load(path)
+        target = data
+        keys = field.split('.')
+        for key in keys[:-1]: target = target[key]
+        target[keys[-1]] = value
+        put(path,data)
+        rebind(material)
+&gt;       with pytest.raises(ValueError): entry.predecessor_reviews(material)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+code\test_e01_round2_prerequisite.py:80: Failed</failure></testcase><testcase classname="code.test_e01_round2_prerequisite" name="test_ineligible_first_round_stops_after_consistent_rehash[review-no_new_facts.verdict-FAIL]" time="0.230"><failure message="Failed: DID NOT RAISE ValueError">material = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e01-source13-round2-20261106/verification/tmp-round2-prerequisite-red2/test_ineligible_first_round_st18')
+name = 'review', field = 'no_new_facts.verdict', value = 'FAIL'
+
+    @pytest.mark.parametrize('name,field,value',[
+        ('terminal','candidate','old'),('terminal','scope','e03-round1-acceptance'),
+        ('terminal','overall','FAIL'),('terminal','mechanical','FAIL'),
+        ('terminal','acceptance_credit',True),('terminal','work_cli_count',True),
+        ('terminal','work_cli_count',2),('terminal','retry_authorized',True),
+        ('terminal','cleanup.status','FAIL'),('terminal','errors',[{'error':'failure retained'}]),
+        ('review','reviewer','root'),('review','scope','e01-round1-acceptance-package'),
+        ('review','facts_verdict','FAIL'),('review','file_verdict','FAIL'),
+        ('review','final_claim_verdict','FAIL'),('review','cleanup_verdict','FAIL'),
+        ('review','target_verdict','PASS'),('review','independent_from_preparation_reviewer',False),
+        ('review','no_new_facts.verdict','FAIL'),
+        ('review','execution.model','unapproved-model'),('review','execution.model_digest','0'*64),
+        ('review','execution.work_cli_launches',2),('review','execution.automatic_retry_recorded',True),
+        ('review','recommendation.acceptance_credit_recommended',False),
+        ('registration','facts','FAIL'),('registration','acceptance_credit',False),
+        ('registration','positive_passed',0),('registration','positive_required',2),
+        ('registration','same_candidate_e01_terminals',2),
+        ('registration','E03_prerequisite_registration_sha256','0'*64),
+        ('registration','artifact_sha256','0'*64),('registration','current_case_work_cli_count',0),
+    ])
+    def test_ineligible_first_round_stops_after_consistent_rehash(material,name,field,value):
+        path = material/'inputs/prior-e01-round1'/(name+'.json')
+        data = load(path)
+        target = data
+        keys = field.split('.')
+        for key in keys[:-1]: target = target[key]
+        target[keys[-1]] = value
+        put(path,data)
+        rebind(material)
+&gt;       with pytest.raises(ValueError): entry.predecessor_reviews(material)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+code\test_e01_round2_prerequisite.py:80: Failed</failure></testcase><testcase classname="code.test_e01_round2_prerequisite" name="test_ineligible_first_round_stops_after_consistent_rehash[review-execution.model-unapproved-model]" time="0.143"><failure message="Failed: DID NOT RAISE ValueError">material = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e01-source13-round2-20261106/verification/tmp-round2-prerequisite-red2/test_ineligible_first_round_st19')
+name = 'review', field = 'execution.model', value = 'unapproved-model'
+
+    @pytest.mark.parametrize('name,field,value',[
+        ('terminal','candidate','old'),('terminal','scope','e03-round1-acceptance'),
+        ('terminal','overall','FAIL'),('terminal','mechanical','FAIL'),
+        ('terminal','acceptance_credit',True),('terminal','work_cli_count',True),
+        ('terminal','work_cli_count',2),('terminal','retry_authorized',True),
+        ('terminal','cleanup.status','FAIL'),('terminal','errors',[{'error':'failure retained'}]),
+        ('review','reviewer','root'),('review','scope','e01-round1-acceptance-package'),
+        ('review','facts_verdict','FAIL'),('review','file_verdict','FAIL'),
+        ('review','final_claim_verdict','FAIL'),('review','cleanup_verdict','FAIL'),
+        ('review','target_verdict','PASS'),('review','independent_from_preparation_reviewer',False),
+        ('review','no_new_facts.verdict','FAIL'),
+        ('review','execution.model','unapproved-model'),('review','execution.model_digest','0'*64),
+        ('review','execution.work_cli_launches',2),('review','execution.automatic_retry_recorded',True),
+        ('review','recommendation.acceptance_credit_recommended',False),
+        ('registration','facts','FAIL'),('registration','acceptance_credit',False),
+        ('registration','positive_passed',0),('registration','positive_required',2),
+        ('registration','same_candidate_e01_terminals',2),
+        ('registration','E03_prerequisite_registration_sha256','0'*64),
+        ('registration','artifact_sha256','0'*64),('registration','current_case_work_cli_count',0),
+    ])
+    def test_ineligible_first_round_stops_after_consistent_rehash(material,name,field,value):
+        path = material/'inputs/prior-e01-round1'/(name+'.json')
+        data = load(path)
+        target = data
+        keys = field.split('.')
+        for key in keys[:-1]: target = target[key]
+        target[keys[-1]] = value
+        put(path,data)
+        rebind(material)
+&gt;       with pytest.raises(ValueError): entry.predecessor_reviews(material)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+code\test_e01_round2_prerequisite.py:80: Failed</failure></testcase><testcase classname="code.test_e01_round2_prerequisite" name="test_ineligible_first_round_stops_after_consistent_rehash[review-execution.model_digest-0000000000000000000000000000000000000000000000000000000000000000]" time="0.152"><failure message="Failed: DID NOT RAISE ValueError">material = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e01-source13-round2-20261106/verification/tmp-round2-prerequisite-red2/test_ineligible_first_round_st20')
+name = 'review', field = 'execution.model_digest'
+value = '0000000000000000000000000000000000000000000000000000000000000000'
+
+    @pytest.mark.parametrize('name,field,value',[
+        ('terminal','candidate','old'),('terminal','scope','e03-round1-acceptance'),
+        ('terminal','overall','FAIL'),('terminal','mechanical','FAIL'),
+        ('terminal','acceptance_credit',True),('terminal','work_cli_count',True),
+        ('terminal','work_cli_count',2),('terminal','retry_authorized',True),
+        ('terminal','cleanup.status','FAIL'),('terminal','errors',[{'error':'failure retained'}]),
+        ('review','reviewer','root'),('review','scope','e01-round1-acceptance-package'),
+        ('review','facts_verdict','FAIL'),('review','file_verdict','FAIL'),
+        ('review','final_claim_verdict','FAIL'),('review','cleanup_verdict','FAIL'),
+        ('review','target_verdict','PASS'),('review','independent_from_preparation_reviewer',False),
+        ('review','no_new_facts.verdict','FAIL'),
+        ('review','execution.model','unapproved-model'),('review','execution.model_digest','0'*64),
+        ('review','execution.work_cli_launches',2),('review','execution.automatic_retry_recorded',True),
+        ('review','recommendation.acceptance_credit_recommended',False),
+        ('registration','facts','FAIL'),('registration','acceptance_credit',False),
+        ('registration','positive_passed',0),('registration','positive_required',2),
+        ('registration','same_candidate_e01_terminals',2),
+        ('registration','E03_prerequisite_registration_sha256','0'*64),
+        ('registration','artifact_sha256','0'*64),('registration','current_case_work_cli_count',0),
+    ])
+    def test_ineligible_first_round_stops_after_consistent_rehash(material,name,field,value):
+        path = material/'inputs/prior-e01-round1'/(name+'.json')
+        data = load(path)
+        target = data
+        keys = field.split('.')
+        for key in keys[:-1]: target = target[key]
+        target[keys[-1]] = value
+        put(path,data)
+        rebind(material)
+&gt;       with pytest.raises(ValueError): entry.predecessor_reviews(material)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+code\test_e01_round2_prerequisite.py:80: Failed</failure></testcase><testcase classname="code.test_e01_round2_prerequisite" name="test_ineligible_first_round_stops_after_consistent_rehash[review-execution.work_cli_launches-2]" time="0.224"><failure message="Failed: DID NOT RAISE ValueError">material = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e01-source13-round2-20261106/verification/tmp-round2-prerequisite-red2/test_ineligible_first_round_st21')
+name = 'review', field = 'execution.work_cli_launches', value = 2
+
+    @pytest.mark.parametrize('name,field,value',[
+        ('terminal','candidate','old'),('terminal','scope','e03-round1-acceptance'),
+        ('terminal','overall','FAIL'),('terminal','mechanical','FAIL'),
+        ('terminal','acceptance_credit',True),('terminal','work_cli_count',True),
+        ('terminal','work_cli_count',2),('terminal','retry_authorized',True),
+        ('terminal','cleanup.status','FAIL'),('terminal','errors',[{'error':'failure retained'}]),
+        ('review','reviewer','root'),('review','scope','e01-round1-acceptance-package'),
+        ('review','facts_verdict','FAIL'),('review','file_verdict','FAIL'),
+        ('review','final_claim_verdict','FAIL'),('review','cleanup_verdict','FAIL'),
+        ('review','target_verdict','PASS'),('review','independent_from_preparation_reviewer',False),
+        ('review','no_new_facts.verdict','FAIL'),
+        ('review','execution.model','unapproved-model'),('review','execution.model_digest','0'*64),
+        ('review','execution.work_cli_launches',2),('review','execution.automatic_retry_recorded',True),
+        ('review','recommendation.acceptance_credit_recommended',False),
+        ('registration','facts','FAIL'),('registration','acceptance_credit',False),
+        ('registration','positive_passed',0),('registration','positive_required',2),
+        ('registration','same_candidate_e01_terminals',2),
+        ('registration','E03_prerequisite_registration_sha256','0'*64),
+        ('registration','artifact_sha256','0'*64),('registration','current_case_work_cli_count',0),
+    ])
+    def test_ineligible_first_round_stops_after_consistent_rehash(material,name,field,value):
+        path = material/'inputs/prior-e01-round1'/(name+'.json')
+        data = load(path)
+        target = data
+        keys = field.split('.')
+        for key in keys[:-1]: target = target[key]
+        target[keys[-1]] = value
+        put(path,data)
+        rebind(material)
+&gt;       with pytest.raises(ValueError): entry.predecessor_reviews(material)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+code\test_e01_round2_prerequisite.py:80: Failed</failure></testcase><testcase classname="code.test_e01_round2_prerequisite" name="test_ineligible_first_round_stops_after_consistent_rehash[review-execution.automatic_retry_recorded-True]" time="0.148"><failure message="Failed: DID NOT RAISE ValueError">material = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e01-source13-round2-20261106/verification/tmp-round2-prerequisite-red2/test_ineligible_first_round_st22')
+name = 'review', field = 'execution.automatic_retry_recorded', value = True
+
+    @pytest.mark.parametrize('name,field,value',[
+        ('terminal','candidate','old'),('terminal','scope','e03-round1-acceptance'),
+        ('terminal','overall','FAIL'),('terminal','mechanical','FAIL'),
+        ('terminal','acceptance_credit',True),('terminal','work_cli_count',True),
+        ('terminal','work_cli_count',2),('terminal','retry_authorized',True),
+        ('terminal','cleanup.status','FAIL'),('terminal','errors',[{'error':'failure retained'}]),
+        ('review','reviewer','root'),('review','scope','e01-round1-acceptance-package'),
+        ('review','facts_verdict','FAIL'),('review','file_verdict','FAIL'),
+        ('review','final_claim_verdict','FAIL'),('review','cleanup_verdict','FAIL'),
+        ('review','target_verdict','PASS'),('review','independent_from_preparation_reviewer',False),
+        ('review','no_new_facts.verdict','FAIL'),
+        ('review','execution.model','unapproved-model'),('review','execution.model_digest','0'*64),
+        ('review','execution.work_cli_launches',2),('review','execution.automatic_retry_recorded',True),
+        ('review','recommendation.acceptance_credit_recommended',False),
+        ('registration','facts','FAIL'),('registration','acceptance_credit',False),
+        ('registration','positive_passed',0),('registration','positive_required',2),
+        ('registration','same_candidate_e01_terminals',2),
+        ('registration','E03_prerequisite_registration_sha256','0'*64),
+        ('registration','artifact_sha256','0'*64),('registration','current_case_work_cli_count',0),
+    ])
+    def test_ineligible_first_round_stops_after_consistent_rehash(material,name,field,value):
+        path = material/'inputs/prior-e01-round1'/(name+'.json')
+        data = load(path)
+        target = data
+        keys = field.split('.')
+        for key in keys[:-1]: target = target[key]
+        target[keys[-1]] = value
+        put(path,data)
+        rebind(material)
+&gt;       with pytest.raises(ValueError): entry.predecessor_reviews(material)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+code\test_e01_round2_prerequisite.py:80: Failed</failure></testcase><testcase classname="code.test_e01_round2_prerequisite" name="test_ineligible_first_round_stops_after_consistent_rehash[review-recommendation.acceptance_credit_recommended-False]" time="0.149"><failure message="Failed: DID NOT RAISE ValueError">material = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e01-source13-round2-20261106/verification/tmp-round2-prerequisite-red2/test_ineligible_first_round_st23')
+name = 'review', field = 'recommendation.acceptance_credit_recommended'
+value = False
+
+    @pytest.mark.parametrize('name,field,value',[
+        ('terminal','candidate','old'),('terminal','scope','e03-round1-acceptance'),
+        ('terminal','overall','FAIL'),('terminal','mechanical','FAIL'),
+        ('terminal','acceptance_credit',True),('terminal','work_cli_count',True),
+        ('terminal','work_cli_count',2),('terminal','retry_authorized',True),
+        ('terminal','cleanup.status','FAIL'),('terminal','errors',[{'error':'failure retained'}]),
+        ('review','reviewer','root'),('review','scope','e01-round1-acceptance-package'),
+        ('review','facts_verdict','FAIL'),('review','file_verdict','FAIL'),
+        ('review','final_claim_verdict','FAIL'),('review','cleanup_verdict','FAIL'),
+        ('review','target_verdict','PASS'),('review','independent_from_preparation_reviewer',False),
+        ('review','no_new_facts.verdict','FAIL'),
+        ('review','execution.model','unapproved-model'),('review','execution.model_digest','0'*64),
+        ('review','execution.work_cli_launches',2),('review','execution.automatic_retry_recorded',True),
+        ('review','recommendation.acceptance_credit_recommended',False),
+        ('registration','facts','FAIL'),('registration','acceptance_credit',False),
+        ('registration','positive_passed',0),('registration','positive_required',2),
+        ('registration','same_candidate_e01_terminals',2),
+        ('registration','E03_prerequisite_registration_sha256','0'*64),
+        ('registration','artifact_sha256','0'*64),('registration','current_case_work_cli_count',0),
+    ])
+    def test_ineligible_first_round_stops_after_consistent_rehash(material,name,field,value):
+        path = material/'inputs/prior-e01-round1'/(name+'.json')
+        data = load(path)
+        target = data
+        keys = field.split('.')
+        for key in keys[:-1]: target = target[key]
+        target[keys[-1]] = value
+        put(path,data)
+        rebind(material)
+&gt;       with pytest.raises(ValueError): entry.predecessor_reviews(material)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+code\test_e01_round2_prerequisite.py:80: Failed</failure></testcase><testcase classname="code.test_e01_round2_prerequisite" name="test_ineligible_first_round_stops_after_consistent_rehash[registration-facts-FAIL]" time="0.151"><failure message="Failed: DID NOT RAISE ValueError">material = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e01-source13-round2-20261106/verification/tmp-round2-prerequisite-red2/test_ineligible_first_round_st24')
+name = 'registration', field = 'facts', value = 'FAIL'
+
+    @pytest.mark.parametrize('name,field,value',[
+        ('terminal','candidate','old'),('terminal','scope','e03-round1-acceptance'),
+        ('terminal','overall','FAIL'),('terminal','mechanical','FAIL'),
+        ('terminal','acceptance_credit',True),('terminal','work_cli_count',True),
+        ('terminal','work_cli_count',2),('terminal','retry_authorized',True),
+        ('terminal','cleanup.status','FAIL'),('terminal','errors',[{'error':'failure retained'}]),
+        ('review','reviewer','root'),('review','scope','e01-round1-acceptance-package'),
+        ('review','facts_verdict','FAIL'),('review','file_verdict','FAIL'),
+        ('review','final_claim_verdict','FAIL'),('review','cleanup_verdict','FAIL'),
+        ('review','target_verdict','PASS'),('review','independent_from_preparation_reviewer',False),
+        ('review','no_new_facts.verdict','FAIL'),
+        ('review','execution.model','unapproved-model'),('review','execution.model_digest','0'*64),
+        ('review','execution.work_cli_launches',2),('review','execution.automatic_retry_recorded',True),
+        ('review','recommendation.acceptance_credit_recommended',False),
+        ('registration','facts','FAIL'),('registration','acceptance_credit',False),
+        ('registration','positive_passed',0),('registration','positive_required',2),
+        ('registration','same_candidate_e01_terminals',2),
+        ('registration','E03_prerequisite_registration_sha256','0'*64),
+        ('registration','artifact_sha256','0'*64),('registration','current_case_work_cli_count',0),
+    ])
+    def test_ineligible_first_round_stops_after_consistent_rehash(material,name,field,value):
+        path = material/'inputs/prior-e01-round1'/(name+'.json')
+        data = load(path)
+        target = data
+        keys = field.split('.')
+        for key in keys[:-1]: target = target[key]
+        target[keys[-1]] = value
+        put(path,data)
+        rebind(material)
+&gt;       with pytest.raises(ValueError): entry.predecessor_reviews(material)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+code\test_e01_round2_prerequisite.py:80: Failed</failure></testcase><testcase classname="code.test_e01_round2_prerequisite" name="test_ineligible_first_round_stops_after_consistent_rehash[registration-acceptance_credit-False]" time="0.147"><failure message="Failed: DID NOT RAISE ValueError">material = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e01-source13-round2-20261106/verification/tmp-round2-prerequisite-red2/test_ineligible_first_round_st25')
+name = 'registration', field = 'acceptance_credit', value = False
+
+    @pytest.mark.parametrize('name,field,value',[
+        ('terminal','candidate','old'),('terminal','scope','e03-round1-acceptance'),
+        ('terminal','overall','FAIL'),('terminal','mechanical','FAIL'),
+        ('terminal','acceptance_credit',True),('terminal','work_cli_count',True),
+        ('terminal','work_cli_count',2),('terminal','retry_authorized',True),
+        ('terminal','cleanup.status','FAIL'),('terminal','errors',[{'error':'failure retained'}]),
+        ('review','reviewer','root'),('review','scope','e01-round1-acceptance-package'),
+        ('review','facts_verdict','FAIL'),('review','file_verdict','FAIL'),
+        ('review','final_claim_verdict','FAIL'),('review','cleanup_verdict','FAIL'),
+        ('review','target_verdict','PASS'),('review','independent_from_preparation_reviewer',False),
+        ('review','no_new_facts.verdict','FAIL'),
+        ('review','execution.model','unapproved-model'),('review','execution.model_digest','0'*64),
+        ('review','execution.work_cli_launches',2),('review','execution.automatic_retry_recorded',True),
+        ('review','recommendation.acceptance_credit_recommended',False),
+        ('registration','facts','FAIL'),('registration','acceptance_credit',False),
+        ('registration','positive_passed',0),('registration','positive_required',2),
+        ('registration','same_candidate_e01_terminals',2),
+        ('registration','E03_prerequisite_registration_sha256','0'*64),
+        ('registration','artifact_sha256','0'*64),('registration','current_case_work_cli_count',0),
+    ])
+    def test_ineligible_first_round_stops_after_consistent_rehash(material,name,field,value):
+        path = material/'inputs/prior-e01-round1'/(name+'.json')
+        data = load(path)
+        target = data
+        keys = field.split('.')
+        for key in keys[:-1]: target = target[key]
+        target[keys[-1]] = value
+        put(path,data)
+        rebind(material)
+&gt;       with pytest.raises(ValueError): entry.predecessor_reviews(material)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+code\test_e01_round2_prerequisite.py:80: Failed</failure></testcase><testcase classname="code.test_e01_round2_prerequisite" name="test_ineligible_first_round_stops_after_consistent_rehash[registration-positive_passed-0]" time="0.246"><failure message="Failed: DID NOT RAISE ValueError">material = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e01-source13-round2-20261106/verification/tmp-round2-prerequisite-red2/test_ineligible_first_round_st26')
+name = 'registration', field = 'positive_passed', value = 0
+
+    @pytest.mark.parametrize('name,field,value',[
+        ('terminal','candidate','old'),('terminal','scope','e03-round1-acceptance'),
+        ('terminal','overall','FAIL'),('terminal','mechanical','FAIL'),
+        ('terminal','acceptance_credit',True),('terminal','work_cli_count',True),
+        ('terminal','work_cli_count',2),('terminal','retry_authorized',True),
+        ('terminal','cleanup.status','FAIL'),('terminal','errors',[{'error':'failure retained'}]),
+        ('review','reviewer','root'),('review','scope','e01-round1-acceptance-package'),
+        ('review','facts_verdict','FAIL'),('review','file_verdict','FAIL'),
+        ('review','final_claim_verdict','FAIL'),('review','cleanup_verdict','FAIL'),
+        ('review','target_verdict','PASS'),('review','independent_from_preparation_reviewer',False),
+        ('review','no_new_facts.verdict','FAIL'),
+        ('review','execution.model','unapproved-model'),('review','execution.model_digest','0'*64),
+        ('review','execution.work_cli_launches',2),('review','execution.automatic_retry_recorded',True),
+        ('review','recommendation.acceptance_credit_recommended',False),
+        ('registration','facts','FAIL'),('registration','acceptance_credit',False),
+        ('registration','positive_passed',0),('registration','positive_required',2),
+        ('registration','same_candidate_e01_terminals',2),
+        ('registration','E03_prerequisite_registration_sha256','0'*64),
+        ('registration','artifact_sha256','0'*64),('registration','current_case_work_cli_count',0),
+    ])
+    def test_ineligible_first_round_stops_after_consistent_rehash(material,name,field,value):
+        path = material/'inputs/prior-e01-round1'/(name+'.json')
+        data = load(path)
+        target = data
+        keys = field.split('.')
+        for key in keys[:-1]: target = target[key]
+        target[keys[-1]] = value
+        put(path,data)
+        rebind(material)
+&gt;       with pytest.raises(ValueError): entry.predecessor_reviews(material)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+code\test_e01_round2_prerequisite.py:80: Failed</failure></testcase><testcase classname="code.test_e01_round2_prerequisite" name="test_ineligible_first_round_stops_after_consistent_rehash[registration-positive_required-2]" time="0.209"><failure message="Failed: DID NOT RAISE ValueError">material = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e01-source13-round2-20261106/verification/tmp-round2-prerequisite-red2/test_ineligible_first_round_st27')
+name = 'registration', field = 'positive_required', value = 2
+
+    @pytest.mark.parametrize('name,field,value',[
+        ('terminal','candidate','old'),('terminal','scope','e03-round1-acceptance'),
+        ('terminal','overall','FAIL'),('terminal','mechanical','FAIL'),
+        ('terminal','acceptance_credit',True),('terminal','work_cli_count',True),
+        ('terminal','work_cli_count',2),('terminal','retry_authorized',True),
+        ('terminal','cleanup.status','FAIL'),('terminal','errors',[{'error':'failure retained'}]),
+        ('review','reviewer','root'),('review','scope','e01-round1-acceptance-package'),
+        ('review','facts_verdict','FAIL'),('review','file_verdict','FAIL'),
+        ('review','final_claim_verdict','FAIL'),('review','cleanup_verdict','FAIL'),
+        ('review','target_verdict','PASS'),('review','independent_from_preparation_reviewer',False),
+        ('review','no_new_facts.verdict','FAIL'),
+        ('review','execution.model','unapproved-model'),('review','execution.model_digest','0'*64),
+        ('review','execution.work_cli_launches',2),('review','execution.automatic_retry_recorded',True),
+        ('review','recommendation.acceptance_credit_recommended',False),
+        ('registration','facts','FAIL'),('registration','acceptance_credit',False),
+        ('registration','positive_passed',0),('registration','positive_required',2),
+        ('registration','same_candidate_e01_terminals',2),
+        ('registration','E03_prerequisite_registration_sha256','0'*64),
+        ('registration','artifact_sha256','0'*64),('registration','current_case_work_cli_count',0),
+    ])
+    def test_ineligible_first_round_stops_after_consistent_rehash(material,name,field,value):
+        path = material/'inputs/prior-e01-round1'/(name+'.json')
+        data = load(path)
+        target = data
+        keys = field.split('.')
+        for key in keys[:-1]: target = target[key]
+        target[keys[-1]] = value
+        put(path,data)
+        rebind(material)
+&gt;       with pytest.raises(ValueError): entry.predecessor_reviews(material)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+code\test_e01_round2_prerequisite.py:80: Failed</failure></testcase><testcase classname="code.test_e01_round2_prerequisite" name="test_ineligible_first_round_stops_after_consistent_rehash[registration-same_candidate_e01_terminals-2]" time="0.178"><failure message="Failed: DID NOT RAISE ValueError">material = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e01-source13-round2-20261106/verification/tmp-round2-prerequisite-red2/test_ineligible_first_round_st28')
+name = 'registration', field = 'same_candidate_e01_terminals', value = 2
+
+    @pytest.mark.parametrize('name,field,value',[
+        ('terminal','candidate','old'),('terminal','scope','e03-round1-acceptance'),
+        ('terminal','overall','FAIL'),('terminal','mechanical','FAIL'),
+        ('terminal','acceptance_credit',True),('terminal','work_cli_count',True),
+        ('terminal','work_cli_count',2),('terminal','retry_authorized',True),
+        ('terminal','cleanup.status','FAIL'),('terminal','errors',[{'error':'failure retained'}]),
+        ('review','reviewer','root'),('review','scope','e01-round1-acceptance-package'),
+        ('review','facts_verdict','FAIL'),('review','file_verdict','FAIL'),
+        ('review','final_claim_verdict','FAIL'),('review','cleanup_verdict','FAIL'),
+        ('review','target_verdict','PASS'),('review','independent_from_preparation_reviewer',False),
+        ('review','no_new_facts.verdict','FAIL'),
+        ('review','execution.model','unapproved-model'),('review','execution.model_digest','0'*64),
+        ('review','execution.work_cli_launches',2),('review','execution.automatic_retry_recorded',True),
+        ('review','recommendation.acceptance_credit_recommended',False),
+        ('registration','facts','FAIL'),('registration','acceptance_credit',False),
+        ('registration','positive_passed',0),('registration','positive_required',2),
+        ('registration','same_candidate_e01_terminals',2),
+        ('registration','E03_prerequisite_registration_sha256','0'*64),
+        ('registration','artifact_sha256','0'*64),('registration','current_case_work_cli_count',0),
+    ])
+    def test_ineligible_first_round_stops_after_consistent_rehash(material,name,field,value):
+        path = material/'inputs/prior-e01-round1'/(name+'.json')
+        data = load(path)
+        target = data
+        keys = field.split('.')
+        for key in keys[:-1]: target = target[key]
+        target[keys[-1]] = value
+        put(path,data)
+        rebind(material)
+&gt;       with pytest.raises(ValueError): entry.predecessor_reviews(material)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+code\test_e01_round2_prerequisite.py:80: Failed</failure></testcase><testcase classname="code.test_e01_round2_prerequisite" name="test_ineligible_first_round_stops_after_consistent_rehash[registration-E03_prerequisite_registration_sha256-0000000000000000000000000000000000000000000000000000000000000000]" time="0.209"><failure message="Failed: DID NOT RAISE ValueError">material = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e01-source13-round2-20261106/verification/tmp-round2-prerequisite-red2/test_ineligible_first_round_st29')
+name = 'registration', field = 'E03_prerequisite_registration_sha256'
+value = '0000000000000000000000000000000000000000000000000000000000000000'
+
+    @pytest.mark.parametrize('name,field,value',[
+        ('terminal','candidate','old'),('terminal','scope','e03-round1-acceptance'),
+        ('terminal','overall','FAIL'),('terminal','mechanical','FAIL'),
+        ('terminal','acceptance_credit',True),('terminal','work_cli_count',True),
+        ('terminal','work_cli_count',2),('terminal','retry_authorized',True),
+        ('terminal','cleanup.status','FAIL'),('terminal','errors',[{'error':'failure retained'}]),
+        ('review','reviewer','root'),('review','scope','e01-round1-acceptance-package'),
+        ('review','facts_verdict','FAIL'),('review','file_verdict','FAIL'),
+        ('review','final_claim_verdict','FAIL'),('review','cleanup_verdict','FAIL'),
+        ('review','target_verdict','PASS'),('review','independent_from_preparation_reviewer',False),
+        ('review','no_new_facts.verdict','FAIL'),
+        ('review','execution.model','unapproved-model'),('review','execution.model_digest','0'*64),
+        ('review','execution.work_cli_launches',2),('review','execution.automatic_retry_recorded',True),
+        ('review','recommendation.acceptance_credit_recommended',False),
+        ('registration','facts','FAIL'),('registration','acceptance_credit',False),
+        ('registration','positive_passed',0),('registration','positive_required',2),
+        ('registration','same_candidate_e01_terminals',2),
+        ('registration','E03_prerequisite_registration_sha256','0'*64),
+        ('registration','artifact_sha256','0'*64),('registration','current_case_work_cli_count',0),
+    ])
+    def test_ineligible_first_round_stops_after_consistent_rehash(material,name,field,value):
+        path = material/'inputs/prior-e01-round1'/(name+'.json')
+        data = load(path)
+        target = data
+        keys = field.split('.')
+        for key in keys[:-1]: target = target[key]
+        target[keys[-1]] = value
+        put(path,data)
+        rebind(material)
+&gt;       with pytest.raises(ValueError): entry.predecessor_reviews(material)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+code\test_e01_round2_prerequisite.py:80: Failed</failure></testcase><testcase classname="code.test_e01_round2_prerequisite" name="test_ineligible_first_round_stops_after_consistent_rehash[registration-artifact_sha256-0000000000000000000000000000000000000000000000000000000000000000]" time="0.192"><failure message="Failed: DID NOT RAISE ValueError">material = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e01-source13-round2-20261106/verification/tmp-round2-prerequisite-red2/test_ineligible_first_round_st30')
+name = 'registration', field = 'artifact_sha256'
+value = '0000000000000000000000000000000000000000000000000000000000000000'
+
+    @pytest.mark.parametrize('name,field,value',[
+        ('terminal','candidate','old'),('terminal','scope','e03-round1-acceptance'),
+        ('terminal','overall','FAIL'),('terminal','mechanical','FAIL'),
+        ('terminal','acceptance_credit',True),('terminal','work_cli_count',True),
+        ('terminal','work_cli_count',2),('terminal','retry_authorized',True),
+        ('terminal','cleanup.status','FAIL'),('terminal','errors',[{'error':'failure retained'}]),
+        ('review','reviewer','root'),('review','scope','e01-round1-acceptance-package'),
+        ('review','facts_verdict','FAIL'),('review','file_verdict','FAIL'),
+        ('review','final_claim_verdict','FAIL'),('review','cleanup_verdict','FAIL'),
+        ('review','target_verdict','PASS'),('review','independent_from_preparation_reviewer',False),
+        ('review','no_new_facts.verdict','FAIL'),
+        ('review','execution.model','unapproved-model'),('review','execution.model_digest','0'*64),
+        ('review','execution.work_cli_launches',2),('review','execution.automatic_retry_recorded',True),
+        ('review','recommendation.acceptance_credit_recommended',False),
+        ('registration','facts','FAIL'),('registration','acceptance_credit',False),
+        ('registration','positive_passed',0),('registration','positive_required',2),
+        ('registration','same_candidate_e01_terminals',2),
+        ('registration','E03_prerequisite_registration_sha256','0'*64),
+        ('registration','artifact_sha256','0'*64),('registration','current_case_work_cli_count',0),
+    ])
+    def test_ineligible_first_round_stops_after_consistent_rehash(material,name,field,value):
+        path = material/'inputs/prior-e01-round1'/(name+'.json')
+        data = load(path)
+        target = data
+        keys = field.split('.')
+        for key in keys[:-1]: target = target[key]
+        target[keys[-1]] = value
+        put(path,data)
+        rebind(material)
+&gt;       with pytest.raises(ValueError): entry.predecessor_reviews(material)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+code\test_e01_round2_prerequisite.py:80: Failed</failure></testcase><testcase classname="code.test_e01_round2_prerequisite" name="test_ineligible_first_round_stops_after_consistent_rehash[registration-current_case_work_cli_count-0]" time="0.233"><failure message="Failed: DID NOT RAISE ValueError">material = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e01-source13-round2-20261106/verification/tmp-round2-prerequisite-red2/test_ineligible_first_round_st31')
+name = 'registration', field = 'current_case_work_cli_count', value = 0
+
+    @pytest.mark.parametrize('name,field,value',[
+        ('terminal','candidate','old'),('terminal','scope','e03-round1-acceptance'),
+        ('terminal','overall','FAIL'),('terminal','mechanical','FAIL'),
+        ('terminal','acceptance_credit',True),('terminal','work_cli_count',True),
+        ('terminal','work_cli_count',2),('terminal','retry_authorized',True),
+        ('terminal','cleanup.status','FAIL'),('terminal','errors',[{'error':'failure retained'}]),
+        ('review','reviewer','root'),('review','scope','e01-round1-acceptance-package'),
+        ('review','facts_verdict','FAIL'),('review','file_verdict','FAIL'),
+        ('review','final_claim_verdict','FAIL'),('review','cleanup_verdict','FAIL'),
+        ('review','target_verdict','PASS'),('review','independent_from_preparation_reviewer',False),
+        ('review','no_new_facts.verdict','FAIL'),
+        ('review','execution.model','unapproved-model'),('review','execution.model_digest','0'*64),
+        ('review','execution.work_cli_launches',2),('review','execution.automatic_retry_recorded',True),
+        ('review','recommendation.acceptance_credit_recommended',False),
+        ('registration','facts','FAIL'),('registration','acceptance_credit',False),
+        ('registration','positive_passed',0),('registration','positive_required',2),
+        ('registration','same_candidate_e01_terminals',2),
+        ('registration','E03_prerequisite_registration_sha256','0'*64),
+        ('registration','artifact_sha256','0'*64),('registration','current_case_work_cli_count',0),
+    ])
+    def test_ineligible_first_round_stops_after_consistent_rehash(material,name,field,value):
+        path = material/'inputs/prior-e01-round1'/(name+'.json')
+        data = load(path)
+        target = data
+        keys = field.split('.')
+        for key in keys[:-1]: target = target[key]
+        target[keys[-1]] = value
+        put(path,data)
+        rebind(material)
+&gt;       with pytest.raises(ValueError): entry.predecessor_reviews(material)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+code\test_e01_round2_prerequisite.py:80: Failed</failure></testcase><testcase classname="code.test_e01_round2_prerequisite" name="test_e01_first_round_cannot_predate_completed_e03_chain" time="0.241"><failure message="Failed: DID NOT RAISE ValueError">material = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e01-source13-round2-20261106/verification/tmp-round2-prerequisite-red2/test_e01_first_round_cannot_pr0')
+
+    def test_e01_first_round_cannot_predate_completed_e03_chain(material):
+        path = material/'inputs/prior-e01-round1/terminal.json'
+        data = load(path)
+        data['finished_at'] = load(material/'inputs/prior-negative/terminal.json')['finished_at']
+        put(path,data)
+        rebind(material)
+&gt;       with pytest.raises(ValueError): entry.predecessor_reviews(material)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+code\test_e01_round2_prerequisite.py:89: Failed</failure></testcase><testcase classname="code.test_e01_round2_prerequisite" name="test_registration_cannot_substitute_another_task" time="0.165"><failure message="Failed: DID NOT RAISE ValueError">material = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e01-source13-round2-20261106/verification/tmp-round2-prerequisite-red2/test_registration_cannot_subst0')
+
+    def test_registration_cannot_substitute_another_task(material):
+        folder = material/'inputs/prior-e01-round1'
+        other_task = load(material/'inputs/prior-round3/review.json')['execution']['task_id']
+        review = load(folder/'review.json');review['execution']['task_id'] = other_task;put(folder/'review.json',review)
+        registration = load(folder/'registration.json');registration['task_id'] = other_task
+        registration['same_candidate_e01_terminal_bindings'][0]['task_id'] = other_task
+        put(folder/'registration.json',registration);rebind(material)
+&gt;       with pytest.raises(ValueError): entry.predecessor_reviews(material)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+code\test_e01_round2_prerequisite.py:99: Failed</failure></testcase></testsuite></testsuites>
