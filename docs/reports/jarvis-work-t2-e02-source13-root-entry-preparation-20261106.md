@@ -40,3 +40,7 @@ root 逐项接受五类未裁定范围继续未证明：实际 Windows 行为/�
 独审通过后只发布控制记录：原独审 PASS 字节原样复制到规范入口，root gate 绑定精确运行输入和报告哈希；运行输入仍为 `8b63f148aa43f923b85ac5fa97a40a358e4eff5ab85e7adb2dde8f29951e542f`。经审查的发布前包完整保存在 `history/reviewed-handoff-7a0b6af`。发布后包 351 项，SHA-256 `22fec32700802661d9d238a76a616efe4292bd6504b3fc723e48984048cfe591`；其中显式记录独审所审查的发布前包，不冒充对新内容的另一份独审。
 
 交付核验见 `verification/handoff-publication-readback.json`；最终项目/镜像 commit 与 tag 见 `verification/handoff-pass-checkpoint.json`。本轮全部准备完成；下一步只能是用户另行明确分配的原资料单次零推理接线验证及一次独立结果复核，实际分配和 release 目前均为零。
+
+## 2026-11-06 后续授权单例结果
+
+准备完成后，用户另行授权的一次原资料零推理接线验证已实际 FAIL：原 SDK 冷导入调用 socket.gethostname 被 profile 审计拒绝，尚未交付 research.md；清理和七个保护身份点时核验通过。独立结果复核仅确认失败保全，不代表执行通过。详见 `jarvis-work-t2-e02-source13-profile-once-result-20261106.md`。运行和结果复核额度均已用完，不重试。
