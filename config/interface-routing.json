@@ -2,7 +2,7 @@
   "schema_version": 2,
   "kind": "interface-routing",
   "version": "2026-11-06",
-  "updated_at": "2026-11-06T13:39:49+08:00",
+  "updated_at": "2026-11-06T13:57:29+08:00",
   "principle": "L0 本机直答 > L1 直连接口 > L2 工具调用 > L3 模型自由回答；能被前两级接住的绝不进后两级",
   "defaults": {
     "city_code": "101070101",
@@ -281,8 +281,7 @@
       "triggers": [
         "股市",
         "大盘",
-        "上证",
-        "指数多少点"
+        "上证"
       ],
       "route": "http_direct",
       "requires_coverage": [
@@ -561,7 +560,6 @@
       "id": "market.fx",
       "name": "美元兑人民币",
       "triggers": [
-        "汇率",
         "美元多少",
         "人民币汇率",
         "换汇"
@@ -599,7 +597,7 @@
       ],
       "timeout_ms": 5000,
       "cache_ttl_s": 60,
-      "template": "美元兑人民币 {price}。",
+      "template": "美元兑人民币 {rate}。",
       "asset": "fx.usdcny"
     },
     {
@@ -860,6 +858,74 @@
         },
         "note": "partial 源字段不全，只在主干与完整备用都不可用时降级使用，回复里必须标注缺项。"
       }
+    },
+    {
+      "id": "market.silver_intl",
+      "label": "伦敦银",
+      "asset": "silver.intl",
+      "triggers": [
+        "白银",
+        "银价",
+        "伦敦银",
+        "国际银价"
+      ],
+      "requires_coverage": [
+        "price",
+        "change_pct"
+      ],
+      "route": "http_direct",
+      "timeout_ms": 5000,
+      "cache_ttl_s": 15,
+      "template": "伦敦银 {price} 美元/盎司，{change_pct}。",
+      "candidates": [
+        {
+          "endpoint": "https://hq.sinajs.cn/list=hf_XAG",
+          "headers": {
+            "Referer": "https://finance.sina.com.cn"
+          },
+          "expect": {
+            "kind": "text",
+            "must_contain": [
+              "hq_str_"
+            ],
+            "min_payload_bytes": 40
+          },
+          "provides": [
+            "price",
+            "change_pct"
+          ],
+          "role": "primary",
+          "health": {
+            "p50_ms": 61,
+            "ok_rate": 1.0,
+            "probes": 1,
+            "fail_streak": 0,
+            "last_probe_at": "2026-11-06T13:57:29+08:00",
+            "eligible": true,
+            "probe": "live"
+          },
+          "source_vendor": "sina-hq",
+          "display_name": "伦敦银现",
+          "unit": "美元/盎司",
+          "coverage": "full"
+        }
+      ],
+      "built_by": "interface_build",
+      "build_state": {
+        "built_at": "2026-11-06T13:57:29+08:00",
+        "asset": "silver.intl",
+        "full": 1,
+        "partial": 0,
+        "unverified": 0,
+        "picked": 1,
+        "degraded": true,
+        "budget_ms": 2500,
+        "target": {
+          "primary": 1,
+          "standby": 2
+        },
+        "note": "partial 源字段不全，只在主干与完整备用都不可用时降级使用，回复里必须标注缺项。"
+      }
     }
   ],
   "routing_order": [
@@ -1011,6 +1077,24 @@
           "to": "standby"
         }
       ]
+    },
+    {
+      "at": "2026-11-06T13:57:29+08:00",
+      "action": "build",
+      "detail": {
+        "intent": "market.silver_intl",
+        "asset": "silver.intl",
+        "degraded": true,
+        "budget_ms": 2500,
+        "picked": [
+          {
+            "endpoint": "https://hq.sinajs.cn/list=hf_XAG",
+            "role": "primary",
+            "coverage": "full",
+            "p50_ms": 61
+          }
+        ]
+      }
     }
   ]
 }

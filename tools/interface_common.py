@@ -97,9 +97,21 @@ def probe_once(url: str, headers: dict, expect: dict, timeout_ms: int):
     return True, ms, "ok"
 
 
-def probe_candidate(cand: dict, defaults: dict, policy: dict) -> dict:
-    samples = policy["probe"]["samples_per_run"]
-    timeout_ms = policy["probe"]["timeout_ms"]
+def probe_candidate(
+    cand: dict,
+    defaults: dict,
+    policy: dict,
+    *,
+    samples: int | None = None,
+    timeout_ms: int | None = None,
+) -> dict:
+    """采样探测一个候选。
+
+    samples / timeout_ms 显式传入时覆盖 policy 里的巡检参数：对话主链里
+    "问到才建路"不能按巡检的 3 次 × 5 秒跑（最坏十几秒），必须能压进几秒预算。
+    """
+    samples = int(samples if samples is not None else policy["probe"]["samples_per_run"])
+    timeout_ms = int(timeout_ms if timeout_ms is not None else policy["probe"]["timeout_ms"])
     url = build_url(cand["endpoint"], defaults)
 
     results = [

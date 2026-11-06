@@ -25,6 +25,7 @@
 import argparse
 import json
 import sys
+import time
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -89,12 +90,15 @@ def collect_candidates(vendors: list, asset: str) -> list:
     return out
 
 
-def evaluate(cands: list, defaults: dict, policy: dict, requires: set):
+def evaluate(cands: list, defaults: dict, policy: dict, requires: set, deadline=None):
     """返回 (full, partial, unverified)。
 
     full      实测通过且字段覆盖够，能填满模板
     partial   能连上、有数据，但字段不全，只能降级作答（缺什么要在回复里说）
-    unverified 含运行时实参占位符，本轮没法验证，等第一次真实调用再判
+    unverified 含运行时实参占位符，或预算内没来得及测，等真实调用再判
+
+    deadline 为 time.perf_counter() 尺度的时间点：对话里"问到才建路"必须几秒内
+    给答案，超出预算的候选记为未验证，不拖住整段对话。
     """
     full, partial, unverified = [], [], []
     for c in cands:
@@ -112,7 +116,25 @@ def evaluate(cands: list, defaults: dict, policy: dict, requires: set):
             if c["health"]["eligible"]:
                 unverified.append(c)
             continue
-        res = probe_candidate(c, defaults, policy)
+
+        if deadline is not None:
+            remain = deadline - time.perf_counter()
+            if remain <= 0.05:
+                c["health"] = {
+                    "p50_ms": None,
+                    "ok_rate": None,
+                    "probes": 0,
+                    "eligible": requires.issubset(set(c["provides"])),
+                    "probe": "skipped_budget",
+                    "last_probe_at": now_iso(),
+                }
+                unverified.append(c)
+                continue
+            per_timeout = max(200, min(800, int(remain * 1000)))
+            res = probe_candidate(c, defaults, policy, samples=1, timeout_ms=per_timeout)
+        else:
+            res = probe_candidate(c, defaults, policy)
+
         apply_health(c, res, requires)
         c["health"]["probe"] = "live"
         ok = c["health"]["ok_rate"] >= 0.9 and c["health"].get("p50_ms") is not None
@@ -155,6 +177,159 @@ def assign_roles(cands: list, full: list, partial: list, unverified: list, requi
     return picks, len(picks) < TARGET_PRIMARY + TARGET_STANDBY
 
 
+def build_intent(
+    intent_id: str,
+    *,
+    cfg_path: Path = CONFIG,
+    asset: str = "",
+    requires: list | None = None,
+    label: str = "",
+    triggers: list | None = None,
+    template: str = "",
+    cache_ttl_s: int = 15,
+    timeout_ms: int = 5000,
+    force: bool = False,
+    dry_run: bool = False,
+    budget_ms: int | None = None,
+) -> dict:
+    """给一个意图建路；返回结果 payload（含 code）。
+
+    对话主链直接调本函数（不落子进程）：问到没配的类型时，几秒内建成
+    「1 主 + 2 备」，本次就用它答，同时写回配置；第二次问到走 skip_existing 分支。
+    """
+    cfg_path = Path(cfg_path)
+    cfg = load_json(cfg_path)
+    seeds = load_json(SEEDS)
+    defaults = cfg["defaults"]
+    policy = cfg["policy"]
+
+    intent = next((i for i in cfg.get("intents", []) if i.get("id") == intent_id), None)
+
+    if intent and intent.get("candidates"):
+        has_primary = any(c.get("role") == "primary" for c in intent["candidates"])
+        if has_primary and not force:
+            return {
+                "intent": intent_id,
+                "action": "skip_existing",
+                "reason": "已配置且已有首选，直接复用，不重建",
+                "lines": [f"现有候选 {len(intent['candidates'])} 条"],
+                "code": 0,
+            }
+
+    asset = asset or (intent or {}).get("asset", "")
+    if not asset:
+        return {"intent": intent_id, "action": "error",
+                "reason": "缺少 asset：不知道这条路查的是什么标的", "code": 2}
+
+    req = list(requires or (intent or {}).get("requires_coverage") or [])
+    if not req:
+        return {"intent": intent_id, "action": "error",
+                "reason": "缺少 requires：不知道这条通道要答哪些字段", "code": 2}
+
+    cands = collect_candidates(seeds.get("vendors", []), asset)
+    if not cands:
+        return {"intent": intent_id, "action": "error",
+                "reason": f"种子库里没有标的 {asset} 的可用源，建不出路",
+                "asset": asset, "code": 3}
+
+    deadline = None
+    if budget_ms:
+        deadline = time.perf_counter() + budget_ms / 1000
+
+    full, partial, unverified = evaluate(cands, defaults, policy, set(req), deadline)
+    picks, degraded = assign_roles(cands, full, partial, unverified, set(req))
+
+    if not picks:
+        return {"intent": intent_id, "action": "error",
+                "reason": "种子库里的候选本轮全部不可用，不建空路",
+                "asset": asset, "code": 3}
+
+    if intent is None:
+        trig = list(triggers or [])
+        if not (label and trig and template):
+            return {"intent": intent_id, "action": "error",
+                    "reason": "新建意图必须给 label / triggers / template，否则这条路人根本命中不了",
+                    "code": 2}
+        intent = {
+            "id": intent_id,
+            "label": label,
+            "asset": asset,
+            "triggers": trig,
+            "requires_coverage": req,
+            "route": "http_direct",
+            "timeout_ms": timeout_ms,
+            "cache_ttl_s": cache_ttl_s,
+            "template": template,
+            "candidates": [],
+        }
+        cfg.setdefault("intents", []).append(intent)
+    else:
+        intent["asset"] = asset
+        intent.setdefault("requires_coverage", req)
+
+    intent["candidates"] = cands
+    intent["built_by"] = "interface_build"
+    intent["build_state"] = {
+        "built_at": now_iso(),
+        "asset": asset,
+        "full": len(full),
+        "partial": len(partial),
+        "unverified": len(unverified),
+        "picked": len(picks),
+        "degraded": degraded,
+        "budget_ms": budget_ms,
+        "target": {"primary": TARGET_PRIMARY, "standby": TARGET_STANDBY},
+        "note": "partial 源字段不全，只在主干与完整备用都不可用时降级使用，回复里必须标注缺项。",
+    }
+
+    cfg.setdefault("changelog", []).append({
+        "at": now_iso(),
+        "action": "build",
+        "detail": {
+            "intent": intent_id,
+            "asset": asset,
+            "degraded": degraded,
+            "budget_ms": budget_ms,
+            "picked": [
+                {"endpoint": c["endpoint"], "role": c["role"],
+                 "coverage": c.get("coverage"), "p50_ms": c["health"].get("p50_ms")}
+                for c in picks
+            ],
+        },
+    })
+    cfg["changelog"] = cfg["changelog"][-int(policy.get("history_max", 50)):]
+    cfg["updated_at"] = now_iso()
+
+    backup = None
+    if not dry_run:
+        backup = save_config(cfg, cfg_path)
+
+    lines = []
+    for c in picks:
+        p50 = f"{c['health']['p50_ms']}ms" if c["health"].get("p50_ms") is not None else "待运行时首调验证"
+        tag = "" if c.get("coverage") == "full" else f"（{c.get('coverage')}：字段不全，降级用）"
+        lines.append(f"{c['role']:<8} {c['endpoint']}  {p50}{tag}")
+    for c in cands:
+        if c["role"] == "fallback" and c["health"].get("last_error"):
+            lines.append(f"淘汰     {c['endpoint']}  {c['health']['last_error']}")
+    if degraded:
+        lines.append(f"注意：同标的本轮只有 {len(picks)} 条可用，凑不满 1 主 + 2 备，已标 degraded")
+
+    return {
+        "intent": intent_id,
+        "action": "built" if not dry_run else "built_dry_run",
+        "asset": asset,
+        "requires": req,
+        "full": len(full),
+        "partial": len(partial),
+        "unverified": len(unverified),
+        "degraded": degraded,
+        "backup": str(backup) if backup else None,
+        "lines": lines,
+        "code": 0,
+    }
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--config", default=str(CONFIG))
@@ -169,129 +344,28 @@ def main():
     ap.add_argument("--force", action="store_true")
     ap.add_argument("--dry-run", action="store_true")
     ap.add_argument("--json", action="store_true", dest="as_json")
+    ap.add_argument("--budget-ms", type=int, default=0, dest="budget_ms")
     args = ap.parse_args()
 
-    cfg_path = Path(args.config)
-    cfg = load_json(cfg_path)
-    seeds = load_json(SEEDS)
-    defaults = cfg["defaults"]
-    policy = cfg["policy"]
-
-    intent = next((i for i in cfg.get("intents", []) if i.get("id") == args.intent), None)
-
-    if intent and intent.get("candidates"):
-        has_primary = any(c.get("role") == "primary" for c in intent["candidates"])
-        if has_primary and not args.force:
-            return emit(args, {
-                "intent": args.intent,
-                "action": "skip_existing",
-                "reason": "已配置且已有首选，直接复用，不重建",
-                "lines": [f"现有候选 {len(intent['candidates'])} 条"],
-            })
-
-    asset = args.asset or (intent or {}).get("asset", "")
-    if not asset:
-        return emit(args, {"intent": args.intent, "action": "error",
-                           "reason": "缺少 asset：不知道这条路查的是什么标的"}, 2)
-
     requires = [x.strip() for x in args.requires.replace("，", ",").split(",") if x.strip()]
-    if not requires:
-        requires = list((intent or {}).get("requires_coverage") or [])
-    if not requires:
-        return emit(args, {"intent": args.intent, "action": "error",
-                           "reason": "缺少 requires：不知道这条通道要答哪些字段"}, 2)
+    triggers = [x.strip() for x in args.triggers.replace("，", ",").split(",") if x.strip()]
 
-    cands = collect_candidates(seeds.get("vendors", []), asset)
-    if not cands:
-        return emit(args, {"intent": args.intent, "action": "error",
-                           "reason": f"种子库里没有标的 {asset} 的可用源，建不出路", "asset": asset}, 3)
-
-    full, partial, unverified = evaluate(cands, defaults, policy, set(requires))
-    picks, degraded = assign_roles(cands, full, partial, unverified, set(requires))
-
-    if not picks:
-        return emit(args, {"intent": args.intent, "action": "error",
-                           "reason": "种子库里的候选本轮全部不可用，不建空路", "asset": asset}, 3)
-
-    if intent is None:
-        triggers = [x.strip() for x in args.triggers.replace("，", ",").split(",") if x.strip()]
-        if not (args.label and triggers and args.template):
-            return emit(args, {"intent": args.intent, "action": "error",
-                               "reason": "新建意图必须给 label / triggers / template，否则这条路人根本命中不了"}, 2)
-        intent = {
-            "id": args.intent,
-            "label": args.label,
-            "asset": asset,
-            "triggers": triggers,
-            "requires_coverage": requires,
-            "route": "http_direct",
-            "timeout_ms": args.timeout,
-            "cache_ttl_s": args.cache,
-            "template": args.template,
-            "candidates": [],
-        }
-        cfg.setdefault("intents", []).append(intent)
-    else:
-        intent["asset"] = asset
-        intent.setdefault("requires_coverage", requires)
-
-    intent["candidates"] = cands
-    intent["built_by"] = "interface_build"
-    intent["build_state"] = {
-        "built_at": now_iso(),
-        "asset": asset,
-        "full": len(full),
-        "partial": len(partial),
-        "unverified": len(unverified),
-        "picked": len(picks),
-        "degraded": degraded,
-        "target": {"primary": TARGET_PRIMARY, "standby": TARGET_STANDBY},
-        "note": "partial 源字段不全，只在主干与完整备用都不可用时降级使用，回复里必须标注缺项。",
-    }
-
-    cfg.setdefault("changelog", []).append({
-        "at": now_iso(),
-        "action": "build",
-        "detail": {
-            "intent": args.intent,
-            "asset": asset,
-            "degraded": degraded,
-            "picked": [
-                {"endpoint": c["endpoint"], "role": c["role"], "coverage": c.get("coverage"), "p50_ms": c["health"].get("p50_ms")}
-                for c in picks
-            ],
-        },
-    })
-    cfg["changelog"] = cfg["changelog"][-int(policy.get("history_max", 50)):]
-    cfg["updated_at"] = now_iso()
-
-    backup = None
-    if not args.dry_run:
-        backup = save_config(cfg, cfg_path)
-
-    lines = []
-    for c in picks:
-        p50 = f"{c['health']['p50_ms']}ms" if c["health"].get("p50_ms") is not None else "待运行时首调验证"
-        tag = "" if c.get("coverage") == "full" else f"（{c.get('coverage')}：字段不全，降级用）"
-        lines.append(f"{c['role']:<8} {c['endpoint']}  {p50}{tag}")
-    for c in cands:
-        if c["role"] == "fallback" and c["health"].get("last_error"):
-            lines.append(f"淘汰     {c['endpoint']}  {c['health']['last_error']}")
-    if degraded:
-        lines.append(f"注意：同标的本轮只有 {len(picks)} 条可用，凑不满 1 主 + 2 备，已标 degraded")
-
-    return emit(args, {
-        "intent": args.intent,
-        "action": "built" if not args.dry_run else "built_dry_run",
-        "asset": asset,
-        "requires": requires,
-        "full": len(full),
-        "partial": len(partial),
-        "unverified": len(unverified),
-        "degraded": degraded,
-        "backup": str(backup) if backup else None,
-        "lines": lines,
-    })
+    payload = build_intent(
+        args.intent,
+        cfg_path=Path(args.config),
+        asset=args.asset,
+        requires=requires,
+        label=args.label,
+        triggers=triggers,
+        template=args.template,
+        cache_ttl_s=args.cache,
+        timeout_ms=args.timeout,
+        force=args.force,
+        dry_run=args.dry_run,
+        budget_ms=args.budget_ms or None,
+    )
+    code = payload.pop("code", 0)
+    return emit(args, payload, code)
 
 
 if __name__ == "__main__":
