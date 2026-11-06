@@ -1,0 +1,435 @@
+--- round2/code/acceptance_entry.py
++++ round3/code/acceptance_entry.py
+@@ -15,8 +15,8 @@
+ CANDIDATE_MANIFEST = '957669cb3463eab549df80f0b8fc6345c244daa2f613925abe8622d0aab3d9d3'
+ MODEL = 'qwen3-8b-uncensored'
+ DIGEST = '6d7230a923426bc1933879eb08a7dafc18e5fc0e7606c459ce98f16e0c7f9330'
+-CASE = 'e01-round2'
+-SCOPE = 'e01-round2-acceptance'
++CASE = 'e01-round3'
++SCOPE = 'e01-round3-acceptance'
+ PYTHON = Path(r'H:\UltimaAI\UltimaAgent\tools\venv-openjarvis\Scripts\python.exe')
+ RUNTIME_FILES = {'code/acceptance_entry.py', 'code/acceptance_backend.py', 'code/package_io.py',
+                  'code/fixture_manual_start.py',
+@@ -35,7 +35,9 @@
+                  'inputs/prior-negative/registration.json', 'inputs/prior-negative/result-manifest.json',
+                  'inputs/prior-negative/negative-evidence.json',
+                  'inputs/prior-e01-round1/terminal.json', 'inputs/prior-e01-round1/review.json',
+-                 'inputs/prior-e01-round1/registration.json'}
++                 'inputs/prior-e01-round1/registration.json',
++                 'inputs/prior-e01-round2/terminal.json', 'inputs/prior-e01-round2/review.json',
++                 'inputs/prior-e01-round2/registration.json'}
+ AUTH_FIELDS = {'schema', 'issuer', 'scope', 'case', 'candidate', 'candidate_manifest_sha256',
+                'model', 'digest', 'manifest_sha256', 'review_sha256', 'proof_path', 'proof_sha256',
+                'case_cap', 'product_cli_cap', 'audio_actions', 'retry_authorized', 'acceptance_credit',
+@@ -383,14 +385,16 @@
+                            review_sha256=review_hash, registration_sha256=sha(paths['registration']))]
+ 
+ 
+-def predecessor_reviews(root):
+-    bindings = e03_predecessor_reviews(root)
+-    paths = [child(root, 'inputs/prior-e01-round1/'+name+'.json')
++def e01_predecessor_review(root, number, bindings):
++    require(type(number) is int and number in (1, 2) and len(bindings) == number+3,
++            'Exact E01 predecessor sequence required')
++    case = 'e01-round'+str(number)
++    paths = [child(root, 'inputs/prior-'+case+'/'+name+'.json')
+              for name in ('terminal', 'review', 'registration')]
+     terminal, review, registration = (load(path) for path in paths)
+-    require(all(row.get('case') == 'e01-round1' and row.get('candidate') == HEAD
++    require(all(row.get('case') == case and row.get('candidate') == HEAD
+                 for row in (terminal, review, registration)), 'E01 predecessor case/candidate mismatch')
+-    require(terminal.get('scope') == 'e01-round1-acceptance'
++    require(terminal.get('scope') == case+'-acceptance'
+             and terminal.get('overall') == 'PENDING_FACT_REVIEW' and terminal.get('mechanical') == 'PASS'
+             and terminal.get('facts') == 'PENDING_ROOT_INDEPENDENT_REVIEW'
+             and terminal.get('acceptance_credit') is False and terminal.get('errors') == []
+@@ -399,18 +403,19 @@
+             and type(terminal.get('audio_actions')) is int and terminal['audio_actions'] == 0
+             and all(terminal.get(k, {}).get('status') == 'PASS' for k in ('cleanup', 'audit', 'boundaries')),
+             'E01 predecessor raw terminal not eligible')
+-    require(review.get('reviewer') == 'root-independent' and review.get('scope') == 'e01-round1-result-review'
++    require(review.get('reviewer') == 'root-independent' and review.get('scope') == case+'-result-review'
+             and all(review.get(k) == 'PASS' for k in ('verdict', 'evidence_verdict', 'case_verdict',
+                 'mechanical_verdict', 'facts_verdict', 'file_verdict', 'final_claim_verdict',
+                 'cleanup_verdict', 'environment_verdict'))
+-            and review.get('target_verdict') == review.get('ui_target_scope') == 'NOT_APPLICABLE'
++            and review.get('target_verdict') == 'NOT_APPLICABLE'
++            and review.get('ui_target_scope') == ('NOT_APPLICABLE' if number == 1 else 'NOT_APPLICABLE_E01_NO_UI')
+             and review.get('independent_from_preparation_reviewer') is True
+             and review.get('no_new_facts', {}).get('verdict') == 'PASS' and review.get('findings') == [],
+             'E01 predecessor independent result not eligible')
+     execution, recommendation = review.get('execution', {}), review.get('recommendation', {})
+     require(execution.get('model') == MODEL and execution.get('model_digest') == DIGEST
+             and execution.get('native_version') == '0.32.15'
+-            and execution.get('request_id') == execution.get('session_id') == 'e01-round1'
++            and execution.get('request_id') == execution.get('session_id') == case
+             and execution.get('automatic_retry_recorded') is False and execution.get('fixture_started') is False
+             and all(type(execution.get(k)) is int and execution[k] == value for k, value in
+                 (('work_cli_launches', 1), ('actual_case_count', 1), ('reviewer_reruns', 0),
+@@ -421,8 +426,22 @@
+             and recommendation.get('acceptance_credit_recommended') is True
+             and recommendation.get('case_candidate') == HEAD
+             and all(type(recommendation.get(k)) is int and recommendation[k] == value for k, value in
+-                (('current_case_positive_credit', 1), ('positive_passed_by_this_case', 1), ('positive_required', 3))),
++                (('current_case_positive_credit', 1), ('positive_required', 3))),
+             'E01 predecessor credit recommendation mismatch')
++    if number == 1:
++        require(type(recommendation.get('positive_passed_by_this_case')) is int
++                and recommendation['positive_passed_by_this_case'] == 1,
++                'E01 first positive recommendation mismatch')
++        previous_rows, previous_events = [], 0
++    else:
++        prior = load(child(root, 'inputs/prior-e01-round1/registration.json'))
++        previous_rows = prior['same_candidate_e01_terminal_bindings']
++        previous_events = prior['cumulative_completed_inference_events']
++        require(all(type(recommendation.get(k)) is int and recommendation[k] == value for k, value in
++                    (('previous_registered_e01_positives', 1), ('eligible_cumulative_e01_positives_after_root_registration', 2)))
++                and registration.get('predecessor_registration_sha256') == bindings[-1]['registration_sha256']
++                and registration.get('consecutive_positive_cases') == ['e01-round1', 'e01-round2'],
++                'E01 second positive predecessor or recommendation mismatch')
+     th, rh = sha(paths[0]), sha(paths[1])
+     require(review.get('terminal_sha256') == registration.get('terminal_sha256') == th
+             and registration.get('result_review_sha256') == rh
+@@ -436,30 +455,40 @@
+     require(registration.get('scope') == 'E01_CURRENT_CANDIDATE_POSITIVE_CHAIN'
+             and all(registration.get(k) == 'PASS' for k in ('case_verdict', 'facts', 'delivery', 'final_claim', 'cleanup'))
+             and registration.get('target') == 'NOT_APPLICABLE_NO_UI'
+-            and registration.get('acceptance_credit') is True and registration.get('E01') == 'PARTIAL_1_OF_3'
++            and registration.get('acceptance_credit') is True and registration.get('E01') == 'PARTIAL_'+str(number)+'_OF_3'
+             and registration.get('E03') == 'PASS_CURRENT_CANDIDATE_FIXED_CORPUS'
+-            and registration.get('E03_prerequisite_registration_sha256') == bindings[-1]['registration_sha256']
++            and registration.get('E03_prerequisite_registration_sha256') == bindings[3]['registration_sha256']
+             and all(type(registration.get(k)) is int and registration[k] == value for k, value in
+-                (('E01_credit', 1), ('positive_passed', 1), ('positive_required', 3), ('same_candidate_e01_terminals', 1),
+-                 ('cumulative_work_cli_count', 1), ('current_case_work_cli_count', 1),
+-                 ('cumulative_completed_inference_events', events), ('current_case_completed_inference_events', events))),
++                (('E01_credit', 1), ('positive_passed', number), ('positive_required', 3), ('same_candidate_e01_terminals', number),
++                 ('cumulative_work_cli_count', number), ('current_case_work_cli_count', 1),
++                 ('cumulative_completed_inference_events', previous_events+events), ('current_case_completed_inference_events', events))),
+             'E01 predecessor registration not eligible')
+     task = execution.get('task_id')
+     require(isinstance(task, str) and str(uuid.UUID(task)) == task and registration.get('task_id') == task,
+             'E01 predecessor task identity invalid')
+     old_tasks = [load(child(root, 'inputs/prior-round'+str(n)+'/review.json'))['execution']['task_id']
+                  for n in (1, 2, 3)]
+-    negative = load(child(root, 'inputs/prior-negative/terminal.json'))
+-    require(task not in old_tasks and timestamp(negative['finished_at']) < timestamp(terminal['finished_at']),
++    if number == 2:
++        old_tasks.append(load(child(root, 'inputs/prior-e01-round1/review.json'))['execution']['task_id'])
++    previous_terminal = load(child(root, 'inputs/'+('prior-negative' if number == 1 else 'prior-e01-round1')+'/terminal.json'))
++    require(task not in old_tasks and timestamp(previous_terminal['finished_at']) < timestamp(terminal['finished_at']),
+             'E01 predecessor distinct task or chronology invalid')
+     rows = registration.get('same_candidate_e01_terminal_bindings')
+-    require(isinstance(rows, list) and len(rows) == 1 and rows[0] == dict(
+-        case='e01-round1', candidate=HEAD, terminal_sha256=th, review_sha256=rh, task_id=task,
++    require(isinstance(rows, list) and len(rows) == number and rows[:-1] == previous_rows and rows[-1] == dict(
++        case=case, candidate=HEAD, terminal_sha256=th, review_sha256=rh, task_id=task,
+         finished_at=terminal['finished_at'], case_verdict='PASS', work_cli_count=1,
+         completed_inference_events=events, artifact_sha256=review['artifact_sha256']),
+         'E01 predecessor cumulative binding mismatch')
+-    return bindings + [dict(case='e01-round1', candidate=HEAD, terminal_sha256=th,
++    return bindings + [dict(case=case, candidate=HEAD, terminal_sha256=th,
+                            review_sha256=rh, registration_sha256=sha(paths[2]))]
++
++
++def first_e01_predecessor_reviews(root):
++    return e01_predecessor_review(root, 1, e03_predecessor_reviews(root))
++
++
++def predecessor_reviews(root):
++    return e01_predecessor_review(root, 2, first_e01_predecessor_reviews(root))
+ 
+ 
+ def verify_package(root):
+@@ -529,7 +558,7 @@
+     manifest_hash, review_hash = reviewed_package(root)
+     authority = load(child(root, 'release/authority.json'))
+     require(set(authority) == AUTH_FIELDS and authority['schema'] == 1 and authority['issuer'] == 'root', 'Authority fields invalid')
+-    require(authority['scope'] == SCOPE and authority['case'] == CASE, 'Only E01 round1 scope allowed')
++    require(authority['scope'] == SCOPE and authority['case'] == CASE, 'Only current E01 round scope allowed')
+     require(authority['candidate'] == HEAD and authority['candidate_manifest_sha256'] == CANDIDATE_MANIFEST
+             and authority['model'] == MODEL and authority['digest'] == DIGEST, 'Authority candidate/model mismatch')
+     require(authority['manifest_sha256'] == manifest_hash and authority['review_sha256'] == review_hash, 'Authority package/review mismatch')
+--- round2/code/source_candidate_guard.py
++++ round3/code/source_candidate_guard.py
+@@ -12,7 +12,7 @@
+ from typing import Any
+ 
+ ROOT = Path(r"C:/Users/Administrator/.codex/worktrees/jarvis-e03-source13/UltimaAgent")
+-MANIFEST = Path(r"H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e01-source13-round2-20261106/inputs/candidate-runtime-manifest.json")
++MANIFEST = Path(r"H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e01-source13-round3-20261106/inputs/candidate-runtime-manifest.json")
+ EXPECTED_MANIFEST_SHA256 = "957669cb3463eab549df80f0b8fc6345c244daa2f613925abe8622d0aab3d9d3"
+ EXPECTED_CANDIDATE = "269aca511d88412dbb9c15d23911138469a37aa2"
+ EXPECTED_BRANCH = "codex/jarvis-work-source13-runtime-failure"
+--- round2/code/test_acceptance_entry.py
++++ round3/code/test_acceptance_entry.py
+@@ -30,6 +30,10 @@
+                             ('registration_sha256','registration.json')]}))
+     bindings.append(dict(case='e01-round1', candidate=entry.HEAD,
+         **{key:entry.sha(tmp_path/'inputs/prior-e01-round1'/name)
++           for key,name in [('terminal_sha256','terminal.json'),('review_sha256','review.json'),
++                            ('registration_sha256','registration.json')]}))
++    bindings.append(dict(case='e01-round2', candidate=entry.HEAD,
++        **{key:entry.sha(tmp_path/'inputs/prior-e01-round2'/name)
+            for key,name in [('terminal_sha256','terminal.json'),('review_sha256','review.json'),
+                             ('registration_sha256','registration.json')]}))
+     return paths, bindings
+--- round2/code/test_e01_entry.py
++++ round3/code/test_e01_entry.py
+@@ -7,7 +7,8 @@
+ 
+ @pytest.mark.parametrize('field,value', [('scope', 'e03-negative-acceptance'), ('case', 'e03-negative'),
+     ('product_cli_cap', 0), ('product_cli_cap', True), ('case_cap', 2),
+-    ('case', 'e01-round1'), ('scope', 'e01-round1-acceptance')])
++    ('case', 'e01-round1'), ('scope', 'e01-round1-acceptance'),
++    ('case', 'e01-round2'), ('scope', 'e01-round2-acceptance')])
+ def test_only_one_e01_cli_scope_can_reach_native_factory(tmp_path, monkeypatch, field, value):
+     entry, authority, proof = package(tmp_path, monkeypatch)
+     authority[field] = value
+@@ -101,3 +102,32 @@
+     with pytest.raises(ValueError, match='E01 predecessor'):
+         entry.run_once(tmp_path, backend_factory=lambda root: made.append(root))
+     assert made == [] and not (tmp_path / 'actual').exists()
++
++
++@pytest.mark.parametrize('name', ['terminal','review','registration'])
++def test_e01_round2_dependencies_are_required_before_native_construction(tmp_path, monkeypatch, name):
++    entry, authority, proof = package(tmp_path, monkeypatch)
++    manifest = read(tmp_path / 'manifest.json')
++    omitted = 'inputs/prior-e01-round2/' + name + '.json'
++    manifest['files'] = [row for row in manifest['files'] if row['path'] != omitted]
++    put(tmp_path / 'manifest.json', manifest)
++    reseal(tmp_path, entry, authority)
++    made = []
++    with pytest.raises(ValueError, match='[Rr]untime dependency'):
++        entry.run_once(tmp_path, backend_factory=lambda root: made.append(root))
++    assert made == [] and not (tmp_path / 'actual').exists()
++
++
++def test_ineligible_e01_round2_after_rehash_denied_before_backend(tmp_path, monkeypatch):
++    from test_e01_round3_prerequisite import rebind as rebind_e01
++    entry, authority, proof = package(tmp_path, monkeypatch)
++    path = tmp_path / 'inputs/prior-e01-round2/review.json'
++    review = read(path)
++    review['facts_verdict'] = 'FAIL'
++    put(path, review)
++    rebind_e01(tmp_path)
++    reseal(tmp_path, entry, authority)
++    made = []
++    with pytest.raises(ValueError, match='E01 predecessor'):
++        entry.run_once(tmp_path, backend_factory=lambda root: made.append(root))
++    assert made == [] and not (tmp_path / 'actual').exists()
+--- round2/code/test_e01_prerequisites.py
++++ round3/code/test_e01_prerequisites.py
+@@ -48,7 +48,7 @@
+ 
+ 
+ def test_e01_scope_and_complete_four_case_prerequisite(material):
+-    assert entry.CASE == 'e01-round2' and entry.SCOPE == 'e01-round2-acceptance'
++    assert entry.CASE == 'e01-round3' and entry.SCOPE == 'e01-round3-acceptance'
+     result = entry.e03_predecessor_reviews(material)
+     assert [row['case'] for row in result] == ['e03-round1', 'e03-round2', 'e03-round3', 'e03-negative']
+     assert result[-1]['registration_sha256'] == sha(material / 'inputs/prior-negative/registration.json')
+--- round2/code/test_e01_round2_prerequisite.py
++++ round3/code/test_e01_round2_prerequisite.py
+@@ -35,8 +35,8 @@
+ 
+ 
+ def test_round2_scope_requires_five_ordered_credentials(material):
+-    assert entry.CASE == 'e01-round2' and entry.SCOPE == 'e01-round2-acceptance'
+-    bindings = entry.predecessor_reviews(material)
++    assert entry.CASE == 'e01-round3' and entry.SCOPE == 'e01-round3-acceptance'
++    bindings = entry.first_e01_predecessor_reviews(material)
+     assert [row['case'] for row in bindings] == ['e03-round1','e03-round2','e03-round3','e03-negative','e01-round1']
+     assert bindings[-1]['registration_sha256'] == sha(material/'inputs/prior-e01-round1/registration.json')
+ 
+@@ -45,7 +45,7 @@
+ def test_missing_e01_first_round_cannot_be_ignored(material,name):
+     (material/'inputs/prior-e01-round1'/(name+'.json')).unlink()
+     with pytest.raises((ValueError,FileNotFoundError)):
+-        entry.predecessor_reviews(material)
++        entry.first_e01_predecessor_reviews(material)
+ 
+ 
+ @pytest.mark.parametrize('name,field,value',[
+@@ -77,7 +77,7 @@
+     target[keys[-1]] = value
+     put(path,data)
+     rebind(material)
+-    with pytest.raises(ValueError): entry.predecessor_reviews(material)
++    with pytest.raises(ValueError): entry.first_e01_predecessor_reviews(material)
+ 
+ 
+ def test_e01_first_round_cannot_predate_completed_e03_chain(material):
+@@ -86,7 +86,7 @@
+     data['finished_at'] = load(material/'inputs/prior-negative/terminal.json')['finished_at']
+     put(path,data)
+     rebind(material)
+-    with pytest.raises(ValueError): entry.predecessor_reviews(material)
++    with pytest.raises(ValueError): entry.first_e01_predecessor_reviews(material)
+ 
+ 
+ def test_registration_cannot_substitute_another_task(material):
+@@ -96,4 +96,4 @@
+     registration = load(folder/'registration.json');registration['task_id'] = other_task
+     registration['same_candidate_e01_terminal_bindings'][0]['task_id'] = other_task
+     put(folder/'registration.json',registration);rebind(material)
+-    with pytest.raises(ValueError): entry.predecessor_reviews(material)
++    with pytest.raises(ValueError): entry.first_e01_predecessor_reviews(material)
+--- round2/code/test_e01_round3_prerequisite.py
++++ round3/code/test_e01_round3_prerequisite.py
+@@ -0,0 +1,117 @@
++"""E01 round3 requires two qualified consecutive same-candidate file deliveries."""
++import json
++import shutil
++from pathlib import Path
++
++import pytest
++
++import acceptance_entry as entry
++from package_io import load, sha
++
++INPUTS = Path(__file__).resolve().parents[1] / 'inputs'
++
++
++def put(path, value):
++    path.write_text(json.dumps(value, ensure_ascii=False), encoding='utf-8')
++
++
++@pytest.fixture
++def material(tmp_path):
++    shutil.copytree(INPUTS, tmp_path/'inputs')
++    return tmp_path
++
++
++def rebind(root):
++    folder = root/'inputs/prior-e01-round2'
++    terminal, review, registration = (load(folder/(name+'.json')) for name in ('terminal','review','registration'))
++    review.update(terminal_sha256=sha(folder/'terminal.json'),
++                  preparation_manifest_sha256=terminal['package_manifest_sha256'],
++                  product_result_sha256=terminal['product_result_sha256'])
++    put(folder/'review.json',review)
++    registration.update(terminal_sha256=sha(folder/'terminal.json'),result_review_sha256=sha(folder/'review.json'))
++    if registration['same_candidate_e01_terminal_bindings']:
++        registration['same_candidate_e01_terminal_bindings'][-1].update(
++            terminal_sha256=sha(folder/'terminal.json'),review_sha256=sha(folder/'review.json'),finished_at=terminal['finished_at'])
++    put(folder/'registration.json',registration)
++
++
++def test_round3_scope_requires_six_ordered_credentials(material):
++    assert entry.CASE == 'e01-round3' and entry.SCOPE == 'e01-round3-acceptance'
++    bindings = entry.predecessor_reviews(material)
++    assert [row['case'] for row in bindings] == ['e03-round1','e03-round2','e03-round3','e03-negative','e01-round1','e01-round2']
++    assert bindings[-1]['registration_sha256'] == sha(material/'inputs/prior-e01-round2/registration.json')
++
++
++@pytest.mark.parametrize('name',['terminal','review','registration'])
++def test_missing_e01_second_round_cannot_be_ignored(material,name):
++    (material/'inputs/prior-e01-round2'/(name+'.json')).unlink()
++    with pytest.raises((ValueError,FileNotFoundError)):
++        entry.predecessor_reviews(material)
++
++
++@pytest.mark.parametrize('name,field,value',[
++    ('terminal','candidate','old'),('terminal','scope','e03-round1-acceptance'),
++    ('terminal','overall','FAIL'),('terminal','mechanical','FAIL'),
++    ('terminal','acceptance_credit',True),('terminal','work_cli_count',True),
++    ('terminal','work_cli_count',2),('terminal','retry_authorized',True),
++    ('terminal','cleanup.status','FAIL'),('terminal','errors',[{'error':'failure retained'}]),
++    ('review','reviewer','root'),('review','scope','e01-round2-acceptance-package'),
++    ('review','facts_verdict','FAIL'),('review','file_verdict','FAIL'),
++    ('review','final_claim_verdict','FAIL'),('review','cleanup_verdict','FAIL'),
++    ('review','target_verdict','PASS'),('review','independent_from_preparation_reviewer',False),
++    ('review','no_new_facts.verdict','FAIL'),
++    ('review','execution.model','unapproved-model'),('review','execution.model_digest','0'*64),
++    ('review','execution.work_cli_launches',2),('review','execution.automatic_retry_recorded',True),
++    ('review','recommendation.acceptance_credit_recommended',False),
++    ('registration','facts','FAIL'),('registration','acceptance_credit',False),
++    ('registration','positive_passed',1),('registration','positive_required',2),
++    ('registration','same_candidate_e01_terminals',3),
++    ('registration','E03_prerequisite_registration_sha256','0'*64),
++    ('registration','artifact_sha256','0'*64),('registration','current_case_work_cli_count',0),
++    ('review','recommendation.previous_registered_e01_positives',0),
++    ('review','recommendation.eligible_cumulative_e01_positives_after_root_registration',3),
++    ('registration','predecessor_registration_sha256','0'*64),
++    ('registration','cumulative_work_cli_count',1),
++    ('registration','cumulative_completed_inference_events',2),
++    ('registration','consecutive_positive_cases',['e01-round2','e01-round1']),
++    ('registration','same_candidate_e01_terminal_bindings',[]),
++])
++def test_ineligible_second_round_stops_after_consistent_rehash(material,name,field,value):
++    path = material/'inputs/prior-e01-round2'/(name+'.json')
++    data = load(path)
++    target = data
++    keys = field.split('.')
++    for key in keys[:-1]: target = target[key]
++    target[keys[-1]] = value
++    put(path,data)
++    rebind(material)
++    with pytest.raises(ValueError): entry.predecessor_reviews(material)
++
++
++def test_e01_second_round_cannot_predate_completed_e03_chain(material):
++    path = material/'inputs/prior-e01-round2/terminal.json'
++    data = load(path)
++    data['finished_at'] = load(material/'inputs/prior-e01-round1/terminal.json')['finished_at']
++    put(path,data)
++    rebind(material)
++    with pytest.raises(ValueError): entry.predecessor_reviews(material)
++
++
++def test_registration_cannot_substitute_another_task(material):
++    folder = material/'inputs/prior-e01-round2'
++    other_task = load(material/'inputs/prior-e01-round1/review.json')['execution']['task_id']
++    review = load(folder/'review.json');review['execution']['task_id'] = other_task;put(folder/'review.json',review)
++    registration = load(folder/'registration.json');registration['task_id'] = other_task
++    registration['same_candidate_e01_terminal_bindings'][-1]['task_id'] = other_task
++    put(folder/'registration.json',registration);rebind(material)
++    with pytest.raises(ValueError): entry.predecessor_reviews(material)
++
++
++@pytest.mark.parametrize('field,value', [('task_id','00000000-0000-0000-0000-000000000000'), ('artifact_sha256','0'*64), ('review_sha256','0'*64)])
++def test_cumulative_first_round_cannot_be_substituted(material, field, value):
++    path = material/'inputs/prior-e01-round2/registration.json'
++    data = load(path)
++    data['same_candidate_e01_terminal_bindings'][0][field] = value
++    put(path,data)
++    rebind(material)
++    with pytest.raises(ValueError): entry.predecessor_reviews(material)
+--- round2/code/test_round2_predecessor.py
++++ round3/code/test_round2_predecessor.py
+@@ -39,15 +39,15 @@
+ 
+ def test_e01_admits_completed_e03_and_keeps_new_facts_pending(tmp_path,monkeypatch):
+     entry,authority,proof = package(tmp_path,monkeypatch)
+-    assert entry.CASE == 'e01-round2' and entry.SCOPE == 'e01-round2-acceptance'
++    assert entry.CASE == 'e01-round3' and entry.SCOPE == 'e01-round3-acceptance'
+     backend = Backend(tmp_path,proof)
+     result = entry.run_once(tmp_path,backend_factory=lambda root:backend)
+-    assert result['case']=='e01-round2' and result['work_cli_count']==1
++    assert result['case']=='e01-round3' and result['work_cli_count']==1
+     assert result['facts']=='PENDING_ROOT_INDEPENDENT_REVIEW' and result['acceptance_credit'] is False
+     assert not (tmp_path/'actual/e03-round1').exists()
+-    assert (tmp_path/'actual/e01-round2/terminal.json').is_file()
++    assert (tmp_path/'actual/e01-round3/terminal.json').is_file()
+     assert [row['case'] for row in authority['prior_reviews']] == [
+-        'e03-round1','e03-round2','e03-round3','e03-negative','e01-round1']
++        'e03-round1','e03-round2','e03-round3','e03-negative','e01-round1','e01-round2']
+ 
+ 
+ @pytest.mark.parametrize('file,field,value', [
+--- round2/code/test_round3_predecessors.py
++++ round3/code/test_round3_predecessors.py
+@@ -28,9 +28,9 @@
+     entry,authority,proof=package(tmp_path,monkeypatch)
+     backend=Backend(tmp_path,proof)
+     result=entry.run_once(tmp_path,backend_factory=lambda root:backend)
+-    assert result['case']=='e01-round2' and result['work_cli_count']==1
++    assert result['case']=='e01-round3' and result['work_cli_count']==1
+     assert result['facts']=='PENDING_ROOT_INDEPENDENT_REVIEW' and result['acceptance_credit'] is False
+-    assert (tmp_path/'actual/e01-round2/terminal.json').is_file()
++    assert (tmp_path/'actual/e01-round3/terminal.json').is_file()
+     assert not (tmp_path/'actual/e03-round2').exists()
+ 
+ 
