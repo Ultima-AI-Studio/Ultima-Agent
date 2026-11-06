@@ -1,0 +1,66 @@
+{
+  "recorded_at": "2026-11-06T01:56:47.335504+00:00",
+  "reviewer_receipt": "H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\e03-source13-round2-20261106\\independent-result-review.json",
+  "reviewer_receipt_sha256": "de50cc9f8cbf15c7ceb5a3267c536936e88120f5f83ebce4001b7b17a66146b6",
+  "controller": "root",
+  "case": "e03-round2",
+  "candidate": "269aca511d88412dbb9c15d23911138469a37aa2",
+  "decision": "ACCEPT_BOUNDED_CASE_PASS",
+  "critical_important_minor": 0,
+  "informational_dispositions": [
+    {
+      "subject": "Mutation ledger is not a failed extra invocation",
+      "disposition": "ACCEPT_EXPLANATION_WITHIN_RECORDED_SCOPE",
+      "basis": "The five tool_results records contain two SDK success records and three ledger records. Static source initializes success=false, records mutation.send before the potentially committed replacement, then records successful completion under the same call_id. Two successful tool start/end pairs and the matching audited replacement/file effects corroborate completion."
+    },
+    {
+      "subject": "Inference and input attribution limits retained",
+      "disposition": "ACCEPT_EXPLANATION_WITHIN_RECORDED_SCOPE",
+      "basis": "Three inference_end records establish three completed records for this request only. The input audit corroborates the target and replacement timing but does not identify the sender process."
+    }
+  ],
+  "decline_dispositions": [
+    {
+      "behavior": "Native total starts, incomplete generations, generation after disconnect and unrelated shared-service activity",
+      "reviewer_reason": "The preserved evidence explicitly leaves these unknown; completed inference_end records cannot establish total starts.",
+      "controller_disposition": "ACCEPT_SCOPE_LIMIT_NO_ADDITIONAL_TEST_OR_REVIEW",
+      "effect": "No broader claim or gate release granted"
+    },
+    {
+      "behavior": "Exact OS sender-process attribution or whole-machine absence of input and other effects",
+      "reviewer_reason": "The fixture audit covers the two owned controls and does not identify the sender process.",
+      "controller_disposition": "ACCEPT_SCOPE_LIMIT_NO_ADDITIONAL_TEST_OR_REVIEW",
+      "effect": "No broader claim or gate release granted"
+    },
+    {
+      "behavior": "Live process, listener, model or voice status at review time",
+      "reviewer_reason": "Only local saved evidence inspection was authorized; no live query was performed.",
+      "controller_disposition": "ACCEPT_SCOPE_LIMIT_NO_ADDITIONAL_TEST_OR_REVIEW",
+      "effect": "No broader claim or gate release granted"
+    },
+    {
+      "behavior": "Audio functionality and whole-machine absence of audio activity",
+      "reviewer_reason": "The case records zero audio actions. Saved ready/fresh voice status is not an audio functional test.",
+      "controller_disposition": "ACCEPT_SCOPE_LIMIT_NO_ADDITIONAL_TEST_OR_REVIEW",
+      "effect": "No broader claim or gate release granted"
+    },
+    {
+      "behavior": "Third positive round, negative E03 case, E01, E02, T2 acceptance, Owner release or overall goal completion",
+      "reviewer_reason": "This allocation covers one actual round2 result review only. It neither grants further case authority nor completes broader gates.",
+      "controller_disposition": "ACCEPT_SCOPE_LIMIT_NO_ADDITIONAL_TEST_OR_REVIEW",
+      "effect": "No broader claim or gate release granted"
+    },
+    {
+      "behavior": "Re-review of all product paths, preparation tests or historical failure adjudications",
+      "reviewer_reason": "This is a bounded actual-result review. Relevant bindings and behavior were inspected, but no tests were rerun and prior decisions remain unchanged.",
+      "controller_disposition": "ACCEPT_SCOPE_LIMIT_NO_ADDITIONAL_TEST_OR_REVIEW",
+      "effect": "No broader claim or gate release granted"
+    }
+  ],
+  "raw_terminal_unchanged": true,
+  "old_failures_unchanged": true,
+  "case_acceptance_credit": true,
+  "next_case_authority_issued": false,
+  "T2": "NOT_PASSED",
+  "whole_goal_complete": false
+}
