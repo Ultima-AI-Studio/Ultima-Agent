@@ -1,0 +1,882 @@
+--- accepted-old/adapter.py
++++ current-source13/adapter.py
+@@ -22,12 +22,12 @@
+ HERE=Path(__file__).resolve().parent
+ V=HERE.parent
+ T=V.parent
+-C=Path('C:/Users/Administrator/.codex/worktrees/jarvis-work-capability-longpaths/UltimaAgent')
+-P4=T/'e03-resume-20261102/preparation-r4/controller.py'
+-P1=P4.parent.parent/'preparation/acceptance_adapter.py'
+-MANIFEST_SHA='cdfbfb059f889ef9e92221c503dffe2ca7fa08106ebf4968bcc26037f214be50'
+-PREPARATION_SHA='f3dcea80f720f903cc98ce77d1f8b9461ca4ad9b4e87e9d9d8c8b89262ae118a'
+-CANDIDATE='118ba152b007c30d358c8bc44c51aabe8ae820f0'
++C=Path('C:/Users/Administrator/.codex/worktrees/jarvis-e03-source13/UltimaAgent')
++P4=T/'e01-source13-round3-20261106/code/controller.py'
++P1=P4.parent.parent/'preparation-support/acceptance_adapter.py'
++MANIFEST_SHA='5badf78414d3cb6a13145b98dbc1e3fa0ce08e4e5f79fc2948244e2118f16121'
++PREPARATION_SHA='38a38c9c0c2e27cc998603fef60ee64efd44a07661167500f7274c0e807a69f6'
++CANDIDATE='269aca511d88412dbb9c15d23911138469a37aa2'
+ MODEL='qwen3-8b-uncensored'
+ CASE='E02-controlled-1'
+ BUDGETS=dict(cli=1,search=1,GET=4,inspect=6,write=1,ACK=1,native_POST=8,service_seconds=260,client_seconds=300,outer_seconds=315,retry=0)
+@@ -37,6 +37,16 @@
+ CLOCK_DOMAIN='monotonic_ns;same-host='+socket.gethostname()
+ _ENCLOSING=ContextVar('source10_root_enclosing',default=None)
+ _OBSERVING=ContextVar('source10_root_observing',default=None)
++
++INPUTS_PATH=V/'inputs/input-manifest.json'
++BINDINGS_PATH=V/'code/bindings.py'
++BINDINGS_SHA='831c1b303c55e77fcfcd9e9742e1e4bd9995b553df36848e067fc3da84526c45'
++PROTECTED_BASELINE=T/'e02-source13-exact-probe-20261106/inputs/protected-baseline.json'
++SDK_SOURCES=('H:\\UltimaAI\\UltimaAgent\\tools\\venv-openjarvis\\Lib\\site-packages\\openjarvis\\_rust_bridge.py', 'H:\\UltimaAI\\UltimaAgent\\tools\\venv-openjarvis\\Lib\\site-packages\\openjarvis\\agents\\_stubs.py', 'H:\\UltimaAI\\UltimaAgent\\tools\\venv-openjarvis\\Lib\\site-packages\\openjarvis\\agents\\native_react.py', 'H:\\UltimaAI\\UltimaAgent\\tools\\venv-openjarvis\\Lib\\site-packages\\openjarvis\\agents\\prompt_loader.py', 'H:\\UltimaAI\\UltimaAgent\\tools\\venv-openjarvis\\Lib\\site-packages\\openjarvis\\cli\\ask.py', 'H:\\UltimaAI\\UltimaAgent\\tools\\venv-openjarvis\\Lib\\site-packages\\openjarvis\\core\\config.py', 'H:\\UltimaAI\\UltimaAgent\\tools\\venv-openjarvis\\Lib\\site-packages\\openjarvis\\core\\events.py', 'H:\\UltimaAI\\UltimaAgent\\tools\\venv-openjarvis\\Lib\\site-packages\\openjarvis\\core\\registry.py', 'H:\\UltimaAI\\UltimaAgent\\tools\\venv-openjarvis\\Lib\\site-packages\\openjarvis\\core\\types.py', 'H:\\UltimaAI\\UltimaAgent\\tools\\venv-openjarvis\\Lib\\site-packages\\openjarvis\\engine\\_base.py', 'H:\\UltimaAI\\UltimaAgent\\tools\\venv-openjarvis\\Lib\\site-packages\\openjarvis\\engine\\_stubs.py', 'H:\\UltimaAI\\UltimaAgent\\tools\\venv-openjarvis\\Lib\\site-packages\\openjarvis\\engine\\ollama.py', 'H:\\UltimaAI\\UltimaAgent\\tools\\venv-openjarvis\\Lib\\site-packages\\openjarvis\\sdk.py', 'H:\\UltimaAI\\UltimaAgent\\tools\\venv-openjarvis\\Lib\\site-packages\\openjarvis\\security\\capabilities.py', 'H:\\UltimaAI\\UltimaAgent\\tools\\venv-openjarvis\\Lib\\site-packages\\openjarvis\\security\\guardrails.py', 'H:\\UltimaAI\\UltimaAgent\\tools\\venv-openjarvis\\Lib\\site-packages\\openjarvis\\security\\runtime.py', 'H:\\UltimaAI\\UltimaAgent\\tools\\venv-openjarvis\\Lib\\site-packages\\openjarvis\\security\\scanner.py', 'H:\\UltimaAI\\UltimaAgent\\tools\\venv-openjarvis\\Lib\\site-packages\\openjarvis\\telemetry\\instrumented_engine.py', 'H:\\UltimaAI\\UltimaAgent\\tools\\venv-openjarvis\\Lib\\site-packages\\openjarvis\\tools\\_stubs.py', 'H:\\UltimaAI\\UltimaAgent\\tools\\venv-openjarvis\\Lib\\site-packages\\openjarvis\\tools\\description_loader.py', 'H:\\UltimaAI\\UltimaAgent\\tools\\venv-openjarvis\\Lib\\site-packages\\openjarvis\\tools\\file_read.py', 'H:\\UltimaAI\\UltimaAgent\\tools\\venv-openjarvis\\Lib\\site-packages\\openjarvis\\tools\\file_write.py')
++if hashlib.sha256(BINDINGS_PATH.read_bytes()).hexdigest()!=BINDINGS_SHA:raise ValueError('Binding source drift')
++_binding_spec=importlib.util.spec_from_file_location('source13_real_input_bindings',BINDINGS_PATH)
++bindings=importlib.util.module_from_spec(_binding_spec);_binding_spec.loader.exec_module(bindings)
++
+ 
+ class Deadline:
+     """One integer-nanosecond invocation allowance. Earlier origins only."""
+@@ -94,7 +104,7 @@
+                 # Only the exact original checked P4 PowerShell command families.
+                 require(argv[:4]==['powershell.exe','-NoProfile','-NonInteractive','-Command'] and len(argv)==5,'Private subprocess command')
+                 script=argv[4]
+-                suffix=' | ForEach-Object { [pscustomobject]@{ProcessId=[int]$_.ProcessId;ParentProcessId=[int]$_.ParentProcessId;CommandLineBase64=[Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes([string]$_.CommandLine))} } | ConvertTo-Json -Compress'
++                suffix=' | ForEach-Object { [pscustomobject]@{ProcessId=[int]$_.ProcessId;ParentProcessId=[int]$_.ParentProcessId;CreationFileTime=[Int64]$_.CreationDate.ToFileTimeUtc();CommandLineBase64=[Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes([string]$_.CommandLine))} } | ConvertTo-Json -Compress'
+                 snapshot=re.fullmatch(r'Get-CimInstance Win32_Process(?: -Filter "ProcessId=[1-9][0-9]*(?: OR ProcessId=[1-9][0-9]*)*")?'+re.escape(suffix),script)
+                 listener=re.fullmatch(r'@\(Get-NetTCPConnection -State Listen -LocalPort [0-9]+ -ErrorAction SilentlyContinue \| Select-Object -ExpandProperty OwningProcess\) \| ConvertTo-Json -Compress',script)
+                 require(snapshot or listener,'Only pinned P4 snapshot/listener I/O')
+@@ -240,28 +250,14 @@
+ def check_inputs():
+     require(Path(sys.executable).resolve()==PY.resolve(),'Exact authorized interpreter required')
+     require(not sys.flags.optimize and sys.flags.dont_write_bytecode and sys.flags.utf8_mode==1,'Python -B -X utf8 required')
+-    require(sha(V/'source10-candidate-manifest.json')==MANIFEST_SHA,'Source10 manifest drift')
+-    require(sha(V/'harness-preparation-authority.json')==PREPARATION_SHA,'Preparation authority drift')
+-    m=load(V/'source10-candidate-manifest.json'); prep=load(V/'harness-preparation-authority.json')
+-    require(m['candidate']==CANDIDATE and Path(m['candidate_root'])==C,'Candidate mismatch')
+-    require(prep['kind']=='source10_harness_preparation_only' and prep['candidate_manifest_sha256']==MANIFEST_SHA and prep['actual'] is False and prep['model_calls']==0,'Preparation fields')
+-    files=dict(m['source_files'],**m['sdk22'],**m['dependencies'])
+-    files[m['model']['policy_path']]=m['model']['policy_sha256']
+-    files[m['model']['local_manifest_path']]=m['model']['local_manifest_observed_sha256']
+-    for key in ('path','report_path'): files[m['code_gate'][key]]=m['code_gate']['sha256' if key=='path' else 'report_sha256']
+-    files[m['historical_source21_path']]=m['historical_source21_sha256']
+-    files[m['original_corpus_readback']]=m['original_corpus_readback_sha256']
+-    files[str(V/'harness-deadline-design/root-decision.json')]='144be9bc0a63294f5fd4e75c7cbe06f8e2ad2d51df36d0b11896d2455a0b4d47'
+-    files[str(V/'source10-candidate-manifest.json')]=MANIFEST_SHA
+-    files[str(V/'harness-preparation-authority.json')]=PREPARATION_SHA
+-    current={p:sha(p) for p in files}
+-    require(current==files,'Pinned source/SDK/dependency/model/policy drift')
+-    return current
++    require(sha(INPUTS_PATH)==MANIFEST_SHA and sha(BINDINGS_PATH)==BINDINGS_SHA,'Source13 input/source drift')
++    require(sha(V/'inputs/scope.json')==PREPARATION_SHA,'Offline preparation scope drift')
++    fixed=bindings.load_inputs(INPUTS_PATH)
++    return dict(fixed['files'],**{str(INPUTS_PATH):MANIFEST_SHA,str(BINDINGS_PATH):BINDINGS_SHA,str(V/'inputs/scope.json'):PREPARATION_SHA})
+ 
+ def check_import_origins():
+     from importlib.machinery import PathFinder
+-    manifest=load(V/'source10-candidate-manifest.json')
+-    for raw in manifest['sdk22']:
++    for raw in SDK_SOURCES:
+         path=Path(raw); site=next(p for p in path.parents if p.name=='site-packages')
+         name='.'.join(path.relative_to(site).with_suffix('').parts)
+         cached=sys.modules.get(name)
+@@ -286,17 +282,20 @@
+     finally: sys.path[:]=previous
+ 
+ def load_p4():
+-    require(sha(P4)=='8b8fb6fdf4868b3bb8cea61daaf402e5336f86167d0be84e04c455586d98706f','P4 drift')
+-    require(sha(P1)=='d91ddf5e44a19d6143ee8657f1e0946617eb1c77197c399d017ace39cad02da4','P1 drift')
++    require(sha(P4)=='5e7a636c0e1f7330bf140fa212c2d51569b389aac93cb9b84840b51ba5ade2ea','P4 drift')
++    require(sha(P1)=='585baca27b572364e2078e960281f20261f675738299df5633e91b74a4ca19cc','P1 drift')
+     cached=sys.modules.get('acceptance_adapter')
+     require(cached is None or Path(getattr(cached,'__file__','')).resolve()==P1.resolve(),'Unexpected cached acceptance_adapter')
+     if cached is not None: require(getattr(cached,'__source10_verified_sha__',None)==sha(P1),'Unverified cached acceptance_adapter')
+     spec=importlib.util.spec_from_file_location('source10_p4_definitions',P4)
+     module=importlib.util.module_from_spec(spec); paths=list(sys.path)
+-    try: spec.loader.exec_module(module)
++    try:
++        sys.path.insert(0,str(P4.parent))
++        spec.loader.exec_module(module)
+     finally: sys.path[:]=paths
+     require(Path(module.old.__file__).resolve()==P1.resolve(),'P1 import origin')
+     module.old.__source10_verified_sha__=sha(P1)
++    module.old.PROTECTED_BASELINE=PROTECTED_BASELINE
+     return module
+ 
+ def stamp(value):
+@@ -331,10 +330,20 @@
+     return identities
+ 
+ def validate_protected_members(identities,p4):
+-    require(len(identities)==5 and len({x['pid'] for x in identities})==5,'Protected exact five baseline')
+-    expected=p4.protected()  # Original legacy prerequisite returns CURRENT native identities.
++    require(type(identities) is list and len(identities)==7 and len({x['pid'] for x in identities})==7,'Exact protected member inventory: seven required')
++    baseline=load(PROTECTED_BASELINE)
++    rows=baseline.get('protected5',[])+baseline.get('protected_listener_pair',[])
++    require(baseline.get('protected_process_count')==7 and len(rows)==7,'Seven accepted protected baseline rows')
++    expected=[{k:row[k] for k in ('pid','created_filetime','exe')} for row in rows]
+     require({x['pid']:x for x in identities}=={x['pid']:x for x in expected},'Exact protected member binding')
++    require({x['pid']:x for x in p4.protected()}=={x['pid']:x for x in expected},'Protected live inventory drift')
+     require(all(type(x['created_filetime']) is int and x['created_filetime']>0 and p4.identity(x['pid'])==x for x in identities),'Exact native identity drift')
++    snapshot=p4.process_snapshot(pids=sorted(x['pid'] for x in identities))
++    for row,key in zip(rows,expected):
++        current=snapshot.get(row['pid'])
++        require(current is not None and current['ParentProcessId']==row['parent_pid'],'Protected parent drift')
++        require(p4.snapshot_identity_matches(key,current),'Protected CIM identity drift')
++        require(hashlib.sha256(current['CommandLine'].encode('utf-16le')).hexdigest()==row['command_line_sha256'],'Protected command drift')
+     return identities
+ 
+ def package_check(p4):
+@@ -346,7 +355,7 @@
+ 
+ def operational_paths(mode):
+     common=[HERE/name for name in ('adapter.py','test_adapter.py','run_checks.py','headless_proof.py','README.md','manifest.json')]
+-    common+=[V/'harness-approval.json',P1.parent.parent/'runtime-before.json']
++    common+=[V/'harness-approval.json',PROTECTED_BASELINE]
+     return common+([V/'inert-authority.json',V/'inert-native-baseline.json'] if mode=='inert' else [V/'controller-authority'/f'{CASE}.json',V/'controller-ledger.json',V/'native-preflight'/f'{CASE}.json'])
+ 
+ def operational_pins(mode,budget):
+@@ -389,8 +398,8 @@
+     require(a.get('ledger_sha256')==sha(ledger_path) and a.get('approval_sha256')==sha(V/'harness-approval.json'),'Ledger/approval binding')
+     proofpath=p4.no_reparse(V/'native-preflight'/f'{CASE}.json'); proof=budget.call('native proof read',load,proofpath)
+     require(a.get('native_preflight_sha256')==sha(proofpath),'Native preflight binding'); budget.call('native admission baseline',check_native_baseline,proof,p4)
+-    m=load(V/'source10-candidate-manifest.json')
+-    local_manifest=budget.call('local model manifest read',Path(m['model']['local_manifest_path']).read_bytes)
++    m=bindings.load_inputs(INPUTS_PATH)
++    local_manifest=budget.call('local model manifest read',Path(m['model_manifest_path']).read_bytes)
+     budget.call('local native metadata verification',p4.old.metadata_valid,dict(ok=True,model=MODEL,agent='native_react'),proof['version'],proof['tags'],local_manifest)
+     folder=p4.no_reparse(V/'actual'/CASE)
+     require(a.get('folder')==str(folder) and type(a.get('port')) is int and 1024<=a['port']<=65535 and a['port']!=11434,'Case root/port')
+--- accepted-old/test_adapter.py
++++ current-source13/test_adapter.py
+@@ -10,8 +10,33 @@
+ spec=importlib.util.spec_from_file_location('source10_adapter',Path(__file__).with_name('adapter.py'))
+ a=importlib.util.module_from_spec(spec); spec.loader.exec_module(a)
+ with a.candidate_import_path():
+-    from src.brain.tests.test_work_research import sdk_io,mock_jar
++    from src.brain.tests.test_work_research import sdk_io,mock_jar,stable_navigation_entropy
+     from src.brain.tests.test_work_navigation_transport import genuine_navigation
++
++@pytest.fixture(autouse=True)
++def canonical_unit_entropy(stable_navigation_entropy,monkeypatch):
++    # The product's unit fixture supplies stable entropy but emits version-0
++    # UUIDs. The real external reader correctly requires canonical UUID4.
++    import itertools,uuid
++    counter=itertools.count(1000)
++    monkeypatch.setattr(uuid,'uuid4',lambda:uuid.UUID(int=next(counter),version=4))
++
++@pytest.fixture(autouse=True)
++def offline_ssrf(monkeypatch):
++    # Test-only fallback: sdk_io supplies deterministic getaddrinfo. Rust DNS
++    # bypasses Python audit hooks, so it must not run in this offline suite.
++    from openjarvis.security import ssrf
++    monkeypatch.setattr(ssrf, 'check_ssrf', ssrf._check_ssrf_python)
++
++def protected_fixture(folder,monkeypatch,p4,identities):
++    """Current seven-row schema; only these unit fixture bytes are synthetic."""
++    import hashlib
++    rows=[dict(key,parent_pid=900,command_line_sha256=hashlib.sha256(('protected '+str(key['pid'])).encode('utf-16le')).hexdigest()) for key in identities]
++    path=folder/'protected-fixture.json'
++    a.save_new(path,dict(protected5=rows[:5],protected_listener_pair=rows[5:],protected_process_count=7))
++    monkeypatch.setattr(a,'PROTECTED_BASELINE',path)
++    monkeypatch.setattr(p4,'protected',lambda:identities)
++    return {key['pid']:dict(ProcessId=key['pid'],CreationFileTime=key['created_filetime'],ParentProcessId=900,CommandLine='protected '+str(key['pid'])) for key in identities}
+ 
+ def synthetic_bundle(folder,sdk_io,mock_jar,monkeypatch,*,write=True):
+     from dataclasses import asdict
+@@ -69,7 +94,7 @@
+ 
+ def documents():
+     now=dt.datetime.now(dt.timezone.utc)
+-    authority=dict(schema=11,kind='source10_execution',issuer='root',case='E02-controlled-1',candidate='118ba152b007c30d358c8bc44c51aabe8ae820f0',candidate_manifest_sha256='cdfbfb059f889ef9e92221c503dffe2ca7fa08106ebf4968bcc26037f214be50',issued_at=now.isoformat(),expires_at=(now+dt.timedelta(seconds=90)).isoformat(),budgets=dict(cli=1,search=1,GET=4,inspect=6,write=1,ACK=1,native_POST=8,service_seconds=260,client_seconds=300,outer_seconds=315,retry=0),native_precision='FILETIME100ns',actual=True,schedule=dict(work_seconds=275,cleanup_seconds=310,outer_seconds=315,ruling_sha256='144be9bc0a63294f5fd4e75c7cbe06f8e2ad2d51df36d0b11896d2455a0b4d47'),parent_timing=dict(origin_ns=100,clock_domain=a.CLOCK_DOMAIN,run_id='test',parent_identity={}))
++    authority=dict(schema=11,kind='source10_execution',issuer='root',case='E02-controlled-1',candidate='269aca511d88412dbb9c15d23911138469a37aa2',candidate_manifest_sha256='5badf78414d3cb6a13145b98dbc1e3fa0ce08e4e5f79fc2948244e2118f16121',issued_at=now.isoformat(),expires_at=(now+dt.timedelta(seconds=90)).isoformat(),budgets=dict(cli=1,search=1,GET=4,inspect=6,write=1,ACK=1,native_POST=8,service_seconds=260,client_seconds=300,outer_seconds=315,retry=0),native_precision='FILETIME100ns',actual=True,schedule=dict(work_seconds=275,cleanup_seconds=310,outer_seconds=315,ruling_sha256='144be9bc0a63294f5fd4e75c7cbe06f8e2ad2d51df36d0b11896d2455a0b4d47'),parent_timing=dict(origin_ns=100,clock_domain=a.CLOCK_DOMAIN,run_id='test',parent_identity={}))
+     ledger=dict(schema=11,released_case='E02-controlled-1',consumed=['E02-controlled-1'],attempts=1,retry=0)
+     return authority,ledger,now
+ 
+@@ -100,11 +125,11 @@
+ def test_adapter_first_failure_retained_and_no_next_case(tmp_path,monkeypatch,failure,sdk_io,mock_jar):
+     first,ledger=synthetic_bundle(tmp_path,sdk_io,mock_jar,monkeypatch)
+     p4=a.load_p4()
+-    protected=[dict(pid=pid,created_filetime=100,exe=sys.executable) for pid in range(51,56)]
+-    monkeypatch.setattr(p4,'protected',lambda:protected)
++    protected=[dict(pid=pid,created_filetime=100,exe=sys.executable) for pid in range(51,58)]
++    protected_rows=protected_fixture(tmp_path,monkeypatch,p4,protected)
+     monkeypatch.setattr(p4,'identity',lambda pid:dict(pid=pid,created_filetime=100,exe=sys.executable))
+     monkeypatch.setattr(p4,'process_times',lambda proc:(100,0))
+-    monkeypatch.setattr(p4,'process_snapshot',lambda *args,**kwargs:{})
++    monkeypatch.setattr(p4,'process_snapshot',lambda *args,**kwargs:dict(protected_rows))
+     monkeypatch.setattr(p4,'terminate_owned',lambda key:None)
+     monkeypatch.setattr(p4,'listener_owner',lambda port:[7891])
+     class Probe:
+@@ -145,7 +170,9 @@
+     monkeypatch.syspath_prepend(str(root))
+     from src.brain.tests import work_context_acceptance as helper
+     monkeypatch.setattr(helper,'launch',launch)
+-    if failure=='cleanup': monkeypatch.setattr(p4,'terminate_owned',lambda key: (_ for _ in ()).throw(OSError('cleanup blocked'))); monkeypatch.setattr(p4,'process_snapshot',lambda *args,**kwargs:{7891:{'ParentProcessId':0},7892:{'ParentProcessId':0}})
++    if failure=='cleanup':
++        monkeypatch.setattr(p4,'terminate_owned',lambda key: (_ for _ in ()).throw(OSError('cleanup blocked')))
++        monkeypatch.setattr(p4,'process_snapshot',lambda *args,**kwargs:dict(protected_rows) | {pid:dict(ProcessId=pid,CreationFileTime=100,ParentProcessId=0,CommandLine='') for pid in (7891,7892)})
+     baseline=dict(candidate=a.CANDIDATE,precision='FILETIME100ns',recorded_at=dt.datetime.now(dt.timezone.utc).isoformat(),protected=protected)
+     context=dict(folder=tmp_path,port=18799,request_id='r',session_id='s',baseline=baseline,authority={},ledger={})
+     result=a.execute_case(context,p4)
+@@ -181,26 +208,27 @@
+ 
+ @pytest.mark.parametrize('section',['source_files','sdk22','policy','model'])
+ def test_real_manifest_detects_input_hash_drift(monkeypatch,section):
+-    m=a.load(a.V/'source10-candidate-manifest.json')
+-    path=next(iter(m[section])) if section in ('source_files','sdk22') else m['model']['policy_path' if section=='policy' else 'local_manifest_path']
+-    original=a.sha
+-    monkeypatch.setattr(a,'sha',lambda candidate:'0'*64 if Path(candidate)==Path(path) else original(candidate))
+-    with pytest.raises(ValueError,match='drift'): a.check_inputs()
++    m=a.load(a.INPUTS_PATH)
++    path=(next(iter(m['source_files'])) if section=='source_files' else a.SDK_SOURCES[0] if section=='sdk22' else next(p for p in m['files'] if p.endswith('jarvis-work-8b-model-policy-20261102.md')) if section=='policy' else m['model_manifest_path'])
++    def changed(candidate):return b'changed' if candidate==Path(path) else candidate.read_bytes()
++    monkeypatch.setattr(a.bindings,'load_inputs',lambda ignored:a.bindings.validate(m,read_bytes=changed))
++    with pytest.raises(ValueError,match='Input bytes changed'): a.check_inputs()
+ 
+ def test_missing_or_preparation_authority_never_constructs_owned(monkeypatch):
+     p4=a.load_p4(); constructed=[]
+     monkeypatch.setattr(p4,'Owned',lambda *args:constructed.append(args))
+     monkeypatch.setattr(a,'load_p4',lambda:p4)
+     with pytest.raises(FileNotFoundError): a.run_case(a.V/'controller-authority'/f'{a.CASE}.json',a.V/'controller-ledger.json')
+-    with pytest.raises(ValueError): a.run_case(a.V/'harness-preparation-authority.json',a.V/'controller-ledger.json')
++    with pytest.raises(ValueError): a.run_case(a.V/'inputs/scope.json',a.V/'controller-ledger.json')
+     assert not constructed
+ 
+ @pytest.mark.parametrize('precision,drift',[('legacy-CIM',0),('FILETIME100ns',1),('FILETIME100ns',0)])
+-def test_native_baseline_requires_exact_integer_filetime(monkeypatch,precision,drift):
+-    protected=[dict(pid=p,created_filetime=100000001+p,exe='python') for p in range(1,6)]
++def test_native_baseline_requires_exact_integer_filetime(tmp_path,monkeypatch,precision,drift):
++    protected=[dict(pid=p,created_filetime=100000001+p,exe='python') for p in range(1,8)]
+     proof=dict(precision=precision,candidate=a.CANDIDATE,recorded_at=dt.datetime.now(dt.timezone.utc).isoformat(),protected=protected)
+     p4=a.load_p4()
+-    monkeypatch.setattr(p4,'protected',lambda:protected)
++    rows=protected_fixture(tmp_path,monkeypatch,p4,protected)
++    monkeypatch.setattr(p4,'process_snapshot',lambda *args,**kwargs:rows)
+     monkeypatch.setattr(p4,'identity',lambda pid:dict(protected[pid-1],created_filetime=protected[pid-1]['created_filetime']+drift))
+     if precision=='FILETIME100ns' and drift==0: assert a.check_native_baseline(proof,p4)==protected
+     else:
+@@ -245,7 +273,7 @@
+     assert a.load(tmp_path/'runtime-inputs.json')==saved
+ 
+ def test_inert_requires_separate_concrete_authority():
+-    prep=a.load(a.V/'harness-preparation-authority.json')
++    prep=a.load(a.V/'inputs/scope.json')
+     with pytest.raises(ValueError,match='Separate'): a.validate_inert_documents(prep,dt.datetime.now(dt.timezone.utc))
+ 
+ @pytest.mark.parametrize('failure',['hash','bytes','extra','escape','none'])
+@@ -392,7 +420,7 @@
+     observed=[]
+     def checkout(argv,**kwargs):
+         observed.append((argv,kwargs['timeout'])); clock.advance(.1)
+-        return json.dumps([dict(ProcessId=pid,ParentProcessId=0,CommandLineBase64='') for pid in sorted(active)]).encode('ascii')
++        return json.dumps([dict(ProcessId=pid,CreationFileTime=p4.identity(pid)['created_filetime'],ParentProcessId=0,CommandLineBase64='') for pid in sorted(active)]).encode('ascii')
+     monkeypatch.setattr(p4.subprocess,'check_output',checkout)
+     class Probe:
+         def settimeout(self,value): pass
+@@ -548,7 +576,7 @@
+     monkeypatch.setattr(p4,'process_times',lambda proc:(1000010,0))
+     def checkout(argv,**kwargs):
+         import base64
+-        return json.dumps([dict(ProcessId=pid,ParentProcessId=10 if pid==11 else 0,CommandLineBase64=base64.b64encode(command.encode('utf-16-le')).decode('ascii')) for pid in sorted(active)]).encode('ascii')
++        return json.dumps([dict(ProcessId=pid,CreationFileTime=p4.identity(pid)['created_filetime'],ParentProcessId=10 if pid==11 else 0,CommandLineBase64=base64.b64encode(command.encode('utf-16-le')).decode('ascii')) for pid in sorted(active)]).encode('ascii')
+     monkeypatch.setattr(p4.subprocess,'check_output',checkout)
+     class Probe:
+         def settimeout(self,value): pass
+@@ -568,7 +596,7 @@
+     clock=Clock(); budget=a.Deadline(clock=clock); budget.phase='cleanup'; p4=a.load_p4(); active={11,12} if failure=='nested' else {11}
+     kernel,calls=native_kernel(monkeypatch,p4,active,clock)
+     monkeypatch.setattr(p4,'protected',lambda:[])
+-    monkeypatch.setattr(p4.subprocess,'check_output',lambda *args,**kwargs:json.dumps([dict(ProcessId=pid,ParentProcessId=11 if pid==12 else 0,CommandLineBase64='') for pid in sorted(active)]).encode('ascii'))
++    monkeypatch.setattr(p4.subprocess,'check_output',lambda *args,**kwargs:json.dumps([dict(ProcessId=pid,CreationFileTime=p4.identity(pid)['created_filetime'],ParentProcessId=11 if pid==12 else 0,CommandLineBase64='') for pid in sorted(active)]).encode('ascii'))
+     class Probe:
+         def settimeout(self,value): pass
+         def connect_ex(self,address): return a.errno.ECONNREFUSED
+@@ -758,6 +786,8 @@
+     here=tmp_path/'harness'; here.mkdir(); input_file=tmp_path/'input'; input_file.write_bytes(b'original')
+     for source in Path(__file__).parent.iterdir():
+         if source.is_file(): (here/source.name).write_bytes(source.read_bytes())
++    (tmp_path/'verification').mkdir()
++    (tmp_path/'verification/offline_pytest.py').write_bytes((a.V/'verification/offline_pytest.py').read_bytes())
+     monkeypatch.setattr(driver,'HERE',here); monkeypatch.setattr(driver,'V',tmp_path)
+     monkeypatch.setattr(driver,'snapshot',lambda:{str(input_file):driver.digest(input_file)})
+     monkeypatch.setattr(sys,'argv',['run_checks.py','adapter'])
+@@ -785,10 +815,8 @@
+     virtual=tmp_path/'virtual-root'; here=virtual/'harness'; here.mkdir(parents=True)
+     for source in original_here.iterdir():
+         if source.is_file(): (here/source.name).write_bytes(source.read_bytes())
+-    for name in ('source10-candidate-manifest.json','harness-preparation-authority.json'):
+-        (virtual/name).write_bytes((original_v/name).read_bytes())
+-    (virtual/'harness-deadline-design').mkdir()
+-    (virtual/'harness-deadline-design/root-decision.json').write_bytes((original_v/'harness-deadline-design/root-decision.json').read_bytes())
++    (virtual/'inputs').mkdir()
++    (virtual/'inputs/scope.json').write_bytes((original_v/'inputs/scope.json').read_bytes())
+     monkeypatch.setattr(a,'V',virtual); monkeypatch.setattr(a,'HERE',here)
+     package=a.load(here/'manifest.json')
+     package['files']={name:a.sha(here/name) for name in package['files']}
+@@ -797,8 +825,8 @@
+     clock=Clock(); invocation=a.RootInvocation(clock=clock); b=invocation.budget
+     folder=virtual/'inert'/b.run_id; folder.mkdir(parents=True)
+     p4=a.load_p4(); active=set(); _,calls=native_kernel(monkeypatch,p4,active,clock)
+-    protected=[p4.identity(pid) for pid in range(51,56)]
+-    monkeypatch.setattr(p4,'protected',lambda:protected)
++    protected=[p4.identity(pid) for pid in range(51,58)]
++    protected_rows=protected_fixture(virtual,monkeypatch,p4,protected)
+     monkeypatch.setattr(p4,'process_times',lambda proc:(1000001,0))
+     monkeypatch.setattr(p4,'argv_parse',lambda text:json.loads(text))
+     monkeypatch.setattr(a,'load_p4',lambda:p4)
+@@ -810,7 +838,10 @@
+     command=json.dumps([str(a.PY),*argv])
+     def checkout(cmd,**kwargs):
+         if 'Get-NetTCPConnection' in cmd[-1]: return '2' if snapshot_live[0] else '[]'
+-        rows=[dict(ProcessId=pid,ParentProcessId=0 if pid==1 else 1,CommandLineBase64=base64.b64encode(command.encode('utf-16-le')).decode('ascii')) for pid in (1,2)] if snapshot_live[0] else []
++        rows=[dict(ProcessId=pid,CreationFileTime=p4.identity(pid)['created_filetime'],ParentProcessId=0 if pid==1 else 1,CommandLineBase64=base64.b64encode(command.encode('utf-16-le')).decode('ascii')) for pid in (1,2)] if snapshot_live[0] else []
++        rows.extend(dict(row,CommandLineBase64=base64.b64encode(row['CommandLine'].encode('utf-16le')).decode('ascii')) for row in protected_rows.values())
++        requested={int(value) for value in a.re.findall(r'ProcessId=(\d+)',cmd[-1])}
++        if requested: rows=[row for row in rows if row['ProcessId'] in requested]
+         return json.dumps(rows).encode('ascii')
+     monkeypatch.setattr(p4.subprocess,'check_output',checkout)
+     class Probe:
+@@ -878,6 +909,7 @@
+             observer_port['saved_bindings']={key:getattr(p4,key) for key in ('socket','time','subprocess','terminate_owned','save')}
+         return terminal
+     outcome=invocation.call(entry)
++    if b.failure: print('CLOSED_WITNESS_FAILURE '+b.failure)
+     if observer_port is not None:
+         assert all(getattr(p4,key) is value for key,value in observer_port['saved_bindings'].items())
+     expected=(fault=='none') if observer_port is None else observer_port['eligible']
+@@ -929,7 +961,7 @@
+     native_kernel(monkeypatch,p4,active,clock)
+     monkeypatch.setattr(p4,'protected',lambda:[]); monkeypatch.setattr(p4,'process_times',lambda proc:(1000001,0)); monkeypatch.setattr(p4,'argv_parse',json.loads)
+     argv=['-B','script']; command=json.dumps([sys.executable,*argv])
+-    monkeypatch.setattr(p4.subprocess,'check_output',lambda *args,**kwargs:json.dumps([dict(ProcessId=pid,ParentProcessId=0 if pid==1 else 1,CommandLineBase64=base64.b64encode(command.encode('utf-16-le')).decode()) for pid in (1,2,3)]).encode('ascii'))
++    monkeypatch.setattr(p4.subprocess,'check_output',lambda *args,**kwargs:json.dumps([dict(ProcessId=pid,CreationFileTime=p4.identity(pid)['created_filetime'],ParentProcessId=0 if pid==1 else 1,CommandLineBase64=base64.b64encode(command.encode('utf-16-le')).decode()) for pid in (1,2,3)]).encode('ascii'))
+     owned=p4.Owned(tmp_path,{})
+     owned.launchers=[dict(proc=types.SimpleNamespace(pid=1),identity=p4.identity(1),argv=argv,role='server')]
+     owned.known[1]=dict(identity=p4.identity(1),role='server',parent=0,argv=argv)
+--- accepted-old/run_checks.py
++++ current-source13/run_checks.py
+@@ -19,25 +19,14 @@
+ FROZEN_FILES = {'H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\navigation-source10-validation-20261102\\code\\harness-preparation-20261102T215807022506Z\\temp\\test_fix1_genuine_synthetic_ex0\\accepted-effects.json': 'b18842f04d71e0a5126dfba9067cae2bb5a4418c1250247dc44f955ad01c2b56', 'H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\navigation-source10-validation-20261102\\code\\harness-preparation-20261102T215807022506Z\\temp\\test_fix1_genuine_synthetic_ex0\\audit.db': '00d17ada6802a5251b5f2bd0bc07f647f421ca18f70315bad4a7ddfbd94bb996', 'H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\navigation-source10-validation-20261102\\code\\harness-preparation-20261102T215807022506Z\\temp\\test_fix1_genuine_synthetic_ex0\\external-artifacts.json': '147adc38e79767c967750214bb1d37e0d24a1db3a360920c75ea274e7870975d', 'H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\navigation-source10-validation-20261102\\code\\harness-preparation-20261102T215807022506Z\\temp\\test_fix1_genuine_synthetic_ex0\\external-readback-attempts.json': 'ea94c4d37a3a543c668eee1b370f494ab0612f450182c815eb8b5219fd479dc1', 'H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\navigation-source10-validation-20261102\\code\\harness-preparation-20261102T215807022506Z\\temp\\test_fix1_genuine_synthetic_ex0\\outputs\\e0a1433f-f9a6-4148-a25e-d908898ec846\\research.md': 'd02d4922394a206a6dcbaf4c4ec1d814d557e0a93f46757e84e5d93cc56e6f53', 'H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\navigation-source10-validation-20261102\\code\\harness-preparation-20261102T215807022506Z\\temp\\test_fix1_genuine_synthetic_ex0\\runtime-inputs.json': 'd46a24a07a2d92fb02108e586ca514f6b47d146084b8b1682549614f6bf1c911', 'H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\navigation-source10-validation-20261102\\code\\harness-preparation-20261102T215807022506Z\\temp\\test_fix1_genuine_synthetic_ex0\\service-first-result.json': '887334f2e147e813a0f55e59cdd52406ca5dc2c2b73f2cdf820d2ffe50cf4267', 'H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\navigation-source10-validation-20261102\\code\\harness-preparation-20261102T215807022506Z\\temp\\test_fix1_genuine_synthetic_ex0\\trusted-collection.raw': 'c5ec8c993bae1f54e2b950ba101daa7f31894cd06a4a3f4f57912b09164b7c64', 'H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\navigation-source10-validation-20261102\\code\\harness-preparation-20261102T215807022506Z\\temp\\test_fix1_genuine_synthetic_ex0\\trusted-export.json': 'a19afa70e6c580b1f9b0976fb2922cdd85080f1d50b2cd693195c478f1d72b95', 'H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\navigation-source10-validation-20261102\\code\\harness-preparation-20261102T215807022506Z\\temp\\test_fix1_genuine_synthetic_ex0\\trusted-replay.raw': '2d3c01c37de1ab46f9ca8ab181785af4bb1dc1d8b31823fb58d012617f5cf3a6', 'H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\navigation-source10-validation-20261102\\code\\harness-preparation-20261102T215807022506Z\\temp\\test_fix1_genuine_synthetic_ex0\\trusted-runtime.raw': '5224d589d1908e6c9981f9b15b2eeb7c8ce3d344a5304c0b573553a453682106', 'H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\navigation-source10-validation-20261102\\code\\harness-preparation-20261102T215807022506Z\\temp\\test_fix1_genuine_synthetic_ex0\\trusted-views.raw': '97b624903d6ed8db00226c05a9c88aecafe6dc3504ed93426a71e5f0379bbb24'}
+ 
+ def snapshot():
+-    m = json.loads((V/'source10-candidate-manifest.json').read_text('utf8'))
+-    files = dict(m['source_files'], **m['sdk22'], **m['dependencies'])
+-    files[m['model']['policy_path']] = m['model']['policy_sha256']
+-    files[m['model']['local_manifest_path']] = m['model']['local_manifest_observed_sha256']
+-    files[str(V/'harness-preparation-authority.json')] = 'f3dcea80f720f903cc98ce77d1f8b9461ca4ad9b4e87e9d9d8c8b89262ae118a'
+-    files[str(V/'source10-candidate-manifest.json')] = 'cdfbfb059f889ef9e92221c503dffe2ca7fa08106ebf4968bcc26037f214be50'
+-    files[str(V/'harness-deadline-design/root-decision.json')]='144be9bc0a63294f5fd4e75c7cbe06f8e2ad2d51df36d0b11896d2455a0b4d47'
+-    report=Path(m['candidate_root'])/'.superpowers/sdd/jarvis-work-capability-delivery-plan-20261101/task-4-navigation-adapter-report.md'
+-    report_bytes=report.read_bytes()
+-    if hashlib.sha256(report_bytes[:94969]).hexdigest()!='51cd77d1d09527bc26462724e2ee07191e3378e895c23a49ccc3d96ab4f09269': raise ValueError('Fix3 author prefix drift')
+-    if hashlib.sha256(report_bytes[:69552]).hexdigest()!='6f9926ac5819579c80367fa2c510fe0f9654839e3a6b185d9e66219bc1a56168': raise ValueError('Fix2 author prefix drift')
+-    if hashlib.sha256(report_bytes[:13665]).hexdigest()!='47246ba87216f07d696a7bb2b1bb38d525fa7c99eb83a72e694552090dc3c2c1' or hashlib.sha256(report_bytes[:30837]).hexdigest()!='b61101512a5e49ccb65d015de835ea1ecd87abc49c199702a2d91255fb52ecab' or hashlib.sha256(report_bytes[:52443]).hexdigest()!='594584b5ad328070a41d3b9f6a5f29f4f74a0ba8bbd08115932adf968011452b': raise ValueError('Original author report prefix drift')
+-    if {str(p) for p in FROZEN_FIXTURE.rglob('*') if p.is_file()} != set(FROZEN_FILES):
+-        raise ValueError('Frozen reviewer fixture membership drift')
+-    files.update(FROZEN_FILES)
+-    actual = {p: digest(p) for p in files}
+-    if actual != files:
+-        raise ValueError('Pinned preparation input drift')
+-    return actual
++    import importlib.util
++    spec=importlib.util.spec_from_file_location('source13_snapshot_adapter',HERE/'adapter.py')
++    module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
++    files=module.check_inputs()
++    for path,digest_value in FROZEN_FILES.items():
++        if digest(path)!=digest_value:raise ValueError('Historical synthetic fixture drift')
++        files[path]=digest_value
++    return files
+ 
+ def main():
+     if sys.argv[1:] != ['adapter'] or Path(sys.executable).resolve() != PY.resolve() or not sys.flags.dont_write_bytecode or sys.flags.utf8_mode != 1:
+@@ -55,11 +44,13 @@
+         raw=(HERE/name).read_bytes(); (run/'harness-source'/name).write_bytes(raw)
+         harness_before[name]=hashlib.sha256(raw).hexdigest()
+     (run/'source-before.json').write_text(json.dumps(before,indent=2),encoding='utf8')
+-    argv = [str(PY), '-B', '-X', 'utf8', '-m', 'pytest', str(HERE/'test_adapter.py'), '-q', '-p', 'no:cacheprovider', '--basetemp='+str(run/'temp'), '--junitxml='+str(run/'harness/adapter.xml')]
+-    selection=os.environ.get('ULTIMA_ADAPTER_UNIT_SELECTION')
+-    if selection: argv+=['-k',selection]
+-    env = dict(os.environ, PYTHONDONTWRITEBYTECODE='1', PYTHONIOENCODING='utf-8', PYTEST_DISABLE_PLUGIN_AUTOLOAD='1', TEMP=str(run), TMP=str(run),OPENJARVIS_HOME=str(run/'owned-env/openjarvis'),HF_HOME=str(run/'owned-env/hf'),XDG_CACHE_HOME=str(run/'owned-env/cache'))
+-    result = subprocess.run(argv,cwd=run,env=env,stdout=subprocess.PIPE,stderr=subprocess.PIPE,timeout=90)
++    guard=V/'verification/offline_pytest.py'
++    guard_before=digest(guard)
++    (run/'harness-source/offline_pytest.py').write_bytes(guard.read_bytes())
++    argv = [str(PY), '-I', '-B', '-X', 'utf8', str(guard), str(HERE/'test_adapter.py'), '-q', '-p', 'no:cacheprovider', '--basetemp='+str(run/'temp'), '--junitxml='+str(run/'harness/adapter.xml')]
++    env = {key:value for key,value in os.environ.items() if not key.upper().endswith('_PROXY') and not key.upper().startswith(('OLLAMA_','OPENJARVIS_','PYTHON','PYTEST','ULTIMA_ADAPTER_'))}
++    env.update(PYTHONDONTWRITEBYTECODE='1', PYTHONIOENCODING='utf-8', PYTEST_DISABLE_PLUGIN_AUTOLOAD='1', TEMP=str(run), TMP=str(run),OPENJARVIS_HOME=str(run/'owned-env/openjarvis'),HF_HOME=str(run/'owned-env/hf'),XDG_CACHE_HOME=str(run/'owned-env/cache'))
++    result = subprocess.run(argv,cwd=run,env=env,stdout=subprocess.PIPE,stderr=subprocess.PIPE,timeout=90,creationflags=subprocess.CREATE_NO_WINDOW)
+     (run/'stdout.log').write_bytes(result.stdout)
+     (run/'stderr.log').write_bytes(result.stderr)
+     after_error=None
+@@ -68,12 +59,12 @@
+     (run/'source-after.json').write_text(json.dumps(after,indent=2),encoding='utf8')
+     harness_after={name:digest(HERE/name) if (HERE/name).is_file() else None for name in sorted(names)}
+     members_after={p.name for p in HERE.iterdir() if p.is_file()}
+-    unchanged=harness_before==harness_after and members_after==names
++    unchanged=harness_before==harness_after and members_after==names and digest(guard)==guard_before
+     exit_code=result.returncode if unchanged and before==after and after_error is None else 2
+     receipt = dict(argv=argv,cwd=str(run),exit_code=exit_code,pytest_exit_code=result.returncode,snapshot_after_error=after_error,inputs_unchanged=before==after,harness_before=harness_before,harness_after=harness_after,harness_members_after=sorted(members_after),harness_unchanged=unchanged,controlled_environment={key:env[key] for key in ('PYTHONDONTWRITEBYTECODE','PYTHONIOENCODING','PYTEST_DISABLE_PLUGIN_AUTOLOAD','TEMP','TMP','OPENJARVIS_HOME','HF_HOME','XDG_CACHE_HOME')},kind='mocked-boundary-unit-only',inert=False,actual=False,model_calls=0,product_launches=0,T2='NOT_PASSED',files=harness_after)
+     (run/'receipt.json').write_text(json.dumps(receipt,indent=2),encoding='utf8')
+-    print(result.stdout.decode('utf8'),end='')
+-    print(result.stderr.decode('utf8'),end='',file=sys.stderr)
++    print(result.stdout.decode('utf8').strip().splitlines()[-1:] or ['No pytest stdout'])
++    if result.stderr: print(result.stderr.decode('utf8')[-2000:],end='',file=sys.stderr)
+     print('RECEIPT '+str(run/'receipt.json'))
+     return exit_code
+ 
+--- accepted-old/README.md
++++ current-source13/README.md
+@@ -1,451 +1,3 @@
+-# Source10 adapter preparation
++# Current source13 real controlled E02 harness — preparation only
+ 
+-Preparation only for candidate `118ba152b007c30d358c8bc44c51aabe8ae820f0`.
+-E02/T2 remains **NOT_PASSED**. No execution authority, inert release, profile
+-release, native/model request, production release or owner acceptance is included.
+-
+-The six source files are adapter.py, test_adapter.py, run_checks.py,
+-headless_proof.py, README.md and manifest.json. Root publishes their bytes after
+-independent review. No Git operation is performed by this package.
+-
+-The preparation command is:
+-
+-```powershell
+-& 'H:/UltimaAI/UltimaAgent/tools/venv-openjarvis/Scripts/python.exe' -B -X utf8 'H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-validation-20261103-inert2/harness/run_checks.py' adapter
+-```
+-
+-The driver records exact pytest argv, controlled environment, raw stdout/stderr,
+-source input hashes before/after and JUnit under a **new** sibling
+-`code/harness-preparation-<UTC>/harness/adapter.xml`. Later receipts also contain
+-copies of all harness source bytes. This is the root clarification of the plan's
+-`harness/adapter.xml` shorthand; no seventh source file is created.
+-
+-Units run the actual pinned P4 Owned.launch/discover/cleanup definitions. They
+-mock only process/launch/listener/socket boundaries and export failure boundaries.
+-They do not prove actual process ownership, redirector/base identities, listener
+-ownership, timeouts, native termination or product/model understanding. Additional
+-units exercise original frozen Browser bytes without HTTP, independently frozen
+-RuntimeInputs, malformed exports, exact native identity checks and source hashes.
+-
+-`load_p4()` hashes P4 and P1 before loading fresh P4 definitions, checks the P1
+-module origin, and refuses an unexpected or unverified cached acceptance_adapter.
+-It restores sys.path after P4's pinned import. No P4 execute/source_check or old
+-source9 release is used. The existing P4 Owned constructor still invokes the
+-existing legacy protected() check. New source10 admission additionally requires a
+-fresh five-identity native FILETIME100ns baseline and compares the integer native
+-identities exactly. Historical CIM-derived ticks remain historical and untouched.
+-Launcher GetProcessTimes uses P4's retained Popen handle; descendant termination
+-uses P1's reopen-and-recheck terminate_owned. Unknown descendants fail cleanup and
+-are not killed. Shared Ollama and protected processes are never owned.
+-
+-`run_case(authority_path, ledger_path)` rejects missing/wrong/nonexecution authority
+-before constructing Owned. Only canonical source10 E02-controlled-1 authority and
+-ledger paths are accepted. Schema11 supersedes the unallocated schema10 proposal
+-and is a **proposal requiring root review**:
+-
+-- Authority: issuer root, kind source10_execution, actual true, case, exact
+-  candidate and candidate_manifest_sha256, native_precision FILETIME100ns,
+-  issued_at/expires_at (maximum120s), exact original budgets, no overrides,
+-  canonical folder, controlled port, ledger_sha256, approval_sha256 and
+-  native_preflight_sha256. No such authority currently exists.
+-- Ledger: schema11, released_case E02-controlled-1, consumed exactly that one
+-  case, attempts1, retry0. Allocation is preconsumed by root, not by the adapter.
+-- Approval: root-independent reviewer, overall PASS, exact harness manifest hash.
+-  The manifest pins the five other files; its own raw hash is pinned externally.
+-- Native proof: fresh <=60s, precision FILETIME100ns, exact candidate, exactly five
+-  native pid/created_filetime/exe identities, version/tags bound to the pinned
+-  local 8B manifest. No daemon is contacted by admission.
+-
+-The adapter claims an exclusive attempt.json before launch and refuses reissue.
+-Candidate argv uses the original corpus query, fresh request/session UUIDs and
+-isolated runtime/output roots. It retains first CLI raw bytes (including partial
+-timeout output), parsed product-result separately from harness/cleanup errors,
+-and the original service result before exports. No next-case loop or retry exists.
+-Application POST attempts are distinct from confirmed internal/native starts;
+-the latter remains null without independent runtime proof.
+-
+-The child shim adapts only the old Browser fixture's ddgs search, fixed GET bodies
+-and DNS restriction. It never installs the old corpus_hook or modifies
+-httpx.Client.send. There is no response.read(), raw stream observer, alternate
+-native client, response reconstruction or retry transport. Source10's original
+-bounded streaming consumer remains responsible for request/response acquisition.
+-Completed safe wires/entities come from the existing immutable trusted ledger.
+-Unsafe/partial failures export only completion flags and safe counters, not raw
+-response bodies. Evidence output is capped at4MiB per JSON artifact.
+-
+-Independent RuntimeInputs are written from WorkLedger._freeze_runtime_inputs
+-before composition, with the original prompt/root/binding/allowance/deadline;
+-they are never reconstructed from a packet. The final ledger snapshot, replay and
+-collection are exported after the service returns. Verification reuses the real
+-v3 packet verifier and resolver/renderer, checks original four bodies and fresh
+-GET linkage, writer END/ACK, the exact external research.md bytes/hash, and the
+-single output inventory. Root still reviews factual coverage, alternatives,
+-conditions, the two projects' attribution and understanding.
+-
+-**Do not run headless_proof.py now.** It is prepared for separately approved inert
+-qualification only. Its proposed root inert-authority.json binds schema11,
+-source10_inert_qualification, actual false, model_calls0, native11434 false,
+-candidate manifest, approval hash, UUID run_id, canonical inert folder, controlled
+-port, fresh native baseline hash and <=120s admission. P4 owns one inert
+-HTTPServer child, proves native argv/query roundtrip and listener identity, then
+-uses unchanged P4 cleanup and verifies port closure and protected before/after.
+-This uses no product CLI, model, native11434 or external request.
+-
+-Neither the inert script nor actual path has run. The original-corpus
+-zero-inference runtime profile remains a later separately released gate.
+-
+-## Deadline correction T4-D315-01 — no execution release
+-
+-Root ruling raw SHA256
+-`144be9bc0a63294f5fd4e75c7cbe06f8e2ad2d51df36d0b11896d2455a0b4d47`
+-chooses a deadline on **eligibility of complete successful evidence**, not an
+-arbitrary-kernel preemption guarantee. Missing/uncertain/late evidence permanently
+-fails that allocation, even if a later terminal looks successful. No post-deadline
+-kill or recovery is authorized. Residual processes/effects require separate root
+-identity-verified recovery. A fast successful case can be eligible; inert success
+-does not demonstrate model latency, understanding or actual completion.
+-
+-One integer monotonic_ns origin is captured before case-specific admission I/O.
+-Only a trusted earlier same-host/same-clock root origin is accepted, tied to native
+-parent identity and run UUID in the canonical root authority. Children adopt the
+-same origin and cannot renew315s. Authority UTC120s and baseline age60s remain
+-separate admission checks; the product's existing float replay protocol is intact.
+-Schema11 additionally requires parent_timing and schedule:
+-
+-- parent_timing: run_id, origin_ns, clock_domain, native parent_identity and the
+-  derived work/cleanup/outer cutoffs supplied by RootInvocation.parent_timing().
+-- schedule: work_seconds275, cleanup_seconds310, outer_seconds315 and the exact
+-  root ruling hash above. Both inert and execution authorities require it.
+-- The original260service/300client/315outer maxima remain. Work and normal
+-  validation end at origin+275. Cleanup admission ends at310. Final postcheck,
+-  data close and trusted enclosing observation end at315, inclusive for completed
+-  evidence; every new admission requires strictly positive remaining time.
+-- effective-schedule.json and terminal expose effective_client_seconds separately:
+-  min(300,work cutoff minus dispatch time), with launch/discovery also charged.
+-  A12s startup leaves at most263s and a30s startup245s before validation costs.
+-  Exhausted work allowance refuses dispatch. No product deadline/default changes.
+-
+-PrivateIO borrows only bindings on the fresh P4 module object for this invocation.
+-Its subprocess delegate accepts the exact original snapshot/listener PowerShell
+-command families and forwards original argv/flags/encoding/exceptions, clipping
+-timeouts to remaining phase allowance and rejecting late returns. It never
+-changes shared subprocess.check_output. Private time forwards monotonic and clips
+-sleep; private socket supersedes the immutable original1s hint with a fixed maximum3s proof, clipped at allocation and connect, and records its actual
+-return code. Only Windows WSAECONNREFUSED or actual platform ECONNREFUSED counts
+-closed; timeout/error/missing/expired means unknown. Allocated probes are closed
+-even when settimeout/cleanup fails.
+-
+-Private terminate_owned admission requires room for the full original10s native
+-wait, then calls the untouched original P1 function. It never injects exceptions
+-inside its acquire/recheck/terminate/wait/finally. Entered/returned/late evidence
+-is retained. Even admitted primitives can overrun; such evidence cannot pass.
+-The real Popen and _handle remain unchanged. Per-instance wait clipping covers
+-every registered launcher, including launch that raises during discovery, and
+-restores original methods. Attempted launch is recorded before original launch;
+-failed/unregistered creation remains a possible live effect even with empty known
+-map. No helper.launch/Popen/ctypes/P1/shared-stdlib mutation occurs in the adapter.
+-Only isolated unit boundary mocks replace kernel/launcher/HTTP observations.
+-
+-The original ownership, ancestry, exact identity, native argv, listener and cleanup
+-algorithms remain P4/P1 code. New delegates constrain I/O admission, not ownership
+-or kill authority. A35s cleanup slice cannot guarantee four full10s waits. Budget
+-denial, stalled kernel/file I/O, missing snapshots or log-close failure can leave
+-unknown owned effects; they fail and do not authorize recovery or retries.
+-
+-The **prepared root callable contract**, requiring separate root invocation
+-review/sealing before any allocation, is:
+-
+-```python
+-# Conceptual ROOT caller only; DO NOT EXECUTE during preparation.
+-invocation = adapter.RootInvocation()  # first, before authority/interpreter I/O
+-parent_timing = invocation.parent_timing()
+-# Root separately prepares reviewed schema11 authority/ledger/baseline,
+-# binding parent_timing and the sealed harness/approval hashes.
+-outcome = invocation.call(adapter.run_case, authority_path, ledger_path)
+-# For inert: invocation.call(headless_proof.run_inert)
+-# Root persists outcome['witness'] as independent adjudication.
+-```
+-
+-RootInvocation.call is consumed once. It samples after the entry returned, the
+-immutable terminal and seal-index closed, all required members are present, and
+-every sealed member hash has been read back with closed reads. The witness binds
+-run ID, original origin/cutoffs/clock domain, terminal digest, observed_ns,
+-complete-proof predicates, eligibility and permanent adjudication. Required data
+-includes raw first results, packet/runtime inputs, external readback, cleanup,
+-listener, identities/pins and closed logs (or the corresponding inert proof set).
+-The child only writes UNOBSERVED_NEVER_TIMED_PASS and a pending result; standalone
+-adapter/headless commands cannot grant timed PASS and return2. A child timestamp,
+-mtime or closed flag is not a witness. A later independent witness may record an
+-earlier actual trusted observation; the contract never backdates a child seal.
+-No witness, missing data, failed proof or observation after315 is ineligible.
+-Late diagnostics may be preserved but cannot promote a consumed allocation.
+-
+-All new RED/GREEN receipts copy the exact six harness source bytes before pytest
+-and retain after hashes/unchanged results. The initial historical RED's absent
+-contemporaneous source copy remains documented; it has not been reconstructed or
+-silently replaced. The original13665-byte author report prefix is preserved.
+-
+-## Formal review fix1: proposed contracts, no operational release
+-
+-The first formal review was SPEC FAIL / QUALITY NEEDS_FIXES. This revision repairs
+-H01–H15 for the same reviewer's scoped re-review, including the two minor driver
+-and import-path findings. It changes only the six harness source files. The whole
+-30837-byte b6110151 author-report prefix and its nested13665-byte prefix are
+-preserved. All75 pre-review test IDs and their intended purposes remain; the empty
+-proof positive is now a negative with a substantive positive companion.
+-
+-Actual and inert children cannot start product/runpy/HTTPServer merely from an
+-attempt marker and live parent. After ORIGINAL Owned.launch registration and
+-bounded ORIGINAL discover, the parent waits for a validated native base child,
+-then closes child-clearance.json binding mode/folder/authority hash/attempt hash,
+-full canonical argv, original timing and P4-validated native members. Only then
+-it publishes a zero-byte child-clearance.ready marker. That marker is publication
+-ordering, not proof. Before startup the child verifies the full native orig_argv,
+-its own ORIGINAL P1 identity against cleared members, all bindings and exclusively
+-creates child-clearance.consumed.json. Extra/changed/missing/duplicated flags,
+-wrong identities and replay fail before dispatch. Product flags are derived from
+-that canonical argv rather than argparse leftovers. No new ownership/Win32/kill
+-authority or launcher algorithm is introduced.
+-
+-Qualification records exact expected native rows, retained launcher identity/exit,
+-base/redirector parent relationships, native argv and owned base listener. Empty,
+-partial or misrelated snapshots fail. Native raw ASCII/base64-UTF16 bytes, decoded
+-records and their digests are bound together. Fresh protected five must equal the
+-CURRENT native identities returned by original P1 protected(), joining exact PIDs
+-and native integers; historical CIM tolerance remains a separate prerequisite.
+-Exact H interpreter and SDK/helper import origins are required. Parent import
+-paths restore on success, exception and timeout.
+-
+-admission.json and the trusted enclosing budget retain the admitted canonical
+-mode/folder/timing/baseline and a FULL operational pin map: candidate/SDK/dependency
+-pins, raw source/preparation/ruling, six harness files, approval, operational
+-authority/ledger/baseline and historical protected-member record. Both modes
+-compare and seal before/after maps after cleanup. The enclosing observer then
+-rechecks those maps, original protected native members, exact native roles and
+-cleanup identity set, actual absence and definite refusal through original P4/P1
+-read-only primitives. It checks the live parent-retained log handles are closed.
+-Every fresh required root read/list/hash/port/identity observation is guarded by
+-the same seal budget, and an expired/late read prevents subsequent admission.
+-The durable witness binds canonical kind/folder/run/timing, terminal digest,
+-seal-index digest and every observed member hash. Status strings and empty error
+-lists do not substitute for substantive proof.
+-
+-The actual observer reconciles first raw/parsed CLI and original service IDs,
+-status and artifact assertions against the attempt/canonical argv. It replays the
+-REAL v3 verifier/resolver/renderer and reads exact research.md again after cleanup.
+-accepted-effects.json, pre-cleanup and post-cleanup inventories must agree on the
+-single path, hash and exact bytes; removal/replacement/extra files fail. The output
+-is a required sealed member, not an optional result claim. First failing stage
+-and original cause latch through work/primitive/returned-cleanup/final-boundary/
+-seal/witness errors; all later errors and effects_unknown stay separate evidence.
+-
+-The completed export format is now2. After the REAL v3 runtime verifier validates
+-decoded semantic/scanner/END/ACK/linkage data, exact bounded members are closed as
+-trusted-runtime.raw, trusted-views.raw, trusted-replay.raw and
+-trusted-collection.raw, each capped at4MiB. trusted-export.json is a small bounded
+-descriptor with exact names/sizes/digests and snapshot metadata. There is no
+-base64 expansion or raw packet loss merely from wrapping multiple members into a
+-single4MiB envelope. Unsafe/partial/oversized failures produce no unsafe response
+-capture; safe flags/counters and original service result remain. The internal
+-representation unit covers3MiB/4MiB safe bytes; it does not claim a padded object
+-is a valid protocol packet. A separate genuine synthetic four-source v3 positive
+-passes the real complete export, packet, rendering and external-readback pipeline.
+-
+-H15 units use only synthetic source bodies with existing genuine SDK test fixtures
+-and HTTPX MockTransport. No original-corpus WorkService/preparer/profile is run.
+-They retain the real common finalization path and original P4 listener/cleanup
+-algorithms, supply valid prerequisites and true refusal outside the injected fault,
+-and assert each exact first cause, retained product and unknown effects. The
+-driver isolates OPENJARVIS_HOME before test imports; whole serialized trusted event
+-JSON is not rescanned as opaque PII (numeric timestamps are not untrusted prose).
+-The REAL packet verifier still applies all scanner checks to decoded values.
+-
+-Driver receipts always retain exact six before copies and after hashes. A pin,
+-member-byte or member-set drift makes the driver fail even if pytest returns0;
+-the failure receipt/raw logs remain. Both report-prefix hashes are checked.
+-No new W root-caller draft, concrete authority, independent approval/baseline,
+-runtime/inert/model/profile/actual allocation or qualification is implemented or
+-issued here. Root retains publication and all later gates. T2 remains NOT_PASSED.
+-
+-## Formal fix2: six scoped blockers, no operational release
+-
+-The same reviewer independently closed H03/H04/H05/H06/H07/H08/H09/H10/H11/H12/
+-H13/H15 after fix1. Their original tests/remedies remain. This change targets only
+-H01/H02/H14 and F1-N01/F1-N02/F1-N03 plus shared-path regressions. All123 fix1
+-test IDs remain. The entire52443-byte594584b5 report prefix and nested prefixes
+-remain verbatim; the driver checks all three before/after. No root caller draft,
+-authority, baseline, approval or operational gate is prepared or executed.
+-
+-H01 now requires one retained server launcher and exactly ONE validated native
+-base child before clearance publication. Two matching siblings are ambiguous and
+-fail; all original Owned identities remain for evidence/cleanup. No set is
+-truncated, no first process is selected, and no new kill/ownership rule exists.
+-Clearance distinguishes launcher_identity (ancestry only) and base_identity (the
+-sole eligible consumer). The child self identity, exclusive consumption, native
+-base listener and closed proof must all bind that same unique base. Root, other
+-member, duplicate flags, wrong mode and replay remain denied.
+-
+-F1-N02 adds the final positive-remaining check immediately at product dispatch or
+-HTTPServer/listener constructor AFTER clearance, imports, fixture/argv/body setup.
+-Timely consumption does not renew the275s work cutoff. A late setup leaves the
+-consumed record and specific first failure, and starts no new service/listener.
+-
+-H02's inert-exchange.json is required closed evidence. The parent performs the
+-original P4 get_json against the exact admitted loopback endpoint after original
+-assert_listener. It retains the validated actual response, method/URL, owned base
+-listener and same-clock before/after observations in BOTH trusted parent context
+-and the sealed file. Witness compares them exactly, checks original run/timing,
+-canonical endpoint/role and response, and admits no parentless self-written proof.
+-The substantive positive actually invokes real get_json with only its HTTP opener
+-mocked; missing/endpoint/listener/response/timing/no-parent controls fail. It is
+-still a unit, not actual inert qualification or networking.
+-
+-H14's own guarded_files walk replaces whole rglob comprehensions. Each directory
+-open, iterator advance and member stat has pre/post admission to the SAME current
+-seal budget; iterators close in finally even on late return. No later directory,
+-iteration/stat/hash is admitted after the first delayed query. This is used for
+-index creation, enclosing closed-member listing and inert/output observation.
+-It does not modify original P4 or globally patch pathlib/OS. Boundary mocks exist
+-only in isolated tests. A raw operation admitted earlier can still return late;
+-physical failure-path preemption is not promised.
+-
+-F1-N01 keeps real v3 verification and adds closed producer object structures for
+-runtime/prewrite, wires/hashes/identity, transport/receipts, execution records and
+-events/timeline. Unexpected members/types fail before any raw publication. Every
+-decoded string/key is checked with the EXISTING configured scanners. Serialized
+-events/entities/native envelopes are decoded before scan; closed finite repr(float)
+-timeline clocks remain typed numbers, preserving the timestamp correction. No
+-arbitrary metadata exemption, stripping, SDK/policy change or fact filter exists.
+-The same safety check also applies to readback. Coherent extra top/wire/transport/
+-event values accepted by the original loose verifier are refused by this boundary,
+-while genuine export, decoded unsafe-envelope and bounded3/4MiB controls remain.
+-
+-F1-N03 compares the OBSERVED pre-cleanup inventory immediately to accepted bytes/
+-paths/hashes and latches any discrepancy before cleanup can remove/restore it.
+-The exact closed pre-map is also reconciled by the enclosing witness alongside
+-accepted/post/current maps and remains durably member-hash bound. A transient
+-observed extra can never become successful when later deleted. Equal maps pass.
+-
+-Preparation driver may select a focused unit expression using the shell-local
+-ULTIMA_ADAPTER_UNIT_SELECTION environment value. It records the actual -k and
+-expression in exact pytest argv and still copies six bytes and64 pin snapshots.
+-The final complete stage has no selection; only that stage establishes retained
+-all123 IDs. This is a unit filter, not a product or qualification flag. Source118,
+-SDK22, old P4/P1/corpus, original8B policy and all allocations remain unchanged.
+-
+-## Formal fix3: producer decoding and inert directory effects
+-
+-The same reviewer held 17 remedies independently closed: H01-H15 and
+-F1-N02/F1-N03. This scoped round addresses Important F1-N01/F2-N01/F2-N02
+-and the related Minor F2-N03. All145 prior test IDs and their purposes remain;
+-17 further cases cover the exact coherent counters and their boundary controls.
+-All earlier FAIL dispositions stay in force until independent scoped re-review.
+-
+-Every actual JSON decode in the adapter uses standard json.loads with a unique
+-object-member hook (including escaped-equivalent names at every nesting depth)
+-and rejection of nonfinite JSON constants. Decoding is attached to explicit
+-producer slots and declared types: serialized runtime/prewrite packets, event
+-objects and tool-end results, native response message content, request entity and
+-SDK transcript messages, identity responses, receipt timeout JSON, and completed
+-export/replay/collection inputs. Ordinary execution metadata and free prose are
+-recursively scanned as strings/keys without parsing by terminal name or suffix;
+-numeric-looking strings remain scanner inputs. Closed timeline clock fields
+-retain their explicit finite repr(float) validation. No scanner or SDK changed.
+-
+-Observation JSON decoding applies only to the SDK transcript's later user turn
+-following its assistant turn. The final assistant envelope's final_answer is
+-ordinary scanned prose, including the exact valid ACK 'Observation: the report
+-is complete.'. Its new positive passes real require_ack replay, scanner checks,
+-complete export and independent readback. Duplicate-shadowed metadata and nested
+-entity numeric strings each first pass the real original verifier, then fail the
+-export safety boundary before raw publication. A duplicate actual timeout JSON
+-boundary is also refused; no raw member is retained for these unsafe cases.
+-
+-Inert output eligibility uses a dedicated budgeted no-descendants predicate.
+-An absent outputs directory or an existing empty root is allowed; ANY immediate
+-entry is an effect, including an empty outputs/unexpected-task directory. Root
+-stat, directory open and iterator advance retain pre/post deadline checks and
+-iterator closure. The substantive otherwise-valid enclosing inert mock package
+-now rejects that empty-task effect while retaining its real parent-held mocked
+-GET exchange, native identity, cleanup, listener and protected-state proofs.
+-
+-Writer and observer apply the same256 DATA member cap. Closed observation
+-separately reserves exactly one regular fixed ROOT seal-index.json, whose I/O
+-and time remain charged and whose exact set/digests are still checked by the
+-original witness path. Nested, suffixed or other index-like names consume DATA
+-capacity.256 DATA plus the fixed root index passes;257 DATA fails before sealing.
+-
+-The driver now checks all four immutable historical report prefixes, including
+-the entire69552-byte6f9926ac fix2 report. Final complete adapter verification has
+-no selection and seals these exact six source bytes plus64 fixed input pins.
+-No root-caller draft, live authority, real process, native/external/model call,
+-original-corpus profile, inert qualification or operational release occurred.
+-T2 and E02 remain NOT_PASSED; outer315 timing remains the prior eligibility and
+-enclosing-witness contract, without arbitrary-kernel preemption or recovery.
+-Round 4 checks SDK file result text and producer-declared metadata types before
+-raw export, including the archived reviewer packet and fresh coherent fixtures.
+-The driver also pins the complete 94969-byte fix3 report prefix. Round 4 awaits
+-independent re-review. All execution gates remain closed.
+-
+-
+-## T4-PORT-REV2 preparation revision
+-
+-ROOT ruling SHA256 `295ca3be9a9040967e826341af084a369d90606c595306ec62b62c912d62c209`
+-chooses the same private fixed three-second maximum for inert and future actual
+-modes at both existing cleanup and substantive-observation connect sites. Each
+-proof still performs exactly one connect. Before raw socket construction it pins
+-an expiry at allocation time plus min(3 seconds, remaining phase allowance).
+-Construction and setup spend that allowance; connect re-clips against both the
+-original proof expiry and the same absolute phase deadline. No new invocation
+-origin, reserve, renewal, option, retry, polling, port or process is introduced.
+-The original P4 settimeout(1) hint remains in its pinned source. Only the private
+-connect-time raw setter supersedes it. A late return beyond the private proof or
+-phase cutoff is unknown; an exact-cutoff return cannot admit subsequent IO.
+-
+-Only ECONNREFUSED/10061 proves closure. Original P4's any-nonzero closure result
+-is retained as historical evidence, while the adapter refuses 10035, 10060,
+-zero, other codes, missing values, errors and late refusals. Closure/restoration,
+-permanent first cause and eligibility rules remain enforced. Work275,
+-cleanup310, seal/trusted-observation315, service260, client300, outer315 and
+-zero retry remain fixed; no OS/kernel preemption guarantee is made.
+-
+-The driver binds fresh preparation authority SHA256
+-`f3dcea80f720f903cc98ce77d1f8b9461ca4ad9b4e87e9d9d8c8b89262ae118a`.
+-Its before/after source snapshots also pin all 12 ordinary frozen reviewer
+-fixture files at the OLD navigation-source10-validation-20261102 location.
+-The archived reviewer test explicitly reads that original location; fixture
+-bytes are neither copied nor regenerated. Candidate-manifest and deadline-ruling
+-historical source/review references remain untouched. Unit helper copies and
+-synthetic mocked authority documents exist only inside new V2 run temp outputs.
+-
+-Added tests use a fake clock and socket with refusal delay2.0139454s: waiting
+-advances min(effective timeout,delay), returning10035 while incomplete and10061
+-only after enough waiting. They exercise real original P4 cleanup and the real
+-substantive observer using its existing sealed mocked native package. The old
+-one-second implementation is expected to fail positive outcomes at both sites.
+-Both mode labels use the same PrivateIO implementation; substantive observer
+-integration uses the inert fixture, and reaches the shared proof before either
+-mode-specific validation branch. This is mock preparation, not native actual or
+-inert qualification. Prior allocation stays PERMANENT_FAIL,1/1 consumed,0remaining;
+-model calls remain0 and E02/T2 remains NOT_PASSED.
+-
+-
+-### PORT2-I01 scoped fix, pending independent re-review
+-
+-The original timeout hint now checks the pinned private proof expiry and the
+-absolute phase deadline before invoking raw.settimeout. Expired construction
+-admits neither the raw setter nor connect. The surrounding PrivateIO scope still
+-owns mandatory raw close and restoration when P4's hint raises before P4's own
+-try/finally. Unexpired hints remain clipped normally and connect retains the
+-shared fixed3s allocation expiry. Tests inspect raw setter records and exactly
+-one close for both proof-expiry and enclosing-phase-expiry failure paths, at real
+-original P4 cleanup and real substantive observation. Prior216 test IDs remain.
+-
+-
+-FIX1 diagnostic follow-up: after a preserved full-run upstream END failure and
+-an unchanged isolated pass, ROOT authorized one diagnostic covering run. Only
+-synthetic_bundle assertion failures emit bounded context: known literal error
+-labels (otherwise hash/length), status/sequence, and END-to-staged equality flags.
+-No prompt, report, full result, metadata values or credentials are emitted. The
+-original fixture execution and assertions remain identical; no validator is
+-relaxed. PrivateIO implementation remains frozen during this diagnostic step.
++Derived from the original source10 actual research harness. Product269aca5 and current community8B only. Keep original question, four-source corpus, product CLI/server, native SDK transport, RootInvocation and275/310/315 deadlines. Changes bind current inputs and current E01 helper plus all7protected identities with native/parent/command checks. The original browser search/GET fixture remains; model responses are never supplied by this harness. No execution release exists. Old case/historical failures remain intact. Original test function identities are retained; fixtures will be reconciled with current bindings, and all RED outputs preserved. Source13 binding adaptation is incomplete until offline full regression, export replay, root entry and independent preparation PASS.

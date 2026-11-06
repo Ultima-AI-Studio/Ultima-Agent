@@ -1,0 +1,50 @@
+........................................................................ [ 32%]
+........................................................................ [ 65%]
+........................F............................................... [ 98%]
+...                                                                      [100%]
+================================== FAILURES ===================================
+____________ test_fix4_f1_producer_types_before_publication[peer] _____________
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-source13-real-controlled-preparation-20261106/code/harness-preparation-20261106T161708331528Z/temp/test_fix4_f1_producer_types_be6')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001EBA1D79780>
+sdk_io = (<src.brain.browser.channel.BrowserChannel object at 0x000001EBA0B582D0>, [('search', 'Research a subject'), ('get', '...'https://example.com/source/2'), ('get', 'https://example.com/source/3'), ('get', 'https://example.com/source/4')], {})
+mock_jar = (<openjarvis.sdk.Jarvis object at 0x000001EB26CCCEC0>, <function _run_work_agent at 0x000001EB9FE693A0>, [], [<functio...0001EB9E3ACCC0>, <function navigation_reply at 0x000001EB9E3ACCC0>, <function navigation_reply at 0x000001EB9E3ACCC0>])
+variant = 'peer'
+
+    @pytest.mark.parametrize('variant',['digits','nested-digits','integer','bool','null','list','peer','latency','tag-family'])
+    def test_fix4_f1_producer_types_before_publication(tmp_path,monkeypatch,sdk_io,mock_jar,variant):
+        import hashlib
+        from src.brain.work_navigation import canonical_v3
+        from src.brain.work_research import verify_runtime_packet
+        from src.brain.tests.test_work_navigation_transport import escaped_scanner_fixture
+>       result,ledger=synthetic_bundle(tmp_path,sdk_io,mock_jar,monkeypatch,write=False)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+..\..\harness\test_adapter.py:1168: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+..\..\harness\test_adapter.py:38: in synthetic_bundle
+    result,ledger=genuine_navigation(folder/'outputs',sdk_io,mock_jar)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-source13-real-controlled-preparation-20261106/code/harness-preparation-20261106T161708331528Z/temp/test_fix4_f1_producer_types_be6/outputs')
+sdk_io = (<src.brain.browser.channel.BrowserChannel object at 0x000001EBA0B582D0>, [('search', 'Research a subject'), ('get', '...'https://example.com/source/2'), ('get', 'https://example.com/source/3'), ('get', 'https://example.com/source/4')], {})
+mock_jar = (<openjarvis.sdk.Jarvis object at 0x000001EB26CCCEC0>, <function _run_work_agent at 0x000001EB9FE693A0>, [], [<functio...0001EB9E3ACCC0>, <function navigation_reply at 0x000001EB9E3ACCC0>, <function navigation_reply at 0x000001EB9E3ACCC0>])
+
+    def genuine_navigation(tmp_path,sdk_io,mock_jar):
+        from src.brain.tests.test_work_research import RESTRICTED
+        mock_jar[3].extend([navigation_reply]*5)
+        result=submit(tmp_path,sdk_io[0],mock_jar[1])
+>       assert result['status']=='succeeded',result['error']
+E       AssertionError: Unsafe source provenance identity
+E       assert 'failed' == 'succeeded'
+E         
+E         - succeeded
+E         + failed
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e03-source13\UltimaAgent\src\brain\tests\test_work_navigation_transport.py:50: AssertionError
+---------------------------- Captured stdout call -----------------------------
+SYNTHETIC_FIXTURE_FAILURE_CONTEXT [{"events": [], "expected": {"ended": null, "generation": null, "name": null, "seq": null}, "first_failure": {"characters": 33, "label": "Unsafe source provenance identity", "sha256": "da09974eb48d438151d97f3bcf38eae5691e18323e97a51ea03269ebe80dbad0"}, "permit_present": false, "records": [{"error": {"characters": 0, "label": "redacted_or_empty", "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"}, "error_type": null, "result_present": true, "seq": null, "success": true, "tool": "ultima_work_web_search"}, {"error": {"characters": 0, "label": "redacted_or_empty", "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"}, "error_type": null, "result_present": true, "seq": null, "success": true, "tool": "ultima_work_http_get"}, {"error": {"characters": 0, "label": "redacted_or_empty", "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"}, "error_type": null, "result_present": true, "seq": null, "success": true, "tool": "ultima_work_http_get"}, {"error": {"characters": 0, "label": "redacted_or_empty", "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"}, "error_type": null, "result_present": true, "seq": null, "success": true, "tool": "ultima_work_http_get"}, {"error": {"characters": 0, "label": "redacted_or_empty", "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"}, "error_type": null, "result_present": true, "seq": null, "success": true, "tool": "ultima_work_http_get"}]}]
+=========================== short test summary info ===========================
+FAILED ..\..\harness\test_adapter.py::test_fix4_f1_producer_types_before_publication[peer]
+1 failed, 218 passed in 61.66s (0:01:01)
