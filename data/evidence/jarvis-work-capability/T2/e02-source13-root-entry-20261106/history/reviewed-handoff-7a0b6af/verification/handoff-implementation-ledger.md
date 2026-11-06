@@ -1,0 +1,9 @@
+# SDD ledger — plan: docs/plans/jarvis-work-e02-source13-cleanup-handoff-fix-plan-20261106.md
+
+User scope: explicit reply call_e84ac425972c431b843164937a72fe99 authorizes this defect's offline repair, validation and necessary independent preparation review. Runtime, model, audio, UI and service grants remain zero.
+Base: a19a00b6d8cceb9784330a4b973d16942b851988. Task 1 in progress.
+Pre-flight: Task 1 produces immutable source/test evidence; Task 2 consumes its exact entry and package hashes. No control activation until an independent exact-source PASS.
+Ruling: Keep the existing writable evidence package on codex/voice-fsmn-new-path and freeze the product worktree at 269aca5 — this is the previously approved isolation boundary — wrong scoping would mix product changes into evidence; source binding checks prevent it.
+Ruling: Preserve the complete reviewed 284-member package and both old NEEDS_FIXES reports before edits; keep this ledger as permanent evidence rather than deleting it under the skill's scratch cleanup convention — original user evidence requirements govern — storage increases, no test history is lost.
+Ruling: Reserve possible console observation (18 seconds) during a prospective/pending role as well as its expected two members and remaining queries — discovery can register a console alongside the interpreter — this conservatively narrows startup allowance from 177/259 to 195/277 seconds and may reject a slow but otherwise valid profile; original deadlines are unchanged.
+Ruling: Use direct production entry.start and NativeBackend.start/qualify/require_cleanup_room in the new boundary tests, plus unchanged Owned.cleanup and original Deadline/PrivateIO; replace only native process/query/clock effects — earlier constant qualification doubles missed the handoff — native Windows behavior remains unproven until a later authorized run.

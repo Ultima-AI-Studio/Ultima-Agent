@@ -4,7 +4,7 @@
 
 ## 当前结论
 
-用户在 `call_e84ac425972c431b843164937a72fe99` 授权同一 R1-followup 缺口的最小补修、离线验证及必要独立准备复核。补修已完成，完整离线检查 **89/89 PASS**，44.77 秒；当前精确源码独立复核待完成，准备门为 `NOT_READY_PENDING_HANDOFF_SOURCE_REVIEW`。实际 profile、模型与结果复核分配均为零。
+用户在 `call_e84ac425972c431b843164937a72fe99` 授权同一 R1-followup 缺口的最小补修、离线验证及必要独立准备复核。补修已完成，完整离线检查 **89/89 PASS**，44.77 秒；当前精确源码已获新独立 reviewer **PASS**，无 Critical／Important／Minor 问题项；准备门为 **PASS_PREPARATION_ONLY**。实际 profile、模型与结果复核分配均为零。
 
 产品候选固定 `269aca511d88412dbb9c15d23911138469a37aa2`；仅当前 `qwen3-8b-uncensored`，摘要 `6d7230a923426bc1933879eb08a7dafc18e5fc0e7606c459ce98f16e0c7f9330`。冻结产品工作树本次只读核验仍干净；B profile/SDK 与原 1,461 项依赖保持。当前七个保护身份仅有历史基线，本次未查询其生产运行状态。
 
@@ -22,11 +22,21 @@
 
 证据根：`H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-source13-root-entry-20261106`。
 
-- 当前包 344 项，manifest SHA-256 `c5a0df11f2d1b060de841b47d6345eecf1640e70001dfa24b5664c7f40c6dfd7`。
+- 独立复核的封存输入包 344 项，manifest SHA-256 `c5a0df11f2d1b060de841b47d6345eecf1640e70001dfa24b5664c7f40c6dfd7`。
 - 当前运行输入 38 项，entry manifest SHA-256 `8b63f148aa43f923b85ac5fa97a40a358e4eff5ab85e7adb2dde8f29951e542f`。
 - 定向与完整收据：`offline/handoff-red`、`offline/handoff-green`、`offline/handoff-full-green`；汇总 `verification/handoff-fix-readback.json`。
 - 新权限记录：`verification/handoff-fix-authorization.json`。具体成本裁定：`inputs/handoff-cleanup-ruling.json`。
 - 旧 227 项、284 项包与失败报告分别完整保存在 `history/reviewed-83312d5`、`history/reviewed-a19a00b`；两份旧 NEEDS_FIXES 仍有效描述其原源码，未删除或升级为通过。
-- 当前精确源码交给新 reviewer 只读审查。审查 PASS 也仅允许准备门通过；实际原资料零推理接线验证仍须按 `execution-proposal.md` 另行明确分配。它可能进行原正常 SSRF 的受限 DNS，不调用模型；即使成功也不计入 E02 真实 8B 研究三轮。
+- 独立复核已确认 R1-followup 解决，并重新核对 344 项包文件和 38 项运行输入，零差异。该 PASS 仅使准备门通过；实际原资料零推理接线验证仍须按 `execution-proposal.md` 另行明确分配。它可能进行原正常 SSRF 的受限 DNS，不调用模型；即使成功也不计入 E02 真实 8B 研究三轮。
 
 本地 commit/tag 与 UltimaDocs 镜像将在检查点收据记录。远端 push 保留此前自动审批 `blocked by policy` 阻断，本轮不重试或绕过，不宣称已同步。
+
+## 独审通过及最终登记
+
+独立报告：`review/independent-handoff-source-review.json`，SHA-256 `44ed6b920ff39b3aa7974effd3e2470f73bfc21b58c34009c98bff8ce75ea4b9`。reviewer 未执行测试或现场操作；89 项通过来自本轮 root 的新离线运行。原两份 NEEDS_FIXES 对应其历史源码，仍保存在完整历史包内。
+
+root 逐项接受五类未裁定范围继续未证明：实际 Windows 行为/保护进程存活，真实 profile/SDK/模型研究能力及后续门，原生网络观测，任意系统/文件/未知树故障与 5 秒余量是否充分，以及对抗任意 Python 的隔离。代价是之后实际验证仍可能失败，不因此提前记 E02 通过。
+
+独审通过后只发布控制记录：原独审 PASS 字节原样复制到规范入口，root gate 绑定精确运行输入和报告哈希；运行输入仍为 `8b63f148aa43f923b85ac5fa97a40a358e4eff5ab85e7adb2dde8f29951e542f`。经审查的发布前包完整保存在 `history/reviewed-handoff-7a0b6af`。发布后包 351 项，SHA-256 `22fec32700802661d9d238a76a616efe4292bd6504b3fc723e48984048cfe591`；其中显式记录独审所审查的发布前包，不冒充对新内容的另一份独审。
+
+交付核验见 `verification/handoff-publication-readback.json`；最终项目/镜像 commit 与 tag 见 `verification/handoff-pass-checkpoint.json`。本轮全部准备完成；下一步只能是用户另行明确分配的原资料单次零推理接线验证及一次独立结果复核，实际分配和 release 目前均为零。
