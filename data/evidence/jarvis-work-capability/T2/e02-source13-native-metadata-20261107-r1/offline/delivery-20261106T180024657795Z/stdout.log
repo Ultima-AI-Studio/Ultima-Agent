@@ -1,0 +1,17 @@
+......................................................................F. [ 83%]
+..............                                                           [100%]
+================================== FAILURES ===================================
+______ test_fetch_rejects_authority_and_private_urls[http://localhost/x] ______
+
+url = 'http://localhost/x'
+
+    @pytest.mark.parametrize('url',['http://localhost/x','http://127.0.0.1/','https://user:pass@github.com/x','file:///x'])
+    def test_fetch_rejects_authority_and_private_urls(url):
+>       with pytest.raises(ValueError): browser(Search,Fetch).fetch_public(url)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-native-metadata\UltimaAgent\src\brain\tests\test_work_context.py:375: Failed
+=========================== short test summary info ===========================
+FAILED ::test_fetch_rejects_authority_and_private_urls[http://localhost/x] - ...
+1 failed, 85 passed, 2 deselected in 6.55s

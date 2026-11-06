@@ -1,0 +1,99 @@
+{
+  "pytest_exit_code": 1,
+  "error": null,
+  "denied": {
+    "socket.getaddrinfo": 4
+  },
+  "denied_sites": [
+    {
+      "event": "socket.getaddrinfo",
+      "frames": [
+        "python.py:1798:runtest",
+        "_caller.py:197:__call__",
+        "_manager.py:183:_hookexec",
+        "_execution.py:147:_multicall",
+        "python.py:187:pytest_pyfunc_call",
+        "test_work_context.py:304:test_sdk_search_and_fetch_provenance",
+        "channel.py:132:fetch_public",
+        "ssrf.py:136:_check_ssrf_python",
+        "socket.py:983:getaddrinfo",
+        "profile.py:278:__call__"
+      ],
+      "caller": "python.py:1798:runtest"
+    },
+    {
+      "event": "socket.getaddrinfo",
+      "frames": [
+        "python.py:1798:runtest",
+        "_caller.py:197:__call__",
+        "_manager.py:183:_hookexec",
+        "_execution.py:147:_multicall",
+        "python.py:187:pytest_pyfunc_call",
+        "test_work_context.py:363:test_sdk_false_http_success_rejected",
+        "channel.py:132:fetch_public",
+        "ssrf.py:136:_check_ssrf_python",
+        "socket.py:983:getaddrinfo",
+        "profile.py:278:__call__"
+      ],
+      "caller": "python.py:1798:runtest"
+    },
+    {
+      "event": "socket.getaddrinfo",
+      "frames": [
+        "python.py:1798:runtest",
+        "_caller.py:197:__call__",
+        "_manager.py:183:_hookexec",
+        "_execution.py:147:_multicall",
+        "python.py:187:pytest_pyfunc_call",
+        "test_work_context.py:370:test_fetch_preserves_sdk_failure_reason",
+        "channel.py:132:fetch_public",
+        "ssrf.py:136:_check_ssrf_python",
+        "socket.py:983:getaddrinfo",
+        "profile.py:278:__call__"
+      ],
+      "caller": "python.py:1798:runtest"
+    },
+    {
+      "event": "socket.getaddrinfo",
+      "frames": [
+        "python.py:1798:runtest",
+        "_caller.py:197:__call__",
+        "_manager.py:183:_hookexec",
+        "_execution.py:147:_multicall",
+        "python.py:187:pytest_pyfunc_call",
+        "test_work_context.py:375:test_fetch_rejects_authority_and_private_urls",
+        "channel.py:132:fetch_public",
+        "ssrf.py:136:_check_ssrf_python",
+        "socket.py:983:getaddrinfo",
+        "profile.py:278:__call__"
+      ],
+      "caller": "python.py:1798:runtest"
+    }
+  ],
+  "expected": {
+    "socket.__new__": 1,
+    "socket.bind": 1
+  },
+  "expected_probe_closed": true,
+  "eager": {
+    "metadata_charged": 0,
+    "eager": {
+      "clean": true,
+      "constructors": 1,
+      "import_attempts": 0,
+      "pinned_send_calls": 0,
+      "later_attempts": 0,
+      "closed": true,
+      "secondary_errors": [],
+      "early_close_attempted": true,
+      "early_closed": true,
+      "cleanup_closed": true,
+      "first_error_type": null
+    }
+  },
+  "python_operations_clean": false,
+  "ssrf_unit_fixture": "Python fallback with mocked DNS; actual harness unchanged",
+  "actual": false,
+  "model_calls": 0,
+  "os_packets": null
+}

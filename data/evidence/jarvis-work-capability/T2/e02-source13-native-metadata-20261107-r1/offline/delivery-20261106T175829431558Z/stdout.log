@@ -1,0 +1,67 @@
+...............................................................F.....F.. [ 83%]
+..............                                                           [100%]
+================================== FAILURES ===================================
+____________________ test_sdk_search_and_fetch_provenance _____________________
+
+    def test_sdk_search_and_fetch_provenance():
+        b=browser(Search,Fetch)
+        s=b.search_public('Jarvis architecture')
+        assert s['engine']=='duckduckgo' and s['success']
+>       f=b.fetch_public('https://github.com/owner/repo')
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-native-metadata\UltimaAgent\src\brain\tests\test_work_context.py:304: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-native-metadata\UltimaAgent\src\brain\browser\channel.py:132: in fetch_public
+    blocked=check_ssrf(url)
+            ^^^^^^^^^^^^^^^
+..\..\..\..\..\..\..\tools\venv-openjarvis\Lib\site-packages\openjarvis\security\ssrf.py:136: in _check_ssrf_python
+    resolved = socket.getaddrinfo(
+C:\Users\Administrator\AppData\Local\Doubao\User Data\sandbox_runtime\bases\772984f6fd3a8ae0ae7d2422cd7c2bfa\python\Lib\socket.py:983: in getaddrinfo
+    for res in _socket.getaddrinfo(host, port, family, type, proto, flags):
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <accepted_offline_guard.WorkerAudit object at 0x00000248EF3E6CF0>
+event = 'socket.getaddrinfo', args = ('github.com', None, 0, 1, 0)
+
+    def __call__(self,event,args):
+        if not self.enabled:
+            return
+        # platform.machine() reads local Windows metadata during cold SDK import.
+        if event=='socket.gethostname':
+            return
+        if event=='socket.getaddrinfo' and _DNS.get():
+            if args and args[0]=='raw.githubusercontent.com': return
+        if (event.startswith('socket.') or event.startswith('subprocess.') or
+            event in ('os.system','os.startfile','os.startfile/2','os.posix_spawn','os.spawn')):
+            # Only the pinned urllib3 IPv6 probe is exempted; keep its ownership
+            # until closeout and require that same socket to have been closed.
+            if _import_probe(event,args,self):
+                self.expected[event]=self.expected.get(event,0)+1
+                if len(self.expected_sites)<_SITE_LIMIT: self.expected_sites.append(_audit_site(event))
+                else: self.expected_sites_truncated=True
+                return
+            self.denied[event]=self.denied.get(event,0)+1
+            if len(self.denied_sites)<_SITE_LIMIT: self.denied_sites.append(_audit_site(event))
+            else: self.denied_sites_truncated=True
+>           raise ValueError('Unexpected audited operation')
+E           ValueError: Unexpected audited operation
+
+..\..\..\e02-source13-exact-probe-20261106\profile-preparation\profile.py:280: ValueError
+___________________ test_fetch_preserves_sdk_failure_reason ___________________
+
+    def test_fetch_preserves_sdk_failure_reason():
+        class Failed:
+            def execute(self,**kw): return ToolResult(tool_name='http_request',success=False,content='connection refused')
+>       with pytest.raises(ValueError,match='connection refused'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AssertionError: Regex pattern did not match.
+E         Expected regex: 'connection refused'
+E         Actual message: 'Unexpected audited operation'
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-native-metadata\UltimaAgent\src\brain\tests\test_work_context.py:369: AssertionError
+=========================== short test summary info ===========================
+FAILED ::test_sdk_search_and_fetch_provenance - ValueError: Unexpected audite...
+FAILED ::test_fetch_preserves_sdk_failure_reason - AssertionError: Regex patt...
+2 failed, 84 passed, 2 deselected in 5.13s

@@ -1,0 +1,123 @@
+........................................................................ [ 51%]
+....................FF..............................................     [100%]
+================================== FAILURES ===================================
+________________ test_fix4_f1_archived_reviewer_packet[False] _________________
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-source13-native-metadata-20261107-r1/code/harness-preparation-20261106T180637806879Z/temp/test_fix4_f1_archived_reviewer0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000167D11F01A0>
+nested = False
+
+    @pytest.mark.parametrize('nested',[False,True])
+    def test_fix4_f1_archived_reviewer_packet(tmp_path,monkeypatch,nested):
+        from src.brain.work_tools import WorkBinding,ResearchRuntimeInputs
+        from src.brain.work_navigation import IssuedSnapshotV3,canonical_v3
+        from src.brain.work_research import ResearchCollection,verify_runtime_packet
+        from src.brain.tests.test_work_navigation_transport import escaped_scanner_fixture
+        from openjarvis.security.scanner import SecretScanner,PIIScanner
+        archive=Path('H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\navigation-source10-validation-20261102\\code\\harness-preparation-20261102T215807022506Z\\temp\\test_fix1_genuine_synthetic_ex0')
+        exported=a.load(archive/'trusted-export.json'); blobs=a.read_completed(archive,exported)
+        snapshot=exported['issued_snapshot']; snapshot['binding_key']=tuple(snapshot['binding_key'])
+        snapshot=IssuedSnapshotV3(**snapshot,views_json=blobs['views'],replay_json=blobs['replay'])
+        inputs=a.load(archive/'runtime-inputs.json'); inputs['binding_key']=tuple(inputs['binding_key'])
+        binding=WorkBinding(Path(inputs['root']),*inputs['binding_key'])
+        ledger=types.SimpleNamespace(_binding=binding,issued_snapshot=snapshot,_runtime_inputs=ResearchRuntimeInputs(**inputs),
+            _collection=ResearchCollection(**a.strict_json(blobs['collection'])),_policy=types.SimpleNamespace(scanners=(SecretScanner(),PIIScanner())))
+        published=[]
+        monkeypatch.setattr(a,'preserve_completed_members',lambda *args:published.append(True))
+        ledger._runtime_final=blobs['runtime']
+>       a.export_completed(tmp_path,ledger,{})
+
+..\..\harness\test_adapter.py:1224: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+..\..\harness\adapter.py:649: in export_completed
+    verify_runtime_packet(ledger._binding,ledger.issued_snapshot,ledger._collection,raw,require_ack=True,runtime_inputs=ledger._runtime_inputs)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+binding = WorkBinding(root=WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-vali...e0a1433f-f9a6-4148-a25e-d908898ec846'), request_id='r', session_id='s', task_id='e0a1433f-f9a6-4148-a25e-d908898ec846')
+snapshot = IssuedSnapshotV3(binding_key=('r', 's', 'e0a1433f-f9a6-4148-a25e-d908898ec846'), nonce='758ee0794f519582043d24db2a299f...ffix":"","total_lines":1}],"v":3}', manifest_sha256='2d3c01c37de1ab46f9ca8ab181785af4bb1dc1d8b31823fb58d012617f5cf3a6')
+collection = ResearchCollection(catalogue_json='[{"success": true, "requested_url": "https://example.com/source/1", "final_url": "h...: "s", "task_id": "e0a1433f-f9a6-4148-a25e-d908898ec846"}]', ignored_failure_ids=[], search_query='Research a subject')
+raw = b'{"binding":["r","s","e0a1433f-f9a6-4148-a25e-d908898ec846"],"clock_domain":"work_tools.monotonic;ledger-sequence-v1"...ies":{"final_answer":{"maxLength":1000,"minLength":1,"type":"string"}},"required":["final_answer"],"type":"object"}}]}'
+require_ack = True
+runtime_inputs = ResearchRuntimeInputs(prompt='[Work request: use ultima_work_research_write to deliver the requested file; a verbal cl..._fix1_genuine_synthetic_ex0\\outputs\\e0a1433f-f9a6-4148-a25e-d908898ec846', allowance=2048, deadline='230805.3516327')
+
+    def verify_runtime_packet(binding, snapshot, collection, raw, *, require_ack=False,runtime_inputs=None):
+        """Reconstruct native entities, history and read/event links independently."""
+        from .work_navigation import canonical_v3,v3_writer_schema
+        from .work_tools import WorkInspectTool,WorkResearchWriteTool
+        from openjarvis.tools._stubs import ToolSpec,build_tool_descriptions
+        from types import SimpleNamespace
+        from .agent_server import _strict_json,_research_sampler_schema,_RESEARCH_MODEL,MAINBRAIN_SYSTEM_PROMPT
+        from openjarvis.agents.native_react import REACT_SYSTEM_PROMPT
+        from jsonschema import Draft7Validator
+        from openjarvis.security.scanner import SecretScanner,PIIScanner
+        from .work_navigation import make_scan_policy
+        sealed_policy=json.loads(snapshot.replay_json)['policy']
+        factories={c.__module__+'.'+c.__qualname__:c for c in (SecretScanner,PIIScanner)}
+        policy=make_scan_policy(tuple(factories[d['name']]() for d in sealed_policy['scanners']),sealed_policy['mode'])
+>       if json.loads(policy.policy_json)!=sealed_policy: raise ValueError('Runtime scanner policy drift')
+                                                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       ValueError: Runtime scanner policy drift
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-native-metadata\UltimaAgent\src\brain\work_research.py:661: ValueError
+_________________ test_fix4_f1_archived_reviewer_packet[True] _________________
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-source13-native-metadata-20261107-r1/code/harness-preparation-20261106T180637806879Z/temp/test_fix4_f1_archived_reviewer1')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000016823FB7310>
+nested = True
+
+    @pytest.mark.parametrize('nested',[False,True])
+    def test_fix4_f1_archived_reviewer_packet(tmp_path,monkeypatch,nested):
+        from src.brain.work_tools import WorkBinding,ResearchRuntimeInputs
+        from src.brain.work_navigation import IssuedSnapshotV3,canonical_v3
+        from src.brain.work_research import ResearchCollection,verify_runtime_packet
+        from src.brain.tests.test_work_navigation_transport import escaped_scanner_fixture
+        from openjarvis.security.scanner import SecretScanner,PIIScanner
+        archive=Path('H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\navigation-source10-validation-20261102\\code\\harness-preparation-20261102T215807022506Z\\temp\\test_fix1_genuine_synthetic_ex0')
+        exported=a.load(archive/'trusted-export.json'); blobs=a.read_completed(archive,exported)
+        snapshot=exported['issued_snapshot']; snapshot['binding_key']=tuple(snapshot['binding_key'])
+        snapshot=IssuedSnapshotV3(**snapshot,views_json=blobs['views'],replay_json=blobs['replay'])
+        inputs=a.load(archive/'runtime-inputs.json'); inputs['binding_key']=tuple(inputs['binding_key'])
+        binding=WorkBinding(Path(inputs['root']),*inputs['binding_key'])
+        ledger=types.SimpleNamespace(_binding=binding,issued_snapshot=snapshot,_runtime_inputs=ResearchRuntimeInputs(**inputs),
+            _collection=ResearchCollection(**a.strict_json(blobs['collection'])),_policy=types.SimpleNamespace(scanners=(SecretScanner(),PIIScanner())))
+        published=[]
+        monkeypatch.setattr(a,'preserve_completed_members',lambda *args:published.append(True))
+        ledger._runtime_final=blobs['runtime']
+>       a.export_completed(tmp_path,ledger,{})
+
+..\..\harness\test_adapter.py:1224: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+..\..\harness\adapter.py:649: in export_completed
+    verify_runtime_packet(ledger._binding,ledger.issued_snapshot,ledger._collection,raw,require_ack=True,runtime_inputs=ledger._runtime_inputs)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+binding = WorkBinding(root=WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/navigation-source10-vali...e0a1433f-f9a6-4148-a25e-d908898ec846'), request_id='r', session_id='s', task_id='e0a1433f-f9a6-4148-a25e-d908898ec846')
+snapshot = IssuedSnapshotV3(binding_key=('r', 's', 'e0a1433f-f9a6-4148-a25e-d908898ec846'), nonce='758ee0794f519582043d24db2a299f...ffix":"","total_lines":1}],"v":3}', manifest_sha256='2d3c01c37de1ab46f9ca8ab181785af4bb1dc1d8b31823fb58d012617f5cf3a6')
+collection = ResearchCollection(catalogue_json='[{"success": true, "requested_url": "https://example.com/source/1", "final_url": "h...: "s", "task_id": "e0a1433f-f9a6-4148-a25e-d908898ec846"}]', ignored_failure_ids=[], search_query='Research a subject')
+raw = b'{"binding":["r","s","e0a1433f-f9a6-4148-a25e-d908898ec846"],"clock_domain":"work_tools.monotonic;ledger-sequence-v1"...ies":{"final_answer":{"maxLength":1000,"minLength":1,"type":"string"}},"required":["final_answer"],"type":"object"}}]}'
+require_ack = True
+runtime_inputs = ResearchRuntimeInputs(prompt='[Work request: use ultima_work_research_write to deliver the requested file; a verbal cl..._fix1_genuine_synthetic_ex0\\outputs\\e0a1433f-f9a6-4148-a25e-d908898ec846', allowance=2048, deadline='230805.3516327')
+
+    def verify_runtime_packet(binding, snapshot, collection, raw, *, require_ack=False,runtime_inputs=None):
+        """Reconstruct native entities, history and read/event links independently."""
+        from .work_navigation import canonical_v3,v3_writer_schema
+        from .work_tools import WorkInspectTool,WorkResearchWriteTool
+        from openjarvis.tools._stubs import ToolSpec,build_tool_descriptions
+        from types import SimpleNamespace
+        from .agent_server import _strict_json,_research_sampler_schema,_RESEARCH_MODEL,MAINBRAIN_SYSTEM_PROMPT
+        from openjarvis.agents.native_react import REACT_SYSTEM_PROMPT
+        from jsonschema import Draft7Validator
+        from openjarvis.security.scanner import SecretScanner,PIIScanner
+        from .work_navigation import make_scan_policy
+        sealed_policy=json.loads(snapshot.replay_json)['policy']
+        factories={c.__module__+'.'+c.__qualname__:c for c in (SecretScanner,PIIScanner)}
+        policy=make_scan_policy(tuple(factories[d['name']]() for d in sealed_policy['scanners']),sealed_policy['mode'])
+>       if json.loads(policy.policy_json)!=sealed_policy: raise ValueError('Runtime scanner policy drift')
+                                                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       ValueError: Runtime scanner policy drift
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-native-metadata\UltimaAgent\src\brain\work_research.py:661: ValueError
+=========================== short test summary info ===========================
+FAILED ..\..\harness\test_adapter.py::test_fix4_f1_archived_reviewer_packet[False]
+FAILED ..\..\harness\test_adapter.py::test_fix4_f1_archived_reviewer_packet[True]
+2 failed, 138 passed in 53.19s

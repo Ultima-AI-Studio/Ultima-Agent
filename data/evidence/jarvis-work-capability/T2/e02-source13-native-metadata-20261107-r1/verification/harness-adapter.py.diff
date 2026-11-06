@@ -1,0 +1,48 @@
+--- previous/harness/adapter.py
++++ current/harness/adapter.py
+@@ -22,12 +22,12 @@
+ HERE=Path(__file__).resolve().parent
+ V=HERE.parent
+ T=V.parent
+-C=Path('C:/Users/Administrator/.codex/worktrees/jarvis-e03-source13/UltimaAgent')
++C=Path('C:/Users/Administrator/.codex/worktrees/jarvis-e02-native-metadata/UltimaAgent')
+ P4=T/'e01-source13-round3-20261106/code/controller.py'
+ P1=P4.parent.parent/'preparation-support/acceptance_adapter.py'
+-MANIFEST_SHA='5badf78414d3cb6a13145b98dbc1e3fa0ce08e4e5f79fc2948244e2118f16121'
++MANIFEST_SHA='f286507db75693dc28c5c80c43ee91b66c0d6ff71538f752e6626503b23e4069'
+ PREPARATION_SHA='38a38c9c0c2e27cc998603fef60ee64efd44a07661167500f7274c0e807a69f6'
+-CANDIDATE='269aca511d88412dbb9c15d23911138469a37aa2'
++CANDIDATE='0a57d50f226df70542838c05fb8a21e025e19447'
+ MODEL='qwen3-8b-uncensored'
+ CASE='E02-controlled-1'
+ BUDGETS=dict(cli=1,search=1,GET=4,inspect=6,write=1,ACK=1,native_POST=8,service_seconds=260,client_seconds=300,outer_seconds=315,retry=0)
+@@ -40,7 +40,7 @@
+ 
+ INPUTS_PATH=V/'inputs/input-manifest.json'
+ BINDINGS_PATH=V/'code/bindings.py'
+-BINDINGS_SHA='831c1b303c55e77fcfcd9e9742e1e4bd9995b553df36848e067fc3da84526c45'
++BINDINGS_SHA='6b78dd80688f282a29acb4b10e9146ef200e00f9d157199b495867e66906b945'
+ PROTECTED_BASELINE=T/'e02-source13-exact-probe-20261106/inputs/protected-baseline.json'
+ SDK_SOURCES=('H:\\UltimaAI\\UltimaAgent\\tools\\venv-openjarvis\\Lib\\site-packages\\openjarvis\\_rust_bridge.py', 'H:\\UltimaAI\\UltimaAgent\\tools\\venv-openjarvis\\Lib\\site-packages\\openjarvis\\agents\\_stubs.py', 'H:\\UltimaAI\\UltimaAgent\\tools\\venv-openjarvis\\Lib\\site-packages\\openjarvis\\agents\\native_react.py', 'H:\\UltimaAI\\UltimaAgent\\tools\\venv-openjarvis\\Lib\\site-packages\\openjarvis\\agents\\prompt_loader.py', 'H:\\UltimaAI\\UltimaAgent\\tools\\venv-openjarvis\\Lib\\site-packages\\openjarvis\\cli\\ask.py', 'H:\\UltimaAI\\UltimaAgent\\tools\\venv-openjarvis\\Lib\\site-packages\\openjarvis\\core\\config.py', 'H:\\UltimaAI\\UltimaAgent\\tools\\venv-openjarvis\\Lib\\site-packages\\openjarvis\\core\\events.py', 'H:\\UltimaAI\\UltimaAgent\\tools\\venv-openjarvis\\Lib\\site-packages\\openjarvis\\core\\registry.py', 'H:\\UltimaAI\\UltimaAgent\\tools\\venv-openjarvis\\Lib\\site-packages\\openjarvis\\core\\types.py', 'H:\\UltimaAI\\UltimaAgent\\tools\\venv-openjarvis\\Lib\\site-packages\\openjarvis\\engine\\_base.py', 'H:\\UltimaAI\\UltimaAgent\\tools\\venv-openjarvis\\Lib\\site-packages\\openjarvis\\engine\\_stubs.py', 'H:\\UltimaAI\\UltimaAgent\\tools\\venv-openjarvis\\Lib\\site-packages\\openjarvis\\engine\\ollama.py', 'H:\\UltimaAI\\UltimaAgent\\tools\\venv-openjarvis\\Lib\\site-packages\\openjarvis\\sdk.py', 'H:\\UltimaAI\\UltimaAgent\\tools\\venv-openjarvis\\Lib\\site-packages\\openjarvis\\security\\capabilities.py', 'H:\\UltimaAI\\UltimaAgent\\tools\\venv-openjarvis\\Lib\\site-packages\\openjarvis\\security\\guardrails.py', 'H:\\UltimaAI\\UltimaAgent\\tools\\venv-openjarvis\\Lib\\site-packages\\openjarvis\\security\\runtime.py', 'H:\\UltimaAI\\UltimaAgent\\tools\\venv-openjarvis\\Lib\\site-packages\\openjarvis\\security\\scanner.py', 'H:\\UltimaAI\\UltimaAgent\\tools\\venv-openjarvis\\Lib\\site-packages\\openjarvis\\telemetry\\instrumented_engine.py', 'H:\\UltimaAI\\UltimaAgent\\tools\\venv-openjarvis\\Lib\\site-packages\\openjarvis\\tools\\_stubs.py', 'H:\\UltimaAI\\UltimaAgent\\tools\\venv-openjarvis\\Lib\\site-packages\\openjarvis\\tools\\description_loader.py', 'H:\\UltimaAI\\UltimaAgent\\tools\\venv-openjarvis\\Lib\\site-packages\\openjarvis\\tools\\file_read.py', 'H:\\UltimaAI\\UltimaAgent\\tools\\venv-openjarvis\\Lib\\site-packages\\openjarvis\\tools\\file_write.py')
+ if hashlib.sha256(BINDINGS_PATH.read_bytes()).hexdigest()!=BINDINGS_SHA:raise ValueError('Binding source drift')
+@@ -429,6 +429,11 @@
+     require(len(data['sources'])==4 and all(hashlib.sha256(s['body'].encode('utf8')).hexdigest()==s['decoded_body_sha256'] for s in data['sources']),'Original source bytes')
+     return data
+ 
++def candidate_environment(p4,folder):
++    env=p4.environment(folder)
++    env['PYTHONPATH']=str(C)
++    return env
++
+ def candidate_argv(context):
+     folder,port=context['folder'],context['port']
+     server=['-B','-X','utf8',str(HERE/'adapter.py'),'--child-server',str(folder),'--port',str(port),'--runtime-root',str(folder/'runtime'),'--work-output-root',str(folder/'outputs'),'--isolated','--work-research']
+@@ -556,7 +561,7 @@
+             native_before=budget.call('before exact identities',check_native_baseline,context['baseline'],p4)
+             budget.call('boundary before close',save_new,folder/'boundary-before.json',dict(pins=before,protected=native_before))
+             if context.get('admitted'): budget.call('admitted evidence close',save_new,folder/'admission.json',context['admitted'])
+-            env=budget.call('isolated environment',p4.environment,folder); env.pop('ULTIMA_CORPUS_WIRE_ROOT',None)
++            env=budget.call('isolated environment',candidate_environment,p4,folder); env.pop('ULTIMA_CORPUS_WIRE_ROOT',None)
+             server,cli=budget.call('candidate argv',candidate_argv,context)
+             budget.call('argv close',save_new,folder/'argv.json',dict(server=server,cli=cli,budgets=BUDGETS,schedule=budget.timing()))
+             owned=budget.call('Owned constructor',p4.Owned,folder,env); budget.owned=owned; io.launch(owned,server,'server')
