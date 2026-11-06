@@ -1,0 +1,1066 @@
+--- parent/code/acceptance_backend.py
++++ negative/code/acceptance_backend.py
+@@ -1,4 +1,4 @@
+-"""Reuse the reviewed native fixture, product CLI and mechanical/effect checks."""
++"""Use the reviewed native fixture and frozen product guard without server or CLI."""
+ from __future__ import annotations
+ 
+ import hashlib
+@@ -119,42 +119,20 @@
+ 
+     def product(self, revalidate, admit_cli):
+         require(self.context is not None and self.context.fixture_ready and self.baseline_rows is not None, 'Verified fixture required')
+-        c, context, folder = self.controller, self.context, self.folder
+-        require(context.cli_count == 0, 'Only one CLI submission allowed')
+-        context.port = self.port_picker()
+-        server_argv = ['-B','-m','src.brain.agent_server','--port',str(context.port),'--runtime-root',str(folder/'runtime'),
+-                       '--work-output-root',str(folder/'outputs'),'--isolated','--work-target-policy',str(folder/'policy.json')]
+-        context.owned.launch(server_argv,'server')
+-        def ready():
+-            if not c.listener_owner(context.port): return False
+-            c.assert_listener(context.owned,context.port,server_argv)
+-            health = c.get_json(f'http://127.0.0.1:{context.port}/health')
+-            require(health.get('ok') is True and health.get('model') == MODEL and health.get('agent') == 'native_react', 'Isolated health mismatch')
+-            return health
+-        save_new(folder/'isolated-health.json',self.harness.wait_for(ready,30))
+-        cli_argv = ['-B','-m','src.brain.cli','--work','--current-window','--replace-selection','--request-id',CASE,
+-                    '--session-id',CASE,'--server-url',f'http://127.0.0.1:{context.port}','--json',c.old.E03_QUERY]
+-        save_new(folder/'argv.json',{'server':server_argv,'cli':cli_argv,'max_turns':10,'work_max_tokens':2048,
+-                                    'CLI_timeout':300,'SDK_timeout':1800,'controller_wait':315,'overrides':[]})
++        context, folder = self.context, self.folder
++        require(type(context.cli_count) is int and context.cli_count == 0, 'Negative authorizes no CLI')
+         revalidate()
+-        c.assert_listener(context.owned,context.port,server_argv)
+         context.command()
+         self.baseline_rows = context.observe('dispatch-baseline')
+         self._check_baseline(self.baseline_rows)
+         admit_cli()
+-        context.cli_count += 1
+-        cli = context.owned.launch(cli_argv,'cli')
+-        c.old.wait_cli(cli,folder); context.owned.flush()
+-        context.result = load(folder/'cli.stdout')
+-        save_new(folder/'product-result.json',context.result)
+-        require(cli.returncode == 0, 'Nonzero CLI exit; generation may continue')
+-        events = [x for x in context.result.get('trace',[]) if x.get('type') == 'inference_end']
+-        require(1 <= len(events) <= 10 and all(x.get('data',{}).get('model') == MODEL for x in events), 'Completed inference proof missing')
+-        artifacts = c.read_artifacts(folder,context.result)
+-        windows = context.observe('final-windows'); inventory = c.output_inventory(folder)
+-        save_new(folder/'mechanical-inputs.json',{'artifacts':artifacts,'baseline':self.baseline_rows,'windows':windows,'outputs':inventory})
+-        review = c.mechanical(CASE,folder,context.result,artifacts,self.baseline_rows,windows,inventory)
+-        self.expected_effects = {'outputs':inventory,'windows':windows,'cli_count':1}
++        def before_attempt():
++            revalidate()
++            admit_cli()
++        review = context.negative(self.baseline_rows,before_attempt=before_attempt)
++        require(type(context.cli_count) is int and context.cli_count == 0, 'Negative CLI count changed')
++        self.expected_effects = context.accepted_effects
++        require(self.expected_effects['outputs'] == [] and self.expected_effects['cli_count'] == 0, 'Negative effects expanded')
+         save_new(folder/'accepted-effects.json',self.expected_effects)
+         save_new(folder/'mechanical-review.json',review)
+         return review
+--- parent/code/acceptance_entry.py
++++ negative/code/acceptance_entry.py
+@@ -1,4 +1,4 @@
+-"""One reviewed E03 round3 entry, bound to two independently passed predecessors."""
++"""One E03 negative entry, bound to three passed predecessors and restored runtime."""
+ from __future__ import annotations
+ 
+ import argparse
+@@ -15,8 +15,8 @@
+ CANDIDATE_MANIFEST = '957669cb3463eab549df80f0b8fc6345c244daa2f613925abe8622d0aab3d9d3'
+ MODEL = 'qwen3-8b-uncensored'
+ DIGEST = '6d7230a923426bc1933879eb08a7dafc18e5fc0e7606c459ce98f16e0c7f9330'
+-CASE = 'e03-round3'
+-SCOPE = 'e03-round3-acceptance'
++CASE = 'e03-negative'
++SCOPE = 'e03-negative-acceptance'
+ PYTHON = Path(r'H:\UltimaAI\UltimaAgent\tools\venv-openjarvis\Scripts\python.exe')
+ RUNTIME_FILES = {'code/acceptance_entry.py', 'code/acceptance_backend.py', 'code/package_io.py',
+                  'code/fixture_manual_start.py',
+@@ -26,7 +26,11 @@
+                  'inputs/prior-round1/terminal.json', 'inputs/prior-round1/review.json',
+                  'inputs/prior-round1/registration.json',
+                  'inputs/prior-round2/terminal.json', 'inputs/prior-round2/review.json',
+-                 'inputs/prior-round2/registration.json'}
++                 'inputs/prior-round2/registration.json',
++                 'inputs/prior-round3/terminal.json', 'inputs/prior-round3/review.json',
++                 'inputs/prior-round3/registration.json', 'inputs/runtime-reconciliation.json',
++                 'inputs/runtime-user-approval.json', 'inputs/runtime-manual-confirmation.json',
++                 'inputs/protected-baseline-before-recovery.json'}
+ AUTH_FIELDS = {'schema', 'issuer', 'scope', 'case', 'candidate', 'candidate_manifest_sha256',
+                'model', 'digest', 'manifest_sha256', 'review_sha256', 'proof_path', 'proof_sha256',
+                'case_cap', 'product_cli_cap', 'audio_actions', 'retry_authorized', 'acceptance_credit',
+@@ -91,7 +95,7 @@
+                 review_sha256=review_hash, registration_sha256=sha(registration_path))
+ 
+ 
+-def predecessor_reviews(root):
++def first_two_predecessor_reviews(root):
+     first = predecessor_review(root)
+     folder = 'inputs/prior-round2/'
+     terminal_path, review_path, registration_path = (child(root, folder+name)
+@@ -165,6 +169,136 @@
+     return [first, second]
+ 
+ 
++
++def reconciled_runtime(root):
++    old_path = child(root, 'inputs/protected-baseline-before-recovery.json')
++    baseline_path = child(root, 'inputs/protected-baseline.json')
++    recovery_path = child(root, 'inputs/runtime-reconciliation.json')
++    old, baseline, recovery = (load(p) for p in (old_path, baseline_path, recovery_path))
++    manual = load(child(root, 'inputs/runtime-manual-confirmation.json'))
++    approval = load(child(root, 'inputs/runtime-user-approval.json'))
++    require(recovery.get('status') == 'PASS_RUNTIME_RECONCILIATION'
++            and recovery.get('native_version') == '0.32.15'
++            and recovery.get('current_model') == {'name':MODEL+':latest','digest':DIGEST}
++            and recovery.get('model_manifest_sha256') == DIGEST
++            and recovery.get('old_environment_failure_preserved') is True
++            and recovery.get('proof_is_point_in_time_only') is True
++            and recovery.get('next_case_authority_issued') is False
++            and all(type(recovery.get(k)) is int and recovery[k] == 0 for k in
++                    ('assistant_service_start_count','automatic_retries','model_inferences','actual_cases','audio_actions')),
++            'Runtime reconciliation is not eligible')
++    require(manual.get('performed_by') == 'user'
++            and isinstance(manual.get('source'), str) and manual['source']
++            and approval.get('assistant_service_start_count') == 0
++            and approval.get('automatic_retries') == 0,
++            'Runtime operator confirmation missing')
++    require(baseline.get('predecessor_baseline_sha256') == sha(old_path)
++            and baseline.get('runtime_reconciliation_sha256') == sha(recovery_path),
++            'Restored baseline evidence binding mismatch')
++    before = old.get('protected5', []) + old.get('protected_listener_pair', [])
++    after = baseline.get('protected5', []) + baseline.get('protected_listener_pair', [])
++    require(len(before) == len(after) == 7 and before[0].get('role') == after[0].get('role') == 'ollama',
++            'Runtime protected inventory mismatch')
++    fields = PROTECTED_FIELDS
++    require(all(type(row.get('pid')) is int and type(row.get('created_filetime')) is int
++                and row['pid'] > 0 and row['created_filetime'] > 0 for row in after)
++            and len({row['pid'] for row in after}) == 7, 'Runtime protected identities invalid')
++    require(before[0]['pid'] != after[0]['pid']
++            and baseline.get('replaced_identity', {}).get('old_pid') == before[0]['pid']
++            and baseline.get('replaced_identity', {}).get('new_pid') == after[0]['pid']
++            and all(recovery.get('new_ollama_identity', {}).get(k) == after[0].get(k) for k in fields),
++            'Restored Ollama identity mismatch')
++    observed = recovery.get('other_six')
++    require(isinstance(observed,list) and len(observed) == 6, 'Runtime other-six observations missing')
++    for index, (old_row, new_row) in enumerate(zip(before[1:],after[1:])):
++        row = observed[index]
++        require(row.get('match') is True and row.get('active') is True
++                and all(old_row.get(k) == new_row.get(k) == row.get(k) for k in fields),
++                'Non-Ollama protected identity changed')
++    listeners = recovery.get('listener_observation', {}).get('listeners')
++    require(isinstance(listeners,list) and listeners
++            and all(x.get('OwningProcess') == after[0]['pid'] and x.get('LocalPort') == 11434
++                    and x.get('LocalAddress') in ('127.0.0.1','::1') for x in listeners)
++            and baseline.get('ollama_listener') == listeners
++            and baseline.get('ollama_listener_owner_match') is True, 'Restored native listener mismatch')
++    voice = recovery.get('voice', {})
++    require(voice == baseline.get('voice_listener_status') and voice.get('state') == 'ready'
++            and all(voice.get(k) is True for k in ('ready','fresh','worker_ready','instance_lock_held'))
++            and all(voice.get(k) == old.get('voice_listener_status', {}).get(k) for k in ('pid','worker_pid','run_id')),
++            'Protected voice status mismatch')
++    require(timestamp(recovery['recorded_at']) <= timestamp(baseline['captured_at_utc']),
++            'Runtime recovery chronology invalid')
++    return recovery
++
++
++def predecessor_reviews(root):
++    previous = first_two_predecessor_reviews(root)
++    paths = [child(root, 'inputs/prior-round3/'+name+'.json') for name in ('terminal','review','registration')]
++    terminal, review, registration = (load(p) for p in paths)
++    require(all(row.get('case') == 'e03-round3' and row.get('candidate') == HEAD
++                for row in (terminal,review,registration)), 'Predecessor round3 case/candidate mismatch')
++    require(terminal.get('scope') == 'e03-round3-acceptance'
++            and terminal.get('overall') == 'PENDING_FACT_REVIEW'
++            and terminal.get('mechanical') == 'PASS'
++            and terminal.get('facts') == 'PENDING_ROOT_INDEPENDENT_REVIEW'
++            and terminal.get('acceptance_credit') is False and terminal.get('errors') == []
++            and type(terminal.get('work_cli_count')) is int and terminal['work_cli_count'] == 1
++            and terminal.get('retry_authorized') is False
++            and type(terminal.get('audio_actions')) is int and terminal['audio_actions'] == 0
++            and all(terminal.get(k, {}).get('status') == 'PASS' for k in ('cleanup','audit','boundaries')),
++            'Predecessor round3 raw terminal not eligible')
++    require(review.get('reviewer') == 'root-independent' and review.get('scope') == 'e03-round3-result-review'
++            and all(review.get(k) == 'PASS' for k in ('evidence_verdict','case_verdict','mechanical_verdict',
++                    'facts_verdict','target_verdict','file_verdict','final_claim_verdict','cleanup_verdict'))
++            and review.get('candidate_runtime_manifest_sha256') == CANDIDATE_MANIFEST
++            and review.get('preparation_manifest_sha256') == terminal.get('package_manifest_sha256')
++            and review.get('product_result_sha256') == terminal.get('product_result_sha256')
++            and review.get('credit', {}).get('third_positive_credit_recommended') is True,
++            'Predecessor round3 independent result not eligible')
++    execution = review.get('execution', {})
++    require(execution.get('model') == MODEL and execution.get('model_digest') == DIGEST
++            and type(execution.get('work_cli_count')) is int and execution['work_cli_count'] == 1
++            and review.get('authority_and_admission', {}).get('retry_authorized') is False
++            and type(review.get('limits', {}).get('actual_reruns_or_retries')) is int
++            and review['limits']['actual_reruns_or_retries'] == 0, 'Predecessor round3 execution mismatch')
++    th, rh = sha(paths[0]), sha(paths[1])
++    require(review.get('terminal_sha256') == th and registration.get('terminal_sha256') == th
++            and registration.get('result_review_sha256') == rh
++            and registration.get('predecessor_registration_sha256') == previous[-1]['registration_sha256'],
++            'Predecessor round3 receipt hash mismatch')
++    require(all(registration.get(k) == 'PASS' for k in ('case_verdict','facts','delivery','final_claim'))
++            and registration.get('acceptance_credit') is True and registration.get('negative_passed') is False
++            and all(type(registration.get(k)) is int and registration[k] == value for k,value in
++                    (('E03_credit',1),('same_candidate_terminals',3),('cumulative_work_cli_count',3),
++                     ('current_case_work_cli_count',1),('positive_passed',3),('positive_required',3))),
++            'Predecessor round3 registration not eligible')
++    third = dict(case='e03-round3',candidate=HEAD,terminal_sha256=th,review_sha256=rh,registration_sha256=sha(paths[2]))
++    bindings = previous + [third]
++    terminals = [load(child(root,'inputs/prior-round'+str(n)+'/terminal.json')) for n in (1,2,3)]
++    reviews = [load(child(root,'inputs/prior-round'+str(n)+'/review.json')) for n in (1,2,3)]
++    tasks = [x.get('execution', {}).get('task_id') for x in reviews]
++    require(all(isinstance(x,str) and x for x in tasks) and len(set(tasks)) == 3,
++            'Predecessor distinct tasks required')
++    times = [timestamp(x.get('finished_at')) for x in terminals]
++    require(times[0] < times[1] < times[2], 'Predecessor chronology invalid')
++    rows = registration.get('same_candidate_terminal_bindings')
++    require(isinstance(rows,list) and len(rows) == 3
++            and registration.get('consecutive_positive_cases') == [x['case'] for x in bindings],
++            'Predecessor consecutive three-round chain missing')
++    for index, (row, binding) in enumerate(zip(rows,bindings)):
++        require(isinstance(row,dict) and row.get('case') == binding['case'] and row.get('candidate') == HEAD
++                and row.get('sha256') == binding['terminal_sha256'] and row.get('review_sha256') == binding['review_sha256']
++                and row.get('raw_overall') == 'PENDING_FACT_REVIEW' and row.get('case_verdict') == 'PASS'
++                and type(row.get('work_cli_count')) is int and row['work_cli_count'] == 1
++                and row.get('task_id') == tasks[index] and row.get('finished_at') == terminals[index]['finished_at'],
++                'Predecessor round3 cumulative binding mismatch')
++    require(review.get('environment_verdict') in ('PASS','FAIL_POST_CASE_RUNTIME_ADMISSION_BLOCKED'),
++            'Predecessor environment disposition unknown')
++    recovery = reconciled_runtime(root)
++    require(times[2] < timestamp(recovery['recorded_at']), 'Recovery must follow the round3 result')
++    return bindings
++
++
+ def verify_package(root):
+     root = safe_path(root)
+     manifest = load(child(root, 'manifest.json'))
+@@ -174,6 +308,8 @@
+             and manifest.get('model') == MODEL and manifest.get('digest') == DIGEST, 'Package candidate/model mismatch')
+     require(manifest.get('python_executable') == str(PYTHON) and type(manifest.get('case_cap')) is int
+             and manifest['case_cap'] == 1 and manifest.get('retry_authorized') is False, 'Package interpreter/cap mismatch')
++    require(all(type(manifest.get(k)) is int and manifest[k] == 0
++                for k in ('product_cli_cap','model_requests','audio_actions')), 'Negative package must allocate zero calls')
+     paths = set()
+     for row in manifest['files']:
+         require(set(row) == {'path', 'bytes', 'sha256'} and row['path'] not in paths, 'Package entry invalid')
+@@ -225,14 +361,14 @@
+     manifest_hash, review_hash = reviewed_package(root)
+     authority = load(child(root, 'release/authority.json'))
+     require(set(authority) == AUTH_FIELDS and authority['schema'] == 1 and authority['issuer'] == 'root', 'Authority fields invalid')
+-    require(authority['scope'] == SCOPE and authority['case'] == CASE, 'Only original round3 scope allowed')
++    require(authority['scope'] == SCOPE and authority['case'] == CASE, 'Only negative scope allowed')
+     require(authority['candidate'] == HEAD and authority['candidate_manifest_sha256'] == CANDIDATE_MANIFEST
+             and authority['model'] == MODEL and authority['digest'] == DIGEST, 'Authority candidate/model mismatch')
+     require(authority['manifest_sha256'] == manifest_hash and authority['review_sha256'] == review_hash, 'Authority package/review mismatch')
+     require(all(type(authority[key]) is int and authority[key] == value
+-                for key, value in (('case_cap',1),('product_cli_cap',1),('audio_actions',0)))
++                for key, value in (('case_cap',1),('product_cli_cap',0),('audio_actions',0)))
+             and authority['retry_authorized'] is False and authority['acceptance_credit'] is False
+-            and authority['prior_reviews'] == predecessor_reviews(root), 'Single round3 allocation with two predecessors required')
++            and authority['prior_reviews'] == predecessor_reviews(root), 'Single negative allocation with three predecessors required')
+     require(isinstance(authority['user_authorization'], str) and authority['user_authorization'].strip(), 'User authorization missing')
+     proof_path = child(root, authority['proof_path'])
+     require(proof_path.parent == root/'release/preflight' and proof_path.suffix == '.json', 'Canonical proof path required')
+@@ -242,7 +378,7 @@
+     assert_proof(root, proof)
+     folder = child(root, 'actual/' + CASE)
+     if not active and folder.exists():
+-        raise FileExistsError('Single round3 allocation already consumed')
++        raise FileExistsError('Single negative allocation already consumed')
+     require(not active or folder.is_dir(), 'Active allocation missing')
+     names = {p.name for p in folder.parent.iterdir()} if folder.parent.exists() else set()
+     require(names == ({CASE} if active else set()), 'Unexpected actual-case state')
+@@ -294,7 +430,7 @@
+         require(validate_release(root, utcnow(), active=True) == admission, 'Active release changed during inspection')
+ 
+     def admit_cli():
+-        require(validate_release(root, utcnow(), active=True) == admission, 'Active release changed before CLI')
++        require(validate_release(root, utcnow(), active=True) == admission, 'Active release changed before target check')
+         # File reads may themselves take time. Sample again after all binding
+         # checks, without refreshing the original proof or running native I/O.
+         check_admission_time(admission['authority'], admission['proof'], utcnow())
+@@ -322,10 +458,9 @@
+         except Exception as exc:
+             errors.append({'stage':'boundaries','type':type(exc).__name__,'error':str(exc)})
+     count = backend.cli_count
+-    if type(count) is not int or count not in (0,1): errors.append({'stage':'scope','error':'CLI cap violated'})
+-    if review and count != 1: errors.append({'stage':'scope','error':'Mechanical review without exactly one CLI'})
++    if type(count) is not int or count != 0: errors.append({'stage':'scope','error':'Negative CLI cap violated'})
+     hashes = {}
+-    for name in ('product-result.json','pre-cleanup-effects.json'):
++    for name in ('negative-evidence.json','pre-cleanup-effects.json'):
+         try:
+             path = child(root, 'actual/' + CASE + '/' + name)
+             hashes[name] = sha(path) if path.is_file() else None
+@@ -340,7 +475,8 @@
+               'acceptance_credit':False, 'work_cli_count':count, 'actual_native_start_count':None,
+               'audio_actions':0, 'retry_authorized':False, 'errors':errors,
+               'cleanup':cleanup, 'audit':audit, 'boundaries':boundaries,
+-              'product_result_sha256':hashes['product-result.json'],
++              'negative_result_sha256':hashes['negative-evidence.json'],
++              'model_requests':0 if type(count) is int and count == 0 else None,
+               'effects_sha256':hashes['pre-cleanup-effects.json'],
+               'finished_at':utcnow().isoformat()}
+     save_new(folder/'terminal.json', result)
+--- parent/code/controller.py
++++ negative/code/controller.py
+@@ -663,9 +663,10 @@
+             except Exception as exc: evidence['windows_unknown']=str(exc)
+         else: evidence['windows_unknown']='No approved fixture was created'
+         save(self.folder/'pre-cleanup-effects.json',evidence); return evidence
+-    def negative(self,baseline):
++    def negative(self,baseline,before_attempt=None):
+         from src.brain.work_context import WorkContextProvider,Win32Edit
+-        packet={'baseline_windows':baseline,'initial_outputs':None,'scenarios':[],'mutation_sends':[]}
++        require(callable(before_attempt),'Negative target checks require current admission callback')
++        packet={'baseline_windows':baseline,'initial_outputs':None,'scenarios':[],'mutation_sends':[],'native_write_attempts':[]}
+         evidence_path=self.folder/'negative-observations.json'
+         def persist(): save(evidence_path,packet)
+         def observed(record,key,callback):
+@@ -677,7 +678,24 @@
+         initial=observed(packet,'initial_outputs',lambda:output_inventory(self.folder))
+         require(initial==[],'Negative authorizes empty output set only')
+         try:
+-            provider=WorkContextProvider(load(self.folder/'policy.json'));native=Win32Edit()
++            native=Win32Edit()
++            class ObservedNative:
++                records=None
++                def identity(self,*args,**kwargs):return native.identity(*args,**kwargs)
++                def observe(self,target,*,foreground=True):
++                    row={'target':{key:target[key] for key in IDENTITY},'foreground':foreground}
++                    try:
++                        value=native.observe(target,foreground=foreground);row['observation']=value
++                        return value
++                    except Exception as exc:
++                        row['unknown']={'error':str(exc),'type':type(exc).__name__};raise
++                    finally:
++                        if self.records is not None:self.records.append(row);persist()
++                def replace(self,target,content):
++                    packet['native_write_attempts'].append({key:target[key] for key in IDENTITY});persist()
++                    raise RuntimeError('Negative native write is forbidden')
++            observer=ObservedNative()
++            provider=WorkContextProvider(load(self.folder/'policy.json'),native=observer)
+         except Exception as exc:
+             packet['provider_unknown']={'error':str(exc),'type':type(exc).__name__};persist();raise
+         after=None
+@@ -685,6 +703,7 @@
+             record={'scenario':scenario,'sends':[],'completion':'not_attempted','unobserved_reason':'Scenario has not completed'}
+             packet['scenarios'].append(record);persist();capture=None
+             try:
++                observer.records=None
+                 observed(record,'reset_command',lambda:self.command())
+                 capture=observed(record,'capture',provider.capture_work_context)
+                 require(capture.get('available') is True,'Negative capture unavailable')
+@@ -694,18 +713,33 @@
+                 targets=load(self.folder/'fixture.json')['targets'];index=1 if scenario=='focus' else 0
+                 require(focus==(targets[index]['hwnd'],targets[index]['control_hwnd']),'Actual owned foreground change missing')
+                 require((current[0]['start_utf16'],current[0]['end_utf16'])!=(capture['selection']['start_utf16'],capture['selection']['end_utf16']) if scenario=='selection' else focus!=(targets[0]['hwnd'],targets[0]['control_hwnd']),'Actual negative change missing')
++                # Admission failure is outside the expected product ValueError path.
++                observed(record,'admission',before_attempt)
++                record['target_reobservations']=[];observer.records=record['target_reobservations']
+                 def mark():
+                     record['sends'].append(scenario);packet['mutation_sends'].append(scenario);persist()
+-                try:
+-                    provider.replace_selection(capture,'SHOULD NEVER WRITE',before_send=mark)
+-                    record['refusal']={'rejected':False}
+-                except ValueError as exc: record['refusal']={'rejected':True,'error':str(exc),'type':type(exc).__name__}
+-                except Exception as exc:
+-                    record['refusal_unknown']={'error':str(exc),'type':type(exc).__name__};persist();raise
++                if scenario=='focus':
++                    record['operation']='validate_work_target'
++                    require(current[0]==baseline[0],'Focus-only scenario changed original target')
++                    require(observed(record,'target_revalidation',lambda:provider.validate_work_target(capture)) is True,
++                            'Focus change did not revalidate bound target')
++                else:
++                    record['operation']='replace_selection'
++                    try:
++                        provider.replace_selection(capture,'SHOULD NEVER WRITE',before_send=mark)
++                        record['refusal']={'rejected':False}
++                    except ValueError as exc: record['refusal']={'rejected':True,'error':str(exc),'type':type(exc).__name__}
++                    except Exception as exc:
++                        record['refusal_unknown']={'error':str(exc),'type':type(exc).__name__};persist();raise
++                    require(record['refusal']['rejected'],'Changed selection was not refused')
++                reads=record['target_reobservations']
++                require(reads and all(x['target']==capture['window'] and x['foreground'] is False
++                                      and x.get('observation')==current[0] for x in reads),
++                        'Product did not freshly observe the same bound target')
+                 persist()
+                 after=observed(record,'after_windows',lambda:self.observe('negative-'+scenario+'-after'))
+                 files=observed(record,'after_outputs',lambda:output_inventory(self.folder))
+-                require(record['refusal']['rejected'] and not packet['mutation_sends'],'Negative refusal/mutation failure')
++                require(not packet['mutation_sends'] and not packet['native_write_attempts'],'Negative mutation attempt')
+                 require([x['text'] for x in after]==[x['text'] for x in baseline],'Negative text changed')
+                 require(files==[],'Negative output set is not empty')
+                 record['completion']='PASS';record.pop('unobserved_reason',None);persist()
+@@ -717,10 +751,14 @@
+                 if capture is not None:
+                     try: provider.release(capture);record['capture_released']=True
+                     except Exception as exc:
+-                        record['release_unknown']={'error':str(exc),'type':type(exc).__name__};persist();raise
++                        record['release_unknown']={'error':str(exc),'type':type(exc).__name__}
++                        record['completion']='FAIL';record['unobserved_reason']='Capture release failed; scenario is not accepted'
++                        persist();raise
+                     persist()
+         self.accepted_effects={'outputs':[],'windows':after,'cli_count':0}
+-        save(self.folder/'negative-evidence.json',{'cases':packet['scenarios'],'mutation_sends':packet['mutation_sends'],'model_requests':0,'authorized_outputs':[]})
++        save(self.folder/'negative-evidence.json',{'cases':packet['scenarios'],'mutation_sends':packet['mutation_sends'],
++             'native_write_attempts':packet['native_write_attempts'],'model_requests':0,'authorized_outputs':[],
++             'focus_scope':'Readonly product re-observation; no focus-only replacement attempted'})
+         return {'mechanical':'PASS','facts':'PENDING_ROOT_INDEPENDENT_REVIEW'}
+ 
+ def fixture_command(folder):
+--- parent/code/source_candidate_guard.py
++++ negative/code/source_candidate_guard.py
+@@ -12,7 +12,7 @@
+ from typing import Any
+ 
+ ROOT = Path(r"C:/Users/Administrator/.codex/worktrees/jarvis-e03-source13/UltimaAgent")
+-MANIFEST = Path(r"H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-source13-round3-20261106/inputs/candidate-runtime-manifest.json")
++MANIFEST = Path(r"H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-source13-negative-20261106/inputs/candidate-runtime-manifest.json")
+ EXPECTED_MANIFEST_SHA256 = "957669cb3463eab549df80f0b8fc6345c244daa2f613925abe8622d0aab3d9d3"
+ EXPECTED_CANDIDATE = "269aca511d88412dbb9c15d23911138469a37aa2"
+ EXPECTED_BRANCH = "codex/jarvis-work-source13-runtime-failure"
+--- parent/code/test_acceptance_backend.py
++++ negative/code/test_acceptance_backend.py
+@@ -87,6 +87,12 @@
+                 if drift=='selection':value[0]['end_utf16']=0
+             return value
+         def command(self):calls.append(('activate',))
++        def negative(self,baseline,before_attempt):
++            assert baseline==rows
++            for scenario in ('focus','selection'):
++                calls.append(('changed-target',scenario));before_attempt();calls.append(('attempt',scenario))
++            self.accepted_effects={'outputs':[],'windows':rows,'cli_count':0}
++            return {'mechanical':'PASS','facts':'PENDING_ROOT_INDEPENDENT_REVIEW'}
+         def effects(self):calls.append(('effects',));return {'outputs':[],'windows':rows,'cli_count':self.cli_count}
+     namespace={'old':old,'P':tmp_path/'code','load':io.load,'require':io.require,'sha':io.sha}
+     controller=SimpleNamespace(ROOT=tmp_path/'candidate',old=old,Case=Case,
+@@ -111,25 +117,24 @@
+ 
+ 
+ def start(native,tmp_path):
+-    native.inspect();folder=tmp_path/'actual/e03-round3';folder.mkdir(parents=True);native.start(folder)
+-
+-
+-def test_original_fixture_server_cli_path_and_final_revalidation_order(tmp_path):
++    native.inspect();folder=tmp_path/'actual/e03-negative';folder.mkdir(parents=True);native.start(folder)
++
++
++def test_negative_uses_only_fixture_and_revalidates_each_changed_target(tmp_path):
+     native,calls=backend(tmp_path)
+     with pytest.raises(FileNotFoundError):native.controller.source_check()
+     start(native,tmp_path)
+     result=native.product(lambda:calls.append(('revalidate',)),lambda:calls.append(('admit-cli',)))
+     assert result=={'mechanical':'PASS','facts':'PENDING_ROOT_INDEPENDENT_REVIEW'}
+     native.effects();assert native.close()['status']=='PASS';assert native.audit()['status']=='PASS'
+-    launches=[row for row in calls if row[0]=='launch']
+-    assert [row[1] for row in launches]==['fixture','server','cli']
+-    cli=launches[-1][2]
+-    assert cli[:6]==['-B','-m','src.brain.cli','--work','--current-window','--replace-selection']
+-    assert cli[-1]=='original fixed request'
+-    assert calls.index(('revalidate',))<calls.index(('activate',))<calls.index(('observe','dispatch-baseline'))<calls.index(('admit-cli',))<calls.index(launches[-1])
+-    assert ('wait',315) in calls and ('reconcile',) in calls and native.cli_count==1
+-    argv=json.loads((tmp_path/'actual/e03-round3/argv.json').read_text(encoding='utf-8'))
+-    assert (argv['CLI_timeout'],argv['SDK_timeout'],argv['controller_wait'])==(300,1800,315)
++    assert [row[1] for row in calls if row[0]=='launch']==['fixture']
++    assert native.cli_count==0 and native.context.port is None
++    assert ('reconcile',) in calls
++    for scenario in ('focus','selection'):
++        index=calls.index(('changed-target',scenario))
++        assert calls[index+1:index+4]==[('revalidate',),('admit-cli',),('attempt',scenario)]
++    assert not (tmp_path/'actual/e03-negative/product-result.json').exists()
++    assert not any(row[0]=='get' and row[1].endswith('/health') for row in calls)
+ 
+ 
+ @pytest.mark.parametrize('drift',['text','identity','selection'])
+@@ -157,7 +162,7 @@
+ 
+ 
+ def test_uninspected_backend_cannot_start_fixture(tmp_path):
+-    native,calls=backend(tmp_path);folder=tmp_path/'actual/e03-round3';folder.mkdir(parents=True)
++    native,calls=backend(tmp_path);folder=tmp_path/'actual/e03-negative';folder.mkdir(parents=True)
+     with pytest.raises(ValueError,match='preflight'):native.start(folder)
+     assert calls==[]
+ 
+@@ -165,7 +170,7 @@
+ @pytest.mark.parametrize('fault',['missing','pid','window','keyboard','automatic'])
+ def test_invalid_operator_handoff_refuses_before_baseline_or_product(tmp_path,fault):
+     native,calls=backend(tmp_path);native.inspect()
+-    folder=tmp_path/'actual/e03-round3';folder.mkdir(parents=True)
++    folder=tmp_path/'actual/e03-negative';folder.mkdir(parents=True)
+     def ready(predicate,seconds):
+         value=predicate();path=folder/'manual-start.json'
+         if fault=='missing':path.unlink()
+@@ -292,3 +297,36 @@
+     assert ('observe','dispatch-baseline') in calls
+     assert not any(row[:2]==('launch','cli') for row in calls)
+     assert result['cleanup']['status']=='PASS'
++
++
++@pytest.mark.parametrize('scenario',['focus','selection'])
++@pytest.mark.parametrize('gate',['proof','authority'])
++def test_expiry_after_each_target_change_stops_before_product_guard(tmp_path,monkeypatch,scenario,gate):
++    import datetime as dt
++    from test_acceptance_entry import NOW,package
++    native,calls=backend(tmp_path);entry,authority,proof=package(tmp_path,monkeypatch)
++    if gate=='authority':
++        authority['expires_at']=(NOW+dt.timedelta(seconds=1)).isoformat()
++        put(tmp_path/'release/authority.json',authority)
++    expired=61 if gate=='proof' else 2
++    native.inspected=True;native.inspect=lambda:proof
++    original_start=native.start
++    def start_and_change(folder):
++        original_start(folder)
++        def negative(baseline,before_attempt):
++            for phase in ('focus','selection'):
++                calls.append(('target-changed',phase))
++                if phase==scenario:
++                    monkeypatch.setattr(entry,'utcnow',lambda:NOW+dt.timedelta(seconds=expired))
++                before_attempt()
++                calls.append(('product-guard',phase))
++            raise AssertionError('Expired proof reached all product guards')
++        native.context.negative=negative
++    native.start=start_and_change
++    result=entry.run_once(tmp_path,backend_factory=lambda root:native)
++    assert result['overall']=='FAIL' and result['work_cli_count']==0
++    assert ('target-changed',scenario) in calls and ('product-guard',scenario) not in calls
++    if scenario=='selection':assert ('product-guard','focus') in calls
++    assert result['cleanup']['status']=='PASS'
++    assert json.loads((tmp_path/'release/preflight/test.json').read_text())==proof
++    assert not any(row[:2] in (('launch','cli'),('launch','server')) for row in calls)
+--- parent/code/test_acceptance_entry.py
++++ negative/code/test_acceptance_entry.py
+@@ -2,12 +2,13 @@
+ import hashlib
+ import importlib
+ import json
++import shutil
+ from pathlib import Path
+ 
+ import pytest
+ 
+ 
+-NOW = dt.datetime(2026, 11, 5, 12, tzinfo=dt.timezone.utc)
++NOW = dt.datetime(2026, 11, 6, 12, tzinfo=dt.timezone.utc)
+ 
+ 
+ def put(path, value):
+@@ -16,69 +17,30 @@
+ 
+ 
+ def prior_material(tmp_path, entry):
+-    paths, bindings, terminal_bindings = set(), [], []
+-    for number in (1, 2):
+-        case = 'e03-round' + str(number)
+-        folder = tmp_path/'inputs'/('prior-round' + str(number))
+-        terminal = dict(case=case, candidate=entry.HEAD, scope=case+'-acceptance',
+-                        overall='PENDING_FACT_REVIEW', mechanical='PASS', facts='PENDING_ROOT_INDEPENDENT_REVIEW',
+-                        acceptance_credit=False, work_cli_count=1, errors=[], retry_authorized=False, audio_actions=0,
+-                        package_manifest_sha256=('c' if number == 1 else 'e')*64,
+-                        product_result_sha256=('d' if number == 1 else 'f')*64,
+-                        finished_at='2026-11-05T10:0'+str(number)+':00+00:00',
+-                        cleanup={'status':'PASS'}, audit={'status':'PASS'}, boundaries={'status':'PASS'})
+-        put(folder/'terminal.json', terminal)
+-        execution = dict(model=entry.MODEL, model_digest=entry.DIGEST, task_id='test-task-'+str(number),
+-                         completed_inference_end_events=3)
+-        if number == 1: execution.update(work_cli_launches=1, automatic_retry_recorded=False)
+-        else: execution.update(work_cli_count=1)
+-        review = dict(reviewer='root-independent', scope=case+'-result-review', case=case,
+-                      candidate=entry.HEAD, candidate_runtime_manifest_sha256=entry.CANDIDATE_MANIFEST,
+-                      preparation_manifest_sha256=terminal['package_manifest_sha256'],
+-                      product_result_sha256=terminal['product_result_sha256'],
+-                      terminal_sha256=entry.sha(folder/'terminal.json'), execution=execution,
+-                      **{k:'PASS' for k in ('evidence_verdict','case_verdict','mechanical_verdict','facts_verdict',
+-                                           'target_verdict','file_verdict','final_claim_verdict','cleanup_verdict')})
+-        if number == 2:
+-            review['authority_and_admission'] = dict(retry_authorized=False,
+-                prior_round1=dict(candidate_matches=True, binding_verified=True,
+-                    eligible_prior_positive_count=1, required_positive_count=3,
+-                    **{k:bindings[0][k] for k in ('terminal_sha256','review_sha256','registration_sha256')}))
+-            review['limits'] = dict(actual_reruns_or_retries=0)
+-        put(folder/'review.json', review)
+-        terminal_bindings.append(dict(case=case,candidate=entry.HEAD,sha256=entry.sha(folder/'terminal.json'),
+-            review_sha256=entry.sha(folder/'review.json'),raw_overall='PENDING_FACT_REVIEW',work_cli_count=1,
+-            case_verdict='PASS',task_id=execution['task_id'],finished_at=terminal['finished_at']))
+-        registration = dict(case=case,candidate=entry.HEAD,terminal_sha256=entry.sha(folder/'terminal.json'),
+-                            result_review_sha256=entry.sha(folder/'review.json'),case_verdict='PASS',facts='PASS',
+-                            delivery='PASS',final_claim='PASS',acceptance_credit=True,E03_credit=1,
+-                            same_candidate_terminals=number,cumulative_work_cli_count=number,current_case_work_cli_count=1,
+-                            positive_passed=number,positive_required=3,negative_passed=False)
+-        if number == 2:
+-            registration.update(predecessor_registration_sha256=bindings[0]['registration_sha256'],
+-                consecutive_positive_cases=['e03-round1','e03-round2'],
+-                same_candidate_terminal_bindings=list(terminal_bindings))
+-        put(folder/'registration.json', registration)
+-        bindings.append(dict(case=case,candidate=entry.HEAD,terminal_sha256=entry.sha(folder/'terminal.json'),
+-            review_sha256=entry.sha(folder/'review.json'),registration_sha256=entry.sha(folder/'registration.json')))
+-        paths.update((folder/name).relative_to(tmp_path).as_posix() for name in ('terminal.json','review.json','registration.json'))
++    # Real historical receipts remain immutable; mutations affect this test's copy.
++    shutil.copytree(Path(__file__).parent.parent/'inputs', tmp_path/'inputs', dirs_exist_ok=True)
++    paths={p.relative_to(tmp_path).as_posix() for p in (tmp_path/'inputs').rglob('*') if p.is_file()}
++    bindings=[dict(case='e03-round'+str(n), candidate=entry.HEAD,
++                   **{key:entry.sha(tmp_path/'inputs'/('prior-round'+str(n))/name)
++                      for key,name in [('terminal_sha256','terminal.json'),('review_sha256','review.json'),
++                                       ('registration_sha256','registration.json')]}) for n in (1,2,3)]
+     return paths, bindings
+ 
+ 
+ def package(tmp_path, monkeypatch):
+     entry = importlib.import_module('acceptance_entry')
+     monkeypatch.setattr(entry, 'utcnow', lambda: NOW)
+-    rows = [dict(pid=100+i, created_filetime=1000+i, exe='python.exe', parent_pid=90,
+-                 command_line_sha256='a'*64) for i in range(7)]
+     for name in entry.RUNTIME_FILES:
+         path=tmp_path/name; path.parent.mkdir(parents=True, exist_ok=True)
+         path.write_text('# sealed test dependency\n', encoding='utf-8')
+-    put(tmp_path/'inputs/protected-baseline.json', {'protected5':rows[:5], 'protected_listener_pair':rows[5:]})
+     prior_paths, prior_reviews = prior_material(tmp_path, entry)
++    baseline=json.loads((tmp_path/'inputs/protected-baseline.json').read_text(encoding='utf-8'))
++    rows=[{key:row[key] for key in entry.PROTECTED_FIELDS}
++          for row in baseline['protected5']+baseline['protected_listener_pair']]
+     manifest=dict(schema=1, scope=entry.SCOPE, case=entry.CASE, package_root=str(tmp_path),
+                   candidate=entry.HEAD, candidate_manifest_sha256=entry.CANDIDATE_MANIFEST,
+                   python_executable=str(entry.PYTHON), model=entry.MODEL, digest=entry.DIGEST,
+-                  case_cap=1, retry_authorized=False,
++                  case_cap=1, product_cli_cap=0, model_requests=0, audio_actions=0, retry_authorized=False,
+                   files=[dict(path=name, bytes=(tmp_path/name).stat().st_size,
+                               sha256=entry.sha(tmp_path/name)) for name in sorted(entry.RUNTIME_FILES | prior_paths)])
+     put(tmp_path/'manifest.json', manifest)
+@@ -97,7 +59,7 @@
+                    model=entry.MODEL, digest=entry.DIGEST, manifest_sha256=entry.sha(tmp_path/'manifest.json'),
+                    review_sha256=entry.sha(tmp_path/'release/independent-review.json'),
+                    proof_path='release/preflight/test.json', proof_sha256=entry.sha(tmp_path/'release/preflight/test.json'),
+-                   case_cap=1, product_cli_cap=1, audio_actions=0, retry_authorized=False,
++                   case_cap=1, product_cli_cap=0, audio_actions=0, retry_authorized=False,
+                    acceptance_credit=False, prior_reviews=prior_reviews, user_authorization='Explicit test-only authority',
+                    issued_at=NOW.isoformat(), expires_at=(NOW+dt.timedelta(seconds=120)).isoformat())
+     put(tmp_path/'release/authority.json', authority)
+@@ -168,9 +130,9 @@
+         assert (folder/'admission.json').exists()
+         if self.fail=='start': raise RuntimeError('start failed')
+     def product(self,revalidate,admit_cli):
+-        revalidate();self.calls.append('product');self.cli_count+=1
++        revalidate();admit_cli();self.calls.append('product')
+         if self.fail=='product': raise RuntimeError('product failed')
+-        put(self.folder/'product-result.json', {'test_only':True})
++        put(self.folder/'negative-evidence.json', {'test_only':True})
+         return {'mechanical':'PASS','facts':'PENDING_ROOT_INDEPENDENT_REVIEW'}
+     def effects(self):
+         self.calls.append('effects')
+@@ -192,7 +154,7 @@
+     result=entry.run_once(tmp_path,backend_factory=lambda root:backend)
+     assert result['mechanical']=='PASS' and result['overall']=='PENDING_FACT_REVIEW'
+     assert result['facts']=='PENDING_ROOT_INDEPENDENT_REVIEW' and result['acceptance_credit'] is False
+-    assert result['work_cli_count']==1 and result['actual_native_start_count'] is None
++    assert result['work_cli_count']==0 and result['actual_native_start_count'] is None
+     assert backend.calls==['inspect','start','inspect','product','effects','close','audit','inspect']
+     made=[]
+     with pytest.raises(FileExistsError):entry.run_once(tmp_path,backend_factory=lambda root:made.append(root))
+@@ -251,7 +213,7 @@
+     entry,authority,proof=package(tmp_path,monkeypatch);backend=Backend(tmp_path,proof)
+     original=backend.product
+     def missing_receipt(revalidate,admit_cli):
+-        result=original(revalidate,admit_cli);(backend.folder/'product-result.json').unlink();return result
++        result=original(revalidate,admit_cli);(backend.folder/'negative-evidence.json').unlink();return result
+     backend.product=missing_receipt
+     result=entry.run_once(tmp_path,backend_factory=lambda root:backend)
+     assert result['overall']=='FAIL' and any(x['stage']=='evidence' for x in result['errors'])
+--- parent/code/test_negative_entry.py
++++ negative/code/test_negative_entry.py
+@@ -0,0 +1,48 @@
++import json
++
++import pytest
++
++from test_acceptance_entry import Backend, package, put
++from test_round2_predecessor import reseal
++
++
++@pytest.mark.parametrize('value',[1,True,2])
++def test_negative_authority_rejects_any_nonzero_or_boolean_cli_allocation(tmp_path,monkeypatch,value):
++    entry,authority,proof=package(tmp_path,monkeypatch)
++    authority['product_cli_cap']=value;put(tmp_path/'release/authority.json',authority)
++    made=[]
++    with pytest.raises(ValueError):entry.run_once(tmp_path,backend_factory=lambda root:made.append(root))
++    assert not made and not (tmp_path/'actual').exists()
++
++
++@pytest.mark.parametrize('field',['product_cli_cap','model_requests','audio_actions'])
++def test_package_cannot_allocate_calls_for_negative(tmp_path,monkeypatch,field):
++    entry,authority,proof=package(tmp_path,monkeypatch)
++    path=tmp_path/'manifest.json';manifest=json.loads(path.read_text());manifest[field]=1;put(path,manifest)
++    reseal(tmp_path,entry,authority)
++    with pytest.raises(ValueError):entry.verify_package(tmp_path)
++
++
++@pytest.mark.parametrize('name',[
++    'prior-round3/terminal.json','prior-round3/review.json','prior-round3/registration.json',
++    'runtime-reconciliation.json','runtime-user-approval.json','runtime-manual-confirmation.json',
++    'protected-baseline-before-recovery.json',
++])
++def test_negative_dependencies_must_be_in_seal(tmp_path,monkeypatch,name):
++    entry,authority,proof=package(tmp_path,monkeypatch)
++    path=tmp_path/'manifest.json';manifest=json.loads(path.read_text())
++    manifest['files']=[r for r in manifest['files'] if r['path']!='inputs/'+name];put(path,manifest)
++    with pytest.raises(ValueError,match='Runtime dependency'):entry.verify_package(tmp_path)
++
++
++def test_nonzero_cli_terminal_is_fail_even_with_mechanical_flag_and_receipts(tmp_path,monkeypatch):
++    entry,authority,proof=package(tmp_path,monkeypatch);backend=Backend(tmp_path,proof)
++    original=backend.product
++    def unexpected_cli(revalidate,admit):
++        result=original(revalidate,admit);backend.cli_count=1
++        put(backend.folder/'product-result.json',{'test_only':True})
++        return result
++    backend.product=unexpected_cli
++    result=entry.run_once(tmp_path,backend_factory=lambda root:backend)
++    assert result['overall']=='FAIL' and any(x['stage']=='scope' for x in result['errors'])
++    assert 'close' in backend.calls
+--- parent/code/test_negative_predecessors.py
++++ negative/code/test_negative_predecessors.py
+@@ -0,0 +1,145 @@
++"""Third-positive eligibility and restored-runtime bindings; all file I/O stays in tmp_path."""
++import copy
++import json
++import shutil
++from pathlib import Path
++
++import pytest
++
++import acceptance_entry as entry
++from package_io import load, sha
++
++INPUTS = Path(__file__).resolve().parents[1] / 'inputs'
++VERDICTS = ('evidence_verdict', 'case_verdict', 'mechanical_verdict', 'facts_verdict',
++            'target_verdict', 'file_verdict', 'final_claim_verdict', 'cleanup_verdict')
++
++
++def put(path, value):
++    path.write_text(json.dumps(value, ensure_ascii=False), encoding='utf-8')
++
++
++@pytest.fixture
++def material(tmp_path):
++    shutil.copytree(INPUTS, tmp_path/'inputs')
++    return tmp_path
++
++
++def file(root, round_no, name):
++    return root/'inputs'/('prior-round'+str(round_no))/(name+'.json')
++
++
++def rebind(root):
++    """Recompute receipt hashes after semantic mutation, without calling the validator."""
++    bindings = []
++    cumulative = []
++    for n in (1, 2, 3):
++        tp, rp, gp = (file(root,n,name) for name in ('terminal','review','registration'))
++        terminal, review, registration = load(tp), load(rp), load(gp)
++        review['terminal_sha256'] = sha(tp)
++        review['preparation_manifest_sha256'] = terminal['package_manifest_sha256']
++        review['product_result_sha256'] = terminal['product_result_sha256']
++        if n == 2:
++            review['authority_and_admission']['prior_round1'].update(
++                {k:bindings[0][k] for k in ('terminal_sha256','review_sha256','registration_sha256')})
++        put(rp, review)
++        row = dict(case='e03-round'+str(n),candidate=entry.HEAD,sha256=sha(tp),review_sha256=sha(rp),
++                   raw_overall=terminal['overall'],work_cli_count=terminal['work_cli_count'],case_verdict='PASS',
++                   task_id=review['execution']['task_id'],finished_at=terminal['finished_at'])
++        cumulative.append(row)
++        registration.update(terminal_sha256=sha(tp),result_review_sha256=sha(rp))
++        if n >= 2:
++            registration.update(predecessor_registration_sha256=bindings[-1]['registration_sha256'],
++                                same_candidate_terminal_bindings=copy.deepcopy(cumulative))
++        put(gp, registration)
++        bindings.append(dict(case='e03-round'+str(n),candidate=entry.HEAD,terminal_sha256=sha(tp),
++                             review_sha256=sha(rp),registration_sha256=sha(gp)))
++    return bindings
++
++
++def mutate(root, n, name, field, value):
++    p=file(root,n,name);d=load(p)
++    target=d
++    keys=field.split('.')
++    for k in keys[:-1]:target=target[k]
++    target[keys[-1]]=value;put(p,d)
++    rebind(root)
++
++
++def test_three_actual_distinct_passes_and_reconciled_runtime_are_required(material):
++    actual=entry.predecessor_reviews(material)
++    assert [x['case'] for x in actual] == ['e03-round1','e03-round2','e03-round3']
++    assert actual[2]['terminal_sha256'] == sha(file(material,3,'terminal'))
++    assert actual[2]['review_sha256'] == sha(file(material,3,'review'))
++    assert actual[2]['registration_sha256'] == sha(file(material,3,'registration'))
++    assert load(file(material,3,'review'))['environment_verdict'] == 'FAIL_POST_CASE_RUNTIME_ADMISSION_BLOCKED'
++    assert not (material/'actual').exists()
++
++
++@pytest.mark.parametrize('name,field,value', [
++    ('terminal','mechanical','FAIL'),
++    ('terminal','work_cli_count',2),
++    ('review','candidate','old-candidate'),
++    ('review','facts_verdict','FAIL'),
++    ('review','target_verdict','FAIL'),
++    ('review','file_verdict','FAIL'),
++    ('review','cleanup_verdict','FAIL'),
++    ('review','execution.model_digest','wrong-weight'),
++    ('review','limits.actual_reruns_or_retries',1),
++    ('review','credit.third_positive_credit_recommended',False),
++    ('registration','acceptance_credit',False),
++    ('registration','positive_passed',2),
++    ('registration','negative_passed',True),
++])
++def test_third_receipt_ineligible_despite_consistent_hashes(material,name,field,value):
++    mutate(material,3,name,field,value)
++    with pytest.raises(ValueError):entry.predecessor_reviews(material)
++
++
++@pytest.mark.parametrize('round_no', [2,3])
++def test_coherently_rebound_duplicate_task_is_rejected(material,round_no):
++    first_task=load(file(material,1,'review'))['execution']['task_id']
++    mutate(material,round_no,'review','execution.task_id',first_task)
++    with pytest.raises(ValueError,match='distinct tasks'):entry.predecessor_reviews(material)
++
++
++@pytest.mark.parametrize('round_no', [2,3])
++def test_coherently_rebound_backwards_actual_terminal_is_rejected(material,round_no):
++    first_time=load(file(material,1,'terminal'))['finished_at']
++    mutate(material,round_no,'terminal','finished_at',first_time)
++    with pytest.raises(ValueError,match='chronology'):entry.predecessor_reviews(material)
++
++
++@pytest.mark.parametrize('round_no', [2,3])
++def test_missing_cumulative_terminal_row_is_rejected(material,round_no):
++    p=file(material,round_no,'registration');d=load(p);d['same_candidate_terminal_bindings'].pop();put(p,d)
++    # Round2 registration's hash is deliberately propagated into the third receipt.
++    if round_no==2:
++        p3=file(material,3,'registration');d3=load(p3);d3['predecessor_registration_sha256']=sha(p);put(p3,d3)
++    with pytest.raises(ValueError):entry.predecessor_reviews(material)
++
++
++@pytest.mark.parametrize('name,field,value', [
++    ('runtime-reconciliation.json','status','FAIL_RUNTIME_RECONCILIATION'),
++    ('runtime-reconciliation.json','native_version','unreviewed-version'),
++    ('runtime-reconciliation.json','current_model.digest','wrong-weight'),
++    ('runtime-reconciliation.json','actual_cases',1),
++    ('runtime-reconciliation.json','model_inferences',1),
++    ('runtime-reconciliation.json','other_six.0.match',False),
++    ('protected-baseline.json','protected5.0.pid',15264),
++    ('protected-baseline.json','protected5.1.command_line_sha256','changed-brain'),
++    ('runtime-manual-confirmation.json','performed_by','unknown'),
++])
++def test_unreconciled_runtime_cannot_admit_despite_three_positives(material,name,field,value):
++    p=material/'inputs'/name;d=load(p);target=d;keys=field.split('.')
++    for key in keys[:-1]:target=target[int(key)] if isinstance(target,list) else target[key]
++    if isinstance(target,list):target[int(keys[-1])]=value
++    else:target[keys[-1]]=value
++    put(p,d)
++    if name=='runtime-reconciliation.json':
++        bp=material/'inputs/protected-baseline.json';b=load(bp);b['runtime_reconciliation_sha256']=sha(p);put(bp,b)
++    with pytest.raises(ValueError):entry.predecessor_reviews(material)
++
++
++def test_missing_recovery_evidence_refuses_even_with_valid_three_passes(material):
++    (material/'inputs/runtime-reconciliation.json').unlink()
++    with pytest.raises((ValueError,FileNotFoundError)):entry.predecessor_reviews(material)
+--- parent/code/test_negative_scenarios.py
++++ negative/code/test_negative_scenarios.py
+@@ -0,0 +1,143 @@
++"""Actual frozen provider and actual Case.negative, with native I/O replaced only."""
++import ast
++import copy
++import importlib.util
++import inspect
++import json
++from pathlib import Path
++import sys
++from types import SimpleNamespace
++
++import pytest
++
++from package_io import load, require
++from test_acceptance_entry import put
++
++
++SOURCE = Path(r'C:\Users\Administrator\.codex\worktrees\jarvis-e03-source13\UltimaAgent\src\brain\work_context.py')
++
++
++def scenario(tmp_path, monkeypatch, fault=None):
++    spec=importlib.util.spec_from_file_location('offline_frozen_work_context',SOURCE)
++    product=importlib.util.module_from_spec(spec);spec.loader.exec_module(product)
++    targets=[dict(hwnd=i+1,control_hwnd=i+3,pid=12,process_created_filetime=99,
++                  title='fixture'+str(i),**{'class':'Edit'}) for i in range(2)]
++    rows=[dict(t,text='source' if i==0 else 'unrelated',start_utf16=0,end_utf16=6 if i==0 else 0,
++               editable=True,password=False) for i,t in enumerate(targets)]
++    baseline=copy.deepcopy(rows);calls=[];state={'focus':0,'phase':'initial'}
++    policy=dict(version=1,targets=[dict(targets[0],allowed_operations=['capture','replace_selection'],max_age_seconds=300)])
++    put(tmp_path/'policy.json',policy);put(tmp_path/'fixture.json',{'targets':targets})
++    class Native:
++        def focused(self):
++            t=targets[state['focus']];return t['hwnd'],t['control_hwnd']
++        def identity(self,target,foreground=True):
++            if foreground and self.focused()!=(target['hwnd'],target['control_hwnd']):
++                raise ValueError('Foreground/focus changed')
++            require(all(target[k]==targets[0][k] for k in product.IDENTITY),'Bound target changed')
++        def observe(self,target,foreground=True):
++            calls.append(('native-observe',target['hwnd'],foreground,state['phase']))
++            self.identity(target,foreground)
++            return copy.deepcopy(rows[0])
++        def replace(self,target,content):
++            calls.append(('native-write',target['hwnd']))
++            raise RuntimeError('Offline native write trap')
++    native=Native();instances=[]
++    original=product.WorkContextProvider
++    class Provider(original):
++        def __init__(self,*args,**kwargs):
++            super().__init__(*args,**kwargs);instances.append(self)
++        def capture_work_context(self):
++            if fault=='capture':raise RuntimeError('capture failed')
++            return super().capture_work_context()
++        def validate_work_target(self,capture):
++            if fault=='false-validation':return False
++            return super().validate_work_target(capture)
++        def replace_selection(self,capture,content,*,before_send):
++            calls.append(('replace-attempt',state['phase']))
++            if fault=='unexpected-refusal':raise RuntimeError('provider failure')
++            if fault=='false-success':return {'verified':True}
++            if fault=='unrelated-value-error':raise ValueError('Capture expired')
++            if fault=='send-marker':before_send()
++            return super().replace_selection(capture,content,before_send=before_send)
++        def release(self,capture):
++            calls.append(('release',state['phase']))
++            super().release(capture)
++            if fault=='release':raise RuntimeError('release failed')
++    product.WorkContextProvider=Provider;product.Win32Edit=lambda:native
++    monkeypatch.setitem(sys.modules,'src.brain.work_context',product)
++    def command(index=0,select=True):
++        state['phase']='focus' if index else ('reset' if select else 'selection')
++        calls.append(('command',state['phase']))
++        if fault=='reset' and state['phase']=='reset':raise RuntimeError('reset failed')
++        if fault=='change' and state['phase']=='focus':raise RuntimeError('change failed')
++        if fault!='no-change' or state['phase']=='reset':
++            state['focus']=index
++            if index==0:rows[0]['end_utf16']=6 if select else 0
++    def observe(label):
++        calls.append(('observe',label))
++        if fault=='readback' and label.endswith('-after'):raise RuntimeError('readback failed')
++        value=copy.deepcopy(rows)
++        if fault=='changed-text' and label.endswith('-after'):value[1]['text']='changed'
++        return value
++    def inventory(folder):
++        if fault=='files' and state['phase'] in ('focus','selection'):return [{'path':'unexpected'}]
++        return []
++    tree=ast.parse((Path(__file__).parent/'controller.py').read_text(encoding='utf-8-sig'))
++    cls=next(x for x in tree.body if isinstance(x,ast.ClassDef) and x.name=='Case')
++    node=next(x for x in cls.body if isinstance(x,ast.FunctionDef) and x.name=='negative')
++    ns={'load':load,'save':put,'require':require,'output_inventory':inventory,'IDENTITY':product.IDENTITY}
++    exec(compile(ast.Module(body=[node],type_ignores=[]),'<actual Case.negative>','exec'),ns)
++    context=SimpleNamespace(folder=tmp_path,command=command,observe=observe)
++    def admission():
++        calls.append(('admission',state['phase']))
++        packet=load(tmp_path/'negative-observations.json');record=packet['scenarios'][-1]
++        assert 'changed_windows' in record and 'foreground' in record
++        if fault=='admission-'+state['phase']:raise ValueError('Expired case proof')
++    def run():
++        method=ns['negative']
++        # Old implementation is exercised as-is during RED; no skipped tests.
++        if 'before_attempt' in inspect.signature(method).parameters:
++            return method(context,baseline,before_attempt=admission)
++        return method(context,baseline)
++    return run,calls,context,instances
++
++
++def test_focus_reobserves_same_target_then_selection_rejects_without_native_write(tmp_path,monkeypatch):
++    run,calls,context,instances=scenario(tmp_path,monkeypatch)
++    assert run()=={'mechanical':'PASS','facts':'PENDING_ROOT_INDEPENDENT_REVIEW'}
++    evidence=load(tmp_path/'negative-evidence.json');focus,selection=evidence['cases']
++    assert [x['scenario'] for x in evidence['cases']]==['focus','selection']
++    assert focus['target_revalidation'] is True and focus['operation']=='validate_work_target'
++    assert selection['operation']=='replace_selection' and selection['refusal']['rejected'] is True
++    assert [x['completion'] for x in evidence['cases']]==['PASS','PASS']
++    assert all(x['capture_released'] for x in evidence['cases'])
++    assert evidence['mutation_sends']==[] and evidence['native_write_attempts']==[]
++    assert evidence['authorized_outputs']==[] and evidence['model_requests']==0
++    assert not any(x[0]=='native-write' for x in calls)
++    assert calls.count(('admission','focus'))==calls.count(('admission','selection'))==1
++    assert calls.count(('replace-attempt','selection'))==1
++    for phase in ('focus','selection'):
++        observed=[x for x in calls if x[0]=='native-observe' and x[-1]==phase]
++        assert observed and all(x[1:3]==(1,False) for x in observed)
++        assert calls.index(('admission',phase))<calls.index(observed[0])
++    assert not instances[0]._captures and context.accepted_effects['cli_count']==0
++
++
++@pytest.mark.parametrize('fault',[
++    'reset','capture','change','no-change','false-validation','unexpected-refusal','false-success',
++    'unrelated-value-error','send-marker','changed-text','files','readback','release',
++    'admission-focus','admission-selection',
++])
++def test_failure_retains_partial_observation_and_never_counts_negative_pass(tmp_path,monkeypatch,fault):
++    run,calls,context,instances=scenario(tmp_path,monkeypatch,fault)
++    with pytest.raises((ValueError,RuntimeError)):run()
++    assert not (tmp_path/'negative-evidence.json').exists()
++    packet=load(tmp_path/'negative-observations.json');last=packet['scenarios'][-1]
++    assert last['completion']=='FAIL' and last.get('unobserved_reason')
++    assert not any(x[0]=='native-write' for x in calls)
++    if fault.startswith('admission-'):
++        assert 'admission_unknown' in last and 'refusal' not in last
++        phase=fault.split('-',1)[1]
++        assert not any(x[0]=='native-observe' and x[-1]==phase for x in calls)
++        assert not any(x==('replace-attempt',phase) for x in calls)
++    if instances:assert not instances[0]._captures
+--- parent/code/test_round2_predecessor.py
++++ negative/code/test_round2_predecessor.py
+@@ -37,16 +37,16 @@
+     reseal(root,entry,authority)
+ 
+ 
+-def test_round3_admits_two_matching_predecessors_and_keeps_new_facts_pending(tmp_path,monkeypatch):
++def test_negative_admits_three_matching_predecessors_and_keeps_new_facts_pending(tmp_path,monkeypatch):
+     entry,authority,proof = package(tmp_path,monkeypatch)
+-    assert entry.CASE == 'e03-round3' and entry.SCOPE == 'e03-round3-acceptance'
++    assert entry.CASE == 'e03-negative' and entry.SCOPE == 'e03-negative-acceptance'
+     backend = Backend(tmp_path,proof)
+     result = entry.run_once(tmp_path,backend_factory=lambda root:backend)
+-    assert result['case']=='e03-round3' and result['work_cli_count']==1
++    assert result['case']=='e03-negative' and result['work_cli_count']==0
+     assert result['facts']=='PENDING_ROOT_INDEPENDENT_REVIEW' and result['acceptance_credit'] is False
+     assert not (tmp_path/'actual/e03-round1').exists()
+-    assert (tmp_path/'actual/e03-round3/terminal.json').is_file()
+-    assert len(authority['prior_reviews'])==2
++    assert (tmp_path/'actual/e03-negative/terminal.json').is_file()
++    assert len(authority['prior_reviews'])==3
+ 
+ 
+ @pytest.mark.parametrize('file,field,value', [
+--- parent/code/test_round3_predecessors.py
++++ negative/code/test_round3_predecessors.py
+@@ -24,13 +24,13 @@
+     reseal(root,entry,authority)
+ 
+ 
+-def test_two_distinct_passes_admit_only_round3_and_do_not_pregrant_facts(tmp_path,monkeypatch):
++def test_three_distinct_passes_admit_only_negative_and_do_not_pregrant_facts(tmp_path,monkeypatch):
+     entry,authority,proof=package(tmp_path,monkeypatch)
+     backend=Backend(tmp_path,proof)
+     result=entry.run_once(tmp_path,backend_factory=lambda root:backend)
+-    assert result['case']=='e03-round3' and result['work_cli_count']==1
++    assert result['case']=='e03-negative' and result['work_cli_count']==0
+     assert result['facts']=='PENDING_ROOT_INDEPENDENT_REVIEW' and result['acceptance_credit'] is False
+-    assert (tmp_path/'actual/e03-round3/terminal.json').is_file()
++    assert (tmp_path/'actual/e03-negative/terminal.json').is_file()
+     assert not (tmp_path/'actual/e03-round2').exists()
+ 
+ 
+@@ -102,7 +102,7 @@
+ 
+ 
+ @pytest.mark.parametrize('fault',['terminal_sha256','review_sha256','registration_sha256','missing','reversed','duplicate','old-scope'])
+-def test_round3_authority_requires_both_exact_ordered_bindings(tmp_path,monkeypatch,fault):
++def test_negative_authority_requires_exact_ordered_bindings(tmp_path,monkeypatch,fault):
+     entry,authority,proof=package(tmp_path,monkeypatch)
+     if fault=='missing': authority['prior_reviews'].pop()
+     elif fault=='reversed': authority['prior_reviews'].reverse()

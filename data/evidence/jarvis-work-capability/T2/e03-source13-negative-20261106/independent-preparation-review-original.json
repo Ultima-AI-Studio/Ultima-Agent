@@ -1,0 +1,96 @@
+{
+  "reviewer": "root-independent",
+  "agent_identity": "/root/review_e03_source13_negative_entry",
+  "scope": "e03-negative-acceptance-package",
+  "candidate": "269aca511d88412dbb9c15d23911138469a37aa2",
+  "package_root": "H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\e03-source13-negative-20261106",
+  "manifest_sha256": "b98dcf3ff92f623238fd15cea6c7929875bba056dee3dae74245e89b44a7266f",
+  "candidate_runtime_manifest_sha256": "957669cb3463eab549df80f0b8fc6345c244daa2f613925abe8622d0aab3d9d3",
+  "verdict": "PASS_PREPARATION_ONLY",
+  "assessment": {
+    "ready_for_preparation_checkpoint": true,
+    "execution_authorized": false,
+    "acceptance_credit_granted": false,
+    "reasoning": "在本次只读技术准备审查范围内，未发现阻断准备包的缺陷。亲自核对封存文件、父包、候选源码、依赖和SDK摘要，并静态检查负例入口、真实产品目标校验、期限回调及失败清理顺序。准备包不能替代现场负例结果。",
+    "focus_ruling": "接受本次修正。契约E03明确允许焦点或选区改变时重新观察或明确停止。冻结WorkContextProvider.validate_work_target使用foreground=False重新观察原绑定目标；因此把focus-only必然拒写作为期望会错误约束当前契约。现focus场景证明的范围限于真实产品只读重新观察原绑定目标，不证明焦点变化后的完整替换调用链。",
+    "selection_ruling": "选区场景调用真实replace_selection。捕获后改变选区，再执行准入回调，随后由真实产品重新观察原目标；审计要求确实存在匹配changed_windows的原目标非前台观察。单纯ValueError且没有该观察不能通过，before_send或native.replace被触发也不能通过。硬拒绝代理的RuntimeError不会作为预期目标拒绝计PASS。",
+    "predecessor_ruling": "三轮资格分别绑定terminal/review/registration摘要、同候选、不同task_id和严格递增finished_at，并核对累计绑定行。新增测试包括一致重绑定的重复task、时间逆序及缺累计行，针对原PREP-M1的风险具有实质覆盖。",
+    "environment_ruling": "round3 case PASS与事后environment FAIL被允许并存；新入口另行绑定恢复记录和新基线，仍要求现场inspect及同一proof/authority反复核验。零推理没有删除受保护身份、模型元数据和监听归属检查。",
+    "failure_ruling": "场景观察逐步持久化，异常记录已观察字段及未观察原因，capture在finally释放；入口finally依次尝试effects、owned cleanup和闭合audit，各项异常累积进终态。未完成场景不能生成负例成功证据。",
+    "strengths": [
+      "真实产品provider和原生边界审计分离，避免将夹具主动拒写误认成产品拒写。",
+      "每个改变后的目标尝试前重新核验原authority/proof，并在耗时绑定检查后再次采样期限。",
+      "原恢复快照、旧环境失败及父包保留，新增输入和准备结论有明确范围。"
+    ]
+  },
+  "findings": [],
+  "verified_counts": {
+    "sealed_files_hashed": 80,
+    "sealed_hash_mismatches": 0,
+    "parent_sealed_files_hashed": 56,
+    "parent_hash_mismatches": 0,
+    "candidate_source_files_hashed": 57,
+    "candidate_source_hash_mismatches": 0,
+    "dependency_files_hashed": 7,
+    "dependency_hash_mismatches": 0,
+    "sdk_files_hashed": 1346,
+    "sdk_hash_mismatches": 0,
+    "original_copy_pairs_independently_hashed": 12,
+    "original_copy_pair_mismatches": 0,
+    "prior_round_receipt_originals_in_copy_pairs": 9,
+    "final_xml_tests": 255,
+    "final_xml_failures": 0,
+    "final_xml_errors": 0,
+    "final_xml_skipped": 0,
+    "final_guard_denied": 0,
+    "final_guard_allowed": 0,
+    "final_guard_open_owned_listeners": 0,
+    "test_execution_by_reviewer": 0,
+    "product_or_native_imports_by_reviewer": 0,
+    "live_process_or_service_queries_by_reviewer": 0,
+    "release_directory_exists": false,
+    "actual_directory_exists": false,
+    "head_matches_candidate": true,
+    "parent_191_and_additional_64": "作为包内报告及测试差异说明审阅；255总数独立从XML读取，未重新执行测试或独立重建全部参数化收集结果。"
+  },
+  "declined_to_judge": [
+    {
+      "behavior": "实际Windows焦点切换、选区改变与原生观察能否在现场完成",
+      "reason": "本次仅准备审查，无现场操作或实际负例分配；离线证据不替代现场结果。",
+      "requires_root_ruling": true
+    },
+    {
+      "behavior": "焦点丢失后的完整产品替换及写入前最终重读链",
+      "reason": "本包focus场景只调用validate_work_target，主动不调用focus-only replacement；不能由本包推定完整写入链通过。",
+      "requires_root_ruling": true
+    },
+    {
+      "behavior": "当前服务持续存活及未来准入环境可用性",
+      "reason": "本reviewer未查询现场；恢复记录和root补充观察仅为时点证据，下一次入口仍须fresh proof。",
+      "requires_root_ruling": true
+    },
+    {
+      "behavior": "三个既有正例实际结果的事实正确性重新裁定",
+      "reason": "按任务要求仅检查其资格、原件摘要和链绑定，不重新执行或重新分配旧结果审查。",
+      "requires_root_ruling": true
+    },
+    {
+      "behavior": "产品485/8回归在当前时刻重新通过",
+      "reason": "本次不运行产品或测试；包内255离线检查不是该历史产品回归的重跑。",
+      "requires_root_ruling": true
+    },
+    {
+      "behavior": "E01、E02、T2出口、Owner验收和整体目标完成",
+      "reason": "均超出e03-negative准备包范围，没有新增授权或验收证据。",
+      "requires_root_ruling": true
+    }
+  ],
+  "limits": [
+    "仅使用文件读取、JSON/XML解析、摘要计算、文本检索及只读git HEAD查询；未修改文件或Git状态。",
+    "未执行或导入包内产品、测试、native代码，未调用网络、现场进程服务、UI、键鼠、音频或模型。",
+    "本次核验覆盖文件摘要完整性及所述关键调用路径；不声称对全部SDK实现或全部封存文件逐行重新审计。",
+    "测试通过数来自已封存XML及guard记录，不能表述为reviewer重新运行255项。",
+    "未把审查期间root追加的preparation-runtime-readback.json计入80项封存文件或reviewer现场核验。",
+    "本结论仅支持准备检查点，不签发实际负例authority，不分配实际结果复核，不授予负例PASS或验收credit。"
+  ]
+}
