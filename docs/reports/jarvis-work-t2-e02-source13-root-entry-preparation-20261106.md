@@ -4,7 +4,7 @@
 
 ## 当前结论
 
-E01 固定样本三轮实际交付及独立复核均通过；E03 同候选三正例和一负例通过。E02 外层入口的独审为 **NEEDS_FIXES**，仅一项 Important：等待会吃掉已有清理函数所需余量。本轮已完成允许的一次修复，完整离线检查 **83/83 通过**；修复后的精确源码尚未独审，准备门为 **NOT_READY_PENDING_FIXED_SOURCE_REVIEW**，E02/T2/T3–T5/Owner 仍未通过。
+E01 固定样本三轮实际交付及独立复核均通过；E03 同候选三正例和一负例通过。E02 外层入口修复后的源码已按用户新增授权完成一次只读独立复核，结论仍为 **NEEDS_FIXES**，有一项 Important：HELLO 等待未持续保留后续身份查询及尚未登记成员的清理余量。已有修复只关闭了部分 R1，不能因 **83/83 离线检查通过**而登记准备通过。当前门为 **NOT_READY_CLEANUP_HANDOFF**，E02/T2/T3–T5/Owner 仍未通过。
 
 产品候选固定 `269aca511d88412dbb9c15d23911138469a37aa2`，模型仅 `qwen3-8b-uncensored`，摘要 `6d7230a923426bc1933879eb08a7dafc18e5fc0e7606c459ce98f16e0c7f9330`。冻结产品源码、B 包 profile 和 SDK 字节保持。
 
@@ -43,6 +43,10 @@ R1 的新增测试复用未修改的 `Owned.cleanup` 源码 AST 和原 `Deadline
 - 原独审报告：`review/independent-preparation-review.json`，SHA-256 `c3a9977b7374e36b4bbaba21b4e1d794af84520523174f70237f2aa5ffa4c042`。结论 NEEDS_FIXES；六项未裁定范围已逐项记入 `verification/root-review-disposition.json`，均未升级为实际证明。
 - 具体单例提案：`execution-proposal.md`。实际分配、结果复核分配、release 仍为零，E01 round3 已消费的授权不得继承。
 
-下一步是对当前修复源码做一次新的只读独立复核，重点审查 R1 的清理余量与提前拒绝代价。仅准备门通过后才能另行分配一次零推理原资料 profile 与一次只读结果复核；当前不得实跑。该 profile 即使通过，也不计入 8B 真实研究三轮。
+本次新增只读复核报告为 `review/independent-fixed-source-review.json`，SHA-256 `3a9e31a89858bfe083f028a7a66ca482da4ef50acdbb41303134c48bcec0d450`。复核重新核对 284 项包文件和 37 项运行输入，零差异；没有运行测试、进程、profile、模型、网络、UI、音频或服务操作。
+
+反例是：HELLO 接近 origin 182 秒才到达时，父进程仅按约 132 秒清理余量判断仍可继续；随后两次各最多 15 秒的身份查询把余量降至约 103 秒，而清理加最终证明可能需要 127 秒。事后的余量检查无法补回已花掉的时间。若该次查询才发现解释器子进程，之前按已知成员数量计算还会低估清理范围。当前新增两项挂起测试使用立即出现的 HELLO 和不耗时的资格替身，因此没有覆盖此反例。
+
+下一步的具体补修范围已写入 `docs/plans/jarvis-work-e02-source13-cleanup-handoff-fix-plan-20261106.md`：持续保留尚未完成的资格查询和预期角色成员余量，先补延迟 HELLO／慢资格查询／迟登记成员反例，再修最小接线并做必要独立准备复核。本次授权只有只读复核，未据此修改执行源码或扩大实跑权限。所有实际 profile、模型与结果复核分配仍为零。
 
 远端同步仍保留此前自动审批 `blocked by policy` 阻断；本轮不重试或改用其他通道。本地提交/tag 与文档镜像状态分别记录，不宣称远端已同步。
