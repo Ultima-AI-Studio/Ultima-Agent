@@ -1,0 +1,56 @@
+test_real_disk_readback (test_bindings.CurrentInputs.test_real_disk_readback) ... ERROR
+test_rejects_actual_or_retry (test_bindings.CurrentInputs.test_rejects_actual_or_retry) ... ok
+test_rejects_boolean_budget (test_bindings.CurrentInputs.test_rejects_boolean_budget) ... ok
+test_rejects_coherently_replaced_protected_identity (test_bindings.CurrentInputs.test_rejects_coherently_replaced_protected_identity) ... ok
+test_rejects_corpus_change (test_bindings.CurrentInputs.test_rejects_corpus_change) ... ok
+test_rejects_missing_or_changed_binding (test_bindings.CurrentInputs.test_rejects_missing_or_changed_binding) ... ok
+test_rejects_model_or_digest_change (test_bindings.CurrentInputs.test_rejects_model_or_digest_change) ... ok
+test_rejects_old_worktree (test_bindings.CurrentInputs.test_rejects_old_worktree) ... ok
+test_rejects_plumbing_as_research_credit (test_bindings.CurrentInputs.test_rejects_plumbing_as_research_credit) ... ok
+test_rejects_previous_protection_baseline (test_bindings.CurrentInputs.test_rejects_previous_protection_baseline) ... ok
+test_rejects_relative_or_ambiguous_path (test_bindings.CurrentInputs.test_rejects_relative_or_ambiguous_path) ... ok
+test_rejects_relaxed_budget (test_bindings.CurrentInputs.test_rejects_relaxed_budget) ... ok
+test_rejects_unbound_review (test_bindings.CurrentInputs.test_rejects_unbound_review) ... ok
+test_rejects_unknown_fields (test_bindings.CurrentInputs.test_rejects_unknown_fields) ... ok
+test_rejects_wrong_candidate (test_bindings.CurrentInputs.test_rejects_wrong_candidate) ... ok
+test_valid_current_inputs (test_bindings.CurrentInputs.test_valid_current_inputs) ... ERROR
+
+======================================================================
+ERROR: test_real_disk_readback (test_bindings.CurrentInputs.test_real_disk_readback)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-source-reference-schema-20261107-r1\tests\test_bindings.py", line 17, in test_real_disk_readback
+    def test_real_disk_readback(self):self.assertEqual(b.load_inputs(N/'inputs/input-manifest.json'),self.original)
+                                                       ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-source-reference-schema-20261107-r1\code\bindings.py", line 97, in load_inputs
+    return validate(strict_json(path.read_bytes()),read_bytes=Path.read_bytes)
+  File "H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-source-reference-schema-20261107-r1\code\bindings.py", line 70, in validate
+    require(is_sha(digest) and files.get(path)==digest,'Missing or conflicting required binding')
+    ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-source-reference-schema-20261107-r1\code\bindings.py", line 24, in require
+    if not ok:raise ValueError(label)
+              ^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: Missing or conflicting required binding
+
+======================================================================
+ERROR: test_valid_current_inputs (test_bindings.CurrentInputs.test_valid_current_inputs)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-source-reference-schema-20261107-r1\tests\test_bindings.py", line 15, in test_valid_current_inputs
+    self.assertEqual(self.check(),self.original)
+                     ~~~~~~~~~~^^
+  File "H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-source-reference-schema-20261107-r1\tests\test_bindings.py", line 13, in check
+    def check(self):return b.validate(self.value,read_bytes=lambda p:self.data[str(p)])
+                           ~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-source-reference-schema-20261107-r1\code\bindings.py", line 70, in validate
+    require(is_sha(digest) and files.get(path)==digest,'Missing or conflicting required binding')
+    ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-source-reference-schema-20261107-r1\code\bindings.py", line 24, in require
+    if not ok:raise ValueError(label)
+              ^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: Missing or conflicting required binding
+
+----------------------------------------------------------------------
+Ran 16 tests in 0.472s
+
+FAILED (errors=2)

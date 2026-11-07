@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="5" skipped="0" tests="19" time="14.781" timestamp="2026-11-07T12:53:37.157758+08:00" hostname="DESKTOP-B366PQ9"><testcase classname="harness.test_adapter" name="test_recovery_current_candidate_packet[False]" time="1.538" /><testcase classname="harness.test_adapter" name="test_recovery_current_candidate_packet[True]" time="1.442" /><testcase classname="harness.test_adapter" name="test_recovery_full_admit_observation_role[child-no-subprocess]" time="0.629"><failure message="ValueError: Candidate/source mismatch">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-source-reference-schema-20261107-r1/code/harness-preparation-20261107T045335695715Z/temp/test_recovery_full_admit_obser0')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x0000022F05F3B0B0&gt;
+child = True
+
+    @pytest.mark.parametrize('child',[True,False],ids=['child-no-subprocess','parent-full-snapshot'])
+    def test_recovery_full_admit_observation_role(tmp_path,monkeypatch,child):
+        f=child_admission_fixture(tmp_path,monkeypatch,child)
+&gt;       context,p4=a.admit(f['authority_path'],f['ledger_path'],child=child,budget=f['budget'])
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+..\..\harness\test_adapter.py:1406: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+..\..\harness\adapter.py:407: in admit
+    validate_documents(a,l,dt.datetime.now(dt.timezone.utc)); bind_parent(budget,a,p4)
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\harness\adapter.py:307: in validate_documents
+    require(a.get('case')==CASE and a.get('candidate')==CANDIDATE and a.get('candidate_manifest_sha256')==MANIFEST_SHA,'Candidate/source mismatch')
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+ok = False, message = 'Candidate/source mismatch'
+
+    def require(ok,message):
+&gt;       if not ok: raise ValueError(message)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       ValueError: Candidate/source mismatch
+
+..\..\harness\adapter.py:213: ValueError</failure></testcase><testcase classname="harness.test_adapter" name="test_recovery_full_admit_observation_role[parent-full-snapshot]" time="0.500"><failure message="ValueError: Candidate/source mismatch">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-source-reference-schema-20261107-r1/code/harness-preparation-20261107T045335695715Z/temp/test_recovery_full_admit_obser1')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x0000022F7EBC7790&gt;
+child = False
+
+    @pytest.mark.parametrize('child',[True,False],ids=['child-no-subprocess','parent-full-snapshot'])
+    def test_recovery_full_admit_observation_role(tmp_path,monkeypatch,child):
+        f=child_admission_fixture(tmp_path,monkeypatch,child)
+&gt;       context,p4=a.admit(f['authority_path'],f['ledger_path'],child=child,budget=f['budget'])
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+..\..\harness\test_adapter.py:1406: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+..\..\harness\adapter.py:407: in admit
+    validate_documents(a,l,dt.datetime.now(dt.timezone.utc)); bind_parent(budget,a,p4)
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\harness\adapter.py:307: in validate_documents
+    require(a.get('case')==CASE and a.get('candidate')==CANDIDATE and a.get('candidate_manifest_sha256')==MANIFEST_SHA,'Candidate/source mismatch')
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+ok = False, message = 'Candidate/source mismatch'
+
+    def require(ok,message):
+&gt;       if not ok: raise ValueError(message)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       ValueError: Candidate/source mismatch
+
+..\..\harness\adapter.py:213: ValueError</failure></testcase><testcase classname="harness.test_adapter" name="test_recovery_full_admit_rejects_drift_before_dispatch[expired-True]" time="0.514" /><testcase classname="harness.test_adapter" name="test_recovery_full_admit_rejects_drift_before_dispatch[expired-False]" time="0.482" /><testcase classname="harness.test_adapter" name="test_recovery_full_admit_rejects_drift_before_dispatch[precision-True]" time="0.528" /><testcase classname="harness.test_adapter" name="test_recovery_full_admit_rejects_drift_before_dispatch[precision-False]" time="0.435" /><testcase classname="harness.test_adapter" name="test_recovery_full_admit_rejects_drift_before_dispatch[missing-listener-True]" time="0.496" /><testcase classname="harness.test_adapter" name="test_recovery_full_admit_rejects_drift_before_dispatch[missing-listener-False]" time="0.504" /><testcase classname="harness.test_adapter" name="test_recovery_full_admit_rejects_drift_before_dispatch[changed-native-True]" time="0.542" /><testcase classname="harness.test_adapter" name="test_recovery_full_admit_rejects_drift_before_dispatch[changed-native-False]" time="0.555" /><testcase classname="harness.test_adapter" name="test_recovery_full_admit_rejects_drift_before_dispatch[wrong-parent-True]" time="0.547" /><testcase classname="harness.test_adapter" name="test_recovery_full_admit_rejects_drift_before_dispatch[wrong-parent-False]" time="0.559" /><testcase classname="harness.test_adapter" name="test_recovery_full_admit_rejects_drift_before_dispatch[changed-proof-hash-True]" time="0.468" /><testcase classname="harness.test_adapter" name="test_recovery_full_admit_rejects_drift_before_dispatch[changed-proof-hash-False]" time="0.503" /><testcase classname="harness.test_adapter" name="test_recovery_parent_still_rejects_full_protected_snapshot_drift[parent]" time="0.584"><failure message="assert 0 == 1&#10; +  where 0 = len([])">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-source-reference-schema-20261107-r1/code/harness-preparation-20261107T045335695715Z/temp/test_recovery_parent_still_rej0')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x0000022F7F3BCE10&gt;
+fault = 'parent'
+
+    @pytest.mark.parametrize('fault',['parent','command','cim-created'])
+    def test_recovery_parent_still_rejects_full_protected_snapshot_drift(tmp_path,monkeypatch,fault):
+        f=child_admission_fixture(tmp_path,monkeypatch,False)
+        if fault=='parent': f['rows'][106]['ParentProcessId']+=1
+        elif fault=='command': f['rows'][106]['CommandLine']='unbound command'
+        else: f['rows'][106]['CreationFileTime']+=1000
+        with pytest.raises(ValueError):
+            a.admit(f['authority_path'],f['ledger_path'],budget=f['budget'])
+&gt;       assert len(f['queries'])==1
+E       assert 0 == 1
+E        +  where 0 = len([])
+
+..\..\harness\test_adapter.py:1444: AssertionError</failure></testcase><testcase classname="harness.test_adapter" name="test_recovery_parent_still_rejects_full_protected_snapshot_drift[command]" time="0.434"><failure message="assert 0 == 1&#10; +  where 0 = len([])">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-source-reference-schema-20261107-r1/code/harness-preparation-20261107T045335695715Z/temp/test_recovery_parent_still_rej1')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x0000022F7F365EF0&gt;
+fault = 'command'
+
+    @pytest.mark.parametrize('fault',['parent','command','cim-created'])
+    def test_recovery_parent_still_rejects_full_protected_snapshot_drift(tmp_path,monkeypatch,fault):
+        f=child_admission_fixture(tmp_path,monkeypatch,False)
+        if fault=='parent': f['rows'][106]['ParentProcessId']+=1
+        elif fault=='command': f['rows'][106]['CommandLine']='unbound command'
+        else: f['rows'][106]['CreationFileTime']+=1000
+        with pytest.raises(ValueError):
+            a.admit(f['authority_path'],f['ledger_path'],budget=f['budget'])
+&gt;       assert len(f['queries'])==1
+E       assert 0 == 1
+E        +  where 0 = len([])
+
+..\..\harness\test_adapter.py:1444: AssertionError</failure></testcase><testcase classname="harness.test_adapter" name="test_recovery_parent_still_rejects_full_protected_snapshot_drift[cim-created]" time="0.426"><failure message="assert 0 == 1&#10; +  where 0 = len([])">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-source-reference-schema-20261107-r1/code/harness-preparation-20261107T045335695715Z/temp/test_recovery_parent_still_rej2')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x0000022F7EDA8560&gt;
+fault = 'cim-created'
+
+    @pytest.mark.parametrize('fault',['parent','command','cim-created'])
+    def test_recovery_parent_still_rejects_full_protected_snapshot_drift(tmp_path,monkeypatch,fault):
+        f=child_admission_fixture(tmp_path,monkeypatch,False)
+        if fault=='parent': f['rows'][106]['ParentProcessId']+=1
+        elif fault=='command': f['rows'][106]['CommandLine']='unbound command'
+        else: f['rows'][106]['CreationFileTime']+=1000
+        with pytest.raises(ValueError):
+            a.admit(f['authority_path'],f['ledger_path'],budget=f['budget'])
+&gt;       assert len(f['queries'])==1
+E       assert 0 == 1
+E        +  where 0 = len([])
+
+..\..\harness\test_adapter.py:1444: AssertionError</failure></testcase></testsuite></testsuites>
