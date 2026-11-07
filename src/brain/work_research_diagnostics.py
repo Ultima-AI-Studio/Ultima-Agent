@@ -7,8 +7,9 @@ import re
 from .work_navigation import canonical_v3
 
 CAP = 16384
-KIND = 'research_failure_diagnostic_v2'
+KIND = 'research_failure_diagnostic_v3'
 BRANCHES = {'absent','action','unvalidated_response','final_before_write','write_without_ack','ack'}
+HTTP_ROUTES = {('GET','/api/version','metadata'):'version',('GET','/api/tags','metadata'):'tags',('POST','/api/chat','chat'):'chat'}
 
 
 def _require(value):
@@ -31,6 +32,61 @@ def _source(value):
     _require(type(value) is str and re.fullmatch('S[1-5]',value) is not None)
 
 
+def _validate_http(value,generations):
+    if value is None:return
+    _closed(value,'generation receipt_index route status send_reserved request_sha256 request_bytes downloaded inspected admitted retained transport_failed validated_response')
+    _count(value['generation'],8);_require(1<=value['generation']<=generations)
+    _count(value['receipt_index'],23)
+    _require(value['route'] in ('version','tags','chat'))
+    _digest(value['request_sha256']);_count(value['request_bytes'],2**63-1)
+    for name in ('send_reserved','transport_failed','validated_response'):_require(type(value[name]) is bool)
+    status=value['status']
+    _require(status is None or (type(status) is int and 100<=status<=599))
+    if value['downloaded'] is not None:_count(value['downloaded'],2**63-1)
+    cap=65536 if value['route']=='chat' else 32768
+    _count(value['inspected'],cap+1);_count(value['admitted'],cap);_count(value['retained'],cap)
+    _require(value['retained']==value['admitted'] and value['inspected'] in (value['admitted'],value['admitted']+1))
+    if value['downloaded'] is not None:_require(value['downloaded']>=value['admitted'])
+    if value['route']!='chat':
+        _require(value['request_bytes']==0 and value['request_sha256']==hashlib.sha256(b'').hexdigest())
+    elif value['send_reserved']:_require(value['request_bytes']<=49152)
+    if not value['send_reserved']:_require(status is None)
+    if status is None:
+        _require(value['transport_failed'] and value['downloaded'] is None and value['inspected']==value['admitted']==0)
+    elif not 200<=status<300:
+        _require(value['transport_failed'] and value['inspected']==value['admitted']==0)
+    if value['validated_response']:
+        _require(value['route']=='chat' and value['send_reserved'] and type(status) is int and 200<=status<300 and not value['transport_failed'])
+
+
+def _last_http(ledger,transport,wires):
+    """Project trusted metadata only; never inspect a failed response body."""
+    receipts=getattr(transport,'receipts',[])
+    _require(type(receipts) is list and len(receipts)<=24)
+    if not receipts:return None
+    receipt=receipts[-1];index=len(receipts)-1
+    _require(type(receipt) is dict and type(receipt['send_reserved']) is bool)
+    route=HTTP_ROUTES[(receipt['method'],receipt['path'],receipt['kind'])]
+    timeline=ledger._timeline
+    _require(type(timeline) is list and len(timeline)<=256)
+    events=[e for e in timeline if e['kind'] in ('send','admission_refused') and e.get('receipt_index')==index]
+    _require(len(events)==1 and type(events[0]['receipt_index']) is int)
+    event=events[0];generation=event['generation']
+    _require(event['kind']==('send' if receipt['send_reserved'] else 'admission_refused'))
+    validated=False
+    if route=='chat':
+        matching=[w for w in wires if w.get('generation')==generation]
+        _require(len(matching)<=1)
+        if matching:
+            wire=matching[0]
+            _require(type(wire['generation']) is int and wire['hashes']['entity']==receipt['entity_sha256'])
+            validated=type(wire.get('secured_envelope')) is dict
+    return dict(generation=generation,receipt_index=index,route=route,status=receipt.get('status'),
+        send_reserved=receipt['send_reserved'],request_sha256=receipt['entity_sha256'],request_bytes=receipt['entity_bytes'],
+        downloaded=receipt['downloaded'],inspected=receipt['inspected'],admitted=receipt['admitted'],retained=receipt['retained'],
+        transport_failed=receipt['error'] is not None,validated_response=validated)
+
+
 def validate_failure_diagnostic(raw,binding_key):
     """Closed data-only decoder for restricted exporters, not delivery verification."""
     _require(type(raw) is bytes and 0<len(raw)<=CAP)
@@ -38,7 +94,7 @@ def validate_failure_diagnostic(raw,binding_key):
         value=dict(items);_require(len(value)==len(items));return value
     p=json.loads(raw,object_pairs_hook=pairs)
     _require(canonical_v3(p)==raw)
-    _closed(p,'kind complete acceptance_credit binding_sha256 branch final_answer pages read_requests eligible_source_ids write_confirmed ack_confirmed budget')
+    _closed(p,'kind complete acceptance_credit binding_sha256 branch final_answer pages read_requests eligible_source_ids write_confirmed ack_confirmed budget last_http')
     _require(p['kind']==KIND and p['complete'] is False and type(p['acceptance_credit']) is int and p['acceptance_credit']==0)
     _require(p['binding_sha256']==hashlib.sha256(canonical_v3(list(binding_key))).hexdigest())
     _require(p['branch'] in BRANCHES)
@@ -78,6 +134,7 @@ def validate_failure_diagnostic(raw,binding_key):
     _require(type(b['reads_limit']) is int and b['reads_limit']==6 and type(b['native_posts_limit']) is int and b['native_posts_limit']==8)
     for key,limit in [('reads_used',6),('read_bytes',18432),('native_posts',8),('completed_posts',8),('generations',64)]:_count(b[key],limit)
     _require(b['completed_posts']<=b['native_posts'] and len(p['pages'])<=b['reads_used'])
+    _validate_http(p['last_http'],b['generations'])
     remaining_us=b['deadline_remaining_microseconds']
     _require(type(remaining_us) is int and -(2**63)<=remaining_us<2**63)
     _require(type(b['write_admission_open']) is bool and b['write_admission_open']==(remaining_us>=55000000))
@@ -126,7 +183,7 @@ def _project(ledger):
     numerator,denominator=remaining.as_integer_ratio()
     remaining_us=numerator*1000000//denominator
     return dict(kind=KIND,complete=False,acceptance_credit=0,binding_sha256=hashlib.sha256(canonical_v3(list(ledger._navigation.binding_key))).hexdigest(),
-        branch=branch,final_answer=final,pages=pages,read_requests=requests,
+        branch=branch,final_answer=final,pages=pages,read_requests=requests,last_http=_last_http(ledger,transport,wires),
         eligible_source_ids=sorted({p['source_id'] for p in pages if p['confirmed'] and p['cards']}),write_confirmed=write,ack_confirmed=ack,
         budget=dict(reads_used=ledger._read_count,reads_limit=6,read_bytes=ledger._read_bytes,native_posts=getattr(transport,'posts',0),native_posts_limit=8,
             completed_posts=getattr(transport,'completed',0),generations=generations,deadline_remaining_microseconds=remaining_us,write_admission_open=remaining>=55))
