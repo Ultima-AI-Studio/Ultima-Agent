@@ -1,0 +1,54 @@
+{
+  "reviewer": "root-independent",
+  "reviewer_agent": "/root/review_e02_output_budget_plan",
+  "verdict": "NEEDS_FIXES",
+  "plan_sha256": "3d6e455d68278f77cc446f244d4422a88afcb9ff048318cd6f8e2768d1776be2",
+  "actual_run_authorized": false,
+  "recorded_utc": "2026-11-07T15:01:24.3557469Z",
+  "method": "Read-only static source and evidence review. No tests, target imports, model/network/runtime, process/UI/audio/service operations. Only two exclusive-create review receipts.",
+  "findings": [
+    {
+      "required_change": "Include test_work_grounding_context.py in the precise write domain and changed_files; migrate both calls with explicit output_tokens=2048 while preserving every existing assertion. Total changed files becomes five, but complete source inventory remains 76 because this existing test is already in the parent inventory. Preserve the required parameter and do not add a default or weaken/exclude tests.",
+      "severity": "blocking",
+      "area": "Required-parameter migration and exact write domain",
+      "detail": "Plan requires v3_research_phase(report_schema, *, output_tokens: int), but existing src/brain/tests/test_work_grounding_context.py:60 and :99 invoke it without output_tokens. The four-file write domain excludes this file while requiring its full grounding regression. Both test calls would raise TypeError before testing their assertions.",
+      "id": "F1"
+    },
+    {
+      "severity": "informational",
+      "area": "Generation and replay",
+      "detail": "agent_server.py:630 computes min(max_tokens,2048 if eligible else 256); line631 can pass that limit unchanged. work_research.py:820-829 already validates phase cap and exact options against allowance before line836 rebuilding phase, so passing request options.num_predict there preserves trusted independent reconstruction. ACK remains separate and unchanged.",
+      "id": "P1"
+    },
+    {
+      "severity": "informational",
+      "area": "Scope and original acceptance",
+      "detail": "Plan preserves original prompt sentences/schema, all original question coverage/fact/reference requirements and budgets. Compact guidance must apply to whole envelope, retain multi-fact/multi-page coverage and refuse insufficient evidence. Length rejection and write/ACK non-delivery boundaries remain mandatory.",
+      "id": "P2"
+    },
+    {
+      "severity": "informational",
+      "area": "Authorization and preparation",
+      "detail": "Direct decision call_4d19727901d9426786cc1f5fd01a3b64, DoR and registration limit this work to offline repair/reviews/preparation with actual/result-review/model allocations zero. Both plan copies hash identically. All four registration after hashes matched current files during this review. Task2 correctly consumes frozen Task1 and requires fresh distinct-source bindings, independent review, read_ready and missing-grant rejection without actual execution.",
+      "id": "P3"
+    }
+  ],
+  "implementation_notes": [
+    "Keep type(output_tokens) is int, reject bool/non-integer/out-of-range, and test endpoints 1 and 2048 plus 32 and 256.",
+    "MockTransport must assert actual options and entire system prompt for preeligible256, eligible2048, and allowance32; ACK intentionally retains original text and capped num_predict. Eligible phases may still choose inspect, so use eligibility-derived limit rather than guessed action.",
+    "Forgery tests must coherently update entity/messages hashes, receipts and aggregate post bytes so rejection occurs at exact phase-system comparison; do not accidentally pass through an unrelated earlier integrity failure.",
+    "Final guarded regressions must include the migrated grounding tests, native length rejection, v3/v4 receipts, write and ACK, existing multi-fact/reference and coverage paths. Counts come from fresh JUnit identities.",
+    "Preserve N19 AST and full source/input inventory, all previous actual evidence, seven protected identities and unrelated files. Report preparation only; never migrate prior E01/E03 acceptance or retry the consumed actual."
+  ],
+  "limitations": [
+    "No product implementation or test execution assessed as passing.",
+    "No claim that this guidance improves real 8B completion under the unchanged budget.",
+    "No live process or model state checked; predecessor cleanliness/protection statements are recorded evidence, not fresh runtime verification.",
+    "346 harness checks and 76 source files are plan targets requiring later fresh verification."
+  ],
+  "declined_to_judge": [
+    "Actual research delivery or future actual authorization",
+    "Why a specific section of the unsaved response consumed 2048 tokens",
+    "Whether older N17 failed for the same reason"
+  ]
+}
