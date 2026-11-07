@@ -68,7 +68,7 @@
 
 
 
-- 状态：E02受控入口就绪：bf7f7a9冻结，350项新鲜入口检查及独立准备PASS；当前8B/原预算/完整原题验收保持，待明确单例分配；实际与模型0，E02仍0/3。
+- 状态：E02 bf7f7a9唯一实际FAIL_CONFIRMED：FULL正文证实claim重复50/49次后length/2048截断，引用亦有错配风险；无research.md/写入/ACK，清理及保护点核对PASS，单例与独审均耗尽，不重试。
 - 计划：docs/plans/jarvis-work-capability-delivery-plan-20261101.md
 
 
@@ -5127,3 +5127,22 @@ E02候选bf7f7a9受控入口准备：诊断产品已冻结；本轮先计划独�
 
 E02受控入口就绪：bf7f7a9冻结，350项新鲜入口检查及独立准备PASS；当前8B/原预算/完整原题验收保持，待明确单例分配；实际与模型0，E02仍0/3。
 报告：H:\UltimaAI\UltimaAgent\docs\reports\jarvis-work-t2-e02-output-structure-controlled-preparation-20261108.md
+
+
+## 2026-11-08 E02 output structure controlled one-case allocation
+
+E02 bf7f7a9已明确分配一例当前8B研究及一次结果独审；原预算、失败不重试；正在只读准入后执行，尚无接受信用。
+用户答复：call_5c06d21b59b8475b873814f857990cc3；提案：H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-output-structure-controlled-preparation-20261108-r1\execution-proposal.md
+
+
+## 2026-11-08 E02 output structure result audit
+
+E02 bf7f7a9唯一实跑FAIL待结果独审：research.md数量0，native POST 7，清理PASS；实际已消费、不重试。
+结果manifest：2c12627ea8cb8a78a6359d57f30825d3cd4c5ab5be91957f7d3627815105a0c0
+
+
+## 2026-11-08 E02 output structure controlled result
+
+E02 bf7f7a9唯一实际FAIL_CONFIRMED：FULL正文证实claim重复50/49次后length/2048截断，引用亦有错配风险；无research.md/写入/ACK，清理及保护点核对PASS，单例与独审均耗尽，不重试。
+报告：H:\UltimaAI\UltimaAgent\docs\reports\jarvis-work-t2-e02-output-structure-controlled-result-20261108.md
+后续提案（尚未实施）：H:\UltimaAI\UltimaAgent\docs\plans\jarvis-work-e02-claim-generation-contract-proposal-20261108.md
