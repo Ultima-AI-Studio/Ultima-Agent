@@ -22,6 +22,11 @@ for name,digest in load(N/'manifest.json')['files'].items():assert sha(N/name)==
 for name,digest in load(N/'inputs/input-manifest.json')['files'].items():assert sha(Path(name))==digest,name
 for name,digest in load(N/'inputs/unrelated-working-tree.json')['files'].items():assert sha(R/name)==digest,name
 b=load(N/'review/result-inputs/byte-readback.json');receipt=load(N/'release/tool-execution-receipt.json')
+service_path=N/'verification/service-result-readback.json';service=load(service_path)
+assert service['result_manifest_sha256']==sha(manifestpath) and service['run_id']==b['run_id']
+for name,digest in service['source_files'].items():assert sha(Path(name))==digest,name
+search_count=service['service_search_success'];get_count=service['service_GET_success']
+available_count=service['service_available_sources'];native_posts=service['saved_export_failure_native_POST_attempts']
 t=load(F/'terminal.json') if (F/'terminal.json').exists() else None
 p=load(F/'product-result.json') if (F/'product-result.json').exists() else None
 assert receipt['invocations']==1 and receipt['retry']==0
@@ -36,8 +41,10 @@ history=previous['previous_real_attempts_preserved']+[dict(run_id=previous['run_
 TAG='ultimaagent-t2-e02-code-claim-result-'+('pass1' if accepted else 'failed')+'-20261107'
 registration=dict(schema=1,work_order='wo-ultimaagent-20261101-0021',stage='T2',case='E02-controlled-1',run_id=b['run_id'],candidate=b['candidate'],model=b['model'],question_id=receipt['question_id'],
     result='PASS_CONTROLLED_CASE' if accepted else 'FAIL',original_terminal=b['actual_status'],independent_review=review['verdict'],review_path=str(reviewpath),review_sha256=sha(reviewpath),result_manifest_sha256=sha(manifestpath),
-    terminal_sha256=sha(F/'terminal.json') if t else None,product_result_sha256=sha(F/'product-result.json') if p else None,entry_invocations=1,work_cli_attempts=b['work_cli_attempts'],controlled_search_success=b['controlled_search_success'],controlled_GET_success=b['controlled_GET_success'],available_controlled_sources=b['available_sources'],
-    application_native_POST_attempts=b['application_native_POST_attempts'],actual_native_start_count=b['actual_native_start_count'],research_artifacts=len(b['artifacts']),outer_elapsed_seconds=b['outer_elapsed_seconds'],cleanup=b['cleanup_status'],root_witness_eligible=b['root_witness_eligible'],
+    terminal_sha256=sha(F/'terminal.json') if t else None,product_result_sha256=sha(F/'product-result.json') if p else None,entry_invocations=1,work_cli_attempts=b['work_cli_attempts'],controlled_search_success=search_count,controlled_GET_success=get_count,available_controlled_sources=available_count,
+    application_native_POST_attempts=native_posts,terminal_application_native_POST_attempts=b['application_native_POST_attempts'],actual_native_start_count=b['actual_native_start_count'],research_artifacts=len(b['artifacts']),outer_elapsed_seconds=b['outer_elapsed_seconds'],cleanup=b['cleanup_status'],root_witness_eligible=b['root_witness_eligible'],
+    service_status=service['service_status'],service_error=service['service_error'],service_result_observation_path=str(service_path),service_result_observation_sha256=sha(service_path),
+    activity_count_source='sealed service-first-result and trusted-export.failure observer; CLI error envelope omissions are not zero observed activity',
     product_status=b['product_status'],product_error=b['product_error'],research_failure=b['research_failure'],
     attribution_limit='Only current sealed bytes and independent review; no assumed causes, unpublished model arguments, global native counts or continuous liveness.',
     readonly_protected_equal=b['protected_current_equal'],readonly_known_original_identities_remaining=b['known_original_identities_remaining'],continuous_liveness_measured=False,
@@ -48,7 +55,7 @@ registration=dict(schema=1,work_order='wo-ultimaagent-20261101-0021',stage='T2',
 save_new(N/'review/result-registration.json',registration)
 report=R/'docs/reports/jarvis-work-t2-e02-code-claim-result-20261107.md'
 outcome='本例受控研究通过，当前候选1/3' if accepted else '本例未通过，当前候选0/3'
-artifacts='\n'.join('- '+row['path']+'；SHA256 '+row['sha256'] for row in b['artifacts']) or '没有 research.md 交付。'
+artifacts=(('本例经复核的交付：\n' if accepted else '已落盘的候选文稿（本例失败，不作为验收交付）：\n')+'\n'.join('- '+row['path']+'；SHA256 '+row['sha256'] for row in b['artifacts'])) if b['artifacts'] else '没有 research.md 交付。'
 analysis=N/'verification/result-analysis.md'
 analysis_text=analysis.read_text('utf8') if analysis.exists() else '结果结论以独立复核原文为准；没有为缺失的运行信息补造归因。'
 next_path=N/'verification/next-proposal-readback.json';proposal=None
@@ -67,7 +74,9 @@ text=f'''# E02代码事实契约对齐：单例结果
 
 ## 实际结果
 
-run {b['run_id']}；UTC {receipt['started_utc']} 至 {receipt['finished_utc']}，外层{b['outer_elapsed_seconds']}秒。原终态{b['actual_status']}，产品status={b['product_status']}，error={b['product_error']}。CLI尝试{b['work_cli_attempts']}，受控search成功{b['controlled_search_success']}、GET成功{b['controlled_GET_success']}、可用来源{b['available_sources']}；应用native POST尝试{b['application_native_POST_attempts']}。原生总启动计数未测量，保存为{b['actual_native_start_count']}。
+run {b['run_id']}；UTC {receipt['started_utc']} 至 {receipt['finished_utc']}，外层{b['outer_elapsed_seconds']}秒。原终态{b['actual_status']}，CLI status={b['product_status']}，error={b['product_error']}。首次服务结果status={service['service_status']}，error={service['service_error']}。CLI尝试{b['work_cli_attempts']}；服务保存的受控search成功{search_count}、GET成功{get_count}、可用来源{available_count}；export失败观察器记录应用native POST尝试{native_posts}。原生总启动计数未测量，保存为{b['actual_native_start_count']}。
+
+原byte-readback只读取CLI错误包，缺字段导致search/GET/available派生为0、nativePOST为null；这些不能解释为没有工作。原文件保持不变，补充只读核对service-result-readback.json（SHA{sha(service_path)}）明确两层观察并用已封存服务/导出记录纠正汇总。原终态不升级。
 
 有限writer诊断：{json.dumps(b['research_failure'],ensure_ascii=False)}。
 
@@ -92,7 +101,7 @@ run {b['run_id']}；UTC {receipt['started_utc']} 至 {receipt['finished_utc']}�
 远端push此前自动审批拒绝blocked by policy；本轮未重试或绕行。
 '''
 with report.open('x',encoding='utf8',newline='\n') as f:f.write(text)
-status='E02代码事实候选'+b['candidate'][:7]+'：888项离线/准备PASS；唯一8B例'+registration['result']+'，独审'+review['verdict']+'，当前受控'+str(int(accepted))+'/3；本范围完成、额度0；E02/T2未过、旧信用不转移。'
+status='E02代码事实候选'+b['candidate'][:7]+'：888项离线/准备PASS；唯一8B例'+registration['result']+'，已落盘文稿'+str(len(b['artifacts']))+'份，独审'+review['verdict']+'，当前受控'+str(int(accepted))+'/3；本范围完成、额度0；E02/T2未过、旧信用不转移。'
 order=R/'tasks/queue/wo-ultimaagent-20261101-0021--work-capability.md';stage=R/'tasks/queue/stages/wo-ultimaagent-20261101-0021/t2.md'
 lines=order.read_text('utf8').splitlines(keepends=True);ix=[i for i,v in enumerate(lines) if v.startswith('- 状态：')];assert len(ix)==1;lines[ix[0]]='- 状态：'+status+'\n'
 append='\n## 2026-11-07 代码事实契约单例及复核完成\n\n'+status+'\n报告：docs/reports/'+report.name+'。'+next_text+'\n'
@@ -114,6 +123,7 @@ with (L/'progress.md').open('a',encoding='utf8') as f:
     f.write('\nTask 2 result: '+status+' Review '+sha(reviewpath)+'.\n')
     f.write('Final: Ruling: only sealed current case receives its independently reviewed credit; global native counts, continuous liveness, OS packets and E02/T2 total acceptance remain unmeasured/unpassed. Cost if wrong: no acceptance claim from missing evidence. No extra run.\n')
 paths={N/name for name in manifest['files']};paths.update({manifestpath,reviewpath,N/'review/result-review-allocation.json',N/'review/result-registration.json',N/'verification/result-mirror-readback.json',N/'verification/queue-result.stdout',N/'verification/ready-checkpoint.json',N/'verification/final-ready-readback.json',report,order,stage,statepath})
+paths.add(service_path)
 if analysis.exists():paths.add(analysis)
 proof=N/'verification/code-operation-contract-readback.json'
 if proof.exists():

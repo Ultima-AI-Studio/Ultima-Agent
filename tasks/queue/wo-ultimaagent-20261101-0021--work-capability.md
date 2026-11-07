@@ -5,7 +5,7 @@
 - original_work_order_id: wo-ultimaagent-20261101-0021
 - revision: 2
 - authorization: 用户“那按顺序开始推进吧”；批准按已提交的工作能力契约与计划顺序执行，保留最终 Owner 验收和发布门。
-- 状态：E02代码事实契约候选1ecd75d准备完成，888项离线检查/独立准备PASS；全部旧失败保留，按已授权范围待一次当前8B原题四来源及结果复核。E02/T2未过；旧E01/E03信用不转移。
+- 状态：E02代码事实候选1ecd75d：888项离线/准备PASS；唯一8B例FAIL，已落盘文稿1份，独审FAIL_CONFIRMED，当前受控0/3；本范围完成、额度0；E02/T2未过、旧信用不转移。
 - 计划：docs/plans/jarvis-work-capability-delivery-plan-20261101.md
 - 契约：docs/specs/jarvis-work-capability-contract-20261101.md
 - 草案检查点：ultimaagent-jarvis-work-plan-draft-20261101 @ f6eb808348302cec55bddcf44ee03f5b5736c4d9
@@ -458,3 +458,8 @@ E02来源证据候选a0d21eb：857项离线/准备PASS；唯一8B例FAIL，独�
 
 E02代码事实契约候选1ecd75d准备完成，888项离线检查/独立准备PASS；全部旧失败保留，按已授权范围待一次当前8B原题四来源及结果复核。E02/T2未过；旧E01/E03信用不转移。
 报告：docs/reports/jarvis-work-t2-e02-code-claim-preparation-20261107.md。提案：H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-code-claim-schema-20261107-r1\execution-proposal.md。
+
+## 2026-11-07 代码事实契约单例及复核完成
+
+E02代码事实候选1ecd75d：888项离线/准备PASS；唯一8B例FAIL，已落盘文稿1份，独审FAIL_CONFIRMED，当前受控0/3；本范围完成、额度0；E02/T2未过、旧信用不转移。
+报告：docs/reports/jarvis-work-t2-e02-code-claim-result-20261107.md。本例失败后当前序列结束；后续修复或新例需另行明确范围，不在本次额度内重跑。
