@@ -440,6 +440,36 @@ def v3_writer_schema(source_refs: dict[str, tuple[str, ...]] | None = None) -> d
     return obj(path=dict(text(2048),enum=['research.md']),title=text(200),sections=array(section,3,5))
 
 
+def v3_phase_writer_schema(visible: tuple[tuple[str, bytes], ...]) -> dict:
+    """Bind each code fact to its trusted operation using the sampler dialect."""
+    schema=v3_writer_schema(v3_source_reference_map(visible))
+    constraints={}
+    for _,raw in visible:
+        for ref,kind,op,*_ in _load(raw):
+            pattern=None
+            if kind=='code':
+                if len(op)>200 or not re.fullmatch(r'[A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*)*',op):
+                    raise ValueError('Invalid visible code operation')
+                # Equivalent to the writer's exact-operation lookarounds for
+                # valid single-line claims, using only supported GBNF syntax.
+                pattern=(r'^(.*[^A-Za-z0-9_$.])?'+re.escape(op)
+                    +r'([^A-Za-z0-9_$.].*|\.([^A-Za-z_$].*)?)?$')
+            constraints[ref]=pattern
+    for section in schema['properties']['sections']['items']['anyOf']:
+        items=section['properties']['facts']
+        base=items['items']; groups={}
+        for ref in base['properties']['evidence_id']['enum']:
+            groups.setdefault(constraints[ref],[]).append(ref)
+        alternatives=[]
+        for pattern,refs in groups.items():
+            claim=dict(base['properties']['claim'])
+            if pattern is not None: claim['pattern']=pattern
+            alternatives.append(dict(base,properties=dict(claim=claim,
+                evidence_id=dict(base['properties']['evidence_id'],enum=refs))))
+        items['items']=alternatives[0] if len(alternatives)==1 else dict(anyOf=alternatives)
+    return schema
+
+
 def _source_packet(source):
     result=asdict(source)
     for k in ('identity_json','anchors_json'): result[k]=json.loads(result[k])

@@ -551,7 +551,7 @@ class _ResearchEngineView:
         import copy,hashlib
         from jsonschema import Draft7Validator
         from openjarvis.core.types import Message,Role
-        from .work_navigation import canonical_v3,v3_writer_schema,v3_source_reference_map
+        from .work_navigation import canonical_v3,v3_writer_schema,v3_phase_writer_schema
         self.check_dispatch()
         self.generation+=1
         if self.final: raise ValueError('Research already finalized')
@@ -584,8 +584,8 @@ class _ResearchEngineView:
             phase='Acknowledge the verified research.md file. No further action is authorized.'
         else:
             self.ledger.admit_report()
-            report_schema=v3_writer_schema(v3_source_reference_map(tuple(
-                (view.source_id,view.cards_json) for _,view in reads))) if eligible else v3_writer_schema()
+            report_schema=v3_phase_writer_schema(tuple(
+                (view.source_id,view.cards_json) for _,view in reads)) if eligible else v3_writer_schema()
             if self.ledger._read_count<6:
                 alternatives.append(action('ultima_work_research_inspect',self.ledger._enrolled['ultima_work_research_inspect'].spec.parameters))
             if eligible: alternatives.append(action('ultima_work_research_write',report_schema))

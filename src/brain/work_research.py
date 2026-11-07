@@ -646,7 +646,7 @@ def _verify_runtime_order(packet,reads,written,require_ack,runtime_inputs):
 
 def verify_runtime_packet(binding, snapshot, collection, raw, *, require_ack=False,runtime_inputs=None):
     """Reconstruct native entities, history and read/event links independently."""
-    from .work_navigation import canonical_v3,v3_writer_schema,v3_source_reference_map
+    from .work_navigation import canonical_v3,v3_writer_schema,v3_phase_writer_schema
     from .work_tools import WorkInspectTool,WorkResearchWriteTool
     from openjarvis.tools._stubs import ToolSpec,build_tool_descriptions
     from types import SimpleNamespace
@@ -794,8 +794,8 @@ def verify_runtime_packet(binding, snapshot, collection, raw, *, require_ack=Fal
             return dict(type='object',additionalProperties=False,required=['action','action_input'],properties=dict(action=dict(enum=[name]),action_input=params))
         visible=reads[:index]
         eligible=len({r['source_id'] for r in visible if r['wire']['cards']})>=3
-        report_schema=v3_writer_schema(v3_source_reference_map(tuple(
-            (r['source_id'],canonical_v3(r['wire']['cards'])) for r in visible))) if eligible else v3_writer_schema()
+        report_schema=v3_phase_writer_schema(tuple(
+            (r['source_id'],canonical_v3(r['wire']['cards'])) for r in visible)) if eligible else v3_writer_schema()
         if not ack:
             if index<6: allowed.append(action('ultima_work_research_inspect',WorkInspectTool.parameters))
             if eligible: allowed.append(action('ultima_work_research_write',report_schema))
