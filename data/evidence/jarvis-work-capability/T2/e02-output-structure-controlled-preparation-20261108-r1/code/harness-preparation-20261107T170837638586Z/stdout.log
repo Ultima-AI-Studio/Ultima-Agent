@@ -1,0 +1,58 @@
+................................FF                                       [100%]
+================================== FAILURES ===================================
+__________ test_export_diagnostics_current_native_refusal[six_reads] __________
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-output-structure-controlled-preparation-20261108-r1/code/harness-preparation-20261107T170837638586Z/temp/test_export_diagnostics_curren2')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000028C0E56BC40>
+sdk_io = (<src.brain.browser.channel.BrowserChannel object at 0x0000028CA10335D0>, [('search', 'Research a subject')], {})
+mock_jar = (<openjarvis.sdk.Jarvis object at 0x0000028C9FE25BD0>, <function _run_work_agent at 0x0000028C9F2504A0>, [{'format': {..., 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 2048, 'temperature': 0}, ...}, ...], [])
+case = 'six_reads'
+
+    @pytest.mark.parametrize('case',['six_reads','ack_after_write'])
+    def test_export_diagnostics_current_native_refusal(tmp_path,monkeypatch,sdk_io,mock_jar,case):
+        from src.brain.tests.test_work_native_response_diagnostics import native_refusal
+        observe_failure_exports(tmp_path,monkeypatch)
+        ack=case=='ack_after_write'
+        result,ledger,sent,responses=native_refusal(tmp_path/'outputs',sdk_io,mock_jar,monkeypatch,reads=6,ack=ack)
+        raw=(tmp_path/'trusted-failure-diagnostic.raw').read_bytes();packet=json.loads(raw)
+        receipt=a.load(tmp_path/'trusted-failure-diagnostic.export.json')
+        assert raw==ledger._failure_diagnostic and len(raw)<=16384
+>       assert packet['kind']=='research_failure_diagnostic_v4'
+E       AssertionError: assert 'research_fai...diagnostic_v5' == 'research_fai...diagnostic_v4'
+E         
+E         - research_failure_diagnostic_v4
+E         ?                              ^
+E         + research_failure_diagnostic_v5
+E         ?                              ^
+
+..\..\harness\test_adapter.py:1782: AssertionError
+_______ test_export_diagnostics_current_native_refusal[ack_after_write] _______
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-output-structure-controlled-preparation-20261108-r1/code/harness-preparation-20261107T170837638586Z/temp/test_export_diagnostics_curren3')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000028CA12AAA50>
+sdk_io = (<src.brain.browser.channel.BrowserChannel object at 0x0000028CA12C0D50>, [('search', 'Research a subject'), ('get', '...'https://example.com/source/3'), ('get', 'https://example.com/source/4'), ('get', 'https://example.com/source/5')], {})
+mock_jar = (<openjarvis.sdk.Jarvis object at 0x0000028CA1285D30>, <function _run_work_agent at 0x0000028C9F2504A0>, [{'format': {..., ...], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [])
+case = 'ack_after_write'
+
+    @pytest.mark.parametrize('case',['six_reads','ack_after_write'])
+    def test_export_diagnostics_current_native_refusal(tmp_path,monkeypatch,sdk_io,mock_jar,case):
+        from src.brain.tests.test_work_native_response_diagnostics import native_refusal
+        observe_failure_exports(tmp_path,monkeypatch)
+        ack=case=='ack_after_write'
+        result,ledger,sent,responses=native_refusal(tmp_path/'outputs',sdk_io,mock_jar,monkeypatch,reads=6,ack=ack)
+        raw=(tmp_path/'trusted-failure-diagnostic.raw').read_bytes();packet=json.loads(raw)
+        receipt=a.load(tmp_path/'trusted-failure-diagnostic.export.json')
+        assert raw==ledger._failure_diagnostic and len(raw)<=16384
+>       assert packet['kind']=='research_failure_diagnostic_v4'
+E       AssertionError: assert 'research_fai...diagnostic_v5' == 'research_fai...diagnostic_v4'
+E         
+E         - research_failure_diagnostic_v4
+E         ?                              ^
+E         + research_failure_diagnostic_v5
+E         ?                              ^
+
+..\..\harness\test_adapter.py:1782: AssertionError
+=========================== short test summary info ===========================
+FAILED ..\..\harness\test_adapter.py::test_export_diagnostics_current_native_refusal[six_reads]
+FAILED ..\..\harness\test_adapter.py::test_export_diagnostics_current_native_refusal[ack_after_write]
+2 failed, 32 passed in 33.68s
