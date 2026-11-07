@@ -217,6 +217,11 @@ class WorkService:
             if captured and self._context_provider: self._context_provider.release(captured)
         result['tool_results'] = sdk_results + records
         if isinstance(context,dict) and context.get('research'):
+            if result['status'] != 'succeeded':
+                from .work_research_diagnostics import capture_failure
+                diagnostic = capture_failure(ledger)
+                if diagnostic is not None:
+                    result['research_diagnostic'] = diagnostic
             failure = _research_write_failure(records)
             if failure is not None:
                 result['research_failure'] = failure
