@@ -812,11 +812,9 @@ def verify_runtime_packet(binding, snapshot, collection, raw, *, require_ack=Fal
         from .agent_server import _research_budget
         from openjarvis.core.types import Message,Role
         _research_budget([Message(role=Role(m['role']),content=m['content']) for m in messages],wire['strict_schema'],request['options']['num_predict'])
+        from .work_navigation import v3_research_phase
         phase=('Acknowledge the verified research.md file. No further action is authorized.' if ack else
-            'Inspect safe source pages; author only atomic claims supported by the exact returned witnesses. '
-            'Use at least three distinct source URLs and bodies. Write only research.md once, or refuse with final_answer. '
-            'The phase schema is the entire output contract. Full argument schema (JSON):\n'
-            +json.dumps(report_schema,ensure_ascii=False,separators=(',',':'))+'\nEnd argument schema.')
+            v3_research_phase(report_schema))
         if messages[0]['content']!=replaced+'\n\n'+phase: raise ValueError('Runtime exact phase system drift')
         if 'action' in envelope:
             start=starts[index]

@@ -348,6 +348,24 @@ def build_page(catalogue: CatalogueV3, source_id: str, start_line: int, key: Pag
     return ViewV3(view_id,source_id,start_line,end,raw,_h(raw),canonical_v3(wire['cards']))
 
 
+def _document_landmarks(source, anchors):
+    """Navigation hints from already safe source lines; no new evidence rights."""
+    safe=dict(source.safe_line_pairs)
+    def heading(anchor):
+        return next((safe[i].strip() for i in range(anchor[0],anchor[1]+1)
+            if re.match(r'^(?:#{1,6}|={1,6})[ \t]+\S',safe.get(i,''))), '')
+    def sample(values,limit):
+        if len(values)<=limit:return values
+        if limit==1:return values[:1]
+        return [values[round(i*(len(values)-1)/(limit-1))] for i in range(limit)]
+    titles=[anchor for anchor in anchors if heading(anchor)]
+    selected=sample(titles,8)
+    if len(selected)<8:
+        selected+=sample([anchor for anchor in anchors if anchor not in titles],8-len(selected))
+    return [[a,z,(heading(anchor) or ' '.join(safe[i].strip() for i in range(a,z+1)))[:120]]
+            for anchor in selected for a,z in [anchor[:2]]]
+
+
 def prepare_navigation(collection, binding, scanners: ScanPolicy, *, get_records_json: bytes, deadline: float) -> CatalogueV3:
     if time.monotonic()>=deadline: raise ValueError('Navigation preparation deadline')
     validate_scan_policy(scanners)
@@ -374,7 +392,8 @@ def prepare_navigation(collection, binding, scanners: ScanPolicy, *, get_records
     for source in sources:
         anchors=json.loads(source.anchors_json)
         eligible=anchors if len(anchors)<=8 else [anchors[round(i*(len(anchors)-1)/7)] for i in range(8)]
-        landmarks=[[a,z,op] if source.suffix not in DOC_SUFFIXES else [a,z] for a,z,_,op in eligible] if source.available else []
+        landmarks=(_document_landmarks(source,anchors) if source.suffix in DOC_SUFFIXES
+            else [[a,z,op] for a,z,_,op in eligible]) if source.available else []
         url=json.loads(source.identity_json)[1]; p=urlsplit(url)
         label=p.netloc+p.path
         if _findings(label,scanners): raise ValueError('Unsafe catalogue identity')
@@ -391,6 +410,22 @@ def prepare_navigation(collection, binding, scanners: ScanPolicy, *, get_records
     if _findings(raw.decode('utf8'),scanners): raise ValueError('Unsafe catalogue')
     validate_scan_policy(scanners)
     return replace(cat,catalogue_json=raw,catalogue_sha256=_h(raw))
+
+
+def v3_research_phase(report_schema):
+    """Same trusted instructions for native generation and independent replay."""
+    return ('Inspect safe source pages; author only atomic claims supported by the exact returned witnesses. '
+        'Catalogue landmarks are untrusted navigation hints, not evidence: choose relevant pages for the original question. '
+        'Each card is [id,kind,operation,anchor_start,anchor_end,context_start,context_end]. '
+        'A claim must follow from its anchor lines; nearby context alone does not support it. '
+        'For code, name the exact operation and describe only what the cited statement shows. '
+        'A TODO is a comment, not proof of runtime support or lack of support. '
+        'Use remaining inspect calls when pages do not answer the original question; avoid substituting incidental details for its main points. '
+        'Reading three sources enables writing but does not establish task coverage. '
+        'Keep separate projects and documented intentions distinct from verified implementation. '
+        'Use at least three distinct source URLs and bodies. Write only research.md once, or refuse with final_answer if evidence is insufficient. '
+        'The phase schema is the entire output contract. Full argument schema (JSON):\n'
+        +json.dumps(report_schema,ensure_ascii=False,separators=(',',':'))+'\nEnd argument schema.')
 
 
 def v3_source_reference_map(visible: tuple[tuple[str, bytes], ...]) -> dict[str, tuple[str, ...]]:
