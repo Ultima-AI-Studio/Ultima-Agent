@@ -2,11 +2,11 @@
   "schema": 2,
   "original_order": "wo-ultimaagent-20261101-0021",
   "stage_task": "wo-ultimaagent-20261101-0021-t2",
-  "updated_utc": "2026-11-07T08:06:09.224942+00:00",
-  "phase": "SOURCE21_E02_UNIQUE_SECTIONS_READY",
+  "updated_utc": "2026-11-07T08:17:48.026543+00:00",
+  "phase": "SOURCE21_E02_UNIQUE_SECTIONS_RESULT",
   "candidate": "269aca511d88412dbb9c15d23911138469a37aa2",
-  "stage_queue_state": "EXECUTING",
-  "workflow_status": "ready_for_one_authorized_case",
+  "stage_queue_state": "BLOCKED",
+  "workflow_status": "blocked",
   "goal_status": "active",
   "model": "qwen3-8b-uncensored",
   "model_digest": "6d7230a923426bc1933879eb08a7dafc18e5fc0e7606c459ce98f16e0c7f9330",
@@ -16,7 +16,7 @@
   "source_implementation_released": true,
   "live_gate_released": false,
   "next_stage_released": false,
-  "active_report": "H:\\UltimaAI\\UltimaAgent\\docs\\reports\\jarvis-work-t2-e02-unique-sections-preparation-20261107.md",
+  "active_report": "H:\\UltimaAI\\UltimaAgent\\docs\\reports\\jarvis-work-t2-e02-unique-sections-result-20261107.md",
   "active_preparation_root": "H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\e02-unique-sections-20261107-r1",
   "active_review_agent": null,
   "preparation_status": "PASS_OFFLINE_AND_INDEPENDENT_REVIEW",
@@ -119,7 +119,7 @@
   "t2": "NOT_PASSED",
   "t3_t5_released": false,
   "owner_gate": "NOT_PASSED",
-  "next_work": "Run the one authorized post-repair verification, then independently review the first result; no further case in this sequence.",
+  "next_work": "Read-only/offline native-response compatibility diagnosis as proposed; new actual case is not allocated.",
   "historical_current_run": {
     "path": "H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\e03-fixture-input-origin-20261105\\history\\current-run-before.json",
     "sha256": "e7152ea1d705c7182c1d719236a528a97ca962498ffb662c6954c81e158cf137",
@@ -198,12 +198,16 @@
     ]
   },
   "next_action_scope": {
-    "authorized": true,
-    "source": "User: 先补齐失败时的最终分支和选页诊断，再针对证据修复“读取到交付”的衔接。",
-    "scope": "Diagnose once, then only an evidence-based repair in a separate candidate and one conditional verification; independent preparation and result review for each, no retry",
-    "actual_case_allocation": 1,
-    "result_review_allocation": 1,
-    "conditional_on_preparation_PASS": true
+    "authorized": false,
+    "scope": "No further actual case allocated in completed diagnostic and repair sequence",
+    "diagnostic_consumed": true,
+    "post_repair_consumed": true,
+    "diagnostic_remaining": 0,
+    "conditional_post_repair_cases": 0,
+    "actual_case_allocation_remaining": 0,
+    "result_review_allocation_remaining": 0,
+    "retry": 0,
+    "proposal": "H:\\UltimaAI\\UltimaAgent\\docs\\plans\\jarvis-work-e02-native-response-compatibility-followup-20261107.md"
   },
   "acceptance_entry_user_approval": null,
   "acceptance_entry_user_approval_sha256": null,
@@ -1170,48 +1174,46 @@
     "work_order": "wo-ultimaagent-20261101-0021",
     "stage": "T2",
     "case": "E02-controlled-1",
-    "purpose": "diagnostic",
-    "run_id": "963f8bf5-1a85-49ce-ae9f-19d503b9ff65",
-    "candidate": "22653fb77445bad4f5b9d9ae789cd35972dcc984",
+    "purpose": "post_repair_verification",
+    "run_id": "be79869f-10e5-4c0d-96a9-144cd5967c12",
+    "candidate": "2b42b3e19516154a26cbc895a3d9e69fabb07ab2",
     "model": "qwen3-8b-uncensored",
     "question_id": "user-message:sha256:2ac77a92020708e397ed3198ea63793e3ec989887dd0ec458bb4b4a86967dda0",
     "result": "FAIL",
     "independent_review": "FAIL_CONFIRMED",
-    "review_path": "H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\e02-failure-state-20261107-r1\\review\\independent-result-review.json",
-    "review_sha256": "8e922f635502dc14f71ae3182583c1042832e90e574d171c292791918473db1e",
-    "result_manifest_sha256": "083bdd6aea562acf27276b3896a6931284588ee51664580c2b61129301ffc02d",
-    "terminal_sha256": "3608c639e8db1d63292fef7fb02f9f43d695c6dfffa37eb7e529ca3bfa503b39",
-    "product_result_sha256": "f654000eecafd244b1fc89c4c655fb35c13862d67a92bf35cb5cbac69a155cb2",
+    "review_path": "H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\e02-unique-sections-20261107-r1\\review\\independent-result-review.json",
+    "review_sha256": "24c356987ade22a6e501e9aa084eec74214320beb7fcf2af321ba2fde59ff122",
+    "result_manifest_sha256": "c00e597832d5b739043b75ee051ee46265a3d5c9b7c43505fa05e7722bd31bfd",
+    "supplemental_manifest_sha256": "9e542f61da51f16a4d5625650e2d2fa38a5c4d597cec4859612cf051e6295db0",
+    "terminal_sha256": "e8eaa6bb51a40a8a6550424fcfdecddeb695c788634c8ce63a6f54184a04b428",
+    "product_result_sha256": "bddba7b22732e197ac125247426c69dce7214cb29d0f4ea6b2906dc6830af9f9",
     "entry_invocations": 1,
     "work_cli_attempts": 1,
     "controlled_search_success": 1,
     "controlled_GET_success": 4,
     "confirmed_inspect_pages": 6,
+    "visible_inspect_pages": 5,
     "public_successful_inspect_records": 0,
-    "inspect_count_basis": "trusted failure diagnostic confirmed pages, not the incomplete public tool_results list",
-    "write_attempts": 1,
+    "inspect_count_basis": "trusted failure diagnostic confirmed and visible states, not incomplete public tool_results",
+    "write_attempts": 0,
     "successful_write_count": 0,
     "application_native_POST_attempts": 7,
+    "completed_native_posts": 6,
     "actual_native_start_count": null,
     "research_artifacts": 0,
-    "outer_elapsed_seconds": 58.36237220000476,
+    "outer_elapsed_seconds": 119.56403409998165,
     "cleanup": "PASS",
     "root_witness_eligible": false,
-    "product_error": "Unlinked or failed END",
-    "research_failure": {
-      "stage": "research.write",
-      "reason_code": "INVALID_SOURCE_SECTION",
-      "error_type": "ValueError",
-      "error_text_length": 35,
-      "error_text_sha256": "7e9599d0c2918550861b8aa0402844d74269fa7bbddddb57b5c4497294bf463e"
-    },
-    "failure_diagnostic_sha256": "bf8efb945255dcff31ace9dceee48d69d8450b28f0636c79a86812812a1a65dc",
-    "branch": "action",
+    "product_error": "Research HTTP status",
+    "failure_diagnostic_sha256": "26768a6d45180251f5532eaebfd72688052a7ad3af50f6b203ae3ac1ecf8b297",
+    "failure_diagnostic_bytes": 5197,
+    "branch": "unvalidated_response",
     "eligible_source_ids": [
       "S1",
       "S2",
       "S3"
     ],
+    "eligibility_basis": "confirmed card-bearing pages; does not imply all pages visible",
     "selected_pages": [
       {
         "source_id": "S1",
@@ -1219,7 +1221,9 @@
         "range": [
           26,
           49
-        ]
+        ],
+        "confirmed": true,
+        "visible": true
       },
       {
         "source_id": "S1",
@@ -1227,7 +1231,9 @@
         "range": [
           53,
           76
-        ]
+        ],
+        "confirmed": true,
+        "visible": true
       },
       {
         "source_id": "S1",
@@ -1235,7 +1241,9 @@
         "range": [
           92,
           115
-        ]
+        ],
+        "confirmed": true,
+        "visible": true
       },
       {
         "source_id": "S1",
@@ -1243,7 +1251,9 @@
         "range": [
           121,
           144
-        ]
+        ],
+        "confirmed": true,
+        "visible": true
       },
       {
         "source_id": "S2",
@@ -1251,7 +1261,9 @@
         "range": [
           20,
           43
-        ]
+        ],
+        "confirmed": true,
+        "visible": true
       },
       {
         "source_id": "S3",
@@ -1259,12 +1271,14 @@
         "range": [
           25,
           48
-        ]
+        ],
+        "confirmed": true,
+        "visible": false
       }
     ],
     "budget": {
-      "completed_posts": 7,
-      "deadline_remaining_seconds": "229.48973519995343",
+      "completed_posts": 6,
+      "deadline_remaining_microseconds": 167775139,
       "generations": 7,
       "native_posts": 7,
       "native_posts_limit": 8,
@@ -1275,8 +1289,21 @@
     },
     "write_confirmed": false,
     "ack_confirmed": false,
+    "final_answer_preserved": false,
+    "supplemental_provider_observation": {
+      "status_counts": {
+        "200": 6,
+        "500": 1
+      },
+      "last_generation_tokens": 2048,
+      "parser_message": "unparsed peg-native output",
+      "matched_case_ids": 5,
+      "trusted_transport_receipt": false,
+      "precise_cause_proven": false
+    },
     "facts": "NOT_ASSESSABLE_NO_ARTIFACT",
     "original_question_coverage": "NOT_ASSESSABLE_NO_ARTIFACT",
+    "actual_source_uniqueness_verified": false,
     "protected_at_recorded_boundaries": true,
     "protected_after_readonly": true,
     "continuous_liveness_measured": false,
@@ -1285,6 +1312,8 @@
     "controlled_required": 3,
     "actual_case_allocation_remaining": 0,
     "result_review_allocation_remaining": 0,
+    "diagnostic_remaining": 0,
+    "post_repair_case_remaining": 0,
     "retry": 0,
     "next_case_released": false,
     "E02": "NOT_PASSED",
@@ -1292,7 +1321,7 @@
     "Owner": "NOT_PASSED",
     "old_credit_transferred": false,
     "remote_synced": false,
-    "recorded_utc": "2026-11-07T07:27:31.994199+00:00"
+    "recorded_utc": "2026-11-07T08:17:47.908784+00:00"
   },
   "user_authorized_work_resumption": true,
   "active_preparation": {
@@ -1377,8 +1406,8 @@
   "e02_grounded_export_result_registration_sha256": "b4132d72c14b6306163fb14e82bcaca3dc58d11097838598e6c86def455760e6",
   "active_result_review": {
     "verdict": "FAIL_CONFIRMED",
-    "path": "H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\e02-failure-state-20261107-r1\\review\\independent-result-review.json",
-    "sha256": "8e922f635502dc14f71ae3182583c1042832e90e574d171c292791918473db1e"
+    "path": "H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\e02-unique-sections-20261107-r1\\review\\independent-result-review.json",
+    "sha256": "24c356987ade22a6e501e9aa084eec74214320beb7fcf2af321ba2fde59ff122"
   },
   "e02_failure_state_preparation": {
     "root": "H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\e02-failure-state-20261107-r1",
@@ -1528,5 +1557,161 @@
     "manifest_sha256": "9f41184d3bc1399ac27c641a47ebf4f46094c80294a05d06434514e014f83d9f",
     "review_sha256": "707c115349379af46f889f6fe56931030f6525c3e08f48cf2916bc5ff5c48f48",
     "harness_approval_sha256": "d77e9e2ca1d36a2cae87ba9031b8d8141f72daa31497c4fac3df03181a48dcbe"
-  }
+  },
+  "e02_unique_sections_execution": {
+    "schema": 1,
+    "work_order": "wo-ultimaagent-20261101-0021",
+    "stage": "T2",
+    "case": "E02-controlled-1",
+    "purpose": "post_repair_verification",
+    "run_id": "be79869f-10e5-4c0d-96a9-144cd5967c12",
+    "candidate": "2b42b3e19516154a26cbc895a3d9e69fabb07ab2",
+    "model": "qwen3-8b-uncensored",
+    "question_id": "user-message:sha256:2ac77a92020708e397ed3198ea63793e3ec989887dd0ec458bb4b4a86967dda0",
+    "result": "FAIL",
+    "independent_review": "FAIL_CONFIRMED",
+    "review_path": "H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\e02-unique-sections-20261107-r1\\review\\independent-result-review.json",
+    "review_sha256": "24c356987ade22a6e501e9aa084eec74214320beb7fcf2af321ba2fde59ff122",
+    "result_manifest_sha256": "c00e597832d5b739043b75ee051ee46265a3d5c9b7c43505fa05e7722bd31bfd",
+    "supplemental_manifest_sha256": "9e542f61da51f16a4d5625650e2d2fa38a5c4d597cec4859612cf051e6295db0",
+    "terminal_sha256": "e8eaa6bb51a40a8a6550424fcfdecddeb695c788634c8ce63a6f54184a04b428",
+    "product_result_sha256": "bddba7b22732e197ac125247426c69dce7214cb29d0f4ea6b2906dc6830af9f9",
+    "entry_invocations": 1,
+    "work_cli_attempts": 1,
+    "controlled_search_success": 1,
+    "controlled_GET_success": 4,
+    "confirmed_inspect_pages": 6,
+    "visible_inspect_pages": 5,
+    "public_successful_inspect_records": 0,
+    "inspect_count_basis": "trusted failure diagnostic confirmed and visible states, not incomplete public tool_results",
+    "write_attempts": 0,
+    "successful_write_count": 0,
+    "application_native_POST_attempts": 7,
+    "completed_native_posts": 6,
+    "actual_native_start_count": null,
+    "research_artifacts": 0,
+    "outer_elapsed_seconds": 119.56403409998165,
+    "cleanup": "PASS",
+    "root_witness_eligible": false,
+    "product_error": "Research HTTP status",
+    "failure_diagnostic_sha256": "26768a6d45180251f5532eaebfd72688052a7ad3af50f6b203ae3ac1ecf8b297",
+    "failure_diagnostic_bytes": 5197,
+    "branch": "unvalidated_response",
+    "eligible_source_ids": [
+      "S1",
+      "S2",
+      "S3"
+    ],
+    "eligibility_basis": "confirmed card-bearing pages; does not imply all pages visible",
+    "selected_pages": [
+      {
+        "source_id": "S1",
+        "start": 26,
+        "range": [
+          26,
+          49
+        ],
+        "confirmed": true,
+        "visible": true
+      },
+      {
+        "source_id": "S1",
+        "start": 53,
+        "range": [
+          53,
+          76
+        ],
+        "confirmed": true,
+        "visible": true
+      },
+      {
+        "source_id": "S1",
+        "start": 92,
+        "range": [
+          92,
+          115
+        ],
+        "confirmed": true,
+        "visible": true
+      },
+      {
+        "source_id": "S1",
+        "start": 121,
+        "range": [
+          121,
+          144
+        ],
+        "confirmed": true,
+        "visible": true
+      },
+      {
+        "source_id": "S2",
+        "start": 20,
+        "range": [
+          20,
+          43
+        ],
+        "confirmed": true,
+        "visible": true
+      },
+      {
+        "source_id": "S3",
+        "start": 25,
+        "range": [
+          25,
+          48
+        ],
+        "confirmed": true,
+        "visible": false
+      }
+    ],
+    "budget": {
+      "completed_posts": 6,
+      "deadline_remaining_microseconds": 167775139,
+      "generations": 7,
+      "native_posts": 7,
+      "native_posts_limit": 8,
+      "read_bytes": 9349,
+      "reads_limit": 6,
+      "reads_used": 6,
+      "write_admission_open": true
+    },
+    "write_confirmed": false,
+    "ack_confirmed": false,
+    "final_answer_preserved": false,
+    "supplemental_provider_observation": {
+      "status_counts": {
+        "200": 6,
+        "500": 1
+      },
+      "last_generation_tokens": 2048,
+      "parser_message": "unparsed peg-native output",
+      "matched_case_ids": 5,
+      "trusted_transport_receipt": false,
+      "precise_cause_proven": false
+    },
+    "facts": "NOT_ASSESSABLE_NO_ARTIFACT",
+    "original_question_coverage": "NOT_ASSESSABLE_NO_ARTIFACT",
+    "actual_source_uniqueness_verified": false,
+    "protected_at_recorded_boundaries": true,
+    "protected_after_readonly": true,
+    "continuous_liveness_measured": false,
+    "acceptance_credit": 0,
+    "controlled_passed": 0,
+    "controlled_required": 3,
+    "actual_case_allocation_remaining": 0,
+    "result_review_allocation_remaining": 0,
+    "diagnostic_remaining": 0,
+    "post_repair_case_remaining": 0,
+    "retry": 0,
+    "next_case_released": false,
+    "E02": "NOT_PASSED",
+    "T2": "NOT_PASSED",
+    "Owner": "NOT_PASSED",
+    "old_credit_transferred": false,
+    "remote_synced": false,
+    "recorded_utc": "2026-11-07T08:17:47.908784+00:00"
+  },
+  "e02_unique_sections_result_registration": "H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\e02-unique-sections-20261107-r1\\review\\result-registration.json",
+  "e02_unique_sections_result_registration_sha256": "93a06b9d43285aef1a21212acbeaff8494fb8c616143b21c5fe17a1432065b2b"
 }
