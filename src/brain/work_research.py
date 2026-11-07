@@ -833,7 +833,7 @@ def verify_runtime_packet(binding, snapshot, collection, raw, *, require_ack=Fal
         _research_budget([Message(role=Role(m['role']),content=m['content']) for m in messages],wire['strict_schema'],request['options']['num_predict'])
         from .work_navigation import v3_research_phase
         phase=('Acknowledge the verified research.md file. No further action is authorized.' if ack else
-            v3_research_phase(report_schema))
+            v3_research_phase(report_schema,output_tokens=request['options']['num_predict']))
         if messages[0]['content']!=replaced+'\n\n'+phase: raise ValueError('Runtime exact phase system drift')
         if 'action' in envelope:
             start=starts[index]

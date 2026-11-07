@@ -412,8 +412,10 @@ def prepare_navigation(collection, binding, scanners: ScanPolicy, *, get_records
     return replace(cat,catalogue_json=raw,catalogue_sha256=_h(raw))
 
 
-def v3_research_phase(report_schema):
+def v3_research_phase(report_schema, *, output_tokens: int) -> str:
     """Same trusted instructions for native generation and independent replay."""
+    if type(output_tokens) is not int or not 1 <= output_tokens <= 2048:
+        raise ValueError('Invalid research phase output budget')
     return ('Inspect safe source pages; author only atomic claims supported by the exact returned witnesses. '
         'Catalogue landmarks are untrusted navigation hints, not evidence: choose relevant pages for the original question. '
         'Each card is [id,kind,operation,anchor_start,anchor_end,context_start,context_end]. '
@@ -425,7 +427,12 @@ def v3_research_phase(report_schema):
         'Use one section per source in source-ID order; put facts from multiple pages of that source in the same section. '
         'Keep separate projects and documented intentions distinct from verified implementation. '
         'Use at least three distinct source URLs and bodies. Write only research.md once, or refuse with final_answer if evidence is insufficient. '
-        'The phase schema is the entire output contract. Full argument schema (JSON):\n'
+        'The phase schema is the entire output contract. '
+        f'Response budget: {output_tokens} tokens for the entire JSON object. '
+        'Use compact JSON, short headings, and precise atomic claims while preserving the information '
+        'needed to answer the original question and its evidence citations. Finish a complete object '
+        'within this budget; omit markdown wrappers and prose outside the output contract. '
+        'Full argument schema (JSON):\n'
         +json.dumps(report_schema,ensure_ascii=False,separators=(',',':'))+'\nEnd argument schema.')
 
 

@@ -628,7 +628,7 @@ class _ResearchEngineView:
             if eligible: alternatives.append(action('ultima_work_research_write',report_schema))
             schema=v3_research_envelope([*alternatives,final])
             limit=min(kwargs['max_tokens'],2048 if eligible else 256)
-            phase=v3_research_phase(report_schema)
+            phase=v3_research_phase(report_schema,output_tokens=limit)
         outgoing=[replace(messages[0],content=self.replaced_system+'\n\n'+phase),*messages[1:]]
         _research_budget(outgoing,schema,limit)
         self.leaf.expected=dict(messages=copy.deepcopy(_research_message_dicts(outgoing)),schema=copy.deepcopy(schema),limit=limit,ack=ack)

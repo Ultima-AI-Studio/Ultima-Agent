@@ -57,7 +57,7 @@ def test_code_landmarks_keep_exact_operations():
 
 def test_phase_explains_anchor_context_and_task_coverage_without_fixture_answers():
     assert hasattr(nav,'v3_research_phase'), 'missing common phase constructor'
-    phase=nav.v3_research_phase(nav.v3_writer_schema())
+    phase=nav.v3_research_phase(nav.v3_writer_schema(),output_tokens=2048)
     for required in ('anchor_start','context_start','untrusted','TODO','three sources','original question'):
         assert required in phase
     assert 'Jarvis' not in phase and 'Logger' not in phase and 'Gemini' not in phase
@@ -96,5 +96,5 @@ def test_replay_rejects_forged_grounding_phase_with_coherent_entity_hashes(tmp_p
 def test_phase_guidance_does_not_relax_original_context_budget():
     assert hasattr(nav,'v3_research_phase'), 'missing grounding phase'
     from openjarvis.core.types import Message,Role
-    messages=[Message(role=Role.SYSTEM,content=nav.v3_research_phase(nav.v3_writer_schema())+'x'*65536)]
+    messages=[Message(role=Role.SYSTEM,content=nav.v3_research_phase(nav.v3_writer_schema(),output_tokens=2048)+'x'*65536)]
     with pytest.raises(ValueError):server._research_budget(messages,nav.v3_writer_schema(),2048)
