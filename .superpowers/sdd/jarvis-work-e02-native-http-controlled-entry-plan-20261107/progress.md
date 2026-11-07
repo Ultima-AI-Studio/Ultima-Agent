@@ -13,3 +13,9 @@
 - Task 1 COMPLETE; Task 2 offline339 and independent preparation PASS. Manifest 01d1c12f63e19d7ea72020a28fad3f2a4ba1496aaa31ccbd6112a245919ec7cb.
 - read_ready PASS; missing grant rejected by read_release; run_once not called. Actual/model0, E02 0/3.
 - Local publication tracked separately in verification/publication-readback.json; remote push not attempted.
+
+- Authorized execution continuation: explicit call_7ea1218e1bc347188fc72c160c50097a, actual1/result-review1/retry0; execute the frozen entry once, then seal and independently review the first result. No product changes or repeated tests.
+
+- Single actual 91406fa9-5952-4e3a-99af-a94c8857c8d3 ended FAIL; result60 sealed, cleanupPASS, retry0. One authorized independent result review assigned. Readback helper argument mismatch retained and corrected after case; product never rerun.
+
+- Authorized continuation COMPLETE: actual one case FAIL_CONFIRMED, one independent result review consumed, retry0, E02 0/3. Native HTTP200 in final-only phase; coverage budget exhausted at two sources. No new product changes or run authority.

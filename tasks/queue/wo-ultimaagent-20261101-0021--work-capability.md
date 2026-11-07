@@ -5,7 +5,7 @@
 - original_work_order_id: wo-ultimaagent-20261101-0021
 - revision: 2
 - authorization: 用户“那按顺序开始推进吧”；批准按已提交的工作能力契约与计划顺序执行，保留最终 Owner 验收和发布门。
-- 状态：E02受控入口就绪：ee1bef6冻结，339项离线检查及独立准备PASS；当前8B/原预算保持，待明确单例分配；实际与模型0，E02仍0/3。
+- 状态：E02 ee1bef6单例FAIL_CONFIRMED：最后HTTP200；六页仅覆盖2来源，未开放写入，无research.md；清理PASS，单例与独审已消费，未重试，仍0/3。
 - 计划：docs/plans/jarvis-work-capability-delivery-plan-20261101.md
 - 契约：docs/specs/jarvis-work-capability-contract-20261101.md
 - 草案检查点：ultimaagent-jarvis-work-plan-draft-20261101 @ f6eb808348302cec55bddcf44ee03f5b5736c4d9
@@ -532,3 +532,22 @@ E02候选ee1bef6受控入口及输入绑定准备已登记；本轮仅离线准�
 
 E02受控入口就绪：ee1bef6冻结，339项离线检查及独立准备PASS；当前8B/原预算保持，待明确单例分配；实际与模型0，E02仍0/3。
 报告：H:\UltimaAI\UltimaAgent\docs\reports\jarvis-work-t2-e02-native-http-controlled-preparation-20261107.md
+
+
+## 2026-11-07 E02 HTTP controlled one-case allocation
+
+E02 ee1bef6已明确分配一例当前8B研究及一次结果独审；原预算、失败不重试；正在只读准入后执行，尚无接受信用。
+用户答复：call_7ea1218e1bc347188fc72c160c50097a；提案：H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-native-http-controlled-preparation-20261107-r1\execution-proposal.md
+
+
+## 2026-11-07 E02 HTTP controlled result review
+
+E02 ee1bef6单例已FAIL待独审：35.683秒，search1/GET4/inspect6/write0；最后HTTP200已校验，来源仅2个；清理PASS，无重试。
+结果清单：H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-native-http-controlled-preparation-20261107-r1\review\result-inputs\result-manifest.json
+
+
+## 2026-11-07 E02 HTTP controlled result confirmed
+
+E02 ee1bef6单例FAIL_CONFIRMED：最后HTTP200；六页仅覆盖2来源，未开放写入，无research.md；清理PASS，单例与独审已消费，未重试，仍0/3。
+报告：H:\UltimaAI\UltimaAgent\docs\reports\jarvis-work-t2-e02-native-http-controlled-result-20261107.md
+后继提案（未实施）：H:\UltimaAI\UltimaAgent\docs\plans\jarvis-work-e02-source-coverage-budget-proposal-20261107.md
