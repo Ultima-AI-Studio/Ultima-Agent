@@ -115,6 +115,11 @@ with (L/'progress.md').open('a',encoding='utf8') as f:
     f.write('Final: Ruling: only sealed current case receives its independently reviewed credit; global native counts, continuous liveness, OS packets and E02/T2 total acceptance remain unmeasured/unpassed. Cost if wrong: no acceptance claim from missing evidence. No extra run.\n')
 paths={N/name for name in manifest['files']};paths.update({manifestpath,reviewpath,N/'review/result-review-allocation.json',N/'review/result-registration.json',N/'verification/result-mirror-readback.json',N/'verification/queue-result.stdout',N/'verification/ready-checkpoint.json',N/'verification/final-ready-readback.json',report,order,stage,statepath})
 if analysis.exists():paths.add(analysis)
+proof=N/'verification/code-operation-contract-readback.json'
+if proof.exists():
+    static=load(proof);assert static['result_manifest_sha256']==sha(manifestpath) and static['run_id']==b['run_id']
+    for name,digest in static['source_files'].items():assert sha(Path(name))==digest,name
+    paths.add(proof)
 if proposal:paths.update({proposal,next_path})
 paths.update(p for p in L.iterdir() if p.is_file())
 main=checkpoint(R,paths,base,'chore(e02): preserve reviewed source-reference single-case result')
