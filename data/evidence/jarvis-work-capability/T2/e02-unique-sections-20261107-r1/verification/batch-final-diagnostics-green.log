@@ -1,0 +1,81 @@
+====================
+
+_ test_real_writer_reason_survives_failed_end[duplicate_source-INVALID_SOURCE_SECTION] _
+
+
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-unique-sections-20261107-r1/offline/diagnostics-green-20261107T074858559892Z/temp/test_real_writer_reason_surviv2')
+
+sdk_io = (<src.brain.browser.channel.BrowserChannel object at 0x000001AF3D7CA850>, [('search', 'Research a subject'), ('get', '...'https://example.com/source/3'), ('get', 'https://example.com/source/4'), ('get', 'https://example.com/source/5')], {})
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001AF3D7D16D0>
+
+fault = 'duplicate_source', reason = 'INVALID_SOURCE_SECTION'
+
+
+
+    @pytest.mark.parametrize('fault,reason', [
+
+        ('unissued', 'UNISSUED_REFERENCE'),
+
+        ('foreign', 'FOREIGN_REFERENCE'),
+
+        ('duplicate_source', 'INVALID_SOURCE_SECTION'),
+
+        ('multiline_claim', 'INVALID_REPORT_TEXT'),
+
+    ])
+
+    def test_real_writer_reason_survives_failed_end(tmp_path, sdk_io, monkeypatch, fault, reason):
+
+        payload = report_payload()
+
+        if fault in ('unissued', 'foreign'):
+
+            resolver_fault(monkeypatch, fault)
+
+        elif fault == 'duplicate_source':
+
+            payload['sections'][1]['source_id'] = 'S1'
+
+            payload['sections'][1]['facts'][0]['evidence_id'] = 'issued:S1'
+
+        else:
+
+            payload['sections'][0]['facts'][0]['claim'] = 'first line\nsecond line'
+
+        result = failed_write(tmp_path, sdk_io, payload)
+
+        assert result['status'] == 'failed' and not result['artifacts']
+
+>       assert result['error'] == 'Unlinked or failed END'
+
+E       AssertionError: assert 'Invalid native research envelope' == 'Unlinked or failed END'
+
+E         
+
+E         - Unlinked or failed END
+
+E         + Invalid native research envelope
+
+
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-unique-sections\UltimaAgent\src\brain\tests\test_work_write_diagnostics.py:63: AssertionError
+
+- generated xml file: H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-unique-sections-20261107-r1\offline\diagnostics-green-20261107T074858559892Z\junit.xml -
+
+=========================== short test summary info ===========================
+
+FAILED ::test_real_writer_reason_survives_failed_end[duplicate_source-INVALID_SOURCE_SECTION] - AssertionError: assert 'Invalid native research envelope' == 'Unlinked or failed END'
+
+  
+
+  - Unlinked or failed END
+
+  + Invalid native research envelope
+
+======================== 1 failed, 16 passed in 19.51s ========================
+
+
+
+RECEIPT H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-unique-sections-20261107-r1\offline\diagnostics-green-20261107T074858559892Z\receipt.json
