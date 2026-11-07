@@ -5,7 +5,7 @@
 - original_work_order_id: wo-ultimaagent-20261101-0021
 - revision: 2
 - authorization: 用户“那按顺序开始推进吧”；批准按已提交的工作能力契约与计划顺序执行，保留最终 Owner 验收和发布门。
-- 状态：E02新候选d860b2a：原生响应拒绝诊断补修，909项离线检查与准备独审PASS；旧6d758d9实际FAIL保留，具体拒绝项待真实回执，新actual=0；待准备受控入口。
+- 状态：E02受控入口就绪：d860b2a冻结，346项离线检查及独立准备PASS；当前8B/原预算保持，待明确单例分配；实际与模型0，E02仍0/3。
 - 计划：docs/plans/jarvis-work-capability-delivery-plan-20261101.md
 - 契约：docs/specs/jarvis-work-capability-contract-20261101.md
 - 草案检查点：ultimaagent-jarvis-work-plan-draft-20261101 @ f6eb808348302cec55bddcf44ee03f5b5736c4d9
@@ -653,3 +653,16 @@ E02 6d758d9实际FAIL保留；HTTP200原生响应拒绝的具体谓词未知，�
 E02新候选d860b2a：原生响应拒绝诊断补修，909项离线检查与准备独审PASS；旧6d758d9实际FAIL保留，具体拒绝项待真实回执，新actual=0；待准备受控入口。
 
 报告：H:\UltimaAI\UltimaAgent\docs\reports\jarvis-work-t2-e02-native-response-rejection-diagnostics-preparation-20261107.md；证据：H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-native-rejection-diagnostics-20261107-r1。8B、原预算、来源/事实/ACK/时限门保持；新actual/resultreview额度0，T2/Owner未通过。
+
+
+## SOURCE29 原生拒绝诊断候选受控入口准备
+
+E02候选d860b2a受控入口/完整绑定准备：精确计划独审中，产品冻结、8B/原预算保持，actual与结果复核分配0，旧实际FAIL保留。
+
+计划：H:\UltimaAI\UltimaAgent\docs\plans\jarvis-work-e02-native-rejection-controlled-entry-plan-20261107.md；证据：H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-native-rejection-controlled-preparation-20261107-r1。本登记只允许离线准备，不释放真实研究。
+
+
+## 2026-11-07 E02 native rejection controlled preparation complete
+
+E02受控入口就绪：d860b2a冻结，346项离线检查及独立准备PASS；当前8B/原预算保持，待明确单例分配；实际与模型0，E02仍0/3。
+报告：H:\UltimaAI\UltimaAgent\docs\reports\jarvis-work-t2-e02-native-rejection-controlled-preparation-20261107.md
