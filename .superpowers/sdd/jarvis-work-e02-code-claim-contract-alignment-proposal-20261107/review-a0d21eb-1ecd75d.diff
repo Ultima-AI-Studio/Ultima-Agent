@@ -1,0 +1,393 @@
+# Review package: a0d21ebf167c41a76410075f7a92f1680926213f..1ecd75d061fd20e78c790c506cac76847f8e63bf
+
+## Commits
+1ecd75d0 fix(research): constrain code claims to issued operations
+
+## Files changed
+ src/brain/agent_server.py                      |   6 +-
+ src/brain/tests/test_work_code_claim_schema.py | 215 +++++++++++++++++++++++++
+ src/brain/work_navigation.py                   |  30 ++++
+ src/brain/work_research.py                     |   6 +-
+ 4 files changed, 251 insertions(+), 6 deletions(-)
+
+## Diff
+diff --git a/src/brain/agent_server.py b/src/brain/agent_server.py
+index 7b3cc8f8..cab7dba6 100644
+--- a/src/brain/agent_server.py
++++ b/src/brain/agent_server.py
+@@ -544,21 +544,21 @@ class _ResearchEngineView:
+             raise ValueError('Unlinked research write')
+         verify_research_artifacts(self.binding,verify_artifacts(self.binding,writes),reports,self.caps.research_json,
+             required_version=3,issued_snapshot=self.ledger.issued_snapshot,runtime_packet=self.ledger._runtime_packet(),runtime_inputs=self.ledger._runtime_inputs)
+         self.ledger.admit_ack()
+ 
+     def generate(self,messages,**kwargs):
+         from dataclasses import replace
+         import copy,hashlib
+         from jsonschema import Draft7Validator
+         from openjarvis.core.types import Message,Role
+-        from .work_navigation import canonical_v3,v3_writer_schema,v3_source_reference_map
++        from .work_navigation import canonical_v3,v3_writer_schema,v3_phase_writer_schema
+         self.check_dispatch()
+         self.generation+=1
+         if self.final: raise ValueError('Research already finalized')
+         if self.history is None:
+             self.ledger.close_enrollment()
+             original,replaced=self._system()
+             self.original_system=original; self.replaced_system=replaced
+             self.ledger._runtime_system=original
+             self.history=_research_message_dicts([Message(role=Role.SYSTEM,content=original),Message(role=Role.USER,content=self.prompt)])
+         else:
+@@ -577,22 +577,22 @@ class _ResearchEngineView:
+         eligible=len({view.source_id for _,view in reads if json.loads(view.cards_json)})>=3
+         alternatives=[]
+         def action(name,params):
+             return dict(type='object',additionalProperties=False,required=['action','action_input'],
+                 properties=dict(action=dict(enum=[name]),action_input=params))
+         if ack:
+             self._verify_file(); schema=final; limit=min(kwargs['max_tokens'],256)
+             phase='Acknowledge the verified research.md file. No further action is authorized.'
+         else:
+             self.ledger.admit_report()
+-            report_schema=v3_writer_schema(v3_source_reference_map(tuple(
+-                (view.source_id,view.cards_json) for _,view in reads))) if eligible else v3_writer_schema()
++            report_schema=v3_phase_writer_schema(tuple(
++                (view.source_id,view.cards_json) for _,view in reads)) if eligible else v3_writer_schema()
+             if self.ledger._read_count<6:
+                 alternatives.append(action('ultima_work_research_inspect',self.ledger._enrolled['ultima_work_research_inspect'].spec.parameters))
+             if eligible: alternatives.append(action('ultima_work_research_write',report_schema))
+             schema=dict(anyOf=[*alternatives,final])
+             limit=min(kwargs['max_tokens'],2048 if eligible else 256)
+             phase=('Inspect safe source pages; author only atomic claims supported by the exact returned witnesses. '
+                 'Use at least three distinct source URLs and bodies. Write only research.md once, or refuse with final_answer. '
+                 'The phase schema is the entire output contract. Full argument schema (JSON):\n'
+                 +json.dumps(report_schema,ensure_ascii=False,separators=(',',':'))+'\nEnd argument schema.')
+         outgoing=[replace(messages[0],content=self.replaced_system+'\n\n'+phase),*messages[1:]]
+diff --git a/src/brain/tests/test_work_code_claim_schema.py b/src/brain/tests/test_work_code_claim_schema.py
+new file mode 100644
+index 00000000..9601422c
+--- /dev/null
++++ b/src/brain/tests/test_work_code_claim_schema.py
+@@ -0,0 +1,215 @@
++"""Evidence-specific code claims are constrained before dispatch and in replay."""
++import hashlib
++import itertools
++import json
++import re
++from copy import deepcopy
++from pathlib import Path
++
++import httpx
++import pytest
++from jsonschema import Draft7Validator
++
++from src.brain import agent_server as server, work_navigation as nav
++from src.brain.tests.test_work_navigation import stable_navigation_entropy
++from src.brain.tests.test_work_navigation_transport import navigation_reply
++from src.brain.tests.test_work_research import RESTRICTED, mock_jar, sdk_io, submit
++from src.brain.tests.test_work_source_reference_schema import writer_schema
++
++WRITE = 'ultima_work_research_write'
++
++
++def card(number, kind='code', op='client.run'):
++    return [f'N3.{number:016x}', kind, op, 1, 1, 1, 1]
++
++
++def pages(op='client.run'):
++    return (('S1', nav.canonical_v3([card(1, op=op), card(4, op='client.stop'),
++                                  card(5, 'limitation', '')])),
++            ('S2', nav.canonical_v3([card(2, 'documented', '')])),
++            ('S3', nav.canonical_v3([card(3, op='console.log')])))
++
++
++def phase(visible):
++    assert hasattr(nav, 'v3_phase_writer_schema'), 'code-claim phase contract missing'
++    return nav.v3_phase_writer_schema(visible)
++
++
++def report(claim='Observed client.run', ref=None):
++    return dict(path='research.md', title='Report', sections=[
++        dict(source_id='S1', heading='Code', facts=[dict(claim=claim, evidence_id=ref or card(1)[0])]),
++        dict(source_id='S2', heading='Docs', facts=[dict(claim='Documented behavior', evidence_id=card(2)[0])]),
++        dict(source_id='S3', heading='Code', facts=[dict(claim='Observed console.log', evidence_id=card(3)[0])])])
++
++
++@pytest.mark.parametrize('claim', ['Observed behavior', 'client.runner', 'xclient.run',
++    'parent.client.run', 'client.run.child', 'client.run$', 'client.stop'])
++def test_code_reference_requires_its_exact_operation_before_writer(claim):
++    original = nav.v3_writer_schema(nav.v3_source_reference_map(pages()))
++    assert Draft7Validator(original).is_valid(report(claim))
++    from src.brain.work_research import _fact_evidence
++    with pytest.raises(ValueError, match='must name its exact operation'):
++        _fact_evidence(dict(claim=claim, kind='code', symbol='client.run', first_line=1, last_line=1),
++                       dict(final_url='https://example.com/a.py'), {1: 'client.run()'})
++    assert not Draft7Validator(phase(pages())).is_valid(report(claim))
++
++
++def test_same_source_refs_keep_their_operation_and_noncode_contract():
++    schema = phase(pages())
++    assert Draft7Validator(schema).is_valid(report())
++    assert Draft7Validator(schema).is_valid(report('client.stop()', card(4)[0]))
++    assert not Draft7Validator(schema).is_valid(report('client.run()', card(4)[0]))
++    assert Draft7Validator(schema).is_valid(report('A limitation is visible', card(5)[0]))
++    assert not Draft7Validator(schema).is_valid(report('client.run', card(2)[0]))
++    assert not Draft7Validator(schema).is_valid(report('client.run', card(99)[0]))
++    assert schema == phase(tuple(reversed(pages())))
++
++
++@pytest.mark.parametrize('op', ['', 'x' * 201, 'client.run()', '9run', 'x..y', 'x\ny'])
++def test_invalid_code_operation_fails_closed(op):
++    with pytest.raises(ValueError): phase(pages(op))
++
++
++def test_empty_pages_do_not_grant_options_or_writer_admission():
++    assert phase((*pages(), ('S4', b'[]'))) == phase(pages())
++    with pytest.raises(ValueError): phase(pages()[:2] + (('S3', b'[]'),))
++
++
++def facts(section):
++    item = section['properties']['facts']['items']
++    return item.get('anyOf', [item])
++
++
++def test_pattern_matches_original_boundary_guard_over_bounded_alphabet():
++    edges = ['', ' ', '.', 'a', '9', '_', '$', '(', ')', '`', '中', 'é', '.a', '.9', '..']
++    for op in ('client.run', '$run', 'a_9.$x', 'a中.bé'):
++        schema = phase(pages(op))
++        branch = next(f for f in facts(schema['properties']['sections']['items']['anyOf'][0])
++                      if card(1)[0] in f['properties']['evidence_id']['enum'])
++        pattern = branch['properties']['claim']['pattern']
++        assert '(?' not in pattern
++        guard = re.compile(r'(?<![A-Za-z0-9_$.])' + re.escape(op) + r'(?![A-Za-z0-9_$]|\.[A-Za-z_$])')
++        for left, right in itertools.product(edges, repeat=2):
++            claim = left + op + right
++            assert bool(re.search(pattern, claim)) == bool(guard.search(claim)), (op, claim, pattern)
++        assert re.search(pattern, 'x' + op + ' and ' + op + '()')
++        assert branch['properties']['claim']['maxLength'] == 2000
++
++
++@pytest.fixture
++def code_sources(sdk_io, monkeypatch):
++    urls = ['https://example.com/one.md', 'https://example.com/two.py', 'https://example.com/three.js']
++    bodies = ['Documented local operations.', 'client.run()\nclient.stop()\n', "console.log('ready');\n"]
++    def get(method, url, **kwargs):
++        assert method == 'GET' and url in urls
++        return httpx.Response(200, headers={'content-type': 'text/plain'}, text=bodies[urls.index(url)],
++                              request=httpx.Request(method, url))
++    monkeypatch.setattr(httpx, 'request', get)
++    return urls
++
++
++@pytest.mark.parametrize('fault', ['missing', 'near', 'prefix', 'parent', 'child', 'other_operation'])
++def test_native_bad_code_claim_never_dispatches_writer(tmp_path, sdk_io, mock_jar, code_sources, fault):
++    def reply(body):
++        value = json.loads(navigation_reply(body))
++        if value.get('action') == WRITE:
++            fact = value['action_input']['sections'][1]['facts'][0]
++            op = fact['claim'].removeprefix('Observed ')
++            fact['claim'] = dict(missing='Observed behavior', near=op + 'ner', prefix='x' + op,
++                                 parent='parent.' + op, child=op + '.child', other_operation='client.stop')[fault]
++        return json.dumps(value)
++    reply.no_auto_navigation = True
++    mock_jar[3].extend([reply] * 5)
++    result = submit(tmp_path, sdk_io[0], mock_jar[1], source_urls=code_sources)
++    assert result['status'] == 'failed' and result['error'] == 'Invalid native research envelope'
++    ledger = RESTRICTED[result['task_id']]
++    assert not any(r['tool_name'] in (WRITE, 'ultima_work_file_write') for r in ledger.snapshot())
++    assert not result['artifacts'] and not result.get('research_effects')
++    assert 'research_failure' not in result and not list(tmp_path.rglob('research.md'))
++
++
++def delivered(tmp_path, sdk_io, mock_jar, code_sources):
++    mock_jar[3].extend([navigation_reply] * 5)
++    result = submit(tmp_path, sdk_io[0], mock_jar[1], source_urls=code_sources)
++    assert result['status'] == 'succeeded', result['error']
++    return result, RESTRICTED[result['task_id']]
++
++
++def test_original_writer_still_rejects_code_claim_corruption(tmp_path, sdk_io, mock_jar, code_sources, monkeypatch):
++    original = nav.resolve_v3
++    def corrupt(params, snapshot, collection):
++        params = deepcopy(params)
++        params['sections'][1]['facts'][0]['claim'] = 'Observed behavior'
++        return original(params, snapshot, collection)
++    monkeypatch.setattr(nav, 'resolve_v3', corrupt)
++    mock_jar[3].extend([navigation_reply] * 5)
++    result = submit(tmp_path, sdk_io[0], mock_jar[1], source_urls=code_sources)
++    assert result['error'] == 'Unlinked or failed END'
++    assert result['research_failure']['reason_code'] == 'CODE_OPERATION_REQUIRED'
++    assert not result['artifacts'] and not list(tmp_path.rglob('research.md'))
++
++
++def test_native_pending_third_view_format_phase_and_full_delivery(tmp_path, sdk_io, mock_jar, code_sources):
++    result, ledger = delivered(tmp_path, sdk_io, mock_jar, code_sources)
++    packet = json.loads(ledger._runtime_final); wire = packet['wires'][-2]
++    observed = [json.loads(m['content'][13:]) for m in wire['secured_messages']
++                if m['role'] == 'user' and m['content'].startswith('Observation: ')]
++    expected = phase(tuple((p['source_id'], nav.canonical_v3(p['cards'])) for p in observed))
++    assert writer_schema(wire['strict_schema']) == expected
++    assert writer_schema(mock_jar[2][-2]['format']) == server._research_sampler_schema(expected)
++    assert writer_schema(wire['sampler_schema']) == server._research_sampler_schema(expected)
++    assert json.dumps(expected, ensure_ascii=False, separators=(',', ':')) in wire['secured_messages'][0]['content']
++    assert len(observed) == 3 and len(mock_jar[2]) == 5
++    assert len(nav.canonical_v3([wire['secured_messages'], wire['strict_schema']])) <= 32768
++    assert len(wire['entity'].encode('utf8')) <= 49152
++    for native in mock_jar[2][:3]:
++        assert not any(a['properties'].get('action', {}).get('enum') == [WRITE] for a in native['format']['anyOf'])
++    raw = Path(result['artifacts'][0]['path']).read_bytes()
++    assert hashlib.sha256(raw).hexdigest() == result['artifacts'][0]['sha256']
++    assert len(result['research_effects']) == 1 and len(result['sources']) == 3
++    from src.brain.work_research import verify_runtime_packet
++    verify_runtime_packet(ledger._binding, ledger.issued_snapshot, ledger._collection,
++                          ledger._runtime_final, require_ack=True, runtime_inputs=ledger._runtime_inputs)
++
++
++@pytest.mark.parametrize('fault', ['remove_pattern', 'other_operation', 'phase'])
++def test_replay_rebuilds_operation_contract_despite_coherent_wire_hashes(tmp_path, sdk_io, mock_jar, code_sources, fault):
++    _, ledger = delivered(tmp_path, sdk_io, mock_jar, code_sources)
++    packet = json.loads(ledger._runtime_prewrite); wire = packet['wires'][-1]
++    if fault == 'phase':
++        wire['secured_messages'][0]['content'] += ' accept omitted operation'
++    else:
++        sections = writer_schema(wire['strict_schema'])['properties']['sections']['items']['anyOf']
++        claims = [f['properties']['claim'] for s in sections for f in facts(s) if 'pattern' in f['properties']['claim']]
++        assert claims, 'native schema lacks evidence-specific code claim patterns'
++        claim = claims[0]
++        if fault == 'remove_pattern': claim.pop('pattern')
++        else: claim['pattern'] = '^.*(client.run|other.operation).*$'
++    wire['sampler_schema'] = server._research_sampler_schema(wire['strict_schema'])
++    request = json.loads(wire['entity']); request.update(messages=wire['secured_messages'], format=wire['sampler_schema'])
++    entity = nav.canonical_v3(request); wire['entity'] = entity.decode('utf8')
++    wire['hashes'] = {k: hashlib.sha256(v).hexdigest() for k, v in dict(
++        messages=nav.canonical_v3(wire['secured_messages']), strict=nav.canonical_v3(wire['strict_schema']),
++        sampler=nav.canonical_v3(wire['sampler_schema']), entity=entity).items()}
++    packet['transport']['receipts'][(len(packet['wires'])-1)*3+2].update(entity_sha256=wire['hashes']['entity'], entity_bytes=len(entity))
++    packet['transport']['post_bytes'] = sum(len(w['entity'].encode('utf8')) for w in packet['wires'])
++    from src.brain.work_research import verify_runtime_packet
++    expected = 'Runtime exact phase system drift' if fault == 'phase' else 'Runtime phase schema or output budget drift'
++    with pytest.raises(ValueError, match=expected):
++        verify_runtime_packet(ledger._binding, ledger.issued_snapshot, ledger._collection,
++                              nav.canonical_v3(packet), runtime_inputs=ledger._runtime_inputs)
++
++
++def test_six_pages_48_cards_kept_within_unchanged_caps_or_rejected():
++    visible = tuple((f'S{min(page+1, 5)}', nav.canonical_v3([
++        card(page*8+i, op='client.run') for i in range(8)])) for page in range(6))
++    schema = phase(visible)
++    sections = schema['properties']['sections']['items']['anyOf']
++    assert len(sections) == 5
++    assert sum(len(f['properties']['evidence_id']['enum']) for s in sections for f in facts(s)) == 48
++    assert len(nav.canonical_v3(schema)) < 32768
++    from openjarvis.core.types import Message, Role
++    server._research_budget([Message(role=Role.USER, content='x')], schema, 2048)
++    with pytest.raises(ValueError, match='context estimate'):
++        server._research_budget([Message(role=Role.USER, content='x' * 100000)], schema, 2048)
++    assert schema['properties']['sections']['maxItems'] == 5
+diff --git a/src/brain/work_navigation.py b/src/brain/work_navigation.py
+index c3a38d46..664e7d96 100644
+--- a/src/brain/work_navigation.py
++++ b/src/brain/work_navigation.py
+@@ -433,20 +433,50 @@ def v3_writer_schema(source_refs: dict[str, tuple[str, ...]] | None = None) -> d
+                     or len(set(refs))!=len(refs) or seen.intersection(refs)):
+                 raise ValueError('Invalid source reference mapping')
+             seen.update(refs)
+             bound_fact=obj(claim=text(2000),evidence_id=dict(fact['properties']['evidence_id'],enum=sorted(refs)))
+             branches.append(obj(source_id=dict(section['properties']['source_id'],enum=[sid]),heading=text(200),facts=array(bound_fact,1,6)))
+         if len(seen)>48: raise ValueError('Visible reference count exceeds cap')
+         section=dict(anyOf=branches)
+     return obj(path=dict(text(2048),enum=['research.md']),title=text(200),sections=array(section,3,5))
+ 
+ 
++def v3_phase_writer_schema(visible: tuple[tuple[str, bytes], ...]) -> dict:
++    """Bind each code fact to its trusted operation using the sampler dialect."""
++    schema=v3_writer_schema(v3_source_reference_map(visible))
++    constraints={}
++    for _,raw in visible:
++        for ref,kind,op,*_ in _load(raw):
++            pattern=None
++            if kind=='code':
++                if len(op)>200 or not re.fullmatch(r'[A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*)*',op):
++                    raise ValueError('Invalid visible code operation')
++                # Equivalent to the writer's exact-operation lookarounds for
++                # valid single-line claims, using only supported GBNF syntax.
++                pattern=(r'^(.*[^A-Za-z0-9_$.])?'+re.escape(op)
++                    +r'([^A-Za-z0-9_$.].*|\.([^A-Za-z_$].*)?)?$')
++            constraints[ref]=pattern
++    for section in schema['properties']['sections']['items']['anyOf']:
++        items=section['properties']['facts']
++        base=items['items']; groups={}
++        for ref in base['properties']['evidence_id']['enum']:
++            groups.setdefault(constraints[ref],[]).append(ref)
++        alternatives=[]
++        for pattern,refs in groups.items():
++            claim=dict(base['properties']['claim'])
++            if pattern is not None: claim['pattern']=pattern
++            alternatives.append(dict(base,properties=dict(claim=claim,
++                evidence_id=dict(base['properties']['evidence_id'],enum=refs))))
++        items['items']=alternatives[0] if len(alternatives)==1 else dict(anyOf=alternatives)
++    return schema
++
++
+ def _source_packet(source):
+     result=asdict(source)
+     for k in ('identity_json','anchors_json'): result[k]=json.loads(result[k])
+     result['safe_line_pairs']=[list(x) for x in source.safe_line_pairs]
+     result['omissions']=[list(x) for x in source.omissions]
+     return result
+ 
+ 
+ def seal_snapshot(catalogue, collection, get_records_json, policy, reads, *, generation):
+     """Seal already issued reads; caller ledger alone proves issuance authority."""
+diff --git a/src/brain/work_research.py b/src/brain/work_research.py
+index e1164b75..abf841c9 100644
+--- a/src/brain/work_research.py
++++ b/src/brain/work_research.py
+@@ -639,21 +639,21 @@ def _verify_runtime_order(packet,reads,written,require_ack,runtime_inputs):
+             if written:
+                 _,remaining=take('intent',seq=seq,file_call_id=key['file_call_id'])
+                 if remaining<55: raise ValueError('Runtime intent reserve exhausted')
+                 take('file_end',file_call_id=key['file_call_id'])
+                 take('sdk_end',seq=seq,event_index=index*2+1)
+     if cursor!=len(timeline): raise ValueError('Unexpected runtime terminal order')
+ 
+ 
+ def verify_runtime_packet(binding, snapshot, collection, raw, *, require_ack=False,runtime_inputs=None):
+     """Reconstruct native entities, history and read/event links independently."""
+-    from .work_navigation import canonical_v3,v3_writer_schema,v3_source_reference_map
++    from .work_navigation import canonical_v3,v3_writer_schema,v3_phase_writer_schema
+     from .work_tools import WorkInspectTool,WorkResearchWriteTool
+     from openjarvis.tools._stubs import ToolSpec,build_tool_descriptions
+     from types import SimpleNamespace
+     from .agent_server import _strict_json,_research_sampler_schema,_RESEARCH_MODEL,MAINBRAIN_SYSTEM_PROMPT
+     from openjarvis.agents.native_react import REACT_SYSTEM_PROMPT
+     from jsonschema import Draft7Validator
+     from openjarvis.security.scanner import SecretScanner,PIIScanner
+     from .work_navigation import make_scan_policy
+     sealed_policy=json.loads(snapshot.replay_json)['policy']
+     factories={c.__module__+'.'+c.__qualname__:c for c in (SecretScanner,PIIScanner)}
+@@ -787,22 +787,22 @@ def verify_runtime_packet(binding, snapshot, collection, raw, *, require_ack=Fal
+             raise ValueError('Empty research final answer')
+         Draft7Validator(wire['strict_schema']).validate(envelope)
+         final=dict(type='object',additionalProperties=False,required=['final_answer'],
+             properties=dict(final_answer=dict(type='string',minLength=1,maxLength=1000)))
+         ack=index==len(reads)+1
+         allowed=[]
+         def action(name,params):
+             return dict(type='object',additionalProperties=False,required=['action','action_input'],properties=dict(action=dict(enum=[name]),action_input=params))
+         visible=reads[:index]
+         eligible=len({r['source_id'] for r in visible if r['wire']['cards']})>=3
+-        report_schema=v3_writer_schema(v3_source_reference_map(tuple(
+-            (r['source_id'],canonical_v3(r['wire']['cards'])) for r in visible))) if eligible else v3_writer_schema()
++        report_schema=v3_phase_writer_schema(tuple(
++            (r['source_id'],canonical_v3(r['wire']['cards'])) for r in visible)) if eligible else v3_writer_schema()
+         if not ack:
+             if index<6: allowed.append(action('ultima_work_research_inspect',WorkInspectTool.parameters))
+             if eligible: allowed.append(action('ultima_work_research_write',report_schema))
+         expected_schema=final if ack else dict(anyOf=[*allowed,final])
+         output_cap=256 if ack or not eligible else 2048
+         if (wire['strict_schema']!=expected_schema or type(request['options']['num_predict']) is not int
+                 or not 0<request['options']['num_predict']<=output_cap):
+             raise ValueError('Runtime phase schema or output budget drift')
+         if (type(runtime_inputs.allowance) is not int or runtime_inputs.allowance<=0 or request['options']!=dict(
+                 num_ctx=16384,temperature=0,num_predict=min(runtime_inputs.allowance,output_cap))
