@@ -1,0 +1,31 @@
+...F......                                                               [100%]
+================================== FAILURES ===================================
+___ test_failure_diagnostic_export_real_sdk_failure_is_private_and_bounded ____
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-source-coverage-controlled-preparation-20261107-r1/code/harness-preparation-20261107T103452788477Z/temp/test_failure_diagnostic_export3')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000207FEAB2E00>
+sdk_io = (<src.brain.browser.channel.BrowserChannel object at 0x00000207FC9AB5C0>, [('search', 'Research a subject')], {})
+mock_jar = (<openjarvis.sdk.Jarvis object at 0x0000020821603350>, <function _run_work_agent at 0x0000020820B87CE0>, [{'format': {...ser'}], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [])
+
+    def test_failure_diagnostic_export_real_sdk_failure_is_private_and_bounded(tmp_path,monkeypatch,sdk_io,mock_jar):
+        from src.brain.tests.test_work_failure_diagnostics import early_case,FINAL
+        observe_failure_exports(tmp_path,monkeypatch)
+        result,ledger=early_case(tmp_path/'outputs',sdk_io,mock_jar,monkeypatch,reads=1)
+        assert result['status']=='failed' and result['error']=='Missing nonempty immutable runtime proof'
+        path=tmp_path/'trusted-failure-diagnostic.raw'
+        assert path.exists(), 'failure observer discards the private diagnostic'
+        assert path.read_bytes()==ledger._failure_diagnostic and path.stat().st_size<=16384
+        receipt=a.load(tmp_path/'trusted-failure-diagnostic.export.json')
+        assert receipt['status']=='SAVED' and receipt['sha256']==a.sha(path) and receipt['complete'] is False and receipt['END'] is False
+>       assert FINAL not in json.dumps(result,ensure_ascii=False)
+E       assert '本次研究未交付。' not in '{"request_i...credit": 0}}'
+E         
+E         '本次研究未交付。' is contained here:
+E         ?           ^^                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       ...
+E         
+E         ...Full output truncated, use '-vv' to show
+
+..\..\harness\test_adapter.py:57: AssertionError
+=========================== short test summary info ===========================
+FAILED ..\..\harness\test_adapter.py::test_failure_diagnostic_export_real_sdk_failure_is_private_and_bounded
+1 failed, 9 passed in 7.01s

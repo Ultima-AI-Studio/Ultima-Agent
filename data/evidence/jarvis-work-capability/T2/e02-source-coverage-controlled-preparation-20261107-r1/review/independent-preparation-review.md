@@ -1,0 +1,40 @@
+# Independent preparation review
+
+Verdict: **PASS_PREPARATION_ONLY**
+
+Candidate: e40a55b40c223181040dbb6a09d0c4d2da5026cf
+
+Manifest SHA256: 155d0c7e62086d93d0adf01c2956bc393843003fb91e52e0f28ba07f5ec97d59
+
+Reviewer: root-independent. Original work order wo-ultimaagent-20261101-0021 / T2.
+
+No actionable findings. Actual authorization false; acceptance credit0; reviewer tests/model calls/actual cases0.
+
+## Independently checked
+
+- Independently hashed all 189 N15 manifest members and 1575 input files; no mismatches. Derived check_inputs union is 1578, including three entry binding pins.
+- Independently reconstructed source union: 68 inherited paths mapped to C13 plus 36 N14 frozen top-level paths equals 73 unique sources. All 73 match N14 current-inputs and current bytes. Incomplete first draft has 36 sources/1538 files and remains archived; second RED pins final full input manifest.
+- All top-level function/class ASTs equal N13: entry 11, bindings 6, adapter 68; nested bodies included. Non-definition AST changes confined to candidate/root and associated binding digests. Other input manifest fields equal N13 exactly.
+- Frozen C13 HEAD and candidate tag equal e40a55b40c223181040dbb6a09d0c4d2da5026cf; git status empty. No product mutations or tests executed by reviewer.
+- Fresh archived JUnit groups independently counted: failure-export-green13, base-b140, base-a79, recovery19, export-green32. 283 raw cases deduplicate by classname/name to281; no failures/errors/skips. Standard receipts independently give bindings16, entry34, boundary11; total342.
+- Both RED runs retain10 cases, one expected old FINAL-not-in-public-result assertion failure, zero errors. Their snapshot/receipt/audit records are preserved and excluded from final PASS totals. Final green harness snapshots and source-before/source-after digests match current bytes.
+- Inspected installed adapter.install_trusted_exports observer, shared SDK/HTTPX MockTransport fixture and three new scenarios: rejected fifth S1 read uses4 reads/5 posts, explicit refusal uses6 reads/7 posts with S1-S3 visible, false saved final uses0 reads/1 post and remains unvalidated. Each binds captured HTTP request bytes/digest, status/generation, service-first-result, private raw bytes, export digest, public summary, no file/write/ACK/runtime-final and zero credit. Pending fourth S1 page confirmed but not visible is asserted.
+- Exact fixed public non-delivery sentence is allowed; private final_answer object remains excluded from public result. Private bounded16KiB/digest/binding/unsafe-field rejection checks retained.
+- N14 manifest1599/current-inputs1572, N13 manifest149/result60, N12 manifest808/current-inputs1568, N11 manifest2501/result49/supplement4 independently hashed. Accepted dependency pin sets1567 and1563 match. Predecessor manifest/review/publication links and9 unrelated files match; older candidate worktrees also clean.
+- N13 actual91406fa9-5952-4e3a-99af-a94c8857c8d3 independent verdict remains FAIL_CONFIRMED. Historical N14 product746 baseline is not counted as this review or this turn fresh product execution.
+- Direct goal and scope allocate actual0/result-review0/model0. No actual, release, controller-authority, native-preflight or controller-ledger exists. Exact sealed direct decision requires actual1/review1/retry0, package/candidate/model binding,120-second expiry and exclusive consumed marker before actual. Current goal cannot satisfy grant; old spent allocation is not copied.
+- Original current8B digest, four-source task/corpus, CLI1/search1/GET4/inspect6/write1/ACK1/nativePOST8,260/300/275/310/315-second and context/entity/output budgets remain unchanged. Old E01/E03 credit is not transferred; E02 and T2 remain unpassed.
+- Runtime evidence is only archived point2026-11-07T10:38:06.716669Z: protected7, current8B metadata and isolated-port availability. Checker source hashes match; reviewer performed no live query.
+- Statically inspected closeout.py and publish.py as unexecuted programs. Closeout checks this bound independent preparation verdict, verifies inputs, signs preparation approval, invokes read_ready/read_release only and expects FileNotFoundError without grant; no run_once/run_released call. It preserves last_actual_result and zero allocations.
+- Planned publication uses explicit project/mirror path sets, empty staged-set preconditions, expected parent commits, exact byte readback and tags; candidate and foreign-file preservation rechecked. No push operation; previous automatic-approval push rejection is retained, not retried. Approval/readiness/publication receipts did not exist at review time.
+
+## Explicit limitations
+
+- Preparation-only static review, not actual execution authorization, product acceptance, semantic research success, result review, T2 exit or Owner approval. Acceptance credit remains0.
+- Reviewer executed zero tests, model calls or actual cases and did not import/execute entry.py, bindings.py, adapter.py or verification programs. Archived test outcomes were independently parsed and hash-bound; not rerun.
+- No network, runtime/process query, product/profile launch, UI/audio/service operation, install or git mutation performed. Runtime observations do not establish current or continuous liveness.
+- MockTransport proves the inspected offline contract only; no new evidence of real8B semantics, native grammar compatibility or repair of historical writer-phase HTTP500.
+- Closeout/readiness/approval/local commit/tag/mirror publication were not yet executed; static approval does not claim their future readback success. Parent must stop on any failure or drift. Remote sync remains unproven and push must not be retried under existing rejection.
+- Historical baseline746 and older E01/E03 evidence are not fresh tests or current-candidate acceptance; actual allocation and result-review allocation remain separately gated.
+
+Next gate: Execute reviewed preparation-only closeout and exact local publication with independent readback; actual remains forbidden until explicit fresh one-case allocation and one result-review allocation.
