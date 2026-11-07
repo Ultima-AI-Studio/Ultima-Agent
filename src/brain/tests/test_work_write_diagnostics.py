@@ -29,16 +29,21 @@ def failed_write(tmp_path, sdk_io, payload=None, after=None):
 
 
 def resolver_fault(monkeypatch, fault):
-    # The phase schema now rejects bad references before writer dispatch.
+    # The phase schema rejects bad references and duplicate source sections
+    # before writer dispatch.
     # Inject corruption at the resolver boundary to retain diagnostic coverage
     # of the real writer's independent defense and trusted failure ledger.
     from src.brain import work_navigation as nav
     original = nav.resolve_v3
     def resolve(params, snapshot, collection):
         params = deepcopy(params)
-        params['sections'][0]['facts'][0]['evidence_id'] = (
-            'N3.' + '0' * 16 if fault == 'unissued'
-            else params['sections'][1]['facts'][0]['evidence_id'])
+        if fault == 'duplicate_source':
+            params['sections'][1]['source_id']=params['sections'][0]['source_id']
+            params['sections'][1]['facts'][0]['evidence_id']=params['sections'][0]['facts'][0]['evidence_id']
+        else:
+            params['sections'][0]['facts'][0]['evidence_id'] = (
+                'N3.' + '0' * 16 if fault == 'unissued'
+                else params['sections'][1]['facts'][0]['evidence_id'])
         return original(params, snapshot, collection)
     monkeypatch.setattr(nav, 'resolve_v3', resolve)
 
@@ -51,11 +56,8 @@ def resolver_fault(monkeypatch, fault):
 ])
 def test_real_writer_reason_survives_failed_end(tmp_path, sdk_io, monkeypatch, fault, reason):
     payload = report_payload()
-    if fault in ('unissued', 'foreign'):
+    if fault in ('unissued', 'foreign', 'duplicate_source'):
         resolver_fault(monkeypatch, fault)
-    elif fault == 'duplicate_source':
-        payload['sections'][1]['source_id'] = 'S1'
-        payload['sections'][1]['facts'][0]['evidence_id'] = 'issued:S1'
     else:
         payload['sections'][0]['facts'][0]['claim'] = 'first line\nsecond line'
     result = failed_write(tmp_path, sdk_io, payload)

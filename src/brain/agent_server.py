@@ -551,7 +551,7 @@ class _ResearchEngineView:
         import copy,hashlib
         from jsonschema import Draft7Validator
         from openjarvis.core.types import Message,Role
-        from .work_navigation import canonical_v3,v3_writer_schema,v3_phase_writer_schema,v3_research_phase
+        from .work_navigation import canonical_v3,v3_writer_schema,v3_phase_writer_schema,v3_research_phase,v3_research_envelope
         self.check_dispatch()
         self.generation+=1
         if self.final: raise ValueError('Research already finalized')
@@ -589,7 +589,7 @@ class _ResearchEngineView:
             if self.ledger._read_count<6:
                 alternatives.append(action('ultima_work_research_inspect',self.ledger._enrolled['ultima_work_research_inspect'].spec.parameters))
             if eligible: alternatives.append(action('ultima_work_research_write',report_schema))
-            schema=dict(anyOf=[*alternatives,final])
+            schema=v3_research_envelope([*alternatives,final])
             limit=min(kwargs['max_tokens'],2048 if eligible else 256)
             phase=v3_research_phase(report_schema)
         outgoing=[replace(messages[0],content=self.replaced_system+'\n\n'+phase),*messages[1:]]

@@ -785,7 +785,6 @@ def verify_runtime_packet(binding, snapshot, collection, raw, *, require_ack=Fal
         scan_strings(envelope)
         if isinstance(envelope,dict) and isinstance(envelope.get('final_answer'),str) and not envelope['final_answer'].strip():
             raise ValueError('Empty research final answer')
-        Draft7Validator(wire['strict_schema']).validate(envelope)
         final=dict(type='object',additionalProperties=False,required=['final_answer'],
             properties=dict(final_answer=dict(type='string',minLength=1,maxLength=1000)))
         ack=index==len(reads)+1
@@ -799,11 +798,14 @@ def verify_runtime_packet(binding, snapshot, collection, raw, *, require_ack=Fal
         if not ack:
             if index<6: allowed.append(action('ultima_work_research_inspect',WorkInspectTool.parameters))
             if eligible: allowed.append(action('ultima_work_research_write',report_schema))
-        expected_schema=final if ack else dict(anyOf=[*allowed,final])
+        from .work_navigation import v3_research_envelope
+        expected_schema=final if ack else v3_research_envelope([*allowed,final])
         output_cap=256 if ack or not eligible else 2048
         if (wire['strict_schema']!=expected_schema or type(request['options']['num_predict']) is not int
                 or not 0<request['options']['num_predict']<=output_cap):
             raise ValueError('Runtime phase schema or output budget drift')
+        # Compare before resolving references; replay never consults an untrusted schema.
+        Draft7Validator(expected_schema).validate(envelope)
         if (type(runtime_inputs.allowance) is not int or runtime_inputs.allowance<=0 or request['options']!=dict(
                 num_ctx=16384,temperature=0,num_predict=min(runtime_inputs.allowance,output_cap))
                 or type(request['options']['num_ctx']) is not int or type(request['options']['temperature']) is not int):

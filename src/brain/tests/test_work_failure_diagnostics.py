@@ -1,6 +1,7 @@
 """Failure diagnostics must explain the real SDK path without granting delivery."""
 import hashlib
 import json
+import math
 from pathlib import Path
 import httpx
 import pytest
@@ -9,6 +10,35 @@ from src.brain.tests.test_work_research import sdk_io,mock_jar,submit,RESTRICTED
 from src.brain.tests.test_work_navigation_transport import genuine_navigation,navigation_reply
 
 FINAL='现有证据不足以回答原题的任务架构；未写入研究文件。'
+
+
+def test_trusted_numeric_deadline_is_not_interpreted_as_text_pii(tmp_path,sdk_io,mock_jar,monkeypatch):
+    # This internal seconds value has the same digit shape as a phone number.
+    # It is a counter, not user/source text, and must not discard the snapshot.
+    remaining=259.1234567
+    def clock(response,ledger):
+        ledger.deadline=remaining;monkeypatch.setattr(wt,'monotonic',lambda:0.0)
+        pii=next(s for s in ledger._policy.scanners if type(s).__name__=='PIIScanner')
+        assert not pii.scan(repr(remaining)).clean
+    result,ledger=early_case(tmp_path,sdk_io,mock_jar,monkeypatch,reads=1,after=clock)
+    assert result['status']=='failed' and result['error']=='Missing nonempty immutable runtime proof'
+    packet=private_packet(result,ledger)
+    numerator,denominator=remaining.as_integer_ratio()
+    assert packet['budget']['deadline_remaining_microseconds']==numerator*1000000//denominator
+    assert packet['budget']['write_admission_open'] is True
+
+
+@pytest.mark.parametrize('remaining',[math.nextafter(55.0,-math.inf),55.0,0.0,-1.0])
+def test_integer_clock_projection_preserves_original_admission_boundary(tmp_path,sdk_io,mock_jar,monkeypatch,remaining):
+    def clock(response,ledger):
+        ledger.deadline=remaining;monkeypatch.setattr(wt,'monotonic',lambda:0.0)
+    result,ledger=early_case(tmp_path,sdk_io,mock_jar,monkeypatch,reads=1,after=clock)
+    packet=private_packet(result,ledger);budget=packet['budget']
+    assert packet['kind']=='research_failure_diagnostic_v2'
+    numerator,denominator=remaining.as_integer_ratio()
+    assert budget['deadline_remaining_microseconds']==numerator*1000000//denominator
+    assert budget['write_admission_open']==(remaining>=55)
+    assert ledger.deadline==remaining
 
 
 def early_case(tmp_path,sdk_io,mock_jar,monkeypatch,*,final=FINAL,reads=6,after=None,empty_first_page=False):
@@ -171,7 +201,7 @@ def test_excess_pages_fail_closed_without_dropping_or_truncating_evidence(tmp_pa
     assert not getattr(ledger,'_failure_diagnostic',None)
 
 
-@pytest.mark.parametrize('change',['complete','credit','binding','extra','limit','branch','card'])
+@pytest.mark.parametrize('change',['complete','credit','binding','extra','limit','branch','card','version','clock_type','clock_overflow'])
 def test_closed_decoder_rejects_coherent_diagnostic_forgery(tmp_path,sdk_io,mock_jar,monkeypatch,change):
     from src.brain.work_research_diagnostics import validate_failure_diagnostic
     from src.brain.work_navigation import canonical_v3
@@ -184,6 +214,9 @@ def test_closed_decoder_rejects_coherent_diagnostic_forgery(tmp_path,sdk_io,mock
     elif change=='limit':packet['budget']['native_posts_limit']=9
     elif change=='branch':packet['branch']='ack'
     elif change=='card':packet['pages'][0]['cards'][0]['operation']='unexpected free text'
+    elif change=='version':packet['kind']='research_failure_diagnostic_v1'
+    elif change=='clock_type':packet['budget']['deadline_remaining_microseconds']=True
+    elif change=='clock_overflow':packet['budget']['deadline_remaining_microseconds']=2**63
     with pytest.raises(ValueError):validate_failure_diagnostic(canonical_v3(packet),ledger._navigation.binding_key)
 
 

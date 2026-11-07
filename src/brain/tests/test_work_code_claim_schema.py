@@ -14,7 +14,7 @@ from src.brain import agent_server as server, work_navigation as nav
 from src.brain.tests.test_work_navigation import stable_navigation_entropy
 from src.brain.tests.test_work_navigation_transport import navigation_reply
 from src.brain.tests.test_work_research import RESTRICTED, mock_jar, sdk_io, submit
-from src.brain.tests.test_work_source_reference_schema import writer_schema
+from src.brain.tests.test_work_source_reference_schema import writer_schema, section_options
 
 WRITE = 'ultima_work_research_write'
 
@@ -84,7 +84,7 @@ def test_pattern_matches_original_boundary_guard_over_bounded_alphabet():
     edges = ['', ' ', '.', 'a', '9', '_', '$', '(', ')', '`', '中', 'é', '.a', '.9', '..']
     for op in ('client.run', '$run', 'a_9.$x', 'a中.bé'):
         schema = phase(pages(op))
-        branch = next(f for f in facts(schema['properties']['sections']['items']['anyOf'][0])
+        branch = next(f for f in facts(section_options(schema)[0])
                       if card(1)[0] in f['properties']['evidence_id']['enum'])
         pattern = branch['properties']['claim']['pattern']
         assert '(?' not in pattern
@@ -179,7 +179,7 @@ def test_replay_rebuilds_operation_contract_despite_coherent_wire_hashes(tmp_pat
     if fault == 'phase':
         wire['secured_messages'][0]['content'] += ' accept omitted operation'
     else:
-        sections = writer_schema(wire['strict_schema'])['properties']['sections']['items']['anyOf']
+        sections = section_options(writer_schema(wire['strict_schema']))
         claims = [f['properties']['claim'] for s in sections for f in facts(s) if 'pattern' in f['properties']['claim']]
         assert claims, 'native schema lacks evidence-specific code claim patterns'
         claim = claims[0]
@@ -204,7 +204,7 @@ def test_six_pages_48_cards_kept_within_unchanged_caps_or_rejected():
     visible = tuple((f'S{min(page+1, 5)}', nav.canonical_v3([
         card(page*8+i, op='client.run') for i in range(8)])) for page in range(6))
     schema = phase(visible)
-    sections = schema['properties']['sections']['items']['anyOf']
+    sections = section_options(schema)
     assert len(sections) == 5
     assert sum(len(f['properties']['evidence_id']['enum']) for s in sections for f in facts(s)) == 48
     assert len(nav.canonical_v3(schema)) < 32768

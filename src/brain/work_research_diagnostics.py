@@ -3,12 +3,11 @@ from __future__ import annotations
 import copy
 import hashlib
 import json
-import math
 import re
 from .work_navigation import canonical_v3
 
 CAP = 16384
-KIND = 'research_failure_diagnostic_v1'
+KIND = 'research_failure_diagnostic_v2'
 BRANCHES = {'absent','action','unvalidated_response','final_before_write','write_without_ack','ack'}
 
 
@@ -75,14 +74,13 @@ def validate_failure_diagnostic(raw,binding_key):
     _require(type(p['read_requests']) is list and len(p['read_requests'])<=6)
     for request in p['read_requests']:
         _closed(request,'source_id start_line');_source(request['source_id']);_count(request['start_line'],2**31-1);_require(request['start_line']>0)
-    b=p['budget'];_closed(b,'reads_used reads_limit read_bytes native_posts native_posts_limit completed_posts generations deadline_remaining_seconds write_admission_open')
+    b=p['budget'];_closed(b,'reads_used reads_limit read_bytes native_posts native_posts_limit completed_posts generations deadline_remaining_microseconds write_admission_open')
     _require(type(b['reads_limit']) is int and b['reads_limit']==6 and type(b['native_posts_limit']) is int and b['native_posts_limit']==8)
     for key,limit in [('reads_used',6),('read_bytes',18432),('native_posts',8),('completed_posts',8),('generations',64)]:_count(b[key],limit)
     _require(b['completed_posts']<=b['native_posts'] and len(p['pages'])<=b['reads_used'])
-    _require(type(b['deadline_remaining_seconds']) is str and len(b['deadline_remaining_seconds'])<=64)
-    remaining=float(b['deadline_remaining_seconds'])
-    _require(math.isfinite(remaining) and repr(remaining)==b['deadline_remaining_seconds'])
-    _require(type(b['write_admission_open']) is bool and b['write_admission_open']==(remaining>=55))
+    remaining_us=b['deadline_remaining_microseconds']
+    _require(type(remaining_us) is int and -(2**63)<=remaining_us<2**63)
+    _require(type(b['write_admission_open']) is bool and b['write_admission_open']==(remaining_us>=55000000))
     _require(not p['ack_confirmed'] or p['write_confirmed'])
     _require((p['branch']=='ack')==p['ack_confirmed'])
     _require(p['branch']!='write_without_ack' or (p['write_confirmed'] and not p['ack_confirmed']))
@@ -125,11 +123,13 @@ def _project(ledger):
         if event['type']=='tool_call_start' and data.get('tool')=='ultima_work_research_inspect':
             requests.append(dict(source_id=data['arguments']['source_id'],start_line=data['arguments']['start_line']))
     remaining=ledger.deadline-monotonic()
+    numerator,denominator=remaining.as_integer_ratio()
+    remaining_us=numerator*1000000//denominator
     return dict(kind=KIND,complete=False,acceptance_credit=0,binding_sha256=hashlib.sha256(canonical_v3(list(ledger._navigation.binding_key))).hexdigest(),
         branch=branch,final_answer=final,pages=pages,read_requests=requests,
         eligible_source_ids=sorted({p['source_id'] for p in pages if p['confirmed'] and p['cards']}),write_confirmed=write,ack_confirmed=ack,
         budget=dict(reads_used=ledger._read_count,reads_limit=6,read_bytes=ledger._read_bytes,native_posts=getattr(transport,'posts',0),native_posts_limit=8,
-            completed_posts=getattr(transport,'completed',0),generations=generations,deadline_remaining_seconds=repr(float(remaining)),write_admission_open=remaining>=55))
+            completed_posts=getattr(transport,'completed',0),generations=generations,deadline_remaining_microseconds=remaining_us,write_admission_open=remaining>=55))
 
 
 def capture_failure(ledger):

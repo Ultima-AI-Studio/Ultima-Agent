@@ -422,6 +422,7 @@ def v3_research_phase(report_schema):
         'A TODO is a comment, not proof of runtime support or lack of support. '
         'Use remaining inspect calls when pages do not answer the original question; avoid substituting incidental details for its main points. '
         'Reading three sources enables writing but does not establish task coverage. '
+        'Use one section per source in source-ID order; put facts from multiple pages of that source in the same section. '
         'Keep separate projects and documented intentions distinct from verified implementation. '
         'Use at least three distinct source URLs and bodies. Write only research.md once, or refuse with final_answer if evidence is insufficient. '
         'The phase schema is the entire output contract. Full argument schema (JSON):\n'
@@ -477,6 +478,7 @@ def v3_writer_schema(source_refs: dict[str, tuple[str, ...]] | None = None) -> d
 
 def v3_phase_writer_schema(visible: tuple[tuple[str, bytes], ...]) -> dict:
     """Bind each code fact to its trusted operation using the sampler dialect."""
+    from itertools import combinations
     schema=v3_writer_schema(v3_source_reference_map(visible))
     constraints={}
     for _,raw in visible:
@@ -502,6 +504,27 @@ def v3_phase_writer_schema(visible: tuple[tuple[str, bytes], ...]) -> dict:
             alternatives.append(dict(base,properties=dict(claim=claim,
                 evidence_id=dict(base['properties']['evidence_id'],enum=refs))))
         items['items']=alternatives[0] if len(alternatives)==1 else dict(anyOf=alternatives)
+    sections=schema['properties']['sections']['items']['anyOf']
+    definitions={'research_source_'+s['properties']['source_id']['enum'][0]:s for s in sections}
+    schema['definitions']=definitions
+    schema['properties']['sections']=dict(type='array',minItems=3,maxItems=5,anyOf=[dict(type='array',
+        items=[{'$ref':'#/definitions/'+name} for name in names],
+        minItems=size,maxItems=size,additionalItems=False)
+        for size in range(3,len(definitions)+1) for names in combinations(definitions,size)])
+    return schema
+
+
+def v3_research_envelope(alternatives):
+    """Keep local writer references rooted in the complete generation schema."""
+    from copy import deepcopy
+    schema=deepcopy(dict(anyOf=alternatives));definitions={}
+    for option in schema['anyOf']:
+        params=option.get('properties',{}).get('action_input')
+        if not isinstance(params,dict):continue
+        for name,value in params.pop('definitions',{}).items():
+            if name in definitions:raise ValueError('Conflicting research definitions')
+            definitions[name]=value
+    if definitions:schema['definitions']=definitions
     return schema
 
 

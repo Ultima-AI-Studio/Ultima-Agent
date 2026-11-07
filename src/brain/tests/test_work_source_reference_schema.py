@@ -35,8 +35,14 @@ def payload():
 
 
 def writer_schema(schema):
-    return next(a['properties']['action_input'] for a in schema['anyOf']
+    writer=next(a['properties']['action_input'] for a in schema['anyOf']
                 if a['properties'].get('action', {}).get('enum') == [WRITE])
+    return dict(writer,definitions=schema['definitions']) if 'definitions' in schema else writer
+
+
+def section_options(schema):
+    if 'definitions' in schema:return [schema['definitions'][name] for name in sorted(schema['definitions'])]
+    return schema['properties']['sections']['items']['anyOf']
 
 
 def test_correlated_schema_rejects_cross_source_and_unknown_refs():
@@ -115,7 +121,7 @@ def test_native_author_schema_uses_confirmed_third_view_and_complete_delivery(tm
     expected = refs(tuple((p['source_id'], nav.canonical_v3(p['cards'])) for p in observations))
     assert len(expected) == 3
     for outer in (mock_jar[2][-2]['format'], wire['strict_schema'], wire['sampler_schema']):
-        branches = writer_schema(outer)['properties']['sections']['items']['anyOf']
+        branches = section_options(writer_schema(outer))
         actual = {b['properties']['source_id']['enum'][0]:
                   tuple(b['properties']['facts']['items']['properties']['evidence_id']['enum']) for b in branches}
         assert actual == expected
@@ -134,9 +140,9 @@ def test_independent_replay_rejects_correlated_schema_or_phase_forgery(tmp_path,
     _, ledger, _ = delivered(tmp_path, sdk_io, mock_jar)
     packet = json.loads(ledger._runtime_prewrite)
     wire = packet['wires'][-1]
-    branches = writer_schema(wire['strict_schema'])['properties']['sections']['items']['anyOf']
+    branches = section_options(writer_schema(wire['strict_schema']))
     if fault == 'phase': wire['secured_messages'][0]['content'] += ' altered'
-    elif fault == 'remove_branch': branches.pop()
+    elif fault == 'remove_branch': writer_schema(wire['strict_schema'])['properties']['sections']['anyOf'].pop()
     else:
         ref = (branches[1]['properties']['facts']['items']['properties']['evidence_id']['enum'][0]
                if fault == 'foreign' else card(99)[0])
