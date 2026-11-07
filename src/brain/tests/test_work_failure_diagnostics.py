@@ -9,7 +9,7 @@ from src.brain import work_tools as wt
 from src.brain.tests.test_work_research import sdk_io,mock_jar,submit,RESTRICTED,stable_navigation_entropy
 from src.brain.tests.test_work_navigation_transport import genuine_navigation,navigation_reply
 
-FINAL='现有证据不足以回答原题的任务架构；未写入研究文件。'
+FINAL='本次研究未交付。'
 
 
 def test_trusted_numeric_deadline_is_not_interpreted_as_text_pii(tmp_path,sdk_io,mock_jar,monkeypatch):
@@ -87,7 +87,8 @@ def test_six_reads_then_final_preserves_branch_pages_and_budget_without_delivery
         assert page['range']==[view.start,view.end] and page['view_sha256']==view.wire_sha256
         assert page['confirmed'] and page['visible']
         assert [c['id'] for c in page['cards']]==[c[0] for c in cards]
-    assert 'Visible fact' not in json.dumps(packet) and FINAL not in json.dumps(result,ensure_ascii=False)
+    assert 'Visible fact' not in json.dumps(packet)
+    assert 'final_answer' not in json.dumps(result) and result['content']==FINAL
     assert not getattr(ledger,'_runtime_final',None) and not list(tmp_path.rglob('research.md'))
 
 
@@ -184,9 +185,17 @@ def test_scanner_failure_blocks_private_diagnostic_without_changing_failure(tmp_
 
 
 def test_maximum_allowed_final_is_bounded_and_private(tmp_path,sdk_io,mock_jar,monkeypatch):
+    from src.brain import work_service
     final='测'*1000
-    result,ledger=early_case(tmp_path,sdk_io,mock_jar,monkeypatch,reads=1,final=final)
+    def fail(*args,**kwargs):raise ValueError('synthetic independent artifact failure')
+    monkeypatch.setattr(work_service,'verify_artifacts',fail)
+    def ack(body):return json.dumps(dict(final_answer=final))
+    ack.no_auto_navigation=True
+    mock_jar[3].extend([navigation_reply]*4+[ack])
+    result=submit(tmp_path,sdk_io[0],mock_jar[1]);ledger=RESTRICTED[result['task_id']]
     packet=private_packet(result,ledger)
+    assert result['status']=='needs_attention' and packet['branch']=='ack'
+    assert packet['write_confirmed'] and packet['ack_confirmed'] and packet['acceptance_credit']==0
     assert packet['final_answer']['text']==final and len(ledger._failure_diagnostic)<=16384
     assert final not in json.dumps(result,ensure_ascii=False)
 

@@ -211,8 +211,13 @@ class WorkService:
                 effects |= any(effect['state'] != 'rejected' for effect in research_effects)
             result['status'] = 'needs_attention' if effects else 'failed'
             result['error'] = str(exc)
-            result['content'] = ('本次任务未完成，部分操作可能已生效，请核对结果。'
-                                 if effects else '本次任务未完成。')
+            if isinstance(context,dict) and context.get('research'):
+                from .work_navigation import RESEARCH_NOT_DELIVERED
+                result['content'] = ('本次研究未交付，部分操作可能已生效，请核对结果。'
+                                     if effects else RESEARCH_NOT_DELIVERED)
+            else:
+                result['content'] = ('本次任务未完成，部分操作可能已生效，请核对结果。'
+                                     if effects else '本次任务未完成。')
         finally:
             if captured and self._context_provider: self._context_provider.release(captured)
         result['tool_results'] = sdk_results + records

@@ -551,7 +551,8 @@ class _ResearchEngineView:
         import copy,hashlib
         from jsonschema import Draft7Validator
         from openjarvis.core.types import Message,Role
-        from .work_navigation import canonical_v3,v3_writer_schema,v3_phase_writer_schema,v3_research_phase,v3_research_envelope
+        from .work_navigation import (canonical_v3,v3_writer_schema,v3_phase_writer_schema,
+            v3_research_phase,v3_research_envelope,v3_phase_inspect_schema,v3_research_final_schema)
         self.check_dispatch()
         self.generation+=1
         if self.final: raise ValueError('Research already finalized')
@@ -567,9 +568,8 @@ class _ResearchEngineView:
             self.history+=_research_message_dicts([Message(role=Role.ASSISTANT,content=self.last_content),
                 Message(role=Role.USER,content='Observation: '+staged['content'])])
         if _research_message_dicts(messages)!=self.history: raise ValueError('Research SDK history drift')
-        final=dict(type='object',additionalProperties=False,required=['final_answer'],
-            properties=dict(final_answer=dict(type='string',minLength=1,maxLength=1000)))
         ack=self.expected=='ultima_work_research_write'
+        final=v3_research_final_schema(ack=ack)
         pending=self.ledger._staged.get(self.ledger._sequence)
         reads=list(self.ledger._issued)
         if pending and pending.get('view') and pending['confirmed'] and not pending['promoted']:
@@ -584,10 +584,14 @@ class _ResearchEngineView:
             phase='Acknowledge the verified research.md file. No further action is authorized.'
         else:
             self.ledger.admit_report()
-            report_schema=v3_phase_writer_schema(tuple(
-                (view.source_id,view.cards_json) for _,view in reads)) if eligible else v3_writer_schema()
-            if self.ledger._read_count<6:
-                alternatives.append(action('ultima_work_research_inspect',self.ledger._enrolled['ultima_work_research_inspect'].spec.parameters))
+            visible=tuple((view.source_id,view.cards_json) for _,view in reads)
+            report_schema=v3_phase_writer_schema(visible) if eligible else v3_writer_schema()
+            inspect_schema=v3_phase_inspect_schema(
+                self.ledger._enrolled['ultima_work_research_inspect'].spec.parameters,
+                tuple(s.source_id for s in self.caps.navigation.sources if s.available),
+                visible,self.ledger._read_count)
+            if inspect_schema is not None:
+                alternatives.append(action('ultima_work_research_inspect',inspect_schema))
             if eligible: alternatives.append(action('ultima_work_research_write',report_schema))
             schema=v3_research_envelope([*alternatives,final])
             limit=min(kwargs['max_tokens'],2048 if eligible else 256)

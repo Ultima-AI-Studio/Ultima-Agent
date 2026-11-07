@@ -452,6 +452,43 @@ def v3_source_reference_map(visible: tuple[tuple[str, bytes], ...]) -> dict[str,
     return {sid:tuple(sorted(sources[sid])) for sid in sorted(sources)}
 
 
+def v3_phase_inspect_schema(base: dict, available: tuple[str, ...],
+                            visible: tuple[tuple[str, bytes], ...], used: int) -> dict | None:
+    """Reserve reads for missing sources using only trusted, confirmed pages."""
+    from copy import deepcopy
+    if type(used) is not int or not 0<=used<=6:
+        raise ValueError('Invalid read budget')
+    permitted=base['properties']['source_id']['enum']
+    if (type(available) is not tuple or len(available)>5
+            or any(type(sid) is not str or not re.fullmatch(r'S[1-5]',sid)
+                   or sid not in permitted for sid in available)
+            or len(set(available))!=len(available)):
+        raise ValueError('Invalid available sources')
+    covered=v3_source_reference_map(visible)
+    if len(visible)>used or any(sid not in available for sid,_ in visible):
+        raise ValueError('Visible source or read budget drift')
+    remaining=6-used; missing=max(0,3-len(covered))
+    unseen=[sid for sid in available if sid not in covered]
+    if remaining==0 or remaining<missing or len(unseen)<missing:
+        return None
+    choices=unseen if missing and remaining==missing else list(available)
+    schema=deepcopy(base)
+    schema['properties']['source_id']['enum']=choices
+    return schema
+
+
+RESEARCH_NOT_DELIVERED='本次研究未交付。'
+
+
+def v3_research_final_schema(*, ack: bool = False) -> dict:
+    """Only a verified write may receive a free-form acknowledgement."""
+    if type(ack) is not bool: raise ValueError('Invalid acknowledgement phase')
+    text=dict(type='string',minLength=1,maxLength=1000)
+    if not ack: text['enum']=[RESEARCH_NOT_DELIVERED]
+    return dict(type='object',additionalProperties=False,required=['final_answer'],
+                properties=dict(final_answer=text))
+
+
 def v3_writer_schema(source_refs: dict[str, tuple[str, ...]] | None = None) -> dict:
     def obj(**props): return dict(type='object',additionalProperties=False,properties=props,required=list(props))
     def text(n): return dict(type='string',minLength=1,maxLength=n)

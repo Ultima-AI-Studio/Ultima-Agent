@@ -646,7 +646,8 @@ def _verify_runtime_order(packet,reads,written,require_ack,runtime_inputs):
 
 def verify_runtime_packet(binding, snapshot, collection, raw, *, require_ack=False,runtime_inputs=None):
     """Reconstruct native entities, history and read/event links independently."""
-    from .work_navigation import canonical_v3,v3_writer_schema,v3_phase_writer_schema
+    from .work_navigation import (canonical_v3,v3_writer_schema,v3_phase_writer_schema,
+        v3_phase_inspect_schema,v3_research_final_schema)
     from .work_tools import WorkInspectTool,WorkResearchWriteTool
     from openjarvis.tools._stubs import ToolSpec,build_tool_descriptions
     from types import SimpleNamespace
@@ -692,7 +693,9 @@ def verify_runtime_packet(binding, snapshot, collection, raw, *, require_ack=Fal
     events=[_strict_json(e) for e in packet['events']]
     starts=[e['data'] for e in events if e['type']=='tool_call_start']
     ends=[e['data'] for e in events if e['type']=='tool_call_end']
-    reads=json.loads(snapshot.replay_json)['reads']
+    navigation=json.loads(snapshot.replay_json)
+    reads=navigation['reads']
+    available=tuple(s['source_id'] for s in navigation['catalogue'] if s['available'])
     wires=packet['wires']
     if not len(reads)+1<=len(wires)<=8: raise ValueError('Runtime generation count')
     written=packet['execution']['intent'] is not None
@@ -785,18 +788,18 @@ def verify_runtime_packet(binding, snapshot, collection, raw, *, require_ack=Fal
         scan_strings(envelope)
         if isinstance(envelope,dict) and isinstance(envelope.get('final_answer'),str) and not envelope['final_answer'].strip():
             raise ValueError('Empty research final answer')
-        final=dict(type='object',additionalProperties=False,required=['final_answer'],
-            properties=dict(final_answer=dict(type='string',minLength=1,maxLength=1000)))
         ack=index==len(reads)+1
+        final=v3_research_final_schema(ack=ack)
         allowed=[]
         def action(name,params):
             return dict(type='object',additionalProperties=False,required=['action','action_input'],properties=dict(action=dict(enum=[name]),action_input=params))
         visible=reads[:index]
         eligible=len({r['source_id'] for r in visible if r['wire']['cards']})>=3
-        report_schema=v3_phase_writer_schema(tuple(
-            (r['source_id'],canonical_v3(r['wire']['cards'])) for r in visible)) if eligible else v3_writer_schema()
+        visible_pages=tuple((r['source_id'],canonical_v3(r['wire']['cards'])) for r in visible)
+        report_schema=v3_phase_writer_schema(visible_pages) if eligible else v3_writer_schema()
         if not ack:
-            if index<6: allowed.append(action('ultima_work_research_inspect',WorkInspectTool.parameters))
+            inspect_schema=v3_phase_inspect_schema(WorkInspectTool.parameters,available,visible_pages,index)
+            if inspect_schema is not None: allowed.append(action('ultima_work_research_inspect',inspect_schema))
             if eligible: allowed.append(action('ultima_work_research_write',report_schema))
         from .work_navigation import v3_research_envelope
         expected_schema=final if ack else v3_research_envelope([*allowed,final])

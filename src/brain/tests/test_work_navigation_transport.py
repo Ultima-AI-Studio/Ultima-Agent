@@ -591,7 +591,8 @@ def test_v3_provisional_third_card_no_promotion_on_failure(tmp_path,sdk_io,mock_
     ledger=RESTRICTED[result['task_id']]
     assert result['status']=='failed' and not list(tmp_path.rglob('research.md'))
     if fault=='blank_final':
-        assert result['error']=='Empty research final answer'
+        # Prewrite finals now fail the fixed non-delivery enum before the blank check.
+        assert result['error']=='Invalid native research envelope'
         assert ledger._read_count==3 and count[0]==4
         assert [n['seq'] for n in ledger._timeline if n['kind']=='sdk_end']==[1,2,3]
         assert [n['seq'] for n in ledger._timeline if n['kind']=='sdk_start']==[1,2,3]
