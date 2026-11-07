@@ -5,7 +5,7 @@
 - original_work_order_id: wo-ultimaagent-20261101-0021
 - revision: 2
 - authorization: 用户“那按顺序开始推进吧”；批准按已提交的工作能力契约与计划顺序执行，保留最终 Owner 验收和发布门。
-- 状态：E02 ee1bef6单例FAIL_CONFIRMED：最后HTTP200；六页仅覆盖2来源，未开放写入，无research.md；清理PASS，单例与独审已消费，未重试，仍0/3。
+- 状态：E02读取预算/来源覆盖与明确未交付补修完成：候选e40a55b，746项当前字节检查及独立准备PASS；8B/原预算保持，实际例与模型调用0；上一FAIL保留，E02仍0/3，待新候选受控绑定。
 - 计划：docs/plans/jarvis-work-capability-delivery-plan-20261101.md
 - 契约：docs/specs/jarvis-work-capability-contract-20261101.md
 - 草案检查点：ultimaagent-jarvis-work-plan-draft-20261101 @ f6eb808348302cec55bddcf44ee03f5b5736c4d9
@@ -551,3 +551,15 @@ E02 ee1bef6单例已FAIL待独审：35.683秒，search1/GET4/inspect6/write0；�
 E02 ee1bef6单例FAIL_CONFIRMED：最后HTTP200；六页仅覆盖2来源，未开放写入，无research.md；清理PASS，单例与独审已消费，未重试，仍0/3。
 报告：H:\UltimaAI\UltimaAgent\docs\reports\jarvis-work-t2-e02-native-http-controlled-result-20261107.md
 后继提案（未实施）：H:\UltimaAI\UltimaAgent\docs\plans\jarvis-work-e02-source-coverage-budget-proposal-20261107.md
+
+
+## 2026-11-07 E02 source coverage repair plan
+
+E02来源覆盖预算与未交付终态最小补修：新隔离候选，计划审查中；当前8B/原预算，实际分配0，旧FAIL保留。
+计划：H:\UltimaAI\UltimaAgent\docs\plans\jarvis-work-e02-source-coverage-budget-plan-20261107.md
+
+
+## 2026-11-07 E02 source coverage repair completion
+
+E02读取预算/来源覆盖与明确未交付补修完成：候选e40a55b，746项当前字节检查及独立准备PASS；8B/原预算保持，实际例与模型调用0；上一FAIL保留，E02仍0/3，待新候选受控绑定。
+报告：H:\UltimaAI\UltimaAgent\docs\reports\jarvis-work-t2-e02-source-coverage-budget-repair-20261107.md
