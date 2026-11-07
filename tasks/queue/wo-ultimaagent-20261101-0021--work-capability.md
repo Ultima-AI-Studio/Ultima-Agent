@@ -68,7 +68,7 @@
 
 
 
-- 状态：E02受控入口就绪：0421a54冻结，346项离线检查及独立准备PASS；当前8B/原预算保持，待明确单例分配；实际与模型0，E02仍0/3。
+- 状态：E02 0421a54唯一实际FAIL_CONFIRMED：第7响应仍length/2048，无research.md/写入/ACK；清理与保护核对PASS，单例与独审均消费，不重试。
 - 计划：docs/plans/jarvis-work-capability-delivery-plan-20261101.md
 
 
@@ -5066,3 +5066,21 @@ E02候选0421a54受控入口准备：已授权Task2且同一精确计划PASS；�
 
 E02受控入口就绪：0421a54冻结，346项离线检查及独立准备PASS；当前8B/原预算保持，待明确单例分配；实际与模型0，E02仍0/3。
 报告：H:\UltimaAI\UltimaAgent\docs\reports\jarvis-work-t2-e02-output-budget-controlled-preparation-20261107.md
+
+
+## 2026-11-07 E02 output budget controlled one-case allocation
+
+E02 0421a54已明确分配一例当前8B研究及一次结果独审；原预算、失败不重试；正在只读准入后执行，尚无接受信用。
+用户答复：call_8b7f20b59b8d4855b50e36d5ccc115ba；提案：H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-output-budget-controlled-preparation-20261107-r1\execution-proposal.md
+
+
+## 2026-11-07 E02 output budget result audit
+
+E02 0421a54唯一实跑FAIL待结果独审：research.md数量0，native POST 7，清理PASS；实际已消费、不重试。
+结果manifest：3ebd6811702ed9eb09beb1c2d2efe418a491bd9f0078b9ea51db507c38b47f61
+
+
+## 2026-11-07 E02 output budget controlled result
+
+E02 0421a54唯一实际FAIL_CONFIRMED：第7响应仍length/2048，无research.md/写入/ACK；清理与保护核对PASS，单例与独审均消费，不重试。
+报告：H:\UltimaAI\UltimaAgent\docs\reports\jarvis-work-t2-e02-output-budget-controlled-result-20261107.md
