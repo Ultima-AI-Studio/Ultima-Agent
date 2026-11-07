@@ -13,3 +13,8 @@
 - Task 1 COMPLETE; Task 2 offline344 and independent preparation PASS. Manifest ac1fba00bd3af0cb0e16a5736d8ac6c8ec3ffd1949b0383d0bdc7a2275c90b97.
 - read_ready PASS; missing grant rejected by read_release; run_once not called. Actual/model0, E02 0/3.
 - Local publication tracked separately in verification/publication-readback.json; remote push not attempted.
+
+- Authorized execution continuation: explicit call_6f04750fa3644cc39ce356ff25b1ca6b, actual1/result-review1/retry0; execute the frozen entry once, then seal and independently review the first result. No product changes or repeated tests.
+
+- Explicit call_6f04750fa3644cc39ce356ff25b1ca6b actual1/review1 completed; run bc216374-f59c-4967-99f2-ded53a4ea49d FAIL_CONFIRMED. HTTP200 reached checked_native_response, exact rejected predicate unproven. No retry or acceptance credit.
+- Result manifest 3a3bda952dbbfaf6c10537e3634549a9321248fcf2eb62bb2875001b538aca3b, review 762f6483fa2dff866d1fd6c3ec7d24fb90c3997d37bead205785d6ba91fa2cf7. Current allocations0; E02/T2/Owner not passed.

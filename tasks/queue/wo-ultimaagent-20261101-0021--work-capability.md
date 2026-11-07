@@ -5,7 +5,7 @@
 - original_work_order_id: wo-ultimaagent-20261101-0021
 - revision: 2
 - authorization: 用户“那按顺序开始推进吧”；批准按已提交的工作能力契约与计划顺序执行，保留最终 Owner 验收和发布门。
-- 状态：E02受控入口就绪：6d758d9冻结，344项离线检查及独立准备PASS；当前8B/原预算保持，待明确单例分配；实际与模型0，E02仍0/3。
+- 状态：E02 6d758d9唯一实际FAIL_CONFIRMED：第7次原生HTTP200被响应校验拒绝，无research.md/写入/ACK；清理及保护核对PASS，实际与独审额度已耗尽，不重试。
 - 计划：docs/plans/jarvis-work-capability-delivery-plan-20261101.md
 - 契约：docs/specs/jarvis-work-capability-contract-20261101.md
 - 草案检查点：ultimaagent-jarvis-work-plan-draft-20261101 @ f6eb808348302cec55bddcf44ee03f5b5736c4d9
@@ -620,3 +620,22 @@ E02候选6d758d9受控入口/完整绑定准备：精确计划独审中，产品
 
 E02受控入口就绪：6d758d9冻结，344项离线检查及独立准备PASS；当前8B/原预算保持，待明确单例分配；实际与模型0，E02仍0/3。
 报告：H:\UltimaAI\UltimaAgent\docs\reports\jarvis-work-t2-e02-json-string-controlled-preparation-20261107.md
+
+
+## 2026-11-07 E02 JSON string controlled one-case allocation
+
+E02 6d758d9已明确分配一例当前8B研究及一次结果独审；原预算、失败不重试；正在只读准入后执行，尚无接受信用。
+用户答复：call_6f04750fa3644cc39ce356ff25b1ca6b；提案：H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-json-string-controlled-preparation-20261107-r1\execution-proposal.md
+
+
+## 2026-11-07 E02 JSON string result audit
+
+E02 6d758d9唯一实跑FAIL待结果独审：research.md数量0，native POST 7，清理PASS；实际已消费、不重试。
+结果manifest：3a3bda952dbbfaf6c10537e3634549a9321248fcf2eb62bb2875001b538aca3b
+
+
+## 2026-11-07 E02 JSON string controlled result
+
+E02 6d758d9唯一实际FAIL_CONFIRMED：第7次原生HTTP200被响应校验拒绝，无research.md/写入/ACK；清理及保护核对PASS，实际与独审额度已耗尽，不重试。
+报告：H:\UltimaAI\UltimaAgent\docs\reports\jarvis-work-t2-e02-json-string-controlled-result-20261107.md
+后续提案：H:\UltimaAI\UltimaAgent\docs\plans\jarvis-work-e02-native-response-rejection-diagnostics-proposal-20261107.md
