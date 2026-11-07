@@ -1,0 +1,137 @@
+{
+  "schema": 1,
+  "reviewer": "root-independent",
+  "verdict": "PASS_PLAN_ONLY",
+  "plan_sha256": "d8c0f7d47638b589638b6c9024f5f3f52394aa4ff97fabb8d86f5caf68087db9",
+  "reviewed_at": "2026-11-07T09:00:21.8419647Z",
+  "work_order": "wo-ultimaagent-20261101-0021",
+  "stage": "T2",
+  "candidate": "ee1bef61f04169c64978538dbc4ba799ef7be6c0",
+  "actual_run_authorized": false,
+  "actual_cases": 0,
+  "model_calls": 0,
+  "tests_run": 0,
+  "acceptance_credit": 0,
+  "blocking_findings": [],
+  "findings": [],
+  "assessment": "计划范围与准备授权一致。直接消息分支最小范围核验及其 RED/GREEN、未消费/未释放断言，配合保留显式 grant 正例，足以作为计划阶段的验证设计。仅批准按本计划准备及离线核验，不批准实跑或产品修改。",
+  "checks": [
+    {
+      "id": "authorization",
+      "result": "PASS_DESIGN",
+      "detail": "本轮 decision/scope 均 actual0/review0/model0；新消息不能转换 actual1。新增 decision 严格整数 1/1/0 检查；缺失、0、bool、多例拒绝。"
+    },
+    {
+      "id": "binding",
+      "result": "PASS_DESIGN",
+      "detail": "固定 ee1bef6 产品源码及当前清单、原四来源/模型摘要/七保护身份/260-300-275-310-315预算；N11 source-only 复用且不复制旧 grant/authority/actual 或自动分配脚本。"
+    },
+    {
+      "id": "release_boundary",
+      "result": "PASS_DESIGN",
+      "detail": "沿用 current manifest/review、closed grant、120秒有效期、排他一次消费与原边界负例。read_release 在消费和 run_released 前拒绝准备消息；未来 call_ 答复由 controller 依据真实用户决定生成，本轮不生成。"
+    },
+    {
+      "id": "http_export",
+      "result": "PASS_DESIGN",
+      "detail": "计划使用当前产品完整 SDK MockTransport 和 adapter.install_trusted_exports，核验500不读正文、200坏JSON保留HTTP200但不validated、请求实体摘要、private v3与公开及文件摘要一致，保留原失败和零信用。"
+    },
+    {
+      "id": "verification_and_preservation",
+      "result": "PASS_DESIGN",
+      "detail": "计划包含绑定/入口/边界离线负例、完整adapter分片回归、源码快照及审计回执、旧证据和无关文件字节核对、独立准备审查和read_ready读回。706历史检查仅作封存基线，不冒充本轮执行。"
+    },
+    {
+      "id": "workflow",
+      "result": "PASS_DESIGN",
+      "detail": "按G-TASKFLOW-001登记、exact计划摘要独审、准备实施、独立准备审查、本地提交/tag/镜像读回顺序；E02仍0/3、T2/Owner未通过。"
+    }
+  ],
+  "implementation_review_requirements": [
+    "新增负例应逐字段覆盖严格整数，尤其 True/False、1.0/0.0、字符串、缺字段、0/多例，保留合成明确1/1/0正例。",
+    "RED用旧read_release证明拒绝断言失败；GREEN及run_once边界检查证明无consumed文件且run_released未被调用。",
+    "核对adapter函数体与N11一致；只允许已计划的路径/候选/摘要重绑。",
+    "后续准备审查必须独立核对真实测试回执与全包绑定，不得复用本次计划审查为准备PASS。"
+  ],
+  "declined_to_judge": [
+    {
+      "behavior": "当前实现正确性、回归是否通过、实际网络或模型响应、现场七身份活性",
+      "reason": "本次是实施前只读计划审查；明确禁止运行测试、产品、模型、网络及进程操作。"
+    },
+    {
+      "behavior": "历史706项本轮重验与N12/N11全包逐字节真实性",
+      "reason": "此次只检查计划和相关源接口；完整保全验证由已计划的执行与整包准备独审承担，未赋予新的验收信用。"
+    }
+  ],
+  "read_files": [
+    {
+      "path": "H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-native-http-controlled-preparation-20261107-r1/plan.md",
+      "sha256": "d8c0f7d47638b589638b6c9024f5f3f52394aa4ff97fabb8d86f5caf68087db9"
+    },
+    {
+      "path": "H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-native-http-controlled-preparation-20261107-r1/inputs/direct-user-decision.json",
+      "sha256": "a356bcb398dd91c120647afa4286663d79227b904de27f864f6f9477b09681b4"
+    },
+    {
+      "path": "H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-native-http-controlled-preparation-20261107-r1/inputs/scope.json",
+      "sha256": "24b473475fdb7217f9dc2b0018e7ddf60386e0014f290a2607c4f50f7714dc08"
+    },
+    {
+      "path": "H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-native-http-controlled-preparation-20261107-r1/inputs/predecessor.json",
+      "sha256": "ca64e2ff03b13573e76c4fd94824e3d3c288124a2833e9e5995926f805ba1443"
+    },
+    {
+      "path": "H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-native-http-controlled-preparation-20261107-r1/inputs/DoR.json",
+      "sha256": "3bf347d490545d3da9644c849989179cf8777853477c0ef770a1b87157e3b453"
+    },
+    {
+      "path": "H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-native-http-controlled-preparation-20261107-r1/execution-proposal.md",
+      "sha256": "c3a7bdfb33efa2f95ea3a3dbca40fde334ba4aa7cd473b83e06275d5ea706e0d"
+    },
+    {
+      "path": "H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-unique-sections-20261107-r1/code/entry.py",
+      "sha256": "f31e37954a3626ba1ef0b8f9818777bfb6a6708e4352685f3307d52e897414e3"
+    },
+    {
+      "path": "H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-unique-sections-20261107-r1/code/bindings.py",
+      "sha256": "2b39c7f6b50ef8ce385f89119dfaa0b750535d04c99193242e2335887931efc2"
+    },
+    {
+      "path": "H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-unique-sections-20261107-r1/harness/adapter.py",
+      "sha256": "9adde4be7cf2c3a87f05eec0c6356519a7a0d206a6fa24ec078fe4a4830892f4"
+    },
+    {
+      "path": "H:/UltimaAI/INDEX.md",
+      "sha256": "aa0ad00aa104e54adffd55c70347a47350daca756ea65c9fad7c37140cfc3653"
+    },
+    {
+      "path": "H:/UltimaAI/_shared/paradigms/UltimaAI-任务工作流范式.md",
+      "sha256": "a2f61e9d6f39ae14137059feb211a8378445c020611f5a601e2629eefef61c4b"
+    },
+    {
+      "path": "H:/UltimaAI/UltimaAgent/docs/INDEX.md",
+      "sha256": "4c4ee6180c24943fac766446599dbbc1fd366abf4d7d036b85ccd63c5354ded9"
+    },
+    {
+      "path": "H:/UltimaAI/UltimaAgent/docs/reports/jarvis-work-t2-e02-native-http-diagnostics-preparation-20261107.md",
+      "sha256": "4e40011f232805e426c40bf37ebe690dec2c5f2d7b7a98e8eb5f47356887968c"
+    },
+    {
+      "path": "C:/Users/Administrator/.codex/plugins/cache/openai-curated-remote/superpowers/7.0.1/skills/executing-plans/SKILL.md",
+      "sha256": "e4649e59880ef2643d1da128e3d607e87e3f969410d72095a5bf65811b6036dc"
+    },
+    {
+      "path": "C:/Users/Administrator/.codex/plugins/cache/openai-curated-remote/superpowers/7.0.1/skills/requesting-code-review/SKILL.md",
+      "sha256": "2180e14a448e9410bec88e6646a2d1f0ce7fdd58de27388c1e052e929679d2bc"
+    },
+    {
+      "path": "C:/Users/Administrator/.codex/plugins/cache/openai-curated-remote/superpowers/7.0.1/skills/requesting-code-review/code-reviewer.md",
+      "sha256": "82e370be6b3447523816286195571e4216ba56ba1ad6ad0e87862294c4c78dcb"
+    }
+  ],
+  "read_limits": "adapter.py只读install_trusted_exports及邻接导出/调用接口；其余读取范围按本次工具记录。scope/predecessor实际位于inputs目录。",
+  "write_scope": [
+    "H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-native-http-controlled-preparation-20261107-r1/review/independent-plan-review.json",
+    "H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-native-http-controlled-preparation-20261107-r1/review/independent-plan-review.md"
+  ]
+}

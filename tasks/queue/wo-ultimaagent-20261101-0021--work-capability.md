@@ -5,7 +5,7 @@
 - original_work_order_id: wo-ultimaagent-20261101-0021
 - revision: 2
 - authorization: 用户“那按顺序开始推进吧”；批准按已提交的工作能力契约与计划顺序执行，保留最终 Owner 验收和发布门。
-- 状态：E02原生HTTP诊断离线补修完成：候选ee1bef6，706项当前字节检查及独立准备PASS；8B/原预算保持，实际例与模型调用0；原生解析根因未确证，上一FAIL保留，E02仍0/3。
+- 状态：E02受控入口就绪：ee1bef6冻结，339项离线检查及独立准备PASS；当前8B/原预算保持，待明确单例分配；实际与模型0，E02仍0/3。
 - 计划：docs/plans/jarvis-work-capability-delivery-plan-20261101.md
 - 契约：docs/specs/jarvis-work-capability-contract-20261101.md
 - 草案检查点：ultimaagent-jarvis-work-plan-draft-20261101 @ f6eb808348302cec55bddcf44ee03f5b5736c4d9
@@ -520,3 +520,15 @@ E02原生兼容性与HTTP失败诊断离线补修已登记，独立计划审查�
 
 E02原生HTTP诊断离线补修完成：候选ee1bef6，706项当前字节检查及独立准备PASS；8B/原预算保持，实际例与模型调用0；原生解析根因未确证，上一FAIL保留，E02仍0/3。
 报告：H:\UltimaAI\UltimaAgent\docs\reports\jarvis-work-t2-e02-native-http-diagnostics-preparation-20261107.md
+
+
+## 2026-11-07 E02 HTTP controlled entry plan
+
+E02候选ee1bef6受控入口及输入绑定准备已登记；本轮仅离线准备和独审，实际例/模型分配0；保持原8B及预算，上一FAIL保留、E02仍0/3。
+计划：docs/plans/jarvis-work-e02-native-http-controlled-entry-plan-20261107.md；证据：H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-native-http-controlled-preparation-20261107-r1；实际分配0。
+
+
+## 2026-11-07 E02 HTTP controlled preparation complete
+
+E02受控入口就绪：ee1bef6冻结，339项离线检查及独立准备PASS；当前8B/原预算保持，待明确单例分配；实际与模型0，E02仍0/3。
+报告：H:\UltimaAI\UltimaAgent\docs\reports\jarvis-work-t2-e02-native-http-controlled-preparation-20261107.md
