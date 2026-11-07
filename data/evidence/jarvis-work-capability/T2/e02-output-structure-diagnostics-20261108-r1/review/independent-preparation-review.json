@@ -1,0 +1,115 @@
+{
+  "schema_version": 1,
+  "review_type": "ROOT_INDEPENDENT_FROZEN_PREPARATION_REVIEW",
+  "reviewer": "/root/review_e02_output_structure_preparation",
+  "original_order": "wo-ultimaagent-20261101-0021",
+  "stage": "T2",
+  "candidate": "47ac3a464ca15e01311d5739eda53b2a32d8783c",
+  "parent": "0421a54cab572be013c3f7ad562e86406bfe8e52",
+  "tag": "ultimaagent-e02-output-structure-candidate-20261108",
+  "manifest_sha256": "05b21259b4ebdf52b987b8a49a3063cc4c6cb642b726d204744c358bcf6f7bf8",
+  "plan_sha256": "1bfbd318e5b82483f0d85ea49882d279d7db808a13620b768ba9be07ec21fa3a",
+  "verdict": "NEEDS_FIXES",
+  "ready_to_merge": false,
+  "findings": [
+    {
+      "id": "PREP-STATE-01",
+      "priority": 2,
+      "severity": "Important",
+      "file": "src/brain/work_research_diagnostics.py",
+      "lines": [
+        450,
+        453,
+        481,
+        505
+      ],
+      "title": "Close the relationships between content type, JSON status, and retention mode",
+      "evidence": "Static control-flow proof: start from a valid NON_STRING snapshot for content=123 or null (chars/bytes/sha256=None, json ancillary fields=None, evidence={mode:UNAVAILABLE,fragments:[],omitted_chars:None}). Changing json.status to UNAVAILABLE passes lines 450-453 because only NON_STRING implies non-string, with no converse. Independently changing evidence.mode to OMITTED_POLICY or OMITTED_BUDGET passes lines 481-505: omitted_chars None equals expected None and the final branch only requires empty fragments. For an unencodable string (bytes=None), the same mode change also passes although no full-content scan or byte-budget retention could have occurred. No product function was executed during review.",
+      "impact": "The data-only v5 decoder/exporter accepts contradictory evidence about whether content existed as text and why it was withheld. This can mislead output-structure diagnosis, the purpose of this change. It does not grant delivery credit or bypass native length/write/ACK gates.",
+      "requested_fix": "Enforce NON_STRING iff content.type is not string; non-string content must have evidence UNAVAILABLE. Require evidence UNAVAILABLE iff content is non-string or UTF-8 bytes are unavailable, matching the current builder. Require OMITTED_POLICY and OMITTED_BUDGET to refer to an encodable string with measured length/hash and empty fragments. Preserve JSON UNAVAILABLE for genuine parsing/measurement failure of string content; do not prohibit a parse-failed but encodable string from having safely retained text. Add targeted negative cases for non-string status mutation, non-string omitted modes, unencodable-string omitted modes, and encodable-text UNAVAILABLE retention mutation; retain positive parser-unavailable cases.",
+      "verification": "Read-only source/AST reasoning; existing 969 recorded checks do not cover these mutations."
+    }
+  ],
+  "declined_to_judge": [
+    {
+      "behavior": "Actual E02 model behavior, improvement, T2/Owner acceptance and result review",
+      "reason": "No actual/model/result-review allocation; no new actual response body exists."
+    },
+    {
+      "behavior": "Publication/closeout scripts and final local documentation/mirror readback",
+      "reason": "closeout.py, publish.py and closeout-static-readback.json are outside frozen manifest and not executed; final publication readback remains the main session responsibility after fixes and a fresh review."
+    },
+    {
+      "behavior": "Continuous process liveness and operating-system packet absence",
+      "reason": "Only recorded before/after identities and Python offline audit were available; no process operations or OS network measurement authorized."
+    },
+    {
+      "behavior": "Dynamic reproduction or rerunning product checks",
+      "reason": "Explicit read-only review prohibits product imports and test/profile/entry execution; assertions above are static, recorded test results were independently parsed."
+    }
+  ],
+  "actual_run_authorized": false,
+  "acceptance_credit": 0,
+  "verified_counts": {
+    "manifest_members": 1383,
+    "unique_junit_cases": 969,
+    "product_cases": 965,
+    "compatibility_cases": 4,
+    "groups": 20,
+    "source_bytes_identical_across_groups": true,
+    "native_cases": 131,
+    "new_structure_cases": 41,
+    "initial_red_failures": 27,
+    "supplemental_red_failures": 6,
+    "red_collection_errors": 0,
+    "dependency_pins": 1567,
+    "unrelated_files": 15,
+    "current_source_files": 77,
+    "current_input_files": 1595,
+    "protected_checkpoint_identities": 7,
+    "changed_product_files": 4
+  },
+  "verified_limits": {
+    "packet_cap_bytes": 16384,
+    "per_group_timeout_seconds": 90,
+    "observed_max_group_seconds": 73.138739,
+    "observed_peak_groups": 2,
+    "actual_case_allocation": 0,
+    "result_review_allocation": 0,
+    "model_calls": 0
+  },
+  "preservation": {
+    "N19_manifest_members": 159,
+    "N19_result_members": 56,
+    "N19_seal_members": 31,
+    "N21_manifest_members": 169,
+    "N21_result_members": 56,
+    "N21_seal_members": 31,
+    "all_member_hashes_match": true,
+    "parent_HEAD_preserved": true,
+    "candidate_HEAD_and_tag_match": true,
+    "candidate_and_parent_tracked_clean": true,
+    "last_actual_result_unchanged": true,
+    "protected_identities_match_at_observation_points_only": true
+  },
+  "strengths": [
+    "Original native rejection occurs before diagnostics and original exception is re-raised; public summary contains metadata only.",
+    "Original v4 projection is preserved on enrichment failure; canonical whole-packet cap and final scans do not delete source pages.",
+    "Actual raw_bytes hash/length bind to the native receipt, and FULL content is remeasured/reparsed; legacy field sets remain closed.",
+    "ACK rejection retains committed write; original 131 native test purposes survive with only two version/legacy construction changes.",
+    "Independently rehashed immutable manifest, dependencies, prior failures, snapshots and current inputs; 969 unique green checks and both RED rounds remain preserved."
+  ],
+  "method": "Read-only shell, stdlib hash/JSON/XML/AST and git inspection; no project verification scripts executed; no product imports or test execution.",
+  "review_operations": {
+    "product_imports": 0,
+    "tests_run": 0,
+    "model_calls": 0,
+    "network_requests": 0,
+    "service_operations": 0,
+    "ui_operations": 0,
+    "audio_operations": 0,
+    "process_management_operations": 0,
+    "subagents_spawned": 0
+  },
+  "recorded_utc": "2026-11-07T16:40:17.146866+00:00"
+}

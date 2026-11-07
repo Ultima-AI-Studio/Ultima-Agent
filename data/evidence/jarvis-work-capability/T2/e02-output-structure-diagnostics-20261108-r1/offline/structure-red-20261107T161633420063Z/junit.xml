@@ -1,0 +1,891 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="27" skipped="0" tests="27" time="20.722" timestamp="2026-11-08T00:16:38.204384+08:00" hostname="DESKTOP-B366PQ9"><testcase classname="" name="test_received_content_shape_never_grants_write[{&quot;final_answer&quot;:&quot;\u672c\u6b21\u7814\u7a76\u672a\u4ea4\u4ed8\u3002&quot;}-COMPLETE]" time="1.579"><failure message="AssertionError: missing request-bound output structure evidence&#10;assert 'research_failure_diagnostic_v4' == 'research_failure_diagnostic_v5'&#10;  &#10;  - research_failure_diagnostic_v5&#10;  ?                              ^&#10;  + research_failure_diagnostic_v4&#10;  ?                              ^">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-output-structure-diagnostics-20261108-r1/offline/structure-red-20261107T161633420063Z/temp/test_received_content_shape_ne0')
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x00000274A0CE17F0&gt;, [('search', 'Research a subject')], {})
+mock_jar = (&lt;openjarvis.sdk.Jarvis object at 0x00000274A0CE0050&gt;, &lt;function _run_work_agent at 0x00000274A0C66340&gt;, [{'format': {...ser'}], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [])
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000002747D99B820&gt;
+content = '{"final_answer":"本次研究未交付。"}', status = 'COMPLETE'
+
+    @pytest.mark.parametrize('content,status',[
+        ('{"final_answer":"本次研究未交付。"}','COMPLETE'),
+        ('{"action":"ultima_work_research_write","action_input":{"title":"cut','INVALID'),
+        ('{"action_input":{"sections":[','INVALID'),('{','INVALID'),
+        ('{"x":1,"x":2}','INVALID'),('{"x":NaN}','INVALID'),
+        ('[]','COMPLETE'),(123,'NON_STRING'),(None,'NON_STRING')])
+    def test_received_content_shape_never_grants_write(tmp_path,sdk_io,mock_jar,monkeypatch,content,status):
+        result,ledger,sent,bodies=native_refusal(tmp_path,sdk_io,mock_jar,monkeypatch,
+            updates=[('done_reason','length'),('message.content',content)])
+&gt;       p,s=captured(result,ledger)
+            ^^^^^^^^^^^^^^^^^^^^^^^
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-output-structure\UltimaAgent\src\brain\tests\test_work_output_structure_diagnostics.py:30: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+result = {'request_id': 'r', 'session_id': 's', 'task_id': '00000000-0000-0000-0000-0000000003e8', 'status': 'failed', ...}
+ledger = &lt;src.brain.work_tools.WorkLedger object at 0x00000274A0CE2120&gt;
+
+    def captured(result,ledger):
+        p=private_packet(result,ledger)
+&gt;       assert p['kind']=='research_failure_diagnostic_v5','missing request-bound output structure evidence'
+E       AssertionError: missing request-bound output structure evidence
+E       assert 'research_failure_diagnostic_v4' == 'research_failure_diagnostic_v5'
+E         
+E         - research_failure_diagnostic_v5
+E         ?                              ^
+E         + research_failure_diagnostic_v4
+E         ?                              ^
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-output-structure\UltimaAgent\src\brain\tests\test_work_output_structure_diagnostics.py:15: AssertionError</failure></testcase><testcase classname="" name="test_received_content_shape_never_grants_write[{&quot;action&quot;:&quot;ultima_work_research_write&quot;,&quot;action_input&quot;:{&quot;title&quot;:&quot;cut-INVALID]" time="0.312"><failure message="AssertionError: missing request-bound output structure evidence&#10;assert 'research_failure_diagnostic_v4' == 'research_failure_diagnostic_v5'&#10;  &#10;  - research_failure_diagnostic_v5&#10;  ?                              ^&#10;  + research_failure_diagnostic_v4&#10;  ?                              ^">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-output-structure-diagnostics-20261108-r1/offline/structure-red-20261107T161633420063Z/temp/test_received_content_shape_ne1')
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x00000274A0E08690&gt;, [('search', 'Research a subject')], {})
+mock_jar = (&lt;openjarvis.sdk.Jarvis object at 0x000002747E947B10&gt;, &lt;function _run_work_agent at 0x00000274A0C66340&gt;, [{'format': {...ser'}], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [])
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000002747D99B5C0&gt;
+content = '{"action":"ultima_work_research_write","action_input":{"title":"cut'
+status = 'INVALID'
+
+    @pytest.mark.parametrize('content,status',[
+        ('{"final_answer":"本次研究未交付。"}','COMPLETE'),
+        ('{"action":"ultima_work_research_write","action_input":{"title":"cut','INVALID'),
+        ('{"action_input":{"sections":[','INVALID'),('{','INVALID'),
+        ('{"x":1,"x":2}','INVALID'),('{"x":NaN}','INVALID'),
+        ('[]','COMPLETE'),(123,'NON_STRING'),(None,'NON_STRING')])
+    def test_received_content_shape_never_grants_write(tmp_path,sdk_io,mock_jar,monkeypatch,content,status):
+        result,ledger,sent,bodies=native_refusal(tmp_path,sdk_io,mock_jar,monkeypatch,
+            updates=[('done_reason','length'),('message.content',content)])
+&gt;       p,s=captured(result,ledger)
+            ^^^^^^^^^^^^^^^^^^^^^^^
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-output-structure\UltimaAgent\src\brain\tests\test_work_output_structure_diagnostics.py:30: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+result = {'request_id': 'r', 'session_id': 's', 'task_id': '00000000-0000-0000-0000-0000000003e8', 'status': 'failed', ...}
+ledger = &lt;src.brain.work_tools.WorkLedger object at 0x00000274A0E08CD0&gt;
+
+    def captured(result,ledger):
+        p=private_packet(result,ledger)
+&gt;       assert p['kind']=='research_failure_diagnostic_v5','missing request-bound output structure evidence'
+E       AssertionError: missing request-bound output structure evidence
+E       assert 'research_failure_diagnostic_v4' == 'research_failure_diagnostic_v5'
+E         
+E         - research_failure_diagnostic_v5
+E         ?                              ^
+E         + research_failure_diagnostic_v4
+E         ?                              ^
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-output-structure\UltimaAgent\src\brain\tests\test_work_output_structure_diagnostics.py:15: AssertionError</failure></testcase><testcase classname="" name="test_received_content_shape_never_grants_write[{&quot;action_input&quot;:{&quot;sections&quot;:[-INVALID]" time="0.482"><failure message="AssertionError: missing request-bound output structure evidence&#10;assert 'research_failure_diagnostic_v4' == 'research_failure_diagnostic_v5'&#10;  &#10;  - research_failure_diagnostic_v5&#10;  ?                              ^&#10;  + research_failure_diagnostic_v4&#10;  ?                              ^">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-output-structure-diagnostics-20261108-r1/offline/structure-red-20261107T161633420063Z/temp/test_received_content_shape_ne2')
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x00000274A0E0A990&gt;, [('search', 'Research a subject')], {})
+mock_jar = (&lt;openjarvis.sdk.Jarvis object at 0x000002747E9828B0&gt;, &lt;function _run_work_agent at 0x00000274A0C66340&gt;, [{'format': {...ser'}], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [])
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000002747E9F5010&gt;
+content = '{"action_input":{"sections":[', status = 'INVALID'
+
+    @pytest.mark.parametrize('content,status',[
+        ('{"final_answer":"本次研究未交付。"}','COMPLETE'),
+        ('{"action":"ultima_work_research_write","action_input":{"title":"cut','INVALID'),
+        ('{"action_input":{"sections":[','INVALID'),('{','INVALID'),
+        ('{"x":1,"x":2}','INVALID'),('{"x":NaN}','INVALID'),
+        ('[]','COMPLETE'),(123,'NON_STRING'),(None,'NON_STRING')])
+    def test_received_content_shape_never_grants_write(tmp_path,sdk_io,mock_jar,monkeypatch,content,status):
+        result,ledger,sent,bodies=native_refusal(tmp_path,sdk_io,mock_jar,monkeypatch,
+            updates=[('done_reason','length'),('message.content',content)])
+&gt;       p,s=captured(result,ledger)
+            ^^^^^^^^^^^^^^^^^^^^^^^
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-output-structure\UltimaAgent\src\brain\tests\test_work_output_structure_diagnostics.py:30: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+result = {'request_id': 'r', 'session_id': 's', 'task_id': '00000000-0000-0000-0000-0000000003e8', 'status': 'failed', ...}
+ledger = &lt;src.brain.work_tools.WorkLedger object at 0x00000274A0E0AE90&gt;
+
+    def captured(result,ledger):
+        p=private_packet(result,ledger)
+&gt;       assert p['kind']=='research_failure_diagnostic_v5','missing request-bound output structure evidence'
+E       AssertionError: missing request-bound output structure evidence
+E       assert 'research_failure_diagnostic_v4' == 'research_failure_diagnostic_v5'
+E         
+E         - research_failure_diagnostic_v5
+E         ?                              ^
+E         + research_failure_diagnostic_v4
+E         ?                              ^
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-output-structure\UltimaAgent\src\brain\tests\test_work_output_structure_diagnostics.py:15: AssertionError</failure></testcase><testcase classname="" name="test_received_content_shape_never_grants_write[{-INVALID]" time="0.414"><failure message="AssertionError: missing request-bound output structure evidence&#10;assert 'research_failure_diagnostic_v4' == 'research_failure_diagnostic_v5'&#10;  &#10;  - research_failure_diagnostic_v5&#10;  ?                              ^&#10;  + research_failure_diagnostic_v4&#10;  ?                              ^">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-output-structure-diagnostics-20261108-r1/offline/structure-red-20261107T161633420063Z/temp/test_received_content_shape_ne3')
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x00000274A17FC3E0&gt;, [('search', 'Research a subject')], {})
+mock_jar = (&lt;openjarvis.sdk.Jarvis object at 0x000002747E973020&gt;, &lt;function _run_work_agent at 0x00000274A0C66340&gt;, [{'format': {...ser'}], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [])
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000002747E972CF0&gt;
+content = '{', status = 'INVALID'
+
+    @pytest.mark.parametrize('content,status',[
+        ('{"final_answer":"本次研究未交付。"}','COMPLETE'),
+        ('{"action":"ultima_work_research_write","action_input":{"title":"cut','INVALID'),
+        ('{"action_input":{"sections":[','INVALID'),('{','INVALID'),
+        ('{"x":1,"x":2}','INVALID'),('{"x":NaN}','INVALID'),
+        ('[]','COMPLETE'),(123,'NON_STRING'),(None,'NON_STRING')])
+    def test_received_content_shape_never_grants_write(tmp_path,sdk_io,mock_jar,monkeypatch,content,status):
+        result,ledger,sent,bodies=native_refusal(tmp_path,sdk_io,mock_jar,monkeypatch,
+            updates=[('done_reason','length'),('message.content',content)])
+&gt;       p,s=captured(result,ledger)
+            ^^^^^^^^^^^^^^^^^^^^^^^
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-output-structure\UltimaAgent\src\brain\tests\test_work_output_structure_diagnostics.py:30: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+result = {'request_id': 'r', 'session_id': 's', 'task_id': '00000000-0000-0000-0000-0000000003e8', 'status': 'failed', ...}
+ledger = &lt;src.brain.work_tools.WorkLedger object at 0x00000274A0E08E10&gt;
+
+    def captured(result,ledger):
+        p=private_packet(result,ledger)
+&gt;       assert p['kind']=='research_failure_diagnostic_v5','missing request-bound output structure evidence'
+E       AssertionError: missing request-bound output structure evidence
+E       assert 'research_failure_diagnostic_v4' == 'research_failure_diagnostic_v5'
+E         
+E         - research_failure_diagnostic_v5
+E         ?                              ^
+E         + research_failure_diagnostic_v4
+E         ?                              ^
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-output-structure\UltimaAgent\src\brain\tests\test_work_output_structure_diagnostics.py:15: AssertionError</failure></testcase><testcase classname="" name="test_received_content_shape_never_grants_write[{&quot;x&quot;:1,&quot;x&quot;:2}-INVALID]" time="0.339"><failure message="AssertionError: missing request-bound output structure evidence&#10;assert 'research_failure_diagnostic_v4' == 'research_failure_diagnostic_v5'&#10;  &#10;  - research_failure_diagnostic_v5&#10;  ?                              ^&#10;  + research_failure_diagnostic_v4&#10;  ?                              ^">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-output-structure-diagnostics-20261108-r1/offline/structure-red-20261107T161633420063Z/temp/test_received_content_shape_ne4')
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x00000274A17FE2C0&gt;, [('search', 'Research a subject')], {})
+mock_jar = (&lt;openjarvis.sdk.Jarvis object at 0x00000274A17F1F50&gt;, &lt;function _run_work_agent at 0x00000274A0C66340&gt;, [{'format': {...ser'}], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [])
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x00000274A17A6140&gt;
+content = '{"x":1,"x":2}', status = 'INVALID'
+
+    @pytest.mark.parametrize('content,status',[
+        ('{"final_answer":"本次研究未交付。"}','COMPLETE'),
+        ('{"action":"ultima_work_research_write","action_input":{"title":"cut','INVALID'),
+        ('{"action_input":{"sections":[','INVALID'),('{','INVALID'),
+        ('{"x":1,"x":2}','INVALID'),('{"x":NaN}','INVALID'),
+        ('[]','COMPLETE'),(123,'NON_STRING'),(None,'NON_STRING')])
+    def test_received_content_shape_never_grants_write(tmp_path,sdk_io,mock_jar,monkeypatch,content,status):
+        result,ledger,sent,bodies=native_refusal(tmp_path,sdk_io,mock_jar,monkeypatch,
+            updates=[('done_reason','length'),('message.content',content)])
+&gt;       p,s=captured(result,ledger)
+            ^^^^^^^^^^^^^^^^^^^^^^^
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-output-structure\UltimaAgent\src\brain\tests\test_work_output_structure_diagnostics.py:30: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+result = {'request_id': 'r', 'session_id': 's', 'task_id': '00000000-0000-0000-0000-0000000003e8', 'status': 'failed', ...}
+ledger = &lt;src.brain.work_tools.WorkLedger object at 0x00000274A0E0B390&gt;
+
+    def captured(result,ledger):
+        p=private_packet(result,ledger)
+&gt;       assert p['kind']=='research_failure_diagnostic_v5','missing request-bound output structure evidence'
+E       AssertionError: missing request-bound output structure evidence
+E       assert 'research_failure_diagnostic_v4' == 'research_failure_diagnostic_v5'
+E         
+E         - research_failure_diagnostic_v5
+E         ?                              ^
+E         + research_failure_diagnostic_v4
+E         ?                              ^
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-output-structure\UltimaAgent\src\brain\tests\test_work_output_structure_diagnostics.py:15: AssertionError</failure></testcase><testcase classname="" name="test_received_content_shape_never_grants_write[{&quot;x&quot;:NaN}-INVALID]" time="0.334"><failure message="AssertionError: missing request-bound output structure evidence&#10;assert 'research_failure_diagnostic_v4' == 'research_failure_diagnostic_v5'&#10;  &#10;  - research_failure_diagnostic_v5&#10;  ?                              ^&#10;  + research_failure_diagnostic_v4&#10;  ?                              ^">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-output-structure-diagnostics-20261108-r1/offline/structure-red-20261107T161633420063Z/temp/test_received_content_shape_ne5')
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x000002747E9F4170&gt;, [('search', 'Research a subject')], {})
+mock_jar = (&lt;openjarvis.sdk.Jarvis object at 0x000002747E99B5C0&gt;, &lt;function _run_work_agent at 0x00000274A0C66340&gt;, [{'format': {...ser'}], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [])
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x00000274A0FE1C50&gt;
+content = '{"x":NaN}', status = 'INVALID'
+
+    @pytest.mark.parametrize('content,status',[
+        ('{"final_answer":"本次研究未交付。"}','COMPLETE'),
+        ('{"action":"ultima_work_research_write","action_input":{"title":"cut','INVALID'),
+        ('{"action_input":{"sections":[','INVALID'),('{','INVALID'),
+        ('{"x":1,"x":2}','INVALID'),('{"x":NaN}','INVALID'),
+        ('[]','COMPLETE'),(123,'NON_STRING'),(None,'NON_STRING')])
+    def test_received_content_shape_never_grants_write(tmp_path,sdk_io,mock_jar,monkeypatch,content,status):
+        result,ledger,sent,bodies=native_refusal(tmp_path,sdk_io,mock_jar,monkeypatch,
+            updates=[('done_reason','length'),('message.content',content)])
+&gt;       p,s=captured(result,ledger)
+            ^^^^^^^^^^^^^^^^^^^^^^^
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-output-structure\UltimaAgent\src\brain\tests\test_work_output_structure_diagnostics.py:30: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+result = {'request_id': 'r', 'session_id': 's', 'task_id': '00000000-0000-0000-0000-0000000003e8', 'status': 'failed', ...}
+ledger = &lt;src.brain.work_tools.WorkLedger object at 0x000002747DA682D0&gt;
+
+    def captured(result,ledger):
+        p=private_packet(result,ledger)
+&gt;       assert p['kind']=='research_failure_diagnostic_v5','missing request-bound output structure evidence'
+E       AssertionError: missing request-bound output structure evidence
+E       assert 'research_failure_diagnostic_v4' == 'research_failure_diagnostic_v5'
+E         
+E         - research_failure_diagnostic_v5
+E         ?                              ^
+E         + research_failure_diagnostic_v4
+E         ?                              ^
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-output-structure\UltimaAgent\src\brain\tests\test_work_output_structure_diagnostics.py:15: AssertionError</failure></testcase><testcase classname="" name="test_received_content_shape_never_grants_write[[]-COMPLETE]" time="0.404"><failure message="AssertionError: missing request-bound output structure evidence&#10;assert 'research_failure_diagnostic_v4' == 'research_failure_diagnostic_v5'&#10;  &#10;  - research_failure_diagnostic_v5&#10;  ?                              ^&#10;  + research_failure_diagnostic_v4&#10;  ?                              ^">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-output-structure-diagnostics-20261108-r1/offline/structure-red-20261107T161633420063Z/temp/test_received_content_shape_ne6')
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x000002747E973DF0&gt;, [('search', 'Research a subject')], {})
+mock_jar = (&lt;openjarvis.sdk.Jarvis object at 0x00000274A1785010&gt;, &lt;function _run_work_agent at 0x00000274A0C66340&gt;, [{'format': {...ser'}], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [])
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000002747E9D2C50&gt;
+content = '[]', status = 'COMPLETE'
+
+    @pytest.mark.parametrize('content,status',[
+        ('{"final_answer":"本次研究未交付。"}','COMPLETE'),
+        ('{"action":"ultima_work_research_write","action_input":{"title":"cut','INVALID'),
+        ('{"action_input":{"sections":[','INVALID'),('{','INVALID'),
+        ('{"x":1,"x":2}','INVALID'),('{"x":NaN}','INVALID'),
+        ('[]','COMPLETE'),(123,'NON_STRING'),(None,'NON_STRING')])
+    def test_received_content_shape_never_grants_write(tmp_path,sdk_io,mock_jar,monkeypatch,content,status):
+        result,ledger,sent,bodies=native_refusal(tmp_path,sdk_io,mock_jar,monkeypatch,
+            updates=[('done_reason','length'),('message.content',content)])
+&gt;       p,s=captured(result,ledger)
+            ^^^^^^^^^^^^^^^^^^^^^^^
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-output-structure\UltimaAgent\src\brain\tests\test_work_output_structure_diagnostics.py:30: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+result = {'request_id': 'r', 'session_id': 's', 'task_id': '00000000-0000-0000-0000-0000000003e8', 'status': 'failed', ...}
+ledger = &lt;src.brain.work_tools.WorkLedger object at 0x00000274A0E0BD90&gt;
+
+    def captured(result,ledger):
+        p=private_packet(result,ledger)
+&gt;       assert p['kind']=='research_failure_diagnostic_v5','missing request-bound output structure evidence'
+E       AssertionError: missing request-bound output structure evidence
+E       assert 'research_failure_diagnostic_v4' == 'research_failure_diagnostic_v5'
+E         
+E         - research_failure_diagnostic_v5
+E         ?                              ^
+E         + research_failure_diagnostic_v4
+E         ?                              ^
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-output-structure\UltimaAgent\src\brain\tests\test_work_output_structure_diagnostics.py:15: AssertionError</failure></testcase><testcase classname="" name="test_received_content_shape_never_grants_write[123-NON_STRING]" time="0.328"><failure message="AssertionError: missing request-bound output structure evidence&#10;assert 'research_failure_diagnostic_v4' == 'research_failure_diagnostic_v5'&#10;  &#10;  - research_failure_diagnostic_v5&#10;  ?                              ^&#10;  + research_failure_diagnostic_v4&#10;  ?                              ^">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-output-structure-diagnostics-20261108-r1/offline/structure-red-20261107T161633420063Z/temp/test_received_content_shape_ne7')
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x00000274A17A4050&gt;, [('search', 'Research a subject')], {})
+mock_jar = (&lt;openjarvis.sdk.Jarvis object at 0x00000274A1807790&gt;, &lt;function _run_work_agent at 0x00000274A0C66340&gt;, [{'format': {...ser'}], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [])
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x00000274A12C6300&gt;
+content = 123, status = 'NON_STRING'
+
+    @pytest.mark.parametrize('content,status',[
+        ('{"final_answer":"本次研究未交付。"}','COMPLETE'),
+        ('{"action":"ultima_work_research_write","action_input":{"title":"cut','INVALID'),
+        ('{"action_input":{"sections":[','INVALID'),('{','INVALID'),
+        ('{"x":1,"x":2}','INVALID'),('{"x":NaN}','INVALID'),
+        ('[]','COMPLETE'),(123,'NON_STRING'),(None,'NON_STRING')])
+    def test_received_content_shape_never_grants_write(tmp_path,sdk_io,mock_jar,monkeypatch,content,status):
+        result,ledger,sent,bodies=native_refusal(tmp_path,sdk_io,mock_jar,monkeypatch,
+            updates=[('done_reason','length'),('message.content',content)])
+&gt;       p,s=captured(result,ledger)
+            ^^^^^^^^^^^^^^^^^^^^^^^
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-output-structure\UltimaAgent\src\brain\tests\test_work_output_structure_diagnostics.py:30: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+result = {'request_id': 'r', 'session_id': 's', 'task_id': '00000000-0000-0000-0000-0000000003e8', 'status': 'failed', ...}
+ledger = &lt;src.brain.work_tools.WorkLedger object at 0x00000274A0E0BED0&gt;
+
+    def captured(result,ledger):
+        p=private_packet(result,ledger)
+&gt;       assert p['kind']=='research_failure_diagnostic_v5','missing request-bound output structure evidence'
+E       AssertionError: missing request-bound output structure evidence
+E       assert 'research_failure_diagnostic_v4' == 'research_failure_diagnostic_v5'
+E         
+E         - research_failure_diagnostic_v5
+E         ?                              ^
+E         + research_failure_diagnostic_v4
+E         ?                              ^
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-output-structure\UltimaAgent\src\brain\tests\test_work_output_structure_diagnostics.py:15: AssertionError</failure></testcase><testcase classname="" name="test_received_content_shape_never_grants_write[None-NON_STRING]" time="0.285"><failure message="AssertionError: missing request-bound output structure evidence&#10;assert 'research_failure_diagnostic_v4' == 'research_failure_diagnostic_v5'&#10;  &#10;  - research_failure_diagnostic_v5&#10;  ?                              ^&#10;  + research_failure_diagnostic_v4&#10;  ?                              ^">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-output-structure-diagnostics-20261108-r1/offline/structure-red-20261107T161633420063Z/temp/test_received_content_shape_ne8')
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x00000274A17F3A50&gt;, [('search', 'Research a subject')], {})
+mock_jar = (&lt;openjarvis.sdk.Jarvis object at 0x00000274A17D9CD0&gt;, &lt;function _run_work_agent at 0x00000274A0C66340&gt;, [{'format': {...ser'}], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [])
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x00000274A1808320&gt;
+content = None, status = 'NON_STRING'
+
+    @pytest.mark.parametrize('content,status',[
+        ('{"final_answer":"本次研究未交付。"}','COMPLETE'),
+        ('{"action":"ultima_work_research_write","action_input":{"title":"cut','INVALID'),
+        ('{"action_input":{"sections":[','INVALID'),('{','INVALID'),
+        ('{"x":1,"x":2}','INVALID'),('{"x":NaN}','INVALID'),
+        ('[]','COMPLETE'),(123,'NON_STRING'),(None,'NON_STRING')])
+    def test_received_content_shape_never_grants_write(tmp_path,sdk_io,mock_jar,monkeypatch,content,status):
+        result,ledger,sent,bodies=native_refusal(tmp_path,sdk_io,mock_jar,monkeypatch,
+            updates=[('done_reason','length'),('message.content',content)])
+&gt;       p,s=captured(result,ledger)
+            ^^^^^^^^^^^^^^^^^^^^^^^
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-output-structure\UltimaAgent\src\brain\tests\test_work_output_structure_diagnostics.py:30: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+result = {'request_id': 'r', 'session_id': 's', 'task_id': '00000000-0000-0000-0000-0000000003e8', 'status': 'failed', ...}
+ledger = &lt;src.brain.work_tools.WorkLedger object at 0x00000274A0E0B4D0&gt;
+
+    def captured(result,ledger):
+        p=private_packet(result,ledger)
+&gt;       assert p['kind']=='research_failure_diagnostic_v5','missing request-bound output structure evidence'
+E       AssertionError: missing request-bound output structure evidence
+E       assert 'research_failure_diagnostic_v4' == 'research_failure_diagnostic_v5'
+E         
+E         - research_failure_diagnostic_v5
+E         ?                              ^
+E         + research_failure_diagnostic_v4
+E         ?                              ^
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-output-structure\UltimaAgent\src\brain\tests\test_work_output_structure_diagnostics.py:15: AssertionError</failure></testcase><testcase classname="" name="test_parse_location_and_request_contract_are_real" time="0.927"><failure message="AssertionError: missing request-bound output structure evidence&#10;assert 'research_failure_diagnostic_v4' == 'research_failure_diagnostic_v5'&#10;  &#10;  - research_failure_diagnostic_v5&#10;  ?                              ^&#10;  + research_failure_diagnostic_v4&#10;  ?                              ^">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-output-structure-diagnostics-20261108-r1/offline/structure-red-20261107T161633420063Z/temp/test_parse_location_and_reques0')
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x00000274A1812750&gt;, [('search', 'Research a subject')], {})
+mock_jar = (&lt;openjarvis.sdk.Jarvis object at 0x00000274A1880940&gt;, &lt;function _run_work_agent at 0x00000274A0C66340&gt;, [{'format': {..., 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 2048, 'temperature': 0}, ...}, ...], [])
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000002747E9498D0&gt;
+
+    def test_parse_location_and_request_contract_are_real(tmp_path,sdk_io,mock_jar,monkeypatch):
+        content='{"action_input":{"title":"未结束'
+        result,ledger,sent,bodies=native_refusal(tmp_path,sdk_io,mock_jar,monkeypatch,reads=6,
+            updates=[('done_reason','length'),('eval_count',2048),('message.content',content)])
+&gt;       p,s=captured(result,ledger);actual=json.loads(sent[-1]);request=s['request']
+            ^^^^^^^^^^^^^^^^^^^^^^^
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-output-structure\UltimaAgent\src\brain\tests\test_work_output_structure_diagnostics.py:47: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+result = {'request_id': 'r', 'session_id': 's', 'task_id': '00000000-0000-0000-0000-0000000003e8', 'status': 'failed', ...}
+ledger = &lt;src.brain.work_tools.WorkLedger object at 0x00000274A0E0B110&gt;
+
+    def captured(result,ledger):
+        p=private_packet(result,ledger)
+&gt;       assert p['kind']=='research_failure_diagnostic_v5','missing request-bound output structure evidence'
+E       AssertionError: missing request-bound output structure evidence
+E       assert 'research_failure_diagnostic_v4' == 'research_failure_diagnostic_v5'
+E         
+E         - research_failure_diagnostic_v5
+E         ?                              ^
+E         + research_failure_diagnostic_v4
+E         ?                              ^
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-output-structure\UltimaAgent\src\brain\tests\test_work_output_structure_diagnostics.py:15: AssertionError</failure></testcase><testcase classname="" name="test_complete_invalid_schema_is_measured_without_acceptance" time="0.313"><failure message="AssertionError: missing request-bound output structure evidence&#10;assert 'research_failure_diagnostic_v4' == 'research_failure_diagnostic_v5'&#10;  &#10;  - research_failure_diagnostic_v5&#10;  ?                              ^&#10;  + research_failure_diagnostic_v4&#10;  ?                              ^">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-output-structure-diagnostics-20261108-r1/offline/structure-red-20261107T161633420063Z/temp/test_complete_invalid_schema_i0')
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x000002747E999220&gt;, [('search', 'Research a subject')], {})
+mock_jar = (&lt;openjarvis.sdk.Jarvis object at 0x00000274A175B070&gt;, &lt;function _run_work_agent at 0x00000274A0C66340&gt;, [{'format': {...ser'}], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [])
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000002747DA3C670&gt;
+
+    def test_complete_invalid_schema_is_measured_without_acceptance(tmp_path,sdk_io,mock_jar,monkeypatch):
+        content=json.dumps(dict(action='ultima_work_research_write',action_input=dict(path='research.md',title='标题',
+            sections=[dict(source_id='S1',heading='h',facts=[dict(claim='atomic claim',evidence_id='N3.'+'0'*16)])])),ensure_ascii=False)
+        result,ledger,_,_=native_refusal(tmp_path,sdk_io,mock_jar,monkeypatch,
+            updates=[('done_reason','length'),('message.content',content)])
+&gt;       _,s=captured(result,ledger);j=s['json']
+            ^^^^^^^^^^^^^^^^^^^^^^^
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-output-structure\UltimaAgent\src\brain\tests\test_work_output_structure_diagnostics.py:66: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+result = {'request_id': 'r', 'session_id': 's', 'task_id': '00000000-0000-0000-0000-0000000003e8', 'status': 'failed', ...}
+ledger = &lt;src.brain.work_tools.WorkLedger object at 0x000002747DA68190&gt;
+
+    def captured(result,ledger):
+        p=private_packet(result,ledger)
+&gt;       assert p['kind']=='research_failure_diagnostic_v5','missing request-bound output structure evidence'
+E       AssertionError: missing request-bound output structure evidence
+E       assert 'research_failure_diagnostic_v4' == 'research_failure_diagnostic_v5'
+E         
+E         - research_failure_diagnostic_v5
+E         ?                              ^
+E         + research_failure_diagnostic_v4
+E         ?                              ^
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-output-structure\UltimaAgent\src\brain\tests\test_work_output_structure_diagnostics.py:15: AssertionError</failure></testcase><testcase classname="" name="test_safe_excerpts_use_final_encoded_packet_cap[content0]" time="1.198"><failure message="AssertionError: missing request-bound output structure evidence&#10;assert 'research_failure_diagnostic_v4' == 'research_failure_diagnostic_v5'&#10;  &#10;  - research_failure_diagnostic_v5&#10;  ?                              ^&#10;  + research_failure_diagnostic_v4&#10;  ?                              ^">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-output-structure-diagnostics-20261108-r1/offline/structure-red-20261107T161633420063Z/temp/test_safe_excerpts_use_final_e0')
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x00000274A1809220&gt;, [('search', 'Research a subject')], {})
+mock_jar = (&lt;openjarvis.sdk.Jarvis object at 0x00000274A0C36C50&gt;, &lt;function _run_work_agent at 0x00000274A0C66340&gt;, [{'format': {..., 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 2048, 'temperature': 0}, ...}, ...], [])
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x00000274A10468F0&gt;
+content = 'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx...xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx'
+
+    @pytest.mark.parametrize('content',['x'*14000,'中"\\\n'*3500])
+    def test_safe_excerpts_use_final_encoded_packet_cap(tmp_path,sdk_io,mock_jar,monkeypatch,content):
+        result,ledger,_,_=native_refusal(tmp_path,sdk_io,mock_jar,monkeypatch,reads=6,
+            updates=[('done_reason','length'),('message.content',content)])
+&gt;       _,s=captured(result,ledger);e=s['evidence']
+            ^^^^^^^^^^^^^^^^^^^^^^^
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-output-structure\UltimaAgent\src\brain\tests\test_work_output_structure_diagnostics.py:77: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+result = {'request_id': 'r', 'session_id': 's', 'task_id': '00000000-0000-0000-0000-0000000003e8', 'status': 'failed', ...}
+ledger = &lt;src.brain.work_tools.WorkLedger object at 0x00000274A0E0A350&gt;
+
+    def captured(result,ledger):
+        p=private_packet(result,ledger)
+&gt;       assert p['kind']=='research_failure_diagnostic_v5','missing request-bound output structure evidence'
+E       AssertionError: missing request-bound output structure evidence
+E       assert 'research_failure_diagnostic_v4' == 'research_failure_diagnostic_v5'
+E         
+E         - research_failure_diagnostic_v5
+E         ?                              ^
+E         + research_failure_diagnostic_v4
+E         ?                              ^
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-output-structure\UltimaAgent\src\brain\tests\test_work_output_structure_diagnostics.py:15: AssertionError</failure></testcase><testcase classname="" name="test_safe_excerpts_use_final_encoded_packet_cap[content1]" time="1.447"><failure message="AssertionError: missing request-bound output structure evidence&#10;assert 'research_failure_diagnostic_v4' == 'research_failure_diagnostic_v5'&#10;  &#10;  - research_failure_diagnostic_v5&#10;  ?                              ^&#10;  + research_failure_diagnostic_v4&#10;  ?                              ^">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-output-structure-diagnostics-20261108-r1/offline/structure-red-20261107T161633420063Z/temp/test_safe_excerpts_use_final_e1')
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x00000274A0C86F90&gt;, [('search', 'Research a subject')], {})
+mock_jar = (&lt;openjarvis.sdk.Jarvis object at 0x00000274A1880EC0&gt;, &lt;function _run_work_agent at 0x00000274A0C66340&gt;, [{'format': {..., 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 2048, 'temperature': 0}, ...}, ...], [])
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x00000274A17D9610&gt;
+content = '中"\\\n中"\\\n中"\\\n中"\\\n中"\\\n中"\\\n中"\\\n中"\\\n中"\\\n中"\\\n中"\\\n中"\\\n中"\\\n中"\\\n中"\\\n中"\\\n中"\\\n中"\\\n中"\\\n中"\...\\\n中"\\\n中"\\\n中"\\\n中"\\\n中"\\\n中"\\\n中"\\\n中"\\\n中"\\\n中"\\\n中"\\\n中"\\\n中"\\\n中"\\\n中"\\\n中"\\\n中"\\\n中"\\\n中"\\\n'
+
+    @pytest.mark.parametrize('content',['x'*14000,'中"\\\n'*3500])
+    def test_safe_excerpts_use_final_encoded_packet_cap(tmp_path,sdk_io,mock_jar,monkeypatch,content):
+        result,ledger,_,_=native_refusal(tmp_path,sdk_io,mock_jar,monkeypatch,reads=6,
+            updates=[('done_reason','length'),('message.content',content)])
+&gt;       _,s=captured(result,ledger);e=s['evidence']
+            ^^^^^^^^^^^^^^^^^^^^^^^
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-output-structure\UltimaAgent\src\brain\tests\test_work_output_structure_diagnostics.py:77: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+result = {'request_id': 'r', 'session_id': 's', 'task_id': '00000000-0000-0000-0000-0000000003e8', 'status': 'failed', ...}
+ledger = &lt;src.brain.work_tools.WorkLedger object at 0x00000274A0E0A990&gt;
+
+    def captured(result,ledger):
+        p=private_packet(result,ledger)
+&gt;       assert p['kind']=='research_failure_diagnostic_v5','missing request-bound output structure evidence'
+E       AssertionError: missing request-bound output structure evidence
+E       assert 'research_failure_diagnostic_v4' == 'research_failure_diagnostic_v5'
+E         
+E         - research_failure_diagnostic_v5
+E         ?                              ^
+E         + research_failure_diagnostic_v4
+E         ?                              ^
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-output-structure\UltimaAgent\src\brain\tests\test_work_output_structure_diagnostics.py:15: AssertionError</failure></testcase><testcase classname="" name="test_sensitive_content_and_thinking_are_not_exported" time="0.378"><failure message="AssertionError: missing request-bound output structure evidence&#10;assert 'research_failure_diagnostic_v4' == 'research_failure_diagnostic_v5'&#10;  &#10;  - research_failure_diagnostic_v5&#10;  ?                              ^&#10;  + research_failure_diagnostic_v4&#10;  ?                              ^">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-output-structure-diagnostics-20261108-r1/offline/structure-red-20261107T161633420063Z/temp/test_sensitive_content_and_thi0')
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x00000274A1816DD0&gt;, [('search', 'Research a subject')], {})
+mock_jar = (&lt;openjarvis.sdk.Jarvis object at 0x00000274A1881230&gt;, &lt;function _run_work_agent at 0x00000274A0C66340&gt;, [{'format': {...ser'}], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [])
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x00000274A17D90D0&gt;
+
+    def test_sensitive_content_and_thinking_are_not_exported(tmp_path,sdk_io,mock_jar,monkeypatch):
+        content='{"password":"supersecret123456"}'
+        result,ledger,_,_=native_refusal(tmp_path,sdk_io,mock_jar,monkeypatch,
+            updates=[('done_reason','length'),('message.content',content),('message.thinking','private-thought-marker')])
+&gt;       _,s=captured(result,ledger)
+            ^^^^^^^^^^^^^^^^^^^^^^^
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-output-structure\UltimaAgent\src\brain\tests\test_work_output_structure_diagnostics.py:93: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+result = {'request_id': 'r', 'session_id': 's', 'task_id': '00000000-0000-0000-0000-0000000003e8', 'status': 'failed', ...}
+ledger = &lt;src.brain.work_tools.WorkLedger object at 0x00000274A0E0AE90&gt;
+
+    def captured(result,ledger):
+        p=private_packet(result,ledger)
+&gt;       assert p['kind']=='research_failure_diagnostic_v5','missing request-bound output structure evidence'
+E       AssertionError: missing request-bound output structure evidence
+E       assert 'research_failure_diagnostic_v4' == 'research_failure_diagnostic_v5'
+E         
+E         - research_failure_diagnostic_v5
+E         ?                              ^
+E         + research_failure_diagnostic_v4
+E         ?                              ^
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-output-structure\UltimaAgent\src\brain\tests\test_work_output_structure_diagnostics.py:15: AssertionError</failure></testcase><testcase classname="" name="test_structure_decoder_rejects_tampering[path0-0000000000000000000000000000000000000000000000000000000000000000]" time="0.516"><failure message="AssertionError: missing request-bound output structure evidence&#10;assert 'research_failure_diagnostic_v4' == 'research_failure_diagnostic_v5'&#10;  &#10;  - research_failure_diagnostic_v5&#10;  ?                              ^&#10;  + research_failure_diagnostic_v4&#10;  ?                              ^">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-output-structure-diagnostics-20261108-r1/offline/structure-red-20261107T161633420063Z/temp/test_structure_decoder_rejects0')
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x00000274A19E6C30&gt;, [('search', 'Research a subject')], {})
+mock_jar = (&lt;openjarvis.sdk.Jarvis object at 0x00000274A18812E0&gt;, &lt;function _run_work_agent at 0x00000274A0C66340&gt;, [{'format': {...ser'}], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [])
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x00000274A175B070&gt;
+path = ('native_binding', 'response_sha256')
+value = '0000000000000000000000000000000000000000000000000000000000000000'
+
+    @pytest.mark.parametrize('path,value',[
+        (('native_binding','response_sha256'),'0'*64),(('native_binding','response_bytes'),1),
+        (('request','sha256'),'0'*64),(('request','options','num_predict'),1),
+        (('request','flags','think'),True),(('message','content','chars'),999),
+        (('evidence','omitted_chars'),1),(('json','status'),'OTHER'),
+        (('evidence','fragments',0,'start'),1),(('evidence','fragments',0,'text'),'altered'),
+        (('request','private_field'),'do not persist')])
+    def test_structure_decoder_rejects_tampering(tmp_path,sdk_io,mock_jar,monkeypatch,path,value):
+        result,ledger,_,_=native_refusal(tmp_path,sdk_io,mock_jar,monkeypatch)
+&gt;       p,_=captured(result,ledger);s=p['output_structure']
+            ^^^^^^^^^^^^^^^^^^^^^^^
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-output-structure\UltimaAgent\src\brain\tests\test_work_output_structure_diagnostics.py:109: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+result = {'request_id': 'r', 'session_id': 's', 'task_id': '00000000-0000-0000-0000-0000000003e8', 'status': 'failed', ...}
+ledger = &lt;src.brain.work_tools.WorkLedger object at 0x000002747DA68190&gt;
+
+    def captured(result,ledger):
+        p=private_packet(result,ledger)
+&gt;       assert p['kind']=='research_failure_diagnostic_v5','missing request-bound output structure evidence'
+E       AssertionError: missing request-bound output structure evidence
+E       assert 'research_failure_diagnostic_v4' == 'research_failure_diagnostic_v5'
+E         
+E         - research_failure_diagnostic_v5
+E         ?                              ^
+E         + research_failure_diagnostic_v4
+E         ?                              ^
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-output-structure\UltimaAgent\src\brain\tests\test_work_output_structure_diagnostics.py:15: AssertionError</failure></testcase><testcase classname="" name="test_structure_decoder_rejects_tampering[path1-1]" time="0.307"><failure message="AssertionError: missing request-bound output structure evidence&#10;assert 'research_failure_diagnostic_v4' == 'research_failure_diagnostic_v5'&#10;  &#10;  - research_failure_diagnostic_v5&#10;  ?                              ^&#10;  + research_failure_diagnostic_v4&#10;  ?                              ^">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-output-structure-diagnostics-20261108-r1/offline/structure-red-20261107T161633420063Z/temp/test_structure_decoder_rejects1')
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x00000274A17DB4D0&gt;, [('search', 'Research a subject')], {})
+mock_jar = (&lt;openjarvis.sdk.Jarvis object at 0x00000274A175B330&gt;, &lt;function _run_work_agent at 0x00000274A0C66340&gt;, [{'format': {...ser'}], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [])
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000002747E96D5A0&gt;
+path = ('native_binding', 'response_bytes'), value = 1
+
+    @pytest.mark.parametrize('path,value',[
+        (('native_binding','response_sha256'),'0'*64),(('native_binding','response_bytes'),1),
+        (('request','sha256'),'0'*64),(('request','options','num_predict'),1),
+        (('request','flags','think'),True),(('message','content','chars'),999),
+        (('evidence','omitted_chars'),1),(('json','status'),'OTHER'),
+        (('evidence','fragments',0,'start'),1),(('evidence','fragments',0,'text'),'altered'),
+        (('request','private_field'),'do not persist')])
+    def test_structure_decoder_rejects_tampering(tmp_path,sdk_io,mock_jar,monkeypatch,path,value):
+        result,ledger,_,_=native_refusal(tmp_path,sdk_io,mock_jar,monkeypatch)
+&gt;       p,_=captured(result,ledger);s=p['output_structure']
+            ^^^^^^^^^^^^^^^^^^^^^^^
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-output-structure\UltimaAgent\src\brain\tests\test_work_output_structure_diagnostics.py:109: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+result = {'request_id': 'r', 'session_id': 's', 'task_id': '00000000-0000-0000-0000-0000000003e8', 'status': 'failed', ...}
+ledger = &lt;src.brain.work_tools.WorkLedger object at 0x00000274A0E0BB10&gt;
+
+    def captured(result,ledger):
+        p=private_packet(result,ledger)
+&gt;       assert p['kind']=='research_failure_diagnostic_v5','missing request-bound output structure evidence'
+E       AssertionError: missing request-bound output structure evidence
+E       assert 'research_failure_diagnostic_v4' == 'research_failure_diagnostic_v5'
+E         
+E         - research_failure_diagnostic_v5
+E         ?                              ^
+E         + research_failure_diagnostic_v4
+E         ?                              ^
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-output-structure\UltimaAgent\src\brain\tests\test_work_output_structure_diagnostics.py:15: AssertionError</failure></testcase><testcase classname="" name="test_structure_decoder_rejects_tampering[path2-0000000000000000000000000000000000000000000000000000000000000000]" time="0.353"><failure message="AssertionError: missing request-bound output structure evidence&#10;assert 'research_failure_diagnostic_v4' == 'research_failure_diagnostic_v5'&#10;  &#10;  - research_failure_diagnostic_v5&#10;  ?                              ^&#10;  + research_failure_diagnostic_v4&#10;  ?                              ^">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-output-structure-diagnostics-20261108-r1/offline/structure-red-20261107T161633420063Z/temp/test_structure_decoder_rejects2')
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x00000274A17DB1D0&gt;, [('search', 'Research a subject')], {})
+mock_jar = (&lt;openjarvis.sdk.Jarvis object at 0x00000274A1880100&gt;, &lt;function _run_work_agent at 0x00000274A0C66340&gt;, [{'format': {...ser'}], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [])
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x00000274A17A0FF0&gt;
+path = ('request', 'sha256')
+value = '0000000000000000000000000000000000000000000000000000000000000000'
+
+    @pytest.mark.parametrize('path,value',[
+        (('native_binding','response_sha256'),'0'*64),(('native_binding','response_bytes'),1),
+        (('request','sha256'),'0'*64),(('request','options','num_predict'),1),
+        (('request','flags','think'),True),(('message','content','chars'),999),
+        (('evidence','omitted_chars'),1),(('json','status'),'OTHER'),
+        (('evidence','fragments',0,'start'),1),(('evidence','fragments',0,'text'),'altered'),
+        (('request','private_field'),'do not persist')])
+    def test_structure_decoder_rejects_tampering(tmp_path,sdk_io,mock_jar,monkeypatch,path,value):
+        result,ledger,_,_=native_refusal(tmp_path,sdk_io,mock_jar,monkeypatch)
+&gt;       p,_=captured(result,ledger);s=p['output_structure']
+            ^^^^^^^^^^^^^^^^^^^^^^^
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-output-structure\UltimaAgent\src\brain\tests\test_work_output_structure_diagnostics.py:109: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+result = {'request_id': 'r', 'session_id': 's', 'task_id': '00000000-0000-0000-0000-0000000003e8', 'status': 'failed', ...}
+ledger = &lt;src.brain.work_tools.WorkLedger object at 0x00000274A0E0B390&gt;
+
+    def captured(result,ledger):
+        p=private_packet(result,ledger)
+&gt;       assert p['kind']=='research_failure_diagnostic_v5','missing request-bound output structure evidence'
+E       AssertionError: missing request-bound output structure evidence
+E       assert 'research_failure_diagnostic_v4' == 'research_failure_diagnostic_v5'
+E         
+E         - research_failure_diagnostic_v5
+E         ?                              ^
+E         + research_failure_diagnostic_v4
+E         ?                              ^
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-output-structure\UltimaAgent\src\brain\tests\test_work_output_structure_diagnostics.py:15: AssertionError</failure></testcase><testcase classname="" name="test_structure_decoder_rejects_tampering[path3-1]" time="0.326"><failure message="AssertionError: missing request-bound output structure evidence&#10;assert 'research_failure_diagnostic_v4' == 'research_failure_diagnostic_v5'&#10;  &#10;  - research_failure_diagnostic_v5&#10;  ?                              ^&#10;  + research_failure_diagnostic_v4&#10;  ?                              ^">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-output-structure-diagnostics-20261108-r1/offline/structure-red-20261107T161633420063Z/temp/test_structure_decoder_rejects3')
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x00000274A18817B0&gt;, [('search', 'Research a subject')], {})
+mock_jar = (&lt;openjarvis.sdk.Jarvis object at 0x00000274A1880890&gt;, &lt;function _run_work_agent at 0x00000274A0C66340&gt;, [{'format': {...ser'}], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [])
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x00000274A17CE8F0&gt;
+path = ('request', 'options', 'num_predict'), value = 1
+
+    @pytest.mark.parametrize('path,value',[
+        (('native_binding','response_sha256'),'0'*64),(('native_binding','response_bytes'),1),
+        (('request','sha256'),'0'*64),(('request','options','num_predict'),1),
+        (('request','flags','think'),True),(('message','content','chars'),999),
+        (('evidence','omitted_chars'),1),(('json','status'),'OTHER'),
+        (('evidence','fragments',0,'start'),1),(('evidence','fragments',0,'text'),'altered'),
+        (('request','private_field'),'do not persist')])
+    def test_structure_decoder_rejects_tampering(tmp_path,sdk_io,mock_jar,monkeypatch,path,value):
+        result,ledger,_,_=native_refusal(tmp_path,sdk_io,mock_jar,monkeypatch)
+&gt;       p,_=captured(result,ledger);s=p['output_structure']
+            ^^^^^^^^^^^^^^^^^^^^^^^
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-output-structure\UltimaAgent\src\brain\tests\test_work_output_structure_diagnostics.py:109: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+result = {'request_id': 'r', 'session_id': 's', 'task_id': '00000000-0000-0000-0000-0000000003e8', 'status': 'failed', ...}
+ledger = &lt;src.brain.work_tools.WorkLedger object at 0x00000274A0E0B610&gt;
+
+    def captured(result,ledger):
+        p=private_packet(result,ledger)
+&gt;       assert p['kind']=='research_failure_diagnostic_v5','missing request-bound output structure evidence'
+E       AssertionError: missing request-bound output structure evidence
+E       assert 'research_failure_diagnostic_v4' == 'research_failure_diagnostic_v5'
+E         
+E         - research_failure_diagnostic_v5
+E         ?                              ^
+E         + research_failure_diagnostic_v4
+E         ?                              ^
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-output-structure\UltimaAgent\src\brain\tests\test_work_output_structure_diagnostics.py:15: AssertionError</failure></testcase><testcase classname="" name="test_structure_decoder_rejects_tampering[path4-True]" time="0.472"><failure message="AssertionError: missing request-bound output structure evidence&#10;assert 'research_failure_diagnostic_v4' == 'research_failure_diagnostic_v5'&#10;  &#10;  - research_failure_diagnostic_v5&#10;  ?                              ^&#10;  + research_failure_diagnostic_v4&#10;  ?                              ^">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-output-structure-diagnostics-20261108-r1/offline/structure-red-20261107T161633420063Z/temp/test_structure_decoder_rejects4')
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x00000274A1882BA0&gt;, [('search', 'Research a subject')], {})
+mock_jar = (&lt;openjarvis.sdk.Jarvis object at 0x00000274A1882620&gt;, &lt;function _run_work_agent at 0x00000274A0C66340&gt;, [{'format': {...ser'}], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [])
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x00000274A17B6600&gt;
+path = ('request', 'flags', 'think'), value = True
+
+    @pytest.mark.parametrize('path,value',[
+        (('native_binding','response_sha256'),'0'*64),(('native_binding','response_bytes'),1),
+        (('request','sha256'),'0'*64),(('request','options','num_predict'),1),
+        (('request','flags','think'),True),(('message','content','chars'),999),
+        (('evidence','omitted_chars'),1),(('json','status'),'OTHER'),
+        (('evidence','fragments',0,'start'),1),(('evidence','fragments',0,'text'),'altered'),
+        (('request','private_field'),'do not persist')])
+    def test_structure_decoder_rejects_tampering(tmp_path,sdk_io,mock_jar,monkeypatch,path,value):
+        result,ledger,_,_=native_refusal(tmp_path,sdk_io,mock_jar,monkeypatch)
+&gt;       p,_=captured(result,ledger);s=p['output_structure']
+            ^^^^^^^^^^^^^^^^^^^^^^^
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-output-structure\UltimaAgent\src\brain\tests\test_work_output_structure_diagnostics.py:109: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+result = {'request_id': 'r', 'session_id': 's', 'task_id': '00000000-0000-0000-0000-0000000003e8', 'status': 'failed', ...}
+ledger = &lt;src.brain.work_tools.WorkLedger object at 0x00000274A0E0A350&gt;
+
+    def captured(result,ledger):
+        p=private_packet(result,ledger)
+&gt;       assert p['kind']=='research_failure_diagnostic_v5','missing request-bound output structure evidence'
+E       AssertionError: missing request-bound output structure evidence
+E       assert 'research_failure_diagnostic_v4' == 'research_failure_diagnostic_v5'
+E         
+E         - research_failure_diagnostic_v5
+E         ?                              ^
+E         + research_failure_diagnostic_v4
+E         ?                              ^
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-output-structure\UltimaAgent\src\brain\tests\test_work_output_structure_diagnostics.py:15: AssertionError</failure></testcase><testcase classname="" name="test_structure_decoder_rejects_tampering[path5-999]" time="0.440"><failure message="AssertionError: missing request-bound output structure evidence&#10;assert 'research_failure_diagnostic_v4' == 'research_failure_diagnostic_v5'&#10;  &#10;  - research_failure_diagnostic_v5&#10;  ?                              ^&#10;  + research_failure_diagnostic_v4&#10;  ?                              ^">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-output-structure-diagnostics-20261108-r1/offline/structure-red-20261107T161633420063Z/temp/test_structure_decoder_rejects5')
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x00000274A17CE490&gt;, [('search', 'Research a subject')], {})
+mock_jar = (&lt;openjarvis.sdk.Jarvis object at 0x00000274A1883800&gt;, &lt;function _run_work_agent at 0x00000274A0C66340&gt;, [{'format': {...ser'}], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [])
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000002747DA23B50&gt;
+path = ('message', 'content', 'chars'), value = 999
+
+    @pytest.mark.parametrize('path,value',[
+        (('native_binding','response_sha256'),'0'*64),(('native_binding','response_bytes'),1),
+        (('request','sha256'),'0'*64),(('request','options','num_predict'),1),
+        (('request','flags','think'),True),(('message','content','chars'),999),
+        (('evidence','omitted_chars'),1),(('json','status'),'OTHER'),
+        (('evidence','fragments',0,'start'),1),(('evidence','fragments',0,'text'),'altered'),
+        (('request','private_field'),'do not persist')])
+    def test_structure_decoder_rejects_tampering(tmp_path,sdk_io,mock_jar,monkeypatch,path,value):
+        result,ledger,_,_=native_refusal(tmp_path,sdk_io,mock_jar,monkeypatch)
+&gt;       p,_=captured(result,ledger);s=p['output_structure']
+            ^^^^^^^^^^^^^^^^^^^^^^^
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-output-structure\UltimaAgent\src\brain\tests\test_work_output_structure_diagnostics.py:109: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+result = {'request_id': 'r', 'session_id': 's', 'task_id': '00000000-0000-0000-0000-0000000003e8', 'status': 'failed', ...}
+ledger = &lt;src.brain.work_tools.WorkLedger object at 0x00000274A0E0A490&gt;
+
+    def captured(result,ledger):
+        p=private_packet(result,ledger)
+&gt;       assert p['kind']=='research_failure_diagnostic_v5','missing request-bound output structure evidence'
+E       AssertionError: missing request-bound output structure evidence
+E       assert 'research_failure_diagnostic_v4' == 'research_failure_diagnostic_v5'
+E         
+E         - research_failure_diagnostic_v5
+E         ?                              ^
+E         + research_failure_diagnostic_v4
+E         ?                              ^
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-output-structure\UltimaAgent\src\brain\tests\test_work_output_structure_diagnostics.py:15: AssertionError</failure></testcase><testcase classname="" name="test_structure_decoder_rejects_tampering[path6-1]" time="0.385"><failure message="AssertionError: missing request-bound output structure evidence&#10;assert 'research_failure_diagnostic_v4' == 'research_failure_diagnostic_v5'&#10;  &#10;  - research_failure_diagnostic_v5&#10;  ?                              ^&#10;  + research_failure_diagnostic_v4&#10;  ?                              ^">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-output-structure-diagnostics-20261108-r1/offline/structure-red-20261107T161633420063Z/temp/test_structure_decoder_rejects6')
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x00000274A17A0A50&gt;, [('search', 'Research a subject')], {})
+mock_jar = (&lt;openjarvis.sdk.Jarvis object at 0x00000274A1883CD0&gt;, &lt;function _run_work_agent at 0x00000274A0C66340&gt;, [{'format': {...ser'}], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [])
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000002747DA94CD0&gt;
+path = ('evidence', 'omitted_chars'), value = 1
+
+    @pytest.mark.parametrize('path,value',[
+        (('native_binding','response_sha256'),'0'*64),(('native_binding','response_bytes'),1),
+        (('request','sha256'),'0'*64),(('request','options','num_predict'),1),
+        (('request','flags','think'),True),(('message','content','chars'),999),
+        (('evidence','omitted_chars'),1),(('json','status'),'OTHER'),
+        (('evidence','fragments',0,'start'),1),(('evidence','fragments',0,'text'),'altered'),
+        (('request','private_field'),'do not persist')])
+    def test_structure_decoder_rejects_tampering(tmp_path,sdk_io,mock_jar,monkeypatch,path,value):
+        result,ledger,_,_=native_refusal(tmp_path,sdk_io,mock_jar,monkeypatch)
+&gt;       p,_=captured(result,ledger);s=p['output_structure']
+            ^^^^^^^^^^^^^^^^^^^^^^^
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-output-structure\UltimaAgent\src\brain\tests\test_work_output_structure_diagnostics.py:109: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+result = {'request_id': 'r', 'session_id': 's', 'task_id': '00000000-0000-0000-0000-0000000003e8', 'status': 'failed', ...}
+ledger = &lt;src.brain.work_tools.WorkLedger object at 0x00000274A0E0A850&gt;
+
+    def captured(result,ledger):
+        p=private_packet(result,ledger)
+&gt;       assert p['kind']=='research_failure_diagnostic_v5','missing request-bound output structure evidence'
+E       AssertionError: missing request-bound output structure evidence
+E       assert 'research_failure_diagnostic_v4' == 'research_failure_diagnostic_v5'
+E         
+E         - research_failure_diagnostic_v5
+E         ?                              ^
+E         + research_failure_diagnostic_v4
+E         ?                              ^
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-output-structure\UltimaAgent\src\brain\tests\test_work_output_structure_diagnostics.py:15: AssertionError</failure></testcase><testcase classname="" name="test_structure_decoder_rejects_tampering[path7-OTHER]" time="0.460"><failure message="AssertionError: missing request-bound output structure evidence&#10;assert 'research_failure_diagnostic_v4' == 'research_failure_diagnostic_v5'&#10;  &#10;  - research_failure_diagnostic_v5&#10;  ?                              ^&#10;  + research_failure_diagnostic_v4&#10;  ?                              ^">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-output-structure-diagnostics-20261108-r1/offline/structure-red-20261107T161633420063Z/temp/test_structure_decoder_rejects7')
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x00000274A17B6060&gt;, [('search', 'Research a subject')], {})
+mock_jar = (&lt;openjarvis.sdk.Jarvis object at 0x00000274A175AF10&gt;, &lt;function _run_work_agent at 0x00000274A0C66340&gt;, [{'format': {...ser'}], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [])
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000002747DA6F9A0&gt;
+path = ('json', 'status'), value = 'OTHER'
+
+    @pytest.mark.parametrize('path,value',[
+        (('native_binding','response_sha256'),'0'*64),(('native_binding','response_bytes'),1),
+        (('request','sha256'),'0'*64),(('request','options','num_predict'),1),
+        (('request','flags','think'),True),(('message','content','chars'),999),
+        (('evidence','omitted_chars'),1),(('json','status'),'OTHER'),
+        (('evidence','fragments',0,'start'),1),(('evidence','fragments',0,'text'),'altered'),
+        (('request','private_field'),'do not persist')])
+    def test_structure_decoder_rejects_tampering(tmp_path,sdk_io,mock_jar,monkeypatch,path,value):
+        result,ledger,_,_=native_refusal(tmp_path,sdk_io,mock_jar,monkeypatch)
+&gt;       p,_=captured(result,ledger);s=p['output_structure']
+            ^^^^^^^^^^^^^^^^^^^^^^^
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-output-structure\UltimaAgent\src\brain\tests\test_work_output_structure_diagnostics.py:109: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+result = {'request_id': 'r', 'session_id': 's', 'task_id': '00000000-0000-0000-0000-0000000003e8', 'status': 'failed', ...}
+ledger = &lt;src.brain.work_tools.WorkLedger object at 0x00000274A0E0BED0&gt;
+
+    def captured(result,ledger):
+        p=private_packet(result,ledger)
+&gt;       assert p['kind']=='research_failure_diagnostic_v5','missing request-bound output structure evidence'
+E       AssertionError: missing request-bound output structure evidence
+E       assert 'research_failure_diagnostic_v4' == 'research_failure_diagnostic_v5'
+E         
+E         - research_failure_diagnostic_v5
+E         ?                              ^
+E         + research_failure_diagnostic_v4
+E         ?                              ^
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-output-structure\UltimaAgent\src\brain\tests\test_work_output_structure_diagnostics.py:15: AssertionError</failure></testcase><testcase classname="" name="test_structure_decoder_rejects_tampering[path8-1]" time="0.478"><failure message="AssertionError: missing request-bound output structure evidence&#10;assert 'research_failure_diagnostic_v4' == 'research_failure_diagnostic_v5'&#10;  &#10;  - research_failure_diagnostic_v5&#10;  ?                              ^&#10;  + research_failure_diagnostic_v4&#10;  ?                              ^">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-output-structure-diagnostics-20261108-r1/offline/structure-red-20261107T161633420063Z/temp/test_structure_decoder_rejects8')
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x000002747E9F91D0&gt;, [('search', 'Research a subject')], {})
+mock_jar = (&lt;openjarvis.sdk.Jarvis object at 0x00000274A1882FC0&gt;, &lt;function _run_work_agent at 0x00000274A0C66340&gt;, [{'format': {...ser'}], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [])
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000002747DAAF460&gt;
+path = ('evidence', 'fragments', 0, 'start'), value = 1
+
+    @pytest.mark.parametrize('path,value',[
+        (('native_binding','response_sha256'),'0'*64),(('native_binding','response_bytes'),1),
+        (('request','sha256'),'0'*64),(('request','options','num_predict'),1),
+        (('request','flags','think'),True),(('message','content','chars'),999),
+        (('evidence','omitted_chars'),1),(('json','status'),'OTHER'),
+        (('evidence','fragments',0,'start'),1),(('evidence','fragments',0,'text'),'altered'),
+        (('request','private_field'),'do not persist')])
+    def test_structure_decoder_rejects_tampering(tmp_path,sdk_io,mock_jar,monkeypatch,path,value):
+        result,ledger,_,_=native_refusal(tmp_path,sdk_io,mock_jar,monkeypatch)
+&gt;       p,_=captured(result,ledger);s=p['output_structure']
+            ^^^^^^^^^^^^^^^^^^^^^^^
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-output-structure\UltimaAgent\src\brain\tests\test_work_output_structure_diagnostics.py:109: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+result = {'request_id': 'r', 'session_id': 's', 'task_id': '00000000-0000-0000-0000-0000000003e8', 'status': 'failed', ...}
+ledger = &lt;src.brain.work_tools.WorkLedger object at 0x00000274A0E0BD90&gt;
+
+    def captured(result,ledger):
+        p=private_packet(result,ledger)
+&gt;       assert p['kind']=='research_failure_diagnostic_v5','missing request-bound output structure evidence'
+E       AssertionError: missing request-bound output structure evidence
+E       assert 'research_failure_diagnostic_v4' == 'research_failure_diagnostic_v5'
+E         
+E         - research_failure_diagnostic_v5
+E         ?                              ^
+E         + research_failure_diagnostic_v4
+E         ?                              ^
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-output-structure\UltimaAgent\src\brain\tests\test_work_output_structure_diagnostics.py:15: AssertionError</failure></testcase><testcase classname="" name="test_structure_decoder_rejects_tampering[path9-altered]" time="0.491"><failure message="AssertionError: missing request-bound output structure evidence&#10;assert 'research_failure_diagnostic_v4' == 'research_failure_diagnostic_v5'&#10;  &#10;  - research_failure_diagnostic_v5&#10;  ?                              ^&#10;  + research_failure_diagnostic_v4&#10;  ?                              ^">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-output-structure-diagnostics-20261108-r1/offline/structure-red-20261107T161633420063Z/temp/test_structure_decoder_rejects9')
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x00000274A1951350&gt;, [('search', 'Research a subject')], {})
+mock_jar = (&lt;openjarvis.sdk.Jarvis object at 0x00000274A1882830&gt;, &lt;function _run_work_agent at 0x00000274A0C66340&gt;, [{'format': {...ser'}], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [])
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x00000274A1954FA0&gt;
+path = ('evidence', 'fragments', 0, 'text'), value = 'altered'
+
+    @pytest.mark.parametrize('path,value',[
+        (('native_binding','response_sha256'),'0'*64),(('native_binding','response_bytes'),1),
+        (('request','sha256'),'0'*64),(('request','options','num_predict'),1),
+        (('request','flags','think'),True),(('message','content','chars'),999),
+        (('evidence','omitted_chars'),1),(('json','status'),'OTHER'),
+        (('evidence','fragments',0,'start'),1),(('evidence','fragments',0,'text'),'altered'),
+        (('request','private_field'),'do not persist')])
+    def test_structure_decoder_rejects_tampering(tmp_path,sdk_io,mock_jar,monkeypatch,path,value):
+        result,ledger,_,_=native_refusal(tmp_path,sdk_io,mock_jar,monkeypatch)
+&gt;       p,_=captured(result,ledger);s=p['output_structure']
+            ^^^^^^^^^^^^^^^^^^^^^^^
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-output-structure\UltimaAgent\src\brain\tests\test_work_output_structure_diagnostics.py:109: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+result = {'request_id': 'r', 'session_id': 's', 'task_id': '00000000-0000-0000-0000-0000000003e8', 'status': 'failed', ...}
+ledger = &lt;src.brain.work_tools.WorkLedger object at 0x00000274A0E08E10&gt;
+
+    def captured(result,ledger):
+        p=private_packet(result,ledger)
+&gt;       assert p['kind']=='research_failure_diagnostic_v5','missing request-bound output structure evidence'
+E       AssertionError: missing request-bound output structure evidence
+E       assert 'research_failure_diagnostic_v4' == 'research_failure_diagnostic_v5'
+E         
+E         - research_failure_diagnostic_v5
+E         ?                              ^
+E         + research_failure_diagnostic_v4
+E         ?                              ^
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-output-structure\UltimaAgent\src\brain\tests\test_work_output_structure_diagnostics.py:15: AssertionError</failure></testcase><testcase classname="" name="test_structure_decoder_rejects_tampering[path10-do not persist]" time="0.318"><failure message="AssertionError: missing request-bound output structure evidence&#10;assert 'research_failure_diagnostic_v4' == 'research_failure_diagnostic_v5'&#10;  &#10;  - research_failure_diagnostic_v5&#10;  ?                              ^&#10;  + research_failure_diagnostic_v4&#10;  ?                              ^">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-output-structure-diagnostics-20261108-r1/offline/structure-red-20261107T161633420063Z/temp/test_structure_decoder_rejects10')
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x00000274A19817D0&gt;, [('search', 'Research a subject')], {})
+mock_jar = (&lt;openjarvis.sdk.Jarvis object at 0x00000274A1882C50&gt;, &lt;function _run_work_agent at 0x00000274A0C66340&gt;, [{'format': {...ser'}], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [])
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x00000274A19559B0&gt;
+path = ('request', 'private_field'), value = 'do not persist'
+
+    @pytest.mark.parametrize('path,value',[
+        (('native_binding','response_sha256'),'0'*64),(('native_binding','response_bytes'),1),
+        (('request','sha256'),'0'*64),(('request','options','num_predict'),1),
+        (('request','flags','think'),True),(('message','content','chars'),999),
+        (('evidence','omitted_chars'),1),(('json','status'),'OTHER'),
+        (('evidence','fragments',0,'start'),1),(('evidence','fragments',0,'text'),'altered'),
+        (('request','private_field'),'do not persist')])
+    def test_structure_decoder_rejects_tampering(tmp_path,sdk_io,mock_jar,monkeypatch,path,value):
+        result,ledger,_,_=native_refusal(tmp_path,sdk_io,mock_jar,monkeypatch)
+&gt;       p,_=captured(result,ledger);s=p['output_structure']
+            ^^^^^^^^^^^^^^^^^^^^^^^
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-output-structure\UltimaAgent\src\brain\tests\test_work_output_structure_diagnostics.py:109: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+result = {'request_id': 'r', 'session_id': 's', 'task_id': '00000000-0000-0000-0000-0000000003e8', 'status': 'failed', ...}
+ledger = &lt;src.brain.work_tools.WorkLedger object at 0x00000274A0E0B110&gt;
+
+    def captured(result,ledger):
+        p=private_packet(result,ledger)
+&gt;       assert p['kind']=='research_failure_diagnostic_v5','missing request-bound output structure evidence'
+E       AssertionError: missing request-bound output structure evidence
+E       assert 'research_failure_diagnostic_v4' == 'research_failure_diagnostic_v5'
+E         
+E         - research_failure_diagnostic_v5
+E         ?                              ^
+E         + research_failure_diagnostic_v4
+E         ?                              ^
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-output-structure\UltimaAgent\src\brain\tests\test_work_output_structure_diagnostics.py:15: AssertionError</failure></testcase><testcase classname="" name="test_structure_capture_failure_preserves_v4_and_original_error" time="0.124"><failure message="AssertionError: missing bounded structure recorder&#10;assert False&#10; +  where False = callable(None)">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-output-structure-diagnostics-20261108-r1/offline/structure-red-20261107T161633420063Z/temp/test_structure_capture_failure0')
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x00000274A194B2D0&gt;, [], {})
+mock_jar = (&lt;openjarvis.sdk.Jarvis object at 0x00000274A1882200&gt;, &lt;function _run_work_agent at 0x00000274A0C66340&gt;, [], [])
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x00000274A1791C50&gt;
+
+    def test_structure_capture_failure_preserves_v4_and_original_error(tmp_path,sdk_io,mock_jar,monkeypatch):
+        build=getattr(d,'build_output_structure',None)
+&gt;       assert callable(build),'missing bounded structure recorder'
+E       AssertionError: missing bounded structure recorder
+E       assert False
+E        +  where False = callable(None)
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-output-structure\UltimaAgent\src\brain\tests\test_work_output_structure_diagnostics.py:117: AssertionError</failure></testcase><testcase classname="" name="test_v5_can_be_projected_to_closed_legacy_versions" time="0.289"><failure message="AssertionError: missing request-bound output structure evidence&#10;assert 'research_failure_diagnostic_v4' == 'research_failure_diagnostic_v5'&#10;  &#10;  - research_failure_diagnostic_v5&#10;  ?                              ^&#10;  + research_failure_diagnostic_v4&#10;  ?                              ^">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-output-structure-diagnostics-20261108-r1/offline/structure-red-20261107T161633420063Z/temp/test_v5_can_be_projected_to_cl0')
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x00000274A194AF50&gt;, [('search', 'Research a subject')], {})
+mock_jar = (&lt;openjarvis.sdk.Jarvis object at 0x00000274A1881650&gt;, &lt;function _run_work_agent at 0x00000274A0C66340&gt;, [{'format': {...ser'}], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [])
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x00000274A17911D0&gt;
+
+    def test_v5_can_be_projected_to_closed_legacy_versions(tmp_path,sdk_io,mock_jar,monkeypatch):
+        result,ledger,_,_=native_refusal(tmp_path,sdk_io,mock_jar,monkeypatch)
+&gt;       p,_=captured(result,ledger)
+            ^^^^^^^^^^^^^^^^^^^^^^^
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-output-structure\UltimaAgent\src\brain\tests\test_work_output_structure_diagnostics.py:129: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+result = {'request_id': 'r', 'session_id': 's', 'task_id': '00000000-0000-0000-0000-0000000003e8', 'status': 'failed', ...}
+ledger = &lt;src.brain.work_tools.WorkLedger object at 0x00000274A0E0BB10&gt;
+
+    def captured(result,ledger):
+        p=private_packet(result,ledger)
+&gt;       assert p['kind']=='research_failure_diagnostic_v5','missing request-bound output structure evidence'
+E       AssertionError: missing request-bound output structure evidence
+E       assert 'research_failure_diagnostic_v4' == 'research_failure_diagnostic_v5'
+E         
+E         - research_failure_diagnostic_v5
+E         ?                              ^
+E         + research_failure_diagnostic_v4
+E         ?                              ^
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-output-structure\UltimaAgent\src\brain\tests\test_work_output_structure_diagnostics.py:15: AssertionError</failure></testcase></testsuite></testsuites>

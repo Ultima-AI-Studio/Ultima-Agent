@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="6" skipped="0" tests="40" time="23.961" timestamp="2026-11-08T00:25:34.685966+08:00" hostname="DESKTOP-B366PQ9"><testcase classname="" name="test_received_content_shape_never_grants_write[{&quot;final_answer&quot;:&quot;\u672c\u6b21\u7814\u7a76\u672a\u4ea4\u4ed8\u3002&quot;}-COMPLETE]" time="0.785" /><testcase classname="" name="test_received_content_shape_never_grants_write[{&quot;action&quot;:&quot;ultima_work_research_write&quot;,&quot;action_input&quot;:{&quot;title&quot;:&quot;cut-INVALID]" time="0.484" /><testcase classname="" name="test_received_content_shape_never_grants_write[{&quot;action_input&quot;:{&quot;sections&quot;:[-INVALID]" time="0.406" /><testcase classname="" name="test_received_content_shape_never_grants_write[{-INVALID]" time="0.392" /><testcase classname="" name="test_received_content_shape_never_grants_write[{&quot;x&quot;:1,&quot;x&quot;:2}-INVALID]" time="0.513" /><testcase classname="" name="test_received_content_shape_never_grants_write[{&quot;x&quot;:NaN}-INVALID]" time="0.447" /><testcase classname="" name="test_received_content_shape_never_grants_write[[]-COMPLETE]" time="0.457" /><testcase classname="" name="test_received_content_shape_never_grants_write[123-NON_STRING]" time="0.442" /><testcase classname="" name="test_received_content_shape_never_grants_write[None-NON_STRING]" time="0.991" /><testcase classname="" name="test_parse_location_and_request_contract_are_real" time="1.118" /><testcase classname="" name="test_complete_invalid_schema_is_measured_without_acceptance" time="0.496" /><testcase classname="" name="test_safe_excerpts_use_final_encoded_packet_cap[content0]" time="1.224" /><testcase classname="" name="test_safe_excerpts_use_final_encoded_packet_cap[content1]" time="1.161" /><testcase classname="" name="test_sensitive_content_and_thinking_are_not_exported" time="0.603" /><testcase classname="" name="test_structure_decoder_rejects_tampering[path0-0000000000000000000000000000000000000000000000000000000000000000]" time="0.763" /><testcase classname="" name="test_structure_decoder_rejects_tampering[path1-1]" time="0.567" /><testcase classname="" name="test_structure_decoder_rejects_tampering[path2-0000000000000000000000000000000000000000000000000000000000000000]" time="0.401" /><testcase classname="" name="test_structure_decoder_rejects_tampering[path3-1]" time="0.434" /><testcase classname="" name="test_structure_decoder_rejects_tampering[path4-True]" time="0.531" /><testcase classname="" name="test_structure_decoder_rejects_tampering[path5-999]" time="0.465" /><testcase classname="" name="test_structure_decoder_rejects_tampering[path6-1]" time="0.374" /><testcase classname="" name="test_structure_decoder_rejects_tampering[path7-OTHER]" time="0.747" /><testcase classname="" name="test_structure_decoder_rejects_tampering[path8-1]" time="0.402" /><testcase classname="" name="test_structure_decoder_rejects_tampering[path9-altered]" time="0.818" /><testcase classname="" name="test_structure_decoder_rejects_tampering[path10-do not persist]" time="0.706" /><testcase classname="" name="test_structure_decoder_rejects_tampering[path11-2.0]" time="0.360" /><testcase classname="" name="test_structure_decoder_rejects_tampering[path12-False]" time="0.277"><failure message="Failed: DID NOT RAISE ValueError">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-output-structure-diagnostics-20261108-r1/offline/structure-red-20261107T162533206095Z/temp/test_structure_decoder_rejects12')
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x0000020B24A7D7D0&gt;, [('search', 'Research a subject')], {})
+mock_jar = (&lt;openjarvis.sdk.Jarvis object at 0x0000020ABABEA6D0&gt;, &lt;function _run_work_agent at 0x0000020B22DF2E80&gt;, [{'format': {...ser'}], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [])
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x0000020AB9C8FBD0&gt;
+path = ('evidence', 'omitted_chars'), value = False
+
+    @pytest.mark.parametrize('path,value',[
+        (('native_binding','response_sha256'),'0'*64),(('native_binding','response_bytes'),1),
+        (('request','sha256'),'0'*64),(('request','options','num_predict'),1),
+        (('request','flags','think'),True),(('message','content','chars'),999),
+        (('evidence','omitted_chars'),1),(('json','status'),'OTHER'),
+        (('evidence','fragments',0,'start'),1),(('evidence','fragments',0,'text'),'altered'),
+        (('request','private_field'),'do not persist'),(('native_binding','generation'),2.0),
+        (('evidence','omitted_chars'),False),(('message','type'),'null'),(('message','role'),'missing')])
+    def test_structure_decoder_rejects_tampering(tmp_path,sdk_io,mock_jar,monkeypatch,path,value):
+        result,ledger,_,_=native_refusal(tmp_path,sdk_io,mock_jar,monkeypatch)
+        p,_=captured(result,ledger);s=p['output_structure']
+        for key in path[:-1]:s=s[key]
+        s[path[-1]]=value
+&gt;       with pytest.raises(ValueError):d.validate_failure_diagnostic(canonical_v3(p),ledger._navigation.binding_key)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-output-structure\UltimaAgent\src\brain\tests\test_work_output_structure_diagnostics.py:113: Failed</failure></testcase><testcase classname="" name="test_structure_decoder_rejects_tampering[path13-null]" time="0.313"><failure message="Failed: DID NOT RAISE ValueError">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-output-structure-diagnostics-20261108-r1/offline/structure-red-20261107T162533206095Z/temp/test_structure_decoder_rejects13')
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x0000020B24A9DF50&gt;, [('search', 'Research a subject')], {})
+mock_jar = (&lt;openjarvis.sdk.Jarvis object at 0x0000020B24AEA0A0&gt;, &lt;function _run_work_agent at 0x0000020B22DF2E80&gt;, [{'format': {...ser'}], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [])
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x0000020AB9CCCAD0&gt;
+path = ('message', 'type'), value = 'null'
+
+    @pytest.mark.parametrize('path,value',[
+        (('native_binding','response_sha256'),'0'*64),(('native_binding','response_bytes'),1),
+        (('request','sha256'),'0'*64),(('request','options','num_predict'),1),
+        (('request','flags','think'),True),(('message','content','chars'),999),
+        (('evidence','omitted_chars'),1),(('json','status'),'OTHER'),
+        (('evidence','fragments',0,'start'),1),(('evidence','fragments',0,'text'),'altered'),
+        (('request','private_field'),'do not persist'),(('native_binding','generation'),2.0),
+        (('evidence','omitted_chars'),False),(('message','type'),'null'),(('message','role'),'missing')])
+    def test_structure_decoder_rejects_tampering(tmp_path,sdk_io,mock_jar,monkeypatch,path,value):
+        result,ledger,_,_=native_refusal(tmp_path,sdk_io,mock_jar,monkeypatch)
+        p,_=captured(result,ledger);s=p['output_structure']
+        for key in path[:-1]:s=s[key]
+        s[path[-1]]=value
+&gt;       with pytest.raises(ValueError):d.validate_failure_diagnostic(canonical_v3(p),ledger._navigation.binding_key)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-output-structure\UltimaAgent\src\brain\tests\test_work_output_structure_diagnostics.py:113: Failed</failure></testcase><testcase classname="" name="test_structure_decoder_rejects_tampering[path14-missing]" time="0.473"><failure message="Failed: DID NOT RAISE ValueError">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-output-structure-diagnostics-20261108-r1/offline/structure-red-20261107T162533206095Z/temp/test_structure_decoder_rejects14')
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x0000020B239B0150&gt;, [('search', 'Research a subject')], {})
+mock_jar = (&lt;openjarvis.sdk.Jarvis object at 0x0000020B24AEA620&gt;, &lt;function _run_work_agent at 0x0000020B22DF2E80&gt;, [{'format': {...ser'}], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [])
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x0000020B239D33F0&gt;
+path = ('message', 'role'), value = 'missing'
+
+    @pytest.mark.parametrize('path,value',[
+        (('native_binding','response_sha256'),'0'*64),(('native_binding','response_bytes'),1),
+        (('request','sha256'),'0'*64),(('request','options','num_predict'),1),
+        (('request','flags','think'),True),(('message','content','chars'),999),
+        (('evidence','omitted_chars'),1),(('json','status'),'OTHER'),
+        (('evidence','fragments',0,'start'),1),(('evidence','fragments',0,'text'),'altered'),
+        (('request','private_field'),'do not persist'),(('native_binding','generation'),2.0),
+        (('evidence','omitted_chars'),False),(('message','type'),'null'),(('message','role'),'missing')])
+    def test_structure_decoder_rejects_tampering(tmp_path,sdk_io,mock_jar,monkeypatch,path,value):
+        result,ledger,_,_=native_refusal(tmp_path,sdk_io,mock_jar,monkeypatch)
+        p,_=captured(result,ledger);s=p['output_structure']
+        for key in path[:-1]:s=s[key]
+        s[path[-1]]=value
+&gt;       with pytest.raises(ValueError):d.validate_failure_diagnostic(canonical_v3(p),ledger._navigation.binding_key)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-output-structure\UltimaAgent\src\brain\tests\test_work_output_structure_diagnostics.py:113: Failed</failure></testcase><testcase classname="" name="test_structure_capture_failure_preserves_v4_and_original_error" time="0.419" /><testcase classname="" name="test_v5_can_be_projected_to_closed_legacy_versions" time="0.496" /><testcase classname="" name="test_complete_json_with_wrong_action_type_still_has_structure[action0]" time="0.417"><failure message="AssertionError: assert ('UNAVAILABLE' == 'COMPLETE'&#10;  &#10;  - COMPLETE&#10;  + UNAVAILABLE)">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-output-structure-diagnostics-20261108-r1/offline/structure-red-20261107T162533206095Z/temp/test_complete_json_with_wrong_0')
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x0000020B231293D0&gt;, [('search', 'Research a subject')], {})
+mock_jar = (&lt;openjarvis.sdk.Jarvis object at 0x0000020B24AEA8E0&gt;, &lt;function _run_work_agent at 0x0000020B22DF2E80&gt;, [{'format': {...ser'}], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [])
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x0000020B239D2820&gt;
+action = []
+
+    @pytest.mark.parametrize('action',[[],{}])
+    def test_complete_json_with_wrong_action_type_still_has_structure(tmp_path,sdk_io,mock_jar,monkeypatch,action):
+        result,ledger,_,_=native_refusal(tmp_path,sdk_io,mock_jar,monkeypatch,
+            updates=[('done_reason','length'),('message.content',json.dumps(dict(action=action)))])
+        _,s=captured(result,ledger)
+&gt;       assert s['json']['status']=='COMPLETE' and s['json']['schema_valid'] is False
+E       AssertionError: assert ('UNAVAILABLE' == 'COMPLETE'
+E         
+E         - COMPLETE
+E         + UNAVAILABLE)
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-output-structure\UltimaAgent\src\brain\tests\test_work_output_structure_diagnostics.py:144: AssertionError</failure></testcase><testcase classname="" name="test_complete_json_with_wrong_action_type_still_has_structure[action1]" time="0.285"><failure message="AssertionError: assert ('UNAVAILABLE' == 'COMPLETE'&#10;  &#10;  - COMPLETE&#10;  + UNAVAILABLE)">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-output-structure-diagnostics-20261108-r1/offline/structure-red-20261107T162533206095Z/temp/test_complete_json_with_wrong_1')
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x0000020B238FF9D0&gt;, [('search', 'Research a subject')], {})
+mock_jar = (&lt;openjarvis.sdk.Jarvis object at 0x0000020B24AEAC50&gt;, &lt;function _run_work_agent at 0x0000020B22DF2E80&gt;, [{'format': {...ser'}], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [])
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x0000020B239D04B0&gt;
+action = {}
+
+    @pytest.mark.parametrize('action',[[],{}])
+    def test_complete_json_with_wrong_action_type_still_has_structure(tmp_path,sdk_io,mock_jar,monkeypatch,action):
+        result,ledger,_,_=native_refusal(tmp_path,sdk_io,mock_jar,monkeypatch,
+            updates=[('done_reason','length'),('message.content',json.dumps(dict(action=action)))])
+        _,s=captured(result,ledger)
+&gt;       assert s['json']['status']=='COMPLETE' and s['json']['schema_valid'] is False
+E       AssertionError: assert ('UNAVAILABLE' == 'COMPLETE'
+E         
+E         - COMPLETE
+E         + UNAVAILABLE)
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-output-structure\UltimaAgent\src\brain\tests\test_work_output_structure_diagnostics.py:144: AssertionError</failure></testcase><testcase classname="" name="test_full_invalid_content_error_position_is_verified" time="0.271"><failure message="Failed: DID NOT RAISE ValueError">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-output-structure-diagnostics-20261108-r1/offline/structure-red-20261107T162533206095Z/temp/test_full_invalid_content_erro0')
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x0000020ABABFD850&gt;, [('search', 'Research a subject')], {})
+mock_jar = (&lt;openjarvis.sdk.Jarvis object at 0x0000020B24AE9B20&gt;, &lt;function _run_work_agent at 0x0000020B22DF2E80&gt;, [{'format': {...ser'}], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [])
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x0000020B239D0FA0&gt;
+
+    def test_full_invalid_content_error_position_is_verified(tmp_path,sdk_io,mock_jar,monkeypatch):
+        result,ledger,_,_=native_refusal(tmp_path,sdk_io,mock_jar,monkeypatch,
+            updates=[('done_reason','length'),('message.content','{"cut":"unfinished')])
+        p,s=captured(result,ledger);assert s['json']['error']['pos']&gt;0
+        s['json']['error']['pos']=0
+&gt;       with pytest.raises(ValueError):d.validate_failure_diagnostic(canonical_v3(p),ledger._navigation.binding_key)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-output-structure\UltimaAgent\src\brain\tests\test_work_output_structure_diagnostics.py:153: Failed</failure></testcase><testcase classname="" name="test_bounded_shape_does_not_claim_omitted_counts_are_complete" time="0.330" /><testcase classname="" name="test_optional_context_failure_keeps_original_v4[no_context]" time="0.394" /><testcase classname="" name="test_optional_context_failure_keeps_original_v4[entity_mismatch]" time="0.693" /><testcase classname="" name="test_optional_context_failure_keeps_original_v4[schema_mismatch]" time="0.394" /><testcase classname="" name="test_optional_context_failure_keeps_original_v4[packet_scan]" time="0.363" /><testcase classname="" name="test_unencodable_content_is_metadata_only" time="0.315" /></testsuite></testsuites>

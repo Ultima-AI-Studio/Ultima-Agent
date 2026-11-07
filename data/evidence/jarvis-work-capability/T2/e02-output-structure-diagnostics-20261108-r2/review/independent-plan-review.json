@@ -1,0 +1,216 @@
+{
+  "schema_version": 1,
+  "review_type": "ROOT_INDEPENDENT_EXACT_PLAN_REVIEW",
+  "reviewer": "/root/review_e02_output_structure_plan",
+  "original_order": "wo-ultimaagent-20261101-0021",
+  "stage": "T2",
+  "scope": "OFFLINE_OUTPUT_STRUCTURE_DIAGNOSTICS_PREPARATION_ONLY",
+  "recorded_utc": "2026-11-07T16:11:32.0759450Z",
+  "verdict": "NEEDS_FIXES",
+  "plan_path": "H:\\UltimaAI\\UltimaAgent\\docs\\plans\\jarvis-work-e02-output-structure-diagnostics-plan-20261108.md",
+  "plan_sha256": "2e2c66d390f8f12dd6633df4c7f4beea756e296dbb381acff6c6f4ba7f21a633",
+  "spec_sha256": "d5bf87f4158b37e326a67f696c6817a3eef6f301f3f7796d6109d00093a5df42",
+  "parent_worktree": "C:\\Users\\Administrator\\.codex\\worktrees\\jarvis-e02-output-budget\\UltimaAgent",
+  "parent_head": "0421a54cab572be013c3f7ad562e86406bfe8e52",
+  "actual_run_authorized": false,
+  "acceptance_credit": 0,
+  "actual_case_allocation": 0,
+  "result_review_allocation": 0,
+  "tests_run": 0,
+  "product_imports": 0,
+  "model_calls": 0,
+  "network_requests": 0,
+  "service_operations": 0,
+  "ui_operations": 0,
+  "audio_operations": 0,
+  "process_management_operations": 0,
+  "subagents_spawned": 0,
+  "product_or_plan_modified": false,
+  "previous_result_review_reused": false,
+  "findings": [
+    {
+      "id": "PLAN-IF-01",
+      "priority": "P2",
+      "blocking": true,
+      "plan_lines": [
+        33
+      ],
+      "title": "原记录接口的位置参数数目错误",
+      "detail": "冻结父源码的 record_native_response_rejection 只有 ledger, transport, raw_bytes, raw, max_tokens, reason 六个位置参数，计划写成前七个。精确实施接口必须与被审父字节一致。",
+      "source_evidence": [
+        {
+          "file": "C:\\Users\\Administrator\\.codex\\worktrees\\jarvis-e02-output-budget\\UltimaAgent\\src\\brain\\work_research_diagnostics.py",
+          "lines": [
+            121,
+            138
+          ]
+        },
+        {
+          "file": "C:\\Users\\Administrator\\.codex\\worktrees\\jarvis-e02-output-budget\\UltimaAgent\\src\\brain\\agent_server.py",
+          "lines": [
+            435,
+            440
+          ]
+        }
+      ],
+      "required_change": "写出保留六个原位置参数、仅追加 keyword-only request_context=None 的完整签名；不得改变原调用顺序、异常或失败语义。",
+      "verification": "限定重读修订计划与同一冻结父签名；本计划审查不运行产品测试。"
+    },
+    {
+      "id": "PLAN-BIND-02",
+      "priority": "P2",
+      "blocking": true,
+      "plan_lines": [
+        34,
+        35,
+        38,
+        39
+      ],
+      "title": "结构快照的原始响应摘要来源尚未闭合",
+      "detail": "build_output_structure 的计划签名只收到解析后的 raw，没有 raw_bytes，却需要生成/携带 response_sha256。原 record_native_response_rejection 已从真实接收 raw_bytes 计算 SHA/长度并通过 _bound_native 与 transport receipt 核对。计划尚未明确这些已绑定元数据如何交给结构 snapshot；重新序列化 raw 无法得到原始接收字节摘要。",
+      "source_evidence": [
+        {
+          "file": "C:\\Users\\Administrator\\.codex\\worktrees\\jarvis-e02-output-budget\\UltimaAgent\\src\\brain\\agent_server.py",
+          "lines": [
+            427,
+            437
+          ]
+        },
+        {
+          "file": "C:\\Users\\Administrator\\.codex\\worktrees\\jarvis-e02-output-budget\\UltimaAgent\\src\\brain\\work_research_diagnostics.py",
+          "lines": [
+            112,
+            138
+          ]
+        }
+      ],
+      "required_change": "明确先生成并绑定原 native 元数据，再把同一原拒绝的 generation/receipt/request/response SHA 及长度传给或合并进 output_structure snapshot。response_sha256 和 response_bytes 必须来自真实 raw_bytes 的已验证 native 记录，禁止从 raw 重序列化推导；entity SHA/字节数与同一 receipt 继续交叉核对。可以保持 build 接口不接 raw_bytes，但必须写清 recorder/attachment 的数据流责任。",
+      "verification": "计划中明确覆盖非canonical但合法的外层JSON字节：snapshot/native/receipt 响应摘要及长度一致，并保留既有 native SHA 断言；响应绑定不匹配或扩展失败只回退原 v4，原 native 记录自身失败仍按既有 UNAVAILABLE。"
+    }
+  ],
+  "coverage": [
+    {
+      "area": "model_budget_and_authority",
+      "status": "COVERED",
+      "plan_lines": [
+        12,
+        18,
+        56,
+        58
+      ],
+      "evidence": "原8B/digest、原题四来源、调用/字节/时间/输出预算、旧失败和零实际/结果分配保持；精确计划PASS与准备PASS分门。"
+    },
+    {
+      "area": "bounded_private_structure",
+      "status": "COVERED",
+      "plan_lines": [
+        34,
+        37
+      ],
+      "evidence": "严格JSON、COMPLETE/INVALID/NON_STRING/UNAVAILABLE、仅完整对象统计、有限section/claim表、未知路径OTHER、thinking无正文、最多3片段与省略量。"
+    },
+    {
+      "area": "canonical_cap_and_fallback",
+      "status": "COVERED",
+      "plan_lines": [
+        23,
+        24,
+        37,
+        38
+      ],
+      "evidence": "完整canonical packet按16384字节封顶；FULL到片段到无文本；安全扫描和Unicode/扩张失败回退完整原v4；不删旧页证据。"
+    },
+    {
+      "area": "version_and_summary",
+      "status": "COVERED_PENDING_BINDING_FIX",
+      "plan_lines": [
+        26,
+        39,
+        52
+      ],
+      "evidence": "v5闭合字段和关联验证，v3/v4旧字段集不扩展；公共summary只报实际kind/元数据。"
+    },
+    {
+      "area": "original_failure_success_and_write_ack",
+      "status": "COVERED",
+      "plan_lines": [
+        22,
+        25,
+        43,
+        44
+      ],
+      "evidence": "原首个拒绝及异常保持；length+完整JSON仍拒绝；成功写入ACK重放保持；写后ACK拒绝保留已有文件/效果。"
+    },
+    {
+      "area": "offline_tests_and_local_freeze",
+      "status": "COVERED",
+      "plan_lines": [
+        30,
+        41,
+        58
+      ],
+      "evidence": "新结构RED/GREEN、旧native语义、旧包/export与相关回归，90秒每组/最多2并行/原两排除；源码快照、精确diff、manifest、本地commit/tag与读回、fresh准备独审。"
+    }
+  ],
+  "withdrawn_concern": {
+    "topic": "test_work_failure_diagnostics.py shared helper version migration",
+    "status": "WITHDRAWN_AFTER_EXACT_SOURCE_READ",
+    "evidence": "该文件66-71行 private_packet 只检查summary/raw/cap/SHA并json.loads，不检查kind。第37行v4断言属于无原生拒绝的正常final-before-write时限测试，按计划保持v4，不受v5影响。",
+    "sha256": "666411f29e4d2975ce8bbfdba7714530e0010cb6feda51c1d5ad94681034d8c9",
+    "write_domain_expansion_required": false
+  },
+  "verification_limits": [
+    "仅静态计划与相关冻结源码审查，未执行测试、导入产品或实例化validator。",
+    "旧输出结构报告及已耗用实际结果只作历史上下文，不复用为本轮计划或准备PASS。",
+    "WIP与受保护运行环境未做本轮live进程观察；仅核对本轮DoR/registration等磁盘记录。",
+    "本结论仅绑定本轮计划精确SHA；修订后须重新核对修订差异和新SHA，旧结论不覆盖新字节。"
+  ],
+  "input_sha256": {
+    "H:\\UltimaAI\\UltimaAgent\\docs\\plans\\jarvis-work-e02-output-structure-diagnostics-plan-20261108.md": "2e2c66d390f8f12dd6633df4c7f4beea756e296dbb381acff6c6f4ba7f21a633",
+    "H:\\UltimaAI\\UltimaAgent\\docs\\plans\\jarvis-work-e02-output-structure-diagnostics-proposal-20261107.md": "d5bf87f4158b37e326a67f696c6817a3eef6f301f3f7796d6109d00093a5df42",
+    "H:\\UltimaAI\\UltimaAgent\\docs\\reports\\jarvis-work-t2-e02-output-structure-review-20261107.md": "83ca49a7ff5d296af46669c85fa2158f486f565e810ec5a23f99360106a27ba1",
+    "H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\e02-output-structure-diagnostics-20261108-r1\\inputs\\scope.json": "43c1477df73989e77345a3d335bcb1e1e1de2138ae63b98f9d5e8ad1f9dcaed7",
+    "H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\e02-output-structure-diagnostics-20261108-r1\\inputs\\DoR.json": "0b12f2fe8e38ea37103dffb79e0e8453c8f624862a219e523e824bda13d452b8",
+    "H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\e02-output-structure-diagnostics-20261108-r1\\verification\\registration.json": "ca0bd11cced4e2e716ad419c12c09e1d814b3a080689381e182049d67d980a17",
+    "H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\e02-output-structure-diagnostics-20261108-r1\\verification\\run_product_checks.py": "57771fb2c99ebf352ce6740c4692092c15ea3d616726e4230c57091e6e3527dc",
+    "H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\e02-output-structure-diagnostics-20261108-r1\\verification\\product_pytest.py": "16754d957ebd9cbd84ab20aecaa948f80aa615b4eb152b8e803020c4ee68e5f2",
+    "H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\e02-output-structure-diagnostics-20261108-r1\\verification\\compatibility_checks.py": "9f996a3577b384c651afb696ba49957876c4292a3863d2abcd46382272546c17",
+    "C:\\Users\\Administrator\\.codex\\worktrees\\jarvis-e02-output-budget\\UltimaAgent\\src\\brain\\agent_server.py": "835558d4b38e4f4320a4f2327866ef251222b7c8ea96e0efc8749bd5d5c675c2",
+    "C:\\Users\\Administrator\\.codex\\worktrees\\jarvis-e02-output-budget\\UltimaAgent\\src\\brain\\work_research_diagnostics.py": "c6a5a1ce43753a78860032449b34aa0626998a7e51abcc6ecda5d17fcea71ca3",
+    "C:\\Users\\Administrator\\.codex\\worktrees\\jarvis-e02-output-budget\\UltimaAgent\\src\\brain\\work_navigation.py": "5e393582365d2ef30b36ef00a32d77c3acfb5892f64f2f9cb25db3b91b0d74df",
+    "C:\\Users\\Administrator\\.codex\\worktrees\\jarvis-e02-output-budget\\UltimaAgent\\src\\brain\\work_tools.py": "e1241f509b8a1b01dd3b1c7492a54bd14a68c7140da7925b2d148c67f8a4b187",
+    "C:\\Users\\Administrator\\.codex\\worktrees\\jarvis-e02-output-budget\\UltimaAgent\\src\\brain\\tests\\test_work_native_response_diagnostics.py": "b322fc0fc4a77e43f55003ad89dcd668dac54337c5b5617e0783aae4c93ccfbf",
+    "C:\\Users\\Administrator\\.codex\\worktrees\\jarvis-e02-output-budget\\UltimaAgent\\src\\brain\\tests\\test_work_failure_diagnostics.py": "666411f29e4d2975ce8bbfdba7714530e0010cb6feda51c1d5ad94681034d8c9",
+    "C:\\Users\\Administrator\\.codex\\worktrees\\jarvis-e02-output-budget\\UltimaAgent\\src\\brain\\tests\\test_work_http_failure_diagnostics.py": "ed3663fe9eb28d0d786ce78b9ff5b3f613ae2b9199a32c30e552e7408cf25d78"
+  },
+  "registration_readback": [
+    {
+      "path": "H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\current-run.json",
+      "registered_sha256": "09ecbca93f0016b668fe8ae282836bf1825d907524b61af682eec038ae486b6d",
+      "observed_sha256": "09ecbca93f0016b668fe8ae282836bf1825d907524b61af682eec038ae486b6d",
+      "match": true
+    },
+    {
+      "path": "H:\\UltimaAI\\UltimaAgent\\tasks\\queue\\wo-ultimaagent-20261101-0021--work-capability.md",
+      "registered_sha256": "1bb3bee092e810e64d3f76ade6c00509e2504b8b2317f6ba30b6f9dc63f0b76f",
+      "observed_sha256": "1bb3bee092e810e64d3f76ade6c00509e2504b8b2317f6ba30b6f9dc63f0b76f",
+      "match": true
+    },
+    {
+      "path": "H:\\UltimaAI\\UltimaAgent\\tasks\\queue\\stages\\wo-ultimaagent-20261101-0021\\t2.md",
+      "registered_sha256": "ce770df1ad1c3a8f8abb4f2e28f2b3ccdcce48619a8db96250419ee2fdaa0eb5",
+      "observed_sha256": "ce770df1ad1c3a8f8abb4f2e28f2b3ccdcce48619a8db96250419ee2fdaa0eb5",
+      "match": true
+    },
+    {
+      "path": "H:\\UltimaAI\\_shared\\queue\\global-queue-index.md",
+      "registered_sha256": "06abe2ebbbe09ba44c69da67723985bf65430e0f6be2ab5a437ad08235331935",
+      "observed_sha256": "06abe2ebbbe09ba44c69da67723985bf65430e0f6be2ab5a437ad08235331935",
+      "match": true
+    }
+  ],
+  "allowed_writes": [
+    "H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\e02-output-structure-diagnostics-20261108-r1\\review\\independent-plan-review.json",
+    "H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\e02-output-structure-diagnostics-20261108-r1\\review\\independent-plan-review.md"
+  ]
+}

@@ -1,0 +1,77 @@
+{
+  "schema_version": 1,
+  "review_type": "ROOT_INDEPENDENT_EXACT_PLAN_REVIEW_CLOSURE",
+  "reviewer": "/root/review_e02_output_structure_plan",
+  "original_order": "wo-ultimaagent-20261101-0021",
+  "stage": "T2",
+  "recorded_utc": "2026-11-07T16:14:09.5742379Z",
+  "verdict": "PASS_PLAN_ONLY",
+  "plan_path": "H:\\UltimaAI\\UltimaAgent\\docs\\plans\\jarvis-work-e02-output-structure-diagnostics-plan-20261108.md",
+  "plan_sha256": "1bfbd318e5b82483f0d85ea49882d279d7db808a13620b768ba9be07ec21fa3a",
+  "original_plan_sha256": "2e2c66d390f8f12dd6633df4c7f4beea756e296dbb381acff6c6f4ba7f21a633",
+  "original_review_sha256": "59675be8448a073ead7ee103c1296c65637fc43f6835722a507b9302ff1fa4d4",
+  "review_scope": "Only the first-plan versus revised-plan diff, the two original findings, and risks introduced by that diff",
+  "method": "Read-only SHA256 verification and git diff --no-index --no-ext-diff; diff exit code 1 is the expected differences result",
+  "findings": [
+    {
+      "id": "PLAN-IF-01",
+      "status": "CLOSED",
+      "revised_plan_lines": [
+        33
+      ],
+      "evidence": "计划明确列出ledger, transport, raw_bytes, raw, max_tokens, reason六个原位置参数，并仅追加keyword-only request_context=None；原参数顺序和拒绝分支范围保持。"
+    },
+    {
+      "id": "PLAN-BIND-02",
+      "status": "CLOSED",
+      "revised_plan_lines": [
+        34,
+        35,
+        40,
+        45
+      ],
+      "evidence": "builder新增keyword-only native_record；来源固定为本次_bound_native核对结果。闭合native_binding复制generation/receipt/request/response SHA、response_bytes/content_chars/max_tokens；响应SHA/长度明确来自真实raw_bytes，禁止重序列化raw。v5与原native逐值匹配，actual entity摘要对齐；新增非canonical外层JSON字节及binding/entity篡改断言。"
+    }
+  ],
+  "new_findings": [],
+  "additional_clarification": {
+    "revised_plan_lines": [
+      35
+    ],
+    "assessment": "schema内source_id枚举集合不冒充已读来源，消除证据含义混淆；未新增权限、接受信用或产品写域。"
+  },
+  "prior_helper_concern": "WITHDRAWN_REMAINS_WITHDRAWN; no test write-domain expansion required",
+  "original_review_preserved": true,
+  "input_sha256": {
+    "H:\\UltimaAI\\UltimaAgent\\docs\\plans\\jarvis-work-e02-output-structure-diagnostics-plan-20261108.md": "1bfbd318e5b82483f0d85ea49882d279d7db808a13620b768ba9be07ec21fa3a",
+    "H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\e02-output-structure-diagnostics-20261108-r1\\review\\plan-first-needs-fixes.md": "2e2c66d390f8f12dd6633df4c7f4beea756e296dbb381acff6c6f4ba7f21a633",
+    "H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\e02-output-structure-diagnostics-20261108-r1\\review\\independent-plan-review.json": "59675be8448a073ead7ee103c1296c65637fc43f6835722a507b9302ff1fa4d4",
+    "H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\e02-output-structure-diagnostics-20261108-r1\\review\\independent-plan-review.md": "9813e20bd341cabd566179dd653bde9dededd068ff0aba505d02ab79a43211d0"
+  },
+  "tests_run": 0,
+  "product_imports": 0,
+  "model_calls": 0,
+  "network_requests": 0,
+  "service_operations": 0,
+  "ui_operations": 0,
+  "audio_operations": 0,
+  "process_management_operations": 0,
+  "subagents_spawned": 0,
+  "product_or_plan_modified": false,
+  "actual_case_allocation": 0,
+  "result_review_allocation": 0,
+  "actual_run_authorized": false,
+  "acceptance_credit": 0,
+  "implementation_verified": false,
+  "preparation_package_approved": false,
+  "result_acceptance_approved": false,
+  "remaining_gates": [
+    "按精确计划实施及离线验证。",
+    "冻结新候选后fresh独立准备审查；本计划PASS不替代该门。",
+    "实际研究及结果独审仍需新的明确分配，原E02/T2/Owner和旧失败/预算门保持。"
+  ],
+  "allowed_writes": [
+    "H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\e02-output-structure-diagnostics-20261108-r1\\review\\independent-plan-review-closure.json",
+    "H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\e02-output-structure-diagnostics-20261108-r1\\review\\independent-plan-review-closure.md"
+  ]
+}
