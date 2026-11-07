@@ -5,7 +5,7 @@
 - original_work_order_id: wo-ultimaagent-20261101-0021
 - revision: 2
 - authorization: 用户“那按顺序开始推进吧”；批准按已提交的工作能力契约与计划顺序执行，保留最终 Owner 验收和发布门。
-- 状态：E02 e40a55b唯一实际FAIL_CONFIRMED：六读取得三来源证据、回复明确未交付；第7次原生HTTP500，无research.md/写入/ACK；清理及保护核对PASS，单例与独审已耗尽，不重试。
+- 状态：E02新候选6d758d9：原生JSON字符串采样兼容补修，781离线检查与准备独审PASS；旧e40实际FAIL保留，未运行新模型，实际0/3；待准备受控入口并明确分配单例。
 - 计划：docs/plans/jarvis-work-capability-delivery-plan-20261101.md
 - 契约：docs/specs/jarvis-work-capability-contract-20261101.md
 - 草案检查点：ultimaagent-jarvis-work-plan-draft-20261101 @ f6eb808348302cec55bddcf44ee03f5b5736c4d9
@@ -593,3 +593,17 @@ E02 e40a55b唯一实跑FAIL待结果独审：六读取得S1/S2/S3证据，第7�
 E02 e40a55b唯一实际FAIL_CONFIRMED：六读取得三来源证据、回复明确未交付；第7次原生HTTP500，无research.md/写入/ACK；清理及保护核对PASS，单例与独审已耗尽，不重试。
 报告：H:\UltimaAI\UltimaAgent\docs\reports\jarvis-work-t2-e02-source-coverage-controlled-result-20261107.md
 后续提案：H:\UltimaAI\UltimaAgent\docs\plans\jarvis-work-e02-native-writer-http500-diagnostics-proposal-20261107.md
+
+
+## SOURCE26 原生 JSON 字符串兼容离线补修登记
+
+E02 e40实际FAIL保留；新增原生日志补证840 token/未截断/非法JSON，离线字符串采样兼容修复进入计划独审；新actual=0，保持8B及原预算。
+
+计划：H:\UltimaAI\UltimaAgent\docs\plans\jarvis-work-e02-json-string-sampler-plan-20261107.md；证据：H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-native-pattern-json-20261107-r1。DoR：目标、精确写域、离线验收、禁止、原单继承均明确；独立计划PASS后方改新候选。原单与T2/Owner保持未通过，本登记不扩大实际额度。
+
+
+## SOURCE26 离线字符串兼容修复收口
+
+E02新候选6d758d9：原生JSON字符串采样兼容补修，781离线检查与准备独审PASS；旧e40实际FAIL保留，未运行新模型，实际0/3；待准备受控入口并明确分配单例。
+
+报告：H:\UltimaAI\UltimaAgent\docs\reports\jarvis-work-t2-e02-json-string-sampler-preparation-20261107.md；证据：H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-native-pattern-json-20261107-r1。8B、原预算、来源/事实/ACK/时限门保持；新actual/resultreview额度0，T2/Owner未通过。

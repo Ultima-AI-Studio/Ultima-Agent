@@ -1,0 +1,62 @@
+docs/reports/jarvis-work-t2-e02-json-string-sampler-preparation-20261107.md:1: trailing whitespace.
++# E02 原生 JSON 字符串兼容：离线候选准备报告
+docs/reports/jarvis-work-t2-e02-json-string-sampler-preparation-20261107.md:2: trailing whitespace.
++
+docs/reports/jarvis-work-t2-e02-json-string-sampler-preparation-20261107.md:3: trailing whitespace.
++状态：PASS_OFFLINE_AND_INDEPENDENT_PREPARATION_REVIEW；仅离线准备通过。原单 wo-ultimaagent-20261101-0021 / T2。候选 6d758d9c3961f156a062e349ec4a949e2ee7a9a9，父候选 e40a55b40c223181040dbb6a09d0c4d2da5026cf；tag ultimaagent-e02-json-string-candidate-20261107。
+docs/reports/jarvis-work-t2-e02-json-string-sampler-preparation-20261107.md:4: trailing whitespace.
++
+docs/reports/jarvis-work-t2-e02-json-string-sampler-preparation-20261107.md:5: trailing whitespace.
++本轮先核对上次 5e6ea89c… 的共享原生日志。时间、六200一500和卡ID相符的末次生成记录为840 token、truncated=0，随后 unparsed peg-native output。其三段字符串不是合法JSON，却符合旧代码事实 pattern。新补证独立保存在 inputs/native-log-supplement；旧结果清单与FAIL_CONFIRMED不修改。这是时间/ID相关补证，非请求绑定正文或合格研究产物。
+docs/reports/jarvis-work-t2-e02-json-string-sampler-preparation-20261107.md:6: trailing whitespace.
++
+docs/reports/jarvis-work-t2-e02-json-string-sampler-preparation-20261107.md:7: trailing whitespace.
++Ollama v0.32.15 的官方版本文件固定 llama.cpp b10488。其 converter 将 pattern 体直接置于JSON双引号间，旧通配符/否定边界允许裸引号与换行；该版本compat patch不修改此转换器。已封存官方来源及Python参考。此处确证的是源码兼容缺口，未执行编译版原生GBNF校验，不宣称唯一服务内部因果或实际HTTP500已经消除。
+docs/reports/jarvis-work-t2-e02-json-string-sampler-preparation-20261107.md:8: trailing whitespace.
++
+docs/reports/jarvis-work-t2-e02-json-string-sampler-preparation-20261107.md:9: trailing whitespace.
++产品只修改 agent_server.py 的采样投影：规范代码 claim pattern 的任意字符和边界改用有效JSON字符/完整转义，按已知形状抽取并复核操作名；未知claim形状拒绝。原严格schema、writer _text/操作名/来源证据、ACK、replay、预算、读取覆盖及“本次研究未交付。”都保持。采样可接纳的转义边界必须在解码后通过严格门；合法JSON转义控制字符仍不能通过writer单行门。两份测试文件负责原生非法形状、合法串、真实SDK文件写入/读回和篡改重放。
+docs/reports/jarvis-work-t2-e02-json-string-sampler-preparation-20261107.md:10: trailing whitespace.
++
+docs/reports/jarvis-work-t2-e02-json-string-sampler-preparation-20261107.md:11: trailing whitespace.
++## 本轮新鲜验证
+docs/reports/jarvis-work-t2-e02-json-string-sampler-preparation-20261107.md:12: trailing whitespace.
++
+docs/reports/jarvis-work-t2-e02-json-string-sampler-preparation-20261107.md:13: trailing whitespace.
++- 旧代码RED：35项中29项按预期失败、6项通过，离线审计干净；原始回执与源码快照保留。
+docs/reports/jarvis-work-t2-e02-json-string-sampler-preparation-20261107.md:14: trailing whitespace.
++- 修复后的最终回归：17个受限分片，781项去重PASS = 775项产品检查 + 6项官方参考converter检查。全部当前源码/测试入口哈希一致、审计干净，无重复计数。定向中间GREEN35不额外累计。
+docs/reports/jarvis-work-t2-e02-json-string-sampler-preparation-20261107.md:15: trailing whitespace.
++- 新测试包含中文/引号/反斜杠的实际SDK MockTransport文件写入、hash读回、ACK与replay；非法JSON、词边界在解码后不合法、缺失operation、控制字符及重算hash的sampler篡改不能取得交付。
+docs/reports/jarvis-work-t2-e02-json-string-sampler-preparation-20261107.md:16: trailing whitespace.
++- 官方参考 converter 可转换实际产品投影及整份本地引用writer envelope；参考语法文件保存在grammar分片。其作用是离线兼容证据，不是原生二进制或模型语义验证。
+docs/reports/jarvis-work-t2-e02-json-string-sampler-preparation-20261107.md:17: trailing whitespace.
++- 诊断原型另验证896种旧严格pattern允许的合法JSON序列化组合，以及三段原生日志malformed raw body旧接受/新拒绝；这些不是额外产品测试计数。
+docs/reports/jarvis-work-t2-e02-json-string-sampler-preparation-20261107.md:18: trailing whitespace.
++- 前一准备清单189项、结果清单56项、输入1575项、依赖和九个无关文件保全；旧e40工作区保持冻结且干净。
+docs/reports/jarvis-work-t2-e02-json-string-sampler-preparation-20261107.md:19: trailing whitespace.
++- 2026-11-07 19:26:05北京时间只读核对七保护身份、0.32.15、当前8B原摘要与隔离端口空闲。仅检查点，不代表连续存活。观察器来自冻结ee1bef6；runtime-after中继承的current_candidate_base字段指观察器，当前产品身份以candidate-freeze及runtime-readback为准。
+docs/reports/jarvis-work-t2-e02-json-string-sampler-preparation-20261107.md:20: trailing whitespace.
++
+docs/reports/jarvis-work-t2-e02-json-string-sampler-preparation-20261107.md:21: trailing whitespace.
++## 界限与下一步
+docs/reports/jarvis-work-t2-e02-json-string-sampler-preparation-20261107.md:22: trailing whitespace.
++
+docs/reports/jarvis-work-t2-e02-json-string-sampler-preparation-20261107.md:23: trailing whitespace.
++本轮 actual0/model0/service0/UI0/audio0，未创建实际authority/release，未重用上次单例。原non2xx正文0读取契约保持。781检查没有证明8B实际研究语义、原生解析性能或HTTP500消除；49152是请求实体字节上限，不是编译后语法大小/速度证明。源与事实、原题覆盖、research.md、ACK、原时限和独立结果门继续适用。
+docs/reports/jarvis-work-t2-e02-json-string-sampler-preparation-20261107.md:24: trailing whitespace.
++
+docs/reports/jarvis-work-t2-e02-json-string-sampler-preparation-20261107.md:25: trailing whitespace.
++下一步为本候选准备受控入口/绑定；在入口准备独审、本地冻结后，由用户明确分配新单例及结果复核才取得真实回执。E02仍0/3，T2/Owner未通过，旧E01/E03信用不迁移。原题四来源、8B与256/2048输出、八POST及原所有时限不变。
+docs/reports/jarvis-work-t2-e02-json-string-sampler-preparation-20261107.md:26: trailing whitespace.
++
+docs/reports/jarvis-work-t2-e02-json-string-sampler-preparation-20261107.md:27: trailing whitespace.
++本地计划见 docs/plans/jarvis-work-e02-json-string-sampler-plan-20261107.md；证据根为本报告所在N16。远端此前自动审批blocked by policy，本轮不重试推送。
+docs/reports/jarvis-work-t2-e02-json-string-sampler-preparation-20261107.md:28: trailing whitespace.
++
+docs/reports/jarvis-work-t2-e02-json-string-sampler-preparation-20261107.md:29: trailing whitespace.
++官方依据：[Ollama固定版本](https://github.com/ollama/ollama/blob/v0.32.15/LLAMA_CPP_VERSION)、[b10488 C++转换器](https://github.com/ggml-org/llama.cpp/blob/b10488/common/json-schema-to-grammar.cpp)、[同版本Python参考](https://github.com/ggml-org/llama.cpp/blob/b10488/examples/json_schema_to_grammar.py)。
+docs/reports/jarvis-work-t2-e02-json-string-sampler-preparation-20261107.md:30: trailing whitespace.
++
+docs/reports/jarvis-work-t2-e02-json-string-sampler-preparation-20261107.md:31: trailing whitespace.
++独立准备审查：PASS_PREPARATION_ONLY。manifest SHA256 a8a65256c90f96c8fcac5b6126633bd9e95d135a1cc079fcc1c1523cba28ff95；review SHA256 69c7dd6725bf8a1c2542a899ecf77c3415f1cee57ffca7cdc61f928174be40e6。
