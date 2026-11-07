@@ -2,11 +2,11 @@
   "schema": 2,
   "original_order": "wo-ultimaagent-20261101-0021",
   "stage_task": "wo-ultimaagent-20261101-0021-t2",
-  "updated_utc": "2026-11-07T07:19:31.284971+00:00",
-  "phase": "SOURCE20_E02_FAILURE_STATE_READY",
+  "updated_utc": "2026-11-07T07:27:32.121462+00:00",
+  "phase": "SOURCE20_E02_FAILURE_STATE_RESULT",
   "candidate": "269aca511d88412dbb9c15d23911138469a37aa2",
   "stage_queue_state": "EXECUTING",
-  "workflow_status": "ready_for_one_authorized_case",
+  "workflow_status": "EVIDENCE_BASED_REPAIR_PREPARATION",
   "goal_status": "active",
   "model": "qwen3-8b-uncensored",
   "model_digest": "6d7230a923426bc1933879eb08a7dafc18e5fc0e7606c459ce98f16e0c7f9330",
@@ -16,7 +16,7 @@
   "source_implementation_released": true,
   "live_gate_released": false,
   "next_stage_released": false,
-  "active_report": "H:\\UltimaAI\\UltimaAgent\\docs\\reports\\jarvis-work-t2-e02-failure-state-preparation-20261107.md",
+  "active_report": "H:\\UltimaAI\\UltimaAgent\\docs\\reports\\jarvis-work-t2-e02-failure-state-result-20261107.md",
   "active_preparation_root": "H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\e02-failure-state-20261107-r1",
   "active_review_agent": null,
   "preparation_status": "PASS_OFFLINE_AND_INDEPENDENT_REVIEW",
@@ -119,7 +119,7 @@
   "t2": "NOT_PASSED",
   "t3_t5_released": false,
   "owner_gate": "NOT_PASSED",
-  "next_work": "Run the one authorized diagnostic case, review its preserved final branch and selected pages, then decide evidence-based repair.",
+  "next_work": "Independently review unique-source-section repair plan, implement minimal generation/replay contract alignment in a new candidate, then one conditional verification.",
   "historical_current_run": {
     "path": "H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\e03-fixture-input-origin-20261105\\history\\current-run-before.json",
     "sha256": "e7152ea1d705c7182c1d719236a528a97ca962498ffb662c6954c81e158cf137",
@@ -199,11 +199,15 @@
   },
   "next_action_scope": {
     "authorized": true,
-    "source": "User: 先补齐失败时的最终分支和选页诊断，再针对证据修复“读取到交付”的衔接。",
-    "scope": "Diagnose once, then only an evidence-based repair in a separate candidate and one conditional verification; independent preparation and result review for each, no retry",
-    "actual_case_allocation": 1,
-    "result_review_allocation": 1,
-    "conditional_on_preparation_PASS": true
+    "decision": "H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\e02-failure-state-20261107-r1\\inputs\\direct-user-decision.json",
+    "diagnostic_consumed": true,
+    "diagnostic_result_review_consumed": true,
+    "scope": "Evidence-based unique source sections repair, necessary independent reviews and one conditional post-repair verification in a successor candidate",
+    "diagnostic_remaining": 0,
+    "conditional_post_repair_cases": 1,
+    "actual_case_allocation_remaining": 0,
+    "retry": 0,
+    "proposal": "H:\\UltimaAI\\UltimaAgent\\docs\\plans\\jarvis-work-e02-unique-source-sections-plan-20261107.md"
   },
   "acceptance_entry_user_approval": null,
   "acceptance_entry_user_approval_sha256": null,
@@ -1170,107 +1174,129 @@
     "work_order": "wo-ultimaagent-20261101-0021",
     "stage": "T2",
     "case": "E02-controlled-1",
-    "run_id": "dbd70fd7-ecb3-42d7-a6b0-097422e85f5f",
-    "candidate": "1ecd75d061fd20e78c790c506cac76847f8e63bf",
+    "purpose": "diagnostic",
+    "run_id": "963f8bf5-1a85-49ce-ae9f-19d503b9ff65",
+    "candidate": "22653fb77445bad4f5b9d9ae789cd35972dcc984",
     "model": "qwen3-8b-uncensored",
-    "question_id": "call_99e734b15417466b92af3e8e85fdc3ea",
+    "question_id": "user-message:sha256:2ac77a92020708e397ed3198ea63793e3ec989887dd0ec458bb4b4a86967dda0",
     "result": "FAIL",
-    "original_terminal": "FAIL",
     "independent_review": "FAIL_CONFIRMED",
-    "review_path": "H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\e02-code-claim-schema-20261107-r1\\review\\independent-result-review.json",
-    "review_sha256": "2837c364862c80d18000c6c8d5aafee934aaf62d667785202e445f1cf717992e",
-    "result_manifest_sha256": "6974d755a36c5ec5bed02f931bc8270809909225958478d2b7d39cef311b32a0",
-    "terminal_sha256": "c3a5d031f4a583745d44416e7033d4bcc9a39ae2fd164501055319a3d9fa0f5f",
-    "product_result_sha256": "3d466e8354f87d0469bf485ef7abffe90e780adf0a56f7be70b7e4b8c562ae84",
+    "review_path": "H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\e02-failure-state-20261107-r1\\review\\independent-result-review.json",
+    "review_sha256": "8e922f635502dc14f71ae3182583c1042832e90e574d171c292791918473db1e",
+    "result_manifest_sha256": "083bdd6aea562acf27276b3896a6931284588ee51664580c2b61129301ffc02d",
+    "terminal_sha256": "3608c639e8db1d63292fef7fb02f9f43d695c6dfffa37eb7e529ca3bfa503b39",
+    "product_result_sha256": "f654000eecafd244b1fc89c4c655fb35c13862d67a92bf35cb5cbac69a155cb2",
     "entry_invocations": 1,
     "work_cli_attempts": 1,
     "controlled_search_success": 1,
     "controlled_GET_success": 4,
-    "available_controlled_sources": 4,
-    "application_native_POST_attempts": 5,
-    "terminal_application_native_POST_attempts": null,
+    "confirmed_inspect_pages": 6,
+    "public_successful_inspect_records": 0,
+    "inspect_count_basis": "trusted failure diagnostic confirmed pages, not the incomplete public tool_results list",
+    "write_attempts": 1,
+    "successful_write_count": 0,
+    "application_native_POST_attempts": 7,
     "actual_native_start_count": null,
-    "research_artifacts": 1,
-    "outer_elapsed_seconds": 66.7321982,
+    "research_artifacts": 0,
+    "outer_elapsed_seconds": 58.36237220000476,
     "cleanup": "PASS",
     "root_witness_eligible": false,
-    "service_status": "succeeded",
-    "service_error": null,
-    "service_result_observation_path": "H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\e02-code-claim-schema-20261107-r1\\verification\\service-result-readback.json",
-    "service_result_observation_sha256": "88f8836827f7c82d2b01b91edcf45bfe29fb994f4413d53aaebe0ab520996db7",
-    "activity_count_source": "sealed service-first-result and trusted-export.failure observer; CLI error envelope omissions are not zero observed activity",
-    "product_status": "failed",
-    "product_error": "HTTP Error 500: Internal Server Error",
-    "research_failure": null,
-    "attribution_limit": "Only current sealed bytes and independent review; no assumed causes, unpublished model arguments, global native counts or continuous liveness.",
-    "readonly_protected_equal": true,
-    "readonly_known_original_identities_remaining": 0,
-    "continuous_liveness_measured": false,
-    "previous_real_attempts_preserved": [
+    "product_error": "Unlinked or failed END",
+    "research_failure": {
+      "stage": "research.write",
+      "reason_code": "INVALID_SOURCE_SECTION",
+      "error_type": "ValueError",
+      "error_text_length": 35,
+      "error_text_sha256": "7e9599d0c2918550861b8aa0402844d74269fa7bbddddb57b5c4497294bf463e"
+    },
+    "failure_diagnostic_sha256": "bf8efb945255dcff31ace9dceee48d69d8450b28f0636c79a86812812a1a65dc",
+    "branch": "action",
+    "eligible_source_ids": [
+      "S1",
+      "S2",
+      "S3"
+    ],
+    "selected_pages": [
       {
-        "run_id": "7530ef7f-ad0b-4151-bf2f-800c54ac9449",
-        "candidate": "269aca5",
-        "result": "FAIL",
-        "cleanup": "FAIL",
-        "work_cli_attempts": 0,
-        "application_native_POST_attempts": null
+        "source_id": "S1",
+        "start": 26,
+        "range": [
+          26,
+          49
+        ]
       },
       {
-        "run_id": "81c77cfd-9339-48b8-bae1-f67ec7d05cb4",
-        "candidate": "269aca5",
-        "result": "FAIL",
-        "cleanup": "PASS",
-        "work_cli_attempts": 1,
-        "application_native_POST_attempts": 0
+        "source_id": "S1",
+        "start": 53,
+        "range": [
+          53,
+          76
+        ]
       },
       {
-        "run_id": "91fb07e8-91dd-4ffb-9389-fea9c02bf285",
-        "candidate": "0a57d50f226df70542838c05fb8a21e025e19447",
-        "result": "FAIL",
-        "cleanup": "PASS",
-        "work_cli_attempts": 1,
-        "application_native_POST_attempts": 5
+        "source_id": "S1",
+        "start": 92,
+        "range": [
+          92,
+          115
+        ]
       },
       {
-        "run_id": "08d8377b-e1d2-40ba-8b7e-e20e1c66dfbd",
-        "candidate": "6cb9284c9f2bf60f2538d7cb34a124cc0bbf3696",
-        "result": "FAIL",
-        "cleanup": "PASS",
-        "work_cli_attempts": 1,
-        "application_native_POST_attempts": 5
+        "source_id": "S1",
+        "start": 121,
+        "range": [
+          121,
+          144
+        ]
       },
       {
-        "run_id": "4fab6e08-5e5e-44d4-9ca5-3a1e75272938",
-        "candidate": "900b944165c0175b91492e3fe5b31d96aabdcd5c",
-        "result": "FAIL",
-        "cleanup": "PASS",
-        "work_cli_attempts": 1,
-        "application_native_POST_attempts": 5
+        "source_id": "S2",
+        "start": 20,
+        "range": [
+          20,
+          43
+        ]
       },
       {
-        "run_id": "dc3dbef6-ef60-4ba6-8d54-79c9c93d99df",
-        "candidate": "a0d21ebf167c41a76410075f7a92f1680926213f",
-        "result": "FAIL",
-        "cleanup": "PASS",
-        "work_cli_attempts": 1,
-        "application_native_POST_attempts": 4
+        "source_id": "S3",
+        "start": 25,
+        "range": [
+          25,
+          48
+        ]
       }
     ],
-    "current_controlled_passed": 0,
-    "current_controlled_required": 3,
-    "real_controlled_entry_attempts_in_sequence": 7,
-    "real_controlled_CLI_attempts_in_sequence": 6,
+    "budget": {
+      "completed_posts": 7,
+      "deadline_remaining_seconds": "229.48973519995343",
+      "generations": 7,
+      "native_posts": 7,
+      "native_posts_limit": 8,
+      "read_bytes": 9349,
+      "reads_limit": 6,
+      "reads_used": 6,
+      "write_admission_open": true
+    },
+    "write_confirmed": false,
+    "ack_confirmed": false,
+    "facts": "NOT_ASSESSABLE_NO_ARTIFACT",
+    "original_question_coverage": "NOT_ASSESSABLE_NO_ARTIFACT",
+    "protected_at_recorded_boundaries": true,
+    "protected_after_readonly": true,
+    "continuous_liveness_measured": false,
+    "acceptance_credit": 0,
+    "controlled_passed": 0,
+    "controlled_required": 3,
     "actual_case_allocation_remaining": 0,
     "result_review_allocation_remaining": 0,
-    "acceptance_credit": false,
-    "credit_scope": "this candidate controlled case only",
-    "old_E01_E03_credit_transferred": false,
     "retry": 0,
     "next_case_released": false,
     "E02": "NOT_PASSED",
     "T2": "NOT_PASSED",
+    "Owner": "NOT_PASSED",
+    "old_credit_transferred": false,
     "remote_synced": false,
-    "recorded_utc": "2026-11-07T06:03:11.743877+00:00"
+    "recorded_utc": "2026-11-07T07:27:31.994199+00:00"
   },
   "user_authorized_work_resumption": true,
   "active_preparation": {
@@ -1355,8 +1381,8 @@
   "e02_grounded_export_result_registration_sha256": "b4132d72c14b6306163fb14e82bcaca3dc58d11097838598e6c86def455760e6",
   "active_result_review": {
     "verdict": "FAIL_CONFIRMED",
-    "path": "H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\e02-grounded-export-20261107-r1\\review\\independent-result-review.json",
-    "sha256": "59f8a67fcb5bd840b8655ed488303d317df0a212d2b4b86ea8f1f2a65cdd2d48"
+    "path": "H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\e02-failure-state-20261107-r1\\review\\independent-result-review.json",
+    "sha256": "8e922f635502dc14f71ae3182583c1042832e90e574d171c292791918473db1e"
   },
   "e02_failure_state_preparation": {
     "root": "H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\e02-failure-state-20261107-r1",
@@ -1366,5 +1392,136 @@
     "manifest_sha256": "d90f3d2131ebf8ca35d9043d1e871751842448c1ff14fa0b980ab3168c467051",
     "review_sha256": "db487ea044129fb05b7f98ccd2c9d12e2b201be139a55a012754ad67a5556a49",
     "harness_approval_sha256": "59647e9581fa907e13792ab7043a65c5def28cf7931dfd5fd7b1da05a66959cf"
-  }
+  },
+  "e02_failure_state_execution": {
+    "schema": 1,
+    "work_order": "wo-ultimaagent-20261101-0021",
+    "stage": "T2",
+    "case": "E02-controlled-1",
+    "purpose": "diagnostic",
+    "run_id": "963f8bf5-1a85-49ce-ae9f-19d503b9ff65",
+    "candidate": "22653fb77445bad4f5b9d9ae789cd35972dcc984",
+    "model": "qwen3-8b-uncensored",
+    "question_id": "user-message:sha256:2ac77a92020708e397ed3198ea63793e3ec989887dd0ec458bb4b4a86967dda0",
+    "result": "FAIL",
+    "independent_review": "FAIL_CONFIRMED",
+    "review_path": "H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\e02-failure-state-20261107-r1\\review\\independent-result-review.json",
+    "review_sha256": "8e922f635502dc14f71ae3182583c1042832e90e574d171c292791918473db1e",
+    "result_manifest_sha256": "083bdd6aea562acf27276b3896a6931284588ee51664580c2b61129301ffc02d",
+    "terminal_sha256": "3608c639e8db1d63292fef7fb02f9f43d695c6dfffa37eb7e529ca3bfa503b39",
+    "product_result_sha256": "f654000eecafd244b1fc89c4c655fb35c13862d67a92bf35cb5cbac69a155cb2",
+    "entry_invocations": 1,
+    "work_cli_attempts": 1,
+    "controlled_search_success": 1,
+    "controlled_GET_success": 4,
+    "confirmed_inspect_pages": 6,
+    "public_successful_inspect_records": 0,
+    "inspect_count_basis": "trusted failure diagnostic confirmed pages, not the incomplete public tool_results list",
+    "write_attempts": 1,
+    "successful_write_count": 0,
+    "application_native_POST_attempts": 7,
+    "actual_native_start_count": null,
+    "research_artifacts": 0,
+    "outer_elapsed_seconds": 58.36237220000476,
+    "cleanup": "PASS",
+    "root_witness_eligible": false,
+    "product_error": "Unlinked or failed END",
+    "research_failure": {
+      "stage": "research.write",
+      "reason_code": "INVALID_SOURCE_SECTION",
+      "error_type": "ValueError",
+      "error_text_length": 35,
+      "error_text_sha256": "7e9599d0c2918550861b8aa0402844d74269fa7bbddddb57b5c4497294bf463e"
+    },
+    "failure_diagnostic_sha256": "bf8efb945255dcff31ace9dceee48d69d8450b28f0636c79a86812812a1a65dc",
+    "branch": "action",
+    "eligible_source_ids": [
+      "S1",
+      "S2",
+      "S3"
+    ],
+    "selected_pages": [
+      {
+        "source_id": "S1",
+        "start": 26,
+        "range": [
+          26,
+          49
+        ]
+      },
+      {
+        "source_id": "S1",
+        "start": 53,
+        "range": [
+          53,
+          76
+        ]
+      },
+      {
+        "source_id": "S1",
+        "start": 92,
+        "range": [
+          92,
+          115
+        ]
+      },
+      {
+        "source_id": "S1",
+        "start": 121,
+        "range": [
+          121,
+          144
+        ]
+      },
+      {
+        "source_id": "S2",
+        "start": 20,
+        "range": [
+          20,
+          43
+        ]
+      },
+      {
+        "source_id": "S3",
+        "start": 25,
+        "range": [
+          25,
+          48
+        ]
+      }
+    ],
+    "budget": {
+      "completed_posts": 7,
+      "deadline_remaining_seconds": "229.48973519995343",
+      "generations": 7,
+      "native_posts": 7,
+      "native_posts_limit": 8,
+      "read_bytes": 9349,
+      "reads_limit": 6,
+      "reads_used": 6,
+      "write_admission_open": true
+    },
+    "write_confirmed": false,
+    "ack_confirmed": false,
+    "facts": "NOT_ASSESSABLE_NO_ARTIFACT",
+    "original_question_coverage": "NOT_ASSESSABLE_NO_ARTIFACT",
+    "protected_at_recorded_boundaries": true,
+    "protected_after_readonly": true,
+    "continuous_liveness_measured": false,
+    "acceptance_credit": 0,
+    "controlled_passed": 0,
+    "controlled_required": 3,
+    "actual_case_allocation_remaining": 0,
+    "result_review_allocation_remaining": 0,
+    "retry": 0,
+    "next_case_released": false,
+    "E02": "NOT_PASSED",
+    "T2": "NOT_PASSED",
+    "Owner": "NOT_PASSED",
+    "old_credit_transferred": false,
+    "remote_synced": false,
+    "recorded_utc": "2026-11-07T07:27:31.994199+00:00"
+  },
+  "e02_failure_state_result_registration": "H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\e02-failure-state-20261107-r1\\review\\result-registration.json",
+  "e02_failure_state_result_registration_sha256": "4269e009ebe2f35d0c245615ea95c764cc082e22c10ddc30908ff57a4d10ddf9"
 }
