@@ -1,0 +1,110 @@
+{
+  "format": 1,
+  "reviewer": "root-independent",
+  "review_agent": "/root/review_e02_grounded_export_preparation",
+  "reviewed_at_utc": "2026-11-07T06:41:19.379623+00:00",
+  "verdict": "PASS_PREPARATION_ONLY",
+  "work_order": "wo-ultimaagent-20261101-0021",
+  "manifest_sha256": "e630dcb32024fe67fd72d597e5f86957f339e5f61453b00f70d6b3e48c2b7ea5",
+  "manifest_members": 1013,
+  "candidate": "9e2716a6bc8dc1a51218257b89a581f968d8444a",
+  "parent_candidate": "1ecd75d061fd20e78c790c506cac76847f8e63bf",
+  "actual_run_authorized": false,
+  "blocking_findings": [],
+  "findings": [
+    {
+      "topic": "Bounded diagnostics",
+      "assessment": "PASS",
+      "evidence": [
+        "harness/adapter.py:644",
+        "harness/test_adapter.py:12"
+      ],
+      "detail": "Original verify, strict structure scan and member-preservation sequence remains once only. Stage-labelled supplementary diagnostic uses fixed exception types/reason codes and trusted filename/function/line coordinates, at most eight frames, bounded message digest and packet digest/length. No raw dynamic message, locals, traceback source or packet is serialized. Diagnostic write failure is swallowed while original rejection is re-raised. Original failure exporter is unchanged."
+    },
+    {
+      "topic": "Native ModelDetails compatibility",
+      "assessment": "PASS",
+      "evidence": [
+        "harness/adapter.py:816",
+        "harness/test_adapter.py:72",
+        "verification/upstream/ollama-v0.32.15-api-types.go:933"
+      ],
+      "detail": "Saved official version-pinned API declares context_length and embedding_length as int. Only those two numeric slots are added: exact int type (bool excluded), 0 <= value < 2**63. Null, float, string, container, negative, overflow and unknown fields remain rejected. Saved native metadata traverses original SDK/HTTPX mock chain; narrow numeric domain tests cover both fields. This proves an offline compatibility gap, not the precise historical N8 exception."
+    },
+    {
+      "topic": "Grounded navigation and replay",
+      "assessment": "PASS",
+      "evidence": [
+        "src/brain/work_navigation.py:_document_landmarks",
+        "src/brain/work_navigation.py:v3_research_phase",
+        "src/brain/tests/test_work_grounding_context.py"
+      ],
+      "detail": "Labels derive only from safe source lines with original anchor coordinates, prioritize headings, cap labels at120 characters and landmarks at8; original catalogue4096-byte reduction/scanner remains. Guidance is generic, treats labels as untrusted hints, distinguishes anchor/context, TODO/implementation and three-source eligibility/task coverage. No corpus answer injection or generated-document rewrite. Generation and independently validated replay call same pure phase constructor; coherent phase tampering is rejected."
+    },
+    {
+      "topic": "Writer and fact gates",
+      "assessment": "PASS",
+      "detail": "Product diff is exactly four files: agent_server.py, work_research.py, work_navigation.py and new test_work_grounding_context.py. AST readback confirmed _fact_evidence, _text, v3_writer_schema, v3_phase_writer_schema, resolve_v3, render_v3 and build_page unchanged. Adapter changed function set is exactly record_export_diagnostic, export_completed, validate_export_structure apart from binding constants."
+    },
+    {
+      "topic": "Direct user message binding",
+      "assessment": "PASS",
+      "evidence": [
+        "code/entry.py:79",
+        "inputs/direct-user-decision.json",
+        "tests/test_entry.py:50",
+        "review/independent-direct-decision-plan-review.json"
+      ],
+      "detail": "New representation requires exact fixed decision-file SHA in manifest, exact message digest identifier and exact answer. It does not claim platform message identity. Existing call_ branch and excluded spent grant unchanged. Closed allocation fields, candidate/model/digest/manifest/review binding, TTL<=120s, one case/one result-review/retry0, exclusive preconsumption and postconsumption drift check remain. Parent-supplied directly observed human message provides provenance; file hash alone is not human authentication."
+    },
+    {
+      "topic": "Preservation and budgets",
+      "assessment": "PASS",
+      "detail": "Original N8 preparation manifest, result manifest, independent failure review and every bound member plus old source files verified unchanged. All1560 bound inputs and9 unrelated working files read back successfully. Seven-identity baseline remains bound. Tool CLI1/search1/GET4/inspect6/write1/ACK1/nativePOST8 and service260/client300/work275/cleanup310/seal315, byte/context caps and retry0 retained. No previous acceptance credit transfers."
+    }
+  ],
+  "checks": {
+    "method": "Read-only SHA256, git diff/HEAD/status, AST and saved JSON/JUnit/source-snapshot inspections. Reviewed then executed verification/verify_preparation.py verify() as read-only artifact inspection with bytecode disabled; no pytest or product imports/calls executed.",
+    "exact_manifest_members_match": true,
+    "candidate_worktree_clean": true,
+    "input_members": 1560,
+    "saved_offline_checks": {
+      "product": 608,
+      "harness_unique": 268,
+      "interfaces": 59,
+      "total": 935,
+      "harness_raw": 270,
+      "harness_duplicate_cases": 2
+    },
+    "offline_evidence": "Selected successful receipts, no-failure/error/skip JUnit records, exact current source hashes and archived snapshots, sources_unchanged and offline guards verified. Retained RED/intermediate failures are not overwritten or counted as successes.",
+    "exclusions": [
+      "test_http_work_legacy_and_cli",
+      "test_reparse_rejected"
+    ],
+    "plan_reviews": "Both main and direct-message supplementary independent reviews PASS_PLAN_ONLY read and matched implementation scope.",
+    "upstream_types_sha256": "032fe8c044429afd42fd9f898c6bbd6efc5977ffeeec4dd3c5a04035e9c3d0b1",
+    "no_actual_or_release_directory_at_review": true
+  },
+  "limits": [
+    "Preparation PASS only; 935 saved offline checks do not certify model semantic accuracy, topic coverage or product completion.",
+    "No tests rerun by reviewer and no live runtime/model/process/network/UI/audio inspection. Parent post-seal runtime-readiness/publication files are supplemental, outside this exact1013-member approval.",
+    "Historical N8 raw failed packet absent; no claim that the reproduced ModelDetails incompatibility was its exact failure branch.",
+    "Actual authority must come from existing user decision and separate current entry gates; this review grants none. A later one-case result still requires artifact, trusted packet, ACK, readback, factual/coverage/protocol independent review and cleanup. Failure stops without retry.",
+    "At most new-candidate controlled1/3 if subsequently successful; real-network acceptance, E01/E03 on new candidate, T2 and Owner gates remain separate."
+  ],
+  "tests_run": 0,
+  "runtime_calls": 0,
+  "model_calls": 0,
+  "actual_calls": 0,
+  "network_calls": 0,
+  "ui_calls": 0,
+  "audio_calls": 0,
+  "process_control_calls": 0,
+  "acceptance_credit": false,
+  "E02": "NOT_PASSED",
+  "T2": "NOT_PASSED",
+  "Owner": "NOT_PASSED",
+  "write_scope": [
+    "H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\e02-grounded-export-20261107-r1\\review\\independent-preparation-review.json"
+  ]
+}

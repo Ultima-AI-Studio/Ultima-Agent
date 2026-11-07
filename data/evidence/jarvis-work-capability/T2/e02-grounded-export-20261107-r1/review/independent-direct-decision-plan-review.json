@@ -1,0 +1,60 @@
+{
+  "format": 1,
+  "reviewer": "/root/review_e02_grounded_export_plan",
+  "reviewed_at_utc": "2026-11-07T06:20:28.3024365Z",
+  "work_order": "wo-ultimaagent-20261101-0021",
+  "stage": "T2/E02",
+  "plan_path": "H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\e02-grounded-export-20261107-r1\\review\\direct-user-decision-plan.md",
+  "plan_sha256": "2fb5712def30085ce50089b6fafc1661470755cc98870e611166268174117991",
+  "main_plan_sha256": "49cb8554759c1c6cea5346e49865f18d2c92f521f780092d9676957b281fab1e",
+  "verdict": "PASS_PLAN_ONLY",
+  "blocking_findings": [],
+  "findings": [
+    {
+      "assessment": "The parent supplied the directly observed human message and its preceding four-step scope. Supplement records that existing decision rather than manufacturing a tool-call ID or treating a file as a new authorization. Bounded offline preparation, independent review and one conditional current8B case with one result review and retry0 match the main plan.",
+      "evidence": [
+        "supplement:3-11",
+        "main plan:8,12-17,45-55"
+      ],
+      "topic": "Same authorization scope"
+    },
+    {
+      "assessment": "Exact message UTF8 digest identifier plus exact answer and a fixed decision-file SHA sealed in the preparation manifest provides a bounded alternate representation. Identifier is explicitly not a platform message ID and does not alone authenticate a human or identify a unique chat. Fixed prepared root, source/manifest/review/candidate binding and existing one-use gate supply the contextual restriction.",
+      "evidence": [
+        "supplement:7-13",
+        "N8/code/entry.py:76-91"
+      ],
+      "topic": "Narrow decision representation"
+    },
+    {
+      "assessment": "Plan preserves closed allocation schema, current candidate/model, independently approved manifest/review, one case and one result review, retry0, issued<=now<expires with at most120 seconds, preconsumption and post-consumption drift check. Supplement does not itself issue a release.",
+      "evidence": [
+        "N8/code/entry.py:53-74,84-90,147-157",
+        "supplement:7,9,11,13"
+      ],
+      "topic": "Existing release gates preserved"
+    }
+  ],
+  "implementation_review_checks": [
+    "The new direct-message branch must require exact decision_id and answer, verify fixed decision-file bytes/hash before use, and fail closed for missing, altered, similar or blank records. Hash the actual specified UTF8 bytes without implicit trimming/normalization.",
+    "Require the decision JSON as a sealed preparation member, with its user message, preceding proposal and accepted scope faithfully represented. The file is an engineering binding of the observed message, never an independent authorization source.",
+    "Keep existing call_ branch and its explicitly excluded spent zero-inference ID unchanged. Test the old spent grant rejection and candidate/manifest/review/expiry/allocation mismatch rejection; do not interpret unchanged call_ prefix acceptance as proof any arbitrary old call is authentic.",
+    "Run entry regressions and independent exact-manifest preparation review before any conditional runtime release. Preserve exclusive consumed receipt and fail-closed replay protection."
+  ],
+  "unjudged_scope": [
+    "No implementation, test result, prepared package, runtime release or model capability certified.",
+    "No new access to platform message provenance; the human-message context was explicitly supplied by the parent, and the identifier must not claim platform provenance.",
+    "Main plan review and previous evidence remain unchanged. E02/T2/Owner remain not passed."
+  ],
+  "tests_run": 0,
+  "runtime_calls": 0,
+  "product_calls": 0,
+  "model_calls": 0,
+  "network_calls": 0,
+  "process_control_calls": 0,
+  "actual_run_authorized": false,
+  "acceptance_credit": false,
+  "write_scope": [
+    "H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\e02-grounded-export-20261107-r1\\review\\independent-direct-decision-plan-review.json"
+  ]
+}

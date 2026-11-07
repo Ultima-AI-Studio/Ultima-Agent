@@ -1,0 +1,96 @@
+============================= test session starts =============================
+platform win32 -- Python 3.13.16, pytest-9.2.0, pluggy-1.7.0 -- H:\UltimaAI\UltimaAgent\tools\venv-openjarvis\Scripts\python.exe
+rootdir: H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-grounded-export-20261107-r1\offline\grounding-green-20261107T062118788709Z
+collecting ... collected 11 items
+
+::test_document_landmarks_name_relevant_headings_after_decorative_prefix <- C:\Users\Administrator\.codex\worktrees\jarvis-e02-grounded-export\UltimaAgent\src\brain\tests\test_work_grounding_context.py PASSED [  9%]
+::test_document_labels_preserve_safe_unicode_and_exact_coordinates[.md] <- C:\Users\Administrator\.codex\worktrees\jarvis-e02-grounded-export\UltimaAgent\src\brain\tests\test_work_grounding_context.py PASSED [ 18%]
+::test_document_labels_preserve_safe_unicode_and_exact_coordinates[.txt] <- C:\Users\Administrator\.codex\worktrees\jarvis-e02-grounded-export\UltimaAgent\src\brain\tests\test_work_grounding_context.py PASSED [ 27%]
+::test_document_labels_preserve_safe_unicode_and_exact_coordinates[.rst] <- C:\Users\Administrator\.codex\worktrees\jarvis-e02-grounded-export\UltimaAgent\src\brain\tests\test_work_grounding_context.py PASSED [ 36%]
+::test_document_labels_preserve_safe_unicode_and_exact_coordinates[.adoc] <- C:\Users\Administrator\.codex\worktrees\jarvis-e02-grounded-export\UltimaAgent\src\brain\tests\test_work_grounding_context.py PASSED [ 45%]
+::test_many_long_document_labels_keep_original_catalogue_cap <- C:\Users\Administrator\.codex\worktrees\jarvis-e02-grounded-export\UltimaAgent\src\brain\tests\test_work_grounding_context.py FAILED [ 54%]
+::test_code_landmarks_keep_exact_operations <- C:\Users\Administrator\.codex\worktrees\jarvis-e02-grounded-export\UltimaAgent\src\brain\tests\test_work_grounding_context.py PASSED [ 63%]
+::test_phase_explains_anchor_context_and_task_coverage_without_fixture_answers <- C:\Users\Administrator\.codex\worktrees\jarvis-e02-grounded-export\UltimaAgent\src\brain\tests\test_work_grounding_context.py PASSED [ 72%]
+::test_native_phase_is_shared_and_independent_replay_rebuilds_it <- C:\Users\Administrator\.codex\worktrees\jarvis-e02-grounded-export\UltimaAgent\src\brain\tests\test_work_grounding_context.py PASSED [ 81%]
+::test_replay_rejects_forged_grounding_phase_with_coherent_entity_hashes <- C:\Users\Administrator\.codex\worktrees\jarvis-e02-grounded-export\UltimaAgent\src\brain\tests\test_work_grounding_context.py PASSED [ 90%]
+::test_phase_guidance_does_not_relax_original_budget <- C:\Users\Administrator\.codex\worktrees\jarvis-e02-grounded-export\UltimaAgent\src\brain\tests\test_work_grounding_context.py FAILED [100%]
+
+================================== FAILURES ===================================
+_________ test_many_long_document_labels_keep_original_catalogue_cap __________
+
+    def test_many_long_document_labels_keep_original_catalogue_cap():
+        text='\n\n'.join('## '+('长标题'*90)+str(i) for i in range(18))
+>       cat,*_=prepare([text]*5)
+               ^^^^^^^^^^^^^^^^^
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-grounded-export\UltimaAgent\src\brain\tests\test_work_grounding_context.py:43: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-grounded-export\UltimaAgent\src\brain\tests\test_work_navigation.py:74: in prepare
+    return research.prepare_navigation(c, b, p, get_records_json=records, deadline=time.monotonic()+30), c, b, records, p
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-grounded-export\UltimaAgent\src\brain\work_research.py:531: in prepare_navigation
+    return prepare(collection,binding,scanners,get_records_json=get_records_json,deadline=deadline)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-grounded-export\UltimaAgent\src\brain\work_navigation.py:373: in prepare_navigation
+    originals=_linked_sources(collection,binding,records)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+collection = ResearchCollection(catalogue_json='[{"success": true, "requested_url": "https://example.org/source1.md", "final_url": ...request_id": "request", "session_id": "session", "task_id": "task"}]', ignored_failure_ids=(), search_query='question')
+binding = namespace(request_id='request', session_id='session', task_id='task')
+records = [{'call_id': '00000000-0000-0000-0000-000000000001', 'request_id': 'request', 'result': {'body': '## 长标题长标题长标题长标题长标题长标...d365557316dfae711648fa20eb43da23', 'dedupe_url': 'https://example.org/source5.md', ...}, 'session_id': 'session', ...}]
+
+    def _linked_sources(collection, binding, records):
+        from .work_research import bound_sources
+        sources=list(bound_sources(collection.catalogue_json,binding).values())
+        if len(sources)>5: raise ValueError('Too many sources')
+        attempts=json.loads(collection.attempts_json); trace=json.loads(collection.trace_json)
+        for index,source in enumerate(sources,1):
+            if source['source_id']!='S'+str(index): raise ValueError('Invalid source labels')
+            call=_uuid(source['read_call_id'])
+            matching=[r for r in records if r.get('call_id')==call]
+            if len(matching)!=1: raise ValueError('GET ledger mismatch')
+            record=matching[0]
+            ids={k:getattr(binding,k) for k in ('request_id','session_id','task_id')}
+            if record.get('tool_name')!='ultima_work_http_get' or record.get('success') is not True or any(record.get(k)!=v for k,v in ids.items()):
+                raise ValueError('GET binding mismatch')
+            original={k:v for k,v in source.items() if k not in (*ids,'read_call_id','adapter_source_id')}
+            original['source_id']=source['adapter_source_id']
+            if record.get('result')!=original: raise ValueError('GET original result mismatch')
+            matches=[a for a in attempts if a.get('adapter_call_id')==call and a.get('tool_name')=='ultima_work_http_get']
+            if len(matches)!=1 or matches[0].get('success') is not True or any(matches[0].get(k)!=v for k,v in ids.items()):
+                raise ValueError('GET attempt linkage mismatch')
+            sdk=_uuid(matches[0]['sdk_call_id'])
+            events=[e for e in trace if e.get('sdk_call_id')==sdk]
+            if [e.get('type') for e in events]!=['tool_call_start','tool_call_end'] or any(any(e.get(k)!=v for k,v in ids.items()) or e.get('data',{}).get('tool')!='ultima_work_http_get' for e in events):
+                raise ValueError('GET event linkage mismatch')
+            start,end=events[0]['data'],events[1]['data']
+            metadata=end.get('metadata',{})
+            if (start.get('arguments')!={'url':source['requested_url']} or end.get('success') is not True
+                    or metadata.get('call_id')!=call or metadata.get('result')!=record['result']
+                    or metadata.get('success') is not True or any(metadata.get(k)!=v for k,v in ids.items())):
+                raise ValueError('GET START/END result linkage mismatch')
+            if _h(source['body'].encode('utf8'))!=source['decoded_body_sha256']: raise ValueError('Body hash drift')
+            if _normalize(source['final_url'])!=source['dedupe_url']: raise ValueError('Normalized URL mismatch')
+            if _projection(source['body'],source.get('content_type',''))!=source['text']: raise ValueError('Projection hash drift')
+        if len({s['dedupe_url'] for s in sources})!=len(sources) or len({s['decoded_body_sha256'] for s in sources})!=len(sources):
+>           raise ValueError('Duplicate source URL/body')
+E           ValueError: Duplicate source URL/body
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-grounded-export\UltimaAgent\src\brain\work_navigation.py:244: ValueError
+_____________ test_phase_guidance_does_not_relax_original_budget ______________
+
+    def test_phase_guidance_does_not_relax_original_budget():
+        assert hasattr(nav,'v3_research_phase'), 'missing grounding phase'
+        from openjarvis.core.types import Message,Role
+        messages=[Message(role=Role.SYSTEM,content=nav.v3_research_phase(nav.v3_writer_schema())+'x'*32768)]
+>       with pytest.raises(ValueError):server._research_budget(messages,nav.v3_writer_schema(),2048)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-grounded-export\UltimaAgent\src\brain\tests\test_work_grounding_context.py:100: Failed
+- generated xml file: H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-grounded-export-20261107-r1\offline\grounding-green-20261107T062118788709Z\junit.xml -
+=========================== short test summary info ===========================
+FAILED ::test_many_long_document_labels_keep_original_catalogue_cap - ValueError: Duplicate source URL/body
+FAILED ::test_phase_guidance_does_not_relax_original_budget - Failed: DID NOT RAISE ValueError
+========================= 2 failed, 9 passed in 4.82s =========================

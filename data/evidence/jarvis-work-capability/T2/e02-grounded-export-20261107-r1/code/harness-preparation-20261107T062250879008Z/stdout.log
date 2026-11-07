@@ -1,0 +1,47 @@
+.......F..                                                               [100%]
+================================== FAILURES ===================================
+________ test_export_diagnostics_saved_native_metadata_full_mock_chain ________
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-grounded-export-20261107-r1/code/harness-preparation-20261107T062250879008Z/temp/test_export_diagnostics_saved_0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000202255728A0>
+sdk_io = (<src.brain.browser.channel.BrowserChannel object at 0x0000020225585D30>, [('search', 'Research a subject'), ('get', '...'https://example.com/source/2'), ('get', 'https://example.com/source/3'), ('get', 'https://example.com/source/4')], {})
+mock_jar = (<openjarvis.sdk.Jarvis object at 0x0000020225584440>, <function _run_work_agent at 0x00000202254B8180>, [{'format': {..., ...], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [])
+
+    def test_export_diagnostics_saved_native_metadata_full_mock_chain(tmp_path,monkeypatch,sdk_io,mock_jar):
+        import httpx
+        metadata=json.loads((a.C/'src/brain/tests/fixtures/native_metadata_0_32_15.json').read_bytes())
+        send=httpx.Client.send;observed=[]
+        def recorded(client,request,**kwargs):
+            if request.url.path in ('/api/version','/api/tags'):
+                observed.append(request.url.path)
+                key='version' if request.url.path=='/api/version' else 'tags'
+                return httpx.Response(200,stream=httpx.ByteStream(json.dumps(metadata[key]).encode('utf8')),request=request)
+            return send(client,request,**kwargs)
+        monkeypatch.setattr(httpx.Client,'send',recorded)
+>       result,ledger=synthetic_bundle(tmp_path,sdk_io,mock_jar,monkeypatch)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+..\..\harness\test_adapter.py:83: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+..\..\harness\test_adapter.py:170: in synthetic_bundle
+    a.export_completed(folder,ledger,result)
+..\..\harness\adapter.py:680: in export_completed
+    validate_export_structure(strict_json(raw),ledger._policy.scanners)
+..\..\harness\adapter.py:782: in validate_export_structure
+    if packet['prewrite_packet'] is not None: validate_export_structure(object_json(packet['prewrite_packet']),scanners)
+                                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\harness\adapter.py:826: in validate_export_structure
+    require(key in ('parent_model','format','family','families','parameter_size','quantization_level')
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+ok = False, message = 'Producer model detail type'
+
+    def require(ok,message):
+>       if not ok: raise ValueError(message)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       ValueError: Producer model detail type
+
+..\..\harness\adapter.py:213: ValueError
+=========================== short test summary info ===========================
+FAILED ..\..\harness\test_adapter.py::test_export_diagnostics_saved_native_metadata_full_mock_chain
+1 failed, 9 passed in 6.41s
