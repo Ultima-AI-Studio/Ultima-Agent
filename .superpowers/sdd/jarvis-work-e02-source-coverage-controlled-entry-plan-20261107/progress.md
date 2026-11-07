@@ -22,3 +22,8 @@
 - Local publication tracked separately in verification/publication-readback.json; remote push not attempted.
 
 - Queue generator ran once successfully. Wrapper assumed unchanged global-index bytes; two read-only reconstruction attempts then mishandled mixed/Windows newlines. Exact-byte original reconstruction and symmetric newline comparison finally verified only derived summary changed semantically, registered rows preserved and counts derived from132 rows. Original receipt and all three helper assertion causes retained in review/queue-refresh-readback.json; no generator rerun or actual/model call.
+
+- Authorized execution continuation: explicit call_95815376c4ef4b3499fc52d9fdbdf0df, actual1/result-review1/retry0; execute the frozen entry once, then seal and independently review the first result. No product changes or repeated tests.
+
+- Explicit call_95815376c4ef4b3499fc52d9fdbdf0df actual1/review1 completed; run 5e6ea89c-8e47-43a6-9480-7a11d72cabf5 FAIL_CONFIRMED, no retry. Coverage reservation and public refusal observed; native generation7 HTTP500 remains unproven internally.
+- Result manifest e0fc7084754d492d7166e219e2596b15f5f2562783721e9ca80a85c2c9168b5a; independent review 3cc6b1eb5c31440658f306bbdd1e589210d8a7f4f874bc5cc98063cc7a181854. Proposal-only follow-up, allocations0, E02/T2/Owner remain not passed.
