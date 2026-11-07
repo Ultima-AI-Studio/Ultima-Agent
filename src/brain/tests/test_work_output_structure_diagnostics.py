@@ -230,3 +230,50 @@ def test_exact_packet_cap_and_metadata_fallback(tmp_path,sdk_io,mock_jar,monkeyp
     # Exhaust only this unit's available space to prove the mandatory old-packet fallback.
     monkeypatch.setattr(d,'CAP',len(canonical_v3(base)))
     assert d.attach_output_structure(base,snapshot,ledger._scan_output)==base
+
+
+@pytest.mark.parametrize('content',[123,None])
+@pytest.mark.parametrize('mutation',['json_unavailable','policy','budget'])
+def test_nonstring_status_and_retention_cannot_be_relabelled(tmp_path,sdk_io,mock_jar,monkeypatch,content,mutation):
+    result,ledger,_,_=native_refusal(tmp_path,sdk_io,mock_jar,monkeypatch,
+        updates=[('done_reason','length'),('message.content',content)])
+    p,s=captured(result,ledger)
+    if mutation=='json_unavailable':s['json']['status']='UNAVAILABLE'
+    else:s['evidence']['mode']='OMITTED_'+mutation.upper()
+    with pytest.raises(ValueError):d.validate_failure_diagnostic(canonical_v3(p),ledger._navigation.binding_key)
+
+
+def test_encodable_content_cannot_claim_unavailable_retention(tmp_path,sdk_io,mock_jar,monkeypatch):
+    result,ledger,_,_=native_refusal(tmp_path,sdk_io,mock_jar,monkeypatch)
+    p,s=captured(result,ledger)
+    s['evidence']=dict(mode='UNAVAILABLE',fragments=[],omitted_chars=s['message']['content']['chars'])
+    with pytest.raises(ValueError):d.validate_failure_diagnostic(canonical_v3(p),ledger._navigation.binding_key)
+
+
+@pytest.mark.parametrize('mode',['OMITTED_POLICY','OMITTED_BUDGET'])
+def test_unencodable_string_cannot_claim_scanning_or_budget_omission(tmp_path,sdk_io,mock_jar,monkeypatch,mode):
+    result,ledger,_,_=native_refusal(tmp_path,sdk_io,mock_jar,monkeypatch)
+    p,s=captured(result,ledger)
+    # Synthetic decoder fixture; the raw UTF-8 measurement case is covered above.
+    p['native_response']['content_chars']=s['native_binding']['content_chars']=1
+    s['message']['content']=dict(type='string',chars=1,bytes=None,sha256=None)
+    s['json']=dict(status='UNAVAILABLE',error=None,schema_valid=None,schema_error=None,branch=None,shape=None)
+    s['evidence']=dict(mode='UNAVAILABLE',fragments=[],omitted_chars=1)
+    assert d.validate_failure_diagnostic(canonical_v3(p),ledger._navigation.binding_key)==p
+    s['evidence']['mode']=mode
+    with pytest.raises(ValueError):d.validate_failure_diagnostic(canonical_v3(p),ledger._navigation.binding_key)
+
+
+def test_string_parse_unavailable_can_still_retain_safe_text(tmp_path,sdk_io,mock_jar,monkeypatch):
+    content='{"final_answer":"safe text"}';original=d._parse_content;seen=[]
+    def unavailable(value):
+        if value==content:seen.append(value);raise RecursionError('synthetic parser exhaustion')
+        return original(value)
+    monkeypatch.setattr(d,'_parse_content',unavailable)
+    result,ledger,_,_=native_refusal(tmp_path,sdk_io,mock_jar,monkeypatch,
+        updates=[('done_reason','length'),('message.content',content)])
+    p,s=captured(result,ledger)
+    assert s['json']['status']=='UNAVAILABLE' and s['evidence']['mode']=='FULL'
+    assert s['evidence']['fragments'][0]['text']==content
+    assert len(seen)>=2
+    assert result['error']=='Invalid native research response' and not p['write_confirmed']

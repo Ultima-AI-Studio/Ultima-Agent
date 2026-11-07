@@ -443,6 +443,8 @@ def _validate_output_structure(value,native,last):
     content=msg['content'];_require(content['chars']==native['content_chars'])
     info=value['json'];_closed(info,'status error schema_valid schema_error branch shape')
     _require(info['status'] in ('COMPLETE','INVALID','NON_STRING','UNAVAILABLE'))
+    _require((info['status']=='NON_STRING')==(content['type']!='string'))
+    if content['type']=='string' and content['bytes'] is None:_require(info['status']=='UNAVAILABLE')
     if info['status']=='COMPLETE':
         _require(content['type']=='string' and content['bytes'] is not None and info['error'] is None)
         _require(type(info['schema_valid']) is bool and info['branch'] in ('write','inspect','final','other'))
@@ -480,6 +482,7 @@ def _validate_output_structure(value,native,last):
         _require(shape['complete']==(shape['sections_total'] is not None and shape['sections_total']<=5 and all(s['complete'] for s in shape['sections'])))
     evidence=value['evidence'];_closed(evidence,'mode fragments omitted_chars')
     _require(evidence['mode'] in ('FULL','EXCERPTS','OMITTED_POLICY','OMITTED_BUDGET','UNAVAILABLE'))
+    _require((evidence['mode']=='UNAVAILABLE')==(content['type']!='string' or content['bytes'] is None))
     _require(type(evidence['fragments']) is list and len(evidence['fragments'])<=3)
     if evidence['omitted_chars'] is not None:_count(evidence['omitted_chars'],65536)
     count=0;end=0
