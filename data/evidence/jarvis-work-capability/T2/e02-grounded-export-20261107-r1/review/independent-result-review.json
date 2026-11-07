@@ -1,0 +1,132 @@
+{
+  "format": 1,
+  "reviewer": "root-independent",
+  "review_agent": "/root/review_e02_grounded_export_result",
+  "reviewed_at_utc": "2026-11-07T06:50:47.8756998Z",
+  "verdict": "FAIL_CONFIRMED",
+  "work_order": "wo-ultimaagent-20261101-0021",
+  "run_id": "48d80f28-dcbb-4a90-9553-024cb1dc740d",
+  "candidate": "9e2716a6bc8dc1a51218257b89a581f968d8444a",
+  "result_manifest_sha256": "dcbabe28aa84766eca9e959f2f51713962b9e775e653263f8e47f05b7699ec77",
+  "result_manifest_members": 46,
+  "preparation_manifest_sha256": "e630dcb32024fe67fd72d597e5f86957f339e5f61453b00f70d6b3e48c2b7ea5",
+  "preparation_review_sha256": "1373fa2985f69e920c2c7aab094dfc35a526e835b74298121061b6fa2a773715",
+  "actual_run_authorized": false,
+  "new_run_allowance": 0,
+  "result_review_allocation_consumed": 1,
+  "result_review_allocation_remaining": 0,
+  "retry": false,
+  "next_case": false,
+  "findings": [
+    {
+      "detail": "First service result and CLI result report failed, error Missing nonempty immutable runtime proof, generic incomplete content, empty artifacts. Search1, GET4 and inspect6 are reported successful. No research_write is recorded, outputs contains no research.md, and no completed runtime packet or ACK proof is preserved. HTTP200 and ok=true do not override failed product status.",
+      "evidence": [
+        "actual/E02-controlled-1/service-first-result.json",
+        "actual/E02-controlled-1/cli.stdout",
+        "actual/E02-controlled-1/terminal.json",
+        "release/root-outcome.json",
+        "src/brain/work_service.py:175"
+      ],
+      "topic": "Actual failed delivery",
+      "assessment": "FAIL"
+    },
+    {
+      "detail": "The reached service gate proves the final runtime bytes were absent or empty. Current runner marks compose_error if view.final is false, and the service checks compose_error before the reached gate. Together with seven inference pairs and six successful inspect calls, current control flow supports a non-ACK final envelope after the reads. This is source-based inference, not saved raw-envelope evidence. It does not establish the exact final text, refusal rationale, evidence insufficiency, coverage judgment or which source pages were selected.",
+      "evidence": [
+        "src/brain/work_service.py:155-176",
+        "src/brain/agent_server.py:612-614",
+        "src/brain/agent_server.py:659-664"
+      ],
+      "topic": "Failure localization and inference boundary",
+      "assessment": "PROVED_GATE_WITH_LIMITED_CONTROL_FLOW_INFERENCE"
+    },
+    {
+      "detail": "Service initially copies runner content but overwrites it with the generic failure text; research trace retains type/phase only and public tool records omit arguments/page content. The export observer saves the already-failed service response, then writes only complete=false, END=false, count7, global count null and first_failure=true because runtime_final is missing. Final-answer text/reason and selected-page evidence are not recoverable from this sealed result set. Server log contains startup, reference-audio fallback configuration messages and HTTP200, not a saved model stop reason. Configuration warnings are not evidence of audio playback or recording.",
+      "evidence": [
+        "src/brain/work_service.py:157-159",
+        "src/brain/work_service.py:213-225",
+        "harness/adapter.py:1009-1023",
+        "actual/E02-controlled-1/server.stderr"
+      ],
+      "topic": "Lost final response and diagnostic limit",
+      "assessment": "EVIDENCE_GAP"
+    },
+    {
+      "detail": "Completed export branch was not entered. No export-stage exception is established for this run, and the ModelDetails compatibility fix and successful completed export remain offline-verified only. No inference about the exact old N8 failing branch is justified.",
+      "evidence": [
+        "harness/adapter.py:1015-1023",
+        "actual/E02-controlled-1/trusted-export.json"
+      ],
+      "topic": "Export change runtime validation",
+      "assessment": "NOT_REACHED"
+    },
+    {
+      "detail": "No research artifact exists. Cannot score citations, atomic factual support or original-topic coverage, and cannot claim navigation guidance improved semantic quality. Four available sources and successful reads alone are not research acceptance.",
+      "topic": "Facts and original question coverage",
+      "assessment": "NOT_ASSESSABLE"
+    },
+    {
+      "detail": "The one-case allocation was consumed within its120-second validity; one entry invocation and one CLI attempt, retry0. Receipt spans2026-11-07 06:43:52.6848019Z to06:44:34.9800019Z, reported elapsed42.2871937s. Original CLI1/search1/GET4/inspect6/write1/ACK1/nativePOST8 caps and service260/client300/work275/cleanup310/seal315 remain bound; effective client259.4742198. Observer records7 native POST attempts, actual global native-start count remains unknown. Terminal timing_eligibility is UNOBSERVED_NEVER_TIMED_PASS and root witness eligible=false with ValueError; short elapsed time does not turn this into a timed PASS.",
+      "evidence": [
+        "release/user-allocation.json",
+        "release/consumed.json",
+        "release/tool-execution-receipt.json",
+        "actual/E02-controlled-1/effective-schedule.json",
+        "actual/E02-controlled-1/terminal.json"
+      ],
+      "topic": "Single allocation and budgets",
+      "assessment": "NO_RETRY_OBSERVED_NOT_TIMED_PASS"
+    },
+    {
+      "detail": "Original cleanup PASS records owned identities absent, port definitively closed and logs closed. Boundary snapshots are byte-identical. Later read-only closeout records all seven protected identities unchanged, all six owned identities absent and no isolated-port owner. This is saved point-in-time evidence, not continuous liveness proof or fresh process inspection by this reviewer; no retrospective timing upgrade.",
+      "evidence": [
+        "actual/E02-controlled-1/cleanup.json",
+        "actual/E02-controlled-1/boundary-before.json",
+        "actual/E02-controlled-1/boundary-after.json",
+        "review/result-inputs/readonly-closeout.json"
+      ],
+      "topic": "Cleanup and protected boundaries",
+      "assessment": "PASS_WITH_OBSERVATION_LIMIT"
+    }
+  ],
+  "checks": {
+    "old_N8_source_files_verified": 63,
+    "candidate_worktree_clean": true,
+    "bound_inputs_verified": 1560,
+    "preparation_members_verified": 1013,
+    "method": "Read-only file hashing, JSON/source/trace/CLI inspections and git HEAD/status; no tests or product modules executed.",
+    "old_N8_result_members_verified": 45,
+    "unrelated_working_files_verified": 9,
+    "candidate_HEAD_verified": true,
+    "original_corpus_model_and_protected_baseline_remain_hash_bound": true,
+    "result_members_verified": 46,
+    "old_N8_preparation_members_verified": 832,
+    "old_N8_manifest_and_result_review_hashes_match": true
+  },
+  "recommendations": [
+    "Before any future authorized run, consider a bounded failure-side diagnostic design that preserves a safe terminal-envelope classification, selected-page identities/coordinates and write eligibility state while retaining rejection, secrecy and original budgets. Define an explicit policy for any final user-facing refusal text rather than silently overwriting all evidence. This is a recommendation only; no implementation, tests or new run are authorized by this review.",
+    "Keep the one-case allocation spent. Review any proposed diagnostic change and its offline evidence separately; do not rerun to recover this missing historical envelope, relax gates, switch models or infer a successful export."
+  ],
+  "fact_accuracy": "NOT_ASSESSABLE",
+  "topic_coverage": "NOT_ASSESSABLE",
+  "cleanup": "PASS",
+  "timing_acceptance": "NOT_PASSED",
+  "acceptance_credit": 0,
+  "current_candidate_controlled_successes": 0,
+  "current_candidate_controlled_required": 3,
+  "old_E01_E03_credit_transferred": false,
+  "E02": "NOT_PASSED",
+  "T2": "NOT_PASSED",
+  "Owner": "NOT_PASSED",
+  "tests_run": 0,
+  "runtime_calls": 0,
+  "model_calls": 0,
+  "actual_calls": 0,
+  "network_calls": 0,
+  "ui_calls": 0,
+  "audio_calls": 0,
+  "process_control_calls": 0,
+  "write_scope": [
+    "H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\e02-grounded-export-20261107-r1\\review\\independent-result-review.json"
+  ]
+}
