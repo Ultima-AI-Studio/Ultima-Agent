@@ -63,13 +63,21 @@ def test_correct_json_serializations_keep_quotes_slashes_unicode_and_boundaries(
         if not re.fullmatch(pattern(strict), claim):
             continue
         body = json.dumps(claim, ensure_ascii=False)[1:-1]
+        if left:
+            # Strict acceptance still permits old prose-first expressions;
+            # native generation now emits the operation before any free text.
+            assert not re.fullmatch(projected, body), repr(claim)
+            continue
         assert re.fullmatch(projected, body), repr(claim)
         assert json.loads('"' + body + '"') == claim
         accepted += 1
-    assert accepted > 100
+    assert accepted > 10
     # An escaped JSON slash is allowed as a delimiter, as is an escaped quote.
-    for body in [r'\/' + op + r'\/', r'\"' + op + r'\"']:
+    for body in [op + r'\/', op + r'\"']:
         assert re.fullmatch(projected, body)
+        assert re.fullmatch(pattern(strict), json.loads('"' + body + '"'))
+    for body in [r'\/' + op + r'\/', r'\"' + op + r'\"']:
+        assert not re.fullmatch(projected, body)
         assert re.fullmatch(pattern(strict), json.loads('"' + body + '"'))
 
 
@@ -119,10 +127,10 @@ def test_projection_preserves_strict_schema_ids_literals_and_nested_claim_contex
 
 def test_escaped_word_boundary_does_not_satisfy_decoded_strict_contract():
     strict = phase(pages())
-    raw_body = r'\u0061client.run'
+    raw_body = r'client.run\u0061'
     assert re.fullmatch(pattern(server._research_sampler_schema(strict)), raw_body)
     decoded = json.loads('"' + raw_body + '"')
-    assert decoded == 'aclient.run'
+    assert decoded == 'client.runa'
     assert not Draft7Validator(strict).is_valid(report(decoded))
 
 
@@ -136,7 +144,7 @@ def test_sdk_writes_quoted_chinese_and_backslash_claim_and_replays(
                                   request=httpx.Request(method, url))
         return original_get(method, url, **kwargs)
     monkeypatch.setattr(httpx, 'request', get)
-    claim = '可见 client.run 调用，参数含 "中文" 和反斜杠 \\。'
+    claim = 'client.run 调用可见，参数含 "中文" 和反斜杠 \\。'
     def reply(body):
         value = json.loads(navigation_reply(body))
         if value.get('action') == WRITE:

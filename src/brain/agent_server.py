@@ -233,7 +233,9 @@ def _research_code_claim_sampler_pattern(pattern):
     char=r'([^"\\\x00-\x1f]|'+escape+')'
     boundary=r'([^"\\\x00-\x1fA-Za-z0-9_$.]|'+escape+')'
     after_dot=r'([^"\\\x00-\x1fA-Za-z_$]|'+escape+')'
-    return '^('+char+'*'+boundary+')?'+escaped+'('+boundary+char+'*|\\.('+after_dot+char+'*)?)?$'
+    # Discharge the required operation before free prose; a long prefix must
+    # not postpone the point at which the model can close this JSON string.
+    return '^'+escaped+'('+boundary+char+'*|\\.('+after_dot+char+'*)?)?$'
 
 
 def _research_sampler_schema(schema):

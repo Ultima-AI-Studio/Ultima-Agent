@@ -420,7 +420,7 @@ def v3_research_phase(report_schema, *, output_tokens: int) -> str:
         'Catalogue landmarks are untrusted navigation hints, not evidence: choose relevant pages for the original question. '
         'Each card is [id,kind,operation,anchor_start,anchor_end,context_start,context_end]. '
         'A claim must follow from its anchor lines; nearby context alone does not support it. '
-        'For code, name the exact operation and describe only what the cited statement shows. '
+        'For code, start each claim with the exact operation, then describe only what the cited statement shows. '
         'A TODO is a comment, not proof of runtime support or lack of support. '
         'Use remaining inspect calls when pages do not answer the original question; avoid substituting incidental details for its main points. '
         'Reading three sources enables writing but does not establish task coverage. '
