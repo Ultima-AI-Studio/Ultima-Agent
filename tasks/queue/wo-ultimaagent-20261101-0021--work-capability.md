@@ -68,7 +68,7 @@
 
 
 
-- 状态：E02 bf7f7a9唯一实际FAIL_CONFIRMED：FULL正文证实claim重复50/49次后length/2048截断，引用亦有错配风险；无research.md/写入/ACK，清理及保护点核对PASS，单例与独审均耗尽，不重试。
+- 状态：E02代码事实生成起点候选d8f8d97：1004项离线检查及准备独审PASS；保留尾部/引用/覆盖风险与旧FAIL，继续已授权入口准备，actual/model0。
 - 计划：docs/plans/jarvis-work-capability-delivery-plan-20261101.md
 
 
@@ -5146,3 +5146,15 @@ E02 bf7f7a9唯一实跑FAIL待结果独审：research.md数量0，native POST 7�
 E02 bf7f7a9唯一实际FAIL_CONFIRMED：FULL正文证实claim重复50/49次后length/2048截断，引用亦有错配风险；无research.md/写入/ACK，清理及保护点核对PASS，单例与独审均耗尽，不重试。
 报告：H:\UltimaAI\UltimaAgent\docs\reports\jarvis-work-t2-e02-output-structure-controlled-result-20261108.md
 后续提案（尚未实施）：H:\UltimaAI\UltimaAgent\docs\plans\jarvis-work-e02-claim-generation-contract-proposal-20261108.md
+
+
+## 2026-11-08 SOURCE34 claim generation offline scope
+
+E02已明确授权离线核验claim生成表达、最小补修、必要独审与入口准备；保留bf7f7a9失败，8B/原预算/完整原题不变，实跑额度0。
+授权：call_5411de619a6c4de0bab414126a228c7d；提案：H:\UltimaAI\UltimaAgent\docs\plans\jarvis-work-e02-claim-generation-contract-proposal-20261108.md
+
+
+## 2026-11-08 SOURCE34 offline preparation
+
+E02代码事实生成起点候选d8f8d97：1004项离线检查及准备独审PASS；保留尾部/引用/覆盖风险与旧FAIL，继续已授权入口准备，actual/model0。
+报告：H:\UltimaAI\UltimaAgent\docs\reports\jarvis-work-t2-e02-claim-generation-contract-preparation-20261108.md
