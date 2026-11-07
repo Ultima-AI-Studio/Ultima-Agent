@@ -22,6 +22,13 @@ for name,digest in load(N/'manifest.json')['files'].items():assert sha(N/name)==
 for name,digest in load(N/'inputs/input-manifest.json')['files'].items():assert sha(Path(name))==digest,name
 for name,digest in load(N/'inputs/unrelated-working-tree.json')['files'].items():assert sha(R/name)==digest,name
 b=load(N/'review/result-inputs/byte-readback.json');receipt=load(N/'release/tool-execution-receipt.json')
+proof=load(N/'verification/reference-contract-readback.json')
+assert proof['diagnostic']==b['research_failure'] and proof['run_id']==b['run_id']
+assert proof['result_manifest_sha256']==sha(manifestpath)
+for name,digest in proof['source_files'].items():assert sha(Path(name))==digest,name
+proposal=R/'docs/plans/jarvis-work-e02-source-reference-schema-alignment-proposal-20261107.md'
+proposed=load(N/'verification/next-proposal-readback.json')
+assert sha(proposal)==proposed['sha256'] and proposed['implemented'] is False
 t=load(F/'terminal.json') if (F/'terminal.json').exists() else None
 p=load(F/'product-result.json') if (F/'product-result.json').exists() else None
 assert receipt['invocations']==1 and receipt['retry']==0
@@ -38,7 +45,7 @@ registration=dict(schema=1,work_order='wo-ultimaagent-20261101-0021',stage='T2',
     result='PASS_CONTROLLED_CASE' if accepted else 'FAIL',original_terminal=b['actual_status'],independent_review=review['verdict'],review_path=str(reviewpath),review_sha256=sha(reviewpath),result_manifest_sha256=sha(manifestpath),
     terminal_sha256=sha(F/'terminal.json') if t else None,product_result_sha256=sha(F/'product-result.json') if p else None,entry_invocations=1,work_cli_attempts=b['work_cli_attempts'],controlled_search_success=b['controlled_search_success'],controlled_GET_success=b['controlled_GET_success'],available_controlled_sources=b['available_sources'],
     application_native_POST_attempts=b['application_native_POST_attempts'],actual_native_start_count=b['actual_native_start_count'],research_artifacts=len(b['artifacts']),outer_elapsed_seconds=b['outer_elapsed_seconds'],cleanup=b['cleanup_status'],root_witness_eligible=b['root_witness_eligible'],
-    product_status=b['product_status'],product_error=b['product_error'],research_failure=b['research_failure'],
+    product_status=b['product_status'],product_error=b['product_error'],research_failure=b['research_failure'],specific_write_refusal_reason=proof['condition'],exact_submitted_reference='UNKNOWN_NOT_EXPORTED',exact_source_ids='UNKNOWN_NOT_EXPORTED',
     attribution_limit='Only the sealed current result and independent review are credited; no inference of old causes, unpublished model parameters, global native counts or continuous liveness.',
     readonly_protected_equal=b['protected_current_equal'],readonly_known_original_identities_remaining=b['known_original_identities_remaining'],continuous_liveness_measured=False,
     previous_real_attempts_preserved=history,current_controlled_passed=int(accepted),current_controlled_required=3,
@@ -66,6 +73,10 @@ run {b['run_id']}；UTC {receipt['started_utc']} 至 {receipt['finished_utc']}�
 
 安全writer诊断：{diagnostic}。不能仅凭旧失败或缺失字段推断当前/历史错误原因，具体事实和可交付性以独立结果审查为准。
 
+本例FOREIGN_REFERENCE与唯一静态消息Foreign reference的长度17及SHA一致；resolve_v3先确认ref已在issued中，再因view.source_id与章节source_id不一致拒绝。因此已跨过research.md路径检查，当前失败是已发行证据的来源归属与章节标注不一致。具体evidence_id和两端source_id未导出，保持未知，不称为未发行ID，也不猜是哪一份来源。没有研究文件，不能称其他事实已经合格。
+
+本例不构成对8B一般能力的结论，N4历史写入失败的具体原因仍未知。独审的两项important发现均保留为未交付与当前引用归属拒绝；不会用准备PASS盖过它们，也不在已耗尽的单例范围追加产品修改或重跑。
+
 {artifact_text}
 
 结果manifest {sha(manifestpath)}（{len(manifest['files'])}成员），独审SHA256 {sha(reviewpath)}。审查原文位于{reviewpath}；审查未新增测试或产品/模型调用。
@@ -76,31 +87,36 @@ run {b['run_id']}；UTC {receipt['started_utc']} 至 {receipt['finished_utc']}�
 
 原CLI1/search1/GET4/inspect6/write1/ACK1/nativePOST8、service260/client300/rootwork275/cleanup310/seal315秒保持。全部旧失败留存，旧候选269aca5的E01/E03信用不转移。当前候选受控通过{int(accepted)}/3，仍需后续同候选规定例数、真实联网及当前候选E01/E03和T2出口门；本例不等于产品总验收。
 
-当前一次实际例及一次复核额度均0；本授权范围完成。后续例或超出本schema补修的变更没有分配。本地提交/tag及UltimaDocs镜像；远端push此前自动审批拒绝blocked by policy，本轮没有重试或绕行。
+当前一次实际例及一次复核额度均0；本授权范围完成。后续例或超出本schema补修的变更没有分配。已准备未实施提案{proposal}：使用现有anyOf/enum，按source限定本请求可见evidence_id，并对齐生成、本地strict验证与独立runtime重放；原writer归属和事实门保持，不改写模型结果。它需要新范围，不属于本例的已实施内容。
+
+本地提交/tag及UltimaDocs镜像；远端push此前自动审批拒绝blocked by policy，本轮没有重试或绕行。
 '''
 with report.open('x',encoding='utf8',newline='\n') as f:f.write(text)
 status='E02固定目标候选'+b['candidate'][:7]+'：826项离线/准备PASS；唯一8B例'+registration['result']+'，独审'+review['verdict']+'，当前受控'+str(int(accepted))+'/3；本范围已完成、额度0；E02/T2未过、旧信用不转移。'
 order=R/'tasks/queue/wo-ultimaagent-20261101-0021--work-capability.md';stage=R/'tasks/queue/stages/wo-ultimaagent-20261101-0021/t2.md'
 lines=order.read_text('utf8').splitlines(keepends=True);ix=[i for i,v in enumerate(lines) if v.startswith('- 状态：')];assert len(ix)==1;lines[ix[0]]='- 状态：'+status+'\n'
-append='\n## 2026-11-07 固定目标schema单例及复核完成\n\n'+status+'\n报告：docs/reports/'+report.name+'。\n'
+append='\n## 2026-11-07 固定目标schema单例及复核完成\n\n'+status+'\n报告：docs/reports/'+report.name+'。未实施新范围提案：docs/plans/'+proposal.name+'。\n'
 order.write_text(''.join(lines)+append,encoding='utf8');stage.write_text(stage.read_text('utf8')+append,encoding='utf8')
 statepath=N.parent/'current-run.json';s=load(statepath)
 s.update(phase='SOURCE16_E02_FIXED_TARGET_REVIEWED_RESULT',workflow_status='authorized_single_case_scope_completed',stage_queue_state='BLOCKED',active_review_agent=None,active_report=str(report),e02_execution_released=False,live_gate_released=False,next_stage_released=False,
-    current_e02_controlled_passed=int(accepted),actual_case_allocation_remaining=0,result_review_allocation_remaining=0,last_actual_result=registration,next_action_scope=dict(authorized=False,actual_case_allocation=0,result_review_allocation=0,scope='next case or further product change not allocated'))
+    current_e02_controlled_passed=int(accepted),actual_case_allocation_remaining=0,result_review_allocation_remaining=0,last_actual_result=registration,next_action_scope=dict(proposal=str(proposal),authorized=False,actual_case_allocation=0,result_review_allocation=0,scope='source and issued-reference schema correlation; not implemented or allocated'))
 statepath.write_text(json.dumps(s,ensure_ascii=False,indent=2)+'\n',encoding='utf8')
 queue=Path('H:/UltimaAI/_shared/queue/global-queue-index.md');lines=queue.read_text('utf8').splitlines(keepends=True);ix=[i for i,v in enumerate(lines) if v.startswith('| UltimaAgent | wo-ultimaagent-20261101-0021 |')];assert len(ix)==1
 lines[ix[0]]='| UltimaAgent | wo-ultimaagent-20261101-0021 | blocked | '+status+' |\n';queue.write_text(''.join(lines),encoding='utf8')
 res=subprocess.run([str(R/'tools/venv-openjarvis/Scripts/python.exe'),'-I','-B','-X','utf8','H:/UltimaAI/_shared/queue/queue-status-gen.py'],capture_output=True,creationflags=subprocess.CREATE_NO_WINDOW)
 (N/'verification/queue-result.stdout').write_bytes(res.stdout+res.stderr);assert res.returncode==0
-dst=M/'docs/shared/research/ultimaagent-work-capability/reports'/report.name;assert not dst.exists();dst.write_bytes(report.read_bytes());assert sha(dst)==sha(report)
-mirrors=[dict(source=str(report),mirror=str(dst),sha256=sha(report))]
+mirrors=[]
+for source,folder in ((report,'reports'),(proposal,'plans')):
+    dst=M/'docs/shared/research/ultimaagent-work-capability'/folder/source.name;assert not dst.exists();dst.write_bytes(source.read_bytes());assert sha(dst)==sha(source)
+    mirrors.append(dict(source=str(source),mirror=str(dst),sha256=sha(source)))
 save_new(N/'verification/result-mirror-readback.json',dict(mirrors=mirrors,remote_synced=False))
 with (L/'progress.md').open('a',encoding='utf8') as f:
     f.write('\nTask 2 result: '+status+' Review '+sha(reviewpath)+'.\n')
     f.write('Final: Ruling: preserve reviewer limits on unmeasured global native starts, continuous protected liveness, OS packets and whole E02/T2 or transferred E01/E03 credit. Only the sealed current case is assessed; no extra run. Cost if wrong: no acceptance claim from missing evidence.\n')
-paths={N/name for name in manifest['files']};paths.update({manifestpath,reviewpath,N/'review/result-review-allocation.json',N/'review/result-registration.json',N/'verification/result-mirror-readback.json',N/'verification/queue-result.stdout',N/'verification/ready-checkpoint.json',N/'verification/final-ready-readback.json',report,order,stage,statepath})
+    f.write('Final: Ruling: reviewer important delivery/reference findings remain open as real acceptance failures; latest user scope limits this candidate to one case and result review with no retry. Record a concrete unimplemented source-reference proposal instead of altering the frozen candidate. Cost if wrong: E02 remains0/3, and future change requires explicit scope. No deferred minor findings.\n')
+paths={N/name for name in manifest['files']};paths.update({manifestpath,reviewpath,N/'review/result-review-allocation.json',N/'review/result-registration.json',N/'verification/result-mirror-readback.json',N/'verification/queue-result.stdout',N/'verification/ready-checkpoint.json',N/'verification/final-ready-readback.json',N/'verification/reference-contract-readback.json',N/'verification/next-proposal-readback.json',report,proposal,order,stage,statepath})
 paths.update(p for p in L.iterdir() if p.is_file())
 main=checkpoint(R,paths,base,'chore(e02): preserve reviewed fixed-target single-case result')
-mirror=checkpoint(M,[dst],mbase,'docs(e02): mirror fixed-target single-case result')
+mirror=checkpoint(M,[Path(row['mirror']) for row in mirrors],mbase,'docs(e02): mirror fixed-target result and source reference proposal')
 save_new(N/'verification/result-checkpoint.json',dict(main=main,mirror=mirror,tag=TAG,result_manifest_sha256=sha(manifestpath),review_sha256=sha(reviewpath),remote_synced=False))
 print(json.dumps(dict(main=main['commit'],mirror=mirror['commit'],tag=TAG,result=review['verdict'],actual_remaining=0,review_remaining=0)))
