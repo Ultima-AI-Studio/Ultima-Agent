@@ -21,3 +21,19 @@ work_navigation.py::v3_writer_schema目前向模型声明path为任意1至2048�
 原CLI1/search1/GET4/inspect6/write1/ACK1/nativePOST8、service260/client300/rootwork275/cleanup310/seal315秒不变。仅当前8B，禁止14B；四来源和原题不变，无UI、音频或生产服务操作。七个保护身份、其他工作区修改及旧失败保持。
 
 本提案尚未实施，没有创建新候选或分配新实际例。当前诊断范围的一例运行已结束，结果独审按同一授权完成后结束该序列；后续产品schema修改及新单例需要新的明确范围。远端push仍受此前自动审批blocked by policy阻断，本地交付不重试或绕行。
+
+## 2026-11-07 已授权接续
+
+用户call_409cc146033c4184879042b1abac6383明确授权本补修、必要独审、通过后一例当前8B原题四来源研究及一次结果复核；失败不重试。本范围不再重复询问。旧失败及旧候选信用保留。
+
+## Task 1: 固定目标schema补修与离线准备
+
+从6cb9284新建隔离候选。先添加schema合法/非法路径与真实SDK mock transport用例，保存RED；仅收紧v3_writer_schema.path为现有字面research.md的enum，保持长度约束。证明native format和本地strict schema都保留enum、错误路径在writer派发前拒绝、合法交付/ACK/读回通过；原writer路径拒绝与事实/引用/END/时限原门保持。完成受影响回归、候选重绑、独立准备审查和本地commit/tag/镜像。
+
+## Task 2: 已授权的单例和结果复核
+
+准备PASS及提交读回后签发一次TTL120秒分配，原题/四来源/当前8B实跑一例；失败不重试。保留原始首结果、完整可用证据、清理和保护身份，做一次只读独立结果复核并按实际结果登记、提交/tag/镜像。不得把离线通过、旧候选信用或准备PASS作为研究通过。
+
+## Review Focus
+
+schema与writer都只允许research.md；native sampler和strict replay使用同一enum且没有改写响应；错误参数在派发前拒绝、合法完整链路保留；唯一现有产品源文件变化限于schema；原8B/语料/预算/时限/保护/清理门和所有历史失败不变。
