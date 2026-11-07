@@ -563,13 +563,27 @@ def checked_native_response(raw,max_tokens):
     allowed={'model','created_at','done','done_reason','total_duration','load_duration','prompt_eval_count',
         'prompt_eval_duration','eval_count','eval_duration','message'}
     message=raw.get('message'); counts=raw.get('prompt_eval_count'),raw.get('eval_count')
-    if (set(raw)-allowed or raw.get('model') not in (_RESEARCH_MODEL,_RESEARCH_MODEL+':latest') or raw.get('done') is not True
-            or raw.get('done_reason')!='stop' or not isinstance(message,dict) or set(message)!={'role','content'}
-            or message['role']!='assistant' or type(message['content']) is not str or not message['content'].strip()
-            or any(type(n) is not int or n<1 for n in counts) or counts[1]>max_tokens or sum(counts)>16384
-            or any(type(raw[k]) is not int or not 0<=raw[k]<2**63 for k in ('total_duration','load_duration','prompt_eval_duration','eval_duration') if k in raw)
-            or ('created_at' in raw and type(raw['created_at']) is not str)):
-        raise ValueError('Invalid native research response')
+    def reject(reason):
+        error=ValueError('Invalid native research response')
+        error.native_response_reason=reason
+        raise error
+    # Preserve the original short-circuit order and acceptance conditions.
+    if set(raw)-allowed:reject('extra_fields')
+    if raw.get('model') not in (_RESEARCH_MODEL,_RESEARCH_MODEL+':latest'):reject('model')
+    if raw.get('done') is not True:reject('done')
+    if raw.get('done_reason')!='stop':reject('done_reason')
+    if not isinstance(message,dict):reject('message_type')
+    if set(message)!={'role','content'}:reject('message_fields')
+    if message['role']!='assistant':reject('message_role')
+    if type(message['content']) is not str:reject('content_type')
+    if not message['content'].strip():reject('content_empty')
+    if type(counts[0]) is not int or counts[0]<1:reject('prompt_eval_count')
+    if type(counts[1]) is not int or counts[1]<1:reject('eval_count')
+    if counts[1]>max_tokens:reject('completion_limit')
+    if sum(counts)>16384:reject('context_limit')
+    for k in ('total_duration','load_duration','prompt_eval_duration','eval_duration'):
+        if k in raw and (type(raw[k]) is not int or not 0<=raw[k]<2**63):reject(k)
+    if 'created_at' in raw and type(raw['created_at']) is not str:reject('created_at')
 
 
 def _verify_runtime_order(packet,reads,written,require_ack,runtime_inputs):

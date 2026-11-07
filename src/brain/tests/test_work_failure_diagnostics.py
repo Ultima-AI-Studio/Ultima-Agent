@@ -34,7 +34,7 @@ def test_integer_clock_projection_preserves_original_admission_boundary(tmp_path
         ledger.deadline=remaining;monkeypatch.setattr(wt,'monotonic',lambda:0.0)
     result,ledger=early_case(tmp_path,sdk_io,mock_jar,monkeypatch,reads=1,after=clock)
     packet=private_packet(result,ledger);budget=packet['budget']
-    assert packet['kind']=='research_failure_diagnostic_v3'
+    assert packet['kind']=='research_failure_diagnostic_v4'
     numerator,denominator=remaining.as_integer_ratio()
     assert budget['deadline_remaining_microseconds']==numerator*1000000//denominator
     assert budget['write_admission_open']==(remaining>=55)

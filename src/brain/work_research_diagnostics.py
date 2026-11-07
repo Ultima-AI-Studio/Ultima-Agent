@@ -7,7 +7,11 @@ import re
 from .work_navigation import canonical_v3
 
 CAP = 16384
-KIND = 'research_failure_diagnostic_v3'
+KIND = 'research_failure_diagnostic_v4'
+LEGACY_KIND = 'research_failure_diagnostic_v3'
+NATIVE_REASONS = frozenset(('extra_fields','model','done','done_reason','message_type','message_fields',
+    'message_role','content_type','content_empty','prompt_eval_count','eval_count','completion_limit',
+    'context_limit','total_duration','load_duration','prompt_eval_duration','eval_duration','created_at'))
 BRANCHES = {'absent','action','unvalidated_response','final_before_write','write_without_ack','ack'}
 HTTP_ROUTES = {('GET','/api/version','metadata'):'version',('GET','/api/tags','metadata'):'tags',('POST','/api/chat','chat'):'chat'}
 
@@ -87,6 +91,53 @@ def _last_http(ledger,transport,wires):
         transport_failed=receipt['error'] is not None,validated_response=validated)
 
 
+def _validate_native(value,last):
+    if value is None:return
+    _closed(value,'generation receipt_index request_sha256 response_sha256 response_bytes reason max_tokens done done_reason prompt_eval_count eval_count content_chars')
+    _require(type(value['reason']) is str and value['reason'] in NATIVE_REASONS)
+    _require(type(value['max_tokens']) is int and value['max_tokens'] in (256,2048))
+    _require(value['done'] is None or type(value['done']) is bool)
+    _require(type(value['done_reason']) is str and value['done_reason'] in ('stop','length','missing','other','type'))
+    for k in ('prompt_eval_count','eval_count'):
+        _require(value[k] is None or (type(value[k]) is int and -(2**63)<=value[k]<2**63))
+    if value['content_chars'] is not None:_count(value['content_chars'],65536)
+    _digest(value['request_sha256']);_digest(value['response_sha256'])
+    _count(value['generation'],8);_count(value['receipt_index'],23);_count(value['response_bytes'],65536)
+    _require(last is not None and last['route']=='chat' and last['send_reserved'] and not last['transport_failed']
+        and type(last['status']) is int and 200<=last['status']<300 and not last['validated_response'])
+    for k in ('generation','receipt_index','request_sha256'):_require(value[k]==last[k])
+    _require(0<value['response_bytes']==last['admitted']==last['inspected']==last['retained'])
+
+
+def _bound_native(transport,last,value):
+    _validate_native(value,last)
+    if value is not None:
+        receipt=transport.receipts[-1]
+        _require(value['response_sha256']==receipt['response_sha256'])
+        _require(value['generation']==transport.generations)
+    return copy.deepcopy(value)
+
+
+def record_native_response_rejection(ledger,transport,raw_bytes,raw,max_tokens,reason):
+    """Retain only a closed projection of a fully received, request-bound refusal."""
+    _require(type(raw_bytes) is bytes and 0<len(raw_bytes)<=65536 and type(raw) is dict)
+    def integer(value):return value if type(value) is int and -(2**63)<=value<2**63 else None
+    done_reason=raw.get('done_reason')
+    normalized=('missing' if 'done_reason' not in raw else 'type' if type(done_reason) is not str
+        else done_reason if done_reason in ('stop','length') else 'other')
+    message=raw.get('message');content=message.get('content') if type(message) is dict else None
+    last=_last_http(ledger,transport,getattr(ledger,'_runtime_wires',[]))
+    _validate_http(last,transport.generations)
+    _require(last is not None)
+    value=dict(generation=transport.generations,receipt_index=len(transport.receipts)-1,
+        request_sha256=last['request_sha256'],response_sha256=hashlib.sha256(raw_bytes).hexdigest(),
+        response_bytes=len(raw_bytes),reason=reason,max_tokens=max_tokens,
+        done=raw.get('done') if type(raw.get('done')) is bool else None,done_reason=normalized,
+        prompt_eval_count=integer(raw.get('prompt_eval_count')),eval_count=integer(raw.get('eval_count')),
+        content_chars=len(content) if type(content) is str and len(content)<=65536 else None)
+    ledger._native_response_rejection=_bound_native(transport,last,value)
+
+
 def validate_failure_diagnostic(raw,binding_key):
     """Closed data-only decoder for restricted exporters, not delivery verification."""
     _require(type(raw) is bytes and 0<len(raw)<=CAP)
@@ -94,8 +145,10 @@ def validate_failure_diagnostic(raw,binding_key):
         value=dict(items);_require(len(value)==len(items));return value
     p=json.loads(raw,object_pairs_hook=pairs)
     _require(canonical_v3(p)==raw)
-    _closed(p,'kind complete acceptance_credit binding_sha256 branch final_answer pages read_requests eligible_source_ids write_confirmed ack_confirmed budget last_http')
-    _require(p['kind']==KIND and p['complete'] is False and type(p['acceptance_credit']) is int and p['acceptance_credit']==0)
+    _require(type(p) is dict and p.get('kind') in (LEGACY_KIND,KIND))
+    fields='kind complete acceptance_credit binding_sha256 branch final_answer pages read_requests eligible_source_ids write_confirmed ack_confirmed budget last_http'
+    _closed(p,fields+(' native_response' if p['kind']==KIND else ''))
+    _require(p['complete'] is False and type(p['acceptance_credit']) is int and p['acceptance_credit']==0)
     _require(p['binding_sha256']==hashlib.sha256(canonical_v3(list(binding_key))).hexdigest())
     _require(p['branch'] in BRANCHES)
     for name in ('write_confirmed','ack_confirmed'):_require(type(p[name]) is bool)
@@ -135,6 +188,9 @@ def validate_failure_diagnostic(raw,binding_key):
     for key,limit in [('reads_used',6),('read_bytes',18432),('native_posts',8),('completed_posts',8),('generations',64)]:_count(b[key],limit)
     _require(b['completed_posts']<=b['native_posts'] and len(p['pages'])<=b['reads_used'])
     _validate_http(p['last_http'],b['generations'])
+    if p['kind']==KIND:
+        _validate_native(p['native_response'],p['last_http'])
+        if p['native_response'] is not None:_require(p['branch'] in ('unvalidated_response','write_without_ack'))
     remaining_us=b['deadline_remaining_microseconds']
     _require(type(remaining_us) is int and -(2**63)<=remaining_us<2**63)
     _require(type(b['write_admission_open']) is bool and b['write_admission_open']==(remaining_us>=55000000))
@@ -182,8 +238,10 @@ def _project(ledger):
     remaining=ledger.deadline-monotonic()
     numerator,denominator=remaining.as_integer_ratio()
     remaining_us=numerator*1000000//denominator
+    last_http=_last_http(ledger,transport,wires)
+    native=_bound_native(transport,last_http,getattr(ledger,'_native_response_rejection',None))
     return dict(kind=KIND,complete=False,acceptance_credit=0,binding_sha256=hashlib.sha256(canonical_v3(list(ledger._navigation.binding_key))).hexdigest(),
-        branch=branch,final_answer=final,pages=pages,read_requests=requests,last_http=_last_http(ledger,transport,wires),
+        branch=branch,final_answer=final,pages=pages,read_requests=requests,last_http=last_http,native_response=native,
         eligible_source_ids=sorted({p['source_id'] for p in pages if p['confirmed'] and p['cards']}),write_confirmed=write,ack_confirmed=ack,
         budget=dict(reads_used=ledger._read_count,reads_limit=6,read_bytes=ledger._read_bytes,native_posts=getattr(transport,'posts',0),native_posts_limit=8,
             completed_posts=getattr(transport,'completed',0),generations=generations,deadline_remaining_microseconds=remaining_us,write_admission_open=remaining>=55))

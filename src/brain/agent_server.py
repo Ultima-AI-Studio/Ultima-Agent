@@ -428,7 +428,16 @@ class _NativeResearchLeaf:
         raw_bytes=transport.exchange('POST','/api/chat','chat',entity=entity,ack=ack)
         raw=_strict_json(raw_bytes.decode('utf8'))
         message=raw.get('message'); counts=raw.get('prompt_eval_count'),raw.get('eval_count')
-        checked_native_response(raw,max_tokens)
+        try:
+            checked_native_response(raw,max_tokens)
+        except ValueError as exc:
+            try:
+                from .work_research_diagnostics import record_native_response_rejection
+                record_native_response_rejection(self.ledger,transport,raw_bytes,raw,max_tokens,
+                    getattr(exc,'native_response_reason',None))
+            except Exception:
+                pass  # Diagnostics must not replace the original validation failure.
+            raise
         self.ledger._scan_output(raw)
         typed=ChatResponse.model_validate(raw)
         envelope=_strict_json(message['content'])
