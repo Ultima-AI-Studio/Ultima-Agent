@@ -1,0 +1,122 @@
+FF......................................                                 [100%]
+================================== FAILURES ===================================
+_______ test_export_diagnostics_current_sampler_contract[quoted_write] ________
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-claim-generation-controlled-preparation-20261108-r1/code/harness-preparation-20261107T181507161646Z/temp/test_export_diagnostics_curren0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000019E6A51B6F0>
+sdk_io = (<src.brain.browser.channel.BrowserChannel object at 0x0000019EA17CFE00>, [('search', 'Research a subject')], {})
+mock_jar = (<openjarvis.sdk.Jarvis object at 0x0000019EA17CE510>, <function _run_work_agent at 0x0000019EA17AC9A0>, [{'format': {...rature': 0}, ...}], [<function test_export_diagnostics_current_sampler_contract.<locals>.reply at 0x0000019EA1A31BC0>])
+code_sources = ['https://example.com/one.md', 'https://example.com/two.py', 'https://example.com/three.js']
+case = 'quoted_write'
+
+    @pytest.mark.parametrize('case',['quoted_write','escaped_boundary'])
+    def test_export_diagnostics_current_sampler_contract(tmp_path,monkeypatch,sdk_io,mock_jar,code_sources,case):
+        import httpx,re
+        from src.brain.tests.test_work_navigation_transport import navigation_reply
+        from src.brain.tests.test_work_research import submit,RESTRICTED
+        from src.brain.tests.test_work_sampler_json_strings import pattern
+        from src.brain.tests.test_work_source_reference_schema import writer_schema
+        from src.brain.work_navigation import canonical_v3
+        from src.brain.work_research import verify_runtime_packet
+        observe_failure_exports(tmp_path,monkeypatch)
+        sent=[];send=httpx.Client.send;original_get=httpx.request
+        def capture(client,request,*args,**kwargs):
+            if request.url.path=='/api/chat':sent.append(bytes(request.content))
+            return send(client,request,*args,**kwargs)
+        monkeypatch.setattr(httpx.Client,'send',capture)
+        source_text='client.run("中文", "\\\\")\nclient.stop()\n'
+        def get(method,url,**kwargs):
+            if url==code_sources[1]:
+                return httpx.Response(200,headers={'content-type':'text/plain'},text=source_text,
+                                      request=httpx.Request(method,url))
+            return original_get(method,url,**kwargs)
+        monkeypatch.setattr(httpx,'request',get)
+        claim='可见 client.run 调用，参数含 "中文" 和反斜杠 \\。'
+        raw_boundary=r'\u0061client.run';ref=[];response_body=[]
+        def reply(body):
+            value=json.loads(navigation_reply(body))
+            if value.get('action')=='ultima_work_research_write':
+                fact=value['action_input']['sections'][1]['facts'][0];ref.append(fact['evidence_id'])
+                fact['claim']=claim if case=='quoted_write' else json.loads('"'+raw_boundary+'"')
+                raw_claim=json.dumps(claim,ensure_ascii=False)[1:-1] if case=='quoted_write' else raw_boundary
+                assert re.fullmatch(pattern(writer_schema(body['format']),ref[-1]),raw_claim)
+                encoded=json.dumps(value,ensure_ascii=False)
+                if case=='escaped_boundary':
+                    assert fact['claim']=='aclient.run'
+                    encoded=encoded.replace('"aclient.run"','"'+raw_boundary+'"')
+                    assert raw_boundary in encoded and json.loads(encoded)==value
+                response_body.append(encoded)
+                return encoded
+            return json.dumps(value,ensure_ascii=False)
+        reply.no_auto_navigation=True
+        mock_jar[3].extend([reply]*5)
+        result=submit(tmp_path/'outputs',sdk_io[0],mock_jar[1],source_urls=code_sources)
+        ledger=RESTRICTED[result['task_id']]
+>       assert len(ref)==len(response_body)==1
+E       AssertionError: assert 1 == 0
+E        +  where 1 = len(['N3.62fdb9053406d6c1'])
+E        +  and   0 = len([])
+
+..\..\harness\test_adapter.py:63: AssertionError
+_____ test_export_diagnostics_current_sampler_contract[escaped_boundary] ______
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-claim-generation-controlled-preparation-20261108-r1/code/harness-preparation-20261107T181507161646Z/temp/test_export_diagnostics_curren1')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000019E6A51B820>
+sdk_io = (<src.brain.browser.channel.BrowserChannel object at 0x0000019E6ABDB250>, [('search', 'Research a subject')], {})
+mock_jar = (<openjarvis.sdk.Jarvis object at 0x0000019E6ABD9950>, <function _run_work_agent at 0x0000019EA17AC9A0>, [{'format': {...rature': 0}, ...}], [<function test_export_diagnostics_current_sampler_contract.<locals>.reply at 0x0000019EA23DACA0>])
+code_sources = ['https://example.com/one.md', 'https://example.com/two.py', 'https://example.com/three.js']
+case = 'escaped_boundary'
+
+    @pytest.mark.parametrize('case',['quoted_write','escaped_boundary'])
+    def test_export_diagnostics_current_sampler_contract(tmp_path,monkeypatch,sdk_io,mock_jar,code_sources,case):
+        import httpx,re
+        from src.brain.tests.test_work_navigation_transport import navigation_reply
+        from src.brain.tests.test_work_research import submit,RESTRICTED
+        from src.brain.tests.test_work_sampler_json_strings import pattern
+        from src.brain.tests.test_work_source_reference_schema import writer_schema
+        from src.brain.work_navigation import canonical_v3
+        from src.brain.work_research import verify_runtime_packet
+        observe_failure_exports(tmp_path,monkeypatch)
+        sent=[];send=httpx.Client.send;original_get=httpx.request
+        def capture(client,request,*args,**kwargs):
+            if request.url.path=='/api/chat':sent.append(bytes(request.content))
+            return send(client,request,*args,**kwargs)
+        monkeypatch.setattr(httpx.Client,'send',capture)
+        source_text='client.run("中文", "\\\\")\nclient.stop()\n'
+        def get(method,url,**kwargs):
+            if url==code_sources[1]:
+                return httpx.Response(200,headers={'content-type':'text/plain'},text=source_text,
+                                      request=httpx.Request(method,url))
+            return original_get(method,url,**kwargs)
+        monkeypatch.setattr(httpx,'request',get)
+        claim='可见 client.run 调用，参数含 "中文" 和反斜杠 \\。'
+        raw_boundary=r'\u0061client.run';ref=[];response_body=[]
+        def reply(body):
+            value=json.loads(navigation_reply(body))
+            if value.get('action')=='ultima_work_research_write':
+                fact=value['action_input']['sections'][1]['facts'][0];ref.append(fact['evidence_id'])
+                fact['claim']=claim if case=='quoted_write' else json.loads('"'+raw_boundary+'"')
+                raw_claim=json.dumps(claim,ensure_ascii=False)[1:-1] if case=='quoted_write' else raw_boundary
+                assert re.fullmatch(pattern(writer_schema(body['format']),ref[-1]),raw_claim)
+                encoded=json.dumps(value,ensure_ascii=False)
+                if case=='escaped_boundary':
+                    assert fact['claim']=='aclient.run'
+                    encoded=encoded.replace('"aclient.run"','"'+raw_boundary+'"')
+                    assert raw_boundary in encoded and json.loads(encoded)==value
+                response_body.append(encoded)
+                return encoded
+            return json.dumps(value,ensure_ascii=False)
+        reply.no_auto_navigation=True
+        mock_jar[3].extend([reply]*5)
+        result=submit(tmp_path/'outputs',sdk_io[0],mock_jar[1],source_urls=code_sources)
+        ledger=RESTRICTED[result['task_id']]
+>       assert len(ref)==len(response_body)==1
+E       AssertionError: assert 1 == 0
+E        +  where 1 = len(['N3.62fdb9053406d6c1'])
+E        +  and   0 = len([])
+
+..\..\harness\test_adapter.py:63: AssertionError
+=========================== short test summary info ===========================
+FAILED ..\..\harness\test_adapter.py::test_export_diagnostics_current_sampler_contract[quoted_write]
+FAILED ..\..\harness\test_adapter.py::test_export_diagnostics_current_sampler_contract[escaped_boundary]
+2 failed, 38 passed in 44.79s
