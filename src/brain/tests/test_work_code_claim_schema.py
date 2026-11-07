@@ -184,7 +184,9 @@ def test_replay_rebuilds_operation_contract_despite_coherent_wire_hashes(tmp_pat
         assert claims, 'native schema lacks evidence-specific code claim patterns'
         claim = claims[0]
         if fault == 'remove_pattern': claim.pop('pattern')
-        else: claim['pattern'] = '^.*(client.run|other.operation).*$'
+        else:
+            # Keep a canonical sampler shape while corrupting the trusted operation.
+            claim['pattern'] = r'^(.*[^A-Za-z0-9_$.])?other\.operation([^A-Za-z0-9_$.].*|\.([^A-Za-z_$].*)?)?$'
     wire['sampler_schema'] = server._research_sampler_schema(wire['strict_schema'])
     request = json.loads(wire['entity']); request.update(messages=wire['secured_messages'], format=wire['sampler_schema'])
     entity = nav.canonical_v3(request); wire['entity'] = entity.decode('utf8')

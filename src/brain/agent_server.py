@@ -214,23 +214,47 @@ def _research_client():
     return httpx.Client(base_url=_RESEARCH_ORIGIN,trust_env=False,follow_redirects=False,timeout=25)
 
 
+def _research_code_claim_sampler_pattern(pattern):
+    """Encode the trusted operation constraint for Ollama's raw string grammar."""
+    import re
+    prefix=r'^(.*[^A-Za-z0-9_$.])?'
+    suffix=r'([^A-Za-z0-9_$.].*|\.([^A-Za-z_$].*)?)?$'
+    if not isinstance(pattern,str) or not pattern.startswith(prefix) or not pattern.endswith(suffix):
+        raise ValueError('Unsupported research code claim pattern')
+    escaped=pattern[len(prefix):-len(suffix)]
+    operation=escaped.replace(r'\.', '.').replace(r'\$', '$')
+    if (len(operation)>200 or not re.fullmatch(r'[A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*)*',operation)
+            or re.escape(operation)!=escaped):
+        raise ValueError('Invalid research code claim pattern')
+    # The pinned converter puts regex bodies directly between JSON quotes.
+    # Every wildcard/boundary must therefore consume a JSON character or a
+    # complete escape. Decoded operation boundaries still use the strict schema.
+    escape=r'[\\](["\\bfnrt/]|u[0-9a-fA-F]{4})'
+    char=r'([^"\\\x00-\x1f]|'+escape+')'
+    boundary=r'([^"\\\x00-\x1fA-Za-z0-9_$.]|'+escape+')'
+    after_dot=r'([^"\\\x00-\x1fA-Za-z_$]|'+escape+')'
+    return '^('+char+'*'+boundary+')?'+escaped+'('+boundary+char+'*|\\.('+after_dot+char+'*)?)?$'
+
+
 def _research_sampler_schema(schema):
-    """Copy a JSON Schema, removing only sampler-incompatible length keywords."""
+    """Project sampler lengths and code strings without changing strict policy."""
     from copy import deepcopy
     projected = deepcopy(schema)
-    def visit(node):
+    def visit(node,field=None):
         if not isinstance(node,dict):
             return
         node.pop('maxLength',None)
+        if field=='claim' and 'pattern' in node:
+            node['pattern']=_research_code_claim_sampler_pattern(node['pattern'])
         for key in ('properties','patternProperties','definitions','$defs','dependentSchemas','dependencies'):
-            for child in node.get(key,{}).values():
-                visit(child)
+            for name,child in node.get(key,{}).items():
+                visit(child,name if key=='properties' else None)
         for key in ('additionalProperties','additionalItems','contains','propertyNames','not','if','then','else'):
-            visit(node.get(key))
+            visit(node.get(key),field)
         for key in ('items','allOf','anyOf','oneOf'):
             children = node.get(key,[])
             for child in children if isinstance(children,list) else [children]:
-                visit(child)
+                visit(child,field)
     visit(projected)
     return projected
 
