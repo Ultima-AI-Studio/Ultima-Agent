@@ -393,12 +393,50 @@ def prepare_navigation(collection, binding, scanners: ScanPolicy, *, get_records
     return replace(cat,catalogue_json=raw,catalogue_sha256=_h(raw))
 
 
-def v3_writer_schema() -> dict:
+def v3_source_reference_map(visible: tuple[tuple[str, bytes], ...]) -> dict[str, tuple[str, ...]]:
+    """Project already trusted, phase-visible cards; never grant read authority."""
+    if type(visible) is not tuple or len(visible)>6: raise ValueError('Invalid visible pages')
+    sources={}; seen=set()
+    for page in visible:
+        if type(page) is not tuple or len(page)!=2: raise ValueError('Invalid visible page')
+        sid,raw=page
+        if type(sid) is not str or not re.fullmatch(r'S[1-5]',sid) or type(raw) is not bytes:
+            raise ValueError('Invalid visible source')
+        cards=_load(raw)
+        if type(cards) is not list or len(cards)>8: raise ValueError('Invalid visible cards')
+        for card in cards:
+            if (type(card) is not list or len(card)!=7 or type(card[0]) is not str
+                    or not re.fullmatch(r'N3\.[0-9a-f]{16}',card[0])
+                    or card[1] not in ('documented','code','limitation') or type(card[2]) is not str
+                    or any(type(n) is not int for n in card[3:])
+                    or not 1<=card[5]<=card[3]<=card[4]<=card[6]):
+                raise ValueError('Invalid visible card')
+            if card[0] in seen: raise ValueError('Reference collision')
+            seen.add(card[0]); sources.setdefault(sid,[]).append(card[0])
+    return {sid:tuple(sorted(sources[sid])) for sid in sorted(sources)}
+
+
+def v3_writer_schema(source_refs: dict[str, tuple[str, ...]] | None = None) -> dict:
     def obj(**props): return dict(type='object',additionalProperties=False,properties=props,required=list(props))
     def text(n): return dict(type='string',minLength=1,maxLength=n)
     def array(items,a,z): return dict(type='array',items=items,minItems=a,maxItems=z)
     fact=obj(claim=text(2000),evidence_id=dict(type='string',pattern=r'^N3\.[0-9a-f]{16}$',minLength=19,maxLength=19))
     section=obj(source_id=dict(type='string',pattern=r'^S[1-5]$',minLength=2,maxLength=2),heading=text(200),facts=array(fact,1,6))
+    if source_refs is not None:
+        if (type(source_refs) is not dict or not 3<=len(source_refs)<=5
+                or any(type(sid) is not str for sid in source_refs)):
+            raise ValueError('Three visible reference sources required')
+        branches=[]; seen=set()
+        for sid,refs in sorted(source_refs.items()):
+            if (type(sid) is not str or not re.fullmatch(r'S[1-5]',sid) or type(refs) is not tuple
+                    or not refs or len(refs)>48 or any(type(ref) is not str or not re.fullmatch(r'N3\.[0-9a-f]{16}',ref) for ref in refs)
+                    or len(set(refs))!=len(refs) or seen.intersection(refs)):
+                raise ValueError('Invalid source reference mapping')
+            seen.update(refs)
+            bound_fact=obj(claim=text(2000),evidence_id=dict(fact['properties']['evidence_id'],enum=sorted(refs)))
+            branches.append(obj(source_id=dict(section['properties']['source_id'],enum=[sid]),heading=text(200),facts=array(bound_fact,1,6)))
+        if len(seen)>48: raise ValueError('Visible reference count exceeds cap')
+        section=dict(anyOf=branches)
     return obj(path=dict(text(2048),enum=['research.md']),title=text(200),sections=array(section,3,5))
 
 

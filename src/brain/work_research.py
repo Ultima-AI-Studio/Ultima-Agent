@@ -646,7 +646,7 @@ def _verify_runtime_order(packet,reads,written,require_ack,runtime_inputs):
 
 def verify_runtime_packet(binding, snapshot, collection, raw, *, require_ack=False,runtime_inputs=None):
     """Reconstruct native entities, history and read/event links independently."""
-    from .work_navigation import canonical_v3,v3_writer_schema
+    from .work_navigation import canonical_v3,v3_writer_schema,v3_source_reference_map
     from .work_tools import WorkInspectTool,WorkResearchWriteTool
     from openjarvis.tools._stubs import ToolSpec,build_tool_descriptions
     from types import SimpleNamespace
@@ -794,9 +794,11 @@ def verify_runtime_packet(binding, snapshot, collection, raw, *, require_ack=Fal
             return dict(type='object',additionalProperties=False,required=['action','action_input'],properties=dict(action=dict(enum=[name]),action_input=params))
         visible=reads[:index]
         eligible=len({r['source_id'] for r in visible if r['wire']['cards']})>=3
+        report_schema=v3_writer_schema(v3_source_reference_map(tuple(
+            (r['source_id'],canonical_v3(r['wire']['cards'])) for r in visible))) if eligible else v3_writer_schema()
         if not ack:
             if index<6: allowed.append(action('ultima_work_research_inspect',WorkInspectTool.parameters))
-            if eligible: allowed.append(action('ultima_work_research_write',v3_writer_schema()))
+            if eligible: allowed.append(action('ultima_work_research_write',report_schema))
         expected_schema=final if ack else dict(anyOf=[*allowed,final])
         output_cap=256 if ack or not eligible else 2048
         if (wire['strict_schema']!=expected_schema or type(request['options']['num_predict']) is not int
@@ -814,7 +816,7 @@ def verify_runtime_packet(binding, snapshot, collection, raw, *, require_ack=Fal
             'Inspect safe source pages; author only atomic claims supported by the exact returned witnesses. '
             'Use at least three distinct source URLs and bodies. Write only research.md once, or refuse with final_answer. '
             'The phase schema is the entire output contract. Full argument schema (JSON):\n'
-            +json.dumps(v3_writer_schema(),ensure_ascii=False,separators=(',',':'))+'\nEnd argument schema.')
+            +json.dumps(report_schema,ensure_ascii=False,separators=(',',':'))+'\nEnd argument schema.')
         if messages[0]['content']!=replaced+'\n\n'+phase: raise ValueError('Runtime exact phase system drift')
         if 'action' in envelope:
             start=starts[index]

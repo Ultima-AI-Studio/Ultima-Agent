@@ -551,7 +551,7 @@ class _ResearchEngineView:
         import copy,hashlib
         from jsonschema import Draft7Validator
         from openjarvis.core.types import Message,Role
-        from .work_navigation import canonical_v3,v3_writer_schema
+        from .work_navigation import canonical_v3,v3_writer_schema,v3_source_reference_map
         self.check_dispatch()
         self.generation+=1
         if self.final: raise ValueError('Research already finalized')
@@ -584,15 +584,17 @@ class _ResearchEngineView:
             phase='Acknowledge the verified research.md file. No further action is authorized.'
         else:
             self.ledger.admit_report()
+            report_schema=v3_writer_schema(v3_source_reference_map(tuple(
+                (view.source_id,view.cards_json) for _,view in reads))) if eligible else v3_writer_schema()
             if self.ledger._read_count<6:
                 alternatives.append(action('ultima_work_research_inspect',self.ledger._enrolled['ultima_work_research_inspect'].spec.parameters))
-            if eligible: alternatives.append(action('ultima_work_research_write',v3_writer_schema()))
+            if eligible: alternatives.append(action('ultima_work_research_write',report_schema))
             schema=dict(anyOf=[*alternatives,final])
             limit=min(kwargs['max_tokens'],2048 if eligible else 256)
             phase=('Inspect safe source pages; author only atomic claims supported by the exact returned witnesses. '
                 'Use at least three distinct source URLs and bodies. Write only research.md once, or refuse with final_answer. '
                 'The phase schema is the entire output contract. Full argument schema (JSON):\n'
-                +json.dumps(v3_writer_schema(),ensure_ascii=False,separators=(',',':'))+'\nEnd argument schema.')
+                +json.dumps(report_schema,ensure_ascii=False,separators=(',',':'))+'\nEnd argument schema.')
         outgoing=[replace(messages[0],content=self.replaced_system+'\n\n'+phase),*messages[1:]]
         _research_budget(outgoing,schema,limit)
         self.leaf.expected=dict(messages=copy.deepcopy(_research_message_dicts(outgoing)),schema=copy.deepcopy(schema),limit=limit,ack=ack)
