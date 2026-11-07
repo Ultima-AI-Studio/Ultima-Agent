@@ -18,3 +18,8 @@
 - Task 1 COMPLETE; Task 2 offline346 and independent preparation PASS. Manifest 6bdbff35be5d300ae82fc36c9f8a3098781872923882d3e855cd87e6cf1171d7.
 - read_ready PASS; missing grant rejected by read_release; run_once not called. Actual/model0, E02 0/3.
 - Local publication tracked separately in verification/publication-readback.json; remote push not attempted.
+
+- Authorized execution continuation: explicit call_92c748ab12e24ba7a135ebd26783263f, actual1/result-review1/retry0; execute the frozen entry once, then seal and independently review the first result. No product changes or repeated tests.
+
+- Explicit call_92c748ab12e24ba7a135ebd26783263f actual1/review1 completed; run 72d7d71b-39a9-455a-b0b4-8823b3f24c00 FAIL_CONFIRMED. Native done_reason=length/eval_count2048 at original cap; no write/ACK/artifact. No retry.
+- Result manifest 9cc9e1c9c38a5f23b9e5a0d72b52bd2558a720c99abea8b11148abde483523d6, independent review 237b8f3c5c96a0ba9db599c0bdb0cddbe8d8cf68361c323c269fb7a2bf74c41e. Model unchanged, actual/review remaining0, E02/T2/Owner not passed.

@@ -5,7 +5,7 @@
 - original_work_order_id: wo-ultimaagent-20261101-0021
 - revision: 2
 - authorization: 用户“那按顺序开始推进吧”；批准按已提交的工作能力契约与计划顺序执行，保留最终 Owner 验收和发布门。
-- 状态：E02受控入口就绪：d860b2a冻结，346项离线检查及独立准备PASS；当前8B/原预算保持，待明确单例分配；实际与模型0，E02仍0/3。
+- 状态：E02 d860b2a唯一实际FAIL_CONFIRMED：第7次响应done_reason=length、eval_count=2048达原上限，无research.md/写入/ACK；清理与保护核对PASS，单例/独审已消费，不重试。
 - 计划：docs/plans/jarvis-work-capability-delivery-plan-20261101.md
 - 契约：docs/specs/jarvis-work-capability-contract-20261101.md
 - 草案检查点：ultimaagent-jarvis-work-plan-draft-20261101 @ f6eb808348302cec55bddcf44ee03f5b5736c4d9
@@ -666,3 +666,22 @@ E02候选d860b2a受控入口/完整绑定准备：精确计划独审中，产品
 
 E02受控入口就绪：d860b2a冻结，346项离线检查及独立准备PASS；当前8B/原预算保持，待明确单例分配；实际与模型0，E02仍0/3。
 报告：H:\UltimaAI\UltimaAgent\docs\reports\jarvis-work-t2-e02-native-rejection-controlled-preparation-20261107.md
+
+
+## 2026-11-07 E02 native rejection controlled one-case allocation
+
+E02 d860b2a已明确分配一例当前8B研究及一次结果独审；原预算、失败不重试；正在只读准入后执行，尚无接受信用。
+用户答复：call_92c748ab12e24ba7a135ebd26783263f；提案：H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-native-rejection-controlled-preparation-20261107-r1\execution-proposal.md
+
+
+## 2026-11-07 E02 native rejection result audit
+
+E02 d860b2a唯一实跑FAIL待结果独审：research.md数量0，native POST 7，清理PASS；实际已消费、不重试。
+结果manifest：9cc9e1c9c38a5f23b9e5a0d72b52bd2558a720c99abea8b11148abde483523d6
+
+
+## 2026-11-07 E02 native rejection controlled result
+
+E02 d860b2a唯一实际FAIL_CONFIRMED：第7次响应done_reason=length、eval_count=2048达原上限，无research.md/写入/ACK；清理与保护核对PASS，单例/独审已消费，不重试。
+报告：H:\UltimaAI\UltimaAgent\docs\reports\jarvis-work-t2-e02-native-rejection-controlled-result-20261107.md
+后续提案：H:\UltimaAI\UltimaAgent\docs\plans\jarvis-work-e02-writer-output-budget-alignment-proposal-20261107.md
