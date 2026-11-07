@@ -399,7 +399,7 @@ def v3_writer_schema() -> dict:
     def array(items,a,z): return dict(type='array',items=items,minItems=a,maxItems=z)
     fact=obj(claim=text(2000),evidence_id=dict(type='string',pattern=r'^N3\.[0-9a-f]{16}$',minLength=19,maxLength=19))
     section=obj(source_id=dict(type='string',pattern=r'^S[1-5]$',minLength=2,maxLength=2),heading=text(200),facts=array(fact,1,6))
-    return obj(path=text(2048),title=text(200),sections=array(section,3,5))
+    return obj(path=dict(text(2048),enum=['research.md']),title=text(200),sections=array(section,3,5))
 
 
 def _source_packet(source):
