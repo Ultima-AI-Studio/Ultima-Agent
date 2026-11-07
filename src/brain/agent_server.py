@@ -434,7 +434,8 @@ class _NativeResearchLeaf:
             try:
                 from .work_research_diagnostics import record_native_response_rejection
                 record_native_response_rejection(self.ledger,transport,raw_bytes,raw,max_tokens,
-                    getattr(exc,'native_response_reason',None))
+                    getattr(exc,'native_response_reason',None),
+                    request_context=dict(entity=entity,strict_schema=response_format,ack=ack))
             except Exception:
                 pass  # Diagnostics must not replace the original validation failure.
             raise

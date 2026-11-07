@@ -9,6 +9,7 @@ from .work_navigation import canonical_v3
 CAP = 16384
 KIND = 'research_failure_diagnostic_v4'
 LEGACY_KIND = 'research_failure_diagnostic_v3'
+OUTPUT_KIND = 'research_failure_diagnostic_v5'
 NATIVE_REASONS = frozenset(('extra_fields','model','done','done_reason','message_type','message_fields',
     'message_role','content_type','content_empty','prompt_eval_count','eval_count','completion_limit',
     'context_limit','total_duration','load_duration','prompt_eval_duration','eval_duration','created_at'))
@@ -118,7 +119,7 @@ def _bound_native(transport,last,value):
     return copy.deepcopy(value)
 
 
-def record_native_response_rejection(ledger,transport,raw_bytes,raw,max_tokens,reason):
+def record_native_response_rejection(ledger,transport,raw_bytes,raw,max_tokens,reason,*,request_context=None):
     """Retain only a closed projection of a fully received, request-bound refusal."""
     _require(type(raw_bytes) is bytes and 0<len(raw_bytes)<=65536 and type(raw) is dict)
     def integer(value):return value if type(value) is int and -(2**63)<=value<2**63 else None
@@ -136,6 +137,13 @@ def record_native_response_rejection(ledger,transport,raw_bytes,raw,max_tokens,r
         prompt_eval_count=integer(raw.get('prompt_eval_count')),eval_count=integer(raw.get('eval_count')),
         content_chars=len(content) if type(content) is str and len(content)<=65536 else None)
     ledger._native_response_rejection=_bound_native(transport,last,value)
+    if request_context is not None:
+        try:
+            _closed(request_context,'entity strict_schema ack')
+            ledger._output_structure=build_output_structure(raw,**request_context,max_tokens=max_tokens,
+                scan=ledger._scan_output,native_record=ledger._native_response_rejection)
+        except Exception:
+            pass  # The original native refusal remains available as v4.
 
 
 def validate_failure_diagnostic(raw,binding_key):
@@ -145,9 +153,10 @@ def validate_failure_diagnostic(raw,binding_key):
         value=dict(items);_require(len(value)==len(items));return value
     p=json.loads(raw,object_pairs_hook=pairs)
     _require(canonical_v3(p)==raw)
-    _require(type(p) is dict and p.get('kind') in (LEGACY_KIND,KIND))
+    _require(type(p) is dict and p.get('kind') in (LEGACY_KIND,KIND,OUTPUT_KIND))
     fields='kind complete acceptance_credit binding_sha256 branch final_answer pages read_requests eligible_source_ids write_confirmed ack_confirmed budget last_http'
-    _closed(p,fields+(' native_response' if p['kind']==KIND else ''))
+    _closed(p,fields+(' native_response' if p['kind']!=LEGACY_KIND else '')
+        +(' output_structure' if p['kind']==OUTPUT_KIND else ''))
     _require(p['complete'] is False and type(p['acceptance_credit']) is int and p['acceptance_credit']==0)
     _require(p['binding_sha256']==hashlib.sha256(canonical_v3(list(binding_key))).hexdigest())
     _require(p['branch'] in BRANCHES)
@@ -188,9 +197,12 @@ def validate_failure_diagnostic(raw,binding_key):
     for key,limit in [('reads_used',6),('read_bytes',18432),('native_posts',8),('completed_posts',8),('generations',64)]:_count(b[key],limit)
     _require(b['completed_posts']<=b['native_posts'] and len(p['pages'])<=b['reads_used'])
     _validate_http(p['last_http'],b['generations'])
-    if p['kind']==KIND:
+    if p['kind']!=LEGACY_KIND:
         _validate_native(p['native_response'],p['last_http'])
         if p['native_response'] is not None:_require(p['branch'] in ('unvalidated_response','write_without_ack'))
+    if p['kind']==OUTPUT_KIND:
+        _validate_output_structure(p['output_structure'],p['native_response'],p['last_http'])
+        _require(p['output_structure']['request']['ack']==p['write_confirmed'])
     remaining_us=b['deadline_remaining_microseconds']
     _require(type(remaining_us) is int and -(2**63)<=remaining_us<2**63)
     _require(type(b['write_admission_open']) is bool and b['write_admission_open']==(remaining_us>=55000000))
@@ -255,14 +267,274 @@ def capture_failure(ledger):
         summary=dict(status='UNAVAILABLE',reason='DIAGNOSTIC_CAPTURE_FAILED',complete=False,acceptance_credit=0)
         try:
             packet=_project(ledger)
+            snapshot=getattr(ledger,'_output_structure',None)
+            if snapshot is not None:
+                try:
+                    enriched=attach_output_structure(packet,snapshot,ledger._scan_output)
+                    validate_failure_diagnostic(canonical_v3(enriched),ledger._navigation.binding_key)
+                    packet=enriched
+                except Exception:
+                    pass
             ledger._scan_output(packet)
             raw=canonical_v3(packet)
             validate_failure_diagnostic(raw,ledger._navigation.binding_key)
             ledger._failure_diagnostic=raw
-            summary=dict(status='CAPTURED',kind=KIND,sha256=hashlib.sha256(raw).hexdigest(),branch=packet['branch'],
+            summary=dict(status='CAPTURED',kind=packet['kind'],sha256=hashlib.sha256(raw).hexdigest(),branch=packet['branch'],
                 pages=len(packet['pages']),reads_used=packet['budget']['reads_used'],write_confirmed=packet['write_confirmed'],
                 ack_confirmed=packet['ack_confirmed'],complete=False,acceptance_credit=0)
         except Exception:
             pass
         ledger._failure_diagnostic_summary=copy.deepcopy(summary)
         return copy.deepcopy(summary)
+
+
+_NATIVE_BINDING='generation receipt_index request_sha256 response_sha256 response_bytes content_chars max_tokens'
+_MESSAGE_FIELDS={'role','content','thinking','tool_calls','images'}
+_PATH_FIELDS={'action','action_input','path','title','sections','source_id','heading','facts','claim','evidence_id','final_answer','OTHER'}
+_SCHEMA_KEYWORDS={'type','enum','required','additionalProperties','minItems','maxItems','minLength','maxLength','pattern','anyOf','oneOf','allOf','additionalItems','OTHER'}
+_JSON_ERRORS={'UNTERMINATED_STRING','EXPECTED_VALUE','EXPECTED_DELIMITER','JSON_SYNTAX','STRICT_JSON_REJECTED'}
+
+
+def _text_measure(value,exists=True):
+    kind=('missing' if not exists else 'string' if type(value) is str else 'null' if value is None
+        else 'boolean' if type(value) is bool else 'number' if type(value) in (int,float)
+        else 'array' if type(value) is list else 'object' if type(value) is dict else 'other')
+    out=dict(type=kind,chars=None,bytes=None,sha256=None)
+    if kind=='string':
+        out['chars']=len(value)
+        try:
+            data=value.encode('utf8');out.update(bytes=len(data),sha256=hashlib.sha256(data).hexdigest())
+        except UnicodeError:pass
+    return out
+
+
+def _parse_content(content):
+    from .agent_server import _strict_json
+    try:return _strict_json(content),None
+    except json.JSONDecodeError as exc:
+        kind={'Unterminated string starting at':'UNTERMINATED_STRING','Expecting value':'EXPECTED_VALUE',
+            "Expecting ',' delimiter":'EXPECTED_DELIMITER'}.get(exc.msg,'JSON_SYNTAX')
+        return None,dict(kind=kind,pos=exc.pos,line=exc.lineno,column=exc.colno)
+    except ValueError:return None,dict(kind='STRICT_JSON_REJECTED',pos=None,line=None,column=None)
+
+
+def _shape(value):
+    if type(value) is not dict:return None
+    args=value.get('action_input')
+    if type(args) is not dict:return None
+    length=lambda v:len(v) if type(v) is str else None
+    sections=args.get('sections');out=[]
+    for section in sections[:5] if type(sections) is list else []:
+        section=section if type(section) is dict else {};facts=section.get('facts')
+        claims=[length(f.get('claim')) if type(f) is dict else None for f in facts[:6]] if type(facts) is list else []
+        out.append(dict(heading_chars=length(section.get('heading')),facts_total=len(facts) if type(facts) is list else None,
+            claim_chars=claims,complete=type(facts) is list and len(facts)<=6 and all(v is not None for v in claims)))
+    return dict(title_chars=length(args.get('title')),sections_total=len(sections) if type(sections) is list else None,
+        sections=out,complete=type(sections) is list and len(sections)<=5 and all(s['complete'] for s in out))
+
+
+def _output_branch(value):
+    if type(value) is not dict:return 'other'
+    if set(value)=={'final_answer'}:return 'final'
+    action=value.get('action')
+    return ({'ultima_work_research_write':'write','ultima_work_research_inspect':'inspect'}.get(action,'other')
+        if type(action) is str else 'other')
+
+
+def build_output_structure(raw,entity,strict_schema,ack,max_tokens,scan,*,native_record):
+    """Observe already received data; never repair it or dispatch its contents."""
+    from .agent_server import _strict_json,_research_sampler_schema
+    from jsonschema import Draft7Validator
+    _require(type(entity) is bytes and 0<len(entity)<=49152 and type(ack) is bool)
+    request=_strict_json(entity.decode('utf8'));sampler=_research_sampler_schema(strict_schema)
+    _require(request['format']==sampler and request['options']['num_predict']==max_tokens)
+    binding={k:native_record[k] for k in _NATIVE_BINDING.split()}
+    _require(hashlib.sha256(entity).hexdigest()==binding['request_sha256'])
+    actions=set();sources=set();refs=set()
+    def visit(node):
+        if type(node) is dict:
+            for name,spec in node.get('properties',{}).items():
+                values=spec.get('enum',[]) if type(spec) is dict else []
+                if name=='action':actions.update(values)
+                if name=='source_id':sources.update(values)
+                if name=='evidence_id':refs.update(values)
+            for child in node.values():visit(child)
+        elif type(node) is list:
+            for child in node:visit(child)
+    visit(strict_schema)
+    req=dict(sha256=binding['request_sha256'],bytes=len(entity),ack=ack,options=request['options'],
+        flags={k:request[k] for k in ('think','stream','truncate','shift')},
+        strict_sha256=hashlib.sha256(canonical_v3(strict_schema)).hexdigest(),strict_bytes=len(canonical_v3(strict_schema)),
+        sampler_sha256=hashlib.sha256(canonical_v3(sampler)).hexdigest(),sampler_bytes=len(canonical_v3(sampler)),
+        allowed_actions=sorted(actions),source_ids=sorted(sources),evidence_ids_count=len(refs))
+    message=raw.get('message');obj=message if type(message) is dict else {}
+    content=obj.get('content');measure=_text_measure(content,'content' in obj)
+    role=obj.get('role');role=('missing' if 'role' not in obj else 'assistant' if role=='assistant'
+        else 'other' if type(role) is str else 'type')
+    msg=dict(type=_text_measure(message,'message' in raw)['type'],known_fields=sorted(set(obj)&_MESSAGE_FIELDS),
+        unknown_fields=len(set(obj)-_MESSAGE_FIELDS),role=role,content=measure,
+        thinking=_text_measure(obj.get('thinking'),'thinking' in obj))
+    info=dict(status='NON_STRING',error=None,schema_valid=None,schema_error=None,branch=None,shape=None)
+    evidence=dict(mode='UNAVAILABLE',fragments=[],omitted_chars=measure['chars'])
+    if type(content) is str and measure['bytes'] is not None:
+        info['status']='UNAVAILABLE'
+        try:
+            value,error=_parse_content(content)
+            if error:info.update(status='INVALID',error=error)
+            else:
+                issue=next(Draft7Validator(strict_schema).iter_errors(value),None)
+                issue_view=None
+                if issue is not None:
+                    issue_view=dict(keyword=issue.validator if issue.validator in _SCHEMA_KEYWORDS else 'OTHER',
+                        path=[v if type(v) is int and 0<=v<=65536 else v if type(v) is str and v in _PATH_FIELDS else 'OTHER'
+                            for v in list(issue.absolute_path)[:12]])
+                info.update(status='COMPLETE',schema_valid=issue is None,schema_error=issue_view,branch=_output_branch(value),shape=_shape(value))
+        except (ValueError,TypeError,RecursionError):pass
+        try:
+            scan(content)
+            evidence=dict(mode='FULL',fragments=[dict(start=0,end=len(content),text=content)],omitted_chars=0)
+        except Exception:evidence=dict(mode='OMITTED_POLICY',fragments=[],omitted_chars=len(content))
+    elif type(content) is str:info['status']='UNAVAILABLE'
+    return dict(native_binding=binding,request=req,message=msg,json=info,evidence=evidence)
+
+
+def _validate_measure(value):
+    _closed(value,'type chars bytes sha256')
+    _require(value['type'] in ('missing','string','null','boolean','number','array','object','other'))
+    if value['type']!='string':_require(all(value[k] is None for k in ('chars','bytes','sha256')));return
+    _count(value['chars'],65536)
+    if value['bytes'] is None:_require(value['sha256'] is None);return
+    _count(value['bytes'],65536);_digest(value['sha256'])
+    _require(value['chars']<=value['bytes']<=value['chars']*4)
+
+
+def _validate_output_structure(value,native,last):
+    _require(native is not None and last is not None)
+    _closed(value,'native_binding request message json evidence')
+    binding=value['native_binding'];_closed(binding,_NATIVE_BINDING)
+    _require(all(type(binding[k]) is type(native[k]) and binding[k]==native[k] for k in _NATIVE_BINDING.split()))
+    req=value['request']
+    _closed(req,'sha256 bytes ack options flags strict_sha256 strict_bytes sampler_sha256 sampler_bytes allowed_actions source_ids evidence_ids_count')
+    _require(req['sha256']==native['request_sha256'] and type(req['bytes']) is int and req['bytes']==last['request_bytes'])
+    _require(type(req['ack']) is bool and 0<req['bytes']<=49152)
+    _closed(req['flags'],'think stream truncate shift');_require(all(v is False for v in req['flags'].values()))
+    options=req['options'];_closed(options,'num_ctx num_predict temperature')
+    _require(type(options['num_ctx']) is int and options['num_ctx']==16384)
+    _require(type(options['num_predict']) is int and options['num_predict']==native['max_tokens'])
+    _require(type(options['temperature']) in (int,float) and options['temperature']==0)
+    for key in ('strict','sampler'):
+        _digest(req[key+'_sha256']);_count(req[key+'_bytes'],49152);_require(req[key+'_bytes']>0)
+    _require(type(req['allowed_actions']) is list and len(req['allowed_actions'])<=2)
+    _require(all(type(x) is str and x in ('ultima_work_research_inspect','ultima_work_research_write') for x in req['allowed_actions']))
+    _require(req['allowed_actions']==sorted(set(req['allowed_actions'])))
+    _require(not req['ack'] or req['allowed_actions']==[])
+    _require(type(req['source_ids']) is list and len(req['source_ids'])<=5)
+    for sid in req['source_ids']:_source(sid)
+    _require(req['source_ids']==sorted(set(req['source_ids'])));_count(req['evidence_ids_count'],48)
+    msg=value['message'];_closed(msg,'type known_fields unknown_fields role content thinking')
+    _require(msg['type'] in ('missing','string','null','boolean','number','array','object','other'))
+    _require(type(msg['known_fields']) is list and len(msg['known_fields'])<=5 and all(type(x) is str and x in _MESSAGE_FIELDS for x in msg['known_fields']))
+    _require(msg['known_fields']==sorted(set(msg['known_fields'])));_count(msg['unknown_fields'],65536)
+    _require(msg['role'] in ('missing','assistant','other','type'))
+    _require(('role' in msg['known_fields'])==(msg['role']!='missing'))
+    if msg['type']!='object':_require(msg['known_fields']==[] and msg['unknown_fields']==0 and msg['role']=='missing')
+    for key in ('content','thinking'):
+        _validate_measure(msg[key]);_require((key in msg['known_fields'])==(msg[key]['type']!='missing'))
+    content=msg['content'];_require(content['chars']==native['content_chars'])
+    info=value['json'];_closed(info,'status error schema_valid schema_error branch shape')
+    _require(info['status'] in ('COMPLETE','INVALID','NON_STRING','UNAVAILABLE'))
+    if info['status']=='COMPLETE':
+        _require(content['type']=='string' and content['bytes'] is not None and info['error'] is None)
+        _require(type(info['schema_valid']) is bool and info['branch'] in ('write','inspect','final','other'))
+        _require((info['schema_error'] is None)==info['schema_valid'])
+    else:
+        _require(all(info[k] is None for k in ('schema_valid','schema_error','branch','shape')))
+        _require((info['error'] is not None)==(info['status']=='INVALID'))
+        if info['status']=='NON_STRING':_require(content['type']!='string')
+    if info['error'] is not None:
+        error=info['error'];_closed(error,'kind pos line column');_require(error['kind'] in _JSON_ERRORS)
+        _require(content['type']=='string')
+        if error['kind']=='STRICT_JSON_REJECTED':_require(all(error[k] is None for k in ('pos','line','column')))
+        else:
+            _count(error['pos'],content['chars'])
+            for key in ('line','column'):_count(error[key],content['chars']+1);_require(error[key]>0)
+    if info['schema_error'] is not None:
+        issue=info['schema_error'];_closed(issue,'keyword path')
+        _require(issue['keyword'] in _SCHEMA_KEYWORDS and type(issue['path']) is list and len(issue['path'])<=12)
+        _require(all((type(x) is int and 0<=x<=65536) or (type(x) is str and x in _PATH_FIELDS) for x in issue['path']))
+    shape=info['shape']
+    def nullable_count(v):
+        if v is not None:_count(v,65536)
+    if shape is not None:
+        _closed(shape,'title_chars sections_total sections complete')
+        nullable_count(shape['title_chars']);nullable_count(shape['sections_total'])
+        _require(type(shape['complete']) is bool and type(shape['sections']) is list)
+        _require(len(shape['sections'])==(min(shape['sections_total'],5) if shape['sections_total'] is not None else 0))
+        for section in shape['sections']:
+            _closed(section,'heading_chars facts_total claim_chars complete')
+            nullable_count(section['heading_chars']);nullable_count(section['facts_total'])
+            _require(type(section['complete']) is bool and type(section['claim_chars']) is list)
+            _require(len(section['claim_chars'])==(min(section['facts_total'],6) if section['facts_total'] is not None else 0))
+            for length in section['claim_chars']:nullable_count(length)
+            _require(section['complete']==(section['facts_total'] is not None and section['facts_total']<=6 and all(v is not None for v in section['claim_chars'])))
+        _require(shape['complete']==(shape['sections_total'] is not None and shape['sections_total']<=5 and all(s['complete'] for s in shape['sections'])))
+    evidence=value['evidence'];_closed(evidence,'mode fragments omitted_chars')
+    _require(evidence['mode'] in ('FULL','EXCERPTS','OMITTED_POLICY','OMITTED_BUDGET','UNAVAILABLE'))
+    _require(type(evidence['fragments']) is list and len(evidence['fragments'])<=3)
+    if evidence['omitted_chars'] is not None:_count(evidence['omitted_chars'],65536)
+    count=0;end=0
+    for fragment in evidence['fragments']:
+        _closed(fragment,'start end text');_require(content['type']=='string' and content['bytes'] is not None)
+        _count(fragment['start'],content['chars']);_count(fragment['end'],content['chars'])
+        _require(end<=fragment['start']<=fragment['end'] and type(fragment['text']) is str)
+        _require(len(fragment['text'])==fragment['end']-fragment['start']);fragment['text'].encode('utf8')
+        count+=len(fragment['text']);end=fragment['end']
+    _require(evidence['omitted_chars']==(None if content['chars'] is None else content['chars']-count))
+    if evidence['mode']=='FULL':
+        _require(len(evidence['fragments'])==1 and evidence['omitted_chars']==0)
+        fragment=evidence['fragments'][0];_require(fragment['start']==0 and fragment['end']==content['chars'])
+        _require(_text_measure(fragment['text'])==content)
+        try:parsed,error=_parse_content(fragment['text'])
+        except RecursionError:_require(info['status']=='UNAVAILABLE')
+        else:
+            _require(info['status']==('INVALID' if error else 'COMPLETE') and info['error']==error)
+            if error is None:_require(info['branch']==_output_branch(parsed) and info['shape']==_shape(parsed))
+    elif evidence['mode']=='EXCERPTS':
+        _require(len(evidence['fragments'])>0 and type(evidence['omitted_chars']) is int and evidence['omitted_chars']>0)
+        _require(all(f['end']>f['start'] for f in evidence['fragments']))
+    else:_require(not evidence['fragments'])
+
+
+def attach_output_structure(packet,snapshot,scan):
+    """Fit a failure-only projection without deleting any original v4 evidence."""
+    _validate_output_structure(snapshot,packet['native_response'],packet['last_http'])
+    def pack(value):
+        candidate=dict(packet,kind=OUTPUT_KIND,output_structure=value)
+        scan(candidate)
+        scan(''.join(f['text'] for f in value['evidence']['fragments']))
+        return candidate if len(canonical_v3(candidate))<=CAP else None
+    result=pack(snapshot)
+    if result is not None:return result
+    if snapshot['evidence']['mode']!='FULL':return packet
+    content=snapshot['evidence']['fragments'][0]['text'];size=len(content)
+    position=(snapshot['json']['error'] or {}).get('pos')
+    for width in (1024,512,256,128,64,0):
+        spans=[]
+        if width:
+            spans=[(0,min(size,width)),(max(0,size-2*width),size)]
+            if position is not None:spans.append((max(0,position-width//2),min(size,position+width//2)))
+        merged=[]
+        for start,end in sorted(spans):
+            if end<=start:continue
+            if merged and start<=merged[-1][1]:merged[-1][1]=max(merged[-1][1],end)
+            else:merged.append([start,end])
+        value=copy.deepcopy(snapshot)
+        fragments=[dict(start=a,end=z,text=content[a:z]) for a,z in merged]
+        omitted=size-sum(z-a for a,z in merged)
+        value['evidence']=dict(mode='OMITTED_BUDGET' if not fragments else 'EXCERPTS' if omitted else 'FULL',
+            fragments=fragments,omitted_chars=omitted)
+        try:result=pack(value)
+        except Exception:
+            value['evidence']=dict(mode='OMITTED_POLICY',fragments=[],omitted_chars=size);result=pack(value)
+        if result is not None:return result
+    return packet

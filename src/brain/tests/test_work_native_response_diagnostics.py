@@ -99,7 +99,7 @@ def test_sdk_native_rejection_is_bound_and_bounded(tmp_path,sdk_io,mock_jar,monk
     assert result['status']=='failed' and result['error']=='Invalid native research response'
     assert result['content']=='本次研究未交付。' and not list(tmp_path.rglob('research.md'))
     packet=private_packet(result,ledger);native=packet['native_response'];last=packet['last_http']
-    assert packet['kind']=='research_failure_diagnostic_v4' and native['reason']==reason
+    assert packet['kind']=='research_failure_diagnostic_v5' and native['reason']==reason
     assert native['request_sha256']==hashlib.sha256(sent[-1]).hexdigest()==last['request_sha256']
     assert native['response_sha256']==hashlib.sha256(bodies[-1]).hexdigest()
     assert native['response_bytes']==len(bodies[-1])==last['admitted']
@@ -173,7 +173,7 @@ def test_recorder_error_does_not_replace_main_failure(tmp_path,sdk_io,mock_jar,m
 def test_freeze_once_and_legacy_decoder_do_not_accept_extension(tmp_path,sdk_io,mock_jar,monkeypatch):
     result,ledger,_,_=native_refusal(tmp_path,sdk_io,mock_jar,monkeypatch)
     packet=private_packet(result,ledger);frozen=ledger._failure_diagnostic
-    legacy=copy.deepcopy(packet);legacy.pop('native_response');legacy['kind']='research_failure_diagnostic_v3'
+    legacy=copy.deepcopy(packet);legacy.pop('output_structure');legacy.pop('native_response');legacy['kind']='research_failure_diagnostic_v3'
     assert diagnostics.validate_failure_diagnostic(canonical_v3(legacy),ledger._navigation.binding_key)==legacy
     legacy['native_response']=None
     with pytest.raises(ValueError):diagnostics.validate_failure_diagnostic(canonical_v3(legacy),ledger._navigation.binding_key)
