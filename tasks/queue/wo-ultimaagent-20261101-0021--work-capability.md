@@ -5,7 +5,7 @@
 - original_work_order_id: wo-ultimaagent-20261101-0021
 - revision: 2
 - authorization: 用户“那按顺序开始推进吧”；批准按已提交的工作能力契约与计划顺序执行，保留最终 Owner 验收和发布门。
-- 状态：E02 6d758d9唯一实际FAIL_CONFIRMED：第7次原生HTTP200被响应校验拒绝，无research.md/写入/ACK；清理及保护核对PASS，实际与独审额度已耗尽，不重试。
+- 状态：E02新候选d860b2a：原生响应拒绝诊断补修，909项离线检查与准备独审PASS；旧6d758d9实际FAIL保留，具体拒绝项待真实回执，新actual=0；待准备受控入口。
 - 计划：docs/plans/jarvis-work-capability-delivery-plan-20261101.md
 - 契约：docs/specs/jarvis-work-capability-contract-20261101.md
 - 草案检查点：ultimaagent-jarvis-work-plan-draft-20261101 @ f6eb808348302cec55bddcf44ee03f5b5736c4d9
@@ -639,3 +639,17 @@ E02 6d758d9唯一实跑FAIL待结果独审：research.md数量0，native POST 7�
 E02 6d758d9唯一实际FAIL_CONFIRMED：第7次原生HTTP200被响应校验拒绝，无research.md/写入/ACK；清理及保护核对PASS，实际与独审额度已耗尽，不重试。
 报告：H:\UltimaAI\UltimaAgent\docs\reports\jarvis-work-t2-e02-json-string-controlled-result-20261107.md
 后续提案：H:\UltimaAI\UltimaAgent\docs\plans\jarvis-work-e02-native-response-rejection-diagnostics-proposal-20261107.md
+
+
+## SOURCE28 原生响应拒绝诊断离线补修登记
+
+E02 6d758d9实际FAIL保留；HTTP200原生响应拒绝的具体谓词未知，新增受限原因诊断进入计划独审；新actual=0，保持8B及原预算。
+
+计划：H:\UltimaAI\UltimaAgent\docs\plans\jarvis-work-e02-native-response-rejection-diagnostics-plan-20261107.md；证据：H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-native-rejection-diagnostics-20261107-r1。DoR：目标、精确写域、离线验收、禁止、原单继承均明确；独立计划PASS后方改新候选。原单与T2/Owner保持未通过，本登记不扩大实际额度。
+
+
+## SOURCE28 原生响应拒绝诊断补修收口
+
+E02新候选d860b2a：原生响应拒绝诊断补修，909项离线检查与准备独审PASS；旧6d758d9实际FAIL保留，具体拒绝项待真实回执，新actual=0；待准备受控入口。
+
+报告：H:\UltimaAI\UltimaAgent\docs\reports\jarvis-work-t2-e02-native-response-rejection-diagnostics-preparation-20261107.md；证据：H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-native-rejection-diagnostics-20261107-r1。8B、原预算、来源/事实/ACK/时限门保持；新actual/resultreview额度0，T2/Owner未通过。
