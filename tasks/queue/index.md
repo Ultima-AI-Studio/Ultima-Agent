@@ -25,6 +25,7 @@
 | wo-ultimaagent-20261101-0015 | 5 | 1 | 0 | 0 | 0 | 0 |
 | wo-ultimaagent-20261101-0016 | 6 | 1 | 0 | 0 | 0 | 0 |
 | wo-ultimaagent-20261101-0017 | 5 | 1 | 0 | 0 | 0 | 0 |
+| wo-ultimaagent-20261108-0028 | 4 | 0 | 0 | 0 | 0 | 1 |
 
 ## 二、明细
 
@@ -61,4 +62,5 @@
 | 工单 | 状态 | 说明 |
 |---|---|---|
 | wo-ultimaagent-20261108-0026 | executing | 单Agent主干审计加固：标准化审计提示词（guardrails/prompts）+ 统一审计报告规范与生成器（docs/specs/audit-report-spec.md / audit_report.py）+ 端到端闭环测试与失败 case 归档；T0→T1→T2 每步回写北极星看板并单独 commit；工单卡 tasks/queue/wo-ultimaagent-20261108-0026--audit-hardening.md；派发载荷 dispatch-wo-ultimaagent-20261108-0026-prompt.txt；冻结门=tag ultimaagent-audit-hardening-20261108 |
-| wo-ultimaagent-20261108-0027 | executing | 审计阶段门硬化（分阶段派发 + 每阶段独立复核）：新增 stage_gate.py（fail-closed 阶段门）+ 独立复核结论规范 + 派发模板硬化 + 用 0026 真实产出演练；起因=0026 实证「执行者=判定者=验收者=进度宣布者」四合一（T0/receipt.json 自写自判、commit 46adbd1f 自改看板）；方案 docs/plans/audit-stage-gate-plan-20261108.md；工单卡 tasks/queue/wo-ultimaagent-20261108-0027--audit-stage-gate.md；**等 0026 收口后派发（WIP 每项目执行中 ≤1）**；冻结门=tag ultimaagent-audit-stage-gate-20261108 |
+| wo-ultimaagent-20261108-0027 | interrupted | 审计阶段门硬化（分阶段派发 + 每阶段独立复核）：新增 stage_gate.py（fail-closed 阶段门）+ 独立复核结论规范 + 派发模板硬化 + 用 0026 真实产出演练；起因=0026 实证「执行者=判定者=验收者=进度宣布者」四合一（T0/receipt.json 自写自判、commit 46adbd1f 自改看板）；方案 docs/plans/audit-stage-gate-plan-20261108.md；工单卡 tasks/queue/wo-ultimaagent-20261108-0027--audit-stage-gate.md；**等 0026 收口后派发（WIP 每项目执行中 ≤1）**；冻结门=tag ultimaagent-audit-stage-gate-20261108 |
+| wo-ultimaagent-20261108-0028 | 已完成（待验收） | E02 写入资格与证据范围提案独立评审（只读）：对 docs/plans/jarvis-work-e02-write-eligibility-and-evidence-scope-proposal-20261108.md 五条建议逐条给结论 + 核验最小改动边界与预算余量 + 产出评审报告；零模型调用、零配额、零源码改动；起因=c794f6fd 待签对象已不在盘上、source37 受控实际运行 FAIL_CONFIRMED、配额归零；工单卡 tasks/queue/wo-ultimaagent-20261108-0028--e02-evidence-scope-plan-review.md；派发载荷 dispatch-wo-ultimaagent-20261108-0028-prompt.txt；2026-11-08 业主拍板走评审路线；2026-11-08 15:26:07 派发 codex gpt-5.6-sol PID 12460（静默后台）；15:43:47 结束，产出评审报告 15,018B（SHA a0eef240…），结论=需补充澄清后再修；4 个阻断点（两文件边界漏 work_research.py 重放模块 / 新增 S4 页后 messages+schema 最小 33,837B 超 32,768 硬门 / 覆盖契约缺可计算定义 / 提案基于 43da3f0 而当前分支缺 work_navigation.py）；主脑独立复核通过（SHA 一致、源码零改动、review/ 未建、current-run 未动）|
