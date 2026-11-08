@@ -59,7 +59,7 @@ def test_plan_not_completed_blocks(monkeypatch, tmp_path):
 def test_audit_failure_never_freezes(monkeypatch, tmp_path):
     calls: list[str] = []
     cli = _load()
-    codes = [2, 0]
+    codes = [0, 2, 0]
 
     def fake_call(script, argv):
         calls.append(script)
@@ -69,8 +69,26 @@ def test_audit_failure_never_freezes(monkeypatch, tmp_path):
     code = cli.main(["--work-order", "wo-x", "--card", str(tmp_path / "c.md"),
                      "--run-dir", str(tmp_path / "run"), "--evidence", "a.md"])
     assert code == 2
-    assert calls == ["audit-work-order.py"]
+    assert calls == ["verify-order.py", "audit-work-order.py"]
     assert _pipeline(tmp_path)["outcome"] == "audit-failed"
+
+
+def test_verify_failure_blocks_audit(monkeypatch, tmp_path):
+    """Facts decide entry. A stale receipt is not something a reviewer can rescue."""
+
+    calls: list[str] = []
+    cli = _load()
+
+    def fake_call(script, argv):
+        calls.append(script)
+        return _proc(2)
+
+    monkeypatch.setattr(cli, "_call", fake_call)
+    code = cli.main(["--work-order", "wo-x", "--card", str(tmp_path / "c.md"),
+                     "--run-dir", str(tmp_path / "run"), "--evidence", "a.md"])
+    assert code == 2
+    assert calls == ["verify-order.py"]
+    assert _pipeline(tmp_path)["outcome"] == "verify-failed"
 
 
 def test_audit_pass_then_freeze(monkeypatch, tmp_path):
@@ -80,7 +98,7 @@ def test_audit_pass_then_freeze(monkeypatch, tmp_path):
     code = cli.main(["--work-order", "wo-x", "--card", str(tmp_path / "c.md"),
                      "--run-dir", str(tmp_path / "run"), "--evidence", "a.md"])
     assert code == 0
-    assert calls == ["audit-work-order.py", "freeze-work-order.py"]
+    assert calls == ["verify-order.py", "audit-work-order.py", "freeze-work-order.py"]
     assert _pipeline(tmp_path)["outcome"] == "frozen"
 
 
@@ -91,7 +109,7 @@ def test_skip_freeze_stops_after_audit(monkeypatch, tmp_path):
     code = cli.main(["--work-order", "wo-x", "--card", str(tmp_path / "c.md"),
                      "--run-dir", str(tmp_path / "run"), "--evidence", "a.md", "--skip-freeze"])
     assert code == 0
-    assert calls == ["audit-work-order.py"]
+    assert calls == ["verify-order.py", "audit-work-order.py"]
 
 
 def test_plan_output_is_not_passed_to_the_audit(monkeypatch, tmp_path):

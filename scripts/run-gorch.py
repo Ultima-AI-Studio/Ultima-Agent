@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""Drive the G-ORCH delivery segment end to end: audit (⑦) then freeze (⑧).
+"""Drive the G-ORCH delivery segment end to end: verify, audit (⑦), then freeze (⑧).
 
 Scope, stated plainly because the first version of this script got it wrong:
 
@@ -8,14 +8,20 @@ Scope, stated plainly because the first version of this script got it wrong:
   audit — a plan is not a deliverable, and grading it against acceptance gates
   written for a code change tests the wrong thing;
 * ⑤-⑥ (dispatch and receipt reading) live in ``dispatch-work-order.py``, which
-  already records ``receipt_valid`` and ``state`` in ``done.json``;
-* ⑦-⑧ is what this chains: a two-round independent audit over real author
-  artifacts, then a tag — but only when both rounds passed.
+  already records ``receipt_valid``, ``state`` and now ``base_sha`` in ``done.json``;
+* the delivery segment itself is three steps: deterministic verification, then
+  the model audit, then the tag.
 
-The ordering rule that keeps it honest: a failing audit stops the chain and
-never falls through to freezing. The tag step re-reads ``audit.json`` itself
-and refuses again on its own, so this script cannot become a way around the
-gate.
+Why verification runs before the audit: the audit is an opinion and the checks
+are facts. If the facts already say the receipt is stale or the tree is not the
+tree that was tested, there is nothing for a reviewer to weigh — paying for two
+model rounds to reach the same conclusion is waste. So facts gate entry, and the
+audit gates what the facts allowed.
+
+The ordering rule that keeps it honest: a failing verify or a failing audit stops
+the chain and never falls through to freezing. The tag step re-reads both files
+itself and refuses again on its own, so this script cannot become a way around
+either gate.
 """
 
 from __future__ import annotations
@@ -89,6 +95,14 @@ def main(argv=None) -> int:
     if not args.evidence:
         return _finish(args.run_dir, steps, "blocked",
                        "no evidence supplied; an audit with no artifact can only FAIL")
+
+    # Facts first. These checks do not depend on who wrote the code, and if they
+    # fail there is nothing an opinion can rescue.
+    proc = _call("verify-order.py", ["--work-order", args.work_order, "--run-dir", str(args.run_dir)])
+    record("verify", proc)
+    if proc.returncode != 0:
+        return _finish(args.run_dir, steps, "verify-failed",
+                       "deterministic verification did not pass; refusing to spend an audit on it")
 
     # ⑦
     proc = _call("audit-work-order.py",

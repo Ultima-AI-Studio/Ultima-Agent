@@ -40,6 +40,42 @@ _CODEX_EXE_GLOBS = (
 )
 
 
+def resolve_git_exe() -> str | None:
+    """Same class of problem as Codex: `git` is not on PATH in every session."""
+    explicit = os.environ.get('ULTIMA_GIT_EXE', '').strip()
+    if explicit and os.path.isfile(explicit):
+        return explicit
+    found = shutil.which('git') or shutil.which('git.exe')
+    if found:
+        return found
+    for candidate in (r'C:\Program Files\Git\cmd\git.exe', r'C:\Program Files\Git\bin\git.exe'):
+        if os.path.isfile(candidate):
+            return candidate
+    return None
+
+
+def git_snapshot() -> dict:
+    """Record the tree a receipt will be earned on.
+
+    A receipt that does not name its commit cannot be invalidated later, which is
+    how a green from an older tree survives into a freeze it should not survive.
+    Recording base_sha here is what lets verify-order.py call a stale receipt stale.
+    """
+    exe = resolve_git_exe()
+    if not exe:
+        return {'base_sha': None, 'worktree_dirty': None, 'error': 'git not found'}
+
+    def run(*args: str) -> str:
+        done = subprocess.run([exe, *args], cwd=str(ROOT), capture_output=True, text=True,
+                              encoding='utf-8', errors='replace')
+        return (done.stdout or '').strip() if done.returncode == 0 else ''
+
+    head = run('rev-parse', 'HEAD')
+    dirty = [line for line in run('status', '--short').splitlines() if line.strip()]
+    return {'base_sha': head or None, 'worktree_dirty': len(dirty),
+            'worktree_entries': dirty[:20]}
+
+
 def resolve_codex_exe() -> str | None:
     """Find the Codex CLI without relying on PATH alone."""
     explicit = os.environ.get('ULTIMA_CODEX_EXE', '').strip()
@@ -62,6 +98,11 @@ AUDIT_SLOT_MAX_AGE_DAYS = float(os.environ.get('ULTIMA_AUDIT_SLOT_MAX_AGE_DAYS',
 # A reason that already records the order as frozen outside the flow means it
 # is no longer waiting on an audit at all, so age does not apply to it.
 _AUDIT_FROZEN_MARKERS = ('范围外冻结', '已冻结', 'frozen')
+# How many orders may sit in AUDIT at once. This was effectively 1 by accident
+# of implementation; a limit that harsh means most work never enters the control
+# that is supposed to judge it. Stated here as a decision, with a floor of 1 so
+# the gate can never be configured away entirely.
+AUDIT_SLOT_LIMIT = max(1, int(os.environ.get('ULTIMA_AUDIT_SLOT_LIMIT', '2')))
 
 
 def _audit_slot_age_days(order: str, reason: str, now, runs_root: Path | None = None) -> float | None:
@@ -361,7 +402,8 @@ def main():
         run.mkdir(parents=True, exist_ok=False)
         prompt = prompt + receipt_contract_block(args.order)
         (run / 'prompt.txt').write_text(prompt, encoding='utf-8')
-        (run / 'before.json').write_text(json.dumps({'order': args.order, 'processes': processes}, indent=2), encoding='utf-8')
+        base = git_snapshot()
+        (run / 'before.json').write_text(json.dumps({'order': args.order, 'processes': processes, 'tree': base}, indent=2, ensure_ascii=False), encoding='utf-8')
         parent = os.getppid()
         parent_identity = process_identity(parent)
         if parent_identity is None:
@@ -448,7 +490,12 @@ def main():
             with completion_lock():
                 current, _, _ = registered(args.order)
                 blocking, disregarded = audit_slot_holders(current, args.order)
-                audit_busy = target == 'audit' and bool(blocking)
+                # The slot count used to be an implicit 1, which made the control
+                # unreachable in practice: ordinary work orders queued outside it
+                # rather than being judged. It is now a stated limit, so the number
+                # is a decision someone made and can defend, not a side effect.
+                slot_limit = AUDIT_SLOT_LIMIT
+                audit_busy = target == 'audit' and len(blocking) >= slot_limit
                 if audit_busy:
                     target = 'blocked'
                 if disregarded:
@@ -460,6 +507,7 @@ def main():
                 (run / 'done.json').write_text(json.dumps({'exit_code': code, 'receipt_valid': valid,
                     'state': target, 'audit_slot_busy': audit_busy, 'parent_lost': parent_lost,
                     'audit_slot_blocking': blocking, 'audit_slot_disregarded': disregarded,
+                    'base_sha': base.get('base_sha'), 'worktree_dirty': base.get('worktree_dirty'),
                     'finished_at': datetime.now(timezone.utc).isoformat()}, ensure_ascii=False), encoding='utf-8')
                 if not parent_lost:
                     reason = '等待全局独立审计名额；' if audit_busy else ''
@@ -476,9 +524,12 @@ def main():
             if worker is not None and worker.poll() is not None and not (run / 'done.json').exists():
                 (run / 'done.json').write_text(json.dumps({'exit_code': worker.returncode,
                     'state': 'blocked', 'finalization_pending': True,
+                    'base_sha': base.get('base_sha'), 'worktree_dirty': base.get('worktree_dirty'),
                     'finished_at': datetime.now(timezone.utc).isoformat()}), encoding='utf-8')
             if worker is None:
-                (run / 'done.json').write_text(json.dumps({'exit_code': None, 'launched': False, 'error': type(exc).__name__}), encoding='utf-8')
+                (run / 'done.json').write_text(json.dumps({'exit_code': None, 'launched': False,
+                    'base_sha': base.get('base_sha'), 'worktree_dirty': base.get('worktree_dirty'),
+                    'error': type(exc).__name__}), encoding='utf-8')
                 if guardian:
                     guardian.wait(timeout=5)
                 state(args.order, 'blocked', f'执行器未启动，派发失败：{run.name}', run, expected='executing', expected_run=run.name)
