@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="3" skipped="0" tests="51" time="32.607" timestamp="2026-11-08T12:59:48.307772+08:00" hostname="DESKTOP-B366PQ9"><testcase classname="" name="test_received_content_shape_never_grants_write[{&quot;final_answer&quot;:&quot;\u672c\u6b21\u7814\u7a76\u672a\u4ea4\u4ed8\u3002&quot;}-COMPLETE]" time="1.417" /><testcase classname="" name="test_received_content_shape_never_grants_write[{&quot;action&quot;:&quot;ultima_work_research_write&quot;,&quot;action_input&quot;:{&quot;title&quot;:&quot;cut-INVALID]" time="0.567" /><testcase classname="" name="test_received_content_shape_never_grants_write[{&quot;action_input&quot;:{&quot;sections&quot;:[-INVALID]" time="0.478" /><testcase classname="" name="test_received_content_shape_never_grants_write[{-INVALID]" time="0.455" /><testcase classname="" name="test_received_content_shape_never_grants_write[{&quot;x&quot;:1,&quot;x&quot;:2}-INVALID]" time="0.360" /><testcase classname="" name="test_received_content_shape_never_grants_write[{&quot;x&quot;:NaN}-INVALID]" time="0.346" /><testcase classname="" name="test_received_content_shape_never_grants_write[[]-COMPLETE]" time="0.346" /><testcase classname="" name="test_received_content_shape_never_grants_write[123-NON_STRING]" time="0.469" /><testcase classname="" name="test_received_content_shape_never_grants_write[None-NON_STRING]" time="0.687" /><testcase classname="" name="test_parse_location_and_request_contract_are_real" time="1.681"><failure message="AssertionError: missing request-bound output structure evidence&#10;assert 'research_failure_diagnostic_v4' == 'research_failure_diagnostic_v5'&#10;  &#10;  - research_failure_diagnostic_v5&#10;  ?                              ^&#10;  + research_failure_diagnostic_v4&#10;  ?                              ^">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-source-grounding-coverage-20261108-r1/offline/structure-green-20261108T045946198534Z/temp/test_parse_location_and_reques0')
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x0000025B8CBFA050&gt;, [('search', 'Research a subject')], {})
+mock_jar = (&lt;openjarvis.sdk.Jarvis object at 0x0000025B8CC364C0&gt;, &lt;function _run_work_agent at 0x0000025C24EA20C0&gt;, [{'format': {...x': 16384, 'num_predict': 2048, 'temperature': 0}, ...}], [&lt;function early_case.&lt;locals&gt;.reply at 0x0000025B8CC39300&gt;])
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x0000025B8CC2DEF0&gt;
+
+    def test_parse_location_and_request_contract_are_real(tmp_path,sdk_io,mock_jar,monkeypatch):
+        content='{"action_input":{"title":"未结束'
+        result,ledger,sent,bodies=native_refusal(tmp_path,sdk_io,mock_jar,monkeypatch,reads=6,
+            updates=[('done_reason','length'),('eval_count',2048),('message.content',content)])
+&gt;       p,s=captured(result,ledger);actual=json.loads(sent[-1]);request=s['request']
+            ^^^^^^^^^^^^^^^^^^^^^^^
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-source-grounding-r1\UltimaAgent\src\brain\tests\test_work_output_structure_diagnostics.py:47: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+result = {'request_id': 'r', 'session_id': 's', 'task_id': '00000000-0000-0000-0000-0000000003e8', 'status': 'failed', ...}
+ledger = &lt;src.brain.work_tools.WorkLedger object at 0x0000025B8BC98190&gt;
+
+    def captured(result,ledger):
+        p=private_packet(result,ledger)
+&gt;       assert p['kind']=='research_failure_diagnostic_v5','missing request-bound output structure evidence'
+E       AssertionError: missing request-bound output structure evidence
+E       assert 'research_failure_diagnostic_v4' == 'research_failure_diagnostic_v5'
+E         
+E         - research_failure_diagnostic_v5
+E         ?                              ^
+E         + research_failure_diagnostic_v4
+E         ?                              ^
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-source-grounding-r1\UltimaAgent\src\brain\tests\test_work_output_structure_diagnostics.py:15: AssertionError</failure></testcase><testcase classname="" name="test_complete_invalid_schema_is_measured_without_acceptance" time="0.693" /><testcase classname="" name="test_safe_excerpts_use_final_encoded_packet_cap[content0]" time="1.143"><failure message="AssertionError: missing request-bound output structure evidence&#10;assert 'research_failure_diagnostic_v4' == 'research_failure_diagnostic_v5'&#10;  &#10;  - research_failure_diagnostic_v5&#10;  ?                              ^&#10;  + research_failure_diagnostic_v4&#10;  ?                              ^">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-source-grounding-coverage-20261108-r1/offline/structure-green-20261108T045946198534Z/temp/test_safe_excerpts_use_final_e0')
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x0000025C25B6BF20&gt;, [('search', 'Research a subject')], {})
+mock_jar = (&lt;openjarvis.sdk.Jarvis object at 0x0000025C25A3A410&gt;, &lt;function _run_work_agent at 0x0000025C24EA20C0&gt;, [{'format': {...x': 16384, 'num_predict': 2048, 'temperature': 0}, ...}], [&lt;function early_case.&lt;locals&gt;.reply at 0x0000025C26B682C0&gt;])
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x0000025C259F3110&gt;
+content = 'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx...xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx'
+
+    @pytest.mark.parametrize('content',['x'*14000,'中"\\\n'*3500])
+    def test_safe_excerpts_use_final_encoded_packet_cap(tmp_path,sdk_io,mock_jar,monkeypatch,content):
+        result,ledger,_,_=native_refusal(tmp_path,sdk_io,mock_jar,monkeypatch,reads=6,
+            updates=[('done_reason','length'),('message.content',content)])
+&gt;       _,s=captured(result,ledger);e=s['evidence']
+            ^^^^^^^^^^^^^^^^^^^^^^^
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-source-grounding-r1\UltimaAgent\src\brain\tests\test_work_output_structure_diagnostics.py:77: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+result = {'request_id': 'r', 'session_id': 's', 'task_id': '00000000-0000-0000-0000-0000000003e8', 'status': 'failed', ...}
+ledger = &lt;src.brain.work_tools.WorkLedger object at 0x0000025B8CB8FC50&gt;
+
+    def captured(result,ledger):
+        p=private_packet(result,ledger)
+&gt;       assert p['kind']=='research_failure_diagnostic_v5','missing request-bound output structure evidence'
+E       AssertionError: missing request-bound output structure evidence
+E       assert 'research_failure_diagnostic_v4' == 'research_failure_diagnostic_v5'
+E         
+E         - research_failure_diagnostic_v5
+E         ?                              ^
+E         + research_failure_diagnostic_v4
+E         ?                              ^
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-source-grounding-r1\UltimaAgent\src\brain\tests\test_work_output_structure_diagnostics.py:15: AssertionError</failure></testcase><testcase classname="" name="test_safe_excerpts_use_final_encoded_packet_cap[content1]" time="1.022"><failure message="AssertionError: missing request-bound output structure evidence&#10;assert 'research_failure_diagnostic_v4' == 'research_failure_diagnostic_v5'&#10;  &#10;  - research_failure_diagnostic_v5&#10;  ?                              ^&#10;  + research_failure_diagnostic_v4&#10;  ?                              ^">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-source-grounding-coverage-20261108-r1/offline/structure-green-20261108T045946198534Z/temp/test_safe_excerpts_use_final_e1')
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x0000025B8BCC8210&gt;, [('search', 'Research a subject')], {})
+mock_jar = (&lt;openjarvis.sdk.Jarvis object at 0x0000025B8CC36780&gt;, &lt;function _run_work_agent at 0x0000025C24EA20C0&gt;, [{'format': {...x': 16384, 'num_predict': 2048, 'temperature': 0}, ...}], [&lt;function early_case.&lt;locals&gt;.reply at 0x0000025C26B4D080&gt;])
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x0000025C25054350&gt;
+content = '中"\\\n中"\\\n中"\\\n中"\\\n中"\\\n中"\\\n中"\\\n中"\\\n中"\\\n中"\\\n中"\\\n中"\\\n中"\\\n中"\\\n中"\\\n中"\\\n中"\\\n中"\\\n中"\\\n中"\...\\\n中"\\\n中"\\\n中"\\\n中"\\\n中"\\\n中"\\\n中"\\\n中"\\\n中"\\\n中"\\\n中"\\\n中"\\\n中"\\\n中"\\\n中"\\\n中"\\\n中"\\\n中"\\\n中"\\\n'
+
+    @pytest.mark.parametrize('content',['x'*14000,'中"\\\n'*3500])
+    def test_safe_excerpts_use_final_encoded_packet_cap(tmp_path,sdk_io,mock_jar,monkeypatch,content):
+        result,ledger,_,_=native_refusal(tmp_path,sdk_io,mock_jar,monkeypatch,reads=6,
+            updates=[('done_reason','length'),('message.content',content)])
+&gt;       _,s=captured(result,ledger);e=s['evidence']
+            ^^^^^^^^^^^^^^^^^^^^^^^
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-source-grounding-r1\UltimaAgent\src\brain\tests\test_work_output_structure_diagnostics.py:77: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+result = {'request_id': 'r', 'session_id': 's', 'task_id': '00000000-0000-0000-0000-0000000003e8', 'status': 'failed', ...}
+ledger = &lt;src.brain.work_tools.WorkLedger object at 0x0000025C254CD810&gt;
+
+    def captured(result,ledger):
+        p=private_packet(result,ledger)
+&gt;       assert p['kind']=='research_failure_diagnostic_v5','missing request-bound output structure evidence'
+E       AssertionError: missing request-bound output structure evidence
+E       assert 'research_failure_diagnostic_v4' == 'research_failure_diagnostic_v5'
+E         
+E         - research_failure_diagnostic_v5
+E         ?                              ^
+E         + research_failure_diagnostic_v4
+E         ?                              ^
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-source-grounding-r1\UltimaAgent\src\brain\tests\test_work_output_structure_diagnostics.py:15: AssertionError</failure></testcase><testcase classname="" name="test_sensitive_content_and_thinking_are_not_exported" time="0.383" /><testcase classname="" name="test_structure_decoder_rejects_tampering[path0-0000000000000000000000000000000000000000000000000000000000000000]" time="0.478" /><testcase classname="" name="test_structure_decoder_rejects_tampering[path1-1]" time="0.465" /><testcase classname="" name="test_structure_decoder_rejects_tampering[path2-0000000000000000000000000000000000000000000000000000000000000000]" time="0.443" /><testcase classname="" name="test_structure_decoder_rejects_tampering[path3-1]" time="0.610" /><testcase classname="" name="test_structure_decoder_rejects_tampering[path4-True]" time="0.495" /><testcase classname="" name="test_structure_decoder_rejects_tampering[path5-999]" time="0.630" /><testcase classname="" name="test_structure_decoder_rejects_tampering[path6-1]" time="0.990" /><testcase classname="" name="test_structure_decoder_rejects_tampering[path7-OTHER]" time="0.410" /><testcase classname="" name="test_structure_decoder_rejects_tampering[path8-1]" time="0.445" /><testcase classname="" name="test_structure_decoder_rejects_tampering[path9-altered]" time="0.343" /><testcase classname="" name="test_structure_decoder_rejects_tampering[path10-do not persist]" time="0.352" /><testcase classname="" name="test_structure_decoder_rejects_tampering[path11-2.0]" time="0.539" /><testcase classname="" name="test_structure_decoder_rejects_tampering[path12-False]" time="0.528" /><testcase classname="" name="test_structure_decoder_rejects_tampering[path13-null]" time="0.676" /><testcase classname="" name="test_structure_decoder_rejects_tampering[path14-missing]" time="0.414" /><testcase classname="" name="test_structure_capture_failure_preserves_v4_and_original_error" time="0.364" /><testcase classname="" name="test_v5_can_be_projected_to_closed_legacy_versions" time="0.319" /><testcase classname="" name="test_complete_json_with_wrong_action_type_still_has_structure[action0]" time="0.404" /><testcase classname="" name="test_complete_json_with_wrong_action_type_still_has_structure[action1]" time="0.525" /><testcase classname="" name="test_full_invalid_content_error_position_is_verified" time="0.399" /><testcase classname="" name="test_bounded_shape_does_not_claim_omitted_counts_are_complete" time="0.409" /><testcase classname="" name="test_optional_context_failure_keeps_original_v4[no_context]" time="0.332" /><testcase classname="" name="test_optional_context_failure_keeps_original_v4[entity_mismatch]" time="0.361" /><testcase classname="" name="test_optional_context_failure_keeps_original_v4[schema_mismatch]" time="0.480" /><testcase classname="" name="test_optional_context_failure_keeps_original_v4[packet_scan]" time="0.519" /><testcase classname="" name="test_unencodable_content_is_metadata_only" time="0.518" /><testcase classname="" name="test_exact_packet_cap_and_metadata_fallback" time="0.615" /><testcase classname="" name="test_nonstring_status_and_retention_cannot_be_relabelled[json_unavailable-123]" time="0.671" /><testcase classname="" name="test_nonstring_status_and_retention_cannot_be_relabelled[json_unavailable-None]" time="0.583" /><testcase classname="" name="test_nonstring_status_and_retention_cannot_be_relabelled[policy-123]" time="0.469" /><testcase classname="" name="test_nonstring_status_and_retention_cannot_be_relabelled[policy-None]" time="0.582" /><testcase classname="" name="test_nonstring_status_and_retention_cannot_be_relabelled[budget-123]" time="0.508" /><testcase classname="" name="test_nonstring_status_and_retention_cannot_be_relabelled[budget-None]" time="0.414" /><testcase classname="" name="test_encodable_content_cannot_claim_unavailable_retention" time="0.461" /><testcase classname="" name="test_unencodable_string_cannot_claim_scanning_or_budget_omission[OMITTED_POLICY]" time="0.410" /><testcase classname="" name="test_unencodable_string_cannot_claim_scanning_or_budget_omission[OMITTED_BUDGET]" time="0.504" /><testcase classname="" name="test_string_parse_unavailable_can_still_retain_safe_text" time="0.508" /></testsuite></testsuites>

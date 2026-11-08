@@ -1,0 +1,230 @@
+"""环境认知升级（s3-env-cognition · M16）。
+
+在既有 environment.py（硬件/磁盘/文件/应用）之上：
+1. 补齐五类扫描：+ 网络（本机接口/网关/连通性）、+ 进程（Top N 只读）；
+2. 基线比对：当前快照 ↔ 最近基线，产出新增/消失/变化差异；
+3. 档案持久化：data/environment/profiles/<ts>.json + latest.json（供共享轴检索）；
+4. 体检汇报链路：结论先行、异常优先（结构化报告供 agent_server 工具消费）；
+5. 与 ultima_env_snapshot 工具表整合：既有 capture_snapshot 行为不倒退。
+
+写域：本目录位于 H:\\UltimaAI\\UltimaAgent\\ 写域内。
+"""
+
+from __future__ import annotations
+
+import json
+import os
+import platform
+import subprocess
+import time
+from dataclasses import asdict, dataclass, field
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Any, Optional
+
+from .environment import EnvironmentSnapshot, capture_snapshot, scan_hardware, scan_disks, scan_apps
+
+PROFILE_VERSION = "2.0.0"
+_TIMEOUT_SECONDS = 2.0
+
+
+def _now_iso() -> str:
+    return datetime.now(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z")
+
+
+def _run_cmd(args: list[str], timeout: float = _TIMEOUT_SECONDS) -> str:
+    try:
+        proc = subprocess.run(args, capture_output=True, timeout=timeout,
+                              creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
+        out = proc.stdout or b""
+        try:
+            return out.decode("utf-8").strip()
+        except UnicodeDecodeError:
+            try:
+                return out.decode("gbk").strip()
+            except UnicodeDecodeError:
+                return out.decode("utf-8", errors="replace").strip()
+    except Exception:  # noqa: BLE001
+        return ""
+
+
+@dataclass
+class NetworkInfo:
+    interfaces: list[dict[str, str]] = field(default_factory=list)
+    gateways: list[str] = field(default_factory=list)
+    host_reachable: bool = False
+
+
+@dataclass
+class ProcessInfo:
+    name: str
+    pid: int = 0
+    mem_mb: float = 0.0
+    cpu: float = 0.0
+
+
+@dataclass
+class EnvProfile:
+    version: str = PROFILE_VERSION
+    captured_at: str = ""
+    hardware: dict[str, Any] = field(default_factory=dict)
+    disks: list[dict[str, Any]] = field(default_factory=list)
+    apps: list[dict[str, Any]] = field(default_factory=list)
+    network: dict[str, Any] = field(default_factory=dict)
+    processes: list[dict[str, Any]] = field(default_factory=list)
+    anomalies: list[str] = field(default_factory=list)
+
+    def to_dict(self) -> dict[str, Any]:
+        return asdict(self)
+
+
+def scan_network() -> NetworkInfo:
+    """本机网络接口/网关（只读，不采集外部流量）。"""
+    net = NetworkInfo()
+    raw = _run_cmd(["powershell", "-NoProfile", "-Command",
+                    "Get-NetIPConfiguration | Where-Object {$_.IPv4DefaultGateway} "
+                    "| Select-Object InterfaceAlias,@{n='IP';e={($_.IPv4Address.IPAddress) -join ','}},"
+                    "@{n='GW';e={($_.IPv4DefaultGateway.NextHop) -join ','}} | ConvertTo-Json -Compress"])
+    if raw:
+        try:
+            items = json.loads(raw)
+            for it in items if isinstance(items, list) else [items]:
+                net.interfaces.append({
+                    "alias": str(it.get("InterfaceAlias", "")),
+                    "ip": str(it.get("IP", "")),
+                })
+                gw = str(it.get("GW", ""))
+                if gw and gw not in net.gateways:
+                    net.gateways.append(gw)
+        except Exception:  # noqa: BLE001
+            pass
+    if not net.interfaces:
+        raw2 = _run_cmd(["ipconfig"])
+        for line in raw2.splitlines():
+            s = line.strip()
+            if "IPv4" in s and ":" in s:
+                net.interfaces.append({"alias": "ipconfig", "ip": s.split(":", 1)[1].strip()})
+    # 连通性：仅测默认网关（本机认知，非外部扫描）
+    if net.gateways:
+        gw = net.gateways[0]
+        ping = _run_cmd(["ping", "-n", "1", "-w", "1500", gw])
+        net.host_reachable = "TTL=" in ping or "时间" in ping or "ms" in ping.lower()
+    return net
+
+
+def scan_processes(top_n: int = 15) -> list[ProcessInfo]:
+    """Top N 进程（按内存，只读）。"""
+    out: list[ProcessInfo] = []
+    raw = _run_cmd(["powershell", "-NoProfile", "-Command",
+                    f"Get-Process | Sort-Object WorkingSet64 -Descending | Select-Object -First {top_n} "
+                    "| Select-Object ProcessName,Id,@{n='Mem';e={[math]::Round($_.WorkingSet64/1MB,1)}} "
+                    "| ConvertTo-Json -Compress"])
+    if raw:
+        try:
+            items = json.loads(raw)
+            for it in items if isinstance(items, list) else [items]:
+                out.append(ProcessInfo(
+                    name=str(it.get("ProcessName", "")),
+                    pid=int(it.get("Id", 0)),
+                    mem_mb=float(it.get("Mem", 0.0)),
+                ))
+        except Exception:  # noqa: BLE001
+            pass
+    return out
+
+
+def build_profile() -> EnvProfile:
+    """五类全量扫描 → 结构化档案。"""
+    snap = capture_snapshot()
+    net = scan_network()
+    procs = scan_processes()
+    anomalies: list[str] = []
+    if not net.interfaces:
+        anomalies.append("网络接口枚举为空（只读降级）")
+    low_disk = [d for d in snap.disks if d.free_gb < 10.0]
+    for d in low_disk:
+        anomalies.append(f"磁盘 {d.mount} 剩余空间不足 {d.free_gb}GB")
+    if snap.timed_out:
+        anomalies.append(f"快照超时项 {len(snap.timed_out)} 个：{','.join(snap.timed_out[:5])}")
+    return EnvProfile(
+        captured_at=_now_iso(),
+        hardware=asdict(snap.hardware),
+        disks=[asdict(d) for d in snap.disks],
+        apps=[asdict(a) for a in snap.apps],
+        network=asdict(net),
+        processes=[asdict(p) for p in procs],
+        anomalies=anomalies,
+    )
+
+
+class EnvProfileStore:
+    """档案持久化 + 基线比对。"""
+
+    def __init__(self, data_dir: str | Path) -> None:
+        self.data_dir = Path(data_dir)
+        self.profiles_dir = self.data_dir / "profiles"
+        self.latest_path = self.data_dir / "latest.json"
+        self.profiles_dir.mkdir(parents=True, exist_ok=True)
+
+    def save(self, profile: EnvProfile) -> Path:
+        path = self.profiles_dir / f"profile-{profile.captured_at.replace(':', '').replace('+', '')}.json"
+        path.write_text(json.dumps(profile.to_dict(), ensure_ascii=False, indent=2), encoding="utf-8")
+        self.latest_path.write_text(json.dumps(profile.to_dict(), ensure_ascii=False, indent=2), encoding="utf-8")
+        return path
+
+    def load_latest(self) -> Optional[EnvProfile]:
+        if not self.latest_path.exists():
+            return None
+        try:
+            return EnvProfile(**json.loads(self.latest_path.read_text(encoding="utf-8")))
+        except Exception:  # noqa: BLE001
+            return None
+
+    def diff(self, current: EnvProfile, baseline: Optional[EnvProfile]) -> dict[str, Any]:
+        """基线比对：新增/消失/变化。"""
+        if baseline is None:
+            return {"has_baseline": False, "added": [], "removed": [], "changed": [], "note": "无基线，本次为首次建档"}
+        added, removed, changed = [], [], []
+        cur_apps = {a.get("name", "") for a in current.apps}
+        base_apps = {a.get("name", "") for a in baseline.apps}
+        removed = sorted(base_apps - cur_apps)
+        added = sorted(cur_apps - base_apps)
+        cur_disks = {d.get("mount"): d.get("free_gb", 0.0) for d in current.disks}
+        base_disks = {d.get("mount"): d.get("free_gb", 0.0) for d in baseline.disks}
+        for mnt, free in cur_disks.items():
+            if mnt in base_disks and abs(free - base_disks[mnt]) > 5.0:
+                changed.append(f"磁盘 {mnt} 剩余空间变化 {base_disks[mnt]}→{free}GB")
+        return {"has_baseline": True, "added": added, "removed": removed,
+                "changed": changed, "note": "应用增减+磁盘空间变化比对"}
+
+
+class HealthReporter:
+    """体检汇报链路：结论先行、异常优先。"""
+
+    def __init__(self) -> None:
+        pass
+
+    def report(self, profile: EnvProfile, diff: dict[str, Any]) -> dict[str, Any]:
+        anomalies = list(profile.anomalies)
+        for ch in diff.get("changed", []):
+            anomalies.append(ch)
+        severity = "异常" if anomalies else "正常"
+        return {
+            "结论": severity,
+            "异常优先": anomalies[:5],
+            "基线": diff.get("note", ""),
+            "变更摘要": {
+                "新增应用": diff.get("added", []),
+                "消失应用": diff.get("removed", []),
+                "磁盘变化": [c for c in diff.get("changed", []) if "磁盘" in c],
+            },
+            "硬件摘要": {
+                "CPU": f"{profile.hardware.get('cpu_model', '')} {profile.hardware.get('cpu_cores', 0)}核",
+                "内存": f"{profile.hardware.get('memory_total_gb', 0)}GB",
+                "GPU": profile.hardware.get("gpu", []),
+            },
+        }
+
+
+__all__ = ["EnvProfile", "EnvProfileStore", "HealthReporter", "build_profile",
+           "scan_network", "scan_processes"]

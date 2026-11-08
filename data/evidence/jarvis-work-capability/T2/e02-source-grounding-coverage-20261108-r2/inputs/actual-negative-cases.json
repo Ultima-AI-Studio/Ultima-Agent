@@ -1,0 +1,166 @@
+{
+  "kind": "ACTUAL_FACTUAL_ACCEPTANCE_COUNTEREXAMPLES_NOT_MODEL_ANSWERS",
+  "run_id": "1496a844-668d-407a-a91b-89be246ba05b",
+  "candidate": "d8f8d97cd0147ffc6f45746ffd1ec80bc4d48b2b",
+  "result_manifest_sha256": "ab388abe9d994ee56b985c14183d14e2af3530a499de4cfe116a8c1a2315dddf",
+  "review_sha256": "065d3f6fa910976672f01c02850d0c52f1f34567ccaa295451e427efbe0bb9af",
+  "artifact_sha256": "ac34309cd889594ef4569020d1ac922290aba38fa8285e82748d549925785e0f",
+  "claim_reviews": [
+    {
+      "number": 1,
+      "artifact_line": 6,
+      "source_id": "S1",
+      "evidence_id": "N3.260f42e2b8c3e702",
+      "anchor_lines": "92",
+      "citation_lines": "92-96",
+      "factual_verdict": "SUPPORTED_BY_FULL_SOURCE",
+      "citation_verdict": "FAIL_INCOMPLETE",
+      "assessment": "L92 is only the Ollama heading; L94 supports local/fast/private, but model names LFM2 and Llama 3 occur at L99-103, outside both selected anchor and citation. Full-source truth does not repair the selected citation."
+    },
+    {
+      "number": 2,
+      "artifact_line": 7,
+      "source_id": "S1",
+      "evidence_id": "N3.540a9d7be41a4cdf",
+      "anchor_lines": "40-43",
+      "citation_lines": "38-45",
+      "factual_verdict": "SUPPORTED_BY_FULL_SOURCE",
+      "citation_verdict": "FAIL_INCOMPLETE",
+      "assessment": "L40 supports hold/speak/release. Double-tap hands-free is absent here; it occurs at README L125-126 in another actually inspected page, whose card N3.64435b851fe8d92c was not selected."
+    },
+    {
+      "number": 3,
+      "artifact_line": 8,
+      "source_id": "S1",
+      "evidence_id": "N3.f067d079c72e3884",
+      "anchor_lines": "94",
+      "citation_lines": "92-98",
+      "factual_verdict": "SUPPORTED_BY_DIFFERENT_SOURCE",
+      "citation_verdict": "FAIL_WRONG_SOURCE",
+      "assessment": "README L94 describes local Ollama, not unified-agent function calling/fallback. Correct supporting code is S3 L29-30 and L42-48. The rendered URL and selected card are wrong."
+    },
+    {
+      "number": 4,
+      "artifact_line": 13,
+      "source_id": "S2",
+      "evidence_id": "N3.a220ed7fd7d2c0d8",
+      "anchor_lines": "39",
+      "citation_lines": "36-43",
+      "factual_verdict": "COMMENT_TRUE_BUT_IMPLEMENTATION_CONTEXT_MISLEADING",
+      "citation_verdict": "FAIL_CONTEXT_AND_SCOPE",
+      "assessment": "L39 literally has TODO Add OpenAI and Gemini providers when implemented. The report marker correctly says this is a local annotation, but the claim presents future Gemini support without disclosing that S2 L48-51 already constructs GeminiProvider. S2 L44-47 and L57-60 implement Ollama and UnifiedAgent creation. A TODO alone cannot establish the current integration status."
+    },
+    {
+      "number": 5,
+      "artifact_line": 14,
+      "source_id": "S2",
+      "evidence_id": "N3.a220ed7fd7d2c0d8",
+      "anchor_lines": "39",
+      "citation_lines": "36-43",
+      "factual_verdict": "BROADLY_SUPPORTED_BY_DIFFERENT_SOURCE",
+      "citation_verdict": "FAIL_WRONG_SOURCE",
+      "assessment": "AgentManager L39 only concerns provider TODOs, not unified-agent logging. S3 L25 logs provider and tool count; L40 logs query, L70 logs executed tool. None of these is the cited S2 anchor."
+    },
+    {
+      "number": 6,
+      "artifact_line": 15,
+      "source_id": "S2",
+      "evidence_id": "N3.a220ed7fd7d2c0d8",
+      "anchor_lines": "39",
+      "citation_lines": "36-43",
+      "factual_verdict": "BROADLY_SUPPORTED_BY_DIFFERENT_SOURCE",
+      "citation_verdict": "FAIL_WRONG_SOURCE_UNREAD",
+      "assessment": "S2 L39 is unrelated to OpenJarvis. S4 L96/L175 contain stripping and L265-266 message insertion, but S4 had zero issued inspect pages/cards. Its catalogue landmarks are not citation evidence. The report has no S4 URL and does not explain its distinct execution-base role."
+    },
+    {
+      "number": 7,
+      "artifact_line": 20,
+      "source_id": "S3",
+      "evidence_id": "N3.871ee2b54f993e3d",
+      "anchor_lines": "37",
+      "citation_lines": "34-41",
+      "factual_verdict": "PASS_LOCAL_FACT",
+      "citation_verdict": "PASS",
+      "assessment": "L37 assigns const startTime = Date.now() inside processQuery. Tracking query start is supported; subsequent elapsed calculations at L76/L83/L98 confirm the modest performance-tracking interpretation."
+    },
+    {
+      "number": 8,
+      "artifact_line": 21,
+      "source_id": "S3",
+      "evidence_id": "N3.f01f2b05203a653b",
+      "anchor_lines": "25",
+      "citation_lines": "25-29",
+      "factual_verdict": "BROADLY_SUPPORTED_BY_FULL_SOURCE",
+      "citation_verdict": "FAIL_OVERBROAD",
+      "assessment": "L25 logs initialization with provider name/tool count. The selected span does not log query processing or show extensive logging. Those broader claims need L40 and further calls; full-file support cannot enlarge this card."
+    },
+    {
+      "number": 9,
+      "artifact_line": 22,
+      "source_id": "S3",
+      "evidence_id": "N3.ff77fbd51b03f00f",
+      "anchor_lines": "40",
+      "citation_lines": "37-44",
+      "factual_verdict": "BROADLY_SUPPORTED_BY_FULL_SOURCE",
+      "citation_verdict": "FAIL_OVERBROAD",
+      "assessment": "L40 logs processing of the current query. Initialization is at L25, outside this card. Nearly repeats claim 8 rather than adding architecture coverage."
+    }
+  ],
+  "coverage": {
+    "verdict": "FAIL",
+    "task_architecture": "Only a misattributed function-calling summary, an incomplete provider statement and logging details. Missing source-grounded singleton initialization, provider choice, tool registry execution and fallback flow.",
+    "open_source_integrations": "Ollama mentioned with incomplete citation; current Gemini branch obscured. README L44-47 local Whisper/NVIDIA Parakeet via Sherpa-ONNX and cloud options not synthesized. No adequate account of existing open-source integration surfaces.",
+    "provenance": "S1-S3 are akshayaggarwal99/jarvis-ai-assistant at bec50ef6e615707613c4fa22c8bd6afc3cc93152. README L10 links jarvis.ceo. S4 is separate open-jarvis/OpenJarvis at 0eb7811df96cf139e6bd6d7fcc9b5cc4ff1418ff. It is the existing execution-base reference; these sources do not establish that Jarvis.ceo itself integrates OpenJarvis. Report fails to explain this relationship.",
+    "source_coverage": {
+      "GET": [
+        "S1",
+        "S2",
+        "S3",
+        "S4"
+      ],
+      "inspect_pages": [
+        [
+          "S1",
+          26,
+          49
+        ],
+        [
+          "S1",
+          53,
+          76
+        ],
+        [
+          "S1",
+          92,
+          115
+        ],
+        [
+          "S1",
+          121,
+          144
+        ],
+        [
+          "S2",
+          20,
+          43
+        ],
+        [
+          "S3",
+          25,
+          48
+        ]
+      ],
+      "cited_sources": [
+        "S1",
+        "S2",
+        "S3"
+      ],
+      "S4_issued_pages": 0,
+      "minimum_three_writer_gate": "MET_MECHANICALLY_ONLY"
+    }
+  },
+  "interpretation": "Only claim7 passed both fact and selected citation; schema/card validity must never receive semantic credit. These records are not a template answer or model-supplied fixture.",
+  "model_calls": 0,
+  "actual_cases": 0,
+  "acceptance_credit": 0
+}

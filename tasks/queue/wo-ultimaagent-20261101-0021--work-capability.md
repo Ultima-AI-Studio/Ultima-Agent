@@ -68,7 +68,7 @@
 
 
 
-- 状态：E02 d8f8d97唯一实际已写research.md并完成读回/ACK；独审FAIL_CONFIRMED：引用错配、锚点范围不足及原题覆盖失败，0/3。清理及保护观测点PASS；一例与一次复核耗尽，不重试。
+- 状态：E02证据优先与未读来源机会候选43da3f0：1022项离线检查及准备独审PASS；保留事实/引用/原题覆盖待验证风险与旧FAIL，继续已授权入口准备，actual/model0。
 - 计划：docs/plans/jarvis-work-capability-delivery-plan-20261101.md
 
 
@@ -5189,3 +5189,15 @@ E02 d8f8d97唯一实跑PENDING_ROOT_INDEPENDENT_REVIEW待结果独审：research
 E02 d8f8d97唯一实际已写research.md并完成读回/ACK；独审FAIL_CONFIRMED：引用错配、锚点范围不足及原题覆盖失败，0/3。清理及保护观测点PASS；一例与一次复核耗尽，不重试。
 报告：H:\UltimaAI\UltimaAgent\docs\reports\jarvis-work-t2-e02-claim-generation-controlled-result-20261108.md
 后续提案（尚未实施）：H:\UltimaAI\UltimaAgent\docs\plans\jarvis-work-e02-source-grounding-and-coverage-proposal-20261108.md
+
+
+## 2026-11-08 SOURCE36 source grounding and coverage offline scope
+
+E02已明确授权离线审查逐来源证据表达与选页覆盖、最小补修、必要独审及入口准备；保留d8f8d97已写文件但事实/覆盖失败，当前8B/原预算/完整原题保持，实跑额度0。
+授权：call_3d33440cc40c401ea7a2cf11c8bc2bcf；提案：H:\UltimaAI\UltimaAgent\docs\plans\jarvis-work-e02-source-grounding-and-coverage-proposal-20261108.md
+
+
+## 2026-11-08 SOURCE36 offline preparation
+
+E02证据优先与未读来源机会候选43da3f0：1022项离线检查及准备独审PASS；保留事实/引用/原题覆盖待验证风险与旧FAIL，继续已授权入口准备，actual/model0。
+报告：H:\UltimaAI\UltimaAgent\docs\reports\jarvis-work-t2-e02-source-grounding-coverage-preparation-20261108.md

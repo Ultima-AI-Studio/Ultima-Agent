@@ -1,0 +1,509 @@
+{
+  "anyOf": [
+    {
+      "additionalProperties": false,
+      "properties": {
+        "action": {
+          "enum": [
+            "ultima_work_research_write"
+          ]
+        },
+        "action_input": {
+          "additionalProperties": false,
+          "properties": {
+            "path": {
+              "enum": [
+                "research.md"
+              ],
+              "minLength": 1,
+              "type": "string"
+            },
+            "sections": {
+              "anyOf": [
+                {
+                  "additionalItems": false,
+                  "items": [
+                    {
+                      "$ref": "#/definitions/research_source_S1"
+                    },
+                    {
+                      "$ref": "#/definitions/research_source_S2"
+                    },
+                    {
+                      "$ref": "#/definitions/research_source_S3"
+                    }
+                  ],
+                  "maxItems": 3,
+                  "minItems": 3,
+                  "type": "array"
+                }
+              ],
+              "maxItems": 5,
+              "minItems": 3,
+              "type": "array"
+            },
+            "title": {
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          "required": [
+            "path",
+            "title",
+            "sections"
+          ],
+          "type": "object"
+        }
+      },
+      "required": [
+        "action",
+        "action_input"
+      ],
+      "type": "object"
+    },
+    {
+      "additionalProperties": false,
+      "properties": {
+        "final_answer": {
+          "enum": [
+            "本次研究未交付。"
+          ],
+          "minLength": 1,
+          "type": "string"
+        }
+      },
+      "required": [
+        "final_answer"
+      ],
+      "type": "object"
+    }
+  ],
+  "definitions": {
+    "research_source_S1": {
+      "additionalProperties": false,
+      "properties": {
+        "facts": {
+          "items": {
+            "type": "object",
+            "required": [
+              "evidence_id",
+              "claim"
+            ],
+            "minProperties": 2,
+            "maxProperties": 2,
+            "allOf": [
+              {
+                "properties": {
+                  "evidence_id": {
+                    "enum": [
+                      "N3.0169b70723c8a1e9",
+                      "N3.0c514aa47434938b",
+                      "N3.18de619c9983b77f",
+                      "N3.1d875d938b3ff02b",
+                      "N3.260f42e2b8c3e702",
+                      "N3.28d5a175f0153d3a",
+                      "N3.2964bfdba5189bec",
+                      "N3.2b97d4feb2b01dff",
+                      "N3.2cb5219edd135f44",
+                      "N3.404239faf4ada9c7",
+                      "N3.540a9d7be41a4cdf",
+                      "N3.64435b851fe8d92c",
+                      "N3.66267e8ede754c22",
+                      "N3.6b85224b8b6aaa4d",
+                      "N3.72d73ee9c565267a",
+                      "N3.7d926264e5f7845e",
+                      "N3.7e5e9183e4df7deb",
+                      "N3.7e68a47ac05ad2f2",
+                      "N3.86748dc6dbf846f0",
+                      "N3.8b3efd3e1e79f38f",
+                      "N3.958ed26394fea0be",
+                      "N3.9a12680d830ffa32",
+                      "N3.9c87bdb5b1367eb7",
+                      "N3.abd21bd166c03dda",
+                      "N3.b0e22ea229562974",
+                      "N3.b6770c01e6097f74",
+                      "N3.b940d4c846822f16",
+                      "N3.c8a9553e2c1c77cc",
+                      "N3.dacce60f3f411225",
+                      "N3.e6b2f33a172ad141",
+                      "N3.f067d079c72e3884",
+                      "N3.fe58f310b5641fdd"
+                    ],
+                    "minLength": 19,
+                    "pattern": "^N3\\.[0-9a-f]{16}$",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "evidence_id"
+                ]
+              },
+              {
+                "properties": {
+                  "claim": {
+                    "minLength": 1,
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "claim"
+                ]
+              }
+            ]
+          },
+          "maxItems": 6,
+          "minItems": 1,
+          "type": "array"
+        },
+        "heading": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "source_id": {
+          "enum": [
+            "S1"
+          ],
+          "minLength": 2,
+          "pattern": "^S[1-5]$",
+          "type": "string"
+        }
+      },
+      "required": [
+        "source_id",
+        "heading",
+        "facts"
+      ],
+      "type": "object"
+    },
+    "research_source_S2": {
+      "additionalProperties": false,
+      "properties": {
+        "facts": {
+          "items": {
+            "anyOf": [
+              {
+                "type": "object",
+                "required": [
+                  "evidence_id",
+                  "claim"
+                ],
+                "minProperties": 2,
+                "maxProperties": 2,
+                "allOf": [
+                  {
+                    "properties": {
+                      "evidence_id": {
+                        "enum": [
+                          "N3.30911dd511c3cee5"
+                        ],
+                        "minLength": 19,
+                        "pattern": "^N3\\.[0-9a-f]{16}$",
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "evidence_id"
+                    ]
+                  },
+                  {
+                    "properties": {
+                      "claim": {
+                        "minLength": 1,
+                        "pattern": "^console\\.log(([^\"\\\\\\x00-\\x1fA-Za-z0-9_$.]|[\\\\]([\"\\\\bfnrt/]|u[0-9a-fA-F]{4}))([^\"\\\\\\x00-\\x1f]|[\\\\]([\"\\\\bfnrt/]|u[0-9a-fA-F]{4}))*|\\.(([^\"\\\\\\x00-\\x1fA-Za-z_$]|[\\\\]([\"\\\\bfnrt/]|u[0-9a-fA-F]{4}))([^\"\\\\\\x00-\\x1f]|[\\\\]([\"\\\\bfnrt/]|u[0-9a-fA-F]{4}))*)?)?$",
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "claim"
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "object",
+                "required": [
+                  "evidence_id",
+                  "claim"
+                ],
+                "minProperties": 2,
+                "maxProperties": 2,
+                "allOf": [
+                  {
+                    "properties": {
+                      "evidence_id": {
+                        "enum": [
+                          "N3.448ee6435029ea8b"
+                        ],
+                        "minLength": 19,
+                        "pattern": "^N3\\.[0-9a-f]{16}$",
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "evidence_id"
+                    ]
+                  },
+                  {
+                    "properties": {
+                      "claim": {
+                        "minLength": 1,
+                        "pattern": "^Logger\\.debug(([^\"\\\\\\x00-\\x1fA-Za-z0-9_$.]|[\\\\]([\"\\\\bfnrt/]|u[0-9a-fA-F]{4}))([^\"\\\\\\x00-\\x1f]|[\\\\]([\"\\\\bfnrt/]|u[0-9a-fA-F]{4}))*|\\.(([^\"\\\\\\x00-\\x1fA-Za-z_$]|[\\\\]([\"\\\\bfnrt/]|u[0-9a-fA-F]{4}))([^\"\\\\\\x00-\\x1f]|[\\\\]([\"\\\\bfnrt/]|u[0-9a-fA-F]{4}))*)?)?$",
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "claim"
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "object",
+                "required": [
+                  "evidence_id",
+                  "claim"
+                ],
+                "minProperties": 2,
+                "maxProperties": 2,
+                "allOf": [
+                  {
+                    "properties": {
+                      "evidence_id": {
+                        "enum": [
+                          "N3.5686d551ddbb0d67"
+                        ],
+                        "minLength": 19,
+                        "pattern": "^N3\\.[0-9a-f]{16}$",
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "evidence_id"
+                    ]
+                  },
+                  {
+                    "properties": {
+                      "claim": {
+                        "minLength": 1,
+                        "pattern": "^AgentManager(([^\"\\\\\\x00-\\x1fA-Za-z0-9_$.]|[\\\\]([\"\\\\bfnrt/]|u[0-9a-fA-F]{4}))([^\"\\\\\\x00-\\x1f]|[\\\\]([\"\\\\bfnrt/]|u[0-9a-fA-F]{4}))*|\\.(([^\"\\\\\\x00-\\x1fA-Za-z_$]|[\\\\]([\"\\\\bfnrt/]|u[0-9a-fA-F]{4}))([^\"\\\\\\x00-\\x1f]|[\\\\]([\"\\\\bfnrt/]|u[0-9a-fA-F]{4}))*)?)?$",
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "claim"
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "object",
+                "required": [
+                  "evidence_id",
+                  "claim"
+                ],
+                "minProperties": 2,
+                "maxProperties": 2,
+                "allOf": [
+                  {
+                    "properties": {
+                      "evidence_id": {
+                        "enum": [
+                          "N3.a220ed7fd7d2c0d8"
+                        ],
+                        "minLength": 19,
+                        "pattern": "^N3\\.[0-9a-f]{16}$",
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "evidence_id"
+                    ]
+                  },
+                  {
+                    "properties": {
+                      "claim": {
+                        "minLength": 1,
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "claim"
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "object",
+                "required": [
+                  "evidence_id",
+                  "claim"
+                ],
+                "minProperties": 2,
+                "maxProperties": 2,
+                "allOf": [
+                  {
+                    "properties": {
+                      "evidence_id": {
+                        "enum": [
+                          "N3.c8d2200287789696"
+                        ],
+                        "minLength": 19,
+                        "pattern": "^N3\\.[0-9a-f]{16}$",
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "evidence_id"
+                    ]
+                  },
+                  {
+                    "properties": {
+                      "claim": {
+                        "minLength": 1,
+                        "pattern": "^Logger\\.info(([^\"\\\\\\x00-\\x1fA-Za-z0-9_$.]|[\\\\]([\"\\\\bfnrt/]|u[0-9a-fA-F]{4}))([^\"\\\\\\x00-\\x1f]|[\\\\]([\"\\\\bfnrt/]|u[0-9a-fA-F]{4}))*|\\.(([^\"\\\\\\x00-\\x1fA-Za-z_$]|[\\\\]([\"\\\\bfnrt/]|u[0-9a-fA-F]{4}))([^\"\\\\\\x00-\\x1f]|[\\\\]([\"\\\\bfnrt/]|u[0-9a-fA-F]{4}))*)?)?$",
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "claim"
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          "maxItems": 6,
+          "minItems": 1,
+          "type": "array"
+        },
+        "heading": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "source_id": {
+          "enum": [
+            "S2"
+          ],
+          "minLength": 2,
+          "pattern": "^S[1-5]$",
+          "type": "string"
+        }
+      },
+      "required": [
+        "source_id",
+        "heading",
+        "facts"
+      ],
+      "type": "object"
+    },
+    "research_source_S3": {
+      "additionalProperties": false,
+      "properties": {
+        "facts": {
+          "items": {
+            "anyOf": [
+              {
+                "type": "object",
+                "required": [
+                  "evidence_id",
+                  "claim"
+                ],
+                "minProperties": 2,
+                "maxProperties": 2,
+                "allOf": [
+                  {
+                    "properties": {
+                      "evidence_id": {
+                        "enum": [
+                          "N3.871ee2b54f993e3d"
+                        ],
+                        "minLength": 19,
+                        "pattern": "^N3\\.[0-9a-f]{16}$",
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "evidence_id"
+                    ]
+                  },
+                  {
+                    "properties": {
+                      "claim": {
+                        "minLength": 1,
+                        "pattern": "^Date\\.now(([^\"\\\\\\x00-\\x1fA-Za-z0-9_$.]|[\\\\]([\"\\\\bfnrt/]|u[0-9a-fA-F]{4}))([^\"\\\\\\x00-\\x1f]|[\\\\]([\"\\\\bfnrt/]|u[0-9a-fA-F]{4}))*|\\.(([^\"\\\\\\x00-\\x1fA-Za-z_$]|[\\\\]([\"\\\\bfnrt/]|u[0-9a-fA-F]{4}))([^\"\\\\\\x00-\\x1f]|[\\\\]([\"\\\\bfnrt/]|u[0-9a-fA-F]{4}))*)?)?$",
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "claim"
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "object",
+                "required": [
+                  "evidence_id",
+                  "claim"
+                ],
+                "minProperties": 2,
+                "maxProperties": 2,
+                "allOf": [
+                  {
+                    "properties": {
+                      "evidence_id": {
+                        "enum": [
+                          "N3.f01f2b05203a653b",
+                          "N3.ff77fbd51b03f00f"
+                        ],
+                        "minLength": 19,
+                        "pattern": "^N3\\.[0-9a-f]{16}$",
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "evidence_id"
+                    ]
+                  },
+                  {
+                    "properties": {
+                      "claim": {
+                        "minLength": 1,
+                        "pattern": "^Logger\\.info(([^\"\\\\\\x00-\\x1fA-Za-z0-9_$.]|[\\\\]([\"\\\\bfnrt/]|u[0-9a-fA-F]{4}))([^\"\\\\\\x00-\\x1f]|[\\\\]([\"\\\\bfnrt/]|u[0-9a-fA-F]{4}))*|\\.(([^\"\\\\\\x00-\\x1fA-Za-z_$]|[\\\\]([\"\\\\bfnrt/]|u[0-9a-fA-F]{4}))([^\"\\\\\\x00-\\x1f]|[\\\\]([\"\\\\bfnrt/]|u[0-9a-fA-F]{4}))*)?)?$",
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "claim"
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          "maxItems": 6,
+          "minItems": 1,
+          "type": "array"
+        },
+        "heading": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "source_id": {
+          "enum": [
+            "S3"
+          ],
+          "minLength": 2,
+          "pattern": "^S[1-5]$",
+          "type": "string"
+        }
+      },
+      "required": [
+        "source_id",
+        "heading",
+        "facts"
+      ],
+      "type": "object"
+    }
+  }
+}

@@ -1,0 +1,55 @@
+x000001E425F234D0>, <function _run_work_agent at 0x000001E42450F880>, [{'format': {..., 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 2048, 'temperature': 0}, ...}, ...], [])
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001E426181320>
+
+    def test_sdk_uses_six_reads_then_write_ack_and_independent_replay(tmp_path,sdk_io,mock_jar,monkeypatch):
+        result,ledger=repeated_case(tmp_path,sdk_io,mock_jar,monkeypatch,adaptive=True)
+        assert result['status']=='succeeded',result['error']
+        assert ledger._read_count==6 and len(mock_jar[2])==8
+        assert [v.source_id for _,v in ledger._issued]==['S1']*2+['S2','S3','S4','S5']
+        assert inspect_params(mock_jar[2][2]['format'])['properties']['source_id']['enum']==['S2','S3','S4','S5']
+        assert inspect_params(mock_jar[2][4]['format'])['properties']['source_id']['enum']==['S4','S5']
+        assert inspect_params(mock_jar[2][5]['format'])['properties']['source_id']['enum']==['S5']
+        assert inspect_params(mock_jar[2][6]['format']) is None
+>       assert [b['options']['num_predict'] for b in mock_jar[2]]==[256]*6+[2048,256]
+E       assert [256, 256, 256, 256, 2048, 2048, 2048, 256] == [256, 256, 256, 256, 256, 256, 2048, 256]
+E         
+E         At index 4 diff: 2048 != 256
+E         
+E         Full diff: (-: missing in left side, +: extra in left side)
+E           [
+E               256,
+E               256,
+E               256,
+E               256,
+E         -     256,
+E         -     256,
+E         +     2048,
+E         +     2048,
+E               2048,
+E               256,
+E           ]
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-source-grounding-r1\UltimaAgent\src\brain\tests\test_work_source_coverage_budget.py:144: AssertionError
+- generated xml file: H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-source-grounding-coverage-20261108-r1\offline\coverage-green-20261108T045547083591Z\junit.xml -
+=========================== short test summary info ===========================
+FAILED ::test_sdk_uses_six_reads_then_write_ack_and_independent_replay - assert [256, 256, 256, 256, 2048, 2048, 2048, 256] == [256, 256, 256, 256, 256, 256, 2048, 256]
+  
+  At index 4 diff: 2048 != 256
+  
+  Full diff: (-: missing in left side, +: extra in left side)
+    [
+        256,
+        256,
+        256,
+        256,
+  -     256,
+  -     256,
+  +     2048,
+  +     2048,
+        2048,
+        256,
+    ]
+======================== 1 failed, 39 passed in 7.58s =========================
+
+
+RECEIPT H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-source-grounding-coverage-20261108-r1\offline\coverage-green-20261108T045547083591Z\receipt.json
