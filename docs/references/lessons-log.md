@@ -421,3 +421,44 @@
 - **规避**：① 解析器统一签名 `(text, asset)`，调用方不按类型分支；② 字段下标一律以实测样本为准，改完必须用一条已知值反算核对（恒生 24502.44 − 24796.98 = −1.19%，对得上才收工）；③ `catalog` 条目必须自带 `asset`，由脚本从配置回填而不是手写；④ 触发词只写明确品种名，宽泛品类词（汇率/指数/金价）留给专用意图或兜底；⑤ 冒烟用例必须含"没配过的类型"，否则建路分支根本没被测到。
 - **验收判据**：8 条问句全绿；同一条问句第一次 `built=True`、第二次 `built=False`；数值与实抓样本对得上（不是"有回复"就算过）；写回的配置里能看到 `build_state` 和候选角色。
 - **复发**：1
+
+## L52 验收读端的逐字节断言和生产端的 JSON 键序对不上时，测试会全绿却判不过（T2/E02 · 2026-11-06）
+
+- **现象**：E02 source13 冷导入第六轮之前，审计层已经零拒绝、例外收据 `clean=true`，产品侧 `research.md` 711B 六轮不变；但正式运行仍以 `"Exact producer JSON-string bytes/order"` 失败。把消息补成带偏移的诊断后，首差在偏移 582：存储串是 `"agent": "58e6ddf…`，期望串是 `"success": true`。
+- **根因**：读端有两份"期望重建"（`rebuild_expectations` 与 `validate_collection`）把 TOOL_CALL_END 的 data 按 `tool, agent, success, latency, result, metadata` 构造，而真实生产端 `openjarvis\tools\_stubs.py` 发布顺序是 `tool, success, latency, result, metadata, agent`。`_safe_equal` 只比数值、忽略键序，所以值级校验全过；`json.dumps` 整串比逐字节，键序不同即失败。测试夹具 `quarantine_fixture` 复刻了同一个错误顺序，于是 566 条测试全绿也抓不到。
+- **规避**：① 凡是要做"逐字节相等"的期望重建，键序必须从真实 producer 的字面构造取证，不能按语义字段顺序凭印象写；② 值比较和串比较不能混用同一套期望——要串比就全链路保序；③ 夹具必须携带生产端真实序列化顺序，否则测试只验证了"自己跟自己一致"；④ 断言消息里带首个差异偏移与前后窗口，否则只能看到一句"bytes/order"。
+- **验收判据**：定向 59 条与全量 566 条全绿只是前置；真正的判据是正式运行 reader 退出码 0、`candidate_mechanical_verified`、四条 trusted 成员放行（`c794f6fd` 已达到）。
+- **复发**：1
+
+## L53 机械通过不等于验收通过：自签授权链把“跑完了”和“判过了”分成两件事（T2/E02 · 2026-11-06）
+
+- **现象**：修复读端键序后，正式运行 `c794f6fd` 的 reader 退出码 0、`candidate_mechanical_verified`、`mechanical=PASS`、cleanup PASS，但终态仍是 `PENDING_RESULT_REVIEW`，`e02=NOT_PASSED`、`acceptance_credit=false`、`outer_root_gate=NOT_ISSUED`。看上去“都绿了”，实际一分未得。
+- **根因**：`entry.py` L155–156 把 `e02='NOT_PASSED'`、`acceptance_credit=False` 写死，L142 成功后只进 `PENDING_RESULT_REVIEW`；验收分只由外层独立结果复核签发，准备门本身是 `PASS_PREPARATION_ONLY`、`actual_authority=false`。同一会话自签的准备评审只能作诊断证据，文件必须带 `independence_note`。
+- **规避**：① 汇报时必须把“机械链路通过 / 验收结论产出”分成两行写，不能用一个 PASS 概括；② 判定 E02 这类复合任务，先把终态字段（`terminal.status`、`e02`、`acceptance_credit`、`outer_root_gate`）逐项读出，再决定下一步是重跑还是复核；③ 配额为 0 时不要用重跑代替复核——重跑只会消耗新的执行配额，仍拿不到验收分；④ 看板的“done”只能表示定性任务完成，必须在描述里同步写“E02 尚未验收”。
+- **验收判据**：终态出现 `outer_root_gate` 已签发、`acceptance_credit=true`、`e02=PASSED` 三项同时成立，才算 E02 过；只出现 `candidate_mechanical_verified` 不算。
+- **复发**：1
+
+
+## L54 只读复核先怀疑自己的映射，再怀疑产物（T2/E02 · 2026-11-06）
+
+- **现象**：对已完成 run 做逐字节复核时，27 项里有 2 项报红：`first_result_sha256` 对不上 cleanup-observation，保护快照三份文件哈希不一致。第一反应容易写成“产物有问题”。
+- **实情**：`first_result_sha256` 对应的是 `profile-first-result.json`，不是 cleanup-observation；保护快照的 `identities` 是 7 条，但文件顶层还有 `observed_at_ns`，按顶层键数会数成 3。两处都是复核脚本的映射错误，产物本身没问题。
+- **规避**：① 摘要字段先找“它到底是谁的摘要”，用文件逐个试算比对，不按名字猜；② 结构计数要数到目标数组（`identities[]`），不数外层键；③ 复核报告里保留“复核人自纠”记录，第一版误报不能悄悄改绿；④ 复核脚本自身也要有失败路径，宁可报红后查明，不可为了让结果好看放宽断言。
+- **验收判据**：27 项全绿且每一项都有“字段→文件→重算值”的对应关系；只有“全绿”没有对应关系不算复核。
+- **复发**：1
+
+## L55 项目队列写 executing 不等于全局主表已登记，Codex 会 fail-closed 停在 T0 前（UltimaAgent · 2026-11-08）
+
+- **现象**：工单 0013 在项目队列 `tasks/queue/index.md` 里是 `executing`，但首派回执是 `BLOCKED_BEFORE_T0`，T0–T3 全部未开始、源码零改动、tag 未产生。用 `rg` 精确搜工单号，全局主表 `_shared/queue/global-queue-index.md` 零命中。
+- **根因**：G-DISPATCH-001 的准入以全局主表为准，项目队列的 `executing` 只是项目级视图，不能替代全局登记。Codex 的写域不含"项目外权威文件"，按 fail-closed 拒绝越域自行补登记，停在准入门。
+- **规避**：① 派发前先在全局主表 `rg` 工单号做回读命中，命中后才算准入；② 主表结构是 `<!-- queue-items:start -->` 到文件末尾，明细行格式 `| 项目 | 工单号 | 状态 | 说明 |`，补登记只写明细行，不手改上方统计表（看门狗重算）；③ 补登记必须留备份与回读证据，并在载荷里写明"已在主表登记、上一轮 fail-closed 未改源码、本轮从 T0 全新开始"。
+- **验收判据**：主表 `rg` 命中且状态正确 + 派发载荷含准入说明 + 回执不再是 `BLOCKED_BEFORE_T0`。
+- **复发**：1
+
+## L56 Codex 进程被终止不会写 final 回执；policy 拦截与模型刷新超时是噪声，不等于任务失败（UltimaAgent · 2026-11-08）
+
+- **现象**：0027 在 T2 全量门约 35% 时进程消失，run 目录没有 `final.json`，主表登记仍停在 `executing`。0013 执行中反复出现 `failed to refresh available models: request timed out`、`exec_command ... rejected: blocked by policy`、`Reconnecting... waiting for network`，但最终 T0–T4 全 PASS 并正常生成回执。
+- **根因**：`codex exec --output-last-message` 只在会话自然结束时写回执文件，被终止/崩溃时不写；`blocked by policy` 是 Codex 自身命令策略拒绝（涉及 `Remove-Item -Recurse -Force`、敏感临时目录等），它会换等价命令重试；模型刷新与网络重连是后台噪声，不影响已完成的工具调用。
+- **规避**：① 判断任务结束看"进程是否存活 + final 文件是否生成"两件事，只有进程消失没回执要判为中断并人工纠正主表状态；② 见到 policy 拦截先看后续是否有等价命令成功，不据此判死；③ 见到重连/刷新超时看 out 日志字节是否仍在增长，增长即仍在推进（0027 与 0013 的差别就在这一点）；④ 主脑独立复核时，真实推理类用例在全量并发下会冷启动超时，失败时应单跑复验再定性。
+- **验收判据**：只有 final 回执 + tag 远端 SHA 回读一致 + 主脑独立定向复核通过，才可把工单判为完成。
+- **复发**：1
