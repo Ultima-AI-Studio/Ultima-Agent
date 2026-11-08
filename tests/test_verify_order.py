@@ -13,6 +13,7 @@ from __future__ import annotations
 import importlib.util
 import json
 import subprocess
+import sys
 from pathlib import Path
 
 import pytest
@@ -249,9 +250,17 @@ def test_an_mechanical_gate_is_actually_checked(tmp_path, repo, cli):
 
 
 def test_a_declared_command_that_fails_blocks(tmp_path, repo, cli):
+    # The runner now has to be the registered interpreter, so the command names it
+    # explicitly rather than relying on whatever `pytest` PATH happens to resolve to.
+    python = cli.ROOT / "tools" / "venv-openjarvis" / "Scripts" / "python.exe"
+    python.parent.mkdir(parents=True, exist_ok=True)
+    python.write_text("", encoding="utf-8")
+    real_python = Path(sys.executable)
+    python.write_bytes(real_python.read_bytes())
     card_dir = repo / "tasks" / "queue"
     card_dir.mkdir(parents=True, exist_ok=True)
-    (card_dir / "wo-x.md").write_text("**机检**：pytest --definitely-not-a-flag\n", encoding="utf-8")
+    (card_dir / "wo-x.md").write_text(
+        f"**机检**：{python} -m pytest --definitely-not-a-flag\n", encoding="utf-8")
 
     snap = _snapshot(cli)
     _done(tmp_path, end_sha=snap["end_sha"], tree_oid=snap["tree_oid"],
@@ -383,7 +392,7 @@ def test_a_runner_planted_in_the_workspace_is_refused(repo, cli):
     planted.parent.mkdir(parents=True, exist_ok=True)
     planted.write_text("", encoding="utf-8")
     reason = cli._command_is_a_test_run([str(planted)])
-    assert "lives inside the workspace" in reason
+    assert "registered interpreter" in reason
 
     # A path shape that merely resembles the project virtualenv is not a registered
     # tool either, and a path that does not exist cannot be a runner at all.
@@ -394,6 +403,36 @@ def test_a_runner_planted_in_the_workspace_is_refused(repo, cli):
     (cli.ROOT / "tools" / "venv-nope" / "Scripts").mkdir(parents=True, exist_ok=True)
     assert "does not exist" in cli._command_is_a_test_run(
         [str(cli.ROOT / "tools" / "venv-nope" / "Scripts" / "python.exe")])
+
+
+def test_argument_limits_apply_whatever_the_entry_point(repo, cli):
+    """The limits used to sit after the "plain pytest" early return.
+
+    A command that named pytest directly skipped every argument check, so
+    ``--rootdir`` or a separated ``-o`` changed where and how the run happened
+    while the gate still reported the command as acceptable.
+    """
+
+    venv = cli.ROOT / "tools" / "venv-openjarvis" / "Scripts"
+    venv.mkdir(parents=True, exist_ok=True)
+    (venv / "pytest.exe").write_text("", encoding="utf-8")
+    (venv / "python.exe").write_text("", encoding="utf-8")
+    pytest_exe = str(venv / "pytest.exe")
+
+    assert cli._command_is_a_test_run([pytest_exe, "tests/queue_engine"]) == ""
+    assert "rootdir" in cli._command_is_a_test_run([pytest_exe, "--rootdir=.."])
+    assert "loads" in cli._command_is_a_test_run([pytest_exe, "-p", "anyio"])
+    assert "adds options" in cli._command_is_a_test_run([pytest_exe, "-o", "addopts=-q"])
+    assert cli._command_is_a_test_run([pytest_exe, "-o", "addopts="]) == ""
+
+
+def test_an_interpreter_outside_the_registered_venv_is_refused(tmp_path, cli):
+    """Any python.exe can host pytest. Identity is the registered location, not the name."""
+
+    outside = tmp_path / "python.exe"
+    outside.write_text("", encoding="utf-8")
+    assert "registered interpreter" in cli._command_is_a_test_run(
+        [str(outside), "-m", "pytest", "tests"])
 
 
 def test_an_untracked_conftest_is_refused(tmp_path, repo, cli):

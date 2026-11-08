@@ -400,8 +400,27 @@ def main(argv: Sequence[str] | None = None) -> int:
             r"\| T\d+ (s1-[a-z0-9-]+|orb-w[0-9]-[a-z0-9-]+) \|", order_text)))
     except (OSError, UnicodeError) as exc:
         return _refuse(f"could not read the order to enumerate its cards: {exc}")
-    recorded_ids = sorted({Path(str(rec.get("path") or "")).parent.name
-                           for rec in receipt_cards})
+    recorded_ids = []
+    recorded = {}
+    cards_root = (Path(ROOT) / "tasks" / "cards").resolve()
+    for rec in receipt_cards:
+        path = Path(str(rec.get("path") or ""))
+        try:
+            key = path.resolve().relative_to(cards_root).parts[0]
+        except (ValueError, IndexError):
+            return _refuse("a dispatched card sits outside tasks/cards; its id cannot be "
+                           "tied to the one the order names", path=str(path))
+        if key in recorded:
+            return _refuse("the receipt lists the same card more than once", card=key)
+        # The path has to be the canonical one. Comparing directory names alone let
+        # any file that happened to sit in a directory called <id> stand in for the
+        # card, and the hash was then taken from that path rather than from the card.
+        if path.resolve() != (cards_root / key / "task.md"):
+            return _refuse("a dispatched card is not at tasks/cards/<id>/task.md",
+                           card=key, path=str(path))
+        recorded[key] = rec
+        recorded_ids.append(key)
+    recorded_ids.sort()
     if not order_cards:
         return _refuse("the order references no card; nothing ties the run to an artifact")
     if recorded_ids != order_cards:
@@ -409,11 +428,11 @@ def main(argv: Sequence[str] | None = None) -> int:
                        order=order_cards, receipt=recorded_ids)
 
     changed_cards = []
-    for rec in receipt_cards:
-        path = Path(str(rec.get("path") or ""))
+    for cid in order_cards:
+        path = cards_root / cid / "task.md"
         now = _sha256_file(path) if path.is_file() else None
-        if now != rec.get("sha256"):
-            changed_cards.append(path.parent.name)
+        if now != recorded[cid].get("sha256"):
+            changed_cards.append(cid)
     if changed_cards:
         return _refuse("a card the order referenced changed after dispatch",
                        changed=changed_cards[:8])

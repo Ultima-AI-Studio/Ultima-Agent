@@ -264,6 +264,10 @@ def _command_is_a_test_run(argv: list[str]) -> str:
     ``shell=False`` removes the shell, but it does not make an order-authored
     command safe by itself: ``python -c "..." -m pytest`` still runs the ``-c``
     payload first, and any file named ``pytest-something`` satisfies a prefix test.
+
+    Argument checks run *first*, for every entry point. They used to sit after the
+    "this is a plain pytest" early return, so a command that named pytest directly
+    skipped all of them.
     """
     raw = argv[0].strip('"')
     exe = Path(raw)
@@ -274,43 +278,28 @@ def _command_is_a_test_run(argv: list[str]) -> str:
         exe = candidate if candidate.exists() else Path(shutil.which(raw) or raw)
     name = exe.name.lower()
 
-    # Identity is existence plus a registered location, not a path shape. A
-    # `tools\venv-anything\` match let a planted program through, and a bare
-    # `pytest` was resolved against the workspace and rejected.
-    if name.startswith("pytest") or name in ("python", "python.exe", "python3", "python3.exe"):
-        if not exe.is_file():
-            return f"{raw[:40]} does not exist; a test runner must be an installed tool"
-        if exe.resolve().is_relative_to(Path(ROOT).resolve()):
-            if not re.search(r"[\\/]tools[\\/]venv-openjarvis[\\/]", str(exe).lower()):
-                return (f"{raw[:40]} lives inside the workspace; only the registered "
-                        "virtualenv may host a test runner")
-    if name.startswith("pytest"):
-        if name not in ("pytest", "pytest.exe"):
-            return f"unrecognised test runner {name}"
-        return ""
-    if not _TEST_RUNNER.search(argv[0]):
-        return f"{name} is not a python interpreter or pytest"
-    # `-c` is also valid glued to its payload: `-cprint(1)`. Comparing against the
-    # bare token let that form through, and the interpreter ran it before anything
-    # else on the line. A bare `-c file.cfg` is pytest's config switch, refused below.
-    inline = [a for a in argv if a.startswith("-c") and a != "-c" and not a.startswith("--")]
-    if inline:
-        return f"{inline[0][:20]} runs inline source; a test run must not execute arbitrary code"
-    if "-m" not in argv or "pytest" not in argv:
-        return "python is only accepted as `-m pytest`"
-    if argv.index("-m") + 1 >= len(argv) or argv[argv.index("-m") + 1] != "pytest":
-        return "-m must be immediately followed by pytest"
-
     # A clean checkout stops uncommitted *repository* content from reaching the run,
     # but not arguments that point the run somewhere else or reload code into it.
-    for arg in argv[1:]:
+    # Tokens are consumed pairwise so a separated value (`-o addopts=x`) is judged
+    # as the pair it is, not as a bare flag.
+    forbidden_flags = {"-p", "--rootdir", "--confcutdir", "-c", "--import-mode",
+                       "--plugins", "--pyargs", "-k", "--deselect"}
+    i = 1
+    while i < len(argv):
+        arg = argv[i]
         stem = arg.split("=", 1)[0].lower()
-        if stem in ("-p", "--rootdir", "--confcutdir", "-c", "--import-mode", "--plugins"):
+        if stem in forbidden_flags:
             return f"{stem} changes what pytest loads or where it collects"
         if stem in ("-o", "--override-ini"):
             value = arg.split("=", 1)[1].strip() if "=" in arg else ""
-            if value:                       # only `-o addopts=` (clearing the default) is allowed
+            if not value and i + 1 < len(argv) and not argv[i + 1].startswith("-"):
+                value = argv[i + 1].strip()
+                i += 1
+            if value and not value.lower().startswith("addopts="):
                 return f"{stem} overrides pytest configuration"
+            if value and value.split("=", 1)[1].strip():
+                return f"{stem} {value[:30]} adds options to the run"
+        i += 1
 
     # Every path in the command must live inside the checkout it runs in; an absolute
     # path or a `..` reach is content the commit does not contain.
@@ -321,6 +310,37 @@ def _command_is_a_test_run(argv: list[str]) -> str:
             return f"{arg[:40]} points outside the checkout"
         if ".." in Path(arg).parts:
             return f"{arg[:40]} escapes the checkout"
+
+    # Identity is existence plus a registered location, not a path shape. A
+    # `tools\venv-anything\` match let a planted program through, and a bare
+    # `pytest` was resolved against the workspace and rejected. Outside interpreters
+    # are refused too: the runner has to be the one registered venv, or a PATH lookup
+    # that lands on it, so "exit 0" cannot come from some other pytest.
+    registered = Path(ROOT) / "tools" / "venv-openjarvis" / "Scripts"
+    if name.startswith("pytest") or name in ("python", "python.exe", "python3", "python3.exe"):
+        if not exe.is_file():
+            return f"{raw[:40]} does not exist; a test runner must be an installed tool"
+        resolved = exe.resolve()
+        if not resolved.is_relative_to(registered.resolve()):
+            return (f"{raw[:40]} is not the registered interpreter; the run would not "
+                    "come from the toolchain this repository pins")
+    if name.startswith("pytest"):
+        if name not in ("pytest", "pytest.exe"):
+            return f"unrecognised test runner {name}"
+        return ""
+    if not _TEST_RUNNER.search(argv[0]):
+        return f"{name} is not a python interpreter or pytest"
+    # `-c` is also valid glued to its payload: `-cprint(1)`. Comparing against the
+    # bare token let that form through, and the interpreter ran it before anything
+    # else on the line. A bare `-c file.cfg` is pytest's config switch, refused above.
+    inline = [a for a in argv if a.startswith("-c") and a != "-c" and not a.startswith("--")]
+    if inline:
+        return f"{inline[0][:20]} runs inline source; a test run must not execute arbitrary code"
+    # The interpreter must be told to run pytest as its *first* action: `-m` at
+    # position 1 and pytest right after it. Otherwise a script elsewhere on the
+    # line runs first and the trailing `-m pytest` is only an argument to it.
+    if len(argv) < 3 or argv[1] != "-m" or argv[2] != "pytest":
+        return "python is only accepted as `python -m pytest`"
     return ""
 
 
