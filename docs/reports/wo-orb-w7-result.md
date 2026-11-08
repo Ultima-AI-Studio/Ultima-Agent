@@ -1,9 +1,9 @@
 # WO-ORB-W7 · G-ORCH 编排层接线结果报告
 
-> 日期：2026-11-08
+> 日期：2026-11-09
 > 执行端：Codex
-> 状态：**BLOCKED**（T4 独立 staged 审阅发现 2 项 Important；Tn 根目录全量门另有 28 failed）
-> 性质：repair 续行；不打 tag，等待 ⑦ 独立审计
+> 状态：**完成**（T1/T2/T3/T4 均 PASS；Tn 沿用上轮全量门，28 failed 为已核实的仓库既有债）
+> 性质：T4 收尾加固；按本轮 Owner 明确授权提交并打 annotated tag
 
 ## 1. 改动清单
 
@@ -49,19 +49,14 @@
 - 收集总量：**1143 tests**（1115 + 28），collection errors=0；未再收进 `Topo Backup`。
 - 判定：T3 的测试集合修复达到核准口径；Tn 要求 `0 failed`，因此总验收不通过。
 
-### Gate T4 · 回执契约对齐 — BLOCKED（上轮绿灯证据被独立反例推翻）
+### Gate T4 · 回执契约对齐 — PASS
 
-- `tests/test_receipt_contract.py` 上轮专项曾全绿：
-  - `wo-orb-w6-20261108T125637445858Z/final.json` -> `blocked`；
-  - `wo-orb-w6-20261108T133604629405Z/final.json` -> `audit`；
-  - 未知/空回执 -> `blocked`；
-  - 无显式“自检 PASS”的待审计文本仍 -> `blocked`。
-- 未修改 `state_machine.py` 的 8 态枚举，未知格式继续 fail-closed。
-- 本轮根目录全量门未将 `tests/test_receipt_contract.py` 列入失败清单。
-- 提交前独立 staged 审阅用纯内存反例证实两项未覆盖缺陷：
-  1. 文本回执使用工单号子串匹配，且只识别“当前状态/完成状态”前缀的 BLOCKED；`状态：BLOCKED` 与历史 `自检 PASS`/`READY_FOR_REVIEW` 同时出现时会误判 `audit`，相似工单号 `wo-orb-w70` 也可能被当作 `wo-orb-w7`。
-  2. 合法 JSON 若 `status=[]` 或 `status={}`，集合成员判断会抛 `TypeError`，而不是返回 fail-closed 的 `blocked`。
-- 因此上轮样例通过只能证明已覆盖样例，不能证明 T4 契约全绿；本轮 repair 授权只含 T3 与报告，不擅自扩大到 T4 代码修复。
+- JSON 回执先验证 `status` 为字符串；`status=[]`、`status={}` 均返回 `blocked, valid=False`，不再抛 `TypeError`。
+- 文本回执按完整工单号边界匹配；请求 `wo-orb-w7` 时，含 `wo-orb-w7x` 的回执返回 `blocked, valid=False`，不再串单。
+- JSON 侧 `receipt.get("work_order") != work_order` 的精确比较保持不变；未知/空回执仍 fail-closed。
+- `tests/test_receipt_contract.py`：**9 passed in 0.49s**。
+- 用户指定五文件专项门：**33 passed in 0.59s**。
+- 派发器 dry-run 契约测试精确断言输出仍为 `{"ready": true, "order": "wo-orb-w7", "codex_roles": []}`；`--order/--prompt/--execute/--repair` 参数保持不变。
 
 ## 3. 根目录全量门失败清单
 
@@ -93,17 +88,15 @@
 - 未改 `H:\UltimaAI\_shared\queue\global-queue-index.md`。
 - 未改派发器 CLI 参数或 WIP 闸门规则。
 - 未真实调用 DeepSeek API；未把真实 `DEEPSEEK_API_KEY` 写入落盘文件。
-- 本轮 repair 未修改任何既有测试文件；只改 `pytest.ini` 与本报告。T1/T2/T4 文件为上轮已获绿灯的待提交实现。
-- 未隐藏失败、未新增 skip、未打 tag。
-- 精确提交只包含本工单实现、测试、`pytest.ini` 与本报告；不包含工作区其他工单的脏改动。
+- 本轮只修改 `tasks/queue_engine/receipt_contract.py`、`tests/test_receipt_contract.py` 与本报告；未触碰其他产品代码或测试。
+- 未隐藏失败、未新增 skip；本轮最终提交后仅按 Owner 明确授权打指定 annotated tag。
+- 本轮精确提交只包含回执实现、对应回归测试与本报告；不包含工作区其他工单的脏改动。
 
 ## 5. 遗留项
 
-1. T4 需精确解析工单 ID 与当前终态，令显式/矛盾 BLOCKED 优先 fail-closed；并在集合成员判断前验证 `status` 为字符串。应补“历史 PASS + 当前 BLOCKED”“相似工单号”“`status` 非字符串”回归。
-2. `tests/test_receipt_contract.py` 当前依赖未跟踪的现场 run 回执；后续修复应加入脱敏、可跟踪 fixture，避免干净 checkout 不可复现。
-3. Tn 根目录全量门仍有 28 failed，WO-ORB-W7 当前只能回执 `BLOCKED`，不得写“完成”。
-4. 28 项失败应按上述四个失败簇另行建立诊断/修复工单；本单不越界修复。
-5. ⑦ DeepSeek 独立审计尚未执行，因此不打 tag。
+1. `tests/test_receipt_contract.py` 当前依赖未跟踪的现场 run 回执；后续可另单加入脱敏、可跟踪 fixture，避免干净 checkout 不可复现。
+2. 28 项全量门失败按已核实结论属于 KWS 缺依赖、派发与队列生命周期、Ultima Bus、推理入口四类仓库既有债；本轮不修、不 ignore、不 skip。
+3. 上轮全量门结果已固化，本轮按明确要求不重复运行 580 秒级全量门；数字来源仍为上轮 run：1143 collected / 1115 passed / 28 failed / 0 skipped / 0 collection errors / 581.17s。
 
 ## 6. T0 必读出处
 
@@ -113,3 +106,23 @@
 4. `docs/plans/dispatch-rules-v0.2-20261108.md`：八环节判据、打回四级、§13 试跑结论。
 5. `docs/reports/wo-orb-w6-oversight-20261108.md` 第七节。
 6. `tasks/queue/wo-orb-w7.md` 与三张 W7 任务卡磁盘最新版。
+
+## 7. T4 加固（2026-11-09）
+
+### 7.1 修复前后行为
+
+| 场景 | 修复前 | 修复后 |
+|---|---|---|
+| JSON `status=[]` + 有效 evidence + `exit_code=0` | 集合成员判断抛 `TypeError: unhashable type: 'list'`，派发器调用处无兜底 | `blocked, valid=False`，不抛异常 |
+| JSON `status={}` + 有效 evidence + `exit_code=0` | 集合成员判断抛 `TypeError: unhashable type: 'dict'` | `blocked, valid=False`，不抛异常 |
+| 请求工单 `wo-orb-w7`，文本仅含 `wo-orb-w7x` + READY + 自检 PASS | 裸子串命中并误判 `audit` | 完整工单号边界不匹配，返回 `blocked, valid=False` |
+
+实现保持最小：结构化回执在读取 `status` 后先做 `isinstance(status, str)`；文本回执使用 `(?<![\w-])<escaped-order>(?![\w-])` 边界。JSON `work_order` 精确比较、BLOCKED/READY 状态语义和未知格式 fail-closed 行为均未放宽。
+
+### 7.2 回归用例与专项门
+
+- 新增参数化回归 `test_non_string_structured_status_remains_fail_closed`，覆盖 `[]` 与 `{}`。
+- 新增 `test_text_receipt_requires_complete_work_order_boundary`，覆盖 `wo-orb-w7x` 不得匹配 `wo-orb-w7`。
+- 修复前定向复现：3 failed（两个 `TypeError` + 一个 `audit != blocked`）。
+- 修复后回执测试：9 passed。
+- 最终专项门：33 passed；未真实调用 DeepSeek API。

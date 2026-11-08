@@ -25,6 +25,8 @@ def _classify_structured(
     if not isinstance(receipt, dict) or receipt.get("work_order") != work_order:
         return INVALID_RECEIPT
     status = receipt.get("status")
+    if not isinstance(status, str):
+        return INVALID_RECEIPT
     if status == "BLOCKED":
         return ReceiptDecision(state="blocked", valid=True, format="json")
     evidence = receipt.get("evidence")
@@ -45,7 +47,7 @@ def _classify_structured(
 
 
 def _classify_text(text: str, *, work_order: str, exit_code: int) -> ReceiptDecision:
-    if work_order not in text:
+    if not re.search(rf"(?<![\w-]){re.escape(work_order)}(?![\w-])", text):
         return INVALID_RECEIPT
     blocked = re.search(
         r"(?:当前状态|完成状态)\s*[：:]?[^\r\n]{0,120}\bBLOCKED\b",

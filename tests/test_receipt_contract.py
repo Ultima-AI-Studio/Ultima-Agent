@@ -95,3 +95,47 @@ def test_existing_structured_ready_for_review_contract_stays_supported(
 
     assert decision.state == "audit"
     assert decision.valid is True
+
+
+@pytest.mark.parametrize("status", [[], {}])
+def test_non_string_structured_status_remains_fail_closed(
+    status: object, tmp_path: Path
+) -> None:
+    classify_receipt_path = _classifier()
+    evidence = tmp_path / "evidence.txt"
+    evidence.write_text("fresh proof", encoding="utf-8")
+    receipt = tmp_path / "final.json"
+    receipt.write_text(
+        json.dumps(
+            {
+                "work_order": "wo-orb-w7",
+                "status": status,
+                "evidence": [str(evidence)],
+                "landed_files": [],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    decision = classify_receipt_path(
+        receipt, work_order="wo-orb-w7", exit_code=0
+    )
+
+    assert decision.state == "blocked"
+    assert decision.valid is False
+
+
+def test_text_receipt_requires_complete_work_order_boundary(tmp_path: Path) -> None:
+    classify_receipt_path = _classifier()
+    receipt = tmp_path / "final.json"
+    receipt.write_text(
+        "工单 wo-orb-w7x\n完成状态：READY_FOR_REVIEW\n自检 PASS",
+        encoding="utf-8",
+    )
+
+    decision = classify_receipt_path(
+        receipt, work_order="wo-orb-w7", exit_code=0
+    )
+
+    assert decision.state == "blocked"
+    assert decision.valid is False
