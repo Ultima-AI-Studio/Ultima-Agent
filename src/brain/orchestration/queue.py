@@ -20,13 +20,16 @@ from collections import Counter, defaultdict
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import Any, Optional
+from typing import TYPE_CHECKING, Any, Optional
 
 try:
     from ..events import emit_event
 except ImportError:  # pragma: no cover - 顶层 orchestration 的既有兼容入口
     from events import emit_event
-from ..guardrails.paradigm import ParadigmGate, FLOW_RINGS
+from .ledger.registrar import LedgerRegistrar, RegisterResult
+
+if TYPE_CHECKING:
+    from ..guardrails.paradigm import ParadigmGate
 
 PHASES = ("立项", "排队", "派发", "执行", "自检", "审计", "回执")
 SHANGHAI_TZ = timezone(timedelta(hours=8))
@@ -63,12 +66,15 @@ class GlobalQueueRegistrar:
         path: str | Path = DEFAULT_GLOBAL_QUEUE_PATH,
         *,
         allowed_root: str | Path | None = None,
+        ledger_registrar: LedgerRegistrar | None = None,
     ) -> None:
         self.path = Path(path).resolve()
         root = Path(allowed_root).resolve() if allowed_root is not None else DEFAULT_GLOBAL_QUEUE_PATH.parent.resolve()
         if self.path != root and root not in self.path.parents:
             raise OrchestratorError(f"全局主表路径越界 {self.path}")
         self.allowed_root = root
+        self.ledger_registrar = ledger_registrar
+        self.last_ledger_result = RegisterResult("ok", "ledger registrar not configured")
 
     @staticmethod
     def project_name(project_key: str) -> str:
@@ -159,10 +165,27 @@ class GlobalQueueRegistrar:
             updated_body = self._item_lines(updated)[1]
             updated = self._replace_summary(updated, self._parse_items(updated_body))
             self.path.write_text(updated, encoding="utf-8")
-            return True
         except (OSError, OrchestratorError) as exc:
             LOGGER.warning("全局队列主表写回失败 %s: %s", self.path, exc)
             return False
+        self._record_ledger(task)
+        return True
+
+    def _record_ledger(self, task: "TaskRecord") -> None:
+        if self.ledger_registrar is None:
+            self.last_ledger_result = RegisterResult("ok", "ledger registrar not configured")
+            return
+        try:
+            result = self.ledger_registrar.register(task)
+        except Exception as exc:  # noqa: BLE001 - ledger must never block dispatch
+            result = RegisterResult("degraded", f"{type(exc).__name__}: {exc}")
+        self.last_ledger_result = result
+        if result.status == "degraded":
+            LOGGER.warning(
+                "ledger registration degraded for %s: %s",
+                task.task_id,
+                result.reason,
+            )
 
     def check_wip(
         self,
@@ -446,10 +469,16 @@ class TaskQueue:
 class SevenRingCheck:
     """7 环范式前置检查串接（复用 L10 ParadigmGate）。"""
 
-    def __init__(self, gate: Optional[ParadigmGate] = None) -> None:
-        self._gate = gate or ParadigmGate()
+    def __init__(self, gate: Optional["ParadigmGate"] = None) -> None:
+        if gate is None:
+            from ..guardrails.paradigm import ParadigmGate
+
+            gate = ParadigmGate()
+        self._gate = gate
 
     def pre_dispatch(self, task_id: str, target: str) -> dict[str, Any]:
+        from ..guardrails.paradigm import FLOW_RINGS
+
         decision = self._gate.assert_complete(task_id, target=target)
         return {"allowed": decision.allowed, "completed": decision.completed,
                 "missing": None if decision.completed else FLOW_RINGS[len(decision.passed_rings)]}

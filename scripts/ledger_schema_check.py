@@ -211,14 +211,19 @@ def extract_schema(source: str) -> dict[str, dict[str, Any]]:
 FROZEN_CORE = extract_schema(CORE_SCHEMA_SQL)
 
 
-def compare_core(actual: dict[str, dict[str, Any]]) -> list[dict[str, Any]]:
+def compare_schema(
+    actual: dict[str, dict[str, Any]],
+    expected: dict[str, dict[str, Any]],
+) -> list[dict[str, Any]]:
     differences: list[dict[str, Any]] = []
-    for table, expected in FROZEN_CORE.items():
+    for table, expected_table in expected.items():
         observed = actual.get(table)
         if observed is None:
             differences.append({"table": table, "kind": "missing_table"})
             continue
-        expected_columns = {column["name"]: column["definition"] for column in expected["columns"]}
+        expected_columns = {
+            column["name"]: column["definition"] for column in expected_table["columns"]
+        }
         observed_columns = {column["name"]: column["definition"] for column in observed["columns"]}
         for name in sorted(expected_columns.keys() | observed_columns.keys()):
             if name not in observed_columns:
@@ -235,16 +240,20 @@ def compare_core(actual: dict[str, dict[str, Any]]) -> list[dict[str, Any]]:
                         "actual": observed_columns[name],
                     }
                 )
-        if observed["constraints"] != expected["constraints"]:
+        if observed["constraints"] != expected_table["constraints"]:
             differences.append(
                 {
                     "table": table,
                     "kind": "constraints_mismatch",
-                    "expected": expected["constraints"],
+                    "expected": expected_table["constraints"],
                     "actual": observed["constraints"],
                 }
             )
     return differences
+
+
+def compare_core(actual: dict[str, dict[str, Any]]) -> list[dict[str, Any]]:
+    return compare_schema(actual, FROZEN_CORE)
 
 
 def _manager_revision(store_path: Path) -> str | None:
@@ -260,13 +269,18 @@ def _manager_revision(store_path: Path) -> str | None:
     return completed.stdout.strip() or None
 
 
-def build_report(store_path: Path) -> dict[str, Any]:
+def build_report(
+    store_path: Path,
+    contract_schema: dict[str, dict[str, Any]] | None = None,
+) -> dict[str, Any]:
     source_bytes = store_path.read_bytes()
     actual = extract_schema(source_bytes.decode("utf-8"))
-    differences = compare_core(actual)
+    contract = actual if contract_schema is None else contract_schema
+    differences = compare_schema(actual, contract)
+    core_differences = compare_core(actual)
     missing_tables = [name for name in EXPECTED_TABLES if name not in actual]
     unexpected_tables = [name for name in actual if name not in EXPECTED_TABLES]
-    passed = not differences and not missing_tables and not unexpected_tables
+    passed = not differences and not core_differences and not missing_tables and not unexpected_tables
     return {
         "work_order": "wo-ultimaagent-20261108-0030",
         "gate": "T0",
@@ -287,7 +301,15 @@ def build_report(store_path: Path) -> dict[str, Any]:
         "core_field_counts": {name: len(actual[name]["columns"]) for name in FROZEN_CORE if name in actual},
         "difference_count": len(differences),
         "differences": differences,
-        "schema": actual,
+        "core_difference_count": len(core_differences),
+        "core_differences": core_differences,
+        "non_core_difference_count": sum(
+            difference.get("table") not in FROZEN_CORE for difference in differences
+        ),
+        "observed_schema_sha256": hashlib.sha256(
+            json.dumps(actual, ensure_ascii=False, sort_keys=True).encode("utf-8")
+        ).hexdigest(),
+        "contract_schema": contract,
     }
 
 
@@ -297,12 +319,24 @@ def main() -> int:
     parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT)
     args = parser.parse_args()
 
-    report = build_report(args.manager_store)
+    contract_schema = None
+    if args.output.is_file():
+        try:
+            previous = json.loads(args.output.read_text(encoding="utf-8"))
+            contract_schema = previous.get("contract_schema") or previous.get("schema")
+        except (OSError, json.JSONDecodeError, TypeError):
+            contract_schema = None
+    report = build_report(args.manager_store, contract_schema)
     args.output.parent.mkdir(parents=True, exist_ok=True)
-    args.output.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    args.output.write_text(
+        json.dumps(report, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+        newline="\n",
+    )
     print(
         f"{report['actual_table_count']} tables; "
-        f"{report['difference_count']} differences; {report['status']}"
+        f"{report['difference_count']} differences "
+        f"(core {report['core_difference_count']}); {report['status']}"
     )
     print(args.output.resolve())
     return 0 if report["status"] == "PASS" else 1
