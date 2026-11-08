@@ -63,16 +63,32 @@ def _sha(path: Path) -> str:
 
 
 def _write_run(run_dir: Path, cli, work_order: str = "wo-t",
-               card: Path | None = None, tamper: dict | None = None) -> None:
+               card: Path | None = None, tamper: dict | None = None,
+               extra_cards: list[dict] | None = None) -> None:
     """Build a run the gate should accept, by running the checks for real.
 
     The earlier version hand-wrote ``verified: true``, which is exactly the forgery
     the gate now refuses: it re-runs the checks itself, so a hand-written verdict
     is caught rather than believed.
+    ``card`` is the *content* of the card: the fixture always places it where the
+    dispatcher would, because freeze recomputes that path from the order.
     """
+    card_arg = card
     run_dir.mkdir(parents=True, exist_ok=True)
 
+    # The order points at a card by table row, and the dispatcher resolves it under
+    # tasks/cards. Freeze now recomputes that set from the order, so the fixture has
+    # to build the real layout rather than a card somewhere convenient.
+    card_id = "orb-w1-t"
     order_path = cli.ROOT / "tasks/queue" / f"{work_order}.md"
+    card_dir = cli.ROOT / "tasks/cards" / card_id
+    card_dir.mkdir(parents=True, exist_ok=True)
+    card = card_dir / "task.md"
+    card_text = "| ACC-1 | a.txt exists | ok |\n"
+    if card_arg is not None:
+        card_text = card_arg.read_text(encoding="utf-8-sig")
+    card.write_text(card_text, encoding="utf-8")
+
     if not order_path.is_file():
         order_path.parent.mkdir(parents=True, exist_ok=True)
         manifest = {"files": ["a.txt"],
@@ -80,19 +96,21 @@ def _write_run(run_dir: Path, cli, work_order: str = "wo-t",
                     "commands": []}
         order_path.write_text(
             "# t\n\n<!-- gorch-manifest\n" + json.dumps(manifest) + "\n-->\n\n"
+            f"| T1 {card_id} | a.txt | ACC-1 |\n\n"
             "**文件**：`a.txt`\n\n**验收（Gate T1）**\n- ACC-1 `a.txt` 存在且非空\n",
             encoding="utf-8")
-
-    if card is None:
-        card = run_dir / "card.md"
-        card.write_text("| ACC-1 | a.txt exists | ok |\n", encoding="utf-8")
+    elif f"| T1 {card_id} |" not in order_path.read_text(encoding="utf-8-sig"):
+        order_path.write_text(
+            order_path.read_text(encoding="utf-8-sig").replace(
+                "**文件**：", f"| T1 {card_id} | a.txt | ACC-1 |\n\n**文件**："),
+            encoding="utf-8")
 
     done = {"work_order": work_order, "run_id": run_dir.name,
             # The card is fixed at dispatch, and freeze compares the audited card
             # against this hash rather than against whatever it is handed.
             "card": str(card), "card_sha256": _sha(card),
             # Every card the order names is fixed at dispatch, not only the audited one.
-            "cards": [{"path": str(card), "sha256": _sha(card)}],
+            "cards": ([{"path": str(card), "sha256": _sha(card)}] + (extra_cards or [])),
             "exit_code": 0, "receipt_valid": True, "state": "audit",
             "audit_slot_busy": False, "parent_lost": False,
             "base_sha": _git(cli, "rev-parse", "HEAD~1"),
@@ -200,7 +218,9 @@ def test_a_card_edited_after_the_audit_is_refused(tmp_path, repo, cli):
     card.write_text("| ACC-1 | x | y |\n", encoding="utf-8")
     run = tmp_path / "run"
     _write_run(run, cli, card=card)
-    card.write_text("| ACC-1 | relaxed criterion | y |\n", encoding="utf-8")
+    # The card the order points at, i.e. the one the audit actually read.
+    (cli.ROOT / "tasks/cards/orb-w1-t/task.md").write_text(
+        "| ACC-1 | relaxed criterion | y |\n", encoding="utf-8")
 
     code = cli.main(["--work-order", "wo-t", "--run-dir", str(run)])
     assert code == 2
@@ -343,17 +363,39 @@ def test_a_secondary_card_changed_after_dispatch_blocks_the_freeze(tmp_path, rep
     """An order may name several cards. Only the audited one is compared by content;
     every other one is fixed by its dispatch hash."""
 
-    other = tmp_path / "other-card.md"
+    # Second card, in the layout the dispatcher uses, referenced by the order.
+    other_id = "orb-w2-x"
+    other = cli.ROOT / "tasks/cards" / other_id / "task.md"
+    other.parent.mkdir(parents=True, exist_ok=True)
     other.write_text("| ACC-9 | unrelated | ok |\n", encoding="utf-8")
     dispatched = _sha(other)
-    other.write_text("| ACC-9 | swapped after dispatch | ok |\n", encoding="utf-8")
 
     card = tmp_path / "card.md"
     card.write_text("| ACC-1 | a.txt exists | ok |\n", encoding="utf-8")
     run = tmp_path / "run"
     _write_run(run, cli, card=card,
-               tamper={"cards": [{"path": str(card), "sha256": _sha(card)},
-                                 {"path": str(other), "sha256": dispatched}]})
+               extra_cards=[{"path": str(other), "sha256": dispatched}])
+
+    # The order named it, then the card changed under the same path.
+    order = cli.ROOT / "tasks/queue" / "wo-t.md"
+    order.write_text(order.read_text(encoding="utf-8-sig").replace(
+        "| T1 orb-w1-t | a.txt | ACC-1 |",
+        f"| T1 orb-w1-t | a.txt | ACC-1 |\n| T2 {other_id} | a.txt | ACC-9 |"),
+        encoding="utf-8")
+    other.write_text("| ACC-9 | swapped after dispatch | ok |\n", encoding="utf-8")
+
+    code = cli.main(["--work-order", "wo-t", "--run-dir", str(run)])
+    assert code == 2
+    assert _git(cli, "tag", "--list", "wo-t-freeze-*") == ""
+
+
+def test_a_receipt_that_names_none_of_the_orders_cards_blocks_the_freeze(tmp_path, repo, cli):
+    """An old receipt carries no ``cards`` at all. The loop used to skip it entirely."""
+
+    card = tmp_path / "card.md"
+    card.write_text("| ACC-1 | a.txt exists | ok |\n", encoding="utf-8")
+    run = tmp_path / "run"
+    _write_run(run, cli, card=card, tamper={"cards": []})
 
     code = cli.main(["--work-order", "wo-t", "--run-dir", str(run)])
     assert code == 2

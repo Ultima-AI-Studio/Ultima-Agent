@@ -366,7 +366,16 @@ def main(argv: Sequence[str] | None = None) -> int:
     # The audit must judge every gate the card declares, not the subset it chose to
     # report. Dropping ACC-2..ACC-5 while leaving ACC-1 PASS kept every recorded
     # value internally consistent and still frozen.
-    gate_ids = set(re.findall(r"ACC-\d+", card_text))
+    # Same parser as the audit uses (``| ACC-n | criterion | how |``), so a card that
+    # mentions a gate in prose — "范围：不做 ACC-4" — is not counted as one the audit
+    # owes a verdict on. Matching the whole text instead refused such cards.
+    gate_ids = set()
+    for line in card_text.splitlines():
+        if not line.startswith("|"):
+            continue
+        cells = [c.strip() for c in line.strip().strip("|").split("|")]
+        if cells and re.fullmatch(r"ACC-\d+", cells[0]):
+            gate_ids.add(cells[0])
     declared_gates = set(str(k) for k in (audit.get("gates") or {}))
     r1 = set(str(k) for k in ((audit.get("round1") or {}).get("per_gate") or {}))
     r2 = set(str(k) for k in ((audit.get("round2") or {}).get("per_gate") or {}))
@@ -376,17 +385,38 @@ def main(argv: Sequence[str] | None = None) -> int:
                        round1=sorted(r1), round2=sorted(r2))
 
     # Binding only the first card left the rest of a multi-card order free to change.
-    # Every card the dispatch recorded has to be the one that is here now.
+    # Every card the dispatch recorded has to be the one that is here now — and the
+    # record has to name every card the order references, not a subset of it. An
+    # empty or missing list used to skip the loop entirely, so an old receipt passed.
+    receipt_cards = receipt.get("cards") or []
+    if not receipt_cards:
+        return _refuse("done.json records no dispatched cards; a multi-card order "
+                       "cannot be verified from a receipt that names none")
+    order_cards = []
+    order_file = Path(ROOT) / "tasks" / "queue" / f"{args.work_order}.md"
+    try:
+        order_text = order_file.read_text(encoding="utf-8-sig")
+        order_cards = sorted(set(re.findall(
+            r"\| T\d+ (s1-[a-z0-9-]+|orb-w[0-9]-[a-z0-9-]+) \|", order_text)))
+    except (OSError, UnicodeError) as exc:
+        return _refuse(f"could not read the order to enumerate its cards: {exc}")
+    recorded_ids = sorted({Path(str(rec.get("path") or "")).parent.name
+                           for rec in receipt_cards})
+    if not order_cards:
+        return _refuse("the order references no card; nothing ties the run to an artifact")
+    if recorded_ids != order_cards:
+        return _refuse("the receipt does not name every card the order references",
+                       order=order_cards, receipt=recorded_ids)
+
     changed_cards = []
-    for rec in (receipt.get("cards") or []):
+    for rec in receipt_cards:
         path = Path(str(rec.get("path") or ""))
         now = _sha256_file(path) if path.is_file() else None
         if now != rec.get("sha256"):
-            changed_cards.append(path.name)
+            changed_cards.append(path.parent.name)
     if changed_cards:
         return _refuse("a card the order referenced changed after dispatch",
                        changed=changed_cards[:8])
-    receipt_cards = receipt.get("cards") or []
 
     evidence_meta = audit.get("evidence_meta") or []
     if not evidence_meta:

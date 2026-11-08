@@ -292,14 +292,35 @@ def _command_is_a_test_run(argv: list[str]) -> str:
         return f"{name} is not a python interpreter or pytest"
     # `-c` is also valid glued to its payload: `-cprint(1)`. Comparing against the
     # bare token let that form through, and the interpreter ran it before anything
-    # else on the line.
-    inline = [a for a in argv if a.startswith("-c") and not a.startswith("--")]
+    # else on the line. A bare `-c file.cfg` is pytest's config switch, refused below.
+    inline = [a for a in argv if a.startswith("-c") and a != "-c" and not a.startswith("--")]
     if inline:
         return f"{inline[0][:20]} runs inline source; a test run must not execute arbitrary code"
     if "-m" not in argv or "pytest" not in argv:
         return "python is only accepted as `-m pytest`"
     if argv.index("-m") + 1 >= len(argv) or argv[argv.index("-m") + 1] != "pytest":
         return "-m must be immediately followed by pytest"
+
+    # A clean checkout stops uncommitted *repository* content from reaching the run,
+    # but not arguments that point the run somewhere else or reload code into it.
+    for arg in argv[1:]:
+        stem = arg.split("=", 1)[0].lower()
+        if stem in ("-p", "--rootdir", "--confcutdir", "-c", "--import-mode", "--plugins"):
+            return f"{stem} changes what pytest loads or where it collects"
+        if stem in ("-o", "--override-ini"):
+            value = arg.split("=", 1)[1].strip() if "=" in arg else ""
+            if value:                       # only `-o addopts=` (clearing the default) is allowed
+                return f"{stem} overrides pytest configuration"
+
+    # Every path in the command must live inside the checkout it runs in; an absolute
+    # path or a `..` reach is content the commit does not contain.
+    for arg in argv[1:]:
+        if arg.startswith("-"):
+            continue
+        if re.match(r"^[A-Za-z]:", arg) or arg.startswith(("/", "\\")):
+            return f"{arg[:40]} points outside the checkout"
+        if ".." in Path(arg).parts:
+            return f"{arg[:40]} escapes the checkout"
     return ""
 
 
@@ -317,7 +338,32 @@ def _clean_env() -> dict:
     env["PYTHONHOME"] = ""
     env["PYTEST_DISABLE_PLUGIN_AUTOLOAD"] = "1"
     env["PYTHONDONTWRITEBYTECODE"] = "1"
+    # User site-packages is outside the commit and would be imported before it.
+    env["PYTHONNOUSERSITE"] = "1"
+    # Dropping PYTHONUTF8 made every subprocess fall back to the machine's ANSI code
+    # page, which is a different failure (a Windows-only decode error) rather than a
+    # cleaner test environment.
+    env["PYTHONUTF8"] = "1"
+    env["PYTHONIOENCODING"] = "utf-8"
     return env
+
+
+def _pin_runner(argv: list[str]) -> list[str]:
+    """Replace argv[0] with its resolved absolute path.
+
+    The command runs with the checkout as its working directory, while the declared
+    text is written relative to the repository (for example
+    ``tools/venv-openjarvis/Scripts/python.exe``). Without pinning, the tool would be
+    looked up inside the checkout, where it does not exist.
+    """
+    if not argv:
+        return argv
+    raw = argv[0].strip('"')
+    exe = Path(raw)
+    if not exe.is_absolute():
+        candidate = Path(ROOT) / raw
+        exe = candidate if candidate.exists() else Path(shutil.which(raw) or raw)
+    return [str(exe)] + argv[1:]
 
 
 def _run_in_clean_worktree(sha: str, argv: list[str], timeout: int) -> tuple[object, str]:
@@ -335,9 +381,9 @@ def _run_in_clean_worktree(sha: str, argv: list[str], timeout: int) -> tuple[obj
         add = _git("worktree", "add", "--detach", str(worktree), sha)
         if add.returncode != 0:
             return None, f"could not create a clean checkout of {sha[:12]}: {(add.stderr or '')[:140]}"
-        proc = subprocess.run(argv, cwd=str(worktree), capture_output=True, text=True,
-                              encoding="utf-8", errors="replace", timeout=timeout,
-                              env=_clean_env())
+        proc = subprocess.run(_pin_runner(argv), cwd=str(worktree), capture_output=True,
+                              text=True, encoding="utf-8", errors="replace",
+                              timeout=timeout, env=_clean_env())
         return proc, ""
     finally:
         _git("worktree", "remove", "--force", str(worktree))
@@ -495,10 +541,19 @@ def verify(work_order: str, run_dir: Path) -> dict:
     add("parent_alive", done.get("parent_lost") is not True,
         f"parent_lost={done.get('parent_lost')}", "done.json:parent_lost")
 
-    end_sha = (done.get("end_sha") or done.get("base_sha") or "").strip()
-    add("receipt_bound_to_a_commit", bool(end_sha),
-        f"end_sha={end_sha[:12] or '(absent)'}" if end_sha
-        else "done.json names no commit; a green with unknown provenance cannot be trusted",
+    # The delivered commit, never the dispatch baseline. Falling back to base_sha
+    # meant a command could pass on the tree the work started from and fail on the
+    # tree being frozen, and the receipt would still say green. Existence is checked
+    # too: a well-formed hash names nothing if git cannot resolve it.
+    end_sha = (done.get("end_sha") or "").strip()
+    resolvable = False
+    if end_sha:
+        probe = _git("cat-file", "-e", f"{end_sha}^{{commit}}")
+        resolvable = probe.returncode == 0
+    add("receipt_bound_to_a_commit", bool(end_sha) and resolvable,
+        f"end_sha={end_sha[:12]}" if resolvable else
+        (f"end_sha={end_sha[:12]} is not a commit in this repository" if end_sha
+         else "done.json names no delivered commit; a green with unknown provenance cannot be trusted"),
         "done.json:end_sha")
 
     # The load-bearing check: is the tree being frozen the tree that was tested?
