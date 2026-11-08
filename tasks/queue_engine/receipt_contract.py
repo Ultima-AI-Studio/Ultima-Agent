@@ -59,7 +59,9 @@ def _classify_text(text: str, *, work_order: str, exit_code: int) -> ReceiptDeci
     audit_marker = re.search(
         r"\b(?:READY_FOR_DEEPSEEK_AUDIT|READY_FOR_REVIEW)\b", text
     )
-    selfcheck_pass = re.search(r"自检\s*PASS\b", text, re.IGNORECASE)
+    selfcheck_pass = re.search(
+        r"自检\s*[：:]?\s*(?:PASS|通过)", text, re.IGNORECASE
+    )
     if exit_code == 0 and audit_marker and selfcheck_pass:
         return ReceiptDecision(state="audit", valid=True, format="text")
     return INVALID_RECEIPT

@@ -125,7 +125,27 @@ def test_non_string_structured_status_remains_fail_closed(
     assert decision.valid is False
 
 
-def test_text_receipt_requires_complete_work_order_boundary(tmp_path: Path) -> None:
+@pytest.mark.parametrize("sep", ["", " ", "：", ":"])
+def test_text_receipt_accepts_fullwidth_colon_in_selfcheck(
+    sep: str, tmp_path: Path
+) -> None:
+    """回归：Codex 回执写「- 自检：PASS」（全角冒号），必须仍判 audit。
+
+    修复前该写法被判 INVALID_RECEIPT，导致「待审计」被落成 blocked。
+    """
+    classify_receipt_path = _classifier()
+    receipt = tmp_path / "final.json"
+    receipt.write_text(
+        f"工单 wo-orb-w7\n完成状态：`READY_FOR_DEEPSEEK_AUDIT`\n- 自检{sep}PASS",
+        encoding="utf-8",
+    )
+
+    decision = classify_receipt_path(
+        receipt, work_order="wo-orb-w7", exit_code=0
+    )
+
+    assert decision.state == "audit"
+    assert decision.valid is True
     classify_receipt_path = _classifier()
     receipt = tmp_path / "final.json"
     receipt.write_text(
