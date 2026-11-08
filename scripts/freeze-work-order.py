@@ -333,7 +333,36 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     stamp = datetime.now().strftime("%Y%m%d")
     tag = f"{args.work_order}-freeze-{stamp}"
-    message = args.message.strip() or f"{args.work_order} frozen: verified + audited at {verified_head[:12]}"
+    headline = args.message.strip() or f"{args.work_order} frozen: verified + audited at {verified_head[:12]}"
+
+    # The tag carries its own receipt. A hash recorded in a JSON file that lives in
+    # a run directory proves nothing once that directory is cleaned up, and card and
+    # evidence are generally outside the commit being tagged. Writing the reviewed
+    # material into the tag message makes the freeze reconstructable from the tag
+    # alone.
+    try:
+        card_text = Path(card_path).read_text(encoding="utf-8-sig")
+    except (OSError, UnicodeError) as exc:
+        return _refuse(f"could not read the card for the tag receipt: {exc}")
+    receipt = [
+        headline, "",
+        "── freeze receipt ──",
+        f"work_order: {args.work_order}",
+        f"run_id: {run_dir.name}",
+        f"head: {verified_head}",
+        f"tree_oid: {tree_now}",
+        f"verify_sha256: {verify_sha}",
+        f"done_sha256: {done_sha}",
+        f"audit_sha256: {_sha256_file(audit_path)}",
+        f"audit_rounds: {audit['round1'].get('overall')} / {audit['round2'].get('overall')} "
+        f"(model {audit['round1'].get('model')})",
+        f"card: {card_path} sha256={card_meta['sha256']}",
+        "evidence:",
+    ]
+    for meta in evidence_meta:
+        receipt.append(f"  {meta.get('path')} sha256={meta.get('sha256')} bytes={meta.get('bytes')}")
+    receipt += ["", "── card as reviewed ──", card_text]
+    message = "\n".join(receipt)
 
     try:
         # Read the state once more immediately before writing the ref. The checks
@@ -365,7 +394,14 @@ def main(argv: Sequence[str] | None = None) -> int:
             return _refuse("the tag resolved to a different commit; tag removed",
                            tagged=tagged[:12], expected=verified_head[:12])
         if args.push:
-            _git("push", "origin", tag)
+            # A tag that exists locally but not on the remote is a half-done freeze.
+            # Remove it and say so, rather than returning "blocked" while leaving a
+            # ref that the next run will find and trust.
+            try:
+                _git("push", "origin", tag)
+            except RuntimeError as exc:
+                _git("tag", "-d", tag)
+                return _refuse(f"push failed; the local tag was removed so no half-frozen state remains: {exc}")
     except RuntimeError as exc:
         return _refuse(str(exc))
 

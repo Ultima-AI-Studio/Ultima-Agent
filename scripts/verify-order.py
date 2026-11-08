@@ -216,6 +216,10 @@ def _declared_commands(order_path: Path) -> dict:
             in_section = True
             match = re.match(r"\*\*机检\*\*\s*[：:]\s*(.+)", line)
             if not match:
+                # A marker with no colon after it is still a declaration the order
+                # made. Skipping it let one well-formed command hide a broken one.
+                rejected.append((line[:60], "marker without a command"))
+                declared += 1
                 continue
             declared += 1
             cmd = match.group(1).strip().strip("`").strip()
@@ -255,8 +259,12 @@ def _command_is_a_test_run(argv: list[str]) -> str:
         return ""
     if not _TEST_RUNNER.search(argv[0]):
         return f"{name} is not a python interpreter or pytest"
-    if "-c" in argv:
-        return "-c runs inline source; a test run must not execute arbitrary code"
+    # `-c` is also valid glued to its payload: `-cprint(1)`. Comparing against the
+    # bare token let that form through, and the interpreter ran it before anything
+    # else on the line.
+    inline = [a for a in argv if a.startswith("-c") and not a.startswith("--")]
+    if inline:
+        return f"{inline[0][:20]} runs inline source; a test run must not execute arbitrary code"
     if "-m" not in argv or "pytest" not in argv:
         return "python is only accepted as `-m pytest`"
     if argv.index("-m") + 1 >= len(argv) or argv[argv.index("-m") + 1] != "pytest":
@@ -290,6 +298,46 @@ def manifest_drift(manifest: list[dict]) -> dict:
         elif current != recorded:
             drifted.append(path)
     return {"drifted": drifted, "vanished": vanished}
+
+
+def _manifest(order_path: Path) -> dict | None:
+    """The order's machine-readable block, or None when it carries none.
+
+    Prose parsing cannot tell "this order declares nothing" from "my regex missed it",
+    and those two outcomes have opposite consequences: the first should fail and the
+    second must not pass. A block the order writes itself removes that ambiguity.
+
+    Format, anywhere in the file:
+
+        <!-- gorch-manifest
+        {"files": ["path/a.md"], "commands": ["pytest -q tests/x.py"],
+         "acc": [{"id": "ACC-1", "check": "exists_nonempty", "path": "path/a.md"},
+                 {"id": "ACC-2", "check": "model"}]}
+        -->
+    """
+    try:
+        text = order_path.read_text(encoding="utf-8-sig")
+    except OSError:
+        return None
+    match = re.search(r"<!--\s*gorch-manifest\s*\n(.*?)\n\s*-->", text, re.DOTALL)
+    if not match:
+        return None
+    try:
+        data = json.loads(match.group(1))
+    except ValueError:
+        return {"error": "manifest is not valid JSON"}
+    if not isinstance(data, dict):
+        return {"error": "manifest is not an object"}
+    files = data.get("files")
+    acc = data.get("acc")
+    commands = data.get("commands", [])
+    if not isinstance(files, list) or not all(isinstance(f, str) and f.strip() for f in files):
+        return {"error": "manifest files must be a list of non-empty strings"}
+    if not isinstance(acc, list) or not all(isinstance(a, dict) and a.get("id") for a in acc):
+        return {"error": "manifest acc must be a list of {id, check} entries"}
+    if not isinstance(commands, list) or not all(isinstance(c, str) for c in commands):
+        return {"error": "manifest commands must be a list of strings"}
+    return {"files": [f.strip() for f in files], "acc": acc, "commands": commands}
 
 
 def _declared_files(order_path: Path) -> list[str]:
@@ -416,7 +464,24 @@ def verify(work_order: str, run_dir: Path) -> dict:
             "git rev-parse HEAD^{tree}; git status --porcelain -uno; sha256 of each recorded file")
 
     order_path = ROOT / "tasks/queue" / f"{work_order}.md"
-    declared = _declared_files(order_path)
+    order_manifest = _manifest(order_path)
+    if order_manifest is None:
+        # Prose parsing is a fallback, and a fallback is not a contract: it cannot
+        # distinguish "declares nothing" from "the regex missed it". Reported as
+        # its own failure so an order with no manifest never reads as verified.
+        add("order_manifest", False,
+            "the order carries no gorch-manifest block; declared files and machine "
+            "checks would be parsed out of prose", str(order_path))
+    elif order_manifest.get("error"):
+        add("order_manifest", False, order_manifest["error"], str(order_path))
+    else:
+        add("order_manifest", True,
+            f"{len(order_manifest['files'])} files, {len(order_manifest['acc'])} gates, "
+            f"{len(order_manifest['commands'])} commands declared in the manifest",
+            "<!-- gorch-manifest -->")
+
+    declared = (order_manifest.get("files") if order_manifest and not order_manifest.get("error")
+                else _declared_files(order_path))
     if not declared:
         add("declared_files_landed", False,
             "work order declares no file list; the delivered output cannot be located", str(order_path))
@@ -449,11 +514,40 @@ def verify(work_order: str, run_dir: Path) -> dict:
                     "so no delivery is demonstrated",
                     str(order_path))
 
+    # Untracked files inside the write scope defeat the whole point: a test helper,
+    # a config, or a generated file can take part in the run that produced the receipt
+    # and still be absent from the commit that gets frozen. Scoped to the declared
+    # paths rather than the repository — this tree holds hundreds of thousands of
+    # untracked evidence artifacts and a full scan takes minutes.
+    if declared:
+        others = _git("ls-files", "--others", "--exclude-standard", "--", *declared)
+        stray = [ln.strip() for ln in (others.stdout or "").splitlines() if ln.strip()]
+        add("no_untracked_in_write_scope", others.returncode == 0 and not stray,
+            "every declared file is tracked in git" if stray == []
+            else f"untracked inside the declared write scope: {stray[:8]}",
+            f"git ls-files --others --exclude-standard -- {' '.join(declared)[:120]}")
+
     # The order's own acceptance criteria, as far as they are mechanical. A gate
     # that says "the file exists and is not empty" is not a matter of opinion, and
-    # the reviewer's word for it was previously the only evidence.
-    criteria = _acceptance_lines(order_path) if order_path.is_file() else []
-    mechanical = _mechanical_checks(criteria)
+    # the reviewer's word for it was previously the only evidence. With a manifest
+    # the mechanical subset is declared rather than guessed; without one it is
+    # parsed from prose and the order is already failing on `order_manifest`.
+    if order_manifest and not order_manifest.get("error"):
+        mechanical = []
+        for entry in order_manifest["acc"]:
+            if str(entry.get("check") or "") != "exists_nonempty":
+                continue
+            path = str(entry.get("path") or "").strip()
+            target = ROOT / path if path else None
+            ok = bool(target and target.is_file() and target.stat().st_size > 0)
+            mechanical.append({"gate": str(entry["id"]), "check": "exists_nonempty",
+                               "path": path, "passed": ok,
+                               "bytes": target.stat().st_size if target and target.is_file() else 0,
+                               "detail": f"{path} {'exists and is not empty' if ok else 'missing or empty'}"})
+        criteria = order_manifest["acc"]
+    else:
+        criteria = _acceptance_lines(order_path) if order_path.is_file() else []
+        mechanical = _mechanical_checks(criteria)
     if mechanical:
         failed = [m for m in mechanical if not m["passed"]]
         add("declared_checks_pass", not failed,
@@ -464,8 +558,26 @@ def verify(work_order: str, run_dir: Path) -> dict:
     # A command the order explicitly marked for running. Absent means the order
     # asked for no execution, which is reported as such rather than assumed to be
     # a pass — "nobody asked me to run anything" is not "the tests passed".
-    plan = (_declared_commands(order_path) if order_path.is_file()
-            else {"commands": [], "declared": 0, "rejected": [], "section": False})
+    if order_manifest and not order_manifest.get("error"):
+        accepted, rejected = [], []
+        for cmd in order_manifest["commands"]:
+            if any(ch in cmd for ch in _METACHARS):
+                rejected.append((cmd, "shell metacharacter"))
+                continue
+            try:
+                argv = [a.strip('"') for a in shlex.split(cmd, posix=False)]
+            except ValueError:
+                rejected.append((cmd, "unparsable quoting"))
+                continue
+            verdict = _command_is_a_test_run(argv) if argv else "empty command"
+            (rejected.append((cmd, verdict)) if verdict else accepted.append(cmd))
+        plan = {"commands": accepted, "declared": len(order_manifest["commands"]),
+                # An empty manifest list is a declaration that there is nothing to
+                # run, not a section that failed to yield a command.
+                "rejected": rejected, "section": bool(order_manifest["commands"])}
+    else:
+        plan = (_declared_commands(order_path) if order_path.is_file()
+                else {"commands": [], "declared": 0, "rejected": [], "section": False})
     commands = plan["commands"]
 
     # Declared-but-unusable commands are a failure, not a silent drop. A parser that

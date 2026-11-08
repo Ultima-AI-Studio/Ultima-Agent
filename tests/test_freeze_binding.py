@@ -75,7 +75,11 @@ def _write_run(run_dir: Path, cli, work_order: str = "wo-t",
     order_path = cli.ROOT / "tasks/queue" / f"{work_order}.md"
     if not order_path.is_file():
         order_path.parent.mkdir(parents=True, exist_ok=True)
+        manifest = {"files": ["a.txt"],
+                    "acc": [{"id": "ACC-1", "check": "exists_nonempty", "path": "a.txt"}],
+                    "commands": []}
         order_path.write_text(
+            "# t\n\n<!-- gorch-manifest\n" + json.dumps(manifest) + "\n-->\n\n"
             "**文件**：`a.txt`\n\n**验收（Gate T1）**\n- ACC-1 `a.txt` 存在且非空\n",
             encoding="utf-8")
 
@@ -267,6 +271,24 @@ def test_an_audit_without_bindings_cannot_freeze(tmp_path, repo, cli):
     code = cli.main(["--work-order", "wo-t", "--run-dir", str(run)])
     assert code == 2
     assert not _git(cli, "tag", "--list", "wo-t-freeze-*")
+
+
+def test_the_tag_carries_the_receipt_it_was_frozen_on(tmp_path, repo, cli):
+    """The tag must be readable without the run directory that produced it."""
+
+    card = tmp_path / "card.md"
+    card.write_text("| ACC-1 | x | y |\n", encoding="utf-8")
+    run = tmp_path / "run"
+    _write_run(run, cli, card=card)
+
+    code = cli.main(["--work-order", "wo-t", "--run-dir", str(run)])
+    assert code == 0
+    tags = _git(cli, "tag", "--list", "wo-t-freeze-*")
+    body = _git(cli, "tag", "-l", "--format=%(contents)", tags)
+    assert "── freeze receipt ──" in body
+    assert "head: " in body
+    assert "card as reviewed" in body
+    assert "| ACC-1 | x | y |" in body
 
 
 def test_a_dirty_tree_cannot_be_frozen(tmp_path, repo, cli):

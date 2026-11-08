@@ -206,6 +206,11 @@ def per_gate(text: str, gate_ids: list[str]) -> dict[str, str]:
             result[gid] = "FAIL"
         elif len(set(seen)) > 1:
             result[gid] = "FAIL"
+        elif len(seen) != 1:
+            # Two PASS lines for one gate is not one verdict: the contract is
+            # exactly one per gate, and picking either of them leaves the reader
+            # unable to say which one the review stands on.
+            result[gid] = "AMBIGUOUS"
         else:
             result[gid] = "PASS"
     return result
@@ -256,7 +261,17 @@ def _parser() -> argparse.ArgumentParser:
 def main(argv: Sequence[str] | None = None) -> int:
     args = _parser().parse_args(argv)
     try:
-        gate_list = gates(_decode(Path(args.card).read_bytes()))
+        # The card is read once. Reading it again for the hash left a window where
+        # the checklist came from one version and the recorded digest, the prompt
+        # text and the frozen object came from another.
+        try:
+            card_bytes = Path(args.card).read_bytes()
+        except OSError as exc:
+            print(json.dumps({"blocked": True, "reason": f"unreadable card: {exc}"},
+                             ensure_ascii=False), file=sys.stderr)
+            return 2
+        card = _decode(card_bytes)
+        gate_list = gates(card)
         if not gate_list:
             print(json.dumps({"blocked": True,
                               "reason": "card lists no ACC gates; a checklist audit has nothing to judge"},
@@ -290,13 +305,6 @@ def main(argv: Sequence[str] | None = None) -> int:
             body = raw[:6000] + ("\n[INCOMPLETE: truncated for the reviewer's window]" if truncated else "")
             evidence_parts.append(f"## {Path(p).name}\n{body}")
 
-        try:
-            card_bytes = Path(args.card).read_bytes()
-        except OSError as exc:
-            print(json.dumps({"blocked": True, "reason": f"unreadable card: {exc}"},
-                             ensure_ascii=False), file=sys.stderr)
-            return 2
-        card = _decode(card_bytes)
         card_truncated = len(card) > 4000
         if card_truncated:
             incomplete.append(f"{Path(args.card).name} (card {len(card)} chars)")

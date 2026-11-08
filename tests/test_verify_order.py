@@ -91,10 +91,21 @@ def _done(run_dir: Path, work_order: str = "wo-x", **fields) -> Path:
 
 
 def _card(repo: Path, work_order: str, paths: list[str]) -> None:
-    """A minimal card declaring the files this order touches."""
+    """A minimal card: prose section plus the manifest the gate now requires.
+
+    The prose is kept because a real order still reads like an order; the manifest
+    is what verify actually trusts.
+    """
     card_dir = repo / "tasks" / "queue"
     card_dir.mkdir(parents=True, exist_ok=True)
-    body = "# t\n\n## 2. 任务明细\n\n### T1 · x\n**文件**：" + "、".join(f"`{p}`" for p in paths) + "\n"
+    manifest = {"files": paths,
+                "acc": [{"id": f"ACC-{i + 1}", "check": "exists_nonempty", "path": p}
+                        for i, p in enumerate(paths)],
+                "commands": []}
+    body = ("# t\n\n<!-- gorch-manifest\n"
+            + json.dumps(manifest, ensure_ascii=False)
+            + "\n-->\n\n## 2. 任务明细\n\n### T1 · x\n**文件**："
+            + "、".join(f"`{p}`" for p in paths) + "\n")
     (card_dir / f"{work_order}.md").write_text(body, encoding="utf-8")
 
 
@@ -321,6 +332,44 @@ def test_a_machine_check_line_that_cannot_be_parsed_fails(tmp_path, repo, cli):
           changed_files=snap["changed_files"])
     payload = cli.verify("wo-x", tmp_path)
     assert "declared_command_plan" in payload["blocking_failures"]
+
+
+def test_a_glued_inline_payload_is_refused(tmp_path, repo, cli):
+    """`-cprint(1)` is the same bypass as `-c print(1)`, glued into one token."""
+
+    import sys
+    _order(repo, f"**机检**：{sys.executable} -cprint(1) -m pytest\n")
+    snap = _snapshot(cli)
+    _done(tmp_path, base_sha=snap["end_sha"], end_sha=snap["end_sha"],
+          tree_oid=snap["tree_oid"], status_entries=snap["status_entries"],
+          changed_files=snap["changed_files"])
+    payload = cli.verify("wo-x", tmp_path)
+    assert "declared_command_plan" in payload["blocking_failures"]
+
+
+def test_a_marker_without_a_command_cannot_hide_beside_a_valid_one(tmp_path, repo, cli):
+    """A broken marker used to be skipped, so one good command covered for it."""
+
+    _order(repo, "**机检**：pytest -q a_missing_test.py\n**机检** pytest -q b_missing_test.py\n")
+    snap = _snapshot(cli)
+    _done(tmp_path, base_sha=snap["end_sha"], end_sha=snap["end_sha"],
+          tree_oid=snap["tree_oid"], status_entries=snap["status_entries"],
+          changed_files=snap["changed_files"])
+    payload = cli.verify("wo-x", tmp_path)
+    assert "declared_command_plan" in payload["blocking_failures"]
+
+
+def test_an_untracked_file_in_the_write_scope_fails(tmp_path, repo, cli):
+    """A file that took part in the run but is in no commit cannot be frozen."""
+
+    _card(repo, "wo-x", ["new.txt"])
+    (repo / "new.txt").write_text("delivered\n", encoding="utf-8")
+    snap = _snapshot(cli)
+    _done(tmp_path, base_sha=snap["end_sha"], end_sha=snap["end_sha"],
+          tree_oid=snap["tree_oid"], status_entries=snap["status_entries"],
+          changed_files=snap["changed_files"])
+    payload = cli.verify("wo-x", tmp_path)
+    assert "no_untracked_in_write_scope" in payload["blocking_failures"]
 
 
 def test_a_declared_file_without_a_dispatch_commit_does_not_pass(tmp_path, repo, cli):

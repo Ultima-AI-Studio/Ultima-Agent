@@ -106,6 +106,16 @@ def test_a_pass_without_evidence_is_not_a_pass():
     assert per_gate["ACC-1"] == "MISSING"
 
 
+def test_two_verdicts_for_one_gate_are_ambiguous_not_pass():
+    """Exactly one verdict per gate; two PASS lines leave no verdict to stand on."""
+
+    text = ("ACC-1: PASS - first evidence\nACC-1: PASS - second evidence\n"
+            "AUDIT: PASS")
+    ok, per_gate = _load()._round_passed(text, ["ACC-1"])
+    assert ok is False
+    assert per_gate["ACC-1"] == "AMBIGUOUS"
+
+
 def test_a_card_reusing_a_gate_id_is_rejected():
     """Two rows numbered ACC-2 let one verdict stand in for two criteria."""
 
