@@ -491,3 +491,42 @@
 - **规避**：① 任何标 100% 的条目，审计必须给出可复现取证命令与实测输出（端口 `Test-NetConnection`、进程 `Get-Process`、文件体积/条数、代码 grep 命中行）；② 端口类能力未监听一律判未完成，不能因「项目目录存在」而放行；③ 涉及「自动」二字的条目，必须指出具体自动化的触发点与脚本路径，指不出来的按人工处理降级；④ 区分「人工可用」与「系统自动可用」两档分别计分，自动化档位另立条目，不与流程档位混在一个百分比里。
 - **验收判据**：每条 100% 都附「取证命令 + 实测输出」；说不清采集来源的事实字段，页面必须标注「人工校准口径」。
 - **复发**：1
+
+## L61 队列引擎「三件套齐全」不等于「接通了」：状态机/依赖DAG/插队都在，但没有一条真实链路调用它（UltimaAgent · 2026-11-08）
+
+- **现象**：用户按目标架构追问「任务应在队列与交付之间形成闭环：合格打 tag、不合格标记问题后重审依赖再插回队列」，核对代码发现 `tasks\queue_engine\` 里能力其实齐备——`state_machine.py` 8 态迁移表含 `AUDIT→COMPLETED` 强制 `audit_passed`、`FAILED→QUEUED` 限 2 次重试后转 `BLOCKED`、`block_failed_dependents` 依赖失败自动冻结下游；`priority_deps.py` 有 `requeue_before` 插队、`validate_acyclic` 环检测、`dependency_gate` 依赖门。但真实派发从未经过它：引擎数据源是 `tasks.json`（46 条，`voice-01`/`s2-tool-extend` 等老卡 ID，其中 5 条状态值为 `TERMINATED`，根本不在 8 态枚举内），而实际派发走 `tasks\queue\wo-*.md` 卡 + 手改 `global-queue-index.md` + 手工起 codex 进程。引擎实例化点只在 `cli.py`/`audit.py`/`dispatcher.py` 内部及一个自测脚本，没有一个被真实派发脚本调用。
+- **根因**：能力建设与链路接线是两件事，被当成了一件。代码写完后从未有一次真实工单走过 `QUEUED→EXECUTING→SELF-CHECK→AUDIT→COMPLETED`，于是没人发现数据源格式（Markdown 卡 vs tasks.json）、状态命名（8 态 vs TERMINATED 等历史值）、派发入口（cli vs 手写 dispatch 脚本）三处全部对不上。叠加结果：看板上的「有序」由主脑人工模拟，闭环的最后一环比初判完整：`audit.py:243 RecoveryManager.create_correction` 已实现「FAILED/BLOCKED → 派生 `{root}~r{N}` 修正子卡 → 挂进原卡 dependsOn → 原卡等子卡审计通过才重验」，并清空历史 ACCEPT、不覆盖旧卡、retryCount≥2 拒建（比原地重放严谨得多）。但它同样只认 `tasks\cards\` 老卡格式（要求卡内含 `**task_id**：` 与 `## dependsOn[]` 章节），未接 `wo-*.md`；且它只修单卡，不重排其他工单的依赖——「重审依赖关系」这一步依旧空白。另：`fileDomain` 字段与 `_all_paths_in_domain` 守界审计已在，但缺「两个并行任务 fileDomain 重叠」的前置判定。
+- **规避**：① 判断某能力「已实现」必须同时验证三层：代码存在、**实例化点被真实入口调用**、**数据源格式与状态取值能对上**，任一断裂即判「未接线」，不得计入完成度；② 引擎与 `wo-*.md` 之间必须先有适配层（0031 的 schema + validator 正是前置），接通前不得对外宣称「队列自动化」；③ 审计失败的闭环要单独立项设计「返修工单生成 + 依赖重排 + 插队」，不能拿 `retryCount` 原地重放冒充；④ 索引里出现枚举外状态值即视为跨体系污染，先做状态映射再谈迁移。
+- **验收判据**：`tasks.json` 中 `wo-` 前缀占比、全部状态值落在 8 态枚举内、派发脚本里能 grep 到 `QueueStorage`/`QueuePlanner` 调用行、且至少一张真实工单留下完整 `events/<task_id>.jsonl` 迁移链。
+- **复发**：1
+
+### L62 · 看板对「已冻结但无 final-message」的工单永久误报中断（2026-11-08）
+
+- **现象**：0031 打上冻结 tag、主表改 frozen 之后，看板焦点框仍显示「中断 · 无 final-message」，elapsed 从派发时刻持续增长（57 分钟 → 1 小时 2 分钟），越看越像还在跑。
+- **根因**：`scripts/tracker-live.py` 的 `decide()` 只有三档判定（存活=运行中 / 不存活有 final=已结束 / 不存活无 final=中断），没有把主表状态纳入。工单靠「打 tag + 改主表」收口、日志里没有 final-message 时，必然落进中断档；elapsed 用 `now - dispatch_ts` 计算，没有封顶。
+- **规避**：`decide()` 增加主表状态查询 `queue_state()`，`frozen/completed/done` 判「已完成 · 已冻结」，elapsed 改用最后一条日志的 mtime 当结束时刻。
+- **复发标记**：1 次。同类风险：任何「结束状态写在别处、日志里没有收尾记录」的工单都会撞这条。
+
+## L63 公共账本 fail-closed 是「正确的错误」：主表一个自造状态词就能打断全项目派发（UltimaAgent · 2026-11-08）
+
+- **现象**：5 次派发中 2 次在启动 40 秒内被打断，run 目录只落 `before.json`/`prompt.txt`/`registry-*`、无 codex 进程，而主表该单已被写成 `executing`（假执行中）。3 小时内同一位置出现 3 个不同自造状态词：`proposal-pending-gate`、`arch-review-approved`，连工单号都被改成 `wo-ultimasentinel-*`。写者实为 `H:\UltimaAI\UltimaSentinel` 项目的 codex exec（PID 28720）在跑自己的 pipeline 测试时写入。
+- **根因**：`queue-status-gen.py` 把 `STATES` 锁死为 6 态，遇其他任何词 `raise ValueError` 退出 1；而它是 `dispatch-work-order.py` 的硬前置且不捕获 → 任何一个项目往公共主表写自己的状态词，全项目派发全部失效。这是**公共池子 + 单一权威判据**的结构性错配：账本没有写入门，读出端却按最严标准 fail-closed。
+- **规避**：① 判「主表打断」不要只看 status-gen 报错文案（它把「重复」和「非法」合并成一句），必须独立扫描区分：重复 `(project,wid)` 才是真损坏，未知状态词只是语义外溢；② 派发前先跑一次 `queue-status-gen.py` + 独立扫描双确认，不能只信 dry-run `ready:true`（dry-run 会过，execute 才调 status-gen）；③ 抢修数据用 `read_bytes().decode()` 分行，`Path.read_text()` 的 universal newlines 会把 CRLF 吞成 LF 让整文件变一行，导致修复脚本静默「无可修复项」；④ 机制修法二选一（宽进严出加 unknown 分组 / 约束写入方只写 6 态）属标准变更，需 Owner 拍板，抢修只做数据归一。
+- **验收判据**：主表 150 条 / 唯一 150 / 0 重复 / 0 非法；`queue-status-gen.py` 退出 0；派发后 run 目录内出现 `out.jsonl` 增长 + codex 进程存活。
+- **复发**：3
+
+## L64 回执判读的三个静默洞：短路掩盖 TypeError、裸子串串单、全角冒号吃掉「待审计」（UltimaAgent · 2026-11-08）
+
+- **现象**：`done.json` 连续写 `receipt_valid:false, state:blocked`，而 Codex 回执明确是 `READY_FOR_DEEPSEEK_AUDIT`。逐层复现出三个洞：① `status in {…}` 在 status 为 list 时抛 `unhashable type: 'list'`，但被 `valid_payload` 短路掩盖，只在 evidence 有效时暴露，而派发器调用处**无 try/except**，真触发会打崩派发器；② `if work_order not in text` 裸子串，`wo-orb-w7` 命中 `wo-orb-w7x`；③ 自检判据写 `自检\s*PASS`，而回执实际是 `- 自检：PASS`（全角冒号），正则不认 → 整个回执判 invalid → 待审计落 blocked。
+- **根因**：回执契约用「弱信号叠加」（工单号出现 + READY 词 + 自检 PASS）代替「结构化字段判定」，且正则按半角标点写死。中文回执的全角标点是常态，任何 `\s*` 连接都会被冒号打断。
+- **规避**：① 类型不可信字段先 `isinstance` 收口再进集合判断，不能靠短路侥幸；② 工单号匹配一律加 `(?<![\w-])…(?![\w-])` 边界；③ 中文语境的固定词判据必须容忍 `[：:]`，`自检\s*[：:]?\s*(?:PASS|通过)`；④ 验证回执契约必须用**真实历史回执**做正反样本（待审计/BLOCKED 各一份），合成样本会漏掉真实排版差异。
+- **验收判据**：三份真实 final.json 判读正确（w6 待审计→audit、w6 BLOCKED→blocked、w7 READY→audit）；`status=[]`/`{}` 落 `blocked,valid=False` 且不抛异常；`wo-orb-w7x` 不得判成功。
+- **复发**：1
+
+## L65 「全量」在这个仓库没有定义：根递归收进外部源码与证据快照，14028 errors（UltimaAgent · 2026-11-08）
+
+- **现象**：Codex 首轮按工单跑根目录全量，`collection errors=14028`、耗时 1997.14s 后失败，`passed=0`。而按白名单口径 `tests src scripts tasks execution` 只有 **1143 tests collected in 8.51s**。
+- **根因**：仓库顶层是混合体——`libs`（外部库）、`legacy-topo`（历史工程）、`data`（证据快照，同名测试触发 `import file mismatch`）、`docs/research/sources`（研究源码）、`tools/*/source`（上游源码）与自有代码同级。没有 `pytest.ini` 时 pytest 一律根递归，把别人的测试当成自己的。
+- **规避**：① 「全量」必须写成显式目录白名单 `testpaths`，不能默认根递归；② 定口径前先数 `test_*.py` 分布（`src` 93 / `tasks` 9 / `scripts` 3 / `tests` 5 / `execution` 1），再决定白名单，不要凭「tests/ 只有几个文件」推断覆盖范围；③ 收窄作用域前先判断是否只剩自测——本仓库 `tests/` 只有 5 个文件全是近期新写，若 `testpaths=tests` 就等于自测门零回归，必须带上 `src`；④ 排除历史备份用引号包 `"Topo Backup"`。
+- **验收判据**：根目录无位置参数执行，`collection errors=0`，收集量约 1143，耗时 10 秒级。
+- **复发**：1
