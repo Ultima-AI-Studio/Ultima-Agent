@@ -530,3 +530,12 @@
 - **规避**：① 「全量」必须写成显式目录白名单 `testpaths`，不能默认根递归；② 定口径前先数 `test_*.py` 分布（`src` 93 / `tasks` 9 / `scripts` 3 / `tests` 5 / `execution` 1），再决定白名单，不要凭「tests/ 只有几个文件」推断覆盖范围；③ 收窄作用域前先判断是否只剩自测——本仓库 `tests/` 只有 5 个文件全是近期新写，若 `testpaths=tests` 就等于自测门零回归，必须带上 `src`；④ 排除历史备份用引号包 `"Topo Backup"`。
 - **验收判据**：根目录无位置参数执行，`collection errors=0`，收集量约 1143，耗时 10 秒级。
 - **复发**：1
+
+## L66 · 主表写入方不守契约，生成器又把行尾翻掉（2026-11-08）
+
+- **现象 A**：`queue-status-gen.py` 解析主表时报 `ValueError: too many values to unpack`。定位到 UltimaSentinel 侧新写一条 `closed` 状态，且 reason 字段里夹了 5 个 `|`，把一行撕成 9 列。
+- **现象 B**：生成器用 `read_text` + `write_text(encoding='utf-8')` 写回。`read_text` 的 universal newlines 把 CRLF 吞成 LF，一旦摘要表内容变化触发写回，整张 2.8 万行主表就被翻成 LF——下一次按 CRLF 切行的修复脚本会静默 no-op。
+- **修法**：①`read_items` 改为「字段数 >=3 才解析，第 4 段之后全部并回 reason」，畸形行登记 `MALFORMED` 继续生成；②未知状态归一 `unregistered`，继续生成并在 stdout 点名清单，只有重复 `(project,wid)` 仍 fail-closed；③读写改 `read_bytes`/`write_bytes`，行尾由原文 `NL` 决定（摘要表拼接也用 `NL`）。
+- **口径**：公共账本无法约束所有写入方，读出端必须「宽进严出」——容忍未知状态和畸形行并点名，只对真正的数据损坏（重复工单）硬停。写入门（6 态白名单 + 4 列格式校验）须落在各项目自己的登记脚本里，不能只靠读出端兜底。
+- **复发记录**：两小时内 UltimaSentinel 侧共写入 5 次非 6 态值（`proposal-pending-gate`、`arch-review-approved`×2、`closed`×2），全部来自 `H:\UltimaAI\UltimaSentinel` 的 codex 进程。
+
