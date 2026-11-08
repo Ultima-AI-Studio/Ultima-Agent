@@ -1,0 +1,88 @@
+{
+  "work_order": "wo-ultimaagent-20261108-0026",
+  "status": "COMPLETED",
+  "phase": "T2",
+  "run_id": "wo-ultimaagent-20261108-0026-T2-20261108",
+  "input_sha256": "8c1e4a267b57d6058c978a06881cc0a14e3923df66de45808609e301a724cfb0",
+  "executor": "Codex",
+  "exit_code": 0,
+  "reviewReason": "Offline closed-loop audit coverage, failed-case replay, and the final complete engineering gate all passed.",
+  "stdoutText": "Closed loop 5/5; focused audit regression 38/38; final full gate 1001 passed, 0 failed, 122 subtests passed, 36 warnings, exit 0; JUnit 1123/0 failures/0 errors/0 skipped.",
+  "evidence": [
+    {
+      "path": "tasks/queue/runs/wo-ultimaagent-20261108-0026/T2/red-test.log",
+      "kind": "log",
+      "summary": "T2 RED with missing archive and diagnosed offline embedding test-double defect"
+    },
+    {
+      "path": "tasks/queue/runs/wo-ultimaagent-20261108-0026/T2/green-test.log",
+      "kind": "log",
+      "summary": "Offline closed-loop tests, 5/5 passed"
+    },
+    {
+      "path": "tasks/queue/runs/wo-ultimaagent-20261108-0026/T2/focused-regression.log",
+      "kind": "log",
+      "summary": "T0, T1, T2 and existing deterministic audit tests, 38/38 passed"
+    },
+    {
+      "path": "data/evidence/failed-cases/grounded-false-fallback-20261108/case.json",
+      "kind": "data",
+      "summary": "Archived grounded=false failure payload consumed by regression"
+    },
+    {
+      "path": "tasks/queue/runs/wo-ultimaagent-20261108-0026/T2/full-engineering-gate.log",
+      "kind": "test",
+      "summary": "Final full project gate: 1001 passed, 0 failed, 122 subtests, exit 0"
+    },
+    {
+      "path": "tasks/queue/runs/wo-ultimaagent-20261108-0026/T2/full-engineering-gate.xml",
+      "kind": "test",
+      "summary": "Final JUnit: 1123 tests, 0 failures, 0 errors, 0 skipped"
+    },
+    {
+      "path": "tasks/queue/runs/wo-ultimaagent-20261108-0026/T2/full-engineering-gate-readback.json",
+      "kind": "data",
+      "summary": "Independent JUnit count and SHA-256 readback"
+    },
+    {
+      "path": "docs/reports/wo-ultimaagent-20261108-0026-t2.md",
+      "kind": "report",
+      "summary": "T2 and closeout report with honest failed-attempt history"
+    }
+  ],
+  "acceptance": [
+    {
+      "id": "T2-NORMAL",
+      "result": "PASS",
+      "evidence": "Normal loop records five audit transitions and validates all four receipt fields."
+    },
+    {
+      "id": "T2-INJECTION",
+      "result": "PASS",
+      "evidence": "Injection is blocked at guard and no downstream node runs."
+    },
+    {
+      "id": "T2-GROUNDED",
+      "result": "PASS",
+      "evidence": "Archived grounded=false output is rejected and degrades to the fixed fallback offline."
+    },
+    {
+      "id": "T2-ROLLBACK",
+      "result": "PASS",
+      "evidence": "Error and hold both terminate the graph without running later nodes."
+    },
+    {
+      "id": "T2-ARCHIVE",
+      "result": "PASS",
+      "evidence": "Failed-case convention, real case, per-case explanation, and runnable retest entry exist."
+    },
+    {
+      "id": "FULL-GATE",
+      "result": "PASS",
+      "evidence": "Final full project gate is 1001 passed, 0 failed, 122 subtests, exit 0."
+    }
+  ],
+  "scopeDeclaration": "Only T2 work-order fileDomain paths and the module-3 level3 text were changed; unrelated in-flight changes were not staged, rolled back, stashed, or overwritten.",
+  "environmentDeclaration": "Windows workspace; Python 3.13.16 dedicated interpreter; closed-loop tests offline with temporary directories and no real model; no voice or daemon restart.",
+  "openSourceSelection": "No dependency added; unittest, tempfile, JSON, existing LangGraph and existing guardrails/reply/receipt components were reused."
+}
