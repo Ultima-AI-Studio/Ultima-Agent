@@ -1,0 +1,32 @@
+wo-ultimaagent-20261108-0027 T1 independent audit write-domain check
+role: eng.audit
+timestamp_utc: 2026-11-08T06:32:33.219Z
+
+command: PowerShell exact-set comparison of `git diff-tree --no-commit-id --name-only/--name-status -r 2a4a2521` against the four authorized T1 paths; forbidden match covers tracker, reviewer.py, receipt.py, and 0026 paths.
+raw_output:
+{
+  "commit": "2a4a2521b9ef743a872858e7880fcc35f53cb68c",
+  "actual_path_count": 4,
+  "expected_path_count": 4,
+  "only_expected_paths": true,
+  "all_paths_added": true,
+  "forbidden_hit_count": 0,
+  "actual_paths": [
+    "data/evidence/wo-ultimaagent-20261108-0027/T1/previous-stage-gate.json",
+    "data/evidence/wo-ultimaagent-20261108-0027/T1/receipt.json",
+    "docs/specs/independent-review-contract.md",
+    "docs/specs/stage-gated-dispatch-template.md"
+  ],
+  "name_status": [
+    "A\tdata/evidence/wo-ultimaagent-20261108-0027/T1/previous-stage-gate.json",
+    "A\tdata/evidence/wo-ultimaagent-20261108-0027/T1/receipt.json",
+    "A\tdocs/specs/independent-review-contract.md",
+    "A\tdocs/specs/stage-gated-dispatch-template.md"
+  ],
+  "missing_expected": [],
+  "unexpected_paths": [],
+  "forbidden_hits": []
+}
+exit_code: 0
+
+summary: 4/4 paths matched the T1 authorized set; forbidden path hits 0; all four paths were additions.
