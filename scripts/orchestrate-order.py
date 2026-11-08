@@ -20,13 +20,14 @@ DEFAULT_STAGES = ("decompose", "work_order", "schedule")
 ENV_FILE = ROOT / "config" / ".env"
 
 
-def _load_env_file() -> None:
+def _load_env_file(path: Path | None = None) -> None:
     """Load config/.env so the key does not depend on a pre-exported shell."""
 
-    if not ENV_FILE.is_file():
+    env_file = path if path is not None else ENV_FILE
+    if not env_file.is_file():
         return
     try:
-        text = ENV_FILE.read_text(encoding="utf-8-sig")
+        text = env_file.read_text(encoding="utf-8-sig")
     except OSError:
         return
     for line in text.splitlines():

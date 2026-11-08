@@ -135,6 +135,9 @@ def test_missing_api_key_exits_nonzero_without_success_artifact(
 ) -> None:
     cli = _load_cli()
     monkeypatch.delenv("DEEPSEEK_API_KEY", raising=False)
+    # Isolate the .env pipeline: point it at an absent file so a developer
+    # machine's real config/.env cannot silently satisfy the "no key" premise.
+    monkeypatch.setattr(cli, "ENV_FILE", tmp_path / "absent.env")
 
     result = cli.main(
         ["--requirement", "literal requirement", "--run-dir", str(tmp_path)]
