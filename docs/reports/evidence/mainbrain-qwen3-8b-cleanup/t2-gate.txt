@@ -1,0 +1,76 @@
+work_order=wo-ultimaagent-20261101-0013
+gate=T2
+checked_at=2026-11-08 Asia/Shanghai
+
+[pytest]
+command=tools\venv-openjarvis\Scripts\python.exe -m pytest -p no:cacheprovider src -q
+interpreter=Python 3.13.16
+result=1008 passed, 36 warnings, 122 subtests passed in 217.51s
+exit=0
+failed=0
+test_tmp_snapshot_files=2097
+test_tmp_snapshot_dirs=9
+test_tmp_new_files_removed=26
+test_tmp_changed_files_restored=3
+test_tmp_missing_files_restored=0
+test_tmp_new_empty_dirs_removed=0
+
+[ollama-list]
+exit=0
+qwen3-8b-uncensored:latest id=6d7230a92342 size=5.0 GB present=true
+qwen2.5:14b id=7cdf5a0187d5 size=9.0 GB present=true
+nomic-embed-text:latest id=0a109f422b47 size=274 MB present=true
+model_download_or_delete=false
+
+[ollama-ps]
+sample_1=qwen2.5:14b size=12 GB processor=15%/85% CPU/GPU context=16384 transient_until=52 seconds; nomic-embed-text size=323 MB processor=100% GPU context=2048
+sample_2_after_expiry=nomic-embed-text size=323 MB processor=100% GPU context=2048; qwen2.5:14b not resident
+interpretation=the 14B rollback model was transiently active at the first read and expired without intervention; the protected embedding model remained available. No model process was stopped or restarted.
+
+[runtime-health]
+endpoint=http://127.0.0.1:8756/health
+listener_pid=17136
+ok=true
+model=qwen3-8b-uncensored
+agent=native_react
+tools=9
+restart_performed=false
+
+[active-scope-residuals]
+src/brain/orchestration/engine.py:120=qwen2.5:14b secondary rollback key; required and harmless
+src/brain/orchestration/tests/test_orchestration_m4.py:74=qwen2.5:14b mid-tier rollback assertion; test-only and matches required tuple
+src/brain/tests/test_bootstrap_m6.py:205=qwen2.5:14b candidate pool member behind qwen3 8B; test-only rollback coverage
+src/brain/tests/test_bootstrap_m6.py:217=qwen2.5:14b candidate pool member behind qwen3 8B; test-only rollback coverage
+src/brain/tests/verify_bootstrap_entry.py:53=qwen2.5:14b candidate pool member behind qwen3 8B; verify-only rollback coverage
+scripts=no match
+config=no match
+active_default_or_primary_14b_refs=0
+
+[historical-residual-groups]
+docs/tracker/_backup/*.html=archived tracker snapshots; immutable history
+docs/plans/*.md=historical baselines or explicit future isolated comparison proposals; not runtime configuration
+docs/specs/execution-param-contract.md=change log describing the completed 14B to 8B transition
+docs/milestones/*.md=accepted historical milestone evidence
+docs/decisions/*.md=historical runtime snapshot
+docs/research/*.md=historical research plus explicit statement that 14B is library-only rollback
+docs/reports/*.md and docs/reports/evidence/**=historical acceptance/evidence snapshots, including this work order's T0 explanation
+docs/references/lessons-log.md=historical failure diagnosis
+tasks/queue/wo-ultimaagent-20261031-0010--mainbrain-qwen3-8b.md=predecessor work order and rollback requirement
+tasks/queue/wo-ultimaagent-20261101-0013--qwen3-8b-cleanup.md=current immutable work order specification
+tasks/queue/wo-ultimaagent-20261103-0023--jarvis-p0.md=historical diagnosis
+tasks/queue/index.md=historical completion summary
+tasks/queue/*stderr* and sse-events-outlet-stderr.log=append-only historical execution logs
+tasks/cards/**=historical task cards and receipts
+data/secrets/credential_audit.jsonl=credential key-id audit history only; no credential value exposed
+data/evidence/**=immutable runtime/source snapshots and registry-before captures; not active code or config
+
+[protected-boundaries]
+agent_server.py HOST=127.0.0.1 unchanged
+agent_server.py PORT=8756 unchanged
+agent_server.py MODEL=qwen3-8b-uncensored
+agent_server.py AGENT=native_react unchanged
+agent_server.py TOOLS=9 unchanged
+memory/backend.py embedding_model=nomic-embed-text unchanged
+data/test-tmp tracked_diff=none
+git_diff_check_exit=0
+result=PASS

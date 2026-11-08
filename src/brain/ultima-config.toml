@@ -1,0 +1,31 @@
+# UltimaAgent 独立配置（bootstrap 注入用）
+# 仅位于 UltimaAgent 写域内；不修改 C 盘全局 ~/.openjarvis/config.toml。
+# 通过 OPENJARVIS_CONFIG / ask.load_config 包装生效。
+
+[engine]
+default = "ollama"
+
+[intelligence]
+default_model = "qwen3-8b-uncensored"
+# 执行参数基线（execution-param-contract v0.1 §2：temperature=0.3 / max_tokens=8192）
+temperature = 0.3
+max_tokens = 8192
+
+[agent]
+default_agent = "orchestrator"
+# 执行参数基线（execution-param-contract v0.1 §2：max_turns=5，超限显式声明）
+max_turns = 5
+
+[tools]
+enabled = ["code_interpreter", "web_search", "file_read", "shell_exec", "calculator", "think"]
+
+# L9 记忆：底座 MemoryRegistry 取件键（bootstrap 注册 mem0_ultima）
+[memory]
+default_backend = "mem0_ultima"
+
+# L8 安全：强制 fail-closed BLOCK（NeMoScanner 由 bootstrap 注入扫描链）
+[security]
+enabled = true
+mode = "block"
+secret_scanner = true
+pii_scanner = true
