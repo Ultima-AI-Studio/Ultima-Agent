@@ -218,3 +218,45 @@ git tag 前后一致：是
 - [ ] 每 T Gate 全绿 + 自证完整（命令与输出，不接受"预计通过"）
 - [ ] 关联文档同步：schema ↔ 契约 ↔ validator ↔ 报告四处口径一致
 - [ ] 阶段报告产出 → 主脑独立复核 → 冻结
+
+---
+
+## 5. 开源替代排查（DoR 第 6 项 · G-OSS-001）【REVISE 补票 2026-11-08】
+
+> 补票原因：派发时本卡缺此段，④ 准入判 DoR 第 6 项不满足。补写不涉及代码。
+> verdict：`OSS_WRAPPER`　｜　checked_at：2026-11-08　｜　target：自研范围仅"按行切节取字段"一层
+
+### 5.1 能力域与候选
+
+| 子能力 | 候选 repo | License | 结论 |
+|---|---|---|---|
+| JSON Schema 校验 | `python-jsonschema/jsonschema` | MIT | **USE_OSS**（已用 4.26.0，venv 实测） |
+| YAML 读取 | `yaml/pyyaml` | MIT | **USE_OSS**（已用 6.0.3，venv 实测） |
+| Markdown 按行切节 | `executablebooks/markdown-it-py` | MIT | NO_OSS |
+| 同上 | `lepture/mistune` | BSD-3-Clause | NO_OSS |
+| 同上 | `jhamner/python-frontmatter` | MIT | NO_OSS |
+| 工单卡模型校验 | `pydantic/pydantic` | MIT | NO_OSS |
+| 同上 | `pyeve/cerberus` | ISC | NO_OSS |
+| git tag 冻结 | `git` CLI | GPL-2.0 | **USE_OSS**（subprocess 调用） |
+
+> 候选项未纳入依赖；stars 与 last_commit 未逐一联网核实（本单在离线环境执行）。License 取自各 repo 公开声明。
+
+### 5.2 NO_OSS 的 why_not（点名到 repo）
+
+- **markdown-it-py / mistune**：输出通用 AST，不保留"字段在第几行"。本 validator 每条错误必须带 `line`（`E_*` 报告契约），通用 parser 给不出行号，机检无法定位。
+- **python-frontmatter**：只解析 `---` 包裹的 YAML front-matter。`wo-*.md` 用的是 `> 版本：…` 引用行 + `## 节` 结构，不是 front-matter，格式不匹配。
+- **pydantic / cerberus**：用 Python 类或 dict 定义规则，无法直接加载 `docs/specs/work-order.schema.json`（draft 2020-12）。改用它们等于把已冻结的契约再翻译一遍，产生第二份真相，违反横切①单一权威源。
+- **未自研 md parser**：切节取字段只用标准库 `re` 按行扫描（`validate_work_order.py` 内约 40 行），低于引入 AST 库的维护成本，不构成"自研能力"。
+
+### 5.3 结论
+
+- 校验引擎全部现成库：jsonschema（schema 校验）+ PyYAML（配置）+ git CLI（tag 冻结）。
+- 唯一自写层是"按行切节取字段"，因通用库拿不到行号；why_not 已列，不触 G-OSS-001 反例清单。
+- 无 `NO_OSS` 的能力域整体。
+
+### 5.4 固定输出契约
+
+`{domain, candidates[{repo, license, last_commit, stars}], verdict, target, why_not, checked_at}`
+
+本条实例：`domain=work-order-contract`、`verdict=OSS_WRAPPER`、`checked_at=2026-11-08`。
+
