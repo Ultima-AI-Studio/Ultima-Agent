@@ -224,6 +224,26 @@ def main(argv: Sequence[str] | None = None) -> int:
     if str(audit.get("work_order") or "") != args.work_order:
         return _refuse("audit.json was produced for a different work order",
                        found=audit.get("work_order"), expected=args.work_order)
+
+    # The verdict must belong to this run and to these exact artifacts. Without the
+    # three bindings below, a passing audit recorded in one run directory can be
+    # copied into another, or replayed after a fresh verification rewrote the
+    # receipt — the audit would then certify content nobody judged.
+    if str(audit.get("run_id") or "") != run_dir.name:
+        return _refuse("audit.json was produced in a different run directory",
+                       found=audit.get("run_id"), expected=run_dir.name)
+    verify_sha = _sha256_file(run_dir / "verify.json")
+    if not audit.get("verify_sha256") or audit.get("verify_sha256") != verify_sha:
+        return _refuse("audit.json does not match this verify.json; the judged result is not the frozen one",
+                       recorded=(audit.get("verify_sha256") or "missing")[:12],
+                       now=(verify_sha or "missing")[:12])
+    if not audit.get("done_sha256") or audit.get("done_sha256") != done_sha:
+        return _refuse("audit.json does not match this done.json; the judged receipt is not the frozen one",
+                       recorded=(audit.get("done_sha256") or "missing")[:12],
+                       now=(done_sha or "missing")[:12])
+    if not audit.get("round1") or not audit.get("round2"):
+        return _refuse("audit.json records no two-round result; a bare audit_passed flag is not a review")
+
     if audit.get("audit_passed") is not True:
         return _refuse("audit_passed is not true; refusing to freeze")
 
@@ -318,14 +338,24 @@ def main(argv: Sequence[str] | None = None) -> int:
     try:
         # Read the state once more immediately before writing the ref. The checks
         # above took a dozen filesystem reads; anything that moved during them
-        # would otherwise be frozen under a verdict about a different state.
+        # would otherwise be frozen under a verdict about a different state. The
+        # audited material is re-read here too, because a card or evidence file
+        # swapped after its hash check would leave the tag describing a review of
+        # content that is no longer present.
         head_again = _git("rev-parse", "HEAD")
         tree_again = _tree_oid()
         entries_again = _status_entries()
-        if head_again != verified_head or tree_again != tree_now or entries_again != live_entries:
+        card_again = _sha256_file(Path(card_path))
+        evidence_again = {str(m.get("path") or "").strip(): _sha256_file(Path(m.get("path") or ""))
+                          for m in evidence_meta}
+        moved = [p for p, h in evidence_again.items() if h != next(
+            (m.get("sha256") for m in evidence_meta if str(m.get("path") or "").strip() == p), None)]
+        if (head_again != verified_head or tree_again != tree_now or entries_again != live_entries
+                or card_again != card_meta["sha256"] or moved):
             return _refuse("state moved while the checks were running; nothing was frozen",
                            head=(head_again or "")[:12], tree=(tree_again or "")[:12],
-                           entries=len(entries_again or []))
+                           entries=len(entries_again or []), card=(card_again or "missing")[:12],
+                           evidence=moved[:5])
 
         # Tag the commit that was verified, not whatever HEAD happens to be.
         _git("tag", "-a", tag, verified_head, "-m", message)

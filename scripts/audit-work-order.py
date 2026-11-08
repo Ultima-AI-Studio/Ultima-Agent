@@ -145,8 +145,14 @@ _ROUND2 = (
 )
 
 
-def _read(path: str) -> str:
-    return Path(path).read_text(encoding="utf-8-sig")
+def _decode(data: bytes) -> str:
+    """Text for the reviewer, from bytes already read for hashing.
+
+    The reviewer's copy and the recorded digest must come from the same read; two
+    reads let a file be swapped in between and the audit would certify content the
+    model never saw.
+    """
+    return data.decode("utf-8-sig", errors="replace")
 
 
 def gates(card: str) -> list[dict]:
@@ -224,6 +230,10 @@ def overall(text: str) -> str:
         return "UNKNOWN"
     if len(set(seen)) > 1:
         return "CONTRADICTORY"
+    if len(seen) != 1:
+        # The contract is exactly one closing line. Two identical verdicts are not
+        # one verdict: which of them the reader is meant to trust is undefined.
+        return "AMBIGUOUS"
     return seen[0]
 
 
@@ -246,8 +256,7 @@ def _parser() -> argparse.ArgumentParser:
 def main(argv: Sequence[str] | None = None) -> int:
     args = _parser().parse_args(argv)
     try:
-        card = _read(args.card)
-        gate_list = gates(card)
+        gate_list = gates(_decode(Path(args.card).read_bytes()))
         if not gate_list:
             print(json.dumps({"blocked": True,
                               "reason": "card lists no ACC gates; a checklist audit has nothing to judge"},
@@ -260,16 +269,17 @@ def main(argv: Sequence[str] | None = None) -> int:
         evidence_meta: list[dict] = []
         incomplete: list[str] = []
         for p in args.evidence:
-            raw = _read(p)
-            # Hash the file's own bytes. Hashing a decoded, normalised string means
-            # freeze — which hashes the bytes on disk — reports drift on a file
-            # nobody touched, whenever a BOM or CRLF normalisation is involved.
+            # One read, one set of bytes. Reading the text and then re-reading for
+            # the digest lets the file be swapped in between: the model would judge
+            # content A while the recorded hash belongs to B, and freeze — which
+            # only checks the hash — would agree.
             try:
                 data = Path(p).read_bytes()
             except OSError as exc:
                 print(json.dumps({"blocked": True, "reason": f"unreadable evidence: {p}: {exc}"},
                                  ensure_ascii=False), file=sys.stderr)
                 return 2
+            raw = _decode(data)
             digest = hashlib.sha256(data).hexdigest()
             truncated = len(raw) > 6000
             evidence_meta.append({"path": str(p), "bytes": len(data),
@@ -280,15 +290,16 @@ def main(argv: Sequence[str] | None = None) -> int:
             body = raw[:6000] + ("\n[INCOMPLETE: truncated for the reviewer's window]" if truncated else "")
             evidence_parts.append(f"## {Path(p).name}\n{body}")
 
-        card_truncated = len(card) > 4000
-        if card_truncated:
-            incomplete.append(f"{Path(args.card).name} (card {len(card)} chars)")
         try:
             card_bytes = Path(args.card).read_bytes()
         except OSError as exc:
             print(json.dumps({"blocked": True, "reason": f"unreadable card: {exc}"},
                              ensure_ascii=False), file=sys.stderr)
             return 2
+        card = _decode(card_bytes)
+        card_truncated = len(card) > 4000
+        if card_truncated:
+            incomplete.append(f"{Path(args.card).name} (card {len(card)} chars)")
         card_meta = {"path": str(args.card),
                      "sha256": hashlib.sha256(card_bytes).hexdigest(),
                      "bytes": len(card_bytes),
@@ -317,8 +328,20 @@ def main(argv: Sequence[str] | None = None) -> int:
         # means the round passed on a partial read, which is not a pass.
         visible = not incomplete
         passed = pass1 and pass2 and visible
+        # Bind this verdict to the exact artifacts it judged. Without these three
+        # fields nothing prevents a passing audit recorded for one run from being
+        # copied into another run directory, or being replayed after a fresh
+        # verification produced a different receipt.
+        bound: dict = {"run_id": Path(args.run_dir).name}
+        for key, name in (("verify_sha256", "verify.json"), ("done_sha256", "done.json")):
+            try:
+                bound[key] = hashlib.sha256((Path(args.run_dir) / name).read_bytes()).hexdigest()
+            except OSError:
+                bound[key] = None
+
         audit = {
             "work_order": args.work_order,
+            **bound,
             "card": str(args.card),
             "card_meta": card_meta,
             "evidence": [str(p) for p in args.evidence],

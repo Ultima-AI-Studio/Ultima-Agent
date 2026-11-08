@@ -101,6 +101,17 @@ def _write_run(run_dir: Path, cli, work_order: str = "wo-t",
     evidence.write_text("ACC-1: PASS - a.txt exists and is not empty\n", encoding="utf-8")
 
     audit = {"work_order": work_order, "audit_passed": True, "incomplete_inputs": [],
+             # Bound to this run and these artifacts, which is what freeze checks.
+             # The two-round bodies are stubs here: this file tests the freeze gate,
+             # not the model review, and calling DeepSeek from a unit test is not
+             # something a test may do.
+             "run_id": run_dir.name,
+             "verify_sha256": _sha(run_dir / "verify.json"),
+             "done_sha256": _sha(run_dir / "done.json"),
+             "round1": {"passed": True, "per_gate": {"ACC-1": "PASS"},
+                        "overall": "PASS", "model": "stub", "tokens": 0, "response": "AUDIT: PASS"},
+             "round2": {"passed": True, "per_gate": {"ACC-1": "PASS"},
+                        "overall": "PASS", "model": "stub", "tokens": 0, "response": "AUDIT: PASS"},
              "card": str(card),
              "card_meta": {"path": str(card), "sha256": _sha(card),
                            "bytes": Path(card).stat().st_size, "complete": True},
@@ -223,6 +234,35 @@ def test_a_handwritten_verify_json_cannot_freeze(tmp_path, repo, cli):
     # receipt no longer exists after it was written, so a fresh run fails.
     (run / "done.json").write_text("{}\n", encoding="utf-8")
     (run / "verify.json").write_text(json.dumps(forged), encoding="utf-8")
+
+    code = cli.main(["--work-order", "wo-t", "--run-dir", str(run)])
+    assert code == 2
+    assert not _git(cli, "tag", "--list", "wo-t-freeze-*")
+
+
+def test_an_audit_from_another_run_cannot_freeze(tmp_path, repo, cli):
+    """A pass earned in run A must not be replayed into run B."""
+
+    run = tmp_path / "run"
+    _write_run(run, cli)
+    audit = json.loads((run / "audit.json").read_text(encoding="utf-8"))
+    audit["run_id"] = "run-earlier"
+    (run / "audit.json").write_text(json.dumps(audit), encoding="utf-8")
+
+    code = cli.main(["--work-order", "wo-t", "--run-dir", str(run)])
+    assert code == 2
+    assert not _git(cli, "tag", "--list", "wo-t-freeze-*")
+
+
+def test_an_audit_without_bindings_cannot_freeze(tmp_path, repo, cli):
+    """A bare `audit_passed: true` is a flag, not a review of these artifacts."""
+
+    run = tmp_path / "run"
+    _write_run(run, cli)
+    audit = json.loads((run / "audit.json").read_text(encoding="utf-8"))
+    for key in ("verify_sha256", "done_sha256", "round1", "round2"):
+        audit.pop(key, None)
+    (run / "audit.json").write_text(json.dumps(audit), encoding="utf-8")
 
     code = cli.main(["--work-order", "wo-t", "--run-dir", str(run)])
     assert code == 2

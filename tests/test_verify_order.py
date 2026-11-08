@@ -60,17 +60,18 @@ def _snapshot(cli) -> dict:
 
     head = run("rev-parse", "HEAD")
     tree = run("rev-parse", "HEAD^{tree}")
-    # Unstripped: porcelain's first column is a space for unstaged changes.
-    status = subprocess.run([exe, "status", "--porcelain", "--untracked-files=no"],
+    # The dispatcher reads `--porcelain=v1 -z`; the fixture must produce the same
+    # shape or it cannot catch anything the real snapshot would record.
+    status = subprocess.run([exe, "status", "--porcelain=v1", "-z", "--untracked-files=no"],
                             cwd=str(cli.ROOT), capture_output=True, text=True,
                             encoding="utf-8", errors="replace").stdout
     import hashlib
     entries, manifest = [], []
-    for line in [l for l in status.splitlines() if l.strip()]:
-        code, name = line[:2], line[3:].strip()
-        entries.append({"code": code, "path": name})
-        path = Path(cli.ROOT) / name
-        manifest.append({"path": name, "code": code,
+    entries = cli._parse_status_z(status)
+    for entry in entries:
+        path = Path(cli.ROOT) / entry["path"]
+        manifest.append({"path": entry["path"], "code": entry["code"],
+                         "orig": entry.get("orig"),
                          "sha256": hashlib.sha256(path.read_bytes()).hexdigest() if path.is_file() else None})
     return {"end_sha": head, "tree_oid": tree, "status_entries": entries,
             "changed_files": manifest, "worktree_dirty": len(entries)}
@@ -289,3 +290,45 @@ def test_a_renamed_file_keeps_both_paths(cli):
     entries = cli._parse_status_z(raw)
     assert entries == [{"code": "R ", "path": "new.txt", "orig": "old.txt"},
                        {"code": " M", "path": "kept.txt"}]
+
+
+def _order(repo: Path, body: str) -> None:
+    path = repo / "tasks" / "queue" / "wo-x.md"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(body, encoding="utf-8")
+
+
+def test_a_python_c_payload_is_not_a_test_run(tmp_path, repo, cli):
+    """`python -c "..." -m pytest` is an inline script that happens to mention pytest."""
+
+    import sys
+    _order(repo, f"**机检**：{sys.executable} -c \"print(1)\" -m pytest\n")
+    snap = _snapshot(cli)
+    _done(tmp_path, base_sha=snap["end_sha"], end_sha=snap["end_sha"],
+          tree_oid=snap["tree_oid"], status_entries=snap["status_entries"],
+          changed_files=snap["changed_files"])
+    payload = cli.verify("wo-x", tmp_path)
+    assert "declared_command_plan" in payload["blocking_failures"]
+
+
+def test_a_machine_check_line_that_cannot_be_parsed_fails(tmp_path, repo, cli):
+    """Silently dropping an unusable command makes a skip look like a pass."""
+
+    _order(repo, "**机检**：pytest & del /f /q C:\\Windows\\win.ini\n")
+    snap = _snapshot(cli)
+    _done(tmp_path, base_sha=snap["end_sha"], end_sha=snap["end_sha"],
+          tree_oid=snap["tree_oid"], status_entries=snap["status_entries"],
+          changed_files=snap["changed_files"])
+    payload = cli.verify("wo-x", tmp_path)
+    assert "declared_command_plan" in payload["blocking_failures"]
+
+
+def test_a_declared_file_without_a_dispatch_commit_does_not_pass(tmp_path, repo, cli):
+    """Existence without a base commit proves nothing about delivery."""
+
+    _card(repo, "wo-x", ["a.txt"])
+    snap = _snapshot(cli)
+    _done(tmp_path, end_sha=snap["end_sha"], tree_oid=snap["tree_oid"],
+          status_entries=snap["status_entries"], changed_files=snap["changed_files"])
+    payload = cli.verify("wo-x", tmp_path)
+    assert "declared_files_landed" in payload["blocking_failures"]

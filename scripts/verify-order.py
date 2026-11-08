@@ -23,11 +23,14 @@ not:
 Every check writes its own verdict plus the exact command behind it, so the file
 can be re-derived by someone who was not present.
 
-Scope limit, stated here rather than left implied: this script does not execute
-the work order's own test commands. It confirms that the artifact that was
-tested is the artifact being frozen and that the run terminated lawfully. That is
-narrower than "the acceptance criteria were met", and the audit step is where
-that narrower question is still asked.
+Scope, stated here rather than left implied. This script does three things: it
+confirms that the artifact that was tested is the artifact being frozen and that
+the run terminated lawfully; it evaluates the acceptance criteria that are
+mechanically decidable (a file exists, is not empty, has at most N lines); and it
+runs the commands the order marked with `**机检**`, without a shell and restricted
+to a pytest invocation. It does not judge whether the work is correct — that is
+what the two-round model review is for — and a `**机检**` line it cannot parse, or
+one carrying a shell metacharacter, fails the gate instead of disappearing.
 """
 
 from __future__ import annotations
@@ -194,40 +197,71 @@ _TEST_RUNNER = re.compile(r"(?:^|\\)(?:python[0-9.]*|pytest)(?:\.exe)?$", re.IGN
 _METACHARS = set("&|<>^`%\n\r")
 
 
-def _declared_commands(order_path: Path) -> list[str]:
-    """Commands the order explicitly asks to be run, marked with a **机检** line.
+def _declared_commands(order_path: Path) -> dict:
+    """Commands the order explicitly asks to be run, marked with a `**机检**` line.
 
-    Only test runners are accepted, and only in the forms the project actually
-    uses — a bare ``pytest`` or a full path to the venv interpreter followed by
-    ``-m pytest``. A narrow prefix test rejected the real orders, which invoke
-    ``tools\\venv-openjarvis\\Scripts\\python.exe -m pytest``, so no command ever
-    ran and the gate silently had nothing to say.
+    Returns the accepted commands together with everything that was declared and
+    then thrown away. Dropping a command silently is the failure mode that matters: a
+    line the parser cannot read, or one carrying a shell metacharacter, used to
+    disappear and the verdict stayed green.
     """
     try:
         text = order_path.read_text(encoding="utf-8-sig")
     except OSError:
-        return []
-    commands = []
+        return {"commands": [], "declared": 0, "rejected": [], "section": False}
+    commands, rejected, declared, in_section = [], [], 0, False
     for raw in text.splitlines():
         line = raw.strip()
-        match = re.match(r"\*\*机检\*\*\s*[：:]\s*(.+)", line)
-        if not match:
-            continue
-        cmd = match.group(1).strip().strip("`").strip()
-        if any(ch in cmd for ch in _METACHARS):
-            continue                      # never hand a shell metacharacter a pass
-        try:
-            argv = shlex.split(cmd, posix=False)
-        except ValueError:
-            continue
-        if not argv:
-            continue
-        first = argv[0].strip('"')
-        if first.lower().startswith("pytest"):
+        if line.startswith("**机检**"):
+            in_section = True
+            match = re.match(r"\*\*机检\*\*\s*[：:]\s*(.+)", line)
+            if not match:
+                continue
+            declared += 1
+            cmd = match.group(1).strip().strip("`").strip()
+            if any(ch in cmd for ch in _METACHARS):
+                rejected.append((cmd, "shell metacharacter"))
+                continue
+            try:
+                argv = shlex.split(cmd, posix=False)
+            except ValueError:
+                rejected.append((cmd, "unparsable quoting"))
+                continue
+            argv = [a.strip('"') for a in argv]
+            if not argv:
+                rejected.append((cmd, "empty command"))
+                continue
+            verdict = _command_is_a_test_run(argv)
+            if verdict:
+                rejected.append((cmd, verdict))
+                continue
             commands.append(cmd)
-        elif _TEST_RUNNER.search(first) and "-m" in argv and "pytest" in argv:
-            commands.append(cmd)
-    return commands
+    return {"commands": commands, "declared": declared,
+            "rejected": rejected, "section": in_section}
+
+
+def _command_is_a_test_run(argv: list[str]) -> str:
+    """Why this argv is not an acceptable test command, or "" when it is.
+
+    ``shell=False`` removes the shell, but it does not make an order-authored
+    command safe by itself: ``python -c "..." -m pytest`` still runs the ``-c``
+    payload first, and any file named ``pytest-something`` satisfies a prefix test.
+    """
+    exe = argv[0].replace("/", "\\").lower()
+    name = exe.rsplit("\\", 1)[-1]
+    if name.startswith("pytest"):
+        if name not in ("pytest", "pytest.exe"):
+            return f"unrecognised test runner {name}"
+        return ""
+    if not _TEST_RUNNER.search(argv[0]):
+        return f"{name} is not a python interpreter or pytest"
+    if "-c" in argv:
+        return "-c runs inline source; a test run must not execute arbitrary code"
+    if "-m" not in argv or "pytest" not in argv:
+        return "python is only accepted as `-m pytest`"
+    if argv.index("-m") + 1 >= len(argv) or argv[argv.index("-m") + 1] != "pytest":
+        return "-m must be immediately followed by pytest"
+    return ""
 
 
 def manifest_drift(manifest: list[dict]) -> dict:
@@ -397,16 +431,22 @@ def verify(work_order: str, run_dir: Path) -> dict:
             # construction and every declared file would read as "never touched".
             base = str(done.get("base_sha") or "").strip()
             if base:
-                untouched = [p for p in declared if _changed_since(base, p) is False]
-                add("declared_files_landed", not untouched,
-                    "all declared files differ from the dispatch commit" if not untouched
-                    else f"declared but unchanged since dispatch: {untouched}",
+                states = {p: _changed_since(base, p) for p in declared}
+                # `None` means the diff could not be computed, which proves nothing:
+                # it must not read as "changed", or an unreadable repository state
+                # becomes a pass.
+                unproven = [p for p, ok in states.items() if ok is not True]
+                add("declared_files_landed", not unproven,
+                    "all declared files differ from the dispatch commit" if not unproven
+                    else f"declared but not shown to have changed since dispatch: {unproven}",
                     f"git diff --name-only {base[:12]} -- <each declared path>")
             else:
-                # Existence without a base to compare against is weaker evidence
-                # than a change, so it is reported but not upgraded to a pass.
-                add("declared_files_landed", None,
-                    f"{len(declared)} declared, all present; no dispatch commit to prove they changed",
+                # No dispatch commit means nothing proves the file was touched by
+                # this order. Existence alone is not delivery, so this fails rather
+                # than being reported as an open question.
+                add("declared_files_landed", False,
+                    f"{len(declared)} declared, all present; receipt records no base_sha, "
+                    "so no delivery is demonstrated",
                     str(order_path))
 
     # The order's own acceptance criteria, as far as they are mechanical. A gate
@@ -424,7 +464,24 @@ def verify(work_order: str, run_dir: Path) -> dict:
     # A command the order explicitly marked for running. Absent means the order
     # asked for no execution, which is reported as such rather than assumed to be
     # a pass — "nobody asked me to run anything" is not "the tests passed".
-    commands = _declared_commands(order_path) if order_path.is_file() else []
+    plan = (_declared_commands(order_path) if order_path.is_file()
+            else {"commands": [], "declared": 0, "rejected": [], "section": False})
+    commands = plan["commands"]
+
+    # Declared-but-unusable commands are a failure, not a silent drop. A parser that
+    # quietly ignores what it cannot read makes "the order asked for nothing" and
+    # "the order asked for something I skipped" look identical.
+    if plan["rejected"]:
+        add("declared_command_plan", False,
+            "; ".join(f"{cmd[:60]} ({why})" for cmd, why in plan["rejected"][:3]),
+            "**机检** lines must be a pytest invocation with no metacharacters")
+    elif plan["section"] and not commands:
+        add("declared_command_plan", False,
+            "the order has a **机检** section but no usable command in it", "**机检**")
+    if len(commands) > 2:
+        add("declared_command_plan", False,
+            f"{len(commands)} commands declared; at most 2 may run in one gate",
+            "split the order rather than relying on a truncated run")
     for cmd in commands[:2]:                       # bounded: never run a long suite
         argv = shlex.split(cmd, posix=False)
         argv = [a.strip('"') for a in argv]
