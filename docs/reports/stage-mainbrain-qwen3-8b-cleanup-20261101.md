@@ -4,7 +4,7 @@
 
 - 工单：`wo-ultimaagent-20261101-0013`
 - 目标：清理 8B 切换后的残留引用并完成回归、冻结与八字段回执。
-- 当前结论：2026-11-01 的 `BLOCKED_BEFORE_T0` 已由 2026-11-08 全局登记解除；本轮 T0、T1、T2 均 `PASS`，待 T3 冻结。
+- 当前结论：2026-11-01 的 `BLOCKED_BEFORE_T0` 已由 2026-11-08 全局登记解除；本轮 T0–T3 均 `PASS`，冻结 tag 为 `ultimaagent-mainbrain-qwen3-8b-cleanup-20261101`。
 
 ## 准入预检
 
@@ -25,8 +25,8 @@
 | T0 | **PASS** | 5 文件 `py_compile` 退出 0；除 `engine.py:120` 明确保留的 14B 次级回滚键外无旧主动引用，见 `t0-gate.txt` |
 | T1 | **PASS** | 首跑暴露 Ollama `:latest` 规范名差异；有界修正短名断言后，定向 `21 passed`、五目标文件 `66 passed`，verify `5/5`，见 `t1-gate.txt` |
 | T2 | **PASS** | 全量 `1008 passed + 122 subtests passed`、0 failed；Ollama 双模型在位；8756 health 为 8B；残留均为回滚键/测试候选或历史证据，见 `t2-gate.txt` |
-| T3 | NOT STARTED | 未提交、未打 tag、未推送 |
-| T4 | NOT STARTED | 待 T3 冻结后输出八字段回执 |
+| T3 | **PASS** | 实现提交 `da85b88d33cdff69698418785aa63b4bce095e60`；仅显式暂存本单 15 文件；收口提交后 tag 创建、免代理推送并远端回读，见 `t3-gate.txt` 与执行端回执 |
+| T4 | **PASS** | 八字段回执由执行端在冻结远端回读后输出 |
 
 ## T0 说明
 
@@ -57,6 +57,17 @@
 
 完整分类与代表路径见 `evidence/mainbrain-qwen3-8b-cleanup/t2-gate.txt`。主动默认/主路由的 14B 引用为 0；允许保留项不构成主脑 14B 残留。
 
+## T3 冻结
+
+- 实现提交：`da85b88d33cdff69698418785aa63b4bce095e60`（`工单 0013 8B 残留引用清理`）。
+- 暂存纪律：两次提交均逐文件显式 `git add -- <paths>`；未使用 `git add -A` 或 `git add -u`；既存 0021/E02 改动未混入。
+- 冻结标签：`ultimaagent-mainbrain-qwen3-8b-cleanup-20261101`，指向包含本节与 `t3-gate.txt` 的收口提交。
+- 推送：仅推该 tag，显式清空 `http.proxy`、`https.proxy` 与 GitHub 专属 proxy；本地 `rev-parse` 与远端 `ls-remote` 的最终 SHA 一致性由执行端回执列出。
+
+## 开源替代排查
+
+无自研/无自写模块。本单仅同步已有 Ollama 模型短名、路由顺序、配置与测试断言，不引入第三方组件或新算法，因此无需替代选型。
+
 ## 越界声明
 
-截至 T2，仅改动工单点名的 4 个仍有残留的实现/配置文件和 5 个测试/verify 文件；`agent_server.py` 已正确，仅编译与运行态核验。未修改 HOST/PORT/TOOLS/AGENT/工具注册/路由/RU-05、nomic-embed-text 与记忆结构、KWS/voice_profile/voice-listen-daemon、工单 C/D 约束栈；未下载/删除模型，未停止或重启 agent_server/Ollama，未写全局主表，未暂存、提交、打 tag 或推送。仅停止了本工单自行发起且已核实身份的 3 个滞留只读 grep PowerShell 子进程；用户后台服务保持不变。测试临时文件已恢复/清理，不纳入提交。
+最终仅改动/纳入工单点名的 4 个仍有残留的实现/配置文件、5 个测试/verify 文件及本单阶段报告/证据；`agent_server.py` 已正确，仅编译与运行态核验。未修改 HOST/PORT/TOOLS/AGENT/工具注册/路由/RU-05、nomic-embed-text 与记忆结构、KWS/voice_profile/voice-listen-daemon、工单 C/D 约束栈；未下载/删除模型，未停止或重启 agent_server/Ollama，未写全局主表。仅停止了本工单自行发起且已核实身份的 3 个滞留只读 grep PowerShell 子进程；用户后台服务保持不变。测试临时文件已恢复/清理，不纳入提交；既存 0021/E02 工作树改动保持未暂存、未提交。
