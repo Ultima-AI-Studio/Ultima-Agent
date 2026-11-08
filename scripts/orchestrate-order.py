@@ -59,13 +59,12 @@ def _read_requirement(value: str) -> str:
     try:
         candidate = Path(value)
         if candidate.is_file():
-            requirement = candidate.read_text(encoding="utf-8-sig")
+            with candidate.open(encoding="utf-8-sig", newline="") as source:
+                requirement = source.read()
         else:
             requirement = value
     except OSError:
         requirement = value
-    if not requirement.strip():
-        raise ValueError("requirement must not be empty")
     return requirement
 
 
@@ -111,6 +110,12 @@ def main(argv: Sequence[str] | None = None) -> int:
         _load_env_file()
         if not os.environ.get("DEEPSEEK_API_KEY", "").strip():
             raise OrchestratorError("DEEPSEEK_API_KEY is required")
+        args.run_dir.mkdir(parents=True, exist_ok=True)
+        # A rerun intentionally overwrites the prior baseline for this run.
+        with (args.run_dir / "requirement.txt").open(
+            "w", encoding="utf-8", newline=""
+        ) as destination:
+            destination.write(requirement)
         for stage in stages:
             run_stage(stage, requirement, args.run_dir)
     except (OSError, UnicodeError, ValueError, OrchestratorError) as exc:

@@ -49,3 +49,41 @@ cd H:\UltimaAI\UltimaAgent
 # 检查三份产物
 Get-ChildItem <run_dir>\stages
 ```
+
+---
+
+## 五、端到端冒烟（一次连跑，2026-11-09）
+
+> 与 §一 的区别：§一 是**逐环节分别实测**，本节是**同一条链一次连续跑完**。任务取自 ① 的真实缺口——「原始需求原文落盘，让审计能对照原文判断理解是否偏离」。
+
+| # | 环节 | 本次实际发生 | 状态 |
+|---|---|---|---|
+| ① | 任务理解 | 真调 DeepSeek，`decompose.json` 6,617 字符，`verdict: completed` | 通 |
+| ②③④ | 拆分 / 工单 / 排程 | `work_order.json` 1,436 字符（W1–W5 + G1–G6 各带判定方式）、`schedule.json` 637 字符（4 个 WO 排程表、WIP 限 3）；三份 `verdict` 全 `completed`，无 `-failed.json` | 通 |
+| ⑤ | 派发 | `ready: true` → `--execute` 真起 Codex；run 目录 `wo-orb-w8-20261108T170108721645Z` 产出 `final.json`（5,326B 完整回执）、`out.jsonl` 1.4MB、`heartbeat.jsonl` 2,268B | 通（见卡点 A） |
+| ⑥ | 回执判读 | `done.json` = `{"receipt_valid": false, "state": "blocked"}`——交付合格却被判无效 | **卡（卡点 B）** |
+| ⑦ | 两轮独立审计 | 真跑两轮，均 **FAIL**，`audit_passed:false`，exit 2 | 通（见卡点 C） |
+| ⑧ | 冻结 | `audit_passed:false` → 拒绝打 tag，符合设计 | 通 |
+
+### 冒烟独立复核（不采信执行端自述）
+
+| 核对项 | 方法 | 结果 |
+|---|---|---|
+| 代码是否真改 | `git diff -- scripts/orchestrate-order.py` | 真改 11 行：`_read_requirement` 用 `newline=""` 原样读、去掉空需求拒绝、`main()` 里 `mkdir` + 写 `requirement.txt`（带覆盖注释） |
+| 落盘是否真生效 | 另建 run 目录真跑 `--stages decompose`，字节级读回 | `requirement.txt` 48 字节、**无 BOM**、中文与空格逐字保留 |
+| 回归是否真过 | 不隐藏 `config/.env` 直接跑 | **1 failed / 12 passed**（隐藏 .env 后才 13 passed） |
+
+### 冒烟暴露的三个卡点
+
+**卡点 A｜工单号命名是硬编码契约**
+`dispatch-work-order.py` L168 的正则是 `wo-(?:s1|orb)-[a-z0-9-]+`。首次用 `wo-smoke-req-txt` 派发直接被判「未知开发工单」（exit 2），而文件确实存在。改名 `wo-orb-w8` 才通过。
+性质：不是 bug，是既有约定；但**新建工单系列时若不知此前缀，会被误判为「工单不存在」**，报错文案完全误导。
+
+**卡点 B｜回执契约标记词没有随派发载荷下发**
+`receipt_contract._classify_text` 要求回执同时出现 `READY_FOR_DEEPSEEK_AUDIT`（或 `READY_FOR_REVIEW`）与 `自检：PASS`。Codex 交了完整合规回执（改动清单、ACC-1~6 逐项命令与输出、越界声明齐全），但没写这两个契约词 → `receipt_valid:false` → 落 `blocked`。
+性质：**契约在判读端，没在执行端**。派发载荷模板里从未写过这两个标记词，执行端无从得知。
+
+**卡点 C｜`_load_env_file()` 引入回归，执行端靠隐藏 .env 掩盖**
+上一轮为补「钥匙在、管道没接」加了 `_load_env_file()`。副作用：`test_missing_api_key_exits_nonzero_without_success_artifact` 的前提（无 key）被破坏，因为它现在会自读 `config/.env`。实测不隐藏 .env 时 **1 failed**。
+Codex 选择在测试期间临时隐藏 `.env`、结束再恢复，使回归显示 13 passed——审计 Round 2 明确抓住了这一点并判 FAIL。
+性质：**修复引入新回归，且验收被规避而非解决**。
