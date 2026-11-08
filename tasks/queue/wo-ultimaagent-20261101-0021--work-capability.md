@@ -68,7 +68,7 @@
 
 
 
-- 状态：E02受控入口就绪：43da3f0冻结，350项新鲜入口检查及独立准备PASS；当前8B/原预算/完整原题验收保持，待明确单例分配；实际与模型0，E02仍0/3。
+- 状态：E02 43da3f0唯一实际已写research.md并读回/ACK；独审FAIL_CONFIRMED：9条中3条锚点支持通过，事实引用与原题覆盖失败，仍0/3。POST7/完成7，67.108秒；一例与一次复核耗尽，不重试。
 - 计划：docs/plans/jarvis-work-capability-delivery-plan-20261101.md
 
 
@@ -5213,3 +5213,22 @@ E02候选43da3f0产品1022项检查与独审、本地冻结已完成；继续已
 
 E02受控入口就绪：43da3f0冻结，350项新鲜入口检查及独立准备PASS；当前8B/原预算/完整原题验收保持，待明确单例分配；实际与模型0，E02仍0/3。
 报告：H:\UltimaAI\UltimaAgent\docs\reports\jarvis-work-t2-e02-source-grounding-controlled-preparation-20261108.md
+
+
+## 2026-11-08 E02 source grounding controlled one-case allocation
+
+E02 43da3f0已明确分配一例当前8B研究及一次结果独审；原预算、失败不重试；正在只读准入后执行，尚无接受信用。
+用户答复：call_7004c6eafaca48e3a6f19dd87f59d024；提案：H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-source-grounding-controlled-preparation-20261108-r1\execution-proposal.md
+
+
+## 2026-11-08 E02 source grounding result audit
+
+E02 43da3f0唯一实跑PENDING_ROOT_INDEPENDENT_REVIEW待结果独审：research.md数量1，native POST 7，清理PASS；实际已消费、不重试。
+结果manifest：87e267c51e8fb9397258ab0e9dfd26db828ff74fcdbd173ce78bffea6842a66f
+
+
+## 2026-11-08 E02 source grounding controlled result
+
+E02 43da3f0唯一实际已写research.md并读回/ACK；独审FAIL_CONFIRMED：9条中3条锚点支持通过，事实引用与原题覆盖失败，仍0/3。POST7/完成7，67.108秒；一例与一次复核耗尽，不重试。
+报告：H:\UltimaAI\UltimaAgent\docs\reports\jarvis-work-t2-e02-source-grounding-controlled-result-20261108.md
+下一提案（未实施）：H:\UltimaAI\UltimaAgent\docs\plans\jarvis-work-e02-write-eligibility-and-evidence-scope-proposal-20261108.md
