@@ -1,6 +1,6 @@
 # wo-ultimaagent-20261108-0031 结果报告
 
-> 当前状态：T0–T3 Gate 已通过；T4 总验收待执行。本文在 T3 建立冻结门对照证据，T4 将补入总验收最终读回。
+> 当前状态：T0–T4 Gate 已通过，技术结论 `READY_FOR_REVIEW`，等待独立复审；不是 Owner 冻结批准，未创建任何 tag。
 
 ## 1. 范围与改动清单
 
@@ -8,7 +8,7 @@
 - T1：新增 `scripts/validate_work_order.py`、`tests/test_validate_work_order.py` 与 31 张卡回归登记 `docs/reports/wo-ultimaagent-20261108-0031-t1-regression.json`。
 - T2：只在 `scripts/dispatch-work-order.py` 增加 DoR 接线、`--skip-dor`、dry-run 测试钩子和审计字段；新增 `tests/test_dor_gate.py`。
 - T3：新增 `scripts/freeze_work_order.py` 与 `tests/test_freeze_work_order.py`；只执行 dry-run。
-- T4：本报告最终收口与指定范围总验收，待执行。
+- T4：本报告最终收口与指定范围总验收已执行；阶段2技术门具备独立复审条件。
 
 ## 2. 各 T Gate 逐项结果
 
@@ -49,11 +49,16 @@
 - 关键输出：`7 passed`；baseline 不符、已有 tag、证据缺失分别 exit 3。
 - 0030 dry-run：HEAD/baseline `a4d968af292bbfb7000bdcc0c913b03051e1d1e1`；4 个证据文件全部非空并哈希；JSON `status=PASS`。
 - 不变式读回：`BEFORE tags=249 gates=2`；`AFTER exit=0 tags=249 gates=2 tag_diff_count=0`；`DRY_GATE_EXISTS=False`。
-- 提交：待本 T 提交后回填。
+- 提交：`6a805a60d0892ba097aa0fb7755600dc4856a777`。
 
 ### T4
 
-- 待执行，不能提前写成通过。
+- 本单新增测试：`python -m pytest tests\test_validate_work_order.py tests\test_dor_gate.py tests\test_freeze_work_order.py -o addopts= -q` → `24 passed in 7.56s`。
+- 0030 回归（cwd=`C:\Users\Administrator\.codex\worktrees\ultimaagent-m4-ledger-20261108`）：`python -m pytest tests\test_ledger_schema_check.py tests\test_ledger_store.py tests\test_ledger_registrar.py src\brain\orchestration\tests\test_register_control_m29.py -o addopts= -q` → `31 passed in 0.82s`。
+- 本卡自举：`python scripts\validate_work_order.py tasks\queue\wo-ultimaagent-20261108-0031--m2-workorder-contract.md` → `PASS`。
+- 回归 JSON 独立读回：`card_count=31 pass_count=31 fail_count=0 all_pass=True`。
+- Git 完整性（T4 报告提交前）：状态干净，T0–T3 提交数 4，删除文件 0，pytest skip/xfail 逃逸 0，受保护路径变更 0。
+- 阶段判定：`stage2-frozen` 技术证据齐备，状态为 `READY_FOR_REVIEW`；Owner 冻结/tag 不在本单执行范围。
 
 ## 3. 正负样本矩阵
 
