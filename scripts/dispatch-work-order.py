@@ -19,10 +19,33 @@ SHARED = ROOT.parent / '_shared/queue'
 sys.path.insert(0, str(ROOT))
 from tasks.queue_engine.dispatcher import DispatchLock, process_identity
 from tasks.queue_engine.card_contract import check_version_gates
+from tasks.queue_engine.receipt_contract import classify_receipt_path
 
 spec = importlib.util.spec_from_file_location('native_environment', ROOT / 'scripts/inspect-native-environment.py')
 native = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(native)
+
+SENTINEL_EXIT_TIMEOUT_S = 210.0
+
+
+def start_sentinel(order, run_dir, pid, expected_identity):
+    return subprocess.Popen(
+        [sys.executable, '-m', 'src.brain.sentinel', order, str(run_dir),
+         str(pid), expected_identity],
+        cwd=ROOT,
+        stdin=subprocess.DEVNULL,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+        creationflags=0x08000000,
+    )
+
+
+def await_sentinel(process):
+    try:
+        process.wait(timeout=SENTINEL_EXIT_TIMEOUT_S)
+    except subprocess.TimeoutExpired:
+        process.terminate()
+        process.wait(timeout=5)
 
 
 class OwnedJob:
@@ -210,6 +233,7 @@ def main():
         state(args.order, 'executing', f'真实工单派发 {run.name}，一单一进程；尚未验收'+reservation_note, run, expected=match.group(1))
         worker = None
         guardian = None
+        sentinel_process = None
         job = None
         try:
             guardian = subprocess.Popen([sys.executable, str(ROOT / 'tasks/queue_engine/guardian.py'),
@@ -223,12 +247,17 @@ def main():
                 # Attach before sending any task input so tool children inherit
                 # this job and cannot survive a timeout/supervisor exit.
                 job = OwnedJob(worker)
+                worker_identity = process_identity(worker.pid)
+                if worker_identity is None:
+                    raise ValueError('执行进程身份不可核对，拒绝启动监工')
+                sentinel_process = start_sentinel(
+                    args.order, run, worker.pid, worker_identity)
                 (run / 'session.json').write_text(json.dumps({'pid': worker.pid,
-                    'identity': process_identity(worker.pid), 'parent_pid': parent,
+                    'identity': worker_identity, 'parent_pid': parent,
                     'adapter_pid': os.getpid(), 'adapter_identity': process_identity(os.getpid()),
                     'engineering_reservation':args.expected_reservation,
                     'max_runtime_seconds': args.max_runtime_seconds,
-                    'guardian_pid': guardian.pid,
+                    'guardian_pid': guardian.pid, 'sentinel_pid': sentinel_process.pid,
                     'parent_identity': parent_identity, 'started_at': datetime.now(timezone.utc).isoformat()}), encoding='utf-8')
                 worker.stdin.write(prompt.encode('utf-8'))
                 worker.stdin.close()
@@ -260,17 +289,14 @@ def main():
                     time.sleep(0.25)
                 code = worker.wait()
                 job.close()
+            await_sentinel(sentinel_process)
+            sentinel_process = None
             (run / 'execution-exit.json').write_text(json.dumps({'exit_code': code,
                 'finished_at': datetime.now(timezone.utc).isoformat(), 'worker_identity': None}), encoding='utf-8')
-            try:
-                receipt = json.loads(final.read_text(encoding='utf-8-sig')) if final.is_file() else {}
-            except (ValueError, UnicodeError):
-                receipt = {}
-            valid = (isinstance(receipt, dict) and receipt.get('work_order') == args.order
-                     and isinstance(receipt.get('evidence'), list) and bool(receipt['evidence'])
-                     and isinstance(receipt.get('landed_files'), list)
-                     and all(Path(path).is_file() for path in receipt['evidence']))
-            target = 'audit' if code == 0 and valid and receipt.get('status') == 'READY_FOR_REVIEW' else 'blocked'
+            receipt_decision = classify_receipt_path(
+                final, work_order=args.order, exit_code=code)
+            valid = receipt_decision.valid
+            target = receipt_decision.state
             if (run / 'runtime-limit.json').exists() or (run/'pause-stop.json').exists():
                 target = 'blocked'
             if parent_lost:
@@ -309,6 +335,8 @@ def main():
         finally:
             if job is not None:
                 job.close()
+            if sentinel_process is not None:
+                await_sentinel(sentinel_process)
 
 
 if __name__ == '__main__':

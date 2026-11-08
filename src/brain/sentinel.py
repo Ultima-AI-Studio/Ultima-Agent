@@ -57,6 +57,7 @@ class Sentinel:
         self.missed = missed
         self._consecutive = 0
         self._anomaly_active = False
+        self._stop_requested = False
 
     def _latest_log_age_s(self) -> float | None:
         candidates: list[Path] = []
@@ -77,10 +78,14 @@ class Sentinel:
         """Record one observation and emit anomaly/recovery events when thresholds cross."""
 
         self.run_dir.mkdir(parents=True, exist_ok=True)
+        final_message = any(
+            (self.run_dir / name).is_file()
+            for name in ("final.json", "final-message.json")
+        )
         heartbeat = {
             "ts": _utc_now(),
             "pid_alive": process_identity(self.pid) == self.expected_identity,
-            "final_message": (self.run_dir / "final-message.json").is_file(),
+            "final_message": final_message,
             "log_age_s": self._latest_log_age_s(),
         }
         self._append_heartbeat(heartbeat)
@@ -106,6 +111,7 @@ class Sentinel:
                     },
                 )
                 self._anomaly_active = True
+                self._stop_requested = True
         else:
             previous_consecutive = self._consecutive
             self._consecutive = 0
@@ -121,6 +127,9 @@ class Sentinel:
                     },
                 )
                 self._anomaly_active = False
+                self._stop_requested = False
+            if heartbeat["final_message"]:
+                self._stop_requested = True
 
         return heartbeat
 
@@ -135,6 +144,8 @@ class Sentinel:
             while max_ticks is None or ticks < max_ticks:
                 self.tick()
                 ticks += 1
+                if self._stop_requested:
+                    break
                 if max_ticks is None or ticks < max_ticks:
                     time.sleep(self.interval)
         except KeyboardInterrupt:

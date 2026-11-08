@@ -5,6 +5,7 @@ from .state_machine import InvalidTransition, QueueState, StateMachine
 from .dispatcher import DispatchDecision, Dispatcher, spawn_hidden, visible_window_handles
 from .priority_deps import DependencyCycle, QueuePlanner
 from .audit import AuditEngine, AuditResult, RecoveryManager
+from .receipt_contract import ReceiptDecision, classify_receipt_path
 
 __all__ = [
     "INDEX_FIELDS",
@@ -19,8 +20,10 @@ __all__ = [
     "QueueStorage",
     "QueuePlanner",
     "RecoveryManager",
+    "ReceiptDecision",
     "StateMachine",
     "StorageError",
     "spawn_hidden",
     "visible_window_handles",
+    "classify_receipt_path",
 ]
