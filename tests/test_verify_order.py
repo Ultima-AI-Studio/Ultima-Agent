@@ -260,7 +260,7 @@ def test_a_declared_command_that_fails_blocks(tmp_path, repo, cli):
     card_dir = repo / "tasks" / "queue"
     card_dir.mkdir(parents=True, exist_ok=True)
     (card_dir / "wo-x.md").write_text(
-        f"**机检**：{python} -m pytest --definitely-not-a-flag\n", encoding="utf-8")
+        f"**机检**：{python} -m pytest tests\n", encoding="utf-8")
 
     snap = _snapshot(cli)
     _done(tmp_path, end_sha=snap["end_sha"], tree_oid=snap["tree_oid"],
@@ -420,10 +420,12 @@ def test_argument_limits_apply_whatever_the_entry_point(repo, cli):
     pytest_exe = str(venv / "pytest.exe")
 
     assert cli._command_is_a_test_run([pytest_exe, "tests/queue_engine"]) == ""
-    assert "rootdir" in cli._command_is_a_test_run([pytest_exe, "--rootdir=.."])
-    assert "loads" in cli._command_is_a_test_run([pytest_exe, "-p", "anyio"])
-    assert "adds options" in cli._command_is_a_test_run([pytest_exe, "-o", "addopts=-q"])
-    assert cli._command_is_a_test_run([pytest_exe, "-o", "addopts="]) == ""
+    # Every one of these decides what gets collected or whether anything runs at
+    # all, and the gate now refuses the whole class rather than naming them.
+    for extra in (["--rootdir=.."], ["-p", "anyio"], ["-o", "addopts=-q"],
+                  ["-o", "addopts="], ["--collect-only"], ["-m", "slow"],
+                  ["--ignore-glob=*"], ["-kcache"], ["@args.txt"]):
+        assert "test targets" in cli._command_is_a_test_run([pytest_exe, *extra])
 
 
 def test_an_interpreter_outside_the_registered_venv_is_refused(tmp_path, cli):

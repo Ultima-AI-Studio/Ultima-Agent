@@ -423,6 +423,12 @@ def main(argv: Sequence[str] | None = None) -> int:
     recorded_ids.sort()
     if not order_cards:
         return _refuse("the order references no card; nothing ties the run to an artifact")
+    if len(receipt_cards) != 1:
+        # Audit reviews one card, so a freeze over several would only have hashed them.
+        # Until every card's gates are audited, this gate refuses the order instead of
+        # signing off gates nobody read.
+        return _refuse("this gate audits a single card; the order dispatched more",
+                       dispatched=len(receipt_cards))
     if recorded_ids != order_cards:
         return _refuse("the receipt does not name every card the order references",
                        order=order_cards, receipt=recorded_ids)

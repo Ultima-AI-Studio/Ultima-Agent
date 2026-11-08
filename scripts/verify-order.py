@@ -195,6 +195,8 @@ def _mechanical_checks(checks: list[tuple[str, str]]) -> list[dict]:
     return results
 
 
+_JUNIT_NAME = ".gorch-junit.xml"
+
 _TEST_RUNNER = re.compile(r"(?:^|\\)(?:python[0-9.]*|pytest)(?:\.exe)?$", re.IGNORECASE)
 _METACHARS = set("&|<>^`%\n\r")
 
@@ -278,69 +280,43 @@ def _command_is_a_test_run(argv: list[str]) -> str:
         exe = candidate if candidate.exists() else Path(shutil.which(raw) or raw)
     name = exe.name.lower()
 
-    # A clean checkout stops uncommitted *repository* content from reaching the run,
-    # but not arguments that point the run somewhere else or reload code into it.
-    # Tokens are consumed pairwise so a separated value (`-o addopts=x`) is judged
-    # as the pair it is, not as a bare flag.
-    forbidden_flags = {"-p", "--rootdir", "--confcutdir", "-c", "--import-mode",
-                       "--plugins", "--pyargs", "-k", "--deselect"}
-    i = 1
-    while i < len(argv):
-        arg = argv[i]
-        stem = arg.split("=", 1)[0].lower()
-        if stem in forbidden_flags:
-            return f"{stem} changes what pytest loads or where it collects"
-        if stem in ("-o", "--override-ini"):
-            value = arg.split("=", 1)[1].strip() if "=" in arg else ""
-            if not value and i + 1 < len(argv) and not argv[i + 1].startswith("-"):
-                value = argv[i + 1].strip()
-                i += 1
-            if value and not value.lower().startswith("addopts="):
-                return f"{stem} overrides pytest configuration"
-            if value and value.split("=", 1)[1].strip():
-                return f"{stem} {value[:30]} adds options to the run"
-        i += 1
-
-    # Every path in the command must live inside the checkout it runs in; an absolute
-    # path or a `..` reach is content the commit does not contain.
-    for arg in argv[1:]:
-        if arg.startswith("-"):
-            continue
-        if re.match(r"^[A-Za-z]:", arg) or arg.startswith(("/", "\\")):
-            return f"{arg[:40]} points outside the checkout"
-        if ".." in Path(arg).parts:
-            return f"{arg[:40]} escapes the checkout"
-
-    # Identity is existence plus a registered location, not a path shape. A
-    # `tools\venv-anything\` match let a planted program through, and a bare
-    # `pytest` was resolved against the workspace and rejected. Outside interpreters
-    # are refused too: the runner has to be the one registered venv, or a PATH lookup
-    # that lands on it, so "exit 0" cannot come from some other pytest.
+    # The gate builds the run itself. An order supplies two things and only two:
+    # which interpreter, and which test targets. Everything else decides what gets
+    # collected or whether anything executes at all — `--collect-only`,
+    # `--setup-plan`, a marker filter, `--ignore`, `@argfile`, glued short options
+    # such as `-kcache` — and a blacklist never catches every spelling of that.
     registered = Path(ROOT) / "tools" / "venv-openjarvis" / "Scripts"
     if name.startswith("pytest") or name in ("python", "python.exe", "python3", "python3.exe"):
         if not exe.is_file():
             return f"{raw[:40]} does not exist; a test runner must be an installed tool"
-        resolved = exe.resolve()
-        if not resolved.is_relative_to(registered.resolve()):
+        if not exe.resolve().is_relative_to(registered.resolve()):
             return (f"{raw[:40]} is not the registered interpreter; the run would not "
                     "come from the toolchain this repository pins")
+
+    body = argv[1:]
     if name.startswith("pytest"):
         if name not in ("pytest", "pytest.exe"):
             return f"unrecognised test runner {name}"
-        return ""
-    if not _TEST_RUNNER.search(argv[0]):
-        return f"{name} is not a python interpreter or pytest"
-    # `-c` is also valid glued to its payload: `-cprint(1)`. Comparing against the
-    # bare token let that form through, and the interpreter ran it before anything
-    # else on the line. A bare `-c file.cfg` is pytest's config switch, refused above.
-    inline = [a for a in argv if a.startswith("-c") and a != "-c" and not a.startswith("--")]
-    if inline:
-        return f"{inline[0][:20]} runs inline source; a test run must not execute arbitrary code"
-    # The interpreter must be told to run pytest as its *first* action: `-m` at
-    # position 1 and pytest right after it. Otherwise a script elsewhere on the
-    # line runs first and the trailing `-m pytest` is only an argument to it.
-    if len(argv) < 3 or argv[1] != "-m" or argv[2] != "pytest":
-        return "python is only accepted as `python -m pytest`"
+    else:
+        if not _TEST_RUNNER.search(argv[0]):
+            return f"{name} is not a python interpreter or pytest"
+        # The interpreter must run pytest as its *first* action; otherwise a script
+        # elsewhere on the line runs first and the trailing `-m pytest` is its argument.
+        if body[:2] != ["-m", "pytest"]:
+            return "python is only accepted as `python -m pytest`"
+        body = body[2:]
+
+    for arg in body:
+        if arg.startswith("@"):
+            return (f"{arg[:30]} loads arguments from a file the commit does not "
+                    "contain; the order may only name test targets")
+        if arg.startswith("-"):
+            return (f"{arg[:30]} is a parameter; the gate fixes the options and the "
+                    "order may only name test targets")
+        if re.match(r"^[A-Za-z]:", arg) or arg.startswith(("/", "\\")):
+            return f"{arg[:40]} points outside the checkout"
+        if ".." in Path(arg).parts:
+            return f"{arg[:40]} escapes the checkout"
     return ""
 
 
@@ -386,7 +362,38 @@ def _pin_runner(argv: list[str]) -> list[str]:
     return [str(exe)] + argv[1:]
 
 
-def _run_in_clean_worktree(sha: str, argv: list[str], timeout: int) -> tuple[object, str]:
+def _gate_argv(argv: list[str]) -> list[str]:
+    """The command the gate actually runs, built from the order's targets.
+
+    An exit code says a process ended. It does not say that any test body ran:
+    `--collect-only` exits 0 having executed nothing. So the gate — not the order —
+    decides the options, and it asks pytest for its own report of what happened.
+    """
+    runner, body = argv[0], argv[1:]
+    if body[:2] == ["-m", "pytest"]:
+        body = body[2:]
+    return [runner, "-m", "pytest", "-o", "addopts=",
+            f"--junitxml={_JUNIT_NAME}", *body]
+
+
+def _junit_counts(path: Path) -> dict | None:
+    """Totals from the run's own report, or None when there is no report."""
+    try:
+        text = path.read_text(encoding="utf-8", errors="replace")
+    except OSError:
+        return None
+    match = re.search(r"<testsuite\b[^>]*>", text)
+    if not match:
+        return None
+    head = match.group(0)
+    counts = {}
+    for key in ("tests", "failures", "errors", "skipped"):
+        found = re.search(rf'\b{key}="(\d+)"', head)
+        counts[key] = int(found.group(1)) if found else 0
+    return counts
+
+
+def _run_in_clean_worktree(sha: str, argv: list[str], timeout: int) -> tuple[object, str, dict | None]:
     """Run the declared command against exactly the committed tree.
 
     Matching untracked file names was the wrong instrument: pytest also loads
@@ -400,11 +407,11 @@ def _run_in_clean_worktree(sha: str, argv: list[str], timeout: int) -> tuple[obj
     try:
         add = _git("worktree", "add", "--detach", str(worktree), sha)
         if add.returncode != 0:
-            return None, f"could not create a clean checkout of {sha[:12]}: {(add.stderr or '')[:140]}"
-        proc = subprocess.run(_pin_runner(argv), cwd=str(worktree), capture_output=True,
+            return None, f"could not create a clean checkout of {sha[:12]}: {(add.stderr or '')[:140]}", None
+        proc = subprocess.run(_pin_runner(_gate_argv(argv)), cwd=str(worktree), capture_output=True,
                               text=True, encoding="utf-8", errors="replace",
                               timeout=timeout, env=_clean_env())
-        return proc, ""
+        return proc, "", _junit_counts(worktree / _JUNIT_NAME)
     finally:
         _git("worktree", "remove", "--force", str(worktree))
         shutil.rmtree(base, ignore_errors=True)
@@ -759,9 +766,12 @@ def verify(work_order: str, run_dir: Path) -> dict:
         add("declared_command_plan", False,
             "; ".join(f"{cmd[:60]} ({why})" for cmd, why in plan["rejected"][:3]),
             "**机检** lines must be a pytest invocation with no metacharacters")
-    elif plan["section"] and not commands:
+    elif not commands:
+        # An order with nothing to run proves nothing about the delivered tree. A
+        # missing section and an empty one used to look the same, and both passed.
         add("declared_command_plan", False,
-            "the order has a **机检** section but no usable command in it", "**机检**")
+            "the order declares no mechanical check; nothing would prove the delivered "
+            "tree runs", "**机检** / manifest commands")
     if len(commands) > 2:
         add("declared_command_plan", False,
             f"{len(commands)} commands declared; at most 2 may run in one gate",
@@ -777,12 +787,24 @@ def verify(work_order: str, run_dir: Path) -> dict:
             if not verified_sha:
                 ok, tail = False, "no verified commit to check out; the tested tree would be the dirty one"
             else:
-                proc, why = _run_in_clean_worktree(verified_sha, argv, 300)
+                proc, why, counts = _run_in_clean_worktree(verified_sha, argv, 300)
                 if proc is None:
                     ok, tail = False, why
+                elif proc.returncode != 0:
+                    ok, tail = False, ((proc.stdout or "").strip().splitlines() or [""])[-1][:160]
+                elif counts is None:
+                    # No report means the run left no evidence of what it did. An exit
+                    # code alone cannot separate "everything passed" from "nothing ran".
+                    ok, tail = False, "the run produced no test report; nothing proves a test executed"
                 else:
-                    ok = proc.returncode == 0
-                    tail = ((proc.stdout or "").strip().splitlines() or [""])[-1][:160]
+                    executed = counts["tests"] - counts["skipped"]
+                    if executed <= 0:
+                        ok, tail = False, f"report counts {executed} executed tests"
+                    elif counts["failures"] or counts["errors"]:
+                        ok, tail = False, (f"report counts {executed} executed, "
+                                           f"{counts['failures']} failed, {counts['errors']} errored")
+                    else:
+                        ok, tail = True, f"{executed} tests passed, {counts['skipped']} skipped"
         except subprocess.TimeoutExpired:
             ok, tail = False, "timed out after 300s"
         except (OSError, ValueError) as exc:

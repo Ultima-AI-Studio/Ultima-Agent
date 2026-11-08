@@ -11,7 +11,9 @@ from __future__ import annotations
 import hashlib
 import importlib.util
 import json
+import shutil
 import subprocess
+import sys
 from pathlib import Path
 
 import pytest
@@ -33,16 +35,37 @@ def cli(monkeypatch):
     yield module
 
 
+@pytest.fixture(scope="session")
+def venv_template(tmp_path_factory):
+    """A real virtualenv to stand in for the registered interpreter.
+
+    The gate pins every run to `tools/venv-openjarvis/Scripts`, so a fixture cannot
+    fake a runner any more: it has to be one. `--system-site-packages` is what
+    makes pytest importable here without installing anything.
+    """
+    base = tmp_path_factory.mktemp("venvtpl")
+    subprocess.run([sys.executable, "-m", "venv", "--system-site-packages",
+                    str(base / "v")], check=True, capture_output=True)
+    return base / "v"
+
+
 @pytest.fixture
-def repo(tmp_path, monkeypatch, cli):
+def repo(tmp_path, monkeypatch, cli, venv_template):
     root = tmp_path / "repo"
     root.mkdir()
     git = cli._git_exe()
     for argv in (["init", "-b", "main"], ["config", "user.name", "t"], ["config", "user.email", "t@t"]):
         subprocess.run([git, *argv], cwd=root, check=True, capture_output=True)
     (root / "a.txt").write_text("one\n", encoding="utf-8")
-    subprocess.run([git, "add", "a.txt"], cwd=root, check=True, capture_output=True)
+    # The interpreter lives inside the repository but outside the commit, exactly as
+    # it does in the real tree; ignoring it keeps the tree clean for the gate.
+    (root / ".gitignore").write_text("tools/\n", encoding="utf-8")
+    (root / "tests").mkdir()
+    (root / "tests" / "test_ok.py").write_text("def test_ok():\n    assert True\n", encoding="utf-8")
+    subprocess.run([git, "add", "a.txt", ".gitignore", "tests"], cwd=root, check=True, capture_output=True)
     subprocess.run([git, "commit", "-m", "init"], cwd=root, check=True, capture_output=True)
+    (root / "tools").mkdir()
+    shutil.copytree(venv_template, root / "tools" / "venv-openjarvis")
     # A delivery commit on top of the dispatch commit. The gate now requires the
     # delivered content to be committed, because a tag names a commit: freezing a
     # dirty tree certified a state the tag did not contain.
@@ -64,7 +87,8 @@ def _sha(path: Path) -> str:
 
 def _write_run(run_dir: Path, cli, work_order: str = "wo-t",
                card: Path | None = None, tamper: dict | None = None,
-               extra_cards: list[dict] | None = None) -> None:
+               extra_cards: list[dict] | None = None,
+               order_text: str | None = None) -> None:
     """Build a run the gate should accept, by running the checks for real.
 
     The earlier version hand-wrote ``verified: true``, which is exactly the forgery
@@ -89,14 +113,22 @@ def _write_run(run_dir: Path, cli, work_order: str = "wo-t",
         card_text = card_arg.read_text(encoding="utf-8-sig")
     card.write_text(card_text, encoding="utf-8")
 
-    if not order_path.is_file():
+    if order_text is not None:
         order_path.parent.mkdir(parents=True, exist_ok=True)
+        order_path.write_text(order_text, encoding="utf-8")
+    elif not order_path.is_file():
+        order_path.parent.mkdir(parents=True, exist_ok=True)
+        # An order with no mechanical check proves nothing and cannot freeze any more,
+        # so the fixture declares the one command the gate accepts: the registered
+        # interpreter against a committed test target.
+        run_cmd = f"{cli.ROOT / 'tools/venv-openjarvis/Scripts/python.exe'} -m pytest tests"
         manifest = {"files": ["a.txt"],
                     "acc": [{"id": "ACC-1", "check": "exists_nonempty", "path": "a.txt"}],
-                    "commands": []}
+                    "commands": [run_cmd]}
         order_path.write_text(
             "# t\n\n<!-- gorch-manifest\n" + json.dumps(manifest) + "\n-->\n\n"
             f"| T1 {card_id} | a.txt | ACC-1 |\n\n"
+            f"**机检**：{run_cmd}\n\n"
             "**文件**：`a.txt`\n\n**验收（Gate T1）**\n- ACC-1 `a.txt` 存在且非空\n",
             encoding="utf-8")
     elif f"| T1 {card_id} |" not in order_path.read_text(encoding="utf-8-sig"):
@@ -412,3 +444,74 @@ def test_a_dirty_tree_cannot_be_frozen(tmp_path, repo, cli):
     code = cli.main(["--work-order", "wo-t", "--run-dir", str(run)])
     assert code == 2
     assert not _git(cli, "tag", "--list", "wo-t-freeze-*")
+
+
+def test_an_order_with_no_mechanical_check_verifies_nothing(tmp_path, repo, cli):
+    """Zero commands used to satisfy every loop and verify green. It proves nothing."""
+
+    order = ("# t\n\n<!-- gorch-manifest\n"
+             + json.dumps({"files": ["a.txt"], "commands": [],
+                           "acc": [{"id": "ACC-1", "check": "exists_nonempty", "path": "a.txt"}]})
+             + "\n-->\n\n| T1 orb-w1-t | a.txt | ACC-1 |\n\n**文件**：`a.txt`\n")
+    run = tmp_path / "run"
+    _write_run(run, cli, order_text=order)
+
+    payload = json.loads((run / "verify.json").read_text(encoding="utf-8"))
+    assert payload["verified"] is False
+    assert "declared_command_plan" in payload["blocking_failures"]
+
+    code = cli.main(["--work-order", "wo-t", "--run-dir", str(run)])
+    assert code == 2
+    assert _git(cli, "tag", "--list", "wo-t-freeze-*") == ""
+
+
+def test_a_card_outside_tasks_cards_is_refused(tmp_path, repo, cli):
+    """A receipt can name any path; only tasks/cards/<id>/task.md is the card."""
+
+    order = ("# t\n\n| T1 orb-w1-t | a.txt | ACC-1 |\n\n**文件**：`a.txt`\n")
+    stray = tmp_path / "elsewhere" / "task.md"
+    stray.parent.mkdir()
+    stray.write_text("| ACC-1 | a.txt exists | ok |\n", encoding="utf-8")
+    run = tmp_path / "run"
+    _write_run(run, cli, order_text=order,
+               tamper={"cards": [{"path": str(stray), "sha256": _sha(stray)}],
+                       "card": str(stray), "card_sha256": _sha(stray)})
+
+    code = cli.main(["--work-order", "wo-t", "--run-dir", str(run)])
+    assert code == 2
+    assert _git(cli, "tag", "--list", "wo-t-freeze-*") == ""
+
+
+def test_a_card_at_a_non_canonical_name_is_refused(tmp_path, repo, cli):
+    """A directory called <id> is not the card; the file has to be task.md."""
+
+    order = ("# t\n\n| T1 orb-w1-t | a.txt | ACC-1 |\n\n**文件**：`a.txt`\n")
+    card_dir = repo / "tasks" / "cards" / "orb-w1-t"
+    card_dir.mkdir(parents=True)
+    lookalike = card_dir / "notes.md"
+    lookalike.write_text("| ACC-1 | a.txt exists | ok |\n", encoding="utf-8")
+    run = tmp_path / "run"
+    _write_run(run, cli, order_text=order,
+               tamper={"cards": [{"path": str(lookalike), "sha256": _sha(lookalike)}],
+                       "card": str(lookalike), "card_sha256": _sha(lookalike)})
+
+    code = cli.main(["--work-order", "wo-t", "--run-dir", str(run)])
+    assert code == 2
+    assert _git(cli, "tag", "--list", "wo-t-freeze-*") == ""
+
+
+def test_a_receipt_naming_only_some_cards_is_refused(tmp_path, repo, cli):
+    """The order names two cards; a receipt that drops one was never complete."""
+
+    order = ("# t\n\n| T1 orb-w1-t | a.txt | ACC-1 |\n"
+             "| T2 orb-w1-u | a.txt | ACC-1 |\n\n**文件**：`a.txt`\n")
+    for name in ("orb-w1-t", "orb-w1-u"):
+        (repo / "tasks" / "cards" / name).mkdir(parents=True, exist_ok=True)
+        (repo / "tasks" / "cards" / name / "task.md").write_text(
+            "| ACC-1 | a.txt exists | ok |\n", encoding="utf-8")
+    run = tmp_path / "run"
+    _write_run(run, cli, order_text=order)
+
+    code = cli.main(["--work-order", "wo-t", "--run-dir", str(run)])
+    assert code == 2
+    assert _git(cli, "tag", "--list", "wo-t-freeze-*") == ""
