@@ -240,3 +240,56 @@ C:\Program Files\WindowsApps\OpenAI.Codex_26.1103.4239.0_x64__2p2nqsd0c76g0\app\
 | `codex.exe.23116.dmp` | **2026-11-08 20:51** | 7.9MB |
 
 最后一个正对应卡点 D 首次派发崩溃的时刻。说明这不是偶发一次，而是**持续数日的间歇性崩溃**，值得单独跟进；但它不阻塞主流程（重派即可完成），本轮只做记录。
+
+---
+
+## 九、八环节真正串起来：`scripts/run-gorch.py`（2026-11-09）
+
+### 9.1 问题：三个载体各写各的，全仓零调用者
+
+①-④ 在 `orchestrate-order.py`，⑦ 在 `audit-work-order.py`，⑧ 在 `freeze-work-order.py`。三个脚本互不引用，跑一次任务要人工分三步按顺序敲。这不叫"跑通"，只叫"三个零件都在"。
+
+### 9.2 第一版设计错了，说明为什么
+
+第一版把 ①-④ 的输出直接交给 ⑦ 审计，用同样的 `--card`。真跑一次立刻暴露问题：审计按交付验收卡（ACC-1~ACC-5，要求"新增某文件""git status 只有一处改动"）去评一份**拆解计划**，逐条 FAIL，理由是"没有任何产物证据"。
+
+根因是**计划不等于交付**。①-④ 产出的是拆解、工单条目、排程表；⑦ 的 ACC 判据针对的是「Codex 有没有按卡把活干出来」。拿后者审前者，无论跑几次都 FAIL，且 FAIL 得毫无信息量。
+
+这一版已改正，正确的段划分是：
+
+| 段 | 环节 | 载体 | 能否自动串 |
+|---|---|---|---|
+| 计划段 | ① 理解 ② 拆分 ③ 工单 ④ 排程 | `orchestrate-order.py` | 自成一段，产出 json 计划 |
+| 交付段 | ⑤ 派发 ⑥ 回执判读 | `dispatch-work-order.py` | 已内建（`receipt_valid` / `state` / `audit_slot_*` 全落 `done.json`） |
+| 验收段 | ⑦ 双轮独立审计 ⑧ 打 tag | `audit-work-order.py` → `freeze-work-order.py` | **由 `run-gorch.py` 串成一条** |
+
+### 9.3 `run-gorch.py` 做什么
+
+默认只串**验收段**（⑦→⑧），`--plan <需求>` 可前置跑 ①-④，但其产物**不进审计**。四条硬规则：
+
+| 规则 | 行为 | 为什么 |
+|---|---|---|
+| 无 evidence 直接拦 | 不给产物就不进审计，`blocked` | 没有证据的审计只能 FAIL，白烧一次双轮 token |
+| plan 未全 COMPLETED 就拦 | 任一 stage 非 `completed` → `blocked`，不进审计 | 假完成产物不许往下走 |
+| 审计 FAIL 绝不落到冻结 | 严格断链 | 网关不能靠"没检查"绕过 |
+| ⑧ 自己再判一次 | `freeze-work-order.py` 重读 `audit.json` 再拒一次 | 这一段不能变成绕过门的通道 |
+
+### 9.4 实测
+
+**真跑 1（计划段拦截）**：需求依赖仓库里三步的实际命令名，decompose 判 `blocked`，理由写得极准——「在无工具环境读不到命令名与审计语义，写出来只能编造一份听起来合理但未核实的文档，比不写更糟」。流水线据此停在 `blocked`，未进审计。
+
+**真跑 2（全链贯通）**：换一条不依赖仓库事实的需求，三 stage 全 `completed` → 自动进审计 → 双轮 FAIL → 拒绝冻结：
+
+```json
+{"outcome": "audit-failed", "reason": "independent audit did not pass; freeze refused",
+ "steps": [{"step": "orchestrate", "exit_code": 0,
+            "verdicts": {"decompose": "completed", "work_order": "completed", "schedule": "completed"}},
+           {"step": "audit", "exit_code": 2,
+            "stdout": "{\"audit_passed\": false, \"round1\": \"FAIL\", \"round2\": \"FAIL\"}"}]}
+```
+
+这就是八环节第一次**一条命令跑完**：①-④ → ⑦ → ⑧ 自动衔接，判定正确，门没被绕过。
+
+### 9.5 仍未实证的一条
+
+**审计 PASS → `frozen` 这一段没有真跑过**。要真跑需要一张卡和一批 evidence 完全对得上的真实交付；现有可用的 w9 卡已失效（目标文件已进 `HEAD`），硬凑一张新卡属于扩大范围。目前这条路径只由单测覆盖（`test_audit_pass_then_freeze` 断言调用序列为 audit → freeze 且 outcome 为 `frozen`）。**如实记录，不宣称全链已验。**
