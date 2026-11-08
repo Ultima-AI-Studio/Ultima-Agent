@@ -1,0 +1,52 @@
+{
+  "work_order": "wo-ultimaagent-20261108-0026",
+  "status": "COMPLETED",
+  "phase": "T0",
+  "run_id": "wo-ultimaagent-20261108-0026-T0-20261108",
+  "input_sha256": "8c1e4a267b57d6058c978a06881cc0a14e3923df66de45808609e301a724cfb0",
+  "executor": "Codex",
+  "exit_code": 0,
+  "reviewReason": "T0 strict audit prompt loader and ReviewResult adapter passed new and existing deterministic audit tests.",
+  "stdoutText": "RED exit 1 with 10 expected failures; GREEN 10/10; focused regression 28/28, exit 0.",
+  "evidence": [
+    {
+      "path": "tasks/queue/runs/wo-ultimaagent-20261108-0026/T0/red-test.log",
+      "kind": "log",
+      "summary": "T0 pre-implementation RED output"
+    },
+    {
+      "path": "tasks/queue/runs/wo-ultimaagent-20261108-0026/T0/green-test.log",
+      "kind": "log",
+      "summary": "T0 audit prompt tests, 10/10 passed"
+    },
+    {
+      "path": "tasks/queue/runs/wo-ultimaagent-20261108-0026/T0/focused-regression.log",
+      "kind": "log",
+      "summary": "New and existing audit tests, 28/28 passed"
+    },
+    {
+      "path": "docs/reports/wo-ultimaagent-20261108-0026-t0.md",
+      "kind": "report",
+      "summary": "T0 stage report"
+    }
+  ],
+  "acceptance": [
+    {
+      "id": "T0-PROMPT",
+      "result": "PASS",
+      "evidence": "Independent role, evidence discipline, fixed findings JSON and gate are defined."
+    },
+    {
+      "id": "T0-FAIL-CLOSED",
+      "result": "PASS",
+      "evidence": "Missing and empty files, dev role, malformed contract and inconsistent gate are rejected."
+    },
+    {
+      "id": "T0-REVIEWER-ADAPTER",
+      "result": "PASS",
+      "evidence": "Validated LLM output is converted through IndependentReviewer to ReviewResult."
+    }
+  ],
+  "scopeDeclaration": "Only T0 work-order fileDomain paths were changed; unrelated in-flight changes were not staged or modified.",
+  "openSourceSelection": "No dependency added; Python standard library and existing reviewer were reused."
+}
