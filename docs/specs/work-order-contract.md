@@ -78,7 +78,9 @@ JSON Schema 的职责是验证解析后对象的封闭结构；Validator 的职�
 | `wo-ultimaagent-20261101-0021--work-capability.md` | 使用 `goal/acceptance[]/dependsOn[]/fileDomain[]` 老格式并含大量历史补记 | 进入 `legacy-queue`；附录章节只做索引 |
 | `wo-ultimaagent-20261103-0022--middleware-v1.md` | 老 `card_contract` 风格字段，没有四层工单骨架 | 进入 `legacy-queue`；与 `tasks/cards/` 契约边界保持不变 |
 | `wo-ultimaagent-20261103-0025--t0-baseline-fix.md` | 老格式且带建卡补记，标题不是 `# Codex 工单 ·` | 进入 `legacy-queue`；标题只要求一级 Markdown 标题 |
+| `wo-ultimaagent-20261101-0019--new-kws-proof.md` | 计划绑定短卡，仅有一级标题与状态/计划字段，没有 `##` 章节 | 进入 `legacy-queue`；要求正文至少两行，不伪造章节 |
+| `wo-ultimaagent-20261101-0020--voice-next-live.md` | 计划绑定短卡，仅有一级标题与真人回执引用，没有 `##` 章节 | 进入 `legacy-queue`；要求正文至少两行，不伪造章节 |
 | `wo-ultimaagent-20261108-0028--e02-evidence-scope-plan-review.md` | 接近四层格式，但 L2 锁定字段不全，四段标签无冒号 | 进入 `legacy-queue`；标签冒号差异留给未来迁移，不改卡 |
 | `wo-ultimaagent-20261108-0030--m4-orchestration-ledger.md` | 有范围/表格/明细，但缺 `link/prereq/workdir/revision` | 进入 `legacy-queue`；作为默认正向回归样本 |
 
-兼容放宽仅包括：标题前缀、状态词、L2 锁定字段、T0 起始、任务表/明细并存要求、四段标签写法和历史附录。文件不可读、没有一级标题或没有任何 `##` 章节仍然 FAIL；新卡一旦被识别为 `structured-v1`，不得回退到兼容 profile 逃避错误。
+兼容放宽仅包括：标题前缀、状态词、L2 锁定字段、T0 起始、任务表/明细并存要求、四段标签写法、计划绑定短卡可无 `##` 章节，以及历史附录。文件不可读、没有一级标题或正文少于两行仍然 FAIL；新卡一旦被识别为 `structured-v1`，不得回退到兼容 profile 逃避错误。
