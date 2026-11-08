@@ -1,0 +1,56 @@
+# 工单 wo-ultimaagent-20261108-0027 派发载荷
+
+你是本工单的执行端。请严格按 `H:\UltimaAI\UltimaAgent\tasks\queue\wo-ultimaagent-20261108-0027--audit-stage-gate.md` 执行，不得自行扩大范围。
+
+## 一、必读材料（按顺序读完再动手）
+
+1. 工单卡：`tasks/queue/wo-ultimaagent-20261108-0027--audit-stage-gate.md`（本单契约）
+2. 方案：`docs/plans/audit-stage-gate-plan-20261108.md`（G-PLAN-0027，口径不可变更）
+3. 现有实现：`src/brain/guardrails/reviewer.py`、`src/brain/guardrails/receipt.py`（只读，禁止改语义）
+4. 0026 实证证据：`tasks/queue/runs/wo-ultimaagent-20261108-0026/T0/receipt.json`、`tasks/queue/runs/wo-ultimaagent-20261108-0026/T0/green-test.log`
+5. 0026 T2 报告：`docs/reports/wo-ultimaagent-20261108-0026-t2.md`
+
+动手前先用代码事实证明本单要解决的缺口成立：`IndependentReviewer.__init__` 只校验 role 字符串、`ReceiptValidator.validate()` 不校验结论由谁产生。若事实与工单描述不符，立即停下来说明，不要硬做。
+
+## 二、三段任务
+
+**T0 — 阶段门执行器**
+新增 `src/brain/guardrails/stage_gate.py`：`check_stage(work_order, stage, evidence_root)` → `StageGateResult(passed, reasons[])`。复用 `ReceiptValidator` 校验结论文件完整性、复用 `ReviewResult` 语义判 `blocker`。fail-closed：文件缺失 / 非法 JSON / 角色非 eng.audit|eng.security / blocker>0 / `checked` 为空 / `checked` 缺少「测试复跑」或「写域核对」，一律 `passed=False` 并给出原因。
+新增 `src/brain/guardrails/tests/test_stage_gate.py`：1 个放行正例 + 至少 4 个拦截反例（缺文件、非法 JSON、blocker>0、角色=dev）。断言必须真断言。
+
+**T1 — 复核结论规范 + 派发模板硬化**
+新增 `docs/specs/independent-review-contract.md`，定义 `data/evidence/<work_order>/<stage>/independent-review.json` 格式（ReceiptValidator 四字段 + ReviewResult 的 ok/role/blocker/major/minor/checked/findings），写明：只能由复核会话写、执行端不得写入、执行 commit 与复核 commit 分开、复核 commit 前缀 `[audit]`。
+同时把 `tasks/queue/dispatch-wo-ultimaagent-20261108-0027-prompt.txt` 之外新增一份可复用的派发模板说明（或在本单报告里给出模板文本），要求：一次只派一个 T、启动前调 `stage_gate.check_stage(上一阶段)`、未过即拒绝启动、载荷明示不得自行宣布全局完成、不得改看板百分比。
+
+**T2 — 真实演练 + 反例 + 全量门**
+对 0026 的 T0/T1 真实产出做一次独立复核，产出合规 `data/evidence/wo-ultimaagent-20261108-0027/T2/independent-review.json`，`checked` 必须含三项实际动作且附原始输出路径：独立复跑测试、写域核对、断言抽查。`stage_gate` 必须判 PASS。
+构造三种反例（缺文件 / blocker>0 / 角色=dev），证明派发前置校验或 gate 拒绝放行，记录真实输出。
+专项报告落 `docs/reports/wo-ultimaagent-20261108-0027-t2.md`，须如实记录所有失败尝试与重跑历史，不以最终绿覆盖历史。
+全量门用专用解释器：`H:\UltimaAI\UltimaAgent\tools\venv-openjarvis\Scripts\python.exe`（Python 3.13.16），命令与 0026 一致（`-X utf8 -m pytest src -q --disable-warnings --junitxml=<证据路径>`），目标 0 failed，并做 JUnit 独立回读（tests / failures / errors / skipped + SHA-256）。
+
+## 三、硬约束
+
+1. **禁止改**：`src/brain/guardrails/reviewer.py`、`src/brain/guardrails/receipt.py`、`docs/tracker/北极星上线任务清单.html`（看板回写权归主脑）、0026 的既有写域文件。
+2. **不做什么**：不做自动调度器、不碰模块4 多 Agent 编排、不引入新依赖（如需新依赖先出开源替代排查表，G-OPEN-001）。
+3. **本单自身受门约束**：每完成一个 T，先产出独立复核结论并过 `stage_gate`，再进入下一个 T；跳过自门视为未完成。
+4. **git 精确暂存**：工作区存在其他线未提交改动（`.superpowers/`、`data/evidence/jarvis-work-*`、`TTS/`、0021 相关、`tasks/tasks.json` 等）。`git add` 必须精确到本单写域文件，**严禁 `git add -A` / `-u` / `.` / 通配**。
+5. **推送口径**：本环境 git 有一条 `http.https://github.com.proxy = http://127.0.0.1:1083` 的死配置（1083 无监听）。push 必须显式覆盖：
+   `git -c "http.https://github.com.proxy=http://127.0.0.1:7897" -c http.proxy=http://127.0.0.1:7897 -c https.proxy=http://127.0.0.1:7897 push origin HEAD:refs/heads/codex/voice-fsmn-new-path`
+   若仍失败，重试不超过 3 次，失败则记录 evidence 并如实声明，不回滚提交、不阻塞收尾。
+6. **tag**：收口后打 `ultimaagent-audit-stage-gate-20261108`，打 tag 前必须确认 tag 目标 commit 只包含本单提交（本分支有其他线并发提交，需 `git log` 核对，必要时在明确 SHA 上建 tag）。
+7. 每 T 完成后精确提交，commit message 标注"工单 0027 审计门 T0/T1/T2"。
+
+## 四、已知环境事实
+
+- `test_jarvis_ask_real_inference` 是已知环境抖动（`jarvis.exe ask` 在完整套件上下文偶发 returncode=1，单独复跑稳定 345/exit 0）。如遇此失败：先做 3 次独立探针 + 定点复跑对照，再判为环境既有，并在报告如实记录，**不得直接豁免、不得删测试**。
+- 18766 UltimaManager HTTP 当前离线，登记以全局主表为准，不阻塞执行。
+
+## 五、回执要求（八字段齐全）
+
+每阶段 `data/evidence/wo-ultimaagent-20261108-0027/<T>/receipt.json`：
+`work_order` / `status` / `phase` / `run_id` / `input_sha256` / `executor` / `exit_code` / `reviewReason` / `stdoutText` / `evidence[]` / `acceptance[]` / `scopeDeclaration` / `environmentDeclaration` / `openSourceSelection`。
+T2 额外必须产出 `independent-review.json`（本单 T1 定义的格式）。
+
+## 六、收尾
+
+最后输出一段总结：三段结论、关键计数、失败历史、越界声明、tag 与 push 结果、遗留问题。
