@@ -1,0 +1,836 @@
+{
+  "work_order": "wo-ultimaagent-20261108-0030",
+  "gate": "T0",
+  "status": "PASS",
+  "generated_at": "2026-11-08T09:54:53.930967+00:00",
+  "source": {
+    "path": "H:\\UltimaAI\\UltimaManager\\src\\manager\\store.py",
+    "git_revision": "5c16f9e",
+    "mtime_utc": "2026-10-25T09:43:01.223214+00:00",
+    "sha256": "8a14639710263ddcf2159039bec085d136147081d50fe9b16ce4f68fa4adb5d1"
+  },
+  "expected_table_count": 13,
+  "actual_table_count": 13,
+  "table_names": [
+    "projects",
+    "goals",
+    "work_orders",
+    "stages",
+    "runs",
+    "external_actors",
+    "legacy_records",
+    "approvals",
+    "plans",
+    "events",
+    "handoffs",
+    "continuation_contracts",
+    "interventions"
+  ],
+  "missing_tables": [],
+  "unexpected_tables": [],
+  "core_tables": [
+    "projects",
+    "goals",
+    "work_orders",
+    "stages",
+    "runs"
+  ],
+  "core_field_counts": {
+    "projects": 9,
+    "goals": 11,
+    "work_orders": 15,
+    "stages": 21,
+    "runs": 25
+  },
+  "difference_count": 0,
+  "differences": [],
+  "schema": {
+    "projects": {
+      "columns": [
+        {
+          "name": "project_id",
+          "definition": "TEXT PRIMARY KEY"
+        },
+        {
+          "name": "name",
+          "definition": "TEXT NOT NULL"
+        },
+        {
+          "name": "root_path",
+          "definition": "TEXT NOT NULL"
+        },
+        {
+          "name": "adapter_json",
+          "definition": "TEXT NOT NULL DEFAULT '{}'"
+        },
+        {
+          "name": "ownership_state",
+          "definition": "TEXT NOT NULL DEFAULT 'managed_new'"
+        },
+        {
+          "name": "ownership_reason",
+          "definition": "TEXT"
+        },
+        {
+          "name": "paused",
+          "definition": "INTEGER NOT NULL DEFAULT 0"
+        },
+        {
+          "name": "last_dispatch_seq",
+          "definition": "INTEGER NOT NULL DEFAULT 0"
+        },
+        {
+          "name": "created_at",
+          "definition": "TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP"
+        }
+      ],
+      "constraints": []
+    },
+    "goals": {
+      "columns": [
+        {
+          "name": "project_id",
+          "definition": "TEXT NOT NULL"
+        },
+        {
+          "name": "goal_id",
+          "definition": "TEXT NOT NULL"
+        },
+        {
+          "name": "title",
+          "definition": "TEXT NOT NULL"
+        },
+        {
+          "name": "revision",
+          "definition": "INTEGER NOT NULL"
+        },
+        {
+          "name": "approved",
+          "definition": "INTEGER NOT NULL"
+        },
+        {
+          "name": "allowed_write_roots_json",
+          "definition": "TEXT NOT NULL"
+        },
+        {
+          "name": "acceptance_json",
+          "definition": "TEXT NOT NULL"
+        },
+        {
+          "name": "prohibited_json",
+          "definition": "TEXT NOT NULL"
+        },
+        {
+          "name": "max_tasks",
+          "definition": "INTEGER NOT NULL"
+        },
+        {
+          "name": "hold",
+          "definition": "INTEGER NOT NULL DEFAULT 0"
+        },
+        {
+          "name": "version",
+          "definition": "INTEGER NOT NULL DEFAULT 1"
+        }
+      ],
+      "constraints": [
+        "PRIMARY KEY (project_id, goal_id)",
+        "FOREIGN KEY (project_id) REFERENCES projects(project_id)"
+      ]
+    },
+    "work_orders": {
+      "columns": [
+        {
+          "name": "project_id",
+          "definition": "TEXT NOT NULL"
+        },
+        {
+          "name": "work_order_id",
+          "definition": "TEXT NOT NULL"
+        },
+        {
+          "name": "goal_id",
+          "definition": "TEXT NOT NULL"
+        },
+        {
+          "name": "title",
+          "definition": "TEXT NOT NULL"
+        },
+        {
+          "name": "category",
+          "definition": "TEXT NOT NULL"
+        },
+        {
+          "name": "state",
+          "definition": "TEXT NOT NULL"
+        },
+        {
+          "name": "revision",
+          "definition": "INTEGER NOT NULL"
+        },
+        {
+          "name": "source_hash",
+          "definition": "TEXT NOT NULL"
+        },
+        {
+          "name": "write_scope_json",
+          "definition": "TEXT NOT NULL"
+        },
+        {
+          "name": "acceptance_json",
+          "definition": "TEXT NOT NULL"
+        },
+        {
+          "name": "idle_reason",
+          "definition": "TEXT"
+        },
+        {
+          "name": "reservation",
+          "definition": "TEXT"
+        },
+        {
+          "name": "version",
+          "definition": "INTEGER NOT NULL DEFAULT 1"
+        },
+        {
+          "name": "created_at",
+          "definition": "TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP"
+        },
+        {
+          "name": "updated_at",
+          "definition": "TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP"
+        }
+      ],
+      "constraints": [
+        "PRIMARY KEY (project_id, work_order_id)",
+        "FOREIGN KEY (project_id, goal_id) REFERENCES goals(project_id, goal_id)"
+      ]
+    },
+    "stages": {
+      "columns": [
+        {
+          "name": "project_id",
+          "definition": "TEXT NOT NULL"
+        },
+        {
+          "name": "work_order_id",
+          "definition": "TEXT NOT NULL"
+        },
+        {
+          "name": "stage_id",
+          "definition": "TEXT NOT NULL"
+        },
+        {
+          "name": "phase",
+          "definition": "TEXT NOT NULL"
+        },
+        {
+          "name": "goal_id",
+          "definition": "TEXT NOT NULL DEFAULT ''"
+        },
+        {
+          "name": "goal_revision",
+          "definition": "INTEGER NOT NULL DEFAULT 0"
+        },
+        {
+          "name": "state",
+          "definition": "TEXT NOT NULL"
+        },
+        {
+          "name": "source_hash",
+          "definition": "TEXT NOT NULL"
+        },
+        {
+          "name": "priority",
+          "definition": "INTEGER NOT NULL DEFAULT 0"
+        },
+        {
+          "name": "dependencies_json",
+          "definition": "TEXT NOT NULL DEFAULT '[]'"
+        },
+        {
+          "name": "write_scope_json",
+          "definition": "TEXT NOT NULL DEFAULT '[]'"
+        },
+        {
+          "name": "acceptance_json",
+          "definition": "TEXT NOT NULL DEFAULT '[]'"
+        },
+        {
+          "name": "task_contract_json",
+          "definition": "TEXT NOT NULL DEFAULT '{}'"
+        },
+        {
+          "name": "reservation",
+          "definition": "TEXT"
+        },
+        {
+          "name": "reserved_at",
+          "definition": "REAL"
+        },
+        {
+          "name": "reservation_owner_pid",
+          "definition": "INTEGER"
+        },
+        {
+          "name": "reservation_owner_identity",
+          "definition": "TEXT"
+        },
+        {
+          "name": "repair_count",
+          "definition": "INTEGER NOT NULL DEFAULT 0"
+        },
+        {
+          "name": "max_repairs",
+          "definition": "INTEGER NOT NULL DEFAULT 2"
+        },
+        {
+          "name": "created_seq",
+          "definition": "INTEGER NOT NULL"
+        },
+        {
+          "name": "version",
+          "definition": "INTEGER NOT NULL DEFAULT 1"
+        }
+      ],
+      "constraints": [
+        "PRIMARY KEY (project_id, work_order_id, stage_id)",
+        "FOREIGN KEY (project_id, work_order_id) REFERENCES work_orders(project_id, work_order_id)"
+      ]
+    },
+    "runs": {
+      "columns": [
+        {
+          "name": "project_id",
+          "definition": "TEXT NOT NULL"
+        },
+        {
+          "name": "work_order_id",
+          "definition": "TEXT NOT NULL"
+        },
+        {
+          "name": "stage_id",
+          "definition": "TEXT NOT NULL"
+        },
+        {
+          "name": "run_id",
+          "definition": "TEXT NOT NULL"
+        },
+        {
+          "name": "phase",
+          "definition": "TEXT NOT NULL"
+        },
+        {
+          "name": "goal_id",
+          "definition": "TEXT NOT NULL DEFAULT ''"
+        },
+        {
+          "name": "goal_revision",
+          "definition": "INTEGER NOT NULL DEFAULT 0"
+        },
+        {
+          "name": "state",
+          "definition": "TEXT NOT NULL"
+        },
+        {
+          "name": "source_hash",
+          "definition": "TEXT NOT NULL"
+        },
+        {
+          "name": "cwd",
+          "definition": "TEXT NOT NULL"
+        },
+        {
+          "name": "allowed_write_roots_json",
+          "definition": "TEXT NOT NULL"
+        },
+        {
+          "name": "evidence_dir",
+          "definition": "TEXT NOT NULL"
+        },
+        {
+          "name": "reservation",
+          "definition": "TEXT NOT NULL"
+        },
+        {
+          "name": "created_at",
+          "definition": "REAL NOT NULL DEFAULT 0"
+        },
+        {
+          "name": "pid",
+          "definition": "INTEGER"
+        },
+        {
+          "name": "process_identity",
+          "definition": "TEXT"
+        },
+        {
+          "name": "exit_code",
+          "definition": "INTEGER"
+        },
+        {
+          "name": "started_at",
+          "definition": "REAL"
+        },
+        {
+          "name": "finished_at",
+          "definition": "REAL"
+        },
+        {
+          "name": "receipt_status",
+          "definition": "TEXT"
+        },
+        {
+          "name": "receipt_evidence_json",
+          "definition": "TEXT NOT NULL DEFAULT '[]'"
+        },
+        {
+          "name": "review_findings_json",
+          "definition": "TEXT NOT NULL DEFAULT '[]'"
+        },
+        {
+          "name": "delivery_source_hash",
+          "definition": "TEXT"
+        },
+        {
+          "name": "acceptance_result_json",
+          "definition": "TEXT NOT NULL DEFAULT '{}'"
+        },
+        {
+          "name": "transport_facts_json",
+          "definition": "TEXT NOT NULL DEFAULT '{}'"
+        }
+      ],
+      "constraints": [
+        "PRIMARY KEY (project_id, work_order_id, stage_id, run_id)",
+        "FOREIGN KEY (project_id, work_order_id, stage_id) REFERENCES stages(project_id, work_order_id, stage_id)"
+      ]
+    },
+    "external_actors": {
+      "columns": [
+        {
+          "name": "actor_id",
+          "definition": "TEXT PRIMARY KEY"
+        },
+        {
+          "name": "project_id",
+          "definition": "TEXT NOT NULL"
+        },
+        {
+          "name": "role",
+          "definition": "TEXT NOT NULL"
+        },
+        {
+          "name": "pid",
+          "definition": "INTEGER"
+        },
+        {
+          "name": "process_identity",
+          "definition": "TEXT"
+        },
+        {
+          "name": "state",
+          "definition": "TEXT NOT NULL"
+        },
+        {
+          "name": "source",
+          "definition": "TEXT NOT NULL DEFAULT 'external'"
+        },
+        {
+          "name": "observed_at",
+          "definition": "REAL NOT NULL"
+        }
+      ],
+      "constraints": []
+    },
+    "legacy_records": {
+      "columns": [
+        {
+          "name": "project_id",
+          "definition": "TEXT NOT NULL"
+        },
+        {
+          "name": "work_order_id",
+          "definition": "TEXT NOT NULL"
+        },
+        {
+          "name": "registry_state",
+          "definition": "TEXT NOT NULL"
+        },
+        {
+          "name": "registry_detail",
+          "definition": "TEXT NOT NULL"
+        },
+        {
+          "name": "process_state",
+          "definition": "TEXT NOT NULL"
+        },
+        {
+          "name": "acceptance_state",
+          "definition": "TEXT NOT NULL"
+        },
+        {
+          "name": "ready",
+          "definition": "INTEGER NOT NULL"
+        },
+        {
+          "name": "next_step",
+          "definition": "TEXT NOT NULL"
+        },
+        {
+          "name": "source_path",
+          "definition": "TEXT NOT NULL"
+        },
+        {
+          "name": "observed_at",
+          "definition": "REAL NOT NULL"
+        }
+      ],
+      "constraints": [
+        "PRIMARY KEY (project_id, work_order_id)"
+      ]
+    },
+    "approvals": {
+      "columns": [
+        {
+          "name": "approval_id",
+          "definition": "TEXT PRIMARY KEY"
+        },
+        {
+          "name": "idempotency_key",
+          "definition": "TEXT NOT NULL"
+        },
+        {
+          "name": "project_id",
+          "definition": "TEXT NOT NULL"
+        },
+        {
+          "name": "goal_id",
+          "definition": "TEXT NOT NULL"
+        },
+        {
+          "name": "work_order_id",
+          "definition": "TEXT NOT NULL"
+        },
+        {
+          "name": "stage_id",
+          "definition": "TEXT NOT NULL"
+        },
+        {
+          "name": "action",
+          "definition": "TEXT NOT NULL"
+        },
+        {
+          "name": "revision",
+          "definition": "INTEGER NOT NULL"
+        },
+        {
+          "name": "source_hash",
+          "definition": "TEXT NOT NULL"
+        },
+        {
+          "name": "impact_scope_json",
+          "definition": "TEXT NOT NULL"
+        },
+        {
+          "name": "evidence_json",
+          "definition": "TEXT NOT NULL"
+        },
+        {
+          "name": "requested_step",
+          "definition": "TEXT NOT NULL DEFAULT ''"
+        },
+        {
+          "name": "impact",
+          "definition": "TEXT NOT NULL DEFAULT ''"
+        },
+        {
+          "name": "status",
+          "definition": "TEXT NOT NULL"
+        },
+        {
+          "name": "decision",
+          "definition": "TEXT"
+        },
+        {
+          "name": "expires_at",
+          "definition": "REAL NOT NULL"
+        },
+        {
+          "name": "created_at",
+          "definition": "REAL NOT NULL"
+        },
+        {
+          "name": "decided_at",
+          "definition": "REAL"
+        },
+        {
+          "name": "version",
+          "definition": "INTEGER NOT NULL DEFAULT 1"
+        }
+      ],
+      "constraints": [
+        "UNIQUE(project_id,idempotency_key)",
+        "FOREIGN KEY (project_id,work_order_id,stage_id) REFERENCES stages(project_id,work_order_id,stage_id)"
+      ]
+    },
+    "plans": {
+      "columns": [
+        {
+          "name": "project_id",
+          "definition": "TEXT NOT NULL"
+        },
+        {
+          "name": "work_order_id",
+          "definition": "TEXT NOT NULL"
+        },
+        {
+          "name": "goal_id",
+          "definition": "TEXT NOT NULL"
+        },
+        {
+          "name": "goal_revision",
+          "definition": "INTEGER NOT NULL"
+        },
+        {
+          "name": "plan_digest",
+          "definition": "TEXT NOT NULL"
+        },
+        {
+          "name": "source_hash",
+          "definition": "TEXT NOT NULL"
+        },
+        {
+          "name": "tasks_json",
+          "definition": "TEXT NOT NULL"
+        },
+        {
+          "name": "status",
+          "definition": "TEXT NOT NULL"
+        },
+        {
+          "name": "created_at",
+          "definition": "REAL NOT NULL"
+        },
+        {
+          "name": "reviewed_at",
+          "definition": "REAL"
+        },
+        {
+          "name": "version",
+          "definition": "INTEGER NOT NULL DEFAULT 1"
+        }
+      ],
+      "constraints": [
+        "PRIMARY KEY (project_id,work_order_id)",
+        "FOREIGN KEY (project_id,work_order_id) REFERENCES work_orders(project_id,work_order_id)"
+      ]
+    },
+    "events": {
+      "columns": [
+        {
+          "name": "event_id",
+          "definition": "INTEGER PRIMARY KEY AUTOINCREMENT"
+        },
+        {
+          "name": "project_id",
+          "definition": "TEXT"
+        },
+        {
+          "name": "work_order_id",
+          "definition": "TEXT"
+        },
+        {
+          "name": "kind",
+          "definition": "TEXT NOT NULL"
+        },
+        {
+          "name": "summary",
+          "definition": "TEXT NOT NULL"
+        },
+        {
+          "name": "metadata_json",
+          "definition": "TEXT NOT NULL"
+        },
+        {
+          "name": "created_at",
+          "definition": "REAL NOT NULL"
+        }
+      ],
+      "constraints": []
+    },
+    "handoffs": {
+      "columns": [
+        {
+          "name": "project_id",
+          "definition": "TEXT PRIMARY KEY REFERENCES projects(project_id)"
+        },
+        {
+          "name": "receipt_id",
+          "definition": "TEXT NOT NULL UNIQUE"
+        },
+        {
+          "name": "profile_json",
+          "definition": "TEXT NOT NULL"
+        },
+        {
+          "name": "registry_sha256",
+          "definition": "TEXT NOT NULL"
+        },
+        {
+          "name": "source_hash",
+          "definition": "TEXT NOT NULL"
+        },
+        {
+          "name": "created_at",
+          "definition": "REAL NOT NULL"
+        }
+      ],
+      "constraints": []
+    },
+    "continuation_contracts": {
+      "columns": [
+        {
+          "name": "contract_id",
+          "definition": "TEXT PRIMARY KEY"
+        },
+        {
+          "name": "project_id",
+          "definition": "TEXT NOT NULL"
+        },
+        {
+          "name": "work_order_id",
+          "definition": "TEXT NOT NULL"
+        },
+        {
+          "name": "phase_id",
+          "definition": "TEXT NOT NULL"
+        },
+        {
+          "name": "revision",
+          "definition": "INTEGER NOT NULL"
+        },
+        {
+          "name": "source_hash",
+          "definition": "TEXT NOT NULL"
+        },
+        {
+          "name": "approval_source_hash",
+          "definition": "TEXT NOT NULL"
+        },
+        {
+          "name": "recipe_json",
+          "definition": "TEXT NOT NULL"
+        },
+        {
+          "name": "digest",
+          "definition": "TEXT NOT NULL"
+        },
+        {
+          "name": "status",
+          "definition": "TEXT NOT NULL"
+        },
+        {
+          "name": "decision",
+          "definition": "TEXT"
+        },
+        {
+          "name": "created_at",
+          "definition": "REAL NOT NULL"
+        },
+        {
+          "name": "expires_at",
+          "definition": "REAL NOT NULL"
+        },
+        {
+          "name": "activated_at",
+          "definition": "REAL"
+        },
+        {
+          "name": "finished_at",
+          "definition": "REAL"
+        },
+        {
+          "name": "idle_reason",
+          "definition": "TEXT"
+        },
+        {
+          "name": "version",
+          "definition": "INTEGER NOT NULL DEFAULT 1"
+        }
+      ],
+      "constraints": [
+        "UNIQUE(project_id,work_order_id,phase_id,revision)",
+        "FOREIGN KEY(project_id,work_order_id) REFERENCES work_orders(project_id,work_order_id)"
+      ]
+    },
+    "interventions": {
+      "columns": [
+        {
+          "name": "intervention_id",
+          "definition": "TEXT PRIMARY KEY"
+        },
+        {
+          "name": "project_id",
+          "definition": "TEXT NOT NULL"
+        },
+        {
+          "name": "work_order_id",
+          "definition": "TEXT NOT NULL"
+        },
+        {
+          "name": "gate_id",
+          "definition": "TEXT NOT NULL"
+        },
+        {
+          "name": "kind",
+          "definition": "TEXT NOT NULL"
+        },
+        {
+          "name": "reason",
+          "definition": "TEXT NOT NULL"
+        },
+        {
+          "name": "required_action",
+          "definition": "TEXT NOT NULL"
+        },
+        {
+          "name": "evidence_json",
+          "definition": "TEXT NOT NULL"
+        },
+        {
+          "name": "status",
+          "definition": "TEXT NOT NULL DEFAULT 'waiting'"
+        },
+        {
+          "name": "review_stage_id",
+          "definition": "TEXT"
+        },
+        {
+          "name": "submitted_path",
+          "definition": "TEXT"
+        },
+        {
+          "name": "submitted_sha256",
+          "definition": "TEXT"
+        },
+        {
+          "name": "source_hash",
+          "definition": "TEXT NOT NULL"
+        },
+        {
+          "name": "review_run_id",
+          "definition": "TEXT"
+        },
+        {
+          "name": "version",
+          "definition": "INTEGER NOT NULL DEFAULT 1"
+        }
+      ],
+      "constraints": [
+        "UNIQUE(project_id,work_order_id,gate_id)",
+        "FOREIGN KEY(project_id,work_order_id) REFERENCES work_orders(project_id,work_order_id)"
+      ]
+    }
+  }
+}
