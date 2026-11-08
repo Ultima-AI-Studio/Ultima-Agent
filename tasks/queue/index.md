@@ -55,3 +55,10 @@
 | wo-ultimaagent-20261101-0019 | audit | 新中文持续流KWS离线技术审计PASS；待真人与采集接入验证，未冻结、未切换；旧0018保持取消；报告 docs/reports/voice-next-wekws-proof-20261101.md |
 
 | wo-ultimaagent-20261101-0020 | audit | 新独立语音入口原生KWS/SenseVoice/SAPI；33测试、24真人回放用例、独立审计PASS；20:38用户确认唤醒及时间语音回答；检查点ultimaagent-voice-next-live-pass-20261101，长期质量未冻结；报告docs/reports/voice-next-live-20261101.md |
+
+## 模块3 审计加固（2026-11-08）
+
+| 工单 | 状态 | 说明 |
+|---|---|---|
+| wo-ultimaagent-20261108-0026 | executing | 单Agent主干审计加固：标准化审计提示词（guardrails/prompts）+ 统一审计报告规范与生成器（docs/specs/audit-report-spec.md / audit_report.py）+ 端到端闭环测试与失败 case 归档；T0→T1→T2 每步回写北极星看板并单独 commit；工单卡 tasks/queue/wo-ultimaagent-20261108-0026--audit-hardening.md；派发载荷 dispatch-wo-ultimaagent-20261108-0026-prompt.txt；冻结门=tag ultimaagent-audit-hardening-20261108 |
+| wo-ultimaagent-20261108-0027 | pending | 审计阶段门硬化（分阶段派发 + 每阶段独立复核）：新增 stage_gate.py（fail-closed 阶段门）+ 独立复核结论规范 + 派发模板硬化 + 用 0026 真实产出演练；起因=0026 实证「执行者=判定者=验收者=进度宣布者」四合一（T0/receipt.json 自写自判、commit 46adbd1f 自改看板）；方案 docs/plans/audit-stage-gate-plan-20261108.md；工单卡 tasks/queue/wo-ultimaagent-20261108-0027--audit-stage-gate.md；**等 0026 收口后派发（WIP 每项目执行中 ≤1）**；冻结门=tag ultimaagent-audit-stage-gate-20261108 |
