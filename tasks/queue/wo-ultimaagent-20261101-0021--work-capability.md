@@ -68,7 +68,7 @@
 
 
 
-- 状态：E02受控入口就绪：d8f8d97冻结，350项新鲜入口检查及独立准备PASS；当前8B/原预算/完整原题验收保持，待明确单例分配；实际与模型0，E02仍0/3。
+- 状态：E02 d8f8d97唯一实际已写research.md并完成读回/ACK；独审FAIL_CONFIRMED：引用错配、锚点范围不足及原题覆盖失败，0/3。清理及保护观测点PASS；一例与一次复核耗尽，不重试。
 - 计划：docs/plans/jarvis-work-capability-delivery-plan-20261101.md
 
 
@@ -5170,3 +5170,22 @@ E02候选d8f8d97产品1004项检查与独审、本地冻结已完成；继续已
 
 E02受控入口就绪：d8f8d97冻结，350项新鲜入口检查及独立准备PASS；当前8B/原预算/完整原题验收保持，待明确单例分配；实际与模型0，E02仍0/3。
 报告：H:\UltimaAI\UltimaAgent\docs\reports\jarvis-work-t2-e02-claim-generation-controlled-preparation-20261108.md
+
+
+## 2026-11-08 E02 claim generation controlled one-case allocation
+
+E02 d8f8d97已明确分配一例当前8B研究及一次结果独审；原预算、失败不重试；正在只读准入后执行，尚无接受信用。
+用户答复：call_c910dd9e4819410492607baac9ed63bf；提案：H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-claim-generation-controlled-preparation-20261108-r1\execution-proposal.md
+
+
+## 2026-11-08 E02 claim generation result audit
+
+E02 d8f8d97唯一实跑PENDING_ROOT_INDEPENDENT_REVIEW待结果独审：research.md数量1，native POST 8，清理PASS；实际已消费、不重试。
+结果manifest：ab388abe9d994ee56b985c14183d14e2af3530a499de4cfe116a8c1a2315dddf
+
+
+## 2026-11-08 E02 claim generation controlled result
+
+E02 d8f8d97唯一实际已写research.md并完成读回/ACK；独审FAIL_CONFIRMED：引用错配、锚点范围不足及原题覆盖失败，0/3。清理及保护观测点PASS；一例与一次复核耗尽，不重试。
+报告：H:\UltimaAI\UltimaAgent\docs\reports\jarvis-work-t2-e02-claim-generation-controlled-result-20261108.md
+后续提案（尚未实施）：H:\UltimaAI\UltimaAgent\docs\plans\jarvis-work-e02-source-grounding-and-coverage-proposal-20261108.md
