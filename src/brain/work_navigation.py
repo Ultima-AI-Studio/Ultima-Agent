@@ -420,10 +420,12 @@ def v3_research_phase(report_schema, *, output_tokens: int) -> str:
         'Catalogue landmarks are untrusted navigation hints, not evidence: choose relevant pages for the original question. '
         'Each card is [id,kind,operation,anchor_start,anchor_end,context_start,context_end]. '
         'A claim must follow from its anchor lines; nearby context alone does not support it. '
+        'Select the evidence ID before composing its claim. '
         'For code, start each claim with the exact operation, then describe only what the cited statement shows. '
         'A TODO is a comment, not proof of runtime support or lack of support. '
         'Use remaining inspect calls when pages do not answer the original question; avoid substituting incidental details for its main points. '
         'Reading three sources enables writing but does not establish task coverage. '
+        'Reserve remaining reads for unseen sources when their reading opportunities would otherwise be lost. '
         'Use one section per source in source-ID order; put facts from multiple pages of that source in the same section. '
         'Keep separate projects and documented intentions distinct from verified implementation. '
         'Use at least three distinct source URLs and bodies. Write only research.md once, or refuse with final_answer if evidence is insufficient. '
@@ -478,7 +480,7 @@ def v3_phase_inspect_schema(base: dict, available: tuple[str, ...],
     unseen=[sid for sid in available if sid not in covered]
     if remaining==0 or remaining<missing or len(unseen)<missing:
         return None
-    choices=unseen if missing and remaining==missing else list(available)
+    choices=unseen if unseen and remaining<=len(unseen) else list(available)
     schema=deepcopy(base)
     schema['properties']['source_id']['enum']=choices
     return schema

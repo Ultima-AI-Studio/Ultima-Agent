@@ -30,10 +30,10 @@ def phase(available=SOURCES, visible=(), used=0, base=None):
 
 @pytest.mark.parametrize('available,visible,used,expected',[
     (SOURCES,(),0,list(SOURCES)),
-    (SOURCES,tuple(page('S1',i) for i in range(1,4)),3,list(SOURCES)),
+    (SOURCES,tuple(page('S1',i) for i in range(1,4)),3,['S2','S3','S4','S5']),
     (SOURCES,tuple(page('S1',i) for i in range(1,5)),4,['S2','S3','S4','S5']),
     (SOURCES,tuple(page('S1',i) for i in range(1,5))+(page('S2',5),),5,['S3','S4','S5']),
-    (SOURCES,(page('S1'),page('S2',2),page('S3',3)),5,list(SOURCES)),
+    (SOURCES,(page('S1'),page('S2',2),page('S3',3)),5,['S4','S5']),
     (SOURCES,(page('S1'),page('S2',2),page('S3',3)),6,None),
     (SOURCES,(page('S1',empty=True),),4,None),
     (SOURCES,(page('S1'),page('S2',2,empty=True)),4,['S2','S3','S4','S5']),
@@ -42,7 +42,7 @@ def phase(available=SOURCES, visible=(), used=0, base=None):
     ((),(),0,None),
     (('S5','S3','S1'),tuple(page('S5',i) for i in range(1,5)),4,['S3','S1']),
 ])
-def test_budget_reserves_only_the_reads_needed_for_missing_sources(available,visible,used,expected):
+def test_budget_reserves_remaining_opportunities_for_missing_sources(available,visible,used,expected):
     before=deepcopy(WorkInspectTool.parameters)
     schema=phase(available,visible,used)
     assert WorkInspectTool.parameters==before
@@ -123,10 +123,10 @@ def repeated_case(tmp_path,sdk_io,mock_jar,monkeypatch,*,adaptive):
     return result,RESTRICTED[result['task_id']]
 
 
-def test_sdk_rejects_fifth_same_source_read_before_spending_reserved_budget(tmp_path,sdk_io,mock_jar,monkeypatch):
+def test_sdk_rejects_third_same_source_read_before_spending_reserved_budget(tmp_path,sdk_io,mock_jar,monkeypatch):
     result,ledger=repeated_case(tmp_path,sdk_io,mock_jar,monkeypatch,adaptive=False)
-    assert ledger._read_count==4, 'fifth same-source read consumed the coverage reserve'
-    assert len(mock_jar[2])==5 and result['status']=='failed'
+    assert ledger._read_count==2, 'third same-source read consumed the coverage reserve'
+    assert len(mock_jar[2])==3 and result['status']=='failed'
     assert 'Invalid native research envelope' in result['error']
     assert result['content']==NOT_DELIVERED
     assert not list(tmp_path.rglob('research.md')) and not getattr(ledger,'_runtime_final',None)
@@ -136,13 +136,15 @@ def test_sdk_uses_six_reads_then_write_ack_and_independent_replay(tmp_path,sdk_i
     result,ledger=repeated_case(tmp_path,sdk_io,mock_jar,monkeypatch,adaptive=True)
     assert result['status']=='succeeded',result['error']
     assert ledger._read_count==6 and len(mock_jar[2])==8
-    assert [v.source_id for _,v in ledger._issued]==['S1']*4+['S2','S3']
-    assert inspect_params(mock_jar[2][4]['format'])['properties']['source_id']['enum']==['S2','S3','S4','S5']
-    assert inspect_params(mock_jar[2][5]['format'])['properties']['source_id']['enum']==['S3','S4','S5']
+    assert [v.source_id for _,v in ledger._issued]==['S1']*2+['S2','S3','S4','S5']
+    assert inspect_params(mock_jar[2][2]['format'])['properties']['source_id']['enum']==['S2','S3','S4','S5']
+    assert inspect_params(mock_jar[2][4]['format'])['properties']['source_id']['enum']==['S4','S5']
+    assert inspect_params(mock_jar[2][5]['format'])['properties']['source_id']['enum']==['S5']
     assert inspect_params(mock_jar[2][6]['format']) is None
-    assert [b['options']['num_predict'] for b in mock_jar[2]]==[256]*6+[2048,256]
+    # The unchanged writer-eligible phase starts as soon as three sources were read.
+    assert [b['options']['num_predict'] for b in mock_jar[2]]==[256]*4+[2048]*3+[256]
     assert len(result['artifacts'])==1 and Path(result['artifacts'][0]['path']).is_file()
-    assert {s['source_id'] for s in result['sources']}=={'S1','S2','S3'}
+    assert {s['source_id'] for s in result['sources']}==set(SOURCES)
     from src.brain.work_research import verify_runtime_packet
     verify_runtime_packet(ledger._binding,ledger.issued_snapshot,ledger._collection,ledger._runtime_final,
         require_ack=True,runtime_inputs=ledger._runtime_inputs)

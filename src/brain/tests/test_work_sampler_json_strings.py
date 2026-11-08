@@ -22,11 +22,18 @@ from src.brain.tests.test_work_source_reference_schema import section_options, w
 WRITE = 'ultima_work_research_write'
 
 
+def fact_properties(fact):
+    if 'properties' in fact:
+        return fact['properties']
+    assert [list(part['properties']) for part in fact['allOf']] == [['evidence_id'], ['claim']]
+    return {key:value for part in fact['allOf'] for key,value in part['properties'].items()}
+
+
 def pattern(schema, ref=None):
     ref = ref or card(1)[0]
-    return next(f['properties']['claim']['pattern']
-                for s in section_options(schema) for f in facts(s)
-                if ref in f['properties']['evidence_id']['enum'])
+    return next(props['claim']['pattern']
+                for s in section_options(schema) for f in facts(s) for props in [fact_properties(f)]
+                if ref in props['evidence_id']['enum'])
 
 
 @pytest.mark.parametrize('body', [
@@ -105,11 +112,12 @@ def test_projection_preserves_strict_schema_ids_literals_and_nested_claim_contex
     for a, b in zip(section_options(strict), section_options(projected)):
         assert a['properties']['source_id'] == dict(b['properties']['source_id'], maxLength=2)
         for old, new in zip(facts(a), facts(b)):
-            assert old['properties']['evidence_id'] == dict(new['properties']['evidence_id'], maxLength=19)
-            assert new['properties']['claim']['minLength'] == 1
-            assert 'maxLength' not in new['properties']['claim']
+            props = fact_properties(new)
+            assert old['properties']['evidence_id'] == dict(props['evidence_id'], maxLength=19)
+            assert props['claim']['minLength'] == 1
+            assert 'maxLength' not in props['claim']
             if 'pattern' in old['properties']['claim']:
-                assert old['properties']['claim']['pattern'] != new['properties']['claim']['pattern']
+                assert old['properties']['claim']['pattern'] != props['claim']['pattern']
     data = {'claim': {'pattern': '^.*$', 'maxLength': 9}}
     value = dict(type='object', properties=dict(
         claim=dict(anyOf=[dict(type='string', pattern=pattern(strict))]),
@@ -200,8 +208,8 @@ def test_replay_rejects_coherently_rehashed_sampler_grammar_corruption(
     packet = json.loads(ledger._runtime_prewrite)
     wire = packet['wires'][-1]
     sampler = writer_schema(wire['sampler_schema'])
-    target = next(f['properties']['claim'] for s in section_options(sampler)
-                  for f in facts(s) if 'pattern' in f['properties']['claim'])
+    target = next(props['claim'] for s in section_options(sampler)
+                  for f in facts(s) for props in [fact_properties(f)] if 'pattern' in props['claim'])
     target['pattern'] = '^.*$'
     request = json.loads(wire['entity'])
     request['format'] = wire['sampler_schema']

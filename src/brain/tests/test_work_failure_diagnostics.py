@@ -59,7 +59,9 @@ def early_case(tmp_path,sdk_io,mock_jar,monkeypatch,*,final=FINAL,reads=6,after=
         result=mock_jar[1](prompt,**kwargs)
         if after:after(result,wt._ACTIVE.get()[1])
         return result
-    result=submit(tmp_path,sdk_io[0],runner)
+    # This fixture tests six-read diagnostics over three dense sources; reserve
+    # four/five-source coverage and prompt-cap behavior for their dedicated tests.
+    result=submit(tmp_path,sdk_io[0],runner,source_urls=[f'https://example.com/source/{i}' for i in range(1,4)])
     return result,RESTRICTED[result['task_id']]
 
 

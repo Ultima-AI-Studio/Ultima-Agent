@@ -114,6 +114,7 @@ def delivered(tmp_path, sdk_io, mock_jar):
 
 
 def test_native_author_schema_uses_confirmed_third_view_and_complete_delivery(tmp_path, sdk_io, mock_jar):
+    from src.brain.tests.test_work_sampler_json_strings import fact_properties
     result, ledger, packet = delivered(tmp_path, sdk_io, mock_jar)
     wire = packet['wires'][-2]
     observations = [json.loads(m['content'][13:]) for m in wire['secured_messages']
@@ -123,7 +124,7 @@ def test_native_author_schema_uses_confirmed_third_view_and_complete_delivery(tm
     for outer in (mock_jar[2][-2]['format'], wire['strict_schema'], wire['sampler_schema']):
         branches = section_options(writer_schema(outer))
         actual = {b['properties']['source_id']['enum'][0]:
-                  tuple(b['properties']['facts']['items']['properties']['evidence_id']['enum']) for b in branches}
+                  tuple(fact_properties(b['properties']['facts']['items'])['evidence_id']['enum']) for b in branches}
         assert actual == expected
     for outer in (b['format'] for b in mock_jar[2][:3]):
         assert not any(a['properties'].get('action', {}).get('enum') == [WRITE] for a in outer['anyOf'])

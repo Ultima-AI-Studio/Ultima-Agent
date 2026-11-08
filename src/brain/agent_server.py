@@ -239,7 +239,7 @@ def _research_code_claim_sampler_pattern(pattern):
 
 
 def _research_sampler_schema(schema):
-    """Project sampler lengths and code strings without changing strict policy."""
+    """Project sampler strings and fact order without changing strict policy."""
     from copy import deepcopy
     projected = deepcopy(schema)
     def visit(node,field=None):
@@ -257,6 +257,19 @@ def _research_sampler_schema(schema):
             children = node.get(key,[])
             for child in children if isinstance(children,list) else [children]:
                 visit(child,field)
+        if (set(node)=={'type','additionalProperties','properties','required'}
+                and node['type']=='object' and node['additionalProperties'] is False
+                and set(node['properties'])=={'claim','evidence_id'}
+                and len(node['required'])==2 and set(node['required'])=={'claim','evidence_id'}):
+            props=node['properties']
+            # J3 sorts property keys, but preserves allOf array order. The
+            # native converter merges these components in evidence-first order.
+            # Required + maxProperties closes the standard schema; a top-level
+            # additionalProperties would bypass the converter's allOf branch.
+            node.clear()
+            node.update(type='object',required=['evidence_id','claim'],minProperties=2,maxProperties=2,
+                allOf=[dict(properties={name:props[name]},required=[name])
+                       for name in ('evidence_id','claim')])
     visit(projected)
     return projected
 

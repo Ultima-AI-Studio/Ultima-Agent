@@ -1131,10 +1131,21 @@ def test_source8_sampler_copy_preserves_full_authority(tmp_path,sdk_io,mock_jar,
     assert len(result['research_effects'])==1 and len(list(tmp_path.rglob('research.md')))==1
     assert len(captured)==len(bodies)==5
     for full,body in zip(captured,bodies):
-        # Compare every path/value independently; only schema-keyword lengths disappear.
+        # Normalize only the approved fact ordering projection, then compare all
+        # paths/values; strict lengths remain independently enforced after decode.
         removed=[]
         def compare(old,new,path=()):
             if isinstance(old,dict):
+                if (set(old)=={'type','additionalProperties','properties','required'}
+                        and set(old['properties'])=={'claim','evidence_id'}):
+                    assert set(new)=={'type','required','minProperties','maxProperties','allOf'}
+                    assert new['type']=='object' and new['required']==['evidence_id','claim']
+                    assert new['minProperties']==new['maxProperties']==2
+                    assert [list(part['properties']) for part in new['allOf']]==[['evidence_id'],['claim']]
+                    for part,name in zip(new['allOf'],('evidence_id','claim')):
+                        assert set(part)=={'properties','required'} and part['required']==[name]
+                    new=dict(type='object',additionalProperties=False,required=old['required'],
+                             properties={k:v for part in new['allOf'] for k,v in part['properties'].items()})
                 assert set(new)==set(old)-{'maxLength'},path
                 for key,value in old.items():
                     if key=='maxLength': removed.append((path,value))
