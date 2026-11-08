@@ -111,7 +111,8 @@ def main(argv=None) -> int:
     record("audit", proc)
     if proc.returncode != 0:
         return _finish(args.run_dir, steps, "audit-failed",
-                       "independent audit did not pass; freeze refused")
+                       "the two-round model review did not pass; freeze refused "
+                       "(this is a quality gate, not an independent-party check)")
 
     # ⑧
     if args.skip_freeze:

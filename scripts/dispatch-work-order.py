@@ -92,27 +92,44 @@ def git_snapshot() -> dict:
     # Kept unstripped on purpose: porcelain's first column is a status code that
     # is a space for an unstaged change. Stripping the output shifts every path by
     # one character and silently reads " M a.txt" as ".txt".
-    status = subprocess.run([exe, 'status', '--porcelain', '--untracked-files=no'],
+    # NUL-separated output: a rename in line form reads "R  old -> new", which puts
+    # the whole expression in the path field, so the file that actually exists is
+    # never hashed and later edits to it go unnoticed.
+    status = subprocess.run([exe, 'status', '--porcelain=v1', '-z', '--untracked-files=no'],
                             cwd=str(ROOT), capture_output=True, text=True,
                             encoding='utf-8', errors='replace')
     status_ok = status.returncode == 0
-    status_lines = [l for l in (status.stdout or '').splitlines() if l.strip()]
+    status_parts = (status.stdout or '').split('\0')
 
     entries: list[dict] | None = None
     manifest: list[dict] | None = None
     if status_ok:
         entries = []
         manifest = []
-        for line in status_lines:
-            code = line[:2]
-            name = line[3:].strip()
-            entries.append({'code': code, 'path': name})
+        index = 0
+        while index < len(status_parts):
+            item = status_parts[index]
+            if not item:
+                index += 1
+                continue
+            code = item[:2]
+            name = item[3:]
+            origin = None
+            if 'R' in code or 'C' in code:
+                origin = status_parts[index + 1] if index + 1 < len(status_parts) else None
+                index += 2
+            else:
+                index += 1
+            entry = {'code': code, 'path': name}
+            if origin:
+                entry['orig'] = origin
+            entries.append(entry)
             path = ROOT / name
             try:
                 digest = hashlib.sha256(path.read_bytes()).hexdigest()
             except OSError:
                 digest = None          # deleted or unreadable: recorded, not guessed
-            manifest.append({'path': name, 'code': code, 'sha256': digest})
+            manifest.append({'path': name, 'code': code, 'sha256': digest, 'orig': origin})
     return {'base_sha': head or None, 'tree_oid': tree_oid or None,
             'worktree_dirty': len(entries) if entries is not None else None,
             'status_entries': entries, 'changed_files': manifest,
@@ -551,7 +568,12 @@ def main():
                 # finished: base was captured before dispatch and says nothing
                 # about the tree the receipt is actually claiming.
                 after = git_snapshot()
-                (run / 'done.json').write_text(json.dumps({'exit_code': code, 'receipt_valid': valid,
+                (run / 'done.json').write_text(json.dumps({
+                    # The receipt names its own run and work order. Without these,
+                    # a receipt from order A could be read under order B's run
+                    # directory and every downstream check would agree with itself.
+                    'work_order': args.order, 'run_id': run.name,
+                    'exit_code': code, 'receipt_valid': valid,
                     'state': target, 'audit_slot_busy': audit_busy, 'parent_lost': parent_lost,
                     'audit_slot_blocking': blocking, 'audit_slot_disregarded': disregarded,
                     'base_sha': base.get('base_sha'), 'worktree_dirty': base.get('worktree_dirty'),
@@ -560,11 +582,11 @@ def main():
                     'end_sha': after.get('base_sha'),
                     'finished_at': datetime.now(timezone.utc).isoformat()}, ensure_ascii=False), encoding='utf-8')
                 if not parent_lost:
-                    reason = '等待全局独立审计名额；' if audit_busy else ''
+                    reason = '等待审计名额（同身份模型二轮复核）；' if audit_busy else ''
                     if disregarded:
                         reason += (f'审计名额时限清点：{len(disregarded)} 单超 {AUDIT_SLOT_MAX_AGE_DAYS:g}d '
                                    f'或已标冻结，不再占位（{", ".join(d["order"] for d in disregarded)}）；')
-                    state(args.order, target, reason+f'真实执行结束 exit={code}；{run.name}；待独立核对，不自动批准或续派'+reservation_note, run,
+                    state(args.order, target, reason+f'真实执行结束 exit={code}；{run.name}；待二轮复核，不自动批准或续派'+reservation_note, run,
                           expected='executing', expected_run=run.name)
             guardian.wait(timeout=5)
             print(json.dumps({'order': args.order, 'state': target, 'run': str(run)}, ensure_ascii=False))

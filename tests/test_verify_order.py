@@ -76,9 +76,12 @@ def _snapshot(cli) -> dict:
             "changed_files": manifest, "worktree_dirty": len(entries)}
 
 
-def _done(run_dir: Path, **fields) -> Path:
+def _done(run_dir: Path, work_order: str = "wo-x", **fields) -> Path:
+    """A receipt. It names its own order and run: the gate refuses one that does
+    not, because otherwise a receipt from order A reads as valid under order B."""
     run_dir.mkdir(parents=True, exist_ok=True)
-    payload = {"exit_code": 0, "receipt_valid": True, "state": "audit",
+    payload = {"work_order": work_order, "run_id": run_dir.name,
+               "exit_code": 0, "receipt_valid": True, "state": "audit",
                "audit_slot_busy": False, "parent_lost": False}
     payload.update(fields)
     path = run_dir / "done.json"
@@ -193,7 +196,7 @@ def test_declared_file_that_never_changed_is_caught(tmp_path, repo, cli):
 
     _card(repo, "wo-x", ["a.txt"])
     snap = _snapshot(cli)                      # a.txt untouched since the commit
-    _done(tmp_path, end_sha=snap["end_sha"], tree_oid=snap["tree_oid"],
+    _done(tmp_path, base_sha=snap["end_sha"], end_sha=snap["end_sha"], tree_oid=snap["tree_oid"],
           status_entries=snap["status_entries"], changed_files=snap["changed_files"])
     payload = cli.verify("wo-x", tmp_path)
     assert payload["verified"] is False
@@ -243,3 +246,46 @@ def test_a_declared_command_that_fails_blocks(tmp_path, repo, cli):
           status_entries=snap["status_entries"], changed_files=snap["changed_files"])
     payload = cli.verify("wo-x", tmp_path)
     assert any("declared_command_pass" in b for b in payload["blocking_failures"])
+
+
+def test_a_receipt_that_does_not_name_its_own_order_is_refused(tmp_path, repo, cli):
+    """Order A's receipt must not read as valid under order B.
+
+    The only thing naming the order used to be the argument the caller passed,
+    so a receipt copied out of another run directory satisfied every check.
+    """
+
+    _card(repo, "wo-b", ["a.txt"])
+    snap = _snapshot(cli)
+    _done(tmp_path, work_order="wo-a", base_sha=snap["end_sha"], end_sha=snap["end_sha"],
+          tree_oid=snap["tree_oid"], status_entries=snap["status_entries"],
+          changed_files=snap["changed_files"])
+    payload = cli.verify("wo-b", tmp_path)
+    assert payload["verified"] is False
+    assert "receipt_names_itself" in payload["blocking_failures"]
+
+
+def test_a_receipt_without_a_run_id_is_refused(tmp_path, repo, cli):
+    """Without a run id the receipt cannot be tied to the run directory it sits in."""
+
+    _card(repo, "wo-x", ["a.txt"])
+    snap = _snapshot(cli)
+    _done(tmp_path, base_sha=snap["end_sha"], end_sha=snap["end_sha"],
+          tree_oid=snap["tree_oid"], status_entries=snap["status_entries"],
+          changed_files=snap["changed_files"], run_id=None)
+    payload = cli.verify("wo-x", tmp_path)
+    assert "receipt_names_itself" in payload["blocking_failures"]
+
+
+def test_a_renamed_file_keeps_both_paths(cli):
+    """Root-level state entries parse from -z, where a rename carries two paths.
+
+    Line-based parsing mangled `R  old -> new` into a single bogus path, which let
+    the new side be edited after verification while the recorded entry stayed the
+    same.
+    """
+
+    raw = "R  new.txt\x00old.txt\x00 M kept.txt\x00"
+    entries = cli._parse_status_z(raw)
+    assert entries == [{"code": "R ", "path": "new.txt", "orig": "old.txt"},
+                       {"code": " M", "path": "kept.txt"}]

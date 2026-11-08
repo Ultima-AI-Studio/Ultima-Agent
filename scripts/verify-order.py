@@ -36,6 +36,8 @@ import argparse
 import hashlib
 import json
 import re
+import shlex
+import shutil
 import subprocess
 import sys
 from datetime import datetime, timezone
@@ -47,8 +49,6 @@ ROOT = Path(__file__).resolve().parents[1]
 
 def _git_exe() -> str:
     """`git` is not on PATH in every session that runs this; resolve it explicitly."""
-    import shutil
-
     found = shutil.which("git") or shutil.which("git.exe")
     if found:
         return found
@@ -84,6 +84,33 @@ def tree_oid() -> str | None:
     return (proc.stdout or "").strip() if proc.returncode == 0 else None
 
 
+def _parse_status_z(raw: str) -> list[dict]:
+    """Parse ``git status --porcelain=v1 -z`` into entries.
+
+    NUL-separated output is the only reliable form here: in the line-oriented
+    output a rename reads as ``R  old -> new`` and the whole expression lands in
+    the path field, so the recorded hash was for a file that does not exist and
+    any later edit to the new name went unnoticed. With ``-z`` a rename is one
+    entry followed by its original path, which is what makes it possible to
+    identify and rehash the file that actually exists.
+    """
+    entries, parts, index = [], raw.split("\0"), 0
+    while index < len(parts):
+        item = parts[index]
+        if not item:
+            index += 1
+            continue
+        code, path = item[:2], item[3:]
+        if "R" in code or "C" in code:
+            origin = parts[index + 1] if index + 1 < len(parts) else ""
+            entries.append({"code": code, "path": path, "orig": origin})
+            index += 2
+        else:
+            entries.append({"code": code, "path": path})
+            index += 1
+    return entries
+
+
 def current_status_entries() -> list[dict] | None:
     """The modified-tracked-file set right now, in the form the dispatcher records.
 
@@ -91,19 +118,13 @@ def current_status_entries() -> list[dict] | None:
     test artifacts; enumerating them would cost a minute per call. Untracked
     creations are therefore outside this comparison, which is stated rather than
     implied — declared files are checked separately by path.
-
-    The output is read without stripping: porcelain's first column is a status
-    code that is a space for unstaged changes, and stripping shifts the path.
     """
-    completed = subprocess.run([_git_exe(), "status", "--porcelain", "--untracked-files=no"],
+    completed = subprocess.run([_git_exe(), "status", "--porcelain=v1", "-z", "--untracked-files=no"],
                                cwd=str(ROOT), capture_output=True, text=True,
                                encoding="utf-8", errors="replace")
     if completed.returncode != 0:
         return None
-    entries = []
-    for line in [l for l in (completed.stdout or "").splitlines() if l.strip()]:
-        entries.append({"code": line[:2], "path": line[3:].strip()})
-    return entries
+    return _parse_status_z(completed.stdout or "")
 
 
 def _acceptance_lines(order_path: Path) -> list[tuple[str, str]]:
@@ -169,8 +190,19 @@ def _mechanical_checks(checks: list[tuple[str, str]]) -> list[dict]:
     return results
 
 
+_TEST_RUNNER = re.compile(r"(?:^|\\)(?:python[0-9.]*|pytest)(?:\.exe)?$", re.IGNORECASE)
+_METACHARS = set("&|<>^`%\n\r")
+
+
 def _declared_commands(order_path: Path) -> list[str]:
-    """Commands the order explicitly asks to be run, marked with a **机检** line."""
+    """Commands the order explicitly asks to be run, marked with a **机检** line.
+
+    Only test runners are accepted, and only in the forms the project actually
+    uses — a bare ``pytest`` or a full path to the venv interpreter followed by
+    ``-m pytest``. A narrow prefix test rejected the real orders, which invoke
+    ``tools\\venv-openjarvis\\Scripts\\python.exe -m pytest``, so no command ever
+    ran and the gate silently had nothing to say.
+    """
     try:
         text = order_path.read_text(encoding="utf-8-sig")
     except OSError:
@@ -182,8 +214,18 @@ def _declared_commands(order_path: Path) -> list[str]:
         if not match:
             continue
         cmd = match.group(1).strip().strip("`").strip()
-        # Only test runners: this gate may run a command, not an arbitrary one.
-        if cmd.startswith("pytest") or cmd.startswith("python -m pytest"):
+        if any(ch in cmd for ch in _METACHARS):
+            continue                      # never hand a shell metacharacter a pass
+        try:
+            argv = shlex.split(cmd, posix=False)
+        except ValueError:
+            continue
+        if not argv:
+            continue
+        first = argv[0].strip('"')
+        if first.lower().startswith("pytest"):
+            commands.append(cmd)
+        elif _TEST_RUNNER.search(first) and "-m" in argv and "pytest" in argv:
             commands.append(cmd)
     return commands
 
@@ -217,7 +259,14 @@ def manifest_drift(manifest: list[dict]) -> dict:
 
 
 def _declared_files(order_path: Path) -> list[str]:
-    """Paths the work order says it will touch, taken from its `**文件**：` lines."""
+    """Paths the work order says it will touch, taken from its `**文件**：` lines.
+
+    The path is taken out of backticks. Reading the whole line instead put the
+    Chinese annotation that often follows it into the path — ``docs/report.md``
+    （唯一新增文件） became ``docs/report.md`（唯一新增文件）``, a name that exists
+    nowhere, so the check could never pass. When a line marks several paths they
+    are separated by punctuation, and each piece is taken on its own.
+    """
     if not order_path.is_file():
         return []
     paths = []
@@ -225,10 +274,17 @@ def _declared_files(order_path: Path) -> list[str]:
         match = re.match(r"\s*(?:-\s*)?\*\*文件\*\*\s*[：:]\s*(.+)", line)
         if not match:
             continue
-        for token in re.split(r"[，,、;；]", match.group(1)):
-            token = token.strip().strip("`").strip()
-            if token and (("/" in token) or token.endswith((".py", ".md", ".json", ".txt"))):
-                paths.append(token)
+        body = match.group(1)
+        quoted = re.findall(r"`([^`]+)`", body)
+        tokens = quoted if quoted else re.split(r"[，,、;；]", body)
+        for token in tokens:
+            for piece in re.split(r"[，,、;；]", token):
+                piece = piece.strip().strip("`").strip()
+                # Drop a trailing annotation, e.g. "（唯一新增文件）".
+                piece = re.sub(r"\s*（[^）]*）\s*$", "", piece).strip()
+                if piece and (("/" in piece) or piece.endswith((".py", ".md", ".json", ".txt", ".yaml", ".yml"))):
+                    if piece not in paths:
+                        paths.append(piece)
     return paths
 
 
@@ -263,6 +319,17 @@ def verify(work_order: str, run_dir: Path) -> dict:
     add("exit_code_zero", done.get("exit_code") == 0, f"exit_code={done.get('exit_code')}", "done.json:exit_code")
     add("receipt_valid", done.get("receipt_valid") is True, f"receipt_valid={done.get('receipt_valid')}",
         "done.json:receipt_valid")
+
+    # The receipt has to say which order and run produced it. Without that, a
+    # receipt written for order A can be read out of a run directory under order
+    # B and every later check agrees with itself, because the only thing naming
+    # the order is the argument the caller passed.
+    recorded_order = str(done.get("work_order") or "")
+    recorded_run = str(done.get("run_id") or "")
+    add("receipt_names_itself", recorded_order == work_order and recorded_run == run_dir.name,
+        f"done.json work_order={recorded_order or '(absent)'} run_id={recorded_run or '(absent)'}; "
+        f"expected {work_order} / {run_dir.name}",
+        "done.json:work_order, done.json:run_id")
 
     # A run whose delivery was refused, or that never got a slot, must not reach a
     # tag on the strength of a 0 exit code.
@@ -324,18 +391,23 @@ def verify(work_order: str, run_dir: Path) -> dict:
         if missing:
             add("declared_files_landed", False, f"{len(declared)} declared, missing={missing}",
                 "; ".join(f"test -e {p}" for p in missing))
-        elif end_sha:
-            untouched = [p for p in declared if _changed_since(end_sha, p) is False]
-            add("declared_files_landed", not untouched,
-                "all declared files exist and differ from the dispatch commit" if not untouched
-                else f"declared but unchanged since dispatch: {untouched}",
-                f"git diff --name-only {end_sha[:12]} -- <each declared path>")
         else:
-            # Existence without a base to compare against is weaker evidence than
-            # a change, so it is reported but not silently upgraded to a pass.
-            add("declared_files_landed", None,
-                f"{len(declared)} declared, all present; no commit to prove they changed",
-                str(order_path))
+            # Compared against the dispatch commit, not the end commit: once the
+            # agent commits its work, `git diff end_sha -- path` is empty by
+            # construction and every declared file would read as "never touched".
+            base = str(done.get("base_sha") or "").strip()
+            if base:
+                untouched = [p for p in declared if _changed_since(base, p) is False]
+                add("declared_files_landed", not untouched,
+                    "all declared files differ from the dispatch commit" if not untouched
+                    else f"declared but unchanged since dispatch: {untouched}",
+                    f"git diff --name-only {base[:12]} -- <each declared path>")
+            else:
+                # Existence without a base to compare against is weaker evidence
+                # than a change, so it is reported but not upgraded to a pass.
+                add("declared_files_landed", None,
+                    f"{len(declared)} declared, all present; no dispatch commit to prove they changed",
+                    str(order_path))
 
     # The order's own acceptance criteria, as far as they are mechanical. A gate
     # that says "the file exists and is not empty" is not a matter of opinion, and
@@ -354,13 +426,20 @@ def verify(work_order: str, run_dir: Path) -> dict:
     # a pass — "nobody asked me to run anything" is not "the tests passed".
     commands = _declared_commands(order_path) if order_path.is_file() else []
     for cmd in commands[:2]:                       # bounded: never run a long suite
+        argv = shlex.split(cmd, posix=False)
+        argv = [a.strip('"') for a in argv]
         try:
-            proc = subprocess.run(cmd, shell=True, cwd=str(ROOT), capture_output=True,
+            # No shell: an order is an artifact the executor can edit, and a
+            # string handed to cmd.exe turns one line of YAML-ish prose into
+            # arbitrary command execution.
+            proc = subprocess.run(argv, cwd=str(ROOT), capture_output=True,
                                   text=True, encoding="utf-8", errors="replace", timeout=300)
             ok = proc.returncode == 0
             tail = ((proc.stdout or "").strip().splitlines() or [""])[-1][:160]
         except subprocess.TimeoutExpired:
             ok, tail = False, "timed out after 300s"
+        except (OSError, ValueError) as exc:
+            ok, tail = False, f"could not run: {exc}"
         add(f"declared_command_pass:{cmd[:60]}", ok, tail or "no output", cmd)
 
     blocking_failures = [c["check"] for c in checks if c["passed"] is False]

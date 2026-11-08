@@ -43,6 +43,11 @@ def repo(tmp_path, monkeypatch, cli):
     (root / "a.txt").write_text("one\n", encoding="utf-8")
     subprocess.run([git, "add", "a.txt"], cwd=root, check=True, capture_output=True)
     subprocess.run([git, "commit", "-m", "init"], cwd=root, check=True, capture_output=True)
+    # A delivery commit on top of the dispatch commit. The gate now requires the
+    # delivered content to be committed, because a tag names a commit: freezing a
+    # dirty tree certified a state the tag did not contain.
+    (root / "a.txt").write_text("two\n", encoding="utf-8")
+    subprocess.run([git, "commit", "-am", "deliver"], cwd=root, check=True, capture_output=True)
     monkeypatch.setattr(cli, "ROOT", root)
     return root
 
@@ -59,34 +64,50 @@ def _sha(path: Path) -> str:
 
 def _write_run(run_dir: Path, cli, work_order: str = "wo-t",
                card: Path | None = None, tamper: dict | None = None) -> None:
+    """Build a run the gate should accept, by running the checks for real.
+
+    The earlier version hand-wrote ``verified: true``, which is exactly the forgery
+    the gate now refuses: it re-runs the checks itself, so a hand-written verdict
+    is caught rather than believed.
+    """
     run_dir.mkdir(parents=True, exist_ok=True)
-    status_text = subprocess.run(
-        [cli._git_exe(), "status", "--porcelain", "--untracked-files=no"],
-        cwd=str(cli.ROOT), capture_output=True, text=True,
-        encoding="utf-8", errors="replace").stdout
-    entries = [{"code": l[:2], "path": l[3:].strip()}
-               for l in status_text.splitlines() if l.strip()]
-    done = {"exit_code": 0, "receipt_valid": True, "state": "audit",
+
+    order_path = cli.ROOT / "tasks/queue" / f"{work_order}.md"
+    if not order_path.is_file():
+        order_path.parent.mkdir(parents=True, exist_ok=True)
+        order_path.write_text(
+            "**文件**：`a.txt`\n\n**验收（Gate T1）**\n- ACC-1 `a.txt` 存在且非空\n",
+            encoding="utf-8")
+
+    done = {"work_order": work_order, "run_id": run_dir.name,
+            "exit_code": 0, "receipt_valid": True, "state": "audit",
             "audit_slot_busy": False, "parent_lost": False,
+            "base_sha": _git(cli, "rev-parse", "HEAD~1"),
             "end_sha": _git(cli, "rev-parse", "HEAD"),
             "tree_oid": _git(cli, "rev-parse", "HEAD^{tree}"),
-            "status_entries": entries, "changed_files": []}
+            "status_entries": [], "changed_files": []}
     if tamper:
         done.update(tamper)
     (run_dir / "done.json").write_text(json.dumps(done), encoding="utf-8")
 
-    verify = {"work_order": work_order, "verified": True, "blocking_failures": [],
-              "head": _git(cli, "rev-parse", "HEAD"),
-              "tree_oid": done["tree_oid"],
-              "status_entries": done["status_entries"],
-              "changed_files": done["changed_files"],
-              "done_sha256": _sha(run_dir / "done.json")}
-    (run_dir / "verify.json").write_text(json.dumps(verify), encoding="utf-8")
+    verifier = cli._load_verifier()
+    result = verifier.verify(work_order, run_dir)
+    (run_dir / "verify.json").write_text(json.dumps(result), encoding="utf-8")
 
-    audit = {"work_order": work_order, "audit_passed": True}
-    if card is not None:
-        audit["card"] = str(card)
-        audit["card_meta"] = {"path": str(card), "sha256": _sha(card), "complete": True}
+    if card is None:
+        card = run_dir / "card.md"
+        card.write_text("| ACC-1 | a.txt exists | ok |\n", encoding="utf-8")
+    evidence = run_dir / "evidence.txt"
+    evidence.write_text("ACC-1: PASS - a.txt exists and is not empty\n", encoding="utf-8")
+
+    audit = {"work_order": work_order, "audit_passed": True, "incomplete_inputs": [],
+             "card": str(card),
+             "card_meta": {"path": str(card), "sha256": _sha(card),
+                           "bytes": Path(card).stat().st_size, "complete": True},
+             "evidence": [str(evidence)],
+             "evidence_meta": [{"path": str(evidence), "sha256": _sha(evidence),
+                                "bytes": evidence.stat().st_size, "shown_chars": 64,
+                                "complete": True}]}
     (run_dir / "audit.json").write_text(json.dumps(audit), encoding="utf-8")
 
 
@@ -181,6 +202,39 @@ def test_head_moving_before_the_tag_is_refused(tmp_path, repo, cli):
     (repo / "b.txt").write_text("new\n", encoding="utf-8")
     subprocess.run([cli._git_exe(), "add", "b.txt"], cwd=repo, check=True, capture_output=True)
     subprocess.run([cli._git_exe(), "commit", "-m", "move"], cwd=repo, check=True, capture_output=True)
+
+    code = cli.main(["--work-order", "wo-t", "--run-dir", str(run)])
+    assert code == 2
+    assert not _git(cli, "tag", "--list", "wo-t-freeze-*")
+
+
+def test_a_handwritten_verify_json_cannot_freeze(tmp_path, repo, cli):
+    """A JSON file saying `verified: true` is a claim, not evidence.
+
+    Review reproduced exactly this: write two JSON files by hand, run freeze, get
+    exit 0 and a tag. The gate now re-runs the checks itself.
+    """
+
+    run = tmp_path / "run"
+    _write_run(run, cli)
+    live = json.loads((run / "verify.json").read_text(encoding="utf-8"))
+    forged = dict(live, verified=True, blocking_failures=[])
+    # The stored verdict is consistent with itself, but the checks disagree: the
+    # receipt no longer exists after it was written, so a fresh run fails.
+    (run / "done.json").write_text("{}\n", encoding="utf-8")
+    (run / "verify.json").write_text(json.dumps(forged), encoding="utf-8")
+
+    code = cli.main(["--work-order", "wo-t", "--run-dir", str(run)])
+    assert code == 2
+    assert not _git(cli, "tag", "--list", "wo-t-freeze-*")
+
+
+def test_a_dirty_tree_cannot_be_frozen(tmp_path, repo, cli):
+    """The tag names a commit, so uncommitted work is not in the frozen content."""
+
+    run = tmp_path / "run"
+    _write_run(run, cli)
+    (repo / "a.txt").write_text("three\n", encoding="utf-8")
 
     code = cli.main(["--work-order", "wo-t", "--run-dir", str(run)])
     assert code == 2

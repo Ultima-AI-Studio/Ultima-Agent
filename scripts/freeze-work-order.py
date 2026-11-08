@@ -1,23 +1,26 @@
-"""Freeze a work order by tagging it, but only when the evidence still holds.
+"""Freeze a work order by tagging the commit that was actually reviewed.
 
-Two gates, with deliberately different powers:
+Two gates, and neither is trusted as a stored boolean:
 
-* ``verify.json`` carries the **authority**. Deterministic checks — exit code,
-  receipt validity, whether the tested tree is still the tree here, whether the
-  declared files actually changed. Anyone can re-run them and get the same answer.
-* ``audit.json`` carries a **veto**. Model judgement can stop what the checks
-  allowed; it cannot authorize what the checks refused.
+* The deterministic checks are **re-run here**, in this process, rather than read
+  from ``verify.json``. A JSON file that any writer in the same directory can
+  produce is a claim, not evidence, and it was possible to hand-write one and
+  freeze on it.
+* The model review in ``audit.json`` is a **required affirmative**, not merely a
+  veto: freezing needs ``audit_passed is True``. Two rounds of one model on one
+  evidence set is a quality gate in front of a tag; it is not four-eyes, and it
+  should not be described as independent review anywhere.
 
-Both are required. Nothing here trusts a stored boolean on its own:
+On top of that, the target is a clean commit:
 
-* the artifacts must name the same work order as this command, so one order's
-  pass cannot be replayed onto another;
-* ``done.json`` must still hash to what verification recorded, so the receipt
-  cannot be swapped after it was checked;
-* the tree digest is recomputed, so edits made between verify and freeze are
-  caught;
-* the tag is created *at* the verified commit rather than at whatever HEAD is at
-  that instant, and the resulting tag is read back to confirm it.
+* the working tree must carry no modified tracked file, so the commit the tag
+  points at *is* the delivered content — a tag on a commit whose working tree has
+  moved freezes something nobody was reviewing;
+* the tag is created *at* the verified commit, read back, and deleted if it does
+  not resolve there;
+* HEAD, tree, status, card and evidence are read once more immediately before the
+  tag is written, so the window between checking and acting is as short as the
+  filesystem allows rather than spanning the whole function.
 """
 
 from __future__ import annotations
@@ -62,19 +65,38 @@ def _git(*args: str) -> str:
     return completed.stdout.strip()
 
 
-def _status_entries() -> list[dict] | None:
-    """The modified-tracked-file set, in the dispatcher's recorded form.
+def _parse_status_z(raw: str) -> list[dict]:
+    """Parse ``git status --porcelain=v1 -z`` into entries.
 
-    Read without stripping: porcelain's first column is a status code that is a
-    space for unstaged changes, and stripping shifts each path by one character.
+    NUL-separated output is the only reliable form: line-oriented output renders a
+    rename as ``R  old -> new``, which puts the whole expression in the path field
+    and leaves the new file unhashed.
     """
-    completed = subprocess.run([_git_exe(), "status", "--porcelain", "--untracked-files=no"],
+    entries, parts, index = [], raw.split("\0"), 0
+    while index < len(parts):
+        item = parts[index]
+        if not item:
+            index += 1
+            continue
+        code, path = item[:2], item[3:]
+        if "R" in code or "C" in code:
+            origin = parts[index + 1] if index + 1 < len(parts) else ""
+            entries.append({"code": code, "path": path, "orig": origin})
+            index += 2
+        else:
+            entries.append({"code": code, "path": path})
+            index += 1
+    return entries
+
+
+def _status_entries() -> list[dict] | None:
+    """The modified-tracked-file set, in the dispatcher's recorded form."""
+    completed = subprocess.run([_git_exe(), "status", "--porcelain=v1", "-z", "--untracked-files=no"],
                                cwd=str(ROOT), capture_output=True, text=True,
                                encoding="utf-8", errors="replace")
     if completed.returncode != 0:
         return None
-    return [{"code": line[:2], "path": line[3:].strip()}
-            for line in (completed.stdout or "").splitlines() if line.strip()]
+    return _parse_status_z(completed.stdout or "")
 
 
 def _load(path: Path) -> dict | None:
@@ -82,6 +104,20 @@ def _load(path: Path) -> dict | None:
         return json.loads(path.read_text(encoding="utf-8-sig"))
     except (OSError, ValueError):
         return None
+
+
+def _load_verifier():
+    """Load verify-order.py as a module so its checks can be re-run here."""
+    import importlib.util
+
+    path = Path(__file__).resolve().parent / "verify-order.py"
+    spec = importlib.util.spec_from_file_location("gorch_verify_order", path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    # The checks must run against the same tree this process is freezing, which is
+    # this module's ROOT (not whatever the verifier defaults to on import).
+    module.ROOT = globals()["ROOT"]
+    return module
 
 
 def _sha256_file(path: Path) -> str | None:
@@ -140,17 +176,36 @@ def main(argv: Sequence[str] | None = None) -> int:
     verify_path = run_dir / "verify.json"
     if not verify_path.is_file():
         return _refuse("no verify.json; deterministic verification must run before freezing")
-    verify = _load(verify_path)
-    if verify is None:
+    stored_verify = _load(verify_path)
+    if stored_verify is None:
         return _refuse("unreadable verify.json")
 
+    # Re-run the deterministic checks in this process. Reading `verified: true`
+    # out of a file that any writer in this directory can produce proves only that
+    # a file says so.
+    try:
+        verifier = _load_verifier()
+        live_verify = verifier.verify(args.work_order, run_dir)
+    except Exception as exc:                       # noqa: BLE001 - surfaced as a refusal
+        return _refuse(f"could not re-run the deterministic checks: {exc}")
+    verify = live_verify
+    if stored_verify.get("verified") is not True or stored_verify.get("verified") != live_verify.get("verified"):
+        return _refuse("verify.json disagrees with a fresh run of the checks; the stored verdict is stale or forged",
+                       stored=stored_verify.get("verified"), rerun=live_verify.get("verified"),
+                       blocking_failures=live_verify.get("blocking_failures"))
+    # The receipt the stored verdict was about must still be the receipt here.
+    if stored_verify.get("done_sha256") != live_verify.get("done_sha256"):
+        return _refuse("done.json changed after verification; the checked receipt is gone",
+                       recorded=(stored_verify.get("done_sha256") or "")[:12],
+                       now=(live_verify.get("done_sha256") or "missing")[:12])
+    if live_verify.get("verified") is not True:
+        return _refuse("deterministic verification did not pass on a fresh run; refusing to freeze",
+                       blocking_failures=live_verify.get("blocking_failures"))
+
     # An artifact that names another order is another order's evidence.
-    if str(verify.get("work_order") or "") != args.work_order:
+    if str(stored_verify.get("work_order") or "") != args.work_order:
         return _refuse("verify.json was produced for a different work order",
-                       found=verify.get("work_order"), expected=args.work_order)
-    if verify.get("verified") is not True:
-        return _refuse("deterministic verification did not pass; refusing to freeze",
-                       blocking_failures=verify.get("blocking_failures"))
+                       found=stored_verify.get("work_order"), expected=args.work_order)
 
     # The receipt cannot be swapped after it was checked.
     done_sha = _sha256_file(run_dir / "done.json")
@@ -199,32 +254,56 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     recorded_entries = verify.get("status_entries")
     live_entries = _status_entries()
-    if isinstance(recorded_entries, list) and live_entries is not None and live_entries != recorded_entries:
+    if live_entries is None:
+        return _refuse("could not read the working tree status; refusing to freeze on an unknown state")
+    if not isinstance(recorded_entries, list):
+        return _refuse("verify.json recorded no status set; the tested working state is unidentified")
+    if live_entries != recorded_entries:
         added = [e["path"] for e in live_entries if e not in recorded_entries][:10]
         return _refuse("the working tree differs from the set verification saw; the frozen state is untested",
                        newly_differing=added)
 
+    # A tag names a commit. With modified tracked files present, that commit is
+    # not the content under review: the tree being checked is still uncommitted,
+    # so the freeze would certify something the tag does not contain.
+    if live_entries:
+        return _refuse("working tree is not clean; the tag would name a commit that is not the delivered content",
+                       modified=[e["path"] for e in live_entries][:10])
+
     # The audit graded specific bytes. If the card or an evidence file changed
-    # afterwards, the verdict describes material that is no longer here.
+    # afterwards, the verdict describes material that is no longer here. Missing
+    # metadata is a refusal, not a skip: an audit that did not record what it read
+    # gives nothing to hold on to.
     artifact_issues = []
     card_path = str(audit.get("card") or "").strip()
     card_meta = audit.get("card_meta") or {}
-    if card_path and card_meta.get("sha256"):
-        current = _sha256_file(Path(card_path))
-        if current != card_meta["sha256"]:
-            artifact_issues.append({"artifact": card_path, "kind": "card",
-                                    "recorded": card_meta["sha256"][:12], "now": (current or "missing")[:12]})
-    for meta in (audit.get("evidence_meta") or []):
+    if not card_path:
+        return _refuse("audit.json names no card; the reviewed material is unidentified")
+    if not card_meta.get("sha256"):
+        return _refuse("audit.json recorded no card hash; the card it read cannot be identified", card=card_path)
+    current = _sha256_file(Path(card_path))
+    if current != card_meta["sha256"]:
+        return _refuse("the card changed after the audit; the verdict no longer describes it",
+                       card=card_path, recorded=card_meta["sha256"][:12], now=(current or "missing")[:12])
+
+    evidence_meta = audit.get("evidence_meta") or []
+    if not evidence_meta:
+        return _refuse("audit.json recorded no evidence hashes; the material it reviewed cannot be identified")
+    audited = [str(m.get("path") or "").strip() for m in evidence_meta]
+    named = [str(p) for p in (audit.get("evidence") or [])]
+    if not audited or any(not p for p in audited):
+        return _refuse("audit.json lists evidence without a path; the reviewed set is incomplete")
+    if sorted(audited) != sorted(named):
+        return _refuse("audit.json evidence list and evidence_meta disagree on what was read",
+                       listed=len(named), hashed=len(audited))
+    for meta in evidence_meta:
         path = str(meta.get("path") or "").strip()
-        if not path or not meta.get("sha256"):
-            continue
-        current = _sha256_file(Path(path))
-        if current != meta["sha256"]:
-            artifact_issues.append({"artifact": path, "kind": "evidence",
-                                    "recorded": meta["sha256"][:12], "now": (current or "missing")[:12]})
-    if artifact_issues:
-        return _refuse("audited material changed after the audit; the verdict no longer describes it",
-                       artifacts=artifact_issues[:10])
+        if not meta.get("sha256"):
+            return _refuse("audit.json has an evidence entry with no hash", evidence=path)
+        now = _sha256_file(Path(path))
+        if now != meta["sha256"]:
+            return _refuse("audited evidence changed after the audit; the verdict no longer describes it",
+                           evidence=path, recorded=meta["sha256"][:12], now=(now or "missing")[:12])
 
     # Truncated material cannot have been read in full, and an audit that ran on
     # a partial view is the kind of pass this whole step exists to prevent.
@@ -237,6 +316,17 @@ def main(argv: Sequence[str] | None = None) -> int:
     message = args.message.strip() or f"{args.work_order} frozen: verified + audited at {verified_head[:12]}"
 
     try:
+        # Read the state once more immediately before writing the ref. The checks
+        # above took a dozen filesystem reads; anything that moved during them
+        # would otherwise be frozen under a verdict about a different state.
+        head_again = _git("rev-parse", "HEAD")
+        tree_again = _tree_oid()
+        entries_again = _status_entries()
+        if head_again != verified_head or tree_again != tree_now or entries_again != live_entries:
+            return _refuse("state moved while the checks were running; nothing was frozen",
+                           head=(head_again or "")[:12], tree=(tree_again or "")[:12],
+                           entries=len(entries_again or []))
+
         # Tag the commit that was verified, not whatever HEAD happens to be.
         _git("tag", "-a", tag, verified_head, "-m", message)
         tagged = _git("rev-parse", f"{tag}^{{}}")

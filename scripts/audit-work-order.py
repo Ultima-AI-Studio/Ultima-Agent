@@ -206,13 +206,25 @@ def per_gate(text: str, gate_ids: list[str]) -> dict[str, str]:
 
 
 def overall(text: str) -> str:
-    """Exact match on the closing line; substring tests pass "FAIL, NOT PASS"."""
-    for line in reversed(text.splitlines()):
+    """The closing verdict, which must be exactly one line and self-consistent.
+
+    Taking the last match let a trailing ``AUDIT: PASS`` erase an earlier
+    ``AUDIT: FAIL`` in the same response — the reviewer could state both and the
+    second one won. Every exact closing line is collected instead: one is required,
+    and a contradiction resolves to CONTRADICTORY rather than to whichever came
+    last.
+    """
+    seen = []
+    for line in text.splitlines():
         token = line.strip().strip("*_` ").upper()
         match = re.fullmatch(r"AUDIT\s*[：:]\s*(PASS|FAIL)", token)
         if match:
-            return match.group(1)
-    return "UNKNOWN"
+            seen.append(match.group(1))
+    if not seen:
+        return "UNKNOWN"
+    if len(set(seen)) > 1:
+        return "CONTRADICTORY"
+    return seen[0]
 
 
 def _round_passed(text: str, gate_ids: list[str]) -> tuple[bool, dict[str, str]]:
@@ -249,9 +261,18 @@ def main(argv: Sequence[str] | None = None) -> int:
         incomplete: list[str] = []
         for p in args.evidence:
             raw = _read(p)
-            digest = hashlib.sha256(raw.encode("utf-8", "replace")).hexdigest()
+            # Hash the file's own bytes. Hashing a decoded, normalised string means
+            # freeze — which hashes the bytes on disk — reports drift on a file
+            # nobody touched, whenever a BOM or CRLF normalisation is involved.
+            try:
+                data = Path(p).read_bytes()
+            except OSError as exc:
+                print(json.dumps({"blocked": True, "reason": f"unreadable evidence: {p}: {exc}"},
+                                 ensure_ascii=False), file=sys.stderr)
+                return 2
+            digest = hashlib.sha256(data).hexdigest()
             truncated = len(raw) > 6000
-            evidence_meta.append({"path": str(p), "bytes": len(raw.encode("utf-8", "replace")),
+            evidence_meta.append({"path": str(p), "bytes": len(data),
                                   "sha256": digest, "shown_chars": min(len(raw), 6000),
                                   "complete": not truncated})
             if truncated:
@@ -262,8 +283,15 @@ def main(argv: Sequence[str] | None = None) -> int:
         card_truncated = len(card) > 4000
         if card_truncated:
             incomplete.append(f"{Path(args.card).name} (card {len(card)} chars)")
+        try:
+            card_bytes = Path(args.card).read_bytes()
+        except OSError as exc:
+            print(json.dumps({"blocked": True, "reason": f"unreadable card: {exc}"},
+                             ensure_ascii=False), file=sys.stderr)
+            return 2
         card_meta = {"path": str(args.card),
-                     "sha256": hashlib.sha256(card.encode("utf-8", "replace")).hexdigest(),
+                     "sha256": hashlib.sha256(card_bytes).hexdigest(),
+                     "bytes": len(card_bytes),
                      "complete": not card_truncated}
 
         evidence_text = "\n\n".join(evidence_parts) or "(no evidence supplied)"
