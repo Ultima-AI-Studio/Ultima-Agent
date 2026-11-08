@@ -1,6 +1,7 @@
 """One registered engineering order per real Codex process; no automatic approval."""
 import argparse
 from datetime import datetime, timezone, timedelta
+import glob as _glob
 import importlib.util
 import json
 import os
@@ -26,6 +27,31 @@ native = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(native)
 
 SENTINEL_EXIT_TIMEOUT_S = 210.0
+
+# Where a Codex CLI may live when it is not on PATH. A store update moves the
+# payload into a versioned WindowsApps directory and leaves no alias behind,
+# so a PATH-only lookup stops dispatching entirely after an upgrade. The
+# newest hit wins, because several versioned installs may coexist.
+_CODEX_EXE_GLOBS = (
+    r'C:\Program Files\WindowsApps\OpenAI.Codex_*\app\resources\codex.exe',
+    r'C:\Users\*\AppData\Local\Microsoft\WindowsApps\codex.exe',
+    r'C:\Users\*\AppData\Roaming\npm\codex.exe',
+    r'C:\Users\*\AppData\Local\Programs\*\codex.exe',
+)
+
+
+def resolve_codex_exe() -> str | None:
+    """Find the Codex CLI without relying on PATH alone."""
+    explicit = os.environ.get('ULTIMA_CODEX_EXE', '').strip()
+    if explicit and Path(explicit).is_file():
+        return explicit
+    found = shutil.which('codex.exe') or shutil.which('codex')
+    if found:
+        return found
+    hits = [p for pattern in _CODEX_EXE_GLOBS for p in _glob.glob(pattern) if Path(p).is_file()]
+    if hits:
+        return max(hits, key=lambda p: os.path.getmtime(p))
+    return None
 
 # An order that sits in AUDIT blocks every later order from taking the audit
 # slot, because the slot test is "is any other order in audit". Without a
@@ -305,9 +331,9 @@ def main():
     check_version_gates({'card_path': str(ROOT / 'tasks/cards' / cards[0] / 'task.md')}, ROOT / 'tasks')
     if (ROOT / 'tasks/.pause-dispatch').exists() or (SHARED / '.pause-dispatch').exists():
         raise ValueError('派发暂停标记存在')
-    codex = shutil.which('codex.exe')
+    codex = resolve_codex_exe()
     if not codex:
-        raise ValueError('Codex 执行器不存在')
+        raise ValueError('Codex 执行器不存在（PATH 与常见安装路径均未找到；可用 ULTIMA_CODEX_EXE 显式指定）')
     admission = DispatchLock(SHARED / '.engineering-dispatch.lock')
     with admission:
         text, match, _ = registered(args.order)

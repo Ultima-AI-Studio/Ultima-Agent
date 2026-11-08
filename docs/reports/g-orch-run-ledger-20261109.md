@@ -170,3 +170,73 @@ Codex 选择在测试期间临时隐藏 `.env`、结束再恢复，使回归显�
 1. **审计名额只有一个**（`any` 即 busy），所以 w7 在途期间 w9 仍排队。这是串行审计的正常行为，不是堵死；要推进得先把 w7 的审计做完或撤出。
 2. **超时工单只是「不再占位」，状态没被改写**。按「只监察、不代替裁决」的边界，我没有替这些工单下结论，主表里它们仍是 audit。要让主表本身也干净，需要一个显式清理动作由 Owner 决定。
 3. 时限调短会放过更多，调长更保守；默认 7 天是取舍值，可按环境变量调整，不必改代码。
+
+---
+
+## 八、卡点 G：Codex 升级后派发链静默断裂（2026-11-09）
+
+### 8.1 现象
+
+修完卡点 E 后想真派一次 `wo-orb-w9` 验证落盘，派发器直接返回 `{"blocked": true, "reason": "Codex 执行器不存在"}`，exit 2。同一台机器、同一个工单，此前几分钟前还能正常派发。
+
+### 8.2 根因
+
+派发器找执行器只有一条路：`shutil.which('codex.exe')`，找不到就拒绝派发。
+
+而 Codex 桌面版被更新到 `26.1103.4239.0` 之后，主程序被放进版本化的包目录：
+
+```
+C:\Program Files\WindowsApps\OpenAI.Codex_26.1103.4239.0_x64__2p2nqsd0c76g0\app\resources\codex.exe
+```
+
+`WindowsApps` 的 alias 目录里只留了 `codex-chrome-native-host.exe` 和 `codex-core-command-runner.exe`，**主 `codex.exe` 没有 alias**。于是 PATH 里查不到，派发器判定"执行器不存在"。
+
+这类断裂很难被察觉：派发器报错文案像是在说"没装 Codex"，实际是"装了但换了位置"。而且它发生在升级那一刻，前一次派发还正常，靠"昨天还能跑"无法排除。
+
+### 8.3 修法
+
+`scripts/dispatch-work-order.py::resolve_codex_exe()` 改成多路解析，按优先级：
+
+| 顺序 | 来源 | 用途 |
+|---|---|---|
+| 1 | 环境变量 `ULTIMA_CODEX_EXE` | 显式指定，最高优先级；路径不存在则忽略，不硬失败 |
+| 2 | `shutil.which('codex.exe')` / `shutil.which('codex')` | 常规 PATH |
+| 3 | 四组 glob：Store 版本化包目录、`WindowsApps`、npm 全局、`Programs\*` | 升级后无 alias 的兜底 |
+
+多版本共存时按 **mtime 取最新**，避免捡到旧版。报错文案也改明：`Codex 执行器不存在（PATH 与常见安装路径均未找到；可用 ULTIMA_CODEX_EXE 显式指定）`。
+
+### 8.4 实测
+
+- `resolve_codex_exe()` 在本机解析到 `...\OpenAI.Codex_26.1103.4239.0_x64__2p2nqsd0c76g0\app\resources\codex.exe`
+- 真派发 `wo-orb-w9` 走完整个执行链路（`run=wo-orb-w9-20261108T175009866475Z`，`exit_code: 0`）
+- **`audit-slot.json`（454B）与 `done.json` 新字段落盘实证**：
+
+```json
+{"audit_slot_blocking": ["wo-orb-w7"], "audit_slot_disregarded": [
+  {"order": "wo-ultimaagent-20261030-0007", "why": "audit wait 8.7d exceeds 7.0d"},
+  {"order": "wo-ultimasentinel-20261103-0001", "why": "reason records it as frozen outside the flow"},
+  {"order": "wo-ultimaagent-20261101-0019", "why": "audit wait 7.7d exceeds 7.0d"},
+  {"order": "wo-ultimaagent-20261101-0020", "why": "audit wait 7.7d exceeds 7.0d"}]}
+```
+
+回归 **62 passed**（新增 4 条 codex 解析用例）。
+
+### 8.5 附带结论：w9 这张复验卡已经失效
+
+这次 Codex 没有写 PASS，而是自查后拒绝交付，理由准确：目标文件 `docs/reports/g-orch-smoke-verify-20261109.md` 已由 `30b36e7b` 提交进 `HEAD`，做不到工单要求的「唯一新增文件」，且工作树另有多项既存改动。
+
+**Codex 不伪造 PASS 这一点是可信的**（这一条比任何自述都更有价值）。但 w9 的验收前提已经不存在了——它当初设计时文件还没提交，现在提交了，重跑必然得到"做不到"。这张卡不应再派，其验证目的（卡点 B 契约随载荷下发）早已由 `wo-orb-w9-20261108T173025279789Z` 那次派发实证。
+
+### 8.6 环境侧观察：Codex 崩溃有历史
+
+`%LOCALAPPDATA%\CrashDumps` 里积累 5 个转储：
+
+| 转储 | 时间 | 大小 |
+|---|---|---|
+| `codex.exe.11972.dmp` | 2026-11-01 12:37 | 4.3MB |
+| `codex.exe.32824.dmp` | 2026-11-02 14:52 | 6.4MB |
+| `codex-code-mode-host.exe.1276.dmp` | 2026-11-04 10:56 | 1.5MB |
+| `codex.exe.16512.dmp` | 2026-11-04 14:50 | 4.5MB |
+| `codex.exe.23116.dmp` | **2026-11-08 20:51** | 7.9MB |
+
+最后一个正对应卡点 D 首次派发崩溃的时刻。说明这不是偶发一次，而是**持续数日的间歇性崩溃**，值得单独跟进；但它不阻塞主流程（重派即可完成），本轮只做记录。

@@ -548,3 +548,14 @@
 - **口径**：凡「限 N 个在途」的准入控制，必须同时定义超时/失效出口，并在放行时点名**放过了谁、为什么**（落 `audit-slot.json` 与状态理由），否则限流会退化成死锁且事后无从追查。
 - **边界**：机制只决定「是否占位」，不替这些工单改状态。是否把滞留单正式转 blocked，属于人的裁决，不自动化。
 - **复发**：1
+
+## L68 · 执行器升级换了安装位置，派发器 "找不到" 就全线停摆（2026-11-09）
+
+- **现象**：`wo-orb-w9` 派发返回 `{"blocked": true, "reason": "Codex 执行器不存在"}`。同机同工单，几分钟前还能正常派发。
+- **根因**：派发器只用 `shutil.which('codex.exe')` 一条路找执行器。Codex 更新到 `26.1103.4239.0` 后主程序被放进版本化包目录 `C:\Program Files\WindowsApps\OpenAI.Codex_<版本>_x64__<publisher>\app\resources\codex.exe`，而 `WindowsApps` alias 目录只保留两个辅助 exe，**主程序不再有 alias**。PATH 查不到 → 判定"没装"。
+- **误导性**：报错文案字面是"执行器不存在"，看起来像未安装，实际是"装了但搬家了"。且断裂发生在升级瞬间，前一次派发仍正常，"昨天能跑"无法作为排除依据。
+- **修法**：`resolve_codex_exe()` 多路解析 —— ①环境变量 `ULTIMA_CODEX_EXE` 最高优先（路径不存在则忽略、不硬失败）；②`shutil.which('codex.exe'|'codex')`；③四组 glob 兜底（Store 版本化包、WindowsApps、npm 全局、`Programs\*`）。多版本共存按 mtime 取最新，防止捡到旧版。
+- **实测**：解析到 `OpenAI.Codex_26.1103.4239.0_x64__2p2nqsd0c76g0\app\resources\codex.exe`，真派发走完全链路 `exit_code: 0`，`audit-slot.json` 与 `done.json` 新字段落盘实证。回归 62 passed。
+- **口径**：任何"外部可执行体路径"都不得只靠 PATH 判定存在性，尤其是会自更新的桌面客户端——升级会改安装位置且可能不留 alias。找不到时的报错必须区分"未安装"与"安装了但位置变了"，否则运维会朝错误方向排查。
+- **附带**：`%LOCALAPPDATA%\CrashDumps` 里 codex 崩溃转储已累积 5 个（11-01/11-02/11-04/11-08），属持续数日的间歇性崩溃，与卡点 D 同源，待单独跟进。
+- **复发**：1
