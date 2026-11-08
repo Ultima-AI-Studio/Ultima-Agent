@@ -1,6 +1,6 @@
 """One registered engineering order per real Codex process; no automatic approval."""
 import argparse
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 import importlib.util
 import json
 import os
@@ -26,6 +26,89 @@ native = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(native)
 
 SENTINEL_EXIT_TIMEOUT_S = 210.0
+
+# An order that sits in AUDIT blocks every later order from taking the audit
+# slot, because the slot test is "is any other order in audit". Without a
+# staleness rule a single forgotten order stalls the whole queue forever.
+# An order whose audit wait exceeds this many days stops occupying the slot.
+# Overridable so the window can be tuned without editing code.
+AUDIT_SLOT_MAX_AGE_DAYS = float(os.environ.get('ULTIMA_AUDIT_SLOT_MAX_AGE_DAYS', '7'))
+# A reason that already records the order as frozen outside the flow means it
+# is no longer waiting on an audit at all, so age does not apply to it.
+_AUDIT_FROZEN_MARKERS = ('范围外冻结', '已冻结', 'frozen')
+
+
+def _audit_slot_age_days(order: str, reason: str, now, runs_root: Path | None = None) -> float | None:
+    """How long this order has been waiting in audit; None when unknowable.
+
+    Preference order is by reliability: the finished_at of its latest dispatch
+    run, then an explicit date in the registry reason, then give up. Returning
+    None means "cannot prove it is stale", and the caller must keep treating it
+    as occupying — a missing timestamp is not licence to evict an order.
+    """
+    latest = None
+    for done in (runs_root or (ROOT / 'tasks/queue/runs')).glob(order + '-*/done.json'):
+        try:
+            stamp = json.loads(done.read_text(encoding='utf-8-sig')).get('finished_at')
+        except (OSError, ValueError):
+            continue
+        if not stamp:
+            continue
+        try:
+            at = datetime.fromisoformat(str(stamp).replace('Z', '+00:00'))
+        except ValueError:
+            continue
+        if at.tzinfo is None:
+            at = at.replace(tzinfo=timezone.utc)
+        if latest is None or at > latest:
+            latest = at
+    if latest is None:
+        # Registry reasons carry hand-written dates such as 2026-10-31 or
+        # 20261030; accept either form and take the newest one present.
+        dates = []
+        for token in re.findall(r'20\d{2}-\d{2}-\d{2}|20\d{6}', reason or ''):
+            try:
+                dates.append(datetime.strptime(re.sub(r'-', '', token), '%Y%m%d').replace(tzinfo=timezone.utc))
+            except ValueError:
+                continue
+        if dates:
+            latest = max(dates)
+    if latest is None:
+        return None
+    return (now - latest).total_seconds() / 86400.0
+
+
+def audit_slot_holders(current: str, order: str, now=None, runs_root: Path | None = None) -> tuple[list[str], list[dict]]:
+    """Split the other orders sitting in audit into blocking and disregarded.
+
+    Returns (blocking, disregarded). Disregarded entries carry why they were
+    let go so the run records exactly which orders stopped counting.
+    """
+    now = now or datetime.now(timezone.utc)
+    blocking, disregarded = [], []
+    for line in current.splitlines():
+        if not line.startswith('| ') or ' | audit | ' not in line:
+            continue
+        parts = [c.strip() for c in line.strip().strip('|').split('|')]
+        if len(parts) < 3 or parts[2] != 'audit':
+            continue
+        holder = parts[1]
+        if holder == order:
+            continue
+        reason = '|'.join(parts[3:])
+        if any(m in reason for m in _AUDIT_FROZEN_MARKERS):
+            disregarded.append({'order': holder, 'why': 'reason records it as frozen outside the flow'})
+            continue
+        age = _audit_slot_age_days(holder, reason, now, runs_root)
+        if age is None:
+            blocking.append(holder)
+            disregarded.append({'order': holder, 'why': 'no timestamp; kept as occupant (fail-closed)', 'blocking': True})
+            continue
+        if age > AUDIT_SLOT_MAX_AGE_DAYS:
+            disregarded.append({'order': holder, 'why': f'audit wait {age:.1f}d exceeds {AUDIT_SLOT_MAX_AGE_DAYS}d'})
+            continue
+        blocking.append(holder)
+    return blocking, [d for d in disregarded if not d.get('blocking')]
 
 
 def receipt_contract_block(order: str) -> str:
@@ -338,15 +421,25 @@ def main():
             # audit slot from an unlocked snapshot or overwrite a newer run.
             with completion_lock():
                 current, _, _ = registered(args.order)
-                audit_busy = target == 'audit' and any(line.startswith('| ') and ' | audit | ' in line
-                                             and f'| {args.order} |' not in line for line in current.splitlines())
+                blocking, disregarded = audit_slot_holders(current, args.order)
+                audit_busy = target == 'audit' and bool(blocking)
                 if audit_busy:
                     target = 'blocked'
+                if disregarded:
+                    (run / 'audit-slot.json').write_text(json.dumps({
+                        'max_age_days': AUDIT_SLOT_MAX_AGE_DAYS,
+                        'disregarded': disregarded,
+                        'blocking': blocking,
+                        'at': datetime.now(timezone.utc).isoformat()}, ensure_ascii=False), encoding='utf-8')
                 (run / 'done.json').write_text(json.dumps({'exit_code': code, 'receipt_valid': valid,
                     'state': target, 'audit_slot_busy': audit_busy, 'parent_lost': parent_lost,
-                    'finished_at': datetime.now(timezone.utc).isoformat()}), encoding='utf-8')
+                    'audit_slot_blocking': blocking, 'audit_slot_disregarded': disregarded,
+                    'finished_at': datetime.now(timezone.utc).isoformat()}, ensure_ascii=False), encoding='utf-8')
                 if not parent_lost:
                     reason = '等待全局独立审计名额；' if audit_busy else ''
+                    if disregarded:
+                        reason += (f'审计名额时限清点：{len(disregarded)} 单超 {AUDIT_SLOT_MAX_AGE_DAYS:g}d '
+                                   f'或已标冻结，不再占位（{", ".join(d["order"] for d in disregarded)}）；')
                     state(args.order, target, reason+f'真实执行结束 exit={code}；{run.name}；待独立核对，不自动批准或续派'+reservation_note, run,
                           expected='executing', expected_run=run.name)
             guardian.wait(timeout=5)
