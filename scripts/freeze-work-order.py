@@ -160,6 +160,39 @@ def _refuse(reason: str, **extra) -> int:
     return 2
 
 
+def _audit_inconsistencies(audit: dict) -> list[str]:
+    """Reasons the recorded two-round result is not actually a pass.
+
+    Trusting the top-level boolean let a fully forged audit through, and worse: an
+    audit whose every round said FAIL could still freeze as long as someone left
+    ``audit_passed: true`` beside it. The rounds are recomputed here instead of
+    believed.
+    """
+    problems: list[str] = []
+    for key in ("round1", "round2"):
+        round_ = audit.get(key)
+        if not isinstance(round_, dict):
+            problems.append(f"{key} is not an object")
+            continue
+        if round_.get("passed") is not True:
+            problems.append(f"{key}.passed={round_.get('passed')!r}")
+        per_gate = round_.get("per_gate")
+        if not isinstance(per_gate, dict) or not per_gate:
+            problems.append(f"{key}.per_gate missing")
+        else:
+            not_pass = [g for g, v in per_gate.items() if str(v).upper() != "PASS"]
+            if not_pass:
+                problems.append(f"{key}.per_gate not all PASS: {not_pass[:5]}")
+        overall = str(round_.get("overall") or "").upper()
+        if overall != "PASS":
+            problems.append(f"{key}.overall={round_.get('overall')!r}")
+        if not str(round_.get("model") or "").strip():
+            problems.append(f"{key}.model missing")
+    if audit.get("audit_passed") is not True:
+        problems.append("audit_passed is not true")
+    return problems
+
+
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--work-order", required=True)
@@ -221,6 +254,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     audit = _load(audit_path)
     if audit is None:
         return _refuse("unreadable audit.json")
+    receipt = _load(run_dir / "done.json") or {}
     if str(audit.get("work_order") or "") != args.work_order:
         return _refuse("audit.json was produced for a different work order",
                        found=audit.get("work_order"), expected=args.work_order)
@@ -246,6 +280,12 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     if audit.get("audit_passed") is not True:
         return _refuse("audit_passed is not true; refusing to freeze")
+
+    # The rounds must agree with the boolean, not merely accompany it.
+    problems = _audit_inconsistencies(audit)
+    if problems:
+        return _refuse("audit.json is internally inconsistent; a top-level pass cannot "
+                       "override what the rounds recorded", problems=problems[:8])
 
     verified_head = str(verify.get("head") or "").strip()
     if not verified_head:
@@ -305,6 +345,17 @@ def main(argv: Sequence[str] | None = None) -> int:
     if current != card_meta["sha256"]:
         return _refuse("the card changed after the audit; the verdict no longer describes it",
                        card=card_path, recorded=card_meta["sha256"][:12], now=(current or "missing")[:12])
+
+    # The card must be the one this order was dispatched on. Otherwise freeze can be
+    # handed any weaker card that happens to be internally consistent with its own
+    # audit, and the tag would faithfully preserve the wrong input.
+    dispatched_card = str(receipt.get("card_sha256") or "").strip()
+    if not dispatched_card:
+        return _refuse("done.json records no card_sha256; the reviewed card cannot be "
+                       "tied to the one the order dispatched on", card=card_path)
+    if dispatched_card != card_meta["sha256"]:
+        return _refuse("the card handed to freeze is not the card this order dispatched on",
+                       dispatched=dispatched_card[:12], supplied=card_meta["sha256"][:12])
 
     evidence_meta = audit.get("evidence_meta") or []
     if not evidence_meta:

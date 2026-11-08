@@ -430,6 +430,10 @@ def main():
     if len(versions) != 1:
         raise ValueError('工单引用任务阶段不一致')
     check_version_gates({'card_path': str(ROOT / 'tasks/cards' / cards[0] / 'task.md')}, ROOT / 'tasks')
+    # The card the audit will review is fixed at dispatch time. Without this, freeze
+    # cannot tell the card the order named from any other card handed to it later.
+    card_path = ROOT / 'tasks/cards' / cards[0] / 'task.md'
+    card_sha256 = hashlib.sha256(card_path.read_bytes()).hexdigest()
     if (ROOT / 'tasks/.pause-dispatch').exists() or (SHARED / '.pause-dispatch').exists():
         raise ValueError('派发暂停标记存在')
     codex = resolve_codex_exe()
@@ -573,6 +577,7 @@ def main():
                     # a receipt from order A could be read under order B's run
                     # directory and every downstream check would agree with itself.
                     'work_order': args.order, 'run_id': run.name,
+                    'card': str(card_path), 'card_sha256': card_sha256,
                     'exit_code': code, 'receipt_valid': valid,
                     'state': target, 'audit_slot_busy': audit_busy, 'parent_lost': parent_lost,
                     'audit_slot_blocking': blocking, 'audit_slot_disregarded': disregarded,
@@ -597,6 +602,7 @@ def main():
                 after = git_snapshot()
                 (run / 'done.json').write_text(json.dumps({'exit_code': worker.returncode,
                     'state': 'blocked', 'finalization_pending': True,
+                    'card': str(card_path), 'card_sha256': card_sha256,
                     'base_sha': base.get('base_sha'), 'worktree_dirty': base.get('worktree_dirty'),
                     'tree_oid': after.get('tree_oid'), 'changed_files': after.get('changed_files'),
                     'status_entries': after.get('status_entries'),
@@ -604,6 +610,7 @@ def main():
                     'finished_at': datetime.now(timezone.utc).isoformat()}), encoding='utf-8')
             if worker is None:
                 (run / 'done.json').write_text(json.dumps({'exit_code': None, 'launched': False,
+                    'card': str(card_path), 'card_sha256': card_sha256,
                     'base_sha': base.get('base_sha'), 'worktree_dirty': base.get('worktree_dirty'),
                     'tree_oid': base.get('tree_oid'), 'changed_files': base.get('changed_files'),
                     'status_entries': base.get('status_entries'),

@@ -372,6 +372,33 @@ def test_an_untracked_file_in_the_write_scope_fails(tmp_path, repo, cli):
     assert "no_untracked_in_write_scope" in payload["blocking_failures"]
 
 
+def test_a_runner_planted_in_the_workspace_is_refused(repo, cli):
+    """`tools/pytest.exe` copied from cmd.exe has the right name and is not pytest.
+
+    The basename check cannot carry this: any program can be given that name. What
+    separates a runner from a plant is where it lives.
+    """
+
+    planted = cli.ROOT / "tools" / "pytest.exe"
+    reason = cli._command_is_a_test_run([str(planted)])
+    assert "lives inside the workspace" in reason
+
+
+def test_an_untracked_conftest_is_refused(tmp_path, repo, cli):
+    """pytest loads conftest.py without anyone declaring it, so it must be tracked."""
+
+    _card(repo, "wo-x", ["a.txt"])
+    (repo / "tests").mkdir(exist_ok=True)
+    (repo / "tests" / "conftest.py").write_text(
+        "import pytest\npytest.skip('injected', allow_module_level=True)\n", encoding="utf-8")
+    snap = _snapshot(cli)
+    _done(tmp_path, base_sha=snap["end_sha"], end_sha=snap["end_sha"],
+          tree_oid=snap["tree_oid"], status_entries=snap["status_entries"],
+          changed_files=snap["changed_files"])
+    payload = cli.verify("wo-x", tmp_path)
+    assert "no_untracked_test_inputs" in payload["blocking_failures"]
+
+
 def test_a_declared_file_without_a_dispatch_commit_does_not_pass(tmp_path, repo, cli):
     """Existence without a base commit proves nothing about delivery."""
 

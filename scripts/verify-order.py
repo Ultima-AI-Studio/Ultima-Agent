@@ -244,6 +244,17 @@ def _declared_commands(order_path: Path) -> dict:
             "rejected": rejected, "section": in_section}
 
 
+# Files pytest and CPython load implicitly. An untracked one of these can make a
+# failing test report success without touching any declared file, which is exactly
+# how a rider passed verification before.
+_TEST_INPUT_NAMES = {"conftest.py", "pytest.ini", "tox.ini", "setup.cfg",
+                     "sitecustomize.py", "usercustomize.py"}
+# Only these roots are on pytest's upward conftest search path when the suite is
+# run from the repository root. Scoping here keeps a checkout with unrelated
+# untracked research sources from blocking every order.
+_TEST_INPUT_SCOPES = ("", "tests/", "tasks/queue_engine/")
+
+
 def _command_is_a_test_run(argv: list[str]) -> str:
     """Why this argv is not an acceptable test command, or "" when it is.
 
@@ -253,6 +264,19 @@ def _command_is_a_test_run(argv: list[str]) -> str:
     """
     exe = argv[0].replace("/", "\\").lower()
     name = exe.rsplit("\\", 1)[-1]
+    # A runner is identified by where it lives, not only by what it is called.
+    # Copying cmd.exe into the repository as `tools\pytest.exe` satisfied a
+    # basename check and ran nothing.
+    try:
+        resolved = Path(argv[0]).resolve()
+        inside = resolved.is_relative_to(Path(ROOT).resolve())
+    except (OSError, ValueError):
+        inside = False
+    # A project virtualenv is the one workspace-local interpreter that is a real
+    # tool; anything else inside the tree can be planted wholesale.
+    in_venv = bool(re.search(r"[\\/]tools[\\/]venv-[^\\/]+[\\/]", str(resolved).lower()))
+    if inside and not in_venv:
+        return f"{argv[0][:40]} lives inside the workspace; a test runner must be an installed tool"
     if name.startswith("pytest"):
         if name not in ("pytest", "pytest.exe"):
             return f"unrecognised test runner {name}"
@@ -526,6 +550,21 @@ def verify(work_order: str, run_dir: Path) -> dict:
             "every declared file is tracked in git" if stray == []
             else f"untracked inside the declared write scope: {stray[:8]}",
             f"git ls-files --others --exclude-standard -- {' '.join(declared)[:120]}")
+
+    # Checking only the declared files was not enough: pytest loads conftest.py,
+    # pytest.ini and site hooks that no order declares, so an untracked one of those
+    # could make a failing test report green while every declared file stayed clean.
+    # Searched over the roots that pytest actually walks upward from.
+    probe = _git("ls-files", "--others", "--exclude-standard")
+    others_all = [ln.strip() for ln in (probe.stdout or "").splitlines() if ln.strip()]
+    loaders = [p for p in others_all
+               if (Path(p).name in _TEST_INPUT_NAMES or p.endswith(".pth"))
+               and any(not scope or p.startswith(scope) for scope in _TEST_INPUT_SCOPES)]
+    add("no_untracked_test_inputs", probe.returncode == 0 and not loaders,
+        "no untracked conftest/pytest config/site hook in the roots pytest loads from"
+        if not loaders else f"untracked test inputs: {loaders[:8]}",
+        "git ls-files --others --exclude-standard; filter conftest.py, pytest.ini, "
+        "tox.ini, setup.cfg, site hooks, *.pth")
 
     # The order's own acceptance criteria, as far as they are mechanical. A gate
     # that says "the file exists and is not empty" is not a matter of opinion, and

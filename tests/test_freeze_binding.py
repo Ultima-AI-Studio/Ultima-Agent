@@ -83,7 +83,14 @@ def _write_run(run_dir: Path, cli, work_order: str = "wo-t",
             "**文件**：`a.txt`\n\n**验收（Gate T1）**\n- ACC-1 `a.txt` 存在且非空\n",
             encoding="utf-8")
 
+    if card is None:
+        card = run_dir / "card.md"
+        card.write_text("| ACC-1 | a.txt exists | ok |\n", encoding="utf-8")
+
     done = {"work_order": work_order, "run_id": run_dir.name,
+            # The card is fixed at dispatch, and freeze compares the audited card
+            # against this hash rather than against whatever it is handed.
+            "card": str(card), "card_sha256": _sha(card),
             "exit_code": 0, "receipt_valid": True, "state": "audit",
             "audit_slot_busy": False, "parent_lost": False,
             "base_sha": _git(cli, "rev-parse", "HEAD~1"),
@@ -98,9 +105,6 @@ def _write_run(run_dir: Path, cli, work_order: str = "wo-t",
     result = verifier.verify(work_order, run_dir)
     (run_dir / "verify.json").write_text(json.dumps(result), encoding="utf-8")
 
-    if card is None:
-        card = run_dir / "card.md"
-        card.write_text("| ACC-1 | a.txt exists | ok |\n", encoding="utf-8")
     evidence = run_dir / "evidence.txt"
     evidence.write_text("ACC-1: PASS - a.txt exists and is not empty\n", encoding="utf-8")
 
@@ -289,6 +293,28 @@ def test_the_tag_carries_the_receipt_it_was_frozen_on(tmp_path, repo, cli):
     assert "head: " in body
     assert "card as reviewed" in body
     assert "| ACC-1 | x | y |" in body
+
+
+def test_rounds_that_failed_cannot_be_frozen_by_the_top_level_flag(tmp_path, repo, cli):
+    """Both rounds say FAIL; only the boolean says true. The boolean must lose."""
+
+    card = tmp_path / "card.md"
+    card.write_text("| ACC-1 | x | y |\n", encoding="utf-8")
+    run = tmp_path / "run"
+    _write_run(run, cli, card=card)
+
+    audit_path = run / "audit.json"
+    audit = json.loads(audit_path.read_text(encoding="utf-8-sig"))
+    for key in ("round1", "round2"):
+        audit[key] = {"passed": False, "per_gate": {"ACC-1": "FAIL"},
+                      "overall": "FAIL", "model": "stub", "tokens": 0,
+                      "response": "ACC-1: FAIL - broken\nAUDIT: FAIL"}
+    audit["audit_passed"] = True
+    audit_path.write_text(json.dumps(audit), encoding="utf-8")
+
+    code = cli.main(["--work-order", "wo-t", "--run-dir", str(run)])
+    assert code == 2
+    assert _git(cli, "tag", "--list", "wo-t-freeze-*") == ""
 
 
 def test_a_dirty_tree_cannot_be_frozen(tmp_path, repo, cli):
