@@ -427,6 +427,14 @@ def test_argument_limits_apply_whatever_the_entry_point(repo, cli):
                   ["--ignore-glob=*"], ["-kcache"], ["@args.txt"]):
         assert "test targets" in cli._command_is_a_test_run([pytest_exe, *extra])
 
+    # The gate builds the run. On the console script `-m` is pytest's marker filter,
+    # so the fixed form must not add `-m pytest` there — that collects nothing.
+    assert cli._gate_argv([pytest_exe, "tests/queue_engine"]) == [
+        pytest_exe, "-o", "addopts=", f"--junitxml={cli._JUNIT_NAME}", "tests/queue_engine"]
+    assert cli._gate_argv([str(venv / "python.exe"), "-m", "pytest", "tests/queue_engine"]) == [
+        str(venv / "python.exe"), "-m", "pytest", "-o", "addopts=",
+        f"--junitxml={cli._JUNIT_NAME}", "tests/queue_engine"]
+
 
 def test_an_interpreter_outside_the_registered_venv_is_refused(tmp_path, cli):
     """Any python.exe can host pytest. Identity is the registered location, not the name."""

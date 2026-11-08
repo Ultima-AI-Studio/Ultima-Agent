@@ -370,10 +370,14 @@ def _gate_argv(argv: list[str]) -> list[str]:
     decides the options, and it asks pytest for its own report of what happened.
     """
     runner, body = argv[0], argv[1:]
+    head = [runner]
     if body[:2] == ["-m", "pytest"]:
+        # Only the interpreter needs `-m pytest`. On the console script `-m` is
+        # pytest's marker filter, and `-m pytest` would collect nothing.
+        head.append("-m")
+        head.append("pytest")
         body = body[2:]
-    return [runner, "-m", "pytest", "-o", "addopts=",
-            f"--junitxml={_JUNIT_NAME}", *body]
+    return [*head, "-o", "addopts=", f"--junitxml={_JUNIT_NAME}", *body]
 
 
 def _junit_counts(path: Path) -> dict | None:
