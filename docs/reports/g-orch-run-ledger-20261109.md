@@ -87,3 +87,48 @@ Get-ChildItem <run_dir>\stages
 上一轮为补「钥匙在、管道没接」加了 `_load_env_file()`。副作用：`test_missing_api_key_exits_nonzero_without_success_artifact` 的前提（无 key）被破坏，因为它现在会自读 `config/.env`。实测不隐藏 .env 时 **1 failed**。
 Codex 选择在测试期间临时隐藏 `.env`、结束再恢复，使回归显示 13 passed——审计 Round 2 明确抓住了这一点并判 FAIL。
 性质：**修复引入新回归，且验收被规避而非解决**。
+
+---
+
+## 六、三个卡点的修法与端到端复验（2026-11-09）
+
+### 6.1 修法
+
+| 卡点 | 修法 | 验证 |
+|---|---|---|
+| C | `_load_env_file(path=None)` 支持注入路径；测试 `monkeypatch.setattr(cli, "ENV_FILE", tmp_path / "absent.env")` 把管道隔离掉。**不改生产行为**，不拆真实防护 | 不隐藏 .env 跑：**13 passed**；另跑 `env_preset=False` 实跑，仍自读 .env 并 exit 0 |
+| B | 派发器新增 `receipt_contract_block(order)`，写 `prompt.txt` 前自动追加契约块。**标记词只做描述、不写字面**，防止被执行人照抄即通过；同时避免契约块自身命中 blocked 正则 | 单测 6 条：正确写法→`audit`、阻塞写法→`blocked`、旧式无契约→无效、**只抄契约块→仍无效**；相关回归 **50 passed** |
+| A | 命名不符与文件不存在拆成两条报错，各自说清原因；正则校验强度不变（仍 fail-closed） | `wo-smoke-req-txt` → 「工单号不符合命名契约…」；`wo-orb-w99-ghost` → 「工单文件不存在…」 |
+
+### 6.2 端到端复验（新工单 `wo-orb-w9`）
+
+| # | 环节 | 结果 |
+|---|---|---|
+| ①②③④ | 理解/拆分/工单/排程 | 沿用本轮流水线产出，通 |
+| ⑤ | 派发 | 第一次 **Codex 进程崩溃**（`exit_code=3221226505` = `0xC0000409` STATUS_STACK_BUFFER_OVERRUN，`err.log` 只有 `memory allocation of 1452324 bytes failed`，`anomaly.json` 记 `consecutive: 3`）；第二次正常执行完成 |
+| ⑥ | 回执判读 | **`receipt_valid: true`** —— 契约块生效，Codex 真写出 `自检：PASS` 与 `READY_FOR_DEEPSEEK_AUDIT` |
+| ⑥→ | 状态落位 | `state: blocked`、`audit_slot_busy: true` —— 回执有效，但**拿不到审计名额** |
+| ⑦ | 两轮独立审计 | 跑通，两轮均 **FAIL**；理由准确：`done.json` 的 `state` 是 blocked 而非 audit、ACC-3 缺 `git status` 证据 |
+| ⑧ | 冻结 | 未执行（审计未过，前置门已拦） |
+
+### 6.3 复验暴露的两个新卡点
+
+**卡点 D｜Codex 执行端堆分配崩溃（环境层）**
+`exit_code=3221226505`（`0xC0000409`），`err.log` 全文仅一行 `memory allocation of 1452324 bytes failed`，`out.jsonl` 只写出 2 行就中断。崩溃时机器内存充足（空闲 9.8GB / 31.8GB），排除单纯内存不足。同一工单重派后正常执行，说明是**间歇性**崩溃，非稳定故障。`anomaly.json` 的 `consecutive: 3` 说明近期已连续出现。
+影响：派发器把它记为 `receipt_valid:false` + `blocked`，与「回执不合格」的表象混在一起，需要靠 `anomaly.json` 的 `exit-anomaly` 才能区分是**崩溃**还是**交付不合格**。
+
+**卡点 E｜审计名额被历史工单长期占满（流程层，会堵死）**
+`audit_slot_busy` 的判定是：主表里只要还有其他 `| audit |` 的工单，新回执就降级 `blocked`。当前有 **5 个**工单长期停在 audit：
+
+| 工单 | 滞留原因（表内原文摘要） |
+|---|---|
+| `wo-ultimaagent-20261030-0007` | 2026-10-31 回填「验收 PASS 待 Owner 打冻结 tag」 |
+| `wo-ultimasentinel-20261103-0001` | 已标「范围外冻结 2026-11-08」，仍占 audit |
+| `wo-ultimaagent-20261101-0019` | 「待真人采集验证 / Owner 验收」 |
+| `wo-ultimaagent-20261101-0020` | 「长期质量未冻结」 |
+| `wo-orb-w7` | 「待独立核对，不自动批准或续派」 |
+
+后果：**新完成的工单永远拿不到审计名额，全部降级 blocked**。这不是个别工单的问题，是队列会整体堵死。
+
+**卡点 F｜验收判据自身内部矛盾（出在我写的任务卡）**
+`orb-w9` 卡的 goal 写「使判读器判为有效…**而不是落到阻塞**」，而 ACC-5 只写「`receipt_valid` 为 true」。实际结果 `receipt_valid: true` 但 `state: blocked`，两句话给出相反结论。两轮审计都以此判 FAIL，是对的——判据必须与 goal 同一口径，否则永远无法收敛。
