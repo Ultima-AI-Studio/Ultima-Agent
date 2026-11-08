@@ -144,3 +144,56 @@ def test_missing_api_key_exits_nonzero_without_success_artifact(
     assert result != 0
     assert "DEEPSEEK_API_KEY" in captured.err
     assert not any((tmp_path / "stages").glob("*.json"))
+
+
+@pytest.mark.parametrize(
+    ("response", "expected"),
+    [
+        ("analysis done\n\nVERDICT: COMPLETED", "completed"),
+        ("**VERDICT: BLOCKED**", "blocked"),
+        ("no verdict line here", "unverified"),
+    ],
+)
+def test_verdict_comes_from_the_response_not_a_constant(
+    response: str, expected: str
+) -> None:
+    assert orchestrator._extract_verdict(response) == expected
+
+
+@pytest.mark.parametrize("marker", ["<｜｜", "DSML", "tool_calls", "```bash"])
+def test_tool_call_marker_is_detected(marker: str) -> None:
+    assert orchestrator._looks_like_tool_call(f"let me inspect {marker} now") is True
+
+
+def test_plain_analysis_is_not_flagged_as_tool_call() -> None:
+    assert (
+        orchestrator._looks_like_tool_call(
+            "REQUIREMENT UNDERSTANDING\n\nVERDICT: COMPLETED"
+        )
+        is False
+    )
+
+
+def test_stage_returning_tool_call_fails_closed(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("DEEPSEEK_API_KEY", "mock-only-key")
+    monkeypatch.setattr(
+        orchestrator,
+        "call_deepseek",
+        lambda *_args, **_kwargs: {
+            "model": "mock-model",
+            "response": '<｜｜ calls><｜｜ invoke name="bash">',
+            "tokens": {"in": 1, "out": 1},
+        },
+    )
+
+    with pytest.raises(orchestrator.OrchestratorError):
+        orchestrator.run_stage("schedule", "literal requirement", tmp_path)
+
+    assert not (tmp_path / "stages" / "schedule.json").exists()
+    failed = json.loads(
+        (tmp_path / "stages" / "schedule-failed.json").read_text(encoding="utf-8")
+    )
+    assert "tool-call" in failed["error"]
+

@@ -17,6 +17,27 @@ from src.brain.orchestrator import OrchestratorError, run_stage
 
 
 DEFAULT_STAGES = ("decompose", "work_order", "schedule")
+ENV_FILE = ROOT / "config" / ".env"
+
+
+def _load_env_file() -> None:
+    """Load config/.env so the key does not depend on a pre-exported shell."""
+
+    if not ENV_FILE.is_file():
+        return
+    try:
+        text = ENV_FILE.read_text(encoding="utf-8-sig")
+    except OSError:
+        return
+    for line in text.splitlines():
+        line = line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, value = line.split("=", 1)
+        key = key.strip()
+        value = value.strip().strip('"').strip("'")
+        if key and key not in os.environ:
+            os.environ[key] = value
 
 
 def _parse_stages(value: str) -> tuple[str, ...]:
@@ -87,6 +108,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                 )
             )
             return 0
+        _load_env_file()
         if not os.environ.get("DEEPSEEK_API_KEY", "").strip():
             raise OrchestratorError("DEEPSEEK_API_KEY is required")
         for stage in stages:

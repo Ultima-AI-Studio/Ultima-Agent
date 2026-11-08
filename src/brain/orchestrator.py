@@ -19,18 +19,43 @@ DEEPSEEK_URL = "https://api.deepseek.com/chat/completions"
 DEFAULT_MODEL = "deepseek-chat"
 STAGE_SYSTEM_PROMPTS = {
     "decompose": (
-        "You are the independent G-ORCH stage 2 agent. Decompose the approved plan, "
-        "verify dependencies and non-overlapping write domains, and return a verdict."
+        "You are the independent G-ORCH stage 2 agent. "
+        "You work in a plain-text analysis environment: NO tools, NO shell, NO file access. "
+        "Never emit tool-call syntax, shell commands, or code blocks that ask to run anything. "
+        "Begin with a section 'REQUIREMENT UNDERSTANDING' that restates the requirement in your own "
+        "words and lists every ambiguity that would change scope or acceptance, so the understanding "
+        "itself is auditable before any decomposition happens. "
+        "Then decompose the plan, verify dependencies and non-overlapping write domains, "
+        "and finish with a final line beginning 'VERDICT:' followed by COMPLETED or BLOCKED."
     ),
     "work_order": (
-        "You are the independent G-ORCH stage 3 agent. Produce and self-check a work "
-        "order whose six definition-of-ready gates are objectively decidable."
+        "You are the independent G-ORCH stage 3 agent. "
+        "You work in a plain-text analysis environment: NO tools, NO shell, NO file access. "
+        "Never emit tool-call syntax, shell commands, or code blocks that ask to run anything. "
+        "Produce and self-check a work order whose six definition-of-ready gates are objectively "
+        "decidable, then finish with a final line beginning 'VERDICT:' followed by COMPLETED or BLOCKED."
     ),
     "schedule": (
-        "You are the independent G-ORCH stage 4 agent. Schedule ready work orders while "
-        "respecting dependencies, WIP limits, and available execution capacity."
+        "You are the independent G-ORCH stage 4 agent. "
+        "You work in a plain-text analysis environment: NO tools, NO shell, NO file access. "
+        "You cannot inspect the repository and must not attempt to. "
+        "Never emit tool-call syntax, shell commands, or code blocks. "
+        "Using only the requirement text, produce a scheduling decision as one markdown table "
+        "with columns: order | work_order | depends_on | wip_slot | window | gate. "
+        "Respect dependency order, a WIP limit of 3, and one owner per work order. "
+        "Then finish with a final line beginning 'VERDICT:' followed by COMPLETED or BLOCKED."
     ),
 }
+
+_TOOL_CALL_MARKERS = (
+    "<｜｜",
+    "｜｜>",
+    "DSML",
+    "tool_calls",
+    "```bash",
+    "```shell",
+    "```powershell",
+)
 
 
 class OrchestratorError(RuntimeError):
@@ -39,6 +64,26 @@ class OrchestratorError(RuntimeError):
 
 class _RetryableDeepSeekError(RuntimeError):
     """Internal marker for the only failures eligible for retry."""
+
+
+def _looks_like_tool_call(response: str) -> bool:
+    """True when the model tried to invoke a tool instead of answering."""
+
+    return any(marker in response for marker in _TOOL_CALL_MARKERS)
+
+
+def _extract_verdict(response: str) -> str:
+    """Read the stage's own final verdict line; unverified when absent."""
+
+    for line in reversed(response.splitlines()):
+        text = line.strip().strip("*_` ").upper()
+        if text.startswith("VERDICT"):
+            tail = text.split(":", 1)[-1] if ":" in text else text
+            if "BLOCKED" in tail:
+                return "blocked"
+            if "COMPLETED" in tail:
+                return "completed"
+    return "unverified"
 
 
 def _utc_now() -> str:
@@ -174,15 +219,20 @@ def run_stage(
             max_tokens=max_tokens,
             timeout=timeout,
         )
+        response_text = result["response"]
+        if _looks_like_tool_call(response_text):
+            raise OrchestratorError(
+                f"stage {stage} returned a tool-call attempt instead of an analysis result"
+            )
         artifact = {
             "stage": stage,
             "model": result["model"],
             "system_digest": hashlib.sha256(system_prompt.encode("utf-8")).hexdigest(),
             "prompt": prompt,
-            "response": result["response"],
+            "response": response_text,
             "tokens": result["tokens"],
             "elapsed_s": round(time.monotonic() - started, 6),
-            "verdict": "completed",
+            "verdict": _extract_verdict(response_text),
             "created_at": _utc_now(),
         }
         _write_json(stages_dir / f"{stage}.json", artifact)
