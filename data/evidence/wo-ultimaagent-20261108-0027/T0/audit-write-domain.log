@@ -1,0 +1,31 @@
+AUDIT: d99314cd T0 write-domain verification
+AUDITED_COMMIT: d99314cd90927a4a8ce71a80783c9e540d067325
+PARENT: d28ef1930025c8163ab27e57d507bff6e252212e
+COMMANDS:
+  git diff-tree --no-commit-id --name-status -r d99314cd
+  git diff-tree --no-commit-id --name-only -r d99314cd | Select-String -Pattern '(^|/)(reviewer\.py|receipt\.py)$|docs/tracker/北极星上线任务清单\.html|0026' -CaseSensitive
+
+CHANGED_PATH_COUNT: 7
+CHANGED_PATHS:
+  A data/evidence/wo-ultimaagent-20261108-0027/T0/focused-regression.log
+  A data/evidence/wo-ultimaagent-20261108-0027/T0/green-test.log
+  A data/evidence/wo-ultimaagent-20261108-0027/T0/receipt.json
+  A data/evidence/wo-ultimaagent-20261108-0027/T0/red-test-confirmed.log
+  A data/evidence/wo-ultimaagent-20261108-0027/T0/red-test.log
+  A src/brain/guardrails/stage_gate.py
+  A src/brain/guardrails/tests/test_stage_gate.py
+
+DOMAIN_CHECKS:
+  PASS - stage_gate.py is in the T0 authorized source domain.
+  PASS - test_stage_gate.py is in the T0 authorized test domain.
+  PASS - all five evidence files are under data/evidence/wo-ultimaagent-20261108-0027/T0/.
+  PASS - no modified/deleted paths; all seven entries are additions.
+
+FORBIDDEN_PATH_MATCH_COUNT: 0
+FORBIDDEN_PATH_CHECKS:
+  PASS - src/brain/guardrails/reviewer.py absent from audited commit.
+  PASS - src/brain/guardrails/receipt.py absent from audited commit.
+  PASS - docs/tracker/北极星上线任务清单.html absent from audited commit.
+  PASS - no path containing 0026 is present in audited commit.
+
+CONCLUSION: PASS - d99314cd stays within the authorized T0 write domain and excludes all named forbidden files.
