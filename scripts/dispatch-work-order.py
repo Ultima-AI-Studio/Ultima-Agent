@@ -2,6 +2,7 @@
 import argparse
 from datetime import datetime, timezone, timedelta
 import glob as _glob
+import hashlib
 import importlib.util
 import json
 import os
@@ -55,25 +56,67 @@ def resolve_git_exe() -> str | None:
 
 
 def git_snapshot() -> dict:
-    """Record the tree a receipt will be earned on.
+    """Record enough to prove later which tree content a receipt was earned on.
 
-    A receipt that does not name its commit cannot be invalidated later, which is
-    how a green from an older tree survives into a freeze it should not survive.
-    Recording base_sha here is what lets verify-order.py call a stale receipt stale.
+    An earlier revision recorded the dispatch commit and asked whether it was still
+    an ancestor of HEAD. Uncommitted agent edits never move HEAD, so that check
+    passed on trees nobody tested.
+
+    Recorded instead: the commit, its tree object, the *whole* set of modified
+    tracked files with their hashes, and the declared files with theirs. Content
+    identity, not commit identity — an identical-content recommit or rebase is the
+    same tree, one edited file is a different one.
+
+    Why the full status set and not just "files that differ from HEAD": on a clean
+    working tree that set is empty, so there would be nothing recorded to compare
+    against and any later edit would go unnoticed. The entry set is the baseline.
+
+    ``--untracked-files=no`` is deliberate: this tree holds 321k untracked test
+    artifacts under data/evidence, and enumerating them costs 50s. With it excluded
+    the query takes 0.4s. Newly created untracked files are therefore outside this
+    fingerprint — a stated limit, not an oversight, and the declared-file check in
+    verification still covers the files an order promises to deliver.
     """
     exe = resolve_git_exe()
     if not exe:
-        return {'base_sha': None, 'worktree_dirty': None, 'error': 'git not found'}
+        return {'base_sha': None, 'worktree_dirty': None, 'tree_oid': None,
+                'status_entries': None, 'changed_files': None, 'error': 'git not found'}
 
-    def run(*args: str) -> str:
+    def run(*args: str) -> tuple[str, bool]:
         done = subprocess.run([exe, *args], cwd=str(ROOT), capture_output=True, text=True,
                               encoding='utf-8', errors='replace')
-        return (done.stdout or '').strip() if done.returncode == 0 else ''
+        return ((done.stdout or '').strip(), done.returncode == 0)
 
-    head = run('rev-parse', 'HEAD')
-    dirty = [line for line in run('status', '--short').splitlines() if line.strip()]
-    return {'base_sha': head or None, 'worktree_dirty': len(dirty),
-            'worktree_entries': dirty[:20]}
+    head, head_ok = run('rev-parse', 'HEAD')
+    tree_oid, tree_ok = run('rev-parse', 'HEAD^{tree}')
+    # Kept unstripped on purpose: porcelain's first column is a status code that
+    # is a space for an unstaged change. Stripping the output shifts every path by
+    # one character and silently reads " M a.txt" as ".txt".
+    status = subprocess.run([exe, 'status', '--porcelain', '--untracked-files=no'],
+                            cwd=str(ROOT), capture_output=True, text=True,
+                            encoding='utf-8', errors='replace')
+    status_ok = status.returncode == 0
+    status_lines = [l for l in (status.stdout or '').splitlines() if l.strip()]
+
+    entries: list[dict] | None = None
+    manifest: list[dict] | None = None
+    if status_ok:
+        entries = []
+        manifest = []
+        for line in status_lines:
+            code = line[:2]
+            name = line[3:].strip()
+            entries.append({'code': code, 'path': name})
+            path = ROOT / name
+            try:
+                digest = hashlib.sha256(path.read_bytes()).hexdigest()
+            except OSError:
+                digest = None          # deleted or unreadable: recorded, not guessed
+            manifest.append({'path': name, 'code': code, 'sha256': digest})
+    return {'base_sha': head or None, 'tree_oid': tree_oid or None,
+            'worktree_dirty': len(entries) if entries is not None else None,
+            'status_entries': entries, 'changed_files': manifest,
+            'error': None if (head_ok and tree_ok and status_ok) else 'git query failed'}
 
 
 def resolve_codex_exe() -> str | None:
@@ -504,10 +547,17 @@ def main():
                         'disregarded': disregarded,
                         'blocking': blocking,
                         'at': datetime.now(timezone.utc).isoformat()}, ensure_ascii=False), encoding='utf-8')
+                # The snapshot that matters is the one taken *after* the worker
+                # finished: base was captured before dispatch and says nothing
+                # about the tree the receipt is actually claiming.
+                after = git_snapshot()
                 (run / 'done.json').write_text(json.dumps({'exit_code': code, 'receipt_valid': valid,
                     'state': target, 'audit_slot_busy': audit_busy, 'parent_lost': parent_lost,
                     'audit_slot_blocking': blocking, 'audit_slot_disregarded': disregarded,
                     'base_sha': base.get('base_sha'), 'worktree_dirty': base.get('worktree_dirty'),
+                    'tree_oid': after.get('tree_oid'), 'changed_files': after.get('changed_files'),
+                    'status_entries': after.get('status_entries'),
+                    'end_sha': after.get('base_sha'),
                     'finished_at': datetime.now(timezone.utc).isoformat()}, ensure_ascii=False), encoding='utf-8')
                 if not parent_lost:
                     reason = '等待全局独立审计名额；' if audit_busy else ''
@@ -522,13 +572,20 @@ def main():
         except Exception as exc:
             (run / 'dispatch-error.json').write_text(json.dumps({'error': type(exc).__name__}), encoding='utf-8')
             if worker is not None and worker.poll() is not None and not (run / 'done.json').exists():
+                after = git_snapshot()
                 (run / 'done.json').write_text(json.dumps({'exit_code': worker.returncode,
                     'state': 'blocked', 'finalization_pending': True,
                     'base_sha': base.get('base_sha'), 'worktree_dirty': base.get('worktree_dirty'),
+                    'tree_oid': after.get('tree_oid'), 'changed_files': after.get('changed_files'),
+                    'status_entries': after.get('status_entries'),
+                    'end_sha': after.get('base_sha'),
                     'finished_at': datetime.now(timezone.utc).isoformat()}), encoding='utf-8')
             if worker is None:
                 (run / 'done.json').write_text(json.dumps({'exit_code': None, 'launched': False,
                     'base_sha': base.get('base_sha'), 'worktree_dirty': base.get('worktree_dirty'),
+                    'tree_oid': base.get('tree_oid'), 'changed_files': base.get('changed_files'),
+                    'status_entries': base.get('status_entries'),
+                    'end_sha': base.get('base_sha'),
                     'error': type(exc).__name__}), encoding='utf-8')
                 if guardian:
                     guardian.wait(timeout=5)

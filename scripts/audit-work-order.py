@@ -1,4 +1,4 @@
-"""Two-round audit of a delivered work order, judged gate by gate.
+"""Second-round model review of a delivered work order, judged gate by gate.
 
 Two changes from the first version, both from how maker-checker is actually
 practised:
@@ -13,30 +13,119 @@ practised:
    mid-report still passed. Now any gate returning FAIL fails the round, whatever
    the summary line says.
 
-This script is still advisory relative to `verify-order.py`: it can stop a pass
-that deterministic checks allowed, but it cannot grant one they refused.
+What this is not, stated plainly because calling it more would be false: two
+rounds of the same model, on the same evidence, under the same identity is not
+maker-checker. The independence that control needs — a second party who cannot
+approve their own work — does not exist here, so the deterministic checks in
+``verify-order.py`` carry the review responsibility and this pass is a second
+look at the same material.
+
+It is also not merely advisory, despite what the first version claimed: freezing
+requires ``audit_passed is True`` here, so this review is a necessary affirmative
+as well as a veto. That is a quality gate in front of a tag, not a four-eyes
+control, and it should be described as the former every time it is mentioned.
 """
 
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
+import os
 import re
 import sys
+import urllib.error
+import urllib.request
 from pathlib import Path
 from typing import Sequence
 
 
 ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT))
 
-from src.brain.orchestrator import OrchestratorError, call_deepseek
+# The DeepSeek call is implemented here rather than imported from
+# src.brain.orchestrator. Importing that module pulls in its retry stack, which
+# made this gate unrunnable anywhere that stack was not installed — a review step
+# that fails on an import error reports nothing about the work order. The wire
+# format is the same; only the dependency is gone.
+
+DEEPSEEK_URL = "https://api.deepseek.com/chat/completions"
+DEFAULT_MODEL = "deepseek-chat"
+
+
+class OrchestratorError(RuntimeError):
+    """A model call that did not return a usable answer."""
+
+
+def _api_key() -> str:
+    key = os.environ.get("DEEPSEEK_API_KEY", "").strip()
+    if key:
+        return key
+    env_path = ROOT / "config" / ".env"
+    try:
+        for line in env_path.read_text(encoding="utf-8-sig").splitlines():
+            if line.strip().startswith("DEEPSEEK_API_KEY"):
+                return line.split("=", 1)[1].strip().strip('"').strip("'")
+    except OSError:
+        pass
+    raise OrchestratorError("DEEPSEEK_API_KEY not found in the environment or config/.env")
+
+
+def _base_url() -> str:
+    base = os.environ.get("DEEPSEEK_API_BASE", "").strip().rstrip("/")
+    if base:
+        return base + "/chat/completions" if base.endswith("/v1") or "/chat" not in base else base
+    env_path = ROOT / "config" / ".env"
+    try:
+        for line in env_path.read_text(encoding="utf-8-sig").splitlines():
+            if line.strip().startswith("DEEPSEEK_API_BASE"):
+                value = line.split("=", 1)[1].strip().strip('"').strip("'").rstrip("/")
+                return value + "/chat/completions"
+    except OSError:
+        pass
+    return DEEPSEEK_URL
+
+
+def call_deepseek(system: str, user: str) -> dict:
+    """One review round. Returns the response text plus the model that produced it."""
+    payload = json.dumps({
+        "model": os.environ.get("ULTIMA_AUDIT_MODEL", DEFAULT_MODEL),
+        "messages": [{"role": "system", "content": system},
+                     {"role": "user", "content": user}],
+        "temperature": 0,
+    }).encode("utf-8")
+    request = urllib.request.Request(
+        _base_url(), data=payload, method="POST",
+        headers={"Content-Type": "application/json",
+                 "Authorization": f"Bearer {_api_key()}"})
+    try:
+        with urllib.request.urlopen(request, timeout=180) as response:
+            body = json.loads(response.read().decode("utf-8"))
+    except urllib.error.HTTPError as exc:
+        detail = exc.read().decode("utf-8", errors="replace")[:300]
+        raise OrchestratorError(f"DeepSeek HTTP {exc.code}: {detail}") from exc
+    except (urllib.error.URLError, TimeoutError, OSError) as exc:
+        raise OrchestratorError(f"DeepSeek unreachable: {exc}") from exc
+    except json.JSONDecodeError as exc:
+        raise OrchestratorError(f"DeepSeek returned non-JSON: {exc}") from exc
+    try:
+        usage = body.get("usage") or {}
+        # The model field records what actually answered, not what was requested:
+        # the endpoint has been observed returning a different model name than the
+        # request carried, and an audit that cannot name its reviewer is not an audit.
+        return {"response": body["choices"][0]["message"]["content"],
+                "model": body.get("model", "unknown"),
+                "requested_model": os.environ.get("ULTIMA_AUDIT_MODEL", DEFAULT_MODEL),
+                "tokens": usage.get("total_tokens")}
+    except (KeyError, IndexError, TypeError) as exc:
+        raise OrchestratorError(f"DeepSeek response missing choices: {exc}") from exc
 
 
 _ROUND1 = (
-    "You are the independent auditor, round 1. You are NOT the author of the artifact "
-    "and you did not produce it. You work in a plain-text environment: NO tools, NO shell, "
-    "NO file access.\n\n"
+    "You are the second reviewer, round 1. The deterministic checks have already run and passed; "
+    "your job is a second look at material those checks allowed, not a claim of independence - "
+    "you share the author's model family and evidence, so review quality here comes from judging "
+    "one gate at a time, not from any separation of parties.\n\n"
+    "You work in a plain-text environment: NO tools, NO shell, NO file access.\n\n"
     "Judge one gate at a time. For every gate listed below, emit exactly one line in this form:\n"
     "    <gate id>: PASS - <the specific evidence you relied on>\n"
     "    <gate id>: FAIL - <what is missing or wrong, and what evidence would settle it>\n\n"
@@ -46,7 +135,7 @@ _ROUND1 = (
 )
 
 _ROUND2 = (
-    "You are the independent auditor, round 2. You work in a plain-text environment: "
+    "You are the second reviewer, round 2. You work in a plain-text environment: "
     "NO tools, NO shell, NO file access.\n\n"
     "Round 1's per-gate verdicts are supplied as a prior opinion, not as truth. Re-judge every "
     "gate from the evidence yourself and emit one line per gate in the same form as round 1:\n"
@@ -61,37 +150,68 @@ def _read(path: str) -> str:
 
 
 def gates(card: str) -> list[dict]:
-    """Acceptance gates as (id, criterion, how-to-judge) from the card's table."""
+    """Acceptance gates as (id, criterion, how-to-judge) from the card's table.
+
+    Duplicate ids are fatal, not merged: two rows numbered ACC-2 give one verdict
+    the power to stand in for two different criteria, which is how a checklist
+    quietly loses a gate.
+    """
     found = []
+    seen: dict[str, int] = {}
     for line in card.splitlines():
         if not line.startswith("|"):
             continue
         cells = [c.strip() for c in line.strip().strip("|").split("|")]
         if len(cells) < 3 or not re.fullmatch(r"ACC-\d+", cells[0]):
             continue
+        seen[cells[0]] = seen.get(cells[0], 0) + 1
         found.append({"id": cells[0], "criterion": cells[1], "how": cells[2]})
+    duplicates = [gid for gid, count in seen.items() if count > 1]
+    if duplicates:
+        raise ValueError(f"card reuses gate ids: {duplicates}; one verdict would cover several criteria")
     return found
 
 
 def per_gate(text: str, gate_ids: list[str]) -> dict[str, str]:
-    """Pull the last verdict line for each gate; missing gates count as FAIL."""
-    verdicts: dict[str, str] = {}
+    """Collect verdicts per gate; any FAIL wins, and a contradiction is a FAIL.
+
+    The earlier version kept the *last* verdict for a gate, so a reviewer who wrote
+    FAIL and later wrote PASS passed - the opposite of "any non-PASS fails the
+    round". Now the worst verdict for a gate stands, and disagreeing with yourself
+    is not resolvable by repeating.
+    """
+    ordered: dict[str, list[str]] = {}
     for line in text.splitlines():
         stripped = line.strip().strip("*_` ")
-        match = re.match(r"(ACC-\d+)\s*[：:]\s*(PASS|FAIL)\b", stripped, re.IGNORECASE)
-        if match:
-            verdicts[match.group(1).upper()] = match.group(2).upper()
-    return {gid: verdicts.get(gid, "MISSING") for gid in gate_ids}
+        # The evidence after the verdict must be non-empty: a bare "ACC-1: PASS"
+        # asserts a conclusion without saying what it saw.
+        match = re.match(r"(ACC-\d+)\s*[：:]\s*(PASS|FAIL)\s*[-—:：]\s*(\S.*)$", stripped, re.IGNORECASE)
+        if not match:
+            continue
+        gid, verdict = match.group(1).upper(), match.group(2).upper()
+        ordered.setdefault(gid, []).append(verdict)
+
+    result: dict[str, str] = {}
+    for gid in gate_ids:
+        seen = ordered.get(gid)
+        if not seen:
+            result[gid] = "MISSING"
+        elif "FAIL" in seen:
+            result[gid] = "FAIL"
+        elif len(set(seen)) > 1:
+            result[gid] = "FAIL"
+        else:
+            result[gid] = "PASS"
+    return result
 
 
 def overall(text: str) -> str:
+    """Exact match on the closing line; substring tests pass "FAIL, NOT PASS"."""
     for line in reversed(text.splitlines()):
         token = line.strip().strip("*_` ").upper()
-        if token.startswith("AUDIT"):
-            if "PASS" in token:
-                return "PASS"
-            if "FAIL" in token:
-                return "FAIL"
+        match = re.fullmatch(r"AUDIT\s*[：:]\s*(PASS|FAIL)", token)
+        if match:
+            return match.group(1)
     return "UNKNOWN"
 
 
@@ -124,12 +244,35 @@ def main(argv: Sequence[str] | None = None) -> int:
         gate_ids = [g["id"] for g in gate_list]
         checklist = "\n".join(f"- {g['id']}: {g['criterion']} (judged by: {g['how']})" for g in gate_list)
 
-        evidence = "\n\n".join(f"## {Path(p).name}\n{_read(p)[:6000]}" for p in args.evidence)
+        evidence_parts: list[str] = []
+        evidence_meta: list[dict] = []
+        incomplete: list[str] = []
+        for p in args.evidence:
+            raw = _read(p)
+            digest = hashlib.sha256(raw.encode("utf-8", "replace")).hexdigest()
+            truncated = len(raw) > 6000
+            evidence_meta.append({"path": str(p), "bytes": len(raw.encode("utf-8", "replace")),
+                                  "sha256": digest, "shown_chars": min(len(raw), 6000),
+                                  "complete": not truncated})
+            if truncated:
+                incomplete.append(f"{Path(p).name} ({len(raw)} chars)")
+            body = raw[:6000] + ("\n[INCOMPLETE: truncated for the reviewer's window]" if truncated else "")
+            evidence_parts.append(f"## {Path(p).name}\n{body}")
+
+        card_truncated = len(card) > 4000
+        if card_truncated:
+            incomplete.append(f"{Path(args.card).name} (card {len(card)} chars)")
+        card_meta = {"path": str(args.card),
+                     "sha256": hashlib.sha256(card.encode("utf-8", "replace")).hexdigest(),
+                     "complete": not card_truncated}
+
+        evidence_text = "\n\n".join(evidence_parts) or "(no evidence supplied)"
         base = (
             f"Work order: {args.work_order}\n\n"
             f"## Gates to judge\n{checklist}\n\n"
-            f"## Work order card (full text)\n{card[:4000]}\n\n"
-            f"## Author artifacts\n{evidence or '(no evidence supplied)'}\n"
+            f"## Work order card (full text)\n{card[:4000]}\n"
+            f"{'[INCOMPLETE: card truncated]' if card_truncated else ''}\n\n"
+            f"## Author artifacts\n{evidence_text}\n"
         )
 
         round1 = call_deepseek(_ROUND1, base)
@@ -142,21 +285,29 @@ def main(argv: Sequence[str] | None = None) -> int:
         )
         pass2, gates2 = _round_passed(round2["response"], gate_ids)
 
-        passed = pass1 and pass2
+        # Material the reviewer could not see in full cannot be judged. A truncation
+        # means the round passed on a partial read, which is not a pass.
+        visible = not incomplete
+        passed = pass1 and pass2 and visible
         audit = {
             "work_order": args.work_order,
             "card": str(args.card),
+            "card_meta": card_meta,
             "evidence": [str(p) for p in args.evidence],
+            "evidence_meta": evidence_meta,
+            "incomplete_inputs": incomplete,
             "gates": gate_ids,
             "round1": {"passed": pass1, "per_gate": gates1,
                        "overall": overall(round1["response"]),
-                       "response": round1["response"], "tokens": round1["tokens"]},
+                       "model": round1.get("model"),
+                       "response": round1["response"], "tokens": round1.get("tokens")},
             "round2": {"passed": pass2, "per_gate": gates2,
                        "overall": overall(round2["response"]),
-                       "response": round2["response"], "tokens": round2["tokens"]},
+                       "model": round2.get("model"),
+                       "response": round2["response"], "tokens": round2.get("tokens")},
             "audit_passed": passed,
             # Stated in the artifact itself so nobody mistakes scope later.
-            "authority": "advisory; a pass here cannot authorize what verify-order.py refused",
+            "authority": "quality gate: required for a freeze, cannot authorize what verify-order.py refused; not an independent-party check",
         }
         out = Path(args.run_dir) / "audit.json"
         out.parent.mkdir(parents=True, exist_ok=True)
@@ -164,7 +315,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         print(json.dumps({"audit_passed": passed, "round1": gates1, "round2": gates2,
                           "out": str(out)}, ensure_ascii=False))
         return 0 if passed else 2
-    except (OSError, UnicodeError, OrchestratorError) as exc:
+    except (OSError, UnicodeError, ValueError, OrchestratorError) as exc:
         print(json.dumps({"blocked": True, "reason": str(exc)}, ensure_ascii=False), file=sys.stderr)
         return 2
 

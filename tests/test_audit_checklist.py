@@ -71,3 +71,45 @@ def test_gate_ids_are_case_insensitive_in_responses():
     text = "acc-1: pass - ok\nACC-2: PASS - ok\nACC-3: PASS - ok\nAUDIT: PASS"
     ok, _ = _load()._round_passed(text, ["ACC-1", "ACC-2", "ACC-3"])
     assert ok is True
+
+
+def test_a_later_pass_cannot_erase_an_earlier_fail():
+    """The earlier version kept the last verdict, so FAIL-then-PASS read as pass.
+
+    A reviewer who contradicts themselves has not established anything; the worst
+    verdict for a gate stands.
+    """
+
+    text = ("ACC-1: PASS - file exists\n"
+            "ACC-2: FAIL - no test output\n"
+            "ACC-2: PASS - tests fine after all\n"
+            "ACC-3: PASS - clean\nAUDIT: PASS")
+    ok, per_gate = _load()._round_passed(text, ["ACC-1", "ACC-2", "ACC-3"])
+    assert ok is False
+    assert per_gate["ACC-2"] == "FAIL"
+
+
+def test_summary_substring_cannot_pass_a_failing_line():
+    """'AUDIT: FAIL, NOT PASS' contains the word PASS; substring tests were fooled."""
+
+    text = "ACC-1: PASS - exists\nAUDIT: FAIL, NOT PASS"
+    ok, _ = _load()._round_passed(text, ["ACC-1"])
+    assert ok is False
+
+
+def test_a_pass_without_evidence_is_not_a_pass():
+    """A bare verdict asserts a conclusion without saying what it saw."""
+
+    text = "ACC-1: PASS\nACC-2: PASS - 12 passed\nACC-3: PASS - clean\nAUDIT: PASS"
+    ok, per_gate = _load()._round_passed(text, ["ACC-1", "ACC-2", "ACC-3"])
+    assert ok is False
+    assert per_gate["ACC-1"] == "MISSING"
+
+
+def test_a_card_reusing_a_gate_id_is_rejected():
+    """Two rows numbered ACC-2 let one verdict stand in for two criteria."""
+
+    import pytest
+    duplicated = CARD + "| ACC-2 | 另一个判据 | 另一种判定 |\n"
+    with pytest.raises(ValueError):
+        _load().gates(duplicated)
