@@ -91,6 +91,8 @@ def _write_run(run_dir: Path, cli, work_order: str = "wo-t",
             # The card is fixed at dispatch, and freeze compares the audited card
             # against this hash rather than against whatever it is handed.
             "card": str(card), "card_sha256": _sha(card),
+            # Every card the order names is fixed at dispatch, not only the audited one.
+            "cards": [{"path": str(card), "sha256": _sha(card)}],
             "exit_code": 0, "receipt_valid": True, "state": "audit",
             "audit_slot_busy": False, "parent_lost": False,
             "base_sha": _git(cli, "rev-parse", "HEAD~1"),
@@ -120,6 +122,7 @@ def _write_run(run_dir: Path, cli, work_order: str = "wo-t",
                         "overall": "PASS", "model": "stub", "tokens": 0, "response": "AUDIT: PASS"},
              "round2": {"passed": True, "per_gate": {"ACC-1": "PASS"},
                         "overall": "PASS", "model": "stub", "tokens": 0, "response": "AUDIT: PASS"},
+             "gates": {"ACC-1": "PASS"},
              "card": str(card),
              "card_meta": {"path": str(card), "sha256": _sha(card),
                            "bytes": Path(card).stat().st_size, "complete": True},
@@ -311,6 +314,46 @@ def test_rounds_that_failed_cannot_be_frozen_by_the_top_level_flag(tmp_path, rep
                       "response": "ACC-1: FAIL - broken\nAUDIT: FAIL"}
     audit["audit_passed"] = True
     audit_path.write_text(json.dumps(audit), encoding="utf-8")
+
+    code = cli.main(["--work-order", "wo-t", "--run-dir", str(run)])
+    assert code == 2
+    assert _git(cli, "tag", "--list", "wo-t-freeze-*") == ""
+
+
+def test_a_gate_the_audit_never_judged_blocks_the_freeze(tmp_path, repo, cli):
+    """The card declares two gates; both audit rounds report one. The missing gate
+    must stop the freeze even though every recorded value says PASS."""
+
+    card = tmp_path / "card.md"
+    card.write_text("| ACC-1 | a.txt exists | ok |\n| ACC-2 | a.txt is stable | ok |\n",
+                    encoding="utf-8")
+    run = tmp_path / "run"
+    _write_run(run, cli, card=card)
+
+    audit_path = run / "audit.json"
+    audit = json.loads(audit_path.read_text(encoding="utf-8-sig"))
+    assert audit["round1"]["per_gate"] == {"ACC-1": "PASS"}
+
+    code = cli.main(["--work-order", "wo-t", "--run-dir", str(run)])
+    assert code == 2
+    assert _git(cli, "tag", "--list", "wo-t-freeze-*") == ""
+
+
+def test_a_secondary_card_changed_after_dispatch_blocks_the_freeze(tmp_path, repo, cli):
+    """An order may name several cards. Only the audited one is compared by content;
+    every other one is fixed by its dispatch hash."""
+
+    other = tmp_path / "other-card.md"
+    other.write_text("| ACC-9 | unrelated | ok |\n", encoding="utf-8")
+    dispatched = _sha(other)
+    other.write_text("| ACC-9 | swapped after dispatch | ok |\n", encoding="utf-8")
+
+    card = tmp_path / "card.md"
+    card.write_text("| ACC-1 | a.txt exists | ok |\n", encoding="utf-8")
+    run = tmp_path / "run"
+    _write_run(run, cli, card=card,
+               tamper={"cards": [{"path": str(card), "sha256": _sha(card)},
+                                 {"path": str(other), "sha256": dispatched}]})
 
     code = cli.main(["--work-order", "wo-t", "--run-dir", str(run)])
     assert code == 2

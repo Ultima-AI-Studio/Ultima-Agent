@@ -380,8 +380,20 @@ def test_a_runner_planted_in_the_workspace_is_refused(repo, cli):
     """
 
     planted = cli.ROOT / "tools" / "pytest.exe"
+    planted.parent.mkdir(parents=True, exist_ok=True)
+    planted.write_text("", encoding="utf-8")
     reason = cli._command_is_a_test_run([str(planted)])
     assert "lives inside the workspace" in reason
+
+    # A path shape that merely resembles the project virtualenv is not a registered
+    # tool either, and a path that does not exist cannot be a runner at all.
+    lookalike = cli.ROOT / "tools" / "venv-anything" / "Scripts" / "pytest.exe"
+    lookalike.parent.mkdir(parents=True, exist_ok=True)
+    lookalike.write_text("", encoding="utf-8")
+    assert "registered" in cli._command_is_a_test_run([str(lookalike)])
+    (cli.ROOT / "tools" / "venv-nope" / "Scripts").mkdir(parents=True, exist_ok=True)
+    assert "does not exist" in cli._command_is_a_test_run(
+        [str(cli.ROOT / "tools" / "venv-nope" / "Scripts" / "python.exe")])
 
 
 def test_an_untracked_conftest_is_refused(tmp_path, repo, cli):

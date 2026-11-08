@@ -38,11 +38,13 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 import re
 import shlex
 import shutil
 import subprocess
 import sys
+import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Sequence
@@ -244,15 +246,16 @@ def _declared_commands(order_path: Path) -> dict:
             "rejected": rejected, "section": in_section}
 
 
-# Files pytest and CPython load implicitly. An untracked one of these can make a
-# failing test report success without touching any declared file, which is exactly
-# how a rider passed verification before.
-_TEST_INPUT_NAMES = {"conftest.py", "pytest.ini", "tox.ini", "setup.cfg",
+# Files pytest loads without anyone declaring them. The list follows pytest's own
+# config discovery (``_pytest/config/findpaths.py``): pytest.ini, .pytest.ini,
+# pytest.toml, .pytest.toml, tox.ini, pyproject.toml, setup.cfg.
+_TEST_INPUT_NAMES = {"conftest.py", "pytest.ini", ".pytest.ini", "pytest.toml",
+                     ".pytest.toml", "tox.ini", "pyproject.toml", "setup.cfg",
                      "sitecustomize.py", "usercustomize.py"}
-# Only these roots are on pytest's upward conftest search path when the suite is
-# run from the repository root. Scoping here keeps a checkout with unrelated
-# untracked research sources from blocking every order.
-_TEST_INPUT_SCOPES = ("", "tests/", "tasks/queue_engine/")
+# Scoped to the roots the suite is actually collected from. A previous version used
+# an empty prefix, which meant every directory matched and two unrelated research
+# checkouts — plus 44 PyTorch weight files — blocked every real order.
+_TEST_INPUT_SCOPES = ("tests/", "tasks/queue_engine/")
 
 
 def _command_is_a_test_run(argv: list[str]) -> str:
@@ -262,21 +265,25 @@ def _command_is_a_test_run(argv: list[str]) -> str:
     command safe by itself: ``python -c "..." -m pytest`` still runs the ``-c``
     payload first, and any file named ``pytest-something`` satisfies a prefix test.
     """
-    exe = argv[0].replace("/", "\\").lower()
-    name = exe.rsplit("\\", 1)[-1]
-    # A runner is identified by where it lives, not only by what it is called.
-    # Copying cmd.exe into the repository as `tools\pytest.exe` satisfied a
-    # basename check and ran nothing.
-    try:
-        resolved = Path(argv[0]).resolve()
-        inside = resolved.is_relative_to(Path(ROOT).resolve())
-    except (OSError, ValueError):
-        inside = False
-    # A project virtualenv is the one workspace-local interpreter that is a real
-    # tool; anything else inside the tree can be planted wholesale.
-    in_venv = bool(re.search(r"[\\/]tools[\\/]venv-[^\\/]+[\\/]", str(resolved).lower()))
-    if inside and not in_venv:
-        return f"{argv[0][:40]} lives inside the workspace; a test runner must be an installed tool"
+    raw = argv[0].strip('"')
+    exe = Path(raw)
+    if not exe.is_absolute():
+        # A declared command is written relative to the repository, but it now runs
+        # inside a checkout elsewhere, so the tool has to be pinned to its real home.
+        candidate = Path(ROOT) / raw
+        exe = candidate if candidate.exists() else Path(shutil.which(raw) or raw)
+    name = exe.name.lower()
+
+    # Identity is existence plus a registered location, not a path shape. A
+    # `tools\venv-anything\` match let a planted program through, and a bare
+    # `pytest` was resolved against the workspace and rejected.
+    if name.startswith("pytest") or name in ("python", "python.exe", "python3", "python3.exe"):
+        if not exe.is_file():
+            return f"{raw[:40]} does not exist; a test runner must be an installed tool"
+        if exe.resolve().is_relative_to(Path(ROOT).resolve()):
+            if not re.search(r"[\\/]tools[\\/]venv-openjarvis[\\/]", str(exe).lower()):
+                return (f"{raw[:40]} lives inside the workspace; only the registered "
+                        "virtualenv may host a test runner")
     if name.startswith("pytest"):
         if name not in ("pytest", "pytest.exe"):
             return f"unrecognised test runner {name}"
@@ -294,6 +301,47 @@ def _command_is_a_test_run(argv: list[str]) -> str:
     if argv.index("-m") + 1 >= len(argv) or argv[argv.index("-m") + 1] != "pytest":
         return "-m must be immediately followed by pytest"
     return ""
+
+
+# pytest reads its own behaviour out of the environment: `PYTEST_ADDOPTS` adds
+# arguments, `PYTEST_PLUGINS` loads modules, and `PYTHONPATH` decides what is
+# importable. None of that is in the commit, so a run that inherits them is not
+# testing the delivered content.
+_ENV_HIDDEN = ("PYTEST_", "PYTHON")
+
+
+def _clean_env() -> dict:
+    env = {k: v for k, v in os.environ.items()
+           if not k.upper().startswith(_ENV_HIDDEN)}
+    env["PYTHONPATH"] = ""
+    env["PYTHONHOME"] = ""
+    env["PYTEST_DISABLE_PLUGIN_AUTOLOAD"] = "1"
+    env["PYTHONDONTWRITEBYTECODE"] = "1"
+    return env
+
+
+def _run_in_clean_worktree(sha: str, argv: list[str], timeout: int) -> tuple[object, str]:
+    """Run the declared command against exactly the committed tree.
+
+    Matching untracked file names was the wrong instrument: pytest also loads
+    conftest, config files and plugins that no order declares, and a file inside
+    an ignored directory is invisible to the scan while still being importable.
+    A fresh checkout of the delivered commit has no untracked files at all, so
+    every loader in it came from that commit.
+    """
+    base = Path(tempfile.mkdtemp(prefix="gorch-wt-"))
+    worktree = base / "wt"
+    try:
+        add = _git("worktree", "add", "--detach", str(worktree), sha)
+        if add.returncode != 0:
+            return None, f"could not create a clean checkout of {sha[:12]}: {(add.stderr or '')[:140]}"
+        proc = subprocess.run(argv, cwd=str(worktree), capture_output=True, text=True,
+                              encoding="utf-8", errors="replace", timeout=timeout,
+                              env=_clean_env())
+        return proc, ""
+    finally:
+        _git("worktree", "remove", "--force", str(worktree))
+        shutil.rmtree(base, ignore_errors=True)
 
 
 def manifest_drift(manifest: list[dict]) -> dict:
@@ -552,19 +600,28 @@ def verify(work_order: str, run_dir: Path) -> dict:
             f"git ls-files --others --exclude-standard -- {' '.join(declared)[:120]}")
 
     # Checking only the declared files was not enough: pytest loads conftest.py,
-    # pytest.ini and site hooks that no order declares, so an untracked one of those
+    # its config files and site hooks that no order declares, so an untracked one
     # could make a failing test report green while every declared file stayed clean.
-    # Searched over the roots that pytest actually walks upward from.
+    # The declared commands now run against a clean checkout of the delivered commit,
+    # so this scan is a second lock on the working tree rather than the only one —
+    # and it looks only at the roots the suite is collected from, plus the two
+    # config names pytest reads from the repository root.
     probe = _git("ls-files", "--others", "--exclude-standard")
     others_all = [ln.strip() for ln in (probe.stdout or "").splitlines() if ln.strip()]
-    loaders = [p for p in others_all
-               if (Path(p).name in _TEST_INPUT_NAMES or p.endswith(".pth"))
-               and any(not scope or p.startswith(scope) for scope in _TEST_INPUT_SCOPES)]
+    loaders = []
+    for p in others_all:
+        base = p.rsplit("/", 1)[-1]
+        if base not in _TEST_INPUT_NAMES:
+            continue
+        if "/" not in base and ("/" not in p):
+            loaders.append(p)                     # a root-level config or site hook
+        elif any(p.startswith(scope) for scope in _TEST_INPUT_SCOPES):
+            loaders.append(p)
     add("no_untracked_test_inputs", probe.returncode == 0 and not loaders,
-        "no untracked conftest/pytest config/site hook in the roots pytest loads from"
+        "no untracked conftest/pytest config in the collected roots"
         if not loaders else f"untracked test inputs: {loaders[:8]}",
-        "git ls-files --others --exclude-standard; filter conftest.py, pytest.ini, "
-        "tox.ini, setup.cfg, site hooks, *.pth")
+        "git ls-files --others --exclude-standard; filter conftest.py and pytest config "
+        "names under tests/ and tasks/queue_engine/, plus root-level ones")
 
     # The order's own acceptance criteria, as far as they are mechanical. A gate
     # that says "the file exists and is not empty" is not a matter of opinion, and
@@ -618,6 +675,7 @@ def verify(work_order: str, run_dir: Path) -> dict:
         plan = (_declared_commands(order_path) if order_path.is_file()
                 else {"commands": [], "declared": 0, "rejected": [], "section": False})
     commands = plan["commands"]
+    verified_sha = end_sha
 
     # Declared-but-unusable commands are a failure, not a silent drop. A parser that
     # quietly ignores what it cannot read makes "the order asked for nothing" and
@@ -639,11 +697,17 @@ def verify(work_order: str, run_dir: Path) -> dict:
         try:
             # No shell: an order is an artifact the executor can edit, and a
             # string handed to cmd.exe turns one line of YAML-ish prose into
-            # arbitrary command execution.
-            proc = subprocess.run(argv, cwd=str(ROOT), capture_output=True,
-                                  text=True, encoding="utf-8", errors="replace", timeout=300)
-            ok = proc.returncode == 0
-            tail = ((proc.stdout or "").strip().splitlines() or [""])[-1][:160]
+            # arbitrary command execution. Run against a clean checkout of the
+            # delivered commit, with pytest's environment switches removed.
+            if not verified_sha:
+                ok, tail = False, "no verified commit to check out; the tested tree would be the dirty one"
+            else:
+                proc, why = _run_in_clean_worktree(verified_sha, argv, 300)
+                if proc is None:
+                    ok, tail = False, why
+                else:
+                    ok = proc.returncode == 0
+                    tail = ((proc.stdout or "").strip().splitlines() or [""])[-1][:160]
         except subprocess.TimeoutExpired:
             ok, tail = False, "timed out after 300s"
         except (OSError, ValueError) as exc:

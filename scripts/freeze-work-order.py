@@ -28,6 +28,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import re
 import subprocess
 import sys
 from datetime import datetime
@@ -357,6 +358,36 @@ def main(argv: Sequence[str] | None = None) -> int:
         return _refuse("the card handed to freeze is not the card this order dispatched on",
                        dispatched=dispatched_card[:12], supplied=card_meta["sha256"][:12])
 
+    try:
+        card_text = Path(card_path).read_text(encoding="utf-8-sig")
+    except (OSError, UnicodeError) as exc:
+        return _refuse(f"could not read the card to enumerate its gates: {exc}")
+
+    # The audit must judge every gate the card declares, not the subset it chose to
+    # report. Dropping ACC-2..ACC-5 while leaving ACC-1 PASS kept every recorded
+    # value internally consistent and still frozen.
+    gate_ids = set(re.findall(r"ACC-\d+", card_text))
+    declared_gates = set(str(k) for k in (audit.get("gates") or {}))
+    r1 = set(str(k) for k in ((audit.get("round1") or {}).get("per_gate") or {}))
+    r2 = set(str(k) for k in ((audit.get("round2") or {}).get("per_gate") or {}))
+    if gate_ids and (declared_gates != gate_ids or r1 != gate_ids or r2 != gate_ids):
+        return _refuse("audit did not judge every gate the card declares",
+                       card=sorted(gate_ids), gates=sorted(declared_gates),
+                       round1=sorted(r1), round2=sorted(r2))
+
+    # Binding only the first card left the rest of a multi-card order free to change.
+    # Every card the dispatch recorded has to be the one that is here now.
+    changed_cards = []
+    for rec in (receipt.get("cards") or []):
+        path = Path(str(rec.get("path") or ""))
+        now = _sha256_file(path) if path.is_file() else None
+        if now != rec.get("sha256"):
+            changed_cards.append(path.name)
+    if changed_cards:
+        return _refuse("a card the order referenced changed after dispatch",
+                       changed=changed_cards[:8])
+    receipt_cards = receipt.get("cards") or []
+
     evidence_meta = audit.get("evidence_meta") or []
     if not evidence_meta:
         return _refuse("audit.json recorded no evidence hashes; the material it reviewed cannot be identified")
@@ -392,7 +423,8 @@ def main(argv: Sequence[str] | None = None) -> int:
     # material into the tag message makes the freeze reconstructable from the tag
     # alone.
     try:
-        card_text = Path(card_path).read_text(encoding="utf-8-sig")
+        if not card_text:
+            card_text = Path(card_path).read_text(encoding="utf-8-sig")
     except (OSError, UnicodeError) as exc:
         return _refuse(f"could not read the card for the tag receipt: {exc}")
     receipt = [
@@ -412,6 +444,16 @@ def main(argv: Sequence[str] | None = None) -> int:
     ]
     for meta in evidence_meta:
         receipt.append(f"  {meta.get('path')} sha256={meta.get('sha256')} bytes={meta.get('bytes')}")
+        # A hash only proves "the same blob, later". The run directory and the ignored
+        # evidence tree can both be cleaned up, so the bytes go into the tag too.
+        try:
+            body = Path(str(meta.get("path"))).read_text(encoding="utf-8-sig")
+            receipt += ["  ── body ──", body[:6000]]
+        except (OSError, UnicodeError):
+            receipt.append("  ── body not readable at freeze time ──")
+    receipt += ["", "── cards dispatched ──"]
+    for rec in (receipt_cards or []):
+        receipt.append(f"  {rec.get('path')} sha256={rec.get('sha256')}")
     receipt += ["", "── card as reviewed ──", card_text]
     message = "\n".join(receipt)
 

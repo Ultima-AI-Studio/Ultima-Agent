@@ -430,8 +430,14 @@ def main():
     if len(versions) != 1:
         raise ValueError('工单引用任务阶段不一致')
     check_version_gates({'card_path': str(ROOT / 'tasks/cards' / cards[0] / 'task.md')}, ROOT / 'tasks')
-    # The card the audit will review is fixed at dispatch time. Without this, freeze
-    # cannot tell the card the order named from any other card handed to it later.
+    # Every card the order names is fixed at dispatch time, not just the first one.
+    # An order may reference several cards (`wo-s1-host-shell` names five), and a
+    # single hash covered only the one that happened to be used for the audit.
+    card_records = []
+    for cid in dict.fromkeys(cards):
+        path = ROOT / 'tasks/cards' / cid / 'task.md'
+        card_records.append({'path': str(path),
+                             'sha256': hashlib.sha256(path.read_bytes()).hexdigest()})
     card_path = ROOT / 'tasks/cards' / cards[0] / 'task.md'
     card_sha256 = hashlib.sha256(card_path.read_bytes()).hexdigest()
     if (ROOT / 'tasks/.pause-dispatch').exists() or (SHARED / '.pause-dispatch').exists():
@@ -578,6 +584,7 @@ def main():
                     # directory and every downstream check would agree with itself.
                     'work_order': args.order, 'run_id': run.name,
                     'card': str(card_path), 'card_sha256': card_sha256,
+                    'cards': card_records,
                     'exit_code': code, 'receipt_valid': valid,
                     'state': target, 'audit_slot_busy': audit_busy, 'parent_lost': parent_lost,
                     'audit_slot_blocking': blocking, 'audit_slot_disregarded': disregarded,
@@ -603,6 +610,7 @@ def main():
                 (run / 'done.json').write_text(json.dumps({'exit_code': worker.returncode,
                     'state': 'blocked', 'finalization_pending': True,
                     'card': str(card_path), 'card_sha256': card_sha256,
+                    'cards': card_records,
                     'base_sha': base.get('base_sha'), 'worktree_dirty': base.get('worktree_dirty'),
                     'tree_oid': after.get('tree_oid'), 'changed_files': after.get('changed_files'),
                     'status_entries': after.get('status_entries'),
@@ -611,6 +619,7 @@ def main():
             if worker is None:
                 (run / 'done.json').write_text(json.dumps({'exit_code': None, 'launched': False,
                     'card': str(card_path), 'card_sha256': card_sha256,
+                    'cards': card_records,
                     'base_sha': base.get('base_sha'), 'worktree_dirty': base.get('worktree_dirty'),
                     'tree_oid': base.get('tree_oid'), 'changed_files': base.get('changed_files'),
                     'status_entries': base.get('status_entries'),
