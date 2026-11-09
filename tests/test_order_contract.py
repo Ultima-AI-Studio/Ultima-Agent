@@ -105,3 +105,58 @@ def test_a_gate_mentioned_in_prose_is_not_a_gate():
     text = ("范围：不做 ACC-4 的范围外检查。\n\n"
             "| 判据 | 合格判定 | 做法 |\n|---|---|---|\n| ACC-1 | 存在 | `x` |\n")
     assert [row["id"] for row in contract.acc_rows(text)] == ["ACC-1"]
+
+
+def test_an_indented_card_row_is_read_rather_than_dropped():
+    """A table nested under a heading is indented; the indent is not cell content.
+
+    The block builder collected only lines starting with `|`, so an indented card
+    row disappeared before any regex saw it — and a disappeared row is
+    indistinguishable from a card the order never declared.
+    """
+
+    contract = _load()
+    text = ("| 任务 | 文件 |\n|---|---|\n"
+            "  | T1 s1-host-envcheck | 环境 |\n"
+            "  | T2 | `src/x.py` |\n")
+    assert contract.order_cards(text) == ["s1-host-envcheck"]
+
+
+def test_a_malformed_card_row_is_refused_even_when_indented():
+    """Indent must not shield a card that cannot parse from the refusal."""
+
+    contract = _load()
+    text = "| 任务 | 文件 |\n|---|---|\n  | T1 s1-FOO | x |\n"
+    try:
+        contract.order_cards(text)
+    except ValueError as exc:
+        assert "not one" in str(exc)
+    else:
+        raise AssertionError("an indented malformed card reference was skipped")
+
+
+def test_a_task_id_that_runs_into_the_card_reference_is_refused():
+    """`T2s1-...` — id glued to the card — used to be read as `names no card`."""
+
+    contract = _load()
+    text = "| 任务 | 文件 |\n|---|---|\n| T2s1-host-envcheck | x |\n"
+    try:
+        contract.order_cards(text)
+    except ValueError as exc:
+        assert "separated" in str(exc)
+    else:
+        raise AssertionError("a card reference glued to the task id was skipped")
+
+
+def test_a_gate_id_that_is_not_a_whole_acc_number_is_refused():
+    """`ACC-1x` matched a prefix-only regex and was compared against gate `ACC-1`;
+    `ACC-X` matched nothing at all and vanished. Neither may be accepted."""
+
+    contract = _load()
+    for bad in ("| ACC-1x | 判据 | `x` |\n", "| ACC-X | 判据 | `x` |\n"):
+        try:
+            contract.acc_rows(bad)
+        except ValueError as exc:
+            assert "not a whole" in str(exc), (bad, str(exc))
+        else:
+            raise AssertionError(f"a gate id that cannot be named was accepted: {bad}")

@@ -146,6 +146,31 @@ def gate_check(batch_dir):
     return rows
 
 
+def next_task(batch_dir):
+    """选下一单：接 ccpm ``next.sh`` 的 ready 语义（status=open + 依赖已清 + 无在途冲突）。
+
+    ``next.sh`` 本身在本仓不能直接跑：它靠 ``list_task_files()`` 枚举任务，而后者只
+    认 ``.claude/epics/<纯数字>.md``。所以这里接的是它的**判定语义**，不是它的脚本：
+    ``gate_check`` 调的就是 ccpm 原函数 ``unmet_deps`` / ``active_conflicts``，本函数
+    只补「从候选里选出一个」这个动作——next.sh 输出的也是「Ready」列表，谁先动手
+    由调用方决定，这里固定取第一个并把它之外的候选一并交出。
+
+    与 next.sh 的一处口径差异：next.sh 把**空 status** 当作候选（``!= open`` 且
+    ``-n`` 才跳过），这里按 ``VALID_STATUSES`` 把空 status 当未知状态拒绝（fail-closed）。
+    """
+    rows = gate_check(batch_dir)
+    ready = [r['task'] for r in rows if r['verdict'] == '可开工']
+    return {
+        'next': ready[0] if ready else None,
+        'ready': ready,
+        'not_ready': [{'task': r['task'], 'verdict': r['verdict'],
+                       'unmet_deps': r['unmet_deps'],
+                       'active_conflicts': r['active_conflicts']}
+                      for r in rows if r['verdict'] != '可开工'],
+        'tasks': rows,
+    }
+
+
 def _wt_env():
     """wt 内部调 git，需把 Git\\cmd 前置进 PATH（运行环境约定，非改 wt）。"""
     env = dict(os.environ)
@@ -569,6 +594,8 @@ def main(argv=None):
     sub = ap.add_subparsers(dest='cmd', required=True)
     g = sub.add_parser('gate', help='开工前判定（调 ccpm 原函数）')
     g.add_argument('batch_dir', help='批次任务目录（只放 <id>.md）')
+    n = sub.add_parser('next', help='选下一单（接 ccpm next.sh 的 ready 语义）')
+    n.add_argument('batch_dir', help='批次任务目录（只放 <id>.md）')
     p = sub.add_parser('provision', help='对可开工任务用 wt 建隔离 worktree')
     p.add_argument('batch_dir', help='批次任务目录（只放 <id>.md）')
     e = sub.add_parser('execute', help='并发调 codex_channel 在各自 worktree 执行')
@@ -603,6 +630,13 @@ def main(argv=None):
              'ready': ready, 'blocked': blocked, 'tasks': rows},
             ensure_ascii=False, indent=2))
         return 0
+
+    if args.cmd == 'next':
+        out = next_task(args.batch_dir)
+        print(json.dumps({'batch': str(pathlib.Path(args.batch_dir)), **out},
+                         ensure_ascii=False, indent=2))
+        # 没有可开工任务即非 0：调用方要能区分“没有下一单”与“命令跑完”。
+        return 0 if out['next'] else 1
 
     if args.cmd == 'provision':
         rows, provisioned, skipped = provision(args.batch_dir)

@@ -528,3 +528,28 @@ def test_cleanup_reports_failure_without_force(mod, monkeypatch, tmp_path):
     removed, skipped = mod.cleanup(str(tmp_path))
     assert removed == []
     assert 'rc=1' in skipped[0]['reason']
+
+
+def test_next_returns_the_first_ready_task_and_reports_the_rest(mod, tmp_path):
+    """接 ccpm next.sh 的 ready 语义：选出一个，其余连同原因一起交出。
+
+    next.sh 在本仓跑不了（list_task_files 只认 .claude/epics/<数字>.md），
+    所以接的是判定语义而不是脚本本身——判定仍来自 ccpm 原函数。
+    """
+    write_task(tmp_path, 1, status='in-progress')
+    write_task(tmp_path, 2)
+    write_task(tmp_path, 3, deps=['2'])
+    write_task(tmp_path, 4, conflicts=['1'])
+    out = mod.next_task(str(tmp_path))
+    assert out['next'] == '2'
+    assert out['ready'] == ['2']
+    assert {r['task']: r['verdict'] for r in out['not_ready']} == {
+        '1': '非开放状态', '3': '等待依赖', '4': '等待冲突解除'}
+
+
+def test_next_is_none_when_nothing_is_ready(mod, tmp_path):
+    """没有下一单时 next 必须为 null，不能拿一个非开放任务凑数。"""
+    write_task(tmp_path, 1, status='in-progress')
+    out = mod.next_task(str(tmp_path))
+    assert out['next'] is None
+    assert out['ready'] == []
