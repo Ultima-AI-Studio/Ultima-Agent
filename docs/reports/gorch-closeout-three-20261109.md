@@ -191,3 +191,80 @@ B 的冲突现场（add/add）：`AA docs/reports/gorch-tc-probe.md`、`.git/wor
 编排层把超时当失败回传（fail-closed 正确），只是清理结果需要人工二次确认。已记入 L72/L77 同源缺陷，
 **是否要改成"超时后复查目录与分支是否已消失再判成败"留待 Owner 裁**。
 
+
+## 六、第三轮修复与全链一条命令真跑（2026-11-09 21:3x，`595ed52a`）
+
+第五章登记后按"问题清单逐项闭环 → 交给 Codex 独立审计 → 审计一致再由 Codex 出修复版 →
+助手复审"的流程推进。本章只记**助手这一版实现稿**做了什么、真跑证据是什么。
+
+### 6.1 十项清单的处置
+
+| # | 问题 | 本轮 | 落地位置 |
+|---|---|---|---|
+| 1 | `find_done_tasks` 跳过较新 blocked 取更旧 done | **闭环** | 每任务只取最新一条真实记录；`merge` 返回 `not_merged` |
+| 2 | `clean` 判空产出，纯验证卡永远 done 不了 | **闭环（默认仍严格）** | 新增 `--no-change-allowed`，批次路径从卡 frontmatter `no_change_allowed` 逐卡透传 |
+| 3 | 三标记不要求各出现一次、多余 stdout 静默忽略 | **闭环** | `seen` 计数字典，重复/多余行两道 `SystemExit` |
+| 4 | `changed` 只认有没有改，不认改的是不是该改的 | **部分闭环** | 执行前 `git status --porcelain` 基线快照，只认相对基线的新增行（口径弱点见 6.4） |
+| 5 | `--allow-non-repo` 是整批总钥匙 | **闭环** | 改为按卡 frontmatter 透传，一张卡声明不影响整批 |
+| 6 | 第 4 跳只有单测 | 未动 | 需串真需求 |
+| 7 | `wt remove` 180s 超时需人工回读 | **闭环** | 非 0 时回读目录与分支，都消失记 `removed` 并留 `note` |
+| 8 | 没有全链一条命令 | **闭环** | 新增 `run` 子命令 |
+| 9 | 冲突后恢复路径没验 | 未动 | 只做到"冲突即停 + 保留现场 + 不清该任务" |
+| 10 | `main`(`d1e51eb3`) 与工作分支未合流 | 未动 | 待 Owner 拍板以哪条为准 |
+
+### 6.2 改动要点
+
+`codex_channel.py`：`_status_set()` 把 porcelain 文本拆成集合；`run_codex` 之前落
+`worktree_baseline`；产出守卫按四态分流（clean+开关→放行 / clean 无开关→blocked /
+脏基线无新增→blocked / `error`→fail-closed / `not_repo`→默认 blocked）。
+
+`batch_orchestrator.py`：`find_done_tasks(with_blocked)` 改语义；`merge()` 4 元组 +
+`not_merged`；`gate_check` 三拒；`_task_meta`/`_truthy` 读卡 frontmatter；`execute` 按卡追加
+`--no-change-allowed`/`--allow-non-repo`；`cleanup` 超时回读；`run_all()` 串五步 + 子命令 `run`。
+
+### 6.3 真跑证据
+
+**测试**：`tests/test_gorch_batch_orchestrator.py` + `tests/test_gorch_codex_channel.py`
+= **70 passed / 36.42s / EXIT=0**（原 60，新增 10 条：gate 重复/多余行、cleanup 超时两反例、
+frontmatter、按卡透传、run_all 冲突保现场、零改动开关、脏基线无新增/有新增）。
+
+**严格化未误伤真实 ccpm**：`batch_orchestrator.py gate %TEMP%\gorch-run\batch` 对两张真卡返回
+两卡 `可开工`、`blocked=[]`、`stderr_diag` 均空——三标记"各出现且仅一次 + 禁多余行"在真实
+输出上不触发拒绝。
+
+**全链一条命令**（首次真跑）：
+
+```text
+python scripts\gorch\batch_orchestrator.py run %TEMP%\gorch-run\batch \
+  --prompts-dir %TEMP%\gorch-run\prompts \
+  --target codex/voice-fsmn-new-path --max-channels 2
+```
+
+| 步 | 实测 |
+|---|---|
+| gate | `ready=[GORCH-RUN-A, GORCH-RUN-B]`，`blocked=[]` |
+| provision | 两 worktree + 两分支建成，`skipped=[]` |
+| execute | ch1 / ch2 并发，两卡 `returncode=0` |
+| 产出校验 | 两卡 `result=done`、`worktree_state=changed`、`worktree_baseline=clean`、`worktree_new_changes` 分别恰为 `?? docs/reports/gorch-run-a.md` / `?? docs/reports/gorch-run-b.md` |
+| merge | `merged=[A, B]`、`failed=[]`、`not_merged={}` —— 主线新增 `3296f24a`、`1a382d31` |
+| cleanup | 两卡报"worktree 已不存在"（`wt merge` 已自行回收），`kept_for_conflict=[]` |
+| 收口 | `stopped_at = done`，`EXIT=0` |
+
+产物核对：`docs/reports/gorch-run-a.md` 内容为 `# GORCH-RUN-A 探针` / `state: dispatch-flow-rerun`，
+B 同构——逐字符合派发指令（说明"按卡透传 + 执行段真跑 + 自动合并"三段确实串上了）。
+
+`worktree_baseline=clean` + `new_changes` 精确等于本次新建文件，是 #4 判据在真跑里生效的现场证据，
+不只是单测。
+
+### 6.4 本轮仍未闭合
+
+1. **#4 口径弱点**：基线对比的是 porcelain **行集合**。同一文件执行前后都是 ` M` 且内容继续变化时，
+   行文本不变 → 相减为空 → 误判"无新增"而 blocked（误杀侧）。真正区分需内容哈希或 `git diff --stat`，
+   本版未做。
+2. **#6 第 4 跳**（主脑回传授权条件）仍只有单测，是八跳里唯一没有真跑证据的一跳。
+3. **#9 冲突恢复路径**：撞冲突后仍需人工 `rebase --abort`/`--continue`，引擎不自动重排。
+4. **#10 分支合流**：`main`(`d1e51eb3`) 未合入工作分支，且以哪条为准待 Owner 拍板。
+5. `wt remove` 超时回读的新分支本轮**没有在真实超时场景复验**（本次两卡由 `wt merge` 自行回收，
+   没走到 `wt remove`）。
+6. 全链真跑只覆盖"两卡无冲突"一种形态；冲突形态的全链（`run` 遇 CONFLICT）由单测钉住，
+   未真跑。

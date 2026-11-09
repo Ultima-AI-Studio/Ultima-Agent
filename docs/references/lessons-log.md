@@ -655,3 +655,17 @@
 - **处置**：`process_start()` 改为直接调 kernel32（`OpenProcess` + `GetProcessTimes` 读 FILETIME），零子进程、零窗口，顺带把每轮 6 次 × 几百毫秒的进程启动开销也去掉了；算式 `ticks/1e7 - 11644473600` 得 UTC 再转 CST，与原口径一致。同一类缺陷一起收：`batch_orchestrator.py` 7 处 `subprocess.run/Popen`（bash / wt / git）加 `creationflags=_NO_WINDOW`，`kanban_update.py:135` 的看板刷新 `Popen` 加 `CREATE_NO_WINDOW`。验证：三文件 `py_compile` 通过、`test_conflict_blocked_when_other_in_progress` 单条 1.75s 通过、`tracker-live.py` 真跑一次 rc=0 且 `live-data.js` 正常更新（判定结果正确：已退出的 pid 判 `running:false`）。
 - **教训（通用）**：① **为了读一个字段而启动一个完整 shell 进程，代价是几百毫秒加一个窗口**——本机能用 API 直接读的信息（进程创建时间、文件属性、服务状态），不要绕道 shell；② 排查"是不是我造成的"必须做到**子进程 + 父进程链 + 时间戳**三要素，只看进程名会漏掉"父进程已经退出、只剩宿主"的情况；③ 周期性的问题，**采样窗口必须 ≥ 一个完整周期**，否则连续采样也永远看不到，反而得出"没有周期性进程"的错误结论；④ 在自己 shell 里执行 `Get-Command powershell` 找不到，不等于计划任务里也找不到——计划任务由 svchost 拉起，PATH 是系统 PATH，环境不同；判断"这个调用会不会弹窗"要去目标环境实测。
 - **复发**：1
+## L79 · 收紧三处判据时踩到的两类坑：Edit 吃换行、mtime 假“最新”（2026-11-09）
+
+- **背景**：第三轮按审计清单收紧三处判据——gate 三标记“各出现且仅一次 + 禁多余行”、`find_done_tasks` 只认每任务最新一条真实记录、执行段用 `git status --porcelain` 基线快照只认“相对基线的新增改动”。
+- **坑 1（工具层）：Edit 吃掉换行 → SyntaxError，53 个用例 collect 就 ERROR。** 在 argparse 段替换时 old_string 未带行尾换行、new_string 又接了新内容，结果两行被拼成一行（`...（只搬不解析）')    b.add_argument(...)`）。pytest 报 `17 passed, 53 errors`，看着像大面积破坏，实际只是一处语法错误。处置：`python -m py_compile` 直接指到 791 行，补回换行即恢复。
+  **教训**：批量 Edit 之后、跑测试之前先对每个被改文件做 `py_compile`；“大量 ERROR”优先怀疑语法，不要先怀疑逻辑。
+- **坑 2（测试层）：mtime 假“最新”。** 新用例本意是“任务 2 先 done、再 blocked（较新）”，给两条记录设了 mtime `1_700_000_000` / `1_700_000_100`（2023 年）。但任务 2 的 done 记录是 `write_run` 刚建的、mtime 是真实的 2026 年，比人工设的值大得多 → “最新”实际是 done，用例假红。处置：三条记录统一显式 `os.utime`。
+  **教训**：用 mtime 造“新旧关系”时，必须把参与比较的**每一条**都显式赋值；只要有一条是新建文件，它天然就是“最新”。
+- **本轮收紧的取舍（留档，供审计对照）**：
+  ① `find_done_tasks` 从“跳过 blocked 找 done”改为“只认最新一条真实记录”——旧语义会把一次失败的执行当成果合并，属“造错误结果”级缺陷，“失败后沿用上次成功”的运营习惯不值得保留。
+  ② `clean` 保持默认严格，只开一道有名字的门 `--no-change-allowed`（批次路径从卡 frontmatter 逐卡透传）——纯验证卡确实不改仓库，但“整批放行”会连带放过真该产出的卡。
+  ③ 基线快照的已知弱点如实留档：porcelain **行集合**相减，同一文件执行前后都是 ` M` 且内容继续变化时相减为空、会误杀。真正区分需内容哈希，本版没做——这是“宁可误杀不可放过”的有意选择，不是遗漏。
+- **全链一条命令首次真跑（`batch_orchestrator.py run`）**：两卡并发 → 两 commit 合入 → `stopped_at=done`。一个易被误读的点：`cleanup` 两卡都报“worktree 已不存在”，看似清理失败，实际是 `wt merge` 在合并时已自行回收 worktree/分支，`cleanup` 只是走了“已不存在即跳过”的既定分支。**不要把这条 skipped 读成缺陷**——判断清理是否真发生，看 `git branch --list` 与主线 commit，不要看 `removed` 是否为空。
+- **未覆盖**：冲突形态的全链（`run` 遇 CONFLICT 停 + 保现场）只有单测，没真跑；`wt remove` 超时回读在本轮真跑里没被触发（`wt merge` 先回收了）。
+- **复发**：0

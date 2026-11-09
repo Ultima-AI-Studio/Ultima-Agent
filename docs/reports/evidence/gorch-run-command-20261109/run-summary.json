@@ -1,0 +1,21 @@
+{
+  "batch": "%TEMP%\\gorch-run\\batch",
+  "prompts_dir": "%TEMP%\\gorch-run\\prompts",
+  "target": "codex/voice-fsmn-new-path",
+  "max_channels": 2,
+  "stopped_at": "done",
+  "steps": {
+    "gate": {"ready": ["GORCH-RUN-A", "GORCH-RUN-B"], "blocked": []},
+    "provision": {"provisioned": ["GORCH-RUN-A", "GORCH-RUN-B"], "skipped": []},
+    "execute": {"results": [
+      {"task": "GORCH-RUN-A", "channel": 1, "returncode": 0},
+      {"task": "GORCH-RUN-B", "channel": 2, "returncode": 0}
+    ]},
+    "merge": {"merged": ["GORCH-RUN-A", "GORCH-RUN-B"], "failed": [], "not_merged": {}},
+    "cleanup": {"removed": [], "skipped": [
+      {"task": "GORCH-RUN-A", "branch": "gorch/GORCH-RUN-A", "reason": "worktree 已不存在"},
+      {"task": "GORCH-RUN-B", "branch": "gorch/GORCH-RUN-B", "reason": "worktree 已不存在"}
+    ], "kept_for_conflict": []}
+  },
+  "note": "这是 2026-11-09 首次全链一条命令真跑的完整输出；cleanup 两条 skipped 是 wt merge 合并时已自行回收 worktree/分支，不是清理失败"
+}
