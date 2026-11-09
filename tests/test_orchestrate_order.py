@@ -30,7 +30,7 @@ def test_default_run_executes_three_stages_in_order_and_uses_run_directory(
     run_dir = tmp_path / "run"
     calls: list[tuple[str, str, Path]] = []
 
-    def fake_run_stage(stage: str, prompt: str, destination: Path):
+    def fake_run_stage(stage: str, prompt: str, destination: Path, **_kwargs):
         destination = Path(destination)
         calls.append((stage, prompt, destination))
         artifact = {"stage": stage, "prompt": prompt}
@@ -163,9 +163,21 @@ def test_verdict_comes_from_the_response_not_a_constant(
     assert orchestrator._extract_verdict(response) == expected
 
 
-@pytest.mark.parametrize("marker", ["<｜｜", "DSML", "tool_calls", "```bash"])
+@pytest.mark.parametrize("marker", ["<｜｜", "｜｜>", "DSML", '"tool_calls"'])
 def test_tool_call_marker_is_detected(marker: str) -> None:
     assert orchestrator._looks_like_tool_call(f"let me inspect {marker} now") is True
+
+
+@pytest.mark.parametrize("payload", ["tool_calls", "```bash", "```shell"])
+def test_tool_markers_that_must_not_fire(payload: str) -> None:
+    """裸 tool_calls 与代码块标记不得判为工具调用。
+
+    work_order 阶段本来就要产出给执行端照做的命令示例，把 ```bash / ```shell
+    当信号会把合法工单全部误杀；裸 tool_calls 无引号时与正常英文无法区分，
+    因此只认带引号的文本形态。
+    """
+
+    assert orchestrator._looks_like_tool_call(f"let me inspect {payload} now") is False
 
 
 def test_plain_analysis_is_not_flagged_as_tool_call() -> None:
