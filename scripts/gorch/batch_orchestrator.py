@@ -57,6 +57,9 @@ WT_TIMEOUT = 180
 # 合并实测会超过 180s。用独立的更长预算，避免把"还在干活"误判成"卡住"。
 MERGE_TIMEOUT = 600
 GIT_EXE = str(pathlib.Path(GIT_CMD_DIR) / 'git.exe')
+# 子进程一律不建控制台窗口：bash / wt / git 每次被调用都会创建 conhost，
+# 派发一批要跑十几次，否则屏幕上会连续闪黑窗（L78）。
+_NO_WINDOW = 0x08000000 if sys.platform == 'win32' else 0
 BRANCH_PREFIX = 'gorch/'
 # 执行段是现成件（codex_channel.py），本编排只负责并发调用它，不重写执行逻辑。
 CHANNEL_SCRIPT = ROOT / 'scripts' / 'gorch' / 'codex_channel.py'
@@ -99,7 +102,7 @@ def gate_check(batch_dir):
         try:
             r = subprocess.run([BASH, '-c', script], capture_output=True,
                                text=True, encoding='utf-8', errors='replace',
-                               timeout=BASH_TIMEOUT)
+                               timeout=BASH_TIMEOUT, creationflags=_NO_WINDOW)
         except subprocess.TimeoutExpired:
             raise SystemExit(
                 f'ccpm 判定超时 {task.name}（{BASH_TIMEOUT}s），fail-closed 不派发')
@@ -213,7 +216,8 @@ def wt_switch(branch, wt_path, create):
     try:
         r = subprocess.run(cmd, capture_output=True, text=True,
                            encoding='utf-8', errors='replace',
-                           env=_wt_env(), timeout=WT_TIMEOUT)
+                           env=_wt_env(), timeout=WT_TIMEOUT,
+                           creationflags=_NO_WINDOW)
     except subprocess.TimeoutExpired:
         raise SystemExit(f'wt 调用超时 {branch}（{WT_TIMEOUT}s），fail-closed')
     return r
@@ -300,7 +304,8 @@ def execute(batch_dir, prompts_dir, max_channels=MAX_CHANNELS, dry_run=False):
             if dry_run:
                 cmd.append('--dry-run')
             p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                                 text=True, encoding='utf-8', errors='replace')
+                                 text=True, encoding='utf-8', errors='replace',
+                                 creationflags=_NO_WINDOW)
             procs.append((task, channel, p))
         for task, channel, p in procs:
             out, err = p.communicate()
@@ -357,7 +362,8 @@ def _branch_exists(branch):
 
     r = subprocess.run([GIT_EXE, '-C', str(ROOT), 'branch', '--list', branch],
                        capture_output=True, text=True, encoding='utf-8',
-                       errors='replace', env=_wt_env(), timeout=WT_TIMEOUT)
+                       errors='replace', env=_wt_env(), timeout=WT_TIMEOUT,
+                       creationflags=_NO_WINDOW)
     return bool(r.stdout.strip())
 
 
@@ -376,7 +382,8 @@ def wt_merge(branch, target=None):
     try:
         r = subprocess.run(cmd, capture_output=True, text=True,
                            encoding='utf-8', errors='replace',
-                           env=_wt_env(), timeout=MERGE_TIMEOUT)
+                           env=_wt_env(), timeout=MERGE_TIMEOUT,
+                           creationflags=_NO_WINDOW)
     except subprocess.TimeoutExpired:
         # 超时不等于"什么都没发生"。wt 的第 7 步 cleanup 会删分支与 worktree，
         # 若超时点落在 cleanup 之后、合并确认之前，分支就没了但主线也没进账。
@@ -408,7 +415,8 @@ def wt_remove(branch, force=False, delete_branch=False):
     try:
         r = subprocess.run(cmd, capture_output=True, text=True,
                            encoding='utf-8', errors='replace',
-                           env=_wt_env(), timeout=WT_TIMEOUT)
+                           env=_wt_env(), timeout=WT_TIMEOUT,
+                           creationflags=_NO_WINDOW)
     except subprocess.TimeoutExpired:
         raise SystemExit(f'wt remove 超时 {branch}（{WT_TIMEOUT}s），fail-closed')
     return r
@@ -446,7 +454,8 @@ def _current_branch():
     """
     r = subprocess.run([GIT_EXE, '-C', str(ROOT), 'rev-parse', '--abbrev-ref', 'HEAD'],
                        capture_output=True, text=True, encoding='utf-8',
-                       errors='replace', env=_wt_env(), timeout=WT_TIMEOUT)
+                       errors='replace', env=_wt_env(), timeout=WT_TIMEOUT,
+                       creationflags=_NO_WINDOW)
     return r.stdout.strip()
 
 

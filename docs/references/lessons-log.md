@@ -633,3 +633,17 @@
 - **处置**：本轮登记为缺口（报告 §七 第 9 条），未修。建议改成——以 `returncode` 为唯一契约；`stderr` 只在 `returncode != 0` 时作为附加诊断信息；对 `fork: retry` / `cygheap` / `dofork` 这类已知 cygwin 噪声置白名单。
 - **教训（通用）**：① **"stderr 非空"不等于"失败"**。exit code 才是契约，stderr 是诊断通道；把诊断通道当契约会造出假阴性，而假阴性在 fail-closed 系统里表现为"整批不动"——系统看起来是"正常地什么都没做"，比假阳性难发现得多。② Windows 上依赖 bash fork 的测试套，全量连跑数百次必撞 cygwin fork 受限；判"逻辑坏没坏"必须用**单条重跑**，不能拿全量结果直接定性。③ 全量结果必须分类报出（稳定红 / 环境性失败 / 通过），合成一个数字会让人以为代码坏了。
 - **复发**：0
+## L78 · 每 5 分钟连闪 6 个黑窗：为了读一个 pid 的启动时间，起了 6 个 PowerShell 进程（2026-11-09）
+
+- **现象**：屏幕上每隔几分钟就连续闪出 6 个控制台窗口，反复不断。看起来像有任务在周期性派发。
+- **误判过程（值得记）**：① 先猜"我的 G-ORCH 批次还在跑"——普查显示当前无 `bash`/`codex`/`wt` 存活，批次早已结束；② 再查 6 个常驻 `conhost.exe`，逐个反查父进程，结果是 ArmouryCrate / ollama / verge-mihomo / Codex 扩展的 cmd / agent_server / 我自己的 shell——全是长驻宿主，不是"新弹出"；③ 90 秒采样一无所获（周期比采样窗口长，直接漏掉）。**只有把采样拉到 330 秒覆盖完整 5 分钟周期，才在 19:36:04 抓到真凶。**
+- **根因**：`scripts/tracker-live.py` 的 `process_start()` 为了取一个 pid 的启动时间，起一个完整 PowerShell：
+
+  ```python
+  subprocess.check_output(["powershell", "-NoProfile", "-Command", f"$p=Get-Process -Id {pid} ..."])
+  ```
+
+  而刷新逻辑是 `for it in items[:6]: it["alive"] = alive(it["pid"], ...)`——**固定最近 6 条，每条一次调用**。脚本由计划任务 `UltimaAgentTrackerLive` 每 5 分钟拉起（repeat `PT5M`），三个条件叠起来就是"每隔几分钟连续 6 个窗口"。这些 `powershell.exe` 都没有 `-WindowStyle Hidden`、也没有 `CREATE_NO_WINDOW`，于是每次调用都建一个 conhost。
+- **处置**：`process_start()` 改为直接调 kernel32（`OpenProcess` + `GetProcessTimes` 读 FILETIME），零子进程、零窗口，顺带把每轮 6 次 × 几百毫秒的进程启动开销也去掉了；算式 `ticks/1e7 - 11644473600` 得 UTC 再转 CST，与原口径一致。同一类缺陷一起收：`batch_orchestrator.py` 7 处 `subprocess.run/Popen`（bash / wt / git）加 `creationflags=_NO_WINDOW`，`kanban_update.py:135` 的看板刷新 `Popen` 加 `CREATE_NO_WINDOW`。验证：三文件 `py_compile` 通过、`test_conflict_blocked_when_other_in_progress` 单条 1.75s 通过、`tracker-live.py` 真跑一次 rc=0 且 `live-data.js` 正常更新（判定结果正确：已退出的 pid 判 `running:false`）。
+- **教训（通用）**：① **为了读一个字段而启动一个完整 shell 进程，代价是几百毫秒加一个窗口**——本机能用 API 直接读的信息（进程创建时间、文件属性、服务状态），不要绕道 shell；② 排查"是不是我造成的"必须做到**子进程 + 父进程链 + 时间戳**三要素，只看进程名会漏掉"父进程已经退出、只剩宿主"的情况；③ 周期性的问题，**采样窗口必须 ≥ 一个完整周期**，否则连续采样也永远看不到，反而得出"没有周期性进程"的错误结论；④ 在自己 shell 里执行 `Get-Command powershell` 找不到，不等于计划任务里也找不到——计划任务由 svchost 拉起，PATH 是系统 PATH，环境不同；判断"这个调用会不会弹窗"要去目标环境实测。
+- **复发**：1

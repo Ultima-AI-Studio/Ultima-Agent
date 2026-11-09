@@ -133,7 +133,8 @@ def _trigger_refresh():
     if not (_BASE / 'data' / '.refresh_watcher_pid').exists():
         try:
             subprocess.Popen([python_bin(), str(REFRESH_SCRIPT)],
-                             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                             creationflags=0x08000000)  # CREATE_NO_WINDOW，不闪黑窗
         except Exception:
             pass
 
