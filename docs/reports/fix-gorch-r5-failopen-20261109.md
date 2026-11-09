@@ -612,6 +612,8 @@ r7 只有布尔 `proven`，说不清「凭什么算本次造成」。r8 改成**
 
 连同第七轮 3 条 + 第八轮 2 条（严格因果、预已祖先 squash 语义、manifest 签发边界、manifest target 绑定、wt_receipt 兜底），**合计 12 条口径仍无 Owner 书面批准**。r10 只改实现，不改这些语义。
 
+> **r11 去重更正（第十轮审计 D 段）**：上面「12 条」是**重复计数**。本节第 1/3/4/5 条与上一段列的 5 条是同一语义（严格因果、预已祖先 squash、manifest 来源、manifest target、wt_receipt），按唯一语义本节只有 **3 条新增**（history-only 合入、fallback 历史扫描、前后采样窗口），本节 + 前两轮合计应为 **5 + 3 = 8 类**。第十轮审计再提 10 条，其中 6 条属这 8 类的重述，**真新增 4 条**（预已祖先且 source 被删时接受哪级证据、write scope 是否也限操作类型、授权 pattern 边缘空格语义、永久 `unknown` 的运维出口）。按唯一语义合计 **12 类**（构成 8 + 4，不是 5 + 7），每条仍**无 Owner 书面批准**。
+
 ### 14.4 测试与静态计数
 
 - 合跑：**159 passed / 49.58s**（r9 为 147 passed / 47.90s）。
@@ -637,7 +639,69 @@ r7 只有布尔 `proven`，说不清「凭什么算本次造成」。r8 改成**
 4. fallback 的 invocation 等值仍是条件式（`expect_invocation` 为空时退化为「只验非空」）；CLI 已强制 `merge --invocation`，但直接 `import merge()` 可绕。
 5. 真实批次未重跑 `run_all`（旧卡会被「无新增」判 blocked，需换任务名）；冲突形态全链仍只有单测；`done_no_merge` 三分组未落；八跳第 4 跳仍未进 `run_all`。
 
+> **r11 补记（第十轮审计 D 段：本节 r10 漏记三项）**：① 锁键 `re.sub(r'[^0-9A-Za-z._-]','_')` 会把 `feature/a` 与 `feature_a` 压成同一文件名，两个不同 target 互相阻塞——**假互斥**（可用性误杀，非安全 fail-open）；② `_path_state` 用 `S_ISDIR` 判 absent，把**存在的普通文件**记成不存在，与 branch absent + 登记 false 组合即「路径还在却记已清理」的 cleanup fail-open；③ 永久 `unknown` 只有 fail-closed、没有运维出口（不会自动转 removed，也没有人工 override/隔离路径）。其中 ①② 已在 r11 修（见 §15.2），③ 仍属待拍板口径（见 §15.5）。
+
 ### 14.7 结论去向
 
 - r10 交**第十轮 Codex 独立只读审计**（第②环），判据入口：14.1 的三高反例与点名项、14.2 九条落地、14.4 的覆盖与桩化标注、14.5 的两处更正、14.6 的残余声明。
 - 若第十轮仍判「不一致」，继续 r11；用户指令为长任务模式，直到审计判「一致」才停。
+
+## 十五、r11 实现闭环（第十轮审计「不一致」→ 可直改七条）
+
+### 15.1 第十轮审计判定
+
+第十轮 Codex 独立只读审计（`gpt-5.6-sol`、`high`、read-only、917.6s / 46,623B / 326 行）判**不一致**：
+
+1. r9 三条核心高风险反例（XY R/C 两位、消失路径回补、锁键短名/全名统一）判**已修**。
+2. 但出现**一条新的 cleanup fail-open**：`_path_state` 把存在的普通文件判成 `absent`（`os.stat` 成功、`S_ISDIR=False` 时返回 `'absent'`）。worktree 路径被普通文件占据 + branch absent + registration false 时，入口豁免把它记成 removed。
+3. 同类问题在 channel 侧：`_digest` 对存在的**非普通文件**仍返 `'ABSENT'`——目录、symlink、submodule 与「不存在」共用一个值。
+4. **锁键碰撞误杀**：`re.sub` 把 `feature/a` 与 `feature_a` 映射成同一个锁文件，两个不同 target 的 gorch 互相阻塞；`_norm_ref` 只剥精确小写 `refs/heads/`。
+5. **cleanup evidence 三种 schema**：`dir_state` 未取代 `dir_exists`（两者并存），rc=0 成功移除条目**根本没有 evidence**。
+6. **merge 取证失败与冲突混档**：前态 tree 失败的 `failed` 被 `run_all` 一律写进 `kept_for_conflict`，note 写「可能为冲突」，返回结构无 `retryable`/`kind`。
+7. 测试/证据/文档不一致：三条 proof 负向用例是**多原因失败**（前后同 tree 本身也能让用例变红）；B4 只测普通 paths、未构造 vanished ignored；§14.3 重复计数（按唯一语义 8 类而非 12 条）；§14.6 漏记三项；看板 r10 仍写「进行中」且缺提交号与 tag；r8 行仍称 `run_dir`「必填且绝对路径相等」。
+
+E 段给出**可直改 7 条 + 需口径 10 条**。本轮只做可直改 7 条，口径不改语义。
+
+### 15.2 可直改七条的落地位置
+
+| # | 审计要求（严重度） | r11 落地 | 证据位置（符号/用例） |
+|---|---|---|---|
+| 1 | 高：`_path_state` 非目录不得返 absent | 新增第四态 `wrong_type`：`FileNotFoundError → absent`、其他 `OSError → unknown`、`S_ISDIR → exists`、其余 → `wrong_type`；cleanup 三处消费点都不把 `wrong_type` 当已清理（入口 `if dir_state != 'exists'` → 走 skipped；超时/rc=0 分支 `wt_gone = (dir_state=='absent')`） | `_path_state`；用例 `test_path_state_distinguishes_regular_file_and_unknown`、`test_cleanup_rejects_regular_file_at_worktree_path` |
+| 2 | 高：`_digest` 存在非普通文件不得等于 ABSENT | `stat` 结果直接判类型：非 `S_ISREG` 返 `'TYPE:dir' / 'TYPE:link' / 'TYPE:other'`（可比较，类型变则摘要变）；仍只有 `FileNotFoundError` 返 `ABSENT`、读失败返 `None` | `codex_channel._digest`；用例 `test_digest_reports_non_regular_type` |
+| 3 | 中：锁键改无碰撞键 | 锁文件名 = 可读前缀（`re.sub` 结果截 40 字符）+ `sha256(_norm_ref(target))[:16]`；归一后相同 → 同锁，不同 → 不同锁 | `_MergeLock.__init__`；用例 `test_merge_lock_keys_do_not_collide_for_distinct_refs`、`test_merge_lock_distinct_targets_do_not_block`（原 `test_merge_lock_key_normalizes_ref_prefix` 继续验 `main` ≡ `refs/heads/main`） |
+| 4 | 中：统一 cleanup evidence schema | 三个 removed 出口（`pre_absent` / `rc_zero_not_required` / `rc_zero_confirmed`）写**同一组 6 key**：`dir_state / branch_state / worktree_registered / wt_returncode / exemption / readback`；删除 `dir_exists`；rc=0 成功条目补 `evidence` | `cleanup()`；用例 `test_cleanup_evidence_schema_is_uniform`（三出口 key 集相等）+ 两条既有 evidence 用例改断言 `dir_state` 与 key 集 |
+| 5 | 中：加强测试覆盖 | 新增 vanished **ignored**、已暂存 `R `/`C ` rename、`_path_state` 普通文件/unknown、锁键碰撞/异键不互斥、三出口 schema、run_all 取证失败分档；两条 proof 负向用例给**前后不同 tree**，把失败原因隔离到用例名所称的那一个判据 | 见 15.3 清单 |
+| 6 | 中：merge `failed` 增 `kind`，取证失败不入 `kept_for_conflict` | 五处 `failed.append` 加 `kind`：前态取证失败= `evidence_failure`、`wt merge` 非零= `merge_conflict`、回执缺 branch/target 与未证明合入= `proof_failure`；`run_all` 拆 `kept_for_conflict` / `kept_for_evidence` 两个列表，note 写失败类别并声明「取证失败未执行合并、可直接重试」 | `merge()` / `run_all()`；用例 `test_run_all_keeps_evidence_failure_out_of_conflict`、`test_merge_does_not_run_wt_when_target_tree_unavailable` 补 `kind` 断言 |
+| 7 | 低：文档与看板 | 本节 + §14.3 去重更正 + §14.6 三项补记 + L87 + 看板 r10 收口（提交号/tag）+ r11 条目 + r8 行 `run_dir` 表述修正 | 本报告 / `lessons-log.md` / `北极星上线任务清单.html` |
+
+### 15.3 测试与静态计数
+
+- 合跑：**168 passed / 48.12s**（r10 为 159 passed / 49.58s）。
+- 命令与 r10 相同：`tools\venv-openjarvis\Scripts\python.exe -m pytest tests/test_gorch_batch_orchestrator.py tests/test_gorch_codex_channel.py -o addopts= -p no:cacheprovider -q`（cwd 仓库根、PATH 前置 Git）。
+- 静态计数（`^def test_` 实测）：batch 108 → **114**、channel 45 → **48**；含 1 个 `@pytest.mark.parametrize`（展开 7 例），执行条目 159 → **168**（+9）。
+- r11 新增 9 条函数：
+  - batch（6）：`test_path_state_distinguishes_regular_file_and_unknown`、`test_cleanup_rejects_regular_file_at_worktree_path`、`test_cleanup_evidence_schema_is_uniform`、`test_merge_lock_keys_do_not_collide_for_distinct_refs`、`test_merge_lock_distinct_targets_do_not_block`、`test_run_all_keeps_evidence_failure_out_of_conflict`
+  - channel（3）：`test_digest_reports_non_regular_type`、`test_fresh_changes_counts_vanished_ignored_path`、`test_status_rows_handles_staged_rename_target_first`
+- 因实现收紧而改断言/改桩的既有用例 3 条：`test_cleanup_pre_absent_three_way_records_evidence`、`test_cleanup_timeout_exemption_records_evidence`（`dir_exists` → `dir_state` + key 集）；`test_merge_rejects_preexisting_ancestor_without_source_move`、`test_merge_rejects_unrelated_target_advance`（`_git_out` 桩按 rev-parse 实参给前态/后态**不同** tree，隔离 ancestor 条件）；`test_merge_does_not_run_wt_when_target_tree_unavailable` 补 `kind` 断言。
+- **桩化边界（如实标注）**：`_path_state` / `_digest` / 锁键都打真实层（真 `os.stat`、真目录与普通文件、真锁文件路径与真争锁）；merge 负向用例仍桩 `_git_out` / `_ref_sha` / `wt_merge`；`run_all` 用例桩 `gate_check` / `provision` / `execute` / `cleanup`，只走真实 `run_all` 分支与 `merge` 入口。
+
+### 15.4 对 §14 的更正
+
+- **§14.2 第 8 条「cleanup 三态」**：r10 交付时是 exists/absent/unknown **三态**，把存在的非目录记 absent——该条**当时就不完整**。r11 改为四态（+`wrong_type`），本报告与看板按四态表述。
+- **§14.3 口径重复计数**：已在原处加 r11 更正（唯一语义 8 类，第十轮真新增 4 类，合计 12 类）。
+- **§14.6 漏记三项**：已在原处补记（锁键误杀、普通文件记 absent、unknown 无运维出口）。
+
+### 15.5 残余风险（r11 后仍存在）
+
+1. **口径 12 类**（唯一语义，见 §14.3 更正）全部无 Owner 书面批准——本轮只改实现，不改语义。
+2. **外部 git / 其他工具不受锁约束**；`wt merge --format json` 仍无能绑定 invocation 的事务字段 → 「本次造成」的因果上限未变。
+3. `_digest` 对目录只记 `'TYPE:dir'`：目录**内部**文件增删在指纹里仍不可见（`status -uall` 通常列到文件级，但若 Git 折叠成目录条目，就只剩类型摘要）。这是本条修复引入的**新残余**，如实记；要彻底覆盖需对目录做递归列表摘要，代价与噪声都高，未做。
+4. `_scope_match` 对授权 pattern 仍 `.strip()`（口径项，未改）。
+5. fallback 的 invocation 等值仍是条件式（`expect_invocation` 为空时退化为「只验非空」）；CLI 已强制 `merge --invocation`，但直接 `import merge()` 可绕。
+6. 永久 `unknown` 只有 fail-closed，无自动出口与人工 override（口径项）。
+7. 真实批次仍未重跑 `run_all`；冲突形态全链只有单测；`done_no_merge` 三分组未落；八跳第 4 跳仍未进 `run_all`。
+
+### 15.6 结论去向
+
+- r11 交**第十一轮 Codex 独立只读审计**（第②环），判据入口：15.1 的七条可直改、15.2 落地表、15.3 计数与桩化边界、15.4 三处更正、15.5 残余声明。
+- 若第十一轮仍判「不一致」，继续 r12；用户指令为长任务模式，直到审计判「一致」才停。
