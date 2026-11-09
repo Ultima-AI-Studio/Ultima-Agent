@@ -767,3 +767,29 @@
   r8 新增 10 条（batch 6 / channel 4）+ 前段作业里的 2 条 rename 真实 NUL 用例。
   仍未做：真实批次重跑 `run_all`（旧卡会被「无新增」判 blocked，需换任务名）、`done_no_merge`
   三分组、manifest 签发签名/受控目录。
+
+## L85 · r9：proof 收紧会连带打死「应成功」的用例 + 锁与身份严格化的连带改动（2026-11-09）
+
+- **坑 1（新增前态取证会改动既有桩的调用序列）**：r9 给 proof 加了「target 前态 tree」，
+  `rev-parse <sha>^{tree}` 的调用顺序变成 ①源 tree ②target 前态 ③target 后态。`mod` fixture
+  原本对所有 `rev-parse` 返回 `(0, '')` → 前后态都是空串 → `content_changed` 恒假 → 5 条
+  「应成功」的 merge 用例集体判 failed。修法：fixture 里加 `_tree = {'n': 0}` 让 tree 随调用
+  递增；两条定制桩按**调用序号**给出「前态 ≠ 后态」的序列（不是按 ref 猜）。
+- **坑 2（断言改语义要跟着改 payload，不能只改断言）**：`find_done_tasks` 把 `dry_run` /
+  `result` / `mergeable` / `invocation` 前置后，旧负向用例的 payload 缺 `dry_run` 就先进了
+  broken，`started_at` / `invocation` 那两个分支根本走不到。必须补 `dry_run: False,
+  mergeable: True` 才能让用例回到它本来要测的那条判据。
+- **坑 3（`reason` 文案不再是记录自报**）：`test_find_done_tasks_only_reads_this_invocation`
+  原断言 `'本轮失败' in reason`——那是记录 payload 里的 `reason` 字段被透传。身份前置后
+  blocked 记录不进候选池，`stale` 的 reason 改由校验方生成（`result=... 不是 done`）。
+  断言要改成「有 reason」或匹配校验方文案，不要匹配被审对象的自述。
+- **坑 4（argparse `required=True` 不经 `main` 的返回路径）**：`merge --invocation` 缺失时是
+  parse 阶段抛 `SystemExit(2)`，`rc == 2` 这条断言永远拿不到返回码。断言要写
+  `pytest.raises(SystemExit)` + `code == 2`。
+- **坑 5（生产路径与展示路径别混用）**：`test_status_rows_keeps_rename_source_from_real_nul`
+  原来把 `rows` 拼成 `状态码 + 空格 + 路径` 再交给 `_fresh_paths` 去剥前缀——这正好把
+  「按前缀猜格式」的 fail-open 固化成了用例。生产侧是直接取 `[p for _c, p in rows]`，用例
+  也应当照生产路径写。
+- **口径**：r9 合跑 **147 passed / 47.90s**（batch 104 + channel 43），r8 基线 139 / 40.63s；
+  新增 8 条（batch 6 / channel 2）。仍未做：13.2 的 5 条口径拍板、真实批次重跑 `run_all`、
+  `done_no_merge` 三分组、manifest 签名 / 受控目录。
