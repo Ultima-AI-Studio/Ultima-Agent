@@ -881,3 +881,54 @@ def test_fresh_changes_counts_vanished_baseline_path():
     fresh, _ = m.fresh_changes(base, after)
     assert 'zzzdocs/secret.md' in fresh
     assert m._outside_scope(sorted(fresh), ['docs/']) == ['zzzdocs/secret.md']
+
+
+# --- r11：第十轮审计可直改 2 / 5（E-2 E-5）---
+
+def test_digest_reports_non_regular_type(tmp_path):
+    """r11（第十轮审计 E-2）：存在的目录/特殊文件不得与「不存在」共用 ABSENT。
+
+    两次采样都 ABSENT 会被 fresh_changes 判成"没变"——路径还在、只是类型不对，
+    本来就是另一个事实。给带类型的摘要，既不误判没改，也不会把整份指纹打成不可用
+    （untracked 目录是常态）。
+    """
+    m = _load()
+    (tmp_path / 'd').mkdir()
+    assert m._digest(str(tmp_path), 'd') == 'TYPE:dir'
+    f = tmp_path / 'f.txt'
+    f.write_text('x', encoding='utf-8')
+    assert len(m._digest(str(tmp_path), 'f.txt')) == 64
+    assert m._digest(str(tmp_path), 'nope') == 'ABSENT'
+
+
+def test_fresh_changes_counts_vanished_ignored_path():
+    """r11（第十轮审计 E-5/B4）：消失的 **ignored** 基线路径也要算本次改动。
+
+    r10 的回补只被普通 paths 用例证明；ignored 在 fingerprint 阶段并入同一个
+    paths 字典，实现上确实也回补，但没有用例钉住——域外 ignored 目录被清空时
+    仍然可能被漏检。
+    """
+    m = _load()
+    base = {'paths': {'docs/a.md': 'd1', 'zzzdocs/tmp.bin': 'd9'},
+            'ignored': {'zzzdocs/tmp.bin', 'zzzdocs/other.bin'}, 'diff_sha': 'h1'}
+    after = {'paths': {'docs/a.md': 'd2'}, 'ignored': set(), 'diff_sha': 'h2'}
+    fresh, _ = m.fresh_changes(base, after)
+    assert 'zzzdocs/tmp.bin' in fresh
+    assert m._outside_scope(sorted(fresh), ['docs/']) == ['zzzdocs/tmp.bin']
+
+
+def test_status_rows_handles_staged_rename_target_first(monkeypatch):
+    """r11（第十轮审计 C-1）：已暂存 rename 是 `R `，且 `-z` 下**目标在前、源在后**。
+
+    r10 只测了工作区侧 ` R`（目标在前、源在后同样成立）。补上已暂存形态，防止
+    将来有人按"源在前"改顺序时把源/目标对调。
+    """
+    m = _load()
+    raw = 'R  docs/x.md' + chr(0) + 'zzzdocs/secret.md' + chr(0)
+    monkeypatch.setattr(m, '_git_text', lambda workdir, args: (0, raw))
+    ok, rows, ignored = m._status_rows('w')
+    codes = [(c, p) for c, p in rows]
+    assert ('R ', 'docs/x.md') in codes
+    assert ('SRC', 'zzzdocs/secret.md') in codes
+    paths = [p for _c, p in rows]
+    assert m._outside_scope(paths, ['docs/']) == ['zzzdocs/secret.md']

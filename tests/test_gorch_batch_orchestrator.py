@@ -1219,10 +1219,16 @@ def test_merge_rejects_preexisting_ancestor_without_source_move(mod, monkeypatch
     monkeypatch.setattr(mod, 'wt_merge', lambda *a, **k: _FakeResult(
         0, json.dumps({'branch': 'gorch/1', 'target': 'main'})))
     def fake_git_out(args, *a, **k):
-        # r10：前态 tree 必须先取到（取不到会在调 wt_merge 之前就停）。这条用例
-        # 测的是 proof 判据，所以让 rev-parse 返回同一个 tree（内容没变）。
+        # r11（第十轮审计 E-5）：这条用例要验"调用前已是祖先且源未移动"这**一个**
+        # 条件。若前后态 tree 相同，content_changed=False 也能让它失败，
+        # 用例名与实际判据就对不上了。所以按 rev-parse 的实参区分前态/后态。
         if list(args)[:1] == ['rev-parse']:
-            return (0, 'TREE-SAME')
+            spec = list(args)[1]
+            if spec.startswith('src-0'):
+                return (0, 'TREE-SRC')
+            if spec.startswith('main-1'):
+                return (0, 'TREE-AFTER')
+            return (0, 'TREE-BEFORE')
         return (0, '')
 
     monkeypatch.setattr(mod, '_git_out', fake_git_out)
@@ -1249,11 +1255,27 @@ def test_merge_rejects_unrelated_target_advance(mod, monkeypatch, tmp_path):
     monkeypatch.setattr(mod, 'RUNS', runs)
     monkeypatch.setattr(mod, 'wt_merge', lambda *a, **k: _FakeResult(
         0, json.dumps({'branch': 'gorch/1', 'target': 'main'})))
+    # r11（第十轮审计 E-5）：显式钉住 SHA 序列，并让前后态 tree **不同**——
+    # 否则 content_changed=False 也能让这条用例失败，"target 前进但源不是祖先"
+    # 这个判据就没人验了。
+    _n = {'main': 0}
+
+    def fake_sha(ref):
+        if ref == 'main':
+            _n['main'] += 1
+            return 'main-0' if _n['main'] == 1 else 'main-1'
+        return 'src-0'
+
+    monkeypatch.setattr(mod, '_ref_sha', fake_sha)
+
     def fake_git_out(args, *a, **k):
-        # r10：rev-parse 能给出 tree（否则前态取证失败会提前停）；merge-base 恒 1
-        # 表示"源分支在合并前就不是 target 祖先"。
         if list(args)[:1] == ['rev-parse']:
-            return (0, 'TREE-X')
+            spec = list(args)[1]
+            if spec.startswith('src-0'):
+                return (0, 'TREE-SRC')
+            if spec.startswith('main-1'):
+                return (0, 'TREE-AFTER')
+            return (0, 'TREE-BEFORE')
         return (1, '')
 
     monkeypatch.setattr(mod, '_git_out', fake_git_out)
@@ -1485,10 +1507,12 @@ def test_cleanup_pre_absent_three_way_records_evidence(mod, monkeypatch, tmp_pat
     removed, skipped = mod.cleanup(str(tmp_path))
     assert skipped == []
     ev = removed[0]['evidence']
-    assert ev['dir_exists'] is False
+    assert ev['dir_state'] == 'absent'
     assert ev['branch_state'] == 'absent'
     assert ev['worktree_registered'] is False
     assert ev['exemption'] == 'pre_absent'
+    assert set(ev) == {'dir_state', 'branch_state', 'worktree_registered',
+                       'wt_returncode', 'exemption', 'readback'}
 
 
 def test_cleanup_timeout_exemption_records_evidence(mod, monkeypatch, tmp_path):
@@ -1508,10 +1532,12 @@ def test_cleanup_timeout_exemption_records_evidence(mod, monkeypatch, tmp_path):
     removed, skipped = mod.cleanup(str(tmp_path))
     ev = removed[0]['evidence']
     assert ev['wt_returncode'] == -1
-    assert ev['dir_exists'] is False      # r8：目录已被 rmdir，值不能反写
+    assert ev['dir_state'] == 'absent'    # r11：目录已被 rmdir，三态不能反写
     assert ev['branch_state'] == 'absent'
     assert ev['worktree_registered'] is False
     assert ev['exemption'] == 'rc_zero_not_required'
+    assert set(ev) == {'dir_state', 'branch_state', 'worktree_registered',
+                       'wt_returncode', 'exemption', 'readback'}
 # --- r8：授权收窄 / 记录身份 / 合并因果证明 / 生产者-消费者 ---
 
 class _ChanProc:
@@ -1902,6 +1928,7 @@ def test_merge_does_not_run_wt_when_target_tree_unavailable(mod, monkeypatch, tm
     assert merged == []
     assert calls['wt'] == 0
     assert '前态 tree 取不到' in failed[0]['stderr']
+    assert failed[0]['kind'] == 'evidence_failure'
 
 
 @pytest.mark.parametrize('field,value', [
@@ -1922,3 +1949,141 @@ def test_merge_rejects_loose_json_types(mod, monkeypatch, tmp_path, field, value
         mod.merge(str(tmp_path), tasks=['1'], target='main',
                   expect_invocation='inv-test', run_dirs={'1': str(d)})
     assert field in str(ei.value)
+
+
+# --- r11：第十轮审计可直改 1 / 3 / 4 / 5 / 6（E-1 E-3 E-4 E-5 E-6）---
+
+def test_path_state_distinguishes_regular_file_and_unknown(mod, tmp_path, monkeypatch):
+    """r11（第十轮审计 E-1）：存在的**普通文件**不是 absent；读不到才是 unknown。
+
+    r10 用 `is_dir()` 两态，普通文件被记成 absent——worktree 路径被一个文件占据、
+    branch 又已删、登记又已清时，cleanup 会把它记成"已清理"，尽管路径还在。
+    """
+    d = tmp_path / 'dir'
+    d.mkdir()
+    f = tmp_path / 'plain.txt'
+    f.write_text('x', encoding='utf-8')
+    assert mod._path_state(d) == 'exists'
+    assert mod._path_state(f) == 'wrong_type'
+    assert mod._path_state(tmp_path / 'nope') == 'absent'
+
+    def boom(p):
+        raise PermissionError(13, 'denied', str(p))
+
+    monkeypatch.setattr(mod.os, 'stat', boom)
+    assert mod._path_state(f) == 'unknown'
+
+
+def test_cleanup_rejects_regular_file_at_worktree_path(mod, monkeypatch, tmp_path):
+    """r11（第十轮审计 E-1）：worktree 路径被普通文件占据时不得记 removed。"""
+    write_task(tmp_path, 1)
+    wt_root = tmp_path / 'wt'
+    wt_root.mkdir()
+    (wt_root / '1').write_text('not a worktree', encoding='utf-8')
+    monkeypatch.setattr(mod, 'WORKTREE_ROOT', wt_root)
+    monkeypatch.setattr(mod, '_branch_state', lambda b: 'absent')
+    monkeypatch.setattr(mod, '_worktree_registered', lambda p: False)
+    removed, skipped = mod.cleanup(str(tmp_path))
+    assert removed == []
+    assert skipped and skipped[0]['partial'] is True
+
+
+def test_cleanup_evidence_schema_is_uniform(mod, monkeypatch, tmp_path):
+    """r11（第十轮审计 E-4/B7）：三个 removed 出口的 evidence key 集必须完全一致。"""
+    wt_root = tmp_path / 'wt'
+    monkeypatch.setattr(mod, 'WORKTREE_ROOT', wt_root)
+    monkeypatch.setattr(mod, '_branch_state', lambda b: 'absent')
+    monkeypatch.setattr(mod, '_worktree_registered', lambda p: False)
+    keys = []
+
+    b1 = tmp_path / 'b1'
+    b1.mkdir()
+    write_task(b1, 1)
+    removed, _s = mod.cleanup(str(b1))
+    assert removed and removed[0]['evidence']['exemption'] == 'pre_absent'
+    keys.append(set(removed[0]['evidence']))
+
+    b2 = tmp_path / 'b2'
+    b2.mkdir()
+    write_task(b2, 1)
+    (wt_root / '1').mkdir(parents=True)
+
+    def fake_timeout(*a, **k):
+        (wt_root / '1').rmdir()
+        return _FakeResult(-1, 'wt remove 超时')
+
+    monkeypatch.setattr(mod, 'wt_remove', fake_timeout)
+    removed, _s = mod.cleanup(str(b2))
+    assert removed and removed[0]['evidence']['exemption'] == 'rc_zero_not_required'
+    keys.append(set(removed[0]['evidence']))
+
+    b3 = tmp_path / 'b3'
+    b3.mkdir()
+    write_task(b3, 1)
+    (wt_root / '1').mkdir(parents=True)
+
+    def fake_ok(*a, **k):
+        (wt_root / '1').rmdir()
+        return _FakeResult(0, json.dumps([{'kind': 'worktree', 'branch': 'gorch/1',
+                                          'path': str(wt_root / '1'),
+                                          'branch_outcome': 'deleted'}]))
+
+    monkeypatch.setattr(mod, 'wt_remove', fake_ok)
+    removed, _s = mod.cleanup(str(b3))
+    assert removed and removed[0]['evidence']['exemption'] == 'rc_zero_confirmed'
+    keys.append(set(removed[0]['evidence']))
+
+    assert keys[0] == keys[1] == keys[2]
+    assert all('dir_state' in k and 'dir_exists' not in k for k in keys)
+
+
+def test_merge_lock_keys_do_not_collide_for_distinct_refs(mod, monkeypatch, tmp_path):
+    """r11（第十轮审计 E-3/C-3）：`re.sub` 会把 `feature/a` 与 `feature_a` 压成同一
+    个锁文件名 → 两个不同 target 互相阻塞（假互斥）。摘要必须让它们分开。
+    """
+    monkeypatch.setattr(mod, 'RUNS', tmp_path / 'runs')
+    a = mod._MergeLock('feature/a')
+    b = mod._MergeLock('feature_a')
+    assert a.path != b.path
+    assert mod._MergeLock('main').path == mod._MergeLock('refs/heads/main').path
+
+
+def test_merge_lock_distinct_targets_do_not_block(mod, monkeypatch, tmp_path):
+    """r11（第十轮审计 E-3）：不同 target 的两把锁必须能同时持有（不假互斥）。"""
+    monkeypatch.setattr(mod, 'RUNS', tmp_path / 'runs')
+    l1 = mod._MergeLock('feature/a')
+    l2 = mod._MergeLock('feature_a')
+    l1.__enter__()
+    try:
+        l2.__enter__()
+        l2.__exit__()
+    finally:
+        l1.__exit__()
+
+
+def test_run_all_keeps_evidence_failure_out_of_conflict(mod, monkeypatch, tmp_path):
+    """r11（第十轮审计 E-6）：前态 tree 取不到 = 取证失败、未执行合并，不能写进
+    kept_for_conflict——那会让调用方按冲突流程去 abort/solve rebase。
+    """
+    write_task(tmp_path, 1)
+    runs = tmp_path / 'runs'
+    d1 = write_run(runs, '1')
+    monkeypatch.setattr(mod, 'RUNS', runs)
+    monkeypatch.setattr(mod, 'WORKTREE_ROOT', tmp_path / 'wt')
+    prompts = tmp_path / 'prompts'
+    prompts.mkdir()
+    (prompts / '1.txt').write_text('p', encoding='utf-8')
+    monkeypatch.setattr(mod, 'gate_check', lambda d: [{'task': '1', 'verdict': '可开工'}])
+    monkeypatch.setattr(mod, 'provision', lambda d, tasks=None: ([], [], []))
+    monkeypatch.setattr(mod, 'execute', lambda *a, **k: ([], [
+        {'task': '1', 'channel': 1, 'returncode': 0, 'run_dir': str(d1)}]))
+    monkeypatch.setattr(mod, '_git_out', lambda args, *a, **k: (
+        (1, '') if list(args)[:1] == ['rev-parse'] else (0, '')))
+    cleaned = []
+    monkeypatch.setattr(mod, 'cleanup', lambda *a, **k: (cleaned.append(1) or ([], [])))
+    summary = mod.run_all(str(tmp_path), str(prompts), max_channels=1,
+                          invocation='inv-test')
+    assert summary['stopped_at'] == 'merge'
+    assert summary['steps']['cleanup']['kept_for_conflict'] == []
+    assert summary['steps']['cleanup']['kept_for_evidence'] == ['1']
+    assert cleaned == []

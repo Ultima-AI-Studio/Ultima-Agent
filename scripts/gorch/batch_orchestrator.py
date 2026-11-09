@@ -26,6 +26,7 @@ merge 只合“run 记录 result=done”的任务，逐个串行调 wt merge；�
 cleanup 调 wt remove 清残留 worktree/分支，脏目录需显式 --force。
 """
 import argparse
+import hashlib
 import json
 import os
 import pathlib
@@ -1034,9 +1035,15 @@ class _MergeLock:
         # r10（第九轮审计）：锁键必须先归一化 ref 写法。`main` 与 `refs/heads/main`
         # 指同一个 ref，未归一化会得到两把不同的锁文件，两个 gorch 就能同时进入
         # 同一 target 的取证窗口——锁等于没加。
-        safe = re.sub(r'[^0-9A-Za-z._-]', '_', _norm_ref(target) or 'target')
+        # r11（第十轮审计 C-3）：只做 `re.sub` 会**反向**出事——`feature/a` 与
+        # `feature_a` 被压成同一个文件名，两个不同 target 互相阻塞（假互斥，
+        # 属可用性误杀）。所以文件名用「可读前缀 + 归一后 ref 的 sha256 前 16 位」：
+        # 归一后相同 → 摘要必然相同（同锁）；归一后不同 → 摘要必然不同（不同锁）。
+        norm_target = _norm_ref(target) or 'target'
+        digest = hashlib.sha256(norm_target.encode('utf-8')).hexdigest()[:16]
+        safe = re.sub(r'[^0-9A-Za-z._-]', '_', norm_target)[:40] or 'target'
         self.dir = pathlib.Path(RUNS).parent / 'locks'
-        self.path = self.dir / f'merge-{safe}.lock'
+        self.path = self.dir / f'merge-{safe}-{digest}.lock'
 
     def __enter__(self):
         self.dir.mkdir(parents=True, exist_ok=True)
@@ -1154,6 +1161,11 @@ def merge(batch_dir, tasks=None, target=None, run_dirs=None, only_tasks=None,
                 # is-ancestor=0 就能通过，等于把取证失败当成功。
                 failed.append({
                     'task': task, 'branch': branch, 'returncode': 0,
+                    # r11（第十轮审计 E-6）：失败必须带**类别**，否则 run_all 只能
+                    # 把所有失败都写成 kept_for_conflict，自动消费者分不清
+                    # 「取证失败可重试」与「真冲突」。三值：evidence_failure /
+                    # merge_conflict / proof_failure。
+                    'kind': 'evidence_failure',
                     'stdout': '',
                     'stderr': (f'合并前取证失败：源分支 SHA={src_before[:12] or "?"}，'
                                f'is-ancestor rc={rc_pre!r}（只接受 0/1），fail-closed'),
@@ -1167,6 +1179,7 @@ def merge(batch_dir, tasks=None, target=None, run_dirs=None, only_tasks=None,
                 # 和"确实没合进去"混成同一个结论。
                 failed.append({
                     'task': task, 'branch': branch, 'returncode': 0,
+                    'kind': 'evidence_failure',
                     'stdout': '',
                     'stderr': (f'合并前取证失败：target 前态 tree 取不到'
                                f'（{target_tree_err or "空输出"}），未执行合并，fail-closed'),
@@ -1179,6 +1192,7 @@ def merge(batch_dir, tasks=None, target=None, run_dirs=None, only_tasks=None,
                 failed.append({
                     'task': task,
                     'branch': branch,
+                    'kind': 'merge_conflict',
                     'returncode': r.returncode,
                     'stdout': r.stdout.strip()[-600:],
                     'stderr': r.stderr.strip()[-600:],
@@ -1212,6 +1226,7 @@ def merge(batch_dir, tasks=None, target=None, run_dirs=None, only_tasks=None,
             if not got_branch or not got_target:
                 failed.append({
                     'task': task, 'branch': branch, 'returncode': 0,
+                    'kind': 'proof_failure',
                     'stdout': r.stdout.strip()[-600:],
                     'stderr': f'wt 回报缺少 branch/target（branch={got_branch!r}, '
                               f'target={got_target!r}），无法确认合到哪',
@@ -1293,6 +1308,7 @@ def merge(batch_dir, tasks=None, target=None, run_dirs=None, only_tasks=None,
 
                 failed.append({
                     'task': task, 'branch': branch, 'returncode': 0,
+                    'kind': 'proof_failure',
                     'stdout': r.stdout.strip()[-600:],
                     'stderr': (f'wt 报成功但 git 侧未证明本次合入：'
                                f'调用前已是祖先={pre_anc}，源分支 tip '
@@ -1326,11 +1342,13 @@ def merge(batch_dir, tasks=None, target=None, run_dirs=None, only_tasks=None,
 
 
 def _path_state(p):
-    """目录三态：exists / absent / unknown（r10，第九轮审计 A⑪/B7）。
+    """路径状态四态：exists / absent / wrong_type / unknown（r11，第十轮审计 E-1/A⑪）。
 
     `Path.is_dir()` 只有两态：权限不足或 IO 异常时它返回 False，与"确实不存在"
-    共用一个值，于是不可读的残留目录会被记成"已清理"。把不可确认单独列出来，
-    并且 unknown 一律不参与"已清理"的豁免。
+    共用一个值，于是不可读的残留目录会被记成"已清理"。r10 把不可确认拆成
+    unknown，但仍把**存在的非目录**（普通文件、symlink、挂载点残留）记成 absent——
+    worktree 路径被一个普通文件占据、branch 又恰好已删、登记又已清时，就会
+    记 removed，尽管路径还在。存在的非目录必须单独成态，绝不与 absent 共用。
     """
     try:
         st = os.stat(str(p))
@@ -1339,7 +1357,7 @@ def _path_state(p):
     except OSError:
         return 'unknown'
     try:
-        return 'exists' if stat.S_ISDIR(st.st_mode) else 'absent'
+        return 'exists' if stat.S_ISDIR(st.st_mode) else 'wrong_type'
     except OSError:
         return 'unknown'
 
@@ -1372,10 +1390,13 @@ def cleanup(batch_dir, tasks=None, force=False, delete_branch=False):
                 removed.append({'task': task, 'branch': branch,
                                 'worktree': str(wt_path), 'branch_outcomes': [],
                                 'note': '调用前 目录/登记/分支 三处均已不存在，按已清理处理',
-                                'evidence': {'dir_exists': False,
-                                             'dir_state': dir_state,
+                                # r11（第十轮审计 E-4/B7）：三个 removed 出口写**同形**
+                                # evidence（同一组 key），不再一处带 dir_exists、一处不带，
+                                # 让下游消费者可以按统一 schema 读。
+                                'evidence': {'dir_state': dir_state,
                                              'branch_state': br,
                                              'worktree_registered': reg,
+                                             'wt_returncode': None,
                                              'exemption': 'pre_absent',
                                              'readback': '目录/登记/分支'}})
             elif br == 'exists' or reg is True:
@@ -1404,8 +1425,7 @@ def cleanup(batch_dir, tasks=None, force=False, delete_branch=False):
                                 'note': (f'wt remove 返回 rc={r.returncode}（rc<0 表示超时），'
                                          '但 目录/登记/分支 三处均已消失，按已清理处理'),
                                 'raw_tail': raw_tail,
-                                'evidence': {'dir_exists': not wt_gone,
-                                             'dir_state': dir_state,
+                                'evidence': {'dir_state': dir_state,
                                              'branch_state': br,
                                              'worktree_registered': reg,
                                              'wt_returncode': r.returncode,
@@ -1464,7 +1484,13 @@ def cleanup(batch_dir, tasks=None, force=False, delete_branch=False):
                             'result': data, 'branch_outcomes': outcomes,
                             'schema_ok': schema_ok, 'wt_remove_rc': r.returncode,
                             'worktree': str(wt_path),
-                            'note': 'rc=0、schema 合法且 目录/登记/分支 三处回读均已消失'})
+                            'note': 'rc=0、schema 合法且 目录/登记/分支 三处回读均已消失',
+                            'evidence': {'dir_state': dir_state,
+                                         'branch_state': br,
+                                         'worktree_registered': reg,
+                                         'wt_returncode': r.returncode,
+                                         'exemption': 'rc_zero_confirmed',
+                                         'readback': '目录/登记/分支'}})
             continue
         skipped.append({'task': task, 'branch': branch, 'partial': True,
                         'reason': (f'wt 返回 rc=0 但现场未清干净 '
@@ -1583,10 +1609,20 @@ def run_all(batch_dir, prompts_dir, max_channels=MAX_CHANNELS, target=None,
                       'verified_only': verified}
 
     if failed:
+        # r11（第十轮审计 E-6）：取证失败不是冲突。前态 tree / 源 SHA 取不到时
+        # 根本没调 wt_merge，现场原封不动；把它写进 kept_for_conflict 会让调用方
+        # 误按冲突流程去 abort/solve rebase（那会把干净现场搞脏）。
+        evidence_failed = [f['task'] for f in failed
+                           if f.get('kind') == 'evidence_failure']
+        rest_failed = [f['task'] for f in failed
+                       if f.get('kind') != 'evidence_failure']
         steps['cleanup'] = {'removed': [], 'skipped': [],
-                            'kept_for_conflict': [f['task'] for f in failed]}
+                            'kept_for_conflict': rest_failed,
+                            'kept_for_evidence': evidence_failed}
+        kinds = sorted({f.get('kind') or 'unspecified' for f in failed})
         return {**base, 'steps': steps, 'stopped_at': 'merge',
-                'note': '合并失败（可能为冲突），跳过 cleanup 以保留现场'}
+                'note': (f'合并段停止（失败类别={kinds}），跳过 cleanup 以保留现场；'
+                         'evidence_failure = 取证未通过且**未执行合并**，可直接重试')}
 
     # 先判定"是否还有任务没闭合"，再决定要不要清现场：之前 cleanup 跑在 stale
     # 判定之前，一旦最后判失败，该保留的证据已经被删了（审计 Q1）。

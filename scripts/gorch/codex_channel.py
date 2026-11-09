@@ -21,6 +21,7 @@ import os
 import pathlib
 import re
 import shutil
+import stat
 import subprocess
 import sys
 import time
@@ -178,16 +179,19 @@ def _digest(workdir, rel):
     # 时，脏基线里同一路径两次 stat 失败会得到相同摘要，被 fresh_changes 判成"没变"，
     # 域外不可读改动就被漏检。读不到一律 None，由 worktree_fingerprint 整体标 ERR。
     try:
-        p.stat()
+        st = p.stat()
     except FileNotFoundError:
         return 'ABSENT'
     except OSError:
         return None
-    try:
-        if not p.is_file():
-            return 'ABSENT'
-    except OSError:
-        return None
+    # r11（第十轮审计 E-2）：**存在但不是普通文件**（目录 / symlink / 特殊文件）
+    # 不能与「不存在」共用 ABSENT——两次采样都 ABSENT 会被判"没变"，而"路径还在、
+    # 只是类型不对"本来就是另一个事实。给带类型的摘要：它仍是可比较的（类型一变
+    # 摘要就变），既不误判"没改"，也不会把整份指纹打成不可用（untracked 目录是常态）。
+    if not stat.S_ISREG(st.st_mode):
+        kind = ('dir' if stat.S_ISDIR(st.st_mode)
+                else 'link' if stat.S_ISLNK(st.st_mode) else 'other')
+        return 'TYPE:' + kind
     h = hashlib.sha256()
     try:
         with open(str(p), 'rb') as fh:
