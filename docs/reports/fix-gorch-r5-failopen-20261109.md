@@ -331,3 +331,63 @@ untracked/需监管 ignored）｜`_fresh_paths` 保留 rename 两端、去掉破
   （"让 Codex 出修复实现"）前提不成立，应回第①环做 **r7**。
 - r7 的输入 = §9.4 的 8 条可直改 + 3 条口径；其中 3 条口径与「授权归 agent、人不参与
   执行期审批」并不冲突（属实现层收紧），但仍需 Owner 一句话确认形态。
+
+## 十、r7 实现闭环（对应 §9 的 4 ❌ / 1 ⚠️ / 八条新问题 / 三条口径）
+
+> 本轮只做四段式流程的第①环（助手自修）：把 §9 判为缺口的部分落到代码与用例。
+> 是否与审计一致，由第七轮 Codex 复核，本报告不代下结论。
+
+### 10.1 三条口径的落定形态
+
+| 口径 | 落定形态 | 证据 |
+|---|---|---|
+| ① 手工调用 `codex_channel` 不允许 CLI 自授权 | `load_authorizations` 在无 `--manifest` 时直接置 `problem`（退出码 2）；`main()` 删掉整段 CLI 采纳逻辑，`--no-change-allowed` / `--allow-non-repo` 只写进 `record['ignored_cli_flags']` 留痕，实际取值一律以清单为准 | `codex_channel.py`（`load_authorizations`、`main()`）、`test_no_manifest_rejects_cli_self_authorization`、`test_cli_flag_without_grant_still_blocks` |
+| ② merge 必须证明「由本次调用造成」 | 调用前先取 `target_sha`、`src_before`、`rc_pre` 三项；`target_sha` 取不到 → `SystemExit`（fail-closed），`src_before` 为空或 `rc_pre ∉ {0,1}` → 记 failed 并停止后续分支。判定仍为「target tip 前进 ∧ 源已是 target 祖先 ∧（调用前已是祖先时源 tip 必须变过）」 | `batch_orchestrator.py`（`merge()`）、`test_merge_rejects_when_pre_state_probe_fails` |
+| ③ cleanup 两条豁免要独立证据 | 两条豁免条目在 `note` 之外新增 `evidence`：`dir_exists` / `branch_state` / `worktree_registered` /（超时那条另有 `wt_returncode`）/ `exemption`（`pre_absent` 或 `rc_zero_not_required`）/ `readback`。回读值分别来自目录、`_branch_state`、`_worktree_registered` 三处，不再凭 rc 或一句说明记成功 | `cleanup()`、`test_cleanup_pre_absent_three_way_records_evidence`、`test_cleanup_timeout_exemption_records_evidence` |
+
+### 10.2 11 项复核逐条落地
+
+| # | 第六轮结论 | r7 处置 | 用例 |
+|---|---|---|---|
+| ① | ✅ | 未动（`_stop` 前移只影响行号） | — |
+| ② | ✅ 但前态查询失败被折成 `pre_anc=False` | 取证失败改 fail-closed（见口径②） | `test_merge_rejects_when_pre_state_probe_fails` |
+| ③ | ✅ | 未动 | r6 两条保留 |
+| ④ | ✅ 遗留 `:791` mtime、`:730` docstring 失实 | fallback 条目去掉 `mtime` 字段；docstring 改写为「严格 UTC + invocation 唯一性」 | — |
+| ⑤ | ❌ `_utc_ts` 无时区 `replace(tzinfo=UTC)`、同 invocation 多条不判、根节点非 dict 崩 | `dt.tzinfo is None` 或 `utcoffset() != timedelta(0)` 一律返 None（只接受严格 UTC）；fallback 增 `dup_inv` 检测，同 invocation 多条即阻断；根节点非 dict 在 `data.get` 之前拦下 | `test_utc_ts_requires_strict_utc`、`test_run_dirs_rejects_non_dict_root`、`test_fallback_rejects_duplicate_invocation` |
+| ⑥ | ✅ | 未动 | r6 两条保留 |
+| ⑦ | ❌ 写域解析三处 | `_STATE_PREFIX` 只剥「两字符状态 + 一个空格」，不再用 `strip()` 吃掉路径首空格；`_scope_match` 改自写正则（`*`→`[^/]*`、`**`→`.*`、`?`→`[^/]`，其余 `re.escape`，`fullmatch` 或 `fullmatch(rx + '/.*')`）；rename 的 `' -> '` 两端都保留 | `test_state_prefix_keeps_leading_space_path`、`test_scope_star_does_not_cross_separator`、`test_rename_checks_both_ends` |
+| ⑧ | ❌ 脏基线同路径变化被丢、`status` 未带 `--ignored` | `_status_rows` 改 `git status --porcelain -z -uall --ignored`，NUL 切分，`!!` 收进 `ignored` 且计入 `paths`；`worktree_fingerprint` 改逐路径 sha256 摘要（超 8MiB 用 `BIG:<size>:<mtime>`，读失败 `ERR:<errno>`）；`fresh_changes` 判「新路径 ∪ 同路径摘要变」 | `test_same_path_content_change_is_fresh`、`test_ignored_path_outside_scope_blocks`、`test_staging_only_is_not_fresh` |
+| ⑨ | ✅ | 未动 | r6 一条保留 |
+| ⑩ | ❌ CLI 自授权入口 | 见口径① | 同口径① |
+| ⑪ | ⚠️ 用例数量对但未覆盖 9 类场景 | 新增 20 条（batch 11 / channel 9），见 10.4 | — |
+
+### 10.3 八条新问题
+
+| # | 新问题 | 处置 | 用例 |
+|---|---|---|---|
+| 1 | 脏基线同路径越域可判成功 | 逐路径内容摘要 + `fresh_changes` 同路径摘要变即算新增 | `test_same_path_content_change_is_fresh` |
+| 2 | ignored 越域写不可见 | `--ignored` 纳入状态行，`ignored` 集合同时进 `paths` 参与写域校验 | `test_ignored_path_outside_scope_blocks` |
+| 3 | rename 域外源删除被忽略 | `_fresh_paths` 把 rename 两端都产出，两端都要过 `write_scope` | `test_rename_checks_both_ends` |
+| 4 | merge 前态查询失败被当「前态不是祖先」 | `src_before` / `rc_pre` 取证失败即 fail-closed，记 failed 并停后续 | `test_merge_rejects_when_pre_state_probe_fails` |
+| 5 | 显式 run-dir 未核对 run-record 身份（B 的 done 可映射给 `A=PATH_TO_B`） | 四道校验全部前置于 `dry_run` 判断：根节点非 dict / `task` 不符 / `run_dir` basename 不符 / `invocation` 为空 | `test_run_dirs_rejects_record_of_another_task`、`test_run_dirs_rejects_record_without_invocation`、`test_run_dirs_rejects_non_dict_root` |
+| 6 | 不传 manifest 仍可自签例外 | 见口径① | `test_no_manifest_rejects_cli_self_authorization` |
+| 7 | 合法 tracked 修改被误杀（首空格被 `strip()` 吃掉） | `_STATE_PREFIX` + `_norm_path`（只剥真正的 `./`，不再 `lstrip('./')`） | `test_state_prefix_keeps_leading_space_path`、`test_hidden_dir_path_is_not_truncated` |
+| 8 | 拒签流程两条误杀/崩溃 | `_stop` 定义前移到 `if refused:` 之前；`execute(..., tasks=None)` 只收窄不扩张，`run_all` 传 `tasks=ready`，已拒签任务不再被重建进 ready | `test_run_all_returns_gate_when_all_grants_refused`、`test_execute_does_not_restore_refused_tasks` |
+
+### 10.4 用例与实跑
+
+- 新增 20 条：`test_gorch_codex_channel.py` 9 条（无 manifest 拒签 / CLI 开关不构成授权 / ignored 越域 / `*` 不跨 `/` / rename 两端 / 首空格路径 / 同路径内容变化 / 仅暂存不算新增 / 隐藏目录不被截断），`test_gorch_batch_orchestrator.py` 11 条（严格 UTC / run-record 身份 3 条 / dup invocation / merge 前态取证 / merge CLI 必须带 run-dir / 全拒签返回 gate / execute 不收窄回吐 / cleanup 证据 2 条）。
+- 实跑（仓库根、专用解释器、`-o addopts=`、`-p no:cacheprovider`）：
+  - 单跑 `tests/test_gorch_codex_channel.py` → **36 passed / 11.25s**
+  - 单跑 `tests/test_gorch_batch_orchestrator.py` → **92 passed / 31.36s**
+  - 两文件合跑 → **128 passed / 42.18s**（r6 基线 108 passed / 39.12s）
+- 四个文件 `py_compile` 全部 ok。
+
+### 10.5 仍未闭合（诚实边界）
+
+1. `done_no_merge` 的终态名与三分组（`mergeable_done` / `verified_only` / `stale`）仍未书面落定，牵动契约 v1.3；本轮不动它。
+2. `run_all` 改动后**未用真实批次重跑**：旧卡 `GORCH-RUN-A/B` 会因「无新增」判 blocked，需换任务名后另跑一轮；冲突形态全链仍只有单测，`#9` 冲突恢复路径未实现。
+3. 八跳第 4 跳（主脑回传授权条件）仍只有单测，未进 `run_all`。
+4. 口径②的「本次调用造成」仍建立在 SHA 比较与时序上：同一窗口内若有第三方进程以**同一 source** 推进 target，理论上仍可能误判——彻底分离需要 git 侧事务级证据，本轮不做。
+5. `_status_rows` 的 ignored 条目上限 4000，超出即 `ERR:ignored>4000` 阻断（宁可拒也不静默）。
+6. 本报告所有测试数字均为提交方本地实跑，非审计方独立复验；第七轮审计若同样不跑 pytest，仍需按「主张」对待。

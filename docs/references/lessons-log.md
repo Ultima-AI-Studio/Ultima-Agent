@@ -718,3 +718,30 @@
   删掉再返回坏回执——否则走的是「三处均已不存在」那条分支，根本到不了 schema 校验。
 - **口径**：审计点名的 9 类回归用例全部补齐，合跑 **108 passed / 39.12s**（batch 81 + channel 27）。
   仍未做：ignored 新产物的显式枚举（`git status` 不列 ignored，等于永远不越域）。
+
+## L83 · r7：PowerShell 写补丁脚本的转义坑 + 「默认签发清单」写法（2026-11-09）
+
+- **坑 1（`\0` 被写成真 NUL 字节）**：补丁脚本文本里写 `split('\0')` 承载到被测源码时，PowerShell
+  here-string 把它落成真 NUL 字符，`py_compile` 报
+  `source code string cannot contain null bytes`。修法：源码里写成字面 `'\\0'`（Python 看到的是
+  `'\0'` 两个字符的转义），再用小脚本把已经落成 `\x00` 的字节换回。写完必 `py_compile`。
+- **坑 2（`'\n'.join(...)` 被展开成真换行）**：同样的原因，写进源码后变成
+  `'\n'` 中间断行 → `SyntaxError: unterminated string literal`。改用 `chr(10).join` /
+  `rstrip(chr(13)+chr(10))` 这类不依赖转义的写法，最稳。
+- **坑 3（补丁锚点里的 `\n` 失配）**：逐段 `assert old in s, tag` 定位时，锚点字符串里的 `'# 工单\n'`
+  在 here-string 中先被展开成真换行，与文件中的字面 `\n` 不匹配，整段中止。锚点内的换行必须写成
+  `\\n`，或者干脆避开含转义的锚点、改用纯文本前缀定位。
+- **坑 4（`channel()` 不签发清单 → 旧用例整批红）**：r7 起执行端无 manifest 一律拒，而 channel
+  测试的 `channel(cmd, data_dir)` 辅助用 `subprocess` 直接起 `main()`，argv 里没有 `--manifest` →
+  7 条旧用例集体 `rc=2`。修法：辅助函数在 argv 不含 `--manifest` 且含 `--task` 时**自动签发一份宽松
+  清单**（`no_change_allowed` / `allow_non_repo` 都为真、写域未强制），保持旧用例原语义；要测拒签的
+  用例在自己的 argv 里显式带 `--manifest` 覆盖自动那份。
+- **坑 5（`lstrip('./')` 吃隐藏目录）**：`.github/workflows/x.yml` 被剥成 `github/workflows/x.yml`，
+  写域校验就比对错位；`lstrip` 的字符集语义本来就不是「剥前缀」。修法：`_norm_path` 用
+  `while p.startswith('./')` 只剥真正的相对前缀，并补 `test_hidden_dir_path_is_not_truncated`。
+- **坑 6（cleanup 超时豁免用例必须先让目录存在）**：`cleanup` 在 `wt_path.is_dir()` 为假时走的是
+  「调用前已不存在」分支，根本到不了 `wt_remove`。要测「超时但现场已空」，必须让假 `wt_remove`
+  **先删目录再返回 rc=-1**，而不是在调用前把目录删掉。
+- **口径**：r7 合跑 **128 passed / 42.18s**（batch 92 + channel 36），r6 基线 108 passed / 39.12s；
+  新增 20 条（channel 9 / batch 11，含 2 条 cleanup 证据）。仍未做：真实批次重跑 `run_all`、
+  冲突形态全链真跑、`done_no_merge` 三分组落定。
