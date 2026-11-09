@@ -33,8 +33,11 @@ SLOT_NAMES = ('S-MAIN', 'S-REVIEW', 'S-EXEC')
 _DEFAULTS: dict[str, dict[str, Any]] = {
     'S-MAIN': {
         'impl': 'ollama-8b',
-        'endpoint': 'http://127.0.0.1:18766',
-        'model': 'qwen3:8b',
+        # 本机实测：ollama 装在 %LOCALAPPDATA%\Programs\Ollama（不在 PATH），
+        # 监听 127.0.0.1:11434，已有 qwen3-8b-uncensored。原默认 18766 是没落地的
+        # 自定端口，配置一旦指向不存在的东西，主脑位就永远是"未接线"。
+        'endpoint': 'http://127.0.0.1:11434',
+        'model': 'qwen3-8b-uncensored:latest',
         'enabled': False,   # 8B 未起时保持 False，调用须报错而非假装可用
     },
     'S-REVIEW': {
@@ -56,7 +59,8 @@ _DEFAULTS: dict[str, dict[str, Any]] = {
 
 # 环境变量覆盖（只开放最常换的那几项；复杂项走 json）。
 _ENV_MAP: dict[str, dict[str, str]] = {
-    'S-MAIN': {'endpoint': 'GORCH_MAIN_ENDPOINT', 'model': 'GORCH_MAIN_MODEL'},
+    'S-MAIN': {'endpoint': 'GORCH_MAIN_ENDPOINT', 'model': 'GORCH_MAIN_MODEL',
+               'enabled': 'GORCH_MAIN_ENABLED'},
     'S-REVIEW': {'base_url': 'GORCH_REVIEW_BASE_URL',
                  'model': 'GORCH_REVIEW_MODEL',
                  'api_key_env': 'GORCH_REVIEW_KEY_ENV'},
@@ -146,15 +150,22 @@ def exec_settings(path: str | Path | None = None) -> dict[str, Any]:
     }
 
 
+def _as_bool(value: Any) -> bool:
+    """环境变量覆盖进来的开关是字符串，不能直接 bool()——bool("false") 是 True。"""
+    if isinstance(value, str):
+        return value.strip().lower() in ('1', 'true', 'yes', 'on')
+    return bool(value)
+
+
 def main_settings(path: str | Path | None = None) -> dict[str, Any]:
     """S-MAIN 生效设置（本地 8B）。"""
     cfg = slot('S-MAIN', path)
     return {
         'slot': 'S-MAIN',
         'impl': cfg['impl'],
-        'endpoint': str(cfg['endpoint']),
+        'endpoint': str(cfg['endpoint']).rstrip('/'),
         'model': str(cfg['model']),
-        'enabled': bool(cfg.get('enabled')),
+        'enabled': _as_bool(cfg.get('enabled')),
     }
 
 
@@ -171,6 +182,44 @@ def require_main(path: str | Path | None = None) -> dict[str, Any]:
             '第 1、4 跳不能由适配层代做'
         )
     return cfg
+
+
+def main_chat_url(settings: dict[str, Any]) -> str:
+    """把 S-MAIN 的 endpoint 补成 OpenAI-compatible 的 chat/completions 地址。
+
+    endpoint 允许写成主机根（``http://127.0.0.1:11434``，Ollama 的常见写法）、
+    ``/v1`` 或者完整的 ``/v1/chat/completions``；三种都接受，避免配了一种却调不通。
+    """
+    ep = str(settings['endpoint']).rstrip('/')
+    if ep.endswith('/chat/completions'):
+        return ep
+    if ep.endswith('/v1'):
+        return ep + '/chat/completions'
+    return ep + '/v1/chat/completions'
+
+
+def call_main(system_prompt: str, prompt: str, *, settings: dict[str, Any] | None = None,
+              max_tokens: int = 2048, timeout: float = 120.0) -> dict[str, Any]:
+    """第 1、4 跳（主脑理解 / 回传授权条件）的实际调用入口。
+
+    不自研 HTTP 客户端：复用 ``orchestrator.call_deepseek`` 这套 OpenAI-compatible
+    实现，只换 base_url / model / key。本地 Ollama 不校验 key，但客户端要求非空，
+    故用占位值；需要真鉴权时用 ``GORCH_MAIN_KEY`` 覆盖。
+    """
+    cfg = settings or require_main()
+    try:                                    # 作为包被 import 时
+        from .orchestrator import call_deepseek
+    except ImportError:                     # 被 importlib 按文件路径加载时
+        from src.brain.orchestrator import call_deepseek
+
+    return call_deepseek(
+        system_prompt, prompt,
+        model=cfg['model'],
+        max_tokens=max_tokens,
+        timeout=timeout,
+        base_url=main_chat_url(cfg),
+        api_key=os.environ.get('GORCH_MAIN_KEY', '').strip() or 'ollama',
+    )
 
 
 def render_exec_argv(settings: dict[str, Any], *, exe: str, workdir: str,

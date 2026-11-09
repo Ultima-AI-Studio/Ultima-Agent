@@ -12,8 +12,11 @@ sys.path.insert(0, str(ROOT))
 from src.brain.slot_adapter import (  # noqa: E402
     SLOT_NAMES,
     SlotConfigError,
+    _as_bool,
+    call_main,
     exec_settings,
     load_config,
+    main_chat_url,
     main_settings,
     render_exec_argv,
     require_main,
@@ -304,3 +307,98 @@ def test_run_codex_template_actually_replaces_cli(tmp_path, monkeypatch):
     proc, _elapsed = cc.run_codex(exe, b'', tmp_path, last_msg, 'high', 30)
     assert proc.returncode == 0
     assert last_msg.read_text(encoding='utf-8') == 'ok:probe-exec-model'
+
+
+# --- S-MAIN 接线（跳 1/4）--------------------------------------------------
+# 这一组锁住两件事：默认值必须指向本机真在跑的东西；enabled 从环境变量进来时
+# 不能被 bool("false") 误判成开启。
+
+
+def test_main_defaults_point_to_running_ollama():
+    """默认 endpoint 必须是 ollama 实际监听的 11434，不能回到没落地的 18766。"""
+    cfg = main_settings(None)
+    assert cfg['endpoint'] == 'http://127.0.0.1:11434'
+    assert '8b' in cfg['model'].lower()
+    assert cfg['enabled'] is False
+
+
+def test_env_enabled_false_stays_off(monkeypatch):
+    """GORCH_MAIN_ENABLED=false 必须仍是关闭——bool("false") 是 True 的经典坑。"""
+    monkeypatch.setenv('GORCH_MAIN_ENABLED', 'false')
+    assert main_settings(None)['enabled'] is False
+    with pytest.raises(SlotConfigError):
+        require_main(None)
+
+
+@pytest.mark.parametrize('raw', ['1', 'true', 'TRUE', 'yes', 'on'])
+def test_env_enabled_truthy_opens_main(monkeypatch, raw):
+    monkeypatch.setenv('GORCH_MAIN_ENABLED', raw)
+    assert main_settings(None)['enabled'] is True
+    assert require_main(None)['enabled'] is True
+
+
+def test_as_bool_handles_non_string(tmp_path):
+    assert _as_bool(True) is True
+    assert _as_bool(False) is False
+    assert _as_bool(None) is False
+
+
+@pytest.mark.parametrize('endpoint,expected', [
+    ('http://127.0.0.1:11434', 'http://127.0.0.1:11434/v1/chat/completions'),
+    ('http://127.0.0.1:11434/v1', 'http://127.0.0.1:11434/v1/chat/completions'),
+    ('http://127.0.0.1:11434/v1/chat/completions',
+     'http://127.0.0.1:11434/v1/chat/completions'),
+    ('https://api.example.com/', 'https://api.example.com/v1/chat/completions'),
+])
+def test_main_chat_url_accepts_three_forms(endpoint, expected):
+    assert main_chat_url({'endpoint': endpoint}) == expected
+
+
+def test_call_main_refuses_when_not_enabled():
+    with pytest.raises(SlotConfigError):
+        call_main('sys', 'hi')
+
+
+def test_call_main_passes_slot_settings_to_shared_client(tmp_path, monkeypatch):
+    """换主脑只换配置：调用本身复用 orchestrator 那套 OpenAI-compatible 客户端。"""
+    cfg = _write(tmp_path, {'S-MAIN': {'enabled': True, 'model': 'probe-main-8b',
+                                       'endpoint': 'http://127.0.0.1:11434'}})
+    monkeypatch.setenv('GORCH_SLOT_CONFIG', str(cfg))
+    monkeypatch.delenv('GORCH_MAIN_KEY', raising=False)
+
+    captured = {}
+
+    def fake_call(system_prompt, prompt, **kwargs):
+        captured.update(kwargs)
+        captured['system'] = system_prompt
+        captured['prompt'] = prompt
+        return {'response': 'ok', 'model': kwargs['model'], 'tokens': {}}
+
+    import src.brain.orchestrator as orch
+    monkeypatch.setattr(orch, 'call_deepseek', fake_call)
+
+    out = call_main('你是主脑', '把需求转写一下', max_tokens=512, timeout=30)
+    assert out['response'] == 'ok'
+    assert captured['model'] == 'probe-main-8b'
+    assert captured['base_url'] == 'http://127.0.0.1:11434/v1/chat/completions'
+    assert captured['api_key'] == 'ollama'      # 本地 ollama 不校验，但客户端要非空
+    assert captured['max_tokens'] == 512
+    assert captured['timeout'] == 30
+    assert captured['system'] == '你是主脑'
+
+
+def test_call_main_key_override_from_env(tmp_path, monkeypatch):
+    cfg = _write(tmp_path, {'S-MAIN': {'enabled': True}})
+    monkeypatch.setenv('GORCH_SLOT_CONFIG', str(cfg))
+    monkeypatch.setenv('GORCH_MAIN_KEY', 'real-key-123')
+
+    captured = {}
+
+    def fake_call(system_prompt, prompt, **kwargs):
+        captured.update(kwargs)
+        return {'response': 'ok', 'model': kwargs['model'], 'tokens': {}}
+
+    import src.brain.orchestrator as orch
+    monkeypatch.setattr(orch, 'call_deepseek', fake_call)
+    call_main('sys', 'hi')
+    assert captured['api_key'] == 'real-key-123'

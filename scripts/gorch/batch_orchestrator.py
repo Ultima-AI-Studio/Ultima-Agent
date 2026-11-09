@@ -403,8 +403,24 @@ def find_done_tasks(batch_dir):
     return done
 
 
-def merge(batch_dir, tasks=None):
+def _current_branch():
+    """本仓库当前检出的分支名——合并的默认目标。
+
+    wt merge 的 TARGET 缺省是 default branch（本仓库为 main），而编排实际是在工作
+    分支上施工的。把 target 交给 wt 默认值，等于把施工直接铺到 main、工作分支反而
+    落后；再合第二个分支时 main 已有同名文件，就变成 add/add 冲突。
+    """
+    r = subprocess.run([GIT_EXE, '-C', str(ROOT), 'rev-parse', '--abbrev-ref', 'HEAD'],
+                       capture_output=True, text=True, encoding='utf-8',
+                       errors='replace', env=_wt_env(), timeout=WT_TIMEOUT)
+    return r.stdout.strip()
+
+
+def merge(batch_dir, tasks=None, target=None):
     """串行把已完成任务的分支合回主线；任一失败即停，不跳过错继续合下一个。
+
+    ``target`` 默认取当前检出分支，不交给 wt 的 default branch 默认值——见
+    ``_current_branch()`` 里的原因说明。要合到别处（如发布时合 main）必须显式传。
 
     冲突时 wt 会把 rebase 留在源 worktree 的未完成态，必须人工 abort 或解决后才能继续；
     因此这里宁可整批停下并如实回传原始输出，也不在半合并历史上叠加后续分支。
@@ -421,10 +437,14 @@ def merge(batch_dir, tasks=None):
     if not targets:
         return done, [], []
 
+    resolved_target = (target or _current_branch()).strip()
+    if not resolved_target or resolved_target == 'HEAD':
+        raise SystemExit('无法确定合并目标分支（当前处于 detached HEAD），请显式传 target')
+
     merged, failed = [], []
     for task in targets:
         branch = BRANCH_PREFIX + task
-        r = wt_merge(branch)
+        r = wt_merge(branch, target=resolved_target)
         if r.returncode != 0:
             failed.append({
                 'task': task,
@@ -560,6 +580,8 @@ def main(argv=None):
     m.add_argument('batch_dir', help='批次任务目录（只放 <id>.md）')
     m.add_argument('--tasks', nargs='*', default=None,
                    help='只合这些任务（默认合所有 result=done 的）')
+    m.add_argument('--target', default=None,
+                   help='合并目标分支（默认当前检出分支；合到 main 属发布动作，须显式传）')
     c = sub.add_parser('cleanup', help='清理残留 worktree 与分支（调 wt remove）')
     c.add_argument('batch_dir', help='批次任务目录（只放 <id>.md）')
     c.add_argument('--tasks', nargs='*', default=None, help='只清这些任务')
@@ -602,9 +624,11 @@ def main(argv=None):
         return 0
 
     if args.cmd == 'merge':
-        done, merged, failed = merge(args.batch_dir, tasks=args.tasks)
+        done, merged, failed = merge(args.batch_dir, tasks=args.tasks,
+                                     target=args.target)
         print(json.dumps(
             {'batch': str(pathlib.Path(args.batch_dir)),
+             'target': args.target or _current_branch(),
              'done_tasks': done, 'merged': merged, 'failed': failed},
             ensure_ascii=False, indent=2))
         # 任一分支合并失败（含冲突）即非 0，让上游看到失败而不是“跑完了”。

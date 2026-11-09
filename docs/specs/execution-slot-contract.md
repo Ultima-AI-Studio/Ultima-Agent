@@ -119,10 +119,10 @@
 
 | 跳 | 环节 | 载体 | 现状 |
 |---|---|---|---|
-| 1 | 主脑理解 | `S-MAIN` | **空**（ollama 未装、18766 无监听；本轮人工代做） |
+| 1 | 主脑理解 | `S-MAIN` | ✅ 真调本地 8B（`qwen3-8b-uncensored:latest` @ `127.0.0.1:11434`，12.4s / in 170 / out 242）：把带执行细节的原始需求转写成只描述产物的版本 |
 | 2 | 审议·理解/方案 | `orchestrator` decompose | ✅ 真调 DeepSeek，verdict=completed |
 | 3 | Owner 确认 | 人工 | 人工（本轮代做并改判：7 道串行同文件 → 合 1 张工单） |
-| 4 | 主脑回传授权条件 | `S-MAIN` | **空**（同上，本轮写进工单验收 A1-A3） |
+| 4 | 主脑回传授权条件 | `S-MAIN` | 能力已落地（`call_main()` + 8 条单测），**尚未与真实需求串跑**；本轮授权条件写进工单验收 A1-A3 |
 | 5 | 审议·拆解/工单 | `orchestrator` work_order | ✅ 真调，verdict=completed |
 | 6 | 审议·工单自检 | 同 stage 内自检 | ✅ 产出自检清单 G1-G6 |
 | 7 | 执行·写码/自检/提交 | `S-EXEC` | ✅ Codex rc=0 result=done，产出 4209B 并提交 |
@@ -135,11 +135,10 @@
 | 缺口 | 影响 | 下一步 |
 |---|---|---|
 | 回执两套结构 | 下游无法用同一套判定处理不同插槽产物 | §3 统一结构落地 |
-| 主脑未接线 | 第 1、4 跳靠人工代做 | 起本地 8B（或把 `S-MAIN` 指向任一 OpenAI-compatible 端点），`enabled=true` 才放行 |
 | 4 处 model 硬编码不在适配层路径内 | 换 model 时要单独改这 4 个文件 | 收口到 `slot_adapter` 一处（`audit-work-order.py` / `external_executor.py` / `interaction.py` / mem0） |
-| `wt merge` 在本仓库会超过 180s | 已改 `MERGE_TIMEOUT=600` + 超时探现场（分支是否已被删）；**600s 尚未在真实合并上验证**（本次合并由 cherry-pick 完成） | 下一次真实合并时确认耗时与回执 |
+| `wt merge` 的目标分支 | `TARGET` 缺省是 default branch（main），而施工在 `codex/voice-fsmn-new-path` 上；已加 `_current_branch()` + `merge(target=)` + CLI `--target`，默认取当前检出分支 | 发布期合 main 须显式 `--target main`，流程上需明确"编码期合工作分支、发布期合 main" |
 
-> 已关闭：S6 合并编排（2026-11-09）、A/B 两路未接（S7 `bridge`）、执行位 CLI 硬编码、model 硬编码（编排主路径）、未接线插槽无 fail-closed（`require_main()` 现在报错）、工单命令块被误判成工具调用（L73）。
+> 已关闭：S6 合并编排（2026-11-09）、A/B 两路未接（S7 `bridge`）、执行位 CLI 硬编码、model 硬编码（编排主路径）、未接线插槽无 fail-closed（`require_main()` 现在报错）、工单命令块被误判成工具调用（L73）、**主脑未接线**（`S-MAIN` 默认指向 `127.0.0.1:11434` 的 `qwen3-8b-uncensored:latest`，`call_main()` 落地，跳 1 真跑 12.4s / in 170 / out 242）、**`MERGE_TIMEOUT=600` 未验证**（2026-11-09 真实合并 **227.4s rc=0**，主线 `50af6549→3d0fc8dd`，报告 4020B 落地；227.4s 正好落在"旧 180s 必超时、新 600s 有余量"之间）。
 
 ---
 
@@ -171,3 +170,4 @@
 | v1.0 | 2026-11-09 | 初版：三插槽接口、共同与专项硬边界、回执统一结构、替换方式（配置 vs 改码）、两条路径现状与八跳空档、已知缺口、可机检判定 |
 | v1.1 | 2026-11-09 | 适配层落地：新增 `src/brain/slot_adapter.py`（`config/gorch/slots.json` + 环境变量 + 内置默认值三级），三插槽换 API/CLI/模型全部不需要改码；§4 重写、§5 合并链标 S6 完成、§6 缺口表关闭三项；`call_deepseek`/`run_stage` 增加 `base_url`/`api_key` 显式入参（修复"model 换了 key 没换"的假替换） |
 | v1.2 | 2026-11-09 | S7 接通：新增 `bridge` 交接点（只搬不解析，带 frontmatter 的工单由 Owner 放进批次目录）；§5 改为「A 与 B 已接通」并补八跳实测状态（2/5/6/7/8 已真跑，1/4 仍空）；§6 关闭「两条路未接」、新增「wt merge 超 180s 需 600s 且 600s 未经真实合并验证」 |
+| v1.3 | 2026-11-09 | 收口：① `S-MAIN` 接到真在跑的本地 ollama（`127.0.0.1:11434` / `qwen3-8b-uncensored:latest`，原 18766 是无落地的自定端口），新增 `_as_bool`/`main_chat_url`/`call_main`，跳 1 真跑 12.4s 通过；② `MERGE_TIMEOUT=600` 经真实合并验证（**227.4s rc=0**，主线 `50af6549→3d0fc8dd`）；③ 发现并修复 `wt merge` 的 TARGET 缺省为 default branch（main）导致施工全铺到 main——`merge()` 增加 `target` 参数、默认取当前检出分支、CLI 加 `--target`；④ 补正 L72：上一单并非"没合入"，而是合进了 main（`d1e51eb3`），新增 L74 |

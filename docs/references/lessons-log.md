@@ -588,10 +588,11 @@
 - **复发**：0
 ## L72 · wt merge 超时被当成"没动手"，实际分支已被删除、提交变成孤儿（2026-11-09）
 
-- **现象**：S7 真跑一单时调 `wt merge gorch/WO-README`，180s 超时被拦，报"fail-closed"。随后核查现场发现：worktree 目录没了、`gorch/WO-README` 分支没了、主线 `config/gorch/README.md` 也没出现，执行端提交 `def92006` 不在任何分支上——**超时报的是"卡住"，实际发生的是"删了分支但没合入"**。
+- **现象**：S7 真跑一单时调 `wt merge gorch/WO-README`，180s 超时被拦，报"fail-closed"。随后核查现场发现：worktree 目录没了、`gorch/WO-README` 分支没了、工作分支 `codex/voice-fsmn-new-path` 上没出现 `config/gorch/README.md`，执行端提交 `def92006` 不在任何分支上。
 - **根因**：两层叠加。① `MERGE_TIMEOUT` 沿用了 `wt switch` 的 180s，而本仓库有 32 万+ 未跟踪文件，单次 `git status` 就要 90s+，`wt merge` 的 commit→squash→rebase 串下来必然超过 180s；② 超时处理把"进程被 terminate"一律当成"未变更"，但 `wt` 的第 7 步 cleanup 会删分支与 worktree，超时点落在 cleanup 之后时，分支已经消失而合并并未完成。
-- **处置**：`def92006` 对象仍在（git 未 gc），用 `git cherry-pick def92006` 恢复，产出 `ea6f08ec`、README.md 4209B 与执行端产物逐字节一致。同时改代码：`MERGE_TIMEOUT=600` 独立于 `WT_TIMEOUT`；超时后先调 `_branch_exists()` 探现场，分支已不存在就明说"可能已删分支但未完成合入，不要假定无改动"，分支仍在才敢说"主线应未变更"。新增 4 条测试锁住两种表述。
-- **教训（通用）**：① **超时 ≠ 无副作用**。对会做清理动作（删分支/删目录/删文件）的外部工具，超时后必须回读现场状态再下结论，不能把"进程没返回 0"等同于"什么都没发生"；② 一条工具的多个子命令，超时预算要按各自最坏耗时分别设定，不能共用；③ 判断"合并成功"只看最终产物是否在目标分支上，不看工具自己的 JSON 回执——本次回执根本没来得及产出。
+- **补正（2026-11-09 收口复核，推翻原结论）**：上面"没合入"的判断**是错的**。收口时回读 `main` 发现 `d1e51eb3 Squash commits from gorch/WO-README` —— 那次合并**实际合进了 `main`**（`wt merge` 的 TARGET 缺省是 default branch，不是当前检出分支），只是没合进工作分支 `codex/voice-fsmn-new-path`。所以真实失效是"**合错了分支**"，而不是"没合"。后续把 `def92006` cherry-pick 成 `ea6f08ec` 补到工作分支，等于同一份改动现在在两条链上各有一份。详见 L74。
+- **处置**：`def92006` 对象仍在（git 未 gc），用 `git cherry-pick def92006` 恢复，产出 `ea6f08ec`、README.md 4209B 与执行端产物逐字节一致。同时改代码：`MERGE_TIMEOUT=600` 独立于 `WT_TIMEOUT`；超时后先调 `_branch_exists()` 探现场，分支已不存在就明说"可能已删分支但未完成合入，不要假定无改动"，分支仍在才敢说"主线应未变更"。新增 4 条测试锁住两种表述。**收口实测**：修好 target 后再跑真实合并，耗时 **227.4s**、`rc=0`、`rebased:true`、主线前进 `50af6549→3d0fc8dd`、报告 4020B 落地——600s 预算已被真实合并验证（227.4s 恰好落在"旧的 180s 会超时、新的 600s 有余量"之间）。
+- **教训（通用）**：① **超时 ≠ 无副作用**。对会做清理动作（删分支/删目录/删文件）的外部工具，超时后必须回读现场状态再下结论，不能把"进程没返回 0"等同于"什么都没发生"；② 一条工具的多个子命令，超时预算要按各自最坏耗时分别设定，不能共用；③ 判断"合并成功"只看最终产物是否在目标分支上，不看工具自己的 JSON 回执——本次回执根本没来得及产出；④ **"没合入"要限定到具体分支**。回读范围只覆盖工作分支时，"主线没出现产物"和"合到了别处"长得一模一样，必须把 default branch 也列进检查面。
 - **复发**：1
 
 ## L73 · 把工单里合法的命令示例判定成"模型试图调用工具"（2026-11-09）
@@ -600,4 +601,12 @@
 - **根因**：`_TOOL_CALL_MARKERS` 把 ```bash / ```shell / ```powershell 当成了工具调用标记。但 `work_order` 阶段的产出**本来就要**给执行端照做的命令（工单模板明确要求贴命令与输出），用代码块标记判定等于把合法工单整张误杀。又一次"拿字符串标记当类型系统"。
 - **处置**：判定改走**协议级信号**——供应商在 `message` 里给出原生 `tool_calls` 字段才算工具调用，文本标记只留控制 token 泄漏（`<｜｜`/`｜｜>`/`DSML`）与带引号的 `"tool_calls"` 键。同时在 `run_stage` 失败落盘加 `response_excerpt` 与 `matched_markers`，否则"为什么被判成工具调用"无从复盘，只能重跑烧额度。新增 6 条测试（命令块不算、原生 tool_calls 必须拦）。
 - **教训（通用）**：① 能用协议字段判断的，绝不用文本扫描；文本扫描只作为协议字段缺失时的兜底，且标记集合必须限定在"正常产出绝不会出现"的字符串上；② 判定规则要先问"目标阶段的合法产出里会不会自然出现这个模式"，会出现的就不能当违规信号；③ 失败必须留原文摘录，否则同类问题每次都要靠重跑复现。
+- **复发**：0
+
+## L74 · `wt merge` 的 TARGET 缺省是 default branch，编排把施工全铺到了 main（2026-11-09）
+
+- **现象**：收口阶段再跑一次真实合并，`wt merge gorch/S7-smoke-report` 20.8s 就 `rc=1`，报 `CONFLICT (add/add): scripts/gorch/batch_orchestrator.py`、`CONFLICT (add/add): src/brain/orchestrator.py`、`CONFLICT (content): docs/tracker/北极星上线任务清单.html`。而从当前 HEAD 建的新分支不可能与同一 HEAD 的 target 产生 add/add 冲突。
+- **根因**：`wt merge [OPTIONS] [TARGET]` 的第一个位置参数是**目标分支**，源分支才走 `--branch`；**TARGET 缺省就是 default branch（本仓库为 `main`）**。编排层 `merge()` 调 `wt_merge(branch)` 时没传 target，于是每次合并都把 `gorch/*` 分支 rebase 到 `main` 再 ff `main`——施工分支 `codex/voice-fsmn-new-path` 反而永远落后。上一单的 `d1e51eb3 Squash commits from gorch/WO-README` 正是这样合进 `main` 的，随后第二个分支再合过来时 `main` 已有同名文件，直接 add/add。
+- **处置**：`scripts/gorch/batch_orchestrator.py` 新增 `_current_branch()`（`git rev-parse --abbrev-ref HEAD`）；`merge()` 加 `target` 参数，默认取当前检出分支，detached HEAD 时 `SystemExit` 明确要求显式传；CLI `merge` 加 `--target` 并在 JSON 输出 `target`。新增 5 条测试（当前分支读取、默认显式传 target、显式覆盖、detached 拒绝、`TARGET` 必须排在 `--branch` 之前）。修好后真实合并：**227.4s、rc=0、rebased:true、removed:true、主线 `50af6549→3d0fc8dd`、报告 4020B 落地**。
+- **教训（通用）**：① **位置参数的含义必须按 `--help` 核实，不能按"直觉顺序"填**——`wt merge [TARGET] --branch <源>` 与直觉的 `<源> [TARGET]` 正好相反，写反了不报错、只合错地方；② 任何"合回主线"的自动化都必须显式写目标分支，交给工具的 default 缺省等于把决定权交给了仓库配置；③ 同一个仓库里存在默认分支与工作分支两条链时，先想清楚"施工落在哪条链、发布走哪条链"，否则会长期双写；④ 出现 add/add 冲突先怀疑"两边各自新增了同名文件"，而不是"内容改坏了"。
 - **复发**：0
