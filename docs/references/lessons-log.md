@@ -682,3 +682,17 @@
 - **验证**：`py_compile` 两模块通过；两 gorch 测试文件 `90 passed in 37.57s`（补 `_norm_ref` 后 batch 68 passed 单独复验）；提交 `2a446b9a` 已推远端并打 tag `gorch-r4-failopen-closeout-20261109`。
 - **仍未闭合**：八跳第 4 跳未进 `run_all`；冲突形态全链未真跑；修复后未重跑全链真跑；`main` 与工作分支未合流。
 - **复发**：坑 2 是 L79 坑 1 的同类复发
+## L81 · 第五轮：照着工具名猜字段，把"更严的判据"写成"把整条链打死"（2026-11-09）
+
+- **背景**：第四轮 Codex 审计判「部分一致」，给出 Q3 九条最小修复清单。按清单改 `find_done_tasks` / `merge` / `cleanup` / `run_all` / `fresh_changes` 五处，收尾时踩到三类问题。
+- **坑 1（事实层，最贵）：没有实测 CLI 的真实回执，就按字段名写判据。** 第四轮把「`wt merge --format json` 回执里 `merged is True`」当成合并成功判据。本轮实测（临时仓库 `Temp\wtprobe-r4`）发现回执是 `{branch, target, committed, squashed, rebased, removed}`，**没有 `merged` 字段**——那条判据会让每一次合并都被判失败，是把 fail-open 修成了"整条链必死"，而且静态审计看不出来（审计方也只能读代码）。
+  **教训**：凡是拿第三方 CLI 的**输出字段**当判据，必须先在一个一次性环境里跑出真实输出、把原始 JSON 贴进报告，再写判据。字段名凭印象写 = 判据可能与真实契约反着来。修法：判据改成「回执身份字段（branch/target）必填且精确匹配」+ 「git 侧复核（is-ancestor 或 target tip 前进）」两层。
+- **坑 2（流程层）：一轮里改多处，只跑一次测试，失败 7 条时要挨个反推是哪一处改坏了。** 本轮 5 处改动一起落，测试从 91 passed 变成 7 failed；其中 4 条其实只是 `fresh_changes` 漏写 `return`（`TypeError: cannot unpack non-iterable NoneType`），另外 3 条是被新语义打红——混在一起时，"是语法、是语义、还是桩不匹配"要靠读 traceback 逐条判。
+  **教训**：漏 `return` 这类错误优先看异常类型（`NoneType`/`cannot unpack` 基本就是返回值丢了），不要先怀疑断言；语义变更导致的老用例变红，要在报告里**逐条写明"旧断言为什么不再成立"**，不能只改成新断言了事。
+- **坑 3（测试层）：新加的 fail-closed 阻断把测试桩一起打了。** 加了"指纹 `ERR:*` 立即 blocked"之后，`test_gorch_codex_channel.py` 里 3 条走完整 `main()` 的用例全部变红——因为测试的 `tmp_path` 不是 git 仓库，`worktree_fingerprint` 真去跑 `git diff` 必然返回 `ERR:128`。原来它们依赖"指纹失败就退化按状态行判定"的旧宽容行为，而那个宽容正是审计要求删掉的。
+  **教训**：收紧判定时，凡是被"旧宽容行为"顺带救活的测试桩，都要在桩里补上等价的可信输入（本轮补了 `worktree_fingerprint` 桩），否则看起来像实现坏了，实际是测试环境本来就不满足新前提。
+- **Cygwin 正则的二次修正**：整行锚定版第一稿把 `cygheap` 后面多写了一个 `\w+`，真实噪声行 `bash: child_copy: cygheap read copy failed, 0x2EF8` 不匹配 → 被当成真错误，`test_cygwin_noise_lines_still_pass` 变红。
+  **教训**：白名单正则收紧后，必须**拿真实日志原文**（不是自己手写的近似行）当用例；本轮样本是从实测 stderr 抄的，所以一跑就暴露。
+- **验证**：两模块 `py_compile` 通过；两 gorch 测试 **93 passed / 38.94s**（基线 91，新增 `test_merge_rejects_receipt_without_identity`、`test_merge_rejects_when_git_shows_no_merge`、`test_fingerprint_read_failure_blocks`）。提交 `0190b88c`。
+- **仍未闭合**：写域白名单、ignored 产物、per-card 例外受控 schema（三项涉工单契约，需 Owner 定口径）；独立 merge CLI 未强制 `--run-dir`。
+- **复发**：坑 2 与 L80 坑 1 同类（批量改动后未及时小步验证）
