@@ -940,7 +940,8 @@ def test_find_done_tasks_only_reads_this_invocation(mod, monkeypatch, tmp_path):
     new = runs / 'new'
     new.mkdir()
     (new / 'codex-channel.json').write_text(
-        json.dumps({'result': 'blocked', 'reason': '本轮失败'}), encoding='utf-8')
+        json.dumps({'task': '1', 'result': 'blocked', 'reason': '本轮失败',
+                    'invocation': 'inv-test'}), encoding='utf-8')
     done, stale = mod.find_done_tasks(str(tmp_path), with_blocked=True,
                                       run_dirs={'1': str(new)})
     assert done == {}
@@ -969,7 +970,8 @@ def test_done_no_merge_is_not_mergeable(mod, monkeypatch, tmp_path):
     d = runs / '1-ch1-x'
     d.mkdir(parents=True)
     (d / 'codex-channel.json').write_text(
-        json.dumps({'result': 'done_no_merge'}), encoding='utf-8')
+        json.dumps({'task': '1', 'result': 'done_no_merge',
+                    'invocation': 'inv-test'}), encoding='utf-8')
     monkeypatch.setattr(mod, 'RUNS', runs)
     done, stale = mod.find_done_tasks(str(tmp_path), with_blocked=True,
                                       run_dirs={'1': str(d)})
@@ -1162,7 +1164,7 @@ def test_find_done_tasks_rejects_tied_started_at(mod, monkeypatch, tmp_path):
     write_run(runs, '1', channel=1, started_at='2026-11-09T00:00:00Z',
               invocation='inv-1')
     write_run(runs, '1', channel=2, started_at='2026-11-09T00:00:00Z',
-              invocation='inv-1')
+              invocation='inv-2')
     monkeypatch.setattr(mod, 'RUNS', runs)
     done, stale = mod.find_done_tasks(str(tmp_path), with_blocked=True)
     assert done == {}
@@ -1275,3 +1277,183 @@ def test_grant_manifest_records_write_scope_and_requests(mod, monkeypatch, tmp_p
     assert g['write_scope'] == ['docs/reports/', 'scripts/gorch/*.py']
     assert g['write_scope_enforced'] is True
     assert blocked == {}
+
+# ============ r7：第六轮审计 4 条 ❌ + 8 条新问题闭环 ============
+
+def test_utc_ts_requires_strict_utc(mod):
+    """r7 #5：无时区与任何非零偏移都不算合法时间（此前 replace 成 UTC）。"""
+    assert mod._utc_ts('2026-11-09T00:00:00Z')
+    assert mod._utc_ts('2026-11-09T00:00:00+00:00')
+    assert mod._utc_ts('2026-11-09T00:00:00') is None
+    assert mod._utc_ts('2026-11-09T08:00:00+08:00') is None
+    assert mod._utc_ts('2026-11-09') is None
+
+
+def test_run_dirs_rejects_record_of_another_task(mod, monkeypatch, tmp_path):
+    """r7 #5：显式 run-dir 必须核到记录身份，B 的 done 不得授权合并 A。"""
+    write_task(tmp_path, 1)
+    write_task(tmp_path, 2)
+    runs = tmp_path / 'runs'
+    b = write_run(runs, '2')
+    monkeypatch.setattr(mod, 'RUNS', runs)
+    done, stale = mod.find_done_tasks(str(tmp_path), with_blocked=True,
+                                      run_dirs={'1': str(b)})
+    assert done == {}
+    assert '身份不符' in stale['1']['reason']
+
+
+def test_run_dirs_rejects_record_without_invocation(mod, monkeypatch, tmp_path):
+    """r7 #5：记录缺 invocation 就无法绑定本次调用，必须阻断。"""
+    write_task(tmp_path, 1)
+    runs = tmp_path / 'runs'
+    d = runs / '1-ch1-x'
+    d.mkdir(parents=True)
+    (d / 'codex-channel.json').write_text(
+        json.dumps({'task': '1', 'result': 'done'}), encoding='utf-8')
+    monkeypatch.setattr(mod, 'RUNS', runs)
+    done, stale = mod.find_done_tasks(str(tmp_path), with_blocked=True,
+                                      run_dirs={'1': str(d)})
+    assert done == {}
+    assert 'invocation' in stale['1']['reason']
+
+
+def test_run_dirs_rejects_non_dict_root(mod, monkeypatch, tmp_path):
+    """r7 #5：合法 JSON 但根节点不是对象，不能 get 崩、也不能当 done。"""
+    write_task(tmp_path, 1)
+    runs = tmp_path / 'runs'
+    d = runs / '1-ch1-x'
+    d.mkdir(parents=True)
+    (d / 'codex-channel.json').write_text('[1, 2]', encoding='utf-8')
+    monkeypatch.setattr(mod, 'RUNS', runs)
+    done, stale = mod.find_done_tasks(str(tmp_path), with_blocked=True,
+                                      run_dirs={'1': str(d)})
+    assert done == {}
+    assert '根节点' in stale['1']['reason']
+
+
+def test_fallback_rejects_duplicate_invocation(mod, monkeypatch, tmp_path):
+    """r7 #5：同一 invocation 多条记录 = 本次结果不唯一，兜底路径必须阻断。"""
+    write_task(tmp_path, 1)
+    runs = tmp_path / 'runs'
+    write_run(runs, '1', channel=1, invocation='inv-1')
+    write_run(runs, '1', channel=2, started_at='2026-11-09T00:00:01Z',
+              invocation='inv-1')
+    monkeypatch.setattr(mod, 'RUNS', runs)
+    done, stale = mod.find_done_tasks(str(tmp_path), with_blocked=True)
+    assert done == {}
+    assert '多条' in stale['1']['reason']
+
+
+def test_merge_rejects_when_pre_state_probe_fails(mod, monkeypatch, tmp_path):
+    """r7 #4：前态取证失败（rc=128）不能折叠成「前态不是祖先」而放行。"""
+    write_task(tmp_path, 1)
+    runs = tmp_path / 'runs'
+    d = write_run(runs, '1')
+    monkeypatch.setattr(mod, 'RUNS', runs)
+    monkeypatch.setattr(mod, 'wt_merge', lambda *a, **k: _FakeResult(
+        0, json.dumps({'branch': 'gorch/1', 'target': 'main'})))
+    monkeypatch.setattr(mod, '_git_out', lambda *a, **k: (128, ''))
+    done, merged, failed, stale = mod.merge(str(tmp_path), tasks=['1'],
+                                            target='main', run_dirs={'1': str(d)})
+    assert merged == []
+    assert '合并前取证失败' in failed[0]['stderr']
+
+
+def test_merge_cli_requires_run_dir(mod, tmp_path):
+    """r7：独立 merge 不给 --run-dir 直接拒（不再按历史 glob 授权）。"""
+    write_task(tmp_path, 1)
+    rc = mod.main(['merge', str(tmp_path), '--target', 'main'])
+    assert rc == 2
+
+
+def test_run_all_returns_gate_when_all_grants_refused(mod, monkeypatch, tmp_path):
+    """r7 #8a：全部拒签时 _stop 必须在定义之后调用，不能抛 UnboundLocalError。"""
+    write_task(tmp_path, 1)
+    monkeypatch.setattr(mod, 'gate_check',
+                        lambda d: [{'task': '1', 'verdict': '可开工'}])
+    monkeypatch.setattr(mod, 'provision', lambda d: ([], [], []))
+    mpath = tmp_path / 'inv.json'
+    mpath.write_text(json.dumps({'manifest_version': 1, 'invocation': 'inv-x',
+                                 'tasks': {}, 'blocked': {}}), encoding='utf-8')
+    monkeypatch.setattr(mod, 'grant_invocation',
+                        lambda *a, **k: (str(mpath), {'1'}))
+    summary = mod.run_all(str(tmp_path), str(tmp_path))
+    assert summary['stopped_at'] == 'gate'
+    assert summary['steps']['merge']['failed'] == []
+    assert '拒不签发' in summary['note'] or '拒绝签发' in summary['note']
+
+
+def test_execute_does_not_restore_refused_tasks(mod, monkeypatch, tmp_path):
+    """r7 #8b：编排方已剔除拒签任务时，execute 不能从 gate 重建全量 ready。"""
+    for n in (1, 2):
+        (tmp_path / f'{n}.md').write_text(
+            f'---\nname: t{n}\nstatus: open\ndepends_on: []\nparallel: true\n'
+            f'conflicts_with: []\n---\n# t{n}\n', encoding='utf-8')
+    wt_root = tmp_path / 'wt'
+    for n in (1, 2):
+        (wt_root / str(n)).mkdir(parents=True)
+    monkeypatch.setattr(mod, 'WORKTREE_ROOT', wt_root)
+    monkeypatch.setattr(mod, 'RUNS', tmp_path / 'runs')
+    prompts = tmp_path / 'prompts'
+    prompts.mkdir()
+    for n in (1, 2):
+        (prompts / f'{n}.txt').write_text('p', encoding='utf-8')
+    seen = []
+
+    class _P:
+        returncode = 0
+
+        def communicate(self):
+            return ('', '')
+
+    monkeypatch.setattr(mod.subprocess, 'Popen',
+                        lambda cmd, **kw: (seen.append(cmd) or _P()))
+    monkeypatch.setattr(mod, 'gate_check', lambda d: [
+        {'task': '1', 'verdict': '可开工'}, {'task': '2', 'verdict': '可开工'}])
+    manifest, blocked = mod.grant_invocation(str(tmp_path), ['1'], 'inv-x',
+                                             'test-branch')
+    assert not blocked
+    results_rows, results = mod.execute(str(tmp_path), str(prompts),
+                                        max_channels=2, manifest=manifest,
+                                        tasks=['1'])
+    tasks_run = [c[c.index('--task') + 1] for c in seen]
+    assert tasks_run == ['1']
+    assert results[0]['task'] == '1'
+
+def test_cleanup_pre_absent_three_way_records_evidence(mod, monkeypatch, tmp_path):
+    """r7 口径③：目录/登记/分支 三处都已不存在时，豁免要带独立回读证据。"""
+    write_task(tmp_path, 1)
+    wt_root = tmp_path / 'wt'
+    monkeypatch.setattr(mod, 'WORKTREE_ROOT', wt_root)
+    monkeypatch.setattr(mod, '_branch_state', lambda b: 'absent')
+    monkeypatch.setattr(mod, '_worktree_registered', lambda p: False)
+    removed, skipped = mod.cleanup(str(tmp_path))
+    assert skipped == []
+    ev = removed[0]['evidence']
+    assert ev['dir_exists'] is False
+    assert ev['branch_state'] == 'absent'
+    assert ev['worktree_registered'] is False
+    assert ev['exemption'] == 'pre_absent'
+
+
+def test_cleanup_timeout_exemption_records_evidence(mod, monkeypatch, tmp_path):
+    """r7 口径③：wt remove 超时但现场已空，豁免条目必须留下 rc 与三处回读值。"""
+    write_task(tmp_path, 1)
+    wt_root = tmp_path / 'wt'
+    (wt_root / '1').mkdir(parents=True)
+    monkeypatch.setattr(mod, 'WORKTREE_ROOT', wt_root)
+    def fake_remove(*a, **k):
+        # 超时点之前内部已经删掉了目录，rc 却仍是非 0 —— 这正是要被豁免的形态
+        (wt_root / '1').rmdir()
+        return _FakeResult(-1, 'wt remove 超时')
+
+    monkeypatch.setattr(mod, 'wt_remove', fake_remove)
+    monkeypatch.setattr(mod, '_branch_state', lambda b: 'absent')
+    monkeypatch.setattr(mod, '_worktree_registered', lambda p: False)
+    removed, skipped = mod.cleanup(str(tmp_path))
+    ev = removed[0]['evidence']
+    assert ev['wt_returncode'] == -1
+    assert ev['dir_exists'] is True
+    assert ev['branch_state'] == 'absent'
+    assert ev['worktree_registered'] is False
+    assert ev['exemption'] == 'rc_zero_not_required'

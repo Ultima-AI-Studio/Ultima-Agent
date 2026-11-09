@@ -20,6 +20,7 @@ import hashlib
 import json
 import os
 import pathlib
+import re
 import shutil
 import subprocess
 import sys
@@ -54,13 +55,46 @@ PLAN_DONE = '接单✅|调Codex✅|执行✅|自检✅|回写✅'
 PLAN_FAIL = '接单✅|调Codex✅|执行|自检|回写🚫'
 
 
+def _status_rows(workdir):
+    """解析 `git status --porcelain -z -uall --ignored`。
+
+    返回 (ok, rows, ignored)。rows 是 [(code, path)]，ignored 是被 .gitignore 命中的
+    路径集合。`-z` 不做 C 风格转义：路径原样输出、以 NUL 分隔，带首空格/中文/引号的
+    路径不会被拆错（第七轮审计：此前用展示文本 splitlines + strip()，` M docs/x`
+    的首空格被吃掉，路径变成 `M docs/x` 从而误判越域）。
+    """
+    rc, out = _git_text(workdir, ['status', '--porcelain', '-z', '-uall', '--ignored'])
+    if rc is None or rc != 0:
+        return False, [], set()
+    parts = (out or '').split('\0')
+    rows, ignored = [], set()
+    i = 0
+    while i < len(parts):
+        item = parts[i]
+        i += 1
+        if not item:
+            continue
+        code = item[:2]
+        path = item[3:]
+        if not path:
+            continue
+        if code == '!!':
+            ignored.add(path.replace('\\', '/'))
+            continue
+        if code[:1] in ('R', 'C') and i < len(parts):
+            # -z 下 rename/copy 的源路径是紧随其后的独立一项
+            i += 1
+        rows.append((code, path.replace('\\', '/')))
+    return True, rows, ignored
+
+
 def worktree_state(workdir):
     """执行端到底有没有在 worktree 里留下改动。
 
     退出码 0 只说明 CLI 正常退出，不说明它写过东西：Codex 可以一声不响地跑完、
     什么都不改，回执照样 done 再被 merge 合进主线，等于把"没干活"当成果。
     返回 (kind, detail)：
-      changed  有改动，detail 是 git status 首段（留作证据）
+      changed  有改动（含被 .gitignore 命中的路径），detail 是状态摘要（留作证据）
       clean    干净，一个字节都没动
       not_repo 不是 git 工作树，无从校验（保持只看退出码，记下供审计）
       error    查不动（git 不存在/超时/status 失败），fail-closed
@@ -74,19 +108,14 @@ def worktree_state(workdir):
         return 'error', 'rev-parse 调用失败'
     if probe.returncode != 0 or probe.stdout.strip() != 'true':
         return 'not_repo', (probe.stderr or '').strip()[:200]
-    try:
-        st = subprocess.run(
-            # -uall：未跟踪目录要展开到文件级，否则 `?? out/` 只有目录一行，
-            # 目录里新增了几个文件永远看不见（第四轮审计 Q1）。
-            [GIT_EXE, '-C', str(workdir), 'status', '--porcelain', '-uall'],
-            capture_output=True, text=True, encoding='utf-8', errors='replace',
-            timeout=180, creationflags=_NO_WINDOW)
-    except Exception:
+    ok, rows, ignored = _status_rows(workdir)
+    if not ok:
         return 'error', 'git status 调用失败'
-    if st.returncode != 0:
-        return 'error', (st.stderr or '').strip()[:200]
-    text = (st.stdout or '').strip()
-    return ('changed', text) if text else ('clean', '')
+    if not rows and not ignored:
+        return 'clean', ''
+    shown = [f'{code} {path}' for code, path in rows]
+    shown += [f'!! {path}' for path in sorted(ignored)]
+    return 'changed', chr(10).join(shown)
 
 
 def _status_set(detail):
@@ -111,96 +140,150 @@ def _git_text(workdir, args, timeout=180):
     return r.returncode, (r.stdout or '')
 
 
-def worktree_fingerprint(workdir, status_detail=None):
-    """内容级指纹，用来判"这一轮到底多出了什么"。
+_DIGEST_SIZE_LIMIT = 8 * 1024 * 1024
+_STATUS_IGNORED_LIMIT = 4000
 
-    第三轮审计指出的弱点：`git status --porcelain` 的**行集合**不是内容差分——
-      · 同一文件执行前后都显示 ` M path`，行文本相同但内容继续变化 → 判"无新增"（误杀）；
-      · 只是 `git add` 让状态码从 ` M` 变成 `M `，凭空多出一行 → 判"有新增"（fail-open）。
-    所以除了状态行，再取两条内容维度：
-      · diff_sha   `git diff HEAD` 全文的 sha256（已跟踪文件内容有变就必变）
-      · untracked  未跟踪文件清单（新文件出现才算新增）
-    返回 dict：{'lines': set, 'diff_sha': str, 'untracked': set}；任一查询失败则 diff_sha 记为
-    'ERR:<rc>'，让调用方按 fail-closed 处理，而不是当成"没变化"。
+
+def _digest(workdir, rel):
+    """单路径内容指纹：存在→sha256；超大文件→size+mtime；不存在→ABSENT。
+
+    逐路径而不是全局 diff 哈希：全局哈希只说明"diff 文本变了"，因为拿不出是哪个
+    路径变的，脏基线下同路径继续修改会被判成"无新增"（第七轮审计 #1）。
     """
-    if status_detail is None:
-        kind, detail = worktree_state(workdir)
-        if kind != 'changed':
-            status_detail = ''
-        else:
-            status_detail = detail
-    lines = _status_set(status_detail)
-    untracked = {ln[3:].strip() for ln in lines if ln.strip().startswith('??')}
+    p = pathlib.Path(workdir) / rel
+    try:
+        st = p.stat()
+    except OSError:
+        return 'ABSENT'
+    if not p.is_file():
+        return 'ABSENT'
+    if st.st_size > _DIGEST_SIZE_LIMIT:
+        return f'BIG:{st.st_size}:{int(st.st_mtime)}'
+    try:
+        return hashlib.sha256(p.read_bytes()).hexdigest()
+    except OSError as exc:
+        return f'ERR:{exc.errno}'
+
+
+def worktree_fingerprint(workdir, status_detail=None):
+    """逐路径内容指纹（tracked / untracked / ignored 全覆盖）。
+
+    返回 dict：
+      paths     {相对路径: 内容摘要}——仅 git add 不改文件字节，故不会误判"新增"；
+      ignored   被 .gitignore 命中的路径集合（此前 status 不带 --ignored，域外
+                ignored 写完全不可见，第七轮审计 #2）；
+      rows      [(状态码, 路径)]，留作证据；
+      diff_sha  全局 diff 哈希，只作证据，判定不再依赖它。
+    任一维度取不到时返回带 'ERR:*' 的指纹，由调用方 fail-closed。
+    `status_detail` 仅为兼容旧调用签名，解析一律走 -z 结构化输出。
+    """
+    ok, rows, ignored = _status_rows(workdir)
+    if not ok:
+        return {'paths': {}, 'ignored': set(), 'rows': [],
+                'diff_sha': 'ERR:status'}
+    if len(ignored) > _STATUS_IGNORED_LIMIT:
+        return {'paths': {}, 'ignored': ignored, 'rows': rows,
+                'diff_sha': f'ERR:ignored>{_STATUS_IGNORED_LIMIT}'}
+    paths = {}
+    for _code, path in rows:
+        paths[path] = _digest(workdir, path)
+    for path in ignored:
+        paths[path] = _digest(workdir, path)
     rc, diff_text = _git_text(workdir, ['diff', 'HEAD'])
     diff_sha = (hashlib.sha256(diff_text.encode('utf-8', 'replace')).hexdigest()
                 if rc == 0 else f'ERR:{rc}')
-    return {'lines': lines, 'diff_sha': diff_sha, 'untracked': untracked}
+    return {'paths': paths, 'ignored': ignored, 'rows': rows, 'diff_sha': diff_sha}
 
 
 class _BaselineUnusable(Exception):
     """执行前建不出可信基线时用它中止本次执行（fail-closed，不调 Codex）。"""
 
 
-def fresh_changes(base_fp, after_fp, after_detail):
-    """本轮新增改动的证据集（内容级）。返回 (fresh: set[str], basis: str)。
+def fresh_changes(base_fp, after_fp, after_detail=None):
+    """本轮新增/变化的**路径集合**（相对执行前基线，内容级）。
 
-    · 基线 clean            → 执行后全部改动都是本次产出；
-    · 基线脏且内容指纹可比   → 只认**内容变化**（diff 哈希变）与未跟踪文件新增；
-  状态行差集**不采信**，因为仅 `git add` 会把 ` M x` 变成 `M  x`，凭空多一行
-  （第四轮审计 Q1 的 staging-only 假成功）；
-    · 基线脏但指纹不可用     → 退化为状态行差集，并在 basis 里写明这是弱判据。
+    返回 (fresh: set[str], basis: str)，fresh 元素是纯仓库相对路径。
+    · 基线 clean  → 执行后所有变化路径都是本次产出；
+    · 基线脏      → 只认「基线里没有的路径」与「同路径内容摘要变了」；
+                    仅 `git add`（状态码 M → M ）内容摘要不变，不算新增；
+                    同路径继续改内容摘要变，算新增（第七轮审计 #1 的堵法）。
     """
-    lines_after = after_fp['lines'] if after_fp else _status_set(after_detail)
+    if not after_fp or 'paths' not in after_fp:
+        lines = _status_set(after_detail)
+        return {ln for ln in lines if ln.strip()}, '基线缺失：按状态行整集判定（弱判据）'
+    a_paths = dict(after_fp.get('paths') or {})
     if base_fp is None:
-        return set(lines_after), '基线 clean：执行后改动全部属本次'
-    base_lines = set(base_fp.get('lines') or ())
-    b = base_fp.get('diff_sha')
-    a = (after_fp or {}).get('diff_sha')
-    content_cmp = bool(a) and bool(b) and not str(a).startswith('ERR:') \
-        and not str(b).startswith('ERR:')
-    fresh = set()
-    if not content_cmp:
-        fresh = set(lines_after) - base_lines
-        basis = f'基线脏：diff 指纹不可用（{b}→{a}），仅按状态行差集判定（弱判据）'
-    else:
-        if b != a:
-            fresh.add(f'~ 已跟踪内容变化 {b[:12]}→{a[:12]}')
-            # 内容确实变了时，状态行新增也是真证据（新文件/新路径）。
-            fresh |= set(lines_after) - base_lines
-            basis = '基线脏：内容指纹 + 状态行差集'
-        else:
-            basis = '基线脏：内容指纹（内容未变，状态行差集不采信）'
-    if after_fp:
-        fresh |= {f'?? {p}' for p in
-                  (set(after_fp.get('untracked') or ())
-                   - set(base_fp.get('untracked') or ()))}
-    return fresh, basis
+        return set(a_paths), '基线 clean：执行后改动全部属本次'
+    b_paths = dict(base_fp.get('paths') or {})
+    fresh = {p for p in a_paths if p not in b_paths}
+    fresh |= {p for p in a_paths if p in b_paths and a_paths[p] != b_paths[p]}
+    return fresh, '基线脏：逐路径内容指纹差分（ignored 一并纳入）'
+
+
+_STATE_PREFIX = re.compile(r'^[ MADRCUT?!]{2} ')
+
+
+def _norm_path(text):
+    """统一路径写法：反斜杠转正斜杠，只剥真正的 `./` 前缀。
+
+    r7 自查补洞：原实现用 `lstrip('./')`，那会把 `.github/workflows/x.yml`
+    剥成 `github/workflows/x.yml`——隐藏目录被吃一层，写域校验就比对错了。
+    """
+    p = text.strip().replace('\\', '/')
+    while p.startswith('./'):
+        p = p[2:]
+    return p
 
 
 def _fresh_paths(fresh):
     """从 fresh 证据集里抽出真实路径（用于写域校验）。
 
-    fresh 的三种行形态（见 fresh_changes）：
-      · ``?? path``            未跟踪新增
-      · ``<XY> path``          porcelain 状态行（前两位是状态码）
-      · ``~ 已跟踪内容变化 …``  汇总行，没有路径，跳过
+    新实现里 fresh 已是纯路径；同时兼容三种旧展示形态（`?? path` / `<XY> path` /
+    `~ 汇总行`）。rename 的**源与目标两端都保留**：把域外文件移进域内时，域外删除
+    同样要参与授权判断（第七轮审计 #3）。
     """
     out = []
-    for raw in fresh:
-        text = str(raw).strip()
-        if text.startswith('~'):
+    for raw in fresh or ():
+        text = str(raw).rstrip(chr(13) + chr(10))
+        if text.startswith('~ '):
             continue
-        if text.startswith('??'):
-            rest = text[2:].strip()
-        elif len(text) > 3 and text[0] in ' MADRCUT?!' and text[1:3] == '  ':
-            rest = text[3:].strip()
+        text = _STATE_PREFIX.sub('', text)
+        if ' -> ' in text:
+            left, right = text.rsplit(' -> ', 1)
+            out.extend([_norm_path(left), _norm_path(right)])
+            continue
+        if text.strip():
+            out.append(_norm_path(text))
+    return [p for p in out if p]
+
+
+def _scope_match(path, pat):
+    """按路径段匹配：`*` 不跨 `/`，`?` 匹配单个非分隔符字符，`**` 跨段。
+
+    第七轮审计 #2：fnmatch 的 `*` 会跨目录，`scripts/gorch/*.py` 能命中
+    `scripts/gorch/sub/x.py`，等于写域比声明的宽一层。
+    """
+    p = str(pat).replace('\\', '/').strip().rstrip('/')
+    if not p:
+        return False
+    if path == p or path.startswith(p + '/'):
+        return True
+    rx, i = '', 0
+    while i < len(p):
+        c = p[i]
+        if c == '*':
+            if i + 1 < len(p) and p[i + 1] == '*':
+                rx += '.*'
+                i += 2
+                continue
+            rx += '[^/]*'
+        elif c == '?':
+            rx += '[^/]'
         else:
-            rest = text.strip()
-        if ' -> ' in rest:          # rename：只看新路径
-            rest = rest.rsplit(' -> ', 1)[1].strip()
-        if rest:
-            out.append(rest.replace('\\', '/').lstrip('./'))
-    return out
+            rx += re.escape(c)
+        i += 1
+    return (re.fullmatch(rx, path) is not None
+            or re.fullmatch(rx + '/.*', path) is not None)
 
 
 def _outside_scope(paths, scope):
@@ -210,18 +293,10 @@ def _outside_scope(paths, scope):
     """
     if not scope:
         return []
-    pats = [str(s).replace('\\', '/').rstrip('/') for s in scope if str(s).strip()]
+    pats = [str(x).replace('\\', '/').rstrip('/') for x in scope if str(x).strip()]
     bad = []
     for p in paths:
-        hit = False
-        for pat in pats:
-            if fnmatch.fnmatch(p, pat) or fnmatch.fnmatch(p, pat + '/*') or p.startswith(pat + '/'):
-                hit = True
-                break
-            if fnmatch.fnmatch(p, pat):     # pat 本身带通配
-                hit = True
-                break
-        if not hit:
+        if not any(_scope_match(p, pat) for pat in pats):
             bad.append(p)
     return bad
 
@@ -236,6 +311,9 @@ def load_authorizations(manifest_path, task):
            'no_change_allowed': False, 'allow_non_repo': False,
            'granted_by': None, 'problem': ''}
     if not manifest_path:
+        out['problem'] = ('未提供 invocation manifest：授权只由编排方在派发时签发，'
+                          '执行端不读卡片字段、也不接受命令行自授权；'
+                          '确需手工验证请由编排方签发清单后传 --manifest')
         return out
     p = pathlib.Path(manifest_path)
     if not p.is_file():
@@ -409,17 +487,15 @@ def main(argv=None):
     record['authorizations'] = {k: v for k, v in auth.items() if k != 'problem'}
     if auth['problem']:
         return _fail_early(2, f'授权清单不可用：{auth["problem"]}')
-    if auth['source'] != 'manifest':
-        # 只有不带清单的手工调用才允许命令行开关，并在记录里标明来源。
-        auth['no_change_allowed'] = bool(args.no_change_allowed)
-        auth['allow_non_repo'] = bool(args.allow_non_repo)
-        record['authorizations'] = {
-            'source': 'cli（未给 manifest，仅手工验证）',
-            'no_change_allowed': auth['no_change_allowed'],
-            'allow_non_repo': auth['allow_non_repo'],
-            'write_scope': [], 'write_scope_enforced': False,
+    # 第七轮审计 #6：命令行开关不再具备授权能力——没有 manifest 的调用在上一步
+    # 已被 problem 阻断。这里把两个 flag 记进记录，留证"传了但没生效"。
+    if args.no_change_allowed or args.allow_non_repo:
+        record['ignored_cli_flags'] = {
+            'no_change_allowed': bool(args.no_change_allowed),
+            'allow_non_repo': bool(args.allow_non_repo),
+            'note': '命令行开关不构成授权，实际取值以 manifest 为准',
         }
-    no_change_allowed = auth['no_change_allowed']
+    no_change_allowed = bool(auth['no_change_allowed'])
     allow_non_repo = auth['allow_non_repo']
 
     if args.prompt == '-':
@@ -464,8 +540,9 @@ def main(argv=None):
             record['worktree_baseline_dirty'] = base_detail[:2000]
             base_fp = worktree_fingerprint(args.workdir, base_detail)
             record['worktree_baseline_fingerprint'] = {
-                'diff_sha': base_fp['diff_sha'],
-                'untracked': sorted(base_fp['untracked']),
+                'paths': len(base_fp.get('paths') or {}),
+                'ignored': len(base_fp.get('ignored') or ()),
+                'diff_sha': base_fp.get('diff_sha'),
             }
         try:
             # 基线建不出来就不开工（第四轮审计）：此前 error / not_repo 时 before 取空集，
@@ -509,8 +586,9 @@ def main(argv=None):
                 if kind == 'changed':
                     after_fp = worktree_fingerprint(args.workdir, detail)
                     record['worktree_after_fingerprint'] = {
-                        'diff_sha': after_fp['diff_sha'],
-                        'untracked': sorted(after_fp['untracked']),
+                        'paths': len(after_fp.get('paths') or {}),
+                        'ignored': len(after_fp.get('ignored') or ()),
+                        'diff_sha': after_fp.get('diff_sha'),
                     }
                     # 指纹读失败不能退化判定（第四轮审计 #4）：`ERR:*` 说明 git diff
                     # 本身没跑通，此时任何"有/无产出"的结论都没有依据，直接阻断。

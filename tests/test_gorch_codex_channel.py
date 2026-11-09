@@ -41,8 +41,29 @@ def kanban(cmd, data_dir):
 
 
 def channel(cmd, data_dir):
+    """起子进程跑 codex_channel。
+
+    r7 起执行端没有 manifest 一律拒，所以这里默认签发一份「宽松」清单
+    （no_change_allowed / allow_non_repo 都为真），保持旧用例原本的语义；
+    要测拒签的用例在自己的 argv 里显式带 --manifest 覆盖。
+    """
+    args = list(cmd)
+    if '--manifest' not in args and '--task' in args:
+        task = args[args.index('--task') + 1]
+        mf = data_dir / '_inv.json'
+        mf.write_text(json.dumps({
+            'manifest_version': 1, 'invocation': 'inv-cli',
+            'target': 'test-branch', 'created_at': '2026-11-09T00:00:00+00:00',
+            'tasks': {task: {'card': task, 'write_scope': [],
+                             'write_scope_source': 'test（未声明写域）',
+                             'write_scope_enforced': False,
+                             'no_change_allowed': True,
+                             'allow_non_repo': True,
+                             'requests': {}, 'granted_by': 'test'}},
+            'blocked': {}}, ensure_ascii=False), encoding='utf-8')
+        args += ['--manifest', str(mf)]
     return subprocess.run(
-        [sys.executable, str(CHANNEL)] + cmd, capture_output=True, text=True,
+        [sys.executable, str(CHANNEL)] + args, capture_output=True, text=True,
         encoding='utf-8', errors='replace', env=_env(data_dir))
 
 
@@ -227,7 +248,7 @@ class _Res:
 
 
 def _run_main(m, monkeypatch, tmp_path, wt_kind, wt_detail='', extra=None,
-              baseline=None):
+              baseline=None, grants=None):
     """走完整执行段，只替换外部 Codex、产出判定与看板 CLI。
 
     ``baseline`` 是执行前快照（None 表示与执行后同值）。A4 之后 worktree_state
@@ -248,19 +269,41 @@ def _run_main(m, monkeypatch, tmp_path, wt_kind, wt_detail='', extra=None,
     # 而 ERR 现在按"读取失败即阻断"处理（不在这个桩里就每条用例都 blocked）。
     def fake_fp(wd, detail=None):
         d = str(detail or '')
-        lines = {x for x in d.splitlines() if x.strip()}
-        return {'lines': lines,
-                'diff_sha': hashlib.sha256(d.encode('utf-8')).hexdigest()[:16],
-                'untracked': {x[3:].strip() for x in lines if x.startswith('?? ')}}
+        rows = [x for x in d.splitlines() if x.strip()]
+        paths = {}
+        for ln in rows:
+            body = ln[3:] if len(ln) > 3 else ln
+            paths[body.strip()] = hashlib.sha256(ln.encode('utf-8')).hexdigest()[:16]
+        return {'paths': paths, 'ignored': set(), 'rows': [],
+                'diff_sha': hashlib.sha256(d.encode('utf-8')).hexdigest()[:16]}
 
     monkeypatch.setattr(m, 'worktree_fingerprint', fake_fp)
     monkeypatch.setattr(m, 'kanban', lambda *a, **k: _Res())
+
+    extra = list(extra or [])
+    if '--manifest' not in extra:
+        g = dict(grants or {})
+        g.setdefault('no_change_allowed', '--no-change-allowed' in extra)
+        g.setdefault('allow_non_repo', '--allow-non-repo' in extra)
+        scope = list(g.get('write_scope') or [])
+        inv = tmp_path / 'inv-auto.json'
+        inv.write_text(json.dumps({
+            'manifest_version': 1, 'invocation': 'inv-auto',
+            'target': 'test-branch', 'created_at': '2026-11-09T00:00:00+00:00',
+            'tasks': {'T1': {'card': 'T1', 'write_scope': scope,
+                             'write_scope_source': 'test',
+                             'write_scope_enforced': bool(scope),
+                             'no_change_allowed': bool(g.get('no_change_allowed')),
+                             'allow_non_repo': bool(g.get('allow_non_repo')),
+                             'requests': {}, 'granted_by': 'test'}},
+            'blocked': {}}, ensure_ascii=False), encoding='utf-8')
+        extra += ['--manifest', str(inv)]
 
     prompt = tmp_path / 'p.md'
     prompt.write_text('# 工单\n', encoding='utf-8')
     run_dir = tmp_path / 'run'
     argv = ['--task', 'T1', '--prompt', str(prompt), '--run-dir', str(run_dir),
-            '--workdir', str(tmp_path)] + (extra or [])
+            '--workdir', str(tmp_path)] + extra
     rc = m.main(argv)
     record = json.loads((run_dir / 'codex-channel.json').read_text(encoding='utf-8'))
     return rc, record
@@ -372,7 +415,7 @@ def test_baseline_error_blocks_before_running_codex(tmp_path, monkeypatch):
     prompt.write_text('# 工单\n', encoding='utf-8')
     run_dir = tmp_path / 'run'
     rc = m.main(['--task', 'T1', '--prompt', str(prompt),
-                 '--run-dir', str(run_dir), '--workdir', str(tmp_path)])
+                 '--run-dir', str(run_dir), '--workdir', str(tmp_path), '--manifest', str(_manifest(tmp_path, []))])
     record = json.loads((run_dir / 'codex-channel.json').read_text(encoding='utf-8'))
     assert rc == 1
     assert record['result'] == 'blocked'
@@ -394,7 +437,7 @@ def test_non_repo_baseline_blocks_without_flag(tmp_path, monkeypatch):
     prompt.write_text('# 工单\n', encoding='utf-8')
     run_dir = tmp_path / 'run'
     rc = m.main(['--task', 'T1', '--prompt', str(prompt),
-                 '--run-dir', str(run_dir), '--workdir', str(tmp_path)])
+                 '--run-dir', str(run_dir), '--workdir', str(tmp_path), '--manifest', str(_manifest(tmp_path, []))])
     record = json.loads((run_dir / 'codex-channel.json').read_text(encoding='utf-8'))
     assert rc == 1
     assert record['result'] == 'blocked'
@@ -408,7 +451,7 @@ def test_empty_prompt_still_writes_blocked_record(tmp_path):
     prompt.write_text('   \n', encoding='utf-8')
     run_dir = tmp_path / 'run'
     rc = m.main(['--task', 'T1', '--prompt', str(prompt),
-                 '--run-dir', str(run_dir), '--workdir', str(tmp_path)])
+                 '--run-dir', str(run_dir), '--workdir', str(tmp_path), '--manifest', str(_manifest(tmp_path, []))])
     record = json.loads((run_dir / 'codex-channel.json').read_text(encoding='utf-8'))
     assert rc == 2
     assert record['result'] == 'blocked'
@@ -418,21 +461,21 @@ def test_empty_prompt_still_writes_blocked_record(tmp_path):
 def test_fresh_changes_detects_content_change_with_same_lines():
     """A4：前后都是同一行「M a.txt」，但内容变了 → 必须判本次有新增（此前误杀）。"""
     m = _load()
-    base = {'lines': {' M a.txt'}, 'diff_sha': 'aa', 'untracked': set()}
-    after = {'lines': {' M a.txt'}, 'diff_sha': 'bb', 'untracked': set()}
-    fresh, basis = m.fresh_changes(base, after, ' M a.txt')
-    assert fresh
+    base = {'paths': {'a.txt': 'aa'}, 'ignored': set(), 'diff_sha': 'aa'}
+    after = {'paths': {'a.txt': 'bb'}, 'ignored': set(), 'diff_sha': 'bb'}
+    fresh, basis = m.fresh_changes(base, after)
+    assert fresh == {'a.txt'}
     assert '内容' in basis
 
 
 def test_fresh_changes_sees_untracked_dir_files():
     """A4：未跟踪目录下的新增文件也要看得见（行集合只有 ?? out/，看不见内部）。"""
     m = _load()
-    base = {'lines': {'?? out/'}, 'diff_sha': 'aa', 'untracked': {'out/'}}
-    after = {'lines': {'?? out/'}, 'diff_sha': 'aa',
-             'untracked': {'out/', 'out/new.txt'}}
-    fresh, _ = m.fresh_changes(base, after, '?? out/')
-    assert any('out/new.txt' in f for f in fresh)
+    base = {'paths': {'out/': 'x'}, 'ignored': set(), 'diff_sha': 'aa'}
+    after = {'paths': {'out/': 'x', 'out/new.txt': 'y'}, 'ignored': set(),
+             'diff_sha': 'aa'}
+    fresh, _ = m.fresh_changes(base, after)
+    assert fresh == {'out/new.txt'}
 
 def test_fingerprint_read_failure_blocks(tmp_path, monkeypatch):
     """A4：执行后 diff 指纹读不出来（ERR:*）时不能退化判定，必须 blocked。"""
@@ -444,15 +487,16 @@ def test_fingerprint_read_failure_blocks(tmp_path, monkeypatch):
     monkeypatch.setattr(m, 'worktree_state',
                         lambda wd: ('changed', ' M docs/x.md'))
     monkeypatch.setattr(m, 'worktree_fingerprint',
-                        lambda wd, detail=None: {'lines': {' M docs/x.md'},
-                                                 'diff_sha': 'ERR:128',
-                                                 'untracked': set()})
+                        lambda wd, detail=None: {'paths': {'docs/x.md': 'd'},
+                                                 'ignored': set(), 'rows': [],
+                                                 'diff_sha': 'ERR:128'})
     monkeypatch.setattr(m, 'kanban', lambda *a, **k: _Res())
     prompt = tmp_path / 'p.md'
     prompt.write_text('# 工单\n', encoding='utf-8')
     run_dir = tmp_path / 'run'
+    inv = _manifest(tmp_path, [])
     rc = m.main(['--task', 'T1', '--prompt', str(prompt), '--run-dir', str(run_dir),
-                 '--workdir', str(tmp_path)])
+                 '--workdir', str(tmp_path), '--manifest', str(inv)])
     record = json.loads((run_dir / 'codex-channel.json').read_text(encoding='utf-8'))
     assert rc == 1
     assert record['result'] == 'blocked'
@@ -477,14 +521,16 @@ def test_baseline_fingerprint_error_blocks_before_codex(tmp_path, monkeypatch):
     monkeypatch.setattr(m, 'run_codex', fake_run)
     monkeypatch.setattr(m, 'worktree_state', lambda wd: ('changed', ' M docs/x.md'))
     monkeypatch.setattr(m, 'worktree_fingerprint', lambda wd, detail=None: {
-        'lines': {' M docs/x.md'}, 'diff_sha': 'ERR:git diff failed',
-        'untracked': set()})
+        'paths': {'docs/x.md': 'd'}, 'ignored': set(), 'rows': [],
+        'diff_sha': 'ERR:git diff failed'})
     monkeypatch.setattr(m, 'kanban', lambda *a, **k: _Res())
     prompt = tmp_path / 'p.md'
     prompt.write_text('# work order\n', encoding='utf-8')
     run_dir = tmp_path / 'run'
+    inv = _manifest(tmp_path, [])
     rc = m.main(['--task', 'T1', '--prompt', str(prompt),
-                 '--run-dir', str(run_dir), '--workdir', str(tmp_path)])
+                 '--run-dir', str(run_dir), '--workdir', str(tmp_path),
+                 '--manifest', str(inv)])
     record = json.loads((run_dir / 'codex-channel.json').read_text(encoding='utf-8'))
     assert rc == 1
     assert called['n'] == 0
@@ -539,3 +585,122 @@ def test_manifest_missing_task_blocks(tmp_path, monkeypatch):
     assert rc == 2
     assert record['result'] == 'blocked'
     assert '未包含任务' in (record.get('reason') or '')
+
+# ============ r7：第六轮审计 4 条 ❌ + 新问题闭环 ============
+
+def test_no_manifest_rejects_cli_self_authorization(tmp_path, monkeypatch):
+    """r7 口径①：没有 manifest 一律拒，命令行开关不构成授权。"""
+    m = _load()
+    monkeypatch.setattr(m, 'kanban', lambda *a, **k: _Res())
+    fake = tmp_path / 'codex.exe'
+    fake.write_bytes(b'')
+    monkeypatch.setattr(m, 'resolve_codex_exe', lambda: str(fake))
+    called = {'n': 0}
+
+    def fake_run(*a, **k):
+        called['n'] += 1
+        return _Proc(), 1.0
+
+    monkeypatch.setattr(m, 'run_codex', fake_run)
+    prompt = tmp_path / 'p.md'
+    prompt.write_text('# work order\n', encoding='utf-8')
+    run_dir = tmp_path / 'run'
+    rc = m.main(['--task', 'T1', '--prompt', str(prompt), '--run-dir', str(run_dir),
+                 '--workdir', str(tmp_path), '--no-change-allowed'])
+    record = json.loads((run_dir / 'codex-channel.json').read_text(encoding='utf-8'))
+    assert rc == 2
+    assert record['result'] == 'blocked'
+    assert 'manifest' in (record.get('reason') or '')
+    assert called['n'] == 0
+
+
+def test_cli_flag_without_grant_still_blocks(tmp_path, monkeypatch):
+    """r7 口径①：清单明说 no_change_allowed=false 时，传开关也不放行。"""
+    m = _load()
+    rc, record = _run_main(m, monkeypatch, tmp_path, 'clean',
+                           extra=['--no-change-allowed'],
+                           grants={'no_change_allowed': False})
+    assert rc == 1
+    assert record['result'] == 'blocked'
+    assert '无任何改动' in (record.get('reason') or '')
+    assert record['ignored_cli_flags']['no_change_allowed'] is True
+
+
+def test_ignored_path_outside_scope_blocks(tmp_path, monkeypatch):
+    """r7 新问题 #2：被 .gitignore 命中的域外产物也必须被写域校验看见。"""
+    m = _load()
+    fake = tmp_path / 'codex.exe'
+    fake.write_bytes(b'')
+    monkeypatch.setattr(m, 'resolve_codex_exe', lambda: str(fake))
+    monkeypatch.setattr(m, 'run_codex', lambda *a, **k: (_Proc(), 1.0))
+    states = [('clean', ''), ('changed', '!! data/gorch/x.log')]
+    monkeypatch.setattr(m, 'worktree_state',
+                        lambda wd: states.pop(0) if states else ('changed', '!! data/gorch/x.log'))
+
+    def fake_fp(wd, detail=None):
+        return {'paths': {'data/gorch/x.log': 'd1'},
+                'ignored': {'data/gorch/x.log'}, 'rows': [],
+                'diff_sha': 'ok'}
+
+    monkeypatch.setattr(m, 'worktree_fingerprint', fake_fp)
+    monkeypatch.setattr(m, 'kanban', lambda *a, **k: _Res())
+    prompt = tmp_path / 'p.md'
+    prompt.write_text('# work order\n', encoding='utf-8')
+    run_dir = tmp_path / 'run'
+    inv = _manifest(tmp_path, ['docs/reports/'])
+    rc = m.main(['--task', 'T1', '--prompt', str(prompt), '--run-dir', str(run_dir),
+                 '--workdir', str(tmp_path), '--manifest', str(inv)])
+    record = json.loads((run_dir / 'codex-channel.json').read_text(encoding='utf-8'))
+    assert rc == 1
+    assert '超出授权写域' in (record.get('reason') or '')
+    assert record['write_scope_check']['outside'] == ['data/gorch/x.log']
+
+
+def test_scope_star_does_not_cross_separator():
+    """r7 新问题：fnmatch 的 `*` 会跨 `/`，等于写域比声明的宽一层。"""
+    m = _load()
+    assert m._scope_match('scripts/gorch/a.py', 'scripts/gorch/*.py')
+    assert not m._scope_match('scripts/gorch/sub/a.py', 'scripts/gorch/*.py')
+    assert m._scope_match('scripts/gorch/sub/a.py', 'scripts/gorch/**/*.py')
+    assert m._outside_scope(['scripts/gorch/sub/a.py'],
+                            ['scripts/gorch/*.py']) == ['scripts/gorch/sub/a.py']
+
+
+def test_rename_checks_both_ends():
+    """r7 新问题 #3：域外文件移进域内时，域外的删除也要参与写域校验。"""
+    m = _load()
+    paths = m._fresh_paths({'scripts/secret.py -> docs/reports/x.md'})
+    assert set(paths) == {'scripts/secret.py', 'docs/reports/x.md'}
+    assert m._outside_scope(paths, ['docs/reports/']) == ['scripts/secret.py']
+
+
+def test_state_prefix_keeps_leading_space_path():
+    """r7 新问题 #7：` M docs/x.md` 的首空格不得吃掉，路径不能被读成 `M docs/x.md`。"""
+    m = _load()
+    assert m._fresh_paths({' M docs/reports/x.md'}) == ['docs/reports/x.md']
+    assert m._fresh_paths({'?? docs/reports/x.md'}) == ['docs/reports/x.md']
+
+
+def test_same_path_content_change_is_fresh():
+    """r7 新问题 #1：脏基线下同路径内容摘要变了，必须判本次有新增。"""
+    m = _load()
+    base = {'paths': {'docs/x.md': 'd1'}, 'ignored': set(), 'diff_sha': 'h1'}
+    after = {'paths': {'docs/x.md': 'd2'}, 'ignored': set(), 'diff_sha': 'h2'}
+    fresh, _ = m.fresh_changes(base, after)
+    assert fresh == {'docs/x.md'}
+
+
+def test_staging_only_is_not_fresh():
+    """r7：只 git add（文件字节没变）不算本次新增。"""
+    m = _load()
+    base = {'paths': {'docs/x.md': 'd1'}, 'ignored': set(), 'diff_sha': 'h1'}
+    after = {'paths': {'docs/x.md': 'd1'}, 'ignored': set(), 'diff_sha': 'h2'}
+    fresh, _ = m.fresh_changes(base, after)
+    assert fresh == set()
+
+def test_hidden_dir_path_is_not_truncated():
+    """r7 自查：`lstrip('./')` 会把 `.github/...` 剥成 `github/...`，写域比对会错位。"""
+    m = _load()
+    assert m._fresh_paths({'?? .github/workflows/x.yml'}) == ['.github/workflows/x.yml']
+    assert m._fresh_paths({'./docs/a.md'}) == ['docs/a.md']
+    assert m._fresh_paths({'docs\\win.md'}) == ['docs/win.md']
