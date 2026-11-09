@@ -457,3 +457,85 @@ def test_fingerprint_read_failure_blocks(tmp_path, monkeypatch):
     assert rc == 1
     assert record['result'] == 'blocked'
     assert '指纹' in (record.get('reason') or '')
+
+
+
+# ============ r6：脏基线阻断 + 授权写域（第五轮 7.3 最小清单） ============
+
+def test_baseline_fingerprint_error_blocks_before_codex(tmp_path, monkeypatch):
+    """Q3-6：执行前内容指纹读不出来（diff_sha=ERR:*）时，调 Codex 前就 blocked。"""
+    m = _load()
+    fake = tmp_path / 'codex.exe'
+    fake.write_bytes(b'')
+    monkeypatch.setattr(m, 'resolve_codex_exe', lambda: str(fake))
+    called = {'n': 0}
+
+    def fake_run(*a, **k):
+        called['n'] += 1
+        return _Proc(), 1.0
+
+    monkeypatch.setattr(m, 'run_codex', fake_run)
+    monkeypatch.setattr(m, 'worktree_state', lambda wd: ('changed', ' M docs/x.md'))
+    monkeypatch.setattr(m, 'worktree_fingerprint', lambda wd, detail=None: {
+        'lines': {' M docs/x.md'}, 'diff_sha': 'ERR:git diff failed',
+        'untracked': set()})
+    monkeypatch.setattr(m, 'kanban', lambda *a, **k: _Res())
+    prompt = tmp_path / 'p.md'
+    prompt.write_text('# work order\n', encoding='utf-8')
+    run_dir = tmp_path / 'run'
+    rc = m.main(['--task', 'T1', '--prompt', str(prompt),
+                 '--run-dir', str(run_dir), '--workdir', str(tmp_path)])
+    record = json.loads((run_dir / 'codex-channel.json').read_text(encoding='utf-8'))
+    assert rc == 1
+    assert called['n'] == 0
+    assert record['result'] == 'blocked'
+    assert '基线' in (record.get('reason') or '')
+
+
+def _manifest(tmp_path, write_scope):
+    p = tmp_path / 'inv.json'
+    p.write_text(json.dumps({
+        'manifest_version': 1, 'invocation': 'inv1',
+        'tasks': {'T1': {'write_scope': write_scope,
+                         'write_scope_enforced': bool(write_scope),
+                         'no_change_allowed': False,
+                         'allow_non_repo': False,
+                         'granted_by': 'orchestrator'}}}), encoding='utf-8')
+    return p
+
+
+def test_write_scope_violation_blocks(tmp_path, monkeypatch):
+    """7.3-4：产出路径越出授权写域即 blocked，不写 done。"""
+    m = _load()
+    rc, record = _run_main(m, monkeypatch, tmp_path, 'changed',
+                           '?? scripts/hack.py', baseline=[('clean', '')],
+                           extra=['--manifest',
+                                  str(_manifest(tmp_path, ['docs/reports/']))])
+    assert rc == 1
+    assert record['result'] == 'blocked'
+    assert '超出授权写域' in (record.get('reason') or '')
+    assert record['write_scope_check']['outside'] == ['scripts/hack.py']
+
+
+def test_write_scope_inside_allows_done(tmp_path, monkeypatch):
+    """正面：产出全部落在授权写域内时正常 done。"""
+    m = _load()
+    rc, record = _run_main(m, monkeypatch, tmp_path, 'changed',
+                           '?? docs/reports/x.md', baseline=[('clean', '')],
+                           extra=['--manifest',
+                                  str(_manifest(tmp_path, ['docs/reports/']))])
+    assert rc == 0
+    assert record['result'] == 'done'
+    assert record['write_scope_check']['outside'] == []
+
+
+def test_manifest_missing_task_blocks(tmp_path, monkeypatch):
+    """授权清单里没有本任务条目——fail-closed，不起 Codex。"""
+    m = _load()
+    p = tmp_path / 'inv-empty.json'
+    p.write_text(json.dumps({'manifest_version': 1, 'tasks': {}}), encoding='utf-8')
+    rc, record = _run_main(m, monkeypatch, tmp_path, 'clean', '',
+                          extra=['--manifest', str(p)])
+    assert rc == 2
+    assert record['result'] == 'blocked'
+    assert '未包含任务' in (record.get('reason') or '')

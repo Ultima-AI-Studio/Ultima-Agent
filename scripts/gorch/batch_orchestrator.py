@@ -79,6 +79,13 @@ _CYGWIN_NOISE = re.compile(
     r'|'
     r'^\s*\S+:\s*fork:\s*retry:\s*Resource temporarily unavailable\s*$',
     re.IGNORECASE)
+# 「已删干净」的唯一可信 branch_outcome。实测（临时仓库 wtprobe-r5，2026-11-09）
+# `wt remove --format json` 返回**数组**，元素字段是
+#   {kind, branch, path, branch_outcome, branch_checked_out_at}
+# branch_outcome="deleted"，**没有 removed 字段**（与 wt merge 回执一样，不能照名字猜）。
+# 因此 cleanup 只认 deleted；其它取值（retained_unmerged 等）或缺失一律按未清理处理，
+# 不拿"目录恰好不在"顶上成功。
+REMOVED_OUTCOMES = frozenset({'deleted'})
 # 执行段是现成件（codex_channel.py），本编排只负责并发调用它，不重写执行逻辑。
 CHANNEL_SCRIPT = ROOT / 'scripts' / 'gorch' / 'codex_channel.py'
 MAX_CHANNELS = 3
@@ -354,17 +361,121 @@ def _truthy(value):
     return str(value or '').strip().lower() in ('true', 'yes', '1', 'on')
 
 
+# 卡片里只能写「请求」，不能写「授权」（第五轮审计 Q3-9 / 7.3-6）。
+# 授权由编排方在派发时签发到 invocation manifest，执行端只读那份清单：
+# 人不在执行过程中逐次点头，判断权在编排/审核这一侧的 agent。
+REQUEST_KEYS = ('request_no_change_allowed', 'request_allow_non_repo')
+LEGACY_REQUEST_KEYS = ('no_change_allowed', 'allow_non_repo')  # 兼容旧卡，按请求对待
+WRITE_SCOPE_KEY = 'writes'
+MANIFEST_DIRNAME = '_invocations'
+
+
+def _write_scope(meta):
+    """解析卡片声明的授权写域：`writes: docs/reports/, scripts/gorch/*.py`。
+
+    只在**编排方派发时**读一次并固化进 manifest；执行端不读卡片，避免"卡片自己
+    把自己放行"。支持逗号分隔，也容忍 `[a, b]` 写法与引号。
+    """
+    raw = str(meta.get(WRITE_SCOPE_KEY) or '').strip()
+    if not raw:
+        return []
+    raw = raw.strip().strip('[]')
+    out = []
+    for part in raw.replace('\uff0c', ',').split(','):
+        s = part.strip().strip('\'"').strip()
+        if s:
+            out.append(s.replace('\\', '/'))
+    return out
+
+
+def grant_invocation(batch_dir, ready, invocation, target):
+    """签发 invocation manifest：把「请求」提升为「授权」，或拒绝签发。
+
+    返回 (manifest_path, blocked)。``blocked`` 是 ``{task: reason}``——编排方
+    拒绝授权（例如卡片既声明了写域又请求"零改动"这类自相矛盾），这些任务不进
+    执行段，也不参与后续 merge。
+    """
+    batch_dir = pathlib.Path(batch_dir)
+    tasks, blocked = {}, {}
+    for task in ready:
+        card = batch_dir / f'{task}.md'
+        meta = _task_meta(card)
+        scope = _write_scope(meta)
+        req_nc = _truthy(meta.get(REQUEST_KEYS[0])) or _truthy(
+            meta.get(LEGACY_REQUEST_KEYS[0]))
+        req_nr = _truthy(meta.get(REQUEST_KEYS[1])) or _truthy(
+            meta.get(LEGACY_REQUEST_KEYS[1]))
+        # 自相矛盾：声明了要改哪些路径，又说本次不产生改动 —— 拒绝授权，
+        # 不猜哪一边是真的（第五轮审计 7.3-6）。
+        if scope and req_nc:
+            blocked[task] = ('卡片同时声明 writes 与 no_change_allowed，'
+                             '编排方无法判定本次是否应产出，拒绝授权；'
+                             '请改卡后重派')
+            continue
+        tasks[task] = {
+            'card': str(card),
+            'write_scope': scope,
+            'write_scope_source': 'card:writes@gate（由编排方固化）' if scope
+            else 'undeclared（本卡未声明写域，本次不做写域校验）',
+            'write_scope_enforced': bool(scope),
+            'no_change_allowed': req_nc,
+            'allow_non_repo': req_nr,
+            'requests': {'no_change_allowed': req_nc, 'allow_non_repo': req_nr},
+            'granted_by': 'batch_orchestrator（编排方）',
+        }
+    manifest = {
+        'manifest_version': 1,
+        'invocation': invocation,
+        'target': target,
+        'created_at': datetime.now(timezone.utc).isoformat(timespec='seconds'),
+        'granted_by': 'batch_orchestrator（编排方）',
+        'policy': ('卡片只能提请求；授权只由编排方在派发时签发；'
+                   '执行端只读本清单，不读卡片自由字段；人不在执行过程中审批'),
+        'tasks': tasks,
+        'blocked': blocked,
+    }
+    out_dir = RUNS / MANIFEST_DIRNAME
+    out_dir.mkdir(parents=True, exist_ok=True)
+    path = out_dir / f'{invocation}.json'
+    path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding='utf-8')
+    return path, blocked
+
+
+def _load_grants(manifest_path):
+    """读回编排方签发的授权清单；结构不对直接 SystemExit（fail-closed）。"""
+    p = pathlib.Path(manifest_path)
+    if not p.is_file():
+        raise SystemExit(f'invocation manifest 不存在：{p}，fail-closed')
+    try:
+        data = json.loads(p.read_text(encoding='utf-8'))
+    except (json.JSONDecodeError, OSError, UnicodeDecodeError) as exc:
+        raise SystemExit(f'invocation manifest 不可解析：{p}（{exc}）')
+    tasks = data.get('tasks')
+    if not isinstance(tasks, dict):
+        raise SystemExit(f'invocation manifest 结构不对（tasks 不是对象）：{p}')
+    return data, tasks
+
+
 def execute(batch_dir, prompts_dir, max_channels=MAX_CHANNELS, dry_run=False,
-            invocation=None):
+            invocation=None, manifest=None):
     """对可开工任务并发调 codex_channel（--workdir 指向各自 worktree）。
 
     执行逻辑全在 codex_channel 内；本函数只做：校验、fan-out 起进程、join 收集。
-    并发用标准库 subprocess（fan-out + join），分批受 max_channels 限制。
-    产出策略类开关（no_change_allowed / allow_non_repo）**逐卡从任务卡 frontmatter
-    读**，不在批次层统一打开。
+    产出策略类开关**不再从卡片 frontmatter 读**（第五轮审计 Q3-9）：改为读取
+    编排方签发的 invocation manifest，执行端只认那份授权。
     """
     rows = gate_check(batch_dir)
     ready = [r['task'] for r in rows if r['verdict'] == '可开工']
+
+    inv = invocation or datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%S%f')
+    if manifest is None:
+        # 直接跑 execute（不经 run_all）时也由编排方就地签发一份清单，保证
+        # 「授权一定有清单可审计」，而不是执行端自己去读卡片字段。
+        manifest, blocked = grant_invocation(batch_dir, ready, inv, _current_branch())
+        if blocked:
+            ready = [t for t in ready if t not in blocked]
+    _mdata, grants = _load_grants(manifest)
+    inv = str(_mdata.get('invocation') or inv)
 
     # fail-closed 校验：每个任务的隔离位与 prompt 必须先就绪。
     jobs = []
@@ -376,10 +487,11 @@ def execute(batch_dir, prompts_dir, max_channels=MAX_CHANNELS, dry_run=False,
         if not prompt:
             raise SystemExit(
                 f'找不到 prompt {task}（{prompts_dir}\\<id>.md|.txt），fail-closed')
-        meta = _task_meta(pathlib.Path(batch_dir) / f'{task}.md')
-        jobs.append((task, wt_path, prompt, meta))
+        g = grants.get(task)
+        if not isinstance(g, dict):
+            raise SystemExit(f'invocation manifest 未授权任务 {task}，fail-closed')
+        jobs.append((task, wt_path, prompt, g))
 
-    inv = invocation or datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%S%f')
     results = []
     # 分批：每批最多 max_channels 个进程并发，批内 fan-out 后 join，再进下一批。
     for start in range(0, len(jobs), max_channels):
@@ -392,9 +504,11 @@ def execute(batch_dir, prompts_dir, max_channels=MAX_CHANNELS, dry_run=False,
             cmd = [sys.executable, str(CHANNEL_SCRIPT),
                    '--task', task, '--channel', str(channel),
                    '--prompt', str(prompt), '--workdir', str(wt_path),
-                   '--run-dir', str(run_dir)]
+                   '--run-dir', str(run_dir),
+                   '--manifest', str(manifest)]
             if dry_run:
                 cmd.append('--dry-run')
+            # 只认编排方签发的那份清单（变量名沿用 meta，内容是授权而不是卡片原文）。
             if _truthy(meta.get('no_change_allowed')):
                 cmd.append('--no-change-allowed')
             if _truthy(meta.get('allow_non_repo')):
@@ -575,6 +689,36 @@ def wt_remove(branch, force=False, delete_branch=False):
     return r
 
 
+def _utc_ts(value):
+    """把记录里的 started_at 解析成可比较的 epoch；解析不了返回 None。
+
+    第五轮审计 Q3-3：此前直接拿字符串比大小——`+08:00` 与 `Z` 混用、缺时区、
+    非法值都会让"谁更新"变成字典序游戏。这里统一转 UTC，解析失败当作缺失，
+    由调用方阻断（不猜、不退 mtime）。
+    """
+    s = str(value or '').strip()
+    if not s:
+        return None
+    if s.endswith('Z'):
+        s = s[:-1] + '+00:00'
+    try:
+        dt = datetime.fromisoformat(s)
+    except ValueError:
+        return None
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    return dt.timestamp()
+
+
+def _ts_label(ts):
+    """把 epoch 还原成可读的 UTC 时间，供失败文案使用。"""
+    try:
+        return datetime.fromtimestamp(float(ts), tz=timezone.utc).isoformat(
+            timespec='seconds')
+    except (TypeError, ValueError, OSError):
+        return str(ts)
+
+
 def find_done_tasks(batch_dir, with_blocked=False, run_dirs=None, only_tasks=None):
     """返回 result=done 且**可合并**的任务。
 
@@ -622,57 +766,72 @@ def find_done_tasks(batch_dir, with_blocked=False, run_dirs=None, only_tasks=Non
             else:
                 stale[task] = {
                     'run_record': str(h),
+                    'result': data.get('result'),
                     'reason': data.get('reason')
                     or f'本次记录 result={data.get("result")!r}，不是可合并的 done'}
         return (done, stale) if with_blocked else done
 
-    # 兜底路径（独立 CLI 未给 run_dirs 时）：授权语义不再由"文件最新"决定。
-    # 第四轮审计 Q1/Q3：按 mtime 选"最新的 done"等于让谁最后被 touch 谁授权合并。
-    # 改成以记录里的可信 started_at 为准；只有历史记录完全没有 started_at 才退
-    # 化 mtime，并在 reason 里标注这是弱判据。并列 started_at 的不同 invocation
-    # 无法唯一确定时直接阻断，不猜。
+    # 兜底路径（不给 run_dirs 时）：不再有"文件最新即授权"这种语义。
+    # 第四轮 Q1/Q3 + 第五轮 7.3：按 mtime 选"最新的 done"等于谁最后被 touch 谁拿到
+    # 合并授权；损坏记录只进 broken 收集、仍让更旧的 done 上来；started_at 拿字符串
+    # 比大小；invocation 在真实记录里根本不写。这里逐条收紧，且**不再退化 mtime**。
     for task in tasks:
         entries, broken = [], []
         for h in RUNS.glob(f'{task}-ch*/codex-channel.json'):
             try:
                 data = json.loads(h.read_text(encoding='utf-8'))
             except (json.JSONDecodeError, OSError, UnicodeDecodeError) as exc:
-                # 损坏记录不再"静默跳过、退到更旧的 done"（那正是审计指出的口子）。
                 broken.append((str(h), str(exc)))
                 continue
             if data.get('dry_run'):
                 continue
             entries.append({'path': str(h), 'data': data,
-                            'started_at': str(data.get('started_at') or ''),
+                            'started_at': _utc_ts(data.get('started_at')),
                             'inv': str(data.get('invocation') or ''),
                             'mtime': h.stat().st_mtime})
-        if not entries:
+        # 任何损坏记录都阻断（第五轮 Q3-1）：此前 broken 只被收集、扫描继续，
+        # 只要还有一条更旧的 done 就会拿到授权——坏掉的那次执行被悄悄忽略。
+        if broken:
             stale[task] = {
-                'run_record': broken[0][0] if broken else None,
-                'reason': (f'历史执行记录损坏且无可用记录：{broken[0][1]}' if broken
-                           else '无真实执行记录')}
+                'run_record': broken[0][0],
+                'reason': (f'历史执行记录损坏 {len(broken)} 条，无法确认本次结果：'
+                           f'{broken[0][1]}；请显式传 --run-dir')}
             continue
-        timed = [e for e in entries if e['started_at']]
-        if timed:
-            best = max(timed, key=lambda e: e['started_at'])
-            tie = [e for e in timed if e['started_at'] == best['started_at']
-                   and e['inv'] != best['inv']]
-            if tie:
-                stale[task] = {
-                    'run_record': best['path'],
-                    'reason': (f'存在并列 started_at={best["started_at"]} 的不同 '
-                               'invocation，无法唯一确定本次记录；请显式传 --run-dir')}
-                continue
-            sel = 'started_at'
-        else:
-            best = max(entries, key=lambda e: e['mtime'])
-            sel = 'mtime（弱判据：历史记录缺少 started_at）'
+        if not entries:
+            stale[task] = {'run_record': None, 'reason': '无真实执行记录'}
+            continue
+        # started_at 必须是可解析的 UTC ISO（第五轮 Q3-3）：解析不了就阻断，
+        # 不再退回 mtime 当弱判据——弱判据本身就是被点名的授权漏洞。
+        missing_at = [e for e in entries if e['started_at'] is None]
+        if missing_at:
+            stale[task] = {
+                'run_record': missing_at[0]['path'],
+                'reason': ('历史记录缺少可解析的 started_at（UTC ISO8601），'
+                           '拒绝按 mtime 授权；请显式传 --run-dir')}
+            continue
+        empty_inv = [e for e in entries if not e['inv']]
+        if empty_inv:
+            stale[task] = {
+                'run_record': empty_inv[0]['path'],
+                'reason': ('历史记录缺少 invocation，无法唯一确定本次执行；'
+                           '请显式传 --run-dir')}
+            continue
+        best = max(entries, key=lambda e: e['started_at'])
+        tie = [e for e in entries if e['started_at'] == best['started_at']]
+        if len(tie) > 1:
+            stale[task] = {
+                'run_record': best['path'],
+                'reason': (f'存在 {len(tie)} 条并列 started_at='
+                           f'{_ts_label(best["started_at"])} 的记录'
+                           '（含同一 invocation 的多条），无法唯一确定本次执行；'
+                           '请显式传 --run-dir')}
+            continue
         data = best['data']
         if data.get('result') == 'done':
             done[task] = best['path']
         else:
-            stale[task] = {'run_record': best['path'], 'selection': sel,
-                           'broken_records': [b[0] for b in broken],
+            stale[task] = {'run_record': best['path'],
+                           'result': data.get('result'),
                            'reason': data.get('reason') or '最新记录的 result 不是 done'}
     return (done, stale) if with_blocked else done
 
@@ -750,6 +909,13 @@ def merge(batch_dir, tasks=None, target=None, run_dirs=None, only_tasks=None):
     target_sha = _ref_sha(resolved_target)   # 合并前基线：用来判"主线有没有真的动"
     for task in targets:
         branch = BRANCH_PREFIX + task
+        # 调用前把源分支状态钉住（第五轮审计 7.2）：只记 target SHA 不够——
+        # ① 源分支在调用前本来就已是 target 祖先时，调用后 is-ancestor 必然为真，
+        #    这证明不了"这一次"合入了任何东西（worktree 里的未提交产出根本不进历史）；
+        # ② 只要 target tip 变了就算成功，则任何无关进程的推进都能替本任务作证。
+        src_before = _ref_sha(branch)
+        rc_pre, _ = _git_out(['merge-base', '--is-ancestor', branch, resolved_target])
+        pre_anc = (rc_pre == 0)
         r = wt_merge(branch, target=resolved_target)
         if r.returncode != 0:
             failed.append({
@@ -803,25 +969,40 @@ def merge(batch_dir, tasks=None, target=None, run_dirs=None, only_tasks=None):
             raise SystemExit(
                 f'wt merge 回报的目标与请求不一致 {task}: '
                 f'请求 {resolved_target} 实际 {got_target}')
-        # ② git 侧复核：wt 说 rc=0 也要看主线到底动没动。
-        #    a) 源分支已是 target 的祖先（快进/rebase 后合入）→ 算合入；
-        #    b) 否则 target tip 相对上一次成功合并后发生了变化 → 也算合入。
+        # ② git 侧复核（第五轮审计 7.2）：wt 说 rc=0 也要证明**这一次**把本任务
+        #    真的合进去了。三条同时成立才算：
+        #      a) target tip 相对调用前前进了；
+        #      b) 调用后源分支已是 target 的祖先；
+        #      c) 若调用前源分支**本来就是**祖先，则源分支 tip 必须变过——
+        #         那是 wt 把 worktree 里未提交内容 rebase/commit 成新提交的证据；
+        #         否则就是"合了一个早就在里面的老提交"，本次产出没进去。
+        #    c) 同时挡掉"预先已是祖先"和"无关进程推进 target"（后者不包含本源分支）。
         rc_anc, _ = _git_out(['merge-base', '--is-ancestor', branch, resolved_target])
         sha_after = _ref_sha(resolved_target)
+        src_after = _ref_sha(branch)
         progressed = bool(target_sha and sha_after and target_sha != sha_after)
-        if rc_anc != 0 and not progressed:
+        src_moved = bool(src_before and src_after and src_before != src_after)
+        if not (progressed and rc_anc == 0 and (not pre_anc or src_moved)):
             failed.append({
                 'task': task, 'branch': branch, 'returncode': 0,
                 'stdout': r.stdout.strip()[-600:],
-                'stderr': (f'wt 报成功但 git 侧未见合入生效（is-ancestor rc={rc_anc}，'
-                           f'target tip {target_sha[:12] or "?"}→{sha_after[:12] or "?"}）'),
-                'hint': ('按未合并处理：核对主线 tip 与源 worktree 后再决定重试或人工合；'
-                         '后续分支已停止。'),
+                'stderr': (f'wt 报成功但 git 侧未证明本次合入：'
+                           f'调用前已是祖先={pre_anc}，源分支 tip '
+                           f'{src_before[:12] or "?"}→{src_after[:12] or "?"}'
+                           f'（{"已变" if src_moved else "未变"}），'
+                           f'is-ancestor rc={rc_anc}，'
+                           f'target tip {target_sha[:12] or "?"}→'
+                           f'{sha_after[:12] or "?"}'),
+                'hint': ('按未合并处理：wt 可能把未提交产出留在源 worktree 里。'
+                         '核对源 worktree 与主线后再决定重试或人工合；后续分支已停止。'),
             })
             break
         target_sha = sha_after
         merged.append({'task': task, 'branch': branch,
                        'result': obj, 'run_record': done[task],
+                       'source_sha_before': src_before,
+                       'source_sha_after': src_after,
+                       'pre_ancestor': pre_anc,
                        'target_sha_after': sha_after})
     return done, merged, failed, stale
 
@@ -883,18 +1064,25 @@ def cleanup(batch_dir, tasks=None, force=False, delete_branch=False):
                                        f'登记={"在" if reg is True else reg}) {raw_tail}')})
             continue
         data = _parse_braced_json(r.stdout)
-        # wt remove 返回数组（也可能只回一个对象）；把分支结局原样带出，让人看清分支删没删。
+        # wt remove 实测（临时仓库 wtprobe-r5，2026-11-09）：返回数组，元素形如
+        #   {"kind":"worktree","branch":"feat/x","path":"…",
+        #    "branch_outcome":"deleted","branch_checked_out_at":null}
+        # **没有 removed 字段**——与 wt merge 回执同样不能照名字猜字段。
         items = (data if isinstance(data, list)
                  else ([data] if isinstance(data, dict) else []))
         outcomes = [x.get('branch_outcome') for x in items if isinstance(x, dict)]
-        # rc=0 也不等于清干净（第四轮审计 Q1）：JSON 不可解析、空结果、removed=false
-        # 或未知 partial outcome，此前都会直接进 removed 且不再回读。改成：先看结构化
-        # 结果里的 retained，再**无论 rc 都回读三处现场**，三处都确认消失才算 removed。
+        # schema 先验、再回读现场（第五轮审计 7.3-5）：rc=0 但回执解析失败、空数组、
+        # 元素不是对象、缺 branch_outcome、outcome 不是 deleted，一律 partial。
+        # 此前 schema_ok 只被记录、不参与 removed 判定，坏回执照样记成功。
+        schema_ok = (bool(items)
+                     and all(isinstance(x, dict) for x in items)
+                     and all(isinstance(x.get('branch_outcome'), str)
+                             and x.get('branch_outcome') for x in items))
         retained = any(o and 'retained' in str(o) for o in outcomes)
+        unexpected = [o for o in outcomes if o not in REMOVED_OUTCOMES]
         wt_gone = not wt_path.is_dir()
         br = _branch_state(branch)
         reg = _worktree_registered(wt_path)
-        schema_ok = bool(items) and all(isinstance(x, dict) for x in items)
         if retained:
             # rc=0 也可能"worktree 删了、分支留着"（未合并分支的既定行为）：那是
             # 保留了待处理分支，不等于清理完成，不能记 removed。
@@ -903,18 +1091,31 @@ def cleanup(batch_dir, tasks=None, force=False, delete_branch=False):
                                       '属预期保留，需确认是否该 -D',
                             'result': data})
             continue
+        if not schema_ok:
+            skipped.append({'task': task, 'branch': branch, 'partial': True,
+                            'reason': (f'wt remove 结构化回执不可用（schema_ok=False，'
+                                       f'items={len(items)}，outcomes={outcomes}）；'
+                                       'rc=0 也不能据此记清理完成，需人工核对现场'),
+                            'result': data})
+            continue
+        if unexpected:
+            skipped.append({'task': task, 'branch': branch, 'partial': True,
+                            'reason': (f'回执 branch_outcome 非 deleted（{outcomes}）；'
+                                       '按未清理处理（实测唯一可信值为 deleted）'),
+                            'result': data})
+            continue
         if wt_gone and br == 'absent' and reg is False:
             removed.append({'task': task, 'branch': branch,
                             'result': data, 'branch_outcomes': outcomes,
                             'schema_ok': schema_ok, 'wt_remove_rc': r.returncode,
                             'worktree': str(wt_path),
-                            'note': 'rc=0 且 目录/登记/分支 三处回读均已消失'})
+                            'note': 'rc=0、schema 合法且 目录/登记/分支 三处回读均已消失'})
             continue
         skipped.append({'task': task, 'branch': branch, 'partial': True,
                         'reason': (f'wt 返回 rc=0 但现场未清干净 '
                                    f'(目录还在={not wt_gone}, 分支={br}, '
                                    f'登记={"在" if reg is True else reg}, '
-                                   f'schema_ok={schema_ok})'),
+                                   f'schema_ok={schema_ok}, outcomes={outcomes})'),
                         'result': data})
         continue
     return removed, skipped
@@ -941,6 +1142,25 @@ def run_all(batch_dir, prompts_dir, max_channels=MAX_CHANNELS, target=None,
     ready = [r['task'] for r in rows if r['verdict'] == '可开工']
     steps['gate'] = {'ready': ready,
                      'blocked': [r['task'] for r in rows if r['verdict'] != '可开工']}
+    # 派发前由编排方签发授权清单（第五轮审计 7.3-6）：卡片只能提请求，授权在这一侧
+    # 产生并固化；拒绝签发的卡（例如 writes 与 no_change_allowed 自相矛盾）不进执行段。
+    manifest_path, refused = grant_invocation(batch_dir, ready, inv, resolved_target)
+    _mdata, grants = _load_grants(manifest_path)
+    steps['authorizations'] = {
+        'manifest': str(manifest_path),
+        'refused': refused,
+        'tasks': {t: {'write_scope': g.get('write_scope'),
+                      'enforced': g.get('write_scope_enforced'),
+                      'no_change_allowed': g.get('no_change_allowed'),
+                      'allow_non_repo': g.get('allow_non_repo')}
+                  for t, g in grants.items()},
+    }
+    if refused:
+        ready = [t for t in ready if t not in refused]
+        steps['gate']['blocked'] = steps['gate']['blocked'] + list(refused)
+        if not ready:
+            return _stop('gate', '编排方拒绝签发授权（见 authorizations.refused），'
+                                 '无可执行任务')
 
     def _stop(at, note):
         steps.setdefault('merge', {'merged': [], 'failed': [], 'not_merged': {}})
@@ -962,7 +1182,7 @@ def run_all(batch_dir, prompts_dir, max_channels=MAX_CHANNELS, target=None,
     }
 
     _, results = execute(batch_dir, prompts_dir, max_channels=max_channels,
-                         dry_run=dry_run, invocation=inv)
+                         dry_run=dry_run, invocation=inv, manifest=manifest_path)
     steps['execute'] = {
         'results': [{'task': r['task'], 'channel': r['channel'],
                      'returncode': r['returncode'], 'run_dir': r.get('run_dir')}
@@ -984,10 +1204,12 @@ def run_all(batch_dir, prompts_dir, max_channels=MAX_CHANNELS, target=None,
                                               run_dirs=run_dirs,
                                               only_tasks=ready)
     to_merge = [t for t in ready if t in probe_done]
-    # done_no_merge（纯验证卡）是可接受的非合并终态：从 stale 里摘出来单列，
-    # 不能再让它把整条链判成失败（审计 Q1 的假失败）。
+    # done_no_merge（纯验证卡）是可接受的非合并终态。判定只看记录里的 result 字段
+    # （第五轮审计 7.2-1）：此前用 `'done_no_merge' in reason` 子串，任何 blocked
+    # 记录只要 reason 里出现这段文字就被当成功终态，从而同时从 stale 与 leftover
+    # 里消失、最终可能 stopped_at='done' 且 run 返回 0——这是本轮新引入的 fail-open。
     verified = [t for t in ready if t in probe_stale
-                and 'done_no_merge' in str(probe_stale[t].get('reason'))]
+                and probe_stale[t].get('result') == 'done_no_merge']
     real_stale = {t: v for t, v in probe_stale.items() if t not in verified}
 
     done, merged, failed, stale = merge(batch_dir, tasks=to_merge,
@@ -1104,12 +1326,18 @@ def main(argv=None):
     e.add_argument('--prompts-dir', required=True, help='prompt 文件目录（<id>.md|.txt）')
     e.add_argument('--max-channels', type=int, default=MAX_CHANNELS, help='并发上限（默认 3）')
     e.add_argument('--dry-run', action='store_true', help='透传给 codex_channel，不真起 Codex')
+    e.add_argument('--manifest', default=None,
+                   help='编排方签发的 invocation manifest（不给则就地签发一份）')
     m = sub.add_parser('merge', help='串行把已完成任务的分支合回主线（调 wt merge）')
     m.add_argument('batch_dir', help='批次任务目录（只放 <id>.md）')
     m.add_argument('--tasks', nargs='*', default=None,
                    help='只合这些任务（默认合所有 result=done 的）')
     m.add_argument('--target', default=None,
                    help='合并目标分支（默认当前检出分支；合到 main 属发布动作，须显式传）')
+    m.add_argument('--run-dir', nargs='*', default=None, metavar='TASK=PATH',
+                   help=('本次 invocation 的精确 run-dir，可给多个，形如 '
+                         'GORCH-A=C:\\...\\runs\\GORCH-A-ch1-2026...。'
+                         '不给就拒绝执行：独立 merge 不再按历史 glob/mtime 授权'))
     c = sub.add_parser('cleanup', help='清理残留 worktree 与分支（调 wt remove）')
     c.add_argument('batch_dir', help='批次任务目录（只放 <id>.md）')
     c.add_argument('--tasks', nargs='*', default=None, help='只清这些任务')
@@ -1160,7 +1388,8 @@ def main(argv=None):
     if args.cmd == 'execute':
         rows, results = execute(
             args.batch_dir, args.prompts_dir,
-            max_channels=args.max_channels, dry_run=args.dry_run)
+            max_channels=args.max_channels, dry_run=args.dry_run,
+            manifest=args.manifest)
         print(json.dumps(
             {'batch': str(pathlib.Path(args.batch_dir)),
              'results': results, 'tasks': rows},
@@ -1168,18 +1397,45 @@ def main(argv=None):
         return 0
 
     if args.cmd == 'merge':
-        done, merged, failed, stale = merge(args.batch_dir, tasks=args.tasks,
-                                            target=args.target)
+        # 第五轮审计 7.3-3：独立 merge 不再按历史 glob/mtime 授权。没有精确
+        # run-dir 就等于"让磁盘上最后被 touch 的那次执行替这次授权"，直接拒绝。
+        if not args.run_dir:
+            print(json.dumps(
+                {'error': ('独立 merge 必须显式传 --run-dir TASK=PATH；'
+                           '历史 glob/mtime 授权已移除。批量路径请用 run 子命令。')},
+                ensure_ascii=False, indent=2))
+            return 2
+        run_dirs = {}
+        for spec in args.run_dir:
+            if '=' not in spec:
+                print(json.dumps({'error': f'--run-dir 需 TASK=PATH 形式：{spec}'},
+                                 ensure_ascii=False, indent=2))
+                return 2
+            task, path = spec.split('=', 1)
+            core = task.strip()
+            if not core or not path.strip():
+                print(json.dumps({'error': f'--run-dir 参数不完整：{spec}'},
+                                 ensure_ascii=False, indent=2))
+                return 2
+            run_dirs[core] = path.strip()
+        done, merged, failed, stale = merge(
+            args.batch_dir, tasks=args.tasks, target=args.target,
+            run_dirs=run_dirs, only_tasks=list(run_dirs))
+        # 只跑纯验证卡（result=done_no_merge）也是合法收敛：没有可合并成果，
+        # 但也没有失败。此前这种情形一律返回 1（第五轮 Q3-4）。
+        verified_only = [t for t, v in stale.items()
+                         if v.get('result') == 'done_no_merge']
+        real_stale = {t: v for t, v in stale.items() if t not in verified_only}
         print(json.dumps(
             {'batch': str(pathlib.Path(args.batch_dir)),
              'target': args.target or _current_branch(),
              'done_tasks': done, 'merged': merged, 'failed': failed,
-             'not_merged': stale},
+             'verified_only': verified_only, 'not_merged': real_stale,
+             'run_dirs': run_dirs},
             ensure_ascii=False, indent=2))
-        # 任一分支合并失败（含冲突）即非 0；**没有可合并任务、或仍有 not_merged
-        # 未闭合时同样非 0**（第四轮审计 Q1：独立 merge 此前"无 done 也空成功"、
-        # 只看 failed 就返回 0，让上游以为整批合并完成）。
-        return 0 if (merged and not failed and not stale) else 1
+        # 任一分支合并失败（含冲突）即非 0；仍有真实 stale 未闭合同样非 0；
+        # 什么都没合、也没有 verified_only 的收敛结论时也非 0。
+        return 0 if (not failed and not real_stale and (merged or verified_only)) else 1
 
     if args.cmd == 'bridge':
         manifest = bridge(args.run_dir, args.batch_dir)

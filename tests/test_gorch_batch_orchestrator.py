@@ -20,14 +20,37 @@ ORCH = ROOT / 'scripts' / 'gorch' / 'batch_orchestrator.py'
 
 
 @pytest.fixture
-def mod(monkeypatch):
+def mod(monkeypatch, tmp_path):
     spec = importlib.util.spec_from_file_location('batch_orchestrator', ORCH)
     m = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(m)
     # merge 现在会去 git 侧复核合入是否生效（wt 的 JSON 实测没有 merged 字段）。
     # 默认给一个已合入的桩，具体用例要测反例时自己再 setattr 覆盖。
-    monkeypatch.setattr(m, '_git_out', lambda *a, **k: (0, ''))
-    monkeypatch.setattr(m, '_ref_sha', lambda ref: 'sha-' + str(ref))
+    # merge 的"合入生效"要三条同时成立（第五轮审计 7.2）：target tip 前进、
+    # 源分支成为祖先、（预已是祖先时）源 tip 变过。默认桩模拟一次真实合入：
+    # 调用前 is-ancestor 失败、调用后成功，SHA 每次都变。
+    _anc = {'n': 0}
+
+    def _fake_git_out(args, *a, **k):
+        if isinstance(args, (list, tuple)) and list(args)[:1] == ['merge-base']:
+            _anc['n'] += 1
+            return (0, '') if _anc['n'] > 1 else (1, '')
+        return (0, '')
+
+    monkeypatch.setattr(m, '_git_out', _fake_git_out)
+    _seq = {'n': 0}
+
+    def _fake_ref_sha(ref):
+        _seq['n'] += 1
+        return 'sha-' + str(ref) + '-' + str(_seq['n'])
+
+    monkeypatch.setattr(m, '_ref_sha', _fake_ref_sha)
+    # 签发 manifest 要记 target；单测里不真去读 git（否则会用真实仓库 + 打到
+    # 被 stub 的 Popen 上）。需要看默认 target 的用例自己覆盖。
+    monkeypatch.setattr(m, '_current_branch', lambda: 'test-branch')
+    # 授权 manifest 落到 RUNS/_invocations：默认隔离到 tmp，避免测试往仓库
+    # data/gorch 写运行期文件；需要看真实目录形状的用例自己覆盖 RUNS。
+    monkeypatch.setattr(m, 'RUNS', tmp_path / 'runs')
     return m
 
 
@@ -283,6 +306,9 @@ def _setup_ready(mod, monkeypatch, tmp_path, nums):
         write_task(tmp_path, n)
     wt_root = tmp_path / 'wt'
     monkeypatch.setattr(mod, 'WORKTREE_ROOT', wt_root)
+    # 签发授权 manifest 会落到 RUNS/_invocations；单测必须隔离到 tmp，
+    # 否则每次跑测都在仓库 data/gorch 里堆运行期文件。
+    monkeypatch.setattr(mod, 'RUNS', tmp_path / 'runs')
     prompts = tmp_path / 'prompts'
     prompts.mkdir()
     for n in nums:
@@ -369,12 +395,19 @@ def test_execute_fails_closed_when_prompt_missing(mod, monkeypatch, tmp_path):
 
 # ============ S6：串行合并与清理 ============
 
-def write_run(runs_root, task, result='done', channel=1):
-    """造一条 codex_channel 落盘的 run 记录。"""
-    d = runs_root / f'{task}-ch{channel}-20261109T000000000000Z'
+def write_run(runs_root, task, result='done', channel=1,
+              started_at='2026-11-09T00:00:00Z', invocation='inv-test'):
+    """造一条 codex_channel 落盘的 run 记录。
+
+    started_at / invocation 现在是兜底授权的必需字段（第五轮审计 Q3-3）：
+    缺任一即阻断，不再退 mtime。
+    """
+    slug = started_at.replace(':', '').replace('-', '')
+    d = runs_root / f'{task}-ch{channel}-{slug}'
     d.mkdir(parents=True)
     (d / 'codex-channel.json').write_text(
         json.dumps({'task': task, 'channel': channel, 'result': result,
+                    'invocation': invocation, 'started_at': started_at,
                     'exit_code': 0 if result == 'done' else 1}),
         encoding='utf-8')
     return d
@@ -446,11 +479,9 @@ def test_find_done_tasks_trusts_latest_record_only(mod, monkeypatch, tmp_path):
     runs = tmp_path / 'runs'
     d1 = write_run(runs, '1', result='done')
     d2_done = write_run(runs, '2', result='done')
-    d2 = write_run(runs, '2', result='blocked', channel=2)   # 较新的阻塞记录
-    # 显式拉开 mtime：不给 done 那条也设，它的"刚刚创建"反而会压过 blocked
-    for p, ts in ((d1, 1_700_000_000), (d2_done, 1_700_000_000),
-                  (d2, 1_700_000_100)):
-        os.utime(p / 'codex-channel.json', (ts, ts))
+    # 已不再按 mtime 授权（第五轮 Q3-3）：改用记录里的 started_at 拉开先后
+    d2 = write_run(runs, '2', result='blocked', channel=2,
+                   started_at='2026-11-09T00:01:40Z')
     monkeypatch.setattr(mod, 'RUNS', runs)
 
     assert mod.find_done_tasks(str(tmp_path)) == {'1': str(d1 / 'codex-channel.json')}
@@ -774,6 +805,7 @@ def test_execute_passes_output_policy_per_card(mod, monkeypatch, tmp_path):
     for n in (1, 2):
         (wt_root / str(n)).mkdir(parents=True)
     monkeypatch.setattr(mod, 'WORKTREE_ROOT', wt_root)
+    monkeypatch.setattr(mod, 'RUNS', tmp_path / 'runs')
     prompts = tmp_path / 'prompts'
     prompts.mkdir()
     for n in (1, 2):
@@ -974,7 +1006,7 @@ def test_merge_rejects_when_git_shows_no_merge(mod, monkeypatch, tmp_path):
     done, merged, failed, stale = mod.merge(str(tmp_path), tasks=['1'],
                                             target='main', run_dirs={'1': str(d)})
     assert merged == []
-    assert '未见合入生效' in failed[0]['stderr']
+    assert '未证明本次合入' in failed[0]['stderr']
 
 
 def test_gate_check_rejects_error_after_200_chars(mod, monkeypatch, tmp_path):
@@ -1063,3 +1095,183 @@ def test_merge_tolerates_refs_heads_prefix(mod, monkeypatch, tmp_path):
                                             target='main', run_dirs={'1': str(d)})
     assert failed == []
     assert merged[0]['task'] == '1'
+
+
+
+# ============ 第五轮：7 条最小修复清单的回归验收（r6） ============
+
+def test_find_done_tasks_blocks_broken_record_even_with_older_done(mod, monkeypatch, tmp_path):
+    """Q3-1：损坏记录不再只收集而继续扫描——有旧 done 也必须阻断。"""
+    write_task(tmp_path, 1)
+    runs = tmp_path / 'runs'
+    write_run(runs, '1', started_at='2026-11-09T00:00:00Z')
+    bad = runs / '1-ch2-20261109T000100Z'
+    bad.mkdir(parents=True)
+    (bad / 'codex-channel.json').write_text('{ not json', encoding='utf-8')
+    monkeypatch.setattr(mod, 'RUNS', runs)
+    done, stale = mod.find_done_tasks(str(tmp_path), with_blocked=True)
+    assert done == {}
+    assert '损坏' in stale['1']['reason']
+
+
+def test_find_done_tasks_explicit_empty_run_dirs_returns_nothing(mod, monkeypatch, tmp_path):
+    """显式给空 run_dirs 时不能退回兜底扫描（否则等于没给）。"""
+    write_task(tmp_path, 1)
+    runs = tmp_path / 'runs'
+    write_run(runs, '1')
+    monkeypatch.setattr(mod, 'RUNS', runs)
+    done, stale = mod.find_done_tasks(str(tmp_path), with_blocked=True, run_dirs={})
+    assert done == {}
+    assert '没有该任务的执行记录' in stale['1']['reason']
+
+
+def test_find_done_tasks_rejects_unparsable_started_at(mod, monkeypatch, tmp_path):
+    """Q3-3：started_at 解析不了即阻断，绝不退 mtime。"""
+    write_task(tmp_path, 1)
+    runs = tmp_path / 'runs'
+    d = runs / '1-ch1-badtime'
+    d.mkdir(parents=True)
+    (d / 'codex-channel.json').write_text(json.dumps(
+        {'task': '1', 'result': 'done', 'invocation': 'inv-x',
+         'started_at': 'not-a-time'}), encoding='utf-8')
+    monkeypatch.setattr(mod, 'RUNS', runs)
+    done, stale = mod.find_done_tasks(str(tmp_path), with_blocked=True)
+    assert done == {}
+    assert 'started_at' in stale['1']['reason']
+
+
+def test_find_done_tasks_rejects_empty_invocation(mod, monkeypatch, tmp_path):
+    """Q3-3：invocation 为空无法唯一确定本次执行，阻断。"""
+    write_task(tmp_path, 1)
+    runs = tmp_path / 'runs'
+    d = runs / '1-ch1-nosinv'
+    d.mkdir(parents=True)
+    (d / 'codex-channel.json').write_text(json.dumps(
+        {'task': '1', 'result': 'done', 'invocation': '',
+         'started_at': '2026-11-09T00:00:00Z'}), encoding='utf-8')
+    monkeypatch.setattr(mod, 'RUNS', runs)
+    done, stale = mod.find_done_tasks(str(tmp_path), with_blocked=True)
+    assert done == {}
+    assert 'invocation' in stale['1']['reason']
+
+
+def test_find_done_tasks_rejects_tied_started_at(mod, monkeypatch, tmp_path):
+    """Q3-3：并列 started_at（含同一 invocation 多条）一律阻断。"""
+    write_task(tmp_path, 1)
+    runs = tmp_path / 'runs'
+    write_run(runs, '1', channel=1, started_at='2026-11-09T00:00:00Z',
+              invocation='inv-1')
+    write_run(runs, '1', channel=2, started_at='2026-11-09T00:00:00Z',
+              invocation='inv-1')
+    monkeypatch.setattr(mod, 'RUNS', runs)
+    done, stale = mod.find_done_tasks(str(tmp_path), with_blocked=True)
+    assert done == {}
+    assert '并列' in stale['1']['reason']
+
+
+def test_merge_rejects_preexisting_ancestor_without_source_move(mod, monkeypatch, tmp_path):
+    """7.2-②：调用前就已祖先、源 tip 也没变——不认合入（未提交产出没进去）。"""
+    write_task(tmp_path, 1)
+    runs = tmp_path / 'runs'
+    d = write_run(runs, '1')
+    monkeypatch.setattr(mod, 'RUNS', runs)
+    monkeypatch.setattr(mod, 'wt_merge', lambda *a, **k: _FakeResult(
+        0, json.dumps({'branch': 'gorch/1', 'target': 'main'})))
+    monkeypatch.setattr(mod, '_git_out', lambda *a, **k: (0, ''))
+    n = {'t': 0}
+
+    def fake_sha(ref):
+        if ref == 'main':
+            n['t'] += 1
+            return 'main-0' if n['t'] == 1 else 'main-1'
+        return 'src-0'
+
+    monkeypatch.setattr(mod, '_ref_sha', fake_sha)
+    done, merged, failed, stale = mod.merge(str(tmp_path), tasks=['1'],
+                                            target='main', run_dirs={'1': str(d)})
+    assert merged == []
+    assert '调用前已是祖先=True' in failed[0]['stderr']
+
+
+def test_merge_rejects_unrelated_target_advance(mod, monkeypatch, tmp_path):
+    """7.2-③：target 前进了但源分支不是祖先——无关进程推进不能替本任务作证。"""
+    write_task(tmp_path, 1)
+    runs = tmp_path / 'runs'
+    d = write_run(runs, '1')
+    monkeypatch.setattr(mod, 'RUNS', runs)
+    monkeypatch.setattr(mod, 'wt_merge', lambda *a, **k: _FakeResult(
+        0, json.dumps({'branch': 'gorch/1', 'target': 'main'})))
+    monkeypatch.setattr(mod, '_git_out', lambda *a, **k: (1, ''))
+    done, merged, failed, stale = mod.merge(str(tmp_path), tasks=['1'],
+                                            target='main', run_dirs={'1': str(d)})
+    assert merged == []
+    assert 'is-ancestor rc=1' in failed[0]['stderr']
+
+
+def test_cleanup_rejects_invalid_schema_even_when_scene_clean(mod, monkeypatch, tmp_path):
+    """7.3-5：回执 schema 不合法（缺 branch_outcome）就不认成功，即使三处已消失。"""
+    import shutil
+
+    write_task(tmp_path, 1)
+    wt_root = tmp_path / 'wt'
+    monkeypatch.setattr(mod, 'WORKTREE_ROOT', wt_root)
+    (wt_root / '1').mkdir(parents=True)
+
+    def fake_remove(branch, force=False, delete_branch=False):
+        shutil.rmtree(wt_root / '1', ignore_errors=True)
+        return _FakeResult(0, json.dumps([{'kind': 'worktree', 'branch': branch}]))
+
+    monkeypatch.setattr(mod, 'wt_remove', fake_remove)
+    monkeypatch.setattr(mod, '_branch_state', lambda b: 'absent')
+    monkeypatch.setattr(mod, '_worktree_registered', lambda p: False)
+    removed, skipped = mod.cleanup(str(tmp_path))
+    assert removed == []
+    assert 'schema_ok=False' in skipped[0]['reason']
+
+
+def test_run_all_does_not_accept_reason_text_as_done_no_merge(mod, monkeypatch, tmp_path):
+    """第五轮新 fail-open①：blocked 记录 reason 含 done_no_merge 也不能算成功终态。"""
+    write_task(tmp_path, 1)
+    monkeypatch.setattr(mod, 'RUNS', tmp_path / 'runs')
+    monkeypatch.setattr(mod, 'gate_check', lambda d: [{'task': '1', 'verdict': '可开工'}])
+    monkeypatch.setattr(mod, 'provision', lambda d: ([], [], []))
+    monkeypatch.setattr(mod, 'execute', lambda *a, **k: ([], []))
+    monkeypatch.setattr(mod, 'merge', lambda *a, **k: ({}, [], [], {
+        '1': {'run_record': 'r1',
+              'reason': 'blocked 但文本里写了 done_no_merge 字样'}}))
+    monkeypatch.setattr(mod, 'cleanup', lambda *a, **k: ([], []))
+    prompts = tmp_path / 'prompts'
+    prompts.mkdir()
+    summary = mod.run_all(str(tmp_path), str(prompts))
+    assert summary['steps']['merge']['verified_only'] == []
+    assert summary['stopped_at'] != 'done'
+
+
+def test_grant_manifest_refuses_contradictory_card(mod, monkeypatch, tmp_path):
+    """7.3-6：卡片既声明写域又请求零改动——编排方拒绝签发，不猜哪边是真的。"""
+    (tmp_path / '1.md').write_text(
+        '---\nname: t1\nstatus: open\ndepends_on: []\nparallel: true\n'
+        'conflicts_with: []\nwrites: docs/reports/\n'
+        'no_change_allowed: true\n---\n# t1\n', encoding='utf-8')
+    monkeypatch.setattr(mod, 'RUNS', tmp_path / 'runs')
+    path, blocked = mod.grant_invocation(str(tmp_path), ['1'], 'inv-1', 'test-branch')
+    assert path.is_file()
+    assert blocked and '1' in blocked
+    data = json.loads(path.read_text(encoding='utf-8'))
+    assert data['tasks'] == {}
+    assert data['granted_by'].startswith('batch_orchestrator')
+
+
+def test_grant_manifest_records_write_scope_and_requests(mod, monkeypatch, tmp_path):
+    """授权清单把卡片声明固化成 write_scope，并标 enforced。"""
+    (tmp_path / '1.md').write_text(
+        '---\nname: t1\nstatus: open\ndepends_on: []\nparallel: true\n'
+        'conflicts_with: []\nwrites: docs/reports/, scripts/gorch/*.py\n---\n# t1\n',
+        encoding='utf-8')
+    monkeypatch.setattr(mod, 'RUNS', tmp_path / 'runs')
+    path, blocked = mod.grant_invocation(str(tmp_path), ['1'], 'inv-2', 'test-branch')
+    data = json.loads(path.read_text(encoding='utf-8'))
+    g = data['tasks']['1']
+    assert g['write_scope'] == ['docs/reports/', 'scripts/gorch/*.py']
+    assert g['write_scope_enforced'] is True
+    assert blocked == {}

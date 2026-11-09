@@ -14,6 +14,7 @@
   python codex_channel.py --task GORCH-001 --channel 3 --prompt - --dry-run
 """
 import argparse
+import fnmatch
 import glob as _glob
 import hashlib
 import json
@@ -176,6 +177,102 @@ def fresh_changes(base_fp, after_fp, after_detail):
     return fresh, basis
 
 
+def _fresh_paths(fresh):
+    """从 fresh 证据集里抽出真实路径（用于写域校验）。
+
+    fresh 的三种行形态（见 fresh_changes）：
+      · ``?? path``            未跟踪新增
+      · ``<XY> path``          porcelain 状态行（前两位是状态码）
+      · ``~ 已跟踪内容变化 …``  汇总行，没有路径，跳过
+    """
+    out = []
+    for raw in fresh:
+        text = str(raw).strip()
+        if text.startswith('~'):
+            continue
+        if text.startswith('??'):
+            rest = text[2:].strip()
+        elif len(text) > 3 and text[0] in ' MADRCUT?!' and text[1:3] == '  ':
+            rest = text[3:].strip()
+        else:
+            rest = text.strip()
+        if ' -> ' in rest:          # rename：只看新路径
+            rest = rest.rsplit(' -> ', 1)[1].strip()
+        if rest:
+            out.append(rest.replace('\\', '/').lstrip('./'))
+    return out
+
+
+def _outside_scope(paths, scope):
+    """返回不在授权写域内的路径；scope 为空表示不校验（调用方已标注 undeclared）。
+
+    写域写法与卡片一致：目录前缀（``docs/reports/``）或通配（``scripts/*.py``）。
+    """
+    if not scope:
+        return []
+    pats = [str(s).replace('\\', '/').rstrip('/') for s in scope if str(s).strip()]
+    bad = []
+    for p in paths:
+        hit = False
+        for pat in pats:
+            if fnmatch.fnmatch(p, pat) or fnmatch.fnmatch(p, pat + '/*') or p.startswith(pat + '/'):
+                hit = True
+                break
+            if fnmatch.fnmatch(p, pat):     # pat 本身带通配
+                hit = True
+                break
+        if not hit:
+            bad.append(p)
+    return bad
+
+
+def load_authorizations(manifest_path, task):
+    """读编排方签发的授权清单（第五轮审计 7.3-6）。
+
+    返回 dict；结构不合法或没有本任务条目时 ``problem`` 非空，由调用方 fail-closed。
+    没给 manifest（手工调用）时退回命令行开关，并标注来源，便于审计区分。
+    """
+    out = {'source': 'cli', 'write_scope': [], 'write_scope_enforced': False,
+           'no_change_allowed': False, 'allow_non_repo': False,
+           'granted_by': None, 'problem': ''}
+    if not manifest_path:
+        return out
+    p = pathlib.Path(manifest_path)
+    if not p.is_file():
+        out['problem'] = f'invocation manifest 不存在：{p}'
+        return out
+    try:
+        data = json.loads(p.read_text(encoding='utf-8'))
+    except (json.JSONDecodeError, OSError, UnicodeDecodeError) as exc:
+        out['problem'] = f'invocation manifest 不可解析：{p}（{exc}）'
+        return out
+    tasks = data.get('tasks')
+    if not isinstance(tasks, dict):
+        out['problem'] = f'invocation manifest 结构不对（tasks 不是对象）：{p}'
+        return out
+    g = tasks.get(task)
+    if not isinstance(g, dict):
+        out['problem'] = f'invocation manifest 未包含任务 {task} 的授权'
+        return out
+    scope = g.get('write_scope')
+    if not isinstance(scope, list):
+        out['problem'] = f'{task} 的 write_scope 不是数组：{scope!r}'
+        return out
+    for flag in ('no_change_allowed', 'allow_non_repo'):
+        if not isinstance(g.get(flag), bool):
+            out['problem'] = f'{task} 的 {flag} 不是严格布尔：{g.get(flag)!r}'
+            return out
+    out.update({
+        'source': 'manifest',
+        'write_scope': [str(s) for s in scope],
+        'write_scope_enforced': bool(g.get('write_scope_enforced')),
+        'no_change_allowed': g['no_change_allowed'],
+        'allow_non_repo': g['allow_non_repo'],
+        'granted_by': g.get('granted_by'),
+    })
+    return out
+
+
 def resolve_codex_exe():
     """解析执行体路径：适配层配置 → env → PATH → 四组 glob（按 mtime 取最新）。
 
@@ -266,6 +363,10 @@ def main(argv=None):
     ap.add_argument('--no-change-allowed', action='store_true',
                     help=('本次任务按约定不产生仓库改动（纯验证卡、只回 last-message.md 的报告卡）。'
                           '默认不带：worktree 零改动一律判空产出 blocked'))
+    ap.add_argument('--manifest', default='',
+                    help=('编排方签发的 invocation manifest。给出时授权（写域与 '
+                          'no_change_allowed/allow_non_repo）**只从此清单读**，'
+                          '命令行开关仅作无清单时的手工回退'))
     args = ap.parse_args(argv)
 
     if not KANBAN.is_file():
@@ -301,6 +402,25 @@ def main(argv=None):
                          ensure_ascii=False))
         print(reason, file=sys.stderr)
         return 2 if code == 2 else 3
+
+    # 授权只认编排方签发的那份清单（第五轮审计 Q3-9 / 7.3-6）：卡片自己写的字段
+    # 只能算"请求"，执行端不读；清单缺失/结构不对/没有本任务条目一律 fail-closed。
+    auth = load_authorizations(args.manifest, args.task)
+    record['authorizations'] = {k: v for k, v in auth.items() if k != 'problem'}
+    if auth['problem']:
+        return _fail_early(2, f'授权清单不可用：{auth["problem"]}')
+    if auth['source'] != 'manifest':
+        # 只有不带清单的手工调用才允许命令行开关，并在记录里标明来源。
+        auth['no_change_allowed'] = bool(args.no_change_allowed)
+        auth['allow_non_repo'] = bool(args.allow_non_repo)
+        record['authorizations'] = {
+            'source': 'cli（未给 manifest，仅手工验证）',
+            'no_change_allowed': auth['no_change_allowed'],
+            'allow_non_repo': auth['allow_non_repo'],
+            'write_scope': [], 'write_scope_enforced': False,
+        }
+    no_change_allowed = auth['no_change_allowed']
+    allow_non_repo = auth['allow_non_repo']
 
     if args.prompt == '-':
         prompt_bytes = sys.stdin.buffer.read()
@@ -353,7 +473,14 @@ def main(argv=None):
             if base_kind == 'error':
                 raise _BaselineUnusable(
                     f'执行前无法读取 worktree 状态，fail-closed：{base_detail}')
-            if base_kind == 'not_repo' and not args.allow_non_repo:
+            # 脏基线但**内容指纹读不出来**时同样不许开工（第五轮审计 Q3-6）：
+            # 此前只有"执行后指纹 ERR"被阻断，基线 ERR 会被 fresh_changes 退化成
+            # 状态行差集去判产出——那是被点名的弱判据，等于在不可判定的基线上放行。
+            if base_fp and str(base_fp.get('diff_sha') or '').startswith('ERR:'):
+                raise _BaselineUnusable(
+                    '执行前 worktree 内容指纹读取失败（diff_sha='
+                    f'{base_fp.get("diff_sha")}），无法建立产出基线，fail-closed')
+            if base_kind == 'not_repo' and not allow_non_repo:
                 raise _BaselineUnusable(
                     '执行前 workdir 不是 git 工作树，无法建立产出基线，'
                     '批量路径 fail-closed（确需在无仓库目录执行时加 --allow-non-repo）')
@@ -397,8 +524,21 @@ def main(argv=None):
                         fresh, basis = fresh_changes(base_fp, after_fp, detail)
                         record['worktree_new_changes'] = '\n'.join(sorted(fresh))[:2000]
                         record['worktree_fresh_basis'] = basis
+                        # 授权写域校验（第五轮审计 7.3-4/6）：所有新增路径必须落在
+                        # 编排方授权的写域内，越域即 blocked；未声明写域的卡在记录里
+                        # 标 enforced=False，交由编排侧决定是否补卡（不静默当已授权）。
+                        scope = auth.get('write_scope') or []
+                        if auth.get('write_scope_enforced') and scope and fresh:
+                            outside = _outside_scope(_fresh_paths(fresh), scope)
+                            record['write_scope_check'] = {
+                                'scope': scope, 'outside': outside}
+                            if outside:
+                                ok = False
+                                guard_reason = (
+                                    f'产出路径超出授权写域 {len(outside)} 个：'
+                                    f'{outside[:5]}（授权 {scope}），fail-closed 不写 done')
                 if kind == 'clean':
-                    if args.no_change_allowed:
+                    if no_change_allowed:
                         # 纯验证卡 / 纯报告卡：可以判「执行完成」，但**不签发合并授权**。
                         # 「验证成功」与「有可合并成果」是两个状态，混成一个会让零产出的卡
                         # 进合并池（第四轮审计）。
@@ -422,7 +562,7 @@ def main(argv=None):
                     # 批量路径下"不是 git 工作树"等于无法确认产出：get worktree 的编排
                     # 一定给的是 worktree，落到 not_repo 说明接线错了或 workdir 指错。
                     # 只有明确声明无仓库（手工验证场景）才放行（第二轮审计）。
-                    if args.allow_non_repo:
+                    if allow_non_repo:
                         record['worktree_state_note'] = 'not_repo，已按 --allow-non-repo 放行'
                     else:
                         ok = False
