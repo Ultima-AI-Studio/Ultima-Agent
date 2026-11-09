@@ -90,6 +90,19 @@ Codex 原文要求：waiver 的 `instead` 必须是工单 `**机检**` 里唯一
 2. `test_a_waiver_is_not_enough_when_the_audit_judged_another_key` —— 工单声明了豁免，但两轮判的是 `ACC-1`，**拒绝**。
 3. `test_a_waiver_judged_by_both_rounds_freezes` —— 两轮都判 `WAIVER:orb-w1-t`，且 verifier 真跑过 `tests`，**冻结成功**。
 
+### 派发层实跑（真调 ccpm，不 mock）
+
+用真实 `batch_orchestrator.py` 跑四个临时批次（`%TEMP%\gorch-task-test`），`gate`/`next` 会真的走 ccpm 的 `lib.sh` 与 `next.sh`：
+
+| 场景 | 期望 | 实测 |
+|---|---|---|
+| A 三张全 `open` | 派出一张 | `next=A1`，`ready=[A1,A2,A3]` |
+| B 一张 `open` + 一张 `status: blocked` | 整批拒绝 | `rc=1`，`ccpm 读到未知状态 B2.md: 'blocked'，fail-closed 不派发`；再跑 `next` 同样不派 |
+| C `C1 in-progress(conflicts C2)` / `C2 open(conflicts C1)` / `C3 open` | 派 C3，不派 C2 | `next=C3` |
+| D `completed` / `done` / `in_progress` 三张 | 全部进 blocked，无 ready | `ready=[]`，三条均判「非开放状态」 |
+
+**实测发现（此前未记录）**：`conflicts_with` 里填的是**任务 id**，`active_conflicts()` 按同目录 `<id>.md` 去查对方状态；填 `file:shared.txt` 这类自定义标记不会命中任何文件，冲突**静默不生效**。第一次用例就是这么写错的，`next` 直接派出了冲突卡。这条要记住：冲突粒度是任务，不是写入域字符串。
+
 ### 3 条全量红是什么
 
 `tests/test_orchestrate_order.py` 三条：
@@ -102,7 +115,7 @@ Codex 原文要求：waiver 的 `instead` 必须是工单 `**机检**` 里唯一
 
 ## 七、未完成项
 
-1. **没有跑真实批次**。用户要求的"再尝试一遍任务测试"指的是端到端派发（`gate → next → provision → execute → merge`），本轮只做了单元与契约层验证，没有跑任何真实工单。
+1. **没有跑端到端真实批次**。用户要求的"再尝试一遍任务测试"目前只覆盖到**派发层**（`gate` / `next` 四个场景，见 §六）；`provision → execute → merge` 没有跑，因此"新判据在真实工单上成立""Codex 能在 worktree 里跑完"两件事都还没有证据。历史上真实批次 blocked 的根因是 Codex 侧 `failed to refresh available models: request timed out`，与本次改动无关。
 2. 第 4 步缺"至少执行到一个测试"的判据（§四）。
 3. 冻结 tag receipt 未写入 `card/because/instead`。
 4. 第 3 步的一条判据未实现：非空 ACC 卡同时声明 waiver 时未显式拒绝（目前 waiver 只在空表分支被消费）。
