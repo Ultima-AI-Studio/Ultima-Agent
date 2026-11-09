@@ -980,8 +980,9 @@ def test_run_all_normal_completion_cleanup_has_all_keepers(mod, monkeypatch, tmp
     monkeypatch.setattr(mod, 'provision', lambda d, tasks=None: ([], [], []))
     monkeypatch.setattr(mod, 'execute', lambda *a, **k: ([], [
         {'task': '1', 'channel': 1, 'returncode': 0, 'run_dir': str(d1)}]))
-    monkeypatch.setattr(mod, 'find_done_tasks',
-                        lambda *a, **k: ({'1': {'task': '1', 'result': 'done'}}, {}))
+    # r15（第十四轮审计 E1-2）：不桩 `find_done_tasks`。`write_run` 造的是真实生产形状
+    # （run_dir 绝对路径 / invocation / mergeable=True / dry_run=False），真实 consumer
+    # 本就能通过——桩掉反而把"生产者写得出、消费者读得进"这层契约从用例里摘掉了。
 
     def fake_merge(*a, **k):
         k.get('trace', {}).update({'attempted': ['1'], 'not_attempted': []})
@@ -992,6 +993,46 @@ def test_run_all_normal_completion_cleanup_has_all_keepers(mod, monkeypatch, tmp
     summary = mod.run_all(str(tmp_path), str(prompts), max_channels=1,
                           invocation='inv-test')
     assert summary['stopped_at'] == 'done'
+    cleanup = summary['steps']['cleanup']
+    assert set(cleanup) == CLEANUP_KEYS
+    assert cleanup['removed'] == []
+    for k in ('kept_for_conflict', 'kept_for_evidence',
+              'kept_for_proof', 'kept_for_unknown'):
+        assert cleanup[k] == []
+
+
+def test_run_all_unclosed_leftover_keeps_all_keepers(mod, monkeypatch, tmp_path):
+    """r15（第十四轮审计 E1-1）：未闭合保留分支（real_stale or leftover）必须六键同构。
+
+    审计点名的最后一个缺口：失败四分流、`_stop`、正常完成都有集合相等断言，只有
+    "还有任务没闭合"这一路一直靠 AST/代码审查保证。撤掉该分支补的三个键，本用例必红。
+    """
+    write_task(tmp_path, 1)
+    runs = tmp_path / 'runs'
+    d1 = write_run(runs, '1')
+    prompts = tmp_path / 'prompts'
+    prompts.mkdir()
+    (prompts / '1.txt').write_text('p', encoding='utf-8')
+    monkeypatch.setattr(mod, 'RUNS', runs)
+    monkeypatch.setattr(mod, 'WORKTREE_ROOT', tmp_path / 'wt')
+    monkeypatch.setattr(mod, 'gate_check', lambda d: [{'task': '1', 'verdict': '可开工'}])
+    monkeypatch.setattr(mod, 'provision', lambda d, tasks=None: ([], [], []))
+    monkeypatch.setattr(mod, 'execute', lambda *a, **k: ([], [
+        {'task': '1', 'channel': 1, 'returncode': 0, 'run_dir': str(d1)}]))
+    # 真实 consumer 找不到本次 done 记录 → to_merge 为空 → merged 为空 → leftover=['1']
+    monkeypatch.setattr(mod, 'find_done_tasks', lambda *a, **k: ({}, {}))
+
+    def fake_merge(*a, **k):
+        k.get('trace', {}).update({'attempted': [], 'not_attempted': []})
+        return {}, [], [], {}
+
+    monkeypatch.setattr(mod, 'merge', fake_merge)
+    cleaned = []
+    monkeypatch.setattr(mod, 'cleanup', lambda *a, **k: (cleaned.append(1) or ([], [])))
+    summary = mod.run_all(str(tmp_path), str(prompts), max_channels=1,
+                          invocation='inv-test')
+    assert summary['stopped_at'] == 'merge'
+    assert cleaned == [], '未闭合时不得执行 cleanup（现场要留证据）'
     cleanup = summary['steps']['cleanup']
     assert set(cleanup) == CLEANUP_KEYS
     assert cleanup['removed'] == []

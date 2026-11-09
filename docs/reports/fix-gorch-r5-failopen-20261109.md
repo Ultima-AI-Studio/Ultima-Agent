@@ -909,3 +909,63 @@ r14 四项（均为文档与测试，不动实现）：
 4. 真实 junction `wt remove`、真实批次 `run_all` 属既存验证债务。
 
 以上四条**均不阻断**「一致」判定，登记为下一轮（若继续）的输入。
+
+## 20. r15：E1 四项闭合 + 七条口径交 Codex 定稿
+
+> 起点 `3d08ca7c`（r14 审计判「一致」）。用户要求「未闭合项继续做完、七条口径按最优方案推进，
+> 拿不准就把选择权交给 Codex」，本节即该轮的执行记录。
+
+### 20.1 测试层（E1-1 / E1-2）
+
+| 项 | 动作 | 结果 |
+|---|---|---|
+| E1-1 未闭合保留分支 | 新增 `test_run_all_unclosed_leftover_keeps_all_keepers`：`find_done_tasks` 返回空 → `leftover=['1']` → 走 `real_stale or leftover` 分支 | `set(cleanup) == CLEANUP_KEYS` 成立；**并断言未闭合时 `cleanup` 从未被调用**（`cleaned == []`），现场必须留证据 |
+| E1-2 冗余桩 | 删除正常完成用例里的 `find_done_tasks` 桩 | `write_run` 的真实形状（`run_dir` 绝对路径 / `invocation` / `mergeable=True` / `dry_run=False`）直接过真实 consumer，用例仍绿 |
+
+**撤键即红（实测，非推断）**：临时把未闭合分支的 `kept_for_evidence` / `kept_for_proof` /
+`kept_for_unknown` 三键删掉后跑该用例 —— `1 failed`（`set(cleanup)` 少了三键）；从备份恢复后
+`1 passed`，`git diff --stat` 对 `batch_orchestrator.py` 为空。至此 `run_all` 的**四个** cleanup
+构造点全部有集合相等断言。
+
+### 20.2 新鲜回执（E1-3）
+
+- 定向三例：`3 passed, 1.57s`（gate 早退 / 正常完成 / 未闭合保留）
+- 全量：**184 passed / 61.19s**（r14 183 / 49.24s；+1 为新增用例，耗时升高是本机负载）
+
+### 20.3 真实 junction `wt remove`（E1-4 前半）
+
+证据：`docs/reports/evidence/gorch-r15-junction-20261109/README.md`。三条实测结论：
+
+1. `wt remove -f` 在 junction 上是**删链接不删目标**：junction 被删，目标目录 `.git` 与
+   `sentinel.txt` 完好；
+2. 回执里的 `▲ Discarding uncommitted changes (--force): ?? sentinel.txt` 是**误报**——
+   它跟随 junction 把目标里的文件算成"被丢弃"，实际只删了链接。任何把该字段当「已丢数据」的
+   取证都会读错，只能以「删除后目录是否存在」为事实源；
+3. `_path_state` 对 junction 永远返回 `exists`（`os.lstat` 报 `islnk False / isdir True / 0o40777`），
+   **永不落 `wrong_type`**——这正是 E2 口径 ⑥ 需要只读出口的直接依据。
+
+### 20.4 七条口径（E2）：由 Codex 复核定稿
+
+裁决书：`docs/decisions/pd-20261109-gorch-e2-七条口径裁决.md`（含 §9 复核原文摘要）。
+Codex 复核（17,177B / 103 行）结论：**「足以作为规范口径」**，同时指出工程侧草案 **4 处事实错误**：
+
+| # | 草案 | 实际 |
+|---|---|---|
+| ① | `_path_digest` | 函数名是 `_digest(workdir, rel)` |
+| ④ | 「三档 keeper」 | kind 三值，但 keeper 是**四个桶**（conflict/evidence/proof/unknown） |
+| ⑤ | 「B = 合并前全树 clean 门」 | 不存在 clean-tree 门；前后双采样**已存在**于 `_MergeLock` 内 |
+| ⑦ | 「glob + mtime 兜底」 | 只剩 glob，mtime 授权已删（改为严格 UTC `started_at` 取最新） |
+
+最终口径（摘要）：① 只证明 link 对象与指向文本（域外目标**明确不在**证明范围）；② 目录用
+**稳定排序 + 长度分隔**的条目名集合哈希，**禁止跟随 reparse/junction**，submodule 记 gitlink OID +
+已检出 HEAD；③ 128 bit + **迁移期双锁**（旧 16-hex 先、新 32-hex 后，失败释放）；④ 维持三 kind
+四桶；⑤ 双采样只算**观察性证明**，要硬因果须 `update-ref` 的 expected-old CAS；⑥ 新增**只读**
+`doctor`，不自动删；⑦ 删除非显式 glob 分支，统一 `run-dir + invocation`。
+
+### 20.5 本节未完成项（如实登记）
+
+- **真实批次 `run_all`**（E1-4 后半）未跑成：`git clone --depth 1 --single-branch` 在本仓
+  （30 万+ 未跟踪文件）上 5 分钟未完成且 `HEAD` 损坏（`fatal: your current branch appears to be
+  broken`）；在主仓直接跑会向已推送分支写入探针提交。下一步改用 `git worktree add` 作载体
+  （共享 objects，秒级建立，且分支独立）。
+- 七条口径的**实现**尚未开始，按 §3 顺序（⑤ → ⑦ → ③ → ② → ⑥ → ④ → ①）排下一轮。

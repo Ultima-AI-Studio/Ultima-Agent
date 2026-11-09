@@ -181,7 +181,47 @@ w6/w7 的 `final.json` 是执行端写的中文交付说明（markdown），`Rec
 
 ---
 
-## 七、取证命令附录
+## 八、本轮补充执行（同一次任务内继续推进）
+
+核对完成后，用户授权连续推进，把三类里「不需要 Codex」的部分一次做完。结果如下。
+
+### 8.1 ORB 三单全部冻结
+
+| 工单 | 动作 | 证据 |
+|---|---|---|
+| wo-orb-w6 | 独立审计通过 → frozen | 提交零越界（6 文件 813 行全新增，全在写域）；复跑 **20 passed**；代码复核确认 orchestrator 真 HTTP + tenacity 重试 + fail-closed 留原文 + 九字段产物，sentinel 只读 + 复用 dispatcher 身份/锁 + 三判据连续 3 tick 才报 + recovered 恢复；tag `wo-orb-w6-frozen-20261110` |
+| wo-orb-w7 | 独立审计通过 → frozen | 提交零越界（3 文件）；复跑 **12 passed**；修的是两个真 bug——`status` 非字符串（`[]`/`{}`）触发 unhashable TypeError 让派发器崩、文本回执裸子串让 `wo-orb-w7x` 串成 `wo-orb-w7`；tag `wo-orb-w7-frozen-20261110` |
+| wo-orb-w8 | 验收同步后冻结 | 产物早在 `02d10db7`（HEAD 已含 `requirement.txt` 逻辑）；但验收测试已过期 **3 failed**——`fake_run_stage` 缺 `model` 参数、工具标记断言未跟上实现（`"tool_calls"` 要带引号、` ```bash ` 被有意排除）；修完 **16 passed**；tag `wo-orb-w8-frozen-20261110` |
+
+### 8.2 0029 从 frozen 改回 blocked（第二例「主干不可见」）
+
+T1-T4 产物在分支 `codex/jarvis-e02-source-grounding-r1`：`src/brain/work_navigation.py` 691 行 / 38,517B，**主分支完全没有该文件**；T5 要求报告 `jarvis-work-e02-offline-minimal-repair-20261108.md` **全仓缺失**。
+
+结论：`frozen` 不成立（报告未落盘 + 主干不可见），已改 `blocked`。这与 0031 是同一类问题的第二个实例，说明「产出留在 feature 分支」不是孤例。
+
+### 8.3 0007 维持 audit（不能冻结）
+
+报告 `stage-pseudo-streaming-20261030.md` 在（3,287B，T4 物理音频耦合 3+3 组全 PASS），但代码改动（daemon `_LOG_LOCK`）仍在工作树未入库。产出入库不完整就不能打冻结 tag。
+
+### 8.4 回执判据硬化（本次最有复用价值的一处）
+
+- **根因**：`_classify_text` 只认「自检 PASS」这一条字面文案，而执行端实际写的是「14 passed」/「PYTEST_EXIT_CODE=0」。w6/w7 因此 `receipt_valid=false`、整单被判 blocked。
+- **改法**：通过证据放宽到 `14 passed` / `PYTEST_EXIT_CODE=0` / `自检 PASS` 三种写法；本次是否通过由 `exit_code=0` + 执行端 READY 声明共同决定，正文里叙述的历史失败（「修复前 3 failed」「28 项既有债」）不再否决。
+- **真实回执复验**：w6 `blocked/false → audit/true`、w7 同样转 `audit/true`；w8/w9 保持 blocked（符合事实）。
+- **附带修掉一处结构缺陷**：commit `1952160b`（「主脑代做一行」）把测试 `def test_text_receipt_requires_complete_work_order_boundary` 的 def 行替换掉了、函数体留在原处，等于把两个测试粘成一个。已补回 def 行。
+- 单测 **18 passed**；tag `ultimaagent-receipt-hardening-20261110`。
+
+### 8.5 仍然要 Codex / 等人的
+
+| 项 | 卡在哪 |
+|---|---|
+| 0027 T2 收尾 | 缺 `0027-t2.md` 正式报告 + 未打 tag |
+| 0019 / 0020 语音 | 缺真人实测（远场、召回、长期误唤醒） |
+| wo-s1 三单 | 等 Owner 门 / 等净机环境（本机无 VM/ISO） |
+| wo-orb-w9 | 需隔离检出环境（目标文件已在 HEAD） |
+| 0031 / 0029 分支合入 | 合并归口未约定 |
+
+## 九、取证命令附录
 
 ```powershell
 # 产物存在性
