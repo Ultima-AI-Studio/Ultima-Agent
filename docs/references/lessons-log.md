@@ -626,3 +626,10 @@
 - **连带查出**：14 份真实文档里 **0 份含 `ACC` 字样**——`freeze-work-order.py:388` 的 `if gate_ids and (...)` 意味着"卡没有判据表时直接跳过每门必审"。也就是说判据门的**判据表存在性**从来没被门管过，解析器修好了也管不到这一层。
 - **教训（通用）**：① 修解析器前先问"这一行是被漏掉还是被读错"，两者的修法相反；② 判据表"能解析"与"存在"是两个判据，必须各配一条机检；③ 验证收紧是否误伤，最省成本的办法是 `git show HEAD:<file>` 取旧源码在同一批真实样本上并排跑，而不是只跑合成用例；④ 第三方脚本在本地跑不起来时（`next.sh` 的 `list_task_files()` 只认 `.claude/epics/<纯数字>.md`），"接它"的正确含义是接它的**判定语义**（调它依赖的原函数），不是抄它的脚本文本。
 - **复发**：0
+## L77 · cygwin 的 fork 噪声被当成"判定失败"，一条 warning 能拦下整批派发（2026-11-09）
+
+- **现象**：G-ORCH 双卡并发批次跑通后跑全量，`tests/test_gorch_batch_orchestrator.py` 1 failed、`tests/test_verify_order.py` 7 errors。报错串不是断言失败，而是 `lib.sh: fork: retry: Resource temporarily unavailable`、`child_copy: cygheap read copy failed`、`bash dofork: child -1: forked process ... died unexpectedly`。同样这 8 条**逐条单跑全部 PASS**（冲突用例 6.18s 过、untracked 写入域用例 4.62s 过）。
+- **根因**：`scripts/gorch/batch_orchestrator.py` 的 `gate_check` 里写着 `if r.stderr.strip(): raise SystemExit('ccpm 判定出现错误输出 ...')`——把"bash 往 stderr 输出了任何东西"当成"判定逻辑失败"。而 cygwin 在连续 fork 抖动时就会往 stderr 写这种噪声，真正的判定结果（STATUS / UNMET / CONFLICTS 三个 printf）其实完好无损。于是判据是假的坏、派发被真的停。
+- **处置**：本轮登记为缺口（报告 §七 第 9 条），未修。建议改成——以 `returncode` 为唯一契约；`stderr` 只在 `returncode != 0` 时作为附加诊断信息；对 `fork: retry` / `cygheap` / `dofork` 这类已知 cygwin 噪声置白名单。
+- **教训（通用）**：① **"stderr 非空"不等于"失败"**。exit code 才是契约，stderr 是诊断通道；把诊断通道当契约会造出假阴性，而假阴性在 fail-closed 系统里表现为"整批不动"——系统看起来是"正常地什么都没做"，比假阳性难发现得多。② Windows 上依赖 bash fork 的测试套，全量连跑数百次必撞 cygwin fork 受限；判"逻辑坏没坏"必须用**单条重跑**，不能拿全量结果直接定性。③ 全量结果必须分类报出（稳定红 / 环境性失败 / 通过），合成一个数字会让人以为代码坏了。
+- **复发**：0

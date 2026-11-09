@@ -120,9 +120,28 @@ Codex 原文要求：waiver 的 `instead` 必须是工单 `**机检**` 里唯一
 2. **执行段判 done 只看退出码**（`codex_channel.py:194` `ok = proc.returncode == 0`），不看改动是否落在工单声明的写入域、也不看有没有产出文件。所以 `result=done` 不等于"做对了"，这次是我人工比对文件内容才确认的。这条是该补的缺口。
 3. **批次任务号必须先在看板存在**。`codex_channel` 的 `flow` / `progress` 是 `check=True`，看板没有该 id 会直接抛错、执行段失败；且 `cmd_state` 的状态机要求 `Assigned → Doing` 合法。所以"最小批次"不是随便造几个 md 就能跑，得先 `kanban_update.py create ... Assigned` 登记一条。
 
-### 3 条全量红是什么
+### 双卡并发批次实跑（2 通道同轮）
 
-`tests/test_orchestrate_order.py` 三条：
+| 卡 | 任务内容 | 通道 | 耗时 | 结果 |
+|---|---|---|---|---|
+| GORCH-SMOKE-2 | 写 `scripts/gorch/smoke_probe.py`（纯函数）+ `tests/test_smoke_probe.py`（4 条用例） | ch1 | **84.7s** | done |
+| GORCH-SMOKE-3 | 写一个 3 行 md | ch2 | **30.5s** | done |
+
+**并发是真的**：两卡 `started_at` 同一秒（17:51:00），A 跑 84.7s、B 跑 30.5s，墙钟总时长 88s。若是串行，应累计约 115s。所以 `execute --max-channels 2` 确实同时拉起了两个 Codex 进程。
+
+**写入域没互踩**：两个 worktree 的 `git status` 各自只有本卡要交的文件——wt2 只有 `scripts/gorch/smoke_probe.py` + `tests/test_smoke_probe.py`，wt3 只有 `docs/reports/gorch-smoke-notes.md`。
+
+**测试是真绿的**：`tests/test_smoke_probe.py` 在 worktree 里 4 passed（0.03s），合到主线后又跑一遍 4 passed（0.10s）。Codex 写的函数实现正确（None → None、字符串 strip+lower、其他类型抛 TypeError）。
+
+**两次 merge 串行**：A 先合（`54423bc0`，`rebased=false`），B 后合时目标分支已经前进，`wt merge` 自动做了 rebase（`rebased=true`）再 squash 成 `cb5f0597`。两卡的写入域不重叠所以没冲突——**真正冲突（同文件被两卡改）仍未验**。
+
+**并发写看板没炸**：两个 Codex 进程同时调 `kanban flow/progress/done`，`data/tasks_source.json` 没出现损坏。
+
+### 全量：3 条稳定红 + 8 条环境性失败
+
+全量结果 **4 failed / 7 errors / 261 passed**，但这两类性质完全不同，不能混在一起算。
+
+**稳定红 3 条**（`tests/test_orchestrate_order.py`）：
 
 - `test_default_run_executes_three_stages_in_order_and_uses_run_directory`
 - `test_tool_call_marker_is_detected[tool_calls]`
@@ -130,9 +149,21 @@ Codex 原文要求：waiver 的 `instead` 必须是工单 `**机检**` 里唯一
 
 断言点是 `src/brain/orchestrator.py` 的 `_looks_like_tool_call`，本轮**未改动该文件**。未做回退验证（回到 `ec5abbad` 重跑确认是否本来就红），因此只能说"本轮没有触碰它"，不能说"本轮没有引入"。
 
+**环境性失败 8 条**（`test_gorch_batch_orchestrator.py` 1 failed + `test_verify_order.py` 7 errors）：
+
+```
+ccpm 判定出现错误输出 1.md: 0 [main] grep child_copy: cygheap read copy failed
+bash dofork: child -1: forked process ... died unexpectedly
+lib.sh: fork: retry: Resource temporarily unavailable
+```
+
+逐条单跑**全部 PASS**（`test_conflict_blocked_when_other_in_progress` 单跑 6.18s 过；`test_an_untracked_file_in_the_write_scope_fails` 单跑 4.62s 过）。所以不是判定逻辑错，是 Windows 上 git-bash/cygwin 连续 fork 的资源问题——这两个测试文件的用例几乎每条都要 fork bash 调 ccpm，全量连跑几百次就撞上 cygwin 的 fork 失败。
+
+**它同时暴露了一个真缺陷**：`batch_orchestrator.py` 现在是"**stderr 非空即判失败、整批 fail-closed 拒派**"（`ccpm 判定出现错误输出 {task}: {stderr}`）。cygwin 的 `fork: retry` 这类噪声会打到 stderr 但不代表判定失败，一次偶发就能把一整批拦下来。应改成按退出码判、过滤已知 cygwin 噪声。
+
 ## 七、未完成项
 
-1. **端到端只跑了最小批次**。`provision → execute → merge` 四段已用真件跑通（1 张卡，见 §六），但这张卡**不含测试、不含多卡并发、不含冲突分支**。所以"真实测试工单能在 worktree 里跑 pytest 并通过""3 通道同轮并发""冲突分支 merge 停下并保留 rebase 现场"三件事仍无证据。
+1. **并发只到 2 通道，冲突仍未验**。`provision → execute → merge` 已跑通单卡（§六）和双卡并发（§六），其中双卡里有一张是"写代码 + 写 4 条 pytest 用例"的真测试工单，pytest 在 worktree 与主线都 4 passed。仍未验的是：**3 通道同轮**、**两张卡改同一个文件时的真冲突**（merge 该停下、该把 rebase 现场留在源 worktree）、以及冲突卡重派路径。
 2. 第 4 步缺"至少执行到一个测试"的判据（§四）。
 3. 冻结 tag receipt 未写入 `card/because/instead`。
 4. 第 3 步的一条判据未实现：非空 ACC 卡同时声明 waiver 时未显式拒绝（目前 waiver 只在空表分支被消费）。
@@ -140,6 +171,7 @@ Codex 原文要求：waiver 的 `instead` 必须是工单 `**机检**` 里唯一
 6. `next_task()` 内是否还有第二处 `VALID_STATUSES` 判断未逐行核实。
 7. L1-02（`verify-order.py` 仍接受 `python3` 与 `Scripts` 下任意层级）、L1-03（`test_verify_order.py` 仍用合成 XML 计数）原样未动。
 8. **执行段没有产出校验**（本轮端到端跑出来的缺口，未修）：`codex_channel.py` 判 done 只看 `returncode == 0`，不核对改动是否落在工单声明的写入域、不核对工单要求交付的文件是否存在。Codex 即使退出码 0 却什么都没做，回执照样 `done`，随后被 merge 合进主线。
+9. **`gate_check` 把 stderr 非空当判定失败**（本轮全量跑出来的缺口，未修）：cygwin 的 `fork: retry` / `child_copy: cygheap` 噪声会进 stderr，导致本可正常判定的批次被整批拒派。应按 returncode 判 + 过滤已知噪声。
 
 ## 八、需要 Owner 拍板
 
