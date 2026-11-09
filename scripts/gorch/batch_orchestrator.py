@@ -780,6 +780,13 @@ def find_done_tasks(batch_dir, with_blocked=False, run_dirs=None, only_tasks=Non
 
     # 显式给了 run_dirs（哪怕空映射）就是 invocation 模式：空映射意味着「本次一个
     # 记录都没有」，必须整体阻断，不能落回 glob + mtime 去翻历史（审计 Q1）。
+    # r9（第八轮审计 N10）：只有 compare-to-expected 才是身份校验。r8 写成
+    # `if expect_invocation and ...`，不给期望时退化成「只验非空」，任何历史
+    # invocation 的记录都能通过。explicit 模式必须给出本次 invocation，否则拒绝。
+    if run_dirs is not None and not expect_invocation:
+        raise SystemExit(
+            '显式 run-dir 模式必须同时给出本次 invocation（--invocation），'
+            '否则无法证明记录属于本次调用，fail-closed')
     if run_dirs is not None:
         for task in tasks:
             rd = run_dirs.get(task)
@@ -832,13 +839,17 @@ def find_done_tasks(batch_dir, with_blocked=False, run_dirs=None, only_tasks=Non
                 stale[task] = {'run_record': str(h),
                                'reason': '执行记录缺少 invocation，无法绑定本次调用'}
                 continue
-            if expect_invocation and rec_inv != str(expect_invocation):
+            if rec_inv != str(expect_invocation):
                 stale[task] = {'run_record': str(h),
                                'reason': (f'执行记录 invocation 不匹配：记录 {rec_inv!r}，'
                                           f'本次 {expect_invocation!r}')}
                 continue
-            if data.get('dry_run'):
-                stale[task] = {'run_record': str(h), 'reason': 'dry-run 记录不授权合并'}
+            # r9（第八轮审计 N10）：`if data.get('dry_run')` 只判 truthy——缺字段、
+            # None、0 都会被当成"真实执行"放行。必须严格等于 False。
+            if data.get('dry_run') is not False:
+                stale[task] = {'run_record': str(h),
+                               'reason': ('执行记录 dry_run 不是严格 False：'
+                                          f'{data.get("dry_run")!r}，不授权合并')}
                 continue
             if data.get('result') != 'done':
                 stale[task] = {
@@ -873,11 +884,30 @@ def find_done_tasks(batch_dir, with_blocked=False, run_dirs=None, only_tasks=Non
             if not isinstance(data, dict):
                 broken.append((str(h), f'根节点不是对象（{type(data).__name__}）'))
                 continue
-            if data.get('dry_run'):
+            # r9（第八轮审计 N10/N12）：七项身份**全部前置**到加入 entries 之前。
+            # r8 只在选定"最新记录"之后才验 result / mergeable，等于先用一批不合格
+            # 记录参与时间排序、再用它决定"本次执行是哪一条"，诊断顺序也不对。
+            if data.get('dry_run') is not False:
+                broken.append((str(h),
+                               f'dry_run={data.get("dry_run")!r} 不是严格 False'))
+                continue
+            rec_inv = str(data.get('invocation') or '')
+            if not rec_inv:
+                broken.append((str(h), '记录缺少 invocation，无法绑定本次调用'))
+                continue
+            if expect_invocation and rec_inv != str(expect_invocation):
+                broken.append((str(h),
+                               f'invocation={rec_inv!r} 不是本次 {expect_invocation!r}'))
+                continue
+            if data.get('result') != 'done':
+                broken.append((str(h), f'result={data.get("result")!r} 不是 done'))
+                continue
+            if data.get('mergeable') is not True:
+                broken.append((str(h),
+                               f'mergeable={data.get("mergeable")!r} 不是严格 True'))
                 continue
             # 身份同样要核（第七轮审计 B5）：task 精确相等、run_dir 必须指回本记录
-            # 所在目录、done 记录必须 mergeable 严格 True——否则"任何 done 就进池"
-            # 仍在放行不可合并的记录。
+            # 所在目录——否则"任何 done 就进池"仍在放行不可合并的记录。
             if str(data.get('task') or '') != task:
                 broken.append((str(h),
                                f'记录 task={data.get("task")!r} 与目录任务 {task!r} 不符'))
@@ -941,21 +971,9 @@ def find_done_tasks(batch_dir, with_blocked=False, run_dirs=None, only_tasks=Non
                            '（含同一 invocation 的多条），无法唯一确定本次执行；'
                            '请显式传 --run-dir')}
             continue
-        data = best['data']
-        if data.get('result') == 'done':
-            # r8（第七轮审计 A②）：done 还不够，记录必须自证"可合并"。
-            # 放在选定"最新记录"之后校验，是为了不改变既有 started_at / invocation
-            # 诊断顺序——记录本身的坏法要按原语义报出来，而不是一律报 mergeable。
-            if data.get('mergeable') is not True:
-                stale[task] = {'run_record': best['path'], 'result': 'done',
-                               'reason': (f'done 记录 mergeable='
-                                          f'{data.get("mergeable")!r} 不是 True，不可合并')}
-                continue
-            done[task] = best['path']
-        else:
-            stale[task] = {'run_record': best['path'],
-                           'result': data.get('result'),
-                           'reason': data.get('reason') or '最新记录的 result 不是 done'}
+        # r9：result / mergeable / dry_run / invocation 已在进 entries 前全部验过，
+        # 走到这里说明这条最新记录本身就是合格的可合并 done。
+        done[task] = best['path']
     return (done, stale) if with_blocked else done
 
 
@@ -1087,141 +1105,165 @@ def merge(batch_dir, tasks=None, target=None, run_dirs=None, only_tasks=None,
         raise SystemExit('无法确定合并目标分支（当前处于 detached HEAD），请显式传 target')
 
     merged, failed = [], []
-    target_sha = _ref_sha(resolved_target)   # 合并前基线：用来判"主线有没有真的动"
-    if not target_sha:
-        raise SystemExit(
-            f'无法取得合并目标 {resolved_target} 的 commit sha，fail-closed')
     for task in targets:
         branch = BRANCH_PREFIX + task
-        # 调用前把源分支状态钉住（第五轮审计 7.2）：只记 target SHA 不够——
-        # ① 源分支在调用前本来就已是 target 祖先时，调用后 is-ancestor 必然为真，
-        #    这证明不了"这一次"合入了任何东西（worktree 里的未提交产出根本不进历史）；
-        # ② 只要 target tip 变了就算成功，则任何无关进程的推进都能替本任务作证。
-        src_before = _ref_sha(branch)
-        # r8 口径② 的 B 级证据要在调用前取到：源分支的 tree sha。分支被 wt 删掉后
-        # 分支名查不到，但对象仍在，`<sha>^{tree}` 可读。
-        src_tree = ''
-        if src_before:
-            _rc, _t = _git_out(['rev-parse', f'{src_before}^{{tree}}'])
-            src_tree = (_t or '').strip() if _rc == 0 else ''
-        rc_pre, _ = _git_out(['merge-base', '--is-ancestor', branch, resolved_target])
-        if not src_before or rc_pre not in (0, 1):
-            # 第七轮审计 #4：前态取证失败（SHA 取不到 / rc=128 等）不能折叠成
-            # "前态不是祖先"——那样 `not pre_anc` 恒真，只要调后 target 前进且
-            # is-ancestor=0 就能通过，等于把取证失败当成功。
-            failed.append({
-                'task': task, 'branch': branch, 'returncode': 0,
-                'stdout': '',
-                'stderr': (f'合并前取证失败：源分支 SHA={src_before[:12] or "?"}，'
-                           f'is-ancestor rc={rc_pre!r}（只接受 0/1），fail-closed'),
-                'hint': '未执行合并；先核对源分支与目标分支是否可读，再重跑。',
-            })
-            break
-        pre_anc = (rc_pre == 0)
+        # r9（第八轮审计 N8）：整段因果取证必须在**同一把锁内**——r8 只把
+        # `wt_merge()` 包进 with，前态（target_sha / src_before / src_tree / pre_anc）
+        # 在锁外取、后态（rc_anc / sha_after / src_after / tree / proof）也在锁外取，
+        # 锁只串行了 wt_merge 这一个子进程。同仓另一个 gorch 仍可在释放锁后、后态
+        # 采样前推进 target，于是"本次造成"仍可能是别人的推进。
         with _MergeLock(resolved_target):
+            target_sha = _ref_sha(resolved_target)   # 锁内取前态
+            if not target_sha:
+                raise SystemExit(
+                    f'无法取得合并目标 {resolved_target} 的 commit sha，fail-closed')
+            # 调用前把源分支状态钉住（第五轮审计 7.2）：只记 target SHA 不够——
+            # ① 源分支在调用前本来就已是 target 祖先时，调用后 is-ancestor 必然为真，
+            #    这证明不了"这一次"合入了任何东西（worktree 里的未提交产出根本不进历史）；
+            # ② 只要 target tip 变了就算成功，则任何无关进程的推进都能替本任务作证。
+            src_before = _ref_sha(branch)
+            # r8 口径② 的 B 级证据要在调用前取到：源分支的 tree sha。分支被 wt 删掉后
+            # 分支名查不到，但对象仍在，`<sha>^{tree}` 可读。
+            src_tree = ''
+            if src_before:
+                _rc, _t = _git_out(['rev-parse', f'{src_before}^{{tree}}'])
+                src_tree = (_t or '').strip() if _rc == 0 else ''
+            # r9（第八轮审计 N9）：还需要 target 的**前态 tree**，否则"tree 档"无法
+            # 排除"空提交 / revert 回同一个 tree"——那种情况 top_tree == src_tree 也成立，
+            # 但 target 的内容其实一个字都没变。
+            target_tree_before = ''
+            if target_sha:
+                _rcb, _tb = _git_out(['rev-parse', f'{target_sha}^{{tree}}'])
+                target_tree_before = (_tb or '').strip() if _rcb == 0 else ''
+            rc_pre, _ = _git_out(['merge-base', '--is-ancestor', branch, resolved_target])
+            if not src_before or rc_pre not in (0, 1):
+                # 第七轮审计 #4：前态取证失败（SHA 取不到 / rc=128 等）不能折叠成
+                # "前态不是祖先"——那样 `not pre_anc` 恒真，只要调后 target 前进且
+                # is-ancestor=0 就能通过，等于把取证失败当成功。
+                failed.append({
+                    'task': task, 'branch': branch, 'returncode': 0,
+                    'stdout': '',
+                    'stderr': (f'合并前取证失败：源分支 SHA={src_before[:12] or "?"}，'
+                               f'is-ancestor rc={rc_pre!r}（只接受 0/1），fail-closed'),
+                    'hint': '未执行合并；先核对源分支与目标分支是否可读，再重跑。',
+                })
+                break
+            pre_anc = (rc_pre == 0)
             r = wt_merge(branch, target=resolved_target)
-        if r.returncode != 0:
-            failed.append({
-                'task': task,
-                'branch': branch,
-                'returncode': r.returncode,
-                'stdout': r.stdout.strip()[-600:],
-                'stderr': r.stderr.strip()[-600:],
-                # 固定提示文案（非判断）：实测冲突时 wt 把 rebase 留在源 worktree
-                # 的未完成态，必须人工 abort/解决后才能继续合下游分支。
-                'hint': ('合并未成功。若为冲突，wt 已把 rebase 留在源 worktree 未完成态；'
-                         '解决后 rebase --continue，或执行 '
-                         'git -C <源worktree> rebase --abort 放弃本次合并再重跑。'
-                         '后续分支已停止，不会自动继续。'),
-            })
-            break
-        data = _parse_braced_json(r.stdout)
-        if data is None:
-            raise SystemExit(
-                f'wt merge 输出无法解析 {task}: {r.stdout.strip()[:400]}，fail-closed')
-        # rc=0 不足以证明合进去了（第四轮审计 #8）：要看 wt 自己的 JSON。
-        # 实测（临时仓库，2026-11-09）：`wt merge --format json` 返回**对象**，字段是
-        # branch / target / committed / squashed / rebased / removed —— **没有 merged**
-        # 字段。所以判据不能是 `merged is True`（那样每次合并都会被判失败），改为：
-        #   ① branch、target 必须存在且与请求一致；
-        #   ② 去 git 侧验一遍到底合没合（target tip 前进，或源分支已成为 target 祖先）。
-        obj = data
-        if isinstance(data, list):
-            obj = next((x for x in data if isinstance(x, dict)), None)
-        if not isinstance(obj, dict):
-            raise SystemExit(f'wt merge 输出不是对象 {task}: {data!r}，fail-closed')
-        got_branch = obj.get('branch')
-        got_target = obj.get('target')
-        # 回执里 branch/target 必须存在且与请求一致：只在"非空才比"时，
-        # `{"merged": true}` 或空字段也能通过并进 merged（审计 Q1）。
-        if not got_branch or not got_target:
-            failed.append({
-                'task': task, 'branch': branch, 'returncode': 0,
-                'stdout': r.stdout.strip()[-600:],
-                'stderr': f'wt 回报缺少 branch/target（branch={got_branch!r}, '
-                          f'target={got_target!r}），无法确认合到哪',
-                'hint': '回执不完整，按未合并处理；核对主线后再决定重试或人工合。',
-            })
-            break
-        # 同一分支可能被 wt 写成 `x` 或 `refs/heads/x`，先归一化再比，
-        # 否则会把"合成功了但写法不同"误判成目标不符而整批 SystemExit。
-        if _norm_ref(got_branch) != _norm_ref(branch):
-            raise SystemExit(
-                f'wt merge 回报的分支与请求不一致 {task}: 请求 {branch} 实际 {got_branch}')
-        if _norm_ref(got_target) != _norm_ref(resolved_target):
-            raise SystemExit(
-                f'wt merge 回报的目标与请求不一致 {task}: '
-                f'请求 {resolved_target} 实际 {got_target}')
-        # ② git 侧复核（第五轮审计 7.2）：wt 说 rc=0 也要证明**这一次**把本任务
-        #    真的合进去了。成立条件：
-        #      a) target tip 相对调用前前进了（progressed）；
-        #      b) 且满足其一：
-        #         · wt 回执里 committed/squashed/rebased 有一项为真（wt 明确做了
-        #           提交/squash 动作，这是"本次动作"的直接证据）；或
-        #         · 调用前 sha 现在是 target 的祖先（rc_anc==0），且
-        #           - 调用前不是祖先（pre_anc=False）→ 本次把源 tip 带了进来；
-        #           - 调用前本来就已是祖先时，要求源 tip 变过（src_moved）——
-        #             否则就是"合了一个早就在里面的老提交"，本次产出没进去。
-        #    b) 的第二支同时挡掉"无关进程推进 target"（target 动了但源分支不在里面）。
-        # r8（第七轮审计 N3）：wt merge 默认会 cleanup 掉源 worktree **与源分支**
-        # （见 wt_merge 的注释），squash 之后源 ref 已不存在：
-        #   · 用分支名查 merge-base 必然失败 → 真成功被判 failed；
-        #   · 强制 src_moved 也必然不成立（分支没了，tip 自然"没变"）。
-        # 改为：源 commit 用**调用前 sha** 查祖先（分支删了对象还在），并接受 wt 回执
-        # 里的 committed / squashed / rebased 作为"这次确实做了合并动作"的证据。
-        # 口径说明：wt 自报不能证明"唯一因果"；正式口径（独占锁 / 可绑定 invocation
-        # 的事务回执 / reflog 对应）待 Owner 拍板，本条只先修"真成功被判失败"的误杀。
-        rc_anc, _ = _git_out(['merge-base', '--is-ancestor', src_before, resolved_target])
-        sha_after = _ref_sha(resolved_target)
-        src_after = _ref_sha(branch)          # 分支被 wt 清掉时为空
-        progressed = bool(target_sha and sha_after and target_sha != sha_after)
-        src_alive = bool(src_after)
-        src_moved = bool(src_alive and src_before and src_after != src_before)
-        wt_action = any(obj.get(k) is True for k in ('committed', 'squashed', 'rebased'))
-        # r8（第七轮审计口径②）：把「本次调用造成」拆成可机检的三级证据，
-        # record 里写明用了哪一级，不再是一个布尔 `proven`。
-        #   A ff     —— 调用前源不是祖先、调用后调用前的源 tip 是 target 祖先：
-        #               本次把这个 tip 带进了 target（历史图直接可核）。
-        #   B tree   —— 目标 tip 的 tree 与调用前源分支的 tree 完全相同：squash
-        #               把源内容原样落到目标，逐字节可核，不依赖分支名是否还在。
-        #   C receipt— wt 回执 committed/squashed/rebased 为真（wt 自报动作）。只在
-        #               A/B 都不成立时兜底：worktree 里未提交的产出经 wt 提交后
-        #               squash，source 旧 tip 的 tree 与结果 tree 本就不同，此时
-        #               A/B 都会判否，若再不给 C 就会把合法 squash 判死。
-        top_tree = ''
-        if sha_after:
-            _rc2, _tt = _git_out(['rev-parse', f'{sha_after}^{{tree}}'])
-            top_tree = (_tt or '').strip() if _rc2 == 0 else ''
-        proof = ''
-        if progressed and rc_anc == 0 and (not pre_anc or src_moved):
-            # 调用前不是祖先 → 本次把这个 tip 带进来；调用前已是祖先时，
-            # 必须先证明源 tip 动过（否则合的是一个早就在里面的老提交）。
-            proof = 'ff'
-        elif progressed and src_tree and top_tree and top_tree == src_tree:
-            proof = 'tree'
-        elif progressed and wt_action:
-            proof = 'wt_receipt'
-        proven = bool(proof)
+            if r.returncode != 0:
+                failed.append({
+                    'task': task,
+                    'branch': branch,
+                    'returncode': r.returncode,
+                    'stdout': r.stdout.strip()[-600:],
+                    'stderr': r.stderr.strip()[-600:],
+                    # 固定提示文案（非判断）：实测冲突时 wt 把 rebase 留在源 worktree
+                    # 的未完成态，必须人工 abort/解决后才能继续合下游分支。
+                    'hint': ('合并未成功。若为冲突，wt 已把 rebase 留在源 worktree 未完成态；'
+                             '解决后 rebase --continue，或执行 '
+                             'git -C <源worktree> rebase --abort 放弃本次合并再重跑。'
+                             '后续分支已停止，不会自动继续。'),
+                })
+                break
+            data = _parse_braced_json(r.stdout)
+            if data is None:
+                raise SystemExit(
+                    f'wt merge 输出无法解析 {task}: {r.stdout.strip()[:400]}，fail-closed')
+            # rc=0 不足以证明合进去了（第四轮审计 #8）：要看 wt 自己的 JSON。
+            # 实测（临时仓库，2026-11-09）：`wt merge --format json` 返回**对象**，字段是
+            # branch / target / committed / squashed / rebased / removed —— **没有 merged**
+            # 字段。所以判据不能是 `merged is True`（那样每次合并都会被判失败），改为：
+            #   ① branch、target 必须存在且与请求一致；
+            #   ② 去 git 侧验一遍到底合没合（target tip 前进，或源分支已成为 target 祖先）。
+            obj = data
+            if isinstance(data, list):
+                obj = next((x for x in data if isinstance(x, dict)), None)
+            if not isinstance(obj, dict):
+                raise SystemExit(f'wt merge 输出不是对象 {task}: {data!r}，fail-closed')
+            got_branch = obj.get('branch')
+            got_target = obj.get('target')
+            # 回执里 branch/target 必须存在且与请求一致：只在"非空才比"时，
+            # `{"merged": true}` 或空字段也能通过并进 merged（审计 Q1）。
+            if not got_branch or not got_target:
+                failed.append({
+                    'task': task, 'branch': branch, 'returncode': 0,
+                    'stdout': r.stdout.strip()[-600:],
+                    'stderr': f'wt 回报缺少 branch/target（branch={got_branch!r}, '
+                              f'target={got_target!r}），无法确认合到哪',
+                    'hint': '回执不完整，按未合并处理；核对主线后再决定重试或人工合。',
+                })
+                break
+            # 同一分支可能被 wt 写成 `x` 或 `refs/heads/x`，先归一化再比，
+            # 否则会把"合成功了但写法不同"误判成目标不符而整批 SystemExit。
+            if _norm_ref(got_branch) != _norm_ref(branch):
+                raise SystemExit(
+                    f'wt merge 回报的分支与请求不一致 {task}: 请求 {branch} 实际 {got_branch}')
+            if _norm_ref(got_target) != _norm_ref(resolved_target):
+                raise SystemExit(
+                    f'wt merge 回报的目标与请求不一致 {task}: '
+                    f'请求 {resolved_target} 实际 {got_target}')
+            # ② git 侧复核（第五轮审计 7.2）：wt 说 rc=0 也要证明**这一次**把本任务
+            #    真的合进去了。成立条件：
+            #      a) target tip 相对调用前前进了（progressed）；
+            #      b) 且满足其一：
+            #         · wt 回执里 committed/squashed/rebased 有一项为真（wt 明确做了
+            #           提交/squash 动作，这是"本次动作"的直接证据）；或
+            #         · 调用前 sha 现在是 target 的祖先（rc_anc==0），且
+            #           - 调用前不是祖先（pre_anc=False）→ 本次把源 tip 带了进来；
+            #           - 调用前本来就已是祖先时，要求源 tip 变过（src_moved）——
+            #             否则就是"合了一个早就在里面的老提交"，本次产出没进去。
+            #    b) 的第二支同时挡掉"无关进程推进 target"（target 动了但源分支不在里面）。
+            # r8（第七轮审计 N3）：wt merge 默认会 cleanup 掉源 worktree **与源分支**
+            # （见 wt_merge 的注释），squash 之后源 ref 已不存在：
+            #   · 用分支名查 merge-base 必然失败 → 真成功被判 failed；
+            #   · 强制 src_moved 也必然不成立（分支没了，tip 自然"没变"）。
+            # 改为：源 commit 用**调用前 sha** 查祖先（分支删了对象还在），并接受 wt 回执
+            # 里的 committed / squashed / rebased 作为"这次确实做了合并动作"的证据。
+            # 口径说明：wt 自报不能证明"唯一因果"；正式口径（独占锁 / 可绑定 invocation
+            # 的事务回执 / reflog 对应）待 Owner 拍板，本条只先修"真成功被判失败"的误杀。
+            rc_anc, _ = _git_out(['merge-base', '--is-ancestor', src_before, resolved_target])
+            sha_after = _ref_sha(resolved_target)
+            src_after = _ref_sha(branch)          # 分支被 wt 清掉时为空
+            progressed = bool(target_sha and sha_after and target_sha != sha_after)
+            src_alive = bool(src_after)
+            src_moved = bool(src_alive and src_before and src_after != src_before)
+            wt_action = any(obj.get(k) is True for k in ('committed', 'squashed', 'rebased'))
+            # r8（第七轮审计口径②）：把「本次调用造成」拆成可机检的三级证据，
+            # record 里写明用了哪一级，不再是一个布尔 `proven`。
+            #   A ff     —— 调用前源不是祖先、调用后调用前的源 tip 是 target 祖先：
+            #               本次把这个 tip 带进了 target（历史图直接可核）。
+            #   B tree   —— 目标 tip 的 tree 与调用前源分支的 tree 完全相同：squash
+            #               把源内容原样落到目标，逐字节可核，不依赖分支名是否还在。
+            #   C receipt— wt 回执 committed/squashed/rebased 为真（wt 自报动作）。只在
+            #               A/B 都不成立时兜底：worktree 里未提交的产出经 wt 提交后
+            #               squash，source 旧 tip 的 tree 与结果 tree 本就不同，此时
+            #               A/B 都会判否，若再不给 C 就会把合法 squash 判死。
+            top_tree = ''
+            if sha_after:
+                _rc2, _tt = _git_out(['rev-parse', f'{sha_after}^{{tree}}'])
+                top_tree = (_tt or '').strip() if _rc2 == 0 else ''
+            # r9（第八轮审计 N9）：三档共同前置 —— target 的**内容**必须真的变了。
+            # progressed 只看 SHA，空提交 / revert 回同一个 tree 也会越过它。
+            content_changed = bool(target_tree_before and top_tree
+                                   and top_tree != target_tree_before)
+            ff_ok = False
+            if not pre_anc:
+                ff_ok = (rc_anc == 0)      # 调用前不是祖先：旧 tip 现在进来了
+            elif src_moved and src_after:
+                # 调用前已是祖先时，旧 tip 恒为祖先，拿它查 merge-base 证明不了本次
+                # （r8 在这里只查 src_before，等于恒真）。必须核**新 tip** 进没进。
+                rc_new, _ = _git_out(['merge-base', '--is-ancestor', src_after,
+                                      resolved_target])
+                ff_ok = (rc_new == 0)
+            proof = ''
+            if progressed and content_changed and ff_ok:
+                proof = 'ff'
+            elif (progressed and content_changed and src_tree and top_tree
+                  and top_tree == src_tree):
+                proof = 'tree'
+            elif progressed and content_changed and wt_action:
+                proof = 'wt_receipt'
+            proven = bool(proof)
         if not progressed or not proven:
 
             failed.append({
@@ -1242,7 +1284,6 @@ def merge(batch_dir, tasks=None, target=None, run_dirs=None, only_tasks=None,
                          '核对源 worktree 与主线后再决定重试或人工合；后续分支已停止。'),
             })
             break
-        target_sha = sha_after
         merged.append({'task': task, 'branch': branch,
                        'result': obj, 'run_record': done[task],
                        'source_sha_before': src_before,
@@ -1252,6 +1293,7 @@ def merge(batch_dir, tasks=None, target=None, run_dirs=None, only_tasks=None,
                        'source_ref_alive': src_alive,
                        'proof': proof,
                        'source_tree_before': src_tree,
+                       'target_tree_before': target_tree_before,
                        'target_tree_after': top_tree,
 
                        'target_sha_after': sha_after})
@@ -1472,7 +1514,8 @@ def run_all(batch_dir, prompts_dir, max_channels=MAX_CHANNELS, target=None,
     # 执行记录"，否则 run 会因非 ready 卡恒判失败（第四轮审计 Q1）。
     probe_done, probe_stale = find_done_tasks(batch_dir, with_blocked=True,
                                               run_dirs=run_dirs,
-                                              only_tasks=ready)
+                                              only_tasks=ready,
+                                              expect_invocation=inv)
     to_merge = [t for t in ready if t in probe_done]
     # done_no_merge（纯验证卡）是可接受的非合并终态。判定只看记录里的 result 字段
     # （第五轮审计 7.2-1）：此前用 `'done_no_merge' in reason` 子串，任何 blocked
@@ -1609,9 +1652,12 @@ def main(argv=None):
                    help='只合这些任务（默认合所有 result=done 的）')
     m.add_argument('--target', default=None,
                    help='合并目标分支（默认当前检出分支；合到 main 属发布动作，须显式传）')
-    m.add_argument('--invocation', default=None,
-                   help=('本次 invocation；给了就要求执行记录的 invocation 与它相等，'
-                         '不给则只验记录自身非空'))
+    # r9（第八轮审计 N10）：`--invocation` 改 required。r8 允许不传，函数层就退化成
+    # "只验记录自身非空"——任何历史 invocation 的 done 记录都能拿到合并授权。
+    # 合并是一个需要身份的动作，没有本次 invocation 就没有可核的归属。
+    m.add_argument('--invocation', required=True,
+                   help=('本次 invocation（必填）：执行记录的 invocation 必须与它严格相等，'
+                         '否则该任务判 stale，不授权合并'))
     m.add_argument('--run-dir', nargs='*', default=None, metavar='TASK=PATH',
                    help=('本次 invocation 的精确 run-dir，可给多个，形如 '
                          'GORCH-A=C:\\...\\runs\\GORCH-A-ch1-2026...。'

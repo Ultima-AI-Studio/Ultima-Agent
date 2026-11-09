@@ -688,7 +688,10 @@ def test_status_rows_keeps_rename_source_from_real_nul(monkeypatch):
     assert ('SRC', 'docs/reports/origin.md') in codes
     assert (' M', 'docs/reports/z.md') in codes
     assert ignored == {'data/cache.bin'}
-    paths = m._fresh_paths({c + ' ' + p for c, p in rows})
+    # r9：路径直接取结构化 rows（生产侧就是这么用的）。此前这里拼
+    # "状态码 + 空格 + 路径" 再交给 _fresh_paths 剥前缀，反过来把"按前缀猜格式"
+    # 这个 fail-open 固化成了用例。
+    paths = [p for _c, p in rows]
     assert set(paths) == {'docs/reports/x.md', 'scripts/secret.py',
                           'docs/reports/y.md', 'docs/reports/origin.md',
                           'docs/reports/z.md'}
@@ -711,11 +714,16 @@ def test_status_rows_rename_source_is_in_fingerprint_paths(monkeypatch, tmp_path
     assert fp['paths']['docs/reports/x.md'] != 'ABSENT'
 
 
-def test_state_prefix_keeps_leading_space_path():
-    """r7 新问题 #7：` M docs/x.md` 的首空格不得吃掉，路径不能被读成 `M docs/x.md`。"""
+def test_fresh_paths_takes_pure_paths_only():
+    """r9（第八轮审计 N11）：写域校验只接受纯路径，不再按前缀猜展示格式。
+
+    r8 还会把 ` M x` 剥成 `x`——但真实文件名本身就可以以 ` M ` 开头，剥字符等于
+    把域外路径改写成域内路径。现在 `fresh_changes` 只产出纯路径，这里断言纯路径
+    原样通过，含首空格也不被削。
+    """
     m = _load()
-    assert m._fresh_paths({' M docs/reports/x.md'}) == ['docs/reports/x.md']
-    assert m._fresh_paths({'?? docs/reports/x.md'}) == ['docs/reports/x.md']
+    assert m._fresh_paths(['docs/reports/x.md']) == ['docs/reports/x.md']
+    assert m._fresh_paths([' docs/reports/x.md']) == [' docs/reports/x.md']
 
 
 def test_same_path_content_change_is_fresh():
@@ -738,7 +746,7 @@ def test_staging_only_is_not_fresh():
 def test_hidden_dir_path_is_not_truncated():
     """r7 自查：`lstrip('./')` 会把 `.github/...` 剥成 `github/...`，写域比对会错位。"""
     m = _load()
-    assert m._fresh_paths({'?? .github/workflows/x.yml'}) == ['.github/workflows/x.yml']
+    assert m._fresh_paths(['.github/workflows/x.yml']) == ['.github/workflows/x.yml']
     assert m._fresh_paths({'./docs/a.md'}) == ['docs/a.md']
     assert m._fresh_paths({'docs\\win.md'}) == ['docs/win.md']
 # --- r8：生产者记录身份 / 路径合法性 / 指纹不可用（第七轮审计 N1 / N4 / N2）---
@@ -801,3 +809,38 @@ def test_digest_read_error_invalidates_whole_fingerprint(tmp_path, monkeypatch):
     assert fp['paths']['a.txt'] is None
     assert str(fp['diff_sha']).startswith('ERR:digest:')
 
+
+# --- r9：stat 读不到 ≠ 不存在；前缀样式只是文件名（第八轮审计 N2 复发 / N11）---
+
+def test_digest_stat_error_is_not_absent(tmp_path, monkeypatch):
+    """r9（N2 复发）：stat 的非 FileNotFoundError 记 ABSENT 会把"读不到"当成"没改"。
+
+    脏基线下同一路径两次 stat 失败都会得到 ABSENT，摘要相同 → fresh_changes 判
+    "没变"，域外不可读改动被漏检。这里走真实 `_digest`：权限错误必须给 None，
+    只有确实不存在才给 ABSENT。
+    """
+    m = _load()
+    p = tmp_path / 'a.txt'
+    p.write_text('x', encoding='utf-8')
+    real_stat = pathlib.Path.stat
+
+    def boom(self, *a, **k):
+        if self.name == 'a.txt':
+            raise PermissionError(13, 'denied')
+        return real_stat(self, *a, **k)
+
+    monkeypatch.setattr(pathlib.Path, 'stat', boom)
+    assert m._digest(str(tmp_path), 'a.txt') is None
+    assert m._digest(str(tmp_path), 'no-such.txt') == 'ABSENT'
+
+
+def test_src_prefixed_real_filename_is_not_rewritten():
+    """r9（N11）：`SRC ` / 状态码样式可以是**真实文件名**，不得被剥字符。
+
+    r8 把 `SRC docs/in-scope.md` 改写成 `docs/in-scope.md`：一个域外文件因此
+    骗过了 `docs/` 写域校验（新的 fail-open）。
+    """
+    m = _load()
+    assert m._fresh_paths(['SRC docs/in-scope.md']) == ['SRC docs/in-scope.md']
+    assert m._fresh_paths([' M docs/in-scope.md']) == [' M docs/in-scope.md']
+    assert m._outside_scope(['SRC docs/in-scope.md'], ['docs/']) == ['SRC docs/in-scope.md']

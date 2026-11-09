@@ -30,11 +30,17 @@ def mod(monkeypatch, tmp_path):
     # 源分支成为祖先、（预已是祖先时）源 tip 变过。默认桩模拟一次真实合入：
     # 调用前 is-ancestor 失败、调用后成功，SHA 每次都变。
     _anc = {'n': 0}
+    # r9（第八轮审计 N9）：proof 现在还比 target 的**前态 tree** 与后态 tree，
+    # 默认桩必须让 tree 随每次 rev-parse 变化，否则"内容没变"会把真合入判死。
+    _tree = {'n': 0}
 
     def _fake_git_out(args, *a, **k):
         if isinstance(args, (list, tuple)) and list(args)[:1] == ['merge-base']:
             _anc['n'] += 1
             return (0, '') if _anc['n'] > 1 else (1, '')
+        if isinstance(args, (list, tuple)) and list(args)[:1] == ['rev-parse']:
+            _tree['n'] += 1
+            return (0, 'tree-' + str(_tree['n']))
         return (0, '')
 
     monkeypatch.setattr(m, '_git_out', _fake_git_out)
@@ -954,12 +960,15 @@ def test_find_done_tasks_only_reads_this_invocation(mod, monkeypatch, tmp_path):
     new.mkdir()
     (new / 'codex-channel.json').write_text(
         json.dumps({'task': '1', 'result': 'blocked', 'reason': '本轮失败',
-                    'invocation': 'inv-test',
-                    'run_dir': str(new.resolve())}), encoding='utf-8')
+                    'invocation': 'inv-test', 'dry_run': False,
+                    'mergeable': False, 'run_dir': str(new.resolve())}),
+        encoding='utf-8')
     done, stale = mod.find_done_tasks(str(tmp_path), with_blocked=True,
-                                      run_dirs={'1': str(new)})
+                                      expect_invocation='inv-test', run_dirs={'1': str(new)})
     assert done == {}
-    assert '本轮失败' in stale['1']['reason']
+    # r9：身份项（dry_run / result / mergeable）前置后，blocked 记录在进候选池之前
+    # 就被判否，reason 记的是"不是 done"，不再透传记录里的 reason 文案。
+    assert stale['1']['reason']
 
 
 def test_find_done_tasks_corrupt_record_blocks_instead_of_fallback(mod, monkeypatch, tmp_path):
@@ -972,7 +981,7 @@ def test_find_done_tasks_corrupt_record_blocks_instead_of_fallback(mod, monkeypa
     bad.mkdir()
     (bad / 'codex-channel.json').write_text('{not json', encoding='utf-8')
     done, stale = mod.find_done_tasks(str(tmp_path), with_blocked=True,
-                                      run_dirs={'1': str(bad)})
+                                      expect_invocation='inv-test', run_dirs={'1': str(bad)})
     assert done == {}
     assert '损坏' in stale['1']['reason']
 
@@ -985,11 +994,12 @@ def test_done_no_merge_is_not_mergeable(mod, monkeypatch, tmp_path):
     d.mkdir(parents=True)
     (d / 'codex-channel.json').write_text(
         json.dumps({'task': '1', 'result': 'done_no_merge',
-                    'invocation': 'inv-test',
-                    'run_dir': str(d.resolve())}), encoding='utf-8')
+                    'invocation': 'inv-test', 'dry_run': False,
+                    'mergeable': True, 'run_dir': str(d.resolve())}),
+        encoding='utf-8')
     monkeypatch.setattr(mod, 'RUNS', runs)
     done, stale = mod.find_done_tasks(str(tmp_path), with_blocked=True,
-                                      run_dirs={'1': str(d)})
+                                      expect_invocation='inv-test', run_dirs={'1': str(d)})
     assert done == {}
     assert 'done_no_merge' in stale['1']['reason']
 
@@ -1003,7 +1013,7 @@ def test_merge_rejects_receipt_without_identity(mod, monkeypatch, tmp_path):
     monkeypatch.setattr(mod, 'wt_merge',
                         lambda *a, **k: _FakeResult(0, json.dumps({'removed': False})))
     done, merged, failed, stale = mod.merge(str(tmp_path), tasks=['1'],
-                                            target='main', run_dirs={'1': str(d)})
+                                            target='main', expect_invocation='inv-test', run_dirs={'1': str(d)})
     assert merged == []
     assert failed[0]['task'] == '1'
     assert 'branch/target' in failed[0]['stderr']
@@ -1021,7 +1031,7 @@ def test_merge_rejects_when_git_shows_no_merge(mod, monkeypatch, tmp_path):
     monkeypatch.setattr(mod, '_git_out', lambda *a, **k: (1, ''))
     monkeypatch.setattr(mod, '_ref_sha', lambda ref: 'same-sha')
     done, merged, failed, stale = mod.merge(str(tmp_path), tasks=['1'],
-                                            target='main', run_dirs={'1': str(d)})
+                                            target='main', expect_invocation='inv-test', run_dirs={'1': str(d)})
     assert merged == []
     assert '未证明本次合入' in failed[0]['stderr']
 
@@ -1109,7 +1119,7 @@ def test_merge_tolerates_refs_heads_prefix(mod, monkeypatch, tmp_path):
     monkeypatch.setattr(mod, 'wt_merge',
                         lambda *a, **k: _FakeResult(0, json.dumps(payload)))
     done, merged, failed, stale = mod.merge(str(tmp_path), tasks=['1'],
-                                            target='main', run_dirs={'1': str(d)})
+                                            target='main', expect_invocation='inv-test', run_dirs={'1': str(d)})
     assert failed == []
     assert merged[0]['task'] == '1'
 
@@ -1137,7 +1147,7 @@ def test_find_done_tasks_explicit_empty_run_dirs_returns_nothing(mod, monkeypatc
     runs = tmp_path / 'runs'
     write_run(runs, '1')
     monkeypatch.setattr(mod, 'RUNS', runs)
-    done, stale = mod.find_done_tasks(str(tmp_path), with_blocked=True, run_dirs={})
+    done, stale = mod.find_done_tasks(str(tmp_path), with_blocked=True, expect_invocation='inv-test', run_dirs={})
     assert done == {}
     assert '没有该任务的执行记录' in stale['1']['reason']
 
@@ -1150,6 +1160,7 @@ def test_find_done_tasks_rejects_unparsable_started_at(mod, monkeypatch, tmp_pat
     d.mkdir(parents=True)
     (d / 'codex-channel.json').write_text(json.dumps(
         {'task': '1', 'result': 'done', 'invocation': 'inv-x',
+         'dry_run': False, 'mergeable': True,
          'run_dir': str(d.resolve()),
          'started_at': 'not-a-time'}), encoding='utf-8')
     monkeypatch.setattr(mod, 'RUNS', runs)
@@ -1166,6 +1177,7 @@ def test_find_done_tasks_rejects_empty_invocation(mod, monkeypatch, tmp_path):
     d.mkdir(parents=True)
     (d / 'codex-channel.json').write_text(json.dumps(
         {'task': '1', 'result': 'done', 'invocation': '',
+         'dry_run': False, 'mergeable': True,
          'run_dir': str(d.resolve()),
          'started_at': '2026-11-09T00:00:00Z'}), encoding='utf-8')
     monkeypatch.setattr(mod, 'RUNS', runs)
@@ -1207,7 +1219,7 @@ def test_merge_rejects_preexisting_ancestor_without_source_move(mod, monkeypatch
 
     monkeypatch.setattr(mod, '_ref_sha', fake_sha)
     done, merged, failed, stale = mod.merge(str(tmp_path), tasks=['1'],
-                                            target='main', run_dirs={'1': str(d)})
+                                            target='main', expect_invocation='inv-test', run_dirs={'1': str(d)})
     assert merged == []
     assert '调用前已是祖先=True' in failed[0]['stderr']
 
@@ -1222,7 +1234,7 @@ def test_merge_rejects_unrelated_target_advance(mod, monkeypatch, tmp_path):
         0, json.dumps({'branch': 'gorch/1', 'target': 'main'})))
     monkeypatch.setattr(mod, '_git_out', lambda *a, **k: (1, ''))
     done, merged, failed, stale = mod.merge(str(tmp_path), tasks=['1'],
-                                            target='main', run_dirs={'1': str(d)})
+                                            target='main', expect_invocation='inv-test', run_dirs={'1': str(d)})
     assert merged == []
     assert 'is-ancestor(src_before) rc=1' in failed[0]['stderr']
 
@@ -1314,7 +1326,7 @@ def test_run_dirs_rejects_record_of_another_task(mod, monkeypatch, tmp_path):
     b = write_run(runs, '2')
     monkeypatch.setattr(mod, 'RUNS', runs)
     done, stale = mod.find_done_tasks(str(tmp_path), with_blocked=True,
-                                      run_dirs={'1': str(b)})
+                                      expect_invocation='inv-test', run_dirs={'1': str(b)})
     assert done == {}
     assert '身份不符' in stale['1']['reason']
 
@@ -1330,7 +1342,7 @@ def test_run_dirs_rejects_record_without_invocation(mod, monkeypatch, tmp_path):
                     'run_dir': str(d.resolve())}), encoding='utf-8')
     monkeypatch.setattr(mod, 'RUNS', runs)
     done, stale = mod.find_done_tasks(str(tmp_path), with_blocked=True,
-                                      run_dirs={'1': str(d)})
+                                      expect_invocation='inv-test', run_dirs={'1': str(d)})
     assert done == {}
     assert 'invocation' in stale['1']['reason']
 
@@ -1344,7 +1356,7 @@ def test_run_dirs_rejects_non_dict_root(mod, monkeypatch, tmp_path):
     (d / 'codex-channel.json').write_text('[1, 2]', encoding='utf-8')
     monkeypatch.setattr(mod, 'RUNS', runs)
     done, stale = mod.find_done_tasks(str(tmp_path), with_blocked=True,
-                                      run_dirs={'1': str(d)})
+                                      expect_invocation='inv-test', run_dirs={'1': str(d)})
     assert done == {}
     assert '根节点' in stale['1']['reason']
 
@@ -1372,7 +1384,7 @@ def test_merge_rejects_when_pre_state_probe_fails(mod, monkeypatch, tmp_path):
         0, json.dumps({'branch': 'gorch/1', 'target': 'main'})))
     monkeypatch.setattr(mod, '_git_out', lambda *a, **k: (128, ''))
     done, merged, failed, stale = mod.merge(str(tmp_path), tasks=['1'],
-                                            target='main', run_dirs={'1': str(d)})
+                                            target='main', expect_invocation='inv-test', run_dirs={'1': str(d)})
     assert merged == []
     assert '合并前取证失败' in failed[0]['stderr']
 
@@ -1380,7 +1392,8 @@ def test_merge_rejects_when_pre_state_probe_fails(mod, monkeypatch, tmp_path):
 def test_merge_cli_requires_run_dir(mod, tmp_path):
     """r7：独立 merge 不给 --run-dir 直接拒（不再按历史 glob 授权）。"""
     write_task(tmp_path, 1)
-    rc = mod.main(['merge', str(tmp_path), '--target', 'main'])
+    rc = mod.main(['merge', str(tmp_path), '--target', 'main',
+                   '--invocation', 'inv-test'])
     assert rc == 2
 
 
@@ -1515,7 +1528,7 @@ def test_run_dirs_rejects_record_without_run_dir(mod, monkeypatch, tmp_path):
     d = write_run(tmp_path / 'runs', '1', extra={'run_dir': ''})
     monkeypatch.setattr(mod, 'RUNS', tmp_path / 'runs')
     with pytest.raises(SystemExit):
-        mod.merge(str(tmp_path), tasks=['1'], run_dirs={'1': str(d)},
+        mod.merge(str(tmp_path), tasks=['1'], expect_invocation='inv-test', run_dirs={'1': str(d)},
                   only_tasks=['1'], target='test-branch')
 
 
@@ -1527,7 +1540,7 @@ def test_run_dirs_rejects_run_dir_pointing_elsewhere(mod, monkeypatch, tmp_path)
     d = write_run(tmp_path / 'runs', '1', run_dir=str(other))
     monkeypatch.setattr(mod, 'RUNS', tmp_path / 'runs')
     done, stale = mod.find_done_tasks(str(tmp_path), with_blocked=True,
-                                      run_dirs={'1': str(d)})
+                                      expect_invocation='inv-test', run_dirs={'1': str(d)})
     assert done == {}
     assert 'run_dir' in stale['1']['reason']
 
@@ -1540,7 +1553,7 @@ def test_merge_proves_tree_equivalence_when_source_ref_gone(mod, monkeypatch, tm
     write_task(tmp_path, 1)
     d = write_run(tmp_path / 'runs', '1')
     monkeypatch.setattr(mod, 'RUNS', tmp_path / 'runs')
-    seq = {'target': 0, 'branch': 0}
+    seq = {'target': 0, 'branch': 0, 'tree': 0}
 
     def fake_ref(ref):
         if ref == 'gorch/1':
@@ -1555,7 +1568,10 @@ def test_merge_proves_tree_equivalence_when_source_ref_gone(mod, monkeypatch, tm
         if list(args)[:1] == ['merge-base']:
             return (0, '')                 # 调用前已是祖先 → ff 证据不成立
         if list(args)[:1] == ['rev-parse']:
-            return (0, 'SAME-TREE\n')
+            seq['tree'] += 1
+            # r9：rev-parse 顺序是 ①源 tree ②target **前态** tree ③target 后态 tree。
+            # 让前态与后态不同（内容真变了），源 tree 与后态相同 → 只有 tree 档成立。
+            return (0, 'OTHER-TREE\n' if seq['tree'] == 2 else 'SAME-TREE\n')
         return (0, '')
 
     monkeypatch.setattr(mod, '_git_out', fake_git_out)
@@ -1565,7 +1581,7 @@ def test_merge_proves_tree_equivalence_when_source_ref_gone(mod, monkeypatch, tm
                        'rebased': False, 'removed': True})))
     done, merged, failed, stale = mod.merge(
         str(tmp_path), tasks=['1'], target='test-branch',
-        run_dirs={'1': str(d)}, only_tasks=['1'])
+        expect_invocation='inv-test', run_dirs={'1': str(d)}, only_tasks=['1'])
     assert failed == []
     assert merged[0]['task'] == '1'
     assert merged[0]['proof'] == 'tree'
@@ -1593,7 +1609,11 @@ def test_merge_falls_back_to_wt_receipt_after_uncommitted_squash(mod, monkeypatc
             return (0, '')
         if list(args)[:1] == ['rev-parse']:
             seq['tree'] += 1
-            return (0, 'TREE-A\n' if seq['tree'] == 1 else 'TREE-B\n')
+            # r9：前态 tree 与后态不同（内容变了），但源 tree 与后态 tree 不同，
+            # 才能保证不误命中 tree 档、只剩 wt_receipt 兜底。
+            if seq['tree'] == 1:
+                return (0, 'TREE-A\n')
+            return (0, 'TREE-SRC\n' if seq['tree'] == 2 else 'TREE-TOP\n')
         return (0, '')
 
     monkeypatch.setattr(mod, '_git_out', fake_git_out)
@@ -1603,7 +1623,7 @@ def test_merge_falls_back_to_wt_receipt_after_uncommitted_squash(mod, monkeypatc
                        'rebased': False, 'removed': True})))
     done, merged, failed, stale = mod.merge(
         str(tmp_path), tasks=['1'], target='test-branch',
-        run_dirs={'1': str(d)}, only_tasks=['1'])
+        expect_invocation='inv-test', run_dirs={'1': str(d)}, only_tasks=['1'])
     assert failed == []
     assert merged[0]['proof'] == 'wt_receipt'
 
@@ -1658,8 +1678,115 @@ def test_find_done_tasks_consumes_real_producer_record(mod, monkeypatch, tmp_pat
     assert rc == 0
 
     monkeypatch.setattr(mod, 'RUNS', tmp_path / 'runs')
+    # r9（N12）：生产者—消费者必须真的传本次 invocation，且值要与生产侧一致。
     done, stale = mod.find_done_tasks(str(tmp_path), with_blocked=True,
+                                      expect_invocation='inv-prod',
                                       run_dirs={'1': str(run_dir)})
     assert done == {'1': str(run_dir / 'codex-channel.json')}
     assert '1' not in stale
 
+
+# --- r9：run-record 身份严格化 / 锁互斥 / 三档 proof 负例（第八轮审计 N8–N12）---
+
+def test_run_dirs_mode_requires_expected_invocation(mod, monkeypatch, tmp_path):
+    """r9（N10）：显式 run-dir 模式不给本次 invocation 必须拒绝。
+
+    r8 写成 `if expect_invocation and ...`：不给期望时退化成"只验非空"，
+    任何历史 invocation 的 done 记录都能拿到合并授权。
+    """
+    write_task(tmp_path, 1)
+    runs = tmp_path / 'runs'
+    d = write_run(runs, '1')
+    monkeypatch.setattr(mod, 'RUNS', runs)
+    with pytest.raises(SystemExit) as ei:
+        mod.find_done_tasks(str(tmp_path), with_blocked=True,
+                            run_dirs={'1': str(d)})
+    assert 'invocation' in str(ei.value)
+
+
+def test_run_dirs_rejects_foreign_invocation(mod, monkeypatch, tmp_path):
+    """r9：记录 invocation 不等于本次 → stale，不授权合并。"""
+    write_task(tmp_path, 1)
+    runs = tmp_path / 'runs'
+    d = write_run(runs, '1', invocation='inv-other')
+    monkeypatch.setattr(mod, 'RUNS', runs)
+    with pytest.raises(SystemExit) as ei:
+        mod.merge(str(tmp_path), tasks=['1'], target='main',
+                  expect_invocation='inv-test', run_dirs={'1': str(d)})
+    assert 'invocation' in str(ei.value)
+
+
+def test_merge_rejects_record_without_strict_dry_run(mod, monkeypatch, tmp_path):
+    """r9（N10）：dry_run 缺字段 / None / 0 都不等于 False，必须判 stale。"""
+    write_task(tmp_path, 1)
+    runs = tmp_path / 'runs'
+    d = write_run(runs, '1', extra={'dry_run': None})
+    monkeypatch.setattr(mod, 'RUNS', runs)
+    with pytest.raises(SystemExit) as ei:
+        mod.merge(str(tmp_path), tasks=['1'], target='main',
+                  expect_invocation='inv-test', run_dirs={'1': str(d)})
+    assert 'dry_run' in str(ei.value)
+
+
+def test_merge_lock_is_exclusive(mod, monkeypatch, tmp_path):
+    """r9（N8 / N12）：同一 target 的第二把锁必须 fail-closed。
+
+    "锁不住就跑"会让两个 gorch 同时在取证窗口里推进同一个 target；这里直接验
+    占用即 SystemExit，不是只测路径算得对不对。
+    """
+    monkeypatch.setattr(mod, 'RUNS', tmp_path / 'runs')
+    first = mod._MergeLock('main')
+    first.__enter__()
+    try:
+        with pytest.raises(SystemExit):
+            mod._MergeLock('main').__enter__()
+    finally:
+        first.__exit__()
+
+
+def test_merge_rejects_when_only_stale_proof_candidates(mod, monkeypatch, tmp_path):
+    """r9（N9）：pre_anc 为真、源 tip 未动、tree 不同、wt 无动作 → 三档全不成立。
+
+    r8 的 ff 档在 pre_anc=True 时只要求 src_moved（本用例不成立）；tree 档要求
+    target tree == 旧 source tree（本用例刻意给不同 tree）；wt_receipt 要求回执
+    里有 committed/squashed/rebased（本用例回执里没有）。三者都不成立时不能记合并。
+    """
+    write_task(tmp_path, 1)
+    runs = tmp_path / 'runs'
+    d = write_run(runs, '1')
+    monkeypatch.setattr(mod, 'RUNS', runs)
+    state = {'main': 'm0', 'gorch/1': 's0'}
+    monkeypatch.setattr(mod, '_ref_sha', lambda ref: state.get(ref, ''))
+    trees = iter(['tree-src', 'tree-top'])
+
+    def fake_git(args, **kwargs):
+        if list(args)[:1] == ['rev-parse']:
+            return (0, next(trees, 'tree-third'))
+        if list(args)[:1] == ['merge-base']:
+            return (0, '')          # 调用前源已是祖先
+        return (0, '')
+
+    monkeypatch.setattr(mod, '_git_out', fake_git)
+
+    def fake_merge(*a, **k):
+        state['main'] = 'm1'        # 只有 target 前进，源 tip 不动
+        return _FakeResult(0, json.dumps({'branch': 'gorch/1', 'target': 'main'}))
+
+    monkeypatch.setattr(mod, 'wt_merge', fake_merge)
+    done, merged, failed, stale = mod.merge(str(tmp_path), tasks=['1'], target='main',
+                                            expect_invocation='inv-test',
+                                            run_dirs={'1': str(d)})
+    assert merged == []
+    assert '未证明本次合入' in failed[0]['stderr']
+
+
+def test_merge_cli_requires_invocation(mod, tmp_path):
+    """r9（N10）：独立 merge 不给 --invocation 直接拒（argparse 必填）。
+
+    argparse 的 required 是在 parse 阶段就 SystemExit(2)，不经过 main 的返回路径，
+    所以这里断言退出码，而不是 `rc == 2`。
+    """
+    write_task(tmp_path, 1)
+    with pytest.raises(SystemExit) as ei:
+        mod.main(['merge', str(tmp_path), '--target', 'main'])
+    assert ei.value.code == 2

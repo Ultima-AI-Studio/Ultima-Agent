@@ -169,12 +169,21 @@ def _digest(workdir, rel):
     fail-closed。
     """
     p = pathlib.Path(workdir) / rel
+    # r9（第八轮审计 N2 复发）：只有"确实不存在"才算 ABSENT。stat 的其它 OSError
+    # （权限、I/O、路径组件不可达）说明**读不到**，不是**没改**——两者都记成 ABSENT
+    # 时，脏基线里同一路径两次 stat 失败会得到相同摘要，被 fresh_changes 判成"没变"，
+    # 域外不可读改动就被漏检。读不到一律 None，由 worktree_fingerprint 整体标 ERR。
     try:
         p.stat()
+    except FileNotFoundError:
+        return 'ABSENT'
     except OSError:
-        return 'ABSENT'
-    if not p.is_file():
-        return 'ABSENT'
+        return None
+    try:
+        if not p.is_file():
+            return 'ABSENT'
+    except OSError:
+        return None
     h = hashlib.sha256()
     try:
         with open(str(p), 'rb') as fh:
@@ -248,9 +257,6 @@ def fresh_changes(base_fp, after_fp, after_detail=None):
     return fresh, '基线脏：逐路径内容指纹差分（ignored 一并纳入）'
 
 
-_STATE_PREFIX = re.compile(r'^[ MADRCUT?!]{2} ')
-
-
 def _norm_path(text):
     """统一路径写法：反斜杠转正斜杠，只剥真正的 `./` 前缀，**不改动首尾空格**。
 
@@ -269,33 +275,23 @@ def _norm_path(text):
 
 
 def _fresh_paths(fresh):
-    """从 fresh 证据集里抽出真实路径（用于写域校验）。
+    """从 fresh 证据集里抽出真实路径（用于写域校验）：**只接受纯路径**。
 
-    新实现里 fresh 已是纯路径；同时兼容三种旧展示形态（`?? path` / `<XY> path` /
-    `~ 汇总行`）。rename 的**源与目标两端都保留**：把域外文件移进域内时，域外删除
-    同样要参与授权判断（第七轮审计 #3）。
+    r9（第八轮审计 N11）：r8 保留了「按字符串开头猜展示格式」的兼容——`SRC ` 前缀
+    剥 4 字符、`<XY> ` 状态前缀剥 3 字符。但合法文件名本身就可以以 `SRC ` 或 ` M `
+    开头，那不是展示行，是真实路径：`SRC docs/in-scope.md` 被改写成
+    `docs/in-scope.md` 后，一个域外文件就骗过了写域校验（新的 fail-open）。
+
+    rename / copy 的两端已由 `_status_rows` 结构化产出（目标进 rows、源进
+    `('SRC', src)`），并直接进入 `worktree_fingerprint.paths`，因此写域校验侧不需要
+    任何形态推断。这里遇到不像纯路径的串，只会原样交给 `_repo_relative_safe` 判非法
+    （fail-closed），不会再把字符剥掉。
     """
     out = []
     for raw in fresh or ():
         text = str(raw)
-        if not text or text.startswith('~ '):
+        if not text:
             continue
-        if text.startswith('SRC '):
-            # rename/copy 的源路径项（_status_rows 标的结构化行）
-            src = text[4:]
-            if src:
-                out.append(_norm_path(src))
-            continue
-        if _STATE_PREFIX.match(text):
-            # 旧展示行 `<XY> path`：只有这种形态才允许剥状态码、拆 rename 箭头
-            line = text[3:]
-            if ' -> ' in line:
-                left, right = line.rsplit(' -> ', 1)
-                out.extend([_norm_path(left), _norm_path(right)])
-            elif line:
-                out.append(_norm_path(line))
-            continue
-        # 纯路径：原样保留（含首尾空格、含文件名里的 ' -> '）
         out.append(_norm_path(text))
     return [p for p in out if p]
 
