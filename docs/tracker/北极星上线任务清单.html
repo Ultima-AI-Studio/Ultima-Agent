@@ -4,11 +4,223 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>UltimaAgent 北极星主线看板</title>
-<style> .ultima-tracker{font-family:Microsoft YaHei,SimHei,sans-serif;font-size:14px;color:#e5e7eb;background:#111827;padding:16px;border-radius:10px;line-height:1.6;} .ultima-tracker h3{margin:6px 0 8px 0;color:#f9fafb;font-size:16px;} .level1{margin:12px 0 16px 0;border-left:3px solid #3b82f6;padding-left:12px;} .level2{margin:8px 0 10px 0;border-left:2px solid #60a5fa;padding-left:10px;} .level3{margin:4px 0 6px 0;padding-left:8px;color:#d1d5db;} .done{color:#34d399;font-weight:500;} .wait{color:#fbbf24;} .pending{color:#9ca3af;} .progress-bar-wrap{display:inline-block;width:120px;height:8px;background:#1f2937;border-radius:4px;margin:0 8px;vertical-align:middle;overflow:hidden;} .progress-bar{height:100%;background:#3b82f6;transition:width 0.3s;} .tag-done{display:inline-block;background:#065f46;color:#a7f3d0;padding:1px 6px;border-radius:4px;font-size:12px;margin-left:6px;} .tag-running{display:inline-block;background:#78350f;color:#fcd34d;padding:1px 6px;border-radius:4px;font-size:12px;margin-left:6px;} .tag-pending{display:inline-block;background:#374151;color:#9ca3af;padding:1px 6px;border-radius:4px;font-size:12px;margin-left:6px;}  /* ========== 主线工作流样式 ========== */ .flow-track{margin-bottom:24px;} .flow-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;} .flow-node{padding:10px 12px;border-radius:8px;min-width:160px;text-align:center;box-sizing:border-box;transition:all 0.3s;} .flow-arrow{color:#60a5fa;font-size:20px;user-select:none;} .flow-done{background:#064e3b;border:1px solid #059669;color:#a7f3d0;} .flow-active{background:#1e3a8a;border:1px solid #3b82f6;color:#bfdbfe;box-shadow:0 0 10px #2563eb66;} .flow-next{background:#451a03;border:1px solid #d97706;color:#fcd34d;} .flow-wait{background:#1f2937;border:1px solid #4b5563;color:#9ca3af;} .flow-node-title{font-weight:bold;font-size:14px;display:block;margin-bottom:4px;} .flow-node-desc{font-size:12px;opacity:0.8;} .flow-info-box{margin-top:10px;padding:10px;background:#1f2937;border-radius:6px;font-size:13px;color:#d1d5db;} </style>
+<style> .ultima-tracker{font-family:Microsoft YaHei,SimHei,sans-serif;font-size:14px;color:#e5e7eb;background:#111827;padding:16px;border-radius:10px;line-height:1.6;} .ultima-tracker h3{margin:6px 0 8px 0;color:#f9fafb;font-size:16px;} .level1{margin:12px 0 16px 0;border-left:3px solid #3b82f6;padding-left:12px;} .level2{margin:8px 0 10px 0;border-left:2px solid #60a5fa;padding-left:10px;} .level3{margin:4px 0 6px 0;padding-left:8px;color:#d1d5db;} .done{color:#34d399;font-weight:500;} .wait{color:#fbbf24;} .pending{color:#9ca3af;} .progress-bar-wrap{display:inline-block;width:120px;height:8px;background:#1f2937;border-radius:4px;margin:0 8px;vertical-align:middle;overflow:hidden;} .progress-bar{height:100%;background:#3b82f6;transition:width 0.3s;} .tag-done{display:inline-block;background:#065f46;color:#a7f3d0;padding:1px 6px;border-radius:4px;font-size:12px;margin-left:6px;} .tag-running{display:inline-block;background:#78350f;color:#fcd34d;padding:1px 6px;border-radius:4px;font-size:12px;margin-left:6px;} .tag-pending{display:inline-block;background:#374151;color:#9ca3af;padding:1px 6px;border-radius:4px;font-size:12px;margin-left:6px;}  /* ========== 主线工作流样式 ========== */ .flow-track{margin-bottom:24px;} .flow-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;} .flow-node{padding:10px 12px;border-radius:8px;min-width:160px;text-align:center;box-sizing:border-box;transition:all 0.3s;} .flow-arrow{color:#60a5fa;font-size:20px;user-select:none;} .flow-done{background:#064e3b;border:1px solid #059669;color:#a7f3d0;} .flow-active{background:#1e3a8a;border:1px solid #3b82f6;color:#bfdbfe;box-shadow:0 0 10px #2563eb66;} .flow-next{background:#451a03;border:1px solid #d97706;color:#fcd34d;} .flow-wait{background:#1f2937;border:1px solid #4b5563;color:#9ca3af;} .flow-node-title{font-weight:bold;font-size:14px;display:block;margin-bottom:4px;} .flow-node-desc{font-size:12px;opacity:0.8;} .flow-info-box{margin-top:10px;padding:10px;background:#1f2937;border-radius:6px;font-size:13px;color:#d1d5db;} .live-block{margin:14px 0 18px 0;border-left:3px solid #f59e0b;padding-left:12px;} .live-block h3{margin:6px 0 8px 0;color:#fcd34d;font-size:16px;}.wo-tag{display:inline-block;padding:0 5px;border-radius:3px;font-size:11px;margin-right:6px;font-family:Consolas,'Courier New',monospace;vertical-align:baseline;letter-spacing:0;}.wo-tag.num{background:#1e3a8a;color:#bfdbfe;}.wo-tag.live{background:#78350f;color:#fcd34d;border:1px solid #b45309;}.wo-tag.none{background:#374151;color:#9ca3af;}.wo-tag.todo{background:#27272a;color:#a1a1aa;font-style:italic;}.blocker{margin:4px 0 10px 0;padding:5px 9px;background:#1f1a1a;border-left:2px solid #ef4444;border-radius:3px;font-size:12px;color:#fca5a5;line-height:1.7;}.blocker b{color:#fecaca;}.blocker.ok{border-left-color:#f59e0b;color:#fcd34d;background:#211c12;}.blocker.ok b{color:#fde68a;}.blocker.gray{border-left-color:#4b5563;color:#9ca3af;background:#181c22;}.blocker.gray b{color:#cbd5e1;}</style>
 </head>
 <body>
-<div class="ultima-tracker"> <h3>📌 UltimaAgent 北极星主线看板（贾维斯目标）</h3>  <!-- ========== 贯穿式主线工作流（JS自动联动） ========== --> <div class="flow-track" id="mainFlowTrack">   <h3 style="margin:6px 0 10px 0;color:#f9fafb;font-size:16px;">🔗 主线贯穿工作流（依赖顺序）</h3>   <div class="flow-row" id="flowRow">     <div class="flow-node" data-module-index="0">       <span class="flow-node-title">模块1｜底座基础设施</span>       <span class="flow-node-desc"></span>     </div>     <span class="flow-arrow">→</span>     <div class="flow-node" data-module-index="1">       <span class="flow-node-title">模块2｜G-TASKFLOW 工单契约</span>       <span class="flow-node-desc"></span>     </div>     <span class="flow-arrow">→</span>     <div class="flow-node" data-module-index="2">       <span class="flow-node-title">模块3｜单Agent主干加固</span>       <span class="flow-node-desc"></span>     </div>     <span class="flow-arrow">→</span>     <div class="flow-node" data-module-index="3">       <span class="flow-node-title">模块4｜多Agent编排层</span>       <span class="flow-node-desc"></span>     </div>     <span class="flow-arrow">→</span>     <div class="flow-node" data-module-index="4">       <span class="flow-node-title">模块5｜扩展能力层</span>       <span class="flow-node-desc"></span>     </div>   </div>   <div class="flow-info-box" id="flowInfoBox">     <b>📋 当前焦点任务：</b> <span id="focusTaskText">-</span>     <br>     <b>➡️ 验收完成后自动流转到：</b> <span id="nextTaskText">-</span>   </div> </div>  <script> // 主线模块顺序，和页面从上到下一一对应 const moduleMeta = [   {name:"模块1｜底座基础设施", focus:"底盘全部底座能力、环境、版本、工单底座"},   {name:"模块2｜G-TASKFLOW 工单契约", focus:"工单Schema、流转契约基线定稿"},   {name:"模块3｜单Agent主干加固", focus:"标准化审计提示词、统一审计报告格式、补齐闭环测试用例"},   {name:"模块4｜多Agent编排层 G-PLAN-MA-001", focus:"Orchestrator、消息总线、熔断守卫、回调钩子、单元测试"},   {name:"模块5｜扩展能力层", focus:"工具插件、HUD、AR对接、远期调研"} ];  function calcModuleProgress(level1Dom){   const level2List = level1Dom.querySelectorAll('.level2');   let totalThird = 0;   let doneThird = 0;   level2List.forEach(l2=>{     const level3List = l2.querySelectorAll('.level3');     level3List.forEach(l3=>{       totalThird++;       if(l3.textContent.includes('100% ✅')){         doneThird++;       }     })   })   const pct = totalThird === 0 ? 0 : Math.round((doneThird / totalThird)*100);   return {pct, totalThird, doneThird}; }  function updateTags(){   document.querySelectorAll('.level1').forEach(l1=>{     const r = calcModuleProgress(l1);     const t = l1.querySelector('h3 .tag-done, h3 .tag-running, h3 .tag-pending');     if(!t) return;     t.className = r.pct >= 100 ? 'tag-done' : (r.pct > 0 ? 'tag-running' : 'tag-pending');     t.textContent = r.pct >= 100 ? '100% ✅' : (r.pct > 0 ? r.pct + '% 进行中' : '0% 待启动');   });   document.querySelectorAll('.level2').forEach(l2=>{     const l3s = l2.querySelectorAll('.level3');     if(l3s.length === 0) return;     let d = 0;     l3s.forEach(x=>{ if(x.textContent.includes('100% ✅')) d++; });     const pct = Math.round(d / l3s.length * 100);     const t = l2.querySelector('.tag-done, .tag-running, .tag-pending');     if(!t) return;     t.className = pct >= 100 ? 'tag-done' : (pct > 0 ? 'tag-running' : 'tag-pending');     t.textContent = pct >= 100 ? '100% ✅' : (pct > 0 ? pct + '% 进行中' : '0% 待启动');   }); }  function updateFlow(){   const level1All = document.querySelectorAll('.level1');   const moduleProgressList = [];   level1All.forEach(l1=>{     moduleProgressList.push(calcModuleProgress(l1));   })    // 找到第一个未完成的模块，作为active   let activeIndex = -1;   for(let i=0;i<moduleProgressList.length;i++){     if(moduleProgressList[i].pct < 100){       activeIndex = i;       break;     }   }    // 渲染每个节点样式   const nodes = document.querySelectorAll('.flow-node');   nodes.forEach((node,idx)=>{     const pct = moduleProgressList[idx].pct;     node.classList.remove('flow-done','flow-active','flow-next','flow-wait');     const descSpan = node.querySelector('.flow-node-desc');     if(pct >= 100){       node.classList.add('flow-done');       descSpan.textContent = '✅ 已冻结，100%';     }else if(idx === activeIndex){       node.classList.add('flow-active');       descSpan.textContent = '🔥 当前进行中';     }else if(idx === activeIndex + 1){       node.classList.add('flow-next');       descSpan.textContent = '⏭️ 下一个任务';     }else{       node.classList.add('flow-wait');       descSpan.textContent = '📅 远期排队';     }   })    // 更新焦点文字   const focusEl = document.getElementById('focusTaskText');   const nextEl = document.getElementById('nextTaskText');   if(activeIndex === -1){     focusEl.textContent = '🎉 全部主线模块验收完成';     nextEl.textContent = '无后续主线任务';   }else{     focusEl.textContent = moduleMeta[activeIndex].focus;     if(activeIndex + 1 < moduleMeta.length){       nextEl.textContent = moduleMeta[activeIndex+1].name;     }else{       nextEl.textContent = '主线全部结束';     }   } }  // 页面加载自动执行 window.addEventListener('load',()=>{   updateTags(); updateFlow(); }); </script>  <!-- ========== 5大模块看板 ========== --> <!-- 模块1：底座基础设施 --> <div class="level1">   <h3>模块1｜底座基础设施 <span class="tag-done">100% ✅</span></h3>   <div class="level2">     ▶ 运行环境与解释器 <span class="tag-done">100% ✅</span>     <div class="level3">• 专用 venv-openjarvis Python3.13.16 环境：100% ✅</div>   </div>   <div class="level2">     ▶ 版本与归档体系 <span class="tag-done">100% ✅</span>     <div class="level3">• Git自动打Tag、冻结门机制：100% ✅</div>     <div class="level3">• lessons-log 复盘日志规范：100% ✅</div>   </div>   <div class="level2">     ▶ 工单与追踪底座 <span class="tag-done">100% ✅</span>     <div class="level3">• UltimaManager 全局工单登记接口：100% ✅</div>     <div class="level3">• 文档目录规范（docs/specs/references/reports）：100% ✅</div>   </div>   <div class="level2">     ▶ 语音基线文档 <span class="tag-done">100% ✅</span>     <div class="level3">• KWS唤醒参数基线文档 kws-wakeup-params-baseline.md：100% ✅</div>   </div> </div>  <!-- 模块2：G-TASKFLOW 工单规范基线 --> <div class="level1">   <h3>模块2｜G-TASKFLOW-001 工单契约规范 <span class="tag-done">100% ✅</span></h3>   <div class="level2">     ▶ 工单基线文档 <span class="tag-done">100% ✅</span>     <div class="level3">• 根工单、子工单Schema、验收/冻结规则定稿：100% ✅</div>   </div>   <div class="level2">     ▶ 基础流转流程定义 <span class="tag-done">100% ✅</span>     <div class="level3">• 需求→拆解→执行→审计→归档 标准流程：100% ✅</div>   </div> </div>  <!-- 模块3：现有单Agent主干（存量主程序） --> <div class="level1">   <h3>模块3｜单Agent主干（存量） <span class="tag-running">83% 进行中</span></h3>   <div class="level2">     ▶ 主Agent核心能力 <span class="tag-done">100% ✅</span>     <div class="level3">• 基础任务拆解、工具调用、调用Codex：100% ✅</div>     <div class="level3">• 本地主脑 8B 残留引用清理（工单0013，tag ultimaagent-mainbrain-qwen3-8b-cleanup-20261101）：100% ✅</div>
-     <div class="level3">• E02 写入资格与证据范围提案独立评审（工单0028，只读零配额）：已评审，结论「需补充澄清后再修」——两文件边界漏 work_research.py 的重放侧写入资格判定、新增 S4 页后 messages+schema 最小 33,837B 超 32,768 硬门、通用覆盖契约缺可计算定义、提案 revision 43da3f0 与当前分支不一致；未授权代码修改，待 6 项澄清答复（2026-11-08）</div>
-     <div class="level3">• 接口快路径（配置表直达 + 每日巡检）：13 个意图全部有可用首选（66–122ms），端到端 6/6 意图命中、3/3 取数成功（61–161ms）；巡检已写回配置并留备份 interface-routing-20261108-155323.json；定时调度侧仍待重建（2026-11-08）</div>   </div>   <div class="level2">     ▶ 自检审计能力 <span class="tag-done">100% ✅</span>     <div class="level3">• 现有prompt自检：100% ✅</div>     <div class="level3">• 标准化审计提示词：100% ✅</div>     <div class="level3">• 统一审计报告格式：100% ✅</div>     <div class="level3">• 审计阶段门（独立复核机制，工单0027）：T0–T1 已完成，T2 全量门约 35% 处中断待续跑（2026-11-08）</div>   </div>   <div class="level2">     ▶ 单Agent闭环测试用例 <span class="tag-done">100% ✅</span>     <div class="level3">• 全流程闭环测试、失败case归档：100% ✅</div>   </div> </div>  <!-- 模块4：多Agent编排层 G-PLAN-MA-001（新增） --> <div class="level1">   <h3>模块4｜多Agent编排层 G-PLAN-MA-001 <span class="tag-pending">0% 排队</span></h3>   <div class="level2">     ▶ 方案与基线文档 <span class="tag-done">100% ✅</span>     <div class="level3">• 最小开发方案、角色定义、工单通信Schema：100% ✅</div>   </div>   <div class="level2">     ▶ 编排核心调度代码 <span class="tag-pending">0% 待Codex开发</span>     <div class="level3">• Orchestrator 状态机核心：0%</div>     <div class="level3">• Agent实例池、上下文隔离：0%</div>     <div class="level3">• MessageBus本地消息总线、持久化：0%</div>   </div>   <div class="level2">     ▶ 熔断与权限守卫 <span class="tag-pending">0% 待开发</span>     <div class="level3">• Guard超时/重试/并发上限控制：0%</div>     <div class="level3">• 角色权限白名单隔离：0%</div>   </div>   <div class="level2">     ▶ 兼容开关与回调钩子 <span class="tag-pending">0% 待开发</span>     <div class="level3">• enable_multi_agent 切换开关：0%</div>     <div class="level3">• 北极星/工单/lessons-log/git tag回调：0%</div>   </div>   <div class="level2">     ▶ 单元测试与验收 <span class="tag-pending">0% 待开发</span>     <div class="level3">• 正常流转、驳回、超时、并发分支测试：0%</div>   </div> </div>  <!-- 模块5：扩展能力层（收拢所有上层、插件、远期） --> <div class="level1">   <h3>模块5｜扩展能力层 <span class="tag-pending">0% 排队</span></h3>   <div class="level2">     ▶ Executor工具插件生态 <span class="tag-pending">0%</span>     <div class="level3">• Scrapling爬虫工具注册：0%</div>     <div class="level3">• Aholo Lux3D + Blender管线接入：0%</div>     <div class="level3">• CV3语音训练管线接入：0%</div>   </div>   <div class="level2">     ▶ PySide6 桌面HUD / 四角壳 <span class="tag-pending">0%</span>     <div class="level3">• 状态展示、消息推送、四角悬浮壳：0%</div>   </div>   <div class="level2">     ▶ AR眼镜HUD对接层 <span class="tag-pending">0% 远期调研</span>     <div class="level3">• Bird/阿里AR Max 协议调研、消息推送：0%</div>   </div>   <div class="level2">     ▶ 远期探索池 <span class="tag-pending">0% 调研池</span>     <div class="level3">• DAG复杂依赖调度、动态角色（仅调研）：0%</div>     <div class="level3">• Agent自由协商（仅调研，不进MVP）：0%</div>   </div> </div>  <hr style="border-color:#27272a;margin:18px 0;"> <h3>📎 独立产品线（单独追踪，不计入UltimaAgent主线进度）</h3> <div class="level2">• UltimaGA 交易终端（MT5、金融爬虫）</div> <div class="level2">• Ultima骑士（摩托骑行语音Agent APP）</div> <div class="level2">• UltimaWallet 冷热分离钱包SDK</div>  </div>
+<div class="ultima-tracker"> <h3>📌 UltimaAgent 北极星主线看板（贾维斯目标）</h3>
+<div style="margin:8px 0 12px 0;padding:8px 10px;background:#111827;border-left:3px solid #64748b;border-radius:4px;font-size:12px;color:#94a3b8;line-height:1.7;">
+  <b style="color:#cbd5e1;">数据口径：</b>「执行中任务」的进程状态与耗时由采集脚本实时注入（<span id="liveUpdatedAt">待采集</span>，每 5 分钟自动采集，Windows 计划任务 UltimaAgentTrackerLive 无窗后台运行）；<br>
+  <b style="color:#cbd5e1;">模块完成度</b>按任务条目计数得出，属<b>人工校准口径</b>，非工单系统实时数据 —— 工单级权威状态请查全局主表与台账（此项为模块4 T1/T2 要接通的目标）。
+</div>
+<!-- ========== 执行中任务（工单级｜运行时状态由 scripts/tracker-live.py 注入，下方文字为人工分析快照） ========== -->
+<div class="live-block" id="live-exec">
+  <h3>⏱ 执行队列（现在是哪一步 · 下一步是谁 · 堵在哪） <span id="liveCount" class="tag-pending">—</span></h3>
+  <div style="margin:6px 0 10px 0;padding:6px 9px;background:#0f172a;border-left:2px solid #3b82f6;border-radius:3px;font-size:12px;color:#93c5fd;line-height:1.7;">阅读顺序：<b>① 现在在跑</b> → <b>② 下一步按优先级</b> → <b>③ 等谁点头</b> → <b>④ 为什么停</b>；再往下看模块区，每块标题下都有红色「卡点」条，直接说明卡在哪个功能上。</div>
+
+  <div class="level2">▶ ① 现在在跑
+    <div class="level3"><b style="color:#fbbf24;">当前无在跑任务</b>｜上一单 <span class="wo-tag live">wo-ultimaagent-20261108-0031</span> 已于 2026-11-08 完成闭环并冻结 ｜ tag <b>wo-ultimaagent-20261108-0031-frozen-20261108</b></div>
+    <div class="level3"><b style="color:#34d399;">刚完成：G-ORCH S5 多通道并发执行</b>｜commit <b>7e50634d</b>｜真实 2 通道并发跑通、产物隔离、回执不串 ｜ 角色可替换边界成独立契约 <b>docs/specs/execution-slot-contract.md</b> ｜ 下一步 S6 串行 merge</div>
+    <div class="level3">0031 交付：JSON Schema + validator + 派发前 DoR 硬门 + 通用冻结门（dry-run）｜ 24 passed 独立复现 ｜ REVISE 补票已完成（工单补 OSS 排查段、0030 打 T0–T2 冻结 tag）</div>
+    <div class="level3"><b style="color:#fca5a5;">⚠ 仍无自动接力</b>：下一单不会自己起来——必须人工从 ② 队列挑一单派发。这是当前唯一"队列不会自己动"的缺口</div>
+  </div>
+
+  <div class="level2">▶ ② 队列：按这个顺序往下做（人工登记，非系统自动排队）
+    <div class="level3"><span class="wo-tag num">P1</span>0030 T3–T6 ｜ <b>模块4</b> 台账续派：T3 阶段解析 / T4 A2UI 看板 / T5 审批门接线 / T6 对账自愈 ｜ 底座 T0–T2 已验收，<b>可立即派</b> ｜ 待拍板</div>
+    <div class="level3"><span class="wo-tag num">P2</span>0027 续跑 ｜ <b>模块3</b> 审计阶段门 T2（约 35% 处中断）｜ 已定排在 0029 验收之后 ｜ 未派</div>
+    <div class="level3"><span class="wo-tag todo">P3</span>通用冻结门推广到存量 6 张以上工单卡（0031 已冻结，dry-run 已验）｜ 未立项</div>
+    <div class="level3"><span class="wo-tag todo">P4</span>模块5 全部（Scrapling / Lux3D / CV3 / HUD / AR）｜ 均未立项，无工单号</div>
+  </div>
+
+  <div class="level2">▶ ③ 等门：这些不处理就一直堵着
+    <div class="level3"><span class="wo-tag none">验收门</span>completed 待独立验收：0029（8 个既有测试被改，须判是否放宽断言）/ 0028 / 0013 ｜ audit 待 Owner 验收：0007 / 0019 / 0020</div>
+    <div class="level3"><span class="wo-tag none">拍板门</span>INDEX G-DISPATCH-001 措辞（18766 已废）/ 18766 是否恢复 / 0030 合并决策（已打 T0–T2 冻结 tag a4d968af，分支仍未合回主仓）/ E02 P3 方向 / Aholo 封顶授权 / Sentinel 远端 / HUD 资产卡 / KWS 唤醒词去留</div>
+  </div>
+
+  <div class="level2">▶ ④ 阻塞：外部条件没到，不是没在干
+    <div class="level3"><span class="wo-tag todo">blocked 5</span>wo-s1-composite-window（整单 Owner 门）/ wo-s1-engineering-packaging（待净机真机环境）/ wo-s1-remote-update / 0021（E02 配额）/ 0024（已撤回）</div>
+    <div class="level3"><span class="wo-tag todo">pending 1</span>req-agent-cv3-voice-clone：请求草稿待准入，正式工单号未分配</div>
+  </div>
+
+  <div class="level2">▶ ⑤ 口径与数据来源
+    <div class="level3">• ① 的时长/状态由 UltimaAgentTrackerLive 每 5 分钟采集刷新；②③④ 为 2026-11-08 19:58 人工快照，权威源是全局主表 84 行 UltimaAgent 工单</div>
+    <div class="level3">• ② 的顺序是人工登记的优先级，<b>系统不会自动排队</b>；要让它自己续上，需模块4 的 T4 看板 + T5 审批门接线做完</div>
+  </div>
+</div>    <!-- ========== 贯穿式主线工作流（JS自动联动） ========== --> <div class="flow-track" id="mainFlowTrack">   <h3 style="margin:6px 0 10px 0;color:#f9fafb;font-size:16px;">🔗 主线贯穿工作流（依赖顺序）</h3>   <div class="flow-row" id="flowRow">     <div class="flow-node" data-module-index="0">       <span class="flow-node-title">模块1｜底座基础设施</span>       <span class="flow-node-desc"></span>     </div>     <span class="flow-arrow">→</span>     <div class="flow-node" data-module-index="1">       <span class="flow-node-title">模块2｜G-TASKFLOW 工单契约</span>       <span class="flow-node-desc"></span>     </div>     <span class="flow-arrow">→</span>     <div class="flow-node" data-module-index="2">       <span class="flow-node-title">模块3｜单Agent主干加固</span>       <span class="flow-node-desc"></span>     </div>     <span class="flow-arrow">→</span>     <div class="flow-node" data-module-index="3">       <span class="flow-node-title">模块4｜多Agent编排层</span>       <span class="flow-node-desc"></span>     </div>     <span class="flow-arrow">→</span>     <div class="flow-node" data-module-index="4">       <span class="flow-node-title">模块5｜扩展能力层</span>       <span class="flow-node-desc"></span>     </div>   </div>   <div class="flow-info-box" id="flowInfoBox">     <b>📋 当前焦点任务：</b> <span id="focusTaskText">—（等待实时采集；若长期停留此占位，说明 live-data.js 未加载，不是任务在跑）</span>     <br>     <b>➡️ 主表登记的下一个 pending 工单（不是自动接力，人工队列见上方②）：</b> <span id="nextTaskText">—（以全局主表为准；当前排队工单由人工登记，暂无自动流转）</span>   </div> </div>  <script src="live-data.js"></script>
+<script>
+/* 主线模块顺序，与页面从上到下一一对应。
+   注：原版此注释后缺换行，导致 moduleMeta 声明被整条吞进注释、updateFlow 抛 ReferenceError，动态联动从未生效。已修正。 */
+const moduleMeta = [
+  {name:"模块1｜底座基础设施", focus:"底盘全部底座能力、环境、版本、工单底座"},
+  {name:"模块2｜G-TASKFLOW 工单契约", focus:"工单Schema、流转契约基线定稿"},
+  {name:"模块3｜单Agent主干加固", focus:"标准化审计提示词、统一审计报告格式、补齐闭环测试用例"},
+  {name:"模块4｜多Agent编排层 G-PLAN-MA-001", focus:"Orchestrator、消息总线、熔断守卫、回调钩子、单元测试"},
+  {name:"模块5｜扩展能力层", focus:"工具插件、HUD、AR对接、远期调研"}
+];
+
+function calcModuleProgress(l1){
+  const l2s = l1.querySelectorAll('.level2');
+  let total = 0, done = 0;
+  l2s.forEach(l2=>{
+    l2.querySelectorAll('.level3').forEach(l3=>{
+      total++;
+      if(l3.textContent.includes('100% ✅')) done++;
+    });
+  });
+  return {pct: total === 0 ? 0 : Math.round(done/total*100), totalThird: total, doneThird: done};
+}
+
+function updateTags(){
+  document.querySelectorAll('.level1').forEach(l1=>{
+    const r = calcModuleProgress(l1);
+    const t = l1.querySelector('h3 .tag-done, h3 .tag-running, h3 .tag-pending');
+    if(!t) return;
+    t.className = r.pct >= 100 ? 'tag-done' : (r.pct > 0 ? 'tag-running' : 'tag-pending');
+    t.textContent = r.pct >= 100 ? '100% ✅' : (r.pct > 0 ? r.pct + '% 进行中' : '0% 待启动');
+  });
+  document.querySelectorAll('.level1 .level2').forEach(l2=>{
+    const l3s = l2.querySelectorAll('.level3');
+    if(l3s.length === 0) return;
+    let d = 0;
+    l3s.forEach(x=>{ if(x.textContent.includes('100% ✅')) d++; });
+    const pct = Math.round(d/l3s.length*100);
+    const t = l2.querySelector('.tag-done, .tag-running, .tag-pending');
+    if(!t) return;
+    t.className = pct >= 100 ? 'tag-done' : (pct > 0 ? 'tag-running' : 'tag-pending');
+    t.textContent = pct >= 100 ? '100% ✅' : (pct > 0 ? pct + '% 进行中' : '0% 待启动');
+  });
+}
+
+function updateFlow(){
+  const list = [];
+  document.querySelectorAll('.level1').forEach(l1=>list.push(calcModuleProgress(l1)));
+  let activeIndex = -1;
+  for(let i=0;i<list.length;i++){ if(list[i].pct < 100){ activeIndex = i; break; } }
+  document.querySelectorAll('.flow-node').forEach((node, idx)=>{
+    const pct = list[idx] ? list[idx].pct : 0;
+    node.classList.remove('flow-done','flow-active','flow-next','flow-wait');
+    const desc = node.querySelector('.flow-node-desc');
+    if(pct >= 100){ node.classList.add('flow-done'); if(desc) desc.textContent = '✅ 已冻结，100%'; }
+    else if(idx === activeIndex){ node.classList.add('flow-active'); if(desc) desc.textContent = '🔥 当前进行中'; }
+    else if(idx === activeIndex + 1){ node.classList.add('flow-next'); if(desc) desc.textContent = '⏭️ 下一个任务'; }
+    else { node.classList.add('flow-wait'); if(desc) desc.textContent = '📅 远期排队'; }
+  });
+  /* 焦点框固定承载工单级实时信息（本区静态文本手工维护），此处不再覆盖为模块级文案 */
+}
+
+function fmtMin(ms){
+  const m = Math.max(1, Math.round(ms/60000));
+  return m < 60 ? m + ' 分钟' : Math.floor(m/60) + ' 小时 ' + (m%60) + ' 分钟';
+}
+function applyLive(){
+  const L = window.ULTIMA_LIVE;
+  if(!L || !L.focus) return;
+  const f = L.focus;
+  const ft = document.getElementById('focusTaskText');
+  if(ft){
+    let el = f.elapsedLabel || '—';
+    if(f.running && L.updatedAtMs){
+      el = fmtMin(Date.now() - L.updatedAtMs + (f.elapsedMs || 0));
+    }
+    ft.textContent = f.order + ' · ' + (f.activity || '') + '（' + f.stateLabel + ' · ' + el + '）';
+  }
+  const nt = document.getElementById('nextTaskText');
+  if(nt && L.next){ nt.textContent = L.next.order + ' · ' + (L.next.activity || '') + '（' + (L.next.stateLabel || '') + '）'; }
+  else if(nt && !L.next){ nt.textContent = '暂无 UltimaAgent 排队工单'; }
+  const up = document.getElementById('liveUpdatedAt');
+  if(up){ up.textContent = '数据采集 ' + (L.updatedLabel || ''); }
+  const cnt = document.getElementById('liveCount');
+  if(cnt){
+    const n = (L.recent || []).filter(r => r.running).length;
+    cnt.className = n > 0 ? 'tag-running' : 'tag-pending';
+    cnt.textContent = n > 0 ? n + ' 单在跑' : '当前无在跑任务';
+  }
+  const ftag = document.getElementById('liveFocusTag');
+  if(ftag){
+    ftag.className = f.running ? 'tag-running' : 'tag-done';
+    ftag.textContent = f.stateLabel + ' · ' + (f.running && L.updatedAtMs ? fmtMin(Date.now() - L.updatedAtMs + (f.elapsedMs || 0)) : (f.elapsedLabel || '—'));
+  }
+  syncFlowToRunning(f);
+}
+
+/* 流程条按「实际在跑工单所属模块」高亮，而不是「第一个未满 100% 的模块」——
+   旧逻辑会把模块1（67%）误标成"当前进行中"，与焦点框的 0031（模块2）自相矛盾。 */
+const ORDER_MODULE = {
+  'wo-ultimaagent-20261108-0031': 1,
+  'wo-ultimaagent-20261108-0030': 3,
+  'wo-ultimaagent-20261108-0029': 2,
+  'wo-ultimaagent-20261108-0028': 2,
+  'wo-ultimaagent-20261108-0027': 2,
+  'wo-ultimaagent-20261101-0013': 2
+};
+function syncFlowToRunning(f){
+  if(!f || !f.order || !f.running) return;
+  const mi = ORDER_MODULE[f.order];
+  if(mi === undefined) return;
+  const l1s = document.querySelectorAll('.level1');
+  document.querySelectorAll('#flowRow .flow-node').forEach(node=>{
+    const idx = parseInt(node.dataset.moduleIndex, 10);
+    const desc = node.querySelector('.flow-node-desc');
+    node.classList.remove('flow-done','flow-active','flow-next','flow-wait');
+    if(idx === mi){
+      node.classList.add('flow-active');
+      if(desc) desc.textContent = '🔥 在跑 ' + String(f.order).slice(-4);
+    } else {
+      const pct = l1s[idx] ? calcModuleProgress(l1s[idx]).pct : 0;
+      if(pct >= 100){ node.classList.add('flow-done'); if(desc) desc.textContent = '✅ 已冻结，100%'; }
+      else { node.classList.add('flow-wait'); if(desc) desc.textContent = '⏸ 未收口 ' + pct + '%'; }
+    }
+  });
+}
+window.addEventListener('load', ()=>{ updateTags(); updateFlow(); applyLive(); });
+setInterval(()=>{ if(window.ULTIMA_LIVE && window.ULTIMA_LIVE.focus && window.ULTIMA_LIVE.focus.running) applyLive(); }, 30000);
+</script>  <!-- ========== 5大模块看板 ========== --> <!-- 模块1：底座基础设施 --> <div class="level1">   <h3>模块1｜底座基础设施 <span class="tag-done">100% ✅</span></h3>
+  <div class="blocker ok"><b>卡点</b>：① 已解决（0031 交付通用冻结门并冻结，tag wo-ultimaagent-20261108-0031-frozen-20261108）② UltimaManager 18766 接口未部署、调用量 0，登记只到文件级</div>   <div class="level2">     ▶ 运行环境与解释器 <span class="tag-done">100% ✅</span>     <div class="level3"><span class="wo-tag none">无工单 · 主脑直建</span>• 专用 venv-openjarvis Python3.13.16 环境：100% ✅</div>   </div>   <div class="level2">     ▶ 版本与归档体系 <span class="tag-done">100% ✅</span>     <div class="level3"><span class="wo-tag num">wo-ultimaagent-20261108-0031</span>• Git tag 体系已立（249 个 tag，命名规范统一）；「自动打 tag」与「通用冻结门」未实现（仅 freeze-approved-v01/v03 版本专用脚本，无通用入口、非自动触发）：部分</div>     <div class="level3"><span class="wo-tag none">无工单 · 主脑直建</span>• lessons-log 复盘日志规范：100% ✅</div>   </div>   <div class="level2">     ▶ 工单与追踪底座 <span class="tag-done">100% ✅</span>     <div class="level3"><span class="wo-tag num">wo-ultimaagent-20261029-0001</span>• 全局工单登记：文件级已通（GlobalQueueRegistrar 直写 global-queue-index.md）；UltimaManager HTTP 18766 接口未部署（端口无监听、调用量 0）：部分</div>     <div class="level3"><span class="wo-tag none">无工单 · 主脑直建</span>• 文档目录规范（docs/specs/references/reports）：100% ✅</div>   </div>   <div class="level2">     ▶ 语音基线文档 <span class="tag-done">100% ✅</span>     <div class="level3"><span class="wo-tag num">wo-ultimaagent-20261031-0009</span>• KWS唤醒参数基线文档 kws-wakeup-params-baseline.md：100% ✅</div>   </div> </div>  <!-- 模块2：G-TASKFLOW 工单规范基线 --> <div class="level1">   <h3>模块2｜G-TASKFLOW-001 工单契约规范 <span class="tag-done">100% ✅</span><span style="font-size:11px;color:#6ee7b7;margin-left:6px;">已冻结 · 0031</span></h3>
+  <div class="blocker ok"><b>卡点</b>：机器可校验契约（schema + validator + DoR 硬门）已冻结（0031 收口）；本模块剩余是工单基线文档的存量推广</div>   <div class="level2">     ▶ 工单基线文档 <span class="tag-done">100% ✅</span>     <div class="level3"><span class="wo-tag num">wo-ultimaagent-20261029-0001</span>• 根工单、子工单Schema、验收/冻结规则定稿（文档级 + queue.py TaskRecord 代码级）：100% ✅</div><div class="level3"><span class="wo-tag num">wo-ultimaagent-20261108-0031</span>• 机器可校验契约 work-order.schema.json + validate_work_order.py + 派发前 DoR 硬门：100% ✅ 已冻结（tag wo-ultimaagent-20261108-0031-frozen-20261108，24 passed 独立复现；REVISE 补票完成）</div>   </div>   <div class="level2">     ▶ 基础流转流程定义 <span class="tag-done">100% ✅</span>     <div class="level3"><span class="wo-tag none">无工单 · G-TASKFLOW-001 规范</span>• 需求→拆解→执行→审计→归档 标准流程：100% ✅</div>   </div> </div>  <!-- 模块3：现有单Agent主干（存量主程序） --> <div class="level1">   <h3>模块3｜单Agent主干（存量） <span class="tag-running">83% 进行中</span></h3>
+  <div class="blocker ok"><b>卡点</b>：审计阶段门 0027 在 T2 约 35% 中断，续跑排在 0029 验收之后；这是本模块唯一未收口项</div>   <div class="level2">     ▶ 主Agent核心能力 <span class="tag-done">100% ✅</span>     <div class="level3"><span class="wo-tag none">无工单 · 主脑直建</span>• 基础任务拆解、工具调用、调用Codex：100% ✅</div>     <div class="level3"><span class="wo-tag num">wo-ultimaagent-20261101-0013</span>• 本地主脑 8B 残留引用清理（工单0013，tag ultimaagent-mainbrain-qwen3-8b-cleanup-20261101）：100% ✅</div>
+     <div class="level3"><span class="wo-tag num">wo-ultimaagent-20261108-0028</span>• E02 写入资格与证据范围提案独立评审（工单0028，只读零配额）：已评审，结论「需补充澄清后再修」——两文件边界漏 work_research.py 的重放侧写入资格判定、新增 S4 页后 messages+schema 最小 33,837B 超 32,768 硬门、通用覆盖契约缺可计算定义、提案 revision 43da3f0 与当前分支不一致；未授权代码修改，待 6 项澄清答复（2026-11-08）</div>
+     <div class="level3"><span class="wo-tag none">无工单 · 主脑直建</span>• 接口快路径（配置表直达 + 每日巡检）：13 个意图全部有可用首选（66–122ms），端到端 6/6 意图命中、3/3 取数成功（61–161ms）；巡检已写回配置并留备份 interface-routing-20261108-155323.json；定时调度侧仍待重建（2026-11-08）</div>   </div>   <div class="level2">     ▶ 自检审计能力 <span class="tag-done">100% ✅</span>     <div class="level3"><span class="wo-tag none">无工单 · 主脑直建</span>• 现有prompt自检：100% ✅</div>     <div class="level3"><span class="wo-tag num">wo-ultimaagent-20261108-0026</span>• 标准化审计提示词：100% ✅</div>     <div class="level3"><span class="wo-tag num">wo-ultimaagent-20261108-0026</span>• 统一审计报告格式：100% ✅</div>     <div class="level3"><span class="wo-tag num">wo-ultimaagent-20261108-0027</span>• 审计阶段门（独立复核机制，工单0027）：T0–T1 已完成，T2 全量门约 35% 处中断待续跑（2026-11-08）</div>   </div>   <div class="level2">     ▶ 单Agent闭环测试用例 <span class="tag-done">100% ✅</span>     <div class="level3"><span class="wo-tag num">wo-ultimaagent-20261108-0026</span>• 全流程闭环测试、失败case归档：100% ✅</div>   </div> </div>  <!-- 模块4：多Agent编排层 G-PLAN-MA-001（新增） --> <div class="level1">
+  <h3>模块4｜多Agent编排层 G-PLAN-MA-001 <span class="tag-running">进行中</span></h3>
+  <div class="blocker ok"><b>卡点</b>：台账只做完 T0–T2 底座，T3–T6（阶段解析 / A2UI 看板 / 审批门 / 对账）<b>尚未派单</b>；Agent 实例池、MessageBus 仍为 0% 待立项</div>
+  <div class="level2">
+    ▶ 方案与基线文档 <span class="tag-done">100% ✅</span>
+    <div class="level3"><span class="wo-tag none">无工单 · 主脑直建</span>• 最小开发方案、角色定义、工单通信Schema：100% ✅</div>
+    <div class="level3"><span class="wo-tag num">wo-ultimaagent-20261108-0030</span>• 模块4 吸收 Manager 能力方案（2026-11-08，契约复用、不搬 3.4 万行后端代码、不启用 WPF）：100% ✅</div>
+  </div>
+  <div class="level2">
+    ▶ 编排核心调度代码 <span class="tag-running">部分完成</span>
+    <div class="level3"><span class="wo-tag none">无工单 · M4 里程碑验收</span>• Orchestrator 状态机核心 LangGraphStateMachine + ApprovalGate + AuditTrail（M4 里程碑 2026-10-25 验收 10/10）：100% ✅</div>
+    <div class="level3"><span class="wo-tag num">wo-ultimaagent-20261029-0001</span>• 全局队列登记器 GlobalQueueRegistrar（queue.py 461 行，写 md 主表）：100% ✅</div>
+    <div class="level3"><span class="wo-tag todo">待立项</span>• Agent实例池、上下文隔离：0%</div>
+    <div class="level3"><span class="wo-tag todo">待立项</span>• MessageBus 本地消息总线、持久化（ultima_bus 仍为空壳）：0%</div>
+    <div class="level3"><span class="wo-tag none">无工单 · 主脑直做</span>• G-ORCH 多通道并发编排（照搬 ccpm + worktrunk，零自研算法）：<b>S1–S5 已提交</b>（gate/provision/execute 真实 2 通道并发跑通，三文件回归 40 passed）；<b>S6 合并编排、S7 全链路未做</b>：约 60%</div>
+  </div>
+  <div class="level2">
+    ▶ 台账与执行看板（吸收 Manager） <span class="tag-pending">0% 待启动</span>
+    <div class="level3">• 方案与工单 0030 已冻结（tag agent-m4-ledger-plan-frozen-20261108 @27433fb1，2026-11-08）：100% ✅</div>
+    <div class="level3">• T0 台账契约冻结（与 Manager store.py 逐字段对齐，实测 13 表、差异 0、核心 5 表；方案原写 7 表、work_orders 15 列 / runs 25 列与冻结方案 14/26 有偏差已记录）：100% ✅（a96330c9）</div>
+    <div class="level3">• T1 轻量 SQLite 台账 store（put/CAS/事务）：100% ✅（16df59b5）</div>
+    <div class="level3">• T2 双写登记台（md 主表 + ledger），登记失败不阻断派发：100% ✅（a4d968af，31 项 Gate 独立复跑通过）</div>
+    <div class="level3"><span class="wo-tag num">wo-ultimaagent-20261108-0030</span>• T3 活动级阶段解析器（补 Manager 到不了的"正在写报告"颗粒度）：待开工</div>
+    <div class="level3"><span class="wo-tag num">wo-ultimaagent-20261108-0030</span>• T4 A2UI 执行看板页（14 字段对齐 ExecutionBoard，在跑三要素判定）：待开工</div>
+    <div class="level3"><span class="wo-tag num">wo-ultimaagent-20261108-0030</span>• T5 审批门接线 ledger（approvals + events）：待开工</div>
+    <div class="level3"><span class="wo-tag num">wo-ultimaagent-20261108-0030</span>• T6 降级与对账自愈（md ↔ ledger 补登）：待开工</div>
+  </div>
+  <div class="level2">
+    ▶ 熔断与权限守卫 <span class="tag-pending">0% 待开发</span>
+    <div class="level3"><span class="wo-tag todo">待立项</span>• Guard超时/重试/并发上限控制：0%</div>
+    <div class="level3"><span class="wo-tag todo">待立项</span>• 角色权限白名单隔离：0%</div>
+  </div>
+  <div class="level2">
+    ▶ 兼容开关与回调钩子 <span class="tag-pending">0% 待开发</span>
+    <div class="level3"><span class="wo-tag todo">待立项</span>• enable_multi_agent 切换开关：0%</div>
+    <div class="level3"><span class="wo-tag todo">待立项</span>• 北极星/工单/lessons-log/git tag回调：0%</div>
+  </div>
+  <div class="level2">
+    ▶ 单元测试与验收 <span class="tag-pending">0% 待开发</span>
+    <div class="level3"><span class="wo-tag todo">待立项</span>• 正常流转、驳回、超时、并发分支测试：0%</div>
+  </div>
+</div>
+<!-- 模块5：扩展能力层（收拢所有上层、插件、远期） --> <div class="level1">   <h3>模块5｜扩展能力层 <span class="tag-pending">0% 排队</span></h3>
+  <div class="blocker gray"><b>卡点</b>：整模块未立项，10 条任务无工单号，属主动排队而非停滞</div>   <div class="level2">     ▶ Executor工具插件生态 <span class="tag-pending">0%</span>     <div class="level3"><span class="wo-tag todo">待立项</span>• Scrapling爬虫工具注册：0%</div>     <div class="level3"><span class="wo-tag todo">待立项</span>• Aholo Lux3D + Blender管线接入：0%</div>     <div class="level3"><span class="wo-tag todo">待立项</span>• CV3语音训练管线接入：0%</div>   </div>   <div class="level2">     ▶ PySide6 桌面HUD / 四角壳 <span class="tag-pending">0%</span>     <div class="level3"><span class="wo-tag todo">待立项</span>• 状态展示、消息推送、四角悬浮壳：0%</div>   </div>   <div class="level2">     ▶ AR眼镜HUD对接层 <span class="tag-pending">0% 远期调研</span>     <div class="level3"><span class="wo-tag todo">待立项</span>• Bird/阿里AR Max 协议调研、消息推送：0%</div>   </div>   <div class="level2">     ▶ 远期探索池 <span class="tag-pending">0% 调研池</span>     <div class="level3"><span class="wo-tag todo">待立项</span>• DAG复杂依赖调度、动态角色（仅调研）：0%</div>     <div class="level3"><span class="wo-tag todo">待立项</span>• Agent自由协商（仅调研，不进MVP）：0%</div>   </div> </div>  <hr style="border-color:#27272a;margin:18px 0;"> <h3>📎 独立产品线（单独追踪，不计入UltimaAgent主线进度）</h3> <div class="level2">• UltimaGA 交易终端（MT5、金融爬虫）</div> <div class="level2">• Ultima骑士（摩托骑行语音Agent APP）</div> <div class="level2">• UltimaWallet 冷热分离钱包SDK</div><div class="level2">• UltimaSentinel 合规线（PDPA 第一期） <span class="tag-done">已冻结 ✅</span><div class="level3">• P 族规则库 v1.0：14 条四层（公域 5/系统 4/流程 4/专项 1），Act 709 + A1727 修正案，security/compliance/all 三模式隔离，tag pdpa-rules-20261108（2026-11-08）</div><div class="level3">• 场景编排层 v0.9.1：资产盘点/合规比对/DPO 工作台/标准报告 四 Agent 顺序链，en/ms/zh-CN 三语报告 + 整改清单，独立复跑 17 例全绿，tag v0.9.1-pdpa（2026-11-08）</div><div class="level3">• 汇总验收 CONSOLE-SUM-20261108-001 通过：交付四类齐全、基线与双 tag 同步；4 条既有核心链路债已登记 lessons（本期范围外）；两 tag 本地未推（仓库无远端）</div></div>  </div>
 </body>
 </html>

@@ -155,7 +155,7 @@ printf 'CONFLICTS:%s\n' "$(active_conflicts <task>.md)"
 | S2 ✅ | 主仓库接入 worktrunk 验证（不建真分支，先 `-C` list 只读） | wt.exe | `wt -C <主仓库> list` 正常返回，不改动任何文件 |
 | S3 ✅ | 薄编排：按 frontmatter 调 ccpm 原函数选可开工项（fail-closed） | 组装 | 12 条 gate 单测，选出的清单与 ccpm 原函数一致（提交 `59cfd538`） |
 | S4 ✅ | 薄编排：为可开工项调 `wt switch` 建隔离位（幂等，`--base @`） | wt.exe | 真实建 2 worktree 基线正确、幂等 existing、blocked 跳过；5 条单测（提交 `4b744d26`） |
-| S5 ✅ | 通道内调 `codex_channel.py` 执行（现有件，execute 子命令 fan-out/join） | 已落地 | 真实 2 通道并发：各自独立 run-dir、产物落各自 worktree、交叉串单检查均 False；7 条 execute 单测（提交见下） |
+| S5 ✅ | 通道内调 `codex_channel.py` 执行（现有件，execute 子命令 fan-out/join） | 已落地 | 真实 2 通道并发：各自独立 run-dir、产物落各自 worktree、交叉串单检查均 False；7 条 execute 单测（提交 `7e50634d`，三文件回归 40 passed） |
 | S6 | 薄编排：验收通过后逐个 `wt merge` + `remove` | wt.exe | 故意造一个冲突 frontmatter，在 S3 阶段被拦，不进执行 |
 | S7 | 全量回归 + 打 tag | — | 现有 117 passed 不回归；无 tag 不报完成 |
 
@@ -163,7 +163,23 @@ printf 'CONFLICTS:%s\n' "$(active_conflicts <task>.md)"
 
 ---
 
+## 6.1 角色可替换的边界（2026-11-09 Owner 指令）
+
+Owner 明确要求：**执行边界不绑定 DeepSeek 与 Codex，不同角色可替换 API 或其他大模型**。该边界已成独立契约，不写在本文件的施工顺序里：
+
+> **`docs/specs/execution-slot-contract.md`** —— 三插槽（主脑位 `S-MAIN` / 审议位 `S-REVIEW` / 执行位 `S-EXEC`）的接口定义、硬边界、回执统一结构、替换方式（配置 vs 改码）、两条路径现状与八跳空档、已知缺口、可机检判定。
+
+与本文件的分工：**本文件管「照搬哪些件、按什么顺序拼」**（施工口径）；**该契约管「拼好之后每一段认什么接口、能换谁」**（运行时口径）。两者不重复。
+
+契约中已如实标注的现状要点：
+
+- **契约上三插槽都可替换；代码上只有 `S-REVIEW` 的 base_url 与 `S-EXEC` 的 exe 路径能纯配置替换**，其余要改代码（`model` 硬编码 4 处、执行位 cmd 是 codex 专属参数）。
+- 当前有**两条互不相连的路径**：A 审议链（`run-gorch.py`→`orchestrate-order.py`→DeepSeek，只到 ④ 排程）与 B 执行链（`batch_orchestrator.py` gate/provision/execute→`codex_channel.py`，S5 已跑通）。**接通二者是 S7 的核心工作**。
+
+---
+
 ## 7. 边界（明确不做）
+
 
 - 不整体引入 golutra（BSL + 完整 Tauri 应用）。
 - 不在薄编排层里写任何冲突/依赖/合并的判断算法。
