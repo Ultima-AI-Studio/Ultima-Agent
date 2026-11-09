@@ -19,7 +19,7 @@
 
   <div class="level2">▶ ① 现在在跑
     <div class="level3"><b style="color:#fbbf24;">当前无在跑任务</b>｜上一单 <span class="wo-tag live">wo-ultimaagent-20261108-0031</span> 已于 2026-11-08 完成闭环并冻结 ｜ tag <b>wo-ultimaagent-20261108-0031-frozen-20261108</b></div>
-    <div class="level3"><b style="color:#34d399;">刚完成：S7 接通两条路，跑通一单八跳</b>｜新增 <b>bridge</b> 交接点（只搬不解析：校验各段 verdict=completed、stages 原样复制到 _handoff、写 manifest），带 frontmatter 的工单由 Owner 确认后放进批次目录 ｜ 真跑一单：审议三段全 completed（DeepSeek 真调）→ gate 可开工 → provision 建 worktree → Codex rc=0 产出 README 4209B 五节齐全 → DeepSeek 独立复检 A1/A2/A3 全 PASS → 合入主线 ｜ 七文件回归 <b>97 passed</b> ｜ 顺带修掉两个真缺陷：工单命令块被误判成工具调用（L73）、wt merge 超时后分支已被删却没合入（L72，靠 cherry-pick 找回）｜ 契约 <b>docs/specs/execution-slot-contract.md</b> v1.2 ｜ 仍空：跳1/跳4 本地 8B（ollama 未装）</div>
+    <div class="level3"><b style="color:#34d399;">刚完成：S7 收口 + G-ORCH 治理体检（结论不 PASS）</b>｜<b>收口两项</b>：① <b>S-MAIN 主脑接到真在跑的本地 8B</b>（<b>127.0.0.1:11434 / qwen3-8b-uncensored:latest</b>，原 18766 是无落地的自定端口），跳 1 真跑 12.4s 通过、本轮独立复跑 15.6s 通过；② <b>MERGE_TIMEOUT=600 经真实合并验证</b>（<b>227.4s rc=0</b>，主线 50af6549→3d0fc8dd，报告 4020B 落地）——227.4s 恰好落在"旧 180s 必超时、新 600s 有余量"之间 ｜ 顺带修掉 <b>wt merge 的 TARGET 缺省是 main</b>（导致施工全铺到 main、工作分支反而落后，新增 <b>L74</b>；并补正 L72：上一单其实合进了 main d1e51eb3，不是没合入）｜ 八文件回归 <b>121 passed / 38.43s</b> ｜ 提交 <b>5cd59ee3</b> + tag <b>gorch-s7-closeout-20261109</b> ｜ 契约 v1.3 ｜ <b>审计报告</b>：<b>docs/reports/g-orch-governance-audit-20261109.md</b>（25 项判定 <b>7 绿 / 11 不一致 / 4 缺</b>，提交 258cc8c1 + tag <b>gorch-audit-20261109</b>）</div>
     <div class="level3">0031 交付：JSON Schema + validator + 派发前 DoR 硬门 + 通用冻结门（dry-run）｜ 24 passed 独立复现 ｜ REVISE 补票已完成（工单补 OSS 排查段、0030 打 T0–T2 冻结 tag）</div>
     <div class="level3"><b style="color:#fca5a5;">⚠ 仍无自动接力</b>：下一单不会自己起来——必须人工从 ② 队列挑一单派发。这是当前唯一"队列不会自己动"的缺口</div>
   </div>
@@ -192,7 +192,7 @@ setInterval(()=>{ if(window.ULTIMA_LIVE && window.ULTIMA_LIVE.focus && window.UL
     <div class="level3"><span class="wo-tag num">wo-ultimaagent-20261029-0001</span>• 全局队列登记器 GlobalQueueRegistrar（queue.py 461 行，写 md 主表）：100% ✅</div>
     <div class="level3"><span class="wo-tag todo">待立项</span>• Agent实例池、上下文隔离：0%</div>
     <div class="level3"><span class="wo-tag todo">待立项</span>• MessageBus 本地消息总线、持久化（ultima_bus 仍为空壳）：0%</div>
-    <div class="level3"><span class="wo-tag none">无工单 · 主脑直做</span>• G-ORCH 多通道并发编排（照搬 ccpm + worktrunk，零自研算法）：<b>S1–S7 + 插槽适配层已提交</b>（gate/provision/execute 真实 2 通道并发跑通；merge/cleanup 含真实冲突硬验收；三插槽换 API/CLI/模型零改码；S7 bridge 接通 A→B 并用真 DeepSeek + 真 Codex 跑通一单八跳，独立复检全 PASS）；<b>仍缺：跳1/跳4 本地 8B 未接线</b>：约 90%</div>
+    <div class="level3"><span class="wo-tag none">无工单 · 主脑直做</span>• G-ORCH 多通道并发编排（照搬 ccpm + worktrunk，零自研算法）：<b>S1–S7 + 插槽适配层已提交</b>（gate/provision/execute 真实 2 通道并发跑通；merge/cleanup 含真实冲突硬验收；三插槽换 API/CLI/模型零改码；S7 bridge 接通 A→B 并用真 DeepSeek + 真 Codex 跑通一单八跳，独立复检全 PASS）｜ <b>2026-11-09 收口</b>：跳 1 主脑已接本地 8B 真跑通过 ｜ <b>审计后仍缺（4 项 P0）</b>：①<b>判据基线未冻结</b>（其自述"必须修完"的 L1-02/03/04 实测全未达标：四类畸形行 4/4 静默通过、python3 仍被接受、skip 政策仍只有合成 XML）②<b>文档清单脱节</b>（22 个 G-ORCH 文件 20 个未登记）③<b>无 ADR</b>（5 个重大选型无决策记录）④<b>无正式工单</b>（tasks/ 0 张）｜ 另：<b>跳 4 未串跑</b>、<b>并发 3 通道实测 2/3 且非同轮</b>（JOB-3 无产物）、<b>config/gorch 教学文档仍教 18766 + qwen3:8b</b>：约 90%</div>
   </div>
   <div class="level2">
     ▶ 台账与执行看板（吸收 Manager） <span class="tag-pending">0% 待启动</span>
