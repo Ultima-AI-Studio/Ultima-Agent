@@ -610,3 +610,12 @@
 - **处置**：`scripts/gorch/batch_orchestrator.py` 新增 `_current_branch()`（`git rev-parse --abbrev-ref HEAD`）；`merge()` 加 `target` 参数，默认取当前检出分支，detached HEAD 时 `SystemExit` 明确要求显式传；CLI `merge` 加 `--target` 并在 JSON 输出 `target`。新增 5 条测试（当前分支读取、默认显式传 target、显式覆盖、detached 拒绝、`TARGET` 必须排在 `--branch` 之前）。修好后真实合并：**227.4s、rc=0、rebased:true、removed:true、主线 `50af6549→3d0fc8dd`、报告 4020B 落地**。
 - **教训（通用）**：① **位置参数的含义必须按 `--help` 核实，不能按"直觉顺序"填**——`wt merge [TARGET] --branch <源>` 与直觉的 `<源> [TARGET]` 正好相反，写反了不报错、只合错地方；② 任何"合回主线"的自动化都必须显式写目标分支，交给工具的 default 缺省等于把决定权交给了仓库配置；③ 同一个仓库里存在默认分支与工作分支两条链时，先想清楚"施工落在哪条链、发布走哪条链"，否则会长期双写；④ 出现 add/add 冲突先怀疑"两边各自新增了同名文件"，而不是"内容改坏了"。
 - **复发**：0
+
+## L75 · "零自研"的口径只写了件级、漏了层级：约 170KB 自建校验层从未进入照搬映射表（2026-11-09）
+
+- **现象**：`docs/plans/gorch-assembly-mapping-20261109.md` §2.2 与结论段写"全部照搬，零自研算法""唯一新增的代码是薄编排层"。治理体检逐项核对后，自建部分远不止"薄编排"——判定交付物能否冻结的整个解析/校验层都是自写，而它从未出现在映射表里。
+- **根因**：映射表按**件**登记（wt / ccpm / codex），没有按**层**登记（解析层 / 校验层 / 编排层 / 适配层）。自建的解析器与校验器因为没有第三方来源，天然不在"照搬映射表"的视野里——于是既没被当成"自研需附开源替代排查"的对象（与"任何自写模块开工前必须附开源替代排查结论"的口径冲突），也没被当成"控制主体需机检兜底"的对象。
+- **实测差异**：ccpm 原版 16 个脚本，只接了 `lib.sh` 的 `unmet_deps` / `active_conflicts` 两个函数；`validate.sh`（原版校验器）未接；`next.sh`（决定下一单）未接——所以"下一单不会自己起来"这个缺口，是原版本来有、我们没搬。任务发现机制也从原版 `.claude/epics/<数字>.md` 换成批次目录 `<id>.md`，状态词因此三套并存（ccpm `closed/completed/done`、`codex-channel.json` `done/blocked`、`kanban_update.py` `completed/in-progress/not-started`）。
+- **自建清单（本次实测，随审计工单 02 一并登记）**：`scripts/gorch_contract.py` 5.2KB（解析器，L1-04 缺陷位）、`scripts/verify-order.py` 46.4KB（校验器，L1-02 缺陷位）、`scripts/audit-work-order.py` 17.7KB、`scripts/freeze-work-order.py` 28.1KB、`scripts/gorch/kanban_update.py` 42.0KB、`scripts/gorch/batch_orchestrator.py` 30.8KB（编排壳）、`scripts/gorch/codex_channel.py` 10.3KB、`src/brain/slot_adapter.py`（三插槽适配）——合计 170KB+，全部 Ultima 自建。
+- **教训（通用）**：① 判断"是否自研"要看**层的来源**，不能看"被调用的件有没有上游"——件是开源的，调用它的壳、喂它数据的解析器、判它结果的校验器都可以是自研；② 自建清单必须与照搬清单**并列登记在同一张表**，否则自建层在评审视野里是隐身的，出问题前没人问、出问题后找不到责任人；③ 控制主体（判定交付物能不能冻结的那一层）即使是"薄"的也要有机检兜底，因为它的失效等于门失效；④ "零自研算法"字面成立不等于风险成立——没有算法，不等于没有判断。
+- **复发**：0

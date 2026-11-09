@@ -69,7 +69,27 @@
 | 写域冲突检测 | **不用自研** | ccpm 用 frontmatter `conflicts_with` 声明 + `active_conflicts` 在开工前拦截，不靠运行时算路径交集 |
 | 批次表生成 | **不是代码** | 是 DeepSeek 拆解的 LLM 产出；结构直接套用 ccpm 的 frontmatter 字段，不另造 JSON 批次表 |
 
-**结论：零自研算法。** 唯一新增的代码是薄编排层（按顺序调用 `wt.exe` 与 ccpm 脚本、传递参数、记录结果），它自己不做任何"能不能做/是否冲突"的判断——这些判断全部发生在被调用的成熟件内部。
+**结论（2026-11-09 治理体检后修正）："零自研算法"只在「判定算法」这一层成立，不能推广成「整个流程是搬来的」。** 被调用的件（`wt` / ccpm `lib.sh` / Codex）确实是照搬的；但**喂这些件数据的解析层、判这些件结果的校验层、串起六步的编排壳、换供应商的适配层，全部是自建**，合计约 170KB，且从未进入本表——因为本表按「件」登记，没有按「层」登记。
+
+§2.2 的"全部照搬"应读作"**被调用的件是照搬的**"，不是"这一层流程是照搬的"。自建层清单见 §4A，其缺陷位（L1-02 / L1-04）见 `docs/reports/g-orch-governance-audit-20261109.md`。
+
+---
+
+## 4A. 未登记的自建层（2026-11-09 补记，逐项实测）
+
+| 自建层 | 文件 | 大小 | 职责 | 原版对应 / 为何没搬 |
+|---|---|---|---|---|
+| 解析层 | `scripts/gorch_contract.py` | 5.2KB | 从工单 md 解析卡集合与 ACC 行（**L1-04 缺陷位**） | ccpm 无 Python 解析器；原版 `validate.sh` 只校验 frontmatter 完整性，撑不住本仓工单 schema |
+| 校验层 | `scripts/verify-order.py` | 46.4KB | 判定交付物能否冻结：树身份哈希、解释器唯一性、回执合法、skip 政策（**L1-02 缺陷位**） | ccpm 是 bash 项目无这些概念；原版无"冻结门" |
+| 校验层 | `scripts/audit-work-order.py` / `scripts/freeze-work-order.py` | 17.7 / 28.1KB | 派发前 DoR 硬门、通用冻结门 | 同上 |
+| 编排壳 | `scripts/gorch/batch_orchestrator.py` | 30.8KB | 六子命令串接 `gate→provision→execute→merge→cleanup`（+`bridge`） | 原版 `next.sh`（1.6KB）只决定"下一单"，不含 worktree 生命周期；**未搬** |
+| 执行端 | `scripts/gorch/codex_channel.py` | 10.3KB | 起 Codex 子进程、收结构化回执 | 原版无 Codex 通道 |
+| 看板 | `scripts/gorch/kanban_update.py` | 42.0KB | 生成 HTML 看板 | 原版无 |
+| 适配 | `src/brain/slot_adapter.py` | — | 三插槽换 API / CLI / 模型 | 原版无 |
+
+**ccpm 实际接线面**：原版 16 个脚本，只接了 `lib.sh` 的 `unmet_deps`（未完成依赖）与 `active_conflicts`（在途冲突）两个函数；`validate.sh`（原版校验器）与 `next.sh`（下一单）**均未接**——所以"下一单不会自己起来"这个缺口，是原版本来有、我们没搬。
+
+**任务发现机制的差异**：原版从 `.claude/epics/<数字>.md` 枚举任务（`is_task_file()` 只认纯数字文件名），本仓改成遍历批次目录的 `<id>.md`；状态词因此出现三套并存——ccpm `closed/completed/done`、`codex-channel.json` `done/blocked`、`kanban_update.py` `completed/in-progress/not-started`。
 
 ---
 
@@ -83,6 +103,8 @@
 | 合并 | `wt merge feature-a -y` | ✓ Fast-forwarded，`a.txt` 真实进 main |
 | 清理 | `wt remove feature-b -y` | ✓ worktree+分支后台删除 |
 | 收尾 | 临时仓库 `rm -rf` | 已确认无残留 |
+
+> **本次实测的盲区（2026-11-09 补记，见 L74）**：临时仓库只有一个 main 和两个特性分支，"合并"测的是 `wt merge feature-a` 合到 **main**——恰好命中 `TARGET` 缺省 = default branch 的默认行为，所以**这个默认值带来的误接没有被暴露**。上线到主仓库后（默认分支 `main`、施工分支 `codex/voice-fsmn-new-path`）才炸出 add/add 冲突。教训：用临时仓库验工具时，**必须让"默认值"与"生产中真正想要的值"不一致**，否则默认值会被实例"验证通过"。
 
 ---
 
