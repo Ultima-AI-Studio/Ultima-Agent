@@ -669,3 +669,16 @@
 - **全链一条命令首次真跑（`batch_orchestrator.py run`）**：两卡并发 → 两 commit 合入 → `stopped_at=done`。一个易被误读的点：`cleanup` 两卡都报“worktree 已不存在”，看似清理失败，实际是 `wt merge` 在合并时已自行回收 worktree/分支，`cleanup` 只是走了“已不存在即跳过”的既定分支。**不要把这条 skipped 读成缺陷**——判断清理是否真发生，看 `git branch --list` 与主线 commit，不要看 `removed` 是否为空。
 - **未覆盖**：冲突形态的全链（`run` 遇 CONFLICT 停 + 保现场）只有单测，没真跑；`wt remove` 超时回读在本轮真跑里没被触发（`wt merge` 先回收了）。
 - **复发**：0
+## L80 · 第四轮闭环：批量文本替换打偏、Edit 吃换行复发、判据自身被自己的测试揭穿（2026-11-09）
+
+- **背景**：按第三轮 Codex 审计的 10 条 fail-open 逐条修（提交 `2a446b9a`），执行段改内容级指纹 + 基线阻断，编排段 `run_all` 整段重写为七终态 + invocation 绑定。收尾时踩到三个坑，都属于"改法本身有问题"而不是代码逻辑。
+- **坑 1（工具层）：用 `str.replace` 按一行字面值给测试补断言，打偏到另一条用例。** 同一行 `assert 'Permission denied' in str(ei.value)` 在两个用例里都存在（旧用例 `test_real_stderr_error_with_intact_markers_fails_closed` 与本轮新用例 `test_gate_check_rejects_error_after_200_chars`），`replace` 命中第一条，于是"共 2 行真错误"这条断言被塞进只造 1 行 stderr 的旧用例 → 旧用例假红。
+  **教训**：改测试断言不能用"某一行文本"当锚点，锚点必须是**用例名 + 该用例独有的一行**；批量替换后必须看一眼 `git diff` 落在哪个函数里，再看测试结果。
+- **坑 2（工具层）：Edit 在替换 `def` 行时把 docstring 首行吃掉。** old_string 取了「`def merge(...)` + docstring 首行」，new_string 只回写了 `def merge(...)`——docstring 起始的 `"""` 丢失，函数体变成裸字符串，`py_compile` 立刻报错。这是 L79 坑 1 的复发（同一类：old/new 结构不对称）。
+  **教训**：Edit 的 old/new **必须行数与结构对称**；要在某个 `def` 前插新函数，就用「`def` 行」当锚点、把新函数完整写在 old_string 里再回写，或直接分成两次 Edit（先插函数、后改函数体）。批量 Edit 之后 `py_compile` 是硬性动作，不是可选动作。
+- **坑 3（实现层）：判据自己暴露了判据不够。** 我按审计 #2 把 stderr 改成"全量逐行分类、只展示首条"，新用例 `test_gate_check_rejects_error_after_200_chars` 用了「噪声行 + 250 个 x 的垃圾行 + `fatal: Permission denied`」，断言 `Permission denied` 必须可见——结果失败：首条真错误是那行 x。这条用例证明"只贴首条"仍会遮住真错误，于是实现改为**前 3 行拼接 + 共 N 行真错误计数**，用例才通过。
+  **教训**：写"错误必须可见"的用例，输入里要**故意放垃圾行在真错误之前**；只造一行 stderr 的用例永远证明不了"截断不会遮住真错误"。
+- **自查另补的一处（未进审计清单）**：`wt merge` 的 JSON 里 branch/target 可能写成 `refs/heads/x`，而本轮新加的一致性校验用裸字符串比对 → 会把"合成功、只是写法不同"判成目标不符并整批 `SystemExit`。已加 `_norm_ref` 归一化再比。这类"新加的严格校验自己造成误杀"必须在同一轮内自查掉，否则就是把 fail-open 修成 fail-closed 误杀。
+- **验证**：`py_compile` 两模块通过；两 gorch 测试文件 `90 passed in 37.57s`（补 `_norm_ref` 后 batch 68 passed 单独复验）；提交 `2a446b9a` 已推远端并打 tag `gorch-r4-failopen-closeout-20261109`。
+- **仍未闭合**：八跳第 4 跳未进 `run_all`；冲突形态全链未真跑；修复后未重跑全链真跑；`main` 与工作分支未合流。
+- **复发**：坑 2 是 L79 坑 1 的同类复发
