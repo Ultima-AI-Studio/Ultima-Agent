@@ -14,7 +14,7 @@
 | wo-ultimaagent-20261030-0006 | 3 | 1 | 0 | 0 | 0 | 0 |
 | wo-ultimaagent-20261030-0004 | 5 | 1 | 0 | 0 | 0 | 0 |
 | wo-ultimaagent-20261030-0005 | 5 | 0 | 0 | 0 | 0 | 1 |
-| wo-ultimaagent-20261030-0007 | 5 | 0 | 1 | 0 | 0 | 0 |
+| wo-ultimaagent-20261030-0007 | 5 | 0 | 0 | 1 | 0 | 0 |
 | wo-ultimaagent-20261031-0008 | 6 | 0 | 1 | 0 | 0 | 0 |
 | wo-ultimaagent-20261031-0009 | 5 | 0 | 0 | 0 | 0 | 1 |
 | wo-ultimaagent-20261031-0010 | 5 | 0 | 0 | 0 | 0 | 1 |
@@ -25,7 +25,9 @@
 | wo-ultimaagent-20261101-0015 | 5 | 1 | 0 | 0 | 0 | 0 |
 | wo-ultimaagent-20261101-0016 | 6 | 1 | 0 | 0 | 0 | 0 |
 | wo-ultimaagent-20261101-0017 | 5 | 1 | 0 | 0 | 0 | 0 |
+
 | wo-ultimaagent-20261108-0028 | 4 | 0 | 0 | 0 | 0 | 1 |
+| wo-ultimaagent-20261108-0029 | 6 | 0 | 0 | 0 | 0 | 1 |
 
 ## 二、明细
 
@@ -37,7 +39,7 @@
 | wo-ultimaagent-20261030-0006 | 待派发 | 0003 T4 阻塞清理（HUD 冻结哈希重冻结 + 队列读取容缺）；T0-T2；2026-10-30 登记；优先派发（清障后再推 0004/0005）；工单卡 tasks/queue/wo-ultimaagent-20261030-0006--t4-clear.md |
 | wo-ultimaagent-20261030-0004 | frozen | 语音输入通道升级（设备自动探测 + 48k WASAPI A/B）；T0-T4；2026-10-30 登记；冻结 tag wo-ultimaagent-20261030-0004-frozen-20261030；工单卡 tasks/queue/wo-ultimaagent-20261030-0004--input-channel.md |
 | wo-ultimaagent-20261030-0005 | frozen | CV3 贾维斯音色（voice 段 + TTS 本地优先）；T0-T4；2026-10-30 登记；三派 PID 21828 收尾（首派 11764 网络失败留证、二派 26236 T4 收尾 OOM 留证）；主脑复核 906/0 + 真机中英转写命中 + 4 Important 一次修复；冻结 tag wo-ultimaagent-20261030-0005-frozen-20261030；工单卡 tasks/queue/wo-ultimaagent-20261030-0005--cv3-jarvis-voice.md |
-| wo-ultimaagent-20261030-0007 | executing | 双线程伪流式（采集∥识别，1s 重跑节流 + 说完终跑 + 异常回退）；T0-T4；2026-10-30 登记；源任务卡 voice-136-pseudo-streaming（tasks.json QUEUED）；写域 data/logs/voice-listen-daemon.py + 基线变更记录追加 #136（不改值）；工单卡 tasks/queue/wo-ultimaagent-20261030-0007--pseudo-streaming.md；首派 26832 受阻 T0 → 主脑裁定收敛（门控 0.01/0.002、score 2.0、BEEP 1.2）→ 二派 7264 T4 硬件回放 OOM 留证 → 三派 17132 T0-T3 全绿、T4 物理耦合受阻（async-play 竞态 L26）→ Owner 拍板物理耦合+竞态修复进冻结门 → 四派 39480：A 竞态修复完成（_LOG_LOCK）、C 记录更新完成，T4 耦合标定 0 命中受阻；主脑复核纠偏：根因为运行 daemon 23588 MME 采集退化（16:36 起环境电平恒 0 + CPU 满载，L25 同型）非物理距离 → 五派修复重测中 |
+| wo-ultimaagent-20261030-0007 | audit | 双线程伪流式（采集∥识别，1s 重跑节流 + 说完终跑 + 异常回退）；T0-T4；2026-10-30 登记；源任务卡 voice-136-pseudo-streaming（tasks.json QUEUED）；写域 data/logs/voice-listen-daemon.py + 基线变更记录追加 #136（不改值）；工单卡 tasks/queue/wo-ultimaagent-20261030-0007--pseudo-streaming.md；首派 26832 受阻 T0 → 主脑裁定收敛（门控 0.01/0.002、score 2.0、BEEP 1.2）→ 二派 7264 T4 硬件回放 OOM 留证 → 三派 17132 T0-T3 全绿、T4 物理耦合受阻（async-play 竞态 L26）→ Owner 拍板物理耦合+竞态修复进冻结门 → 四派 39480：A 竞态修复完成（_LOG_LOCK）、C 记录更新完成，T4 耦合标定 0 命中受阻；主脑复核纠偏：根因为运行 daemon 23588 MME 采集退化（16:36 起环境电平恒 0 + CPU 满载，L25 同型）非物理距离 → 五派修复重测中 【2026-11-10 核对】状态由 executing 修正为 audit：报告 stage-pseudo-streaming-20261030.md 载「验收 PASS，待 Owner 打冻结 tag」。 |
 | wo-ultimaagent-20261031-0008 | executing | GPT-SoVITS V3 few-shot 微调训练（杨幂 MOV 音色，LoRA 路线）；T0-T5；2026-10-31 登记；多轮重派（T1 人工听读定稿 A/C 段 → T2 重入 PASS → T3 TCPStore 端口 10013 → MASTER_ADDR/PORT 固定绕随机端口）执行中；冻结门=tag ultimaagent-gptsovits-v3-fewshot-20261031 |
 | wo-ultimaagent-20261031-0009 | completed | KWS 唤醒词动态改词自动化验证闭环（scripts/kws_reconfig.py 四子命令）；T0-T3 全 PASS；commit e6ee286 + tag ultimaagent-kws-wakeword-reconfig-20261031 已推远端 |
 | wo-ultimaagent-20261031-0010 | completed | 主脑模型降档 qwen2.5:14b → qwen3-8b 无审查版（内存实降 4.1GB）；T0-T3 全 PASS；commit 69d46c0+09a7abc + tag ultimaagent-mainbrain-qwen3-8b-20261031 已推远端 |
@@ -48,6 +50,7 @@
 | wo-ultimaagent-20261101-0015 | executing | ASR 纠错系统化（工单 F）：initial_prompt 扩充天气/时间高频词 + 近音映射独立化 config/asr-normalize.json + "水天"类扩充；T0-T4；2026-11-01 登记；方案 docs/plans/plan-voice-three-issues-20261101.md；工单卡 tasks/queue/wo-ultimaagent-20261101-0015--asr-correction.md；派发载荷 dispatch-wo-ultimaagent-20261101-0015-prompt.txt；冻结门=tag ultimaagent-asr-correction-20261101 |
 | wo-ultimaagent-20261101-0016 | executing | 意图路由门+回答校验器+主脑规则接入（工单 C）：三态判定 ALLOW/DENY/ABSTAIN + banned 语义化/≤2 句/grounded 接口 + agent_server 规则块恒加载；T0-T4（含 T2.5）；2026-11-01 登记；方案 docs/plans/reply-constraint-implementation-plan-20261031.md（8B 引用+规则接入已更新）；工单卡 tasks/queue/wo-ultimaagent-20261101-0016--reply-constraint-routing.md；派发载荷 dispatch-wo-ultimaagent-20261101-0016-prompt.txt；冻结门=tag ultimaagent-reply-constraint-routing-20261101 |
 | wo-ultimaagent-20261101-0017 | executing | 约束解码结构化输出（工单 D）：ollama format/grammar 实测 qwen3-8b → {reply_text,confidence,grounded} schema + 校验器启用 grounded/confidence；T0-T4；2026-11-01 登记；依赖 0016 出口稳定后派发；方案 docs/plans/reply-constraint-implementation-plan-20261031.md；工单卡 tasks/queue/wo-ultimaagent-20261101-0017--reply-constraint-structured.md；派发载荷 dispatch-wo-ultimaagent-20261101-0017-prompt.txt；冻结门=tag ultimaagent-reply-constraint-structured-20261101 |
+| wo-ultimaagent-20261108-0029 | frozen | E02 离线最小修复（写入资格+任务覆盖+证据范围）：在锁定 revision 43da3f0 的 worktree codex/jarvis-e02-source-grounding-r1 上落地任务无关 coverage 契约 + 三处写入资格统一（work_navigation.py 共享契约 / agent_server.py runtime 适配 / work_research.py 重放适配）+ 六条保存负例离线判据 + messages+schema<=32768 数值证明；零模型调用、零实际用例、零配额、不签 grant、不打 tag；起因=0028 评审结论「需补充澄清后再修」，业主 2026-11-08 六项澄清全答「是」；工单卡 tasks/queue/wo-ultimaagent-20261108-0029--e02-offline-minimal-repair.md；冻结门=待独立复审通过后另议 tag（不得用 accepted/passed 语义） 【2026-11-10 核对】0029 已冻结（全局表 frozen，项目表此前误记 executing，该行在核对中一度被误删、此处重建）。 |
 
 ## 新路径验证接续（2026-11-01）
 
@@ -61,6 +64,6 @@
 
 | 工单 | 状态 | 说明 |
 |---|---|---|
-| wo-ultimaagent-20261108-0026 | executing | 单Agent主干审计加固：标准化审计提示词（guardrails/prompts）+ 统一审计报告规范与生成器（docs/specs/audit-report-spec.md / audit_report.py）+ 端到端闭环测试与失败 case 归档；T0→T1→T2 每步回写北极星看板并单独 commit；工单卡 tasks/queue/wo-ultimaagent-20261108-0026--audit-hardening.md；派发载荷 dispatch-wo-ultimaagent-20261108-0026-prompt.txt；冻结门=tag ultimaagent-audit-hardening-20261108 |
-| wo-ultimaagent-20261108-0027 | interrupted | 审计阶段门硬化（分阶段派发 + 每阶段独立复核）：新增 stage_gate.py（fail-closed 阶段门）+ 独立复核结论规范 + 派发模板硬化 + 用 0026 真实产出演练；起因=0026 实证「执行者=判定者=验收者=进度宣布者」四合一（T0/receipt.json 自写自判、commit 46adbd1f 自改看板）；方案 docs/plans/audit-stage-gate-plan-20261108.md；工单卡 tasks/queue/wo-ultimaagent-20261108-0027--audit-stage-gate.md；**等 0026 收口后派发（WIP 每项目执行中 ≤1）**；冻结门=tag ultimaagent-audit-stage-gate-20261108 |
+| wo-ultimaagent-20261108-0026 | frozen | 单Agent主干审计加固：标准化审计提示词（guardrails/prompts）+ 统一审计报告规范与生成器（docs/specs/audit-report-spec.md / audit_report.py）+ 端到端闭环测试与失败 case 归档；T0→T1→T2 每步回写北极星看板并单独 commit；工单卡 tasks/queue/wo-ultimaagent-20261108-0026--audit-hardening.md；派发载荷 dispatch-wo-ultimaagent-20261108-0026-prompt.txt；冻结门=tag ultimaagent-audit-hardening-20261108 【2026-11-10 核对】0026 已冻结：T0-T2 全完成，tag ultimaagent-audit-hardening-20261108 指向 f0cad32b；此前误记 executing。 |
+| wo-ultimaagent-20261108-0027 | blocked | 审计阶段门硬化（分阶段派发 + 每阶段独立复核）：新增 stage_gate.py（fail-closed 阶段门）+ 独立复核结论规范 + 派发模板硬化 + 用 0026 真实产出演练；起因=0026 实证「执行者=判定者=验收者=进度宣布者」四合一（T0/receipt.json 自写自判、commit 46adbd1f 自改看板）；方案 docs/plans/audit-stage-gate-plan-20261108.md；工单卡 tasks/queue/wo-ultimaagent-20261108-0027--audit-stage-gate.md；**等 0026 收口后派发（WIP 每项目执行中 ≤1）**；冻结门=tag ultimaagent-audit-stage-gate-20261108 【2026-11-10 核对】状态由 interrupted 修正为 blocked：T0/T1 已落地（stage_gate.py、independent-review-contract.md、stage-gated-dispatch-template.md），T2 缺 wo-ultimaagent-20261108-0027-t2.md 报告，无 tag，待补收口。 |
 | wo-ultimaagent-20261108-0028 | 已完成（待验收） | E02 写入资格与证据范围提案独立评审（只读）：对 docs/plans/jarvis-work-e02-write-eligibility-and-evidence-scope-proposal-20261108.md 五条建议逐条给结论 + 核验最小改动边界与预算余量 + 产出评审报告；零模型调用、零配额、零源码改动；起因=c794f6fd 待签对象已不在盘上、source37 受控实际运行 FAIL_CONFIRMED、配额归零；工单卡 tasks/queue/wo-ultimaagent-20261108-0028--e02-evidence-scope-plan-review.md；派发载荷 dispatch-wo-ultimaagent-20261108-0028-prompt.txt；2026-11-08 业主拍板走评审路线；2026-11-08 15:26:07 派发 codex gpt-5.6-sol PID 12460（静默后台）；15:43:47 结束，产出评审报告 15,018B（SHA a0eef240…），结论=需补充澄清后再修；4 个阻断点（两文件边界漏 work_research.py 重放模块 / 新增 S4 页后 messages+schema 最小 33,837B 超 32,768 硬门 / 覆盖契约缺可计算定义 / 提案基于 43da3f0 而当前分支缺 work_navigation.py）；主脑独立复核通过（SHA 一致、源码零改动、review/ 未建、current-run 未动）|
