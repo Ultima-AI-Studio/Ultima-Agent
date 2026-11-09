@@ -614,6 +614,8 @@ r7 只有布尔 `proven`，说不清「凭什么算本次造成」。r8 改成**
 
 > **r11 去重更正（第十轮审计 D 段）**：上面「12 条」是**重复计数**。本节第 1/3/4/5 条与上一段列的 5 条是同一语义（严格因果、预已祖先 squash、manifest 来源、manifest target、wt_receipt），按唯一语义本节只有 **3 条新增**（history-only 合入、fallback 历史扫描、前后采样窗口），本节 + 前两轮合计应为 **5 + 3 = 8 类**。第十轮审计再提 10 条，其中 6 条属这 8 类的重述，**真新增 4 条**（预已祖先且 source 被删时接受哪级证据、write scope 是否也限操作类型、授权 pattern 边缘空格语义、永久 `unknown` 的运维出口）。按唯一语义合计 **12 类**（构成 8 + 4，不是 5 + 7），每条仍**无 Owner 书面批准**。
 
+> **r12 更正（第十一轮审计 D.3）**：本段的「8 + 4」自身也重复——第十轮那 4 条里的第 ⑨ 条「调用前已祖先且 source 被删时接受哪级证据」与「前两轮 5 类」中的「预已祖先 squash 语义」是同一类；按本段自己的文本，唯一语义应为 **8 + 3 = 11 类**，不是 12。除非能点名真正独立的第 4 类，否则计数以 **11** 为准。**去重的只是归类，不是待裁条目数**：待裁清单仍逐条列出，「需口径」7 条见 §16.5。
+
 ### 14.4 测试与静态计数
 
 - 合跑：**159 passed / 49.58s**（r9 为 147 passed / 47.90s）。
@@ -655,6 +657,7 @@ r7 只有布尔 `proven`，说不清「凭什么算本次造成」。r8 改成**
 1. r9 三条核心高风险反例（XY R/C 两位、消失路径回补、锁键短名/全名统一）判**已修**。
 2. 但出现**一条新的 cleanup fail-open**：`_path_state` 把存在的普通文件判成 `absent`（`os.stat` 成功、`S_ISDIR=False` 时返回 `'absent'`）。worktree 路径被普通文件占据 + branch absent + registration false 时，入口豁免把它记成 removed。
 3. 同类问题在 channel 侧：`_digest` 对存在的**非普通文件**仍返 `'ABSENT'`——目录、symlink、submodule 与「不存在」共用一个值。
+   （**r12 更正**：这句对 symlink 说得**过宽**。r10/r11 的 `is_file()` / `p.stat()` 都**跟随** symlink，所以「link 指向一个普通文件」时实际是**哈希目标内容**，并非一律 `ABSENT`；`ABSENT` 只成立于 dangling link、目录、特殊文件。r12 已改为 `os.lstat` + `LINK:<sha256(readlink 文本)>`，见 §16.2 第 2 条。）
 4. **锁键碰撞误杀**：`re.sub` 把 `feature/a` 与 `feature_a` 映射成同一个锁文件，两个不同 target 的 gorch 互相阻塞；`_norm_ref` 只剥精确小写 `refs/heads/`。
 5. **cleanup evidence 三种 schema**：`dir_state` 未取代 `dir_exists`（两者并存），rc=0 成功移除条目**根本没有 evidence**。
 6. **merge 取证失败与冲突混档**：前态 tree 失败的 `failed` 被 `run_all` 一律写进 `kept_for_conflict`，note 写「可能为冲突」，返回结构无 `retryable`/`kind`。
@@ -674,6 +677,13 @@ E 段给出**可直改 7 条 + 需口径 10 条**。本轮只做可直改 7 条�
 | 6 | 中：merge `failed` 增 `kind`，取证失败不入 `kept_for_conflict` | 五处 `failed.append` 加 `kind`：前态取证失败= `evidence_failure`、`wt merge` 非零= `merge_conflict`、回执缺 branch/target 与未证明合入= `proof_failure`；`run_all` 拆 `kept_for_conflict` / `kept_for_evidence` 两个列表，note 写失败类别并声明「取证失败未执行合并、可直接重试」 | `merge()` / `run_all()`；用例 `test_run_all_keeps_evidence_failure_out_of_conflict`、`test_merge_does_not_run_wt_when_target_tree_unavailable` 补 `kind` 断言 |
 | 7 | 低：文档与看板 | 本节 + §14.3 去重更正 + §14.6 三项补记 + L87 + 看板 r10 收口（提交号/tag）+ r11 条目 + r8 行 `run_dir` 表述修正 | 本报告 / `lessons-log.md` / `北极星上线任务清单.html` |
 
+> **r12 更正（第十一轮审计 D 段对本节表述的点名）**：
+> 1. **第 2 条「`TYPE:link` 覆盖 symlink」表述过宽**：r11 的 `p.stat()` 跟随 symlink，live link 实际按**目标内容**哈希，只有 dangling link 才落 `TYPE:link`——三类 link 语义并不统一。r12 改 lstat + `LINK:<sha256(readlink 文本)>`（§16.2 第 2 条）。
+> 2. **第 3 条「归一后相同 → 同锁，不同 → 不同锁」不符合截断哈希的数学性质**：`sha256(...)[:16]` 仍有碰撞可能。正确表述是「归一后相同 → 同一把锁；不同 → 高度可分（64-bit 碰撞概率），**不是**绝对不碰撞」（§16.5 第 2 条把该等级列为待裁口径）。
+> 3. **第 6 条「五处 `failed.append` 加 `kind`」字面成立，但不能读成「所有失败已分档」**：r11 仍有 3 处 `raise SystemExit`（target SHA 取不到、`wt` 回执不可解析、回执身份不一致）绕开 `failed` 与 `kind`。r12 已全部改为结构化 `failed`（§16.2 第 3 条）。
+> 4. **第 4 条只统一了 evidence 内层**：`removed` 条目**外层**仍三种形状（`pre_absent` 无 `result/schema_ok`、rc 非零无 `result/schema_ok`、rc=0 无 `raw_tail`），按外层键读的 consumer 会 `KeyError`。r12 已补齐（§16.2 第 6 条）。
+> 5. **第 5 条的 R/C 说明无需改**：r11 新增的是 `R `（已暂存 rename），` C `/` R`（工作区侧）是 r10 就有的；原文「新增 vanished ignored / 已暂存 `R ` rename」已区分，无误。
+
 ### 15.3 测试与静态计数
 
 - 合跑：**168 passed / 48.12s**（r10 为 159 passed / 49.58s）。
@@ -682,7 +692,7 @@ E 段给出**可直改 7 条 + 需口径 10 条**。本轮只做可直改 7 条�
 - r11 新增 9 条函数：
   - batch（6）：`test_path_state_distinguishes_regular_file_and_unknown`、`test_cleanup_rejects_regular_file_at_worktree_path`、`test_cleanup_evidence_schema_is_uniform`、`test_merge_lock_keys_do_not_collide_for_distinct_refs`、`test_merge_lock_distinct_targets_do_not_block`、`test_run_all_keeps_evidence_failure_out_of_conflict`
   - channel（3）：`test_digest_reports_non_regular_type`、`test_fresh_changes_counts_vanished_ignored_path`、`test_status_rows_handles_staged_rename_target_first`
-- 因实现收紧而改断言/改桩的既有用例 3 条：`test_cleanup_pre_absent_three_way_records_evidence`、`test_cleanup_timeout_exemption_records_evidence`（`dir_exists` → `dir_state` + key 集）；`test_merge_rejects_preexisting_ancestor_without_source_move`、`test_merge_rejects_unrelated_target_advance`（`_git_out` 桩按 rev-parse 实参给前态/后态**不同** tree，隔离 ancestor 条件）；`test_merge_does_not_run_wt_when_target_tree_unavailable` 补 `kind` 断言。
+- 因实现收紧而改断言/改桩的既有用例 5 条：`test_cleanup_pre_absent_three_way_records_evidence`、`test_cleanup_timeout_exemption_records_evidence`（`dir_exists` → `dir_state` + key 集）；`test_merge_rejects_preexisting_ancestor_without_source_move`、`test_merge_rejects_unrelated_target_advance`（`_git_out` 桩按 rev-parse 实参给前态/后态**不同** tree，隔离 ancestor 条件）；`test_merge_does_not_run_wt_when_target_tree_unavailable` 补 `kind` 断言。
 - **桩化边界（如实标注）**：`_path_state` / `_digest` / 锁键都打真实层（真 `os.stat`、真目录与普通文件、真锁文件路径与真争锁）；merge 负向用例仍桩 `_git_out` / `_ref_sha` / `wt_merge`；`run_all` 用例桩 `gate_check` / `provision` / `execute` / `cleanup`，只走真实 `run_all` 分支与 `merge` 入口。
 
 ### 15.4 对 §14 的更正
@@ -705,3 +715,69 @@ E 段给出**可直改 7 条 + 需口径 10 条**。本轮只做可直改 7 条�
 
 - r11 交**第十一轮 Codex 独立只读审计**（第②环），判据入口：15.1 的七条可直改、15.2 落地表、15.3 计数与桩化边界、15.4 三处更正、15.5 残余声明。
 - 若第十一轮仍判「不一致」，继续 r12；用户指令为长任务模式，直到审计判「一致」才停。
+
+
+## 十六、r12 实现闭环（第十一轮审计「不一致」→ 可直改八条）
+
+### 16.1 第十一轮审计判定
+
+第十一轮 Codex 独立只读审计（`gpt-5.6-sol`、`high`、`--sandbox read-only`、`1014.6s / 44,735B / 393 行 / 209,792 tokens`）判**不一致**。身份核验全对（`HEAD=0c414494`、tag deref 同 SHA、`0c414494^=d2640d95`、`d2640d95^=09903f1c`、两提交 `+283/−27` 与 `+77/−2` 吻合），但审计明确声明**未跑 pytest / py_compile / python / wt**：`168 passed` 只按历史声明处理，远端 push/tag 未验证。
+
+A 段 16 项：A⑤/A⑦/A⑧/A⑩ 仍成立；A⑪ **部分成立**（普通文件已是 `wrong_type`，但 dangling symlink 经 `os.stat` 抛 `FileNotFoundError` 落 `absent`）；口径①②③ 仍成立；B1–B3、B5、B6 仍成立；**B4 已修**；**B7 已修但只限 evidence 内层**（`removed` 外层仍三形状）；B8 仍成立。
+
+E 段给出**可直改 8 条 + 需口径 7 条**。本轮只做可直改 8 条，口径一条不动。
+
+### 16.2 可直改八条的落地位置
+
+| # | 审计要求（严重度） | r12 落地 | 证据位置（符号/用例） |
+|---|---|---|---|
+| 1 | 高：cleanup 对 symlink / dangling fail-open | `_path_state` 由 `os.stat` 改 `os.lstat`（不跟随）：`S_ISDIR` 才 `exists`，**其余一切非目录**（含全部 symlink / reparse 对象）落 `wrong_type`；`FileNotFoundError → absent`、其它 `OSError → unknown` 保持不变 | `batch_orchestrator._path_state`（`:1442` 起）；用例 `test_path_state_distinguishes_regular_file_and_unknown`（补 link 段）、`test_cleanup_treats_any_symlink_as_wrong_type` |
+| 2 | 高：`_digest` 的 symlink 语义 | 先 `os.lstat`；`S_ISLNK → 'LINK:' + sha256(readlink 文本)`（dangling 不再 `ABSENT`，retarget 会变摘要）；其余非 `S_ISREG` 折成 `TYPE:dir` / `TYPE:other`（去掉 `link` 分支，link 不再被 `TYPE:` 折叠） | `codex_channel._digest`；用例 `test_digest_symlink_uses_link_summary_not_absent`、`test_digest_link_retarget_changes_summary`、`test_digest_reports_non_regular_type`（普通文件改 `^[0-9a-f]{64}$` 断言） |
+| 3 | 高：merge 的 `SystemExit` 绕开 `kind` | 5 处 `raise SystemExit` 全改结构化 `failed.append(...)` + `break`：target SHA 取不到 → `evidence_failure`；`wt` 回执不可解析 / 非对象 / `branch` 不一致 / `target` 不一致 → `proof_failure`。编程错误（`AttributeError` 等）仍照旧抛出，不吞成业务失败 | `merge()`（原 1128 / 1207 / 1221 / 1238 / 1241 五处）；用例 `test_merge_fails_closed_on_unparsable_json`（改断言 `failed`）、`test_merge_receipt_identity_mismatch_is_proof_failure`、`test_merge_records_not_attempted_after_failure` |
+| 4 | 中：`proof_failure` / 未知 kind 误归冲突 | `run_all` 的 `failed` 分档由二分改**四分流** `buckets = {merge_conflict, evidence_failure, proof_failure, unknown}`，未知 kind 单列 `kept_for_unknown` 并 fail-closed（既不并进 conflict，也不当可继续） | `run_all()`；用例 `test_run_all_keeps_proof_failure_out_of_conflict`、`test_run_all_keeps_unknown_kind_separate` |
+| 5 | 中：首失败后任务无归属 | `merge(..., trace=None)` 可选回传 `attempted` / `not_attempted`（保持既有四元返回不变，CLI 与旧测试无需改）；`run_all` 写进 `steps['merge']['attempted']` 与 `not_attempted_after_failure`，并带进 `merge` 段 note | `merge()` / `run_all()`；用例 `test_merge_records_not_attempted_after_failure`（三任务、首条 `evidence_failure` → `attempted=['1']`、`not_attempted=['2','3']`） |
+| 6 | 中：`removed` **外层** key 仍分裂 | 三个 removed 出口外层固定同一组 10 key：`task / branch / worktree / branch_outcomes / result / schema_ok / wt_remove_rc / raw_tail / note / evidence`；缺值显式 `None` / 空串（`wt_remove_rc` 可空、`wt_returncode` 仍在 evidence 内且可空） | `cleanup()`；用例 `test_cleanup_evidence_schema_is_uniform`（三出口**外层** key 集相等 + `{result, schema_ok, wt_remove_rc, raw_tail} ⊆ keys`） |
+| 7 | 中：status NUL 项缺格式先验 | `_status_rows` 加格式先验：`len(item) < 4 or item[2] != ' '` → 整份 `False`（调用方转 `ERR:status`）；rename/copy 缺源项（`i >= len(parts)` 或末位空串）同样 `False`。**不对裸 source 套状态项语法**（合法文件名可任意开头） | `codex_channel._status_rows`；用例 `test_status_rows_rejects_malformed_item`（`R?path` / 短项 / rename 缺源三种） |
+| 8 | 低：文档与看板更正 | 本节 + §14.3 改 11 类 + §15.1 / §15.2 / §15.3 就地更正 + L88 + 看板 r11 收口（`d2640d95` / `0c414494` / tag）+ r12 条目 | 本报告 / `lessons-log.md` / `北极星上线任务清单.html` |
+
+### 16.3 测试与静态计数
+
+- 合跑：**176 passed / 47.21s**（r11 为 168 passed / 48.12s）。
+- 命令同 r11：`tools\venv-openjarvis\Scripts\python.exe -m pytest tests/test_gorch_batch_orchestrator.py tests/test_gorch_codex_channel.py -o addopts= -p no:cacheprovider -q`（cwd 仓库根、PATH 前置 Git）。
+- 静态计数（`^def test_` 实测）：batch 114 → **119**、channel 48 → **51**；含 1 个 `@pytest.mark.parametrize`（展开 7 例），执行条目 168 → **176**（+8）。
+- r12 新增 8 条函数：
+  - batch（5）：`test_cleanup_treats_any_symlink_as_wrong_type`、`test_merge_records_not_attempted_after_failure`、`test_run_all_keeps_proof_failure_out_of_conflict`、`test_run_all_keeps_unknown_kind_separate`、`test_merge_receipt_identity_mismatch_is_proof_failure`
+  - channel（3）：`test_digest_symlink_uses_link_summary_not_absent`、`test_digest_link_retarget_changes_summary`、`test_status_rows_rejects_malformed_item`
+- 因实现收紧而**改桩/改断言**的既有用例 3 条：`test_path_state_distinguishes_regular_file_and_unknown`（桩点由 `os.stat` 迁到 `os.lstat` 并补 link 段）、`test_digest_stat_error_is_not_absent`（r9 用例原桩 `pathlib.Path.stat`，改 `os.lstat` 后该桩不再命中——不改就会变成**假通过**）、`test_merge_fails_closed_on_unparsable_json`（`pytest.raises(SystemExit)` → 断言 `failed[0]['kind'] == 'proof_failure'`）。
+- **桩化边界（如实标注）**：
+  - **打真实层**：`_path_state` 的 `os.lstat`（真目录 / 真普通文件 / 真不存在）、`_digest` 的普通文件分支（真文件 + 真 hex 断言）、`_status_rows` 的格式先验（真 `-z` 串）、`run_all` 的四分流与 `cleanup()` 的 key 集（真 `cleanup` 三出口）。
+  - **桩化**：全部 symlink 语义（`os.lstat` / `os.readlink` 用桩）。原因**实测**：本机普通权限下 `os.symlink` 大面积失败——file link 报 `FileExistsError [WinError 183]`、dir link 与 dangling 报 `OSError [WinError 87]`，建不出任何 link。用桩覆盖的是「lstat 报 `S_IFLNK` 之后的分支」，**不**覆盖「Windows 建 link 后 lstat 的真实返回值」。
+  - **junction 实测（补充事实）**：`New-Item -ItemType Junction` 可成功建，但 junction 的 `os.lstat` 返回 **`islnk=False / isdir=True / mode 0o40777`**（`os.stat` 同样报目录）→ junction 会落 `exists` 并走正常 `wt remove` + 回读，**不会**被记 `absent`，因此不构成本轮修点的 fail-open；但「junction 能否被 `wt remove` 清掉、是否该算残留」未验证，列为 §16.5 第 5 条。
+  - merge 负向用例仍桩 `_git_out` / `_ref_sha` / `wt_merge`（与 r10/r11 同一边界，不桩化就要每次跑真 `wt`）。
+
+### 16.4 对 §15 的更正
+
+- **§15.2 第 2 条「`TYPE:link` 覆盖 symlink」**：过宽，已就地更正（live link 走目标内容哈希，只有 dangling 落 `TYPE:link`）。
+- **§15.2 第 3 条「不同 → 不同锁」**：不符合截断哈希性质，已就地更正为「高度可分、非绝对不碰撞」。
+- **§15.2 第 6 条「五处 append 有 kind」**：不能读成「所有失败已分档」，已就地补记 3 处 `SystemExit`。
+- **§15.2 第 4 条「统一 evidence schema」**：只统一了内层，外层三形状，已就地补记。
+- **§15.3「既有用例 3 条」**：原句实际列了 5 个函数名，数字写错，已改 **5 条**。
+- **§14.3「12 类」**：按本节自身文本应为 **11 类**（8 + 3），已就地更正。
+
+### 16.5 残余风险（r12 后仍存在）
+
+1. **口径 11 类**（唯一语义，见 §14.3 更正）全部无 Owner 书面批准——本轮只改实现，不改语义。
+2. **第十一轮「需口径」7 条**同样无批准：① symlink 指纹语义（取证 link 对象 vs 解析目标内容）；② 目录 / submodule 指纹（维持 `TYPE:dir` 靠 `-uall` vs 递归 manifest hash）；③ 锁键碰撞保证等级（接受 64-bit vs 完整 SHA-256）；④ `proof_failure` 现场语义（单列 vs 并入并改名 `kept_for_merge_failure`）；⑤ 第三方 Git 并发窗口；⑥ 永久 `unknown` / `wrong_type` 的运维出口；⑦ fallback invocation 策略。r12 对 ①②③⑥ 都只做了**当前实现内的收口**（`LINK:` 摘要、`TYPE:other`、64-bit 键、`kept_for_unknown` 单列），没有替 Owner 选语义。
+3. **symlink 语义的取证边界**：`LINK:<sha256(readlink 文本)>` 只证明「link 对象与其指向文本没变」，**不**证明目标内容没变；目标若在 Git 可见集合内会由自身路径另行取证，若目标在域外则只能靠这条摘要。这是本轮引入的**新残余**，如实记。
+4. **`TYPE:other` 仍折叠 FIFO / socket / device**：三者共用一个值，同一路径从 FIFO 换成 socket 摘要不变（属 §16.5 第 2 条口径项，未改）。
+5. **junction / reparse 未验证清理**：见 §16.3 实测——落 `exists` 后由 `wt remove` 处理，能否真的删掉、删不掉会不会回读成 `exists` 形成永久 skipped，未用真实批次验证。
+6. **`wt_remove_rc` 与 `evidence.wt_returncode` 仍 None/int 混用**：外层统一成 nullable 后，两处语义重叠（一个在 evidence 内、一个在外层），未合并（避免破坏既有 consumer）。
+7. **外部 git / 其他工具不受锁约束**；`wt merge --format json` 无 invocation 级事务字段 → 「本次造成」的因果上限未变。
+8. **`_scope_match` 的 `.strip()` 与 fallback 条件式 invocation 仍未改**（口径项）。
+9. **真实批次仍未重跑 `run_all`**；冲突形态全链只有单测；`done_no_merge` 三分组未落；八跳第 4 跳仍未进 `run_all`。
+10. **文档侧仍有历史遗留**：第十轮审计全文（`codex-r10-audit-last.md`，46,623B）尚未入库成 docs 提交；本轮 §16 亦只入本报告，未单独出 `fix-*.md`。
+
+### 16.6 结论去向
+
+- r12 交**第十二轮 Codex 独立只读审计**（第②环），判据入口：16.1 的判定摘要、16.2 八条落地表、16.3 计数与桩化/实测边界、16.4 六处更正、16.5 十条残余。
+- 若第十二轮仍判「不一致」，继续 r13；用户指令为长任务模式，直到审计判「一致」才停。

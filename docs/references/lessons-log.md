@@ -833,3 +833,14 @@
 5. **负向用例多原因失败 = 用例名说谎**：`test_merge_rejects_...` 里前后 tree 相同，`content_changed=False` 本身就能让用例变红——它验的不是名字里那个判据。写负向用例时要用**日志/断言**把其他必要条件钉成「已满足」，让唯一变量就是被测条件。
 6. **口径重复计数**：文档里「合计 12 条」其实是同一语义在两节各列一次。口径条目要按**语义**编号，不能按「每次审计新增几条」累加，否则数字只会越滚越假。
 
+
+
+### L88 · r12：换探针、丢写盘与桩点的六个坑（第十一轮审计「不一致」→ r12）
+
+1. **补丁脚本中途 `sys.exit` 会静默丢掉前面"成功"的替换**：`patch()` 若边替换边写盘，逐对替换则前几对已落盘；若全部替换完才一次性写盘，任一对断言失败（`count != 1`）就整体退出，**前几对也一起丢**。本次就踩了：codex 第 3 对 `count=0` 退出，导致第 1 对（`_digest` 改 lstat）与第 2 对（status 格式先验）全丢，而脚本输出只显示"到第 3 对才 FAIL"，看起来前两对是好的。修法是：要么每对成功后立即写盘，要么在 `sys.exit` 前把已成功的对打出来；更稳的做法是**改完立刻回读文件验证**（`grep` 目标符号），别信脚本的进度。
+2. **换探针（`os.stat` → `os.lstat`）会让所有桩 `os.stat` / `pathlib.Path.stat` 的旧用例变成假通过**：r12 把 `_path_state` 与 `_digest` 都改到 `lstat` 后，两条既有用例仍在桩 `os.stat` / `pathlib.Path.stat`——用例照旧绿，但它已经不测实现路径了（更糟的是桩的签名不收 `follow_symlinks`，会在 pytest 清理阶段抛 `TypeError`，把失败泄漏到 teardown）。改探针时必须同步扫一遍全部桩点。
+3. **`raise SystemExit` 改结构化 `failed` 会连带打红"期望抛异常"的既有用例**：`test_merge_fails_closed_on_unparsable_json` 用 `pytest.raises(SystemExit)`，改完必红。这类"语义升级"要当成**接口变更**处理：先列全部 `pytest.raises` 与 `except SystemExit`，一次改完。
+4. **Windows 上普通权限建不出 symlink**：实测 `os.symlink` 建 file link 报 `FileExistsError [WinError 183]`、建 dir link / dangling 报 `OSError [WinError 87]`，三种全失败。symlink 语义只能**桩化**验证，且必须在报告里如实标「不覆盖真实建 link 后的返回值」，不能写成已覆盖。
+5. **junction 不能靠 lstat 区分**：`New-Item -ItemType Junction` 可建，但它的 `os.lstat` 返回 `islnk=False / isdir=True / mode 0o40777`——lstat 把它当普通目录。所以"用 lstat 就能识别一切 reparse 残留"是错的；junction 会落 `exists` 走正常删除路径。要识别得看 `FILE_ATTRIBUTE_REPARSE_POINT` 的 `dwReserved0` reparse tag，不是 `S_ISLNK`。
+6. **porcelain `-z` 的两处格式坑**：① 每项必须是 `XY <path>`，第 3 字符是空格；无脑 `item[3:]` 遇到 `R?path`、短项、缺分隔符就截出伪路径。② rename/copy 的**源**是紧随的裸项，判"缺源"要识别 `split('\0')` 末尾那个空串（`i == len(parts) - 1 and not parts[i]`），而不是"没有就算了"；同时**不能**对裸 source 套状态项语法（合法文件名可以任意开头）。
+7. **"内层统一"不等于"外层统一"**：r11 只把 `evidence` 内层 key 集拉齐，`removed` 条目外层仍三种形状；按外层键读的 consumer（`removed[0]['schema_ok']`）在前两个出口会 `KeyError`。统一 schema 的断言必须同时覆盖内外两层，并且外层也要「缺值写 null 而不是省略键」。
