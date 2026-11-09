@@ -1024,3 +1024,18 @@ def test_branch_state_distinguishes_absent_from_unknown(mod, monkeypatch):
 
     monkeypatch.setattr(mod.subprocess, 'run', lambda *a, **k: _R0())
     assert mod._branch_state('gorch/1') == 'exists'
+
+def test_merge_tolerates_refs_heads_prefix(mod, monkeypatch, tmp_path):
+    """自查补充：wt 把 branch/target 写成 refs/heads/x 时不能判成"不一致"误杀。"""
+    write_task(tmp_path, 1)
+    runs = tmp_path / 'runs'
+    d = write_run(runs, '1')
+    monkeypatch.setattr(mod, 'RUNS', runs)
+    payload = {'merged': True, 'branch': 'refs/heads/gorch/1',
+               'target': 'refs/heads/main'}
+    monkeypatch.setattr(mod, 'wt_merge',
+                        lambda *a, **k: _FakeResult(0, json.dumps(payload)))
+    done, merged, failed, stale = mod.merge(str(tmp_path), tasks=['1'],
+                                            target='main', run_dirs={'1': str(d)})
+    assert failed == []
+    assert merged[0]['task'] == '1'

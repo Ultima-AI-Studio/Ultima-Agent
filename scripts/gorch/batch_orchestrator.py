@@ -645,6 +645,16 @@ def _current_branch():
     return r.stdout.strip()
 
 
+def _norm_ref(ref):
+    """把 `refs/heads/x` 与 `x` 归一成同一个分支名。
+
+    wt merge 的 JSON 里 branch/target 可能带 refs/heads 前缀，直接字符串比对会把
+    "合成功了、只是写法不同"误判成目标不符，让整批在 merge 段 SystemExit。
+    """
+    s = str(ref or '').strip()
+    return s[len('refs/heads/'):] if s.startswith('refs/heads/') else s
+
+
 def merge(batch_dir, tasks=None, target=None, run_dirs=None):
     """串行把已完成任务的分支合回主线；任一失败即停，不跳过错继续合下一个。
 
@@ -711,10 +721,12 @@ def merge(batch_dir, tasks=None, target=None, run_dirs=None):
             break
         got_branch = data.get('branch')
         got_target = data.get('target')
-        if got_branch and got_branch != branch:
+        # 同一分支可能被 wt 写成 `x` 或 `refs/heads/x`，先归一化再比，
+        # 否则会把"合成功了但写法不同"误判成目标不符而整批 SystemExit。
+        if got_branch and _norm_ref(got_branch) != _norm_ref(branch):
             raise SystemExit(
                 f'wt merge 回报的分支与请求不一致 {task}: 请求 {branch} 实际 {got_branch}')
-        if got_target and got_target != resolved_target:
+        if got_target and _norm_ref(got_target) != _norm_ref(resolved_target):
             raise SystemExit(
                 f'wt merge 回报的目标与请求不一致 {task}: '
                 f'请求 {resolved_target} 实际 {got_target}')
