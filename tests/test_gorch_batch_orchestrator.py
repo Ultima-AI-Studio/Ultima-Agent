@@ -192,3 +192,104 @@ def test_provision_fails_closed_when_reported_path_missing(mod, monkeypatch, tmp
         lambda *a, **k: _FakeResult(0, json.dumps({'action': 'created', 'path': str(ghost)})))
     with pytest.raises(SystemExit):
         mod.provision(str(tmp_path))
+
+
+# --- execute 子命令（判断仍真实走 gate/ccpm；只 mock 外部进程 Popen）---
+
+class _FakeProc:
+    def __init__(self, returncode=0, out=''):
+        self.returncode = returncode
+        self._out = out
+
+    def communicate(self):
+        return self._out, ''
+
+
+def _setup_ready(mod, monkeypatch, tmp_path, nums):
+    """建可开工任务 + 对应 worktree 目录 + prompt 文件，返回 prompts 目录。"""
+    for n in nums:
+        write_task(tmp_path, n)
+    wt_root = tmp_path / 'wt'
+    monkeypatch.setattr(mod, 'WORKTREE_ROOT', wt_root)
+    prompts = tmp_path / 'prompts'
+    prompts.mkdir()
+    for n in nums:
+        (wt_root / str(n)).mkdir(parents=True)
+        (prompts / f'{n}.txt').write_text('p', encoding='utf-8')
+    return prompts
+
+
+def test_find_prompt_prefers_md(mod, tmp_path):
+    (tmp_path / '1.md').write_text('a', encoding='utf-8')
+    (tmp_path / '1.txt').write_text('b', encoding='utf-8')
+    assert mod._find_prompt(tmp_path, '1').name == '1.md'
+
+
+def test_find_prompt_falls_back_to_txt(mod, tmp_path):
+    (tmp_path / '1.txt').write_text('b', encoding='utf-8')
+    assert mod._find_prompt(tmp_path, '1').name == '1.txt'
+
+
+def test_find_prompt_none(mod, tmp_path):
+    assert mod._find_prompt(tmp_path, '1') is None
+
+
+def test_execute_fans_out_one_process_per_task(mod, monkeypatch, tmp_path):
+    prompts = _setup_ready(mod, monkeypatch, tmp_path, (1, 2, 3))
+    real_popen = mod.subprocess.Popen               # 先留真实 Popen 给 gate 的 bash 用
+    popen_cmds = []
+
+    def fake_popen(cmd, **kw):
+        if cmd and cmd[0] == mod.BASH:             # gate_check 内部 run→Popen，走真实
+            return real_popen(cmd, **kw)
+        popen_cmds.append(cmd)
+        return _FakeProc(0, json.dumps({'result': 'done'}))
+
+    monkeypatch.setattr(mod.subprocess, 'Popen', fake_popen)
+    rows, results = mod.execute(str(tmp_path), str(prompts), max_channels=3)
+    assert len(popen_cmds) == 3                       # 每个任务一个进程
+    assert [r['task'] for r in results] == ['1', '2', '3']
+    assert [r['channel'] for r in results] == [1, 2, 3]
+    # 每个进程的 --workdir 指向各自 worktree
+    for cmd in popen_cmds:
+        wd = cmd[cmd.index('--workdir') + 1]
+        assert wd.startswith(str(tmp_path / 'wt'))
+
+
+def test_execute_batches_and_reuses_channel_numbers(mod, monkeypatch, tmp_path):
+    prompts = _setup_ready(mod, monkeypatch, tmp_path, (1, 2, 3, 4))
+    real_popen = mod.subprocess.Popen
+    channels_seen = []
+
+    def fake_popen(cmd, **kw):
+        if cmd and cmd[0] == mod.BASH:             # gate 的 bash 调用走真实
+            return real_popen(cmd, **kw)
+        channels_seen.append(int(cmd[cmd.index('--channel') + 1]))
+        return _FakeProc(0, '{}')
+
+    monkeypatch.setattr(mod.subprocess, 'Popen', fake_popen)
+    rows, results = mod.execute(str(tmp_path), str(prompts), max_channels=2)
+    assert len(results) == 4
+    # 每批 2 个，通道号在批内复用：[1,2] 然后 [1,2]
+    assert channels_seen == [1, 2, 1, 2]
+
+
+def test_execute_fails_closed_when_worktree_missing(mod, monkeypatch, tmp_path):
+    write_task(tmp_path, 1)
+    monkeypatch.setattr(mod, 'WORKTREE_ROOT', tmp_path / 'wt')
+    prompts = tmp_path / 'prompts'
+    prompts.mkdir()
+    (prompts / '1.txt').write_text('p', encoding='utf-8')
+    with pytest.raises(SystemExit):
+        mod.execute(str(tmp_path), str(prompts))
+
+
+def test_execute_fails_closed_when_prompt_missing(mod, monkeypatch, tmp_path):
+    write_task(tmp_path, 1)
+    wt_root = tmp_path / 'wt'
+    (wt_root / '1').mkdir(parents=True)
+    monkeypatch.setattr(mod, 'WORKTREE_ROOT', wt_root)
+    prompts = tmp_path / 'prompts'
+    prompts.mkdir()
+    with pytest.raises(SystemExit):
+        mod.execute(str(tmp_path), str(prompts))

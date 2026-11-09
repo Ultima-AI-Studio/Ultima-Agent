@@ -14,9 +14,12 @@
 用法：
   python batch_orchestrator.py gate <批次目录>
   python batch_orchestrator.py provision <批次目录>
+  python batch_orchestrator.py execute <批次目录> --prompts-dir <prompt目录>
 批次目录约定：只放任务文件，每个 <id>.md 带 frontmatter
   name/status/depends_on/parallel/conflicts_with，同目录引用 <ref>.md。
 provision 先跑 gate，仅对判定“可开工”的任务调 wt 建独立 worktree（幂等）。
+execute 对可开工任务并发调 codex_channel（--workdir 指向各自 worktree），
+执行逻辑全在 codex_channel 内，本文件只做 fan-out/join 与 fail-closed 校验。
 """
 import argparse
 import json
@@ -38,6 +41,9 @@ VALID_STATUSES = {'open', 'in-progress', 'in_progress',
 WORKTREE_ROOT = pathlib.Path(r'H:\UltimaAI\_worktrees\gorch')
 WT_TIMEOUT = 180
 BRANCH_PREFIX = 'gorch/'
+# 执行段是现成件（codex_channel.py），本编排只负责并发调用它，不重写执行逻辑。
+CHANNEL_SCRIPT = ROOT / 'scripts' / 'gorch' / 'codex_channel.py'
+MAX_CHANNELS = 3
 
 
 def to_bash(path):
@@ -203,6 +209,63 @@ def provision(batch_dir):
     return rows, provisioned, skipped
 
 
+def _find_prompt(prompts_dir, task):
+    """按任务 id 找对应 prompt 文件（.md 或 .txt），没有则 None。"""
+    base = pathlib.Path(prompts_dir)
+    for ext in ('.md', '.txt'):
+        p = base / f'{task}{ext}'
+        if p.is_file():
+            return p
+    return None
+
+
+def execute(batch_dir, prompts_dir, max_channels=MAX_CHANNELS, dry_run=False):
+    """对可开工任务并发调 codex_channel（--workdir 指向各自 worktree）。
+
+    执行逻辑全在 codex_channel 内；本函数只做：校验、fan-out 起进程、join 收集。
+    并发用标准库 subprocess（fan-out + join），分批受 max_channels 限制。
+    """
+    rows = gate_check(batch_dir)
+    ready = [r['task'] for r in rows if r['verdict'] == '可开工']
+
+    # fail-closed 校验：每个任务的隔离位与 prompt 必须先就绪。
+    jobs = []
+    for task in ready:
+        wt_path = WORKTREE_ROOT / task
+        if not wt_path.is_dir():
+            raise SystemExit(f'worktree 不存在 {task}，请先 provision，fail-closed')
+        prompt = _find_prompt(prompts_dir, task)
+        if not prompt:
+            raise SystemExit(
+                f'找不到 prompt {task}（{prompts_dir}\\<id>.md|.txt），fail-closed')
+        jobs.append((task, wt_path, prompt))
+
+    results = []
+    # 分批：每批最多 max_channels 个进程并发，批内 fan-out 后 join，再进下一批。
+    for start in range(0, len(jobs), max_channels):
+        batch = jobs[start:start + max_channels]
+        procs = []
+        for channel, (task, wt_path, prompt) in enumerate(batch, start=1):
+            cmd = [sys.executable, str(CHANNEL_SCRIPT),
+                   '--task', task, '--channel', str(channel),
+                   '--prompt', str(prompt), '--workdir', str(wt_path)]
+            if dry_run:
+                cmd.append('--dry-run')
+            p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                                 text=True, encoding='utf-8', errors='replace')
+            procs.append((task, channel, p))
+        for task, channel, p in procs:
+            out, err = p.communicate()
+            results.append({
+                'task': task,
+                'channel': channel,
+                'returncode': p.returncode,
+                'stdout': out.strip(),
+                'stderr': err.strip()[-300:],
+            })
+    return rows, results
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser(description='GORCH 多通道薄编排（只接线）')
     sub = ap.add_subparsers(dest='cmd', required=True)
@@ -210,6 +273,11 @@ def main(argv=None):
     g.add_argument('batch_dir', help='批次任务目录（只放 <id>.md）')
     p = sub.add_parser('provision', help='对可开工任务用 wt 建隔离 worktree')
     p.add_argument('batch_dir', help='批次任务目录（只放 <id>.md）')
+    e = sub.add_parser('execute', help='并发调 codex_channel 在各自 worktree 执行')
+    e.add_argument('batch_dir', help='批次任务目录（只放 <id>.md）')
+    e.add_argument('--prompts-dir', required=True, help='prompt 文件目录（<id>.md|.txt）')
+    e.add_argument('--max-channels', type=int, default=MAX_CHANNELS, help='并发上限（默认 3）')
+    e.add_argument('--dry-run', action='store_true', help='透传给 codex_channel，不真起 Codex')
     args = ap.parse_args(argv)
 
     if args.cmd == 'gate':
@@ -228,6 +296,16 @@ def main(argv=None):
             {'batch': str(pathlib.Path(args.batch_dir)),
              'provisioned': provisioned, 'skipped_blocked': skipped,
              'tasks': rows},
+            ensure_ascii=False, indent=2))
+        return 0
+
+    if args.cmd == 'execute':
+        rows, results = execute(
+            args.batch_dir, args.prompts_dir,
+            max_channels=args.max_channels, dry_run=args.dry_run)
+        print(json.dumps(
+            {'batch': str(pathlib.Path(args.batch_dir)),
+             'results': results, 'tasks': rows},
             ensure_ascii=False, indent=2))
         return 0
 
