@@ -150,10 +150,10 @@ printf 'CONFLICTS:%s\n' "$(active_conflicts <task>.md)"
 
 | 序 | 动作 | 来源 | 验收（机检，不靠人读） |
 |---|---|---|---|
-| S1 | ccpm 脚本归位到 `scripts/gorch/ccpm/`（**原文复制，不改逻辑**） | ccpm | git bash 下 `bash validate.sh` 可跑；文件与源逐字节一致 |
-| S2 | 主仓库接入 worktrunk 验证（不建真分支，先 `-C` list 只读） | wt.exe | `wt -C <主仓库> list` 正常返回，不改动任何文件 |
-| S3 | 薄编排：按 frontmatter 调 `next.sh` 选可开工项 | 组装 | 给定样例任务，选出的清单与 ccpm 原脚本输出一致 |
-| S4 | 薄编排：为可开工项调 `wt switch -c` 建隔离位 | wt.exe | 每通道独立 worktree/分支/run-dir 落盘 |
+| S1 ✅ | ccpm 脚本归位到 `scripts/gorch/ccpm/`（**原文复制，不改逻辑**） | ccpm | git bash 下 `bash validate.sh` 可跑；文件与源逐字节一致（提交 `59cfd538`） |
+| S2 ✅ | 主仓库接入 worktrunk 验证（不建真分支，先 `-C` list 只读） | wt.exe | `wt -C <主仓库> list` 正常返回，不改动任何文件 |
+| S3 ✅ | 薄编排：按 frontmatter 调 ccpm 原函数选可开工项（fail-closed） | 组装 | 12 条 gate 单测，选出的清单与 ccpm 原函数一致（提交 `59cfd538`） |
+| S4 ✅ | 薄编排：为可开工项调 `wt switch` 建隔离位（幂等，`--base @`） | wt.exe | 真实建 2 worktree 基线正确、幂等 existing、blocked 跳过；5 条单测（提交 `4b744d26`） |
 | S5 | 通道内调 `codex_channel.py` 执行（现有件） | 已落地 | 3 通道并发，各自独立 run-dir，回执不串单 |
 | S6 | 薄编排：验收通过后逐个 `wt merge` + `remove` | wt.exe | 故意造一个冲突 frontmatter，在 S3 阶段被拦，不进执行 |
 | S7 | 全量回归 + 打 tag | — | 现有 117 passed 不回归；无 tag 不报完成 |
