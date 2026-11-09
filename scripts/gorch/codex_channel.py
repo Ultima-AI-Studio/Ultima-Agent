@@ -72,7 +72,13 @@ def _status_rows(workdir):
     rc, out = _git_text(workdir, ['status', '--porcelain', '-z', '-uall', '--ignored'])
     if rc is None or rc != 0:
         return False, [], set()
-    parts = (out or '').split('\0')
+    # r13（第十二轮审计 E1-2）：`-z` 的输出以 NUL **终止**每一项。末项没有 NUL 说明
+    # 输出被截断（管道断开 / 超时半截），此时最后一条路径或 rename 的 source 可能是
+    # 半个字符串——按"完整结果"消费会把截断路径当成真实文件名（域外路径被截短后
+    # 可能落进域内写域）。非空输出必须 `endswith('\0')`，否则整份判失败。
+    if out and not out.endswith('\0'):
+        return False, [], set()
+    parts = out.split('\0') if out else []
     rows, ignored = [], set()
     i = 0
     while i < len(parts):
@@ -103,12 +109,14 @@ def _status_rows(workdir):
             # 空串）是格式不完整，不能"当没有源路径"放过去——那会把 rename 的另一半
             # 悄悄丢掉。整份 status 判失败，交给调用方 ERR:status。源路径是裸路径
             # （不带状态码），不能对它套状态项语法（合法文件名可任意开头）。
-            if i >= len(parts) or (i == len(parts) - 1 and not parts[i]):
+            # r13（第十二轮审计 E1-1）：**任何**空 source 都判失败，不只是"末位"。
+            # 反例 `R  docs/in\0\0 M docs/y\0`：中间那个空项此前被 `if src:` 放过，
+            # rename 的 source 静默丢失，域外删除不可见 —— 这是同一类 fail-open。
+            if i >= len(parts) or not parts[i]:
                 return False, [], set()
             src = parts[i]
             i += 1
-            if src:
-                rows.append(('SRC', src.replace('\\', '/')))
+            rows.append(('SRC', src.replace('\\', '/')))
         rows.append((code, path.replace('\\', '/')))
     return True, rows, ignored
 

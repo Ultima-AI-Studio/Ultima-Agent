@@ -2146,12 +2146,29 @@ def test_cleanup_treats_any_symlink_as_wrong_type(mod, monkeypatch, tmp_path):
         return real_lstat(p, *a, **k)
 
     monkeypatch.setattr(mod.os, 'lstat', fake_lstat)
+    # r13（第十二轮审计 C 段：本用例原可假通过）：只把 lstat 桩成 S_IFLNK 时，
+    # 若实现退回 r11 的 `os.stat`，普通文件同样得 wrong_type，用例照样绿。
+    # 这里把 `os.stat` 也桩成"dangling 会抛 FileNotFoundError"——真实 dangling
+    # link 走 stat 就是这个行为；实现若回退，`_path_state` 会得到 absent，
+    # cleanup 就会把该路径记 removed，两条断言立刻变红。
+    real_stat = mod.os.stat
+
+    def dangling_stat(p, *a, **k):
+        if str(p) == str(placeholder):
+            raise FileNotFoundError(2, 'no such file', str(p))
+        return real_stat(p, *a, **k)
+
+    monkeypatch.setattr(mod.os, 'stat', dangling_stat)
     monkeypatch.setattr(mod, 'WORKTREE_ROOT', wt_root)
     monkeypatch.setattr(mod, '_branch_state', lambda b: 'absent')
     monkeypatch.setattr(mod, '_worktree_registered', lambda p: False)
     removed, skipped = mod.cleanup(str(tmp_path))
     assert removed == []
     assert skipped and skipped[0]['partial'] is True
+    # 桩下 `os.stat` 抛 FileNotFoundError（dangling link 的真实行为）。若实现退回
+    # r11 的 `os.stat`，这里会得到 absent —— cleanup 就会把该路径记 removed，
+    # 上面两条断言立刻变红；因此本用例不再能"改不改探针都绿"。
+    assert mod._path_state(str(placeholder)) == 'wrong_type'
 
 
 def test_merge_records_not_attempted_after_failure(mod, monkeypatch, tmp_path):
@@ -2262,3 +2279,97 @@ def test_merge_receipt_identity_mismatch_is_proof_failure(mod, monkeypatch, tmp_
     assert [f['task'] for f in failed] == ['1']
     assert failed[0]['kind'] == 'proof_failure'
     assert '不一致' in failed[0]['stderr']
+
+
+def test_merge_target_sha_missing_is_evidence_failure(mod, monkeypatch, tmp_path):
+    """r13（第十二轮审计 C 段：五个结构化出口里 3 个没有回归用例）：target 的
+    commit sha 取不到时，必须在调 `wt_merge` **之前**结构化停（evidence_failure），
+    且 trace 仍记为"尝试过"— 现场没动过，可直接重试。
+    """
+    write_task(tmp_path, 1)
+    runs = tmp_path / 'runs'
+    d = write_run(runs, '1')
+    monkeypatch.setattr(mod, 'RUNS', runs)
+    monkeypatch.setattr(mod, '_ref_sha', lambda ref: '')
+    calls = []
+    monkeypatch.setattr(mod, 'wt_merge', lambda *a, **k: calls.append(a))
+    trace = {}
+    _done, merged, failed, _stale = mod.merge(
+        str(tmp_path), tasks=['1'], target='main', expect_invocation='inv-test',
+        run_dirs={'1': str(d)}, trace=trace)
+    assert calls == []                       # 未执行合并
+    assert merged == []
+    assert failed[0]['kind'] == 'evidence_failure'
+    assert '未执行合并' in failed[0]['stderr']
+    assert trace['attempted'] == ['1']
+    assert trace['not_attempted'] == []
+
+
+def test_merge_receipt_not_object_is_proof_failure(mod, monkeypatch, tmp_path):
+    """r13（第十二轮审计 C 段）：回执解析出的是标量/无 dict 的数组 → `proof_failure`
+    （wt 已跑、现场可能已动），不能被当成"没合并"放过。
+    """
+    write_task(tmp_path, 1)
+    runs = tmp_path / 'runs'
+    d = write_run(runs, '1')
+    monkeypatch.setattr(mod, 'RUNS', runs)
+    monkeypatch.setattr(mod, '_ref_sha', lambda ref: 'a' * 40)
+
+    def fake_git(args, *a, **k):
+        if list(args)[:1] == ['rev-parse']:
+            return 0, 't0'
+        if list(args)[:1] == ['merge-base']:
+            return 1, ''
+        return 0, ''
+
+    monkeypatch.setattr(mod, '_git_out', fake_git)
+    monkeypatch.setattr(mod, 'wt_merge', lambda *a, **k: _FakeResult(0, '[1, 2, 3]'))
+    _done, merged, failed, _stale = mod.merge(
+        str(tmp_path), tasks=['1'], target='main', expect_invocation='inv-test',
+        run_dirs={'1': str(d)})
+    assert merged == []
+    assert failed[0]['kind'] == 'proof_failure'
+    assert '不是对象' in failed[0]['stderr']
+
+
+def test_merge_receipt_target_mismatch_is_proof_failure(mod, monkeypatch, tmp_path):
+    """r13（第十二轮审计 C 段）：回执 target 与请求不一致（branch 一致）也必须
+    `proof_failure`——此前只测了 branch 不一致那一支。
+    """
+    write_task(tmp_path, 1)
+    runs = tmp_path / 'runs'
+    d = write_run(runs, '1')
+    monkeypatch.setattr(mod, 'RUNS', runs)
+    monkeypatch.setattr(mod, '_ref_sha', lambda ref: 'a' * 40)
+
+    def fake_git(args, *a, **k):
+        if list(args)[:1] == ['rev-parse']:
+            return 0, 't0'
+        if list(args)[:1] == ['merge-base']:
+            return 1, ''
+        return 0, ''
+
+    monkeypatch.setattr(mod, '_git_out', fake_git)
+    monkeypatch.setattr(mod, 'wt_merge', lambda *a, **k: _FakeResult(
+        0, json.dumps({'branch': 'gorch/1', 'target': 'other'})))
+    _done, merged, failed, _stale = mod.merge(
+        str(tmp_path), tasks=['1'], target='main', expect_invocation='inv-test',
+        run_dirs={'1': str(d)})
+    assert merged == []
+    assert failed[0]['kind'] == 'proof_failure'
+    assert '目标与请求不一致' in failed[0]['stderr']
+
+
+def test_merge_empty_targets_resets_trace(mod, monkeypatch, tmp_path):
+    """r13（第十二轮审计 E1-3）：空批次早退时 trace 必须归零。调用方复用同一个
+    dict 时，上一轮的 attempted / not_attempted 不能被当成本轮结果读走。
+    """
+    runs = tmp_path / 'runs'
+    runs.mkdir()
+    monkeypatch.setattr(mod, 'RUNS', runs)
+    monkeypatch.setattr(mod, 'find_done_tasks', lambda *a, **k: ({}, {}))
+    trace = {'attempted': ['old'], 'not_attempted': ['old2']}
+    _done, merged, failed, _stale = mod.merge(str(tmp_path), tasks=[], trace=trace)
+    assert merged == [] and failed == []
+    assert trace['attempted'] == []
+    assert trace['not_attempted'] == []

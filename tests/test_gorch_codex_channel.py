@@ -1002,3 +1002,35 @@ def test_status_rows_rejects_malformed_item(monkeypatch):
         ok, rows, _ig = m._status_rows('w')
         assert ok is False
         assert rows == []
+
+
+def test_status_rows_rejects_empty_rename_source_in_middle(monkeypatch):
+    """r13（第十二轮审计 E1-1，阻断项）：空 rename source 在**中间**出现也要整份失败。
+
+    反例 `R  docs/in\0\0 M docs/y\0`：r12 只拒绝"末位空串"，中间那个空项被
+    `if src:` 放过 → rename 的 source 静默丢失，域外删除不可见（同类 fail-open）。
+    """
+    m = _load()
+    raw = 'R  docs/in' + chr(0) + chr(0) + ' M docs/y' + chr(0)
+    monkeypatch.setattr(m, '_git_text', lambda w, a, _r=raw: (0, _r))
+    ok, rows, _ig = m._status_rows('w')
+    assert ok is False
+    assert rows == []
+
+
+def test_status_rows_rejects_output_without_trailing_nul(monkeypatch):
+    """r13（第十二轮审计 E1-2）：`-z` 的输出必须以 NUL 终止。末项无 NUL 说明输出被
+    截断（管道断开 / 超时半截），最后一条路径或 rename source 可能是半个字符串，
+    按"完整结果"消费会把截断路径当真实文件名（域外路径被截短后可能落进写域）。
+    """
+    m = _load()
+    monkeypatch.setattr(m, '_git_text', lambda w, a: (0, ' M docs/x'))
+    ok, rows, _ig = m._status_rows('w')
+    assert ok is False
+    assert rows == []
+
+    # 对照：带终止 NUL 的同一行是合法的
+    monkeypatch.setattr(m, '_git_text', lambda w, a: (0, ' M docs/x' + chr(0)))
+    ok, rows, _ig = m._status_rows('w')
+    assert ok is True
+    assert rows == [(' M', 'docs/x')]

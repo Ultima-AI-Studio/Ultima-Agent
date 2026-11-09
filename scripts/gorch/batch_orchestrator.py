@@ -1109,6 +1109,12 @@ def merge(batch_dir, tasks=None, target=None, run_dirs=None, only_tasks=None,
     else:
         targets = list(done)
     if not targets:
+        # r13（第十二轮审计 E1-3）：早退也必须把 trace 归零——调用方若复用同一个
+        # dict（而不是每次新建），上一轮留下的 attempted / not_attempted 会被当作
+        # 本轮结果读走。空批次的事实是"一个都没尝试"，不是"沿用上次"。
+        if trace is not None:
+            trace['attempted'] = []
+            trace['not_attempted'] = []
         return done, [], [], stale
 
     resolved_target = (target or _current_branch()).strip()
@@ -1606,7 +1612,9 @@ def run_all(batch_dir, prompts_dir, max_channels=MAX_CHANNELS, target=None,
         # 时先调用会触发局部名未绑定）。
         steps.setdefault('merge', {'merged': [], 'failed': [], 'not_merged': {}})
         steps.setdefault('cleanup', {'removed': [], 'skipped': [],
-                                     'kept_for_conflict': []})
+                                     'kept_for_conflict': [],
+                                     'kept_for_evidence': [], 'kept_for_proof': [],
+                                     'kept_for_unknown': []})
         return {**base, 'steps': steps, 'stopped_at': at, 'note': note}
 
     if refused:
@@ -1719,9 +1727,14 @@ def run_all(batch_dir, prompts_dir, max_channels=MAX_CHANNELS, target=None,
     # 以及 stale 任务的现场一起清掉了（审计 #8）。空列表 = 一个也不做。
     removed, c_skipped = cleanup(batch_dir, tasks=merged_tasks,
                                  force=force_cleanup, delete_branch=False)
+    # r13（第十二轮审计 E1-4）：`steps['cleanup']` 的外层键集在这里也必须与另外两个
+    # 分支（_stop / 失败四分流 / 未闭合保留）一致——只写 kept_for_conflict 时，按统一
+    # schema 读 `kept_for_proof` 的下游会 KeyError。正常完成时四档均为空列表。
     steps['cleanup'] = {'removed': [r['task'] for r in removed],
                         'skipped': c_skipped,
-                        'kept_for_conflict': []}
+                        'kept_for_conflict': [],
+                        'kept_for_evidence': [], 'kept_for_proof': [],
+                        'kept_for_unknown': []}
 
     partial = [s for s in c_skipped if s.get('partial')] or c_skipped
     if partial:
