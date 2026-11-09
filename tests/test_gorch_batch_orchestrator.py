@@ -293,3 +293,238 @@ def test_execute_fails_closed_when_prompt_missing(mod, monkeypatch, tmp_path):
     prompts.mkdir()
     with pytest.raises(SystemExit):
         mod.execute(str(tmp_path), str(prompts))
+
+
+# ============ S6：串行合并与清理 ============
+
+def write_run(runs_root, task, result='done', channel=1):
+    """造一条 codex_channel 落盘的 run 记录。"""
+    d = runs_root / f'{task}-ch{channel}-20261109T000000000000Z'
+    d.mkdir(parents=True)
+    (d / 'codex-channel.json').write_text(
+        json.dumps({'task': task, 'channel': channel, 'result': result,
+                    'exit_code': 0 if result == 'done' else 1}),
+        encoding='utf-8')
+    return d
+
+
+def test_parse_braced_json_handles_multiline(mod):
+    """wt merge 输出是多行 pretty JSON，必须整体截取，不能只取首行。"""
+    text = (
+        'some log line\n'
+        '{\n'
+        '  "merged": true,\n'
+        '  "removed": false,\n'
+        '  "target": "main"\n'
+        '}\n'
+        'trailing log\n'
+    )
+    data = mod._parse_braced_json(text)
+    assert data['merged'] is True
+    assert data['removed'] is False
+
+
+def test_parse_braced_json_returns_none_on_garbage(mod):
+    assert mod._parse_braced_json('no json here') is None
+    assert mod._parse_braced_json('{broken') is None
+
+
+def test_parse_braced_json_ignores_braces_in_log_text(mod):
+    """真实 wt 输出是「日志 + JSON」混合；日志里的花括号不得干扰截取。"""
+    text = (
+        '◎ Merging 1 commit to main @ 031fd1f\n'
+        '  * 031fd1f feat: add func() { return 1; }\n'
+        '✓ Merged to main (1 commit, 1 file, +1)\n'
+        '{\n'
+        '  "branch": "feat1",\n'
+        '  "removed": true\n'
+        '}\n'
+    )
+    data = mod._parse_braced_json(text)
+    assert data == {'branch': 'feat1', 'removed': True}
+
+
+def test_parse_braced_json_parses_remove_array(mod):
+    """实测 wt remove 输出是 JSON 数组，不能被当成内层单个对象。"""
+    text = (
+        '◎ Removing feat2 worktree...\n'
+        '↳ Branch unmerged; to delete, run wt remove -D feat2\n'
+        '[\n'
+        '  {\n'
+        '    "kind": "worktree",\n'
+        '    "branch": "feat2",\n'
+        '    "branch_outcome": "retained_unmerged",\n'
+        '    "branch_checked_out_at": null\n'
+        '  }\n'
+        ']\n'
+    )
+    data = mod._parse_braced_json(text)
+    assert isinstance(data, list)
+    assert data[0]['branch_outcome'] == 'retained_unmerged'
+
+
+def test_find_done_tasks_only_counts_done(mod, monkeypatch, tmp_path):
+    write_task(tmp_path, 1)
+    write_task(tmp_path, 2)
+    runs = tmp_path / 'runs'
+    write_run(runs, '1', result='done')
+    write_run(runs, '2', result='done')
+    write_run(runs, '2', result='blocked', channel=2)   # 较新的阻塞记录
+    monkeypatch.setattr(mod, 'RUNS', runs)
+    done = mod.find_done_tasks(str(tmp_path))
+    assert set(done) == {'1', '2'}
+    # 取到的是 done 那条，而不是跳过它去信 blocked
+    assert done['1'].endswith('codex-channel.json')
+
+
+def test_find_done_tasks_excludes_blocked_only(mod, monkeypatch, tmp_path):
+    write_task(tmp_path, 1)
+    runs = tmp_path / 'runs'
+    write_run(runs, '1', result='blocked')
+    monkeypatch.setattr(mod, 'RUNS', runs)
+    assert mod.find_done_tasks(str(tmp_path)) == {}
+
+
+def test_merge_is_serial_and_stops_on_failure(mod, monkeypatch, tmp_path):
+    """两个任务都完成，但第一个合并失败——第二个绝不能被合并。"""
+    write_task(tmp_path, 1)
+    write_task(tmp_path, 2)
+    runs = tmp_path / 'runs'
+    write_run(runs, '1')
+    write_run(runs, '2')
+    monkeypatch.setattr(mod, 'RUNS', runs)
+
+    calls = []
+
+    def fake_wt_merge(branch, target=None):
+        calls.append(branch)
+        if len(calls) == 1:
+            return _FakeResult(1, 'CONFLICT (add/add): Merge conflict in x.py')
+        return _FakeResult(0, json.dumps({'merged': True, 'removed': True}))
+
+    monkeypatch.setattr(mod, 'wt_merge', fake_wt_merge)
+    done, merged, failed = mod.merge(str(tmp_path))
+    assert calls == ['gorch/1']                 # 只调了一次，串行且失败即停
+    assert merged == []
+    assert failed[0]['task'] == '1'
+    assert failed[0]['returncode'] == 1
+    assert 'CONFLICT' in failed[0]['stdout']
+
+
+def test_merge_all_sequential_order(mod, monkeypatch, tmp_path):
+    write_task(tmp_path, 1)
+    write_task(tmp_path, 2)
+    runs = tmp_path / 'runs'
+    write_run(runs, '1')
+    write_run(runs, '2')
+    monkeypatch.setattr(mod, 'RUNS', runs)
+    calls = []
+
+    def fake_wt_merge(branch, target=None):
+        calls.append(branch)
+        return _FakeResult(0, json.dumps({'merged': True, 'removed': True}))
+
+    monkeypatch.setattr(mod, 'wt_merge', fake_wt_merge)
+    done, merged, failed = mod.merge(str(tmp_path))
+    assert calls == ['gorch/1', 'gorch/2']      # 严格串行，不是并发
+    assert [m['task'] for m in merged] == ['1', '2']
+    assert failed == []
+
+
+def test_merge_refuses_task_without_done_record(mod, monkeypatch, tmp_path):
+    write_task(tmp_path, 1)
+    write_task(tmp_path, 2)
+    runs = tmp_path / 'runs'
+    write_run(runs, '1', result='done')
+    write_run(runs, '2', result='blocked')
+    monkeypatch.setattr(mod, 'RUNS', runs)
+    with pytest.raises(SystemExit):
+        mod.merge(str(tmp_path), tasks=['1', '2'])
+
+
+def test_merge_fails_closed_on_unparsable_json(mod, monkeypatch, tmp_path):
+    write_task(tmp_path, 1)
+    runs = tmp_path / 'runs'
+    write_run(runs, '1')
+    monkeypatch.setattr(mod, 'RUNS', runs)
+    monkeypatch.setattr(mod, 'wt_merge', lambda *a, **k: _FakeResult(0, 'no json'))
+    with pytest.raises(SystemExit):
+        mod.merge(str(tmp_path))
+
+
+def test_merge_no_done_tasks_is_noop(mod, monkeypatch, tmp_path):
+    write_task(tmp_path, 1)
+    monkeypatch.setattr(mod, 'RUNS', tmp_path / 'runs')
+    called = []
+    monkeypatch.setattr(mod, 'wt_merge', lambda *a, **k: called.append(a))
+    done, merged, failed = mod.merge(str(tmp_path))
+    assert done == {} and merged == [] and failed == []
+    assert called == []
+
+
+def test_cleanup_skips_when_worktree_missing(mod, monkeypatch, tmp_path):
+    write_task(tmp_path, 1)
+    monkeypatch.setattr(mod, 'WORKTREE_ROOT', tmp_path / 'wt')
+    removed, skipped = mod.cleanup(str(tmp_path))
+    assert removed == []
+    assert skipped[0]['reason'] == 'worktree 已不存在'
+
+
+def test_cleanup_force_propagates_to_wt_remove(mod, monkeypatch, tmp_path):
+    write_task(tmp_path, 1)
+    wt_root = tmp_path / 'wt'
+    (wt_root / '1').mkdir(parents=True)
+    monkeypatch.setattr(mod, 'WORKTREE_ROOT', wt_root)
+    seen = []
+
+    def fake_wt_remove(branch, force=False, delete_branch=False):
+        seen.append((branch, force, delete_branch))
+        return _FakeResult(0, json.dumps({'removed': True}))
+
+    monkeypatch.setattr(mod, 'wt_remove', fake_wt_remove)
+    mod.cleanup(str(tmp_path), force=True)
+    assert seen == [('gorch/1', True, False)]
+
+
+def test_cleanup_delete_branch_propagates(mod, monkeypatch, tmp_path):
+    """-D 会丢未合并提交，必须只有显式要求才传下去。"""
+    write_task(tmp_path, 1)
+    wt_root = tmp_path / 'wt'
+    (wt_root / '1').mkdir(parents=True)
+    monkeypatch.setattr(mod, 'WORKTREE_ROOT', wt_root)
+    seen = []
+
+    def fake_wt_remove(branch, force=False, delete_branch=False):
+        seen.append((branch, force, delete_branch))
+        return _FakeResult(0, json.dumps([]))
+
+    monkeypatch.setattr(mod, 'wt_remove', fake_wt_remove)
+    mod.cleanup(str(tmp_path), force=True, delete_branch=True)
+    assert seen == [('gorch/1', True, True)]
+
+
+def test_cleanup_records_branch_outcome(mod, monkeypatch, tmp_path):
+    """未合并分支被保留时，回执要如实写明 retained_unmerged。"""
+    write_task(tmp_path, 1)
+    wt_root = tmp_path / 'wt'
+    (wt_root / '1').mkdir(parents=True)
+    monkeypatch.setattr(mod, 'WORKTREE_ROOT', wt_root)
+    payload = json.dumps([{'kind': 'worktree', 'branch': 'gorch/1',
+                           'branch_outcome': 'retained_unmerged'}])
+    monkeypatch.setattr(mod, 'wt_remove', lambda *a, **k: _FakeResult(0, payload))
+    removed, skipped = mod.cleanup(str(tmp_path))
+    assert removed[0]['branch_outcomes'] == ['retained_unmerged']
+
+
+def test_cleanup_reports_failure_without_force(mod, monkeypatch, tmp_path):
+    """脏 worktree 未加 --force 时 wt remove 会失败，必须如实回传而非静默跳过。"""
+    write_task(tmp_path, 1)
+    wt_root = tmp_path / 'wt'
+    (wt_root / '1').mkdir(parents=True)
+    monkeypatch.setattr(mod, 'WORKTREE_ROOT', wt_root)
+    monkeypatch.setattr(
+        mod, 'wt_remove',
+        lambda *a, **k: _FakeResult(1, 'worktree contains untracked changes'))
+    removed, skipped = mod.cleanup(str(tmp_path))
+    assert removed == []
+    assert 'rc=1' in skipped[0]['reason']

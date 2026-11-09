@@ -15,11 +15,15 @@
   python batch_orchestrator.py gate <批次目录>
   python batch_orchestrator.py provision <批次目录>
   python batch_orchestrator.py execute <批次目录> --prompts-dir <prompt目录>
+  python batch_orchestrator.py merge <批次目录> [--tasks T1 T2]
+  python batch_orchestrator.py cleanup <批次目录> [--tasks T1] [--force]
 批次目录约定：只放任务文件，每个 <id>.md 带 frontmatter
   name/status/depends_on/parallel/conflicts_with，同目录引用 <ref>.md。
 provision 先跑 gate，仅对判定“可开工”的任务调 wt 建独立 worktree（幂等）。
 execute 对可开工任务并发调 codex_channel（--workdir 指向各自 worktree），
 执行逻辑全在 codex_channel 内，本文件只做 fan-out/join 与 fail-closed 校验。
+merge 只合“run 记录 result=done”的任务，逐个串行调 wt merge；任一失败即停。
+cleanup 调 wt remove 清残留 worktree/分支，脏目录需显式 --force。
 """
 import argparse
 import json
@@ -44,6 +48,8 @@ BRANCH_PREFIX = 'gorch/'
 # 执行段是现成件（codex_channel.py），本编排只负责并发调用它，不重写执行逻辑。
 CHANNEL_SCRIPT = ROOT / 'scripts' / 'gorch' / 'codex_channel.py'
 MAX_CHANNELS = 3
+# 执行记录目录：merge 阶段据此确认某任务“真的执行完成”，不凭人工记忆。
+RUNS = ROOT / 'data' / 'gorch' / 'runs'
 
 
 def to_bash(path):
@@ -266,6 +272,190 @@ def execute(batch_dir, prompts_dir, max_channels=MAX_CHANNELS, dry_run=False):
     return rows, results
 
 
+def _parse_braced_json(text):
+    """从 wt 的混合输出里取出末尾那段 JSON（对象或数组）。
+
+    实测两种真实格式（都与人类可读日志混在同一个 stdout）：
+      wt merge  → 单个对象 {"branch":"feat1","target":"main","removed":true,...}
+      wt remove → 数组 [{"kind":"worktree","branch":"feat2",
+                        "branch_outcome":"retained_unmerged",...}]
+    所以不能简单用首个 { 到末个 } ——日志里若出现代码花括号会截错位置，
+    数组也会被误当成内层对象。这里要求「整行只有开括号」与「整行只有闭括号」配对。
+    """
+    lines = text.splitlines()
+    for i in range(len(lines) - 1, -1, -1):
+        tail = lines[i].strip()
+        if tail not in ('}', ']'):
+            continue
+        opener = '{' if tail == '}' else '['
+        for j in range(i, -1, -1):
+            if lines[j].strip() == opener:
+                try:
+                    return json.loads('\n'.join(lines[j:i + 1]))
+                except json.JSONDecodeError:
+                    break
+    # 回退：单行 JSON。按末尾字符判断是数组还是对象，否则单行数组会被
+    # 误解析成数组里的内层对象（实测单行 [{"kind":"worktree",...}] 就会这样）。
+    body = text.rstrip()
+    if not body or body[-1] not in ']}':
+        return None
+    opener, closer = ('[', ']') if body[-1] == ']' else ('{', '}')
+    start = text.find(opener)
+    stop = text.rfind(closer)
+    if start < 0 or stop <= start:
+        return None
+    try:
+        return json.loads(text[start:stop + 1])
+    except json.JSONDecodeError:
+        return None
+
+
+def wt_merge(branch, target=None):
+    """调 wt merge 把源分支合进目标分支，合并成功后由 wt 自己清理 worktree。
+
+    参数按 `wt merge --help` 真实用法：--branch 指定源分支、--format json 取结构化结果、
+    -y 免交互、--no-hooks 跳过项目钩子（本仓库未配 pre-merge 钩子）。
+    不传 --no-remove：wt 的第 7 步 cleanup 会删 worktree 与分支（无 commit 时 removed:false）。
+    串行由调用方保证——一次只调一个分支。
+    """
+    cmd = [WT_EXE, '-C', str(ROOT), 'merge']
+    if target:
+        cmd.append(target)
+    cmd += ['--branch', branch, '--format', 'json', '-y', '--no-hooks']
+    try:
+        r = subprocess.run(cmd, capture_output=True, text=True,
+                           encoding='utf-8', errors='replace',
+                           env=_wt_env(), timeout=WT_TIMEOUT)
+    except subprocess.TimeoutExpired:
+        raise SystemExit(f'wt merge 超时 {branch}（{WT_TIMEOUT}s），fail-closed')
+    return r
+
+
+def wt_remove(branch, force=False, delete_branch=False):
+    """调 wt remove 清 worktree。
+
+    -f 只删脏 worktree（含未跟踪/已改文件）；未合并的分支仍会保留
+    （实测回 branch_outcome=retained_unmerged），要连分支一起删必须再用 -D。
+    -D 会丢未合并的提交，属明确危险操作，默认关闭、由调用方显式开启。
+    --foreground 阻塞到删完，避免后台异步导致后续判定读到旧状态。
+    """
+    cmd = [WT_EXE, '-C', str(ROOT), 'remove', branch,
+           '--foreground', '--format', 'json', '-y', '--no-hooks']
+    if force:
+        cmd.append('-f')
+    if delete_branch:
+        cmd.append('-D')
+    try:
+        r = subprocess.run(cmd, capture_output=True, text=True,
+                           encoding='utf-8', errors='replace',
+                           env=_wt_env(), timeout=WT_TIMEOUT)
+    except subprocess.TimeoutExpired:
+        raise SystemExit(f'wt remove 超时 {branch}（{WT_TIMEOUT}s），fail-closed')
+    return r
+
+
+def find_done_tasks(batch_dir):
+    """从 run 记录确认哪些任务执行成功（result=done），每个任务取最新一条。
+
+    只读 JSON 字段做确定性映射，不判断代码质量——“执行成功”以 codex_channel 落盘的
+    result 为准（它已按子进程退出码判定）；没有记录就没有成功，不得凭记忆合并。
+    """
+    batch_dir = pathlib.Path(batch_dir)
+    tasks = sorted(p.stem for p in batch_dir.glob('*.md') if p.is_file())
+    done = {}
+    for task in tasks:
+        hits = sorted(RUNS.glob(f'{task}-ch*/codex-channel.json'),
+                      key=lambda p: p.stat().st_mtime, reverse=True)
+        for h in hits:
+            try:
+                data = json.loads(h.read_text(encoding='utf-8'))
+            except (json.JSONDecodeError, OSError, UnicodeDecodeError):
+                continue
+            if data.get('result') == 'done':
+                done[task] = str(h)
+                break
+    return done
+
+
+def merge(batch_dir, tasks=None):
+    """串行把已完成任务的分支合回主线；任一失败即停，不跳过错继续合下一个。
+
+    冲突时 wt 会把 rebase 留在源 worktree 的未完成态，必须人工 abort 或解决后才能继续；
+    因此这里宁可整批停下并如实回传原始输出，也不在半合并历史上叠加后续分支。
+    """
+    done = find_done_tasks(batch_dir)
+    if tasks:
+        unknown = [t for t in tasks if t not in done]
+        if unknown:
+            raise SystemExit(
+                f'以下任务没有成功执行记录，拒绝合并: {unknown}，fail-closed')
+        targets = list(tasks)
+    else:
+        targets = list(done)
+    if not targets:
+        return done, [], []
+
+    merged, failed = [], []
+    for task in targets:
+        branch = BRANCH_PREFIX + task
+        r = wt_merge(branch)
+        if r.returncode != 0:
+            failed.append({
+                'task': task,
+                'branch': branch,
+                'returncode': r.returncode,
+                'stdout': r.stdout.strip()[-600:],
+                'stderr': r.stderr.strip()[-600:],
+                # 固定提示文案（非判断）：实测冲突时 wt 把 rebase 留在源 worktree
+                # 的未完成态，必须人工 abort/解决后才能继续合下游分支。
+                'hint': ('合并未成功。若为冲突，wt 已把 rebase 留在源 worktree 未完成态；'
+                         '解决后 rebase --continue，或执行 '
+                         'git -C <源worktree> rebase --abort 放弃本次合并再重跑。'
+                         '后续分支已停止，不会自动继续。'),
+            })
+            break
+        data = _parse_braced_json(r.stdout)
+        if data is None:
+            raise SystemExit(
+                f'wt merge 输出无法解析 {task}: {r.stdout.strip()[:400]}，fail-closed')
+        merged.append({'task': task, 'branch': branch,
+                       'result': data, 'run_record': done[task]})
+    return done, merged, failed
+
+
+def cleanup(batch_dir, tasks=None, force=False, delete_branch=False):
+    """清理残留 worktree 与分支（合并失败、空分支、合并后未清干净时兜底）。
+
+    force=True 才会删带未跟踪文件的 worktree（--force 语义）。
+    delete_branch=True 才会强删未合并分支（-D 语义，会丢提交），默认保留。
+    """
+    batch_dir = pathlib.Path(batch_dir)
+    all_tasks = sorted(p.stem for p in batch_dir.glob('*.md') if p.is_file())
+    targets = list(tasks) if tasks else all_tasks
+    removed, skipped = [], []
+    for task in targets:
+        branch = BRANCH_PREFIX + task
+        wt_path = WORKTREE_ROOT / task
+        if not wt_path.is_dir():
+            skipped.append({'task': task, 'branch': branch,
+                            'reason': 'worktree 已不存在'})
+            continue
+        r = wt_remove(branch, force=force, delete_branch=delete_branch)
+        if r.returncode != 0:
+            failed_hint = (r.stdout + r.stderr).strip()[-400:]
+            skipped.append({'task': task, 'branch': branch,
+                            'reason': f'rc={r.returncode} {failed_hint}'})
+            continue
+        data = _parse_braced_json(r.stdout)
+        # wt remove 返回数组；把分支结局原样带出，让人看清分支到底删没删。
+        outcomes = [x.get('branch_outcome') for x in data
+                    if isinstance(x, dict)] if isinstance(data, list) else []
+        removed.append({'task': task, 'branch': branch,
+                        'result': data, 'branch_outcomes': outcomes,
+                        'worktree': str(wt_path)})
+    return removed, skipped
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser(description='GORCH 多通道薄编排（只接线）')
     sub = ap.add_subparsers(dest='cmd', required=True)
@@ -278,6 +468,17 @@ def main(argv=None):
     e.add_argument('--prompts-dir', required=True, help='prompt 文件目录（<id>.md|.txt）')
     e.add_argument('--max-channels', type=int, default=MAX_CHANNELS, help='并发上限（默认 3）')
     e.add_argument('--dry-run', action='store_true', help='透传给 codex_channel，不真起 Codex')
+    m = sub.add_parser('merge', help='串行把已完成任务的分支合回主线（调 wt merge）')
+    m.add_argument('batch_dir', help='批次任务目录（只放 <id>.md）')
+    m.add_argument('--tasks', nargs='*', default=None,
+                   help='只合这些任务（默认合所有 result=done 的）')
+    c = sub.add_parser('cleanup', help='清理残留 worktree 与分支（调 wt remove）')
+    c.add_argument('batch_dir', help='批次任务目录（只放 <id>.md）')
+    c.add_argument('--tasks', nargs='*', default=None, help='只清这些任务')
+    c.add_argument('--force', action='store_true',
+                   help='删除带未跟踪/已改文件的脏 worktree（--force 语义）')
+    c.add_argument('--delete-branch', action='store_true',
+                   help='连未合并分支一起删（-D 语义，会丢提交，默认保留）')
     args = ap.parse_args(argv)
 
     if args.cmd == 'gate':
@@ -308,6 +509,27 @@ def main(argv=None):
              'results': results, 'tasks': rows},
             ensure_ascii=False, indent=2))
         return 0
+
+    if args.cmd == 'merge':
+        done, merged, failed = merge(args.batch_dir, tasks=args.tasks)
+        print(json.dumps(
+            {'batch': str(pathlib.Path(args.batch_dir)),
+             'done_tasks': done, 'merged': merged, 'failed': failed},
+            ensure_ascii=False, indent=2))
+        # 任一分支合并失败（含冲突）即非 0，让上游看到失败而不是“跑完了”。
+        return 0 if not failed else 1
+
+    if args.cmd == 'cleanup':
+        removed, skipped = cleanup(
+            args.batch_dir, tasks=args.tasks, force=args.force,
+            delete_branch=args.delete_branch)
+        print(json.dumps(
+            {'batch': str(pathlib.Path(args.batch_dir)),
+             'removed': removed, 'skipped': skipped},
+            ensure_ascii=False, indent=2))
+        # “worktree 已不存在”属正常；其余 skip 说明 remove 真失败，按失败返回。
+        real_fail = [s for s in skipped if '已不存在' not in s['reason']]
+        return 0 if not real_fail else 1
 
 
 if __name__ == '__main__':

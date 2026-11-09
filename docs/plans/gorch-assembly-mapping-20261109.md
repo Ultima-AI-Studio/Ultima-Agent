@@ -156,10 +156,14 @@ printf 'CONFLICTS:%s\n' "$(active_conflicts <task>.md)"
 | S3 ✅ | 薄编排：按 frontmatter 调 ccpm 原函数选可开工项（fail-closed） | 组装 | 12 条 gate 单测，选出的清单与 ccpm 原函数一致（提交 `59cfd538`） |
 | S4 ✅ | 薄编排：为可开工项调 `wt switch` 建隔离位（幂等，`--base @`） | wt.exe | 真实建 2 worktree 基线正确、幂等 existing、blocked 跳过；5 条单测（提交 `4b744d26`） |
 | S5 ✅ | 通道内调 `codex_channel.py` 执行（现有件，execute 子命令 fan-out/join） | 已落地 | 真实 2 通道并发：各自独立 run-dir、产物落各自 worktree、交叉串单检查均 False；7 条 execute 单测（提交 `7e50634d`，三文件回归 40 passed） |
-| S6 | 薄编排：验收通过后逐个 `wt merge` + `remove` | wt.exe | 故意造一个冲突 frontmatter，在 S3 阶段被拦，不进执行 |
+| S6 ✅ | 薄编排：验收通过后逐个 `wt merge`（串行、失败即停）+ `cleanup` 兜底 | wt.exe | 冲突 frontmatter 在 S3 真实 gate 被拦（`ready:["C"]`，B 判「等待冲突解除」）；真 wt 形态在临时仓库实测：merge 输出「日志+多行 JSON」混合、字段 `branch/target/committed/squashed/rebased/removed`、add/add 冲突 rc=1 且显式 `CONFLICT (add/add)`、主线不污染；remove 输出为**数组**且 `-f` 只删目录、`branch_outcome=retained_unmerged`；单测 24→39 条，三文件回归 **56 passed/37.66s** |
 | S7 | 全量回归 + 打 tag | — | 现有 117 passed 不回归；无 tag 不报完成 |
 
 **S6 的冲突拦截是硬验收**：必须在编排/开工阶段（S3）就拦下，证明冲突不是等到运行期写文件才暴露。
+
+S6 的**第二道**硬验收在合并层：真冲突时 `wt merge` rc=1、显式报 `CONFLICT (add/add)`、rebase 停在源 worktree 未完成态、**主线不前进**，绝不静默成功；编排据此 `break` 并给出人工恢复提示（`rebase --continue` 或 `rebase --abort`）。
+
+**S6 不自动做的事**：`cleanup` 默认只删 worktree 不删分支。`--force` 对应 `-f`（删带未跟踪文件的脏目录），`--delete-branch` 对应 `-D`（强删未合并分支、**会丢提交**），默认关闭。
 
 ---
 

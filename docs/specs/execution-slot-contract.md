@@ -99,7 +99,7 @@
 |---|---|---|---|
 | A：审议链 | `run-gorch.py` → `orchestrate-order.py` → `orchestrator.run_stage` → DeepSeek | 需求 → 理解/拆解 → 工单 → 排程 | 有实现、有调用方；只到 ④ |
 | B：执行链 | `batch_orchestrator.py` → `gate` / `provision` / `execute` → `codex_channel.py` | 开工判定 → 隔离位 → 并发执行 | **S5 已真实跑通** |
-| 合并链 | `batch_orchestrator.py merge/remove` | 串行合并 → 清理 | **S6 未写**，目前手调 `wt merge` |
+| 合并链 | `batch_orchestrator.py` → `merge` / `cleanup` → `wt merge` / `wt remove` | 串行合并 → 清理兜底 | **S6 已完成**（真冲突硬验收：rc=1 显式 CONFLICT、主线不污染） |
 
 **两条路没有接起来**：A 说完话就停，B 自己从 ccpm 读任务开始，中间没有东西把 A 的产出交给 B。这是 **S7（全链路串起来）** 的核心工作，也是"正式八跳一单都没跑过"的直接原因。
 
@@ -127,8 +127,9 @@
 | `model` 硬编码 4 处 | 换 model 要改 4 个文件，易漏改 | 收到 `DEEPSEEK_MODEL` 环境变量一处 |
 | 主脑未接线 | 第 1、4 跳靠人工代做 | S7 前 |
 | 两条路未接 | 无法一单跑完八跳 | S7 |
-| S6 合并编排未写 | 合并靠手调 | S6 |
 | 未接线插槽无 fail-closed | 若静默 fallback 到别的实现，会出现"以为换了其实没换" | 调用未配置插槽必须报错 |
+
+> S6（合并编排）已于 2026-11-09 落地：`merge` 串行合并、失败即停并附人工恢复提示；`cleanup` 兜底清 worktree，`-D` 强删未合并分支默认关闭。原「S6 合并编排未写」一条已关闭。
 
 ---
 

@@ -19,7 +19,7 @@
 
   <div class="level2">▶ ① 现在在跑
     <div class="level3"><b style="color:#fbbf24;">当前无在跑任务</b>｜上一单 <span class="wo-tag live">wo-ultimaagent-20261108-0031</span> 已于 2026-11-08 完成闭环并冻结 ｜ tag <b>wo-ultimaagent-20261108-0031-frozen-20261108</b></div>
-    <div class="level3"><b style="color:#34d399;">刚完成：G-ORCH S5 多通道并发执行</b>｜commit <b>7e50634d</b>｜真实 2 通道并发跑通、产物隔离、回执不串 ｜ 角色可替换边界成独立契约 <b>docs/specs/execution-slot-contract.md</b> ｜ 下一步 S6 串行 merge</div>
+    <div class="level3"><b style="color:#34d399;">刚完成：G-ORCH S6 合并编排</b>｜真实 wt 冲突硬验收通过（rc=1 显式 CONFLICT、主线不污染）｜单测 24→39，三文件回归 <b>56 passed</b> ｜ 角色可替换边界已成独立契约 <b>docs/specs/execution-slot-contract.md</b> ｜ 下一步：给插槽加适配器层（S-REVIEW/S-EXEC）</div>
     <div class="level3">0031 交付：JSON Schema + validator + 派发前 DoR 硬门 + 通用冻结门（dry-run）｜ 24 passed 独立复现 ｜ REVISE 补票已完成（工单补 OSS 排查段、0030 打 T0–T2 冻结 tag）</div>
     <div class="level3"><b style="color:#fca5a5;">⚠ 仍无自动接力</b>：下一单不会自己起来——必须人工从 ② 队列挑一单派发。这是当前唯一"队列不会自己动"的缺口</div>
   </div>
@@ -192,7 +192,7 @@ setInterval(()=>{ if(window.ULTIMA_LIVE && window.ULTIMA_LIVE.focus && window.UL
     <div class="level3"><span class="wo-tag num">wo-ultimaagent-20261029-0001</span>• 全局队列登记器 GlobalQueueRegistrar（queue.py 461 行，写 md 主表）：100% ✅</div>
     <div class="level3"><span class="wo-tag todo">待立项</span>• Agent实例池、上下文隔离：0%</div>
     <div class="level3"><span class="wo-tag todo">待立项</span>• MessageBus 本地消息总线、持久化（ultima_bus 仍为空壳）：0%</div>
-    <div class="level3"><span class="wo-tag none">无工单 · 主脑直做</span>• G-ORCH 多通道并发编排（照搬 ccpm + worktrunk，零自研算法）：<b>S1–S5 已提交</b>（gate/provision/execute 真实 2 通道并发跑通，三文件回归 40 passed）；<b>S6 合并编排、S7 全链路未做</b>：约 60%</div>
+    <div class="level3"><span class="wo-tag none">无工单 · 主脑直做</span>• G-ORCH 多通道并发编排（照搬 ccpm + worktrunk，零自研算法）：<b>S1–S6 已提交</b>（gate/provision/execute 真实 2 通道并发跑通；merge/cleanup 含真实冲突硬验收，三文件回归 56 passed）；<b>S7 全链路未做</b>：约 70%</div>
   </div>
   <div class="level2">
     ▶ 台账与执行看板（吸收 Manager） <span class="tag-pending">0% 待启动</span>
