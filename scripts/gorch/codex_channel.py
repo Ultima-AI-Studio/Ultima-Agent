@@ -1,18 +1,17 @@
 #!/usr/bin/env python3
-"""GORCH Codex 通道执行器 —— 六部的执行体。
+"""GORCH 流水线 · Codex 执行段。
 
-把 edict 里「让 LLM 自己写代码」的六部（hubu/libu/bingbu/xingbu/gongbu/libu_hr），
-替换为「由 Codex 写代码，通道只负责接单与回写看板」。
-角色名、看板契约、状态机全部沿用 edict 原文，不新增状态、不改 AGENT_POLICY。
+流水线只有一个执行段：接单 → 起 Codex → 回写 → 交复检。
+不设角色分工、不写角色提示词；通道号 1–6 只用于并发时区分各自的 run-dir 与 flow 标签。
 
-三方来源（均为复用，非自研）：
-  通道契约 state/flow/progress/todo/done/block   → edict agents/<dept>/SOUL.md 原文
-  Codex 可执行体解析                             → scripts/dispatch-work-order.py:40-45 / :143
-  Codex 调用命令行                               → scripts/dispatch-work-order.py:491-494
+复用（未自研）：
+  Codex 可执行体解析 → scripts/dispatch-work-order.py:40-45 / :143
+  Codex 调用命令行     → scripts/dispatch-work-order.py:491-494
+  看板状态机与并发写锁 → scripts/gorch/kanban_update.py（edict 移植，本轮未改）
 
 用法：
-  python codex_channel.py --task GORCH-001 --dept bingbu --prompt 工单.md
-  python codex_channel.py --task GORCH-001 --dept bingbu --prompt - --dry-run
+  python codex_channel.py --task GORCH-001 --prompt 工单.md
+  python codex_channel.py --task GORCH-001 --channel 3 --prompt - --dry-run
 """
 import argparse
 import glob as _glob
@@ -38,17 +37,13 @@ _CODEX_EXE_GLOBS = (
     r'C:\Users\*\AppData\Local\Programs\*\codex.exe',
 )
 
-# edict 的 AGENT_POLICY 给六部只开了 progress/todo/done/block/memory/task-memo/
-# delegate-result，没有 state 与 flow；但六部的 SOUL.md 又要求执行体自己调
-# state/flow。这是 edict 自身的权限不一致。执行器用未注册身份，走
-# _check_permission 的「未注册不拦截」分支，同时审计日志仍能记到通道名。
+# 看板的 AGENT_POLICY 没有给执行位开放 state/flow，只有 progress/todo/done/block。
+# 用未注册身份走 _check_permission 的「未注册不拦截」分支，审计日志仍记到通道名。
 CHANNEL_AGENT_ID = 'codex-channel'
 
 PLAN_OPEN = '接单✅|调Codex🔄|执行|自检|回写'
 PLAN_DONE = '接单✅|调Codex✅|执行✅|自检✅|回写✅'
 PLAN_FAIL = '接单✅|调Codex✅|执行|自检|回写🚫'
-
-DEPTS = ('hubu', 'libu', 'bingbu', 'xingbu', 'gongbu', 'libu_hr')
 
 
 def resolve_codex_exe():
@@ -69,7 +64,7 @@ def now_stamp():
 
 
 def kanban(*args, check=True):
-    """所有看板操作走 CLI 契约，不直接读写 JSON —— 这是六部 SOUL.md 的强制要求。"""
+    """看板操作一律走 CLI，不直接读写 JSON。"""
     env = dict(os.environ)
     env['ULTIMA_AGENT_ID'] = CHANNEL_AGENT_ID
     env['PYTHONIOENCODING'] = 'utf-8'
@@ -95,18 +90,19 @@ def run_codex(codex, prompt_bytes, workdir, last_msg, effort, timeout):
     started = time.monotonic()
     proc = subprocess.run(
         cmd, input=prompt_bytes, capture_output=True, timeout=timeout,
-        creationflags=0x08000000,  # CREATE_NO_WINDOW：通道后台跑，不弹窗
+        creationflags=0x08000000,  # CREATE_NO_WINDOW
     )
     return proc, time.monotonic() - started
 
 
 def main(argv=None):
-    ap = argparse.ArgumentParser(description='GORCH Codex 通道执行器（六部执行体）')
+    ap = argparse.ArgumentParser(description='GORCH 流水线 Codex 执行段')
     ap.add_argument('--task', required=True, help='看板任务号')
-    ap.add_argument('--dept', required=True, choices=DEPTS, help='通道（edict 六部原名）')
+    ap.add_argument('--channel', type=int, default=1, choices=range(1, 7),
+                    help='通道号 1–6，并发时区分 run-dir 与 flow 标签')
     ap.add_argument('--prompt', required=True, help='工单文件路径，- 表示从 stdin 读')
     ap.add_argument('--workdir', default=str(ROOT), help='Codex 工作目录（并发时传各自 worktree）')
-    ap.add_argument('--run-dir', default='', help='通道运行目录，默认 data/gorch/runs/<task>-<ts>')
+    ap.add_argument('--run-dir', default='', help='运行目录，默认 data/gorch/runs/<task>-ch<N>-<ts>')
     ap.add_argument('--effort', default='high', choices=('low', 'medium', 'high'))
     ap.add_argument('--timeout', type=int, default=3600)
     ap.add_argument('--dry-run', action='store_true', help='只走看板流程，不真起 Codex')
@@ -117,7 +113,9 @@ def main(argv=None):
         print(f'看板脚本不存在: {KANBAN}', file=sys.stderr)
         return 2
 
-    run_dir = pathlib.Path(args.run_dir) if args.run_dir else RUNS / f'{args.task}-{now_stamp()}'
+    label = f'通道{args.channel}'
+    run_dir = (pathlib.Path(args.run_dir) if args.run_dir
+               else RUNS / f'{args.task}-ch{args.channel}-{now_stamp()}')
     run_dir.mkdir(parents=True, exist_ok=True)
 
     if args.prompt == '-':
@@ -131,22 +129,22 @@ def main(argv=None):
 
     codex = None if args.dry_run else resolve_codex_exe()
     if not args.dry_run and not codex:
-        kanban('block', args.task, 'Codex 执行器未找到（检查 ULTIMA_CODEX_EXE / PATH）', check=False)
-        print('Codex 执行器未找到', file=sys.stderr)
+        kanban('block', args.task, 'Codex 执行段未找到（检查 ULTIMA_CODEX_EXE / PATH）', check=False)
+        print('Codex 执行段未找到', file=sys.stderr)
         return 3
 
     record = {
-        'task': args.task, 'dept': args.dept, 'run_dir': str(run_dir),
+        'task': args.task, 'channel': args.channel, 'run_dir': str(run_dir),
         'prompt_sha256': hashlib.sha256(prompt_bytes).hexdigest(),
         'codex': codex, 'workdir': args.workdir,
         'dry_run': args.dry_run, 'started_at': datetime.now(timezone.utc).isoformat(),
     }
 
     # 1) 接单（任务已在 Doing 时这次 state 会被状态机拒绝，幂等处理不中断）
-    enter = kanban('state', args.task, 'Doing', f'{args.dept} 开始执行', check=False)
+    enter = kanban('state', args.task, 'Doing', f'{label} 开始执行', check=False)
     record['already_doing'] = '非法状态转换' in (enter.stdout + enter.stderr)
-    kanban('flow', args.task, args.dept, args.dept, '▶️ 开始执行')
-    kanban('progress', args.task, f'{args.dept} 接单，准备调用 Codex', PLAN_OPEN)
+    kanban('flow', args.task, label, label, '▶️ 开始执行')
+    kanban('progress', args.task, f'{label} 接单，准备调用 Codex', PLAN_OPEN)
 
     # 2) 执行
     ok = False
@@ -174,11 +172,10 @@ def main(argv=None):
             summary = f'Codex 超时（>{args.timeout}s）'
             ok = False
 
-    # 3) 回写
+    # 3) 回写（done 自身已写一条 →复检 的 flow，这里不再重复）
     if ok:
-        kanban('progress', args.task, f'{args.dept} 已产出，交门下省复检', PLAN_DONE)
+        kanban('progress', args.task, f'{label} 已产出，交复检', PLAN_DONE)
         kanban('done', args.task, str(run_dir), summary or '完成，无末段消息')
-        kanban('flow', args.task, args.dept, '门下省', f'✅ 完成：{(summary or "已产出")[:100]}')
     else:
         err_tail = ''
         for name in ('stderr.log', 'out.log'):
@@ -188,16 +185,16 @@ def main(argv=None):
                 if err_tail:
                     break
         reason = f'Codex 退出码 {record.get("exit_code")}：{err_tail or summary or "无输出"}'
-        kanban('progress', args.task, f'{args.dept} 执行失败，已上报', PLAN_FAIL)
+        kanban('progress', args.task, f'{label} 执行失败，已上报', PLAN_FAIL)
         kanban('block', args.task, reason)
-        kanban('flow', args.task, args.dept, '尚书省', f'🚫 阻塞：{reason[:100]}')
+        kanban('flow', args.task, label, '派发', f'🚫 阻塞：{reason[:100]}')
 
     record['finished_at'] = datetime.now(timezone.utc).isoformat()
     record['result'] = 'done' if ok else 'blocked'
     (run_dir / 'codex-channel.json').write_text(
         json.dumps(record, ensure_ascii=False, indent=2), encoding='utf-8')
 
-    print(json.dumps({'task': args.task, 'dept': args.dept,
+    print(json.dumps({'task': args.task, 'channel': args.channel,
                       'result': record['result'], 'run_dir': str(run_dir)},
                      ensure_ascii=False))
     return 0 if ok else 1

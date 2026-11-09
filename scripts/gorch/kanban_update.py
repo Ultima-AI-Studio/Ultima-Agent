@@ -75,10 +75,10 @@ def _load_canonical_transitions() -> dict:
 
 
 STATE_ORG_MAP = {
-    'Taizi': '太子', 'Zhongshu': '中书省', 'Menxia': '门下省',
-    'Assigned': '尚书省', 'Next': '尚书省',
-    'Doing': '执行中', 'Review': '尚书省', 'Done': '完成', 'Blocked': '阻塞',
-    'PendingConfirm': '尚书省', 'Pending': '中书省',
+    'Taizi': '分拣', 'Zhongshu': '规划', 'Menxia': '审批',
+    'Assigned': '已派发', 'Next': '排队',
+    'Doing': '执行中', 'Review': '复检', 'Done': '完成', 'Blocked': '阻塞',
+    'PendingConfirm': '待确认', 'Pending': '待受理',
 }
 
 _STATE_AGENT_MAP = {
@@ -92,16 +92,21 @@ _STATE_AGENT_MAP = {
 }
 
 _ORG_AGENT_MAP = {
+    # 旧显示名：历史任务数据与既有 flow_log 仍是这些词，保留以便反查
     '礼部': 'libu', '户部': 'hubu', '兵部': 'bingbu',
     '刑部': 'xingbu', '工部': 'gongbu', '吏部': 'libu_hr',
     '中书省': 'zhongshu', '门下省': 'menxia', '尚书省': 'shangshu',
+    # 新显示名：与 STATE_ORG_MAP / _AGENT_LABELS 对齐
+    '分拣': 'taizi', '规划': 'zhongshu', '审批': 'menxia',
+    '派发': 'shangshu', '复检': 'shangshu',
+    '待确认': 'shangshu', '待受理': 'zhongshu',
 }
 
 _AGENT_LABELS = {
-    'main': '太子', 'taizi': '太子',
-    'zhongshu': '中书省', 'menxia': '门下省', 'shangshu': '尚书省',
-    'libu': '礼部', 'hubu': '户部', 'bingbu': '兵部', 'xingbu': '刑部',
-    'gongbu': '工部', 'libu_hr': '吏部', 'zaochao': '钦天监',
+    'main': '分拣', 'taizi': '分拣',
+    'zhongshu': '规划', 'menxia': '审批', 'shangshu': '派发',
+    'libu': '执行1', 'hubu': '执行2', 'bingbu': '执行3', 'xingbu': '执行4',
+    'gongbu': '执行5', 'libu_hr': '执行6', 'zaochao': '巡检',
 }
 
 MAX_PROGRESS_LOG = 100  # 单任务最大进展日志条数
@@ -301,7 +306,7 @@ def cmd_create(task_id, title, state, org, official, remark=None):
         print(f'[看板] 拒绝创建：{reason}', flush=True)
         return
     actual_org = STATE_ORG_MAP.get(state, org)
-    clean_remark = _sanitize_remark(remark) if remark else f"下旨：{title}"
+    clean_remark = _sanitize_remark(remark) if remark else f"创建：{title}"
     def modifier(tasks):
         existing = next((t for t in tasks if t.get('id') == task_id), None)
         if existing:
@@ -314,9 +319,9 @@ def cmd_create(task_id, title, state, org, official, remark=None):
         tasks.insert(0, {
             "id": task_id, "title": title, "official": official,
             "org": actual_org, "state": state,
-            "now": clean_remark[:60] if remark else f"已下旨，等待{actual_org}接旨",
+            "now": clean_remark[:60] if remark else f"已创建，等待{actual_org}处理",
             "eta": "-", "block": "无", "output": "", "ac": "",
-            "flow_log": [{"at": now_iso(), "from": "皇上", "to": actual_org, "remark": clean_remark}],
+            "flow_log": [{"at": now_iso(), "from": "Owner", "to": actual_org, "remark": clean_remark}],
             "updatedAt": now_iso()
         })
         return tasks
@@ -441,7 +446,7 @@ def cmd_flow(task_id, from_dept, to_dept, remark):
 
 
 def cmd_done(task_id, output_path='', summary=''):
-    """执行部门回报完成，任务进入 Review 待尚书省汇总审查。"""
+    """执行段回报完成，任务进入 Review 待复检段审查。"""
     rejected = [False]
     reject_reason = ['']
     def modifier(tasks):
@@ -464,10 +469,10 @@ def cmd_done(task_id, output_path='', summary=''):
         t['state'] = 'Review'
         t['org'] = STATE_ORG_MAP.get('Review', t.get('org', ''))
         t['output'] = output_path
-        t['now'] = summary or '执行已完成，提交尚书省汇总审查'
+        t['now'] = summary or '执行已完成，提交复检'
         t.setdefault('flow_log', []).append({
             "at": now_iso(), "from": from_org,
-            "to": "尚书省", "remark": f"✅ 执行完成，提交审查：{summary or '待尚书省汇总'}"
+            "to": "复检", "remark": f"✅ 执行完成，提交复检：{summary or '待复检'}"
         })
         # 同步设置 outputMeta，避免依赖 refresh_live_data.py 异步补充
         if output_path:
@@ -485,7 +490,7 @@ def cmd_done(task_id, output_path='', summary=''):
         log.warning(f'⚠️ {task_id} done 被拒绝：{reject_reason[0]}')
         _append_audit(task_id, _infer_agent_id_from_runtime(), 'done_rejected', None, 'Review', reject_reason[0])
         return
-    log.info(f'✅ {task_id} 执行完成，已提交尚书省审查')
+    log.info(f'✅ {task_id} 执行完成，已提交复检')
     _append_audit(task_id, _infer_agent_id_from_runtime(), 'done', None, 'Review', summary or '')
 
 
