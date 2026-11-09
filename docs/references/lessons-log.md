@@ -835,7 +835,7 @@
 
 
 
-### L88 · r12：换探针、丢写盘与桩点的六个坑（第十一轮审计「不一致」→ r12）
+### L88 · r12：换探针、丢写盘与桩点的七个坑（第十一轮审计「不一致」→ r12）
 
 1. **补丁脚本中途 `sys.exit` 会静默丢掉前面"成功"的替换**：`patch()` 若边替换边写盘，逐对替换则前几对已落盘；若全部替换完才一次性写盘，任一对断言失败（`count != 1`）就整体退出，**前几对也一起丢**。本次就踩了：codex 第 3 对 `count=0` 退出，导致第 1 对（`_digest` 改 lstat）与第 2 对（status 格式先验）全丢，而脚本输出只显示"到第 3 对才 FAIL"，看起来前两对是好的。修法是：要么每对成功后立即写盘，要么在 `sys.exit` 前把已成功的对打出来；更稳的做法是**改完立刻回读文件验证**（`grep` 目标符号），别信脚本的进度。
 2. **换探针（`os.stat` → `os.lstat`）会让所有桩 `os.stat` / `pathlib.Path.stat` 的旧用例变成假通过**：r12 把 `_path_state` 与 `_digest` 都改到 `lstat` 后，两条既有用例仍在桩 `os.stat` / `pathlib.Path.stat`——用例照旧绿，但它已经不测实现路径了（更糟的是桩的签名不收 `follow_symlinks`，会在 pytest 清理阶段抛 `TypeError`，把失败泄漏到 teardown）。改探针时必须同步扫一遍全部桩点。
@@ -844,3 +844,20 @@
 5. **junction 不能靠 lstat 区分**：`New-Item -ItemType Junction` 可建，但它的 `os.lstat` 返回 `islnk=False / isdir=True / mode 0o40777`——lstat 把它当普通目录。所以"用 lstat 就能识别一切 reparse 残留"是错的；junction 会落 `exists` 走正常删除路径。要识别得看 `FILE_ATTRIBUTE_REPARSE_POINT` 的 `dwReserved0` reparse tag，不是 `S_ISLNK`。
 6. **porcelain `-z` 的两处格式坑**：① 每项必须是 `XY <path>`，第 3 字符是空格；无脑 `item[3:]` 遇到 `R?path`、短项、缺分隔符就截出伪路径。② rename/copy 的**源**是紧随的裸项，判"缺源"要识别 `split('\0')` 末尾那个空串（`i == len(parts) - 1 and not parts[i]`），而不是"没有就算了"；同时**不能**对裸 source 套状态项语法（合法文件名可以任意开头）。
 7. **"内层统一"不等于"外层统一"**：r11 只把 `evidence` 内层 key 集拉齐，`removed` 条目外层仍三种形状；按外层键读的 consumer（`removed[0]['schema_ok']`）在前两个出口会 `KeyError`。统一 schema 的断言必须同时覆盖内外两层，并且外层也要「缺值写 null 而不是省略键」。
+
+### L89 · r13：porcelain `-z` 的三处「看起来已收紧」的漏口与早退不清状态（第十二轮审计「不一致」→ r13）
+
+1. **只拒绝「末位空串」不等于拒绝「空 source」**：`-z` 下 rename 的 source 是紧随的独立项，
+   r12 只判 `i == len(parts) - 1 and not parts[i]`，中间的空项被 `if src:` 顺手放过，
+   于是 `R  docs/in\0\0 M docs/y\0` 返回成功、source 静默丢失——**同一类 fail-open 换了个位置**。
+   收紧成「任何空 source 或缺失都整份失败」才对。
+2. **`-z` 的终止 NUL 是契约的一部分**：输出被截断（管道断开 / 超时半截）时最后一项是半个字符串，
+   按完整结果消费会把截断路径当成真实文件名。非空输出必须 `endswith('\0')`，这条比逐项格式校验更靠前。
+3. **早退分支也要初始化出参**：`merge()` 的 `if not targets: return` 早退不清 `trace`，
+   调用方复用同一个 dict 时会把上一轮的 `attempted / not_attempted` 当本轮结果读走。
+   凡是"出参 via 可变容器"的接口，所有 return 分支都要写一遍。
+4. **统一 schema 必须覆盖"早退 + 正常完成"两个分支**：`steps['cleanup']` 只在失败分支写四档
+   `kept_for_*`，早退与正常完成只写 `kept_for_conflict`，按统一 schema 读的下游就 `KeyError`。
+5. **加强旧用例要让"旧实现必红"**：把 `lstat` 桩成 `S_IFLNK` 还不够——若实现仍是 `os.stat`，
+   普通文件也得 `wrong_type`，用例照绿。要同时把 `os.stat` 桩成 dangling 的
+   `FileNotFoundError`，旧实现才会得到 `absent` 并被记 `removed`，用例才真的能挡回退。
