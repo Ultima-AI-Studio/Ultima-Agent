@@ -165,3 +165,92 @@ $ wt merge --format json -y --no-hooks
   另加「脏基线 `ERR:*` 调 Codex 前就阻断」这一小改。
 - **需要 Owner 定口径（2 项）**：授权写域白名单（Q3-6 剩余）、per-card 例外改由
   manifest 授权（Q3-9）。两项都会改变工单灰度与派发规则。
+
+
+## 八、r6 实现闭环（第五轮审计 7 条清单逐条落地）
+
+> 本轮授权依据（Owner 原话）：「你说的可以直接修的 5 项就可以修了。然后需要我定的
+> 口径就是明确的要表达的是，我不希望在任务执行过程当中参与到任务的授权或者审批。
+> 至于授权写域白名单，如果是我任务审核的 agent 来执行的话我就批准通过。你说的另一个
+> 从卡片自由字段改为编排方授权也是同样的原则」——授权的判断源在 agent 层（编排方签发、
+> 审计方复核），人只在阶段门介入，不在执行期逐次点头。
+
+### 8.1 两条需要 Owner 定口径的事项：落定形态
+
+| 事项 | r6 之前 | r6 落定 |
+|---|---|---|
+| 写域白名单（Q3-6 剩余） | 不存在 | 卡片 frontmatter 的 `writes` 只算**请求**；编排方 `grant_invocation()` 在派发时签发 `RUNS/_invocations/<invocation>.json`；执行端用 `--manifest` 读取，越域即 blocked、不写 done |
+| per-card 例外（Q3-9） | 直接读卡片自由字段 `no_change_allowed` / `allow_non_repo` | 同一条路径：卡片字段按请求处理（`REQUEST_KEYS`，旧名 `LEGACY_REQUEST_KEYS` 同样按请求对待）；授权值只从 manifest 读，缺条目 / 类型不符 / 两布尔非严格 bool 一律 fail-closed |
+| 自相矛盾 | 无判定 | 卡片同时声明 `writes` 与 `no_change_allowed` → 编排方**拒绝签发**，落进 manifest 的 `blocked`；`run_all` 把该卡从 ready 剔除，无剩余任务即停在 gate |
+| 「人在执行期审批」 | 无 | 不设。manifest 的 `policy` 字段逐字记录：卡片只能提请求；授权只由编排方在派发时签发；执行端只读本清单，不读卡片自由字段；人不在执行过程中审批 |
+
+### 8.2 七条清单的落地位置（逐条对齐 §7.3）
+
+1. **结构化终态**：`find_done_tasks` 的 `stale[task]` 带上 `result`；`run_all` 的 `verified`
+   只认 `probe_stale[t]['result'] == 'done_no_merge'`，不再由 reason 子串摘出。
+2. **merge 生效证明**：`merge()` 调 `wt_merge` **前**记 `src_before` 与
+   `merge-base --is-ancestor branch target` 结果（`pre_anc`）；调后三条同时成立才算合入：
+   target tip 前进 + `is-ancestor rc==0` + `(not pre_anc or src_moved)`。`merged` 条目带
+   `source_sha_before/after`、`pre_ancestor`；失败文案改为「wt 报成功但 git 侧未证明本次合入…」。
+3. **删 glob/mtime 授权**：`merge` CLI 新增 `--run-dir TASK=PATH`（`nargs='*'`），不带即
+   `rc=2` 并提示改用 `run`；fallback 整段重写——损坏记录即阻断、`started_at` 必须可解析为
+   UTC、`invocation` 非空、`started_at` 并列（含同一 invocation 多条）即阻断，全无记录返回
+   「无真实执行记录」。
+4. **内容闸 + 脏基线**：`codex_channel` 在执行前基线判定之后、`not_repo` 判定之前新增：
+   `diff_sha` 以 `ERR:` 开头 → `_BaselineUnusable`（调 Codex **之前**就 blocked）；
+   `changed` 分支按 manifest 的 `write_scope` 校验本次新增路径，越域即 `ok=False`，
+   `guard_reason` 写明条数与授权值，并把 `write_scope_check` 落进 record。
+5. **cleanup schema**：`schema_ok` 收紧为「非空 + 元素全 dict + 每条 `branch_outcome` 为非空
+   str」；新增 `unexpected`（outcome 不在 `REMOVED_OUTCOMES={'deleted'}`）；判定顺序改为
+   retained → 非 schema_ok → unexpected → 三处消失才记 removed。
+6. **per-card 例外迁 manifest**：实现为 `grant_invocation()` / `_load_grants()` /
+   `load_authorizations()` / `execute(manifest=)`；`run_all` 在 gate 之后、provision 之前签发
+   并写 `steps['authorizations'] = {manifest, refused, tasks}`。
+7. **回归用例**：新增 15 条，覆盖清单点名的 9 类，见 §8.4。
+
+### 8.3 `wt remove` 回执实测（补 §三 的 merge 实测）
+
+临时仓库 `wtprobe-r5`：`wt remove <branch> --format json -y --no-hooks` 输出是**数组**：
+
+```
+[{"kind":"worktree","branch":"feat/rm2","path":"C:/…/wtprobe-r5.feat-rm2",
+  "branch_outcome":"deleted","branch_checked_out_at":null}]
+```
+
+**没有 `removed` 字段**（与 `wt merge` 无 `merged` 字段同一类坑）。可信成功值只有
+`branch_outcome == "deleted"`；其余值（如 `retained_unmerged`）一律按 partial 处理。
+
+### 8.4 验收（本轮实跑，不是主张）
+
+- 命令：`tools\venv-openjarvis\Scripts\python.exe -m pytest
+  tests/test_gorch_batch_orchestrator.py tests/test_gorch_codex_channel.py -o addopts= -p no:cacheprovider -q`
+- 结果：**108 passed / 39.12s**（batch 81 + channel 27）。
+- 新增 15 条用例，逐条对应审计点名项：
+  `损坏记录 + 旧 done`、`显式 run_dirs={}`、`started_at 非法`、`空 invocation`、
+  `started_at 并列（同 invocation 多条）`、`调用前已是 ancestor 且源未动`、`无关 target 前进`、
+  `cleanup schema 非法但三处已消失`、`reason 含 done_no_merge 被当终态`、
+  `脏基线 ERR（Codex 调用次数=0）`、`越域路径 blocked`、`域内路径 done（正例）`、
+  `manifest 缺本任务`、`manifest 拒签（writes + no_change_allowed 矛盾）`、
+  `manifest 写入 write_scope/enforced`。
+- 测试自净：fixture 默认把 `RUNS` 指到 `tmp_path`，跑测不再向仓库
+  `data/gorch/runs/_invocations` 堆文件（跑测前后该目录文件数均为 0，实测）。
+
+### 8.5 仍未闭合（交给 Owner / 下一轮）
+
+- `done_no_merge` 的**终态名与状态机口径**未书面落定（会牵动契约 v1.3）。
+- 执行前 worktree 是否必须 clean：本轮取「允许脏基线 + 内容级指纹 + 基线 ERR 阻断」，
+  审计主张「拒绝复用脏基线、进显式恢复流程」，两者口径仍不同。
+- 独立 merge CLI 是否保留（现已强制 `--run-dir`）。
+- `run_all` 改动后**未用真实批次重跑**全链（旧卡 `GORCH-RUN-A/B` 会因「无新增」判 blocked，
+  重跑需换新任务名）。
+- `wt merge` 无 `merged` / `wt remove` 无 `removed` 尚未写进规范文档固定为契约基线。
+
+### 8.6 给第六轮审计的提示
+
+1. 本轮 pytest 为本地实跑，**108 passed / 39.12s**，可直接作为通过证据复核。
+2. 重点复核三处新语义：(a) merge 三段式证明里「预已祖先 + 源未动」的判定；
+   (b) `_outside_scope` 的目录前缀与 `*` 匹配边界（`docs/` 与 `docs/reports/` 的包含关系、
+   Windows 反斜杠归一）；(c) manifest 拒签后 `run_all` 的 gate 停止路径。
+3. 已知未做：`git status --porcelain` 不列 ignored 文件，故 ignored 新产物既不会进 fresh、
+   也永远不会被写域校验拦住——审计点名的「明确枚举/拒绝 ignored 新产物」仍未实现。
+   `allow_non_repo` 在非 git 目录下的等价收紧也未覆盖。

@@ -696,3 +696,25 @@
 - **验证**：两模块 `py_compile` 通过；两 gorch 测试 **93 passed / 38.94s**（基线 91，新增 `test_merge_rejects_receipt_without_identity`、`test_merge_rejects_when_git_shows_no_merge`、`test_fingerprint_read_failure_blocks`）。提交 `0190b88c`。
 - **仍未闭合**：写域白名单、ignored 产物、per-card 例外受控 schema（三项涉工单契约，需 Owner 定口径）；独立 merge CLI 未强制 `--run-dir`。
 - **复发**：坑 2 与 L80 坑 1 同类（批量改动后未及时小步验证）
+
+### L82 · 2026-11-09 · r6：收紧判定时，测试桩的语义必须同步收紧
+
+- **坑 1（桩的默认值会掩盖阳性误判）**：`merge` 改成三段式证明后，默认桩
+  `_git_out -> (0,'')` 让「调用前就已经是祖先」恒成立、`_ref_sha` 恒返回同一串让 target 不动，
+  于是所有合并成功用例一起红。桩必须模拟真实时序：`merge-base --is-ancestor` 第一次
+  rc=1（尚未合入）、第二次 rc=0（已合入），SHA 每次调用都变。
+- **坑 2（新代码会调真 subprocess）**：签发 manifest 要记 target，于是 `execute` 调到
+  `_current_branch()` → `subprocess.run`；而执行段用例把 `Popen` 桩成不带 context manager
+  的假对象，直接 `TypeError: '_P' object does not support the context manager protocol`。
+  单测里把 `_current_branch` 一并桩成常量，避免测试打到真实仓库。
+- **坑 3（新落盘点会污染仓库）**：manifest 默认写 `data/gorch/runs/_invocations/`，未隔离时
+  一次跑测就在仓库里堆了 39 个运行期文件（虽被 `.gitignore` 挡住，仍是垃圾）。fixture 默认
+  `RUNS = tmp_path/'runs'` 后，跑测前后文件数都是 0。
+- **坑 4（PowerShell 写补丁脚本的转义）**：here-string 里承载被测源码时，若用普通（非 raw）
+  三引号字符串，源码里的 `\n` 会被解释成真实换行，直接把字面量打断
+  （`SyntaxError: unterminated string literal`）。承载源码必须用 raw 三引号。
+- **坑 5（空数组也能骗过 all()）**：cleanup 的 `schema_ok` 若不写 `bool(items)`，`[]` 会因为
+  `all([])` 为真被判合法；另外测 schema 非法必须让 worktree 目录**先存在**、由假 `wt_remove`
+  删掉再返回坏回执——否则走的是「三处均已不存在」那条分支，根本到不了 schema 校验。
+- **口径**：审计点名的 9 类回归用例全部补齐，合跑 **108 passed / 39.12s**（batch 81 + channel 27）。
+  仍未做：ignored 新产物的显式枚举（`git status` 不列 ignored，等于永远不越域）。
