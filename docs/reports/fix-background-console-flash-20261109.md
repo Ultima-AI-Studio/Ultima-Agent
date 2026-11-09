@@ -60,6 +60,21 @@ powershell.exe  $p=Get-Process -Id 34552   ← 窗口 3
 | 脚本内 PowerShell 残留 | grep 仅剩 docstring 说明文字，无调用 |
 | 独立 probe 对比 ctypes 与旧法 | ctypes 返回正确启动时间（对 `$PID` 校验一致） |
 
+## 后续处置：计划任务已禁用（2026-11-09 19:53）
+
+修复后经 Owner 判断，该任务保留价值过低：它唯一的产物是 `docs/tracker/live-data.js`，唯一消费方是本地看板 `北极星上线任务清单.html`（打开时才读），而"现在哪张工单在跑"这个信息用 5 分钟粒度自动备料并不必要。**已禁用，不是删除**：
+
+- 处置：`Disable-ScheduledTask -TaskName UltimaAgentTrackerLive`，State 由 `Ready` → `Disabled`
+- 禁用前最后一轮 19:51:03 正常写入（证明修复在真实周期上有效，且该轮无任何 powershell 子进程）
+- 任务定义与 `scripts/tracker-live.py` 全部保留，需要时恢复：
+
+  ```powershell
+  Enable-ScheduledTask -TaskName UltimaAgentTrackerLive
+  ```
+
+- 也可随时手动生成一次最新快照：`tools\venv-openjarvis\Scripts\python.exe -B scripts\tracker-live.py`
+- 关闭后看板的"当前焦点任务"会停留在占位文案（页面已注明"live-data.js 未加载不等于任务在跑"），属预期。
+
 ## 遗留
 
 - `powershell.exe` 在我这个沙箱 shell 的 PATH 里不可用（`Get-Command powershell` 无结果），但计划任务环境（svchost → 系统 PATH）可用。这是环境差异，不是缺陷；但说明**"在我这里测不出来"不能推出"不会弹窗"**。
