@@ -81,15 +81,26 @@
 
 ---
 
-## 4. 替换方式：配置点 vs 需改代码
+## 4. 替换方式：全部走适配层配置（2026-11-09 落地）
 
-| 插槽 | 配置点 | 现状 | 换实现要不要改代码 |
+适配层唯一入口：`src/brain/slot_adapter.py`。三个插槽共用一套配置，优先级 **环境变量 > `config/gorch/slots.json` > 内置默认值**；内置默认值就是已跑通的那一套，**不配时行为完全不变**。
+
+| 插槽 | 配置键 | 环境变量 | 换实现要不要改代码 |
 |---|---|---|---|
-| `S-MAIN` | `MAINBRAIN_BASE_URL` / `MAINBRAIN_MODEL`（**尚未建立**） | 8B 未起（18766 无监听、ollama 无模型） | 要：现在没有读取这两个变量的入口 |
-| `S-REVIEW` | `DEEPSEEK_API_BASE`（`config/.env`，已读）· `DEFAULT_MODEL`（4 处各自硬编码） | 可换 base_url；**model 硬编码在 4 个位置**（`orchestrator.py:19`、`audit-work-order.py:58`、`loop/external_executor.py:28`、`interaction.py:395` 写的是 `deepseek-flash`） | 换 model 要改代码（4 处）；换 base_url 不改代码 |
-| `S-EXEC` | `ULTIMA_CODEX_EXE`（可覆盖 exe 路径） | 只能换 codex 的二进制位置 | **换 CLI 类型必须改代码**：`run_codex` 的 cmd 是 codex 专属参数（`-a never` / `exec` / `-m` / `--sandbox` / `--output-last-message`） |
+| `S-MAIN` | `endpoint` / `model` / `enabled` | `GORCH_MAIN_ENDPOINT` · `GORCH_MAIN_MODEL` | **不要**（`enabled=false` 时 `require_main()` fail-closed 报错，取代当前"静默当没有") |
+| `S-REVIEW` | `base_url` / `model` / `api_key_env` / `max_tokens` / `timeout` | `GORCH_REVIEW_BASE_URL` · `GORCH_REVIEW_MODEL` · `GORCH_REVIEW_KEY_ENV` | **不要**。走 OpenAI-compatible `/chat/completions`，DeepSeek / OpenAI / Moonshot / Qwen compatible-mode / vLLM / Ollama 同一形态 |
+| `S-EXEC` | `exe` / `model` / `args_template` / `env` | `GORCH_EXEC_EXE` · `GORCH_EXEC_MODEL` | **不要**。`args_template` 一旦配置就整体替换 argv（占位 `{exe}` `{model}` `{workdir}` `{last_msg}` `{effort}`），换 Claude / Gemini / Qwen / OpenCode 只换模板 |
 
-> 结论：**契约上三插槽都可替换；代码上只有 `S-REVIEW` 的 base_url 和 `S-EXEC` 的 exe 路径能纯配置替换。其余要改代码。**
+配置样例见 `config/gorch/slots.example.json`（含 OpenAI / Moonshot / Qwen / vLLM 与 claude-code 模板示例）。
+
+**接线落点（改了哪几处）**：
+- `orchestrator.py`：`call_deepseek` / `run_stage` / `_request_once` 新增 `base_url`、`api_key` 参数；`api_key` 显式传入优先，未传才回退 `DEEPSEEK_API_KEY`（修复了"model 换了但 key 还是 DeepSeek"的假替换）
+- `scripts/orchestrate-order.py`：从 `review_settings()` 取 model / base_url / api_key / max_tokens / timeout 传进每一次 `run_stage`
+- `scripts/gorch/codex_channel.py`：`resolve_codex_exe()` 先读适配层 `exe`；`run_codex()` 的 `-m` 取适配层 model，配了 `args_template` 则整体换 argv，配了 `env` 则合并进子进程环境
+
+> 结论（更新）：**三插槽换 API / 换 CLI / 换模型，全部不需要改编排代码**，只改配置。已用"本地假端点 + python 冒充 CLI"两条真实链路验证：base_url、model、api key、argv 全部按配置生效。
+
+**尚未覆盖的 4 处 model 硬编码**（不在本适配层路径内，属后续清理）：`scripts/audit-work-order.py:58`、`src/brain/loop/external_executor.py:28`、`src/brain/interaction.py:395`（写的是 `deepseek-flash`，与其余三处不一致）、`libs/memory/mem0/mem0/llms/deepseek.py:37,40`。
 
 ---
 
@@ -122,14 +133,12 @@
 
 | 缺口 | 影响 | 下一步 |
 |---|---|---|
-| 执行位硬编码 codex 命令行 | 换 Claude/Gemini/Qwen CLI 必须改代码 | 加 `S-EXEC` 适配器层；参考 golutra `default_members/*.rs` 的多 CLI 适配**思路**（不复制文件，因 BSL 1.1） |
 | 回执两套结构 | 下游无法用同一套判定处理不同插槽产物 | §3 统一结构落地 |
-| `model` 硬编码 4 处 | 换 model 要改 4 个文件，易漏改 | 收到 `DEEPSEEK_MODEL` 环境变量一处 |
-| 主脑未接线 | 第 1、4 跳靠人工代做 | S7 前 |
+| 主脑未接线 | 第 1、4 跳靠人工代做 | S7 前（适配层已备好接口，`enabled=true` 才放行） |
 | 两条路未接 | 无法一单跑完八跳 | S7 |
-| 未接线插槽无 fail-closed | 若静默 fallback 到别的实现，会出现"以为换了其实没换" | 调用未配置插槽必须报错 |
+| 4 处 model 硬编码不在适配层路径内 | 换 model 时要单独改这 4 个文件 | 收口到 `slot_adapter` 一处（`audit-work-order.py` / `external_executor.py` / `interaction.py` / mem0） |
 
-> S6（合并编排）已于 2026-11-09 落地：`merge` 串行合并、失败即停并附人工恢复提示；`cleanup` 兜底清 worktree，`-D` 强删未合并分支默认关闭。原「S6 合并编排未写」一条已关闭。
+> 已关闭：S6 合并编排（2026-11-09）、执行位 CLI 硬编码、model 硬编码（编排主路径）、未接线插槽无 fail-closed（`require_main()` 现在报错）。
 
 ---
 
@@ -159,3 +168,4 @@
 | 版本 | 日期 | 变更 |
 |---|---|---|
 | v1.0 | 2026-11-09 | 初版：三插槽接口、共同与专项硬边界、回执统一结构、替换方式（配置 vs 改码）、两条路径现状与八跳空档、已知缺口、可机检判定 |
+| v1.1 | 2026-11-09 | 适配层落地：新增 `src/brain/slot_adapter.py`（`config/gorch/slots.json` + 环境变量 + 内置默认值三级），三插槽换 API/CLI/模型全部不需要改码；§4 重写、§5 合并链标 S6 完成、§6 缺口表关闭三项；`call_deepseek`/`run_stage` 增加 `base_url`/`api_key` 显式入参（修复"model 换了 key 没换"的假替换） |

@@ -98,10 +98,11 @@ def _request_once(
     model: str,
     max_tokens: int,
     timeout: float,
+    base_url: str = DEEPSEEK_URL,
 ) -> dict[str, Any]:
     try:
         response = requests.post(
-            DEEPSEEK_URL,
+            base_url,
             headers={
                 "Authorization": f"Bearer {api_key}",
                 "Content-Type": "application/json",
@@ -156,11 +157,18 @@ def call_deepseek(
     model: str = DEFAULT_MODEL,
     max_tokens: int = 4096,
     timeout: float = 60.0,
+    base_url: str = DEEPSEEK_URL,
+    api_key: str | None = None,
 ) -> dict[str, Any]:
-    """Call one isolated DeepSeek conversation and return normalized output."""
+    """Call one isolated DeepSeek conversation and return normalized output.
 
-    api_key = os.environ.get("DEEPSEEK_API_KEY", "").strip()
-    if not api_key:
+    Key resolution is explicit so an adapter can supply another provider's key:
+    the passed ``api_key`` wins, and only when it is absent do we fall back to
+    the historical ``DEEPSEEK_API_KEY`` environment variable.
+    """
+
+    resolved_key = (api_key or os.environ.get("DEEPSEEK_API_KEY", "")).strip()
+    if not resolved_key:
         raise OrchestratorError("DEEPSEEK_API_KEY is required")
 
     retrying = Retrying(
@@ -176,10 +184,11 @@ def call_deepseek(
                 return _request_once(
                     system_prompt,
                     prompt,
-                    api_key=api_key,
+                    api_key=resolved_key,
                     model=model,
                     max_tokens=max_tokens,
                     timeout=timeout,
+                    base_url=base_url,
                 )
     except _RetryableDeepSeekError as exc:
         raise OrchestratorError(f"DeepSeek request failed after 3 attempts: {exc}") from exc
@@ -203,6 +212,8 @@ def run_stage(
     model: str = DEFAULT_MODEL,
     max_tokens: int = 4096,
     timeout: float = 60.0,
+    base_url: str = DEEPSEEK_URL,
+    api_key: str | None = None,
 ) -> dict[str, Any]:
     """Run one stage with fresh system context and persist its durable receipt."""
 
@@ -218,6 +229,8 @@ def run_stage(
             model=model,
             max_tokens=max_tokens,
             timeout=timeout,
+            base_url=base_url,
+            api_key=api_key,
         )
         response_text = result["response"]
         if _looks_like_tool_call(response_text):

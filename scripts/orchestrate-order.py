@@ -14,6 +14,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from src.brain.orchestrator import OrchestratorError, run_stage
+from src.brain.slot_adapter import SlotConfigError, review_settings
 
 
 DEFAULT_STAGES = ("decompose", "work_order", "schedule")
@@ -109,8 +110,12 @@ def main(argv: Sequence[str] | None = None) -> int:
             )
             return 0
         _load_env_file()
-        if not os.environ.get("DEEPSEEK_API_KEY", "").strip():
-            raise OrchestratorError("DEEPSEEK_API_KEY is required")
+        review = review_settings()
+        if not review["api_key"]:
+            raise OrchestratorError(
+                f"{review['api_key_env']} is required"
+                f"（S-REVIEW 当前实现 {review['impl']} / {review['base_url']}）"
+            )
         args.run_dir.mkdir(parents=True, exist_ok=True)
         # A rerun intentionally overwrites the prior baseline for this run.
         with (args.run_dir / "requirement.txt").open(
@@ -118,8 +123,17 @@ def main(argv: Sequence[str] | None = None) -> int:
         ) as destination:
             destination.write(requirement)
         for stage in stages:
-            run_stage(stage, requirement, args.run_dir)
-    except (OSError, UnicodeError, ValueError, OrchestratorError) as exc:
+            run_stage(
+                stage,
+                requirement,
+                args.run_dir,
+                model=review["model"],
+                base_url=review["base_url"],
+                api_key=review["api_key"],
+                max_tokens=review["max_tokens"],
+                timeout=review["timeout"],
+            )
+    except (OSError, UnicodeError, ValueError, OrchestratorError, SlotConfigError) as exc:
         print(
             json.dumps(
                 {"blocked": True, "reason": str(exc)}, ensure_ascii=False

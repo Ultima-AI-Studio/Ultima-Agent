@@ -157,6 +157,7 @@ printf 'CONFLICTS:%s\n' "$(active_conflicts <task>.md)"
 | S4 ✅ | 薄编排：为可开工项调 `wt switch` 建隔离位（幂等，`--base @`） | wt.exe | 真实建 2 worktree 基线正确、幂等 existing、blocked 跳过；5 条单测（提交 `4b744d26`） |
 | S5 ✅ | 通道内调 `codex_channel.py` 执行（现有件，execute 子命令 fan-out/join） | 已落地 | 真实 2 通道并发：各自独立 run-dir、产物落各自 worktree、交叉串单检查均 False；7 条 execute 单测（提交 `7e50634d`，三文件回归 40 passed） |
 | S6 ✅ | 薄编排：验收通过后逐个 `wt merge`（串行、失败即停）+ `cleanup` 兜底 | wt.exe | 冲突 frontmatter 在 S3 真实 gate 被拦（`ready:["C"]`，B 判「等待冲突解除」）；真 wt 形态在临时仓库实测：merge 输出「日志+多行 JSON」混合、字段 `branch/target/committed/squashed/rebased/removed`、add/add 冲突 rc=1 且显式 `CONFLICT (add/add)`、主线不污染；remove 输出为**数组**且 `-f` 只删目录、`branch_outcome=retained_unmerged`；单测 24→39 条，三文件回归 **56 passed/37.66s** |
+| SLOT ✅ | 插槽适配层：`src/brain/slot_adapter.py` + `config/gorch/slots.json`，三插槽换 API / CLI / 模型零改码 | 自建薄适配（照搬业界两类成熟形态：OpenAI-compatible `/chat/completions` + CLI argv 模板；不引入任何框架） | 配置优先级 env > json > 内置默认；`require_main()` 未启用即 fail-closed；21 条单测、两套真实链路验证（假端点换供应商 / python 冒充 CLI）、四文件回归 **77 passed**、`test_orchestrator.py` 原有 8 条无回归 |
 | S7 | 全量回归 + 打 tag | — | 现有 117 passed 不回归；无 tag 不报完成 |
 
 **S6 的冲突拦截是硬验收**：必须在编排/开工阶段（S3）就拦下，证明冲突不是等到运行期写文件才暴露。
@@ -177,7 +178,9 @@ Owner 明确要求：**执行边界不绑定 DeepSeek 与 Codex，不同角色�
 
 契约中已如实标注的现状要点：
 
-- **契约上三插槽都可替换；代码上只有 `S-REVIEW` 的 base_url 与 `S-EXEC` 的 exe 路径能纯配置替换**，其余要改代码（`model` 硬编码 4 处、执行位 cmd 是 codex 专属参数）。
+- ~~**契约上三插槽都可替换；代码上只有 `S-REVIEW` 的 base_url 与 `S-EXEC` 的 exe 路径能纯配置替换**~~ → **2026-11-09 适配层已落地**：`src/brain/slot_adapter.py` + `config/gorch/slots.json`，三插槽换 API / 换 CLI / 换模型全部只改配置。配置样例 `config/gorch/slots.example.json`。
+- 适配层真实验证（两条独立链路，非单测）：①本地假 OpenAI-compatible 端点 → `orchestrate-order.py` 真实跑通，请求落到配置的 `base_url`、请求体 `model=probe-model-7b`、`Authorization: Bearer sk-probe-123`（来自配置的 `api_key_env`）；②把 `args_template` 配成 python 自身冒充 CLI → `run_codex()` 真起子进程、写出 `ok:probe-exec-model`、rc=0。
+- 验证过程中抓到一个**假替换**：首轮 `model` 换了但 `Authorization` 仍是 DeepSeek 真 key，因为 `call_deepseek` 内部硬读 `DEEPSEEK_API_KEY`。已加显式 `api_key` 入参修复并写回归测试。
 - 当前有**两条互不相连的路径**：A 审议链（`run-gorch.py`→`orchestrate-order.py`→DeepSeek，只到 ④ 排程）与 B 执行链（`batch_orchestrator.py` gate/provision/execute→`codex_channel.py`，S5 已跑通）。**接通二者是 S7 的核心工作**。
 
 ---

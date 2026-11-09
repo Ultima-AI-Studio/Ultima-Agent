@@ -29,6 +29,10 @@ ROOT = pathlib.Path(__file__).resolve().parent.parent.parent
 KANBAN = ROOT / 'scripts' / 'gorch' / 'kanban_update.py'
 RUNS = ROOT / 'data' / 'gorch' / 'runs'
 
+# 插槽适配层：S-EXEC 的 exe / model / 参数模板从这里读，换 CLI 不必改本文件。
+sys.path.insert(0, str(ROOT))
+from src.brain.slot_adapter import exec_settings, render_exec_argv  # noqa: E402
+
 # 与 scripts/dispatch-work-order.py:40-45 逐字一致；Codex 升级会改安装位置且不留 alias
 _CODEX_EXE_GLOBS = (
     r'C:\Program Files\WindowsApps\OpenAI.Codex_*\app\resources\codex.exe',
@@ -47,7 +51,15 @@ PLAN_FAIL = '接单✅|调Codex✅|执行|自检|回写🚫'
 
 
 def resolve_codex_exe():
-    """同一逻辑见 scripts/dispatch-work-order.py:143：env → PATH → 四组 glob，按 mtime 取最新。"""
+    """解析执行体路径：适配层配置 → env → PATH → 四组 glob（按 mtime 取最新）。
+
+    前两者是插槽替换入口：配 config/gorch/slots.json 的 S-EXEC.exe 或设
+    GORCH_EXEC_EXE / ULTIMA_CODEX_EXE，就能换成另一个 CLI，不改本文件。
+    后两者沿用 scripts/dispatch-work-order.py:143 的原逻辑，保证零配置行为不变。
+    """
+    configured = exec_settings()['exe']
+    if configured and pathlib.Path(configured).is_file():
+        return configured
     explicit = os.environ.get('ULTIMA_CODEX_EXE', '').strip()
     if explicit and pathlib.Path(explicit).is_file():
         return explicit
@@ -80,17 +92,33 @@ def kanban(*args, check=True):
 
 
 def run_codex(codex, prompt_bytes, workdir, last_msg, effort, timeout):
-    """命令行与 scripts/dispatch-work-order.py:491-494 一致，去掉 --json 流式事件。"""
-    cmd = [
-        codex, '-a', 'never', '-c', f'model_reasoning_effort="{effort}"', 'exec',
-        '-m', 'gpt-5.6-sol', '-C', str(workdir),
-        '--sandbox', 'danger-full-access', '--skip-git-repo-check',
-        '--color', 'never', '--output-last-message', str(last_msg), '-',
-    ]
+    """命令行默认为 codex（与 scripts/dispatch-work-order.py:491-494 一致，去掉 --json 流式事件）。
+
+    适配层配了 S-EXEC.args_template 时，整体改用模板渲染的 argv——这是换
+    Claude / Gemini / Qwen / OpenCode 等 CLI 的唯一入口，调度逻辑不参与。
+    """
+    settings = exec_settings()
+    template = settings['args_template']
+    if template:
+        rendered = render_exec_argv(settings, exe=codex, workdir=str(workdir),
+                                    last_msg=str(last_msg), effort=effort)
+        cmd = rendered if rendered and rendered[0] == codex else [codex, *rendered]
+    else:
+        cmd = [
+            codex, '-a', 'never', '-c', f'model_reasoning_effort="{effort}"', 'exec',
+            '-m', settings['model'], '-C', str(workdir),
+            '--sandbox', 'danger-full-access', '--skip-git-repo-check',
+            '--color', 'never', '--output-last-message', str(last_msg), '-',
+        ]
+    env = None
+    if settings['env']:
+        env = dict(os.environ)
+        env.update(settings['env'])
     started = time.monotonic()
     proc = subprocess.run(
         cmd, input=prompt_bytes, capture_output=True, timeout=timeout,
         creationflags=0x08000000,  # CREATE_NO_WINDOW
+        env=env,
     )
     return proc, time.monotonic() - started
 
