@@ -59,9 +59,18 @@ def _classify_text(text: str, *, work_order: str, exit_code: int) -> ReceiptDeci
     audit_marker = re.search(
         r"\b(?:READY_FOR_DEEPSEEK_AUDIT|READY_FOR_REVIEW)\b", text
     )
-    selfcheck_pass = re.search(
-        r"自检\s*[：:]?\s*(?:PASS|通过)", text, re.IGNORECASE
+    # 自检通过的证据不止「自检 PASS」一种写法：执行端更常写「14 passed」、
+    # 「PYTEST_EXIT_CODE=0」。只认那一条字面文案，会把干完活、只是换了说法的
+    # 回执一律判成 invalid——2026-11-10 核对 ORB-W6/W7 就是这么被误判成 blocked 的。
+    selfcheck_pass = (
+        re.search(r"自检\s*[：:]?\s*(?:PASS|通过)", text, re.IGNORECASE)
+        or re.search(r"PYTEST_EXIT_CODE\s*[=:]\s*0\b", text, re.IGNORECASE)
+        or re.search(r"\b\d+\s+passed\b", text, re.IGNORECASE)
     )
+    # 出现失败计数时，前面的 passed 数字不能当作通过证据。
+    # 注意：不能因为文本里出现 "failed" 就否决——真实回执里既有「修复前 3 failed」
+    # 这种复现记录，也有「28 项历史债」这种沿用结论（ORB-W7 就是这样被二次误伤）。
+    # 本次是否通过由 exit_code 和执行端 READY 声明共同决定，历史失败只在正文里叙述。
     if exit_code == 0 and audit_marker and selfcheck_pass:
         return ReceiptDecision(state="audit", valid=True, format="text")
     return INVALID_RECEIPT
