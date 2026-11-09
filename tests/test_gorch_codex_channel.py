@@ -822,14 +822,17 @@ def test_digest_stat_error_is_not_absent(tmp_path, monkeypatch):
     m = _load()
     p = tmp_path / 'a.txt'
     p.write_text('x', encoding='utf-8')
-    real_stat = pathlib.Path.stat
+    real_stat = m.os.lstat
 
-    def boom(self, *a, **k):
-        if self.name == 'a.txt':
+    # r12（第十一轮审计 E-2）：`_digest` 已改用 `os.lstat`（不跟随 symlink）。
+    # 继续桩 `pathlib.Path.stat` 已不被命中——这条 r9 用例会变成"假通过"，
+    # 所以桩点同步换到 `os.lstat`。
+    def boom(p, *a, **k):
+        if pathlib.Path(p).name == 'a.txt':
             raise PermissionError(13, 'denied')
-        return real_stat(self, *a, **k)
+        return real_stat(p, *a, **k)
 
-    monkeypatch.setattr(pathlib.Path, 'stat', boom)
+    monkeypatch.setattr(m.os, 'lstat', boom)
     assert m._digest(str(tmp_path), 'a.txt') is None
     assert m._digest(str(tmp_path), 'no-such.txt') == 'ABSENT'
 
@@ -897,7 +900,10 @@ def test_digest_reports_non_regular_type(tmp_path):
     assert m._digest(str(tmp_path), 'd') == 'TYPE:dir'
     f = tmp_path / 'f.txt'
     f.write_text('x', encoding='utf-8')
-    assert len(m._digest(str(tmp_path), 'f.txt')) == 64
+    got = m._digest(str(tmp_path), 'f.txt')
+    # r12（第十一轮审计 E-2）：只断言长度时，返回 64 个 'z' 也能过——必须是真 hex。
+    assert len(got) == 64
+    assert all(ch in '0123456789abcdef' for ch in got)
     assert m._digest(str(tmp_path), 'nope') == 'ABSENT'
 
 
@@ -932,3 +938,67 @@ def test_status_rows_handles_staged_rename_target_first(monkeypatch):
     assert ('SRC', 'zzzdocs/secret.md') in codes
     paths = [p for _c, p in rows]
     assert m._outside_scope(paths, ['docs/']) == ['zzzdocs/secret.md']
+
+
+def test_digest_symlink_uses_link_summary_not_absent(monkeypatch, tmp_path):
+    """r12（第十一轮审计 E-2，高）：`Path.stat` 跟随 symlink，dangling symlink 的
+    目标不存在 → ABSENT，而 link 对象本身还在。改用 lstat 后，link→file /
+    link→dir / dangling 一律 `LINK:<sha256(readlink 文本)>`，永不 ABSENT。
+
+    本机实测无 symlink 权限（`os.symlink` 抛 WinError 183/87），故 lstat/readlink 桩化。
+    """
+    import stat as _stat
+    m = _load()
+    names = ('l1', 'l2', 'l3')
+    for n in names:
+        (tmp_path / n).write_text('x', encoding='utf-8')
+    real_lstat = m.os.lstat
+    real_readlink = m.os.readlink
+
+    def fake_lstat(p, *a, **k):
+        if str(p).startswith(str(tmp_path) + chr(92) + 'l'):
+            return m.os.stat_result((_stat.S_IFLNK | 0o777,) + (0,) * 9)
+        return real_lstat(p, *a, **k)
+
+    def fake_readlink(p, *a, **k):
+        return 'target-of-' + str(p).rsplit(chr(92), 1)[-1]
+
+    monkeypatch.setattr(m.os, 'lstat', fake_lstat)
+    monkeypatch.setattr(m.os, 'readlink', fake_readlink)
+    for n in names:
+        got = m._digest(str(tmp_path), n)
+        assert got != 'ABSENT'
+        assert got.startswith('LINK:') and len(got) == 5 + 64
+        assert all(ch in '0123456789abcdef' for ch in got[5:])
+
+
+def test_digest_link_retarget_changes_summary(monkeypatch, tmp_path):
+    """r12：同一 link 指向变了摘要必须变——常量 `TYPE:link` 覆盖不到 retarget。"""
+    import stat as _stat
+    m = _load()
+    (tmp_path / 'lk').write_text('x', encoding='utf-8')
+    monkeypatch.setattr(
+        m.os, 'lstat',
+        lambda p, *a, **k: m.os.stat_result((_stat.S_IFLNK | 0o777,) + (0,) * 9))
+    seen = {'v': 'a'}
+    monkeypatch.setattr(m.os, 'readlink', lambda p, *a, **k: seen['v'])
+    d1 = m._digest(str(tmp_path), 'lk')
+    seen['v'] = 'b'
+    d2 = m._digest(str(tmp_path), 'lk')
+    assert d1 != d2
+    assert d1.startswith('LINK:') and d2.startswith('LINK:')
+
+
+def test_status_rows_rejects_malformed_item(monkeypatch):
+    """r12（第十一轮审计 E-7，中）：porcelain -z 每项必须是 `XY <path>`。此前直接
+    `item[3:]` 切片，畸形项会截出伪路径、把域外删除伪装成域内改动。
+    """
+    m = _load()
+    cases = ('R?docs/x' + chr(0),          # 缺分隔符
+             'M' + chr(0),                  # 短项
+             'R  docs/x' + chr(0))          # rename 缺源项
+    for raw in cases:
+        monkeypatch.setattr(m, '_git_text', lambda w, a, _r=raw: (0, _r))
+        ok, rows, _ig = m._status_rows('w')
+        assert ok is False
+        assert rows == []

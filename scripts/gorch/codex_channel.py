@@ -80,10 +80,16 @@ def _status_rows(workdir):
         i += 1
         if not item:
             continue
+        # r12（第十一轮审计 E-7，中）：porcelain -z 的每项固定是 `XY <path>`，第 3
+        # 个字符必为空格。此前直接 `item[3:]` 切片，畸形项（`R?path`、短项、缺分隔符）
+        # 会把后续 NUL 项错当源路径或截出伪路径，把域外删除伪装成域内改动。
+        # 格式不可信时整份 status 判失败（调用方转 ERR:status），不猜。
+        if len(item) < 4 or item[2] != ' ':
+            return False, [], set()
         code = item[:2]
         path = item[3:]
         if not path:
-            continue
+            return False, [], set()
         if code == '!!':
             ignored.add(path.replace('\\', '/'))
             continue
@@ -91,8 +97,14 @@ def _status_rows(workdir):
         # 工作区侧未暂存 rename 是 ` R`（X 位空格），只看 code[:1] 会漏掉它，
         # 那条紧随的裸源路径就会被当成下一条状态行、`item[3:]` 截掉前三字符，
         # 于是域外源的删除被伪装成一条域内路径（能把越域写放行）。
-        if any(ch in ('R', 'C') for ch in code[:2]) and i < len(parts):
+        if any(ch in ('R', 'C') for ch in code[:2]):
             # -z 下 rename/copy 的**源路径**是紧随其后的独立一项，必须一并保留
+            # r12（第十一轮审计 E-7）：缺源项（末项之后直接结尾，split 只留一个
+            # 空串）是格式不完整，不能"当没有源路径"放过去——那会把 rename 的另一半
+            # 悄悄丢掉。整份 status 判失败，交给调用方 ERR:status。源路径是裸路径
+            # （不带状态码），不能对它套状态项语法（合法文件名可任意开头）。
+            if i >= len(parts) or (i == len(parts) - 1 and not parts[i]):
+                return False, [], set()
             src = parts[i]
             i += 1
             if src:
@@ -178,20 +190,32 @@ def _digest(workdir, rel):
     # （权限、I/O、路径组件不可达）说明**读不到**，不是**没改**——两者都记成 ABSENT
     # 时，脏基线里同一路径两次 stat 失败会得到相同摘要，被 fresh_changes 判成"没变"，
     # 域外不可读改动就被漏检。读不到一律 None，由 worktree_fingerprint 整体标 ERR。
+    # r12（第十一轮审计 E-2，高）：`Path.stat()` **跟随** symlink。dangling symlink
+    # 的目标不存在 → FileNotFoundError → ABSENT，而 link 对象本身还在：基线/后态
+    # 都记 ABSENT 会被判"没变"。改用 `os.lstat` 拿 link 本体，摘要取
+    # `LINK:<sha256(readlink 文本)>`——既不会把存在的 link 记成 ABSENT，又能区分
+    # retarget（指向变了）；常量 `TYPE:link` 对两类变化（目标内容变 / 指向变）都不覆盖。
+    # 口径：此摘要只证明"link 对象与其指向文本没变"，**不**证明目标内容没变；
+    # 目标若在 Git 可见集合内，会由它自己的路径另行取证（报告 §16 残余）。
     try:
-        st = p.stat()
+        st = os.lstat(str(p))
     except FileNotFoundError:
         return 'ABSENT'
     except OSError:
         return None
+    if stat.S_ISLNK(st.st_mode):
+        try:
+            target = os.readlink(str(p))
+        except OSError:
+            return None
+        return 'LINK:' + hashlib.sha256(
+            target.encode('utf-8', 'replace')).hexdigest()
     # r11（第十轮审计 E-2）：**存在但不是普通文件**（目录 / symlink / 特殊文件）
     # 不能与「不存在」共用 ABSENT——两次采样都 ABSENT 会被判"没变"，而"路径还在、
     # 只是类型不对"本来就是另一个事实。给带类型的摘要：它仍是可比较的（类型一变
     # 摘要就变），既不误判"没改"，也不会把整份指纹打成不可用（untracked 目录是常态）。
     if not stat.S_ISREG(st.st_mode):
-        kind = ('dir' if stat.S_ISDIR(st.st_mode)
-                else 'link' if stat.S_ISLNK(st.st_mode) else 'other')
-        return 'TYPE:' + kind
+        return 'TYPE:' + ('dir' if stat.S_ISDIR(st.st_mode) else 'other')
     h = hashlib.sha256()
     try:
         with open(str(p), 'rb') as fh:

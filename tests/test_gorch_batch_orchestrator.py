@@ -576,13 +576,22 @@ def test_merge_refuses_task_without_done_record(mod, monkeypatch, tmp_path):
 
 
 def test_merge_fails_closed_on_unparsable_json(mod, monkeypatch, tmp_path):
+    """r12（第十一轮审计 E-3）：回执不可解析不再 raise SystemExit——那会绕开
+    failed/kind 与结构化 summary，调用方只看到进程退出，拿不到"哪个任务、什么
+    类别、现场有没有被动过"。改为 proof_failure 业务失败（wt 已跑，合并可能发生）。
+    """
     write_task(tmp_path, 1)
     runs = tmp_path / 'runs'
     write_run(runs, '1')
     monkeypatch.setattr(mod, 'RUNS', runs)
     monkeypatch.setattr(mod, 'wt_merge', lambda *a, **k: _FakeResult(0, 'no json'))
-    with pytest.raises(SystemExit):
-        mod.merge(str(tmp_path))
+    trace = {}
+    done, merged, failed, stale = mod.merge(str(tmp_path), trace=trace)
+    assert merged == []
+    assert [f['task'] for f in failed] == ['1']
+    assert failed[0]['kind'] == 'proof_failure'
+    assert trace['attempted'] == ['1']
+    assert trace['not_attempted'] == []
 
 
 def test_merge_no_done_tasks_is_noop(mod, monkeypatch, tmp_path):
@@ -1954,11 +1963,15 @@ def test_merge_rejects_loose_json_types(mod, monkeypatch, tmp_path, field, value
 # --- r11：第十轮审计可直改 1 / 3 / 4 / 5 / 6（E-1 E-3 E-4 E-5 E-6）---
 
 def test_path_state_distinguishes_regular_file_and_unknown(mod, tmp_path, monkeypatch):
-    """r11（第十轮审计 E-1）：存在的**普通文件**不是 absent；读不到才是 unknown。
+    """r11（第十轮审计 E-1）+ r12（第十一轮审计 E-1）：存在的**普通文件**不是
+    absent；读不到才是 unknown；**link 对象**（含 dangling）一律 wrong_type。
 
     r10 用 `is_dir()` 两态，普通文件被记成 absent——worktree 路径被一个文件占据、
     branch 又已删、登记又已清时，cleanup 会把它记成"已清理"，尽管路径还在。
+    r11 用 `os.stat` 仍跟随 symlink：dangling symlink 的目标不存在 → absent，而
+    link 本体还在。r12 改用 lstat，link 一律 wrong_type。
     """
+    import stat as _stat
     d = tmp_path / 'dir'
     d.mkdir()
     f = tmp_path / 'plain.txt'
@@ -1967,10 +1980,22 @@ def test_path_state_distinguishes_regular_file_and_unknown(mod, tmp_path, monkey
     assert mod._path_state(f) == 'wrong_type'
     assert mod._path_state(tmp_path / 'nope') == 'absent'
 
-    def boom(p):
+    # 本机实测无 symlink 权限（`os.symlink` 抛 WinError 183/87），故 lstat 桩化。
+    real_lstat = mod.os.lstat
+
+    def link_only(p, *a, **k):
+        if str(p) == str(f):
+            return mod.os.stat_result((_stat.S_IFLNK | 0o777,) + (0,) * 9)
+        return real_lstat(p, *a, **k)
+
+    monkeypatch.setattr(mod.os, 'lstat', link_only)
+    assert mod._path_state(f) == 'wrong_type'
+    monkeypatch.undo()
+
+    def boom(p, *a, **k):
         raise PermissionError(13, 'denied', str(p))
 
-    monkeypatch.setattr(mod.os, 'stat', boom)
+    monkeypatch.setattr(mod.os, 'lstat', boom)
     assert mod._path_state(f) == 'unknown'
 
 
@@ -1994,7 +2019,7 @@ def test_cleanup_evidence_schema_is_uniform(mod, monkeypatch, tmp_path):
     monkeypatch.setattr(mod, 'WORKTREE_ROOT', wt_root)
     monkeypatch.setattr(mod, '_branch_state', lambda b: 'absent')
     monkeypatch.setattr(mod, '_worktree_registered', lambda p: False)
-    keys = []
+    keys, outers = [], []
 
     b1 = tmp_path / 'b1'
     b1.mkdir()
@@ -2002,6 +2027,7 @@ def test_cleanup_evidence_schema_is_uniform(mod, monkeypatch, tmp_path):
     removed, _s = mod.cleanup(str(b1))
     assert removed and removed[0]['evidence']['exemption'] == 'pre_absent'
     keys.append(set(removed[0]['evidence']))
+    outers.append(set(removed[0]))
 
     b2 = tmp_path / 'b2'
     b2.mkdir()
@@ -2016,6 +2042,7 @@ def test_cleanup_evidence_schema_is_uniform(mod, monkeypatch, tmp_path):
     removed, _s = mod.cleanup(str(b2))
     assert removed and removed[0]['evidence']['exemption'] == 'rc_zero_not_required'
     keys.append(set(removed[0]['evidence']))
+    outers.append(set(removed[0]))
 
     b3 = tmp_path / 'b3'
     b3.mkdir()
@@ -2032,9 +2059,16 @@ def test_cleanup_evidence_schema_is_uniform(mod, monkeypatch, tmp_path):
     removed, _s = mod.cleanup(str(b3))
     assert removed and removed[0]['evidence']['exemption'] == 'rc_zero_confirmed'
     keys.append(set(removed[0]['evidence']))
+    outers.append(set(removed[0]))
 
     assert keys[0] == keys[1] == keys[2]
     assert all('dir_state' in k and 'dir_exists' not in k for k in keys)
+    # r12（第十一轮审计 E-6，中）：r11 只统一了 evidence 内层。按
+    # `removed[0]['schema_ok']` 读的 consumer 在 pre_absent / rc 非零两个出口会
+    # KeyError——removed 条目**外层**也必须同 key 集，缺值显式 None / 空串。
+    assert outers[0] == outers[1] == outers[2]
+    need = {'result', 'schema_ok', 'wt_remove_rc', 'raw_tail'}
+    assert all(need <= k for k in outers)
 
 
 def test_merge_lock_keys_do_not_collide_for_distinct_refs(mod, monkeypatch, tmp_path):
@@ -2087,3 +2121,144 @@ def test_run_all_keeps_evidence_failure_out_of_conflict(mod, monkeypatch, tmp_pa
     assert summary['steps']['cleanup']['kept_for_conflict'] == []
     assert summary['steps']['cleanup']['kept_for_evidence'] == ['1']
     assert cleaned == []
+
+
+def test_cleanup_treats_any_symlink_as_wrong_type(mod, monkeypatch, tmp_path):
+    """r12（第十一轮审计 E-1，高）：`os.stat` 跟随 symlink，dangling symlink 的
+    目标不存在 → FileNotFoundError → 落 absent，而 link 对象本身还在，于是
+    "worktree 路径被 dangling symlink 占据 + branch absent + registration false"
+    仍会被记 removed。改用 lstat 后，任何 link 都必须落 wrong_type。
+
+    本机实测无 symlink 权限（`os.symlink` 抛 WinError 183/87），故 lstat 桩化；
+    link→file / link→dir / dangling 在 lstat 层是同一种 st_mode，行为一致。
+    """
+    import stat as _stat
+    write_task(tmp_path, 1)
+    wt_root = tmp_path / 'wt'
+    wt_root.mkdir()
+    placeholder = wt_root / '1'
+    placeholder.write_text('not a worktree', encoding='utf-8')
+    real_lstat = mod.os.lstat
+
+    def fake_lstat(p, *a, **k):
+        if str(p) == str(placeholder):
+            return mod.os.stat_result((_stat.S_IFLNK | 0o777,) + (0,) * 9)
+        return real_lstat(p, *a, **k)
+
+    monkeypatch.setattr(mod.os, 'lstat', fake_lstat)
+    monkeypatch.setattr(mod, 'WORKTREE_ROOT', wt_root)
+    monkeypatch.setattr(mod, '_branch_state', lambda b: 'absent')
+    monkeypatch.setattr(mod, '_worktree_registered', lambda p: False)
+    removed, skipped = mod.cleanup(str(tmp_path))
+    assert removed == []
+    assert skipped and skipped[0]['partial'] is True
+
+
+def test_merge_records_not_attempted_after_failure(mod, monkeypatch, tmp_path):
+    """r12（第十一轮审计 E-5，中）：首条失败即 break，后续任务既不在 merged 也不在
+    failed，现场归属不明。attempted / not_attempted 必须由 merge 如实回传。
+    """
+    runs = tmp_path / 'runs'
+    runs.mkdir()
+    monkeypatch.setattr(mod, 'RUNS', runs)
+    done = {t: {'task': t, 'result': 'done'} for t in ('1', '2', '3')}
+    monkeypatch.setattr(mod, 'find_done_tasks', lambda *a, **k: (done, {}))
+    monkeypatch.setattr(mod, '_ref_sha', lambda ref: 'a' * 40)
+
+    def fake_git(args, *a, **k):
+        if list(args)[:1] == ['rev-parse']:
+            return 1, ''
+        return 0, ''
+
+    monkeypatch.setattr(mod, '_git_out', fake_git)
+    trace = {}
+    _done, merged, failed, stale = mod.merge(str(tmp_path), tasks=['1', '2', '3'],
+                                             target='main', trace=trace)
+    assert merged == []
+    assert [f['task'] for f in failed] == ['1']
+    assert failed[0]['kind'] == 'evidence_failure'
+    assert trace['attempted'] == ['1']
+    assert trace['not_attempted'] == ['2', '3']
+
+
+def _run_all_with_merge_failure(mod, monkeypatch, tmp_path, entry):
+    write_task(tmp_path, 1)
+    runs = tmp_path / 'runs'
+    d1 = write_run(runs, '1')
+    monkeypatch.setattr(mod, 'RUNS', runs)
+    monkeypatch.setattr(mod, 'WORKTREE_ROOT', tmp_path / 'wt')
+    prompts = tmp_path / 'prompts'
+    prompts.mkdir()
+    (prompts / '1.txt').write_text('p', encoding='utf-8')
+    monkeypatch.setattr(mod, 'gate_check', lambda d: [{'task': '1', 'verdict': '可开工'}])
+    monkeypatch.setattr(mod, 'provision', lambda d, tasks=None: ([], [], []))
+    monkeypatch.setattr(mod, 'execute', lambda *a, **k: ([], [
+        {'task': '1', 'channel': 1, 'returncode': 0, 'run_dir': str(d1)}]))
+    monkeypatch.setattr(mod, 'find_done_tasks',
+                        lambda *a, **k: ({'1': {'task': '1', 'result': 'done'}}, {}))
+
+    def fake_merge(*a, **k):
+        k.get('trace', {}).update({'attempted': ['1'], 'not_attempted': []})
+        return {}, [], [entry], {}
+
+    monkeypatch.setattr(mod, 'merge', fake_merge)
+    cleaned = []
+    monkeypatch.setattr(mod, 'cleanup', lambda *a, **k: (cleaned.append(1) or ([], [])))
+    summary = mod.run_all(str(tmp_path), str(prompts), max_channels=1,
+                          invocation='inv-test')
+    assert summary['stopped_at'] == 'merge'
+    assert cleaned == []
+    return summary
+
+
+def test_run_all_keeps_proof_failure_out_of_conflict(mod, monkeypatch, tmp_path):
+    """r12（第十一轮审计 E-4，中）：proof_failure 的现场通常没有 rebase 可 abort，
+    不能并进 kept_for_conflict 把下游引去解决不存在的冲突。
+    """
+    summary = _run_all_with_merge_failure(
+        mod, monkeypatch, tmp_path, {'task': '1', 'kind': 'proof_failure'})
+    cleanup = summary['steps']['cleanup']
+    assert cleanup['kept_for_proof'] == ['1']
+    assert cleanup['kept_for_conflict'] == []
+    assert cleanup['kept_for_evidence'] == []
+    assert cleanup['kept_for_unknown'] == []
+
+
+def test_run_all_keeps_unknown_kind_separate(mod, monkeypatch, tmp_path):
+    """r12：未知 kind（failed 里缺 kind）必须单列并 fail-closed，不得默认归冲突。"""
+    summary = _run_all_with_merge_failure(
+        mod, monkeypatch, tmp_path, {'task': '1'})
+    cleanup = summary['steps']['cleanup']
+    assert cleanup['kept_for_unknown'] == ['1']
+    assert cleanup['kept_for_conflict'] == []
+    assert cleanup['kept_for_proof'] == []
+
+
+def test_merge_receipt_identity_mismatch_is_proof_failure(mod, monkeypatch, tmp_path):
+    """r12（第十一轮审计 E-3，高）：回执里的 branch/target 与请求不一致同样是**业务
+    失败**，不再 raise SystemExit——否则调用方只看到进程退出码，拿不到"哪个任务、
+    哪种类别、现场有没有被动过"，也无法区分"编程错误"与"回执不成立"。
+    """
+    write_task(tmp_path, 1)
+    runs = tmp_path / 'runs'
+    d = write_run(runs, '1')
+    monkeypatch.setattr(mod, 'RUNS', runs)
+    monkeypatch.setattr(mod, '_ref_sha', lambda ref: 'a' * 40)
+
+    def fake_git(args, *a, **k):
+        if list(args)[:1] == ['rev-parse']:
+            return 0, 't0'
+        if list(args)[:1] == ['merge-base']:
+            return 1, ''
+        return 0, ''
+
+    monkeypatch.setattr(mod, '_git_out', fake_git)
+    monkeypatch.setattr(mod, 'wt_merge', lambda *a, **k: _FakeResult(
+        0, json.dumps({'branch': 'other/branch', 'target': 'main'})))
+    _done, merged, failed, stale = mod.merge(
+        str(tmp_path), tasks=['1'], target='main', expect_invocation='inv-test',
+        run_dirs={'1': str(d)})
+    assert merged == []
+    assert [f['task'] for f in failed] == ['1']
+    assert failed[0]['kind'] == 'proof_failure'
+    assert '不一致' in failed[0]['stderr']

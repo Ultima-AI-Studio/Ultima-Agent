@@ -1084,7 +1084,7 @@ class _MergeLock:
 
 
 def merge(batch_dir, tasks=None, target=None, run_dirs=None, only_tasks=None,
-          expect_invocation=None):
+          expect_invocation=None, trace=None):
 
     """串行把已完成任务的分支合回主线；任一失败即停，不跳过错继续合下一个。
 
@@ -1115,8 +1115,12 @@ def merge(batch_dir, tasks=None, target=None, run_dirs=None, only_tasks=None,
     if not resolved_target or resolved_target == 'HEAD':
         raise SystemExit('无法确定合并目标分支（当前处于 detached HEAD），请显式传 target')
 
-    merged, failed = [], []
+    # r12（第十一轮审计 E-5）：首条失败即 break，后续任务既不在 merged 也不在
+    # failed——现场"归属不明"。attempted / not_attempted 如实回传，由调用方
+    # 写进 summary，不再靠推断。trace 为可选出参，保持既有四元返回值不变。
+    merged, failed, attempted = [], [], []
     for task in targets:
+        attempted.append(task)
         branch = BRANCH_PREFIX + task
         # r9（第八轮审计 N8）：整段因果取证必须在**同一把锁内**——r8 只把
         # `wt_merge()` 包进 with，前态（target_sha / src_before / src_tree / pre_anc）
@@ -1126,8 +1130,18 @@ def merge(batch_dir, tasks=None, target=None, run_dirs=None, only_tasks=None,
         with _MergeLock(resolved_target):
             target_sha = _ref_sha(resolved_target)   # 锁内取前态
             if not target_sha:
-                raise SystemExit(
-                    f'无法取得合并目标 {resolved_target} 的 commit sha，fail-closed')
+                # r12（第十一轮审计 E-3，高）：取证失败是**预期内**业务失败，不能
+                # raise SystemExit——那会绕开 failed/kind 与 run_all 的结构化
+                # summary，调用方只看得到进程退出，拿不到"哪个任务、什么类别、
+                # 现场有没有被动过"。合并未执行，归 evidence_failure。
+                failed.append({
+                    'task': task, 'branch': branch, 'returncode': 0,
+                    'kind': 'evidence_failure', 'stdout': '',
+                    'stderr': (f'无法取得合并目标 {resolved_target} 的 commit sha，'
+                               '未执行合并，fail-closed'),
+                    'hint': '未执行合并；确认合并目标 ref/对象可读后重跑。',
+                })
+                break
             # 调用前把源分支状态钉住（第五轮审计 7.2）：只记 target SHA 不够——
             # ① 源分支在调用前本来就已是 target 祖先时，调用后 is-ancestor 必然为真，
             #    这证明不了"这一次"合入了任何东西（worktree 里的未提交产出根本不进历史）；
@@ -1206,8 +1220,17 @@ def merge(batch_dir, tasks=None, target=None, run_dirs=None, only_tasks=None,
                 break
             data = _parse_braced_json(r.stdout)
             if data is None:
-                raise SystemExit(
-                    f'wt merge 输出无法解析 {task}: {r.stdout.strip()[:400]}，fail-closed')
+                # r12（第十一轮审计 E-3）：到这一步 wt 已经跑过，合并**可能**发生，
+                # 只是回执不可解析——归 proof_failure（不是取证失败，现场可能已动）。
+                failed.append({
+                    'task': task, 'branch': branch, 'returncode': r.returncode,
+                    'kind': 'proof_failure',
+                    'stdout': r.stdout.strip()[-600:],
+                    'stderr': (f'wt merge 输出无法解析（{r.stdout.strip()[:300]}）；'
+                               '合并可能已发生但无法确认'),
+                    'hint': '人工核对 target 后重跑或人工合；后续分支已停止。',
+                })
+                break
             # rc=0 不足以证明合进去了（第四轮审计 #8）：要看 wt 自己的 JSON。
             # 实测（临时仓库，2026-11-09）：`wt merge --format json` 返回**对象**，字段是
             # branch / target / committed / squashed / rebased / removed —— **没有 merged**
@@ -1218,7 +1241,14 @@ def merge(batch_dir, tasks=None, target=None, run_dirs=None, only_tasks=None,
             if isinstance(data, list):
                 obj = next((x for x in data if isinstance(x, dict)), None)
             if not isinstance(obj, dict):
-                raise SystemExit(f'wt merge 输出不是对象 {task}: {data!r}，fail-closed')
+                failed.append({
+                    'task': task, 'branch': branch, 'returncode': r.returncode,
+                    'kind': 'proof_failure',
+                    'stdout': r.stdout.strip()[-600:],
+                    'stderr': f'wt merge 输出不是对象（{data!r}），合并可能已发生但无法确认',
+                    'hint': '人工核对 target 后重跑或人工合；后续分支已停止。',
+                })
+                break
             got_branch = obj.get('branch')
             got_target = obj.get('target')
             # 回执里 branch/target 必须存在且与请求一致：只在"非空才比"时，
@@ -1236,12 +1266,24 @@ def merge(batch_dir, tasks=None, target=None, run_dirs=None, only_tasks=None,
             # 同一分支可能被 wt 写成 `x` 或 `refs/heads/x`，先归一化再比，
             # 否则会把"合成功了但写法不同"误判成目标不符而整批 SystemExit。
             if _norm_ref(got_branch) != _norm_ref(branch):
-                raise SystemExit(
-                    f'wt merge 回报的分支与请求不一致 {task}: 请求 {branch} 实际 {got_branch}')
+                failed.append({
+                    'task': task, 'branch': branch, 'returncode': 0,
+                    'kind': 'proof_failure',
+                    'stdout': r.stdout.strip()[-600:],
+                    'stderr': f'wt 回报的分支与请求不一致：请求 {branch} 实际 {got_branch}',
+                    'hint': '回执身份不符，按未合并处理；人工核对现场后再决定。',
+                })
+                break
             if _norm_ref(got_target) != _norm_ref(resolved_target):
-                raise SystemExit(
-                    f'wt merge 回报的目标与请求不一致 {task}: '
-                    f'请求 {resolved_target} 实际 {got_target}')
+                failed.append({
+                    'task': task, 'branch': branch, 'returncode': 0,
+                    'kind': 'proof_failure',
+                    'stdout': r.stdout.strip()[-600:],
+                    'stderr': (f'wt 回报的目标与请求不一致：请求 {resolved_target} '
+                               f'实际 {got_target}'),
+                    'hint': '回执身份不符，按未合并处理；人工核对现场后再决定。',
+                })
+                break
             # ② git 侧复核（第五轮审计 7.2）：wt 说 rc=0 也要证明**这一次**把本任务
             #    真的合进去了。成立条件：
             #      a) target tip 相对调用前前进了（progressed）；
@@ -1338,28 +1380,40 @@ def merge(batch_dir, tasks=None, target=None, run_dirs=None, only_tasks=None,
                            'target_tree_after': top_tree,
 
                            'target_sha_after': sha_after})
+    if trace is not None:
+        trace['attempted'] = attempted
+        trace['not_attempted'] = [t for t in targets if t not in attempted]
     return done, merged, failed, stale
 
 
 def _path_state(p):
-    """路径状态四态：exists / absent / wrong_type / unknown（r11，第十轮审计 E-1/A⑪）。
+    """路径状态四态：exists / absent / wrong_type / unknown（r11 + r12）。
 
     `Path.is_dir()` 只有两态：权限不足或 IO 异常时它返回 False，与"确实不存在"
     共用一个值，于是不可读的残留目录会被记成"已清理"。r10 把不可确认拆成
-    unknown，但仍把**存在的非目录**（普通文件、symlink、挂载点残留）记成 absent——
-    worktree 路径被一个普通文件占据、branch 又恰好已删、登记又已清时，就会
-    记 removed，尽管路径还在。存在的非目录必须单独成态，绝不与 absent 共用。
+    unknown，r11 又把**存在的非目录**（普通文件、symlink、挂载点残留）拆成
+    wrong_type——worktree 路径被一个普通文件占据、branch 又恰好已删、登记又已清
+    时，就会记 removed，尽管路径还在。
+
+    r12（第十一轮审计 E-1，高）：`os.stat` 会**跟随** symlink。dangling symlink
+    的目标不存在 → stat 抛 FileNotFoundError → 落 absent，而路径本身（link 对象）
+    实际还在：worktree 路径被 dangling symlink 占据时仍会被记 removed。改用
+    `os.lstat`（不跟随）：任何非真实目录（含所有 symlink/reparse 对象）一律
+    wrong_type，只有 lstat 明确报"不存在"才是 absent。
+
+    本机实测：Windows junction 的 lstat 仍报目录（islnk=False / isdir=True），
+    因此 junction 落 exists 并走正常 wt remove + 回读，不会被记 absent——不属于
+    fail-open；但"junction 是否该算残留"是口径问题（报告 §16 残余）。
     """
     try:
-        st = os.stat(str(p))
+        st = os.lstat(str(p))
     except FileNotFoundError:
         return 'absent'
     except OSError:
         return 'unknown'
-    try:
-        return 'exists' if stat.S_ISDIR(st.st_mode) else 'wrong_type'
-    except OSError:
-        return 'unknown'
+    if not stat.S_ISDIR(st.st_mode):
+        return 'wrong_type'
+    return 'exists'
 
 
 def cleanup(batch_dir, tasks=None, force=False, delete_branch=False):
@@ -1389,6 +1443,12 @@ def cleanup(batch_dir, tasks=None, force=False, delete_branch=False):
                 # 不能只凭 wt 的 rc 或一句说明就记成功。
                 removed.append({'task': task, 'branch': branch,
                                 'worktree': str(wt_path), 'branch_outcomes': [],
+                                # r12（第十一轮审计 E-6）：removed 条目**外层**也必须是
+                                # 固定 key 集。r11 只统一了 evidence 内层，按
+                                # `removed[0]['schema_ok']` 读的 consumer 在前两个出口会
+                                # KeyError。缺失维度显式写 None / 空串，不省略键。
+                                'result': None, 'schema_ok': None,
+                                'wt_remove_rc': None, 'raw_tail': '',
                                 'note': '调用前 目录/登记/分支 三处均已不存在，按已清理处理',
                                 # r11（第十轮审计 E-4/B7）：三个 removed 出口写**同形**
                                 # evidence（同一组 key），不再一处带 dir_exists、一处不带，
@@ -1422,9 +1482,10 @@ def cleanup(batch_dir, tasks=None, force=False, delete_branch=False):
             if wt_gone and br == 'absent' and reg is False:
                 removed.append({'task': task, 'branch': branch,
                                 'worktree': str(wt_path), 'branch_outcomes': [],
+                                'result': None, 'schema_ok': None,
+                                'wt_remove_rc': r.returncode, 'raw_tail': raw_tail,
                                 'note': (f'wt remove 返回 rc={r.returncode}（rc<0 表示超时），'
                                          '但 目录/登记/分支 三处均已消失，按已清理处理'),
-                                'raw_tail': raw_tail,
                                 'evidence': {'dir_state': dir_state,
                                              'branch_state': br,
                                              'worktree_registered': reg,
@@ -1481,9 +1542,10 @@ def cleanup(batch_dir, tasks=None, force=False, delete_branch=False):
             continue
         if wt_gone and br == 'absent' and reg is False:
             removed.append({'task': task, 'branch': branch,
-                            'result': data, 'branch_outcomes': outcomes,
-                            'schema_ok': schema_ok, 'wt_remove_rc': r.returncode,
                             'worktree': str(wt_path),
+                            'branch_outcomes': outcomes,
+                            'result': data, 'schema_ok': schema_ok,
+                            'wt_remove_rc': r.returncode, 'raw_tail': '',
                             'note': 'rc=0、schema 合法且 目录/登记/分支 三处回读均已消失',
                             'evidence': {'dir_state': dir_state,
                                          'branch_state': br,
@@ -1600,28 +1662,44 @@ def run_all(batch_dir, prompts_dir, max_channels=MAX_CHANNELS, target=None,
                 and probe_stale[t].get('result') == 'done_no_merge']
     real_stale = {t: v for t, v in probe_stale.items() if t not in verified}
 
+    merge_trace = {}
     done, merged, failed, stale = merge(batch_dir, tasks=to_merge,
                                         target=resolved_target, run_dirs=run_dirs,
                                         only_tasks=ready,
-                                        expect_invocation=inv)
+                                        expect_invocation=inv, trace=merge_trace)
     steps['merge'] = {'merged': [m['task'] for m in merged],
                       'failed': failed, 'not_merged': stale,
-                      'verified_only': verified}
+                      'verified_only': verified,
+                      # r12（第十一轮审计 E-5）：首条失败 break 之后，后续任务既不在
+                      # merged 也不在 failed——现场"归属不明"。attempted 与
+                      # not_attempted 由 merge() 如实回传，不靠推断。
+                      'attempted': merge_trace.get('attempted', []),
+                      'not_attempted_after_failure': merge_trace.get('not_attempted', [])}
 
     if failed:
         # r11（第十轮审计 E-6）：取证失败不是冲突。前态 tree / 源 SHA 取不到时
         # 根本没调 wt_merge，现场原封不动；把它写进 kept_for_conflict 会让调用方
         # 误按冲突流程去 abort/solve rebase（那会把干净现场搞脏）。
-        evidence_failed = [f['task'] for f in failed
-                           if f.get('kind') == 'evidence_failure']
-        rest_failed = [f['task'] for f in failed
-                       if f.get('kind') != 'evidence_failure']
+        # r12（第十一轮审计 E-4，中）：只按「是不是 evidence」二分仍会把
+        # proof_failure（wt 回执不成立 / 回执身份不符）和未知 kind 一起塞进
+        # conflict。proof 失败的现场通常**没有** rebase 可 abort，把下游引去
+        # 解决不存在的冲突就是新的误导。改成按 kind 四分流，未知单独一档并
+        # fail-closed（既不并进 conflict，也不当成可继续）。
+        buckets = {'merge_conflict': [], 'evidence_failure': [],
+                   'proof_failure': [], 'unknown': []}
+        for f in failed:
+            k = f.get('kind')
+            buckets[k if k in ('merge_conflict', 'evidence_failure', 'proof_failure')
+                    else 'unknown'].append(f['task'])
         steps['cleanup'] = {'removed': [], 'skipped': [],
-                            'kept_for_conflict': rest_failed,
-                            'kept_for_evidence': evidence_failed}
+                            'kept_for_conflict': buckets['merge_conflict'],
+                            'kept_for_evidence': buckets['evidence_failure'],
+                            'kept_for_proof': buckets['proof_failure'],
+                            'kept_for_unknown': buckets['unknown']}
         kinds = sorted({f.get('kind') or 'unspecified' for f in failed})
         return {**base, 'steps': steps, 'stopped_at': 'merge',
                 'note': (f'合并段停止（失败类别={kinds}），跳过 cleanup 以保留现场；'
+                         f'未尝试任务={steps["merge"]["not_attempted_after_failure"]}；'
                          'evidence_failure = 取证未通过且**未执行合并**，可直接重试')}
 
     # 先判定"是否还有任务没闭合"，再决定要不要清现场：之前 cleanup 跑在 stale
@@ -1630,7 +1708,9 @@ def run_all(batch_dir, prompts_dir, max_channels=MAX_CHANNELS, target=None,
     leftover = [t for t in ready if t not in merged_tasks and t not in verified]
     if real_stale or leftover:
         steps['cleanup'] = {'removed': [], 'skipped': [],
-                            'kept_for_conflict': merged_tasks}
+                            'kept_for_conflict': merged_tasks,
+                            'kept_for_evidence': [], 'kept_for_proof': [],
+                            'kept_for_unknown': []}
         return {**base, 'steps': steps, 'stopped_at': 'merge',
                 'note': (f'{len(real_stale) + len(leftover)} 个任务未进入合并池'
                          '（见 not_merged / verified_only），未执行 cleanup 以保留现场')}
