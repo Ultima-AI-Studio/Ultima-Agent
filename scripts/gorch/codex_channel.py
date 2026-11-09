@@ -96,6 +96,74 @@ def _status_set(detail):
     return {ln for ln in (detail or '').splitlines() if ln.strip()}
 
 
+def _git_text(workdir, args, timeout=180):
+    """跑一条只读 git 命令，返回 (rc, stdout)。失败不抛，交给调用方判。"""
+    try:
+        r = subprocess.run(
+            [GIT_EXE, '-C', str(workdir), *args],
+            capture_output=True, text=True, encoding='utf-8', errors='replace',
+            timeout=timeout, creationflags=_NO_WINDOW)
+    except Exception:
+        return None, ''
+    return r.returncode, (r.stdout or '')
+
+
+def worktree_fingerprint(workdir, status_detail=None):
+    """内容级指纹，用来判"这一轮到底多出了什么"。
+
+    第三轮审计指出的弱点：`git status --porcelain` 的**行集合**不是内容差分——
+      · 同一文件执行前后都显示 ` M path`，行文本相同但内容继续变化 → 判"无新增"（误杀）；
+      · 只是 `git add` 让状态码从 ` M` 变成 `M `，凭空多出一行 → 判"有新增"（fail-open）。
+    所以除了状态行，再取两条内容维度：
+      · diff_sha   `git diff HEAD` 全文的 sha256（已跟踪文件内容有变就必变）
+      · untracked  未跟踪文件清单（新文件出现才算新增）
+    返回 dict：{'lines': set, 'diff_sha': str, 'untracked': set}；任一查询失败则 diff_sha 记为
+    'ERR:<rc>'，让调用方按 fail-closed 处理，而不是当成"没变化"。
+    """
+    if status_detail is None:
+        kind, detail = worktree_state(workdir)
+        if kind != 'changed':
+            status_detail = ''
+        else:
+            status_detail = detail
+    lines = _status_set(status_detail)
+    untracked = {ln[3:].strip() for ln in lines if ln.strip().startswith('??')}
+    rc, diff_text = _git_text(workdir, ['diff', 'HEAD'])
+    diff_sha = (hashlib.sha256(diff_text.encode('utf-8', 'replace')).hexdigest()
+                if rc == 0 else f'ERR:{rc}')
+    return {'lines': lines, 'diff_sha': diff_sha, 'untracked': untracked}
+
+
+class _BaselineUnusable(Exception):
+    """执行前建不出可信基线时用它中止本次执行（fail-closed，不调 Codex）。"""
+
+
+def fresh_changes(base_fp, after_fp, after_detail):
+    """本轮新增改动的证据集（内容级）。返回 (fresh: set[str], basis: str)。
+
+    · 基线 clean            → 执行后全部改动都是本次产出；
+    · 基线脏且有内容指纹     → 状态行新增 ∪ 未跟踪新增 ∪ 已跟踪内容变化；
+    · 基线脏但指纹查询失败   → 退化为状态行差集，并在 basis 里写明退化原因。
+    """
+    lines_after = after_fp['lines'] if after_fp else _status_set(after_detail)
+    if base_fp is None:
+        return set(lines_after), '基线 clean：执行后改动全部属本次'
+    fresh = set(lines_after) - set(base_fp['lines'])
+    basis = '基线脏：按状态行差集'
+    if after_fp:
+        fresh |= {f'?? {p}' for p in (after_fp['untracked'] - base_fp['untracked'])}
+        b, a = base_fp['diff_sha'], after_fp['diff_sha']
+        if b != a:
+            if a.startswith('ERR:') or b.startswith('ERR:'):
+                basis = f'基线脏：diff 指纹不可用（{b}→{a}），仅按状态行差集判定'
+            else:
+                fresh.add(f'~ 已跟踪内容变化 {b[:12]}→{a[:12]}')
+                basis = '基线脏：状态行差集 + 内容指纹'
+        else:
+            basis = '基线脏：状态行差集 + 内容指纹（内容未变）'
+    return fresh, basis
+
+
 def resolve_codex_exe():
     """解析执行体路径：适配层配置 → env → PATH → 四组 glob（按 mtime 取最新）。
 
@@ -197,27 +265,45 @@ def main(argv=None):
                else RUNS / f'{args.task}-ch{args.channel}-{now_stamp()}')
     run_dir.mkdir(parents=True, exist_ok=True)
 
+    # 记录在任何前置校验之前建好（第四轮审计）：此前"空工单"与"找不到执行体"都在建记录
+    # 之前直接 return，观测目录里不会留下失败记录，合并池仍可能取到更旧的那条 done。
+    record = {
+        'task': args.task, 'channel': args.channel, 'run_dir': str(run_dir),
+        'workdir': args.workdir, 'dry_run': args.dry_run,
+        'started_at': datetime.now(timezone.utc).isoformat(),
+    }
+
+    def _fail_early(code, reason, kanban_reason=None):
+        """前置失败也落一条 blocked 记录，别让更旧的 done 顶上来。"""
+        record['exit_code'] = code
+        record['reason'] = reason
+        record['mergeable'] = False
+        record['result'] = 'blocked'
+        record['finished_at'] = datetime.now(timezone.utc).isoformat()
+        (run_dir / 'codex-channel.json').write_text(
+            json.dumps(record, ensure_ascii=False, indent=2), encoding='utf-8')
+        if kanban_reason:
+            kanban('block', args.task, kanban_reason, check=False)
+        print(json.dumps({'task': args.task, 'channel': args.channel,
+                          'result': 'blocked', 'run_dir': str(run_dir)},
+                         ensure_ascii=False))
+        print(reason, file=sys.stderr)
+        return 2 if code == 2 else 3
+
     if args.prompt == '-':
         prompt_bytes = sys.stdin.buffer.read()
     else:
         prompt_bytes = pathlib.Path(args.prompt).read_bytes()
     if not prompt_bytes.strip():
-        print('工单为空，拒绝执行', file=sys.stderr)
-        return 2
+        return _fail_early(2, '工单为空，拒绝执行')
     (run_dir / 'prompt.txt').write_bytes(prompt_bytes)
+    record['prompt_sha256'] = hashlib.sha256(prompt_bytes).hexdigest()
 
     codex = None if args.dry_run else resolve_codex_exe()
+    record['codex'] = codex
     if not args.dry_run and not codex:
-        kanban('block', args.task, 'Codex 执行段未找到（检查 ULTIMA_CODEX_EXE / PATH）', check=False)
-        print('Codex 执行段未找到', file=sys.stderr)
-        return 3
-
-    record = {
-        'task': args.task, 'channel': args.channel, 'run_dir': str(run_dir),
-        'prompt_sha256': hashlib.sha256(prompt_bytes).hexdigest(),
-        'codex': codex, 'workdir': args.workdir,
-        'dry_run': args.dry_run, 'started_at': datetime.now(timezone.utc).isoformat(),
-    }
+        return _fail_early(3, 'Codex 执行段未找到（检查 ULTIMA_CODEX_EXE / PATH）',
+                           kanban_reason='Codex 执行段未找到')
 
     # 1) 接单（任务已在 Doing 时这次 state 会被状态机拒绝，幂等处理不中断）
     enter = kanban('state', args.task, 'Doing', f'{label} 开始执行', check=False)
@@ -227,6 +313,7 @@ def main(argv=None):
 
     # 2) 执行
     ok = False
+    mergeable = True
     summary = ''
     guard_reason = ''
     if args.dry_run:
@@ -240,9 +327,24 @@ def main(argv=None):
         # 复用脏 worktree 时不把旧文件当成本次产出。
         base_kind, base_detail = worktree_state(args.workdir)
         record['worktree_baseline'] = base_kind
+        base_fp = None
         if base_kind == 'changed':
             record['worktree_baseline_dirty'] = base_detail[:2000]
+            base_fp = worktree_fingerprint(args.workdir, base_detail)
+            record['worktree_baseline_fingerprint'] = {
+                'diff_sha': base_fp['diff_sha'],
+                'untracked': sorted(base_fp['untracked']),
+            }
         try:
+            # 基线建不出来就不开工（第四轮审计）：此前 error / not_repo 时 before 取空集，
+            # 执行后一读到 changed，worktree 里所有既有脏项都会被当成本轮新增——纯 fail-open。
+            if base_kind == 'error':
+                raise _BaselineUnusable(
+                    f'执行前无法读取 worktree 状态，fail-closed：{base_detail}')
+            if base_kind == 'not_repo' and not args.allow_non_repo:
+                raise _BaselineUnusable(
+                    '执行前 workdir 不是 git 工作树，无法建立产出基线，'
+                    '批量路径 fail-closed（确需在无仓库目录执行时加 --allow-non-repo）')
             proc, elapsed = run_codex(codex, prompt_bytes, args.workdir,
                                       last_msg, args.effort, args.timeout)
             record['exit_code'] = proc.returncode
@@ -258,23 +360,40 @@ def main(argv=None):
                 kind, detail = worktree_state(args.workdir)
                 record['worktree_state'] = kind
                 record['worktree_changes'] = (detail or '')[:2000]
-                # 本次产出 = 相对基线新增的条目（第三轮审计 A4）
-                before = _status_set(base_detail) if base_kind == 'changed' else set()
-                fresh = _status_set(detail) - before
-                record['worktree_new_changes'] = '\n'.join(sorted(fresh))[:2000]
+                # 本次产出 = 相对执行前基线**新增**的改动（第三轮审计 A4）。
+                # 第四轮：改用内容级指纹，porcelain 行集合只作为其中一维——
+                # 同一文件内容继续变化时行文本不变（此前误杀），只 `git add` 改状态码时
+                # 会凭空多一行（此前 fail-open），两种都要靠 diff 指纹与未跟踪清单兜住。
+                after_fp = None
+                fresh = set()
+                basis = ''
+                if kind == 'changed':
+                    after_fp = worktree_fingerprint(args.workdir, detail)
+                    record['worktree_after_fingerprint'] = {
+                        'diff_sha': after_fp['diff_sha'],
+                        'untracked': sorted(after_fp['untracked']),
+                    }
+                    fresh, basis = fresh_changes(base_fp, after_fp, detail)
+                    record['worktree_new_changes'] = '\n'.join(sorted(fresh))[:2000]
+                    record['worktree_fresh_basis'] = basis
                 if kind == 'clean':
                     if args.no_change_allowed:
+                        # 纯验证卡 / 纯报告卡：可以判「执行完成」，但**不签发合并授权**。
+                        # 「验证成功」与「有可合并成果」是两个状态，混成一个会让零产出的卡
+                        # 进合并池（第四轮审计）。
                         record['worktree_state_note'] = (
                             'clean，按 --no-change-allowed 放行（本次约定不产生仓库改动）')
+                        mergeable = False
                     else:
                         ok = False
                         guard_reason = ('Codex 退出码 0，但 worktree 无任何改动——'
                                         '判空产出，不写 done（执行端没留下任何可合并内容）。'
                                         '若本次本就约定不改仓库，须显式加 --no-change-allowed')
-                elif kind == 'changed' and base_kind == 'changed' and not fresh:
+                elif kind == 'changed' and not fresh:
                     ok = False
                     guard_reason = ('Codex 退出码 0，worktree 有改动但相对执行前基线无新增——'
-                                    '改动全部来自复用前既有的脏状态，判空产出，不写 done')
+                                    '改动全部来自复用前既有的脏状态（状态行与内容指纹都未变），'
+                                    '判空产出，不写 done')
                 elif kind == 'error':
                     ok = False
                     guard_reason = f'无法确认 worktree 改动，fail-closed：{detail}'
@@ -289,6 +408,10 @@ def main(argv=None):
                         guard_reason = ('workdir 不是 git 工作树，无法确认产出，'
                                         '批量路径 fail-closed（确需在无仓库目录执行时加 '
                                         '--allow-non-repo）')
+        except _BaselineUnusable as exc:
+            record['exit_code'] = None
+            ok = False
+            guard_reason = str(exc)
         except subprocess.TimeoutExpired:
             record['exit_code'] = 124
             record['elapsed_sec'] = args.timeout
@@ -315,7 +438,12 @@ def main(argv=None):
         kanban('flow', args.task, label, '派发', f'🚫 阻塞：{reason[:100]}')
 
     record['finished_at'] = datetime.now(timezone.utc).isoformat()
-    record['result'] = 'done' if ok else 'blocked'
+    if ok:
+        record['result'] = 'done' if mergeable else 'done_no_merge'
+        record['mergeable'] = bool(mergeable)
+    else:
+        record['result'] = 'blocked'
+        record['mergeable'] = False
     (run_dir / 'codex-channel.json').write_text(
         json.dumps(record, ensure_ascii=False, indent=2), encoding='utf-8')
 

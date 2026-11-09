@@ -540,12 +540,39 @@ def test_merge_no_done_tasks_is_noop(mod, monkeypatch, tmp_path):
     assert called == []
 
 
-def test_cleanup_skips_when_worktree_missing(mod, monkeypatch, tmp_path):
+def test_cleanup_marks_partial_when_dir_gone_but_branch_remains(mod, monkeypatch, tmp_path):
+    """第四轮 A7：半清理态（目录没了、分支还在）不能记"已清理"。"""
     write_task(tmp_path, 1)
     monkeypatch.setattr(mod, 'WORKTREE_ROOT', tmp_path / 'wt')
+    monkeypatch.setattr(mod, '_branch_state', lambda b: 'exists')
+    monkeypatch.setattr(mod, '_worktree_registered', lambda p: False)
     removed, skipped = mod.cleanup(str(tmp_path))
     assert removed == []
-    assert skipped[0]['reason'] == 'worktree 已不存在'
+    assert skipped[0]['partial'] is True
+    assert '半清理态' in skipped[0]['reason']
+
+
+def test_cleanup_confirms_removed_only_when_all_three_gone(mod, monkeypatch, tmp_path):
+    """目录 / worktree 登记 / 分支三处都确认不在，才算已清理。"""
+    write_task(tmp_path, 1)
+    monkeypatch.setattr(mod, 'WORKTREE_ROOT', tmp_path / 'wt')
+    monkeypatch.setattr(mod, '_branch_state', lambda b: 'absent')
+    monkeypatch.setattr(mod, '_worktree_registered', lambda p: False)
+    removed, skipped = mod.cleanup(str(tmp_path))
+    assert skipped == []
+    assert removed[0]['task'] == '1'
+    assert '三处均已不存在' in removed[0]['note']
+
+
+def test_cleanup_branch_state_unknown_is_not_success(mod, monkeypatch, tmp_path):
+    """分支查询本身失败时不能当成"分支已没了"。"""
+    write_task(tmp_path, 1)
+    monkeypatch.setattr(mod, 'WORKTREE_ROOT', tmp_path / 'wt')
+    monkeypatch.setattr(mod, '_branch_state', lambda b: 'unknown')
+    monkeypatch.setattr(mod, '_worktree_registered', lambda p: False)
+    removed, skipped = mod.cleanup(str(tmp_path))
+    assert removed == []
+    assert skipped[0]['partial'] is True
 
 
 def test_cleanup_force_propagates_to_wt_remove(mod, monkeypatch, tmp_path):
@@ -581,8 +608,8 @@ def test_cleanup_delete_branch_propagates(mod, monkeypatch, tmp_path):
     assert seen == [('gorch/1', True, True)]
 
 
-def test_cleanup_records_branch_outcome(mod, monkeypatch, tmp_path):
-    """未合并分支被保留时，回执要如实写明 retained_unmerged。"""
+def test_cleanup_retained_branch_is_not_counted_as_removed(mod, monkeypatch, tmp_path):
+    """rc=0 但分支被保留（retained_unmerged）不算清理完成，回执要如实带出。"""
     write_task(tmp_path, 1)
     wt_root = tmp_path / 'wt'
     (wt_root / '1').mkdir(parents=True)
@@ -591,7 +618,10 @@ def test_cleanup_records_branch_outcome(mod, monkeypatch, tmp_path):
                            'branch_outcome': 'retained_unmerged'}])
     monkeypatch.setattr(mod, 'wt_remove', lambda *a, **k: _FakeResult(0, payload))
     removed, skipped = mod.cleanup(str(tmp_path))
-    assert removed[0]['branch_outcomes'] == ['retained_unmerged']
+    assert removed == []
+    assert skipped[0]['partial'] is True
+    assert 'retained_unmerged' in skipped[0]['reason']
+    assert skipped[0]['result'][0]['branch_outcome'] == 'retained_unmerged'
 
 
 def test_cleanup_reports_failure_without_force(mod, monkeypatch, tmp_path):
@@ -603,9 +633,12 @@ def test_cleanup_reports_failure_without_force(mod, monkeypatch, tmp_path):
     monkeypatch.setattr(
         mod, 'wt_remove',
         lambda *a, **k: _FakeResult(1, 'worktree contains untracked changes'))
+    monkeypatch.setattr(mod, '_branch_state', lambda b: 'exists')
+    monkeypatch.setattr(mod, '_worktree_registered', lambda p: True)
     removed, skipped = mod.cleanup(str(tmp_path))
     assert removed == []
     assert 'rc=1' in skipped[0]['reason']
+    assert '目录还在=True' in skipped[0]['reason']
 
 
 def test_next_returns_the_first_ready_task_and_reports_the_rest(mod, tmp_path):
@@ -675,17 +708,29 @@ def test_cleanup_timeout_with_vanished_scene_counts_as_removed(mod, monkeypatch,
     wt_root = tmp_path / 'wt'
     (wt_root / '1').mkdir(parents=True)
     monkeypatch.setattr(mod, 'WORKTREE_ROOT', wt_root)
-    monkeypatch.setattr(mod, '_branch_exists', lambda b: False)
+    monkeypatch.setattr(mod, '_branch_state', lambda b: 'absent')
+    monkeypatch.setattr(mod, '_worktree_registered', lambda p: False)
 
     def fake_wt_remove(branch, force=False, delete_branch=False):
         (wt_root / '1').rmdir()          # 模拟 wt 自己已经把目录删掉
-        return _FakeResult(1, 'wt remove 超时 gorch/1（180s），fail-closed')
+        return _FakeResult(1, 'wt remove 超时 gorch/1（180s），未返回结构化结果')
 
     monkeypatch.setattr(mod, 'wt_remove', fake_wt_remove)
     removed, skipped = mod.cleanup(str(tmp_path))
     assert skipped == []
     assert removed[0]['task'] == '1'
     assert '按已清理处理' in removed[0]['note']
+
+
+def test_wt_remove_timeout_returns_structured_result(mod, monkeypatch):
+    """超时必须作为结构化结果返回，不能再 raise SystemExit（否则 cleanup 拿不到）。"""
+    def boom(*a, **k):
+        raise mod.subprocess.TimeoutExpired(cmd='wt', timeout=180)
+
+    monkeypatch.setattr(mod.subprocess, 'run', boom)
+    r = mod.wt_remove('gorch/1')
+    assert r.returncode == -1
+    assert '超时' in r.stderr
 
 
 def test_cleanup_timeout_with_residual_worktree_still_fails(mod, monkeypatch, tmp_path):
@@ -696,7 +741,8 @@ def test_cleanup_timeout_with_residual_worktree_still_fails(mod, monkeypatch, tm
     monkeypatch.setattr(mod, 'WORKTREE_ROOT', wt_root)
     monkeypatch.setattr(mod, 'wt_remove',
                         lambda *a, **k: _FakeResult(1, 'wt remove 超时'))
-    monkeypatch.setattr(mod, '_branch_exists', lambda b: True)
+    monkeypatch.setattr(mod, '_branch_state', lambda b: 'exists')
+    monkeypatch.setattr(mod, '_worktree_registered', lambda p: True)
     removed, skipped = mod.cleanup(str(tmp_path))
     assert removed == []
     assert '目录还在=True' in skipped[0]['reason']
@@ -748,8 +794,8 @@ def test_run_all_stops_at_conflict_and_keeps_scene(mod, monkeypatch, tmp_path):
     write_task(tmp_path, 1)
     write_task(tmp_path, 2)
     runs = tmp_path / 'runs'
-    write_run(runs, '1')
-    write_run(runs, '2')
+    d1 = write_run(runs, '1')
+    d2 = write_run(runs, '2')
     monkeypatch.setattr(mod, 'RUNS', runs)
     monkeypatch.setattr(mod, 'WORKTREE_ROOT', tmp_path / 'wt')
     prompts = tmp_path / 'prompts'
@@ -761,8 +807,8 @@ def test_run_all_stops_at_conflict_and_keeps_scene(mod, monkeypatch, tmp_path):
         {'task': '1', 'verdict': '可开工'}, {'task': '2', 'verdict': '可开工'}])
     monkeypatch.setattr(mod, 'provision', lambda d: ([], [], []))
     monkeypatch.setattr(mod, 'execute', lambda *a, **k: ([], [
-        {'task': '1', 'channel': 1, 'returncode': 0},
-        {'task': '2', 'channel': 2, 'returncode': 0}]))
+        {'task': '1', 'channel': 1, 'returncode': 0, 'run_dir': str(d1)},
+        {'task': '2', 'channel': 2, 'returncode': 0, 'run_dir': str(d2)}]))
 
     calls = []
 
@@ -784,4 +830,197 @@ def test_run_all_stops_at_conflict_and_keeps_scene(mod, monkeypatch, tmp_path):
     assert calls == ['gorch/1', 'gorch/2']
     assert summary['stopped_at'] == 'merge'
     assert [f['task'] for f in summary['steps']['merge']['failed']] == ['2']
-    assert cleaned == [['1']]      # 冲突任务 2 的现场留着
+    # 第四轮口径：冲突时一律不 cleanup，冲突任务与其余任务的现场全保留
+    # （审计明确不建议"冲突后自动清理所有非冲突任务"）。
+    assert cleaned == []
+    assert summary['steps']['cleanup']['kept_for_conflict'] == ['2']
+
+# ============ 第四轮：第三轮审计 10 条的闭环验收 ============
+
+def test_run_all_stops_at_execute_when_any_task_fails(mod, monkeypatch, tmp_path):
+    """A8：execute 任一非 0 即停，不进 merge（此前只看 merge 的失败）。"""
+    for n in (1, 2):
+        write_task(tmp_path, n)
+    monkeypatch.setattr(mod, 'gate_check', lambda d: [
+        {'task': '1', 'verdict': '可开工'}, {'task': '2', 'verdict': '可开工'}])
+    monkeypatch.setattr(mod, 'provision', lambda d: ([], [], []))
+    monkeypatch.setattr(mod, 'execute', lambda *a, **k: ([], [
+        {'task': '1', 'channel': 1, 'returncode': 0, 'run_dir': 'R1'},
+        {'task': '2', 'channel': 2, 'returncode': 1, 'run_dir': 'R2'}]))
+    called = []
+    monkeypatch.setattr(mod, 'wt_merge',
+                        lambda *a, **k: called.append('merge') or _FakeResult(0, '{}'))
+    monkeypatch.setattr(mod, 'cleanup',
+                        lambda *a, **k: called.append('cleanup') or ([], []))
+    summary = mod.run_all(str(tmp_path), str(tmp_path))
+    assert summary['stopped_at'] == 'execute'
+    assert summary['steps']['execute']['failed'] == ['2']
+    assert called == []            # 既没合也没清
+
+
+def test_run_all_dry_run_does_not_merge_or_cleanup(mod, monkeypatch, tmp_path):
+    """A1e：--dry-run 只空转执行段，此前照样真 merge + 真 cleanup。"""
+    write_task(tmp_path, 1)
+    monkeypatch.setattr(mod, 'gate_check', lambda d: [{'task': '1', 'verdict': '可开工'}])
+    monkeypatch.setattr(mod, 'provision', lambda d: ([], [], []))
+    monkeypatch.setattr(mod, 'execute', lambda *a, **k: ([], [
+        {'task': '1', 'channel': 1, 'returncode': 0, 'run_dir': 'R1'}]))
+    called = []
+    monkeypatch.setattr(mod, 'wt_merge',
+                        lambda *a, **k: called.append('merge') or _FakeResult(0, '{}'))
+    monkeypatch.setattr(mod, 'cleanup',
+                        lambda *a, **k: called.append('cleanup') or ([], []))
+    summary = mod.run_all(str(tmp_path), str(tmp_path), dry_run=True)
+    assert summary['stopped_at'] == 'dry_run'
+    assert called == []
+
+
+def test_run_all_without_ready_has_merge_key(mod, tmp_path):
+    """A8：没有可开工任务时 steps 也要有 merge/cleanup，CLI 不再 KeyError。"""
+    write_task(tmp_path, 1, status='done')
+    summary = mod.run_all(str(tmp_path), str(tmp_path))
+    assert summary['stopped_at'] == 'gate'
+    assert summary['steps']['merge']['failed'] == []
+    assert summary['steps']['cleanup']['removed'] == []
+
+
+def test_run_all_carries_invocation_and_target(mod, monkeypatch, tmp_path):
+    """A8：target 在 run 开始就固定，不再到 merge 才动态读当前分支。"""
+    write_task(tmp_path, 1, status='done')
+    summary = mod.run_all(str(tmp_path), str(tmp_path), target='gorch/base')
+    assert summary['target'] == 'gorch/base'
+    assert len(summary['invocation']) >= 14
+
+
+def test_find_done_tasks_only_reads_this_invocation(mod, monkeypatch, tmp_path):
+    """A1：run 模式只认本次 invocation 的 run-dir，历史 done 不得顶上来。"""
+    write_task(tmp_path, 1)
+    runs = tmp_path / 'runs'
+    write_run(runs, '1')                           # 上一次的成功记录
+    monkeypatch.setattr(mod, 'RUNS', runs)
+    new = runs / 'new'
+    new.mkdir()
+    (new / 'codex-channel.json').write_text(
+        json.dumps({'result': 'blocked', 'reason': '本轮失败'}), encoding='utf-8')
+    done, stale = mod.find_done_tasks(str(tmp_path), with_blocked=True,
+                                      run_dirs={'1': str(new)})
+    assert done == {}
+    assert '本轮失败' in stale['1']['reason']
+
+
+def test_find_done_tasks_corrupt_record_blocks_instead_of_fallback(mod, monkeypatch, tmp_path):
+    """A1b：本次记录损坏必须阻断，不能静默跳过回退到旧 done。"""
+    write_task(tmp_path, 1)
+    runs = tmp_path / 'runs'
+    write_run(runs, '1')
+    monkeypatch.setattr(mod, 'RUNS', runs)
+    bad = runs / 'bad'
+    bad.mkdir()
+    (bad / 'codex-channel.json').write_text('{not json', encoding='utf-8')
+    done, stale = mod.find_done_tasks(str(tmp_path), with_blocked=True,
+                                      run_dirs={'1': str(bad)})
+    assert done == {}
+    assert '损坏' in stale['1']['reason']
+
+
+def test_done_no_merge_is_not_mergeable(mod, monkeypatch, tmp_path):
+    """A6：纯验证卡（done_no_merge）不是可合并成果，不进合并池。"""
+    write_task(tmp_path, 1)
+    runs = tmp_path / 'runs'
+    d = runs / '1-ch1-x'
+    d.mkdir(parents=True)
+    (d / 'codex-channel.json').write_text(
+        json.dumps({'result': 'done_no_merge'}), encoding='utf-8')
+    monkeypatch.setattr(mod, 'RUNS', runs)
+    done, stale = mod.find_done_tasks(str(tmp_path), with_blocked=True,
+                                      run_dirs={'1': str(d)})
+    assert done == {}
+    assert 'done_no_merge' in stale['1']['reason']
+
+
+def test_merge_requires_merged_true(mod, monkeypatch, tmp_path):
+    """A8：wt 报 merged=false 时不能记成功（此前只要求能解析 JSON）。"""
+    write_task(tmp_path, 1)
+    runs = tmp_path / 'runs'
+    d = write_run(runs, '1')
+    monkeypatch.setattr(mod, 'RUNS', runs)
+    monkeypatch.setattr(mod, 'wt_merge',
+                        lambda *a, **k: _FakeResult(0, json.dumps({'merged': False})))
+    done, merged, failed, stale = mod.merge(str(tmp_path), tasks=['1'],
+                                            target='main', run_dirs={'1': str(d)})
+    assert merged == []
+    assert failed[0]['task'] == '1'
+    assert 'merged=False' in failed[0]['stderr']
+
+
+def test_gate_check_rejects_error_after_200_chars(mod, monkeypatch, tmp_path):
+    """A2：真错误排在前 200 字符之后也必须被看见。"""
+    write_task(tmp_path, 1)
+    noise = '      3 [main] bash 1234 fork: retry: Resource temporarily unavailable\n'
+    pad = 'x' * 250 + '\n'
+    err = noise + pad + 'fatal: Permission denied\n'
+
+    class _R:
+        returncode = 0
+        stdout = 'STATUS:open\nUNMET:\nCONFLICTS:\n'
+        stderr = err
+
+    monkeypatch.setattr(mod.subprocess, 'run', lambda *a, **k: _R())
+    with pytest.raises(SystemExit) as ei:
+        mod.gate_check(str(tmp_path))
+    assert 'Permission denied' in str(ei.value)
+    assert '共 2 行真错误' in str(ei.value)
+
+
+def test_cygwin_noise_is_anchored_not_substring(mod, monkeypatch, tmp_path):
+    """A2：真实错误行里含 cygheap 关键词时，不能被当噪声吞掉。"""
+    write_task(tmp_path, 1)
+
+    class _R:
+        returncode = 0
+        stdout = 'STATUS:open\nUNMET:\nCONFLICTS:\n'
+        stderr = 'error: could not read cygheap header of index file\n'
+
+    monkeypatch.setattr(mod.subprocess, 'run', lambda *a, **k: _R())
+    with pytest.raises(SystemExit) as ei:
+        mod.gate_check(str(tmp_path))
+    assert 'cygheap' in str(ei.value)
+
+
+def test_cygwin_noise_lines_still_pass(mod, monkeypatch, tmp_path):
+    """A2 的反面：整行 fork 噪声仍应放行，不把一次噪声放大成整批拒派。"""
+    write_task(tmp_path, 1)
+
+    class _R:
+        returncode = 0
+        stdout = 'STATUS:open\nUNMET:\nCONFLICTS:\n'
+        stderr = ('      3 [main] bash 1234 fork: retry: Resource temporarily unavailable\n'
+                  'bash: child_copy: cygheap read copy failed, 0x2EF8\n')
+
+    monkeypatch.setattr(mod.subprocess, 'run', lambda *a, **k: _R())
+    rows = mod.gate_check(str(tmp_path))
+    assert by_id(rows)['1']['verdict'] == '可开工'
+
+
+def test_branch_state_distinguishes_absent_from_unknown(mod, monkeypatch):
+    """A7：git rc 不是 0/1 时是 unknown，不能读成"分支不存在"。"""
+    class _R128:
+        returncode = 128
+        stdout = ''
+
+    monkeypatch.setattr(mod.subprocess, 'run', lambda *a, **k: _R128())
+    assert mod._branch_state('gorch/1') == 'unknown'
+
+    class _R1:
+        returncode = 1
+        stdout = ''
+
+    monkeypatch.setattr(mod.subprocess, 'run', lambda *a, **k: _R1())
+    assert mod._branch_state('gorch/1') == 'absent'
+
+    class _R0:
+        returncode = 0
+        stdout = 'abc123 refs/heads/gorch/1\n'
+
+    monkeypatch.setattr(mod.subprocess, 'run', lambda *a, **k: _R0())
+    assert mod._branch_state('gorch/1') == 'exists'

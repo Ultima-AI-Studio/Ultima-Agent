@@ -310,7 +310,9 @@ def test_clean_worktree_allowed_when_flag_declared(tmp_path, monkeypatch):
     rc, record = _run_main(m, monkeypatch, tmp_path, 'clean',
                            extra=['--no-change-allowed'])
     assert rc == 0
-    assert record['result'] == 'done'
+    # 第四轮口径：零改动卡可以判「执行完成」，但不是可合并成果（done_no_merge）。
+    assert record['result'] == 'done_no_merge'
+    assert record['mergeable'] is False
     assert '--no-change-allowed' in record['worktree_state_note']
 
 
@@ -341,3 +343,81 @@ def test_dirty_baseline_with_new_change_lands_done(tmp_path, monkeypatch):
     assert record['result'] == 'done'
     assert 'docs/new.md' in record['worktree_new_changes']
     assert 'docs/old.md' not in record['worktree_new_changes']
+
+# --- 第四轮：基线 fail-open 闭环与内容级判据 ---
+
+def test_baseline_error_blocks_before_running_codex(tmp_path, monkeypatch):
+    """A4：执行前读不到 worktree 状态就不许开工（此前 before 取空集 → fail-open）。"""
+    m = _load()
+    called = []
+    fake = tmp_path / 'codex.exe'
+    fake.write_bytes(b'')
+    monkeypatch.setattr(m, 'resolve_codex_exe', lambda: str(fake))
+    monkeypatch.setattr(m, 'run_codex', lambda *a, **k: called.append(1))
+    monkeypatch.setattr(m, 'worktree_state', lambda wd: ('error', 'git status 失败'))
+    monkeypatch.setattr(m, 'kanban', lambda *a, **k: _Res())
+    prompt = tmp_path / 'p.md'
+    prompt.write_text('# 工单\n', encoding='utf-8')
+    run_dir = tmp_path / 'run'
+    rc = m.main(['--task', 'T1', '--prompt', str(prompt),
+                 '--run-dir', str(run_dir), '--workdir', str(tmp_path)])
+    record = json.loads((run_dir / 'codex-channel.json').read_text(encoding='utf-8'))
+    assert rc == 1
+    assert record['result'] == 'blocked'
+    assert 'fail-closed' in record['reason']
+    assert called == []
+
+
+def test_non_repo_baseline_blocks_without_flag(tmp_path, monkeypatch):
+    """A4：非 git 目录默认阻断，只有显式 --allow-non-repo 才放行。"""
+    m = _load()
+    called = []
+    fake = tmp_path / 'codex.exe'
+    fake.write_bytes(b'')
+    monkeypatch.setattr(m, 'resolve_codex_exe', lambda: str(fake))
+    monkeypatch.setattr(m, 'run_codex', lambda *a, **k: called.append(1))
+    monkeypatch.setattr(m, 'worktree_state', lambda wd: ('not_repo', '不是 git 目录'))
+    monkeypatch.setattr(m, 'kanban', lambda *a, **k: _Res())
+    prompt = tmp_path / 'p.md'
+    prompt.write_text('# 工单\n', encoding='utf-8')
+    run_dir = tmp_path / 'run'
+    rc = m.main(['--task', 'T1', '--prompt', str(prompt),
+                 '--run-dir', str(run_dir), '--workdir', str(tmp_path)])
+    record = json.loads((run_dir / 'codex-channel.json').read_text(encoding='utf-8'))
+    assert rc == 1
+    assert record['result'] == 'blocked'
+    assert called == []
+
+
+def test_empty_prompt_still_writes_blocked_record(tmp_path):
+    """A1a：空工单也落 blocked 记录（否则旧 done 仍是目录里唯一真实记录）。"""
+    m = _load()
+    prompt = tmp_path / 'empty.md'
+    prompt.write_text('   \n', encoding='utf-8')
+    run_dir = tmp_path / 'run'
+    rc = m.main(['--task', 'T1', '--prompt', str(prompt),
+                 '--run-dir', str(run_dir), '--workdir', str(tmp_path)])
+    record = json.loads((run_dir / 'codex-channel.json').read_text(encoding='utf-8'))
+    assert rc == 2
+    assert record['result'] == 'blocked'
+    assert record['mergeable'] is False
+
+
+def test_fresh_changes_detects_content_change_with_same_lines():
+    """A4：前后都是同一行「M a.txt」，但内容变了 → 必须判本次有新增（此前误杀）。"""
+    m = _load()
+    base = {'lines': {' M a.txt'}, 'diff_sha': 'aa', 'untracked': set()}
+    after = {'lines': {' M a.txt'}, 'diff_sha': 'bb', 'untracked': set()}
+    fresh, basis = m.fresh_changes(base, after, ' M a.txt')
+    assert fresh
+    assert '内容' in basis
+
+
+def test_fresh_changes_sees_untracked_dir_files():
+    """A4：未跟踪目录下的新增文件也要看得见（行集合只有 ?? out/，看不见内部）。"""
+    m = _load()
+    base = {'lines': {'?? out/'}, 'diff_sha': 'aa', 'untracked': {'out/'}}
+    after = {'lines': {'?? out/'}, 'diff_sha': 'aa',
+             'untracked': {'out/', 'out/new.txt'}}
+    fresh, _ = m.fresh_changes(base, after, '?? out/')
+    assert any('out/new.txt' in f for f in fresh)
