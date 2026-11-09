@@ -45,6 +45,11 @@ VALID_STATUSES = {'open', 'in-progress', 'in_progress',
 # 并发 worktree 集中根目录（仓库外，避免与历史 ~/.codex/worktrees 混淆）。
 WORKTREE_ROOT = pathlib.Path(r'H:\UltimaAI\_worktrees\gorch')
 WT_TIMEOUT = 180
+# wt merge 比 switch 慢得多：它要在源 worktree 里 commit/squash、再 rebase 到主线。
+# 本仓库有 32 万+ 未跟踪文件（data/evidence/），单次 git status 就要 90s+，
+# 合并实测会超过 180s。用独立的更长预算，避免把"还在干活"误判成"卡住"。
+MERGE_TIMEOUT = 600
+GIT_EXE = str(pathlib.Path(GIT_CMD_DIR) / 'git.exe')
 BRANCH_PREFIX = 'gorch/'
 # 执行段是现成件（codex_channel.py），本编排只负责并发调用它，不重写执行逻辑。
 CHANNEL_SCRIPT = ROOT / 'scripts' / 'gorch' / 'codex_channel.py'
@@ -313,6 +318,15 @@ def _parse_braced_json(text):
         return None
 
 
+def _branch_exists(branch):
+    """分支是否仍在本仓库；用来区分"wt 还没动手"和"wt 已 cleanup 但没合入"。"""
+
+    r = subprocess.run([GIT_EXE, '-C', str(ROOT), 'branch', '--list', branch],
+                       capture_output=True, text=True, encoding='utf-8',
+                       errors='replace', env=_wt_env(), timeout=WT_TIMEOUT)
+    return bool(r.stdout.strip())
+
+
 def wt_merge(branch, target=None):
     """调 wt merge 把源分支合进目标分支，合并成功后由 wt 自己清理 worktree。
 
@@ -328,9 +342,18 @@ def wt_merge(branch, target=None):
     try:
         r = subprocess.run(cmd, capture_output=True, text=True,
                            encoding='utf-8', errors='replace',
-                           env=_wt_env(), timeout=WT_TIMEOUT)
+                           env=_wt_env(), timeout=MERGE_TIMEOUT)
     except subprocess.TimeoutExpired:
-        raise SystemExit(f'wt merge 超时 {branch}（{WT_TIMEOUT}s），fail-closed')
+        # 超时不等于"什么都没发生"。wt 的第 7 步 cleanup 会删分支与 worktree，
+        # 若超时点落在 cleanup 之后、合并确认之前，分支就没了但主线也没进账。
+        # 必须先查现场再下结论，不能一律当成"未变更"。
+        raise SystemExit(
+            f'wt merge 超时 {branch}（{MERGE_TIMEOUT}s），且分支已不存在——'
+            '说明 wt 可能已删分支但未完成合入，请核对主线后再处理，不要假定无改动'
+            if not _branch_exists(branch) else
+            f'wt merge 超时 {branch}（{MERGE_TIMEOUT}s），分支仍存在，'
+            'wt 未进入 cleanup 阶段，主线应未变更'
+        )
     return r
 
 

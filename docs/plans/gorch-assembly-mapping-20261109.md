@@ -158,7 +158,7 @@ printf 'CONFLICTS:%s\n' "$(active_conflicts <task>.md)"
 | S5 ✅ | 通道内调 `codex_channel.py` 执行（现有件，execute 子命令 fan-out/join） | 已落地 | 真实 2 通道并发：各自独立 run-dir、产物落各自 worktree、交叉串单检查均 False；7 条 execute 单测（提交 `7e50634d`，三文件回归 40 passed） |
 | S6 ✅ | 薄编排：验收通过后逐个 `wt merge`（串行、失败即停）+ `cleanup` 兜底 | wt.exe | 冲突 frontmatter 在 S3 真实 gate 被拦（`ready:["C"]`，B 判「等待冲突解除」）；真 wt 形态在临时仓库实测：merge 输出「日志+多行 JSON」混合、字段 `branch/target/committed/squashed/rebased/removed`、add/add 冲突 rc=1 且显式 `CONFLICT (add/add)`、主线不污染；remove 输出为**数组**且 `-f` 只删目录、`branch_outcome=retained_unmerged`；单测 24→39 条，三文件回归 **56 passed/37.66s** |
 | SLOT ✅ | 插槽适配层：`src/brain/slot_adapter.py` + `config/gorch/slots.json`，三插槽换 API / CLI / 模型零改码 | 自建薄适配（照搬业界两类成熟形态：OpenAI-compatible `/chat/completions` + CLI argv 模板；不引入任何框架） | 配置优先级 env > json > 内置默认；`require_main()` 未启用即 fail-closed；21 条单测、两套真实链路验证（假端点换供应商 / python 冒充 CLI）、四文件回归 **77 passed**、`test_orchestrator.py` 原有 8 条无回归 |
-| S7 | 全量回归 + 打 tag | — | 现有 117 passed 不回归；无 tag 不报完成 |
+| S7 ✅ | A 审议链 → B 执行链接通（`bridge` 子命令），真跑一单八跳；全量回归 + 打 tag | 组装 | `bridge` 只搬不解析：每段 verdict 必须 completed、stages 原样复制到 `_handoff/`、写 manifest；真跑 GORCH 一单：审议三段全 completed（DeepSeek 真调）、gate 可开工、provision 建 worktree、Codex rc=0 result=done 产出 README 4209B 五节齐全、DeepSeek 独立复检 A1/A2/A3 全 PASS、cherry-pick 合入主线；七文件回归 **97 passed/42.96s**；新增 L72/L73 两条教训 |
 
 **S6 的冲突拦截是硬验收**：必须在编排/开工阶段（S3）就拦下，证明冲突不是等到运行期写文件才暴露。
 

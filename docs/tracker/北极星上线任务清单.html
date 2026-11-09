@@ -19,7 +19,7 @@
 
   <div class="level2">▶ ① 现在在跑
     <div class="level3"><b style="color:#fbbf24;">当前无在跑任务</b>｜上一单 <span class="wo-tag live">wo-ultimaagent-20261108-0031</span> 已于 2026-11-08 完成闭环并冻结 ｜ tag <b>wo-ultimaagent-20261108-0031-frozen-20261108</b></div>
-    <div class="level3"><b style="color:#34d399;">刚完成：插槽适配层（角色可替换落地）</b>｜<b>src/brain/slot_adapter.py</b> + config/gorch/slots.json，三插槽（S-MAIN/S-REVIEW/S-EXEC）换 API·CLI·模型全部零改码 ｜ 配置优先级 env &gt; json &gt; 默认，未启用即 fail-closed ｜ 21 条单测 + 两条真实链路验证（假端点换供应商、python 冒充 CLI），四文件回归 <b>77 passed</b>，orchestrator 原有 8 条无回归 ｜ 契约 <b>docs/specs/execution-slot-contract.md</b> v1.1 ｜ 下一步：S7 接通两条路，跑通一单八跳</div>
+    <div class="level3"><b style="color:#34d399;">刚完成：S7 接通两条路，跑通一单八跳</b>｜新增 <b>bridge</b> 交接点（只搬不解析：校验各段 verdict=completed、stages 原样复制到 _handoff、写 manifest），带 frontmatter 的工单由 Owner 确认后放进批次目录 ｜ 真跑一单：审议三段全 completed（DeepSeek 真调）→ gate 可开工 → provision 建 worktree → Codex rc=0 产出 README 4209B 五节齐全 → DeepSeek 独立复检 A1/A2/A3 全 PASS → 合入主线 ｜ 七文件回归 <b>97 passed</b> ｜ 顺带修掉两个真缺陷：工单命令块被误判成工具调用（L73）、wt merge 超时后分支已被删却没合入（L72，靠 cherry-pick 找回）｜ 契约 <b>docs/specs/execution-slot-contract.md</b> v1.2 ｜ 仍空：跳1/跳4 本地 8B（ollama 未装）</div>
     <div class="level3">0031 交付：JSON Schema + validator + 派发前 DoR 硬门 + 通用冻结门（dry-run）｜ 24 passed 独立复现 ｜ REVISE 补票已完成（工单补 OSS 排查段、0030 打 T0–T2 冻结 tag）</div>
     <div class="level3"><b style="color:#fca5a5;">⚠ 仍无自动接力</b>：下一单不会自己起来——必须人工从 ② 队列挑一单派发。这是当前唯一"队列不会自己动"的缺口</div>
   </div>
@@ -192,7 +192,7 @@ setInterval(()=>{ if(window.ULTIMA_LIVE && window.ULTIMA_LIVE.focus && window.UL
     <div class="level3"><span class="wo-tag num">wo-ultimaagent-20261029-0001</span>• 全局队列登记器 GlobalQueueRegistrar（queue.py 461 行，写 md 主表）：100% ✅</div>
     <div class="level3"><span class="wo-tag todo">待立项</span>• Agent实例池、上下文隔离：0%</div>
     <div class="level3"><span class="wo-tag todo">待立项</span>• MessageBus 本地消息总线、持久化（ultima_bus 仍为空壳）：0%</div>
-    <div class="level3"><span class="wo-tag none">无工单 · 主脑直做</span>• G-ORCH 多通道并发编排（照搬 ccpm + worktrunk，零自研算法）：<b>S1–S6 + 插槽适配层已提交</b>（gate/provision/execute 真实 2 通道并发跑通；merge/cleanup 含真实冲突硬验收；三插槽换 API/CLI/模型零改码）；<b>S7 全链路未做</b>：约 80%</div>
+    <div class="level3"><span class="wo-tag none">无工单 · 主脑直做</span>• G-ORCH 多通道并发编排（照搬 ccpm + worktrunk，零自研算法）：<b>S1–S7 + 插槽适配层已提交</b>（gate/provision/execute 真实 2 通道并发跑通；merge/cleanup 含真实冲突硬验收；三插槽换 API/CLI/模型零改码；S7 bridge 接通 A→B 并用真 DeepSeek + 真 Codex 跑通一单八跳，独立复检全 PASS）；<b>仍缺：跳1/跳4 本地 8B 未接线</b>：约 90%</div>
   </div>
   <div class="level2">
     ▶ 台账与执行看板（吸收 Manager） <span class="tag-pending">0% 待启动</span>

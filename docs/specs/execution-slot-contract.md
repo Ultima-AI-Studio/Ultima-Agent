@@ -104,28 +104,29 @@
 
 ---
 
-## 5. 当前实际链路（两条，尚未接通）
+## 5. 当前实际链路（A 与 B 已接通）
 
 | 路径 | 入口 | 覆盖环节 | 状态 |
 |---|---|---|---|
-| A：审议链 | `run-gorch.py` → `orchestrate-order.py` → `orchestrator.run_stage` → DeepSeek | 需求 → 理解/拆解 → 工单 → 排程 | 有实现、有调用方；只到 ④ |
+| A：审议链 | `run-gorch.py` → `orchestrate-order.py` → `orchestrator.run_stage` → DeepSeek | 需求 → 理解/拆解 → 工单 → 排程 | 有实现、真跑通过 |
+| 交接点 | `batch_orchestrator.py bridge --run-dir --batch-dir` | A 的 stages → B 的批次目录 | **S7 已落地并真跑** |
 | B：执行链 | `batch_orchestrator.py` → `gate` / `provision` / `execute` → `codex_channel.py` | 开工判定 → 隔离位 → 并发执行 | **S5 已真实跑通** |
 | 合并链 | `batch_orchestrator.py` → `merge` / `cleanup` → `wt merge` / `wt remove` | 串行合并 → 清理兜底 | **S6 已完成**（真冲突硬验收：rc=1 显式 CONFLICT、主线不污染） |
 
-**两条路没有接起来**：A 说完话就停，B 自己从 ccpm 读任务开始，中间没有东西把 A 的产出交给 B。这是 **S7（全链路串起来）** 的核心工作，也是"正式八跳一单都没跑过"的直接原因。
+**交接边界（重要）**：`bridge` **只搬不解析**。它可以做三件确定性的事——校验每段 `verdict` 为 `completed`、把 `stages/*.json` 原样复制到 `<批次>/_handoff/` 作审计证据、写 `manifest.json`（run_dir / 各段结论 / task_files / ready_to_gate / UTC 时间戳）。它**不做**的事是把自然语言工单反解成 `depends_on` / `conflicts_with`——那等于拿 Markdown 当类型系统，误解析会派错写域，而并发写域切错是这条链路里代价最高的事故。**带 frontmatter 的 `<id>.md` 由第 3 跳 Owner 确认后放进批次目录。**
 
-八跳实际的空档：
+八跳实测状态（2026-11-09 真跑 GORCH 一单）：
 
 | 跳 | 环节 | 载体 | 现状 |
 |---|---|---|---|
-| 1 | 主脑理解 | `S-MAIN` | 空（8B 未起） |
-| 2 | 审议·理解/方案 | `orchestrator` decompose | 有 |
-| 3 | Owner 确认 | 人工 | 人工 |
-| 4 | 主脑回传授权条件 | `S-MAIN` | 空 |
-| 5 | 审议·拆解/工单 | `orchestrator` work_order | 有 |
-| 6 | 审议·工单自检 | 同 stage 内自检 | 有 |
-| 7 | 执行·写码/自检/提交 | `S-EXEC` | 有（S5 真实跑通） |
-| 8 | 审议·复检 → 主脑汇报 → Owner 抽检 | `audit-work-order.py` / `S-MAIN` | 部分 |
+| 1 | 主脑理解 | `S-MAIN` | **空**（ollama 未装、18766 无监听；本轮人工代做） |
+| 2 | 审议·理解/方案 | `orchestrator` decompose | ✅ 真调 DeepSeek，verdict=completed |
+| 3 | Owner 确认 | 人工 | 人工（本轮代做并改判：7 道串行同文件 → 合 1 张工单） |
+| 4 | 主脑回传授权条件 | `S-MAIN` | **空**（同上，本轮写进工单验收 A1-A3） |
+| 5 | 审议·拆解/工单 | `orchestrator` work_order | ✅ 真调，verdict=completed |
+| 6 | 审议·工单自检 | 同 stage 内自检 | ✅ 产出自检清单 G1-G6 |
+| 7 | 执行·写码/自检/提交 | `S-EXEC` | ✅ Codex rc=0 result=done，产出 4209B 并提交 |
+| 8 | 审议·复检 → 主脑汇报 → Owner 抽检 | `S-REVIEW` 独立复核 | ✅ 复检 A1/A2/A3 全 PASS（主脑汇报由本轮代做） |
 
 ---
 
@@ -134,11 +135,11 @@
 | 缺口 | 影响 | 下一步 |
 |---|---|---|
 | 回执两套结构 | 下游无法用同一套判定处理不同插槽产物 | §3 统一结构落地 |
-| 主脑未接线 | 第 1、4 跳靠人工代做 | S7 前（适配层已备好接口，`enabled=true` 才放行） |
-| 两条路未接 | 无法一单跑完八跳 | S7 |
+| 主脑未接线 | 第 1、4 跳靠人工代做 | 起本地 8B（或把 `S-MAIN` 指向任一 OpenAI-compatible 端点），`enabled=true` 才放行 |
 | 4 处 model 硬编码不在适配层路径内 | 换 model 时要单独改这 4 个文件 | 收口到 `slot_adapter` 一处（`audit-work-order.py` / `external_executor.py` / `interaction.py` / mem0） |
+| `wt merge` 在本仓库会超过 180s | 已改 `MERGE_TIMEOUT=600` + 超时探现场（分支是否已被删）；**600s 尚未在真实合并上验证**（本次合并由 cherry-pick 完成） | 下一次真实合并时确认耗时与回执 |
 
-> 已关闭：S6 合并编排（2026-11-09）、执行位 CLI 硬编码、model 硬编码（编排主路径）、未接线插槽无 fail-closed（`require_main()` 现在报错）。
+> 已关闭：S6 合并编排（2026-11-09）、A/B 两路未接（S7 `bridge`）、执行位 CLI 硬编码、model 硬编码（编排主路径）、未接线插槽无 fail-closed（`require_main()` 现在报错）、工单命令块被误判成工具调用（L73）。
 
 ---
 
@@ -169,3 +170,4 @@
 |---|---|---|
 | v1.0 | 2026-11-09 | 初版：三插槽接口、共同与专项硬边界、回执统一结构、替换方式（配置 vs 改码）、两条路径现状与八跳空档、已知缺口、可机检判定 |
 | v1.1 | 2026-11-09 | 适配层落地：新增 `src/brain/slot_adapter.py`（`config/gorch/slots.json` + 环境变量 + 内置默认值三级），三插槽换 API/CLI/模型全部不需要改码；§4 重写、§5 合并链标 S6 完成、§6 缺口表关闭三项；`call_deepseek`/`run_stage` 增加 `base_url`/`api_key` 显式入参（修复"model 换了 key 没换"的假替换） |
+| v1.2 | 2026-11-09 | S7 接通：新增 `bridge` 交接点（只搬不解析，带 frontmatter 的工单由 Owner 放进批次目录）；§5 改为「A 与 B 已接通」并补八跳实测状态（2/5/6/7/8 已真跑，1/4 仍空）；§6 关闭「两条路未接」、新增「wt merge 超 180s 需 600s 且 600s 未经真实合并验证」 |
