@@ -942,13 +942,62 @@ def test_run_all_dry_run_does_not_merge_or_cleanup(mod, monkeypatch, tmp_path):
     assert called == []
 
 
+CLEANUP_KEYS = {'removed', 'skipped', 'kept_for_conflict', 'kept_for_evidence',
+                'kept_for_proof', 'kept_for_unknown'}
+
+
 def test_run_all_without_ready_has_merge_key(mod, tmp_path):
-    """A8：没有可开工任务时 steps 也要有 merge/cleanup，CLI 不再 KeyError。"""
+    """A8：没有可开工任务时 steps 也要有 merge/cleanup，CLI 不再 KeyError。
+
+    r14（第十三轮审计 E1-4）：只断 `removed` 不够——撤掉 `_stop()` 里补的三个
+    `kept_for_*`，用例照样绿。这里改为断言**完整键集**（集合相等）。
+    """
     write_task(tmp_path, 1, status='done')
     summary = mod.run_all(str(tmp_path), str(tmp_path))
     assert summary['stopped_at'] == 'gate'
     assert summary['steps']['merge']['failed'] == []
-    assert summary['steps']['cleanup']['removed'] == []
+    cleanup = summary['steps']['cleanup']
+    assert set(cleanup) == CLEANUP_KEYS
+    for k in CLEANUP_KEYS:
+        assert cleanup[k] == []
+
+
+def test_run_all_normal_completion_cleanup_has_all_keepers(mod, monkeypatch, tmp_path):
+    """r14（第十三轮审计 E1-4）：正常完成分支的 `steps['cleanup']` 也必须是六键同构。
+
+    此前只有失败四分流路径带完整键集，正常完成只写 kept_for_conflict；撤掉该分支补的
+    三个键，本用例的红点是唯一防线（AST 只能证明当前形态，不能防回退）。
+    """
+    write_task(tmp_path, 1)
+    runs = tmp_path / 'runs'
+    d1 = write_run(runs, '1')
+    prompts = tmp_path / 'prompts'
+    prompts.mkdir()
+    (prompts / '1.txt').write_text('p', encoding='utf-8')
+    monkeypatch.setattr(mod, 'RUNS', runs)
+    monkeypatch.setattr(mod, 'WORKTREE_ROOT', tmp_path / 'wt')
+    monkeypatch.setattr(mod, 'gate_check', lambda d: [{'task': '1', 'verdict': '可开工'}])
+    monkeypatch.setattr(mod, 'provision', lambda d, tasks=None: ([], [], []))
+    monkeypatch.setattr(mod, 'execute', lambda *a, **k: ([], [
+        {'task': '1', 'channel': 1, 'returncode': 0, 'run_dir': str(d1)}]))
+    monkeypatch.setattr(mod, 'find_done_tasks',
+                        lambda *a, **k: ({'1': {'task': '1', 'result': 'done'}}, {}))
+
+    def fake_merge(*a, **k):
+        k.get('trace', {}).update({'attempted': ['1'], 'not_attempted': []})
+        return {}, [{'task': '1'}], [], {}
+
+    monkeypatch.setattr(mod, 'merge', fake_merge)
+    monkeypatch.setattr(mod, 'cleanup', lambda *a, **k: ([], []))
+    summary = mod.run_all(str(tmp_path), str(prompts), max_channels=1,
+                          invocation='inv-test')
+    assert summary['stopped_at'] == 'done'
+    cleanup = summary['steps']['cleanup']
+    assert set(cleanup) == CLEANUP_KEYS
+    assert cleanup['removed'] == []
+    for k in ('kept_for_conflict', 'kept_for_evidence',
+              'kept_for_proof', 'kept_for_unknown'):
+        assert cleanup[k] == []
 
 
 def test_run_all_carries_invocation_and_target(mod, monkeypatch, tmp_path):
