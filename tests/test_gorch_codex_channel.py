@@ -225,13 +225,23 @@ class _Res:
     stderr = ''
 
 
-def _run_main(m, monkeypatch, tmp_path, wt_kind, wt_detail='', extra=None):
-    """走完整执行段，只替换外部 Codex、产出判定与看板 CLI。"""
+def _run_main(m, monkeypatch, tmp_path, wt_kind, wt_detail='', extra=None,
+              baseline=None):
+    """走完整执行段，只替换外部 Codex、产出判定与看板 CLI。
+
+    ``baseline`` 是执行前快照（None 表示与执行后同值）。A4 之后 worktree_state
+    会被调两次（执行前基线 + 执行后），所以这里用队列模拟先后两次读数。
+    """
     fake = tmp_path / 'codex.exe'
     fake.write_bytes(b'')
     monkeypatch.setattr(m, 'resolve_codex_exe', lambda: str(fake))
     monkeypatch.setattr(m, 'run_codex', lambda *a, **k: (_Proc(), 1.0))
-    monkeypatch.setattr(m, 'worktree_state', lambda wd: (wt_kind, wt_detail))
+    queue = list(baseline or [])
+
+    def fake_state(wd):
+        return queue.pop(0) if queue else (wt_kind, wt_detail)
+
+    monkeypatch.setattr(m, 'worktree_state', fake_state)
     monkeypatch.setattr(m, 'kanban', lambda *a, **k: _Res())
 
     prompt = tmp_path / 'p.md'
@@ -255,13 +265,18 @@ def test_clean_worktree_blocks_even_with_exit_zero(tmp_path, monkeypatch):
 
 
 def test_changed_worktree_lands_done(tmp_path, monkeypatch):
-    """有真实改动时正常 done，并把改动摘要落进 record。"""
+    """有真实改动时正常 done，并把改动摘要落进 record。
+
+    基线是干净的、执行后才出现 `?? docs/x.md`——这才是"本次产出"。
+    """
     m = _load()
-    rc, record = _run_main(m, monkeypatch, tmp_path, 'changed', '?? docs/x.md')
+    rc, record = _run_main(m, monkeypatch, tmp_path, 'changed', '?? docs/x.md',
+                           baseline=[('clean', '')])
     assert rc == 0
     assert record['result'] == 'done'
     assert record['worktree_state'] == 'changed'
     assert 'docs/x.md' in record['worktree_changes']
+    assert 'docs/x.md' in record['worktree_new_changes']
 
 
 def test_not_repo_blocks_by_default(tmp_path, monkeypatch):
@@ -281,3 +296,48 @@ def test_not_repo_allowed_only_with_explicit_flag(tmp_path, monkeypatch):
     assert rc == 0
     assert record['result'] == 'done'
     assert 'allow-non-repo' in record.get('worktree_state_note', '')
+
+
+# --- A2/A4：零改动协议与执行前基线 ---
+
+def test_clean_worktree_allowed_when_flag_declared(tmp_path, monkeypatch):
+    """A2：纯验证卡 / 只回 last-message.md 的卡按约定不改仓库，显式开关后放行。
+
+    默认仍严格（见 test_clean_worktree_blocks_even_with_exit_zero）——只开一道
+    有名字的门，不是把 clean 一律当成功。
+    """
+    m = _load()
+    rc, record = _run_main(m, monkeypatch, tmp_path, 'clean',
+                           extra=['--no-change-allowed'])
+    assert rc == 0
+    assert record['result'] == 'done'
+    assert '--no-change-allowed' in record['worktree_state_note']
+
+
+def test_dirty_baseline_without_new_changes_blocks(tmp_path, monkeypatch):
+    """A4：复用脏 worktree 时，旧改动不能算本次成果。
+
+    执行前后都是同一堆脏文件（行集合相同）→ 本次没新增任何东西 → blocked。
+    """
+    m = _load()
+    dirty = ' M docs/old.md\n?? docs/junk.md'
+    rc, record = _run_main(m, monkeypatch, tmp_path, 'changed', dirty,
+                           baseline=[('changed', dirty)])
+    assert rc == 1
+    assert record['result'] == 'blocked'
+    assert '无新增' in (record.get('reason') or '')
+    assert record['worktree_baseline'] == 'changed'
+    assert record['worktree_new_changes'] == ''
+
+
+def test_dirty_baseline_with_new_change_lands_done(tmp_path, monkeypatch):
+    """A4 的正面：脏基线之上确实多了一个文件，那才叫本次产出。"""
+    m = _load()
+    before = ' M docs/old.md'
+    after = ' M docs/old.md\n?? docs/new.md'
+    rc, record = _run_main(m, monkeypatch, tmp_path, 'changed', after,
+                           baseline=[('changed', before)])
+    assert rc == 0
+    assert record['result'] == 'done'
+    assert 'docs/new.md' in record['worktree_new_changes']
+    assert 'docs/old.md' not in record['worktree_new_changes']

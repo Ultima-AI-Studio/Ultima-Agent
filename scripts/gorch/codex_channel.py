@@ -86,6 +86,16 @@ def worktree_state(workdir):
     return ('changed', text) if text else ('clean', '')
 
 
+def _status_set(detail):
+    """把 git status --porcelain 文本拆成行集合，用于执行前后对比。
+
+    第三轮审计：只有"执行后一次快照"无法区分"本次改的"和"worktree 本来就有"的。
+    provision 幂等复用既有 worktree 时，旧改动会被算成本次成果。这里用执行前
+    快照做基线，只有**相对基线新增的行**才算本次产出。
+    """
+    return {ln for ln in (detail or '').splitlines() if ln.strip()}
+
+
 def resolve_codex_exe():
     """解析执行体路径：适配层配置 → env → PATH → 四组 glob（按 mtime 取最新）。
 
@@ -173,6 +183,9 @@ def main(argv=None):
     ap.add_argument('--simulate-fail', action='store_true', help='演练失败路径')
     ap.add_argument('--allow-non-repo', action='store_true',
                     help='允许 workdir 不是 git 工作树（仅手工验证用；批量路径默认 fail-closed）')
+    ap.add_argument('--no-change-allowed', action='store_true',
+                    help=('本次任务按约定不产生仓库改动（纯验证卡、只回 last-message.md 的报告卡）。'
+                          '默认不带：worktree 零改动一律判空产出 blocked'))
     args = ap.parse_args(argv)
 
     if not KANBAN.is_file():
@@ -223,6 +236,12 @@ def main(argv=None):
         (run_dir / 'out.log').write_text(summary, encoding='utf-8')
     else:
         last_msg = run_dir / 'last-message.md'
+        # 执行前基线（第三轮审计 A4）：只认相对基线**新增**的改动，
+        # 复用脏 worktree 时不把旧文件当成本次产出。
+        base_kind, base_detail = worktree_state(args.workdir)
+        record['worktree_baseline'] = base_kind
+        if base_kind == 'changed':
+            record['worktree_baseline_dirty'] = base_detail[:2000]
         try:
             proc, elapsed = run_codex(codex, prompt_bytes, args.workdir,
                                       last_msg, args.effort, args.timeout)
@@ -239,10 +258,23 @@ def main(argv=None):
                 kind, detail = worktree_state(args.workdir)
                 record['worktree_state'] = kind
                 record['worktree_changes'] = (detail or '')[:2000]
+                # 本次产出 = 相对基线新增的条目（第三轮审计 A4）
+                before = _status_set(base_detail) if base_kind == 'changed' else set()
+                fresh = _status_set(detail) - before
+                record['worktree_new_changes'] = '\n'.join(sorted(fresh))[:2000]
                 if kind == 'clean':
+                    if args.no_change_allowed:
+                        record['worktree_state_note'] = (
+                            'clean，按 --no-change-allowed 放行（本次约定不产生仓库改动）')
+                    else:
+                        ok = False
+                        guard_reason = ('Codex 退出码 0，但 worktree 无任何改动——'
+                                        '判空产出，不写 done（执行端没留下任何可合并内容）。'
+                                        '若本次本就约定不改仓库，须显式加 --no-change-allowed')
+                elif kind == 'changed' and base_kind == 'changed' and not fresh:
                     ok = False
-                    guard_reason = ('Codex 退出码 0，但 worktree 无任何改动——'
-                                    '判空产出，不写 done（执行端没留下任何可合并内容）')
+                    guard_reason = ('Codex 退出码 0，worktree 有改动但相对执行前基线无新增——'
+                                    '改动全部来自复用前既有的脏状态，判空产出，不写 done')
                 elif kind == 'error':
                     ok = False
                     guard_reason = f'无法确认 worktree 改动，fail-closed：{detail}'

@@ -135,26 +135,40 @@ def gate_check(batch_dir):
                 raise SystemExit(
                     f'ccpm 判定出现错误输出 {task.name}: {real_errs[0][:200]}')
 
-        seen = set()
+        seen = {}
         status = ''
         unmet, conflicts = [], []
+        extra = []
         for line in r.stdout.splitlines():
-            if line.startswith('STATUS:'):
-                status = line[len('STATUS:'):].strip()
-                seen.add('STATUS')
-            elif line.startswith('UNMET:'):
-                unmet = line[len('UNMET:'):].split()
-                seen.add('UNMET')
-            elif line.startswith('CONFLICTS:'):
-                conflicts = line[len('CONFLICTS:'):].split()
-                seen.add('CONFLICTS')
+            s = line.strip()
+            if not s:
+                continue
+            if s.startswith('STATUS:'):
+                status = s[len('STATUS:'):].strip()
+                seen['STATUS'] = seen.get('STATUS', 0) + 1
+            elif s.startswith('UNMET:'):
+                unmet = s[len('UNMET:'):].split()
+                seen['UNMET'] = seen.get('UNMET', 0) + 1
+            elif s.startswith('CONFLICTS:'):
+                conflicts = s[len('CONFLICTS:'):].split()
+                seen['CONFLICTS'] = seen.get('CONFLICTS', 0) + 1
+            else:
+                extra.append(s)
 
-        # fail-closed：三个标记必须齐全、status 必须是已知合法值。
-        # 调用/读取不可靠时宁可报错，也不把缺失当成“开放/无依赖”而放行。
-        missing = {'STATUS', 'UNMET', 'CONFLICTS'} - seen
+        # fail-closed：三标记必须**各出现且仅一次**，stdout 不得夹带其他行。
+        # 只要求"出现过"时，重复的 STATUS 以后者覆盖前者（末行生效）、多余行被
+        # 静默忽略——多打一行就能改写判定（第三轮审计 A3）。
+        missing = {'STATUS', 'UNMET', 'CONFLICTS'} - set(seen)
         if missing:
             raise SystemExit(
                 f'ccpm 输出不完整 {task.name}: 缺 {sorted(missing)}，fail-closed 不派发')
+        dup = sorted(k for k, v in seen.items() if v > 1)
+        if dup:
+            raise SystemExit(
+                f'ccpm 输出重复 {task.name}: {dup} 出现多次，fail-closed 不派发')
+        if extra:
+            raise SystemExit(
+                f'ccpm 输出含多余行 {task.name}: {extra[0][:120]}，fail-closed 不派发')
         canon = status_map.normalize_status(status)
         if canon is None:
             raise SystemExit(
@@ -294,11 +308,42 @@ def _find_prompt(prompts_dir, task):
     return None
 
 
+def _task_meta(card_path):
+    """读任务卡 frontmatter 的单行键值（本工程卡只有 `key: value`，够用）。
+
+    用途：把"这张卡约定零改动 / 允许非 git 目录"这类声明**按卡**透传给
+    codex_channel。批次级一个总开关会把整批都放开，等于没关（第三轮审计 A2/A5）。
+    """
+    p = pathlib.Path(card_path)
+    if not p.is_file():
+        return {}
+    text = p.read_text(encoding='utf-8', errors='replace')
+    if not text.startswith('---'):
+        return {}
+    parts = text.split('---', 2)
+    if len(parts) < 3:
+        return {}
+    meta = {}
+    for line in parts[1].splitlines():
+        s = line.strip()
+        if not s or s.startswith('#') or ':' not in s:
+            continue
+        k, v = s.split(':', 1)
+        meta[k.strip()] = v.strip()
+    return meta
+
+
+def _truthy(value):
+    return str(value or '').strip().lower() in ('true', 'yes', '1', 'on')
+
+
 def execute(batch_dir, prompts_dir, max_channels=MAX_CHANNELS, dry_run=False):
     """对可开工任务并发调 codex_channel（--workdir 指向各自 worktree）。
 
     执行逻辑全在 codex_channel 内；本函数只做：校验、fan-out 起进程、join 收集。
     并发用标准库 subprocess（fan-out + join），分批受 max_channels 限制。
+    产出策略类开关（no_change_allowed / allow_non_repo）**逐卡从任务卡 frontmatter
+    读**，不在批次层统一打开。
     """
     rows = gate_check(batch_dir)
     ready = [r['task'] for r in rows if r['verdict'] == '可开工']
@@ -313,19 +358,24 @@ def execute(batch_dir, prompts_dir, max_channels=MAX_CHANNELS, dry_run=False):
         if not prompt:
             raise SystemExit(
                 f'找不到 prompt {task}（{prompts_dir}\\<id>.md|.txt），fail-closed')
-        jobs.append((task, wt_path, prompt))
+        meta = _task_meta(pathlib.Path(batch_dir) / f'{task}.md')
+        jobs.append((task, wt_path, prompt, meta))
 
     results = []
     # 分批：每批最多 max_channels 个进程并发，批内 fan-out 后 join，再进下一批。
     for start in range(0, len(jobs), max_channels):
         batch = jobs[start:start + max_channels]
         procs = []
-        for channel, (task, wt_path, prompt) in enumerate(batch, start=1):
+        for channel, (task, wt_path, prompt, meta) in enumerate(batch, start=1):
             cmd = [sys.executable, str(CHANNEL_SCRIPT),
                    '--task', task, '--channel', str(channel),
                    '--prompt', str(prompt), '--workdir', str(wt_path)]
             if dry_run:
                 cmd.append('--dry-run')
+            if _truthy(meta.get('no_change_allowed')):
+                cmd.append('--no-change-allowed')
+            if _truthy(meta.get('allow_non_repo')):
+                cmd.append('--allow-non-repo')
             p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                                  text=True, encoding='utf-8', errors='replace',
                                  creationflags=_NO_WINDOW)
@@ -445,28 +495,44 @@ def wt_remove(branch, force=False, delete_branch=False):
     return r
 
 
-def find_done_tasks(batch_dir):
-    """从 run 记录确认哪些任务执行成功（result=done），每个任务取最新一条。
+def find_done_tasks(batch_dir, with_blocked=False):
+    """每个任务只认**最新一条真实执行记录**，返回 result=done 的任务。
 
-    只读 JSON 字段做确定性映射，不判断代码质量——“执行成功”以 codex_channel 落盘的
-    result 为准（它已按子进程退出码判定）；没有记录就没有成功，不得凭记忆合并。
+    第三轮审计 A1：原先是"从新到旧扫，命中第一条 done 就算成功"，于是任务重跑
+    失败（最新记录 blocked）后仍会按上一次的成功记录合并——把失败当成功合并。
+    现在只看最新一条真实记录：
+      · 最新是 done           → 进合并池
+      · 最新是 blocked/无记录 → 不进合并池，原因经 ``stale`` 带出供人看
+
+    dry-run 记录不是真实执行，跳过不参与比较（第二轮审计）；它既不能授权合并，
+    也不该把一条真实的 blocked 记录挡在外面。
     """
     batch_dir = pathlib.Path(batch_dir)
     tasks = sorted(p.stem for p in batch_dir.glob('*.md') if p.is_file())
-    done = {}
+    done, stale = {}, {}
     for task in tasks:
         hits = sorted(RUNS.glob(f'{task}-ch*/codex-channel.json'),
                       key=lambda p: p.stat().st_mtime, reverse=True)
+        latest = None
         for h in hits:
             try:
                 data = json.loads(h.read_text(encoding='utf-8'))
             except (json.JSONDecodeError, OSError, UnicodeDecodeError):
                 continue
-            # dry-run 的 done 是模拟产物、没有真实改动，不能当合并授权（第二轮审计）。
-            if data.get('result') == 'done' and not data.get('dry_run'):
-                done[task] = str(h)
-                break
-    return done
+            if data.get('dry_run'):
+                continue
+            latest = (h, data)
+            break
+        if latest is None:
+            stale[task] = {'run_record': None, 'reason': '无真实执行记录'}
+            continue
+        h, data = latest
+        if data.get('result') == 'done':
+            done[task] = str(h)
+        else:
+            stale[task] = {'run_record': str(h),
+                           'reason': data.get('reason') or '最新记录的 result 不是 done'}
+    return (done, stale) if with_blocked else done
 
 
 def _current_branch():
@@ -492,17 +558,19 @@ def merge(batch_dir, tasks=None, target=None):
     冲突时 wt 会把 rebase 留在源 worktree 的未完成态，必须人工 abort 或解决后才能继续；
     因此这里宁可整批停下并如实回传原始输出，也不在半合并历史上叠加后续分支。
     """
-    done = find_done_tasks(batch_dir)
+    done, stale = find_done_tasks(batch_dir, with_blocked=True)
     if tasks:
         unknown = [t for t in tasks if t not in done]
         if unknown:
+            detail = [f'{t}（{stale[t]["reason"][:80]}）' if t in stale else t
+                      for t in unknown]
             raise SystemExit(
-                f'以下任务没有成功执行记录，拒绝合并: {unknown}，fail-closed')
+                f'以下任务最新记录不是 done，拒绝合并: {detail}，fail-closed')
         targets = list(tasks)
     else:
         targets = list(done)
     if not targets:
-        return done, [], []
+        return done, [], [], stale
 
     resolved_target = (target or _current_branch()).strip()
     if not resolved_target or resolved_target == 'HEAD':
@@ -533,7 +601,7 @@ def merge(batch_dir, tasks=None, target=None):
                 f'wt merge 输出无法解析 {task}: {r.stdout.strip()[:400]}，fail-closed')
         merged.append({'task': task, 'branch': branch,
                        'result': data, 'run_record': done[task]})
-    return done, merged, failed
+    return done, merged, failed, stale
 
 
 def cleanup(batch_dir, tasks=None, force=False, delete_branch=False):
@@ -555,9 +623,23 @@ def cleanup(batch_dir, tasks=None, force=False, delete_branch=False):
             continue
         r = wt_remove(branch, force=force, delete_branch=delete_branch)
         if r.returncode != 0:
-            failed_hint = (r.stdout + r.stderr).strip()[-400:]
+            # 超时 ≠ 没清理（L72）：Windows 上 wt remove 稳定跑不完 180s，而它的
+            # 内部 cleanup 往往在超时点之前已经删掉了目录与分支。所以不能凭 rc
+            # 判失败，必须回读现场——两者都已消失才算真的清干净（第三轮审计 A7）。
+            wt_gone = not wt_path.is_dir()
+            br_gone = not _branch_exists(branch)
+            raw_tail = (r.stdout + r.stderr).strip()[-400:]
+            if wt_gone and br_gone:
+                removed.append({'task': task, 'branch': branch,
+                                'worktree': str(wt_path), 'branch_outcomes': [],
+                                'note': (f'wt remove 返回 rc={r.returncode}，但 worktree 目录与'
+                                         f'分支均已消失，按已清理处理'),
+                                'raw_tail': raw_tail})
+                continue
             skipped.append({'task': task, 'branch': branch,
-                            'reason': f'rc={r.returncode} {failed_hint}'})
+                            'reason': (f'rc={r.returncode} 且仍有残留 '
+                                       f'(目录还在={not wt_gone}, '
+                                       f'分支还在={not br_gone}) {raw_tail}')})
             continue
         data = _parse_braced_json(r.stdout)
         # wt remove 返回数组；把分支结局原样带出，让人看清分支到底删没删。
@@ -567,6 +649,54 @@ def cleanup(batch_dir, tasks=None, force=False, delete_branch=False):
                         'result': data, 'branch_outcomes': outcomes,
                         'worktree': str(wt_path)})
     return removed, skipped
+
+
+def run_all(batch_dir, prompts_dir, max_channels=MAX_CHANNELS, target=None,
+            dry_run=False, force_cleanup=False):
+    """一条命令走完 gate → provision → execute → merge → cleanup。
+
+    为什么合并成一条：五条手工串时"哪步跑过、哪步漏了"只存在人的记忆里，中途断掉
+    后下一个人无法从产物判断进度。这里把每步结论与 rc 一起回传，任一步 fail-closed
+    立即停（不再往下走）。
+
+    merge 失败（冲突）时**仍然执行 cleanup，但跳过冲突任务**：冲突现场（`UU`/`AA`
+    状态、`rebase-merge`、冲突标记）都在那个 worktree 里，清掉等于销毁证据。
+    """
+    steps = {}
+    rows = gate_check(batch_dir)
+    ready = [r['task'] for r in rows if r['verdict'] == '可开工']
+    steps['gate'] = {'ready': ready,
+                     'blocked': [r['task'] for r in rows if r['verdict'] != '可开工']}
+    if not ready:
+        return {'steps': steps, 'stopped_at': 'gate', 'note': '没有可开工任务'}
+
+    _, provisioned, p_skipped = provision(batch_dir)
+    steps['provision'] = {
+        'provisioned': [p.get('task') for p in provisioned if isinstance(p, dict)],
+        'skipped': p_skipped,
+    }
+
+    _, results = execute(batch_dir, prompts_dir,
+                         max_channels=max_channels, dry_run=dry_run)
+    steps['execute'] = {
+        'results': [{'task': r['task'], 'channel': r['channel'],
+                     'returncode': r['returncode']} for r in results],
+    }
+
+    done, merged, failed, stale = merge(batch_dir, target=target)
+    steps['merge'] = {'merged': [m['task'] for m in merged],
+                      'failed': failed, 'not_merged': stale}
+
+    keep = [f['task'] for f in failed]
+    cleanup_targets = [t for t in ready if t not in keep]
+    removed, c_skipped = cleanup(batch_dir, tasks=cleanup_targets,
+                                 force=force_cleanup, delete_branch=False)
+    steps['cleanup'] = {
+        'removed': [r['task'] for r in removed],
+        'skipped': c_skipped,
+        'kept_for_conflict': keep,
+    }
+    return {'steps': steps, 'stopped_at': 'merge' if failed else 'done'}
 
 
 def bridge(run_dir, batch_dir):
@@ -661,6 +791,15 @@ def main(argv=None):
     b = sub.add_parser('bridge', help='把审议链 run_dir 的产物登记成交接单（只搬不解析）')
     b.add_argument('--run-dir', required=True, help='orchestrate-order 的 run_dir')
     b.add_argument('--batch-dir', required=True, help='交接给 gate/provision 的批次目录')
+    rn = sub.add_parser('run', help='一条命令走完 gate→provision→execute→merge→cleanup')
+    rn.add_argument('batch_dir', help='批次任务目录（只放 <id>.md）')
+    rn.add_argument('--prompts-dir', required=True, help='prompt 文件目录（<id>.md|.txt）')
+    rn.add_argument('--max-channels', type=int, default=MAX_CHANNELS,
+                    help='并发上限（默认 %d）' % MAX_CHANNELS)
+    rn.add_argument('--target', default=None, help='合并目标分支（默认当前检出分支）')
+    rn.add_argument('--dry-run', action='store_true', help='透传给 execute，不真起 Codex')
+    rn.add_argument('--force-cleanup', action='store_true',
+                    help='cleanup 阶段删带未跟踪文件的脏 worktree')
     args = ap.parse_args(argv)
 
     if args.cmd == 'gate':
@@ -700,12 +839,13 @@ def main(argv=None):
         return 0
 
     if args.cmd == 'merge':
-        done, merged, failed = merge(args.batch_dir, tasks=args.tasks,
-                                     target=args.target)
+        done, merged, failed, stale = merge(args.batch_dir, tasks=args.tasks,
+                                            target=args.target)
         print(json.dumps(
             {'batch': str(pathlib.Path(args.batch_dir)),
              'target': args.target or _current_branch(),
-             'done_tasks': done, 'merged': merged, 'failed': failed},
+             'done_tasks': done, 'merged': merged, 'failed': failed,
+             'not_merged': stale},
             ensure_ascii=False, indent=2))
         # 任一分支合并失败（含冲突）即非 0，让上游看到失败而不是“跑完了”。
         return 0 if not failed else 1
@@ -715,6 +855,14 @@ def main(argv=None):
         print(json.dumps(manifest, ensure_ascii=False, indent=2))
         # 没工单 md 不算失败（交接完成但等第 3 跳），但要让人看见它还不能开工。
         return 0
+
+    if args.cmd == 'run':
+        summary = run_all(args.batch_dir, args.prompts_dir,
+                          max_channels=args.max_channels, target=args.target,
+                          dry_run=args.dry_run, force_cleanup=args.force_cleanup)
+        print(json.dumps({'batch': str(pathlib.Path(args.batch_dir)), **summary},
+                         ensure_ascii=False, indent=2))
+        return 0 if not summary['steps']['merge']['failed'] else 1
 
     if args.cmd == 'cleanup':
         removed, skipped = cleanup(
