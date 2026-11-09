@@ -391,3 +391,66 @@ untracked/需监管 ignored）｜`_fresh_paths` 保留 rename 两端、去掉破
 4. 口径②的「本次调用造成」仍建立在 SHA 比较与时序上：同一窗口内若有第三方进程以**同一 source** 推进 target，理论上仍可能误判——彻底分离需要 git 侧事务级证据，本轮不做。
 5. `_status_rows` 的 ignored 条目上限 4000，超出即 `ERR:ignored>4000` 阻断（宁可拒也不静默）。
 6. 本报告所有测试数字均为提交方本地实跑，非审计方独立复验；第七轮审计若同样不跑 pytest，仍需按「主张」对待。
+
+## 十一、第七轮 Codex 独立审计（判定：不一致）
+
+> 审计对象：`1e041843`（代码）+ `5dfdf61f`（文档），HEAD/tag `gorch-r7-failopen-closeout-20261109`。
+> 严格只读，**未运行 pytest**。耗时 **882.0s / 24,336B / 144,283 tokens**。
+> 仓库身份由审计方只读核验：分支 `codex/voice-fsmn-new-path`，HEAD 与 tag 均指向
+> `5dfdf61f`，六个被审文件无工作区修改，代码提交统计确为 4 文件 / `+649 / -150`。
+
+### 11.1 总判定原文
+
+> 「**不一致。** r7 确实闭合了严格 UTC、无 manifest 拒签、merge 前态查询失败、拒签任务回流
+> execute 等部分问题，但真实 rename 解析仍丢源路径、显式 run-record 身份校验不完整、
+> cleanup 证据值反写，而且生产执行记录根本未写 `invocation`，会使正常 `run_all` 在执行成功后
+> 仍被 merge 阶段拒绝。」
+
+### 11.2 复核表（判定均引自审计原文的行号）
+
+| 编号 | 结论 | 审计给出的证据与要点 |
+|---|---|---|
+| A⑤ 严格 UTC / 重复 invocation / 非 dict 根 | ❌ | 前两项已闭合（`batch_orchestrator.py:715`、`:719`、`:853`）；但非 dict 只在显式 `run_dirs` 的 `:774` 拦下，fallback 在 `:817` 解析后直接于 `:821`、`:825` 调 `data.get`，JSON 数组仍会崩；用例 `:1320` 只覆盖显式路径 |
+| A⑦ 写域解析三处 | ❌ | `*` 不跨 `/` 已修（`codex_channel.py:271–286`）；但真实 `-z` rename 在 `:84` 遇第二路径直接 `i += 1` 丢弃、`:87` 只存目标，`_fresh_paths`（`:251`）期待的 `' -> '` 文本在结构化数据里根本不存在；用例 `:669` 是手造字符串。另 `_norm_path`（`:232`）仍 `strip()`，会改写首尾空格文件名 |
+| A⑧ 脏基线同路径 / ignored / status 参数 | ⚠️ | `--porcelain -z -uall --ignored`（`:58–66`）、ignored 进 `paths`（`:180–191`）、同路径摘要不同算 fresh（`:217–219`）都已落地；但 `BIG:size:int(mtime)` 与 `ERR:errno`（`:160–165`）不是内容指纹，脏基线下同摘要仍可漏检 |
+| A⑩ CLI 自授权入口 | ✅ | `:313–317` 无 manifest 即 `problem`；`main()` `:486–499` 只取 manifest；用例 `:591–614` 同时断 `blocked` 与 `called['n'] == 0` |
+| A⑪ 用例数量与强度 | ❌ | 静态数 36 + 92 = 128，§10 所列新增名都在；但多条只测 helper：rename 只喂箭头字符串（`:672`）、run-record helper 人工补了生产端没写的 `invocation`（`:398–411`）、cleanup 用例在 `:1456` 断言了相反的语义 |
+| 口径① 禁止 CLI 自授权 | ✅ | 授权值只来自 `codex_channel.py:498–499` 的 `auth` |
+| 口径② merge 须证明本次造成 | ❌ | 终判据 `batch_orchestrator.py:1041–1043` 仍是「target 前进 + 调后为祖先 + 必要时 source 移动」；调用前非祖先时，第三方在窗口内合入同一 source 同样满足三项；代码也没用 wt 回执 `committed/squashed/rebased` 证因果 |
+| 口径③ cleanup 豁免写回读值 | ❌ | 三处确实分别回读（`batch_orchestrator.py:1115–1117`），但超时豁免把 `wt_gone = not wt_path.is_dir()` 写成 `evidence['dir_exists'] = wt_gone`（`:1125`）——目录已消失时记录反为 `True`，且用例 `:1456` 固化了这个错值 |
+
+B 组（第六轮八条新问题）：B1 ⚠️（同 A⑧ 的 `BIG/ERR`）、B2 ✅（4000 条是硬阻断不是放行）、B3 ❌（同 A⑦）、B4 ✅、B5 ❌（`run_dir` 缺失即放行、只比 basename、`invocation` 只验非空不验等于本次、`mergeable` 完全未验）、B6 ✅、B7 ✅（但首空格仍被 `_norm_path.strip()` 改写）、B8 ✅（但部分拒签仍会被 `provision()` 重建，见 N5）。
+
+### 11.3 七条新引入问题
+
+| 编号 | 严重度 | 问题 | 为什么 |
+|---|---|---|---|
+| N1 | **严重** | 生产 `codex-channel.json` 不写 `invocation`（`codex_channel.py:461–465`、落盘 `:679–687`），消费端却强制要求非空（`batch_orchestrator.py:792–795`） | 生产者—消费者契约断裂：正常 `run_all` 即使 execute 返回 0，也会在 merge 阶段被判 stale → 全链误杀 |
+| N2 | 高 | `_digest` 用 `BIG:size:int(mtime)` / `ERR:errno` 代替内容摘要（`codex_channel.py:160–165`），`fresh_changes` 只比字符串（`:218–219`） | 脏基线里域外大文件在同一秒等长改写，摘要不变；只要同时有一条域内 fresh，整体仍可 `done` → 写域 fail-open |
+| N3 | 高 | `wt_merge` 注释明说默认 cleanup 会删 worktree 与分支（`batch_orchestrator.py:631–637`），但成功后仍用可能已删的分支名做 `merge-base` 与 `src_after`（`:1038–1043`） | wt 正常 squash 后删 source 时 `rc_anc≠0`、`src_after` 为空 → 真成功被判 failed；「调用前已是祖先时强制 src_moved」同样误杀 |
+| N4 | 中 | `_norm_path` 仍 `strip()`（`:232`）；`_scope_match` 先做纯字符串 `startswith(p + '/')`（`:269`） | 首尾空格文件名被改写；`docs/../outside` 因前缀命中被接受；无绝对路径 / drive / `..` 拒绝 |
+| N5 | 中 | `run_all` 剔除拒签任务（`:1237–1239`）后仍无过滤调 `provision(batch_dir)`（`:1248`），`provision` 自己重跑 gate 为全部 ready 建 worktree（`:287–297`） | 部分拒签时，未授权任务仍被建 worktree/分支；反向问题是 CLI `execute --manifest <子集>` 无 `tasks`，会在 `:496–498` 整批误杀 |
+| N6 | 中 | `load_authorizations` 解析后未验根节点即 `data.get`（`codex_channel.py:323`、`:327`）；`_load_grants` 同（`:450–453`） | 合法 JSON 数组 manifest 抛未捕获 `AttributeError`，不是预期的 blocked/SystemExit，审计记录缺失 |
+| N7 | 中 | 超时豁免的 `dir_exists` 反写（`batch_orchestrator.py:1125` + 用例 `:1456`） | 生成与现场相反的审计证据，下游按字段消费会把「已消失」读成「仍存在」 |
+
+审计同时排除了两个误报方向：`base_fp is None`（基线 clean）把执行后全部 `paths` 视为新增是合理的（`:536–541` 证明只在 `base_kind == clean` 时成立），剩余风险是并发进程在采样窗口写同一 worktree；ignored 超 4000 条是硬阻断（`:184–186` + `:595–600`），属误杀/DoS 而非 fail-open。
+
+### 11.4 文档与代码一致性（审计结论）
+
+**文档说改了但代码没做到**：§10.2 的「根节点非 dict 在 `data.get` 前拦下」只对显式 `run_dirs` 成立；§10.2 的「不再 `strip()` 吃首空格、rename 两端都保留」与实际不符；§10.3 的「四道 run-record 身份校验」实际缺 `run_dir` 必填、`invocation` 等值、`mergeable`；§10.1 的 cleanup evidence 超时那条值相反；§10.1 把口径②写成「落定形态」，而 §10.5 又承认窗口误判仍在（审计指出这两处自相矛盾）。
+
+**代码有、文档没写**：生产记录不写 `invocation` 的契约冲突；`BIG/ERR` 不是内容证明；部分拒签仍被 `provision` 重建；manifest 根非对象仍崩；`codex_channel` 的 `:308`、`:444–447` 帮助与 docstring 仍写「无清单时手工回退」，与实际实现相反。
+
+**文档准确的部分**：§10.4 静态数量 36/92/128 与新增 20 个用例名核验一致；L83 的默认清单写法、`lstrip('./')` 与超时用例描述与代码一致；§10.5 的三条保留说明准确。审计注明 `11.25s / 31.36s / 42.18s` 无法由只读源码确认。
+
+### 11.5 需 Owner 拍板三条（审计原话归纳）
+
+1. **merge 因果证明方式**：现有 SHA 时序判据排除不了同窗口第三方合入同一 source。候选：合并全程独占锁 / 能绑定具体 invocation 的 wt 事务回执 / reflog 与执行产出 commit 的精确对应。单纯「窗口前后 SHA 变化」不满足口径②。
+2. **调用前 source 已是 target 祖先时的 squash 语义**：若 wt 允许把未提交内容直接 squash 到 target 并删除 source ref，「source tip 必须移动且调后仍可按名查祖先」会误杀。需明确接受哪种证据（目标新增 commit/tree、wt 的 `squashed/committed` 回执、还是强制 source 先落 commit 并保留到复核完成）。
+3. **「编排方签发 manifest」的可信边界**：当前任何调用者可自建 JSON 后传 `--manifest`，只满足「有 manifest」，没证明「是编排方签的」。若「签发」含来源真实性，需规定受控目录、manifest hash/nonce 或签名。
+
+### 11.6 结论去向
+
+- 第②环（Codex 独立审计）判 **不一致** → 第③环（让 Codex 出修复实现）前提不成立 → 回第①环做 **r8**。
+- r8 输入 = 11.3 的 N1–N7（全部可直改）+ A⑤/A⑦/A⑪/B5 的挂载点补强（用例必须打到真实解析层与真实生产者，而不是 helper）+ 11.5 的三条口径待 Owner 拍板。
+- 诚实说明：N1 是 r7 自身引入的契约断裂（生产端不写 `invocation`，消费端却强制要求），r7 的「128 passed」并未覆盖它——现有用例用 `write_run()` 人工注入该字段，正好掩盖了这个缺口。
