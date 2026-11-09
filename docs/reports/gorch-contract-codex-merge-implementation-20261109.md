@@ -103,6 +103,23 @@ Codex 原文要求：waiver 的 `instead` 必须是工单 `**机检**` 里唯一
 
 **实测发现（此前未记录）**：`conflicts_with` 里填的是**任务 id**，`active_conflicts()` 按同目录 `<id>.md` 去查对方状态；填 `file:shared.txt` 这类自定义标记不会命中任何文件，冲突**静默不生效**。第一次用例就是这么写错的，`next` 直接派出了冲突卡。这条要记住：冲突粒度是任务，不是写入域字符串。
 
+### 端到端最小批次实跑（1 张卡，真起 Codex）
+
+批次只有一张卡 `GORCH-SMOKE-20261109`，任务内容就是新建一个三行的 md 文件。四段全走真件，不 mock：
+
+| 段 | 命令 | 实测 |
+|---|---|---|
+| gate | `batch_orchestrator.py gate` | `verdict=可开工` |
+| provision | `... provision` | `wt switch -c gorch/GORCH-SMOKE-20261109 --base @`，worktree 落在 `H:\UltimaAI\_worktrees\gorch\`，HEAD=`128fd49f`（与工作分支一致，说明 `--base @` 生效） |
+| execute | `... execute --prompts-dir` | 真起 Codex `gpt-5.6-sol` / effort high，**52.2s / 27,177 tokens / rc=0 / result=done**，只新增一个文件，`git status` 仅 `?? docs/reports/gorch-smoke-20261109.md` |
+| merge | `... merge` | `squashed=true, removed=true, target=codex/voice-fsmn-new-path`；主线新提交 `762f9d08`，文件内容与预期逐字一致，worktree 已回收、源分支已删 |
+
+**三条必须记住的观察**：
+
+1. **`failed to refresh available models: request timed out` 每次启动都出现，但这次照样 52 秒跑完了**。它只是模型列表刷新的 warning，不是执行失败的充分原因。此前把历史 16 批次 blocked 归因到它，这个定性要复核——真正的 blocked 原因得看那批的 `stderr.log` 尾部与退出码，不能只看开头这条。
+2. **执行段判 done 只看退出码**（`codex_channel.py:194` `ok = proc.returncode == 0`），不看改动是否落在工单声明的写入域、也不看有没有产出文件。所以 `result=done` 不等于"做对了"，这次是我人工比对文件内容才确认的。这条是该补的缺口。
+3. **批次任务号必须先在看板存在**。`codex_channel` 的 `flow` / `progress` 是 `check=True`，看板没有该 id 会直接抛错、执行段失败；且 `cmd_state` 的状态机要求 `Assigned → Doing` 合法。所以"最小批次"不是随便造几个 md 就能跑，得先 `kanban_update.py create ... Assigned` 登记一条。
+
 ### 3 条全量红是什么
 
 `tests/test_orchestrate_order.py` 三条：
@@ -115,13 +132,14 @@ Codex 原文要求：waiver 的 `instead` 必须是工单 `**机检**` 里唯一
 
 ## 七、未完成项
 
-1. **没有跑端到端真实批次**。用户要求的"再尝试一遍任务测试"目前只覆盖到**派发层**（`gate` / `next` 四个场景，见 §六）；`provision → execute → merge` 没有跑，因此"新判据在真实工单上成立""Codex 能在 worktree 里跑完"两件事都还没有证据。历史上真实批次 blocked 的根因是 Codex 侧 `failed to refresh available models: request timed out`，与本次改动无关。
+1. **端到端只跑了最小批次**。`provision → execute → merge` 四段已用真件跑通（1 张卡，见 §六），但这张卡**不含测试、不含多卡并发、不含冲突分支**。所以"真实测试工单能在 worktree 里跑 pytest 并通过""3 通道同轮并发""冲突分支 merge 停下并保留 rebase 现场"三件事仍无证据。
 2. 第 4 步缺"至少执行到一个测试"的判据（§四）。
 3. 冻结 tag receipt 未写入 `card/because/instead`。
 4. 第 3 步的一条判据未实现：非空 ACC 卡同时声明 waiver 时未显式拒绝（目前 waiver 只在空表分支被消费）。
 5. 第 7 步静态 fixture 未做（Owner 已明确不再盯 14 张表）。
 6. `next_task()` 内是否还有第二处 `VALID_STATUSES` 判断未逐行核实。
 7. L1-02（`verify-order.py` 仍接受 `python3` 与 `Scripts` 下任意层级）、L1-03（`test_verify_order.py` 仍用合成 XML 计数）原样未动。
+8. **执行段没有产出校验**（本轮端到端跑出来的缺口，未修）：`codex_channel.py` 判 done 只看 `returncode == 0`，不核对改动是否落在工单声明的写入域、不核对工单要求交付的文件是否存在。Codex 即使退出码 0 却什么都没做，回执照样 `done`，随后被 merge 合进主线。
 
 ## 八、需要 Owner 拍板
 
