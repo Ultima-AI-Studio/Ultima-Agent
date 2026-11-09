@@ -396,20 +396,32 @@ def test_execute_fails_closed_when_prompt_missing(mod, monkeypatch, tmp_path):
 # ============ S6：串行合并与清理 ============
 
 def write_run(runs_root, task, result='done', channel=1,
-              started_at='2026-11-09T00:00:00Z', invocation='inv-test'):
-    """造一条 codex_channel 落盘的 run 记录。
+              started_at='2026-11-09T00:00:00Z', invocation='inv-test',
+              mergeable=None, run_dir=None, dry_run=False, extra=None):
+    """造一条 codex_channel 落盘的 run 记录（按 r8 的真实生产形状）。
 
-    started_at / invocation 现在是兜底授权的必需字段（第五轮审计 Q3-3）：
-    缺任一即阻断，不再退 mtime。
+    started_at / invocation 是兜底授权的必需字段（第五轮审计 Q3-3）：缺任一即阻断。
+
+    r8（第七轮审计 N1 / B5）：消费端现在要求记录自带
+      · run_dir —— 规范化绝对路径必须与请求的 run-dir 相等（不再比 basename）；
+      · invocation —— 必须等于本次调用（run_all 会把本次 inv 传下来比对）；
+      · mergeable —— 必须是严格 True。
+    r7 的 write_run 只写 task/result/invocation，正好掩盖了"生产者写不出可消费的
+    记录"这个真问题，所以这里必须按真实形状造，而不是让夹具替生产端补字段。
     """
     slug = started_at.replace(':', '').replace('-', '')
     d = runs_root / f'{task}-ch{channel}-{slug}'
     d.mkdir(parents=True)
-    (d / 'codex-channel.json').write_text(
-        json.dumps({'task': task, 'channel': channel, 'result': result,
-                    'invocation': invocation, 'started_at': started_at,
-                    'exit_code': 0 if result == 'done' else 1}),
-        encoding='utf-8')
+    if mergeable is None:
+        mergeable = (result == 'done')
+    payload = {'task': task, 'channel': channel, 'result': result,
+               'invocation': invocation, 'started_at': started_at,
+               'mergeable': bool(mergeable), 'dry_run': bool(dry_run),
+               'run_dir': str(run_dir or d.resolve()),
+               'exit_code': 0 if result == 'done' else 1}
+    if extra:
+        payload.update(extra)
+    (d / 'codex-channel.json').write_text(json.dumps(payload), encoding='utf-8')
     return d
 
 
@@ -843,7 +855,7 @@ def test_run_all_stops_at_conflict_and_keeps_scene(mod, monkeypatch, tmp_path):
 
     monkeypatch.setattr(mod, 'gate_check', lambda d: [
         {'task': '1', 'verdict': '可开工'}, {'task': '2', 'verdict': '可开工'}])
-    monkeypatch.setattr(mod, 'provision', lambda d: ([], [], []))
+    monkeypatch.setattr(mod, 'provision', lambda d, tasks=None: ([], [], []))
     monkeypatch.setattr(mod, 'execute', lambda *a, **k: ([], [
         {'task': '1', 'channel': 1, 'returncode': 0, 'run_dir': str(d1)},
         {'task': '2', 'channel': 2, 'returncode': 0, 'run_dir': str(d2)}]))
@@ -865,7 +877,8 @@ def test_run_all_stops_at_conflict_and_keeps_scene(mod, monkeypatch, tmp_path):
         return [], []
 
     monkeypatch.setattr(mod, 'cleanup', fake_cleanup)
-    summary = mod.run_all(str(tmp_path), str(prompts), max_channels=2)
+    summary = mod.run_all(str(tmp_path), str(prompts), max_channels=2,
+                          invocation='inv-test')
     assert calls == ['gorch/1', 'gorch/2']
     assert summary['stopped_at'] == 'merge'
     assert [f['task'] for f in summary['steps']['merge']['failed']] == ['2']
@@ -882,7 +895,7 @@ def test_run_all_stops_at_execute_when_any_task_fails(mod, monkeypatch, tmp_path
         write_task(tmp_path, n)
     monkeypatch.setattr(mod, 'gate_check', lambda d: [
         {'task': '1', 'verdict': '可开工'}, {'task': '2', 'verdict': '可开工'}])
-    monkeypatch.setattr(mod, 'provision', lambda d: ([], [], []))
+    monkeypatch.setattr(mod, 'provision', lambda d, tasks=None: ([], [], []))
     monkeypatch.setattr(mod, 'execute', lambda *a, **k: ([], [
         {'task': '1', 'channel': 1, 'returncode': 0, 'run_dir': 'R1'},
         {'task': '2', 'channel': 2, 'returncode': 1, 'run_dir': 'R2'}]))
@@ -901,7 +914,7 @@ def test_run_all_dry_run_does_not_merge_or_cleanup(mod, monkeypatch, tmp_path):
     """A1e：--dry-run 只空转执行段，此前照样真 merge + 真 cleanup。"""
     write_task(tmp_path, 1)
     monkeypatch.setattr(mod, 'gate_check', lambda d: [{'task': '1', 'verdict': '可开工'}])
-    monkeypatch.setattr(mod, 'provision', lambda d: ([], [], []))
+    monkeypatch.setattr(mod, 'provision', lambda d, tasks=None: ([], [], []))
     monkeypatch.setattr(mod, 'execute', lambda *a, **k: ([], [
         {'task': '1', 'channel': 1, 'returncode': 0, 'run_dir': 'R1'}]))
     called = []
@@ -941,7 +954,8 @@ def test_find_done_tasks_only_reads_this_invocation(mod, monkeypatch, tmp_path):
     new.mkdir()
     (new / 'codex-channel.json').write_text(
         json.dumps({'task': '1', 'result': 'blocked', 'reason': '本轮失败',
-                    'invocation': 'inv-test'}), encoding='utf-8')
+                    'invocation': 'inv-test',
+                    'run_dir': str(new.resolve())}), encoding='utf-8')
     done, stale = mod.find_done_tasks(str(tmp_path), with_blocked=True,
                                       run_dirs={'1': str(new)})
     assert done == {}
@@ -971,7 +985,8 @@ def test_done_no_merge_is_not_mergeable(mod, monkeypatch, tmp_path):
     d.mkdir(parents=True)
     (d / 'codex-channel.json').write_text(
         json.dumps({'task': '1', 'result': 'done_no_merge',
-                    'invocation': 'inv-test'}), encoding='utf-8')
+                    'invocation': 'inv-test',
+                    'run_dir': str(d.resolve())}), encoding='utf-8')
     monkeypatch.setattr(mod, 'RUNS', runs)
     done, stale = mod.find_done_tasks(str(tmp_path), with_blocked=True,
                                       run_dirs={'1': str(d)})
@@ -1135,6 +1150,7 @@ def test_find_done_tasks_rejects_unparsable_started_at(mod, monkeypatch, tmp_pat
     d.mkdir(parents=True)
     (d / 'codex-channel.json').write_text(json.dumps(
         {'task': '1', 'result': 'done', 'invocation': 'inv-x',
+         'run_dir': str(d.resolve()),
          'started_at': 'not-a-time'}), encoding='utf-8')
     monkeypatch.setattr(mod, 'RUNS', runs)
     done, stale = mod.find_done_tasks(str(tmp_path), with_blocked=True)
@@ -1150,6 +1166,7 @@ def test_find_done_tasks_rejects_empty_invocation(mod, monkeypatch, tmp_path):
     d.mkdir(parents=True)
     (d / 'codex-channel.json').write_text(json.dumps(
         {'task': '1', 'result': 'done', 'invocation': '',
+         'run_dir': str(d.resolve()),
          'started_at': '2026-11-09T00:00:00Z'}), encoding='utf-8')
     monkeypatch.setattr(mod, 'RUNS', runs)
     done, stale = mod.find_done_tasks(str(tmp_path), with_blocked=True)
@@ -1207,7 +1224,7 @@ def test_merge_rejects_unrelated_target_advance(mod, monkeypatch, tmp_path):
     done, merged, failed, stale = mod.merge(str(tmp_path), tasks=['1'],
                                             target='main', run_dirs={'1': str(d)})
     assert merged == []
-    assert 'is-ancestor rc=1' in failed[0]['stderr']
+    assert 'is-ancestor(src_before) rc=1' in failed[0]['stderr']
 
 
 def test_cleanup_rejects_invalid_schema_even_when_scene_clean(mod, monkeypatch, tmp_path):
@@ -1236,7 +1253,7 @@ def test_run_all_does_not_accept_reason_text_as_done_no_merge(mod, monkeypatch, 
     write_task(tmp_path, 1)
     monkeypatch.setattr(mod, 'RUNS', tmp_path / 'runs')
     monkeypatch.setattr(mod, 'gate_check', lambda d: [{'task': '1', 'verdict': '可开工'}])
-    monkeypatch.setattr(mod, 'provision', lambda d: ([], [], []))
+    monkeypatch.setattr(mod, 'provision', lambda d, tasks=None: ([], [], []))
     monkeypatch.setattr(mod, 'execute', lambda *a, **k: ([], []))
     monkeypatch.setattr(mod, 'merge', lambda *a, **k: ({}, [], [], {
         '1': {'run_record': 'r1',
@@ -1309,7 +1326,8 @@ def test_run_dirs_rejects_record_without_invocation(mod, monkeypatch, tmp_path):
     d = runs / '1-ch1-x'
     d.mkdir(parents=True)
     (d / 'codex-channel.json').write_text(
-        json.dumps({'task': '1', 'result': 'done'}), encoding='utf-8')
+        json.dumps({'task': '1', 'result': 'done',
+                    'run_dir': str(d.resolve())}), encoding='utf-8')
     monkeypatch.setattr(mod, 'RUNS', runs)
     done, stale = mod.find_done_tasks(str(tmp_path), with_blocked=True,
                                       run_dirs={'1': str(d)})
@@ -1371,7 +1389,7 @@ def test_run_all_returns_gate_when_all_grants_refused(mod, monkeypatch, tmp_path
     write_task(tmp_path, 1)
     monkeypatch.setattr(mod, 'gate_check',
                         lambda d: [{'task': '1', 'verdict': '可开工'}])
-    monkeypatch.setattr(mod, 'provision', lambda d: ([], [], []))
+    monkeypatch.setattr(mod, 'provision', lambda d, tasks=None: ([], [], []))
     mpath = tmp_path / 'inv.json'
     mpath.write_text(json.dumps({'manifest_version': 1, 'invocation': 'inv-x',
                                  'tasks': {}, 'blocked': {}}), encoding='utf-8')
@@ -1453,7 +1471,195 @@ def test_cleanup_timeout_exemption_records_evidence(mod, monkeypatch, tmp_path):
     removed, skipped = mod.cleanup(str(tmp_path))
     ev = removed[0]['evidence']
     assert ev['wt_returncode'] == -1
-    assert ev['dir_exists'] is True
+    assert ev['dir_exists'] is False      # r8：目录已被 rmdir，值不能反写
     assert ev['branch_state'] == 'absent'
     assert ev['worktree_registered'] is False
     assert ev['exemption'] == 'rc_zero_not_required'
+# --- r8：授权收窄 / 记录身份 / 合并因果证明 / 生产者-消费者 ---
+
+class _ChanProc:
+    returncode = 0
+    stdout = b''
+    stderr = b''
+
+
+class _ChanRes:
+    returncode = 0
+    stdout = ''
+    stderr = ''
+
+
+def test_provision_tasks_narrows_out_unauthorized(mod, monkeypatch, tmp_path):
+    """N5：run_all 剔除拒签任务后，provision 不能再按 gate 全量为它们建现场。"""
+    write_task(tmp_path, 1)
+    write_task(tmp_path, 2)
+    monkeypatch.setattr(mod, 'WORKTREE_ROOT', tmp_path / 'wt')
+    real_wt = tmp_path / 'real-wt'
+    real_wt.mkdir()
+    calls = []
+
+    def fake_switch(branch, wt_path, create):
+        calls.append(branch)
+        return _FakeResult(0, json.dumps({'action': 'created', 'path': str(real_wt)}))
+
+    monkeypatch.setattr(mod, 'wt_switch', fake_switch)
+    rows, provisioned, skipped = mod.provision(str(tmp_path), tasks=['1'])
+    assert [p['task'] for p in provisioned] == ['1']
+    assert skipped == ['2']
+    assert len(calls) == 1
+
+
+def test_run_dirs_rejects_record_without_run_dir(mod, monkeypatch, tmp_path):
+    """B5：run_dir 缺失不能再放行（r7 只在非空时才比对）。"""
+    write_task(tmp_path, 1)
+    d = write_run(tmp_path / 'runs', '1', extra={'run_dir': ''})
+    monkeypatch.setattr(mod, 'RUNS', tmp_path / 'runs')
+    with pytest.raises(SystemExit):
+        mod.merge(str(tmp_path), tasks=['1'], run_dirs={'1': str(d)},
+                  only_tasks=['1'], target='test-branch')
+
+
+def test_run_dirs_rejects_run_dir_pointing_elsewhere(mod, monkeypatch, tmp_path):
+    """B5：记录 run_dir 指向别的目录（同名基名）时必须判 stale。"""
+    write_task(tmp_path, 1)
+    other = tmp_path / 'other' / 'x'
+    other.mkdir(parents=True)
+    d = write_run(tmp_path / 'runs', '1', run_dir=str(other))
+    monkeypatch.setattr(mod, 'RUNS', tmp_path / 'runs')
+    done, stale = mod.find_done_tasks(str(tmp_path), with_blocked=True,
+                                      run_dirs={'1': str(d)})
+    assert done == {}
+    assert 'run_dir' in stale['1']['reason']
+
+
+def test_merge_proves_tree_equivalence_when_source_ref_gone(mod, monkeypatch, tmp_path):
+    """N3 + 口径②：wt squash 后源分支被删，仍要能证明本次合入（B 级证据）。
+
+    r7 用分支名查 merge-base、强制 src_moved，分支一被 wt 清掉就把真成功判 failed。
+    """
+    write_task(tmp_path, 1)
+    d = write_run(tmp_path / 'runs', '1')
+    monkeypatch.setattr(mod, 'RUNS', tmp_path / 'runs')
+    seq = {'target': 0, 'branch': 0}
+
+    def fake_ref(ref):
+        if ref == 'gorch/1':
+            seq['branch'] += 1
+            return 'srcsha1' if seq['branch'] == 1 else ''
+        seq['target'] += 1
+        return 'target-a' if seq['target'] == 1 else 'target-b'
+
+    monkeypatch.setattr(mod, '_ref_sha', fake_ref)
+
+    def fake_git_out(args, *a, **k):
+        if list(args)[:1] == ['merge-base']:
+            return (0, '')                 # 调用前已是祖先 → ff 证据不成立
+        if list(args)[:1] == ['rev-parse']:
+            return (0, 'SAME-TREE\n')
+        return (0, '')
+
+    monkeypatch.setattr(mod, '_git_out', fake_git_out)
+    monkeypatch.setattr(mod, 'wt_merge', lambda *a, **k: _FakeResult(
+        0, json.dumps({'branch': 'gorch/1', 'target': 'test-branch',
+                       'committed': True, 'squashed': True,
+                       'rebased': False, 'removed': True})))
+    done, merged, failed, stale = mod.merge(
+        str(tmp_path), tasks=['1'], target='test-branch',
+        run_dirs={'1': str(d)}, only_tasks=['1'])
+    assert failed == []
+    assert merged[0]['task'] == '1'
+    assert merged[0]['proof'] == 'tree'
+    assert merged[0]['source_ref_alive'] is False
+
+
+def test_merge_falls_back_to_wt_receipt_after_uncommitted_squash(mod, monkeypatch, tmp_path):
+    """口径② 的 C 级：未提交产出经 wt squash 后源码树与结果树本就不同，不能判死。"""
+    write_task(tmp_path, 1)
+    d = write_run(tmp_path / 'runs', '1')
+    monkeypatch.setattr(mod, 'RUNS', tmp_path / 'runs')
+    seq = {'target': 0, 'branch': 0, 'tree': 0}
+
+    def fake_ref(ref):
+        if ref == 'gorch/1':
+            seq['branch'] += 1
+            return 'srcsha1' if seq['branch'] == 1 else ''
+        seq['target'] += 1
+        return 'target-a' if seq['target'] == 1 else 'target-b'
+
+    monkeypatch.setattr(mod, '_ref_sha', fake_ref)
+
+    def fake_git_out(args, *a, **k):
+        if list(args)[:1] == ['merge-base']:
+            return (0, '')
+        if list(args)[:1] == ['rev-parse']:
+            seq['tree'] += 1
+            return (0, 'TREE-A\n' if seq['tree'] == 1 else 'TREE-B\n')
+        return (0, '')
+
+    monkeypatch.setattr(mod, '_git_out', fake_git_out)
+    monkeypatch.setattr(mod, 'wt_merge', lambda *a, **k: _FakeResult(
+        0, json.dumps({'branch': 'gorch/1', 'target': 'test-branch',
+                       'committed': True, 'squashed': True,
+                       'rebased': False, 'removed': True})))
+    done, merged, failed, stale = mod.merge(
+        str(tmp_path), tasks=['1'], target='test-branch',
+        run_dirs={'1': str(d)}, only_tasks=['1'])
+    assert failed == []
+    assert merged[0]['proof'] == 'wt_receipt'
+
+
+def test_find_done_tasks_consumes_real_producer_record(mod, monkeypatch, tmp_path):
+    """N1 的生产者-消费者闭环：真跑 channel 的 main()，其落盘记录必须可被消费。
+
+    r7 的 write_run 由夹具人工补 invocation/run_dir，正好掩盖了生产端不写这些字段。
+    这条用例只让 channel 走真实落盘逻辑，外部 Codex 与看板仍用桩。
+    """
+    ch_path = ROOT / 'scripts' / 'gorch' / 'codex_channel.py'
+    spec = importlib.util.spec_from_file_location('codex_channel_consume', ch_path)
+    ch = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(ch)
+
+    write_task(tmp_path, 1)
+    inv = tmp_path / 'inv.json'
+    inv.write_text(json.dumps({
+        'manifest_version': 1, 'invocation': 'inv-prod', 'target': 'test-branch',
+        'tasks': {'1': {'card': '1', 'write_scope': [], 'write_scope_source': 'test',
+                        'write_scope_enforced': False, 'no_change_allowed': False,
+                        'allow_non_repo': False, 'requests': {}, 'granted_by': 'test'}},
+    }, ensure_ascii=False), encoding='utf-8')
+
+    fake_exe = tmp_path / 'codex.exe'
+    fake_exe.write_bytes(b'')
+    monkeypatch.setattr(ch, 'resolve_codex_exe', lambda: str(fake_exe))
+    monkeypatch.setattr(ch, 'run_codex', lambda *a, **k: (_ChanProc(), 1.0))
+    monkeypatch.setattr(ch, 'kanban', lambda *a, **k: _ChanRes())
+    state = {'n': 0}
+
+    def fake_state(wd):
+        state['n'] += 1
+        return ('changed', ' M old.txt') if state['n'] == 1 else ('changed', ' M new.txt')
+
+    monkeypatch.setattr(ch, 'worktree_state', fake_state)
+
+    def fake_fp(wd, detail=None):
+        body = str(detail or '').strip()
+        if not body:
+            return {'paths': {}, 'ignored': set(), 'rows': [], 'diff_sha': 'sha'}
+        return {'paths': {body[2:]: 'sha-' + body[2:]}, 'ignored': set(),
+                'rows': [], 'diff_sha': 'sha'}
+
+    monkeypatch.setattr(ch, 'worktree_fingerprint', fake_fp)
+
+    prompt = tmp_path / 'p.md'
+    prompt.write_text('# 工单\n', encoding='utf-8')
+    run_dir = tmp_path / 'run-prod'
+    rc = ch.main(['--task', '1', '--prompt', str(prompt), '--workdir', str(tmp_path),
+                  '--run-dir', str(run_dir), '--manifest', str(inv)])
+    assert rc == 0
+
+    monkeypatch.setattr(mod, 'RUNS', tmp_path / 'runs')
+    done, stale = mod.find_done_tasks(str(tmp_path), with_blocked=True,
+                                      run_dirs={'1': str(run_dir)})
+    assert done == {'1': str(run_dir / 'codex-channel.json')}
+    assert '1' not in stale
+

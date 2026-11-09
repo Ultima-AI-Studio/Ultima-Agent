@@ -14,7 +14,6 @@
   python codex_channel.py --task GORCH-001 --channel 3 --prompt - --dry-run
 """
 import argparse
-import fnmatch
 import glob as _glob
 import hashlib
 import json
@@ -62,6 +61,12 @@ def _status_rows(workdir):
     路径集合。`-z` 不做 C 风格转义：路径原样输出、以 NUL 分隔，带首空格/中文/引号的
     路径不会被拆错（第七轮审计：此前用展示文本 splitlines + strip()，` M docs/x`
     的首空格被吃掉，路径变成 `M docs/x` 从而误判越域）。
+
+    r8（第七轮审计 A⑦ / B3）：rename 与 copy 在 `-z` 下是**两项**——先目标、随后
+    一项是源路径（不带状态码）。r7 直接 `i += 1` 把源路径跳过了，于是"域外文件被
+    移进域内"时域外那一侧的删除完全不可见。现在源路径也进 rows，用专用码 `SRC`
+    标记（展示成 `SRC <path>`）：下游按 rows 建 paths 时源路径自动进指纹集合，
+    源已消失则摘要为 ABSENT（与基线里的 sha 不同 → 算本次改动，参与写域校验）。
     """
     rc, out = _git_text(workdir, ['status', '--porcelain', '-z', '-uall', '--ignored'])
     if rc is None or rc != 0:
@@ -82,10 +87,14 @@ def _status_rows(workdir):
             ignored.add(path.replace('\\', '/'))
             continue
         if code[:1] in ('R', 'C') and i < len(parts):
-            # -z 下 rename/copy 的源路径是紧随其后的独立一项
+            # -z 下 rename/copy 的**源路径**是紧随其后的独立一项，必须一并保留
+            src = parts[i]
             i += 1
+            if src:
+                rows.append(('SRC', src.replace('\\', '/')))
         rows.append((code, path.replace('\\', '/')))
     return True, rows, ignored
+
 
 
 def worktree_state(workdir):
@@ -140,29 +149,41 @@ def _git_text(workdir, args, timeout=180):
     return r.returncode, (r.stdout or '')
 
 
-_DIGEST_SIZE_LIMIT = 8 * 1024 * 1024
+_DIGEST_CHUNK = 1 << 20
 _STATUS_IGNORED_LIMIT = 4000
 
 
-def _digest(workdir, rel):
-    """单路径内容指纹：存在→sha256；超大文件→size+mtime；不存在→ABSENT。
 
-    逐路径而不是全局 diff 哈希：全局哈希只说明"diff 文本变了"，因为拿不出是哪个
-    路径变的，脏基线下同路径继续修改会被判成"无新增"（第七轮审计 #1）。
+def _digest(workdir, rel):
+    """单路径内容指纹：存在→流式 sha256；不存在→ABSENT；读失败→None。
+
+    逐路径而不是全局 diff 哈希：全局哈希只说明"diff 文本变了"，拿不出是哪个路径
+    变的，脏基线下同路径继续修改会被判成"无新增"（第七轮审计 #1）。
+
+    r8（第七轮审计 N2）：r7 对超过 8MiB 的文件退化成 `BIG:size:int(mtime)`、读失败
+    写成 `ERR:errno`，两者都不是内容摘要——同一秒内等长改写摘要完全不变，脏基线里
+    域外大文件被改也无从发现，只要同时有一条域内 fresh 就能拿到 done。现在不论
+    大小一律按内容做**流式** sha256（分块读，不整块进内存）。
+    读失败返回 None 而不是可比较的哨兵串：两次 `ERR:5` 相等会被判"没变"，等于把
+    不可读当成没改。由 worktree_fingerprint 把整份指纹标成不可用，执行前/后统一
+    fail-closed。
     """
     p = pathlib.Path(workdir) / rel
     try:
-        st = p.stat()
+        p.stat()
     except OSError:
         return 'ABSENT'
     if not p.is_file():
         return 'ABSENT'
-    if st.st_size > _DIGEST_SIZE_LIMIT:
-        return f'BIG:{st.st_size}:{int(st.st_mtime)}'
+    h = hashlib.sha256()
     try:
-        return hashlib.sha256(p.read_bytes()).hexdigest()
-    except OSError as exc:
-        return f'ERR:{exc.errno}'
+        with open(str(p), 'rb') as fh:
+            for chunk in iter(lambda: fh.read(_DIGEST_CHUNK), b''):
+                h.update(chunk)
+    except OSError:
+        return None
+    return h.hexdigest()
+
 
 
 def worktree_fingerprint(workdir, status_detail=None):
@@ -189,7 +210,14 @@ def worktree_fingerprint(workdir, status_detail=None):
         paths[path] = _digest(workdir, path)
     for path in ignored:
         paths[path] = _digest(workdir, path)
+    # r8（N2 后半）：任一路径内容读不出来，整份指纹显式不可用。不能只把该路径记成
+    # 某个哨兵串——哨兵与上一次相等就会被判"没变"，那正是 fail-open。
+    unreadable = sorted(p for p, d in paths.items() if d is None)
+    if unreadable:
+        return {'paths': paths, 'ignored': ignored, 'rows': rows,
+                'diff_sha': 'ERR:digest:' + unreadable[0]}
     rc, diff_text = _git_text(workdir, ['diff', 'HEAD'])
+
     diff_sha = (hashlib.sha256(diff_text.encode('utf-8', 'replace')).hexdigest()
                 if rc == 0 else f'ERR:{rc}')
     return {'paths': paths, 'ignored': ignored, 'rows': rows, 'diff_sha': diff_sha}
@@ -224,15 +252,20 @@ _STATE_PREFIX = re.compile(r'^[ MADRCUT?!]{2} ')
 
 
 def _norm_path(text):
-    """统一路径写法：反斜杠转正斜杠，只剥真正的 `./` 前缀。
+    """统一路径写法：反斜杠转正斜杠，只剥真正的 `./` 前缀，**不改动首尾空格**。
 
-    r7 自查补洞：原实现用 `lstrip('./')`，那会把 `.github/workflows/x.yml`
-    剥成 `github/workflows/x.yml`——隐藏目录被吃一层，写域校验就比对错了。
+    r7 自查补洞：`lstrip('./')` 会把 `.github/workflows/x.yml` 剥成
+    `github/workflows/x.yml`，隐藏目录被吃一层，写域校验就比对错了。
+
+    r8（第七轮审计 N4）：r7 仍保留 `text.strip()`，于是文件名自身的首尾空格被吃掉
+    （`docs/a .md` 变成 `docs/a.md`），写域校验比对的是另一个文件。合法文件名里的
+    空格必须原样保留；路径合法性（绝对 / drive / UNC / `..`）交给 _repo_relative_safe。
     """
-    p = text.strip().replace('\\', '/')
+    p = str(text).replace('\\', '/')
     while p.startswith('./'):
         p = p[2:]
     return p
+
 
 
 def _fresh_paths(fresh):
@@ -244,17 +277,51 @@ def _fresh_paths(fresh):
     """
     out = []
     for raw in fresh or ():
-        text = str(raw).rstrip(chr(13) + chr(10))
-        if text.startswith('~ '):
+        text = str(raw)
+        if not text or text.startswith('~ '):
             continue
-        text = _STATE_PREFIX.sub('', text)
-        if ' -> ' in text:
-            left, right = text.rsplit(' -> ', 1)
-            out.extend([_norm_path(left), _norm_path(right)])
+        if text.startswith('SRC '):
+            # rename/copy 的源路径项（_status_rows 标的结构化行）
+            src = text[4:]
+            if src:
+                out.append(_norm_path(src))
             continue
-        if text.strip():
-            out.append(_norm_path(text))
+        if _STATE_PREFIX.match(text):
+            # 旧展示行 `<XY> path`：只有这种形态才允许剥状态码、拆 rename 箭头
+            line = text[3:]
+            if ' -> ' in line:
+                left, right = line.rsplit(' -> ', 1)
+                out.extend([_norm_path(left), _norm_path(right)])
+            elif line:
+                out.append(_norm_path(line))
+            continue
+        # 纯路径：原样保留（含首尾空格、含文件名里的 ' -> '）
+        out.append(_norm_path(text))
     return [p for p in out if p]
+
+
+
+_DRIVE_PREFIX = re.compile(r'^[A-Za-z]:')
+
+
+def _repo_relative_safe(path):
+    """是不是一个合法的 repo-relative 路径（拒绝绝对 / drive / UNC / `..` / 空段）。
+
+    r8（第七轮审计 N4）：此前写域校验只做裸字符串前缀命中，`docs/../outside/x`
+    因为以 `docs/` 开头就被当成域内——实际写到仓库外或另一个目录。这里在写域
+    校验前统一拦下：绝对路径、Windows 盘符、UNC、任何 `..` 段、空段（`a//b`）、
+    `.` 段都算不合法，一律按"域外"处理（fail-closed）。
+    """
+    p = str(path or '').replace('\\', '/')
+    if not p:
+        return False
+    if p.startswith('/'):          # 同时覆盖 UNC 的 `//server/share`
+        return False
+    if _DRIVE_PREFIX.match(p):
+        return False
+    if any(seg in ('', '.', '..') for seg in p.split('/')):
+        return False
+    return True
 
 
 def _scope_match(path, pat):
@@ -262,10 +329,17 @@ def _scope_match(path, pat):
 
     第七轮审计 #2：fnmatch 的 `*` 会跨目录，`scripts/gorch/*.py` 能命中
     `scripts/gorch/sub/x.py`，等于写域比声明的宽一层。
+
+    r8（N4）：path 与 pattern 两侧都先过 _repo_relative_safe——含 `..` 的
+    `docs/../outside` 不再因为字符串前缀命中而被接受；pattern 自身不合法时
+    直接判不匹配（不猜它想指哪）。
     """
     p = str(pat).replace('\\', '/').strip().rstrip('/')
-    if not p:
+    if not p or not _repo_relative_safe(p):
         return False
+    if not _repo_relative_safe(path):
+        return False
+
     if path == p or path.startswith(p + '/'):
         return True
     rx, i = '', 0
@@ -290,26 +364,42 @@ def _outside_scope(paths, scope):
     """返回不在授权写域内的路径；scope 为空表示不校验（调用方已标注 undeclared）。
 
     写域写法与卡片一致：目录前缀（``docs/reports/``）或通配（``scripts/*.py``）。
+
+    r8（N4）：每条路径先验 repo-relative 合法性——绝对路径 / drive / UNC /
+    含 `..` 的一律直接判越域，不再进入前缀或正则匹配（否则 `docs/../outside/x`
+    会因 `docs/` 前缀命中而被放行）。
     """
     if not scope:
         return []
-    pats = [str(x).replace('\\', '/').rstrip('/') for x in scope if str(x).strip()]
+    pats = [_norm_path(x).rstrip('/') for x in scope if str(x).strip()]
     bad = []
     for p in paths:
+        if not _repo_relative_safe(p):
+            bad.append(p)
+            continue
         if not any(_scope_match(p, pat) for pat in pats):
             bad.append(p)
     return bad
+
 
 
 def load_authorizations(manifest_path, task):
     """读编排方签发的授权清单（第五轮审计 7.3-6）。
 
     返回 dict；结构不合法或没有本任务条目时 ``problem`` 非空，由调用方 fail-closed。
-    没给 manifest（手工调用）时退回命令行开关，并标注来源，便于审计区分。
+
+    r8（第七轮审计 N1 / N6）：
+    · 没有 manifest 一律 problem——命令行开关不构成授权，也不再存在"手工回退"分支；
+    · 解析后先验**根节点必须是对象**再 `.get()`：此前合法 JSON 数组会抛未捕获的
+      AttributeError，既不是 blocked 也不是 SystemExit，审计记录直接缺失；
+    · manifest 必须带 `invocation`：执行记录要能绑定"这一次"调用，否则 merge 端
+      无法确认归属（生产端与消费端共用这一个字段）。
+      manifest 级的 `invocation` / `target` / `manifest` 一并回传，由 main() 写进记录。
     """
     out = {'source': 'cli', 'write_scope': [], 'write_scope_enforced': False,
            'no_change_allowed': False, 'allow_non_repo': False,
-           'granted_by': None, 'problem': ''}
+           'granted_by': None, 'problem': '',
+           'manifest': '', 'invocation': '', 'target': ''}
     if not manifest_path:
         out['problem'] = ('未提供 invocation manifest：授权只由编排方在派发时签发，'
                           '执行端不读卡片字段、也不接受命令行自授权；'
@@ -323,6 +413,15 @@ def load_authorizations(manifest_path, task):
         data = json.loads(p.read_text(encoding='utf-8'))
     except (json.JSONDecodeError, OSError, UnicodeDecodeError) as exc:
         out['problem'] = f'invocation manifest 不可解析：{p}（{exc}）'
+        return out
+    if not isinstance(data, dict):
+        out['problem'] = (f'invocation manifest 根节点不是对象（{type(data).__name__}）：'
+                          f'{p}')
+        return out
+    inv = str(data.get('invocation') or '').strip()
+    if not inv:
+        out['problem'] = ('invocation manifest 缺少 invocation：执行记录无法绑定本次调用，'
+                          'merge 端会把它判成 stale（清单应由编排方 grant_invocation 签发）')
         return out
     tasks = data.get('tasks')
     if not isinstance(tasks, dict):
@@ -347,8 +446,12 @@ def load_authorizations(manifest_path, task):
         'no_change_allowed': g['no_change_allowed'],
         'allow_non_repo': g['allow_non_repo'],
         'granted_by': g.get('granted_by'),
+        'manifest': str(p.resolve()),
+        'invocation': inv,
+        'target': str(data.get('target') or ''),
     })
     return out
+
 
 
 def resolve_codex_exe():
@@ -437,14 +540,15 @@ def main(argv=None):
     ap.add_argument('--dry-run', action='store_true', help='只走看板流程，不真起 Codex')
     ap.add_argument('--simulate-fail', action='store_true', help='演练失败路径')
     ap.add_argument('--allow-non-repo', action='store_true',
-                    help='允许 workdir 不是 git 工作树（仅手工验证用；批量路径默认 fail-closed）')
+                    help=('仅留痕：本开关不构成授权，取值一律以 manifest 的 '
+                          'allow_non_repo 为准（命令行传了也只写进记录的 ignored_cli_flags）'))
     ap.add_argument('--no-change-allowed', action='store_true',
-                    help=('本次任务按约定不产生仓库改动（纯验证卡、只回 last-message.md 的报告卡）。'
-                          '默认不带：worktree 零改动一律判空产出 blocked'))
+                    help=('仅留痕：本开关不构成授权，取值一律以 manifest 的 '
+                          'no_change_allowed 为准；未授权时 worktree 零改动仍判 blocked'))
     ap.add_argument('--manifest', default='',
-                    help=('编排方签发的 invocation manifest。给出时授权（写域与 '
-                          'no_change_allowed/allow_non_repo）**只从此清单读**，'
-                          '命令行开关仅作无清单时的手工回退'))
+                    help='编排方签发的 invocation manifest（必填；须含 invocation）。'
+                         '授权（写域与 no_change_allowed/allow_non_repo）只从此清单读，'
+                         '命令行开关不构成授权')
     args = ap.parse_args(argv)
 
     if not KANBAN.is_file():
@@ -462,6 +566,8 @@ def main(argv=None):
         'task': args.task, 'channel': args.channel, 'run_dir': str(run_dir),
         'workdir': args.workdir, 'dry_run': args.dry_run,
         'started_at': datetime.now(timezone.utc).isoformat(),
+        # r8：先占位，拿到 manifest 后覆盖（前置失败也留这三项，便于回溯）
+        'manifest': '', 'invocation': '', 'target': '',
     }
 
     def _fail_early(code, reason, kanban_reason=None):
@@ -485,6 +591,11 @@ def main(argv=None):
     # 只能算"请求"，执行端不读；清单缺失/结构不对/没有本任务条目一律 fail-closed。
     auth = load_authorizations(args.manifest, args.task)
     record['authorizations'] = {k: v for k, v in auth.items() if k != 'problem'}
+    # r8（第七轮审计 N1）：manifest 级身份必须写进生产记录——merge 端要靠它绑定
+    # 本次调用；r7 只写确认了授权文件在不在，记录里没有 invocation 可绑定。
+    record['manifest'] = auth.get('manifest') or ''
+    record['invocation'] = auth.get('invocation') or ''
+    record['target'] = auth.get('target') or ''
     if auth['problem']:
         return _fail_early(2, f'授权清单不可用：{auth["problem"]}')
     # 第七轮审计 #6：命令行开关不再具备授权能力——没有 manifest 的调用在上一步

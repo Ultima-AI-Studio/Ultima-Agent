@@ -579,7 +579,8 @@ def test_manifest_missing_task_blocks(tmp_path, monkeypatch):
     """授权清单里没有本任务条目——fail-closed，不起 Codex。"""
     m = _load()
     p = tmp_path / 'inv-empty.json'
-    p.write_text(json.dumps({'manifest_version': 1, 'tasks': {}}), encoding='utf-8')
+    p.write_text(json.dumps({'manifest_version': 1, 'invocation': 'inv-x',
+                             'target': 'test-branch', 'tasks': {}}), encoding='utf-8')
     rc, record = _run_main(m, monkeypatch, tmp_path, 'clean', '',
                           extra=['--manifest', str(p)])
     assert rc == 2
@@ -666,12 +667,48 @@ def test_scope_star_does_not_cross_separator():
                             ['scripts/gorch/*.py']) == ['scripts/gorch/sub/a.py']
 
 
-def test_rename_checks_both_ends():
-    """r7 新问题 #3：域外文件移进域内时，域外的删除也要参与写域校验。"""
+def test_status_rows_keeps_rename_source_from_real_nul(monkeypatch):
+    """r8（第七轮审计 A⑦ / B3）：直接喂 `-z` 的真实 NUL 序列，不测手造箭头文本。
+
+    `-z` 下 rename 是**两项**：先 `R  <dst>`，紧随其后是裸源路径（不带状态码）。
+    r7 把源项直接 `i += 1` 跳掉，于是"域外文件被移进域内"时域外那侧的删除不可见，
+    只要目标是域内的就能过写域校验。
+    """
     m = _load()
-    paths = m._fresh_paths({'scripts/secret.py -> docs/reports/x.md'})
-    assert set(paths) == {'scripts/secret.py', 'docs/reports/x.md'}
+    raw = ('R  docs/reports/x.md' + chr(0) + 'scripts/secret.py' + chr(0)
+           + 'C  docs/reports/y.md' + chr(0) + 'docs/reports/origin.md' + chr(0)
+           + '!! data/cache.bin' + chr(0) + ' M docs/reports/z.md' + chr(0))
+    monkeypatch.setattr(m, '_git_text', lambda workdir, args: (0, raw))
+    ok, rows, ignored = m._status_rows('w')
+    assert ok is True
+    codes = [(c, p) for c, p in rows]
+    assert ('R ', 'docs/reports/x.md') in codes
+    assert ('SRC', 'scripts/secret.py') in codes
+    assert ('C ', 'docs/reports/y.md') in codes
+    assert ('SRC', 'docs/reports/origin.md') in codes
+    assert (' M', 'docs/reports/z.md') in codes
+    assert ignored == {'data/cache.bin'}
+    paths = m._fresh_paths({c + ' ' + p for c, p in rows})
+    assert set(paths) == {'docs/reports/x.md', 'scripts/secret.py',
+                          'docs/reports/y.md', 'docs/reports/origin.md',
+                          'docs/reports/z.md'}
+    # 源在域外 → 必须判越域（这正是 r7 漏掉的那一端）
     assert m._outside_scope(paths, ['docs/reports/']) == ['scripts/secret.py']
+
+
+def test_status_rows_rename_source_is_in_fingerprint_paths(monkeypatch, tmp_path):
+    """源路径必须进指纹集合：源已消失时摘要为 ABSENT，与基线 sha 不同即算本次改动。"""
+    m = _load()
+    w = tmp_path
+    (w / 'docs' / 'reports').mkdir(parents=True)
+    (w / 'docs' / 'reports' / 'x.md').write_text('moved here', encoding='utf-8')
+    raw = 'R  docs/reports/x.md' + chr(0) + 'scripts/secret.py' + chr(0)
+    monkeypatch.setattr(m, '_git_text', lambda workdir, args: (
+        (0, raw) if list(args)[:1] == ['status'] else (0, '')))
+    fp = m.worktree_fingerprint(str(w))
+    assert 'scripts/secret.py' in fp['paths']
+    assert fp['paths']['scripts/secret.py'] == 'ABSENT'
+    assert fp['paths']['docs/reports/x.md'] != 'ABSENT'
 
 
 def test_state_prefix_keeps_leading_space_path():
@@ -704,3 +741,63 @@ def test_hidden_dir_path_is_not_truncated():
     assert m._fresh_paths({'?? .github/workflows/x.yml'}) == ['.github/workflows/x.yml']
     assert m._fresh_paths({'./docs/a.md'}) == ['docs/a.md']
     assert m._fresh_paths({'docs\\win.md'}) == ['docs/win.md']
+# --- r8：生产者记录身份 / 路径合法性 / 指纹不可用（第七轮审计 N1 / N4 / N2）---
+
+def test_record_carries_manifest_identity(tmp_path, monkeypatch):
+    """N1 的生产侧：落盘记录必须自带 manifest/invocation/target。
+
+    r7 的记录只写了 authorizations 摘要，没有 invocation，消费端却强制要求它非空，
+    于是正常 run_all 在 merge 阶段被自己判成 stale。这里直接走 main() 的真实落盘
+    路径，断言三个身份字段都在（不是去测 load_authorizations 的返回值）。
+    """
+    m = _load()
+    rc, record = _run_main(m, monkeypatch, tmp_path, 'changed',
+                           wt_detail=' M docs/a.md',
+                           baseline=[('changed', ' M old.txt')])
+    assert rc == 0
+    assert record['invocation'] == 'inv-auto'
+    assert record['target'] == 'test-branch'
+    assert pathlib.Path(record['manifest']).name == 'inv-auto.json'
+
+
+def test_scope_check_rejects_parent_traversal(tmp_path):
+    """N4：`docs/../outside/x` 不能因为 `docs/` 前缀命中就被当域内。
+
+    r7 只做裸字符串 startswith，路径穿越直接放行；这里断言写域校验本身把它判越域，
+    而不是只测 _repo_relative_safe 这个 helper。
+    """
+    m = _load()
+    assert m._outside_scope(['docs/../outside/x.md'], ['docs/']) == ['docs/../outside/x.md']
+    assert m._outside_scope(['docs/a.md'], ['docs/']) == []
+    assert m._outside_scope(['C:/tmp/x.md'], ['docs/']) == ['C:/tmp/x.md']
+
+
+def test_norm_path_keeps_edge_spaces_and_hidden_dirs():
+    """N4：文件名首尾空格与隐藏目录都必须原样保留（r7 的 strip() 会改写路径）。"""
+    m = _load()
+    assert m._norm_path('./docs/a.md') == 'docs/a.md'
+    assert m._norm_path('.github/workflows/x.yml') == '.github/workflows/x.yml'
+    assert m._norm_path('docs/a .md') == 'docs/a .md'
+    assert m._norm_path('docs/ b.md') == 'docs/ b.md'
+
+
+def test_digest_read_error_invalidates_whole_fingerprint(tmp_path, monkeypatch):
+    """N2：任一文件读不出来 → 整份指纹显式不可用，不能退化成可比较的哨兵串。"""
+    m = _load()
+    repo = tmp_path / 'repo'
+    repo.mkdir()
+    subprocess.run([m.GIT_EXE, '-C', str(repo), 'init', '-q'],
+                   capture_output=True, text=True)
+    (repo / 'a.txt').write_text('x\n', encoding='utf-8')
+    real_open = open
+
+    def boom(path, *a, **k):
+        if str(path).endswith('a.txt'):
+            raise OSError(13, 'denied')
+        return real_open(path, *a, **k)
+
+    monkeypatch.setattr(m, 'open', boom, raising=False)
+    fp = m.worktree_fingerprint(repo)
+    assert fp['paths']['a.txt'] is None
+    assert str(fp['diff_sha']).startswith('ERR:digest:')
+
