@@ -680,7 +680,7 @@ E 段给出**可直改 7 条 + 需口径 10 条**。本轮只做可直改 7 条�
 > **r12 更正（第十一轮审计 D 段对本节表述的点名）**：
 > 1. **第 2 条「`TYPE:link` 覆盖 symlink」表述过宽**：r11 的 `p.stat()` 跟随 symlink，live link 实际按**目标内容**哈希，只有 dangling link 才落 `TYPE:link`——三类 link 语义并不统一。r12 改 lstat + `LINK:<sha256(readlink 文本)>`（§16.2 第 2 条）。
 > 2. **第 3 条「归一后相同 → 同锁，不同 → 不同锁」不符合截断哈希的数学性质**：`sha256(...)[:16]` 仍有碰撞可能。正确表述是「归一后相同 → 同一把锁；不同 → 高度可分（64-bit 碰撞概率），**不是**绝对不碰撞」（§16.5 第 2 条把该等级列为待裁口径）。
-> 3. **第 6 条「五处 `failed.append` 加 `kind`」字面成立，但不能读成「所有失败已分档」**：r11 仍有 **5 处** `raise SystemExit` 绕开 `failed` 与 `kind`——① target SHA 取不到；② `wt` 回执不可解析；③ 回执非对象；④ 回执 `branch` 与请求不一致；⑤ 回执 `target` 与请求不一致。r12 已把五处全部改为结构化 `failed` + `break`（①→`evidence_failure`，②–⑤→`proof_failure`，见 §16.2 第 3 条）。**r13 更正**：本节原写「3 处」，是把②③④⑤折叠成「回执身份不一致」一项，与基线 `0c414494` 的实际行数不符（第十二轮审计 D-3 点名）。
+> 3. **第 6 条「五处 `failed.append` 加 `kind`」字面成立，但不能读成「所有失败已分档」**：r11 仍有 **5 处** `raise SystemExit` 绕开 `failed` 与 `kind`——① target SHA 取不到；② `wt` 回执不可解析；③ 回执非对象；④ 回执 `branch` 与请求不一致；⑤ 回执 `target` 与请求不一致。r12 已把五处全部改为结构化 `failed` + `break`（①→`evidence_failure`，②–⑤→`proof_failure`，见 §16.2 第 3 条）。**r13 更正**：本节原写「三处」，是把②③④⑤折叠成「回执身份不一致」一项，与基线 `0c414494` 的实际行数不符（第十二轮审计 D-3 点名）。
 > 4. **第 4 条只统一了 evidence 内层**：`removed` 条目**外层**仍三种形状（`pre_absent` 无 `result/schema_ok`、rc 非零无 `result/schema_ok`、rc=0 无 `raw_tail`），按外层键读的 consumer 会 `KeyError`。r12 已补齐（§16.2 第 6 条）。
 > 5. **第 5 条的 R/C 说明无需改**：r11 新增的是 `R `（已暂存 rename），` C `/` R`（工作区侧）是 r10 就有的；原文「新增 vanished ignored / 已暂存 `R ` rename」已区分，无误。
 
@@ -731,7 +731,7 @@ E 段给出**可直改 8 条 + 需口径 7 条**。本轮只做可直改 8 条�
 
 | # | 审计要求（严重度） | r12 落地 | 证据位置（符号/用例） |
 |---|---|---|---|
-| 1 | 高：cleanup 对 symlink / dangling fail-open | `_path_state` 由 `os.stat` 改 `os.lstat`（不跟随）：`S_ISDIR` 才 `exists`，**所有 symlink 形态**（link→file / link→dir / dangling）一律落 `wrong_type`；`FileNotFoundError → absent`、其它 `OSError → unknown` 保持不变。**边界（r13 更正）**：junction 的 `lstat` 仍报目录（`islnk=False / isdir=True / 0o40777`），因此落 `exists` 走正常 `wt remove` —— 不是 `wrong_type`，详见 §16.3 的实测记录 | `batch_orchestrator._path_state`（**`:1389`** 起；r12 误写 `:1442`，r13 按实测行号更正）；用例 `test_path_state_distinguishes_regular_file_and_unknown`（补 link 段）、`test_cleanup_treats_any_symlink_as_wrong_type`（r13 加 `os.stat` dangling 桩，见 §17.4） |
+| 1 | 高：cleanup 对 symlink / dangling fail-open | `_path_state` 由 `os.stat` 改 `os.lstat`（不跟随）：`S_ISDIR` 才 `exists`，**所有 symlink 形态**（link→file / link→dir / dangling）一律落 `wrong_type`；`FileNotFoundError → absent`、其它 `OSError → unknown` 保持不变。**边界（r13 更正）**：junction 的 `lstat` 仍报目录（`islnk=False / isdir=True / 0o40777`），因此落 `exists` 走正常 `wt remove` —— 不是 `wrong_type`，详见 §16.3 的实测记录 | `batch_orchestrator._path_state`（**以 `def _path_state(` 函数名锚定**，r14 实测 `:1395`；此前两轮写的行号均已漂移，不再引用，见 L90）；用例 `test_path_state_distinguishes_regular_file_and_unknown`（补 link 段）、`test_cleanup_treats_any_symlink_as_wrong_type`（r13 加 `os.stat` dangling 桩，见 §17.4） |
 | 2 | 高：`_digest` 的 symlink 语义 | 先 `os.lstat`；`S_ISLNK → 'LINK:' + sha256(readlink 文本)`（dangling 不再 `ABSENT`，retarget 会变摘要）；其余非 `S_ISREG` 折成 `TYPE:dir` / `TYPE:other`（去掉 `link` 分支，link 不再被 `TYPE:` 折叠） | `codex_channel._digest`；用例 `test_digest_symlink_uses_link_summary_not_absent`、`test_digest_link_retarget_changes_summary`、`test_digest_reports_non_regular_type`（普通文件改 `^[0-9a-f]{64}$` 断言） |
 | 3 | 高：merge 的 `SystemExit` 绕开 `kind` | 5 处 `raise SystemExit` 全改结构化 `failed.append(...)` + `break`：target SHA 取不到 → `evidence_failure`；`wt` 回执不可解析 / 非对象 / `branch` 不一致 / `target` 不一致 → `proof_failure`。编程错误（`AttributeError` 等）仍照旧抛出，不吞成业务失败 | `merge()`（原 1128 / 1207 / 1221 / 1238 / 1241 五处）；用例 `test_merge_fails_closed_on_unparsable_json`（改断言 `failed`）、`test_merge_receipt_identity_mismatch_is_proof_failure`、`test_merge_records_not_attempted_after_failure` |
 | 4 | 中：`proof_failure` / 未知 kind 误归冲突 | `run_all` 的 `failed` 分档由二分改**四分流** `buckets = {merge_conflict, evidence_failure, proof_failure, unknown}`，未知 kind 单列 `kept_for_unknown` 并 fail-closed（既不并进 conflict，也不当可继续） | `run_all()`；用例 `test_run_all_keeps_proof_failure_out_of_conflict`、`test_run_all_keeps_unknown_kind_separate` |
@@ -759,7 +759,7 @@ E 段给出**可直改 8 条 + 需口径 7 条**。本轮只做可直改 8 条�
 
 - **§15.2 第 2 条「`TYPE:link` 覆盖 symlink」**：过宽，已就地更正（live link 走目标内容哈希，只有 dangling 落 `TYPE:link`）。
 - **§15.2 第 3 条「不同 → 不同锁」**：不符合截断哈希性质，已就地更正为「高度可分、非绝对不碰撞」。
-- **§15.2 第 6 条「五处 append 有 kind」**：不能读成「所有失败已分档」，已就地补记 3 处 `SystemExit`。
+- **§15.2 第 6 条「五处 append 有 kind」**：不能读成「所有失败已分档」，已就地补记 5 处 `SystemExit`（target SHA / 回执不可解析 / 回执非对象 / branch 不一致 / target 不一致；原文写「三处」是折叠计数，r14 更正）。
 - **§15.2 第 4 条「统一 evidence schema」**：只统一了内层，外层三形状，已就地补记。
 - **§15.3「既有用例 3 条」**：原句实际列了 5 个函数名，数字写错，已改 **5 条**。
 - **§14.3「12 类」**：按本节自身文本应为 **11 类**（8 + 3），已就地更正。
@@ -807,8 +807,8 @@ A 段结论：5 条 ✅（`_digest` / 五处 SystemExit / 四分流 / attempted 
 
 1. §16.2 #1：`全部 symlink/reparse → wrong_type` 收窄为「所有 **symlink** 形态 → wrong_type；
    junction 因 lstat 报目录落 `exists`」。与 §16.3 的实测记录不再自相矛盾。
-2. §16.2 #1 的 `_path_state` 位置由 `:1442` 更正为 **`:1389`**。
-3. §15.2 第 3 条「r11 仍有 3 处 `raise SystemExit`」更正为 **5 处**并逐条列出
+2. §16.2 #1 的 `_path_state` 位置改为 **函数名锚定**（`def _path_state(`），不再写行号：连续三轮记录的行号与实测都不一致，每次都是在函数之前插代码所致（第十三轮审计 D-2 点名，教训见 L90）。
+3. §15.2 第 3 条「r11 仍有三处 `raise SystemExit`」更正为 **5 处**并逐条列出
    （target SHA / 不可解析 / 非对象 / branch 不一致 / target 不一致）。
 4. `lessons-log.md` L88 标题「六个坑」更正为「**七个坑**」（正文一直是 1–7 七项）。
 5. §16.3「改桩/改断言 3 条既有用例」更正为 **5 条**并补列
@@ -851,3 +851,29 @@ A 段结论：5 条 ✅（`_digest` / 五处 SystemExit / 四分流 / attempted 
 r13 已把第十二轮审计的 E1 四条与 D 段六处全部收口，测试自测 182/47.90s。
 按四段式流程，下一步是**第十三轮 Codex 独立只读审计**（第②环），
 判定口径仍为「8 条是否落地 + 有无新 fail-open + 文档与实现是否一致」，口径项不作阻断理由。
+
+### 18. 第十四轮（r14）：第十三轮审计「不一致」的收口
+
+第十三轮审计（`rc=0` / 718.3s / 15,304B / 176 行 / 154,999 tokens）判**不一致**，
+命中口径 ①③，未命中 ②④：
+
+- **①**：D-2 未真正落地——`_path_state` 在 r13 之后又因插行漂到 `:1395`，
+  报告与看板仍写旧行号（与实测差 6 行）。
+- **③**：同一报告一处写「5 处」而另一处仍写「三处」（折叠计数），全文不闭合；
+  另 E1-4 缺直接回归断言（撤掉 `_stop` / 正常完成分支的新增键，现有断言仍可能全绿）。
+
+r14 四项（均为文档与测试，不动实现）：
+
+| # | 条目 | 落地 |
+|---|---|---|
+| 1 | 行号漂移 | 报告 §16.2 #1 与 §17.3、看板 r13 行全部改为 **函数名锚定**（`def _path_state(`，r14 实测 `:1395`），不再写会漂的行号 |
+| 2 | 另一处的「三处」 | 改为 **5 处**并逐条列出，与该节首处、§16.2 #3 统一 |
+| 3 | E1-4 回归 | `test_run_all_without_ready_has_merge_key` 加 **cleanup 六键同构**断言（覆盖 `_stop` 的 `setdefault`）；新增 `test_run_all_normal_completion_cleanup_has_all_keepers` 覆盖**正常完成分支**（`stopped_at=done`，四档 `kept_for_*` 全空、六键齐全）；合跑 **183 passed / 49.24s** |
+| 4 | 验证债务 | 真实 junction `wt remove` / 真实批次 `run_all` 仍属未验收项，保留在 §17.5 与 §18.1，不作为本轮改动 |
+
+#### 18.1 仍未覆盖（与 §17.5 同源，逐轮不变）
+
+审计方（只读沙箱）无法复跑全部测试体（无可写临时目录），之前只做了 `--collect-only`
+（r13 时 batch 129 + channel 53 = 182）与新增 channel 两条的独立执行（2 passed / 0.03s）；
+`py_compile`、真实 `wt`、真实 symlink/junction、真实批次 `run_all` 均未执行。
+本机 r14 实测 **183 passed / 49.24s**（batch 124 + channel 53 def，parametrize 展开 7 例 → collect 130 + 53 = 183），属实施侧证据、不是审计复现结果。
