@@ -1,0 +1,130 @@
+<html style="margin:0;padding:0;background:#f8fafc;">
+<title>G-ORCH 任务派发流水线 · Codex 审计校正版</title>
+<svg viewBox="0 0 1400 1270" width="1400" height="1270" xmlns="http://www.w3.org/2000/svg" font-family="-apple-system, 'Segoe UI', 'Microsoft YaHei', sans-serif">
+  <rect x="0" y="0" width="1400" height="1270" fill="#f8fafc"/>
+
+  <text x="60" y="62" font-size="27" font-weight="700" fill="#0f172a">G-ORCH 任务派发流水线</text>
+  <text x="60" y="96" font-size="13.5" fill="#64748b">按 2026-11-09 第三方审计的合并方案校正 · 左侧为判据链，右侧为该步的拒绝出口</text>
+  <text x="1340" y="62" font-size="12.5" fill="#94a3b8" text-anchor="end">v1.0 · 示意图</text>
+  <text x="1340" y="84" font-size="12.5" fill="#94a3b8" text-anchor="end">G-ORCH contract / dispatch</text>
+
+  <!-- S1 -->
+  <rect x="60" y="150" width="760" height="130" rx="10" fill="#ffffff" stroke="#cbd5e1"/>
+  <circle cx="92" cy="182" r="14" fill="#1e3a8a"/>
+  <text x="92" y="187" font-size="13" font-weight="700" fill="#ffffff" text-anchor="middle">1</text>
+  <text x="118" y="187" font-size="15.5" font-weight="700" fill="#1e3a8a">入队</text>
+  <text x="196" y="187" font-size="12.5" fill="#94a3b8">工单与卡各自一份文件，冻结门读的是工单</text>
+  <text x="86" y="217" font-size="13" fill="#334155">工单 <tspan font-family="monospace" fill="#475569">tasks/queue/&lt;wo&gt;.md</tspan>　卡 <tspan font-family="monospace" fill="#475569">tasks/cards/&lt;id&gt;/task.md</tspan></text>
+  <text x="86" y="239" font-size="13" fill="#334155">卡的验收门写在卡里（<tspan font-family="monospace" fill="#475569">| ACC-n | 判据 | 怎么查 |</tspan>）</text>
+  <text x="86" y="261" font-size="13" fill="#334155">工单只声明这张卡干什么，不替卡声明门</text>
+
+  <line x1="440" y1="280" x2="440" y2="302" stroke="#94a3b8" stroke-width="2"/>
+  <path d="M440 310 L434 298 L446 298 Z" fill="#94a3b8"/>
+
+  <!-- S2 -->
+  <rect x="60" y="310" width="760" height="185" rx="10" fill="#ffffff" stroke="#cbd5e1"/>
+  <circle cx="92" cy="342" r="14" fill="#1e3a8a"/>
+  <text x="92" y="347" font-size="13" font-weight="700" fill="#ffffff" text-anchor="middle">2</text>
+  <text x="118" y="347" font-size="15.5" font-weight="700" fill="#1e3a8a">派发闸</text>
+  <text x="196" y="347" font-size="12.5" fill="#94a3b8">batch_orchestrator.py · gate_check()</text>
+  <text x="86" y="377" font-size="13" fill="#334155">① 状态归一后必须是 <tspan font-family="monospace" fill="#475569">open</tspan>（别名 <tspan font-family="monospace" fill="#475569">in_progress</tspan> → <tspan font-family="monospace" fill="#475569">in-progress</tspan>，<tspan font-family="monospace" fill="#475569">completed/done</tspan> → <tspan font-family="monospace" fill="#475569">closed</tspan>）</text>
+  <text x="86" y="399" font-size="13" fill="#334155">② 依赖已满足：<tspan font-family="monospace" fill="#475569">unmet_deps</tspan> 为空</text>
+  <text x="86" y="421" font-size="13" fill="#334155">③ 无冲突：<tspan font-family="monospace" fill="#475569">active_conflicts</tspan> 只把 <tspan font-family="monospace" fill="#475569">in-progress</tspan> / <tspan font-family="monospace" fill="#475569">in_progress</tspan> 视为活动</text>
+  <text x="86" y="449" font-size="13" fill="#334155">判定权威仍是 ccpm 原版 <tspan font-family="monospace" fill="#475569">lib.sh</tspan>，本层只把它认的词收敛到一处，不接管判定</text>
+  <text x="86" y="471" font-size="13" fill="#64748b">每一张卡都要过这三条；任何一张不过，整批不派</text>
+
+  <!-- S2 reject -->
+  <line x1="820" y1="402" x2="852" y2="402" stroke="#b91c1c" stroke-width="2"/>
+  <path d="M860 402 L848 396 L848 408 Z" fill="#b91c1c"/>
+  <rect x="860" y="310" width="480" height="185" rx="10" fill="#fff1f2" stroke="#fecdd3"/>
+  <text x="880" y="342" font-size="14" font-weight="700" fill="#b91c1c">拒绝出口</text>
+  <text x="880" y="374" font-size="12.5" fill="#7f1d1d">未知状态（<tspan font-family="monospace" fill="#7f1d1d">blocked</tspan>、空值、写法变了）</text>
+  <text x="880" y="396" font-size="12.5" fill="#7f1d1d">→ <tspan font-weight="700" fill="#b91c1c">整批拒绝</tspan>，不是跳过这一张再派其余的</text>
+  <text x="880" y="424" font-size="12" fill="#991b1b">理由：跳过会放走一张状态不明的卡，而冲突判定</text>
+  <text x="880" y="446" font-size="12" fill="#991b1b">只认 in-progress，跳过等于把它当成不占资源</text>
+  <text x="880" y="474" font-size="12" fill="#64748b">（这条原本建议"跳过未知、其余继续"，已否决）</text>
+
+  <line x1="440" y1="495" x2="440" y2="517" stroke="#94a3b8" stroke-width="2"/>
+  <path d="M440 525 L434 513 L446 513 Z" fill="#94a3b8"/>
+
+  <!-- S3 -->
+  <rect x="60" y="525" width="760" height="140" rx="10" fill="#ffffff" stroke="#cbd5e1"/>
+  <circle cx="92" cy="557" r="14" fill="#1e3a8a"/>
+  <text x="92" y="562" font-size="13" font-weight="700" fill="#ffffff" text-anchor="middle">3</text>
+  <text x="118" y="562" font-size="15.5" font-weight="700" fill="#1e3a8a">执行</text>
+  <text x="196" y="562" font-size="12.5" fill="#94a3b8">worktree + 执行端通道</text>
+  <text x="86" y="592" font-size="13" fill="#334155">独立 worktree 起一个执行端会话，按卡的 <tspan font-family="monospace" fill="#475569">写入域</tspan> 改文件</text>
+  <text x="86" y="614" font-size="13" fill="#334155">回执只产生 <tspan font-family="monospace" fill="#475569">result</tspan>：<tspan font-family="monospace" fill="#15803d">done</tspan> 或 <tspan font-family="monospace" fill="#b45309">blocked</tspan>（<tspan font-family="monospace" fill="#b91c1c">failed</tspan> 目前没有生产者）</text>
+  <text x="86" y="636" font-size="13" fill="#334155">执行端不写 <tspan font-family="monospace" fill="#475569">status</tspan>，合并层也只认 <tspan font-family="monospace" fill="#475569">result == done</tspan></text>
+
+  <line x1="440" y1="665" x2="440" y2="687" stroke="#94a3b8" stroke-width="2"/>
+  <path d="M440 695 L434 683 L446 683 Z" fill="#94a3b8"/>
+
+  <!-- S4 -->
+  <rect x="60" y="695" width="760" height="165" rx="10" fill="#ffffff" stroke="#cbd5e1"/>
+  <circle cx="92" cy="727" r="14" fill="#1e3a8a"/>
+  <text x="92" y="732" font-size="13" font-weight="700" fill="#ffffff" text-anchor="middle">4</text>
+  <text x="118" y="732" font-size="15.5" font-weight="700" fill="#1e3a8a">审计</text>
+  <text x="196" y="732" font-size="12.5" fill="#94a3b8">audit-work-order.py · 两轮独立判</text>
+  <text x="86" y="762" font-size="13" fill="#334155">卡有 ACC 门 → 逐门判；两轮不一致记 <tspan font-family="monospace" fill="#b45309">AMBIGUOUS</tspan>，任一 FAIL 就不过</text>
+  <text x="86" y="784" font-size="13" fill="#334155">卡无 ACC 门且工单无豁免 → 直接拒绝，不出审计结论</text>
+  <text x="86" y="806" font-size="13" fill="#334155">卡无 ACC 门但有豁免 → 唯一可审 key = <tspan font-family="monospace" fill="#475569">WAIVER:&lt;card&gt;</tspan></text>
+  <text x="86" y="828" font-size="13" fill="#64748b">判的是"这张卡的判据是否被一个写明的替代目标替代"，不是"卡没问题"</text>
+
+  <!-- S4 reject -->
+  <line x1="820" y1="777" x2="852" y2="777" stroke="#b91c1c" stroke-width="2"/>
+  <path d="M860 777 L848 771 L848 783 Z" fill="#b91c1c"/>
+  <rect x="860" y="695" width="480" height="165" rx="10" fill="#fff1f2" stroke="#fecdd3"/>
+  <text x="880" y="727" font-size="14" font-weight="700" fill="#b91c1c">拒绝出口</text>
+  <text x="880" y="759" font-size="12.5" fill="#7f1d1d">无门、也无豁免</text>
+  <text x="880" y="781" font-size="12" font-family="monospace" fill="#991b1b">card lists no ACC gates</text>
+  <text x="880" y="801" font-size="12" font-family="monospace" fill="#991b1b">and the order declares no waiver</text>
+  <text x="880" y="829" font-size="12" fill="#64748b">这正是旧链最容易被绕过的一格：卡里没有门，</text>
+  <text x="880" y="849" font-size="12" fill="#64748b">两轮模型仍然可以"审"出 PASS</text>
+
+  <line x1="440" y1="860" x2="440" y2="882" stroke="#94a3b8" stroke-width="2"/>
+  <path d="M440 890 L434 878 L446 878 Z" fill="#94a3b8"/>
+
+  <!-- S5 -->
+  <rect x="60" y="890" width="760" height="185" rx="10" fill="#ecfdf5" stroke="#86efac"/>
+  <circle cx="92" cy="922" r="14" fill="#15803d"/>
+  <text x="92" y="927" font-size="13" font-weight="700" fill="#ffffff" text-anchor="middle">5</text>
+  <text x="118" y="927" font-size="15.5" font-weight="700" fill="#166534">冻结门</text>
+  <text x="196" y="927" font-size="12.5" fill="#94a3b8">freeze-work-order.py · 建 tag</text>
+  <text x="86" y="957" font-size="13" fill="#334155"><tspan font-weight="700">有门</tspan>：<tspan font-family="monospace" fill="#475569">declared == round1 == round2 == gate_ids</tspan>（四集合相等）</text>
+  <text x="86" y="979" font-size="13" fill="#334155"><tspan font-weight="700">无门</tspan>：工单恰好 1 条豁免，且四者都等于 <tspan font-family="monospace" fill="#475569">{WAIVER:&lt;card&gt;}</tspan></text>
+  <text x="86" y="1001" font-size="13" fill="#334155">豁免的替代目标必须出现在 verifier 回执的 <tspan font-family="monospace" fill="#475569">checks[].command</tspan> 里，且该项 <tspan font-family="monospace" fill="#475569">passed</tspan></text>
+  <text x="86" y="1023" font-size="13" fill="#334155">回执、工单、卡三者的 hash 与 commit 绑定；树脏、卡被换、命令没跑过都过不去</text>
+  <text x="86" y="1049" font-size="13" fill="#166534" font-weight="700">全部通过 → 在被验 commit 上建 wo-*-freeze-* tag → 放下一张卡</text>
+
+  <!-- S5 reject -->
+  <line x1="820" y1="982" x2="852" y2="982" stroke="#b91c1c" stroke-width="2"/>
+  <path d="M860 982 L848 976 L848 988 Z" fill="#b91c1c"/>
+  <rect x="860" y="890" width="480" height="185" rx="10" fill="#fff1f2" stroke="#fecdd3"/>
+  <text x="880" y="922" font-size="14" font-weight="700" fill="#b91c1c">拒绝出口</text>
+  <text x="880" y="954" font-size="12.5" fill="#7f1d1d">三处都写 PASS（<tspan font-family="monospace">gates</tspan>、<tspan font-family="monospace">round1</tspan>、<tspan font-family="monospace">round2</tspan>）也换不到 tag</text>
+  <text x="880" y="976" font-size="12.5" fill="#7f1d1d">替代目标没被 verifier 真跑过 → 拒</text>
+  <text x="880" y="998" font-size="12.5" fill="#7f1d1d">两轮判的是别的 key（例如 <tspan font-family="monospace">ACC-1</tspan>）→ 拒</text>
+  <text x="880" y="1026" font-size="12" fill="#64748b">已挡住的三条伪造路径已写成用例</text>
+  <text x="880" y="1048" font-size="12" fill="#64748b">（<tspan font-family="monospace" fill="#475569">test_freeze_binding.py</tspan>）</text>
+
+  <!-- domains -->
+  <rect x="60" y="1105" width="1280" height="130" rx="10" fill="#eff6ff" stroke="#bfdbfe"/>
+  <text x="84" y="1137" font-size="14.5" font-weight="700" fill="#1e40af">三个状态域，不合并</text>
+  <text x="300" y="1137" font-size="12" fill="#64748b">同一张卡在不同层各有一个词，混用就是双源</text>
+
+  <text x="86" y="1172" font-size="12.5" font-weight="700" fill="#1e3a8a">status（工单 / 卡）</text>
+  <text x="86" y="1194" font-size="12" font-family="monospace" fill="#334155">open · in-progress · closed</text>
+  <text x="86" y="1216" font-size="11.5" fill="#64748b">status_map.py 只管这一域</text>
+
+  <text x="500" y="1172" font-size="12.5" font-weight="700" fill="#1e3a8a">result（执行回执）</text>
+  <text x="500" y="1194" font-size="12" font-family="monospace" fill="#334155">done · blocked</text>
+  <text x="500" y="1216" font-size="11.5" fill="#64748b">只登记真有生产者的两个值</text>
+
+  <text x="900" y="1172" font-size="12.5" font-weight="700" fill="#1e3a8a">kanban state（看板）</text>
+  <text x="900" y="1194" font-size="12" font-family="monospace" fill="#334155">Done · Blocked · Doing · Review</text>
+  <text x="900" y="1216" font-size="11.5" fill="#64748b">另一个数据域，不导入 status_map</text>
+
+  <text x="60" y="1262" font-size="11.5" fill="#94a3b8">图注：本图为判据链示意，非运行时拓扑；执行端与 worktree 的具体实现不在本图范围内。</text>
+</svg>
+</html>

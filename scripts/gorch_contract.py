@@ -32,6 +32,7 @@ artifact. A repeat *inside* one table is still refused.
 
 from __future__ import annotations
 
+import json
 import re
 
 # A card reference sits in the second cell of a task row: `| T1 s1-host-shell-envcheck | ...`.
@@ -150,3 +151,75 @@ def acc_rows(text: str) -> list[dict]:
         raise ValueError(
             f"card reuses gate ids: {duplicates}; one verdict would cover several criteria")
     return found
+
+
+# `verify-order.py` 定义了这个块的格式，这里是它的唯一读取口：一行
+# `<!-- gorch-manifest`、一段 JSON、一行 `-->`。三个脚本不再各写一份正则。
+_MANIFEST_BLOCK = re.compile(r"<!--\s*gorch-manifest\s*\n(.*?)\n\s*-->", re.DOTALL)
+# waiver 的 `instead` 只接受仓库内 `tests` 目录、`tests/` 下的规范文件路径，
+# 或 pytest 的精确 node。`-k`、额外选项、自由命令一律拒绝：它们要么匹配到与
+# 这张卡无关的测试，要么根本证明不了卡的产出（2026-11-09 第三方审计 §四 第 3 步）。
+# 目录形式（`tests`）是允许的，因为工单的 `**机检**` 常常就是整目录；它比精确
+# node 弱，所以 freeze 另外要求这条目标在 verifier 回执里真的跑过并判过。
+_TESTS_TARGET = re.compile(
+    r"^tests"
+    r"(?:/[A-Za-z0-9_./-]+\.py(?:::[A-Za-z0-9_\[\]-]+(?:::[A-Za-z0-9_\[\]-]+)?)?)?$")
+
+
+def manifest_block(text: str) -> dict | None:
+    """工单里的 `<!-- gorch-manifest -->` JSON；没有这个块时返回 None。
+
+    JSON 读不出、或者顶层不是对象，一律抛 ValueError —— 畸形 manifest 必须整体
+    被拒，不能退化成"这个工单没有 manifest"。
+    """
+    match = _MANIFEST_BLOCK.search(text)
+    if not match:
+        return None
+    try:
+        data = json.loads(match.group(1))
+    except ValueError as exc:
+        raise ValueError(f"the gorch-manifest block is not valid JSON: {exc}")
+    if not isinstance(data, dict):
+        raise ValueError("the gorch-manifest block is not a JSON object")
+    return data
+
+
+def gate_waivers(text: str) -> list[dict]:
+    """工单声明的 `gate_waivers`；任一字段不合法即整体拒绝。
+
+    一条 waiver 说的是"这张卡没有 ACC 门表，用某条真实测试替代"。它必须点名卡片、
+    给出理由、指向一个能解析到的 `tests/` 目标，三者缺一不可 —— 豁免不是免于
+    校验，而是换一条校验。
+    """
+    block = manifest_block(text)
+    if block is None:
+        return []
+    raw = block.get("gate_waivers")
+    if raw is None:
+        return []
+    if not isinstance(raw, list):
+        raise ValueError("gate_waivers must be a list")
+    waivers = []
+    for entry in raw:
+        if not isinstance(entry, dict):
+            raise ValueError(f"a gate_waiver is not an object: {entry!r}")
+        unknown = set(entry) - {"card", "because", "instead"}
+        if unknown:
+            raise ValueError(f"a gate_waiver carries unknown fields: {sorted(unknown)}")
+        card = entry.get("card")
+        because = entry.get("because")
+        instead = entry.get("instead")
+        if not isinstance(card, str) or not _CARD_ID.match(card.strip()):
+            raise ValueError(f"a gate_waiver names {card!r}, which is not a card id")
+        card = card.strip()
+        if not isinstance(because, str) or not because.strip():
+            raise ValueError(f"the gate_waiver for {card} has an empty because")
+        if not isinstance(instead, str) or not instead.strip():
+            raise ValueError(f"the gate_waiver for {card} has an empty instead")
+        target = instead.strip()
+        if not _TESTS_TARGET.match(target):
+            raise ValueError(
+                f"the gate_waiver for {card} points instead at {target[:60]!r}; "
+                "a waiver target is a tests/ path or an exact pytest node")
+        waivers.append({"card": card, "because": because.strip(), "instead": target})
+    return waivers

@@ -33,15 +33,22 @@ import subprocess
 import sys
 from datetime import datetime, timezone
 
+# 状态词适配层在同目录；按文件路径注入 sys.path，避免依赖启动方式。
+_GORCH_DIR = pathlib.Path(__file__).resolve().parent
+if str(_GORCH_DIR) not in sys.path:
+    sys.path.insert(0, str(_GORCH_DIR))
+
+import status_map  # noqa: E402
+
 ROOT = pathlib.Path(__file__).resolve().parent.parent.parent
 CCPM_DIR = ROOT / 'scripts' / 'gorch' / 'ccpm'
 BASH = r'C:\Program Files\Git\bin\bash.exe'
 WT_EXE = r'H:\UltimaAI\_vendor\worktrunk-bin\wt.exe'
 GIT_CMD_DIR = r'C:\Program Files\Git\cmd'
 BASH_TIMEOUT = 60
-# 工单 frontmatter 允许的状态词（与 ccpm is_done_status / next.sh 对齐）。
-VALID_STATUSES = {'open', 'in-progress', 'in_progress',
-                 'closed', 'completed', 'done'}
+# 工单 frontmatter 允许的状态词：由 status_map 单处维护，不在此手写第二份。
+# ccpm 的 lib.sh 仍是判定权威；这里只收敛入参，不产生任何判定。
+VALID_STATUSES = frozenset(status_map.STATUS_WORDS)
 # 并发 worktree 集中根目录（仓库外，避免与历史 ~/.codex/worktrees 混淆）。
 WORKTREE_ROOT = pathlib.Path(r'H:\UltimaAI\_worktrees\gorch')
 WT_TIMEOUT = 180
@@ -123,12 +130,14 @@ def gate_check(batch_dir):
         if missing:
             raise SystemExit(
                 f'ccpm 输出不完整 {task.name}: 缺 {sorted(missing)}，fail-closed 不派发')
-        if status not in VALID_STATUSES:
+        canon = status_map.normalize_status(status)
+        if canon is None:
             raise SystemExit(
                 f'ccpm 读到未知状态 {task.name}: {status!r}，fail-closed 不派发')
 
         # 值/空映射（确定性，非算法）：判定词只反映 ccpm 函数的输出。
-        if status != 'open':
+        # 用规范值判 open，别名（done/completed/in_progress）统一落到完成态/进行态。
+        if canon != 'open':
             verdict = '非开放状态'
         elif unmet:
             verdict = '等待依赖'

@@ -43,7 +43,7 @@ ROOT = Path(__file__).resolve().parents[1]
 # audit use. A second parser here meant the four scripts could disagree about
 # which rows exist, and a row one of them skipped was never reported as missing.
 sys.path.insert(0, str(ROOT / "scripts"))
-from gorch_contract import acc_rows, order_cards as contract_order_cards   # noqa: E402
+from gorch_contract import acc_rows, gate_waivers, order_cards as contract_order_cards   # noqa: E402
 
 
 def _git_exe() -> str:
@@ -389,6 +389,10 @@ def main(argv: Sequence[str] | None = None) -> int:
         return _refuse("audit did not judge every gate the card declares",
                        card=sorted(gate_ids), gates=sorted(declared_gates),
                        round1=sorted(r1), round2=sorted(r2))
+    # 空表不再从这里滑过去。这一行原来写作 `if gate_ids and (...)`，于是一张没有
+    # ACC 门的卡根本不进比较：任何一份旧回执都能把"谁都没判过"冻成 tag。空表的
+    # 判定要等 receipt 与 order 的绑定确认之后（下面的 empty-gates 分支），因为
+    # 只有那时候才知道这张卡的 id、也才能读到工单自己的 manifest。
 
     # Binding only the first card left the rest of a multi-card order free to change.
     # Every card the dispatch recorded has to be the one that is here now — and the
@@ -439,6 +443,48 @@ def main(argv: Sequence[str] | None = None) -> int:
     if recorded_ids != order_cards:
         return _refuse("the receipt does not name every card the order references",
                        order=order_cards, receipt=recorded_ids)
+
+    # 空 ACC 门表：只有工单为这张卡声明的 waiver 能顶替一次"每门必审"。
+    # 没有 waiver 就在这里拒绝 —— 而不是让上面的集合比较被整段短路掉。
+    if not gate_ids:
+        try:
+            waivers = gate_waivers(order_text)
+        except ValueError as exc:
+            return _refuse(f"the order's manifest cannot be read: {exc}")
+        card_id = recorded_ids[0]
+        matching = [w for w in waivers if w["card"] == card_id]
+        if not matching:
+            return _refuse(
+                "the card lists no ACC gates and the order declares no waiver; "
+                "there is no gate and nothing standing in for one", card=card_id)
+        if len(matching) > 1:
+            return _refuse(
+                f"the order declares {len(matching)} waivers for card {card_id}; "
+                "one card takes one", card=card_id)
+        waiver = matching[0]
+        expected = {f"WAIVER:{card_id}"}
+        if declared_gates != expected or r1 != expected or r2 != expected:
+            return _refuse(
+                "the card has no ACC gates, so the waiver is the only auditable key; "
+                "both rounds have to judge exactly it",
+                card=card_id, expected=sorted(expected), gates=sorted(declared_gates),
+                round1=sorted(r1), round2=sorted(r2))
+        # 替代判据本身要有一份真实执行记录，不能只凭格式合法。verifier 回执里的
+        # 每项 check 都带它实际跑过的命令；这条 waiver 的目标必须出现在其中，且
+        # 那项 check 判过。目录目标（`tests`）同样按这条办，不额外放宽。
+        target = waiver["instead"].replace("\\", "/")
+        hit = [c for c in (verify.get("checks") or [])
+               if target in str(c.get("command") or "").replace("\\", "/")]
+        if not hit:
+            return _refuse(
+                "the waiver's instead target appears in no verifier check; "
+                "a substitute that was never run proves nothing",
+                card=card_id, instead=waiver["instead"])
+        if any(c.get("passed") is not True for c in hit):
+            return _refuse(
+                "the verifier check running the waiver's instead target did not pass",
+                card=card_id, instead=waiver["instead"],
+                failed=[c.get("check") for c in hit if c.get("passed") is not True])
 
     changed_cards = []
     for cid in order_cards:

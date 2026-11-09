@@ -43,7 +43,7 @@ from typing import Sequence
 # script skips is a row the freeze gate would also skip - or, worse, one each reads
 # differently. Importing from the sibling directory keeps a single definition.
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from gorch_contract import acc_rows   # noqa: E402
+from gorch_contract import acc_rows, gate_waivers   # noqa: E402
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -173,6 +173,33 @@ def gates(card: str) -> list[dict]:
     return acc_rows(card)
 
 
+def _card_id(card_path: str | Path) -> str:
+    """卡片目录名就是卡 id（``tasks/cards/<id>/task.md``）。"""
+    path = Path(card_path)
+    if path.name != "task.md" or path.parent.parent.name != "cards":
+        raise ValueError(
+            f"card {path} is not at tasks/cards/<id>/task.md; its id cannot be read")
+    return path.parent.name
+
+
+def _waiver_for(card_path: str | Path, work_order: str) -> dict | None:
+    """工单为这张卡声明的唯一一条 waiver，或 None。
+
+    0 条是"没有豁免"；超过 1 条是两份豁免争同一个替代判据，谁都不能作准，直接拒绝。
+    """
+    card = _card_id(card_path)
+    order_file = ROOT / "tasks" / "queue" / f"{work_order}.md"
+    try:
+        text = order_file.read_text(encoding="utf-8-sig")
+    except (OSError, UnicodeError) as exc:
+        raise ValueError(f"could not read the work order for its manifest: {exc}")
+    matching = [w for w in gate_waivers(text) if w["card"] == card]
+    if len(matching) > 1:
+        raise ValueError(
+            f"the order declares {len(matching)} waivers for card {card}; one card takes one")
+    return matching[0] if matching else None
+
+
 def per_gate(text: str, gate_ids: list[str]) -> dict[str, str]:
     """Collect verdicts per gate; any FAIL wins, and a contradiction is a FAIL.
 
@@ -186,11 +213,16 @@ def per_gate(text: str, gate_ids: list[str]) -> dict[str, str]:
         stripped = line.strip().strip("*_` ")
         # The evidence after the verdict must be non-empty: a bare "ACC-1: PASS"
         # asserts a conclusion without saying what it saw.
-        match = re.match(r"(ACC-\d+)\s*[：:]\s*(PASS|FAIL)\s*[-—:：]\s*(\S.*)$", stripped, re.IGNORECASE)
+        match = re.match(
+            r"(ACC-\d+|WAIVER:[A-Za-z0-9][A-Za-z0-9-]*)\s*[：:]\s*"
+            r"(PASS|FAIL)\s*[-—:：]\s*(\S.*)$", stripped, re.IGNORECASE)
         if not match:
             continue
-        gid, verdict = match.group(1).upper(), match.group(2).upper()
-        ordered.setdefault(gid, []).append(verdict)
+        raw_gate = match.group(1)
+        # ACC 门统一大写；waiver key 后面是仓库里的小写卡 id，不能被 upper 改写。
+        gid = (raw_gate.upper() if raw_gate.upper().startswith("ACC-")
+               else "WAIVER:" + raw_gate.split(":", 1)[1].lower())
+        ordered.setdefault(gid, []).append(match.group(2).upper())
 
     result: dict[str, str] = {}
     for gid in gate_ids:
@@ -268,10 +300,28 @@ def main(argv: Sequence[str] | None = None) -> int:
         card = _decode(card_bytes)
         gate_list = gates(card)
         if not gate_list:
-            print(json.dumps({"blocked": True,
-                              "reason": "card lists no ACC gates; a checklist audit has nothing to judge"},
-                             ensure_ascii=False), file=sys.stderr)
-            return 2
+            # 卡上没有 ACC 门表。只有当工单在 manifest 里为这张卡声明了一条 waiver
+            # （理由 + 可解析的替代测试）时，审计才有东西可判；否则一律拒。
+            try:
+                waiver = _waiver_for(args.card, args.work_order)
+            except ValueError as exc:
+                print(json.dumps({"blocked": True, "reason": str(exc)},
+                                 ensure_ascii=False), file=sys.stderr)
+                return 2
+            if waiver is None:
+                print(json.dumps({
+                    "blocked": True,
+                    "reason": "card lists no ACC gates and the order declares no waiver; "
+                              "a checklist audit has nothing to judge"},
+                    ensure_ascii=False), file=sys.stderr)
+                return 2
+            gate_list = [{
+                "id": f"WAIVER:{waiver['card']}",
+                "criterion": f"no ACC table; substituted by {waiver['instead']} — "
+                             f"{waiver['because']}",
+                "how": "the substitute test must have actually executed and passed "
+                       "for the verified commit",
+            }]
         gate_ids = [g["id"] for g in gate_list]
         checklist = "\n".join(f"- {g['id']}: {g['criterion']} (judged by: {g['how']})" for g in gate_list)
 

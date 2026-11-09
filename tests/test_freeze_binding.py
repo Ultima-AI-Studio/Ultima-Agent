@@ -515,3 +515,90 @@ def test_a_receipt_naming_only_some_cards_is_refused(tmp_path, repo, cli):
     code = cli.main(["--work-order", "wo-t", "--run-dir", str(run)])
     assert code == 2
     assert _git(cli, "tag", "--list", "wo-t-freeze-*") == ""
+
+
+# -------------------------------------------------------------------------------
+# 空 ACC 门表：冻结门这一环原来不设防
+#
+# `freeze-work-order.py` 以前写的是 `if gate_ids and (declared != gate_ids or ...)`，
+# 于是一张没有 ACC 表的卡根本不进集合比较：三处都写 PASS 也没有任何东西被比较。
+# 上游审计会先挡住空表，但那条挡板要靠"走正常审计链"才生效——旧回执或手工回执
+# 能绕过去。下面三条钉住新的判据：无门就只认 waiver，而 waiver 必须被两轮审计
+# 判过、并且它的替代目标在 verifier 回执里真的跑过。
+# -------------------------------------------------------------------------------
+
+
+def _gate_free_card(tmp_path: Path) -> Path:
+    """A card that states a criterion but declares no `ACC-<n>` row at all."""
+    card = tmp_path / "card.md"
+    card.write_text("| T1 | a.txt | 分层结构符合方案 §4.1 |\n", encoding="utf-8")
+    return card
+
+
+def _waiver_order(cli, card_id: str = "orb-w1-t") -> tuple[str, str]:
+    """An order that waives the card's gates with a target the verifier really runs."""
+    run_cmd = f"{cli.ROOT / 'tools/venv-openjarvis/Scripts/python.exe'} -m pytest tests"
+    manifest = {
+        "files": ["a.txt"],
+        "acc": [{"id": "ACC-1", "check": "exists_nonempty", "path": "a.txt"}],
+        "commands": [run_cmd],
+        "gate_waivers": [{
+            "card": card_id,
+            "because": "the card states a criterion but has no ACC table to enumerate it",
+            "instead": "tests",
+        }],
+    }
+    order = ("# t\n\n<!-- gorch-manifest\n" + json.dumps(manifest, ensure_ascii=False)
+             + "\n-->\n\n"
+             f"| T1 {card_id} | a.txt | ACC-1 |\n\n"
+             f"**机检**：{run_cmd}\n\n**文件**：`a.txt`\n")
+    return order, f"WAIVER:{card_id}"
+
+
+def test_a_gate_free_card_cannot_freeze_on_three_forged_passes(tmp_path, repo, cli):
+    """No gate, no waiver: three PASS claims must not buy a tag.
+
+    The audit is forged the way the old hole allowed — `audit_passed: true`, the
+    top-level gate map, and both rounds all say PASS — but the card declares no
+    gate, so there is no verdict that any of those PASS lines could belong to.
+    """
+
+    run = tmp_path / "run"
+    _write_run(run, cli, card=_gate_free_card(tmp_path))
+
+    code = cli.main(["--work-order", "wo-t", "--run-dir", str(run)])
+    assert code == 2
+    assert _git(cli, "tag", "--list", "wo-t-freeze-*") == ""
+
+
+def test_a_waiver_is_not_enough_when_the_audit_judged_another_key(tmp_path, repo, cli):
+    """The waiver is the only auditable key; two ACC PASS lines do not replace it."""
+
+    order, _ = _waiver_order(cli)
+    run = tmp_path / "run"
+    _write_run(run, cli, card=_gate_free_card(tmp_path), order_text=order)
+
+    # `_write_run` records an ACC-1 audit. Freeze has to refuse it: with no ACC
+    # table the only key that could be judged is WAIVER:<card>.
+    code = cli.main(["--work-order", "wo-t", "--run-dir", str(run)])
+    assert code == 2
+    assert _git(cli, "tag", "--list", "wo-t-freeze-*") == ""
+
+
+def test_a_waiver_judged_by_both_rounds_freezes(tmp_path, repo, cli):
+    """A declared waiver, judged in both rounds, with a run behind it, does freeze."""
+
+    order, key = _waiver_order(cli)
+    run = tmp_path / "run"
+    _write_run(run, cli, card=_gate_free_card(tmp_path), order_text=order)
+
+    audit_path = run / "audit.json"
+    audit = json.loads(audit_path.read_text(encoding="utf-8"))
+    audit["gates"] = {key: "PASS"}
+    audit["round1"]["per_gate"] = {key: "PASS"}
+    audit["round2"]["per_gate"] = {key: "PASS"}
+    audit_path.write_text(json.dumps(audit, ensure_ascii=False), encoding="utf-8")
+
+    code = cli.main(["--work-order", "wo-t", "--run-dir", str(run)])
+    assert code == 0
+    assert _git(cli, "tag", "--list", "wo-t-freeze-*") != ""
