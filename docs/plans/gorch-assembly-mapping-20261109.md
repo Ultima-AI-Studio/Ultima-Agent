@@ -118,6 +118,20 @@ printf 'CONFLICTS:%s\n' "$(active_conflicts <task>.md)"
 - 建隔离用 `wt switch -c`、合并用 `wt merge`、清理用 `wt remove`，执行用现有 `codex_channel.py --workdir <worktree>`。
 - 编排层自身不出现任何依赖/冲突/合并的算法；覆盖不了就停下报 Owner。
 
+### 4.4 wt 自动化契约（临时仓库实测，已清理）
+
+统一带 `--format json -y --no-hooks`，shell 不跟随用 `--no-cd`；PATH 前置 `Git\cmd`。
+
+- **建隔离位**：`wt switch -c <branch> --path <dir>`，stdout 第一行为**单行 JSON**：
+  `{"action":"created","branch":...,"path":...,"created_branch":true,"base_branch":...}`。
+  重复对已存在分支调用（不带 `-c`）返回 `action:"existing"`，天然幂等，不重复建。
+- **默认路径**：无配置时建在 sibling 目录 `<repo>.<branch>`；`--path` 可把 worktree 放进集中目录（experimental，分支名不变）。
+- **合并**：`wt merge <branch> --format json`，输出**多行 pretty JSON**（须从首个 `{` 到末个 `}` 提取，不能只取第一行），字段 `branch/target/committed/squashed/rebased/removed`。
+  - 纯 fast-forward 场景 `removed:false`，worktree 保留，需编排层显式再调 `remove`。
+  - **冲突硬验收**：add/add 冲突时进程 `exit=1`，明确 `CONFLICT (...)`，rebase 停在未完成态，绝不静默成功。
+  - 注意 `merge` 会先 squash 改写 target 历史；冲突后须 `git rebase --abort` 回到干净态（abort 后 target 指向 wt 建的 squash commit，实测内容完整）。
+- **清理**：`wt remove <branch> --foreground -y` 同步删除 worktree 目录与已合并分支；未合并分支需 `-D`。
+
 ---
 
 ## 5. 运行环境约定（不是改代码，是调用前置）

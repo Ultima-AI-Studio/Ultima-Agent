@@ -9,6 +9,7 @@
 否则就失去“照搬逻辑真的可跑”的验证意义。
 """
 import importlib.util
+import json
 import pathlib
 
 import pytest
@@ -132,3 +133,62 @@ def test_missing_frontmatter_fails_closed(mod, tmp_path):
     (tmp_path / '1.md').write_text('# no frontmatter\n', encoding='utf-8')
     with pytest.raises(SystemExit):
         mod.gate_check(str(tmp_path))
+
+
+# --- provision 子命令（判断仍真实走 gate/ccpm；只 mock 外部 wt 命令）---
+
+class _FakeResult:
+    def __init__(self, returncode, stdout=''):
+        self.returncode = returncode
+        self.stdout = stdout
+        self.stderr = ''
+
+
+def test_parse_first_json_extracts_object(mod):
+    d = mod._parse_first_json('noise line\n{"action":"created","x":1}\nmore')
+    assert d == {'action': 'created', 'x': 1}
+
+
+def test_parse_first_json_none_when_absent(mod):
+    assert mod._parse_first_json('no json at all') is None
+
+
+def test_provision_creates_only_ready_tasks(mod, monkeypatch, tmp_path):
+    write_task(tmp_path, 1)                       # 可开工
+    write_task(tmp_path, 2, deps=['1'])           # 等待依赖
+    monkeypatch.setattr(mod, 'WORKTREE_ROOT', tmp_path / 'wt')
+    real_wt = tmp_path / 'real-wt'
+    real_wt.mkdir()
+    calls = []
+
+    def fake_switch(branch, wt_path, create):
+        calls.append((branch, create))
+        return _FakeResult(0, json.dumps({'action': 'created', 'path': str(real_wt)}))
+
+    monkeypatch.setattr(mod, 'wt_switch', fake_switch)
+    rows, provisioned, skipped = mod.provision(str(tmp_path))
+    assert [p['task'] for p in provisioned] == ['1']
+    assert skipped == ['2']
+    assert len(calls) == 1                         # 只对可开工任务调 wt
+    assert provisioned[0]['worktree'] == str(real_wt)
+
+
+def test_provision_fails_closed_when_wt_errors(mod, monkeypatch, tmp_path):
+    write_task(tmp_path, 1)
+    monkeypatch.setattr(mod, 'WORKTREE_ROOT', tmp_path / 'wt')
+    monkeypatch.setattr(mod, 'wt_switch',
+                        lambda *a, **k: _FakeResult(1, 'boom'))
+    with pytest.raises(SystemExit):
+        mod.provision(str(tmp_path))
+
+
+def test_provision_fails_closed_when_reported_path_missing(mod, monkeypatch, tmp_path):
+    """wt 报成功但 worktree 路径不存在，必须 fail-closed，不假装就绪。"""
+    write_task(tmp_path, 1)
+    monkeypatch.setattr(mod, 'WORKTREE_ROOT', tmp_path / 'wt')
+    ghost = tmp_path / 'does-not-exist'
+    monkeypatch.setattr(
+        mod, 'wt_switch',
+        lambda *a, **k: _FakeResult(0, json.dumps({'action': 'created', 'path': str(ghost)})))
+    with pytest.raises(SystemExit):
+        mod.provision(str(tmp_path))
