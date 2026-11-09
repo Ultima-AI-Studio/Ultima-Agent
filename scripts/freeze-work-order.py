@@ -38,6 +38,13 @@ from typing import Sequence
 
 ROOT = Path(__file__).resolve().parents[1]
 
+# Both tables this gate reads — the order's card list and the card's acceptance
+# list — are parsed by ``gorch_contract``, the same code the dispatcher and the
+# audit use. A second parser here meant the four scripts could disagree about
+# which rows exist, and a row one of them skipped was never reported as missing.
+sys.path.insert(0, str(ROOT / "scripts"))
+from gorch_contract import acc_rows, order_cards as contract_order_cards   # noqa: E402
+
 
 def _git_exe() -> str:
     """A bare `git` is not resolvable in every session; find it explicitly."""
@@ -365,17 +372,16 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     # The audit must judge every gate the card declares, not the subset it chose to
     # report. Dropping ACC-2..ACC-5 while leaving ACC-1 PASS kept every recorded
-    # value internally consistent and still frozen.
-    # Same parser as the audit uses (``| ACC-n | criterion | how |``), so a card that
+    # value internally consistent and still frozen. The table is read by the same
+    # parser the audit uses (``| ACC-n | criterion | how |``), so a card that
     # mentions a gate in prose — "范围：不做 ACC-4" — is not counted as one the audit
-    # owes a verdict on. Matching the whole text instead refused such cards.
-    gate_ids = set()
-    for line in card_text.splitlines():
-        if not line.startswith("|"):
-            continue
-        cells = [c.strip() for c in line.strip().strip("|").split("|")]
-        if cells and re.fullmatch(r"ACC-\d+", cells[0]):
-            gate_ids.add(cells[0])
+    # owes a verdict on, while a malformed acceptance row is refused rather than
+    # skipped by one script and read by the other.
+    try:
+        gate_rows = acc_rows(card_text)
+    except ValueError as exc:
+        return _refuse(f"the card's acceptance table cannot be read: {exc}")
+    gate_ids = {row["id"] for row in gate_rows}
     declared_gates = set(str(k) for k in (audit.get("gates") or {}))
     r1 = set(str(k) for k in ((audit.get("round1") or {}).get("per_gate") or {}))
     r2 = set(str(k) for k in ((audit.get("round2") or {}).get("per_gate") or {}))
@@ -396,10 +402,11 @@ def main(argv: Sequence[str] | None = None) -> int:
     order_file = Path(ROOT) / "tasks" / "queue" / f"{args.work_order}.md"
     try:
         order_text = order_file.read_text(encoding="utf-8-sig")
-        order_cards = sorted(set(re.findall(
-            r"\| T\d+ (s1-[a-z0-9-]+|orb-w[0-9]-[a-z0-9-]+) \|", order_text)))
+        order_cards = sorted(contract_order_cards(order_text))
     except (OSError, UnicodeError) as exc:
         return _refuse(f"could not read the order to enumerate its cards: {exc}")
+    except ValueError as exc:
+        return _refuse(f"the order's card table cannot be read: {exc}")
     recorded_ids = []
     recorded = {}
     cards_root = (Path(ROOT) / "tasks" / "cards").resolve()

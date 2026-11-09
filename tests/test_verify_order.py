@@ -382,58 +382,69 @@ def test_an_untracked_file_in_the_write_scope_fails(tmp_path, repo, cli):
 
 
 def test_a_runner_planted_in_the_workspace_is_refused(repo, cli):
-    """`tools/pytest.exe` copied from cmd.exe has the right name and is not pytest.
+    """A program with the right name is not the toolchain; the registered location is.
 
     The basename check cannot carry this: any program can be given that name. What
-    separates a runner from a plant is where it lives.
+    separates a runner from a plant is where it lives — and a console script is no
+    longer an entry point at all, because its embedded interpreter cannot be identified.
     """
 
     planted = cli.ROOT / "tools" / "pytest.exe"
     planted.parent.mkdir(parents=True, exist_ok=True)
     planted.write_text("", encoding="utf-8")
-    reason = cli._command_is_a_test_run([str(planted)])
-    assert "registered interpreter" in reason
+    assert "console script" in cli._command_is_a_test_run([str(planted), "tests"])
+
+    venv = cli.ROOT / "tools" / "venv-openjarvis" / "Scripts"
+    venv.mkdir(parents=True, exist_ok=True)
+    (venv / "python.exe").write_text("", encoding="utf-8")
 
     # A path shape that merely resembles the project virtualenv is not a registered
     # tool either, and a path that does not exist cannot be a runner at all.
-    lookalike = cli.ROOT / "tools" / "venv-anything" / "Scripts" / "pytest.exe"
+    lookalike = cli.ROOT / "tools" / "venv-anything" / "Scripts" / "python.exe"
     lookalike.parent.mkdir(parents=True, exist_ok=True)
     lookalike.write_text("", encoding="utf-8")
-    assert "registered" in cli._command_is_a_test_run([str(lookalike)])
+    assert "registered" in cli._command_is_a_test_run([str(lookalike), "-m", "pytest", "tests"])
     (cli.ROOT / "tools" / "venv-nope" / "Scripts").mkdir(parents=True, exist_ok=True)
     assert "does not exist" in cli._command_is_a_test_run(
-        [str(cli.ROOT / "tools" / "venv-nope" / "Scripts" / "python.exe")])
+        [str(cli.ROOT / "tools" / "venv-nope" / "Scripts" / "python.exe"), "-m", "pytest", "tests"])
 
 
-def test_argument_limits_apply_whatever_the_entry_point(repo, cli):
-    """The limits used to sit after the "plain pytest" early return.
+def test_the_command_is_one_interpreter_and_a_list_of_targets(repo, cli):
+    """Only `python -m pytest <targets>` is accepted, and the targets must be canonical.
 
-    A command that named pytest directly skipped every argument check, so
-    ``--rootdir`` or a separated ``-o`` changed where and how the run happened
-    while the gate still reported the command as acceptable.
+    Review found three ways the previous version still admitted nothing-runs commands:
+    no targets at all, targets that were never split into path and node id, and the
+    console script, whose interpreter the gate cannot identify.
     """
 
     venv = cli.ROOT / "tools" / "venv-openjarvis" / "Scripts"
     venv.mkdir(parents=True, exist_ok=True)
     (venv / "pytest.exe").write_text("", encoding="utf-8")
+    python = str(venv / "python.exe")
     (venv / "python.exe").write_text("", encoding="utf-8")
-    pytest_exe = str(venv / "pytest.exe")
 
-    assert cli._command_is_a_test_run([pytest_exe, "tests/queue_engine"]) == ""
-    # Every one of these decides what gets collected or whether anything runs at
-    # all, and the gate now refuses the whole class rather than naming them.
+    assert "console script" in cli._command_is_a_test_run([str(venv / "pytest.exe"), "tests"])
+    assert cli._command_is_a_test_run([python, "-m", "pytest", "tests/queue_engine"]) == ""
+    assert cli._command_is_a_test_run([python, "-m", "pytest", "tests/test_x.py::test_y"]) == ""
+
+    # An invocation with nothing to select is not a run.
+    assert "no test targets" in cli._command_is_a_test_run([python, "-m", "pytest"])
+
+    # Every one of these decides what gets collected or whether anything runs at all,
+    # and the gate refuses the whole class rather than naming them.
     for extra in (["--rootdir=.."], ["-p", "anyio"], ["-o", "addopts=-q"],
                   ["-o", "addopts="], ["--collect-only"], ["-m", "slow"],
                   ["--ignore-glob=*"], ["-kcache"], ["@args.txt"]):
-        assert "test targets" in cli._command_is_a_test_run([pytest_exe, *extra])
+        assert "test targets" in cli._command_is_a_test_run([python, "-m", "pytest", *extra])
 
-    # The gate builds the run. On the console script `-m` is pytest's marker filter,
-    # so the fixed form must not add `-m pytest` there — that collects nothing.
-    assert cli._gate_argv([pytest_exe, "tests/queue_engine"]) == [
-        pytest_exe, "-o", "addopts=", f"--junitxml={cli._JUNIT_NAME}", "tests/queue_engine"]
-    assert cli._gate_argv([str(venv / "python.exe"), "-m", "pytest", "tests/queue_engine"]) == [
-        str(venv / "python.exe"), "-m", "pytest", "-o", "addopts=",
-        f"--junitxml={cli._JUNIT_NAME}", "tests/queue_engine"]
+    # A target is a canonical in-repo path: not the root, not a non-canonical spelling,
+    # not absolute, not a Windows separator, not a parent hop.
+    for bad in (".", "./tests", "tests//x.py", "/abs/x.py", "C:\\x.py", "tests\\x.py",
+                "tests/../x.py", "tests/test_x.py::"):
+        assert cli._command_is_a_test_run([python, "-m", "pytest", bad]), bad
+
+    assert cli._gate_argv([python, "-m", "pytest", "tests"]) == [
+        python, "-m", "pytest", "-o", "addopts=", f"--junitxml={cli._JUNIT_NAME}", "tests"]
 
 
 def test_an_interpreter_outside_the_registered_venv_is_refused(tmp_path, cli):
@@ -469,3 +480,56 @@ def test_a_declared_file_without_a_dispatch_commit_does_not_pass(tmp_path, repo,
           status_entries=snap["status_entries"], changed_files=snap["changed_files"])
     payload = cli.verify("wo-x", tmp_path)
     assert "declared_files_landed" in payload["blocking_failures"]
+
+
+def test_a_report_is_only_believed_when_it_accounts_for_every_case(tmp_path, cli):
+    """The gate reads the run's report, so the report has to add up.
+
+    A regex over the first `<testsuite>` accepted a file with attributes missing
+    (each defaulted to zero) and never compared the aggregate with the individual
+    testcases, so a hand-written or truncated report still looked like a clean run.
+    """
+
+    def write(name: str, body: str) -> Path:
+        path = tmp_path / name
+        path.write_text(body, encoding="utf-8")
+        return path
+
+    # Two cases, one failing: the counts and the case statuses agree.
+    good = write("good.xml", '<testsuite tests="2" failures="1" errors="0" skipped="0">'
+                             '<testcase name="a"/><testcase name="b"><failure/></testcase>'
+                             '</testsuite>')
+    assert cli._junit_counts(good) == {"tests": 2, "failures": 1, "errors": 0, "skipped": 0}
+
+    # `testsuites` is a wrapper, not a suite: the totals come from the children.
+    wrapped = write("wrapped.xml", '<testsuites><testsuite tests="1" failures="0" errors="0" '
+                                   'skipped="1"><testcase name="a"><skipped/></testcase>'
+                                   '</testsuite></testsuites>')
+    assert cli._junit_counts(wrapped)["skipped"] == 1
+
+    # A missing attribute used to default to zero, which read as a clean run.
+    missing = write("missing.xml", '<testsuite tests="1"><testcase name="a"/></testsuite>')
+    assert cli._junit_counts(missing) is None
+
+    # The aggregate says two tests, the file contains one: the report was edited.
+    disagree = write("disagree.xml", '<testsuite tests="2" failures="0" errors="0" skipped="0">'
+                                     '<testcase name="a"/></testsuite>')
+    assert cli._junit_counts(disagree) is None
+
+    assert cli._junit_counts(write("garbage.xml", "<testsuite")) is None
+    assert cli._junit_counts(tmp_path / "absent.xml") is None
+
+
+def test_a_target_absent_from_the_commit_is_caught_before_the_run(tmp_path, cli):
+    """A path tracked now but missing from the delivered commit would select nothing."""
+
+    checkout = tmp_path / "wt"
+    (checkout / "tests").mkdir(parents=True)
+    (checkout / "tests" / "test_ok.py").write_text("def test_ok():\n    assert True\n",
+                                                  encoding="utf-8")
+    assert cli._missing_target(checkout, ["python.exe", "-m", "pytest", "tests"]) == ""
+    assert "not in the delivered tree" in cli._missing_target(
+        checkout, ["python.exe", "-m", "pytest", "tests/test_gone.py"])
+    # A node id is narrowed to its path; the selector itself need not exist in the file.
+    assert cli._missing_target(
+        checkout, ["python.exe", "-m", "pytest", "tests/test_ok.py::test_ok"]) == ""

@@ -19,9 +19,13 @@ from contextlib import contextmanager
 ROOT = Path(__file__).resolve().parents[1]
 SHARED = ROOT.parent / '_shared/queue'
 sys.path.insert(0, str(ROOT))
+sys.path.insert(0, str(ROOT / 'scripts'))
 from tasks.queue_engine.dispatcher import DispatchLock, process_identity
 from tasks.queue_engine.card_contract import check_version_gates
 from tasks.queue_engine.receipt_contract import classify_receipt_path
+# The order's card table is parsed once, in ``gorch_contract``, so the dispatcher and
+# the freeze gate enumerate the same set and refuse the same malformed rows.
+from gorch_contract import order_cards as contract_order_cards
 
 spec = importlib.util.spec_from_file_location('native_environment', ROOT / 'scripts/inspect-native-environment.py')
 native = importlib.util.module_from_spec(spec)
@@ -415,11 +419,16 @@ def main():
     prompt = args.prompt.read_text(encoding='utf-8-sig')
     if 'docs/INDEX.md' not in prompt or args.order not in prompt:
         raise ValueError('派发载荷必须引用 INDEX 及当前唯一工单')
-    cards = re.findall(r'\| T\d+ (s1-[a-z0-9-]+|orb-w[0-9]-[a-z0-9-]+) \|', order_path.read_text(encoding='utf-8'))
+    try:
+        cards = contract_order_cards(order_path.read_text(encoding='utf-8'))
+    except UnicodeError:
+        raise ValueError('工单文件无法按 UTF-8 读取')
+    except ValueError as exc:
+        raise ValueError(f'工单任务卡表不可解析：{exc}')
     if not cards:
         raise ValueError('工单没有可核对的任务卡')
     versions = set()
-    for card_id in set(cards):
+    for card_id in cards:
         card = ROOT / 'tasks/cards' / card_id / 'task.md'
         if not card.is_file():
             raise ValueError('工单引用的任务卡缺失')
@@ -434,7 +443,7 @@ def main():
     # An order may reference several cards (`wo-s1-host-shell` names five), and a
     # single hash covered only the one that happened to be used for the audit.
     card_records = []
-    for cid in dict.fromkeys(cards):
+    for cid in cards:
         path = ROOT / 'tasks/cards' / cid / 'task.md'
         card_records.append({'path': str(path),
                              'sha256': hashlib.sha256(path.read_bytes()).hexdigest()})

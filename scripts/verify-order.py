@@ -45,6 +45,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import xml.etree.ElementTree as ET
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Sequence
@@ -260,16 +261,49 @@ _TEST_INPUT_NAMES = {"conftest.py", "pytest.ini", ".pytest.ini", "pytest.toml",
 _TEST_INPUT_SCOPES = ("tests/", "tasks/queue_engine/")
 
 
+def _target_problem(arg: str) -> str:
+    """Why this target is not a canonical in-repo test path, or "" when it is.
+
+    An order names targets, so the gate has to be able to say exactly what was
+    selected. ``.`` and ``./tests`` previously passed: the first names the checkout
+    root, the second is a non-canonical spelling of a directory, and neither lets
+    anyone re-derive the selection from the receipt. A ``path::node_id`` selector is
+    split at the first ``::`` so the path can be normalised and later checked inside
+    the checkout; the node id itself is kept verbatim.
+    """
+    path_part, sep, node = arg.partition("::")
+    if not path_part:
+        return f"{arg[:40]} names no test path"
+    if re.match(r"^[A-Za-z]:", path_part) or path_part.startswith(("/", "\\")):
+        return f"{path_part[:40]} points outside the checkout"
+    if "\\" in path_part:
+        return f"{path_part[:40]} uses a Windows separator; targets are written with '/'"
+    parts = [p for p in path_part.split("/") if p not in ("", ".")]
+    if not parts or parts == ["."]:
+        return f"{arg[:40]} names the checkout root; a target must name a test path"
+    if any(p == ".." for p in parts):
+        return f"{arg[:40]} escapes the checkout"
+    canonical = "/".join(parts)
+    if canonical != path_part:
+        return (f"{path_part[:40]} is not a canonical path; write it as {canonical[:40]}")
+    if sep and (not node or node.startswith("-")):
+        return f"{arg[:40]} has no usable node id after '::'"
+    return ""
+
+
 def _command_is_a_test_run(argv: list[str]) -> str:
     """Why this argv is not an acceptable test command, or "" when it is.
 
-    ``shell=False`` removes the shell, but it does not make an order-authored
-    command safe by itself: ``python -c "..." -m pytest`` still runs the ``-c``
-    payload first, and any file named ``pytest-something`` satisfies a prefix test.
+    An order supplies two things and only two: which interpreter, and which test
+    targets. The interpreter is the registered ``python.exe`` running
+    ``-m pytest``; the targets are canonical in-repo paths, optionally narrowed by
+    ``::node_id``. Everything else decides what gets collected or whether anything
+    executes at all, and a blacklist never catches every spelling of that, so every
+    remaining token is refused.
 
-    Argument checks run *first*, for every entry point. They used to sit after the
-    "this is a plain pytest" early return, so a command that named pytest directly
-    skipped all of them.
+    The pytest console script is no longer accepted: it is a launcher whose embedded
+    interpreter the gate cannot identify, so a receipt from it could not be tied to
+    the toolchain this repository pins.
     """
     raw = argv[0].strip('"')
     exe = Path(raw)
@@ -280,31 +314,28 @@ def _command_is_a_test_run(argv: list[str]) -> str:
         exe = candidate if candidate.exists() else Path(shutil.which(raw) or raw)
     name = exe.name.lower()
 
-    # The gate builds the run itself. An order supplies two things and only two:
-    # which interpreter, and which test targets. Everything else decides what gets
-    # collected or whether anything executes at all — `--collect-only`,
-    # `--setup-plan`, a marker filter, `--ignore`, `@argfile`, glued short options
-    # such as `-kcache` — and a blacklist never catches every spelling of that.
     registered = Path(ROOT) / "tools" / "venv-openjarvis" / "Scripts"
-    if name.startswith("pytest") or name in ("python", "python.exe", "python3", "python3.exe"):
+    if name in ("python", "python.exe", "python3", "python3.exe"):
         if not exe.is_file():
             return f"{raw[:40]} does not exist; a test runner must be an installed tool"
         if not exe.resolve().is_relative_to(registered.resolve()):
             return (f"{raw[:40]} is not the registered interpreter; the run would not "
                     "come from the toolchain this repository pins")
+    elif name.startswith("pytest"):
+        return ("the pytest console script is not an accepted entry point; a test "
+                "command is `python -m pytest <targets>`")
+    else:
+        return f"{name} is not a python interpreter or pytest"
 
     body = argv[1:]
-    if name.startswith("pytest"):
-        if name not in ("pytest", "pytest.exe"):
-            return f"unrecognised test runner {name}"
-    else:
-        if not _TEST_RUNNER.search(argv[0]):
-            return f"{name} is not a python interpreter or pytest"
-        # The interpreter must run pytest as its *first* action; otherwise a script
-        # elsewhere on the line runs first and the trailing `-m pytest` is its argument.
-        if body[:2] != ["-m", "pytest"]:
-            return "python is only accepted as `python -m pytest`"
-        body = body[2:]
+    # The interpreter must run pytest as its *first* action; otherwise a script
+    # elsewhere on the line runs first and the trailing `-m pytest` is its argument.
+    if body[:2] != ["-m", "pytest"]:
+        return "python is only accepted as `python -m pytest`"
+    body = body[2:]
+    if not body:
+        return ("the command names no test targets; nothing would prove the delivered "
+                "tree runs")
 
     for arg in body:
         if arg.startswith("@"):
@@ -313,10 +344,32 @@ def _command_is_a_test_run(argv: list[str]) -> str:
         if arg.startswith("-"):
             return (f"{arg[:30]} is a parameter; the gate fixes the options and the "
                     "order may only name test targets")
-        if re.match(r"^[A-Za-z]:", arg) or arg.startswith(("/", "\\")):
-            return f"{arg[:40]} points outside the checkout"
-        if ".." in Path(arg).parts:
-            return f"{arg[:40]} escapes the checkout"
+        why = _target_problem(arg)
+        if why:
+            return why
+    return ""
+
+
+def _targets(argv: list[str]) -> list[str]:
+    """The targets an accepted command names, in order."""
+    body = argv[1:]
+    if body[:2] == ["-m", "pytest"]:
+        body = body[2:]
+    return body
+
+
+def _missing_target(worktree: Path, argv: list[str]) -> str:
+    """Why one of the named targets is not in the delivered tree, or "" when they all are.
+
+    Checking inside the checkout rather than the repository is the point: a path
+    tracked now but absent from the commit under test would make the run test
+    nothing that was delivered, while still exiting 0 on an empty selection.
+    """
+    for arg in _targets(argv):
+        path_part = arg.partition("::")[0]
+        if not (worktree / path_part).exists():
+            return (f"{path_part[:60]} is not in the delivered tree; the run would test "
+                    "nothing this order names")
     return ""
 
 
@@ -369,32 +422,56 @@ def _gate_argv(argv: list[str]) -> list[str]:
     `--collect-only` exits 0 having executed nothing. So the gate — not the order —
     decides the options, and it asks pytest for its own report of what happened.
     """
-    runner, body = argv[0], argv[1:]
-    head = [runner]
-    if body[:2] == ["-m", "pytest"]:
-        # Only the interpreter needs `-m pytest`. On the console script `-m` is
-        # pytest's marker filter, and `-m pytest` would collect nothing.
-        head.append("-m")
-        head.append("pytest")
-        body = body[2:]
-    return [*head, "-o", "addopts=", f"--junitxml={_JUNIT_NAME}", *body]
+    return [argv[0], "-m", "pytest", "-o", "addopts=", f"--junitxml={_JUNIT_NAME}",
+            *_targets(argv)]
 
 
 def _junit_counts(path: Path) -> dict | None:
-    """Totals from the run's own report, or None when there is no report."""
+    """Totals from the run's own report, or None when the report is absent or inconsistent.
+
+    A regex over the first `<testsuite>` accepted a file with attributes missing
+    (each silently defaulted to zero) and never compared the aggregate with the
+    individual testcases, so a truncated or hand-written report still counted as a
+    clean run. This parses the XML, requires every count attribute, and refuses the
+    report unless the per-testcase statuses add up to it.
+
+    Skip policy, stated rather than implied: skips are allowed — a platform guard or
+    a parametrised case may legitimately not run — but they never count as executed
+    work, so the gate still requires at least one test that actually ran. `xfail`
+    is reported by pytest as a skip, and a non-strict `xpass` is reported as a pass;
+    the gate does not distinguish them, and a suite that must be strict about
+    unexpected passes has to set `xfail_strict` in its own configuration.
+    """
     try:
-        text = path.read_text(encoding="utf-8", errors="replace")
-    except OSError:
+        tree = ET.parse(path)
+    except (OSError, ET.ParseError):
         return None
-    match = re.search(r"<testsuite\b[^>]*>", text)
-    if not match:
+    root = tree.getroot()
+    if root.tag == "testsuite":
+        suites = [root]
+    else:
+        suites = [child for child in root if child.tag == "testsuite"]
+    if not suites:
         return None
-    head = match.group(0)
-    counts = {}
-    for key in ("tests", "failures", "errors", "skipped"):
-        found = re.search(rf'\b{key}="(\d+)"', head)
-        counts[key] = int(found.group(1)) if found else 0
-    return counts
+    declared = {"tests": 0, "failures": 0, "errors": 0, "skipped": 0}
+    observed = {"tests": 0, "failures": 0, "errors": 0, "skipped": 0}
+    for suite in suites:
+        for key in declared:
+            raw = suite.get(key)
+            if raw is None or not raw.isdigit():
+                return None
+            declared[key] += int(raw)
+        for case in suite.iter("testcase"):
+            observed["tests"] += 1
+            if case.find("failure") is not None:
+                observed["failures"] += 1
+            elif case.find("error") is not None:
+                observed["errors"] += 1
+            elif case.find("skipped") is not None:
+                observed["skipped"] += 1
+    if observed != declared:
+        return None
+    return declared
 
 
 def _run_in_clean_worktree(sha: str, argv: list[str], timeout: int) -> tuple[object, str, dict | None]:
@@ -412,10 +489,23 @@ def _run_in_clean_worktree(sha: str, argv: list[str], timeout: int) -> tuple[obj
         add = _git("worktree", "add", "--detach", str(worktree), sha)
         if add.returncode != 0:
             return None, f"could not create a clean checkout of {sha[:12]}: {(add.stderr or '')[:140]}", None
+        missing = _missing_target(worktree, argv)
+        if missing:
+            return None, missing, None
+        # The report has to be produced by this run. If one arrived with the commit,
+        # reading it would prove nothing about the checkout that was just tested.
+        report = worktree / _JUNIT_NAME
+        try:
+            report.unlink(missing_ok=True)
+        except OSError as exc:
+            return None, f"a stale test report could not be cleared: {exc}", None
+        if report.exists():
+            return None, ("the checkout already contains a test report; the gate could "
+                          "not prove it came from this run"), None
         proc = subprocess.run(_pin_runner(_gate_argv(argv)), cwd=str(worktree), capture_output=True,
                               text=True, encoding="utf-8", errors="replace",
                               timeout=timeout, env=_clean_env())
-        return proc, "", _junit_counts(worktree / _JUNIT_NAME)
+        return proc, "", _junit_counts(report)
     finally:
         _git("worktree", "remove", "--force", str(worktree))
         shutil.rmtree(base, ignore_errors=True)

@@ -39,6 +39,12 @@ import urllib.request
 from pathlib import Path
 from typing import Sequence
 
+# The acceptance table is parsed in one place (``gorch_contract``), so a row this
+# script skips is a row the freeze gate would also skip - or, worse, one each reads
+# differently. Importing from the sibling directory keeps a single definition.
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from gorch_contract import acc_rows   # noqa: E402
+
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -158,24 +164,13 @@ def _decode(data: bytes) -> str:
 def gates(card: str) -> list[dict]:
     """Acceptance gates as (id, criterion, how-to-judge) from the card's table.
 
-    Duplicate ids are fatal, not merged: two rows numbered ACC-2 give one verdict
-    the power to stand in for two different criteria, which is how a checklist
-    quietly loses a gate.
+    The parsing lives in ``gorch_contract`` so the audit and the freeze gate cannot
+    disagree about which rows count. A row that opens with an ACC id but carries no
+    criterion, or no method, is a failure rather than a skipped row; duplicate ids
+    are fatal, not merged, because two rows numbered ACC-2 give one verdict the power
+    to stand in for two different criteria.
     """
-    found = []
-    seen: dict[str, int] = {}
-    for line in card.splitlines():
-        if not line.startswith("|"):
-            continue
-        cells = [c.strip() for c in line.strip().strip("|").split("|")]
-        if len(cells) < 3 or not re.fullmatch(r"ACC-\d+", cells[0]):
-            continue
-        seen[cells[0]] = seen.get(cells[0], 0) + 1
-        found.append({"id": cells[0], "criterion": cells[1], "how": cells[2]})
-    duplicates = [gid for gid, count in seen.items() if count > 1]
-    if duplicates:
-        raise ValueError(f"card reuses gate ids: {duplicates}; one verdict would cover several criteria")
-    return found
+    return acc_rows(card)
 
 
 def per_gate(text: str, gate_ids: list[str]) -> dict[str, str]:
