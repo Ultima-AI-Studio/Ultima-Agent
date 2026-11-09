@@ -877,3 +877,35 @@ r14 四项（均为文档与测试，不动实现）：
 （r13 时 batch 129 + channel 53 = 182）与新增 channel 两条的独立执行（2 passed / 0.03s）；
 `py_compile`、真实 `wt`、真实 symlink/junction、真实批次 `run_all` 均未执行。
 本机 r14 实测 **183 passed / 49.24s**（batch 124 + channel 53 def，parametrize 展开 7 例 → collect 130 + 53 = 183），属实施侧证据、不是审计复现结果。
+
+### 19. 第十四轮 Codex 独立只读审计：**一致**
+
+`rc=0` / 631.0s / 11,366B / 128 行（全文 `Temp\codex-r14-audit-last.md`）。
+身份核验 8 项全对（分支、HEAD `f80f0f11`、tag 解引用同 SHA、tag type `tag`、
+`f80f0f11^=53d072c0`、`53d072c0^=21d7f954`、两段 numstat 与声明一致）。
+
+| 段 | 内容 | 判定 |
+|---|---|---|
+| A | 三条声明逐条落地（函数名锚定 / 五处统一 / 六键同构） | 3/3 ✅ |
+| B | 新增风险（`CLEANUP_KEYS` 是否自证式假绿、桩是否伪造不可达状态） | 4 条全部排除 |
+| C | 测试覆盖真实性（真实 `run_all` 控制层 + 撤键敏感） | 通过，1 个非阻断缺口 |
+| D | 文档/看板一致性（上一轮点名三条闭合 + 无新增矛盾） | ✅ |
+| E1 | 可直改 4 条 | 不阻断 |
+| E2 | 需口径 7 条 | 原样保留，不计入判定 |
+
+审计方用只读内存探针**实际跑了真实 `run_all` 控制流**（这是前几轮没能做到的）：
+无 ready 路径 `stopped_at='gate'`、正常完成路径 `stopped_at='done'`，两处 cleanup 六键齐全且全空；
+并**分别撤掉 `kept_for_evidence` / `kept_for_proof` / `kept_for_unknown`** 后，
+`set(cleanup) == CLEANUP_KEYS` 均变 `False` —— 即 r13 的补键一旦回退，r14 断言必红。
+新鲜 `--collect-only` 亦实测 **183 collected**，与报告/看板一致。
+
+#### 19.1 审计留下的非阻断缺口（E1）
+
+1. **未闭合保留分支缺直接回归**（`real_stale or leftover` 那一路，`batch_orchestrator.py:1717`
+   区段）：目前只靠 AST + 代码审查保证六键同构，没有像 `_stop` / 正常完成那样做集合相等断言。
+2. 正常完成用例里的 `find_done_tasks` 桩是**冗余桩**（`write_run` 生成的真实形状本就能通过真实
+   consumer 校验），可去掉以收窄桩面。
+3. `183 passed / 49.24s` 仍是实施侧回执，缺可在可写环境复跑的新鲜回执。
+4. 真实 junction `wt remove`、真实批次 `run_all` 属既存验证债务。
+
+以上四条**均不阻断**「一致」判定，登记为下一轮（若继续）的输入。
