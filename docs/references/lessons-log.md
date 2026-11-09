@@ -745,3 +745,25 @@
 - **口径**：r7 合跑 **128 passed / 42.18s**（batch 92 + channel 36），r6 基线 108 passed / 39.12s；
   新增 20 条（channel 9 / batch 11，含 2 条 cleanup 证据）。仍未做：真实批次重跑 `run_all`、
   冲突形态全链真跑、`done_no_merge` 三分组落定。
+## L84 · r8：分级证据拆判据的两个坑 + 锁路径必须运行时可重定向（2026-11-09）
+
+- **坑 1（`_git_out` 返回顺序写反 → 旧用例整片红）**：`_git_out` 返回 `(rc, stdout)`，新加的
+  `git rev-parse <sha>^{tree}` 取证写成 `_t, _ = _git_out(...)`，`_t` 拿到的是 int → 4 条既有
+  merge 用例同时 `AttributeError: 'int' object has no attribute 'strip'`。取证一律按
+  `_rc, out = _git_out(...)` 解，并只在 `_rc == 0` 时采信输出。
+- **坑 2（把布尔判据拆成多级时漏支）**：r7 的 `proven = wt_action or (rc_anc==0 and (not pre_anc
+  or src_moved))` 拆成 `ff / tree / wt_receipt` 三级时，把 `pre_anc 且 src_moved` 这一支丢了 →
+  `test_merge_all_sequential_order` 里合第二个任务时 `pre_anc` 恒真、`proof` 为空、被判 failed。
+  拆判据必须逐支对照原条件（这里原 A 支 = `not pre_anc or src_moved`）。
+- **坑 3（`write_run(run_dir='')` 造不出「缺字段」）**：helper 里是
+  `str(run_dir or d.resolve())`，空串 falsy 会回落成默认真实目录，负向用例根本走不到「缺
+  run_dir」分支。造缺字段要用 `extra={'run_dir': ''}`（`payload.update(extra)` 在默认值之后）覆盖。
+- **坑 4（`merge()` 不给 `tasks` 时对 stale 不抛）**：`targets = list(done)`，全 stale 时直接
+  `return done, [], [], stale`。想断言 `SystemExit` 必须同时传 `tasks=[...]`（unknown 分支才抛）。
+- **坑 5（锁路径写成模块级常量会被测试重定向绕开）**：`_LOCKS = RUNS.parent / 'locks'` 在 import
+  时求值，fixture 再 `monkeypatch RUNS` 也改不动它 → 用例把锁落到真实仓库 `data/gorch/locks`。
+  锁目录必须在 `__init__` 里按当时 `RUNS` 计算，测试才能真正隔离。
+- **口径**：r8 合跑 **139 passed / 40.63s**（batch 98 + channel 41），r7 基线 128 / 42.18s。
+  r8 新增 10 条（batch 6 / channel 4）+ 前段作业里的 2 条 rename 真实 NUL 用例。
+  仍未做：真实批次重跑 `run_all`（旧卡会被「无新增」判 blocked，需换任务名）、`done_no_merge`
+  三分组、manifest 签发签名/受控目录。

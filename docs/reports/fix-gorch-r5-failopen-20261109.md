@@ -454,3 +454,56 @@ B 组（第六轮八条新问题）：B1 ⚠️（同 A⑧ 的 `BIG/ERR`）、B2
 - 第②环（Codex 独立审计）判 **不一致** → 第③环（让 Codex 出修复实现）前提不成立 → 回第①环做 **r8**。
 - r8 输入 = 11.3 的 N1–N7（全部可直改）+ A⑤/A⑦/A⑪/B5 的挂载点补强（用例必须打到真实解析层与真实生产者，而不是 helper）+ 11.5 的三条口径待 Owner 拍板。
 - 诚实说明：N1 是 r7 自身引入的契约断裂（生产端不写 `invocation`，消费端却强制要求），r7 的「128 passed」并未覆盖它——现有用例用 `write_run()` 人工注入该字段，正好掩盖了这个缺口。
+## 十二、r8 实现闭环（第七轮审计「不一致」→ 逐条回修）
+
+### 12.1 可直改八条的落地位置
+
+| # | 第七轮审计要求 | r8 落地 | 证据位置（符号名） |
+|---|---|---|---|
+| 1 | `load_authorizations` 回传 manifest 级 `invocation`/`target`，并在记录创建时写入；补「真实产出可被 `find_done_tasks(run_dirs=...)` 消费」测试 | 回传 `manifest`/`invocation`/`target`；`main()` 建 record 时写三项并在授权后覆盖 | `codex_channel.load_authorizations`、`codex_channel.main` 的 record 构造段；用例 `test_record_carries_manifest_identity`、`test_find_done_tasks_consumes_real_producer_record` |
+| 2 | 显式 run-record 身份校验改全：根节点对象、`task` 精确相等、`run_dir` 必填且绝对路径相等、`invocation` 等值、`dry_run is False`、`result == 'done'`、`mergeable is True`；不得只比 basename | 七项逐条前置，任一不满足即进 `stale`；选定最新记录后再复核 `mergeable` | `batch_orchestrator.find_done_tasks` 显式分支、fallback 分支；用例 `test_run_dirs_rejects_record_without_run_dir`、`test_run_dirs_rejects_run_dir_pointing_elsewhere` |
+| 3 | `-z` 解析把 rename/copy 的目标与随后源路径都纳入结构化 row/path；**测试直接构造 NUL 序列喂解析层** | `_status_rows` 保留 `('SRC', src)` 行；`_fresh_paths` 支持 `SRC ` 前缀并兼容旧展示形态 | `codex_channel._status_rows`、`_fresh_paths`；用例 `test_status_rows_keeps_rename_source_from_real_nul`、`test_status_rows_rename_source_is_in_fingerprint_paths` |
+| 4 | 改流式 SHA-256；任何读错误使整份 fingerprint 明确不可用，执行前/后统一 fail-closed | `_digest` 全程分块 sha256、读失败返回 `None`；`worktree_fingerprint` 任一 `paths` 值为 `None` 即整份 `ERR:digest:<path>` | `codex_channel._digest`、`worktree_fingerprint`；用例 `test_digest_read_error_invalidates_whole_fingerprint` |
+| 5 | 保留文件名首尾空格、只剥精确 `./`；写域前拒绝绝对 / drive / UNC / 任何 `..` 段；scope pattern 同样做 repo-relative 校验 | `_norm_path` 去掉 `strip()` 只剥 `./`；新增 `_repo_relative_safe`；`_scope_match` 双侧先过合法性检查，`_outside_scope` 遇不合法直接判越域 | `codex_channel._norm_path`、`_repo_relative_safe`、`_scope_match`、`_outside_scope`；用例 `test_norm_path_keeps_edge_spaces_and_hidden_dirs`、`test_scope_check_rejects_parent_traversal` |
+| 6 | `dir_exists: not wt_gone`，用例断言 `False` | 已改（r8 前段）；用例两处断言 `False` | `batch_orchestrator.cleanup` 的超时豁免段；用例 `dir_exists is False` 两处 |
+| 7 | `provision()` 增加 `tasks` 收窄并在 `run_all` 传过滤后的 ready；CLI `execute --manifest` 收窄或加 `--tasks` | `provision(batch_dir, tasks=None)` / `execute(..., tasks=None)`；`run_all` 传 `tasks=ready`；CLI 两者都加 `--tasks`；`execute` 拿回 grants 后再收窄一层 | `provision`、`execute`、`run_all`、`main()` 的 `--tasks`；用例 `test_provision_tasks_narrows_out_unauthorized` |
+| 8 | 三处读 manifest / run-record 统一先验根节点为对象 | `load_authorizations`、`_load_grants`、fallback 分支均先验 `isinstance(data, dict)`，否则 problem / stale（不再抛 `AttributeError`） | `codex_channel.load_authorizations`、`batch_orchestrator._load_grants`、`find_done_tasks` fallback |
+
+### 12.2 口径② merge 因果证明：本轮落定形态
+
+r7 只有布尔 `proven`，说不清「凭什么算本次造成」。r8 改成**分级证据 + 合并锁**，并把用了哪一级写进 `merged` 条目（`proof` / `source_tree_before` / `target_tree_after`）：
+
+| 级别 | 判据 | 强度 |
+|---|---|---|
+| `ff` | target tip 前进 且 `merge-base --is-ancestor <src_before> <target>` rc=0 且（调用前不是祖先 或 源 tip 移动过） | 历史图直接可核；「调用前已是祖先」时必须看到源 tip 变动，否则是合了老提交 |
+| `tree` | target tip 前进 且 调用后 target 的 tree 与调用前源分支的 tree 完全相同 | 内容逐字节可核，不依赖分支名是否还在（覆盖 wt squash 后删 source 的 N3 场景） |
+| `wt_receipt` | target tip 前进 且 wt 回执 `committed`/`squashed`/`rebased` 为真 | 最弱：wt 自报。只在 A/B 都不成立时兜底——未提交产出经 wt 提交后 squash，源旧 tip 的 tree 与结果 tree 本就不同，不给 C 会把合法 squash 判死 |
+
+同时新增 `_MergeLock`：按 repo+target 取本机文件锁（Windows `msvcrt.locking` / POSIX `flock`，非阻塞，占用即 `SystemExit` fail-closed），把同仓 gorch 的合并窗口串行化。锁目录按 `RUNS.parent/'locks'` 在运行时计算，便于测试隔离。
+
+**边界（必须写明）**：这把锁只约束本工程的 gorch 进程，**不约束外部 git/其他工具**在窗口内推进同一 target。因此 A/B/C 都不是「唯一因果」的严格证明，只是「本次动作确有可核证据 + 同仓不并发」。真正的严格证明需要 wt 提供能绑定 invocation 的事务回执（或 reflog 与产出 commit 的精确对应），当前 `wt merge --format json` 只有 `branch/target/committed/squashed/rebased/removed`，没有该字段。本项仍属第七轮审计 11.5 第 1 条的「需口径」，本轮按可机检最强形态落地，**未取得 Owner 书面拍板**。
+
+### 12.3 测试
+
+- 合跑：`139 passed / 40.63s`（r7 为 128 passed / 42.18s；r8 新增 10 条，另含工作区先前新增的 rename 两条）。
+- 命令：`tools\venv-openjarvis\Scripts\python.exe -m pytest tests/test_gorch_batch_orchestrator.py tests/test_gorch_codex_channel.py -o addopts= -p no:cacheprovider -q`（cwd 仓库根、PATH 前置 Git）。
+- r8 新增 10 条：`test_record_carries_manifest_identity`、`test_scope_check_rejects_parent_traversal`、`test_norm_path_keeps_edge_spaces_and_hidden_dirs`、`test_digest_read_error_invalidates_whole_fingerprint`、`test_provision_tasks_narrows_out_unauthorized`、`test_run_dirs_rejects_record_without_run_dir`、`test_run_dirs_rejects_run_dir_pointing_elsewhere`、`test_merge_proves_tree_equivalence_when_source_ref_gone`、`test_merge_falls_back_to_wt_receipt_after_uncommitted_squash`、`test_find_done_tasks_consumes_real_producer_record`。
+- 这些用例的挂载点是**真实层**：rename 走 `_status_rows` 的 NUL 解析、记录身份走 `merge`/`find_done_tasks` 入口、生产者—消费者走 `codex_channel.main()` 真实落盘后由 `find_done_tasks(run_dirs=...)` 消费，不是只测 helper。
+- 静态计数（按 `^def test_` 实测）：batch 92 → 98、channel 36 → 41，合计 **139**；其中 r8 新增 10 条（batch 6 + channel 4），channel 另含本轮前段新增/改造的 2 条 rename 用例。
+
+### 12.4 文档一致性修正
+
+第七轮审计 11.4 点名的五处「文档说改了但代码没做到」，r8 已按代码为准修正对应实现；本报告 §10.1–§10.3 的旧描述**以本章为准**，不再作为 r7 实现状态的依据。原 §10 保留为历史轮次记录，不回溯改写（避免掩盖当时的真实状态）。
+
+### 12.5 仍未闭合 / 残余风险
+
+1. **口径② 严格性**：见 12.2 边界——外部 git 不受锁约束；无 wt 事务回执。
+2. **口径③（manifest 签发可信边界）**：仍未实现受控目录 / hash / nonce / 签名。当前只保证「有清单、且清单内容被逐项校验」，不保证「是编排方签的」。任何能写文件并传 `--manifest` 的调用者仍可自签发。属 11.5 第 3 条待口径。
+3. **真实批次复跑**：旧卡 `GORCH-RUN-A/B` 会因「无新增」判 blocked，需换新任务名；本轮未跑真实全链，`run_all` 的 `tasks` 收窄只有单测覆盖。
+4. **`base_fp is None` 的并发采样窗口**：执行前后各采一次，第三方在窗口内写同一 worktree 仍不可区分（审计已认定该口径可接受，残余风险保留）。
+5. **`done_no_merge` 终态命名与三分组**（`mergeable_done / verified_only / stale`）未做完备形态。
+
+### 12.6 结论去向
+
+- r8 交第八轮 Codex 独立审计（第②环），判据入口：12.1 的八条、12.2 的三级证据、12.3 的用例挂载点、12.4 的文档一致性、12.5 的残余声明。
+- 若第八轮仍判「不一致」，继续 r9；用户指令为长任务模式，直到审计判「一致」才停。
