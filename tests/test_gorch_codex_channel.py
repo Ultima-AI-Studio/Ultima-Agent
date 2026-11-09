@@ -166,3 +166,46 @@ def test_resolve_codex_exe_prefers_env(tmp_path, monkeypatch):
     fake.write_bytes(b'')
     monkeypatch.setenv('ULTIMA_CODEX_EXE', str(fake))
     assert mod.resolve_codex_exe() == str(fake)
+
+
+# --- 产出校验（退出码 0 不等于干过活，§七-8）---
+
+def _load():
+    spec = importlib.util.spec_from_file_location('gorch_codex_channel_wt', CHANNEL)
+    m = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(m)
+    return m
+
+
+def test_worktree_state_clean_then_changed(tmp_path):
+    """判据源本身：干净仓库判 clean，写过文件判 changed 并带出文件名。"""
+    m = _load()
+    repo = tmp_path / 'wt'
+    repo.mkdir()
+
+    def git(*a):
+        return subprocess.run(
+            [m.GIT_EXE, '-C', str(repo)] + list(a),
+            capture_output=True, text=True, encoding='utf-8', errors='replace')
+
+    assert git('init').returncode == 0
+    # 先落一个已跟踪文件再提交，避免 clean 分支被"全未跟踪"的初始态混淆
+    (repo / 'base.txt').write_text('base\n', encoding='utf-8')
+    assert git('add', 'base.txt').returncode == 0
+    assert git('-c', 'user.name=t', '-c', 'user.email=t@t',
+               'commit', '-m', 'base').returncode == 0
+
+    assert m.worktree_state(repo) == ('clean', '')
+
+    (repo / 'new.txt').write_text('x\n', encoding='utf-8')
+    kind, detail = m.worktree_state(repo)
+    assert kind == 'changed'
+    assert 'new.txt' in detail
+
+
+def test_worktree_state_not_a_repo(tmp_path):
+    """非 git 目录如实返回 not_repo —— 不能当成 clean 去误判空产出。"""
+    m = _load()
+    plain = tmp_path / 'plain'
+    plain.mkdir()
+    assert m.worktree_state(plain)[0] == 'not_repo'

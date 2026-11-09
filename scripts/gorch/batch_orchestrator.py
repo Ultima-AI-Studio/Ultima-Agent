@@ -109,9 +109,11 @@ def gate_check(batch_dir):
         if r.returncode != 0:
             raise SystemExit(
                 f'ccpm 判定失败 {task.name}: rc={r.returncode} {r.stderr.strip()}')
-        if r.stderr.strip():
-            raise SystemExit(
-                f'ccpm 判定出现错误输出 {task.name}: {r.stderr.strip()}')
+        # stderr 只作诊断，不进判定（L77）：git-bash/cygwin 在 fork 受限时会往 stderr
+        # 写 'fork: retry' / 'cygheap read copy failed' 之类的噪声，此时退出码与
+        # stdout 三条标记都完好。原来的「stderr 非空即拒」会把一次偶发噪声放大成
+        # 整批 fail-closed 拒派。判定契约收缩为：退出码 + stdout 三标记 + 状态可归。
+        stderr_diag = r.stderr.strip()[:200]
 
         seen = set()
         status = ''
@@ -154,6 +156,7 @@ def gate_check(batch_dir):
             'verdict': verdict,
             'unmet_deps': unmet,
             'active_conflicts': conflicts,
+            'stderr_diag': stderr_diag,
         })
     return rows
 

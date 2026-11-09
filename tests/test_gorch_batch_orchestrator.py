@@ -135,6 +135,54 @@ def test_missing_frontmatter_fails_closed(mod, tmp_path):
         mod.gate_check(str(tmp_path))
 
 
+def test_stderr_noise_does_not_reject_intact_verdict(mod, monkeypatch, tmp_path):
+    """L77：stderr 有 cygwin 噪声，但 rc=0 且三条标记完整——不能整批拒派。
+
+    git-bash 在 fork 受限时会往 stderr 写 'fork: retry' / 'cygheap ...'，
+    此时判定结果本身是好的。把它当失败会把一次偶发噪声放大成整批 fail-closed。
+    """
+    write_task(tmp_path, 1)
+
+    class _R:
+        returncode = 0
+        stdout = 'STATUS:open\nUNMET:\nCONFLICTS:\n'
+        stderr = '      0 [main] bash 1234 fork: retry: Resource temporarily unavailable'
+
+    monkeypatch.setattr(mod.subprocess, 'run', lambda *a, **k: _R())
+    rows = mod.gate_check(str(tmp_path))
+    assert rows[0]['verdict'] == '可开工'
+    # 噪声不被丢弃，只降级为诊断信息
+    assert 'fork: retry' in rows[0]['stderr_diag']
+
+
+def test_nonzero_exit_still_rejects_and_keeps_stderr(mod, monkeypatch, tmp_path):
+    """退出码非 0 仍是硬失败：判定契约收缩到 returncode，但没放弃它。"""
+    write_task(tmp_path, 1)
+
+    class _R:
+        returncode = 3
+        stdout = 'STATUS:open\n'
+        stderr = 'ccpm 内部报错'
+
+    monkeypatch.setattr(mod.subprocess, 'run', lambda *a, **k: _R())
+    with pytest.raises(SystemExit):
+        mod.gate_check(str(tmp_path))
+
+
+def test_stderr_noise_with_missing_markers_still_fails_closed(mod, monkeypatch, tmp_path):
+    """rc=0 但标记缺失仍然拒绝——放宽 stderr 不等于放宽输出完整性。"""
+    write_task(tmp_path, 1)
+
+    class _R:
+        returncode = 0
+        stdout = 'STATUS:open\n'
+        stderr = 'noise'
+
+    monkeypatch.setattr(mod.subprocess, 'run', lambda *a, **k: _R())
+    with pytest.raises(SystemExit):
+        mod.gate_check(str(tmp_path))
+
+
 # --- provision 子命令（判断仍真实走 gate/ccpm；只 mock 外部 wt 命令）---
 
 class _FakeResult:

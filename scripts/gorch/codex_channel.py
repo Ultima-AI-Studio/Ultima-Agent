@@ -28,6 +28,9 @@ from datetime import datetime, timezone
 ROOT = pathlib.Path(__file__).resolve().parent.parent.parent
 KANBAN = ROOT / 'scripts' / 'gorch' / 'kanban_update.py'
 RUNS = ROOT / 'data' / 'gorch' / 'runs'
+GIT_EXE = r'C:\Program Files\Git\cmd\git.exe'
+# 子进程不建控制台窗口（L78）
+_NO_WINDOW = 0x08000000 if sys.platform == 'win32' else 0
 
 # 插槽适配层：S-EXEC 的 exe / model / 参数模板从这里读，换 CLI 不必改本文件。
 sys.path.insert(0, str(ROOT))
@@ -48,6 +51,39 @@ CHANNEL_AGENT_ID = 'codex-channel'
 PLAN_OPEN = '接单✅|调Codex🔄|执行|自检|回写'
 PLAN_DONE = '接单✅|调Codex✅|执行✅|自检✅|回写✅'
 PLAN_FAIL = '接单✅|调Codex✅|执行|自检|回写🚫'
+
+
+def worktree_state(workdir):
+    """执行端到底有没有在 worktree 里留下改动。
+
+    退出码 0 只说明 CLI 正常退出，不说明它写过东西：Codex 可以一声不响地跑完、
+    什么都不改，回执照样 done 再被 merge 合进主线，等于把"没干活"当成果。
+    返回 (kind, detail)：
+      changed  有改动，detail 是 git status 首段（留作证据）
+      clean    干净，一个字节都没动
+      not_repo 不是 git 工作树，无从校验（保持只看退出码，记下供审计）
+      error    查不动（git 不存在/超时/status 失败），fail-closed
+    """
+    try:
+        probe = subprocess.run(
+            [GIT_EXE, '-C', str(workdir), 'rev-parse', '--is-inside-work-tree'],
+            capture_output=True, text=True, encoding='utf-8', errors='replace',
+            timeout=30, creationflags=_NO_WINDOW)
+    except Exception:
+        return 'error', 'rev-parse 调用失败'
+    if probe.returncode != 0 or probe.stdout.strip() != 'true':
+        return 'not_repo', (probe.stderr or '').strip()[:200]
+    try:
+        st = subprocess.run(
+            [GIT_EXE, '-C', str(workdir), 'status', '--porcelain'],
+            capture_output=True, text=True, encoding='utf-8', errors='replace',
+            timeout=180, creationflags=_NO_WINDOW)
+    except Exception:
+        return 'error', 'git status 调用失败'
+    if st.returncode != 0:
+        return 'error', (st.stderr or '').strip()[:200]
+    text = (st.stdout or '').strip()
+    return ('changed', text) if text else ('clean', '')
 
 
 def resolve_codex_exe():
@@ -177,6 +213,7 @@ def main(argv=None):
     # 2) 执行
     ok = False
     summary = ''
+    guard_reason = ''
     if args.dry_run:
         record['exit_code'] = 0 if not args.simulate_fail else 1
         ok = not args.simulate_fail
@@ -194,6 +231,19 @@ def main(argv=None):
             ok = proc.returncode == 0
             if last_msg.is_file():
                 summary = last_msg.read_text(encoding='utf-8', errors='replace').strip()[:300]
+            # 产出校验：done 不能只凭退出码（§七-8）。只在退出码已为 0 时追加判定，
+            # 退出码非 0 的失败原因仍以原生错误为准，不被这里的结论覆盖。
+            if ok:
+                kind, detail = worktree_state(args.workdir)
+                record['worktree_state'] = kind
+                record['worktree_changes'] = (detail or '')[:2000]
+                if kind == 'clean':
+                    ok = False
+                    guard_reason = ('Codex 退出码 0，但 worktree 无任何改动——'
+                                    '判空产出，不写 done（执行端没留下任何可合并内容）')
+                elif kind == 'error':
+                    ok = False
+                    guard_reason = f'无法确认 worktree 改动，fail-closed：{detail}'
         except subprocess.TimeoutExpired:
             record['exit_code'] = 124
             record['elapsed_sec'] = args.timeout
@@ -212,7 +262,8 @@ def main(argv=None):
                 err_tail = f.read_bytes().decode('utf-8', 'replace').strip()[-200:]
                 if err_tail:
                     break
-        reason = f'Codex 退出码 {record.get("exit_code")}：{err_tail or summary or "无输出"}'
+        reason = guard_reason or (
+            f'Codex 退出码 {record.get("exit_code")}：{err_tail or summary or "无输出"}')
         kanban('progress', args.task, f'{label} 执行失败，已上报', PLAN_FAIL)
         kanban('block', args.task, reason)
         kanban('flow', args.task, label, '派发', f'🚫 阻塞：{reason[:100]}')
