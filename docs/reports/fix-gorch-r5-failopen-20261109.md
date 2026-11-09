@@ -462,7 +462,7 @@ B 组（第六轮八条新问题）：B1 ⚠️（同 A⑧ 的 `BIG/ERR`）、B2
 |---|---|---|---|
 | 1 | `load_authorizations` 回传 manifest 级 `invocation`/`target`，并在记录创建时写入；补「真实产出可被 `find_done_tasks(run_dirs=...)` 消费」测试 | 回传 `manifest`/`invocation`/`target`；`main()` 建 record 时写三项并在授权后覆盖 | `codex_channel.load_authorizations`、`codex_channel.main` 的 record 构造段；用例 `test_record_carries_manifest_identity`、`test_find_done_tasks_consumes_real_producer_record` |
 | 2 | 显式 run-record 身份校验改全：根节点对象、`task` 精确相等、`run_dir` 必填且绝对路径相等、`invocation` 等值、`dry_run is False`、`result == 'done'`、`mergeable is True`；不得只比 basename | 七项逐条前置，任一不满足即进 `stale`；选定最新记录后再复核 `mergeable` | `batch_orchestrator.find_done_tasks` 显式分支、fallback 分支；用例 `test_run_dirs_rejects_record_without_run_dir`、`test_run_dirs_rejects_run_dir_pointing_elsewhere` |
-| 3 | `-z` 解析把 rename/copy 的目标与随后源路径都纳入结构化 row/path；**测试直接构造 NUL 序列喂解析层** | `_status_rows` 保留 `('SRC', src)` 行；`_fresh_paths` 支持 `SRC ` 前缀并兼容旧展示形态 | `codex_channel._status_rows`、`_fresh_paths`；用例 `test_status_rows_keeps_rename_source_from_real_nul`、`test_status_rows_rename_source_is_in_fingerprint_paths` |
+| 3 | `-z` 解析把 rename/copy 的目标与随后源路径都纳入结构化 row/path；**测试直接构造 NUL 序列喂解析层** | `_status_rows` 保留 `('SRC', src)` 行；`_fresh_paths` 支持 `SRC ` 前缀并兼容旧展示形态 **（已作废：r9 已删该兼容，见 §13.4 / §14.2）** | `codex_channel._status_rows`、`_fresh_paths`；用例 `test_status_rows_keeps_rename_source_from_real_nul`、`test_status_rows_rename_source_is_in_fingerprint_paths` |
 | 4 | 改流式 SHA-256；任何读错误使整份 fingerprint 明确不可用，执行前/后统一 fail-closed | `_digest` 全程分块 sha256、读失败返回 `None`；`worktree_fingerprint` 任一 `paths` 值为 `None` 即整份 `ERR:digest:<path>` | `codex_channel._digest`、`worktree_fingerprint`；用例 `test_digest_read_error_invalidates_whole_fingerprint` |
 | 5 | 保留文件名首尾空格、只剥精确 `./`；写域前拒绝绝对 / drive / UNC / 任何 `..` 段；scope pattern 同样做 repo-relative 校验 | `_norm_path` 去掉 `strip()` 只剥 `./`；新增 `_repo_relative_safe`；`_scope_match` 双侧先过合法性检查，`_outside_scope` 遇不合法直接判越域 | `codex_channel._norm_path`、`_repo_relative_safe`、`_scope_match`、`_outside_scope`；用例 `test_norm_path_keeps_edge_spaces_and_hidden_dirs`、`test_scope_check_rejects_parent_traversal` |
 | 6 | `dir_exists: not wt_gone`，用例断言 `False` | 已改（r8 前段）；用例两处断言 `False` | `batch_orchestrator.cleanup` 的超时豁免段；用例 `dir_exists is False` 两处 |
@@ -490,7 +490,7 @@ r7 只有布尔 `proven`，说不清「凭什么算本次造成」。r8 改成**
 - 合跑：`139 passed / 40.63s`（r7 为 128 passed / 42.18s；r8 新增 10 条，另含工作区先前新增的 rename 两条）。
 - 命令：`tools\venv-openjarvis\Scripts\python.exe -m pytest tests/test_gorch_batch_orchestrator.py tests/test_gorch_codex_channel.py -o addopts= -p no:cacheprovider -q`（cwd 仓库根、PATH 前置 Git）。
 - r8 新增 10 条：`test_record_carries_manifest_identity`、`test_scope_check_rejects_parent_traversal`、`test_norm_path_keeps_edge_spaces_and_hidden_dirs`、`test_digest_read_error_invalidates_whole_fingerprint`、`test_provision_tasks_narrows_out_unauthorized`、`test_run_dirs_rejects_record_without_run_dir`、`test_run_dirs_rejects_run_dir_pointing_elsewhere`、`test_merge_proves_tree_equivalence_when_source_ref_gone`、`test_merge_falls_back_to_wt_receipt_after_uncommitted_squash`、`test_find_done_tasks_consumes_real_producer_record`。
-- 这些用例的挂载点是**真实层**：rename 走 `_status_rows` 的 NUL 解析、记录身份走 `merge`/`find_done_tasks` 入口、生产者—消费者走 `codex_channel.main()` 真实落盘后由 `find_done_tasks(run_dirs=...)` 消费，不是只测 helper。
+- 这些用例的挂载点是**真实层**：rename 走 `_status_rows` 的 NUL 解析、记录身份走 `merge`/`find_done_tasks` 入口、生产者—消费者走 `codex_channel.main()` 真实落盘后由 `find_done_tasks(run_dirs=...)` 消费，不是只测 helper。**（已作废：此整片断言不成立，见下一行的 r9 更正与 §14.4 的逐条标注）**
   - **r9 更正（第八轮审计 N12）**：上面这句对 proof 两条不成立——`test_merge_proves_tree_equivalence_when_source_ref_gone` 与 `test_merge_falls_back_to_wt_receipt_after_uncommitted_squash` 是**全桩化**（`_git_out`/`_ref_sha` 都替身）。r9 保留桩化但把断言收紧到具体档位与字段，逐条标注见 **§13.3**。
 - 静态计数（按 `^def test_` 实测）：batch 92 → 98、channel 36 → 41，合计 **139**；其中 r8 新增 10 条（batch 6 + channel 4），channel 另含本轮前段新增/改造的 2 条 rename 用例。
 
@@ -517,11 +517,11 @@ r7 只有布尔 `proven`，说不清「凭什么算本次造成」。r8 改成**
 
 | # | 第八轮审计要求 | r9 落地 | 证据位置（符号名 / 用例） |
 |---|---|---|---|
-| N8 | `_MergeLock` 必须覆盖完整取证窗口 | `target_sha = _ref_sha(resolved_target)` 从循环外移进 `with _MergeLock(resolved_target):` 块首；`src_before` / `src_tree` / `target_tree_before` / `pre_anc` / `wt_merge()` / 回执解析 / `rc_anc` / `sha_after` / `src_after` / `top_tree` / proof 判定 / `merged.append` **全在同一 with 内** | `batch_orchestrator.merge()` 的 `with` 块；用例 `test_merge_lock_is_exclusive` |
+| N8 | `_MergeLock` 必须覆盖完整取证窗口 | `target_sha = _ref_sha(resolved_target)` 从循环外移进 `with _MergeLock(resolved_target):` 块首；`src_before` / `src_tree` / `target_tree_before` / `pre_anc` / `wt_merge()` / 回执解析 / `rc_anc` / `sha_after` / `src_after` / `top_tree` / proof 判定 / `merged.append` **全在同一 with 内** | `batch_orchestrator.merge()` 的 `with` 块；用例 `test_merge_lock_is_exclusive` **（r10 更正：本行「`merged.append` 全在同一 with 内」在 r9 提交时并不成立——`failed.append` / `merged.append` 仍在 `with` 外（第八轮审计已点名）；r10 已整段移进 `with`，该声明自 r10 起为真）** |
 | N9 | 三档 proof 都可错误归因 | ① 新增三档**共同前置** `content_changed`：`target_tree_before` 与 `top_tree` 必须不同——空提交、revert 回同一 tree 不再算「合进去了」；② `ff` 档在 `pre_anc=True` 时**不再**用旧 `src_before` 查 `merge-base`（那恒为真），改核 `src_after` 新 tip；③ `wt_receipt` 沿用 r8 已有的 branch/target 严格等值校验（回执身份不符即 `SystemExit`） | `merge()` 的 proof 段；`merged[]` 新增 `target_tree_before`；用例 `test_merge_rejects_when_only_stale_proof_candidates`、`test_merge_proves_tree_equivalence_when_source_ref_gone`、`test_merge_falls_back_to_wt_receipt_after_uncommitted_squash` |
 | N10 | `dry_run` 用 truthy、invocation 等值可选、CLI 可缺 | `dry_run is not False` / `result != 'done'` / `mergeable is not True` / `invocation` 非空且 `== expect_invocation` 四项全部**前置**到 `entries.append` 之前（进 broken），选定「最新记录」后才验的老写法整段删除；`run_dirs` 模式不给 `expect_invocation` 直接 `SystemExit`；CLI `merge --invocation` 改 `required=True` | `find_done_tasks` 入口守卫 / 显式分支 / fallback 分支；`main()` 的 merge 子命令；用例 `test_run_dirs_mode_requires_expected_invocation`、`test_run_dirs_rejects_foreign_invocation`、`test_merge_rejects_record_without_strict_dry_run`、`test_merge_cli_requires_invocation` |
 | N11 | `_fresh_paths` 用字符串前缀猜格式 | 删模块常量 `_STATE_PREFIX`；`_fresh_paths` 只接受**纯路径**，逐个 `_norm_path` 后交 `_repo_relative_safe`，判非法即 fail-closed；不再剥 `SRC ` / `?? ` / ` M ` 前缀 | `codex_channel._fresh_paths`；用例 `test_fresh_paths_takes_pure_paths_only`、`test_src_prefixed_real_filename_is_not_rewritten` |
-| N12 | 测试覆盖声明强于实际 | 新增 8 条（见 13.3）；`test_merge_lock_is_exclusive` 真起第二进程争锁；生产者—消费者用例改传 `expect_invocation='inv-prod'`（与生产侧写入值一致），不再靠默认值蒙过 | `tests/test_gorch_batch_orchestrator.py`、`tests/test_gorch_codex_channel.py` 的 r9 段 |
+| N12 | 测试覆盖声明强于实际 | 新增 8 条（见 13.3）；`test_merge_lock_is_exclusive` 真起第二进程争锁；生产者—消费者用例改传 `expect_invocation='inv-prod'`（与生产侧写入值一致），不再靠默认值蒙过 | `tests/test_gorch_batch_orchestrator.py`、`tests/test_gorch_codex_channel.py` 的 r9 段 **（r10 更正：本行「真起第二进程争锁」在 r9 提交时并不成立——`test_merge_lock_is_exclusive` 是**同进程**第二个 `_MergeLock` 实例；r10 另增 `test_merge_lock_is_exclusive_across_processes` 起真子进程持锁，原用例保留）** |
 | N2 复发 | `_digest` 把所有 `OSError` 当 ABSENT | `except FileNotFoundError: return 'ABSENT'`；其余 `except OSError: return None`（整份指纹判不可用）；`is_file()` 同样包 `OSError → None` | `codex_channel._digest`；用例 `test_digest_stat_error_is_not_absent` |
 | D 段 | 看板写「未提交（工作区在制）」与实际 HEAD 不符 | 随本笔 r9 文档提交一并改为实际提交号 | 看板 r8 条目 |
 
@@ -562,7 +562,82 @@ r7 只有布尔 `proven`，说不清「凭什么算本次造成」。r8 改成**
 4. 真实批次未重跑 `run_all`（旧卡会被「无新增」判 blocked，需换任务名）；冲突形态全链仍只有单测。
 5. `done_no_merge` 三分组（`mergeable_done / verified_only / stale`）未落。
 
+> **r10 补记（第九轮审计 D 段点名本节漏记五项）**：以下五项在 r9 时确实存在，r10 已逐条修掉——
+> ① 工作区侧 ` R` / ` C` 的源路径被当成状态行（能放行越域写）；② `fresh_changes` 只遍历 after 集，
+> 基线里消失的域外路径不可见；③ `refs/heads/x` 与 `x` 是两把锁（ref 别名可绕锁）；④ `pre_anc`
+> 查可变分支名、`rc_anc` 查 `src_before`，两者不是同一个冻结 ref；⑤ cleanup 目录探针只有
+> `is_dir()` 两态，不可读会被记成「已清理」。修法与证据见 **§14.2**。
+
 ### 13.6 结论去向
 
 - r9 交**第九轮 Codex 独立只读审计**（第②环），判据入口：13.1 六条 + N2 复发、13.3 的覆盖与桩化标注、13.4 的声明收敛、13.5 的残余声明。
 - 若第九轮仍判「不一致」，继续 r10；用户指令为长任务模式，直到审计判「一致」才停。
+
+
+## 十四、r10 实现闭环（第九轮审计「不一致」→ 逐条回修）
+
+### 14.1 第九轮审计判定
+
+第九轮 Codex 独立只读审计（`gpt-5.6-sol`、`high`、read-only、896.8s / 38,686B）判**不一致**，给出三个高优反例和一批点名项：
+
+1. **高** `_status_rows` 只查 `code[:1]`：工作区侧合法的 ` R` / ` C` 处理不了，紧随的裸源路径被当成下一条状态行、`item[3:]` 截掉前三字符 → 域外源删除伪装成域内路径，**能放行越域写**（不只是误杀）。构造：未暂存 rename `zzzdocs/secret.md → docs/x.md` 产生 ` R docs/x.md\0zzzdocs/secret.md\0`。
+2. **高** `fresh_changes` 只遍历 after 集，`b_paths - a_paths` 完全被忽略 → 任务把基线里的域外脏文件恢复成 HEAD、再顺手改一个域内文件即可过写域检查落 `done`。
+3. **高** `_MergeLock.__init__` 拿未归一化的 `resolved_target` 造锁文件名 → `main` 与 `refs/heads/main` 得到两把锁，两个 gorch 可同时进入同一 target 的取证窗口。
+4. 其余点名：`merged.append` 在锁外（与 §13/看板「全在同一 with 内」不符）；`test_merge_lock_is_exclusive` 不是第二进程；`test_merge_rejects_record_without_strict_dry_run` 只覆盖 `dry_run=None`；`test_find_done_tasks_only_reads_this_invocation` 的 reason 断言退化成「非空即过」；`pre_anc`（查可变 `branch`）与 `rc_anc`（查 `src_before`）不是同一 ref；`target_tree_before` 取不到时不在 `wt_merge` 前停；cleanup 目录探针 `is_dir()` 两态；`_digest` 的 `is_file()==False` 仍返 `ABSENT`（普通目录/特殊文件与「不存在」共用值）；`_scope_match` 对 pattern 仍 `.strip()`。
+5. D 段：静态计数 104/43/147 与文档一致；5 条桩化用例可对应；L85 五坑均能在代码/测试里找到事实；但 §12.1 #3 旧行仍原样说 `_fresh_paths` 支持 `SRC ` 前缀、§12.3「挂载点在真实层」旧句仍在、§13.5 未记上述五项漏记风险。
+
+### 14.2 可直改九条的落地位置
+
+| # | 审计要求 | r10 落地 | 证据位置（符号名 / 用例） |
+|---|---|---|---|
+| 1 | XY 两位都要认 R/C | `if any(ch in ('R','C') for ch in code[:2]) and i < len(parts)`；注释写明 ` R`/` C` 场景与「截前三字符」的后果 | `codex_channel._status_rows`；用例 `test_status_rows_handles_worktree_side_rename` |
+| 2 | 基线消失路径进 fresh | `fresh |= {p for p in b_paths if p not in a_paths}`；basis 文案改「逐路径内容指纹差分 + 消失路径回补」 | `codex_channel.fresh_changes`；用例 `test_fresh_changes_counts_vanished_baseline_path` |
+| 3 | 锁键归一化 | `safe = re.sub(..., _norm_ref(target) or 'target')`；注释写明 `main` vs `refs/heads/main` 两把锁 | `_MergeLock.__init__`；用例 `test_merge_lock_key_normalizes_ref_prefix` |
+| 4 | `pre_anc` 用冻结 SHA | `rc_pre` 改查 `src_before`（`src_before` 为空时不发命令、直接走取证失败出口） | `merge()`；三条 merge 负向用例的桩补 `rev-parse ^{tree}` |
+| 5 | 前态 tree 取不到要在 `wt_merge` 前停 | 新增 `if not target_tree_before:` → `failed.append`（「合并前取证失败：target 前态 tree 取不到（…），未执行合并，fail-closed」）+ `break`，位置在 `pre_anc = (rc_pre == 0)` 之前、`wt_merge()` 之前 | `merge()`；用例 `test_merge_does_not_run_wt_when_target_tree_unavailable`（断言 `wt_merge` 调用计数为 0） |
+| 6 | append 回 `with` | `if not progressed or not proven:` 起到 `'target_sha_after'` 整段（含 `failed.append` / `break` / `merged.append`）整体缩进 4 格，进 `with _MergeLock(...)` | `merge()`（行号随 r10 漂移，按符号定位） |
+| 7 | 真第二进程锁 + 严格类型反例 | 新增 `test_merge_lock_is_exclusive_across_processes`（子进程持锁、父进程抢即 `SystemExit`）；新增参数化 `test_merge_rejects_loose_json_types`，覆盖 `dry_run ∈ {None, 0, 1, "true"}`、`mergeable ∈ {0, 1, "true"}`；原 `test_merge_lock_is_exclusive` 保留为同进程重入用例 | `tests/test_gorch_batch_orchestrator.py` r10 段 |
+| 8 | cleanup 三态 | 新增 `_path_state(p)`：`FileNotFoundError → absent`、其他 `OSError → unknown`、`S_ISDIR → exists`；cleanup 三处（入口 / 超时分支 / rc=0 分支）改用 `dir_state`，`unknown` 不再参与「已清理」豁免，reason 文案改「目录状态=」，两处 `evidence` 增 `dir_state` | `batch_orchestrator._path_state` / `cleanup()`；两条既有 cleanup 用例断言改「目录状态=exists」 |
+| 9 | 文档与看板更正 | 本节 + §12.1 #3 / §12.3 作废标注（行内直标）+ §13.1 两处提前声明的更正 + §13.5 补记五项 + L86 + 看板 r9/r10 条目 | 本报告 / `docs/references/lessons-log.md` / `docs/tracker/北极星上线任务清单.html` |
+
+### 14.3 需口径七条（第九轮新增，仍未拍板）
+
+1. **严格因果证明**的最终形态（独占锁之外，是否要求 reflog 与产出 commit 精确对应 / 可绑定 invocation 的事务回执）。
+2. `content_changed` 是否要排除「history-only 合入」（例如只把 target 指向一个已有 tree 的旧 commit）。
+3. 调用前 source 已是祖先、且 source 被 wt 删掉时，接受哪一级证据（`tree` / `wt_receipt`）。
+4. manifest 的**来源真实性**（谁能签、怎么证明是编排方签的）。
+5. manifest 的 `target` 是否必须绑定一次独立 `merge`。
+6. fallback 路径的历史扫描是否直接删除（当前 CLI 只强制 `--run-dir`，无则 rc=2，但兜底 glob 仍在）。
+7. 前后采样的并发窗口（第三方在同窗口写同一 worktree）能否接受。
+
+连同第七轮 3 条 + 第八轮 2 条（严格因果、预已祖先 squash 语义、manifest 签发边界、manifest target 绑定、wt_receipt 兜底），**合计 12 条口径仍无 Owner 书面批准**。r10 只改实现，不改这些语义。
+
+### 14.4 测试与静态计数
+
+- 合跑：**159 passed / 49.58s**（r9 为 147 passed / 47.90s）。
+- 命令：`tools\venv-openjarvis\Scripts\python.exe -m pytest tests/test_gorch_batch_orchestrator.py tests/test_gorch_codex_channel.py -o addopts= -p no:cacheprovider -q`（cwd 仓库根、PATH 前置 Git）。
+- 静态计数（`^def test_` 实测）：batch 104 → **108**、channel 43 → **45**；含 1 个 `@pytest.mark.parametrize`（展开 7 例），执行条目 147 → **159**（+12）。
+- r10 新增 6 条函数（batch 4 / channel 2）：
+  - batch：`test_merge_lock_is_exclusive_across_processes`、`test_merge_lock_key_normalizes_ref_prefix`、`test_merge_does_not_run_wt_when_target_tree_unavailable`、`test_merge_rejects_loose_json_types`（参数化 7 例）
+  - channel：`test_status_rows_handles_worktree_side_rename`、`test_fresh_changes_counts_vanished_baseline_path`
+- 因实现收紧而**改断言/改桩**的既有用例 5 条：`test_cleanup_reports_failure_without_force`、`test_cleanup_timeout_with_residual_worktree_still_fails` 的 `目录还在=True` → `目录状态=exists`；`test_merge_rejects_preexisting_ancestor_without_source_move`、`test_merge_rejects_unrelated_target_advance`、`test_merge_rejects_when_git_shows_no_merge` 的 `_git_out` 桩补 `rev-parse → tree`（此前恒 `(1,'')`，新守卫会先于原判据触发）。断言被削弱的 `test_find_done_tasks_only_reads_this_invocation` 钉回 `result == 'blocked'` + `reason == '本轮失败'` 两处精确值。
+- **桩化边界（如实标注）**：跨进程锁打真实层（真子进程 + 真 `msvcrt` 文件锁）；锁键归一打真实层（真锁文件路径 + 真争锁）；`_path_state` 打真实层（真 `os.stat`）；其余 merge 负向用例仍桩 `_git_out` / `_ref_sha` / `wt_merge`（不桩化的代价是每次跑真 `wt`，与 r9 同一边界）。
+
+### 14.5 对 §13 两处「提前声明」的更正
+
+- **§13.1 N8「`merged.append` 全在同一 with 内」**：r9 提交时**不成立**（`failed.append` / `merged.append` 在 1267/1287，已在 `with` 退栈之后）。r10 把整段移进 `with`，该声明**自 r10 起为真**。
+- **§13.1 N12「`test_merge_lock_is_exclusive` 真起第二进程争锁」**：r9 提交时**不成立**（同进程第二个 `_MergeLock` 实例）。r10 另增真跨进程用例，原用例保留。
+- 这两处都是「声明跑在实现前面」，第九轮审计判为假声明。r10 的处理是**把实现补上**，而不是把声明删掉。
+
+### 14.6 残余风险（r10 后仍存在）
+
+1. 14.3 的 7 条（连同前两轮 5 条）口径未拍板。
+2. 外部 git / 其他工具不受锁约束；`wt merge --format json` 仍无能绑定 invocation 的事务字段 → 因果证明上限未变。
+3. `_scope_match` 对授权 pattern 仍 `.strip()`（审计口径③残余）；`_digest` 的 `is_file()==False` 仍返回 `ABSENT`（普通目录 / 特殊文件与「不存在」共用值）——两项均在本次可直改清单之外，未改。
+4. fallback 的 invocation 等值仍是条件式（`expect_invocation` 为空时退化为「只验非空」）；CLI 已强制 `merge --invocation`，但直接 `import merge()` 可绕。
+5. 真实批次未重跑 `run_all`（旧卡会被「无新增」判 blocked，需换任务名）；冲突形态全链仍只有单测；`done_no_merge` 三分组未落；八跳第 4 跳仍未进 `run_all`。
+
+### 14.7 结论去向
+
+- r10 交**第十轮 Codex 独立只读审计**（第②环），判据入口：14.1 的三高反例与点名项、14.2 九条落地、14.4 的覆盖与桩化标注、14.5 的两处更正、14.6 的残余声明。
+- 若第十轮仍判「不一致」，继续 r11；用户指令为长任务模式，直到审计判「一致」才停。
