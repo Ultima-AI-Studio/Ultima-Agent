@@ -29,6 +29,7 @@ import argparse
 import json
 import os
 import pathlib
+import re
 import subprocess
 import sys
 from datetime import datetime, timezone
@@ -61,6 +62,11 @@ GIT_EXE = str(pathlib.Path(GIT_CMD_DIR) / 'git.exe')
 # 派发一批要跑十几次，否则屏幕上会连续闪黑窗（L78）。
 _NO_WINDOW = 0x08000000 if sys.platform == 'win32' else 0
 BRANCH_PREFIX = 'gorch/'
+# 只把 git-bash/cygwin 的 fork 噪声降级为诊断；其余 stderr 一律当错误看。
+# 噪声特征：fork 重试、cygheap 读写失败、dofork 死亡，以及 cygwin 的 "123 [main] xxx" 前缀行。
+_CYGWIN_NOISE = re.compile(
+    r'fork: retry|cygheap|dofork|child_copy|Resource temporarily unavailable'
+    r'|^\s*\d+\s*\[main\]', re.IGNORECASE)
 # 执行段是现成件（codex_channel.py），本编排只负责并发调用它，不重写执行逻辑。
 CHANNEL_SCRIPT = ROOT / 'scripts' / 'gorch' / 'codex_channel.py'
 MAX_CHANNELS = 3
@@ -94,10 +100,18 @@ def gate_check(batch_dir):
         # 直接调用 ccpm 的三个原函数；本脚本不解析 next.sh 的人类可读表格。
         # 对齐 next.sh 的 ready 三条件：status=open、unmet_deps 空、active_conflicts 空。
         script = (
+            # 三个函数先各自赋值并显式传递失败：`printf "$(f)"` 里命令替换的失败码
+            # 不会传出来，函数内部报错（如 grep: Permission denied）会被外层 printf
+            # 吞掉，最终凑出「rc=0 + 三标记齐全 + CONFLICTS 空」，把有冲突的卡判成
+            # 可开工。审计（2026-11-09 第二轮）实测复现过这条 fail-open。
+            "set -o pipefail; "
             f"source '{lib}'; "
-            f"printf 'STATUS:%s\\n' \"$(frontmatter_field '{tb}' status)\"; "
-            f"printf 'UNMET:%s\\n' \"$(unmet_deps '{tb}')\"; "
-            f"printf 'CONFLICTS:%s\\n' \"$(active_conflicts '{tb}')\""
+            f"status=$(frontmatter_field '{tb}' status) || exit 71; "
+            f"unmet=$(unmet_deps '{tb}') || exit 72; "
+            f"conflicts=$(active_conflicts '{tb}') || exit 73; "
+            "printf 'STATUS:%s\\n' \"$status\"; "
+            "printf 'UNMET:%s\\n' \"$unmet\"; "
+            "printf 'CONFLICTS:%s\\n' \"$conflicts\""
         )
         try:
             r = subprocess.run([BASH, '-c', script], capture_output=True,
@@ -109,11 +123,17 @@ def gate_check(batch_dir):
         if r.returncode != 0:
             raise SystemExit(
                 f'ccpm 判定失败 {task.name}: rc={r.returncode} {r.stderr.strip()}')
-        # stderr 只作诊断，不进判定（L77）：git-bash/cygwin 在 fork 受限时会往 stderr
-        # 写 'fork: retry' / 'cygheap read copy failed' 之类的噪声，此时退出码与
-        # stdout 三条标记都完好。原来的「stderr 非空即拒」会把一次偶发噪声放大成
-        # 整批 fail-closed 拒派。判定契约收缩为：退出码 + stdout 三标记 + 状态可归。
+        # stderr 双向判定（L77 + 第二轮审计）：只放行 git-bash/cygwin 的 fork 噪声，
+        # 其余一律 fail-closed。单纯"stderr 非空即拒"会把一次噪声放大成整批拒派；
+        # 单纯"一律忽略"又会放过真错误（Permission denied / No such file 之类），
+        # 让坏判定凑成"三标记齐全"被放行。两头都得堵。
         stderr_diag = r.stderr.strip()[:200]
+        if stderr_diag:
+            real_errs = [ln.strip() for ln in stderr_diag.splitlines()
+                         if ln.strip() and not _CYGWIN_NOISE.search(ln)]
+            if real_errs:
+                raise SystemExit(
+                    f'ccpm 判定出现错误输出 {task.name}: {real_errs[0][:200]}')
 
         seen = set()
         status = ''
@@ -442,7 +462,8 @@ def find_done_tasks(batch_dir):
                 data = json.loads(h.read_text(encoding='utf-8'))
             except (json.JSONDecodeError, OSError, UnicodeDecodeError):
                 continue
-            if data.get('result') == 'done':
+            # dry-run 的 done 是模拟产物、没有真实改动，不能当合并授权（第二轮审计）。
+            if data.get('result') == 'done' and not data.get('dry_run'):
                 done[task] = str(h)
                 break
     return done

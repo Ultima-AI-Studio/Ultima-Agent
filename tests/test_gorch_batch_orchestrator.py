@@ -170,7 +170,7 @@ def test_nonzero_exit_still_rejects_and_keeps_stderr(mod, monkeypatch, tmp_path)
 
 
 def test_stderr_noise_with_missing_markers_still_fails_closed(mod, monkeypatch, tmp_path):
-    """rc=0 但标记缺失仍然拒绝——放宽 stderr 不等于放宽输出完整性。"""
+    """rc=0 但标记缺失仍然拒绝——放宽噪声不等于放宽输出完整性。"""
     write_task(tmp_path, 1)
 
     class _R:
@@ -181,6 +181,25 @@ def test_stderr_noise_with_missing_markers_still_fails_closed(mod, monkeypatch, 
     monkeypatch.setattr(mod.subprocess, 'run', lambda *a, **k: _R())
     with pytest.raises(SystemExit):
         mod.gate_check(str(tmp_path))
+
+
+def test_real_stderr_error_with_intact_markers_fails_closed(mod, monkeypatch, tmp_path):
+    """第二轮审计的反例：stderr 里是真错误，但三标记齐全、rc=0。
+
+    `printf "$(f)"` 结构下函数内部报错不会传退出码，CONFLICTS 会空成"无冲突"。
+    只放行 cygwin 噪声、其余一律拒，才能堵住这条 fail-open。
+    """
+    write_task(tmp_path, 1, conflicts=['2'])
+
+    class _R:
+        returncode = 0
+        stdout = 'STATUS:open\nUNMET:\nCONFLICTS:\n'
+        stderr = 'grep: 2.md: Permission denied'
+
+    monkeypatch.setattr(mod.subprocess, 'run', lambda *a, **k: _R())
+    with pytest.raises(SystemExit) as ei:
+        mod.gate_check(str(tmp_path))
+    assert 'Permission denied' in str(ei.value)
 
 
 # --- provision 子命令（判断仍真实走 gate/ccpm；只 mock 外部 wt 命令）---

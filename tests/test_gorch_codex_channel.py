@@ -209,3 +209,75 @@ def test_worktree_state_not_a_repo(tmp_path):
     plain = tmp_path / 'plain'
     plain.mkdir()
     assert m.worktree_state(plain)[0] == 'not_repo'
+
+
+# --- 产出校验的挂载点（主流程级，不是只测 helper）---
+
+class _Proc:
+    returncode = 0
+    stdout = b''
+    stderr = b''
+
+
+class _Res:
+    returncode = 0
+    stdout = ''
+    stderr = ''
+
+
+def _run_main(m, monkeypatch, tmp_path, wt_kind, wt_detail='', extra=None):
+    """走完整执行段，只替换外部 Codex、产出判定与看板 CLI。"""
+    fake = tmp_path / 'codex.exe'
+    fake.write_bytes(b'')
+    monkeypatch.setattr(m, 'resolve_codex_exe', lambda: str(fake))
+    monkeypatch.setattr(m, 'run_codex', lambda *a, **k: (_Proc(), 1.0))
+    monkeypatch.setattr(m, 'worktree_state', lambda wd: (wt_kind, wt_detail))
+    monkeypatch.setattr(m, 'kanban', lambda *a, **k: _Res())
+
+    prompt = tmp_path / 'p.md'
+    prompt.write_text('# 工单\n', encoding='utf-8')
+    run_dir = tmp_path / 'run'
+    argv = ['--task', 'T1', '--prompt', str(prompt), '--run-dir', str(run_dir),
+            '--workdir', str(tmp_path)] + (extra or [])
+    rc = m.main(argv)
+    record = json.loads((run_dir / 'codex-channel.json').read_text(encoding='utf-8'))
+    return rc, record
+
+
+def test_clean_worktree_blocks_even_with_exit_zero(tmp_path, monkeypatch):
+    """退出码 0 但 worktree 没动过——必须 blocked，不能写 done。"""
+    m = _load()
+    rc, record = _run_main(m, monkeypatch, tmp_path, 'clean')
+    assert rc == 1
+    assert record['result'] == 'blocked'
+    assert record['worktree_state'] == 'clean'
+    assert '无任何改动' in (record.get('reason') or '')
+
+
+def test_changed_worktree_lands_done(tmp_path, monkeypatch):
+    """有真实改动时正常 done，并把改动摘要落进 record。"""
+    m = _load()
+    rc, record = _run_main(m, monkeypatch, tmp_path, 'changed', '?? docs/x.md')
+    assert rc == 0
+    assert record['result'] == 'done'
+    assert record['worktree_state'] == 'changed'
+    assert 'docs/x.md' in record['worktree_changes']
+
+
+def test_not_repo_blocks_by_default(tmp_path, monkeypatch):
+    """不是 git 工作树时默认 fail-closed —— 否则批量路径能绕过产出闸。"""
+    m = _load()
+    rc, record = _run_main(m, monkeypatch, tmp_path, 'not_repo')
+    assert rc == 1
+    assert record['result'] == 'blocked'
+    assert '不是 git 工作树' in (record.get('reason') or '')
+
+
+def test_not_repo_allowed_only_with_explicit_flag(tmp_path, monkeypatch):
+    """手工场景显式声明后放行，并留下放行标记供审计。"""
+    m = _load()
+    rc, record = _run_main(m, monkeypatch, tmp_path, 'not_repo',
+                           extra=['--allow-non-repo'])
+    assert rc == 0
+    assert record['result'] == 'done'
+    assert 'allow-non-repo' in record.get('worktree_state_note', '')

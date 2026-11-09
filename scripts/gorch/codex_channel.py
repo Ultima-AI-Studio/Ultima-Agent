@@ -171,6 +171,8 @@ def main(argv=None):
     ap.add_argument('--timeout', type=int, default=3600)
     ap.add_argument('--dry-run', action='store_true', help='只走看板流程，不真起 Codex')
     ap.add_argument('--simulate-fail', action='store_true', help='演练失败路径')
+    ap.add_argument('--allow-non-repo', action='store_true',
+                    help='允许 workdir 不是 git 工作树（仅手工验证用；批量路径默认 fail-closed）')
     args = ap.parse_args(argv)
 
     if not KANBAN.is_file():
@@ -244,6 +246,17 @@ def main(argv=None):
                 elif kind == 'error':
                     ok = False
                     guard_reason = f'无法确认 worktree 改动，fail-closed：{detail}'
+                elif kind == 'not_repo':
+                    # 批量路径下"不是 git 工作树"等于无法确认产出：get worktree 的编排
+                    # 一定给的是 worktree，落到 not_repo 说明接线错了或 workdir 指错。
+                    # 只有明确声明无仓库（手工验证场景）才放行（第二轮审计）。
+                    if args.allow_non_repo:
+                        record['worktree_state_note'] = 'not_repo，已按 --allow-non-repo 放行'
+                    else:
+                        ok = False
+                        guard_reason = ('workdir 不是 git 工作树，无法确认产出，'
+                                        '批量路径 fail-closed（确需在无仓库目录执行时加 '
+                                        '--allow-non-repo）')
         except subprocess.TimeoutExpired:
             record['exit_code'] = 124
             record['elapsed_sec'] = args.timeout
@@ -264,6 +277,7 @@ def main(argv=None):
                     break
         reason = guard_reason or (
             f'Codex 退出码 {record.get("exit_code")}：{err_tail or summary or "无输出"}')
+        record['reason'] = reason
         kanban('progress', args.task, f'{label} 执行失败，已上报', PLAN_FAIL)
         kanban('block', args.task, reason)
         kanban('flow', args.task, label, '派发', f'🚫 阻塞：{reason[:100]}')
