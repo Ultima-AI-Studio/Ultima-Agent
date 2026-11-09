@@ -86,7 +86,11 @@ def _status_rows(workdir):
         if code == '!!':
             ignored.add(path.replace('\\', '/'))
             continue
-        if code[:1] in ('R', 'C') and i < len(parts):
+        # r10（第九轮审计 A⑦/B3）：porcelain 的 XY 两位都可能是 R/C——
+        # 工作区侧未暂存 rename 是 ` R`（X 位空格），只看 code[:1] 会漏掉它，
+        # 那条紧随的裸源路径就会被当成下一条状态行、`item[3:]` 截掉前三字符，
+        # 于是域外源的删除被伪装成一条域内路径（能把越域写放行）。
+        if any(ch in ('R', 'C') for ch in code[:2]) and i < len(parts):
             # -z 下 rename/copy 的**源路径**是紧随其后的独立一项，必须一并保留
             src = parts[i]
             i += 1
@@ -254,7 +258,12 @@ def fresh_changes(base_fp, after_fp, after_detail=None):
     b_paths = dict(base_fp.get('paths') or {})
     fresh = {p for p in a_paths if p not in b_paths}
     fresh |= {p for p in a_paths if p in b_paths and a_paths[p] != b_paths[p]}
-    return fresh, '基线脏：逐路径内容指纹差分（ignored 一并纳入）'
+    # r10（第九轮审计 B4）：执行后**从状态集合里消失**的基线路径同样是本次改动。
+    # 基线里有域外脏文件、任务把它恢复成 HEAD，after 里就没有它了；
+    # 只遍历 after 差集等于"删掉域外改动"这一动作完全不可见 —— 再顺手改一个
+    # 域内文件就能过写域检查落 done。
+    fresh |= {p for p in b_paths if p not in a_paths}
+    return fresh, '基线脏：逐路径内容指纹差分 + 消失路径回补（ignored 一并纳入）'
 
 
 def _norm_path(text):

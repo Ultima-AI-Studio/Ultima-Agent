@@ -844,3 +844,40 @@ def test_src_prefixed_real_filename_is_not_rewritten():
     assert m._fresh_paths(['SRC docs/in-scope.md']) == ['SRC docs/in-scope.md']
     assert m._fresh_paths([' M docs/in-scope.md']) == [' M docs/in-scope.md']
     assert m._outside_scope(['SRC docs/in-scope.md'], ['docs/']) == ['SRC docs/in-scope.md']
+
+
+def test_status_rows_handles_worktree_side_rename(monkeypatch):
+    """r10（第九轮审计 A⑦ / B3）：工作区侧未暂存 rename 是 ` R`（X 位是空格）。
+
+    r9 只看 `code[:1]`，` R` 里的 R 在第二位，于是不被认成 rename：紧跟其后的
+    裸源路径被当成一条新的状态行，`item[3:]` 又把它的前三字符截掉 ——
+    域外源的删除被伪装成一条域内路径，越域写因此能过写域校验。
+    """
+    m = _load()
+    raw = (' R docs/x.md' + chr(0) + 'zzzdocs/secret.md' + chr(0)
+           + ' C docs/y.md' + chr(0) + 'docs/origin.md' + chr(0))
+    monkeypatch.setattr(m, '_git_text', lambda workdir, args: (0, raw))
+    ok, rows, ignored = m._status_rows('w')
+    codes = [(c, p) for c, p in rows]
+    assert (' R', 'docs/x.md') in codes
+    assert ('SRC', 'zzzdocs/secret.md') in codes
+    assert (' C', 'docs/y.md') in codes
+    assert ('SRC', 'docs/origin.md') in codes
+    paths = [p for _c, p in rows]
+    assert m._outside_scope(paths, ['docs/']) == ['zzzdocs/secret.md']
+
+
+def test_fresh_changes_counts_vanished_baseline_path():
+    """r10（第九轮审计 B4）：执行后从状态集合消失的基线路径，也算本次改动。
+
+    基线里有域外脏文件、任务把它恢复成 HEAD，after 里就没有它了。只遍历 after
+    做差集的话，"删掉域外改动"这一步完全不可见 —— 再顺手改一个域内文件，
+    就能过写域检查落 done。
+    """
+    m = _load()
+    base = {'paths': {'docs/x.md': 'd1', 'zzzdocs/secret.md': 'd9'},
+            'ignored': set(), 'diff_sha': 'h1'}
+    after = {'paths': {'docs/x.md': 'd2'}, 'ignored': set(), 'diff_sha': 'h2'}
+    fresh, _ = m.fresh_changes(base, after)
+    assert 'zzzdocs/secret.md' in fresh
+    assert m._outside_scope(sorted(fresh), ['docs/']) == ['zzzdocs/secret.md']

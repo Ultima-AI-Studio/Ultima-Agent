@@ -693,7 +693,7 @@ def test_cleanup_reports_failure_without_force(mod, monkeypatch, tmp_path):
     removed, skipped = mod.cleanup(str(tmp_path))
     assert removed == []
     assert 'rc=1' in skipped[0]['reason']
-    assert '目录还在=True' in skipped[0]['reason']
+    assert '目录状态=exists' in skipped[0]['reason']
 
 
 def test_next_returns_the_first_ready_task_and_reports_the_rest(mod, tmp_path):
@@ -800,7 +800,7 @@ def test_cleanup_timeout_with_residual_worktree_still_fails(mod, monkeypatch, tm
     monkeypatch.setattr(mod, '_worktree_registered', lambda p: True)
     removed, skipped = mod.cleanup(str(tmp_path))
     assert removed == []
-    assert '目录还在=True' in skipped[0]['reason']
+    assert '目录状态=exists' in skipped[0]['reason']
 
 
 def test_task_meta_reads_frontmatter_flags(mod, tmp_path):
@@ -968,7 +968,11 @@ def test_find_done_tasks_only_reads_this_invocation(mod, monkeypatch, tmp_path):
     assert done == {}
     # r9：身份项（dry_run / result / mergeable）前置后，blocked 记录在进候选池之前
     # 就被判否，reason 记的是"不是 done"，不再透传记录里的 reason 文案。
-    assert stale['1']['reason']
+    # r10（第九轮审计）：r9 这里退化成"只要非空就过"，任何理由都能替它作证。
+    # 显式 run-dir 模式下 blocked 是**合法执行结果**，不算记录损坏：它必须被
+    # 如实回传成 result=blocked + 原样的 reason。两处都钉住，而不是只验非空。
+    assert stale['1']['result'] == 'blocked'
+    assert stale['1']['reason'] == '本轮失败'
 
 
 def test_find_done_tasks_corrupt_record_blocks_instead_of_fallback(mod, monkeypatch, tmp_path):
@@ -1028,7 +1032,13 @@ def test_merge_rejects_when_git_shows_no_merge(mod, monkeypatch, tmp_path):
     payload = {'branch': 'gorch/1', 'target': 'main', 'removed': False}
     monkeypatch.setattr(mod, 'wt_merge',
                         lambda *a, **k: _FakeResult(0, json.dumps(payload)))
-    monkeypatch.setattr(mod, '_git_out', lambda *a, **k: (1, ''))
+    def fake_git_out(args, *a, **k):
+        # r10：rev-parse 必须给 tree（前态取证失败会提前停），其余一律 rc=1。
+        if list(args)[:1] == ['rev-parse']:
+            return (0, 'TREE-X')
+        return (1, '')
+
+    monkeypatch.setattr(mod, '_git_out', fake_git_out)
     monkeypatch.setattr(mod, '_ref_sha', lambda ref: 'same-sha')
     done, merged, failed, stale = mod.merge(str(tmp_path), tasks=['1'],
                                             target='main', expect_invocation='inv-test', run_dirs={'1': str(d)})
@@ -1208,7 +1218,14 @@ def test_merge_rejects_preexisting_ancestor_without_source_move(mod, monkeypatch
     monkeypatch.setattr(mod, 'RUNS', runs)
     monkeypatch.setattr(mod, 'wt_merge', lambda *a, **k: _FakeResult(
         0, json.dumps({'branch': 'gorch/1', 'target': 'main'})))
-    monkeypatch.setattr(mod, '_git_out', lambda *a, **k: (0, ''))
+    def fake_git_out(args, *a, **k):
+        # r10：前态 tree 必须先取到（取不到会在调 wt_merge 之前就停）。这条用例
+        # 测的是 proof 判据，所以让 rev-parse 返回同一个 tree（内容没变）。
+        if list(args)[:1] == ['rev-parse']:
+            return (0, 'TREE-SAME')
+        return (0, '')
+
+    monkeypatch.setattr(mod, '_git_out', fake_git_out)
     n = {'t': 0}
 
     def fake_sha(ref):
@@ -1232,7 +1249,14 @@ def test_merge_rejects_unrelated_target_advance(mod, monkeypatch, tmp_path):
     monkeypatch.setattr(mod, 'RUNS', runs)
     monkeypatch.setattr(mod, 'wt_merge', lambda *a, **k: _FakeResult(
         0, json.dumps({'branch': 'gorch/1', 'target': 'main'})))
-    monkeypatch.setattr(mod, '_git_out', lambda *a, **k: (1, ''))
+    def fake_git_out(args, *a, **k):
+        # r10：rev-parse 能给出 tree（否则前态取证失败会提前停）；merge-base 恒 1
+        # 表示"源分支在合并前就不是 target 祖先"。
+        if list(args)[:1] == ['rev-parse']:
+            return (0, 'TREE-X')
+        return (1, '')
+
+    monkeypatch.setattr(mod, '_git_out', fake_git_out)
     done, merged, failed, stale = mod.merge(str(tmp_path), tasks=['1'],
                                             target='main', expect_invocation='inv-test', run_dirs={'1': str(d)})
     assert merged == []
@@ -1790,3 +1814,111 @@ def test_merge_cli_requires_invocation(mod, tmp_path):
     with pytest.raises(SystemExit) as ei:
         mod.main(['merge', str(tmp_path), '--target', 'main'])
     assert ei.value.code == 2
+
+
+# --- r10：跨进程锁 / 锁键归一 / 前态 tree 前置 / 宽松 JSON 类型（第九轮审计 E 段）---
+
+def test_merge_lock_is_exclusive_across_processes(mod, monkeypatch, tmp_path):
+    """r10（第九轮审计 E-7）：锁必须是**跨进程**互斥。
+
+    r9 那条只证明"同进程第二个对象也被拒"——两句 `__enter__` 跑在同一句柄环境里，
+    即使锁实现坏掉也可能碰巧通过。这里起真子进程持锁，父进程再抢必须 fail-closed。
+    """
+    monkeypatch.setattr(mod, 'RUNS', tmp_path / 'runs')
+    orch_dir = str(pathlib.Path(mod.__file__).resolve().parent)
+    runs_dir = str(tmp_path / 'runs')
+    script = tmp_path / 'hold.py'
+    script.write_text(
+        'import sys, time, pathlib\n'
+        'sys.path.insert(0, r"' + orch_dir + '")\n'
+        'import batch_orchestrator as b\n'
+        'b.RUNS = pathlib.Path(r"' + runs_dir + '")\n'
+        'lk = b._MergeLock("main")\n'
+        'lk.__enter__()\n'
+        'print("HOLDING", flush=True)\n'
+        'time.sleep(30)\n',
+        encoding='utf-8')
+    p = mod.subprocess.Popen([mod.sys.executable, str(script)],
+                             stdout=mod.subprocess.PIPE, text=True)
+    try:
+        line = p.stdout.readline()
+        assert 'HOLDING' in line, f'子进程没拿到锁：{line!r}'
+        with pytest.raises(SystemExit):
+            mod._MergeLock('main').__enter__()
+    finally:
+        p.kill()
+        p.wait(timeout=10)
+
+
+def test_merge_lock_key_normalizes_ref_prefix(mod, monkeypatch, tmp_path):
+    """r10（第九轮审计）：`main` 与 `refs/heads/main` 是同一个 ref，必须是同一把锁。
+
+    未归一化时两把锁文件名不同，两个 gorch 就能同时进入同一 target 的取证窗口。
+    """
+    monkeypatch.setattr(mod, 'RUNS', tmp_path / 'runs')
+    short = mod._MergeLock('main')
+    full = mod._MergeLock('refs/heads/main')
+    assert short.path == full.path
+    short.__enter__()
+    try:
+        with pytest.raises(SystemExit):
+            full.__enter__()
+    finally:
+        short.__exit__()
+
+
+def test_merge_does_not_run_wt_when_target_tree_unavailable(mod, monkeypatch, tmp_path):
+    """r10（第九轮审计 E-5）：前态 tree 取不到必须在调 wt_merge **之前**停。
+
+    否则真实合并已经发生（wt 还可能顺手清掉 source 分支），却因 content_changed
+    恒假落进"未证明合入"的通用出口，把"取证失败"和"确实没合进去"混成一个结论。
+    """
+    write_task(tmp_path, 1)
+    runs = tmp_path / 'runs'
+    d = write_run(runs, '1')
+    monkeypatch.setattr(mod, 'RUNS', runs)
+    state = {'main': 'm0', 'gorch/1': 's0'}
+    monkeypatch.setattr(mod, '_ref_sha', lambda ref: state.get(ref, ''))
+    calls = {'wt': 0}
+
+    def fake_git(args, **kwargs):
+        if list(args)[:1] == ['rev-parse']:
+            return (1, '')                  # tree 取不到
+        if list(args)[:1] == ['merge-base']:
+            return (0, '')
+        return (0, '')
+
+    monkeypatch.setattr(mod, '_git_out', fake_git)
+
+    def fake_merge(*a, **k):
+        calls['wt'] += 1
+        state['main'] = 'm1'
+        return _FakeResult(0, json.dumps({'branch': 'gorch/1', 'target': 'main'}))
+
+    monkeypatch.setattr(mod, 'wt_merge', fake_merge)
+    done, merged, failed, stale = mod.merge(str(tmp_path), tasks=['1'], target='main',
+                                            expect_invocation='inv-test',
+                                            run_dirs={'1': str(d)})
+    assert merged == []
+    assert calls['wt'] == 0
+    assert '前态 tree 取不到' in failed[0]['stderr']
+
+
+@pytest.mark.parametrize('field,value', [
+    ('dry_run', None), ('dry_run', 0), ('dry_run', 1), ('dry_run', 'true'),
+    ('mergeable', 0), ('mergeable', 1), ('mergeable', 'true'),
+])
+def test_merge_rejects_loose_json_types(mod, monkeypatch, tmp_path, field, value):
+    """r10（第九轮审计 E-7）：`is not False` / `is not True` 必须挡住 0/1/"true"。
+
+    只测 dry_run=None 证明不了这个判据——`0`、`1`、"true" 都是常见的手写值，
+    一旦被 `==` 式比较放进来，等于把"严格布尔"降级成真值判断。
+    """
+    write_task(tmp_path, 1)
+    runs = tmp_path / 'runs'
+    d = write_run(runs, '1', extra={field: value})
+    monkeypatch.setattr(mod, 'RUNS', runs)
+    with pytest.raises(SystemExit) as ei:
+        mod.merge(str(tmp_path), tasks=['1'], target='main',
+                  expect_invocation='inv-test', run_dirs={'1': str(d)})
+    assert field in str(ei.value)

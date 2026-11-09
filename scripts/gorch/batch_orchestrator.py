@@ -30,6 +30,7 @@ import json
 import os
 import pathlib
 import re
+import stat
 import subprocess
 import sys
 from datetime import datetime, timedelta, timezone
@@ -1030,7 +1031,10 @@ class _MergeLock:
     """
 
     def __init__(self, target):
-        safe = re.sub(r'[^0-9A-Za-z._-]', '_', str(target or 'target'))
+        # r10（第九轮审计）：锁键必须先归一化 ref 写法。`main` 与 `refs/heads/main`
+        # 指同一个 ref，未归一化会得到两把不同的锁文件，两个 gorch 就能同时进入
+        # 同一 target 的取证窗口——锁等于没加。
+        safe = re.sub(r'[^0-9A-Za-z._-]', '_', _norm_ref(target) or 'target')
         self.dir = pathlib.Path(RUNS).parent / 'locks'
         self.path = self.dir / f'merge-{safe}.lock'
 
@@ -1132,10 +1136,18 @@ def merge(batch_dir, tasks=None, target=None, run_dirs=None, only_tasks=None,
             # 排除"空提交 / revert 回同一个 tree"——那种情况 top_tree == src_tree 也成立，
             # 但 target 的内容其实一个字都没变。
             target_tree_before = ''
+            target_tree_err = ''
             if target_sha:
                 _rcb, _tb = _git_out(['rev-parse', f'{target_sha}^{{tree}}'])
-                target_tree_before = (_tb or '').strip() if _rcb == 0 else ''
-            rc_pre, _ = _git_out(['merge-base', '--is-ancestor', branch, resolved_target])
+                if _rcb == 0:
+                    target_tree_before = (_tb or '').strip()
+                else:
+                    target_tree_err = f'rc={_rcb}'
+            # r10（第九轮审计 E-4）：前态祖先检查必须对**冻结的** src_before 做。
+            # 用可变分支名时，两次读取之间分支被外部移动，pre_anc 与后态 rc_anc
+            # 会描述两个不同的 source 状态，判决自相矛盾。
+            rc_pre, _ = ((0, '') if not src_before else _git_out(
+                ['merge-base', '--is-ancestor', src_before, resolved_target]))
             if not src_before or rc_pre not in (0, 1):
                 # 第七轮审计 #4：前态取证失败（SHA 取不到 / rc=128 等）不能折叠成
                 # "前态不是祖先"——那样 `not pre_anc` 恒真，只要调后 target 前进且
@@ -1146,6 +1158,19 @@ def merge(batch_dir, tasks=None, target=None, run_dirs=None, only_tasks=None,
                     'stderr': (f'合并前取证失败：源分支 SHA={src_before[:12] or "?"}，'
                                f'is-ancestor rc={rc_pre!r}（只接受 0/1），fail-closed'),
                     'hint': '未执行合并；先核对源分支与目标分支是否可读，再重跑。',
+                })
+                break
+            if not target_tree_before:
+                # r10（第九轮审计 E-5）：前态 tree 取证失败必须在调 wt_merge **之前**停。
+                # 否则真实合并已经完成（wt 还可能顺手清掉 source 分支），却因
+                # content_changed 恒假落进"未证明合入"的通用出口，把"取证失败"
+                # 和"确实没合进去"混成同一个结论。
+                failed.append({
+                    'task': task, 'branch': branch, 'returncode': 0,
+                    'stdout': '',
+                    'stderr': (f'合并前取证失败：target 前态 tree 取不到'
+                               f'（{target_tree_err or "空输出"}），未执行合并，fail-closed'),
+                    'hint': '未执行合并；先核对合并目标是否可读（rev-parse 失败多为 ref 或对象缺失）。',
                 })
                 break
             pre_anc = (rc_pre == 0)
@@ -1264,40 +1289,59 @@ def merge(batch_dir, tasks=None, target=None, run_dirs=None, only_tasks=None,
             elif progressed and content_changed and wt_action:
                 proof = 'wt_receipt'
             proven = bool(proof)
-        if not progressed or not proven:
+            if not progressed or not proven:
 
-            failed.append({
-                'task': task, 'branch': branch, 'returncode': 0,
-                'stdout': r.stdout.strip()[-600:],
-                'stderr': (f'wt 报成功但 git 侧未证明本次合入：'
-                           f'调用前已是祖先={pre_anc}，源分支 tip '
-                           f'{src_before[:12] or "?"}→{src_after[:12] or "?"}'
-                           f'（{"已变" if src_moved else "未变"}），'
-                           f'源 ref {"仍在" if src_alive else "已被 wt 删除"}，'
-                           f'is-ancestor(src_before) rc={rc_anc}，'
-                           f'wt 回执 committed/squashed/rebased={wt_action}，'
-                           f'src_tree={src_tree[:12] or "?"} target_tree={top_tree[:12] or "?"}，'
-                           f'target tip {target_sha[:12] or "?"}→'
-                           f'{sha_after[:12] or "?"}'),
+                failed.append({
+                    'task': task, 'branch': branch, 'returncode': 0,
+                    'stdout': r.stdout.strip()[-600:],
+                    'stderr': (f'wt 报成功但 git 侧未证明本次合入：'
+                               f'调用前已是祖先={pre_anc}，源分支 tip '
+                               f'{src_before[:12] or "?"}→{src_after[:12] or "?"}'
+                               f'（{"已变" if src_moved else "未变"}），'
+                               f'源 ref {"仍在" if src_alive else "已被 wt 删除"}，'
+                               f'is-ancestor(src_before) rc={rc_anc}，'
+                               f'wt 回执 committed/squashed/rebased={wt_action}，'
+                               f'src_tree={src_tree[:12] or "?"} target_tree={top_tree[:12] or "?"}，'
+                               f'target tip {target_sha[:12] or "?"}→'
+                               f'{sha_after[:12] or "?"}'),
 
-                'hint': ('按未合并处理：wt 可能把未提交产出留在源 worktree 里。'
-                         '核对源 worktree 与主线后再决定重试或人工合；后续分支已停止。'),
-            })
-            break
-        merged.append({'task': task, 'branch': branch,
-                       'result': obj, 'run_record': done[task],
-                       'source_sha_before': src_before,
-                       'source_sha_after': src_after,
-                       'pre_ancestor': pre_anc,
-                       'wt_action': wt_action,
-                       'source_ref_alive': src_alive,
-                       'proof': proof,
-                       'source_tree_before': src_tree,
-                       'target_tree_before': target_tree_before,
-                       'target_tree_after': top_tree,
+                    'hint': ('按未合并处理：wt 可能把未提交产出留在源 worktree 里。'
+                             '核对源 worktree 与主线后再决定重试或人工合；后续分支已停止。'),
+                })
+                break
+            merged.append({'task': task, 'branch': branch,
+                           'result': obj, 'run_record': done[task],
+                           'source_sha_before': src_before,
+                           'source_sha_after': src_after,
+                           'pre_ancestor': pre_anc,
+                           'wt_action': wt_action,
+                           'source_ref_alive': src_alive,
+                           'proof': proof,
+                           'source_tree_before': src_tree,
+                           'target_tree_before': target_tree_before,
+                           'target_tree_after': top_tree,
 
-                       'target_sha_after': sha_after})
+                           'target_sha_after': sha_after})
     return done, merged, failed, stale
+
+
+def _path_state(p):
+    """目录三态：exists / absent / unknown（r10，第九轮审计 A⑪/B7）。
+
+    `Path.is_dir()` 只有两态：权限不足或 IO 异常时它返回 False，与"确实不存在"
+    共用一个值，于是不可读的残留目录会被记成"已清理"。把不可确认单独列出来，
+    并且 unknown 一律不参与"已清理"的豁免。
+    """
+    try:
+        st = os.stat(str(p))
+    except FileNotFoundError:
+        return 'absent'
+    except OSError:
+        return 'unknown'
+    try:
+        return 'exists' if stat.S_ISDIR(st.st_mode) else 'absent'
+    except OSError:
+        return 'unknown'
 
 
 def cleanup(batch_dir, tasks=None, force=False, delete_branch=False):
@@ -1316,18 +1360,20 @@ def cleanup(batch_dir, tasks=None, force=False, delete_branch=False):
     for task in targets:
         branch = BRANCH_PREFIX + task
         wt_path = WORKTREE_ROOT / task
-        if not wt_path.is_dir():
+        dir_state = _path_state(wt_path)
+        if dir_state != 'exists':
             # 目录不在 ≠ 清干净（第四轮审计 #7）：半清理态（目录已删、分支还在）此前
             # 被直接记"已不存在"、cleanup 还返回 0。这里补查 worktree 登记与分支。
             br = _branch_state(branch)
             reg = _worktree_registered(wt_path)
-            if br == 'absent' and reg is False:
+            if dir_state == 'absent' and br == 'absent' and reg is False:
                 # r7 口径③：两条豁免都必须带独立证据（三处回读值），
                 # 不能只凭 wt 的 rc 或一句说明就记成功。
                 removed.append({'task': task, 'branch': branch,
                                 'worktree': str(wt_path), 'branch_outcomes': [],
                                 'note': '调用前 目录/登记/分支 三处均已不存在，按已清理处理',
                                 'evidence': {'dir_exists': False,
+                                             'dir_state': dir_state,
                                              'branch_state': br,
                                              'worktree_registered': reg,
                                              'exemption': 'pre_absent',
@@ -1347,7 +1393,8 @@ def cleanup(batch_dir, tasks=None, force=False, delete_branch=False):
             # 内部 cleanup 往往在超时点之前已经删掉了目录与分支。所以不能凭 rc 判失败，
             # 必须回读现场——目录、worktree 登记、分支三处都确认清空才算清干净
             # （第三/第四轮审计 A7）。
-            wt_gone = not wt_path.is_dir()
+            dir_state = _path_state(wt_path)
+            wt_gone = (dir_state == 'absent')
             br = _branch_state(branch)
             reg = _worktree_registered(wt_path)
             raw_tail = (r.stdout + r.stderr).strip()[-400:]
@@ -1358,6 +1405,7 @@ def cleanup(batch_dir, tasks=None, force=False, delete_branch=False):
                                          '但 目录/登记/分支 三处均已消失，按已清理处理'),
                                 'raw_tail': raw_tail,
                                 'evidence': {'dir_exists': not wt_gone,
+                                             'dir_state': dir_state,
                                              'branch_state': br,
                                              'worktree_registered': reg,
                                              'wt_returncode': r.returncode,
@@ -1366,7 +1414,7 @@ def cleanup(batch_dir, tasks=None, force=False, delete_branch=False):
                 continue
             skipped.append({'task': task, 'branch': branch, 'partial': True,
                             'reason': (f'rc={r.returncode} 且现场未清干净 '
-                                       f'(目录还在={not wt_gone}, 分支={br}, '
+                                       f'(目录状态={dir_state}, 分支={br}, '
                                        f'登记={"在" if reg is True else reg}) {raw_tail}')})
             continue
         data = _parse_braced_json(r.stdout)
@@ -1386,7 +1434,8 @@ def cleanup(batch_dir, tasks=None, force=False, delete_branch=False):
                              and x.get('branch_outcome') for x in items))
         retained = any(o and 'retained' in str(o) for o in outcomes)
         unexpected = [o for o in outcomes if o not in REMOVED_OUTCOMES]
-        wt_gone = not wt_path.is_dir()
+        dir_state = _path_state(wt_path)
+        wt_gone = (dir_state == 'absent')
         br = _branch_state(branch)
         reg = _worktree_registered(wt_path)
         if retained:
