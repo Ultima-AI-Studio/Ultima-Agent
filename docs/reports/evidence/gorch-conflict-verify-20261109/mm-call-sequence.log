@@ -1,0 +1,143 @@
+=== 清 C ===
+wt remove 超时 gorch/GORCH-TC-C（180s），fail-closed
+cleanup_c_rc=1
+=== MM gate ===
+{
+  "batch": "C:\\Users\\Administrator\\AppData\\Local\\Temp\\gorch-mm\\batch",
+  "ready": [
+    "GORCH-MM-A",
+    "GORCH-MM-B"
+  ],
+  "blocked": [],
+  "tasks": [
+    {
+      "task": "GORCH-MM-A",
+      "status": "open",
+      "verdict": "可开工",
+      "unmet_deps": [],
+      "active_conflicts": [],
+      "stderr_diag": ""
+    },
+    {
+      "task": "GORCH-MM-B",
+      "status": "open",
+      "verdict": "可开工",
+      "unmet_deps": [],
+      "active_conflicts": [],
+      "stderr_diag": ""
+    }
+  ]
+}
+mm_gate_rc=0
+=== MM provision ===
+{
+  "batch": "C:\\Users\\Administrator\\AppData\\Local\\Temp\\gorch-mm\\batch",
+  "provisioned": [
+    {
+      "task": "GORCH-MM-A",
+      "branch": "gorch/GORCH-MM-A",
+      "worktree": "H:\\UltimaAI\\_worktrees\\gorch\\GORCH-MM-A",
+      "action": "created"
+    },
+    {
+      "task": "GORCH-MM-B",
+      "branch": "gorch/GORCH-MM-B",
+      "worktree": "H:\\UltimaAI\\_worktrees\\gorch\\GORCH-MM-B",
+      "action": "created"
+    }
+  ],
+  "skipped_blocked": [],
+  "tasks": [
+    {
+      "task": "GORCH-MM-A",
+      "status": "open",
+      "verdict": "可开工",
+      "unmet_deps": [],
+      "active_conflicts": [],
+      "stderr_diag": ""
+    },
+    {
+      "task": "GORCH-MM-B",
+      "status": "open",
+      "verdict": "可开工",
+      "unmet_deps": [],
+      "active_conflicts": [],
+      "stderr_diag": ""
+    }
+  ]
+}
+mm_provision_rc=0
+=== MM execute ===
+{
+  "batch": "C:\\Users\\Administrator\\AppData\\Local\\Temp\\gorch-mm\\batch",
+  "results": [
+    {
+      "task": "GORCH-MM-A",
+      "channel": 1,
+      "returncode": 0,
+      "stdout": "{\"task\": \"GORCH-MM-A\", \"channel\": 1, \"result\": \"done\", \"run_dir\": \"H:\\\\UltimaAI\\\\UltimaAgent\\\\data\\\\gorch\\\\runs\\\\GORCH-MM-A-ch1-20261109T125809380643Z\"}",
+      "stderr": ""
+    },
+    {
+      "task": "GORCH-MM-B",
+      "channel": 2,
+      "returncode": 0,
+      "stdout": "{\"task\": \"GORCH-MM-B\", \"channel\": 2, \"result\": \"done\", \"run_dir\": \"H:\\\\UltimaAI\\\\UltimaAgent\\\\data\\\\gorch\\\\runs\\\\GORCH-MM-B-ch2-20261109T125809400288Z\"}",
+      "stderr": ""
+    }
+  ],
+  "tasks": [
+    {
+      "task": "GORCH-MM-A",
+      "status": "open",
+      "verdict": "可开工",
+      "unmet_deps": [],
+      "active_conflicts": [],
+      "stderr_diag": ""
+    },
+    {
+      "task": "GORCH-MM-B",
+      "status": "open",
+      "verdict": "可开工",
+      "unmet_deps": [],
+      "active_conflicts": [],
+      "stderr_diag": ""
+    }
+  ]
+}
+mm_execute_rc=0
+=== MM merge ===
+{
+  "batch": "C:\\Users\\Administrator\\AppData\\Local\\Temp\\gorch-mm\\batch",
+  "target": "codex/voice-fsmn-new-path",
+  "done_tasks": {
+    "GORCH-MM-A": "H:\\UltimaAI\\UltimaAgent\\data\\gorch\\runs\\GORCH-MM-A-ch1-20261109T125809380643Z\\codex-channel.json",
+    "GORCH-MM-B": "H:\\UltimaAI\\UltimaAgent\\data\\gorch\\runs\\GORCH-MM-B-ch2-20261109T125809400288Z\\codex-channel.json"
+  },
+  "merged": [
+    {
+      "task": "GORCH-MM-A",
+      "branch": "gorch/GORCH-MM-A",
+      "result": {
+        "branch": "gorch/GORCH-MM-A",
+        "target": "codex/voice-fsmn-new-path",
+        "committed": false,
+        "squashed": true,
+        "rebased": false,
+        "removed": true
+      },
+      "run_record": "H:\\UltimaAI\\UltimaAgent\\data\\gorch\\runs\\GORCH-MM-A-ch1-20261109T125809380643Z\\codex-channel.json"
+    }
+  ],
+  "failed": [
+    {
+      "task": "GORCH-MM-B",
+      "branch": "gorch/GORCH-MM-B",
+      "returncode": 1,
+      "stdout": "",
+      "stderr": "pply d0386cec... Changes to gorch-mm-probe.md\n  hint: Resolve all conflicts manually, mark them as resolved with\n  hint: \"git add/rm <conflicted_files>\", then run \"git rebase --continue\".\n  hint: You can instead skip this commit: run \"git rebase --skip\".\n  hint: To abort and get back to the state before \"git rebase\", run \"git rebase --abort\".\n  hint: Disable this message with \"git config set advice.mergeConflict false\"\n  Could not apply d0386cec... # Changes to gorch-mm-probe.md\n  Auto-merging docs/reports/gorch-mm-probe.md\n  CONFLICT (content): Merge conflict in docs/reports/gorch-mm-probe.md",
+      "hint": "合并未成功。若为冲突，wt 已把 rebase 留在源 worktree 未完成态；解决后 rebase --continue，或执行 git -C <源worktree> rebase --abort 放弃本次合并再重跑。后续分支已停止，不会自动继续。"
+    }
+  ]
+}
+mm_merge_rc=1
