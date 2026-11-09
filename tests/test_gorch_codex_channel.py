@@ -7,6 +7,7 @@
 真跑证据记在报告里。这里覆盖看板走位、失败分支、幂等、越权与空输入拒绝。
 """
 import importlib.util
+import hashlib
 import json
 import os
 import pathlib
@@ -242,6 +243,17 @@ def _run_main(m, monkeypatch, tmp_path, wt_kind, wt_detail='', extra=None,
         return queue.pop(0) if queue else (wt_kind, wt_detail)
 
     monkeypatch.setattr(m, 'worktree_state', fake_state)
+
+    # 指纹也用桩：tmp_path 不是 git 仓库，真去跑 git diff 会返回 ERR:*，
+    # 而 ERR 现在按"读取失败即阻断"处理（不在这个桩里就每条用例都 blocked）。
+    def fake_fp(wd, detail=None):
+        d = str(detail or '')
+        lines = {x for x in d.splitlines() if x.strip()}
+        return {'lines': lines,
+                'diff_sha': hashlib.sha256(d.encode('utf-8')).hexdigest()[:16],
+                'untracked': {x[3:].strip() for x in lines if x.startswith('?? ')}}
+
+    monkeypatch.setattr(m, 'worktree_fingerprint', fake_fp)
     monkeypatch.setattr(m, 'kanban', lambda *a, **k: _Res())
 
     prompt = tmp_path / 'p.md'
@@ -421,3 +433,27 @@ def test_fresh_changes_sees_untracked_dir_files():
              'untracked': {'out/', 'out/new.txt'}}
     fresh, _ = m.fresh_changes(base, after, '?? out/')
     assert any('out/new.txt' in f for f in fresh)
+
+def test_fingerprint_read_failure_blocks(tmp_path, monkeypatch):
+    """A4：执行后 diff 指纹读不出来（ERR:*）时不能退化判定，必须 blocked。"""
+    m = _load()
+    fake = tmp_path / 'codex.exe'
+    fake.write_bytes(b'')
+    monkeypatch.setattr(m, 'resolve_codex_exe', lambda: str(fake))
+    monkeypatch.setattr(m, 'run_codex', lambda *a, **k: (_Proc(), 1.0))
+    monkeypatch.setattr(m, 'worktree_state',
+                        lambda wd: ('changed', ' M docs/x.md'))
+    monkeypatch.setattr(m, 'worktree_fingerprint',
+                        lambda wd, detail=None: {'lines': {' M docs/x.md'},
+                                                 'diff_sha': 'ERR:128',
+                                                 'untracked': set()})
+    monkeypatch.setattr(m, 'kanban', lambda *a, **k: _Res())
+    prompt = tmp_path / 'p.md'
+    prompt.write_text('# 工单\n', encoding='utf-8')
+    run_dir = tmp_path / 'run'
+    rc = m.main(['--task', 'T1', '--prompt', str(prompt), '--run-dir', str(run_dir),
+                 '--workdir', str(tmp_path)])
+    record = json.loads((run_dir / 'codex-channel.json').read_text(encoding='utf-8'))
+    assert rc == 1
+    assert record['result'] == 'blocked'
+    assert '指纹' in (record.get('reason') or '')

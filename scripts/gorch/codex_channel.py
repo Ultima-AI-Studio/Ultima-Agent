@@ -75,7 +75,9 @@ def worktree_state(workdir):
         return 'not_repo', (probe.stderr or '').strip()[:200]
     try:
         st = subprocess.run(
-            [GIT_EXE, '-C', str(workdir), 'status', '--porcelain'],
+            # -uall：未跟踪目录要展开到文件级，否则 `?? out/` 只有目录一行，
+            # 目录里新增了几个文件永远看不见（第四轮审计 Q1）。
+            [GIT_EXE, '-C', str(workdir), 'status', '--porcelain', '-uall'],
             capture_output=True, text=True, encoding='utf-8', errors='replace',
             timeout=180, creationflags=_NO_WINDOW)
     except Exception:
@@ -142,25 +144,35 @@ def fresh_changes(base_fp, after_fp, after_detail):
     """本轮新增改动的证据集（内容级）。返回 (fresh: set[str], basis: str)。
 
     · 基线 clean            → 执行后全部改动都是本次产出；
-    · 基线脏且有内容指纹     → 状态行新增 ∪ 未跟踪新增 ∪ 已跟踪内容变化；
-    · 基线脏但指纹查询失败   → 退化为状态行差集，并在 basis 里写明退化原因。
+    · 基线脏且内容指纹可比   → 只认**内容变化**（diff 哈希变）与未跟踪文件新增；
+  状态行差集**不采信**，因为仅 `git add` 会把 ` M x` 变成 `M  x`，凭空多一行
+  （第四轮审计 Q1 的 staging-only 假成功）；
+    · 基线脏但指纹不可用     → 退化为状态行差集，并在 basis 里写明这是弱判据。
     """
     lines_after = after_fp['lines'] if after_fp else _status_set(after_detail)
     if base_fp is None:
         return set(lines_after), '基线 clean：执行后改动全部属本次'
-    fresh = set(lines_after) - set(base_fp['lines'])
-    basis = '基线脏：按状态行差集'
-    if after_fp:
-        fresh |= {f'?? {p}' for p in (after_fp['untracked'] - base_fp['untracked'])}
-        b, a = base_fp['diff_sha'], after_fp['diff_sha']
+    base_lines = set(base_fp.get('lines') or ())
+    b = base_fp.get('diff_sha')
+    a = (after_fp or {}).get('diff_sha')
+    content_cmp = bool(a) and bool(b) and not str(a).startswith('ERR:') \
+        and not str(b).startswith('ERR:')
+    fresh = set()
+    if not content_cmp:
+        fresh = set(lines_after) - base_lines
+        basis = f'基线脏：diff 指纹不可用（{b}→{a}），仅按状态行差集判定（弱判据）'
+    else:
         if b != a:
-            if a.startswith('ERR:') or b.startswith('ERR:'):
-                basis = f'基线脏：diff 指纹不可用（{b}→{a}），仅按状态行差集判定'
-            else:
-                fresh.add(f'~ 已跟踪内容变化 {b[:12]}→{a[:12]}')
-                basis = '基线脏：状态行差集 + 内容指纹'
+            fresh.add(f'~ 已跟踪内容变化 {b[:12]}→{a[:12]}')
+            # 内容确实变了时，状态行新增也是真证据（新文件/新路径）。
+            fresh |= set(lines_after) - base_lines
+            basis = '基线脏：内容指纹 + 状态行差集'
         else:
-            basis = '基线脏：状态行差集 + 内容指纹（内容未变）'
+            basis = '基线脏：内容指纹（内容未变，状态行差集不采信）'
+    if after_fp:
+        fresh |= {f'?? {p}' for p in
+                  (set(after_fp.get('untracked') or ())
+                   - set(base_fp.get('untracked') or ()))}
     return fresh, basis
 
 
@@ -373,9 +385,18 @@ def main(argv=None):
                         'diff_sha': after_fp['diff_sha'],
                         'untracked': sorted(after_fp['untracked']),
                     }
-                    fresh, basis = fresh_changes(base_fp, after_fp, detail)
-                    record['worktree_new_changes'] = '\n'.join(sorted(fresh))[:2000]
-                    record['worktree_fresh_basis'] = basis
+                    # 指纹读失败不能退化判定（第四轮审计 #4）：`ERR:*` 说明 git diff
+                    # 本身没跑通，此时任何"有/无产出"的结论都没有依据，直接阻断。
+                    if str(after_fp.get('diff_sha') or '').startswith('ERR:'):
+                        ok = False
+                        guard_reason = (
+                            '执行后 worktree 指纹读取失败'
+                            f'（diff_sha={after_fp.get("diff_sha")}），'
+                            '无法判定本次产出，fail-closed 不写 done')
+                    else:
+                        fresh, basis = fresh_changes(base_fp, after_fp, detail)
+                        record['worktree_new_changes'] = '\n'.join(sorted(fresh))[:2000]
+                        record['worktree_fresh_basis'] = basis
                 if kind == 'clean':
                     if args.no_change_allowed:
                         # 纯验证卡 / 纯报告卡：可以判「执行完成」，但**不签发合并授权**。

@@ -20,10 +20,14 @@ ORCH = ROOT / 'scripts' / 'gorch' / 'batch_orchestrator.py'
 
 
 @pytest.fixture
-def mod():
+def mod(monkeypatch):
     spec = importlib.util.spec_from_file_location('batch_orchestrator', ORCH)
     m = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(m)
+    # merge 现在会去 git 侧复核合入是否生效（wt 的 JSON 实测没有 merged 字段）。
+    # 默认给一个已合入的桩，具体用例要测反例时自己再 setattr 覆盖。
+    monkeypatch.setattr(m, '_git_out', lambda *a, **k: (0, ''))
+    monkeypatch.setattr(m, '_ref_sha', lambda ref: 'sha-' + str(ref))
     return m
 
 
@@ -478,7 +482,8 @@ def test_merge_is_serial_and_stops_on_failure(mod, monkeypatch, tmp_path):
         calls.append(branch)
         if len(calls) == 1:
             return _FakeResult(1, 'CONFLICT (add/add): Merge conflict in x.py')
-        return _FakeResult(0, json.dumps({'merged': True, 'removed': True}))
+        return _FakeResult(0, json.dumps({'branch': branch, 'target': target or 'main',
+                                                  'committed': False, 'removed': False}))
 
     monkeypatch.setattr(mod, 'wt_merge', fake_wt_merge)
     done, merged, failed, _ = mod.merge(str(tmp_path))
@@ -500,7 +505,8 @@ def test_merge_all_sequential_order(mod, monkeypatch, tmp_path):
 
     def fake_wt_merge(branch, target=None):
         calls.append(branch)
-        return _FakeResult(0, json.dumps({'merged': True, 'removed': True}))
+        return _FakeResult(0, json.dumps({'branch': branch, 'target': target or 'main',
+                                                  'committed': False, 'removed': False}))
 
     monkeypatch.setattr(mod, 'wt_merge', fake_wt_merge)
     done, merged, failed, _ = mod.merge(str(tmp_path))
@@ -816,7 +822,8 @@ def test_run_all_stops_at_conflict_and_keeps_scene(mod, monkeypatch, tmp_path):
         calls.append(branch)
         if branch == 'gorch/2':
             return _FakeResult(1, 'CONFLICT (content): Merge conflict in x')
-        return _FakeResult(0, json.dumps({'merged': True, 'removed': True}))
+        return _FakeResult(0, json.dumps({'branch': branch, 'target': target or 'main',
+                                                  'committed': False, 'removed': False}))
 
     monkeypatch.setattr(mod, 'wt_merge', fake_wt_merge)
     cleaned = []
@@ -938,19 +945,36 @@ def test_done_no_merge_is_not_mergeable(mod, monkeypatch, tmp_path):
     assert 'done_no_merge' in stale['1']['reason']
 
 
-def test_merge_requires_merged_true(mod, monkeypatch, tmp_path):
-    """A8：wt 报 merged=false 时不能记成功（此前只要求能解析 JSON）。"""
+def test_merge_rejects_receipt_without_identity(mod, monkeypatch, tmp_path):
+    """A8：wt 回执里 branch/target 缺失时不能记成功（此前只要求能解析 JSON）。"""
     write_task(tmp_path, 1)
     runs = tmp_path / 'runs'
     d = write_run(runs, '1')
     monkeypatch.setattr(mod, 'RUNS', runs)
     monkeypatch.setattr(mod, 'wt_merge',
-                        lambda *a, **k: _FakeResult(0, json.dumps({'merged': False})))
+                        lambda *a, **k: _FakeResult(0, json.dumps({'removed': False})))
     done, merged, failed, stale = mod.merge(str(tmp_path), tasks=['1'],
                                             target='main', run_dirs={'1': str(d)})
     assert merged == []
     assert failed[0]['task'] == '1'
-    assert 'merged=False' in failed[0]['stderr']
+    assert 'branch/target' in failed[0]['stderr']
+
+
+def test_merge_rejects_when_git_shows_no_merge(mod, monkeypatch, tmp_path):
+    """A8：wt 说成功、但 git 侧既非祖先又没推进主线 —— 按未合并处理。"""
+    write_task(tmp_path, 1)
+    runs = tmp_path / 'runs'
+    d = write_run(runs, '1')
+    monkeypatch.setattr(mod, 'RUNS', runs)
+    payload = {'branch': 'gorch/1', 'target': 'main', 'removed': False}
+    monkeypatch.setattr(mod, 'wt_merge',
+                        lambda *a, **k: _FakeResult(0, json.dumps(payload)))
+    monkeypatch.setattr(mod, '_git_out', lambda *a, **k: (1, ''))
+    monkeypatch.setattr(mod, '_ref_sha', lambda ref: 'same-sha')
+    done, merged, failed, stale = mod.merge(str(tmp_path), tasks=['1'],
+                                            target='main', run_dirs={'1': str(d)})
+    assert merged == []
+    assert '未见合入生效' in failed[0]['stderr']
 
 
 def test_gate_check_rejects_error_after_200_chars(mod, monkeypatch, tmp_path):
@@ -1031,8 +1055,8 @@ def test_merge_tolerates_refs_heads_prefix(mod, monkeypatch, tmp_path):
     runs = tmp_path / 'runs'
     d = write_run(runs, '1')
     monkeypatch.setattr(mod, 'RUNS', runs)
-    payload = {'merged': True, 'branch': 'refs/heads/gorch/1',
-               'target': 'refs/heads/main'}
+    payload = {'branch': 'refs/heads/gorch/1', 'target': 'refs/heads/main',
+               'removed': False}
     monkeypatch.setattr(mod, 'wt_merge',
                         lambda *a, **k: _FakeResult(0, json.dumps(payload)))
     done, merged, failed, stale = mod.merge(str(tmp_path), tasks=['1'],
