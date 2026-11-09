@@ -254,3 +254,80 @@ $ wt merge --format json -y --no-hooks
 3. 已知未做：`git status --porcelain` 不列 ignored 文件，故 ignored 新产物既不会进 fresh、
    也永远不会被写域校验拦住——审计点名的「明确枚举/拒绝 ignored 新产物」仍未实现。
    `allow_non_repo` 在非 git 目录下的等价收紧也未覆盖。
+
+
+## 九、第六轮 Codex 独立审计结论（r6 交付后的复核）
+
+审计执行：`gorch-r6-audit.py`，只读沙箱、`-a never`、`-m gpt-5.6-sol`、reasoning=high。
+耗时 **810.3s**，输出 **17,450 B**，**127,146 tokens**，rc=0（`codex-r6-audit-status.json`）。
+
+### 9.1 总判定
+
+**部分一致。** 原文：「结构化终态、merge 的基本三条件、独立 merge 强制 `--run-dir`、
+执行前脏基线错误阻断、cleanup schema 已落到实际判定；但严格 UTC、逐路径/ignored 写域校验、
+manifest 唯一授权源均未闭合，并且 r6 新增了可证明的写域 fail-open 与授权拒签流程误杀，
+因此不能判一致。」
+
+### 9.2 逐条复核（11 条：6 ✅ / 4 ❌ / 1 ⚠️）
+
+| # | 断言 | 判定 | 审计给出的关键证据 |
+|---|---|---|---|
+| 1 | verified 只按 `result=='done_no_merge'` | ✅ | `batch_orchestrator.py:767/1211/1426`；活动代码已无 reason 子串判定（`:1208` 仅历史注释） |
+| 2 | merge 三条件 + `pre_anc` 前置取得 | ✅ | `:916/919/980/985/1001` 顺序正确；但前态查询失败被折叠成 `pre_anc=False`（见 9.3-4） |
+| 3 | 预已祖先 / 无关 target 推进能被拒 | ✅ | `:983/985` + 用例 `test_gorch_batch_orchestrator.py:1172/1196` |
+| 4 | 无 `--run-dir` 即 rc=2；fallback 无 mtime | ✅ | `:1337/1402/819`；但 `:791` 仍留未使用 `mtime` 字段、`:730` docstring 失实 |
+| 5 | fallback 四类异常全阻断 | ❌ | `_utc_ts`（`:692`）对无时区值 `replace(tzinfo=UTC)` → **并非严格 UTC**；同一 invocation 多条不同时间不判不唯一；有效 JSON 但根节点非 dict 会在 `data.get` 崩溃（`:708`） |
+| 6 | 执行前 `ERR:*` 在 run_codex 前阻断 | ✅ | `codex_channel.py:463/479/487` + 用例断言 `called==0` |
+| 7 | `_fresh_paths` / `_outside_scope` 边界正确 | ❌ | 先 `strip()` 吃掉 porcelain 首空格；`fnmatch` 的 `*` 跨 `/`（`scripts/gorch/*.py` 可跨子目录）；rename 只留目标、源删除不校验（`:188/190/195/199/213/218`） |
+| 8 | changed 越域即失败、不写 done | ❌ | 脏基线同路径内容变化只生成无路径的 `~ …` 汇总，被 `_fresh_paths` 丢弃 → `outside=[]` → 仍写 done（`:166/191/530/533/535/603`）；`status --porcelain -uall` 未带 `--ignored`（`:79`） |
+| 9 | cleanup schema 参与 removed 判定 | ✅ | `:1071/1077/1086/1094/1101/1107`；`bool(items)` 已堵 `all([])` |
+| 10 | 授权只从 manifest 读 | ❌ | 不传 manifest 时 `load_authorizations` 返回 `source='cli'`（`codex_channel.py:235/238`），主流程仍采纳 CLI flag（`:412`）→ 存在自授权入口 |
+| 11 | 15 条用例覆盖 9 类 | ⚠️ | 数量确为 15（batch 11 + channel 4）且断言行为；未覆盖严格 UTC、CLI 缺 `--run-dir`、路径层级/反斜杠/通配边界、ignored、脏基线同路径越域、全/部分拒签 |
+
+### 9.3 审计点出的 8 条新问题（含 2 条"成功判失败"）
+
+1. **脏基线同路径越域修改可判成功**（`codex_channel.py:166/191/530/601`）。
+2. **ignored 越域写不可见**（`codex_channel.py:79/132`）。
+3. **rename 的域外源路径删除被忽略**（`codex_channel.py:199`）。
+4. **merge 前态查询失败被当"前态不是祖先"**（`batch_orchestrator.py:853/917/985`）：
+   `pre_anc = rc_pre == 0`，取证失败（None/128）时 `not pre_anc` 仍为真 → 可通过。
+5. **显式 run-dir 未核对 run-record 身份**（`batch_orchestrator.py:745-765`）：
+   不校验 `data['task']==task` / invocation / 记录内 `run_dir` → B 的 done 可映射给 A。
+6. **不传 manifest 仍可自行签发例外**（`codex_channel.py:235/412`）。
+7. **合法 tracked 修改可能被误杀**（`codex_channel.py:190`）：` M docs/…` 丢首空格 →
+   路径变 `M docs/…` → 误判越域。
+8. **拒签流程两条确定误杀/崩溃**：
+   (a) 全部拒签时 `_stop`（`:1161`）在定义（`:1165`）之前被调用 → 局部名未绑定；
+   (b) 部分拒签时 `run_all` 过滤了 ready（`:1158`），但 `execute` 又自行跑 gate 重建全部
+   ready（`:467`），已拒签任务无 manifest 条目 → `:492` 抛错，连已授权任务也不能执行。
+
+### 9.4 审计给的下一步最小清单
+
+**可直接改**：逐路径内容指纹（`worktree_fingerprint:114` 改 `git status -z`、覆盖 tracked/
+untracked/需监管 ignored）｜`_fresh_paths` 保留 rename 两端、去掉破坏首空格的 `strip()`｜
+`_outside_scope` 改按路径段匹配（`*` 不跨 `/`）｜`_utc_ts` 拒绝无时区/非零 offset，fallback
+同 invocation 多条即阻断，清理 `mtime` 字段与失实 docstring｜merge 前态 `rc_pre` 只允许 0/1
+且 source/target SHA 非空｜`find_done_tasks` 精确分支校验 task/run_dir/invocation｜
+移除无 manifest 的 CLI 自授权｜`_stop` 定义前移、`execute` 接收已过滤的授权集合｜
+补严格 UTC / run-record 错绑 / tracked·ignored·rename·跨层通配 / CLI 缺 `--run-dir` /
+全·部分拒签 的行为用例。
+
+**需 Owner 定口径（3 项）**：
+1. 手工调用 `codex_channel` 是否允许 CLI 自授权（若允许，"授权只从 manifest 读"必须限定为
+   orchestrated 模式，且明确它不是可信生产入口）。
+2. merge 是否必须证明"由本次调用造成"，还是只需"调用窗口内 source 成为 target 祖先"
+   （当前排除不了另一进程在同一窗口合入同一 source）。
+3. cleanup 在"调用前已三处消失"或 `wt remove` 非零但三处随后消失时，是否可不要求合法
+   cleanup schema（当前 `:1031`、`:1054` 仍直接记 removed）。
+
+### 9.5 审计对 pytest 的口径
+
+原文：「本轮未运行 pytest，严格遵守约束。`108 passed / 39.12s` 只是提交方主张，
+不是本轮独立复验结论。」——与前几轮一致，测试通过与否以本地实跑为准。
+
+### 9.6 结论去向
+
+- 第②环（Codex 独立审计）在本轮已跑，**未达成一致** → 按四段式流程，第③环
+  （"让 Codex 出修复实现"）前提不成立，应回第①环做 **r7**。
+- r7 的输入 = §9.4 的 8 条可直改 + 3 条口径；其中 3 条口径与「授权归 agent、人不参与
+  执行期审批」并不冲突（属实现层收紧），但仍需 Owner 一句话确认形态。
