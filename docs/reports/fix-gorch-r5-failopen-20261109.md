@@ -86,3 +86,82 @@ $ wt merge --format json -y --no-hooks
 - `cleanup` 的三处回读里，`_worktree_registered` 返回 `None`（查询失败）**不会**被当成 False，
   只会计 partial —— 这一点是本轮特意保留的：不确定 ≠ 干净。
 - 测试桩已统一到真实回执形状（`{'branch','target','committed','removed'}`），不再用 `{'merged': True}`。
+
+
+## 七、第五轮 Codex 独立审计的结论（2026-11-09）
+
+- 命令与参数：`codex exec -m gpt-5.6-sol --sandbox read-only -a never`，输入为
+  `Temp\gorch-r5-audit-prompt.md`，输出 `Temp\codex-r5-audit-last.md`
+- 结果：`rc=0` / **792.3 s** / **12,026 B** / **186,585 tokens**
+- 判定：**部分一致，不能当作完整闭环**（原文：「主路径的显式 run_dirs、ready 过滤、
+  Cygwin 行级白名单、cleanup 三处回读及 tasks=None/[] 语义已收紧，但独立 merge 仍靠
+  历史 glob/mtime 授权，内容/写域与 cleanup schema 未闭合，并新引入两类可把未完成
+  任务记成功的 fail-open」）
+
+### 7.1 逐条结果
+
+已闭合（✅）：1(a) 前置失败落记录、1(e) dry-run、Q3-5 Cygwin 整行白名单、Q3-8
+`tasks` 语义 / cleanup 时序 / 回执身份。
+
+未闭合（⚠️）：Q3-1（fallback 里「损坏记录 + 旧 done」仍能授权）、Q3-2（merge 子命令
+没有 `--run-dir`）、Q3-3（`started_at` 是未解析字符串、channel record 根本不写
+`invocation`、无 `started_at` 时仍退 mtime）、Q3-4（`done_no_merge` 仍由 reason 子串
+摘出，独立 merge 没有 verified-only 终态）、Q3-6（仍是整体 `git diff HEAD` 单哈希、
+无 ignored/写域、**脏基线 `ERR:*` 未阻断**）、Q3-7（`schema_ok` 只记录不参与 removed
+判定）。
+
+反向恶化（❌）：Q3-9（`no_change_allowed`/`allow_non_repo` 仍由卡片自由字段直接授权；
+`done_no_merge` 改用 reason 子串识别 → 新增成功误判路径）。
+
+### 7.2 本轮新引入的三条 fail-open（必须先修）
+
+1. **`done_no_merge` 的 reason 子串可伪装成功终态。** `find_done_tasks` 透传记录自身
+   `reason`，`run_all` 用 `'done_no_merge' in str(reason)` 判 verified → 任何
+   `result=blocked` 且 reason 里出现该文本的记录都会被当非合并成功终态，从 stale 与
+   leftover 里剔除，最终可能 `stopped_at='done'`、`run` 返回 0。
+2. **merge 未记录「调用前是否已是祖先」的前态。** 源分支在调用 `wt merge` **之前**
+   就已经是 target 祖先时，`merge-base --is-ancestor` 返回 0 会直接判合入成功，
+   即使 worktree 里的未提交内容根本没合进去；回执里的 `committed/squashed/rebased`
+   完全未参与判定。
+3. **任意无关进程推进 target 即可冒充本任务合入。** 只比较 target SHA 是否变化，
+   不校验新 commit/tree 与本任务 source 是否存在关系。
+
+### 7.3 审计给的 7 条最小修复清单
+
+1. `done_no_merge` 改结构化终态：`find_done_tasks` 返回 `mergeable_done / verified_only /
+   stale` 三组，只按 `data["result"] == "done_no_merge"` 精确判断，禁止 reason 文本推断；
+   独立 merge CLI 在「仅 verified_only、无真实 stale」时返回成功但不调用 merge/cleanup。
+2. merge 生效证明：调用前记录 target SHA 与 source ancestor 状态，禁止用「调用前已成立
+   的 ancestor」或「任意 target tip 前进」单独证明本任务；最小安全做法是延后 source 删除，
+   先验证本任务 source commit/tree 与 `target_after` 的确定关联再 cleanup，关联不上按
+   failed 保留现场。
+3. 删掉独立 merge 的 glob/mtime 授权：CLI 增加精确 `task=run_dir` 或 invocation manifest，
+   校验 `task/invocation/run_dir/dry_run/result/mergeable`；若保留 fallback，任何损坏记录
+   都阻断、严格解析 UTC `started_at`、要求 invocation 非空且唯一、同时间同 invocation
+   多记录给确定性拒绝规则。
+4. 内容闸改规范化逐路径快照（跟踪 + 未跟踪都记路径与内容哈希）；**脏基线指纹 `ERR:*`
+   在调用 Codex 之前就 blocked**；明确枚举/拒绝 ignored 新产物；按可信任务 schema 校验
+   所有变化路径都在授权写域内。
+5. cleanup 把 schema 纳入成功条件：解析失败、空数组、非预期字段、`removed=false`、
+   缺失或未知 `branch_outcome` 一律 partial；只有 schema 合法且目录 / 精确分支 /
+   worktree 登记三处都明确消失才记 removed。
+6. `no_change_allowed` / `allow_non_repo` 不再信任任务 Markdown 自由字段，改从编排方
+   签发的 invocation manifest / 受控白名单读取并做严格布尔 schema 校验；卡片自身声明
+   只能算「请求」，不能算「授权」。
+7. 补最小回归用例：fallback「损坏记录 + 旧 done」、显式 `run_dirs={}`、`started_at`
+   并列/非法/空 invocation、blocked reason 含 `done_no_merge`、调用前已是 ancestor、
+   无关 target 前进、脏基线指纹 ERR、ignored/越权路径、cleanup schema 非法但三处已消失。
+   现有的 3 条新用例只覆盖了「缺身份回执 / 双重否定 / 执行后指纹 ERR」。
+
+### 7.4 该审计对「93 passed」的口径声明
+
+原文：「按约束本轮未运行 pytest；"93 passed"仅是提交方主张，不作为本次静态审计的
+独立通过证据。」——只读沙箱跑不了 pytest 是既定限制，测试通过与否仍以本地实跑为准。
+
+### 7.5 下一步（r6）划分
+
+- **可立即修（5 项）**：7.2 的三条新 fail-open、cleanup schema 纳入成功条件、
+  独立 merge 强制 `--run-dir`（含 fallback 损坏记录阻断 + 严格 UTC `started_at` 解析）。
+  另加「脏基线 `ERR:*` 调 Codex 前就阻断」这一小改。
+- **需要 Owner 定口径（2 项）**：授权写域白名单（Q3-6 剩余）、per-card 例外改由
+  manifest 授权（Q3-9）。两项都会改变工单灰度与派发规则。
