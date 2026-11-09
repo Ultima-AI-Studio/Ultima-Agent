@@ -48,14 +48,13 @@ STAGE_SYSTEM_PROMPTS = {
 }
 
 _TOOL_CALL_MARKERS = (
-    "<｜｜",
+    "<｜｜",  # DeepSeek 控制 token 泄漏，正常文本不会出现
     "｜｜>",
     "DSML",
-    "tool_calls",
-    "```bash",
-    "```shell",
-    "```powershell",
+    '"tool_calls"',  # 文本形态的 tool_calls 键（带引号，工单正文不会这样写）
 )
+# 注意：不要把 ```bash / ```shell 当作工具调用信号。work_order 阶段本来就要
+# 产出给执行端照做的命令示例，用代码块标记判定会把合法工单全部误杀。
 
 
 class OrchestratorError(RuntimeError):
@@ -133,12 +132,20 @@ def _request_once(
         raise OrchestratorError("DeepSeek returned invalid JSON") from exc
 
     try:
-        content = payload["choices"][0]["message"]["content"]
+        message = payload["choices"][0]["message"]
+        content = message["content"]
         usage = payload.get("usage", {})
         input_tokens = int(usage.get("prompt_tokens", 0))
         output_tokens = int(usage.get("completion_tokens", 0))
     except (AttributeError, IndexError, KeyError, TypeError, ValueError) as exc:
         raise OrchestratorError("DeepSeek returned an invalid response schema") from exc
+
+    # 协议级真信号：供应商在 message 里给出原生 tool_calls，说明模型要调工具。
+    # 这比扫描文本可靠——文本里出现的 ```bash 可能只是工单里的命令示例。
+    if message.get("tool_calls"):
+        raise OrchestratorError(
+            "DeepSeek returned native tool_calls; this stage must answer in plain text"
+        )
 
     if not isinstance(content, str) or not content.strip():
         raise OrchestratorError("DeepSeek returned empty content")
@@ -220,6 +227,7 @@ def run_stage(
     stages_dir = Path(run_dir) / "stages"
     failed_path = stages_dir / f"{stage}-failed.json"
     started = time.monotonic()
+    response_text: str | None = None
 
     try:
         system_prompt = STAGE_SYSTEM_PROMPTS[stage]
@@ -252,12 +260,20 @@ def run_stage(
         return artifact
     except Exception as exc:
         error = exc if isinstance(exc, OrchestratorError) else OrchestratorError(str(exc))
+        # 保住失败原文：否则"为什么判成工具调用"无从复盘，只能重跑烧额度。
         _write_json(
             failed_path,
             {
                 "stage": stage,
                 "model": model,
                 "error": str(error),
+                "response_excerpt": (
+                    response_text[:1200] if response_text else None
+                ),
+                "matched_markers": (
+                    [m for m in _TOOL_CALL_MARKERS if m in response_text]
+                    if response_text else []
+                ),
                 "created_at": _utc_now(),
             },
         )

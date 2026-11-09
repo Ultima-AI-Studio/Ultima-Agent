@@ -31,6 +31,7 @@ import os
 import pathlib
 import subprocess
 import sys
+from datetime import datetime, timezone
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent.parent
 CCPM_DIR = ROOT / 'scripts' / 'gorch' / 'ccpm'
@@ -50,6 +51,8 @@ CHANNEL_SCRIPT = ROOT / 'scripts' / 'gorch' / 'codex_channel.py'
 MAX_CHANNELS = 3
 # 执行记录目录：merge 阶段据此确认某任务“真的执行完成”，不凭人工记忆。
 RUNS = ROOT / 'data' / 'gorch' / 'runs'
+# A（审议链）→ B（执行链）的交接证据目录名，放在批次目录内，不参与 gate 扫描。
+HANDOFF_DIRNAME = '_handoff'
 
 
 def to_bash(path):
@@ -456,6 +459,68 @@ def cleanup(batch_dir, tasks=None, force=False, delete_branch=False):
     return removed, skipped
 
 
+def bridge(run_dir, batch_dir):
+    """A（审议链）→ B（执行链）的唯一交接点：只搬证据，不解析语义。
+
+    为什么不做自动解析：work_order 阶段的产出是自然语言，把它反解成
+    depends_on / conflicts_with 属于"拿 Markdown 当类型系统"——一旦误解析就会
+    派错写域，而并发写域切错是这套链路里代价最高的事故。所以这里只做三件
+    确定性的事：
+      1. fail-closed：每一段 verdict 必须是 completed，否则不许进执行；
+      2. 把 stages/*.json 原样复制到 <批次>/_handoff/ 作为可审计证据；
+      3. 写 manifest.json，记录 run_dir、需求原文、各段结论、模型与时间戳。
+    工单 md（含 frontmatter）是第 3 跳 Owner 确认的产物，由人确认后放进来；
+    本函数不替人做这一步，也不猜测工单该怎么切。
+    """
+    run_dir = pathlib.Path(run_dir)
+    batch_dir = pathlib.Path(batch_dir)
+    stages_dir = run_dir / 'stages'
+    if not stages_dir.is_dir():
+        raise SystemExit(f'A 的产出不存在：{stages_dir}')
+
+    stage_files = sorted(stages_dir.glob('*.json'))
+    if not stage_files:
+        raise SystemExit(f'stages 目录里没有任何产物：{stages_dir}')
+
+    stages = {}
+    for f in stage_files:
+        try:
+            artifact = json.loads(f.read_text(encoding='utf-8'))
+        except ValueError as exc:
+            raise SystemExit(f'审议产物不是合法 JSON：{f}（{exc}）')
+        if not isinstance(artifact, dict):
+            raise SystemExit(f'审议产物结构不对（应为对象）：{f}')
+        verdict = str(artifact.get('verdict') or '').strip().lower()
+        if verdict != 'completed':
+            # 未完成的审议绝不能进执行，否则执行端会拿着半成品工单开工。
+            raise SystemExit(
+                f'审议未完成，禁止进执行：{f.stem} verdict={verdict or "缺失"}')
+        stages[f.stem] = {
+            'verdict': verdict,
+            'model': artifact.get('model'),
+            'artifact': str(f),
+        }
+
+    handoff = batch_dir / HANDOFF_DIRNAME
+    handoff.mkdir(parents=True, exist_ok=True)
+    for f in stage_files:
+        (handoff / f.name).write_bytes(f.read_bytes())
+
+    task_files = sorted(p.name for p in batch_dir.glob('*.md') if p.is_file())
+    manifest = {
+        'run_dir': str(run_dir),
+        'batch_dir': str(batch_dir),
+        'stages': stages,
+        'task_files': task_files,
+        # 没有工单 md 就是"交接了但没人放工单"，如实反映，不假装可开工。
+        'ready_to_gate': bool(task_files),
+        'created_at': datetime.now(timezone.utc).isoformat(timespec='seconds'),
+    }
+    (handoff / 'manifest.json').write_text(
+        json.dumps(manifest, ensure_ascii=False, indent=2), encoding='utf-8')
+    return manifest
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser(description='GORCH 多通道薄编排（只接线）')
     sub = ap.add_subparsers(dest='cmd', required=True)
@@ -479,6 +544,9 @@ def main(argv=None):
                    help='删除带未跟踪/已改文件的脏 worktree（--force 语义）')
     c.add_argument('--delete-branch', action='store_true',
                    help='连未合并分支一起删（-D 语义，会丢提交，默认保留）')
+    b = sub.add_parser('bridge', help='把审议链 run_dir 的产物登记成交接单（只搬不解析）')
+    b.add_argument('--run-dir', required=True, help='orchestrate-order 的 run_dir')
+    b.add_argument('--batch-dir', required=True, help='交接给 gate/provision 的批次目录')
     args = ap.parse_args(argv)
 
     if args.cmd == 'gate':
@@ -518,6 +586,12 @@ def main(argv=None):
             ensure_ascii=False, indent=2))
         # 任一分支合并失败（含冲突）即非 0，让上游看到失败而不是“跑完了”。
         return 0 if not failed else 1
+
+    if args.cmd == 'bridge':
+        manifest = bridge(args.run_dir, args.batch_dir)
+        print(json.dumps(manifest, ensure_ascii=False, indent=2))
+        # 没工单 md 不算失败（交接完成但等第 3 跳），但要让人看见它还不能开工。
+        return 0
 
     if args.cmd == 'cleanup':
         removed, skipped = cleanup(
