@@ -233,6 +233,8 @@
 2. 禁止保留仅差一个下划线的两个名字共存。
 3. 禁止改动归档内容本身的语义。
 
+**Gate 结果**：PASS；证据：`tasks/queue/runs/wo-ultimaagent-20261110-0036-20261110T162813293712Z/t5/pre-change.json`、`tasks/queue/runs/wo-ultimaagent-20261110-0036-20261110T162813293712Z/t5/post-change.json`。
+
 ### T6 · 主脑参数
 
 **文件**：
