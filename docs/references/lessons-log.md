@@ -947,3 +947,28 @@ broken`），整个验收卡在这一步，只能记未完成。
 2. **时间戳类断言天然对「同毫秒」免疫不了**。`updated_at` 要么在写入侧保证严格单调（`max(now, last + 1µs)`），要么断言侧放宽成 `>=`。用 `assertNotEqual` 比较两个「可能同秒同毫秒」的时间戳，是把时钟精度当成业务语义，属于结构性 flake。
 
 处置：本次不修（不属 0027 范围，改 `src/brain/memory` 会越界），登记为待立工单的技术债；`0027/T2` 的结论以 11:07 首跑 + 11:35 复跑**两次绿**为准，并保留 11:25/11:30 两次红与 probe 日志作为实测留痕。
+
+### L98 · 看门狗三件常被漏掉的事：自身窗口、子进程监护、脚本归档
+
+**背景**：0027 T2 收尾后，串行看门狗（PID 20328）在 2026-11-10T11:41:25 自动派发 0032（PID 25060），主脑复核时被问到「窗口隐藏了没」「用完删了没」。三处均不达标。
+
+**1. 看门狗自身窗口非零**
+- 现象：进程不可见，但 `python.exe` 是控制台子系统程序，`Start-Process -WindowStyle Hidden` 只是把 conhost 窗口设为不可见，不是不创建；启动瞬间仍可能有 conhost 一闪。
+- 关键区分：脚本里给**派出的子进程**加了 `creationflags=subprocess.CREATE_NO_WINDOW`（codex 侧是干净的），却**没有管它自己**。
+- 修法：看门狗自身必须用 `pythonw.exe`（无控制台子系统）启动，`-WindowStyle Hidden` 作为第二重保险。实测 `tools\python31313\pythonw.exe` 可用；`MainWindowHandle=0`、`MainWindowTitle` 为空即为零窗口的证据。
+- 判据：不要以「我没看到窗口」当结论，要看 `MainWindowHandle` 与进程名是否为 `pythonw`。
+
+**2. 派发即 return，子进程成孤儿**
+- 现象：`Get-CimInstance Win32_Process -Filter "ProcessId=25060"` → `ParentProcessId=20328`，而 20328 早已退出。0032 挂着跑，但**无监护、无回收、无完成通知**。
+- 根因：看门狗 `dispatch_0032()` 之后直接 `return`，把「派发」当成「完成」，实际只管到派出那一刻。
+- 修法：派发型看门狗与监护型看门狗分离——派发脚本派完即退（这是对的，不占资源），但**必须同时起一个只读监护进程**接管新 PID，等到 `final-message.json` 落盘才算闭环。
+
+**3. 一次性脚本从不归档**
+- 现象：`tasks/queue/` 堆了 19 个 `dispatch-wo-*-now.py`（2026-10-30 至 11-10），全部未跟踪（`??`），从未清理；本次两个同样滞留。
+- 根因：把「留痕」等同于「留在原地」，但未跟踪文件既不进 git 也不进证据目录，是纯垃圾。
+- 修法：一次性派发/看门狗脚本完成使命后移入 `tasks/queue/_done/<日期>/`，并在对应工单证据目录写 `dispatch-provenance.md` 记录触发链（脚本可丢，链路不可丢）。`_done/` 加入 `.gitignore`，避免下次 `git add .` 误收。
+
+**本次处置**：
+- `dispatch-0027-t2-closeout.py`、`watch-0027-then-dispatch-0032.py` → `tasks/queue/_done/20261110/`
+- 链路记录 → `data/evidence/wo-ultimaagent-20261110-0032/dispatch-provenance.md`
+- 新增 `watch-0032-completion.py`，以 `pythonw.exe` 起动（PID 968，`MainWindowHandle=0`），仅监视 25060，完成后自归档副本 + 写 DONE 标记
