@@ -20,6 +20,9 @@
 | 品牌资产（logo / 图标 / 组合规范） | `H:\UltimaAI\_shared\brand\` | GitHub UltimaDocs `docs/shared/brand/` |
 | 模板（工单 / 审计 / 报告） | `H:\UltimaAI\_shared\templates\` | GitHub UltimaDocs `docs/shared/templates/` |
 | 全局队列主表 | `H:\UltimaAI\_shared\queue\global-queue-index.md` | 本地权威（不镜像） |
+| 0035 v2.0 语音入口权威裁决 | `docs/specs/voice-entry-authority-decision-20261110.md` | 本地产品文档（待镜像） |
+| E3 语音产品基线 | `docs/specs/voice-next-product-baseline.md` | 本地产品文档（待镜像） |
+| E3 接入 CV3 音色技术规格 | `docs/specs/voice-next-cv3-tts.md` | 本地产品文档（待镜像） |
 
 ## 2. 本项目必读规范（按序，缺一不可）
 

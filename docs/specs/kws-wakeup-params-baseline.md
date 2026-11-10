@@ -1,8 +1,9 @@
 # UltimaAgent KWS 唤醒参数基线（权威单一来源）
 
-- **文档定位**：UltimaAgent 语音入口（关键词唤醒 KWS）的参数、设备、阈值唯一权威基线。任何 KWS 相关调整必须先读本文件，禁止凭记忆或只改代码注释。
+- **文档定位**：UltimaAgent 语音入口（关键词唤醒 KWS）的历史实现基线（E1/E2）。任何 KWS 相关调整必须先读本文件，禁止凭记忆或只改代码注释。
 - **创建**：2026-10-29（固化 10-26/10-27 多轮真机调参结论 + 10-29 修复记录）
 - **适用入口**：`src/brain/voice/kws_listener.py`（产品主入口）；历史 daemon `data/logs/voice-listen-daemon.py` 为同参数的第二实现，以本文件为准。
+**本文所辖入口已降为历史实现**：产品主线见 `docs/specs/voice-next-product-baseline.md`。本文取值不约束该主线，该主线取值亦不约束本文。
 
 ## 一、麦克风设备（关键，勿再漂移）
 
@@ -13,7 +14,7 @@
 | 废弃设备 | 设备 12（主声音捕获/跟随系统默认） | 实测收不到用户语音（peak=0.0000），不可靠 |
 | kws_listener 常量 | `MIC_DEVICE = 1` | 2026-10-29 19:4x 从 3 改为 1（惠普麦） |
 | daemon 常量 | `DEV_IN = 1` | 2026-10-29 19:4x 从 3 改为 1（惠普麦） |
-| 输出设备 | `PLAY_DEVICE = 26`（耳机 POISON M@LOFREE，WASAPI） | TTS 回放 |
+| 输出设备 | `PLAY_DEVICE = 24`（耳机 POISON M@LOFREE，WASAPI 44100Hz） | TTS 回放 |
 
 > **教训（2026-10-29 三次）**：① 同一台机器的麦克风设备配置曾存在于两个脚本（daemon 与 kws_listener），10-26 只修了 daemon，kws_listener 遗留 index=1 导致唤醒再次失败。② 写死设备常量会在"用户切换实际使用麦克风"（摄像头麦→耳机麦）时失效。③ **"跟随系统默认（设备12）"并非可靠方案**——实测默认端点收不到用户实际语音（可能指向耳机/虚拟设备），**必须以真机实测能收到语音的设备为准（Razer Kiyo=3），禁止凭空切换到"系统默认"**。设备常量统一以本文件为准，两处代码必须同值。
 
@@ -108,3 +109,5 @@ Razer Kiyo(3) → KWS 0.08 固定阈值命中「贾维斯」→ 提示音 → �
 | 2026-10-30 | **意图路由收窄（interaction.py，不属 KWS 参数但关联"答非所问"真机反馈）：天气直达前移 1.4 + 征询/确认仅待确认态拦截 + 纯征询/确认短句非待确认态静默 + ASR 近音纠错映射** | Owner 三连反馈「KWS 触发不灵敏 / ASR 解析不清晰 / 回答内容不精准」。根因链（22:14 轮完整取证）：ASR final 正确（"给我看一下明天上海的天气怎么样。"）却被 `_CONSULT_INTENT`（含"怎么样"）在天气直达之前拦截 → 误触发 L7 队列征询话术，且把 21:07 轮遗留 last_summary"水量天听"（ASR 近音误识，intermediate"水平听听清"→final"水量天听"）套进话术引用 → 观感=回答不精准。修复：① 天气直达整体前移至 handle() 1.4（调整指令后、子智能体/征询/确认前）；② `_CONFIRM_INTENT`/`_CONSULT_INTENT` 拦截加 `and self.phase == _PENDING_CONFIRM`；③ 新增 2b——非待确认态命中征询/确认且不含查询动作词（`_QUERY_ACTION_RE`）的纯短句提前静默（防漏 14B 兜底自由发挥）；④ `_normalize_utterance` 近音映射（水量天听/水平听听清/水平听→天气、明天上海的这→明天上海的天气）。验证：探针 5 例全绿 + pytest 28 passed（test_consult_without_result_stays_idle 恢复绿）。daemon 第 7 次重启（22:37:34 监听恢复，warmup asr 4.2s/agent 11.0s/tts 18.5s）。**真机回归重点：说"明天上海的天气怎么样"直接答天气（不再征询）；无上轮结果时"你觉得怎么样"静默。** 注意：KWS 参数值未改（threshold=0.08/score=2.0/6 变体冻结中）。 |
 | 2026-11-01 | **自定义唤醒词 星期五 → 幂幂（Owner 指令）；本地 TTS 主音色 sherpa → CV3 杨幂（Owner 指令，反转 10-30 否决）** | Owner 最新指令：① 唤醒词改为"幂幂"（杨幂的幂，两字，走 0014 用户入口链：`save_user_override(wakeword.custom="幂幂")` → 原子替换 keywords.txt → daemon 同 PID 热重载，14:19:19 两次 `KWS keywords 热重载成功 pid=27820`）；词表现为 6 贾维斯变体 + `m ì m ì @幂幂` + ULTIMA，`kws_reconfig.py --list` 实证 8 行。② 本地 TTS 主音色切 CV3：`voice-profile.json` voice.engine `sherpa`→`cv3`、ref_audio → `data/voice/yangmi-ref/yangmi_cv3_full_s6_v54.wav`（CV3 训练最新产物 4.02s/24k/单声道）、prompt_text = ASR 转写「你好，我是你的语音助手，今天有什么可以帮你的吗。<\|endofprompt\|>」（faster-whisper medium 转写，置信 1.0，与 0008 测试语一致）；tts.py cv3 冻结链 zero-shot 合成验证 ok（daemon 常驻链 cuda 24k 2.64s，`data/voice/tts-cv3-yangmi-probe.wav`）。**KWS 参数值未改（threshold=0.08/score=2.0/6 变体冻结中）；TTS 音色变更另登记 voice-profile 变更记录。真机验收重点：说"幂幂"一遍即唤醒，杨幂音色回复自然。** |
 | 2026-11-04 | **kws_listener.py 参数回正权威基线（score 1.0→2.0、trailing 0→8）** | 0023（Jarvis P0）T3 绑定证据实测发现产品入口 `src/brain/voice/kws_listener.py` L62/L64 仍为 `keywords_score=1.0`/`num_trailing_blanks=0`（10-30 基线更新落在 daemon，kws_listener 未同步=历史漂移）。主脑裁决有界修复：回正 `2.0/8`，注释引用本文件；`threshold=0.08` 不动；运行中语音 daemon（PID 24812）未重启未改。回正=对齐冻结值，非新调参；教训与入口声明不一致见 lessons-log L36。验证：RED（1 failed）→定向 1 passed→语音测试组 8 passed，`T3/gate.json`=GREEN。 |
+| 2026-11-10 | **`PLAY_DEVICE` 顶部摘要回写 24（机检裁决）** | 机检原文：`idx=24  OUT  Windows WASAPI       44100  耳机 (POISON M@LOFREE)`；`idx=26  OUT  Windows WASAPI       48000  扬声器 (Steam Streaming Microphone)`；`idx=4   OUT  Windows MME          44100  耳机 (POISON M@LOFREE)`；`idx=15  OUT  Windows DirectSound  44100  耳机 (POISON M@LOFREE)`。结论：POISON 耳机在 WASAPI 栈下为 idx=24（44100Hz）；idx=26 为 Steam 虚拟声卡（48000Hz）。旧值 26 已被取代；第 106 行既有勘误记录原样保留。同批修正代码 `src/brain/voice/kws_listener.py:43` 26→24（T5），使文档与代码同值。 |
+- 待办：设备应记端点身份（名字+采样率+驱动栈）而非整数索引——同一副 POISON 耳机在 MME / DirectSound / WASAPI 三栈下索引分别为 4 / 15 / 24，为实证。本单不改，留作后续。

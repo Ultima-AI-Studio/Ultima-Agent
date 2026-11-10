@@ -40,7 +40,7 @@ MIC_DIR.mkdir(parents=True, exist_ok=True)
 
 SR = 16000            # ASR/KWS 模型采样率；设备始终按 44.1/48k 原生能力打开
 MIC_DEVICE = 1        # 仅作探测失败/全静音时的内置回退；正常入口必须走 voice-profile + 自动探测
-PLAY_DEVICE = 26      # 输出：26=耳机 (POISON M@LOFREE)（sounddevice WASAPI 索引）
+PLAY_DEVICE = 24      # 输出：24=耳机 (POISON M@LOFREE)（sounddevice WASAPI 索引，44100Hz）；idx=26 为 Steam 虚拟声卡，勿用
 GAIN = 30.0           # 对话回合录音增益
 MIN_LEN = 0.5         # 最短有效语音（秒）
 END_SIL = 1.2         # 结束静音（秒）
