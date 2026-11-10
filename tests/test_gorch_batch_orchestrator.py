@@ -2677,8 +2677,21 @@ def _cleanup_schema_shadow_sites(func):
         elif isinstance(n, (_ast.FunctionDef, _ast.AsyncFunctionDef)) \
                 and n.name == 'cleanup_schema':
             sites.append('def')
-        elif isinstance(n, _ast.alias) and n.asname == 'cleanup_schema':
-            sites.append('import')
+        elif isinstance(n, (_ast.Import, _ast.ImportFrom)):
+            for a in n.names:
+                if isinstance(n, _ast.Import):
+                    bound = a.asname or a.name.split('.')[0]
+                else:
+                    bound = a.asname or a.name
+                if bound == 'cleanup_schema':
+                    sites.append('import')
+        elif isinstance(n, _ast.ClassDef) and n.name == 'cleanup_schema':
+            sites.append('class')
+        elif isinstance(n, (_ast.MatchAs, _ast.MatchStar)) \
+                and n.name == 'cleanup_schema':
+            sites.append('match')
+        elif isinstance(n, _ast.MatchMapping) and n.rest == 'cleanup_schema':
+            sites.append('match')
         elif isinstance(n, _ast.ExceptHandler) and n.name == 'cleanup_schema':
             sites.append('except')
     return sites
@@ -2694,11 +2707,18 @@ def test_cleanup_shadow_collector_catches_destructuring_and_for_target():
         '        pass\n'
         '    def cleanup_schema():\n'
         '        return None\n'
-        '    return cleanup_schema\n'
+        '    import cleanup_schema\n'
+        '    class cleanup_schema:\n'
+        '        pass\n'
+        '    match steps:\n'
+        '        case [cleanup_schema]:\n'
+        '            pass\n'
+        '    return None\n'
     )
     fn = next(n for n in _ast.walk(_ast.parse(src)) if isinstance(n, _ast.FunctionDef))
     got = _cleanup_schema_shadow_sites(fn)
-    assert sorted(got) == ['Store', 'Store', 'arg', 'def'], got
+    assert sorted(got) == ['Store', 'Store', 'arg', 'class', 'def',
+                           'import', 'match'], got
 
 
 def test_run_all_cleanup_constructed_only_by_helper(mod):
