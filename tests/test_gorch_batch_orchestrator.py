@@ -2738,6 +2738,46 @@ def test_run_all_cleanup_constructed_only_by_helper(mod):
     assert len(calls) == 4, \
         f'cleanup_schema 调用应恰为 4 处（等于构造点数），实为 {len(calls)}'
 
+    # r18e（r17 审计 A.2.3 续）：只验「被调名字」不够——把 cleanup_schema(buckets) 改成
+    # cleanup_schema() 仍能通过上面的形状断言。按源码顺序钉住四处实参，并禁止同名遮蔽。
+    shapes = []
+    for c in sorted(calls, key=lambda n: n.lineno):
+        if not c.args and not c.keywords:
+            shapes.append('()')
+        elif len(c.args) == 1 and not c.keywords and isinstance(c.args[0], _ast.Name):
+            shapes.append('(%s)' % c.args[0].id)
+        elif len(c.args) == 1 and not c.keywords and isinstance(c.args[0], _ast.Dict):
+            d = c.args[0]
+            keys = [k.value if isinstance(k, _ast.Constant) else '?' for k in d.keys]
+            vals = [v.id if isinstance(v, _ast.Name) else '?' for v in d.values]
+            shapes.append('({%s: %s})' % (keys, vals))
+        else:
+            shapes.append('other')
+    assert shapes == ['()', '(buckets)',
+                      "({['merge_conflict']: ['merged_tasks']})", '()'], \
+        f'四处 cleanup_schema 实参形状不符：{shapes}'
+
+    shadowed = []
+    for n in _ast.walk(fn):
+        if isinstance(n, _ast.Assign):
+            tgts = n.targets
+        elif isinstance(n, (_ast.AnnAssign, _ast.AugAssign)):
+            tgts = [n.target]
+        else:
+            tgts = []
+        for t in tgts:
+            if isinstance(t, _ast.Name) and t.id == 'cleanup_schema':
+                shadowed.append('assign')
+        if isinstance(n, (_ast.FunctionDef, _ast.AsyncFunctionDef)) \
+                and n.name == 'cleanup_schema':
+            shadowed.append('def')
+        if isinstance(n, _ast.arg) and n.arg == 'cleanup_schema':
+            shadowed.append('arg')
+        if isinstance(n, _ast.For) and isinstance(n.target, _ast.Name) \
+                and n.target.id == 'cleanup_schema':
+            shadowed.append('for')
+    assert shadowed == [], f'run_all 内不得遮蔽 cleanup_schema：{shadowed}'
+
     # `_CLEANUP_KEY_FOR` 是 kept_for_* 的唯一声明源：全文件其它位置不许再出现。
     tree = _ast.parse(src)
     decl = None

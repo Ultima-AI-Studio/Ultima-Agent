@@ -985,7 +985,7 @@ Codex 复核（17,177B / 103 行）结论：**「足以作为规范口径」**�
 | ③ 锁键 | `_MergeLock` 重写：`sha256(norm_target)[:32]` 为主键、`[:16]` 保留旧键；迁移期双锁（先旧后新） | 单把未持有的旧锁无约束力；真正危险是**新旧各持一把同时放行** |
 | ② 目录/子仓 | `_dir_digest`：`scandir` 直接条目名 + 长度分隔哈希、不递归；目录内 reparse 只记 `R`；**路径自身是 reparse 时** `_digest` 返 `REPARSE:dir`、不 `scandir`；`worktree_fingerprint` 识 gitlink `160000` | junction 的危害不是「SHA 随机」而是把**可变域外目标**纳入采样；只挡子条目会漏掉"传进来的就是链接" |
 | ⑥ doctor | 只读 `doctor(batch_dir)` + 子命令，输出四态/三态/登记/run 记录/三条只读复核命令 | 卡片状态必须 `is_file()`——`_path_state` 对文件一律 `wrong_type`（实测红一次后改） |
-| ④ 三 kind / 四桶 | `MERGE_FAILURE_KINDS` + `_CLEANUP_KEY_FOR`（bucket→`kept_for_*` **唯一声明源**，r17 起 `CLEANUP_UNCLOSED_BUCKETS` 由它派生）+ `cleanup_schema()` 唯一构造入口，`run_all` 四处构造点全部改调 helper | AST 契约（r17 加强、r18 改按构造点）：四处 `steps['cleanup']` / `steps.setdefault('cleanup', ...)` 构造点逐点绑定（每处恰一个 `**cleanup_schema(...)`、只允许 `removed`/`skipped` 静态键、调用总数恰 4）、全文件 `kept_for_*` 只许在映射里、未知桶 KeyError——**变量拼 key、别名或额外更新同一个目标、构造后按计算键追加仍可绕过**，这是静态护栏的能力边界，不得宣称"任何写法都被挡住" |
+| ④ 三 kind / 四桶 | `MERGE_FAILURE_KINDS` + `_CLEANUP_KEY_FOR`（bucket→`kept_for_*` **唯一声明源**，r17 起 `CLEANUP_UNCLOSED_BUCKETS` 由它派生）+ `cleanup_schema()` 唯一构造入口，`run_all` 四处构造点全部改调 helper | AST 契约（r17 加强、r18 改按构造点）：四处 `steps['cleanup']` / `steps.setdefault('cleanup', ...)` 构造点逐点绑定（每处恰一个 `**cleanup_schema(...)`、只允许 `removed`/`skipped` 静态键、调用总数恰 4）、全文件 `kept_for_*` 只许在映射里、未知桶 KeyError；另按源码顺序钉住四处实参形状（空参 / `buckets` / `{'merge_conflict': merged_tasks}` / 空参）、禁止 `run_all` 内同名遮蔽——**变量拼 key、别名或额外更新同一个目标、构造后按计算键追加仍可绕过**，这是静态护栏的能力边界，不得宣称"任何写法都被挡住" |
 | ① LINK 边界 | 补「指向文本不变、目标内容变」用例，docstring 明写**预期边界** | 域外目标仍属 §16 残余，不许宣称「已覆盖」 |
 
 ### 21.2 ⑤ 为什么本轮**没有**做原子 CAS（差异清单）
