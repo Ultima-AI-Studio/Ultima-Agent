@@ -57,15 +57,9 @@ ROOT = Path(__file__).resolve().parents[1]
 
 DEEPSEEK_URL = "https://api.deepseek.com/chat/completions"
 DEFAULT_MODEL = "deepseek-chat"
-CARD_INJECTION_LIMIT = 16000
-# The window must be larger than the artifacts under review, because a truncated
-# artifact is recorded as `incomplete` and `visible = not incomplete` then fails the
-# audit no matter what the reviewer concluded. At 12000 the two scripts this audit
-# exists to check could not fit — `audit-work-order.py` is ~22k and
-# `freeze-work-order.py` ~32k — so auditing them was self-defeating: every round
-# would report incomplete and the verdict was forced to false before any judgement
-# was read. 40000 covers those artifacts whole with room to spare.
-EVIDENCE_INJECTION_LIMIT = 40000
+# This is a batching threshold, not a truncation or rejection threshold. Objects are
+# never sliced: an object larger than the threshold gets its own full-text batch.
+OBJECT_BATCH_BYTE_LIMIT = max(1, int(os.environ.get("ULTIMA_AUDIT_BATCH_BYTES", "64000")))
 
 
 class OrchestratorError(RuntimeError):
@@ -169,6 +163,93 @@ def _decode(data: bytes) -> str:
     model never saw.
     """
     return data.decode("utf-8-sig", errors="replace")
+
+
+def _audit_object(path: str | Path, role: str, data: bytes,
+                  *, attested_sha256: str | None = None,
+                  attested_bytes: int | None = None) -> dict:
+    digest = hashlib.sha256(data).hexdigest()
+    return {
+        "path": str(path),
+        "name": Path(path).name,
+        "role": role,
+        "data": data,
+        "text": _decode(data),
+        "sha256": digest,
+        "bytes": len(data),
+        "attested_sha256": attested_sha256 or digest,
+        "attested_bytes": len(data) if attested_bytes is None else int(attested_bytes),
+    }
+
+
+def _object_batches(objects: list[dict], limit: int = OBJECT_BATCH_BYTE_LIMIT) -> list[list[dict]]:
+    batches: list[list[dict]] = []
+    current: list[dict] = []
+    current_bytes = 0
+    for item in objects:
+        size = int(item["bytes"])
+        if current and current_bytes + size > limit:
+            batches.append(current)
+            current, current_bytes = [], 0
+        current.append(item)
+        current_bytes += size
+        if size > limit:
+            batches.append(current)
+            current, current_bytes = [], 0
+    if current:
+        batches.append(current)
+    return batches
+
+
+def _coverage(objects: list[dict], batches: list[list[dict]]) -> tuple[list[dict], list[dict], list[dict]]:
+    injected = {item["path"]: 0 for item in objects}
+    for batch in batches:
+        for item in batch:
+            injected[item["path"]] += int(item["bytes"])
+    incomplete, visible, integrity_errors = [], [], []
+    for item in objects:
+        record = {
+            "path": item["path"],
+            "role": item["role"],
+            "sha256": item["attested_sha256"],
+            "attested_bytes": item["attested_bytes"],
+            "injected_bytes": injected[item["path"]],
+        }
+        if item["sha256"] != item["attested_sha256"]:
+            integrity_errors.append({**record, "actual_sha256": item["sha256"]})
+        if record["injected_bytes"] < record["attested_bytes"]:
+            incomplete.append({**record, "missing_bytes": record["attested_bytes"] - record["injected_bytes"]})
+        else:
+            visible.append(record)
+    return incomplete, visible, integrity_errors
+
+
+def _batch_prompt(batch: list[dict], index: int, count: int) -> str:
+    parts = []
+    for item in batch:
+        parts.append(
+            f"## Object {item['role']}: {item['path']}\n"
+            f"sha256={item['attested_sha256']} bytes={item['attested_bytes']}\n"
+            f"{item['text']}"
+        )
+    return f"## Object batch {index}/{count}\n\n" + "\n\n".join(parts)
+
+
+def _aggregate_round(results: list[dict], gate_ids: list[str]) -> dict:
+    per_gate = {
+        gate: ("PASS" if all(result["per_gate"].get(gate) == "PASS" for result in results) else "FAIL")
+        for gate in gate_ids
+    }
+    models = {str(result.get("model") or "unknown") for result in results}
+    return {
+        "passed": bool(results) and all(result["passed"] for result in results),
+        "per_gate": per_gate,
+        "overall": "PASS" if results and all(result["passed"] for result in results) else "FAIL",
+        "model": next(iter(models)) if len(models) == 1 else "mixed",
+        "response": "\n\n".join(result["response"] for result in results),
+        "tokens": sum(int(result.get("tokens") or 0) for result in results),
+        "batches": results,
+    }
 
 
 def gates(card: str) -> list[dict]:
@@ -371,9 +452,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         gate_ids = [g["id"] for g in gate_list]
         checklist = "\n".join(f"- {g['id']}: {g['criterion']} (judged by: {g['how']})" for g in gate_list)
 
-        evidence_parts: list[str] = []
-        evidence_meta: list[dict] = []
-        incomplete: list[str] = []
+        objects = [_audit_object(args.card, "work_order_card", card_bytes)]
         for p in args.evidence:
             # One read, one set of bytes. Reading the text and then re-reading for
             # the digest lets the file be swapped in between: the model would judge
@@ -385,50 +464,63 @@ def main(argv: Sequence[str] | None = None) -> int:
                 print(json.dumps({"blocked": True, "reason": f"unreadable evidence: {p}: {exc}"},
                                  ensure_ascii=False), file=sys.stderr)
                 return 2
-            raw = _decode(data)
-            digest = hashlib.sha256(data).hexdigest()
-            truncated = len(raw) > EVIDENCE_INJECTION_LIMIT
-            evidence_meta.append({"path": str(p), "bytes": len(data),
-                                  "sha256": digest,
-                                  "shown_chars": min(len(raw), EVIDENCE_INJECTION_LIMIT),
-                                  "complete": not truncated})
-            if truncated:
-                incomplete.append(f"{Path(p).name} ({len(raw)} chars)")
-            body = raw[:EVIDENCE_INJECTION_LIMIT] + (
-                "\n[INCOMPLETE: truncated for the reviewer's window]" if truncated else "")
-            evidence_parts.append(f"## {Path(p).name}\n{body}")
+            objects.append(_audit_object(p, "author_artifact", data))
 
-        card_truncated = len(card) > CARD_INJECTION_LIMIT
-        if card_truncated:
-            incomplete.append(f"{Path(args.card).name} (card {len(card)} chars)")
-        card_meta = {"path": str(args.card),
-                     "sha256": hashlib.sha256(card_bytes).hexdigest(),
-                     "bytes": len(card_bytes),
-                     "complete": not card_truncated}
+        batches = _object_batches(objects)
+        incomplete, visible, integrity_errors = _coverage(objects, batches)
+        round1_batches: list[dict] = []
+        round2_batches: list[dict] = []
+        for index, batch in enumerate(batches, start=1):
+            base = (
+                f"Work order: {args.work_order}\n\n"
+                f"## Gates to judge\n{checklist}\n\n"
+                f"## Complete objects supplied for this review\n"
+                f"{_batch_prompt(batch, index, len(batches))}\n"
+            )
+            first = call_deepseek(_ROUND1, base)
+            first_passed, first_gates = _round_passed(first["response"], gate_ids)
+            round1_batches.append({
+                **first,
+                "batch": index,
+                "objects": [item["path"] for item in batch],
+                "passed": first_passed,
+                "per_gate": first_gates,
+                "overall": overall(first["response"]),
+            })
 
-        evidence_text = "\n\n".join(evidence_parts) or "(no evidence supplied)"
-        base = (
-            f"Work order: {args.work_order}\n\n"
-            f"## Gates to judge\n{checklist}\n\n"
-            f"## Work order card (full text)\n{card[:CARD_INJECTION_LIMIT]}\n"
-            f"{'[INCOMPLETE: card truncated]' if card_truncated else ''}\n\n"
-            f"## Author artifacts\n{evidence_text}\n"
-        )
+            second = call_deepseek(
+                _ROUND2,
+                base + f"\n## Round 1 per-gate verdicts\n{json.dumps(first_gates, ensure_ascii=False)}\n"
+                       f"\n## Round 1 reasoning\n{first['response']}\n",
+            )
+            second_passed, second_gates = _round_passed(second["response"], gate_ids)
+            round2_batches.append({
+                **second,
+                "batch": index,
+                "objects": [item["path"] for item in batch],
+                "passed": second_passed,
+                "per_gate": second_gates,
+                "overall": overall(second["response"]),
+            })
 
-        round1 = call_deepseek(_ROUND1, base)
-        pass1, gates1 = _round_passed(round1["response"], gate_ids)
+        round1 = _aggregate_round(round1_batches, gate_ids)
+        round2 = _aggregate_round(round2_batches, gate_ids)
+        passed = (round1["passed"] and round2["passed"]
+                  and not incomplete and not integrity_errors)
 
-        round2 = call_deepseek(
-            _ROUND2,
-            base + f"\n## Round 1 per-gate verdicts\n{json.dumps(gates1, ensure_ascii=False)}\n"
-                   f"\n## Round 1 reasoning\n{round1['response'][:4000]}\n",
-        )
-        pass2, gates2 = _round_passed(round2["response"], gate_ids)
+        def _meta(item: dict) -> dict:
+            covered = next((row for row in visible if row["path"] == item["path"]), None)
+            return {
+                "path": item["path"],
+                "bytes": item["bytes"],
+                "sha256": item["sha256"],
+                "shown_chars": len(item["text"]),
+                "injected_bytes": 0 if covered is None else covered["injected_bytes"],
+                "complete": covered is not None,
+            }
 
-        # Material the reviewer could not see in full cannot be judged. A truncation
-        # means the round passed on a partial read, which is not a pass.
-        visible = not incomplete
-        passed = pass1 and pass2 and visible
+        card_meta = _meta(objects[0])
+        evidence_meta = [_meta(item) for item in objects[1:]]
         # Bind this verdict to the exact artifacts it judged. Without these three
         # fields nothing prevents a passing audit recorded for one run from being
         # copied into another run directory, or being replayed after a fresh
@@ -448,15 +540,19 @@ def main(argv: Sequence[str] | None = None) -> int:
             "evidence": [str(p) for p in args.evidence],
             "evidence_meta": evidence_meta,
             "incomplete_inputs": incomplete,
+            "visible": visible,
+            "integrity_errors": integrity_errors,
+            "object_batches": [
+                {
+                    "batch": index,
+                    "objects": [item["path"] for item in batch],
+                    "bytes": sum(int(item["bytes"]) for item in batch),
+                }
+                for index, batch in enumerate(batches, start=1)
+            ],
             "gates": gate_ids,
-            "round1": {"passed": pass1, "per_gate": gates1,
-                       "overall": overall(round1["response"]),
-                       "model": round1.get("model"),
-                       "response": round1["response"], "tokens": round1.get("tokens")},
-            "round2": {"passed": pass2, "per_gate": gates2,
-                       "overall": overall(round2["response"]),
-                       "model": round2.get("model"),
-                       "response": round2["response"], "tokens": round2.get("tokens")},
+            "round1": round1,
+            "round2": round2,
             "audit_passed": passed,
             # Stated in the artifact itself so nobody mistakes scope later.
             "authority": "quality gate: required for a freeze, cannot authorize what verify-order.py refused; not an independent-party check",
@@ -464,7 +560,9 @@ def main(argv: Sequence[str] | None = None) -> int:
         out = Path(args.run_dir) / "audit.json"
         out.parent.mkdir(parents=True, exist_ok=True)
         out.write_text(json.dumps(audit, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-        print(json.dumps({"audit_passed": passed, "round1": gates1, "round2": gates2,
+        print(json.dumps({"audit_passed": passed, "round1": round1["per_gate"],
+                          "round2": round2["per_gate"],
+                          "visible": visible,
                           "out": str(out)}, ensure_ascii=False))
         return 0 if passed else 2
     except (OSError, UnicodeError, ValueError, OrchestratorError) as exc:

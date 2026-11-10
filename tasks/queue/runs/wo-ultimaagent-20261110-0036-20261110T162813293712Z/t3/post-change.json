@@ -1,0 +1,66 @@
+{
+  "work_order": "wo-ultimaagent-20261110-0036",
+  "gate": "T3",
+  "档位": "改造后",
+  "audit_script_sha256": "fa7105016c73f84f536e58640b183cdcd97381cec1c7491629ebf2d7ee78f1c6",
+  "object_batch_byte_limit": 64000,
+  "injection_rule": "read each object once as bytes, hash those bytes, and inject the full decoded object; batches split only between objects",
+  "round_rule": "two same-identity model rounds per complete-object batch; every batch and both rounds must pass",
+  "incomplete_rule": "an object is incomplete only when its accumulated injected_bytes is less than its attested_bytes",
+  "visible_type": "list",
+  "integrity_rule": "a sha256 mismatch is an integrity error and fails the audit without being mislabeled as incomplete",
+  "probes": {
+    "medium_object": {
+      "characters": 15000,
+      "bytes": 45000,
+      "exit_code": 0,
+      "incomplete": [],
+      "visible_type": "list",
+      "visible_count": 2
+    },
+    "over_batch_limit": {
+      "limit": 64000,
+      "object_bytes": 68096,
+      "exit_code": 0,
+      "batch_count": 2,
+      "object_kept_whole": true,
+      "incomplete": []
+    },
+    "forced_short_injection": {
+      "attested_bytes": 12,
+      "injected_bytes": 5,
+      "missing_bytes": 7,
+      "incomplete_object": "forced-short.bin",
+      "visible": [],
+      "integrity_errors": []
+    }
+  },
+  "offline_replays": {
+    "wo-ultimaagent-20261110-0033": {
+      "old_audit_passed": true,
+      "new_audit_passed": true,
+      "exit_code": 0,
+      "batch_count": 2,
+      "incomplete": [],
+      "visible_count": 8
+    },
+    "wo-ultimaagent-20261110-0035": {
+      "old_audit_passed": true,
+      "new_audit_passed": true,
+      "exit_code": 0,
+      "batch_count": 2,
+      "incomplete": [],
+      "visible_count": 9
+    }
+  },
+  "regression": {
+    "interpreter": "tools/venv-openjarvis/Scripts/python.exe",
+    "command": "python -m pytest scripts/tests -o addopts= -p no:cacheprovider -q",
+    "failed": 6,
+    "passed": 45,
+    "difference_from_baseline": {}
+  },
+  "old_fixed_limit_references": 0,
+  "t3_cutover_commit": null,
+  "cutover_recording": "The code-and-evidence commit is the cutover. Its resulting hash is recorded in this file and baseline-snapshot.json by a following metadata-only commit because a Git commit cannot contain its own hash."
+}
