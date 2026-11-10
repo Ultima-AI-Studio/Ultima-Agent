@@ -972,3 +972,9 @@ broken`），整个验收卡在这一步，只能记未完成。
 - `dispatch-0027-t2-closeout.py`、`watch-0027-then-dispatch-0032.py` → `tasks/queue/_done/20261110/`
 - 链路记录 → `data/evidence/wo-ultimaagent-20261110-0032/dispatch-provenance.md`
 - 新增 `watch-0032-completion.py`，以 `pythonw.exe` 起动（PID 968，`MainWindowHandle=0`），仅监视 25060，完成后自归档副本 + 写 DONE 标记
+
+### L99 · 未提交改动会被同仓并发 merge 清掉；SyntaxError 定位看括号闭合，不看报的行号
+
+1. r17 的 7 个文件改动落在主仓工作区却没能提交——主仓处于别人未完成的 merge（`MERGE_HEAD=43da3f01`、169 个他人已暂存），`git commit -- <paths>` 被 `fatal: cannot do a partial commit during a merge` 直接拒（rc=128）。下一轮再查，工作区已回到 r16：另一条 jarvis-e02 线的合并清理覆盖了未提交改动。**结论：未提交改动随时可能被同仓的 worktree/merge 操作冲掉**；两条硬规矩——要么立刻提交（主仓不可写时先提交到 detached worktree），要么把改动固化成可整序重放的补丁脚本（本轮靠 `%TEMP%\r17_*.py` 全序重放救回）。
+2. 补丁脚本自报 `ok bytes=124842` 只证明"字节数写对了"，不证明"能编译"。`doctor` 那段内层 dict 闭合写成 `),}`（缺尾逗号），`compile()` 报 `line 2045  'locks': {'dir': ...  invalid syntax. Perhaps you forgot a comma?`——报的是 dict **起始行**，真正的缺口在**内层 dict 的闭合行**（2051）。判断方法：`tokenize` 全过而 `compile` 失败 ⇒ 问题只在语句结构（逗号/括号/缩进配对），不在词法。
+3. 补丁脚本必须自带 `compile(src, path, "exec")` 自检后才落盘；只靠 `assert src.count(old)==1` 会漏掉这种"数量对、结构坏"的畸形。
