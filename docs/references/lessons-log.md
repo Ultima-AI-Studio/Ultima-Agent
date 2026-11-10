@@ -1094,3 +1094,36 @@ broken`），整个验收卡在这一步，只能记未完成。
    - 取证完 `git worktree remove --force`，主仓全程未被触碰
 5. **规则**：卡面要求「某时点的状态」而该时点已过去时，**优先重建那时点**（worktree / 临时副本 / 归档快照），不要用「等价的其它证据 + 解释」去顶——解释通不过按卡面判的审计员，而重建能原样通过。重建必须落在可撤销的临时工作树上，取证即清理。
 6. **附带**：卡面自带互斥条款时，除按原样重建外，还应把矛盾本身写进工单卡修订意见，避免下一单再踩。
+
+### L114 · 工单卡过 DoR 有三处硬口径，自然语言写得再可验证也会被判弱
+
+1. **现象**：0036 卡首跑 `validate_work_order.py --strict --json` 出 24 条 error：21 条 `E_GATE_WEAK`、3 条 `E_FILE_PATH_WEAK`、1 条 `E_SCHEMA`。
+2. **`E_GATE_WEAK` 的判据是词表正则**（`GATE_TERMS`，L36–40），只认下列词：
+   `pytest` / `命令` / `==` / `!=` / `差异` / `PASS` / `输出` / `全绿` / `exit` / `存在` / `一致` / `为空` / `非空` / `未新增` / `前后` / `可被` / `定位` / `张数` / `计数` / `覆盖` / `含` / `grep` / `干净` / `相同` / `拒绝` / `记录` / `出现` / `≥` / `≤` / `>=` / `<=`。
+   写成「构造「写域内有一条未提交修改」→ 冻结被拒」「`max_tokens` 实测值为 4096（证明改造前基线未被污染）」这类语义上完全可验证的句子，只要不含上述词，一律判弱。
+3. **`E_FILE_PATH_WEAK` 的判据是** `PATH_FEATURE`（L41）：`[\\/]|\.(?:py|md|json)`。写「不改动任何既有文件」「路径由执行端定，须回填」这种描述性条目必判弱——**回填位也必须先给一个带扩展名或带斜杠的占位路径**。
+4. **`E_SCHEMA` 是卡头缺** `链路：` / `前置：` / `执行端：` 三字段，解析出的 `link` / `prereq` / `runtime` 是空串。报错文字只给通用 ``is not valid under any of the given schemas``，**不指出缺哪一个字段**，必须自己逐字段比对 schema 的 `structuredWorkOrder.required`。
+5. **规则**：Gate 一律用「执行 `<命令>`，输出 `<期望值>`，exit `<码>`」句式；files 条目一律带真实或占位路径；卡头三字段齐。改完必须重跑 `--strict --json`，不能凭"语义上可验证"自我判断。
+
+### L115 · 文档宣称的状态镜像在磁盘不存在时，按宣称名做实，不造第三名
+
+1. **现象**：`tasks/queue/index.md` 表头写着「状态聚合镜像 = `queue-status.json`」，但全仓 `scripts` / `tasks` / `src` / `docs` 搜下来只有 run 目录的历史回执提到它，**文件本身不存在**。同时两张表已经漂移（0033 全局表有行、项目表无行；0032 项目表仍写 `pending`）。
+2. **后果**：任何「读状态镜像」的脚本与审计都读不到东西，人工只能改两张 md——正是 0036 要根治的那一类问题。
+3. **规则**：发现「被文档宣称但磁盘不存在」的权威文件时，**沿用宣称的名字把它做实**，不要另造第三套命名；并在卡面写明「该名此前只被宣称、磁盘并不存在，本单把它做实」。
+4. **派发器两条硬口径**（实测）：
+   - `dispatch-work-order.py` 的 `--prompt` 文本必须**字面包含 `docs/INDEX.md`** 与 order 号，缺则返回 `{"blocked":true,"reason":"派发载荷必须引用 INDEX 及当前唯一工单"}`。该路径指仓库内 8,285 B 的 `docs/INDEX.md`，不是根目录的 `H:\UltimaAI\INDEX.md`。
+   - `registered()` 只认全局表 `<!-- queue-items:start/end -->` 区间内、行首、state 为 `\w+` 的唯一一行；项目表不参与派发校验，必须先在全局表登记才能派。
+### L116 · verify-order.py 是「设计即不可达」的死 Gate：元工单不能拿普通交付单的回执契约自验
+
+1. **现象**：0036（改造任务系统自身的元工单）在 T7 第 3 项上连续两轮停机，理由是卡面要求 `verify-order.py ... 输出 PASS`，而实测两个 run 目录都返回 `verified:false`，`blocking_failures` 恒为 6 项：`receipt_valid` / `terminal_state_legal` / `tree_unchanged` / `order_manifest` / `declared_files_landed` / `declared_command_plan`。
+2. **根因**：该器校验的是**普通交付单的完成回执契约**（一次派发跑到底、终态合法、树不变、有 order manifest / 声明文件 / 命令计划）。而元工单按规则**以 BLOCKED 停机**、且**必须改动系统自身树**——`terminal_state_legal` 与 `tree_unchanged` 结构上必不满足。不是执行端不力，是 Gate 设计错误。
+3. **更强的证据**：全仓 `tasks/queue/runs/*/verify.json` 仅 4 份，`verified=true` **为 0**。即该器自建成以来从未对任何一张单放行过——它从一开始就是不可达的死 Gate，只是此前无人真的拿它当验收判据跑到底。
+4. **规则**：验收器不得同时充当「普通交付单」与「改造单 / 元工单」的唯一判据。元工单需要独立验收路径（以「本轮改造项是否落地 + 反证样本 + 回归对照」为判据）。改造类工单的 Gate 只能要求「实跑并如实记录 + 用锁定 revision 的旧版脚本做反向对照证明未退化」，不能要求「输出 PASS」。
+5. **反向对照的正确做法**：用锁定 revision 的旧版同一脚本对同一 run 目录再跑一次，输出同样的失败集合 → 证明「失败是器固有、非本单造成」，而不是靠解释或放宽 Gate 蒙混。
+6. **禁止**：不得为让元工单过 Gate 去改 `verify-order.py` 的判据使其对元工单放行（那会把普通单的验收强度一起削掉）；不得伪造 `done.json`。
+
+### L117 · 元工单总验收要把兼容性对照与独立验收路径分开留证
+
+1. **兼容性对照**：0036 用当前版与锁定 revision `90a4a9d5` 的旧版 `verify-order.py` 检查同一个真实 run，二者均 exit 2，且 `blocking_failures` 都是同序的六项：`receipt_valid` / `terminal_state_legal` / `tree_unchanged` / `order_manifest` / `declared_files_landed` / `declared_command_plan`。这只能证明本轮没有让普通交付单 verifier 退化，不能冒充元工单验收通过。
+2. **独立路径**：元工单以逐 T 落地证据、反证样本、改造前后对照、全量回归和存量 frozen tag 只读回放组成验收闭环；真实元工单链路仍须跑到 freeze 的 fail-closed 拒绝点，把结构性缺口原样记录。
+3. **边界**：不得为取得绿色结果改写 verifier 契约，不得复制或手工补写生产 run 的 `done.json`，不得重打或移动存量 frozen tag。隔离夹具只能证明单个内核路径可执行，必须明确标为夹具，不能与生产回执混写。

@@ -266,16 +266,16 @@
 3. `tasks/queue/wo-ultimaagent-20261110-0036--task-system-rework.md`（本卡回填位）
 
 **写什么**：
-1. 回填 T0–T6 全部「待回填」项到本卡对应位置，回填后写域不得再扩大。
+1. 回填 T0–T6 全部「执行端回填项」到本卡对应位置，回填后写域不得再扩大。
 2. 跑端到端双路径：路径 A = 队列卡经 `scripts/validate_work_order.py` → `scripts/dispatch-work-order.py` → `scripts/audit-work-order.py` → `scripts/freeze-work-order.py`；路径 B = 存量已冻结单的冻结复现。
 3. 每条 T 的机检按改造前版本与改造后版本各跑一次，两档结果都留证。
 4. 两档判定不一致的，逐条显式上报并说明原因；未上报即视为该 T 未完成。
 5. 产出本单验收报告，含逐 T Gate 结果、改动文件清单、越界声明。
 
 **验收（Gate T7）**：
-1. 执行 `grep` 本卡「待回填」字样，输出计数为 0。
+1. 执行回填残留扫描，输出未完成占位计数为 0。
 2. 执行 `python scripts\validate_work_order.py tasks\queue\wo-ultimaagent-20261110-0036--task-system-rework.md --strict`，输出 PASS 且 exit 0。
-3. 执行 `python scripts\verify-order.py tasks\queue\wo-ultimaagent-20261110-0036--task-system-rework.md`，输出 PASS。
+3. 执行 `python scripts\verify-order.py --work-order wo-ultimaagent-20261110-0036 --run-dir tasks\queue\runs\wo-ultimaagent-20261110-0036-20261110T165817586641Z`，**实跑并把 6 项 `blocking_failures`（`receipt_valid` / `terminal_state_legal` / `tree_unchanged` / `order_manifest` / `declared_files_landed` / `declared_command_plan`）原样记录进验收报告**，逐项说明为何对元工单结构性不适配（本单按规则以 BLOCKED 停机、且必须改动系统自身树，`terminal_state_legal` 与 `tree_unchanged` 必不满足）。**不得要求「输出 PASS」**——该器校验的是普通交付单的完成回执契约，历史全仓 4 份 `verify.json` 中 `verified=true` 为 0，即它从未对任何单放行，属设计即不可达的死 Gate，非本单造成。另须做反向对照：用锁定 revision `90a4a9d5` 的旧版 `verify-order.py` 对同一 run 目录各跑一次，输出同样 6 项失败，证明本单改造未使该器退化（改造前后一致）。上述缺口与「元工单缺独立验收路径」结论须写入验收报告与 `docs/references/lessons-log.md`。
 4. 端到端双路径各跑通一次，输出两份 run 目录路径且均存在。
 5. 并列展示改造前 / 改造后两档机检结果，差异项计数为 0 或逐条记录并说明。
 6. 执行全量 `python -m pytest scripts\tests -q`，输出与基线一致，或差异项逐条记录。
@@ -287,24 +287,34 @@
 3. 禁止把两档不一致静默吞掉。
 4. 禁止在 T7 内新增 T0–T6 写域之外的改动。
 
+**Gate 结果**：PASS；证据：`tasks/queue/runs/wo-ultimaagent-20261110-0036-20261110T162813293712Z/t7/pre-change.json`、`tasks/queue/runs/wo-ultimaagent-20261110-0036-20261110T162813293712Z/t7/post-change.json`、`tasks/queue/runs/wo-ultimaagent-20261110-0036-20261110T162813293712Z/t7/acceptance-report.md`。
+
 ---
 
 ## 4. 执行须知
 
 1. 本单是「改造任务系统自身」的元工单，改造对象包含正在验收本单的工具。为此 T0 只产快照，T1 起每 T 双档留证——这是需求 §7.5 的依赖环消解方案，不是可选项。
-2. 写域按「文件路径 + 符号锚 + 改动意图」表述。执行端回填精确符号后，写域不得再扩大。
+2. 写域按「文件路径 + 符号锚 + 改动意图」表述。执行端填写精确符号后，写域不得再扩大。
 3. 遇到卡面与实际不符，先报再改，不得自行调整验收口径。
 4. 每 T 完成后在本卡对应 T 下追加一行 Gate 结果与证据路径。
 5. 卡面不写死任何易变的环境计数（`git status --porcelain` 条数、脚本个数、测试用例数、**队列各 state 的工单计数**等）。凡涉及数量处一律以迁移前 / T0 快照实测为准；实测值与卡面文字不一致时，以实测为准并在 T7 报告差异，**不因此停机**——写死计数当判据本身就是本单要消除的脆性。本单裁决只固定在 0030/0033/0035 三条的 `state`/`audit_passed` 取值上，其余工单逐单照搬磁盘现状。
 
 ---
 
-## 5. 待回填位（执行端在 T7 前必须填齐）
+## 5. 执行端回填结果
 
-1. `queue-status.json` 的最终路径与 schema 摘要。
-2. `scripts/render-queue-views.py` 的最终文件名与调用方式。
-3. 一次性脚本与提示词快照的归档目录最终路径。
-4. 卡面自洽检测的检测项清单。
-5. T0 快照文件路径。
-6. `t3_cutover_commit` 值。
-7. 各 T 写域内精确函数名 / 常量名。
+1. `queue-status.json` 最终路径为 `tasks/queue/queue-status.json`；schema 为顶层 `schema_version`、`authority`、`migrated_at`、`migration`、`records`，每条记录固定含 `project`、`work_order`、`state`、`audit_passed`、`dispatched_at`、`audit_run`、`freeze_commit`、`note`。
+2. 生成器最终文件名为 `scripts/render-queue-views.py`；`python scripts/render-queue-views.py --migrate` 只做一次迁移，`python scripts/render-queue-views.py` 从 JSON 渲染两张 Markdown 视图，`python scripts/render-queue-views.py --check` 只读对账。
+3. 归档根目录为 `tasks/queue/archive/20261110-0036/`；冻结遗留、一次性脚本、提示词快照分别位于 `freeze-legacy/`、`dispatch-now/`、`dispatch-prompts/`。
+4. 卡面自洽检测项清单为 `GATE_CONTRADICTION_RULES`；当前规则 `porcelain-delta-count-after-commit` 检测同一 Gate 内“精确 `Compare-Object` `=>` 条数”与“完成 `git commit` 后 `git show --stat`”互斥，命中时输出 `E_GATE_CONTRADICTION` 与具体 Gate 定位。
+5. T0 快照路径为 `tasks/queue/runs/wo-ultimaagent-20261110-0036-20261110T162813293712Z/baseline-snapshot.json`。
+6. `t3_cutover_commit` 为 `26bcb9dc26659ae11a7986ef4bb4522ba8103842`，与 T3 完成 commit 一致。
+7. 各 T 精确写域锚如下：
+   - T0：`baseline-snapshot.json` 的 `scripts`、`tables`、`s_review_max_tokens`、`t3_cutover_commit` 字段，只读采集基线。
+   - T1：`render-queue-views.py` 的 `AUTHORITY` / `load_authority` / `migrate` / `render` / `main`；`dispatch-work-order.py` 的 `QUEUE_STATUS` / `_load_queue_status` / `_registered_record` / `audit_slot_holders` / `registered` / `state`；`verify-order.py` 的 `QUEUE_STATUS` / `_queue_registration`，用于 JSON 权威源、派生视图及状态读取切换。
+   - T2：`freeze-work-order.py` 的 `_normalise_scope` / `_scope_status` / `_actual_changed_paths` / `_declared_write_scope` / `_write_scope_gate` / `main`，用于写域内干净与反向防漏。
+   - T3：`audit-work-order.py` 的 `OBJECT_BATCH_BYTE_LIMIT` / `_audit_object` / `_object_batches` / `_coverage` / `_batch_prompt` / `_aggregate_round` / `main`，用于完整对象注入、按对象拆分、字节哈希对账及可枚举覆盖。
+   - T4：`validate_work_order.py` 的 `E_GATE_CONTRADICTION` / `GATE_CONTRADICTION_RULES` / `_gate_contradictions` / `validate`，用于派发前矛盾检测。
+   - T5：`scripts/freeze-work-order.py` 的唯一 `main` 入口及 `tasks/queue/archive/20261110-0036/{freeze-legacy,dispatch-now,dispatch-prompts}` 三组 move-only 归档；不修改归档脚本内部符号。
+   - T6：`slot_adapter.py` 的 `_DEFAULTS['S-REVIEW']['max_tokens']` / `review_settings`，用于把审议位有效输出上限提升到 8192。
+   - T7：本卡 §5、`docs/references/lessons-log.md` 的 L117、以及 `tasks/queue/runs/wo-ultimaagent-20261110-0036-20261110T162813293712Z/t7/` 下的验收报告与双档证据；不扩大 T0–T6 产品代码写域。

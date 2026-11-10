@@ -1,0 +1,312 @@
+{
+  "work_order": "wo-ultimaagent-20261110-0036",
+  "verified": false,
+  "blocking_failures": [
+    "receipt_valid",
+    "terminal_state_legal",
+    "tree_unchanged",
+    "order_manifest",
+    "declared_files_landed",
+    "declared_command_plan"
+  ],
+  "checks": [
+    {
+      "check": "queue_registration",
+      "passed": true,
+      "detail": "state=executing; source=H:\\UltimaAI\\UltimaAgent\\tasks\\queue\\queue-status.json",
+      "command": "read tasks/queue/queue-status.json"
+    },
+    {
+      "check": "done_json_readable",
+      "passed": true,
+      "detail": "exit_code=0 sha256=b1cc5a971032",
+      "command": "sha256 of done.json"
+    },
+    {
+      "check": "exit_code_zero",
+      "passed": true,
+      "detail": "exit_code=0",
+      "command": "done.json:exit_code"
+    },
+    {
+      "check": "receipt_valid",
+      "passed": false,
+      "detail": "receipt_valid=False",
+      "command": "done.json:receipt_valid"
+    },
+    {
+      "check": "receipt_names_itself",
+      "passed": true,
+      "detail": "done.json work_order=wo-ultimaagent-20261110-0036 run_id=wo-ultimaagent-20261110-0036-20261110T165817586641Z; expected wo-ultimaagent-20261110-0036 / wo-ultimaagent-20261110-0036-20261110T165817586641Z",
+      "command": "done.json:work_order, done.json:run_id"
+    },
+    {
+      "check": "terminal_state_legal",
+      "passed": false,
+      "detail": "state=blocked; only audit/frozen may be frozen",
+      "command": "done.json:state"
+    },
+    {
+      "check": "no_slot_block",
+      "passed": true,
+      "detail": "audit_slot_busy=False",
+      "command": "done.json:audit_slot_busy"
+    },
+    {
+      "check": "parent_alive",
+      "passed": true,
+      "detail": "parent_lost=False",
+      "command": "done.json:parent_lost"
+    },
+    {
+      "check": "receipt_bound_to_a_commit",
+      "passed": true,
+      "detail": "end_sha=ce0e4c12f2d6",
+      "command": "done.json:end_sha"
+    },
+    {
+      "check": "tree_unchanged",
+      "passed": false,
+      "detail": "20 recorded entries rehashed; tree unchanged, status set differs; drifted=['docs/references/lessons-log.md', 'tasks/queue/index.md', 'tasks/queue/queue-status.json'] vanished=[]; newly differing=['tasks/queue/wo-ultimaagent-20261110-0036--task-system-rework.md']",
+      "command": "git rev-parse HEAD^{tree}; git status --porcelain -uno; sha256 of each recorded file"
+    },
+    {
+      "check": "order_card_resolved",
+      "passed": true,
+      "detail": "H:\\UltimaAI\\UltimaAgent\\tasks\\queue\\wo-ultimaagent-20261110-0036--task-system-rework.md",
+      "command": "resolve_card_path"
+    },
+    {
+      "check": "order_manifest",
+      "passed": false,
+      "detail": "the order carries no gorch-manifest block; declared files and machine checks would be parsed out of prose",
+      "command": "H:\\UltimaAI\\UltimaAgent\\tasks\\queue\\wo-ultimaagent-20261110-0036--task-system-rework.md"
+    },
+    {
+      "check": "declared_files_landed",
+      "passed": false,
+      "detail": "work order declares no file list; the delivered output cannot be located",
+      "command": "H:\\UltimaAI\\UltimaAgent\\tasks\\queue\\wo-ultimaagent-20261110-0036--task-system-rework.md"
+    },
+    {
+      "check": "no_untracked_test_inputs",
+      "passed": true,
+      "detail": "no untracked conftest/pytest config in the collected roots",
+      "command": "git ls-files --others --exclude-standard; filter conftest.py and pytest config names under tests/ and tasks/queue_engine/, plus root-level ones"
+    },
+    {
+      "check": "declared_command_plan",
+      "passed": false,
+      "detail": "the order declares no mechanical check; nothing would prove the delivered tree runs",
+      "command": "**机检** / manifest commands"
+    }
+  ],
+  "head": "ce0e4c12f2d6bc724d95c0ab459a0a67506e13a8",
+  "tree_oid": "6309df72cbb98bcb0d3dd1d6292517b7f9157be5",
+  "done_sha256": "b1cc5a971032497343e79df92e04b749c0a3b5756d7e4c1880959f30a6324da7",
+  "changed_files": [
+    {
+      "path": ".superpowers/sdd/jarvis-work-e02-code-claim-contract-alignment-proposal-20261107/progress.md",
+      "code": " M",
+      "sha256": "f154ed2de1b72964a74d69499b531b51de8169c1ebcd3ad7871a167e04f09af7",
+      "orig": null
+    },
+    {
+      "path": ".superpowers/sdd/jarvis-work-e02-fixed-target-schema-alignment-proposal-20261107/progress.md",
+      "code": " M",
+      "sha256": "31202dc0a08b5ecb0e237ecacf14a8663826acbdf014e3479c6fe97eab571fe2",
+      "orig": null
+    },
+    {
+      "path": ".superpowers/sdd/jarvis-work-e02-native-write-failure-diagnostics-proposal-20261107/progress.md",
+      "code": " M",
+      "sha256": "ab20f00bee7e7a7951d4d8376ae06dd2ba9fc382782ec79a3b5575771f94237e",
+      "orig": null
+    },
+    {
+      "path": ".superpowers/sdd/jarvis-work-e02-source-reference-schema-alignment-proposal-20261107/progress.md",
+      "code": " M",
+      "sha256": "fdf0641d2bc971863be68b4d0abb891f2f57840220d1faeca974b177d00993c8",
+      "orig": null
+    },
+    {
+      "path": ".superpowers/sdd/jarvis-work-e02-source13-child-admission-recovery-proposal-20261107/progress.md",
+      "code": " M",
+      "sha256": "854bae53e5581645f425e17eb29f79b86ec1b2ddf1a9115b5266cd716934a5f4",
+      "orig": null
+    },
+    {
+      "path": ".superpowers/sdd/jarvis-work-e02-source13-native-metadata-compat-proposal-20261107/progress.md",
+      "code": " M",
+      "sha256": "aeccf749a4b92cdeb9476486c759a75aa05b365e082dfeff61f35bdd95828e0e",
+      "orig": null
+    },
+    {
+      "path": "config/interface-routing.json",
+      "code": " M",
+      "sha256": "e6e39b817f1f8c958b3c068d7cbdf3f45a97aec26003d5f7fc9868835198f6fc",
+      "orig": null
+    },
+    {
+      "path": "data/evidence/jarvis-work-capability/T2/e02-source13-audit-closeout-20261106/profile-preparation/manifest.json",
+      "code": " M",
+      "sha256": "6b09fbe493fa8e9a030d53993111d96d2bc91980599c294c599818ac64bacb63",
+      "orig": null
+    },
+    {
+      "path": "data/evidence/jarvis-work-capability/T2/e02-source13-audit-closeout-20261106/profile-preparation/profile.py",
+      "code": " M",
+      "sha256": "b29069cee6c530c984cc50894192424f670ebeb504700619cb4beb351952122a",
+      "orig": null
+    },
+    {
+      "path": "data/evidence/jarvis-work-capability/T2/e02-source13-audit-closeout-20261106/profile-preparation/test_profile.py",
+      "code": " M",
+      "sha256": "ed6a69e8e8491cab58a7786784497cda667499da2048e4d2bbadfea21e1886af",
+      "orig": null
+    },
+    {
+      "path": "docs/references/lessons-log.md",
+      "code": " M",
+      "sha256": "0357656b3cd87d41a60d44af9adf05a22039553b138634bf95535a374d58583b",
+      "orig": null
+    },
+    {
+      "path": "docs/reports/audit-module12-20261108.md",
+      "code": " M",
+      "sha256": "742cbe2ad6c3158b4c6e1a7fa231cc0e2856fdf0ec0d3dcc26870b23b608dc09",
+      "orig": null
+    },
+    {
+      "path": "docs/reports/jarvis-work-e02-evidence-scope-plan-review-20261108.md",
+      "code": " M",
+      "sha256": "4bbe62f3da4ed0fcb654c1333be2c478b451e7e526a7894ad81898c9fae03833",
+      "orig": null
+    },
+    {
+      "path": "docs/reports/jarvis-work-t2-current8b-interface-resume-20261102.md",
+      "code": " M",
+      "sha256": "a610c3bffdf3595ba35057de6c7302385f6b8013f5cb7dbc211c449f6ad36715",
+      "orig": null
+    },
+    {
+      "path": "docs/reports/jarvis-work-t2-e02-audit-closeout-diagnosis-20261106.md",
+      "code": " M",
+      "sha256": "b112c9823da86550cce87e397c94d670a421c5b8b6c51e2fed6d589a8caa68fb",
+      "orig": null
+    },
+    {
+      "path": "tasks/events/wo-ultimaagent-20261101-0021-t2.jsonl",
+      "code": " M",
+      "sha256": "5c99b1f63fa0a49584ffbbf986f6bed19d0022fd3d1ecc2f5f820723717a675c",
+      "orig": null
+    },
+    {
+      "path": "tasks/queue/index.md",
+      "code": " M",
+      "sha256": "faf072bda354305129de18b2f9c25048fa8b26b1098f7743facfad3fa0a06550",
+      "orig": null
+    },
+    {
+      "path": "tasks/queue/queue-status.json",
+      "code": " M",
+      "sha256": "42fd9ec8c3ba8359f23138a7c4600b51d25089556c09da4f67713ccaa125f573",
+      "orig": null
+    },
+    {
+      "path": "tasks/queue/wo-ultimaagent-20261108-0027--audit-stage-gate.md",
+      "code": " M",
+      "sha256": "4a203009e2777587609bbb42ff4f7daf6cdd975621f33430a59f9c9739d857b6",
+      "orig": null
+    },
+    {
+      "path": "tasks/tasks.json",
+      "code": " M",
+      "sha256": "8c788d49b9bc8c6807780d3c3285286c5339879dd00de82737e3e433eec22317",
+      "orig": null
+    }
+  ],
+  "status_entries": [
+    {
+      "code": " M",
+      "path": ".superpowers/sdd/jarvis-work-e02-code-claim-contract-alignment-proposal-20261107/progress.md"
+    },
+    {
+      "code": " M",
+      "path": ".superpowers/sdd/jarvis-work-e02-fixed-target-schema-alignment-proposal-20261107/progress.md"
+    },
+    {
+      "code": " M",
+      "path": ".superpowers/sdd/jarvis-work-e02-native-write-failure-diagnostics-proposal-20261107/progress.md"
+    },
+    {
+      "code": " M",
+      "path": ".superpowers/sdd/jarvis-work-e02-source-reference-schema-alignment-proposal-20261107/progress.md"
+    },
+    {
+      "code": " M",
+      "path": ".superpowers/sdd/jarvis-work-e02-source13-child-admission-recovery-proposal-20261107/progress.md"
+    },
+    {
+      "code": " M",
+      "path": ".superpowers/sdd/jarvis-work-e02-source13-native-metadata-compat-proposal-20261107/progress.md"
+    },
+    {
+      "code": " M",
+      "path": "config/interface-routing.json"
+    },
+    {
+      "code": " M",
+      "path": "data/evidence/jarvis-work-capability/T2/e02-source13-audit-closeout-20261106/profile-preparation/manifest.json"
+    },
+    {
+      "code": " M",
+      "path": "data/evidence/jarvis-work-capability/T2/e02-source13-audit-closeout-20261106/profile-preparation/profile.py"
+    },
+    {
+      "code": " M",
+      "path": "data/evidence/jarvis-work-capability/T2/e02-source13-audit-closeout-20261106/profile-preparation/test_profile.py"
+    },
+    {
+      "code": " M",
+      "path": "docs/references/lessons-log.md"
+    },
+    {
+      "code": " M",
+      "path": "docs/reports/audit-module12-20261108.md"
+    },
+    {
+      "code": " M",
+      "path": "docs/reports/jarvis-work-e02-evidence-scope-plan-review-20261108.md"
+    },
+    {
+      "code": " M",
+      "path": "docs/reports/jarvis-work-t2-current8b-interface-resume-20261102.md"
+    },
+    {
+      "code": " M",
+      "path": "docs/reports/jarvis-work-t2-e02-audit-closeout-diagnosis-20261106.md"
+    },
+    {
+      "code": " M",
+      "path": "tasks/events/wo-ultimaagent-20261101-0021-t2.jsonl"
+    },
+    {
+      "code": " M",
+      "path": "tasks/queue/index.md"
+    },
+    {
+      "code": " M",
+      "path": "tasks/queue/queue-status.json"
+    },
+    {
+      "code": " M",
+      "path": "tasks/queue/wo-ultimaagent-20261108-0027--audit-stage-gate.md"
+    },
+    {
+      "code": " M",
+      "path": "tasks/tasks.json"
+    }
+  ],
+  "verified_at": "2026-11-10T17:54:56.782688+00:00"
+}
