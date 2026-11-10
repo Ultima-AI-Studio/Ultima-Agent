@@ -25,7 +25,7 @@ def _resolve_shared_queue(root: Path) -> Path:
     ``root.parent/'_shared/queue'`` 只在主仓布局成立（root=H:\\UltimaAI\\UltimaAgent）。
     在隔离工作树（H:\\UltimaAI\\_worktrees\\gorch\\<task>）下 parent 不是 H:\\UltimaAI，
     会指到不存在的目录，派发直接撞 Errno 2。这里优先环境变量，其次自 root 向上
-    逐级探测带 global-queue-index.md 的 _shared/queue；都没有时退回旧行为，
+    逐级探测已存在的 _shared/queue 目录；都没有时退回旧行为，
     保持主仓语义不变。
     """
     override = os.environ.get('GORCH_SHARED_QUEUE')
@@ -33,12 +33,14 @@ def _resolve_shared_queue(root: Path) -> Path:
         return Path(override)
     for base in (root, *root.parents):
         candidate = base / '_shared' / 'queue'
-        if (candidate / 'global-queue-index.md').is_file():
+        if candidate.is_dir():
             return candidate
     return root.parent / '_shared/queue'
 
 
 SHARED = _resolve_shared_queue(ROOT)
+QUEUE_STATUS = ROOT / 'tasks/queue/queue-status.json'
+QUEUE_RENDERER = ROOT / 'scripts/render-queue-views.py'
 sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(ROOT / 'scripts'))
 from tasks.queue_engine.dispatcher import DispatchLock, process_identity
@@ -232,7 +234,31 @@ def _audit_slot_age_days(order: str, reason: str, now, runs_root: Path | None = 
     return (now - latest).total_seconds() / 86400.0
 
 
-def audit_slot_holders(current: str, order: str, now=None, runs_root: Path | None = None) -> tuple[list[str], list[dict]]:
+def _load_queue_status(path: Path | None = None) -> dict:
+    source = path or QUEUE_STATUS
+    try:
+        document = json.loads(source.read_text(encoding='utf-8-sig'))
+    except (OSError, ValueError) as exc:
+        raise ValueError(f'queue-status.json 不可读，拒绝派发：{exc}') from exc
+    records = document.get('records')
+    if document.get('schema_version') != 1 or not isinstance(records, list):
+        raise ValueError('queue-status.json schema 无效，拒绝派发')
+    identities = [(item.get('project'), item.get('work_order')) for item in records
+                  if isinstance(item, dict)]
+    if len(identities) != len(records) or len(set(identities)) != len(identities):
+        raise ValueError('queue-status.json 登记身份缺失或重复，拒绝派发')
+    return document
+
+
+def _registered_record(document: dict, order: str) -> dict:
+    matches = [item for item in document['records']
+               if item.get('project') == 'UltimaAgent' and item.get('work_order') == order]
+    if len(matches) != 1:
+        raise ValueError('工单未在 JSON 权威源唯一登记，拒绝派发')
+    return matches[0]
+
+
+def audit_slot_holders(current: dict, order: str, now=None, runs_root: Path | None = None) -> tuple[list[str], list[dict]]:
     """Split the other orders sitting in audit into blocking and disregarded.
 
     Returns (blocking, disregarded). Disregarded entries carry why they were
@@ -240,16 +266,13 @@ def audit_slot_holders(current: str, order: str, now=None, runs_root: Path | Non
     """
     now = now or datetime.now(timezone.utc)
     blocking, disregarded = [], []
-    for line in current.splitlines():
-        if not line.startswith('| ') or ' | audit | ' not in line:
+    for item in current['records']:
+        if item.get('state') != 'audit':
             continue
-        parts = [c.strip() for c in line.strip().strip('|').split('|')]
-        if len(parts) < 3 or parts[2] != 'audit':
-            continue
-        holder = parts[1]
+        holder = str(item.get('work_order') or '')
         if holder == order:
             continue
-        reason = '|'.join(parts[3:])
+        reason = str(item.get('note') or '')
         if any(m in reason for m in _AUDIT_FROZEN_MARKERS):
             disregarded.append({'order': holder, 'why': 'reason records it as frozen outside the flow'})
             continue
@@ -373,54 +396,57 @@ def completion_lock():
 
 
 def registered(order):
-    text = (SHARED / 'global-queue-index.md').read_bytes().decode('utf-8')
-    pattern = r'^\| UltimaAgent \| ' + re.escape(order) + r' \| (\w+) \| ([^\r\n]*)\|(?=\r?$)'
-    start, end = text.find('<!-- queue-items:start -->'), text.find('<!-- queue-items:end -->')
-    matches = list(re.finditer(pattern, text, re.M))
-    if start < 0 or end <= start or len(matches) != 1 or not start < matches[0].start() < end:
-        raise ValueError('工单未在全局唯一登记，拒绝派发')
-    match = matches[0]
-    return text, match, pattern
+    document = _load_queue_status()
+    return document, _registered_record(document, order)
 
-def check_recovery_fence(match,expected_state,expected_run,reservation):
+def check_recovery_fence(record,expected_state,expected_run,reservation):
     if expected_state is None and expected_run is None and reservation is None:
         return
     if not expected_state or not expected_run or not reservation:
         raise RuntimeError('恢复必须同时绑定状态、原运行和预约标识')
-    if match.group(1)!=expected_state or expected_run not in match.group(2) or reservation not in match.group(2):
+    note = str(record.get('note') or '')
+    if record.get('state') != expected_state or expected_run not in note or reservation not in note:
         raise RuntimeError('恢复预约已过期或登记被其他裁决改变，拒绝启动')
 
 
 def state(order, target, reason, run, *, expected=None, expected_run=None):
-    path = SHARED / 'global-queue-index.md'
-    original, match, pattern = registered(order)
-    if expected is not None and match.group(1) != expected:
+    path = QUEUE_STATUS
+    original = path.read_bytes()
+    document = _load_queue_status(path)
+    record = _registered_record(document, order)
+    if expected is not None and record.get('state') != expected:
         raise RuntimeError('工单状态已变化，拒绝覆盖其他裁决')
-    if expected_run is not None and expected_run not in match.group(2):
+    if expected_run is not None and expected_run not in str(record.get('note') or ''):
         raise RuntimeError('运行轮次已变化，拒绝旧执行回写')
-    (run / ('registry-before-' + target + '.md')).write_bytes(original.encode('utf-8'))
-    text = re.sub(pattern, lambda _: f'| UltimaAgent | {order} | {target} | {reason} |', original, count=1, flags=re.M)
-    if path.read_bytes() != original.encode('utf-8'):
+    (run / ('queue-status-before-' + target + '.json')).write_bytes(original)
+    record['state'] = target
+    record['note'] = reason
+    if target == 'executing':
+        record['dispatched_at'] = datetime.now(timezone.utc).isoformat()
+    if target == 'audit':
+        record['audit_run'] = run.name
+    updated = (json.dumps(document, ensure_ascii=False, indent=2) + '\n').encode('utf-8')
+    if path.read_bytes() != original:
         raise RuntimeError('全局登记已并发变化，拒绝覆盖')
-    temporary = path.with_name('global-queue-index.' + run.name + '.tmp')
-    temporary.write_bytes(text.encode('utf-8'))
+    temporary = path.with_name('queue-status.' + run.name + '.tmp')
+    temporary.write_bytes(updated)
     try:
         temporary.replace(path)
     except PermissionError:
         # Some Windows readers allow WRITE but deny DELETE sharing. Stay under
         # the dispatch lock, recheck exact bytes, and retain the durable backup.
         with path.open('r+b') as stream:
-            if stream.read() != original.encode('utf-8'):
+            if stream.read() != original:
                 raise RuntimeError('全局登记已并发变化，拒绝覆盖')
             stream.seek(0)
-            stream.write(text.encode('utf-8'))
+            stream.write(updated)
             stream.truncate()
             stream.flush()
             os.fsync(stream.fileno())
         temporary.unlink()
-    if path.read_bytes() != text.encode('utf-8'):
+    if path.read_bytes() != updated:
         raise RuntimeError('全局登记写入后核对失败')
-    subprocess.run([sys.executable, str(SHARED / 'queue-status-gen.py')], check=True,
+    subprocess.run([sys.executable, str(QUEUE_RENDERER)], check=True,
                    capture_output=True, timeout=20, creationflags=0x08000000)
 
 
@@ -464,8 +490,8 @@ def main():
         return 0
     if args.dor_record is not None:
         raise ValueError('--dor-record 仅供 --dry-run-dor 测试使用')
-    text, match, _ = registered(args.order)
-    if match.group(1) not in ({'pending', 'blocked', 'audit'} if args.repair else {'pending'}):
+    queue, record = registered(args.order)
+    if record.get('state') not in ({'pending', 'blocked', 'audit'} if args.repair else {'pending'}):
         raise ValueError('当前状态不允许派发；修复续行须显式 --repair')
     prompt = args.prompt.read_text(encoding='utf-8-sig')
     if 'docs/INDEX.md' not in prompt or args.order not in prompt:
@@ -511,9 +537,9 @@ def main():
         raise ValueError('Codex 执行器不存在（PATH 与常见安装路径均未找到；可用 ULTIMA_CODEX_EXE 显式指定）')
     admission = DispatchLock(SHARED / '.engineering-dispatch.lock')
     with admission:
-        text, match, _ = registered(args.order)
-        check_recovery_fence(match,args.expected_state,args.expected_run,args.expected_reservation)
-        if match.group(1) not in ({'pending', 'blocked', 'audit'} if args.repair else {'pending'}):
+        queue, record = registered(args.order)
+        check_recovery_fence(record,args.expected_state,args.expected_run,args.expected_reservation)
+        if record.get('state') not in ({'pending', 'blocked', 'audit'} if args.repair else {'pending'}):
             raise ValueError('锁内复核：工单状态不再允许派发')
         if cards:
             check_version_gates({'card_path': str(ROOT / 'tasks/cards' / cards[0] / 'task.md')}, ROOT / 'tasks')
@@ -527,7 +553,8 @@ def main():
             raise ValueError('Codex 进程用途不明，按忙处理')
         if len(active) >= 3 or any(not item['project'] or Path(item['project']).resolve() == ROOT for item in active):
             raise ValueError('全局或项目实际执行 WIP 闸门未通过')
-        if re.search(r'^\| UltimaAgent \| [^|]+ \| executing \|', text, re.M):
+        if any(item.get('project') == 'UltimaAgent' and item.get('state') == 'executing'
+               for item in queue['records']):
             raise ValueError('本项目登记仍有执行中工单，须先核查回执')
         if not args.execute:
             print(json.dumps({'ready': True, 'order': args.order, 'codex_roles': processes}, ensure_ascii=False))
@@ -550,7 +577,7 @@ def main():
                    '--skip-git-repo-check', '--json', '--color', 'never',
                    '--output-last-message', str(final), '-']
         reservation_note=('；reservation='+args.expected_reservation) if args.expected_reservation else ''
-        state(args.order, 'executing', f'真实工单派发 {run.name}，一单一进程；尚未验收'+reservation_note, run, expected=match.group(1))
+        state(args.order, 'executing', f'真实工单派发 {run.name}，一单一进程；尚未验收'+reservation_note, run, expected=record.get('state'))
         worker = None
         guardian = None
         sentinel_process = None
@@ -624,7 +651,7 @@ def main():
             # Completion is a second short critical section. Never decide the
             # audit slot from an unlocked snapshot or overwrite a newer run.
             with completion_lock():
-                current, _, _ = registered(args.order)
+                current, _ = registered(args.order)
                 blocking, disregarded = audit_slot_holders(current, args.order)
                 # The slot count used to be an implicit 1, which made the control
                 # unreachable in practice: ordinary work orders queued outside it

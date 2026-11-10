@@ -1,0 +1,81 @@
+{
+  "work_order": "wo-ultimaagent-20261110-0036",
+  "gate": "T1",
+  "档位": "改造后",
+  "authority": {
+    "path": "tasks/queue/queue-status.json",
+    "schema_version": 1,
+    "records": 157,
+    "sha256": "661d286734f0905135fbe37cb286bef4022a0a33058d47a1a194bb801e57c627",
+    "required_record_fields": [
+      "project",
+      "work_order",
+      "state",
+      "audit_passed",
+      "dispatched_at",
+      "audit_run",
+      "freeze_commit",
+      "note"
+    ],
+    "state_distribution": {
+      "audit": 4,
+      "blocked": 19,
+      "cancelled": 16,
+      "closed": 1,
+      "executing": 1,
+      "frozen": 112,
+      "pending": 4
+    },
+    "migration_difference": {}
+  },
+  "fixed_orders": {
+    "wo-ultimaagent-20261108-0030": {
+      "state": "blocked",
+      "audit_passed": false
+    },
+    "wo-ultimaagent-20261110-0033": {
+      "state": "blocked",
+      "audit_passed": true
+    },
+    "wo-ultimaagent-20261110-0035": {
+      "state": "blocked",
+      "audit_passed": true
+    }
+  },
+  "views": {
+    "generator": "scripts/render-queue-views.py",
+    "generator_sha256": "0f4e6a7e69df565e8846f0aa389b0f1e0ba47a73b021d6ec439565bdfacc6dc4",
+    "project_view_sha256": "aa6e03580cbe90314f663ae3b8a0748873ad2e7fc531cd4cd4f3ffdb2b52419d",
+    "global_view_sha256": "9ba65cefc26d30922f8095f3ebd6f22a46683d24f6481b28432b51e3b2d8805f",
+    "reconciliation_differences": [],
+    "generated_do_not_edit_marker": true,
+    "two_consecutive_migrations_identical": true
+  },
+  "slot_source_probe": {
+    "changed_order": "wo-console-m1",
+    "blocking_before": 0,
+    "blocking_after_json_state_change": 1,
+    "markdown_state_dependency_found": false,
+    "audit_slot_limit": 2
+  },
+  "regression": {
+    "command": "tools/venv-openjarvis/Scripts/python.exe -m pytest scripts/tests -o addopts= -p no:cacheprovider -q",
+    "exit_code": 1,
+    "failed": 6,
+    "passed": 45,
+    "difference_from_registered_venv_baseline": {}
+  },
+  "pre_snapshot_correction": {
+    "incorrect_t0_helper_result": {
+      "records": 156,
+      "frozen": 111
+    },
+    "cause": "The temporary T0 helper began after line 10900 and omitted one earlier row inside queue-items markers.",
+    "full_marker_result_used_for_migration": {
+      "records": 157,
+      "frozen": 112
+    },
+    "state_reclassifications": 0
+  },
+  "rollback": "Restore the two files in tasks/queue/_backup/20261110-0036 to their original paths, then delete tasks/queue/queue-status.json."
+}

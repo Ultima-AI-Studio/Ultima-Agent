@@ -51,6 +51,7 @@ from pathlib import Path
 from typing import Sequence
 
 ROOT = Path(__file__).resolve().parents[1]
+QUEUE_STATUS = ROOT / "tasks" / "queue" / "queue-status.json"
 sys.path.insert(0, str(ROOT / "scripts"))
 from order_naming import resolve_card_path  # noqa: E402
 
@@ -78,6 +79,21 @@ def _load(path: Path) -> dict | None:
         return json.loads(path.read_text(encoding="utf-8-sig"))
     except (OSError, ValueError):
         return None
+
+
+def _queue_registration(work_order: str) -> tuple[bool, str]:
+    document = _load(QUEUE_STATUS)
+    if not document or document.get("schema_version") != 1:
+        return False, "queue-status.json is missing or has an unsupported schema"
+    records = document.get("records")
+    if not isinstance(records, list):
+        return False, "queue-status.json records is not a list"
+    matches = [record for record in records if isinstance(record, dict)
+               and record.get("project") == "UltimaAgent"
+               and record.get("work_order") == work_order]
+    if len(matches) != 1:
+        return False, f"JSON authority contains {len(matches)} registrations"
+    return True, f"state={matches[0].get('state')}; source={QUEUE_STATUS}"
 
 
 def _sha256_file(path: Path) -> str | None:
@@ -624,6 +640,10 @@ def verify(work_order: str, run_dir: Path) -> dict:
 
     def add(name: str, ok: bool | None, detail: str, command: str = "") -> None:
         checks.append({"check": name, "passed": ok, "detail": detail, "command": command})
+
+    registered_ok, registered_detail = _queue_registration(work_order)
+    add("queue_registration", registered_ok, registered_detail,
+        "read tasks/queue/queue-status.json")
 
     done_path = run_dir / "done.json"
     done = _load(done_path)

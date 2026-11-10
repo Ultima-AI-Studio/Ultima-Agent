@@ -14,6 +14,17 @@ from tasks.queue_engine.dispatcher import DispatchLock
 ROOT = Path(__file__).resolve().parents[2]
 
 
+def queue_document(records):
+    return {'schema_version': 1, 'records': [
+        {
+            'project': project, 'work_order': order, 'state': state,
+            'audit_passed': None, 'dispatched_at': None, 'audit_run': None,
+            'freeze_commit': None, 'note': note,
+        }
+        for project, order, state, note in records
+    ]}
+
+
 def module(name, filename):
     spec = importlib.util.spec_from_file_location(name, ROOT / 'scripts' / filename)
     loaded = importlib.util.module_from_spec(spec)
@@ -24,14 +35,10 @@ def module(name, filename):
 class DispatchContracts(unittest.TestCase):
     def test_recovery_fence_rejects_changed_run_state_or_reservation(self):
         dispatch=module('dispatch_fence_test','dispatch-work-order.py')
-        import re
-        row=re.match(r'(blocked) (run-new) (reservation-new)','blocked run-new reservation-new')
-        class Match:
-            def group(self,index):
-                return 'blocked' if index==1 else 'run-new reservation-new'
+        record = {'state': 'blocked', 'note': 'run-new reservation-new'}
         for expected_state,expected_run,reservation in [('audit','run-new','reservation-new'),('blocked','run-old','reservation-new'),('blocked','run-new','reservation-old')]:
             with self.assertRaises(RuntimeError):
-                dispatch.check_recovery_fence(Match(),expected_state,expected_run,reservation)
+                dispatch.check_recovery_fence(record,expected_state,expected_run,reservation)
     def test_owned_job_close_stops_worker_and_child_without_touching_other_process(self):
         dispatch = module('dispatch_job_test', 'dispatch-work-order.py')
         with tempfile.TemporaryDirectory() as raw:
@@ -65,23 +72,27 @@ class DispatchContracts(unittest.TestCase):
             self.assertIsNone(unrelated.poll(), 'Other processes must remain alive')
             unrelated.kill()
             unrelated.wait(timeout=5)
-    def test_state_preserves_other_rows_and_crlf_when_replace_is_denied(self):
+    def test_state_preserves_other_records_when_replace_is_denied(self):
         dispatch = module('dispatch_windows_replace', 'dispatch-work-order.py')
         with tempfile.TemporaryDirectory() as raw:
-            dispatch.SHARED = Path(raw)
+            dispatch.QUEUE_STATUS = Path(raw)/'queue-status.json'
+            dispatch.QUEUE_RENDERER = Path(raw)/'render.py'
+            dispatch.QUEUE_RENDERER.write_text('pass\n')
             run = Path(raw)/'run-123'
             run.mkdir()
-            path = Path(raw)/'global-queue-index.md'
-            other = '| Other | unchanged | pending | exact bytes |\r\n'
-            path.write_bytes(('<!-- queue-items:start -->\r\n'+other+
-                '| UltimaAgent | wo-s1-host-shell | executing | run-123 |\r\n<!-- queue-items:end -->\r\n').encode())
-            (Path(raw)/'queue-status-gen.py').write_text('pass\n')
+            path = dispatch.QUEUE_STATUS
+            path.write_text(json.dumps(queue_document([
+                ('Other', 'unchanged', 'pending', 'exact bytes'),
+                ('UltimaAgent', 'wo-s1-host-shell', 'executing', 'run-123'),
+            ])), encoding='utf-8')
             with mock.patch.object(Path, 'replace', side_effect=PermissionError('Windows reader denies DELETE sharing')):
                 dispatch.state('wo-s1-host-shell', 'blocked', 'paused', run, expected='executing', expected_run='run-123')
-            result = path.read_bytes()
-            self.assertIn(other.encode(), result)
-            self.assertIn(b'| blocked | paused |\r\n', result)
-            self.assertNotIn(b'\r\r\n', result)
+            result = json.loads(path.read_text())
+            self.assertIn({'project': 'Other', 'work_order': 'unchanged', 'state': 'pending',
+                           'audit_passed': None, 'dispatched_at': None, 'audit_run': None,
+                           'freeze_commit': None, 'note': 'exact bytes'}, result['records'])
+            changed = next(row for row in result['records'] if row['work_order'] == 'wo-s1-host-shell')
+            self.assertEqual(('blocked', 'paused'), (changed['state'], changed['note']))
 
     def run_isolated_dispatch(self, other_audit=False,recovery_fence=False,stale=False,pause_during=False):
         dispatch = module('dispatch_worker_integration', 'dispatch-work-order.py')
@@ -91,6 +102,9 @@ class DispatchContracts(unittest.TestCase):
         shared = root/'shared'
         shared.mkdir()
         dispatch.ROOT, dispatch.SHARED = root, shared
+        dispatch.QUEUE_STATUS = root/'tasks/queue/queue-status.json'
+        dispatch.QUEUE_RENDERER = shared/'render.py'
+        dispatch.QUEUE_RENDERER.write_text('pass\n')
         order = 'wo-s1-host-shell'
         (root/'tasks/queue').mkdir(parents=True)
         card = root/'tasks/cards/s1-unit'
@@ -99,10 +113,10 @@ class DispatchContracts(unittest.TestCase):
         (root/'tasks/queue'/f'{order}.md').write_text('| T1 s1-unit | test |\n')
         expected_run='wo-s1-host-shell-20261024T000000Z'
         reason=('wo-s1-host-shell-20261024T010000Z' if stale else expected_run)+' reservation-123' if recovery_fence else 'continuation'
-        (shared/'global-queue-index.md').write_text('<!-- queue-items:start -->\n'+
-            ('| Other | another | audit | must retain audit slot |\n' if other_audit else '')+
-            f'| UltimaAgent | {order} | blocked | {reason} |\n<!-- queue-items:end -->\n')
-        (shared/'queue-status-gen.py').write_text('pass\n')
+        records = ([('Other', 'another', 'audit', 'must retain audit slot')]
+                   if other_audit else [])
+        records.append(('UltimaAgent', order, 'blocked', reason))
+        dispatch.QUEUE_STATUS.write_text(json.dumps(queue_document(records)), encoding='utf-8')
         prompt = root/'prompt.txt'
         prompt.write_text(f'docs/INDEX.md {order}')
         fake = root/'fake_worker.py'
@@ -171,7 +185,9 @@ class DispatchContracts(unittest.TestCase):
         code, run, shared = self.run_isolated_dispatch(other_audit=True)
         self.assertEqual(2, code)
         self.assertEqual('blocked', json.loads((run/'done.json').read_text())['state'])
-        self.assertIn('| Other | another | audit |', (shared/'global-queue-index.md').read_text())
+        queue = json.loads((run.parents[1]/'queue-status.json').read_text())
+        self.assertTrue(any(row['work_order'] == 'another' and row['state'] == 'audit'
+                            for row in queue['records']))
     def test_profile_value_never_hides_actual_exec(self):
         native = module('native_review_test', 'inspect-native-environment.py')
         self.assertEqual({'role': 'exec', 'project': 'H:\\UltimaAI\\UltimaAgent'},
@@ -189,25 +205,26 @@ class DispatchContracts(unittest.TestCase):
     def test_duplicate_or_outside_register_rejected(self):
         dispatch = module('dispatch_register_test', 'dispatch-work-order.py')
         with tempfile.TemporaryDirectory() as raw:
-            dispatch.SHARED = Path(raw)
-            path = dispatch.SHARED / 'global-queue-index.md'
-            row = '| UltimaAgent | wo-s1-host-shell | blocked | pending evidence |\n'
-            start, end = '<!-- queue-items:start -->\n', '<!-- queue-items:end -->\n'
-            path.write_text(start + row + end, encoding='utf-8')
-            self.assertEqual('blocked', dispatch.registered('wo-s1-host-shell')[1].group(1))
-            path.write_text(start + row + row + end, encoding='utf-8')
+            dispatch.QUEUE_STATUS = Path(raw)/'queue-status.json'
+            path = dispatch.QUEUE_STATUS
+            row = ('UltimaAgent', 'wo-s1-host-shell', 'blocked', 'pending evidence')
+            path.write_text(json.dumps(queue_document([row])), encoding='utf-8')
+            self.assertEqual('blocked', dispatch.registered('wo-s1-host-shell')[1]['state'])
+            path.write_text(json.dumps(queue_document([row, row])), encoding='utf-8')
             with self.assertRaises(ValueError):
                 dispatch.registered('wo-s1-host-shell')
-            path.write_text(row + start + end, encoding='utf-8')
+            path.write_text(json.dumps(queue_document([])), encoding='utf-8')
             with self.assertRaises(ValueError):
                 dispatch.registered('wo-s1-host-shell')
 
     def test_changed_state_or_run_cannot_be_overwritten(self):
         dispatch = module('dispatch_compare_test', 'dispatch-work-order.py')
         with tempfile.TemporaryDirectory() as raw:
-            dispatch.SHARED = Path(raw)
-            path = dispatch.SHARED / 'global-queue-index.md'
-            path.write_text('<!-- queue-items:start -->\n| UltimaAgent | wo-s1-host-shell | frozen | later decision |\n<!-- queue-items:end -->\n', encoding='utf-8')
+            dispatch.QUEUE_STATUS = Path(raw)/'queue-status.json'
+            path = dispatch.QUEUE_STATUS
+            path.write_text(json.dumps(queue_document([
+                ('UltimaAgent', 'wo-s1-host-shell', 'frozen', 'later decision')
+            ])), encoding='utf-8')
             before = path.read_bytes()
             with self.assertRaises(RuntimeError):
                 dispatch.state('wo-s1-host-shell', 'executing', 'old action', Path(raw), expected='blocked')
