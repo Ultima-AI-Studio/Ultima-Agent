@@ -2913,17 +2913,19 @@ def test_ref_update_from_accepts_clean_adjacent_pair(mod, monkeypatch):
 
 # --- r16（r15b 审计 B-高）：MSYS 前缀行默认 fail-closed ---------------------
 
+# r18（r17 审计 P0-1）：样例一律给**完整 stderr 行**。r17 只给尾段文本、由公共
+# 参数化统一拼 `0 [main] git 123 dofork: {text}`，于是第八例走的是 `dofork:` 分支——
+# 旧实现在该分支同样会拒绝，等于没测到 `child_copy` 的 `(?:,.*)?` 后门。
 _MSYS_BIZ_SAMPLES = (
-    'could not lock config file .git/config: File exists',
-    'bad object deadbeef',
-    'index file corrupt',
-    'cannot lock ref refs/heads/main',
-    'unable to write new index file',
-    'invalid path aux',
-    'error: failed to push some refs',
-    # r17（r16 审计 B-1）：`child_copy` 原写 `(?:,.*)?`，逗号后任意文本都放行。
-    # 这一例就是审计的只读探针原文 —— 它从未命中 `_BIZ_FAIL`，被当噪声吞掉。
-    'child_copy: cygheap read copy failed, authentication rejected',
+    '0 [main] git 123 dofork: could not lock config file .git/config: File exists',
+    '0 [main] git 123 dofork: bad object deadbeef',
+    '0 [main] git 123 dofork: index file corrupt',
+    '0 [main] git 123 dofork: cannot lock ref refs/heads/main',
+    '0 [main] git 123 dofork: unable to write new index file',
+    '0 [main] git 123 dofork: invalid path aux',
+    '0 [main] git 123 dofork: error: failed to push some refs',
+    # 原漏洞行的**原始形态**：没有 `dofork:` 中缀（r16 审计探针原文）。
+    '0 [main] tr 123 child_copy: cygheap read copy failed, authentication rejected',
 )
 
 
@@ -2935,7 +2937,7 @@ def test_msys_prefixed_business_failures_are_real_errors(mod, monkeypatch, tmp_p
     """
 
     write_task(tmp_path, 1)
-    line = f'0 [main] git 123 dofork: {text}'
+    line = text
 
     class _R:
         returncode = 0
@@ -2947,6 +2949,29 @@ def test_msys_prefixed_business_failures_are_real_errors(mod, monkeypatch, tmp_p
         mod.gate_check(str(tmp_path))
     assert '错误输出' in str(ei.value)
     assert mod._is_cygwin_noise(line) is False
+
+def test_msys_child_copy_unknown_tail_is_real_error(mod, monkeypatch, tmp_path):
+    """r18（r17 审计 P0-1）：`child_copy` 后门的回归必须用**原始整行**两层验。
+
+    helper 层：必须是噪声判定为 False；gate 层：必须真的抛错退出。只测一层等于
+    又留回「helper 判对但调用点没用」的口子。
+    """
+
+    line = ('0 [main] tr 123 child_copy: cygheap read copy failed, '
+            'authentication rejected')
+    assert mod._is_cygwin_noise(line) is False
+
+    write_task(tmp_path, 1)
+
+    class _R:
+        returncode = 0
+        stdout = 'STATUS:open\nUNMET:\nCONFLICTS:\n'
+        stderr = line + '\n'
+
+    monkeypatch.setattr(mod.subprocess, 'run', lambda *a, **k: _R())
+    with pytest.raises(SystemExit) as ei:
+        mod.gate_check(str(tmp_path))
+    assert '错误输出' in str(ei.value)
 
 
 def test_msys_known_runtime_shapes_still_treated_as_noise(mod):

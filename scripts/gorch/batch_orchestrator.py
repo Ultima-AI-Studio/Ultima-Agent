@@ -147,9 +147,9 @@ _MSYS_PURE = re.compile(
     # 落到「未识别」→ 判真错误。新增真实形态时必须先补精确子句与回归样例。
     r"|child_copy:\s+cygheap\s+(?:read|write)\s+copy\s+failed"
     r"(?:\s*,\s*0x[0-9A-Fa-f]+\s*\.\.\s*0x[0-9A-Fa-f]+)?"
-    r"(?:\s*,\s*done\s+\d+)?"
-    r"(?:\s*,\s*windows\s+pid\s+\d+)?"
-    r"(?:\s*,\s*Win32\s+error\s+\d+)?"
+    r"(?:\s*,\s*done\s+[0-9]+)?"
+    r"(?:\s*,\s*windows\s+pid\s+[0-9]+)?"
+    r"(?:\s*,\s*Win32\s+error\s+[0-9]+)?"
     # 老式：fork retry（资源暂时不可用）
     r"|fork:\s+retry:\s+Resource temporarily unavailable"
     r")$",
