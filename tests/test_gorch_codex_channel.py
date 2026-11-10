@@ -1136,6 +1136,9 @@ def test_digest_root_path_itself_reparse_is_not_followed(tmp_path):
     assert m._digest(str(repo), 'j') == 'REPARSE:dir'       # 摘要仍不变
     os.rmdir(str(link))
     assert outside.exists() and (outside / 'b.txt').exists()
+    gone = m._digest(str(repo), 'j')                      # r17（审计 A.2.1）
+    assert gone == 'ABSENT'
+    assert gone != 'REPARSE:dir'
 
 
 def test_worktree_fingerprint_records_submodule_gitlink(tmp_path):
