@@ -127,11 +127,28 @@ pytest-subtests。四项验收计数以 JUnit 属性为准，节点数和差额�
    - 根因通过差额 122 与 pytest 摘要中的 `122 subtests passed` 精确对应而确认。
      最终回读改为按 JUnit suite 四项属性计数，并把 testcase 数与差额作为附加信息；
      失败回读另名保留。
+4. 提交后完整验证捕获的既有 `PreferenceStore` 毫秒时间戳竞态
+   - 第一次提交后全量验证：`full-engineering-gate-post-commit-attempt1-known-preference-flake.log`，
+     结果为 `1 failed, 1007 passed, 122 subtests passed`；唯一失败是
+     `TestPreferenceStore.test_upsert_idempotent`，两次紧邻写入的 `updated_at` 都是
+     `2026-11-10T03:20:56.802+00:00`。
+   - 源码根因可直接定位：`src/brain/memory/preference.py` 使用
+     `datetime.now(timezone.utc).isoformat(timespec="milliseconds")`，测试又要求两次连续调用的
+     时间戳不相等。同一竞态已在 `stage-jarvis-p0-20261103.md`、
+     `stage-input-channel-20261030.md`、`stage-asr-correction-20261101.md` 留有历史记录。
+   - 本轮 `preference-upsert-flake-probe.log` 的 10 次独立定点探针为 8 pass / 2 fail，
+     证明其为时间分辨率竞态；第二次提交后全量验证
+     `full-engineering-gate-post-commit-attempt2.log` 再次只在同一点失败，结果为
+     `1 failed, 1007 passed, 122 subtests passed`。
+   - 该 memory 实现与测试均不在本单提交范围，且当前为未跟踪的并发写域，故没有越界改
+     产品代码、测试、断言或增加 skip。未改代码的第三次提交后全量验证
+     `full-engineering-gate-post-commit.log` 完整到 100%，结果恢复为
+     `1008 passed, 122 subtests passed`、`PYTEST_EXIT_CODE=0`。
 
 ## 6. 回执、越界与依赖声明
 
 `data/evidence/wo-ultimaagent-20261108-0027/T2/receipt.json` 是合法 JSON，含用户要求的
-14 个顶层字段、13 条 evidence、5 条 acceptance。独立回读结果：缺失字段 0、
+14 个顶层字段、17 条 evidence、5 条 acceptance。独立回读结果：缺失字段 0、
 `ReceiptValidator` issues 0，且正文同时包含 `READY_FOR_DEEPSEEK_AUDIT`、
 `自检 PASS`、`PYTEST_EXIT_CODE=0` 与 `1008 passed`。
 

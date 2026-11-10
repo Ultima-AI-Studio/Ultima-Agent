@@ -7,7 +7,7 @@
   "executor": "Codex execution session",
   "exit_code": 0,
   "reviewReason": "READY_FOR_DEEPSEEK_AUDIT；0026 T0/T1 正例独立复核三项实做并由 stage_gate 放行，三案反例全部拒绝，全量工程门完整跑到 100% 且 JUnit failures/errors 均为 0；自检 PASS。",
-  "stdoutText": "READY_FOR_DEEPSEEK_AUDIT；自检 PASS；PYTEST_EXIT_CODE=0；1008 passed, 122 subtests passed；JUnit tests=1130, failures=0, errors=0, skipped=0；XML SHA-256=9d2a3c5d78083d629c7fdb83e3a89e823f7f875e6faaf9f292c8fc954d00847d。历史留痕：negative gate attempt1 因 import 失败，full gate attempt1 仅到 42%，JUnit readback attempt1 错把 testcase 节点数当作 tests 属性；三者均保留并已由后续成功证据覆盖。",
+  "stdoutText": "READY_FOR_DEEPSEEK_AUDIT；自检 PASS；PYTEST_EXIT_CODE=0；1008 passed, 122 subtests passed；JUnit tests=1130, failures=0, errors=0, skipped=0；XML SHA-256=9d2a3c5d78083e3a89e823f7f875e6faaf9f292c8fc954d00847d。历史留痕：negative gate attempt1 因 import 失败，full gate attempt1 仅到 42%，JUnit readback attempt1 错把 testcase 节点数当作 tests 属性；提交后两次全量验证均只在既有 PreferenceStore 毫秒时间戳竞态失败，10 次探针为 8 pass/2 fail，未改代码的第三次全量验证恢复 1008 passed/exit 0；全部失败证据均保留。",
   "evidence": [
     {
       "path": "data/evidence/wo-ultimaagent-20261108-0027/T2/audit-test-rerun.log",
@@ -73,6 +73,26 @@
       "path": "data/evidence/wo-ultimaagent-20261108-0027/T2/full-engineering-gate-readback.json",
       "kind": "data",
       "summary": "JUnit 四项计数与 XML SHA-256 独立回读"
+    },
+    {
+      "path": "data/evidence/wo-ultimaagent-20261108-0027/T2/full-engineering-gate-post-commit-attempt1-known-preference-flake.log",
+      "kind": "log",
+      "summary": "提交后第一次全量验证仅在 PreferenceStore 毫秒时间戳既有竞态失败的完整输出"
+    },
+    {
+      "path": "data/evidence/wo-ultimaagent-20261108-0027/T2/full-engineering-gate-post-commit-attempt2.log",
+      "kind": "log",
+      "summary": "提交后第二次全量验证复现同一既有竞态的完整输出"
+    },
+    {
+      "path": "data/evidence/wo-ultimaagent-20261108-0027/T2/preference-upsert-flake-probe.log",
+      "kind": "log",
+      "summary": "同一测试 10 次独立探针 8 pass/2 fail 的根因复现记录"
+    },
+    {
+      "path": "data/evidence/wo-ultimaagent-20261108-0027/T2/full-engineering-gate-post-commit.log",
+      "kind": "log",
+      "summary": "未改代码的提交后第三次全量验证 1008 passed、122 subtests、exit 0"
     }
   ],
   "acceptance": [
@@ -94,7 +114,7 @@
     {
       "id": "T2-EVIDENCE-HISTORY",
       "result": "PASS",
-      "evidence": "import-error、42% 中断和首次 JUnit 回读计数模型错误均保留，未用最终绿覆盖历史。"
+      "evidence": "import-error、42% 中断、首次 JUnit 回读计数模型错误，以及提交后两次 PreferenceStore 既有竞态失败均保留；10 次探针与未改代码最终全量绿同时留证。"
     },
     {
       "id": "T2-BOUNDARY",
