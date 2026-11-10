@@ -256,6 +256,8 @@
 2. 禁止按阶段区分时下探到 8192 以下。
 3. 禁止改动 `S-MAIN` / `S-EXEC`。
 
+**Gate 结果**：PASS；证据：`tasks/queue/runs/wo-ultimaagent-20261110-0036-20261110T162813293712Z/t6/pre-change.json`、`tasks/queue/runs/wo-ultimaagent-20261110-0036-20261110T162813293712Z/t6/post-change.json`、`tasks/queue/runs/wo-ultimaagent-20261110-0036-20261110T162813293712Z/t6/work-order-probe/stages/work_order.json`。
+
 ### T7 · 端到端双路径复现与总验收
 
 **文件**：
