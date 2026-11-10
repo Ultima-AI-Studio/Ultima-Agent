@@ -1068,7 +1068,7 @@ r15b 审计实测七例曾被旧「业务词表反向排除」
 | MSYS 修复后 | `-k cygwin` 6 passed；全量 **203 passed / 43.12s** |
 | ⑤ 落地后 | ⑤ 定向 4 passed；全量 **207 passed / 42.72s** |
 | r16 回修后 | 定向 31 passed；digest/fingerprint 13 passed；全量 **221 passed / 52.99s** |
-| r17 回修后 | 定向 53 passed；digest/fingerprint 13 passed；全量 **__TOTAL__** |
+| r17 回修后 | 定向 53 passed；digest/fingerprint 13 passed；全量 224 passed / 49.94s（实施侧回执；只读审计未复跑该数字，不作为审计事实） |
 
 `git status --short` 中另有大量与本轮无关的改动（历史报告/脚本/`tasks/*` 等），
 **不入本轮提交**；本轮只 add 下列 5 个文件：
@@ -1108,7 +1108,7 @@ r15b 审计实测七例曾被旧「业务词表反向排除」
 |---|---|---|
 | 口径 1（unknown 不得 cleanup） | `merge()` 由「`cas_state != 'ok'` 只降级 causal」改为 **`proof_failure` 阻断**：不进 merged、run_all 不执行 cleanup、现场保留 | `test_run_all_reflog_unknown_blocks_cleanup`（run_all 级：断言 `kept_for_proof` 收到该任务、`cleanup` 未被调用） |
 | 口径 2（进程版本栅栏） | 新增 `LOCK_PROTOCOL = dual(legacy-sha256-16 + sha256-32)`，写进 merge 记录 `lock_protocol`；`doctor` 增 `locks.protocol` / `legacy_present` / `by_hex`，撤 legacy 锁仍需进程退场证明 | `test_doctor_reports_lock_protocol_and_legacy_presence` |
-| 口径 3（MSYS 未知尾部阻断） | `_MSYS_PURE` 的 `child_copy` 分支删掉 `(?:,.*)?`，改为「地址范围 / done N / windows pid N / Win32 error N」四类字段、顺序固定 | `authentication rejected` 例进 `_MSYS_BIZ_SAMPLES`（`gate_check` 层）；`test_msys_child_copy_unknown_tail_is_real_error` 兜 helper 层 |
+| 口径 3（MSYS 未知尾部阻断） | `_MSYS_PURE` 的 `child_copy` 分支删掉 `(?:,.*)?`，改为「地址范围 / done N / windows pid N / Win32 error N」四类字段、顺序固定 | `authentication rejected` 例进 `_MSYS_BIZ_SAMPLES`（r18 起该样例为完整原始行，并由 `test_msys_child_copy_unknown_tail_is_real_error` 在 helper 与 gate 两层断言）（`gate_check` 层）；`test_msys_child_copy_unknown_tail_is_real_error` 兜 helper 层 |
 | ④ 单一构造入口 | `CLEANUP_UNCLOSED_BUCKETS = tuple(_CLEANUP_KEY_FOR)`（映射为唯一声明源）；AST 改为逐字典检查 + 全文件 `kept_for_*` 只许在映射里 | `test_run_all_cleanup_constructed_only_by_helper` 加强 |
 | ⑤ 强因果措辞 | `_ref_update_from` docstring 删「强因果落点 / 等价于没有第三方写过」，改为观察性衔接 + 三条不成立理由；看板第 23 行本行加删除线并标作废；裁决书与本文收窄 | 改名用例断言 `'cas' not in {causal}` 仍绿 |
 | ② 根 junction 边界 | 用例补「删除 junction 后 `_digest == 'ABSENT'` 且 ≠ `REPARSE:dir'`」 | `test_digest_root_path_itself_reparse_is_not_followed` |
