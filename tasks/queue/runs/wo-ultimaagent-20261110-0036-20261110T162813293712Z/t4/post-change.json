@@ -1,0 +1,47 @@
+{
+  "work_order": "wo-ultimaagent-20261110-0036",
+  "gate": "T4",
+  "档位": "改造后",
+  "validator_sha256": "b448eeb515cdef09b7166cd154c6bb99416d391e3cf6e764113abb14bead9c93",
+  "contradiction_rules": [
+    {
+      "name": "porcelain-delta-count-after-commit",
+      "left": "Compare-Object plus an exact => count",
+      "right": "git commit followed by show --stat in the same Gate",
+      "severity": "error"
+    }
+  ],
+  "cards": {
+    "0035": {
+      "sha256_before": "9d46210fd87916ea9af3d9055539c009d589ce7c4f62c3093145e528123526ed",
+      "sha256_after": "9d46210fd87916ea9af3d9055539c009d589ce7c4f62c3093145e528123526ed",
+      "contradiction_hits": 1,
+      "location": "T7",
+      "message": "状态差分条数断言与完成提交断言互斥：提交会从 porcelain 差分中移除已提交路径"
+    },
+    "0036": {
+      "sha256_before": "207e6efaac84f513c14c9e677a93c88638fd2a887380a597aa02834b10233da9",
+      "sha256_after": "207e6efaac84f513c14c9e677a93c88638fd2a887380a597aa02834b10233da9",
+      "contradiction_hits": 0
+    },
+    "0033": {
+      "sha256_before": "da46f226d989d34c3442964b468b32a3b2d98ac12732a33257e4b6221df47983",
+      "sha256_after": "da46f226d989d34c3442964b468b32a3b2d98ac12732a33257e4b6221df47983",
+      "contradiction_hits": 0
+    }
+  },
+  "constructed_sample": {
+    "gate": "T0",
+    "contains_exact_porcelain_delta_count": true,
+    "contains_commit_and_show_stat": true,
+    "contradiction_hits": 1,
+    "input_modified": false
+  },
+  "regression": {
+    "interpreter": "tools/venv-openjarvis/Scripts/python.exe",
+    "command": "python -m pytest scripts/tests -o addopts= -p no:cacheprovider -q",
+    "failed": 6,
+    "passed": 45,
+    "difference_from_baseline": {}
+  }
+}

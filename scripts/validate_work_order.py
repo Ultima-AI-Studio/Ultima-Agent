@@ -28,6 +28,7 @@ E_STATUS_NOT_DISPATCHABLE = "E_STATUS_NOT_DISPATCHABLE"
 E_REVISION_FORMAT = "E_REVISION_FORMAT"
 E_NO_PLAN_REF = "E_NO_PLAN_REF"
 E_SCHEMA = "E_SCHEMA"
+E_GATE_CONTRADICTION = "E_GATE_CONTRADICTION"
 E_STRICT_WARNING = "E_STRICT_WARNING"
 W_LEGACY_PROFILE = "W_LEGACY_PROFILE"
 
@@ -39,6 +40,18 @@ GATE_TERMS = re.compile(
     re.IGNORECASE,
 )
 PATH_FEATURE = re.compile(r"[\\/]|\.(?:py|md|json)(?:\b|`)", re.IGNORECASE)
+
+# Enumerated structural contradictions. Keep these rules narrow: each entry names
+# two assertions that cannot both describe one final Gate state. The validator
+# reports the conflict but never rewrites the card.
+GATE_CONTRADICTION_RULES = (
+    {
+        "name": "porcelain-delta-count-after-commit",
+        "left": re.compile(r"Compare-Object[\s\S]*?(?:恰好|恰)\s*\d+\s*条\s*`?=>", re.IGNORECASE),
+        "right": re.compile(r"\bgit(?:\s+-C\s+\S+)?\s+commit\b[\s\S]*?show\s+--stat", re.IGNORECASE),
+        "message": "状态差分条数断言与完成提交断言互斥：提交会从 porcelain 差分中移除已提交路径",
+    },
+)
 
 
 @dataclass(frozen=True)
@@ -235,6 +248,35 @@ def _task_details(lines: list[str], bounds: tuple[int, int] | None, errors: list
     return details
 
 
+def _gate_contradictions(lines: list[str]) -> list[dict[str, Any]]:
+    """Find enumerated contradictions inside one acceptance Gate block."""
+
+    starts: list[tuple[int, str]] = []
+    for index, line in enumerate(lines):
+        match = re.match(r"^\*\*验收（Gate\s+(T\d+)[^）]*）\*\*", line)
+        if match:
+            starts.append((index, match.group(1)))
+
+    issues: list[dict[str, Any]] = []
+    for position, (start, gate_id) in enumerate(starts):
+        end = starts[position + 1][0] if position + 1 < len(starts) else len(lines)
+        for index in range(start + 1, end):
+            if re.match(r"^###\s+T\d+\b", lines[index]):
+                end = index
+                break
+        block = "\n".join(lines[start:end])
+        for rule in GATE_CONTRADICTION_RULES:
+            if rule["left"].search(block) and rule["right"].search(block):
+                issues.append(
+                    _issue(
+                        E_GATE_CONTRADICTION,
+                        start + 1,
+                        f"{gate_id} [{rule['name']}]: {rule['message']}",
+                    )
+                )
+    return issues
+
+
 def _schema_errors(document: dict[str, Any], schema: dict[str, Any], fallback_line: int | None) -> list[dict[str, Any]]:
     issues = []
     validator = jsonschema.Draft202012Validator(schema)
@@ -379,6 +421,7 @@ def validate(
         errors.extend(_schema_errors(document, schema, 1))
         warnings.append(_issue(W_LEGACY_PROFILE, 1, "存量卡使用 legacy-queue 兼容 profile"))
 
+    errors.extend(_gate_contradictions(lines))
     if strict and warnings:
         errors.extend(_issue(E_STRICT_WARNING, item["line"], f"{item['code']}: {item['message']}") for item in warnings)
     return Report("FAIL" if errors else "PASS", str(card), order, errors, warnings, str(schema_file))
