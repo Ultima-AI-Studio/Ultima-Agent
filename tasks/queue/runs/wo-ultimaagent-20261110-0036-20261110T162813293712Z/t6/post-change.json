@@ -1,0 +1,47 @@
+{
+  "work_order": "wo-ultimaagent-20261110-0036",
+  "gate": "T6",
+  "档位": "改造后",
+  "slot_adapter_sha256": "b2aae5d578d5f321ed7930cd62fa97b42ad9fe6d8eece9e066908a3014415eb1",
+  "effective": {
+    "S-MAIN": {
+      "model": "qwen3-8b-uncensored:latest",
+      "enabled": false,
+      "difference_from_pre": {}
+    },
+    "S-EXEC": {
+      "model": "gpt-5.6-sol",
+      "args_template": [],
+      "difference_from_pre": {}
+    },
+    "S-REVIEW": {
+      "model": "deepseek-chat",
+      "max_tokens": 8192,
+      "timeout": 60.0
+    }
+  },
+  "work_order_stage_probe": {
+    "run_dir": "tasks/queue/runs/wo-ultimaagent-20261110-0036-20261110T162813293712Z/t6/work-order-probe",
+    "artifact": "tasks/queue/runs/wo-ultimaagent-20261110-0036-20261110T162813293712Z/t6/work-order-probe/stages/work_order.json",
+    "artifact_sha256": "85757833eb94de8b0de09f66e43c70e5a538badb0f6c4ebaa94a0c216b9cf0b8",
+    "exit_code": 0,
+    "model": "deepseek-chat",
+    "tokens_in": 4027,
+    "tokens_out": 2840,
+    "tokens_out_equals_old_cap": false,
+    "response_chars": 5007,
+    "verdict": "completed",
+    "ends_with_verdict": true
+  },
+  "comment_probe": {
+    "contains_4096": true,
+    "contains_8192": true
+  },
+  "regression": {
+    "interpreter": "tools/venv-openjarvis/Scripts/python.exe",
+    "command": "python -m pytest scripts/tests -o addopts= -p no:cacheprovider -q",
+    "failed": 6,
+    "passed": 45,
+    "difference_from_baseline": {}
+  }
+}

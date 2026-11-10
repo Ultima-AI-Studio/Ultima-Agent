@@ -45,7 +45,8 @@ _DEFAULTS: dict[str, dict[str, Any]] = {
         'base_url': 'https://api.deepseek.com/chat/completions',
         'model': 'deepseek-chat',
         'api_key_env': 'DEEPSEEK_API_KEY',
-        'max_tokens': 4096,
+        # 实测：4096 时 work_order 的 out_tokens 触顶 4096、正文 7,300 字符句中截断；8192 正常收尾。
+        'max_tokens': 8192,
         'timeout': 60.0,
     },
     'S-EXEC': {
