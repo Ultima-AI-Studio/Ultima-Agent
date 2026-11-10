@@ -10,6 +10,8 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
+from scripts.order_naming import resolve_card_path
+
 from .state_machine import QueueState, StateMachine
 from .storage import QueueStorage, queue_transaction
 
@@ -108,9 +110,10 @@ class AuditEngine:
             checks = re.findall(r'^-\s*(?:\[[ xX]\]\s*)?ACCEPT:\s*(.+)$', section(card.read_text(encoding='utf-8-sig'), 'acceptance[]'), re.M)
             if not checks or receipt is None or set(receipt.get('acceptance', {})) != set(checks):
                 unclear.append('回执 acceptance 未与任务卡封闭验收项逐项绑定')
+            reported_order = resolve_card_path(summary.get('work_order'), self.storage.queue_dir)
             orders = [path for path in self.storage.queue_dir.glob('wo-*.md')
                       if re.search(r'(?<![A-Za-z0-9_-])' + re.escape(task['task_id'].split('~r')[0]) + r'(?![A-Za-z0-9_-])', path.read_text(encoding='utf-8-sig'))]
-            if len(orders) != 1 or orders[0].stem != summary.get('work_order'):
+            if len(orders) != 1 or orders[0].resolve() != reported_order.resolve():
                 unclear.append('执行报告 work_order 与任务所属工单不一致或所属关系不唯一')
         except (OSError, ValueError, TypeError):
             unclear.append('任务卡封闭验收清单或所属工单不可验证')

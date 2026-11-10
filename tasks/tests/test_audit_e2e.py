@@ -105,6 +105,26 @@ class AuditE2ETests(unittest.TestCase):
         self.assertEqual("BLOCKED", result.verdict)
         self.assertIn("开发与审计技能未分离", result.reasons)
 
+    def test_slugged_work_order_card_binds_to_canonical_order_id(self) -> None:
+        direct = self.storage.queue_dir / "wo-s1-queue-engine.md"
+        slugged = self.storage.queue_dir / "wo-s1-queue-engine--audit-flow.md"
+        direct.replace(slugged)
+        task = self.put_in_audit()
+        artifact = self.task_root / "artifact.txt"
+        artifact.write_text("ok", encoding="utf-8")
+
+        result = self.audit_engine.audit(
+            task,
+            self.receipt(artifact),
+            self.summary(),
+            auditor_skill="eng.audit",
+        )
+
+        self.assertNotIn(
+            "执行报告 work_order 与任务所属工单不一致或所属关系不唯一",
+            result.reasons,
+        )
+
     def test_exit_zero_with_business_failure_generates_revision_and_fails_task(self) -> None:
         task = self.put_in_audit()
         artifact = self.task_root / "artifact.txt"

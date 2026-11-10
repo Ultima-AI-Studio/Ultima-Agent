@@ -36,6 +36,8 @@
 - Modify: `scripts/verify-order.py`
 - Modify: `scripts/audit-work-order.py`
 - Modify: `scripts/freeze-work-order.py`
+- Modify: `tasks/queue_engine/audit.py`
+- Modify: `tasks/tests/test_audit_e2e.py`
 - Modify: `src/brain/orchestration/tests/test_register_control_m29.py`
 - Verify: `docs/specs/work-order-naming-contract.md`
 
