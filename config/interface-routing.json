@@ -1,0 +1,1100 @@
+{
+  "schema_version": 2,
+  "kind": "interface-routing",
+  "version": "2026-11-06",
+  "updated_at": "2026-11-06T13:57:29+08:00",
+  "principle": "L0 本机直答 > L1 直连接口 > L2 工具调用 > L3 模型自由回答；能被前两级接住的绝不进后两级",
+  "defaults": {
+    "city_code": "101070101",
+    "city_name": "沈阳",
+    "timeout_ms": 5000,
+    "lat": 41.8057,
+    "lon": 123.4315
+  },
+  "policy": {
+    "probe": {
+      "samples_per_run": 3,
+      "timeout_ms": 5000,
+      "coverage_gate": true,
+      "note": "每项跑 3 次取中位数；覆盖度不足的候选一票否决，永不当首选"
+    },
+    "promotion": {
+      "min_ok_rate": 0.9,
+      "min_speed_gain_pct": 20,
+      "note": "备选要比当前首选快 20% 以上才允许换，避免单次抖动来回切"
+    },
+    "demotion": {
+      "fail_streak": 3,
+      "note": "首选连续 3 次探测失败，自动让位给下一个健康候选"
+    },
+    "history_max": 50,
+    "autobuild": {
+      "enabled": true,
+      "on_miss": "build_then_answer",
+      "target_primary": 1,
+      "target_standby": 2,
+      "min_verified": 1,
+      "allow_degraded": true,
+      "seed_source": "config/interface-seeds.json",
+      "rebuild_policy": "never_if_primary_exists",
+      "note": "意图未配置、或已配置但连一条可用首选都没有时，先调 interface_build 从种子库建路（1 主 + 2 备），建好即用并写回配置；已配置且首选可用时只走巡检升降级，不重建。"
+    }
+  },
+  "candidate_pool_rule": "一个意图只对应一个标的，候选只能是同标的的不同来源；不同标的（恒生/道指、伦敦金/COMEX）必须拆成独立意图，否则自动升权会答错对象",
+  "intents": [
+    {
+      "id": "time.now",
+      "name": "当前时间日期星期",
+      "triggers": [
+        "几点",
+        "几号",
+        "星期几",
+        "现在什么时间"
+      ],
+      "route": "local_clock",
+      "requires_coverage": [],
+      "candidates": [],
+      "timeout_ms": 0,
+      "cache_ttl_s": 0,
+      "template": "现在是{month}月{day}日{hour}点{minute}分，{weekday}。"
+    },
+    {
+      "id": "weather.today",
+      "name": "今天天气",
+      "triggers": [
+        "天气",
+        "气温",
+        "几度",
+        "下雨",
+        "下雪",
+        "冷不冷",
+        "热不热"
+      ],
+      "route": "http_direct",
+      "requires_coverage": [
+        "temperature",
+        "condition",
+        "temp_range"
+      ],
+      "candidates": [
+        {
+          "endpoint": "http://t.weather.itboy.net/api/weather/city/{city_code}",
+          "headers": {},
+          "expect": {
+            "kind": "json",
+            "must_contain": [
+              "cityInfo",
+              "data"
+            ]
+          },
+          "provides": [
+            "temperature",
+            "condition",
+            "wind",
+            "humidity",
+            "temp_range",
+            "forecast7"
+          ],
+          "role": "primary",
+          "health": {
+            "p50_ms": 107,
+            "ok_rate": 1.0,
+            "probes": 19,
+            "fail_streak": 0,
+            "eligible": true,
+            "last_probe_at": "2026-11-06T13:39:33+08:00"
+          },
+          "coverage": "full"
+        },
+        {
+          "endpoint": "http://d1.weather.com.cn/dingzhi/{city_code}.html",
+          "headers": {
+            "Referer": "http://www.weather.com.cn/"
+          },
+          "expect": {
+            "kind": "text",
+            "must_contain": [
+              "var cityDZ"
+            ]
+          },
+          "provides": [
+            "temperature",
+            "condition"
+          ],
+          "role": "standby",
+          "health": {
+            "p50_ms": 26,
+            "ok_rate": 1.0,
+            "probes": 19,
+            "fail_streak": 0,
+            "eligible": false,
+            "last_probe_at": "2026-11-06T13:39:33+08:00"
+          },
+          "coverage": "partial",
+          "coverage_ratio": 0.67,
+          "missing_fields": [
+            "temp_range"
+          ]
+        },
+        {
+          "endpoint": "https://wttr.in/{city}?format=j1&lang=zh",
+          "headers": {},
+          "expect": {
+            "kind": "json",
+            "must_contain": [
+              "current_condition"
+            ]
+          },
+          "provides": [
+            "temperature",
+            "condition",
+            "wind",
+            "humidity",
+            "temp_range",
+            "forecast7"
+          ],
+          "role": "standby",
+          "health": {
+            "p50_ms": 830,
+            "ok_rate": 1.0,
+            "probes": 19,
+            "fail_streak": 0,
+            "eligible": true,
+            "last_probe_at": "2026-11-06T13:39:36+08:00"
+          },
+          "coverage": "full"
+        }
+      ],
+      "excluded": [
+        {
+          "endpoint": "http://d1.weather.com.cn/sk_2d/{city_code}.html",
+          "reason": "只有实时温湿度，没有今日最高/最低，填不出高低温模板，只能作实况校准，不进候选池"
+        }
+      ],
+      "timeout_ms": 5000,
+      "cache_ttl_s": 600,
+      "template": "{city}今天{condition}，{temp_low}~{temp_high} 度，{wind}。",
+      "asset": "weather.cn.today"
+    },
+    {
+      "id": "weather.forecast",
+      "name": "明天后天及未来天气",
+      "triggers": [
+        "明天天气",
+        "后天气温",
+        "这周天气",
+        "未来几天"
+      ],
+      "route": "http_direct",
+      "requires_coverage": [
+        "forecast7",
+        "temp_range"
+      ],
+      "candidates": [
+        {
+          "endpoint": "http://t.weather.itboy.net/api/weather/city/{city_code}",
+          "headers": {},
+          "expect": {
+            "kind": "json",
+            "must_contain": [
+              "data"
+            ]
+          },
+          "provides": [
+            "temperature",
+            "condition",
+            "temp_range",
+            "forecast7"
+          ],
+          "role": "primary",
+          "health": {
+            "p50_ms": 99,
+            "ok_rate": 1.0,
+            "probes": 19,
+            "fail_streak": 0,
+            "eligible": true,
+            "last_probe_at": "2026-11-06T13:39:37+08:00"
+          },
+          "coverage": "full"
+        },
+        {
+          "endpoint": "https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}&daily=temperature_2m_max,temperature_2m_min,weather_code&timezone=Asia%2FShanghai",
+          "headers": {},
+          "expect": {
+            "kind": "json",
+            "must_contain": [
+              "daily"
+            ]
+          },
+          "provides": [
+            "temperature",
+            "condition",
+            "temp_range",
+            "forecast7"
+          ],
+          "role": "standby",
+          "health": {
+            "p50_ms": 1150,
+            "ok_rate": 1.0,
+            "probes": 19,
+            "fail_streak": 0,
+            "eligible": true,
+            "last_probe_at": "2026-11-06T13:39:41+08:00"
+          },
+          "coverage": "full"
+        },
+        {
+          "endpoint": "https://wttr.in/{city}?format=j1&lang=zh",
+          "headers": {},
+          "expect": {
+            "kind": "json",
+            "must_contain": [
+              "weather"
+            ]
+          },
+          "provides": [
+            "temperature",
+            "condition",
+            "temp_range",
+            "forecast7"
+          ],
+          "role": "standby",
+          "health": {
+            "p50_ms": 1393,
+            "ok_rate": 1.0,
+            "probes": 19,
+            "fail_streak": 0,
+            "eligible": true,
+            "last_probe_at": "2026-11-06T13:39:46+08:00"
+          },
+          "coverage": "full"
+        }
+      ],
+      "timeout_ms": 5000,
+      "cache_ttl_s": 1800,
+      "template": "{city}{date}预计{condition}，{temp_low}~{temp_high} 度。",
+      "asset": "weather.cn.forecast"
+    },
+    {
+      "id": "market.index",
+      "name": "上证指数",
+      "triggers": [
+        "股市",
+        "大盘",
+        "上证"
+      ],
+      "route": "http_direct",
+      "requires_coverage": [
+        "price",
+        "change_pct"
+      ],
+      "candidates": [
+        {
+          "endpoint": "https://hq.sinajs.cn/list=sh000001",
+          "headers": {
+            "Referer": "https://finance.sina.com.cn"
+          },
+          "expect": {
+            "kind": "text",
+            "must_contain": [
+              "var hq_str_sh000001"
+            ]
+          },
+          "provides": [
+            "price",
+            "change_pct",
+            "volume"
+          ],
+          "role": "primary",
+          "health": {
+            "p50_ms": 83,
+            "ok_rate": 1.0,
+            "probes": 19,
+            "fail_streak": 0,
+            "eligible": true,
+            "last_probe_at": "2026-11-06T13:39:46+08:00"
+          },
+          "coverage": "full"
+        },
+        {
+          "endpoint": "https://qt.gtimg.cn/q=sh000001",
+          "headers": {},
+          "expect": {
+            "kind": "text",
+            "must_contain": [
+              "v_sh000001"
+            ]
+          },
+          "provides": [
+            "price",
+            "change_pct",
+            "volume"
+          ],
+          "role": "standby",
+          "health": {
+            "p50_ms": 233,
+            "ok_rate": 1.0,
+            "probes": 19,
+            "fail_streak": 0,
+            "eligible": true,
+            "last_probe_at": "2026-11-06T13:39:47+08:00"
+          },
+          "coverage": "full"
+        }
+      ],
+      "timeout_ms": 5000,
+      "cache_ttl_s": 15,
+      "template": "上证指数 {price} 点，{change_pct}，成交 {volume} 亿手。",
+      "asset": "index.cn"
+    },
+    {
+      "id": "market.stock",
+      "name": "个股",
+      "triggers": [
+        "某只股票",
+        "股价",
+        "个股"
+      ],
+      "route": "http_direct",
+      "requires_coverage": [
+        "price",
+        "change_pct"
+      ],
+      "candidates": [
+        {
+          "endpoint": "https://hq.sinajs.cn/list={symbol}",
+          "headers": {
+            "Referer": "https://finance.sina.com.cn"
+          },
+          "expect": {
+            "kind": "text",
+            "must_contain": [
+              "var hq_str_"
+            ]
+          },
+          "provides": [
+            "price",
+            "change_pct"
+          ],
+          "role": "primary",
+          "health": {
+            "p50_ms": 84,
+            "ok_rate": 1.0,
+            "probes": 1,
+            "fail_streak": 0,
+            "eligible": true,
+            "last_probe_at": "2026-11-06T12:10:00+08:00"
+          }
+        },
+        {
+          "endpoint": "https://qt.gtimg.cn/q={symbol}",
+          "headers": {},
+          "expect": {
+            "kind": "text",
+            "must_contain": [
+              "v_"
+            ]
+          },
+          "provides": [
+            "price",
+            "change_pct"
+          ],
+          "role": "standby",
+          "health": {
+            "p50_ms": 237,
+            "ok_rate": 1.0,
+            "probes": 1,
+            "fail_streak": 0,
+            "eligible": true,
+            "last_probe_at": "2026-11-06T12:10:00+08:00"
+          }
+        }
+      ],
+      "timeout_ms": 5000,
+      "cache_ttl_s": 15,
+      "template": "{name} {price} 元，{change_pct}。",
+      "notes": "symbol 规则：沪市 sh+6 位，深市 sz+6 位",
+      "asset": "stock.cn"
+    },
+    {
+      "id": "market.gold_intl",
+      "name": "伦敦金",
+      "triggers": [
+        "黄金",
+        "金价",
+        "伦敦金",
+        "国际金价"
+      ],
+      "route": "http_direct",
+      "requires_coverage": [
+        "price"
+      ],
+      "candidates": [
+        {
+          "endpoint": "https://hq.sinajs.cn/list=hf_XAU",
+          "headers": {
+            "Referer": "https://finance.sina.com.cn"
+          },
+          "expect": {
+            "kind": "text",
+            "must_contain": [
+              "var hq_str_hf_XAU"
+            ]
+          },
+          "provides": [
+            "price"
+          ],
+          "role": "primary",
+          "health": {
+            "p50_ms": 85,
+            "ok_rate": 1.0,
+            "probes": 19,
+            "fail_streak": 0,
+            "eligible": true,
+            "last_probe_at": "2026-11-06T13:39:47+08:00"
+          },
+          "coverage": "full"
+        }
+      ],
+      "excluded": [
+        {
+          "endpoint": "https://hq.sinajs.cn/list=hf_GC",
+          "reason": "COMEX 黄金期货与伦敦金现货不是同一标的，作备用会把期货价当现货价报出去"
+        }
+      ],
+      "timeout_ms": 5000,
+      "cache_ttl_s": 15,
+      "template": "伦敦金 {price} 美元/盎司，{change_pct}。",
+      "asset": "gold.intl"
+    },
+    {
+      "id": "market.gold_comex",
+      "name": "COMEX 黄金期货",
+      "triggers": [
+        "COMEX",
+        "纽约金",
+        "美黄金"
+      ],
+      "route": "http_direct",
+      "requires_coverage": [
+        "price"
+      ],
+      "candidates": [
+        {
+          "endpoint": "https://hq.sinajs.cn/list=hf_GC",
+          "headers": {
+            "Referer": "https://finance.sina.com.cn"
+          },
+          "expect": {
+            "kind": "text",
+            "must_contain": [
+              "var hq_str_hf_GC"
+            ]
+          },
+          "provides": [
+            "price"
+          ],
+          "role": "primary",
+          "health": {
+            "p50_ms": 79,
+            "ok_rate": 1.0,
+            "probes": 19,
+            "fail_streak": 0,
+            "eligible": true,
+            "last_probe_at": "2026-11-06T13:39:47+08:00"
+          },
+          "coverage": "full"
+        }
+      ],
+      "timeout_ms": 5000,
+      "cache_ttl_s": 15,
+      "template": "COMEX 黄金 {price} 美元/盎司。",
+      "asset": "gold.comex"
+    },
+    {
+      "id": "market.gold_cn",
+      "name": "上海黄金T+D",
+      "triggers": [
+        "黄金T+D",
+        "上海金",
+        "国内金价",
+        "金交所"
+      ],
+      "route": "http_direct",
+      "requires_coverage": [
+        "price"
+      ],
+      "candidates": [
+        {
+          "endpoint": "https://hq.sinajs.cn/list=gds_AUTD",
+          "headers": {
+            "Referer": "https://finance.sina.com.cn"
+          },
+          "expect": {
+            "kind": "text",
+            "must_contain": [
+              "var hq_str_gds_AUTD"
+            ]
+          },
+          "provides": [
+            "price"
+          ],
+          "role": "primary",
+          "health": {
+            "p50_ms": 73,
+            "ok_rate": 1.0,
+            "probes": 19,
+            "fail_streak": 0,
+            "eligible": true,
+            "last_probe_at": "2026-11-06T13:39:47+08:00"
+          },
+          "coverage": "full"
+        }
+      ],
+      "timeout_ms": 5000,
+      "cache_ttl_s": 15,
+      "template": "黄金T+D {price} 元/克，{change_pct}。",
+      "asset": "gold.cn"
+    },
+    {
+      "id": "market.fx",
+      "name": "美元兑人民币",
+      "triggers": [
+        "美元多少",
+        "人民币汇率",
+        "换汇"
+      ],
+      "route": "http_direct",
+      "requires_coverage": [
+        "price"
+      ],
+      "candidates": [
+        {
+          "endpoint": "https://hq.sinajs.cn/list=fx_susdcny",
+          "headers": {
+            "Referer": "https://finance.sina.com.cn"
+          },
+          "expect": {
+            "kind": "text",
+            "must_contain": [
+              "var hq_str_fx_susdcny"
+            ]
+          },
+          "provides": [
+            "price"
+          ],
+          "role": "primary",
+          "health": {
+            "p50_ms": 94,
+            "ok_rate": 1.0,
+            "probes": 19,
+            "fail_streak": 0,
+            "eligible": true,
+            "last_probe_at": "2026-11-06T13:39:48+08:00"
+          },
+          "coverage": "full"
+        }
+      ],
+      "timeout_ms": 5000,
+      "cache_ttl_s": 60,
+      "template": "美元兑人民币 {rate}。",
+      "asset": "fx.usdcny"
+    },
+    {
+      "id": "market.hk",
+      "name": "恒生指数",
+      "triggers": [
+        "恒生",
+        "港股"
+      ],
+      "route": "http_direct",
+      "requires_coverage": [
+        "price"
+      ],
+      "candidates": [
+        {
+          "endpoint": "https://hq.sinajs.cn/list=hkHSI",
+          "headers": {
+            "Referer": "https://finance.sina.com.cn"
+          },
+          "expect": {
+            "kind": "text",
+            "must_contain": [
+              "var hq_str_hkHSI"
+            ]
+          },
+          "provides": [
+            "price",
+            "change_pct"
+          ],
+          "role": "primary",
+          "health": {
+            "p50_ms": 77,
+            "ok_rate": 1.0,
+            "probes": 19,
+            "fail_streak": 0,
+            "eligible": true,
+            "last_probe_at": "2026-11-06T13:39:48+08:00"
+          },
+          "coverage": "full"
+        }
+      ],
+      "timeout_ms": 5000,
+      "cache_ttl_s": 15,
+      "template": "恒生指数 {price} 点，{change_pct}。",
+      "asset": "index.hk"
+    },
+    {
+      "id": "market.us_dji",
+      "name": "道琼斯指数",
+      "triggers": [
+        "道指",
+        "道琼斯",
+        "美股"
+      ],
+      "route": "http_direct",
+      "requires_coverage": [
+        "price"
+      ],
+      "candidates": [
+        {
+          "endpoint": "https://hq.sinajs.cn/list=gb_$dji",
+          "headers": {
+            "Referer": "https://finance.sina.com.cn"
+          },
+          "expect": {
+            "kind": "text",
+            "must_contain": [
+              "var hq_str_gb_$dji"
+            ]
+          },
+          "provides": [
+            "price",
+            "change_pct"
+          ],
+          "role": "primary",
+          "health": {
+            "p50_ms": 88,
+            "ok_rate": 1.0,
+            "probes": 19,
+            "fail_streak": 0,
+            "eligible": true,
+            "last_probe_at": "2026-11-06T13:39:48+08:00"
+          },
+          "coverage": "full"
+        }
+      ],
+      "timeout_ms": 5000,
+      "cache_ttl_s": 15,
+      "template": "道琼斯 {price} 点，{change_pct}。",
+      "asset": "index.us.dji"
+    },
+    {
+      "id": "market.us_ixic",
+      "name": "纳斯达克指数",
+      "triggers": [
+        "纳指",
+        "纳斯达克"
+      ],
+      "route": "http_direct",
+      "requires_coverage": [
+        "price"
+      ],
+      "candidates": [
+        {
+          "endpoint": "https://hq.sinajs.cn/list=gb_$ixic",
+          "headers": {
+            "Referer": "https://finance.sina.com.cn"
+          },
+          "expect": {
+            "kind": "text",
+            "must_contain": [
+              "var hq_str_gb_$ixic"
+            ]
+          },
+          "provides": [
+            "price",
+            "change_pct"
+          ],
+          "role": "primary",
+          "health": {
+            "p50_ms": 75,
+            "ok_rate": 1.0,
+            "probes": 19,
+            "fail_streak": 0,
+            "eligible": true,
+            "last_probe_at": "2026-11-06T13:39:48+08:00"
+          },
+          "coverage": "full"
+        }
+      ],
+      "timeout_ms": 5000,
+      "cache_ttl_s": 15,
+      "template": "纳斯达克 {price} 点，{change_pct}。",
+      "asset": "index.us.ixic"
+    },
+    {
+      "id": "task.queue",
+      "name": "任务队列状态",
+      "triggers": [
+        "任务",
+        "队列",
+        "进度",
+        "工单"
+      ],
+      "route": "local_file",
+      "requires_coverage": [],
+      "candidates": [],
+      "timeout_ms": 1000,
+      "cache_ttl_s": 0,
+      "template": "当前共 {total} 个任务，{status_summary}。"
+    },
+    {
+      "id": "env.snapshot",
+      "name": "系统环境",
+      "triggers": [
+        "配置",
+        "磁盘",
+        "内存",
+        "系统状态"
+      ],
+      "route": "local_module",
+      "requires_coverage": [],
+      "candidates": [],
+      "timeout_ms": 5000,
+      "cache_ttl_s": 30,
+      "template": "多行快照，按现有模板输出"
+    },
+    {
+      "id": "search.web",
+      "name": "搜索与实时资讯",
+      "triggers": [
+        "搜一下",
+        "上网查",
+        "最新",
+        "查资料"
+      ],
+      "route": "tool",
+      "requires_coverage": [],
+      "candidates": [],
+      "timeout_ms": 30000,
+      "cache_ttl_s": 0,
+      "template": "结论 + 来源 URL"
+    },
+    {
+      "id": "general.open",
+      "name": "开放问题兜底",
+      "triggers": [],
+      "route": "model",
+      "requires_coverage": [],
+      "candidates": [],
+      "timeout_ms": 120000,
+      "cache_ttl_s": 0,
+      "template": "自由回答"
+    },
+    {
+      "id": "market.oil_wti",
+      "label": "WTI原油",
+      "asset": "oil.wti",
+      "triggers": [
+        "油价",
+        "WTI原油",
+        "纽约原油",
+        "美原油"
+      ],
+      "requires_coverage": [
+        "price",
+        "change_pct"
+      ],
+      "route": "http_direct",
+      "timeout_ms": 5000,
+      "cache_ttl_s": 15,
+      "template": "WTI 原油 {price} 美元/桶（{change_pct}）",
+      "candidates": [
+        {
+          "endpoint": "https://hq.sinajs.cn/list=hf_CL",
+          "headers": {
+            "Referer": "https://finance.sina.com.cn"
+          },
+          "expect": {
+            "kind": "text",
+            "must_contain": [
+              "hq_str_"
+            ],
+            "min_payload_bytes": 40
+          },
+          "provides": [
+            "price",
+            "change_pct"
+          ],
+          "role": "primary",
+          "health": {
+            "p50_ms": 91,
+            "ok_rate": 1.0,
+            "probes": 12,
+            "fail_streak": 0,
+            "last_probe_at": "2026-11-06T13:39:49+08:00",
+            "eligible": true,
+            "probe": "live"
+          },
+          "source_vendor": "sina-hq",
+          "display_name": "纽约原油",
+          "unit": "美元/桶",
+          "coverage": "full"
+        }
+      ],
+      "built_by": "interface_build",
+      "build_state": {
+        "built_at": "2026-11-06T13:36:52+08:00",
+        "asset": "oil.wti",
+        "full": 1,
+        "partial": 0,
+        "unverified": 0,
+        "picked": 1,
+        "degraded": true,
+        "target": {
+          "primary": 1,
+          "standby": 2
+        },
+        "note": "partial 源字段不全，只在主干与完整备用都不可用时降级使用，回复里必须标注缺项。"
+      }
+    },
+    {
+      "id": "market.silver_intl",
+      "label": "伦敦银",
+      "asset": "silver.intl",
+      "triggers": [
+        "白银",
+        "银价",
+        "伦敦银",
+        "国际银价"
+      ],
+      "requires_coverage": [
+        "price",
+        "change_pct"
+      ],
+      "route": "http_direct",
+      "timeout_ms": 5000,
+      "cache_ttl_s": 15,
+      "template": "伦敦银 {price} 美元/盎司，{change_pct}。",
+      "candidates": [
+        {
+          "endpoint": "https://hq.sinajs.cn/list=hf_XAG",
+          "headers": {
+            "Referer": "https://finance.sina.com.cn"
+          },
+          "expect": {
+            "kind": "text",
+            "must_contain": [
+              "hq_str_"
+            ],
+            "min_payload_bytes": 40
+          },
+          "provides": [
+            "price",
+            "change_pct"
+          ],
+          "role": "primary",
+          "health": {
+            "p50_ms": 61,
+            "ok_rate": 1.0,
+            "probes": 1,
+            "fail_streak": 0,
+            "last_probe_at": "2026-11-06T13:57:29+08:00",
+            "eligible": true,
+            "probe": "live"
+          },
+          "source_vendor": "sina-hq",
+          "display_name": "伦敦银现",
+          "unit": "美元/盎司",
+          "coverage": "full"
+        }
+      ],
+      "built_by": "interface_build",
+      "build_state": {
+        "built_at": "2026-11-06T13:57:29+08:00",
+        "asset": "silver.intl",
+        "full": 1,
+        "partial": 0,
+        "unverified": 0,
+        "picked": 1,
+        "degraded": true,
+        "budget_ms": 2500,
+        "target": {
+          "primary": 1,
+          "standby": 2
+        },
+        "note": "partial 源字段不全，只在主干与完整备用都不可用时降级使用，回复里必须标注缺项。"
+      }
+    }
+  ],
+  "routing_order": [
+    "weather.today",
+    "weather.forecast",
+    "time.now",
+    "market.gold_cn",
+    "market.gold_intl",
+    "market.gold_comex",
+    "market.index",
+    "market.stock",
+    "market.fx",
+    "market.hk",
+    "market.us_dji",
+    "market.us_ixic",
+    "task.queue",
+    "env.snapshot",
+    "search.web",
+    "general.open"
+  ],
+  "routing_rules": [
+    "天气必须排在时间之前：'这星期天气怎么样'含星期，先走时间会答错",
+    "行情必须排在征询判定之前：'黄金怎么样'含怎么样，否则被误判成队列征询",
+    "L1 意图命中后不再进模型，避免双重耗时",
+    "任一候选失败按 primary→standby→fallback 顺序重试，全失败直接返回服务不可用话术"
+  ],
+  "frozen_baselines_untouched": [
+    "GMGN",
+    "Helius",
+    "DexScreener",
+    "pumpfun",
+    "Reddit",
+    "Birdeye"
+  ],
+  "changelog": [
+    {
+      "at": "2026-11-06T12:20:00+08:00",
+      "action": "init",
+      "detail": "首版配置，health 值为首次实测"
+    },
+    {
+      "at": "2026-11-06T13:25:00+08:00",
+      "action": "schema_fix",
+      "detail": "拆开不同标的：伦敦金/COMEX 分列，恒生/道指/纳指分列；today 意图增加 temp_range 覆盖要求，实况源移入 excluded"
+    },
+    {
+      "at": "2026-11-06T13:23:22+08:00",
+      "action": "rerank",
+      "detail": [
+        {
+          "intent": "weather.today",
+          "endpoint": "http://t.weather.itboy.net/api/weather/city/{city_code}",
+          "from": "primary",
+          "to": "standby"
+        },
+        {
+          "intent": "weather.today",
+          "endpoint": "http://d1.weather.com.cn/dingzhi/{city_code}.html",
+          "from": "standby",
+          "to": "primary"
+        },
+        {
+          "intent": "weather.today",
+          "endpoint": "https://wttr.in/{city}?format=j1&lang=zh",
+          "from": "fallback",
+          "to": "standby"
+        },
+        {
+          "intent": "weather.forecast",
+          "endpoint": "https://wttr.in/{city}?format=j1&lang=zh",
+          "from": "fallback",
+          "to": "standby"
+        }
+      ]
+    },
+    {
+      "at": "2026-11-06T13:24:57+08:00",
+      "action": "rerank",
+      "detail": [
+        {
+          "intent": "weather.forecast",
+          "endpoint": "https://api.open-meteo.com/v1/forecast?latitude=41.8057&longitude=123.4315&daily=temperature_2m_max,temperature_2m_min,weather_code&timezone=Asia%2FShanghai",
+          "from": "standby",
+          "to": "fallback"
+        }
+      ]
+    },
+    {
+      "at": "2026-11-06T13:25:37+08:00",
+      "action": "rerank",
+      "detail": [
+        {
+          "intent": "weather.forecast",
+          "endpoint": "https://api.open-meteo.com/v1/forecast?latitude=41.8057&longitude=123.4315&daily=temperature_2m_max,temperature_2m_min,weather_code&timezone=Asia%2FShanghai",
+          "from": "fallback",
+          "to": "standby"
+        }
+      ]
+    },
+    {
+      "at": "2026-11-06T13:36:52+08:00",
+      "action": "build",
+      "detail": {
+        "intent": "market.oil_wti",
+        "asset": "oil.wti",
+        "degraded": true,
+        "picked": [
+          {
+            "endpoint": "https://hq.sinajs.cn/list=hf_CL",
+            "role": "primary",
+            "coverage": "full",
+            "p50_ms": 96
+          }
+        ]
+      }
+    },
+    {
+      "at": "2026-11-06T13:37:27+08:00",
+      "action": "rerank",
+      "detail": [
+        {
+          "intent": "weather.today",
+          "endpoint": "http://d1.weather.com.cn/dingzhi/{city_code}.html",
+          "from": "fallback",
+          "to": "standby"
+        }
+      ]
+    },
+    {
+      "at": "2026-11-06T13:38:36+08:00",
+      "action": "rerank",
+      "detail": [
+        {
+          "intent": "weather.forecast",
+          "endpoint": "https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}&daily=temperature_2m_max,temperature_2m_min,weather_code&timezone=Asia%2FShanghai",
+          "from": "standby",
+          "to": "fallback"
+        }
+      ]
+    },
+    {
+      "at": "2026-11-06T13:39:49+08:00",
+      "action": "rerank",
+      "detail": [
+        {
+          "intent": "weather.forecast",
+          "endpoint": "https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}&daily=temperature_2m_max,temperature_2m_min,weather_code&timezone=Asia%2FShanghai",
+          "from": "fallback",
+          "to": "standby"
+        }
+      ]
+    },
+    {
+      "at": "2026-11-06T13:57:29+08:00",
+      "action": "build",
+      "detail": {
+        "intent": "market.silver_intl",
+        "asset": "silver.intl",
+        "degraded": true,
+        "budget_ms": 2500,
+        "picked": [
+          {
+            "endpoint": "https://hq.sinajs.cn/list=hf_XAG",
+            "role": "primary",
+            "coverage": "full",
+            "p50_ms": 61
+          }
+        ]
+      }
+    }
+  ]
+}

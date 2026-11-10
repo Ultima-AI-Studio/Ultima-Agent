@@ -1,0 +1,15 @@
+# SDD ledger — plan: H:/UltimaAI/UltimaAgent/docs/plans/jarvis-work-e02-claim-generation-contract-plan-20261108.md
+
+- Spec: H:/UltimaAI/UltimaAgent/docs/plans/jarvis-work-e02-claim-generation-contract-proposal-20261108.md; user call_5411de619a6c4de0bab414126a228c7d authorized offline repair, necessary review and entry preparation. Model0/actual0.
+- Parent: bf7f7a9cf0e4ba559c29daa388c00379d12d345a; native worktree operation4190839a-b100-4cce-aa76-883f2392ba05, new codex/jarvis-e02-claim-generation-r1 branch. Frozen old worktree unchanged.
+- Pre-flight: Task1 produces the same sampler/prompt interfaces used by generation and replay; Task2 freezes their exact bytes and evidence; Task3 binds that frozen candidate. No signature mismatch identified. Task3 must not bind a floating candidate.
+- Baseline: baseline-json-20261107T174714836858Z — 35 passed, original source unchanged, original offline guard clean. No product change before plan review.
+- Ruling: Historical finite-repeat native parse failure prevents treating Python reference conversion as native compatibility proof. Implement only operation-first generation after plan PASS; leave existing suffix/noncode risk explicit — avoids reintroducing the old parser defect — cost: actual generation can still overrun and E02 can still fail.
+- Ruling: Keep the original decoded strict policy and exact writer/fact/citation gates. Sampler JSON escapes are not proof of decoded validity or semantics — cost: generated values may still be rejected, and truthful non-delivery must remain.
+- Ruling: Retain this skill workspace and copy it into the final evidence rather than repeating a previously automatically rejected deletion. Prior push block also remains; no remote retry.
+- Exact plan review PASS_PLAN_ONLY, SHA7ea4b91b21285088f05e1219303d2d39a47cf8d402fc08306e3377ccc0d44a2c. Task1 started at bf7f7a9.
+- Task1 RED: 14 expected failures / 19 cases (12 ordinary prefixes, long synthetic prefix, old shared directive replay), 5 positive boundary cases passed. All records preserved.
+- Task1 GREEN: contract19 + existing JSON35 passed with clean offline audit. Two production changes: operation-first raw JSON sampler expression and same shared phase instruction. Strict schema, budgets, writer and source mapping unchanged.
+- Task1 Ruling: the plan's Task2 prose says five files, but Task1 explicitly names four files (two product, two tests); exact named paths govern. No fifth file added — clerical count only, no behavior cost.
+- Task1 Ruling: use the completion command to verify the already-fresh RED/GREEN receipt hashes rather than repeat the same tests solely for ledger bookkeeping. Task2 will run the broader required suite — cost: receipt verification must enforce exact current source hashes, which verify_task1.py does.
+Task 1: complete (commits bf7f7a9..bf7f7a9, tests: H:/UltimaAI/UltimaAgent/tools/venv-openjarvis/Scripts/python.exe -I -B -X utf8 H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-claim-generation-contract-20261108-r1/verification/verify_task1.py → PASS_TASK1_RECEIPT_READBACK: RED14/19, GREEN19+35; unchanged tested source; no new test/runtime execution)

@@ -1,0 +1,58 @@
+diff --git a/src/brain/work_context.py b/src/brain/work_context.py
+index 7c53ae59..f1413530 100644
+--- a/src/brain/work_context.py
++++ b/src/brain/work_context.py
+@@ -125,8 +125,8 @@ class WorkContextProvider:
+             if hasattr(self._native,'identity'): self._native.identity(t,foreground=False)
+             self._targets.append(json.dumps(t,sort_keys=True))
+ 
+-    def _observe(self,target):
+-        o=self._native.observe(target)
++    def _observe(self,target,*,foreground=True):
++        o=self._native.observe(target,foreground=foreground)
+         if any(o[k]!=target[k] for k in IDENTITY): raise ValueError('Target changed')
+         if o.get('password') or not o.get('editable'): raise ValueError('Protected or unsupported Edit')
+         raw=o['text'].encode('utf-16-le')
+@@ -157,7 +157,8 @@ class WorkContextProvider:
+     def validate_work_target(self,context):
+         try:
+             t,o=self._get(context)
+-            current,_=self._observe(t)
++            # Re-read the captured HWND and selection; replacement is sent to this HWND directly.
++            current,_=self._observe(t,foreground=False)
+             return current==o
+         except (ValueError,OSError,TimeoutError,UnicodeError): return False
+ 
+@@ -170,6 +171,10 @@ class WorkContextProvider:
+         raw=o['text'].encode('utf-16-le')
+         expected=(raw[:2*o['start_utf16']]+content.encode('utf-16-le')+raw[2*o['end_utf16']:]).decode('utf-16-le')
+         before_send()  # durable within request ledger BEFORE potentially committed send
++        # The ledger callback may take time while the user changes the selected range.
++        # Re-observe the same captured HWND immediately before sending the edit.
++        current,_=self._observe(t,foreground=False)
++        if current!=o: raise ValueError('Selection target changed before write')
+         self._native.replace(t,content)
+         after=self.verify_replacement(context,expected)
+         return dict(verified=True,before=o,after=after,expected_text=expected,sha256=digest(expected),source=context['source'])
+@@ -177,7 +182,7 @@ class WorkContextProvider:
+     def verify_replacement(self,context,expected):
+         t,original=self._get(context)
+         # A completed edit may leave an empty caret selection; don't require a range here.
+-        o=self._native.observe(t)
++        o=self._native.observe(t,foreground=False)
+         caret=original['start_utf16']+(len(expected.encode('utf-16-le'))-len(original['text'].encode('utf-16-le')))//2+original['end_utf16']-original['start_utf16']
+         if any(o[k]!=t[k] for k in IDENTITY) or o['text']!=expected or (o['start_utf16'],o['end_utf16'])!=(caret,caret):
+             raise ValueError('Independent target readback mismatch')
+diff --git a/src/brain/work_service.py b/src/brain/work_service.py
+index 7d1b9d0c..1a9366a7 100644
+--- a/src/brain/work_service.py
++++ b/src/brain/work_service.py
+@@ -150,6 +150,8 @@ class WorkService:
+                 effects |= any(effect['state'] != 'rejected' for effect in research_effects)
+             result['status'] = 'needs_attention' if effects else 'failed'
+             result['error'] = str(exc)
++            result['content'] = ('本次任务未完成，部分操作可能已生效，请核对结果。'
++                                 if effects else '本次任务未完成。')
+         finally:
+             if captured and self._context_provider: self._context_provider.release(captured)
+         result['tool_results'] = sdk_results + records

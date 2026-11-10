@@ -1,0 +1,49 @@
+{
+  "reviewer": "root-independent",
+  "scope": "e02-source13-root-entry-preparation",
+  "verdict": "NEEDS_FIXES",
+  "manifest_sha256": "6658149a128fe10c50f4b197a9a7cef8133bb16434e1ada4897b523def31bba8",
+  "package_manifest_sha256": "2975e0f947be408baaa4222f8dd9fd4fbd1cb481adf005f38ea1bc4d8b91c3aa",
+  "runtime_authority": false,
+  "findings": [
+    {
+      "id": "R1-followup",
+      "severity": "Important",
+      "path": "H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\e02-source13-root-entry-20261106\\code\\entry.py",
+      "line": 64,
+      "effect": "Delayed HELLO can spend the qualification allowance before qualify runs. start reserves 45 seconds only before launching; its HELLO loop then checks only cleanup_reservation(owned,0). With two registered members, HELLO can arrive near origin182 seconds with about133 seconds remaining. qualify then runs two bounded15-second CIM calls (native_observation.py:154,159), leaving about103 seconds. The post-qualification reserve check now fails, but unchanged cleanup can need127 seconds including final protected proof (132 with the margin). Its discover15 plus two member snapshot/terminate/snapshot sequences80 plus launcher wait2 leaves only6 seconds for the final15-second snapshot; that can fail before Owned closes its logs. Thus successful admission of the earlier launch is not a persistent reservation, and ordinary bounded qualification calls can still consume the cleanup allowance. If discover registers a previously unseen interpreter, the earlier known-member count also understates the pending role. The two new stall contracts create HELLO immediately and inherit a constant-time qualify double, so do not cover this transition.",
+      "remedy": "Preserve the still-pending qualification and prospective membership allowance throughout HELLO waiting, and check it immediately before qualification. Reconcile newly discovered membership conservatively before granting work. Add a synthetic delayed-HELLO/slow-qualification contract using the actual cleanup and deadline wrappers, asserting closed logs and complete final proof within the original315. Do not extend the origin or introduce another killer."
+    }
+  ],
+  "prior_R1_disposition": "Partially addressed: established worker/reader polling stalls now reserve meaningful cleanup time and the retained two tests exercise actual cleanup/termination admission. R1 is not fully closed because the HELLO-to-qualification budget transition loses its pending reserve.",
+  "declined_to_judge": [
+    "Actual Windows launch/discovery/retained-handle/termination behavior: native operations prohibited; source inspection and synthetic receipts cannot prove it.",
+    "Actual original profile SDK/client execution and research output: no runtime allocation; frozen consumer algorithm not exhaustively re-reviewed.",
+    "Native DNS, Rust execution, HTTP absence and packet counts: no network/native operations authorized; future scoped DNS explicitly disclosed.",
+    "Current protected process liveness: saved bindings only; no live process inspection authorized.",
+    "Model capability, three real E02 rounds, T2/later gates and Owner acceptance: preparation supplies no such evidence.",
+    "Adversarial Python/OS isolation: explicitly trusted-code scope.",
+    "Guaranteed cleanup under arbitrary blocking filesystem I/O, native API failures or unknown trees: no hard bound established; five seconds is a margin, not a guarantee. These failures must remain explicit, never inferred cleanup success."
+  ],
+  "evidence": {
+    "package_members_rehashed": 284,
+    "package_member_mismatches": 0,
+    "runtime_bindings_rehashed": 37,
+    "runtime_binding_mismatches": 0,
+    "retained_full_suite": "83 passed in45.87s; receipt and source inspected, not rerun",
+    "reviewer_tests_run": 0,
+    "reviewer_runtime_operations": 0,
+    "read_sources": "Current source, R1 diff/ruling/readback, approval and consumption, prior independent review, original Owned and PrivateIO, plan/interface/ledger and reviewer template; package files hashed."
+  },
+  "limitations": [
+    "Read-only review; only this report written. No tests, profile, SDK, native process, network, UI, audio or service actions.",
+    "Large combined source output was partially truncated; no assertion of exhaustive semantic review of every unchanged test or historical file.",
+    "Retained83PASS is historical evidence, not a fresh reviewer test result."
+  ],
+  "assessment": {
+    "strengths": "Fix preserves original helper and315 origin, reports practical shorter windows honestly, and adds meaningful real-wrapper synthetic termination contracts. Release and result acceptance remain separate.",
+    "practical_windows": "Two-member132 and four-member214 reserves shorten useful waits to about183 and101 seconds respectively; prospective reader needs259 seconds and therefore normally must begin before origin56. These conservative costs are disclosed rather than claimed as full275/310 use.",
+    "control_record_activation": "Copying an independently authored PASS byte-for-byte to the canonical control path, preserving old reports/package and binding the exact entry hash and report hash in the root gate, is structurally compatible with controls.py:135-144 and the37 unchanged runtime bindings. The outer package hash identifies pre-publication inputs, not the modified control-record package. However this review is NEEDS_FIXES: no PASS activation or runtime authority may be derived from it. Publication must preserve this verdict and cannot silently replace the old review with a fabricated PASS.",
+    "conclusion": "Preparation remains closed due to one Important incomplete cleanup-reserve transition. A timeout FAIL does not prove log closure or process cleanup."
+  }
+}

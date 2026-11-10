@@ -1,0 +1,644 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="38" skipped="0" tests="38" time="19.375" timestamp="2026-11-07T16:36:20.525985+08:00" hostname="DESKTOP-B366PQ9"><testcase classname="" name="test_http500_has_request_bound_status_without_reading_private_body" time="0.770"><failure message="KeyError: 'last_http'">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-native-http-diagnostics-20261107-r1/offline/http-red-20261107T083618967067Z/temp/test_http500_has_request_bound0')
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x00000224A6CD16A0&gt;, [('search', 'Research a subject')], {})
+mock_jar = (&lt;openjarvis.sdk.Jarvis object at 0x00000224A505FE00&gt;, &lt;function _run_work_agent at 0x00000224A50A1D00&gt;, [{'format': {...tx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [&lt;function early_case.&lt;locals&gt;.reply at 0x00000224A6D2D800&gt;])
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x0000022444E8B820&gt;
+
+    def test_http500_has_request_bound_status_without_reading_private_body(tmp_path,sdk_io,mock_jar,monkeypatch):
+        result,ledger,seen,consumed,closed=failing_exchange(tmp_path,sdk_io,mock_jar,monkeypatch)
+        assert result['status']=='failed' and result['error']=='Research HTTP status'
+&gt;       packet=private_packet(result,ledger);last=packet['last_http']
+                                                  ^^^^^^^^^^^^^^^^^^^
+E       KeyError: 'last_http'
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-http-diagnostics\UltimaAgent\src\brain\tests\test_work_http_failure_diagnostics.py:53: KeyError</failure></testcase><testcase classname="" name="test_non_http_failures_keep_http_status_distinct_from_validation[bad_json]" time="0.484"><failure message="KeyError: 'last_http'">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-native-http-diagnostics-20261107-r1/offline/http-red-20261107T083618967067Z/temp/test_non_http_failures_keep_ht0')
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x00000224A68BBD90&gt;, [('search', 'Research a subject')], {})
+mock_jar = (&lt;openjarvis.sdk.Jarvis object at 0x00000224A68BB250&gt;, &lt;function _run_work_agent at 0x00000224A50A1D00&gt;, [{'format': {...tx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [&lt;function early_case.&lt;locals&gt;.reply at 0x00000224A65E9120&gt;])
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x0000022444E8B5C0&gt;
+fault = 'bad_json'
+
+    @pytest.mark.parametrize('fault',['bad_json','overflow','scan','schema','connect'])
+    def test_non_http_failures_keep_http_status_distinct_from_validation(tmp_path,sdk_io,mock_jar,monkeypatch,fault):
+        result,ledger,seen,_,_=failing_exchange(tmp_path,sdk_io,mock_jar,monkeypatch,fault=fault)
+        assert result['status']=='failed'
+&gt;       packet=private_packet(result,ledger);last=packet['last_http']
+                                                  ^^^^^^^^^^^^^^^^^^^
+E       KeyError: 'last_http'
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-http-diagnostics\UltimaAgent\src\brain\tests\test_work_http_failure_diagnostics.py:76: KeyError</failure></testcase><testcase classname="" name="test_non_http_failures_keep_http_status_distinct_from_validation[overflow]" time="0.457"><failure message="KeyError: 'last_http'">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-native-http-diagnostics-20261107-r1/offline/http-red-20261107T083618967067Z/temp/test_non_http_failures_keep_ht1')
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x00000224A667E210&gt;, [('search', 'Research a subject')], {})
+mock_jar = (&lt;openjarvis.sdk.Jarvis object at 0x00000224A6745A70&gt;, &lt;function _run_work_agent at 0x00000224A50A1D00&gt;, [{'format': {...tx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [&lt;function early_case.&lt;locals&gt;.reply at 0x00000224A65D7600&gt;])
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x00000224A692FD10&gt;
+fault = 'overflow'
+
+    @pytest.mark.parametrize('fault',['bad_json','overflow','scan','schema','connect'])
+    def test_non_http_failures_keep_http_status_distinct_from_validation(tmp_path,sdk_io,mock_jar,monkeypatch,fault):
+        result,ledger,seen,_,_=failing_exchange(tmp_path,sdk_io,mock_jar,monkeypatch,fault=fault)
+        assert result['status']=='failed'
+&gt;       packet=private_packet(result,ledger);last=packet['last_http']
+                                                  ^^^^^^^^^^^^^^^^^^^
+E       KeyError: 'last_http'
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-http-diagnostics\UltimaAgent\src\brain\tests\test_work_http_failure_diagnostics.py:76: KeyError</failure></testcase><testcase classname="" name="test_non_http_failures_keep_http_status_distinct_from_validation[scan]" time="0.437"><failure message="KeyError: 'last_http'">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-native-http-diagnostics-20261107-r1/offline/http-red-20261107T083618967067Z/temp/test_non_http_failures_keep_ht2')
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x00000224A6747490&gt;, [('search', 'Research a subject')], {})
+mock_jar = (&lt;openjarvis.sdk.Jarvis object at 0x00000224A6752250&gt;, &lt;function _run_work_agent at 0x00000224A50A1D00&gt;, [{'format': {...tx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [&lt;function early_case.&lt;locals&gt;.reply at 0x00000224A65BB100&gt;])
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x00000224A6752360&gt;
+fault = 'scan'
+
+    @pytest.mark.parametrize('fault',['bad_json','overflow','scan','schema','connect'])
+    def test_non_http_failures_keep_http_status_distinct_from_validation(tmp_path,sdk_io,mock_jar,monkeypatch,fault):
+        result,ledger,seen,_,_=failing_exchange(tmp_path,sdk_io,mock_jar,monkeypatch,fault=fault)
+        assert result['status']=='failed'
+&gt;       packet=private_packet(result,ledger);last=packet['last_http']
+                                                  ^^^^^^^^^^^^^^^^^^^
+E       KeyError: 'last_http'
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-http-diagnostics\UltimaAgent\src\brain\tests\test_work_http_failure_diagnostics.py:76: KeyError</failure></testcase><testcase classname="" name="test_non_http_failures_keep_http_status_distinct_from_validation[schema]" time="0.334"><failure message="KeyError: 'last_http'">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-native-http-diagnostics-20261107-r1/offline/http-red-20261107T083618967067Z/temp/test_non_http_failures_keep_ht3')
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x00000224A68895B0&gt;, [('search', 'Research a subject')], {})
+mock_jar = (&lt;openjarvis.sdk.Jarvis object at 0x00000224A6640C50&gt;, &lt;function _run_work_agent at 0x00000224A50A1D00&gt;, [{'format': {...tx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [&lt;function early_case.&lt;locals&gt;.reply at 0x00000224A65D5940&gt;])
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x00000224A67529C0&gt;
+fault = 'schema'
+
+    @pytest.mark.parametrize('fault',['bad_json','overflow','scan','schema','connect'])
+    def test_non_http_failures_keep_http_status_distinct_from_validation(tmp_path,sdk_io,mock_jar,monkeypatch,fault):
+        result,ledger,seen,_,_=failing_exchange(tmp_path,sdk_io,mock_jar,monkeypatch,fault=fault)
+        assert result['status']=='failed'
+&gt;       packet=private_packet(result,ledger);last=packet['last_http']
+                                                  ^^^^^^^^^^^^^^^^^^^
+E       KeyError: 'last_http'
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-http-diagnostics\UltimaAgent\src\brain\tests\test_work_http_failure_diagnostics.py:76: KeyError</failure></testcase><testcase classname="" name="test_non_http_failures_keep_http_status_distinct_from_validation[connect]" time="0.378"><failure message="KeyError: 'last_http'">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-native-http-diagnostics-20261107-r1/offline/http-red-20261107T083618967067Z/temp/test_non_http_failures_keep_ht4')
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x00000224A65B5D90&gt;, [('search', 'Research a subject')], {})
+mock_jar = (&lt;openjarvis.sdk.Jarvis object at 0x00000224A6884AA0&gt;, &lt;function _run_work_agent at 0x00000224A50A1D00&gt;, [{'format': {...tx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [&lt;function early_case.&lt;locals&gt;.reply at 0x00000224A65E94E0&gt;])
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x00000224A6641950&gt;
+fault = 'connect'
+
+    @pytest.mark.parametrize('fault',['bad_json','overflow','scan','schema','connect'])
+    def test_non_http_failures_keep_http_status_distinct_from_validation(tmp_path,sdk_io,mock_jar,monkeypatch,fault):
+        result,ledger,seen,_,_=failing_exchange(tmp_path,sdk_io,mock_jar,monkeypatch,fault=fault)
+        assert result['status']=='failed'
+&gt;       packet=private_packet(result,ledger);last=packet['last_http']
+                                                  ^^^^^^^^^^^^^^^^^^^
+E       KeyError: 'last_http'
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-http-diagnostics\UltimaAgent\src\brain\tests\test_work_http_failure_diagnostics.py:76: KeyError</failure></testcase><testcase classname="" name="test_metadata_http_failure_does_not_inherit_previous_chat_validation[/api/version-version-3]" time="0.287"><failure message="KeyError: 'last_http'">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-native-http-diagnostics-20261107-r1/offline/http-red-20261107T083618967067Z/temp/test_metadata_http_failure_doe0')
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x00000224A67529C0&gt;, [('search', 'Research a subject')], {})
+mock_jar = (&lt;openjarvis.sdk.Jarvis object at 0x00000224A6CA4830&gt;, &lt;function _run_work_agent at 0x00000224A50A1D00&gt;, [{'format': {...tx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [&lt;function early_case.&lt;locals&gt;.reply at 0x00000224A65D68E0&gt;])
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x00000224A6703350&gt;
+route = '/api/version', label = 'version', index = 3
+
+    @pytest.mark.parametrize('route,label,index',[('/api/version','version',3),('/api/tags','tags',4)])
+    def test_metadata_http_failure_does_not_inherit_previous_chat_validation(tmp_path,sdk_io,mock_jar,monkeypatch,route,label,index):
+        result,ledger,_,consumed,_=failing_exchange(tmp_path,sdk_io,mock_jar,monkeypatch,route=route)
+&gt;       packet=private_packet(result,ledger);last=packet['last_http']
+                                                  ^^^^^^^^^^^^^^^^^^^
+E       KeyError: 'last_http'
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-http-diagnostics\UltimaAgent\src\brain\tests\test_work_http_failure_diagnostics.py:93: KeyError</failure></testcase><testcase classname="" name="test_metadata_http_failure_does_not_inherit_previous_chat_validation[/api/tags-tags-4]" time="0.365"><failure message="KeyError: 'last_http'">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-native-http-diagnostics-20261107-r1/offline/http-red-20261107T083618967067Z/temp/test_metadata_http_failure_doe1')
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x00000224A6800F30&gt;, [('search', 'Research a subject')], {})
+mock_jar = (&lt;openjarvis.sdk.Jarvis object at 0x00000224A663E410&gt;, &lt;function _run_work_agent at 0x00000224A50A1D00&gt;, [{'format': {...tx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [&lt;function early_case.&lt;locals&gt;.reply at 0x00000224A65C22A0&gt;])
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x00000224A6662A80&gt;
+route = '/api/tags', label = 'tags', index = 4
+
+    @pytest.mark.parametrize('route,label,index',[('/api/version','version',3),('/api/tags','tags',4)])
+    def test_metadata_http_failure_does_not_inherit_previous_chat_validation(tmp_path,sdk_io,mock_jar,monkeypatch,route,label,index):
+        result,ledger,_,consumed,_=failing_exchange(tmp_path,sdk_io,mock_jar,monkeypatch,route=route)
+&gt;       packet=private_packet(result,ledger);last=packet['last_http']
+                                                  ^^^^^^^^^^^^^^^^^^^
+E       KeyError: 'last_http'
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-http-diagnostics\UltimaAgent\src\brain\tests\test_work_http_failure_diagnostics.py:93: KeyError</failure></testcase><testcase classname="" name="test_admission_refusal_is_not_an_http_response_or_a_sent_request" time="0.448"><failure message="KeyError: 'last_http'">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-native-http-diagnostics-20261107-r1/offline/http-red-20261107T083618967067Z/temp/test_admission_refusal_is_not_0')
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x00000224A6641D50&gt;, [('search', 'Research a subject')], {})
+mock_jar = (&lt;openjarvis.sdk.Jarvis object at 0x00000224A661E450&gt;, &lt;function _run_work_agent at 0x00000224A50A1D00&gt;, [{'format': {...tx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [&lt;function early_case.&lt;locals&gt;.reply at 0x00000224A65D65C0&gt;])
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x00000224A66A8E60&gt;
+
+    def test_admission_refusal_is_not_an_http_response_or_a_sent_request(tmp_path,sdk_io,mock_jar,monkeypatch):
+        factory=server._research_client;posts=[]
+        def client():
+            instance=factory();build=instance.build_request
+            def request(method,path,**kwargs):
+                prepared=build(method,path,**kwargs)
+                if method=='POST':
+                    posts.append(path)
+                    if len(posts)==2:wt._ACTIVE.get()[1].deadline=wt.monotonic()+54
+                return prepared
+            monkeypatch.setattr(instance,'build_request',request)
+            return instance
+        monkeypatch.setattr(server,'_research_client',client)
+        result,ledger=early_case(tmp_path,sdk_io,mock_jar,monkeypatch,reads=1)
+&gt;       packet=private_packet(result,ledger);last=packet['last_http']
+                                                  ^^^^^^^^^^^^^^^^^^^
+E       KeyError: 'last_http'
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-http-diagnostics\UltimaAgent\src\brain\tests\test_work_http_failure_diagnostics.py:113: KeyError</failure></testcase><testcase classname="" name="test_validated_http200_still_does_not_grant_delivery_credit" time="0.613"><failure message="KeyError: 'last_http'">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-native-http-diagnostics-20261107-r1/offline/http-red-20261107T083618967067Z/temp/test_validated_http200_still_d0')
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x00000224A6643050&gt;, [('search', 'Research a subject')], {})
+mock_jar = (&lt;openjarvis.sdk.Jarvis object at 0x00000224A6828520&gt;, &lt;function _run_work_agent at 0x00000224A50A1D00&gt;, [{'format': {...ser'}], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [])
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x00000224A679E350&gt;
+
+    def test_validated_http200_still_does_not_grant_delivery_credit(tmp_path,sdk_io,mock_jar,monkeypatch):
+        result,ledger=early_case(tmp_path,sdk_io,mock_jar,monkeypatch,reads=1)
+&gt;       packet=private_packet(result,ledger);last=packet['last_http']
+                                                  ^^^^^^^^^^^^^^^^^^^
+E       KeyError: 'last_http'
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-http-diagnostics\UltimaAgent\src\brain\tests\test_work_http_failure_diagnostics.py:123: KeyError</failure></testcase><testcase classname="" name="test_last_http_diagnostic_freezes_before_late_receipt_mutation" time="0.523"><failure message="KeyError: 'last_http'">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-native-http-diagnostics-20261107-r1/offline/http-red-20261107T083618967067Z/temp/test_last_http_diagnostic_free0')
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x00000224A6886D50&gt;, [('search', 'Research a subject')], {})
+mock_jar = (&lt;openjarvis.sdk.Jarvis object at 0x00000224A6828CB0&gt;, &lt;function _run_work_agent at 0x00000224A50A1D00&gt;, [{'format': {...tx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [&lt;function early_case.&lt;locals&gt;.reply at 0x00000224A662E160&gt;])
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x00000224A6600670&gt;
+
+    def test_last_http_diagnostic_freezes_before_late_receipt_mutation(tmp_path,sdk_io,mock_jar,monkeypatch):
+        result,ledger,*_=failing_exchange(tmp_path,sdk_io,mock_jar,monkeypatch)
+        raw=ledger._failure_diagnostic;packet=private_packet(result,ledger)
+&gt;       assert packet['last_http']['status']==500
+               ^^^^^^^^^^^^^^^^^^^
+E       KeyError: 'last_http'
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-http-diagnostics\UltimaAgent\src\brain\tests\test_work_http_failure_diagnostics.py:132: KeyError</failure></testcase><testcase classname="" name="test_untrusted_or_incoherent_local_receipt_projection_fails_closed[missing_event]" time="0.486"><failure message="AssertionError: assert 'CAPTURED' == 'UNAVAILABLE'&#10;  &#10;  - UNAVAILABLE&#10;  + CAPTURED">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-native-http-diagnostics-20261107-r1/offline/http-red-20261107T083618967067Z/temp/test_untrusted_or_incoherent_l0')
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x00000224A67CDF40&gt;, [('search', 'Research a subject')], {})
+mock_jar = (&lt;openjarvis.sdk.Jarvis object at 0x00000224A68292E0&gt;, &lt;function _run_work_agent at 0x00000224A50A1D00&gt;, [{'format': {...ser'}], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [])
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x00000224A65CB040&gt;
+poison = 'missing_event'
+
+    @pytest.mark.parametrize('poison',['missing_event','duplicate_event','event_kind','wire_digest','route','count','status'])
+    def test_untrusted_or_incoherent_local_receipt_projection_fails_closed(tmp_path,sdk_io,mock_jar,monkeypatch,poison):
+        def corrupt(response,ledger):
+            r=ledger._runtime_transport.receipts[-1]
+            index=len(ledger._runtime_transport.receipts)-1
+            event=next(e for e in ledger._timeline if e['kind']=='send' and e['receipt_index']==index)
+            if poison=='missing_event':ledger._timeline.remove(event)
+            elif poison=='duplicate_event':ledger._timeline.append(copy.deepcopy(event))
+            elif poison=='event_kind':event['kind']='admission_refused'
+            elif poison=='wire_digest':ledger._runtime_wires[-1]['hashes']['entity']='0'*64
+            elif poison=='route':r['path']='https://private.invalid/secret'
+            elif poison=='count':r['admitted']=True
+            elif poison=='status':r['status']=True
+        result,ledger=early_case(tmp_path,sdk_io,mock_jar,monkeypatch,reads=1,after=corrupt)
+        assert result['error']=='Missing nonempty immutable runtime proof'
+&gt;       assert result['research_diagnostic']['status']=='UNAVAILABLE'
+E       AssertionError: assert 'CAPTURED' == 'UNAVAILABLE'
+E         
+E         - UNAVAILABLE
+E         + CAPTURED
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-http-diagnostics\UltimaAgent\src\brain\tests\test_work_http_failure_diagnostics.py:153: AssertionError</failure></testcase><testcase classname="" name="test_untrusted_or_incoherent_local_receipt_projection_fails_closed[duplicate_event]" time="1.225"><failure message="AssertionError: assert 'CAPTURED' == 'UNAVAILABLE'&#10;  &#10;  - UNAVAILABLE&#10;  + CAPTURED">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-native-http-diagnostics-20261107-r1/offline/http-red-20261107T083618967067Z/temp/test_untrusted_or_incoherent_l1')
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x00000224A6600D70&gt;, [('search', 'Research a subject')], {})
+mock_jar = (&lt;openjarvis.sdk.Jarvis object at 0x00000224A6646F10&gt;, &lt;function _run_work_agent at 0x00000224A50A1D00&gt;, [{'format': {...ser'}], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [])
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x00000224A661FB90&gt;
+poison = 'duplicate_event'
+
+    @pytest.mark.parametrize('poison',['missing_event','duplicate_event','event_kind','wire_digest','route','count','status'])
+    def test_untrusted_or_incoherent_local_receipt_projection_fails_closed(tmp_path,sdk_io,mock_jar,monkeypatch,poison):
+        def corrupt(response,ledger):
+            r=ledger._runtime_transport.receipts[-1]
+            index=len(ledger._runtime_transport.receipts)-1
+            event=next(e for e in ledger._timeline if e['kind']=='send' and e['receipt_index']==index)
+            if poison=='missing_event':ledger._timeline.remove(event)
+            elif poison=='duplicate_event':ledger._timeline.append(copy.deepcopy(event))
+            elif poison=='event_kind':event['kind']='admission_refused'
+            elif poison=='wire_digest':ledger._runtime_wires[-1]['hashes']['entity']='0'*64
+            elif poison=='route':r['path']='https://private.invalid/secret'
+            elif poison=='count':r['admitted']=True
+            elif poison=='status':r['status']=True
+        result,ledger=early_case(tmp_path,sdk_io,mock_jar,monkeypatch,reads=1,after=corrupt)
+        assert result['error']=='Missing nonempty immutable runtime proof'
+&gt;       assert result['research_diagnostic']['status']=='UNAVAILABLE'
+E       AssertionError: assert 'CAPTURED' == 'UNAVAILABLE'
+E         
+E         - UNAVAILABLE
+E         + CAPTURED
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-http-diagnostics\UltimaAgent\src\brain\tests\test_work_http_failure_diagnostics.py:153: AssertionError</failure></testcase><testcase classname="" name="test_untrusted_or_incoherent_local_receipt_projection_fails_closed[event_kind]" time="0.375"><failure message="AssertionError: assert 'CAPTURED' == 'UNAVAILABLE'&#10;  &#10;  - UNAVAILABLE&#10;  + CAPTURED">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-native-http-diagnostics-20261107-r1/offline/http-red-20261107T083618967067Z/temp/test_untrusted_or_incoherent_l2')
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x00000224A679EC10&gt;, [('search', 'Research a subject')], {})
+mock_jar = (&lt;openjarvis.sdk.Jarvis object at 0x00000224A6828EC0&gt;, &lt;function _run_work_agent at 0x00000224A50A1D00&gt;, [{'format': {...ser'}], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [])
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x00000224A661FA10&gt;
+poison = 'event_kind'
+
+    @pytest.mark.parametrize('poison',['missing_event','duplicate_event','event_kind','wire_digest','route','count','status'])
+    def test_untrusted_or_incoherent_local_receipt_projection_fails_closed(tmp_path,sdk_io,mock_jar,monkeypatch,poison):
+        def corrupt(response,ledger):
+            r=ledger._runtime_transport.receipts[-1]
+            index=len(ledger._runtime_transport.receipts)-1
+            event=next(e for e in ledger._timeline if e['kind']=='send' and e['receipt_index']==index)
+            if poison=='missing_event':ledger._timeline.remove(event)
+            elif poison=='duplicate_event':ledger._timeline.append(copy.deepcopy(event))
+            elif poison=='event_kind':event['kind']='admission_refused'
+            elif poison=='wire_digest':ledger._runtime_wires[-1]['hashes']['entity']='0'*64
+            elif poison=='route':r['path']='https://private.invalid/secret'
+            elif poison=='count':r['admitted']=True
+            elif poison=='status':r['status']=True
+        result,ledger=early_case(tmp_path,sdk_io,mock_jar,monkeypatch,reads=1,after=corrupt)
+        assert result['error']=='Missing nonempty immutable runtime proof'
+&gt;       assert result['research_diagnostic']['status']=='UNAVAILABLE'
+E       AssertionError: assert 'CAPTURED' == 'UNAVAILABLE'
+E         
+E         - UNAVAILABLE
+E         + CAPTURED
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-http-diagnostics\UltimaAgent\src\brain\tests\test_work_http_failure_diagnostics.py:153: AssertionError</failure></testcase><testcase classname="" name="test_untrusted_or_incoherent_local_receipt_projection_fails_closed[wire_digest]" time="0.451"><failure message="AssertionError: assert 'CAPTURED' == 'UNAVAILABLE'&#10;  &#10;  - UNAVAILABLE&#10;  + CAPTURED">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-native-http-diagnostics-20261107-r1/offline/http-red-20261107T083618967067Z/temp/test_untrusted_or_incoherent_l3')
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x00000224A663C600&gt;, [('search', 'Research a subject')], {})
+mock_jar = (&lt;openjarvis.sdk.Jarvis object at 0x00000224A6828940&gt;, &lt;function _run_work_agent at 0x00000224A50A1D00&gt;, [{'format': {...ser'}], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [])
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x00000224A68290D0&gt;
+poison = 'wire_digest'
+
+    @pytest.mark.parametrize('poison',['missing_event','duplicate_event','event_kind','wire_digest','route','count','status'])
+    def test_untrusted_or_incoherent_local_receipt_projection_fails_closed(tmp_path,sdk_io,mock_jar,monkeypatch,poison):
+        def corrupt(response,ledger):
+            r=ledger._runtime_transport.receipts[-1]
+            index=len(ledger._runtime_transport.receipts)-1
+            event=next(e for e in ledger._timeline if e['kind']=='send' and e['receipt_index']==index)
+            if poison=='missing_event':ledger._timeline.remove(event)
+            elif poison=='duplicate_event':ledger._timeline.append(copy.deepcopy(event))
+            elif poison=='event_kind':event['kind']='admission_refused'
+            elif poison=='wire_digest':ledger._runtime_wires[-1]['hashes']['entity']='0'*64
+            elif poison=='route':r['path']='https://private.invalid/secret'
+            elif poison=='count':r['admitted']=True
+            elif poison=='status':r['status']=True
+        result,ledger=early_case(tmp_path,sdk_io,mock_jar,monkeypatch,reads=1,after=corrupt)
+        assert result['error']=='Missing nonempty immutable runtime proof'
+&gt;       assert result['research_diagnostic']['status']=='UNAVAILABLE'
+E       AssertionError: assert 'CAPTURED' == 'UNAVAILABLE'
+E         
+E         - UNAVAILABLE
+E         + CAPTURED
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-http-diagnostics\UltimaAgent\src\brain\tests\test_work_http_failure_diagnostics.py:153: AssertionError</failure></testcase><testcase classname="" name="test_untrusted_or_incoherent_local_receipt_projection_fails_closed[route]" time="0.324"><failure message="AssertionError: assert 'CAPTURED' == 'UNAVAILABLE'&#10;  &#10;  - UNAVAILABLE&#10;  + CAPTURED">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-native-http-diagnostics-20261107-r1/offline/http-red-20261107T083618967067Z/temp/test_untrusted_or_incoherent_l4')
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x00000224A683C7D0&gt;, [('search', 'Research a subject')], {})
+mock_jar = (&lt;openjarvis.sdk.Jarvis object at 0x00000224A6829A70&gt;, &lt;function _run_work_agent at 0x00000224A50A1D00&gt;, [{'format': {...ser'}], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [])
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x00000224A68287E0&gt;
+poison = 'route'
+
+    @pytest.mark.parametrize('poison',['missing_event','duplicate_event','event_kind','wire_digest','route','count','status'])
+    def test_untrusted_or_incoherent_local_receipt_projection_fails_closed(tmp_path,sdk_io,mock_jar,monkeypatch,poison):
+        def corrupt(response,ledger):
+            r=ledger._runtime_transport.receipts[-1]
+            index=len(ledger._runtime_transport.receipts)-1
+            event=next(e for e in ledger._timeline if e['kind']=='send' and e['receipt_index']==index)
+            if poison=='missing_event':ledger._timeline.remove(event)
+            elif poison=='duplicate_event':ledger._timeline.append(copy.deepcopy(event))
+            elif poison=='event_kind':event['kind']='admission_refused'
+            elif poison=='wire_digest':ledger._runtime_wires[-1]['hashes']['entity']='0'*64
+            elif poison=='route':r['path']='https://private.invalid/secret'
+            elif poison=='count':r['admitted']=True
+            elif poison=='status':r['status']=True
+        result,ledger=early_case(tmp_path,sdk_io,mock_jar,monkeypatch,reads=1,after=corrupt)
+        assert result['error']=='Missing nonempty immutable runtime proof'
+&gt;       assert result['research_diagnostic']['status']=='UNAVAILABLE'
+E       AssertionError: assert 'CAPTURED' == 'UNAVAILABLE'
+E         
+E         - UNAVAILABLE
+E         + CAPTURED
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-http-diagnostics\UltimaAgent\src\brain\tests\test_work_http_failure_diagnostics.py:153: AssertionError</failure></testcase><testcase classname="" name="test_untrusted_or_incoherent_local_receipt_projection_fails_closed[count]" time="0.356"><failure message="AssertionError: assert 'CAPTURED' == 'UNAVAILABLE'&#10;  &#10;  - UNAVAILABLE&#10;  + CAPTURED">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-native-http-diagnostics-20261107-r1/offline/http-red-20261107T083618967067Z/temp/test_untrusted_or_incoherent_l5')
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x00000224A683E510&gt;, [('search', 'Research a subject')], {})
+mock_jar = (&lt;openjarvis.sdk.Jarvis object at 0x00000224A682A2B0&gt;, &lt;function _run_work_agent at 0x00000224A50A1D00&gt;, [{'format': {...ser'}], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [])
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x00000224A662F4D0&gt;
+poison = 'count'
+
+    @pytest.mark.parametrize('poison',['missing_event','duplicate_event','event_kind','wire_digest','route','count','status'])
+    def test_untrusted_or_incoherent_local_receipt_projection_fails_closed(tmp_path,sdk_io,mock_jar,monkeypatch,poison):
+        def corrupt(response,ledger):
+            r=ledger._runtime_transport.receipts[-1]
+            index=len(ledger._runtime_transport.receipts)-1
+            event=next(e for e in ledger._timeline if e['kind']=='send' and e['receipt_index']==index)
+            if poison=='missing_event':ledger._timeline.remove(event)
+            elif poison=='duplicate_event':ledger._timeline.append(copy.deepcopy(event))
+            elif poison=='event_kind':event['kind']='admission_refused'
+            elif poison=='wire_digest':ledger._runtime_wires[-1]['hashes']['entity']='0'*64
+            elif poison=='route':r['path']='https://private.invalid/secret'
+            elif poison=='count':r['admitted']=True
+            elif poison=='status':r['status']=True
+        result,ledger=early_case(tmp_path,sdk_io,mock_jar,monkeypatch,reads=1,after=corrupt)
+        assert result['error']=='Missing nonempty immutable runtime proof'
+&gt;       assert result['research_diagnostic']['status']=='UNAVAILABLE'
+E       AssertionError: assert 'CAPTURED' == 'UNAVAILABLE'
+E         
+E         - UNAVAILABLE
+E         + CAPTURED
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-http-diagnostics\UltimaAgent\src\brain\tests\test_work_http_failure_diagnostics.py:153: AssertionError</failure></testcase><testcase classname="" name="test_untrusted_or_incoherent_local_receipt_projection_fails_closed[status]" time="0.460"><failure message="AssertionError: assert 'CAPTURED' == 'UNAVAILABLE'&#10;  &#10;  - UNAVAILABLE&#10;  + CAPTURED">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-native-http-diagnostics-20261107-r1/offline/http-red-20261107T083618967067Z/temp/test_untrusted_or_incoherent_l6')
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x00000224A682B1D0&gt;, [('search', 'Research a subject')], {})
+mock_jar = (&lt;openjarvis.sdk.Jarvis object at 0x00000224A682AD00&gt;, &lt;function _run_work_agent at 0x00000224A50A1D00&gt;, [{'format': {...ser'}], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [])
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x00000224A65BBD90&gt;
+poison = 'status'
+
+    @pytest.mark.parametrize('poison',['missing_event','duplicate_event','event_kind','wire_digest','route','count','status'])
+    def test_untrusted_or_incoherent_local_receipt_projection_fails_closed(tmp_path,sdk_io,mock_jar,monkeypatch,poison):
+        def corrupt(response,ledger):
+            r=ledger._runtime_transport.receipts[-1]
+            index=len(ledger._runtime_transport.receipts)-1
+            event=next(e for e in ledger._timeline if e['kind']=='send' and e['receipt_index']==index)
+            if poison=='missing_event':ledger._timeline.remove(event)
+            elif poison=='duplicate_event':ledger._timeline.append(copy.deepcopy(event))
+            elif poison=='event_kind':event['kind']='admission_refused'
+            elif poison=='wire_digest':ledger._runtime_wires[-1]['hashes']['entity']='0'*64
+            elif poison=='route':r['path']='https://private.invalid/secret'
+            elif poison=='count':r['admitted']=True
+            elif poison=='status':r['status']=True
+        result,ledger=early_case(tmp_path,sdk_io,mock_jar,monkeypatch,reads=1,after=corrupt)
+        assert result['error']=='Missing nonempty immutable runtime proof'
+&gt;       assert result['research_diagnostic']['status']=='UNAVAILABLE'
+E       AssertionError: assert 'CAPTURED' == 'UNAVAILABLE'
+E         
+E         - UNAVAILABLE
+E         + CAPTURED
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-http-diagnostics\UltimaAgent\src\brain\tests\test_work_http_failure_diagnostics.py:153: AssertionError</failure></testcase><testcase classname="" name="test_closed_http_decoder_rejects_forged_shape_and_contradictions[field]" time="0.454"><failure message="KeyError: 'last_http'">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-native-http-diagnostics-20261107-r1/offline/http-red-20261107T083618967067Z/temp/test_closed_http_decoder_rejec0')
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x00000224A6828EC0&gt;, [('search', 'Research a subject')], {})
+mock_jar = (&lt;openjarvis.sdk.Jarvis object at 0x00000224A6828050&gt;, &lt;function _run_work_agent at 0x00000224A50A1D00&gt;, [{'format': {...tx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [&lt;function early_case.&lt;locals&gt;.reply at 0x00000224A65D0FE0&gt;])
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x00000224A668AA80&gt;
+change = 'field'
+
+    @pytest.mark.parametrize('change',['field','route','status_bool','status_low','status_high','generation_zero','generation_high',
+        'index_bool','index_high','bytes_bool','bytes_high','digest','downloaded_bool','downloaded_high','inspected',
+        'retained','unsent','validated','transport_failed','version'])
+    def test_closed_http_decoder_rejects_forged_shape_and_contradictions(tmp_path,sdk_io,mock_jar,monkeypatch,change):
+        result,ledger,*_=failing_exchange(tmp_path,sdk_io,mock_jar,monkeypatch)
+&gt;       packet=private_packet(result,ledger);last=packet['last_http']
+                                                  ^^^^^^^^^^^^^^^^^^^
+E       KeyError: 'last_http'
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-http-diagnostics\UltimaAgent\src\brain\tests\test_work_http_failure_diagnostics.py:162: KeyError</failure></testcase><testcase classname="" name="test_closed_http_decoder_rejects_forged_shape_and_contradictions[route]" time="0.311"><failure message="KeyError: 'last_http'">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-native-http-diagnostics-20261107-r1/offline/http-red-20261107T083618967067Z/temp/test_closed_http_decoder_rejec1')
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x00000224A65EA030&gt;, [('search', 'Research a subject')], {})
+mock_jar = (&lt;openjarvis.sdk.Jarvis object at 0x00000224A6838B50&gt;, &lt;function _run_work_agent at 0x00000224A50A1D00&gt;, [{'format': {...tx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [&lt;function early_case.&lt;locals&gt;.reply at 0x00000224A65E9DA0&gt;])
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x00000224A66F04D0&gt;
+change = 'route'
+
+    @pytest.mark.parametrize('change',['field','route','status_bool','status_low','status_high','generation_zero','generation_high',
+        'index_bool','index_high','bytes_bool','bytes_high','digest','downloaded_bool','downloaded_high','inspected',
+        'retained','unsent','validated','transport_failed','version'])
+    def test_closed_http_decoder_rejects_forged_shape_and_contradictions(tmp_path,sdk_io,mock_jar,monkeypatch,change):
+        result,ledger,*_=failing_exchange(tmp_path,sdk_io,mock_jar,monkeypatch)
+&gt;       packet=private_packet(result,ledger);last=packet['last_http']
+                                                  ^^^^^^^^^^^^^^^^^^^
+E       KeyError: 'last_http'
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-http-diagnostics\UltimaAgent\src\brain\tests\test_work_http_failure_diagnostics.py:162: KeyError</failure></testcase><testcase classname="" name="test_closed_http_decoder_rejects_forged_shape_and_contradictions[status_bool]" time="0.517"><failure message="KeyError: 'last_http'">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-native-http-diagnostics-20261107-r1/offline/http-red-20261107T083618967067Z/temp/test_closed_http_decoder_rejec2')
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x00000224A65D3250&gt;, [('search', 'Research a subject')], {})
+mock_jar = (&lt;openjarvis.sdk.Jarvis object at 0x00000224A6839230&gt;, &lt;function _run_work_agent at 0x00000224A50A1D00&gt;, [{'format': {...tx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [&lt;function early_case.&lt;locals&gt;.reply at 0x00000224A65D14E0&gt;])
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x00000224A65A8250&gt;
+change = 'status_bool'
+
+    @pytest.mark.parametrize('change',['field','route','status_bool','status_low','status_high','generation_zero','generation_high',
+        'index_bool','index_high','bytes_bool','bytes_high','digest','downloaded_bool','downloaded_high','inspected',
+        'retained','unsent','validated','transport_failed','version'])
+    def test_closed_http_decoder_rejects_forged_shape_and_contradictions(tmp_path,sdk_io,mock_jar,monkeypatch,change):
+        result,ledger,*_=failing_exchange(tmp_path,sdk_io,mock_jar,monkeypatch)
+&gt;       packet=private_packet(result,ledger);last=packet['last_http']
+                                                  ^^^^^^^^^^^^^^^^^^^
+E       KeyError: 'last_http'
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-http-diagnostics\UltimaAgent\src\brain\tests\test_work_http_failure_diagnostics.py:162: KeyError</failure></testcase><testcase classname="" name="test_closed_http_decoder_rejects_forged_shape_and_contradictions[status_low]" time="0.463"><failure message="KeyError: 'last_http'">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-native-http-diagnostics-20261107-r1/offline/http-red-20261107T083618967067Z/temp/test_closed_http_decoder_rejec3')
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x00000224A6864950&gt;, [('search', 'Research a subject')], {})
+mock_jar = (&lt;openjarvis.sdk.Jarvis object at 0x00000224A6839700&gt;, &lt;function _run_work_agent at 0x00000224A50A1D00&gt;, [{'format': {...tx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [&lt;function early_case.&lt;locals&gt;.reply at 0x00000224A65B9A80&gt;])
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x00000224A673E190&gt;
+change = 'status_low'
+
+    @pytest.mark.parametrize('change',['field','route','status_bool','status_low','status_high','generation_zero','generation_high',
+        'index_bool','index_high','bytes_bool','bytes_high','digest','downloaded_bool','downloaded_high','inspected',
+        'retained','unsent','validated','transport_failed','version'])
+    def test_closed_http_decoder_rejects_forged_shape_and_contradictions(tmp_path,sdk_io,mock_jar,monkeypatch,change):
+        result,ledger,*_=failing_exchange(tmp_path,sdk_io,mock_jar,monkeypatch)
+&gt;       packet=private_packet(result,ledger);last=packet['last_http']
+                                                  ^^^^^^^^^^^^^^^^^^^
+E       KeyError: 'last_http'
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-http-diagnostics\UltimaAgent\src\brain\tests\test_work_http_failure_diagnostics.py:162: KeyError</failure></testcase><testcase classname="" name="test_closed_http_decoder_rejects_forged_shape_and_contradictions[status_high]" time="0.846"><failure message="KeyError: 'last_http'">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-native-http-diagnostics-20261107-r1/offline/http-red-20261107T083618967067Z/temp/test_closed_http_decoder_rejec4')
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x00000224A6874DD0&gt;, [('search', 'Research a subject')], {})
+mock_jar = (&lt;openjarvis.sdk.Jarvis object at 0x00000224A6839DE0&gt;, &lt;function _run_work_agent at 0x00000224A50A1D00&gt;, [{'format': {...tx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [&lt;function early_case.&lt;locals&gt;.reply at 0x00000224A662F240&gt;])
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x00000224A6869550&gt;
+change = 'status_high'
+
+    @pytest.mark.parametrize('change',['field','route','status_bool','status_low','status_high','generation_zero','generation_high',
+        'index_bool','index_high','bytes_bool','bytes_high','digest','downloaded_bool','downloaded_high','inspected',
+        'retained','unsent','validated','transport_failed','version'])
+    def test_closed_http_decoder_rejects_forged_shape_and_contradictions(tmp_path,sdk_io,mock_jar,monkeypatch,change):
+        result,ledger,*_=failing_exchange(tmp_path,sdk_io,mock_jar,monkeypatch)
+&gt;       packet=private_packet(result,ledger);last=packet['last_http']
+                                                  ^^^^^^^^^^^^^^^^^^^
+E       KeyError: 'last_http'
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-http-diagnostics\UltimaAgent\src\brain\tests\test_work_http_failure_diagnostics.py:162: KeyError</failure></testcase><testcase classname="" name="test_closed_http_decoder_rejects_forged_shape_and_contradictions[generation_zero]" time="0.319"><failure message="KeyError: 'last_http'">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-native-http-diagnostics-20261107-r1/offline/http-red-20261107T083618967067Z/temp/test_closed_http_decoder_rejec5')
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x00000224A67BD0D0&gt;, [('search', 'Research a subject')], {})
+mock_jar = (&lt;openjarvis.sdk.Jarvis object at 0x00000224A683A4C0&gt;, &lt;function _run_work_agent at 0x00000224A50A1D00&gt;, [{'format': {...tx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [&lt;function early_case.&lt;locals&gt;.reply at 0x00000224A65C00E0&gt;])
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x00000224A6543310&gt;
+change = 'generation_zero'
+
+    @pytest.mark.parametrize('change',['field','route','status_bool','status_low','status_high','generation_zero','generation_high',
+        'index_bool','index_high','bytes_bool','bytes_high','digest','downloaded_bool','downloaded_high','inspected',
+        'retained','unsent','validated','transport_failed','version'])
+    def test_closed_http_decoder_rejects_forged_shape_and_contradictions(tmp_path,sdk_io,mock_jar,monkeypatch,change):
+        result,ledger,*_=failing_exchange(tmp_path,sdk_io,mock_jar,monkeypatch)
+&gt;       packet=private_packet(result,ledger);last=packet['last_http']
+                                                  ^^^^^^^^^^^^^^^^^^^
+E       KeyError: 'last_http'
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-http-diagnostics\UltimaAgent\src\brain\tests\test_work_http_failure_diagnostics.py:162: KeyError</failure></testcase><testcase classname="" name="test_closed_http_decoder_rejects_forged_shape_and_contradictions[generation_high]" time="0.396"><failure message="KeyError: 'last_http'">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-native-http-diagnostics-20261107-r1/offline/http-red-20261107T083618967067Z/temp/test_closed_http_decoder_rejec6')
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x00000224A6533D50&gt;, [('search', 'Research a subject')], {})
+mock_jar = (&lt;openjarvis.sdk.Jarvis object at 0x00000224A68290D0&gt;, &lt;function _run_work_agent at 0x00000224A50A1D00&gt;, [{'format': {...tx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [&lt;function early_case.&lt;locals&gt;.reply at 0x00000224A67B5120&gt;])
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x00000224A6543D20&gt;
+change = 'generation_high'
+
+    @pytest.mark.parametrize('change',['field','route','status_bool','status_low','status_high','generation_zero','generation_high',
+        'index_bool','index_high','bytes_bool','bytes_high','digest','downloaded_bool','downloaded_high','inspected',
+        'retained','unsent','validated','transport_failed','version'])
+    def test_closed_http_decoder_rejects_forged_shape_and_contradictions(tmp_path,sdk_io,mock_jar,monkeypatch,change):
+        result,ledger,*_=failing_exchange(tmp_path,sdk_io,mock_jar,monkeypatch)
+&gt;       packet=private_packet(result,ledger);last=packet['last_http']
+                                                  ^^^^^^^^^^^^^^^^^^^
+E       KeyError: 'last_http'
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-http-diagnostics\UltimaAgent\src\brain\tests\test_work_http_failure_diagnostics.py:162: KeyError</failure></testcase><testcase classname="" name="test_closed_http_decoder_rejects_forged_shape_and_contradictions[index_bool]" time="0.314"><failure message="KeyError: 'last_http'">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-native-http-diagnostics-20261107-r1/offline/http-red-20261107T083618967067Z/temp/test_closed_http_decoder_rejec7')
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x0000022444F138D0&gt;, [('search', 'Research a subject')], {})
+mock_jar = (&lt;openjarvis.sdk.Jarvis object at 0x00000224A6646AF0&gt;, &lt;function _run_work_agent at 0x00000224A50A1D00&gt;, [{'format': {...tx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [&lt;function early_case.&lt;locals&gt;.reply at 0x00000224A67B6480&gt;])
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x00000224A6541B70&gt;
+change = 'index_bool'
+
+    @pytest.mark.parametrize('change',['field','route','status_bool','status_low','status_high','generation_zero','generation_high',
+        'index_bool','index_high','bytes_bool','bytes_high','digest','downloaded_bool','downloaded_high','inspected',
+        'retained','unsent','validated','transport_failed','version'])
+    def test_closed_http_decoder_rejects_forged_shape_and_contradictions(tmp_path,sdk_io,mock_jar,monkeypatch,change):
+        result,ledger,*_=failing_exchange(tmp_path,sdk_io,mock_jar,monkeypatch)
+&gt;       packet=private_packet(result,ledger);last=packet['last_http']
+                                                  ^^^^^^^^^^^^^^^^^^^
+E       KeyError: 'last_http'
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-http-diagnostics\UltimaAgent\src\brain\tests\test_work_http_failure_diagnostics.py:162: KeyError</failure></testcase><testcase classname="" name="test_closed_http_decoder_rejects_forged_shape_and_contradictions[index_high]" time="0.343"><failure message="KeyError: 'last_http'">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-native-http-diagnostics-20261107-r1/offline/http-red-20261107T083618967067Z/temp/test_closed_http_decoder_rejec8')
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x00000224A68758D0&gt;, [('search', 'Research a subject')], {})
+mock_jar = (&lt;openjarvis.sdk.Jarvis object at 0x00000224A682B8B0&gt;, &lt;function _run_work_agent at 0x00000224A50A1D00&gt;, [{'format': {...tx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [&lt;function early_case.&lt;locals&gt;.reply at 0x00000224A65D40E0&gt;])
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x00000224A6869EF0&gt;
+change = 'index_high'
+
+    @pytest.mark.parametrize('change',['field','route','status_bool','status_low','status_high','generation_zero','generation_high',
+        'index_bool','index_high','bytes_bool','bytes_high','digest','downloaded_bool','downloaded_high','inspected',
+        'retained','unsent','validated','transport_failed','version'])
+    def test_closed_http_decoder_rejects_forged_shape_and_contradictions(tmp_path,sdk_io,mock_jar,monkeypatch,change):
+        result,ledger,*_=failing_exchange(tmp_path,sdk_io,mock_jar,monkeypatch)
+&gt;       packet=private_packet(result,ledger);last=packet['last_http']
+                                                  ^^^^^^^^^^^^^^^^^^^
+E       KeyError: 'last_http'
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-http-diagnostics\UltimaAgent\src\brain\tests\test_work_http_failure_diagnostics.py:162: KeyError</failure></testcase><testcase classname="" name="test_closed_http_decoder_rejects_forged_shape_and_contradictions[bytes_bool]" time="0.478"><failure message="KeyError: 'last_http'">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-native-http-diagnostics-20261107-r1/offline/http-red-20261107T083618967067Z/temp/test_closed_http_decoder_rejec9')
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x00000224A6871A50&gt;, [('search', 'Research a subject')], {})
+mock_jar = (&lt;openjarvis.sdk.Jarvis object at 0x00000224A682AFC0&gt;, &lt;function _run_work_agent at 0x00000224A50A1D00&gt;, [{'format': {...tx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [&lt;function early_case.&lt;locals&gt;.reply at 0x00000224A67B6840&gt;])
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x00000224A6869D30&gt;
+change = 'bytes_bool'
+
+    @pytest.mark.parametrize('change',['field','route','status_bool','status_low','status_high','generation_zero','generation_high',
+        'index_bool','index_high','bytes_bool','bytes_high','digest','downloaded_bool','downloaded_high','inspected',
+        'retained','unsent','validated','transport_failed','version'])
+    def test_closed_http_decoder_rejects_forged_shape_and_contradictions(tmp_path,sdk_io,mock_jar,monkeypatch,change):
+        result,ledger,*_=failing_exchange(tmp_path,sdk_io,mock_jar,monkeypatch)
+&gt;       packet=private_packet(result,ledger);last=packet['last_http']
+                                                  ^^^^^^^^^^^^^^^^^^^
+E       KeyError: 'last_http'
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-http-diagnostics\UltimaAgent\src\brain\tests\test_work_http_failure_diagnostics.py:162: KeyError</failure></testcase><testcase classname="" name="test_closed_http_decoder_rejects_forged_shape_and_contradictions[bytes_high]" time="0.315"><failure message="KeyError: 'last_http'">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-native-http-diagnostics-20261107-r1/offline/http-red-20261107T083618967067Z/temp/test_closed_http_decoder_rejec10')
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x00000224A67F8950&gt;, [('search', 'Research a subject')], {})
+mock_jar = (&lt;openjarvis.sdk.Jarvis object at 0x00000224A68292E0&gt;, &lt;function _run_work_agent at 0x00000224A50A1D00&gt;, [{'format': {...tx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [&lt;function early_case.&lt;locals&gt;.reply at 0x00000224A65D7420&gt;])
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x0000022444F99CC0&gt;
+change = 'bytes_high'
+
+    @pytest.mark.parametrize('change',['field','route','status_bool','status_low','status_high','generation_zero','generation_high',
+        'index_bool','index_high','bytes_bool','bytes_high','digest','downloaded_bool','downloaded_high','inspected',
+        'retained','unsent','validated','transport_failed','version'])
+    def test_closed_http_decoder_rejects_forged_shape_and_contradictions(tmp_path,sdk_io,mock_jar,monkeypatch,change):
+        result,ledger,*_=failing_exchange(tmp_path,sdk_io,mock_jar,monkeypatch)
+&gt;       packet=private_packet(result,ledger);last=packet['last_http']
+                                                  ^^^^^^^^^^^^^^^^^^^
+E       KeyError: 'last_http'
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-http-diagnostics\UltimaAgent\src\brain\tests\test_work_http_failure_diagnostics.py:162: KeyError</failure></testcase><testcase classname="" name="test_closed_http_decoder_rejects_forged_shape_and_contradictions[digest]" time="0.294"><failure message="KeyError: 'last_http'">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-native-http-diagnostics-20261107-r1/offline/http-red-20261107T083618967067Z/temp/test_closed_http_decoder_rejec11')
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x00000224A6533150&gt;, [('search', 'Research a subject')], {})
+mock_jar = (&lt;openjarvis.sdk.Jarvis object at 0x00000224A683A620&gt;, &lt;function _run_work_agent at 0x00000224A50A1D00&gt;, [{'format': {...tx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [&lt;function early_case.&lt;locals&gt;.reply at 0x00000224A65D3A60&gt;])
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x0000022444F80BB0&gt;
+change = 'digest'
+
+    @pytest.mark.parametrize('change',['field','route','status_bool','status_low','status_high','generation_zero','generation_high',
+        'index_bool','index_high','bytes_bool','bytes_high','digest','downloaded_bool','downloaded_high','inspected',
+        'retained','unsent','validated','transport_failed','version'])
+    def test_closed_http_decoder_rejects_forged_shape_and_contradictions(tmp_path,sdk_io,mock_jar,monkeypatch,change):
+        result,ledger,*_=failing_exchange(tmp_path,sdk_io,mock_jar,monkeypatch)
+&gt;       packet=private_packet(result,ledger);last=packet['last_http']
+                                                  ^^^^^^^^^^^^^^^^^^^
+E       KeyError: 'last_http'
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-http-diagnostics\UltimaAgent\src\brain\tests\test_work_http_failure_diagnostics.py:162: KeyError</failure></testcase><testcase classname="" name="test_closed_http_decoder_rejects_forged_shape_and_contradictions[downloaded_bool]" time="0.353"><failure message="KeyError: 'last_http'">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-native-http-diagnostics-20261107-r1/offline/http-red-20261107T083618967067Z/temp/test_closed_http_decoder_rejec12')
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x00000224A67FAFD0&gt;, [('search', 'Research a subject')], {})
+mock_jar = (&lt;openjarvis.sdk.Jarvis object at 0x00000224A683A990&gt;, &lt;function _run_work_agent at 0x00000224A50A1D00&gt;, [{'format': {...tx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [&lt;function early_case.&lt;locals&gt;.reply at 0x00000224A662E520&gt;])
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x0000022444F656A0&gt;
+change = 'downloaded_bool'
+
+    @pytest.mark.parametrize('change',['field','route','status_bool','status_low','status_high','generation_zero','generation_high',
+        'index_bool','index_high','bytes_bool','bytes_high','digest','downloaded_bool','downloaded_high','inspected',
+        'retained','unsent','validated','transport_failed','version'])
+    def test_closed_http_decoder_rejects_forged_shape_and_contradictions(tmp_path,sdk_io,mock_jar,monkeypatch,change):
+        result,ledger,*_=failing_exchange(tmp_path,sdk_io,mock_jar,monkeypatch)
+&gt;       packet=private_packet(result,ledger);last=packet['last_http']
+                                                  ^^^^^^^^^^^^^^^^^^^
+E       KeyError: 'last_http'
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-http-diagnostics\UltimaAgent\src\brain\tests\test_work_http_failure_diagnostics.py:162: KeyError</failure></testcase><testcase classname="" name="test_closed_http_decoder_rejects_forged_shape_and_contradictions[downloaded_high]" time="0.483"><failure message="KeyError: 'last_http'">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-native-http-diagnostics-20261107-r1/offline/http-red-20261107T083618967067Z/temp/test_closed_http_decoder_rejec13')
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x00000224A6653F50&gt;, [('search', 'Research a subject')], {})
+mock_jar = (&lt;openjarvis.sdk.Jarvis object at 0x00000224A6829DE0&gt;, &lt;function _run_work_agent at 0x00000224A50A1D00&gt;, [{'format': {...tx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [&lt;function early_case.&lt;locals&gt;.reply at 0x00000224A65C23E0&gt;])
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x0000022444F98440&gt;
+change = 'downloaded_high'
+
+    @pytest.mark.parametrize('change',['field','route','status_bool','status_low','status_high','generation_zero','generation_high',
+        'index_bool','index_high','bytes_bool','bytes_high','digest','downloaded_bool','downloaded_high','inspected',
+        'retained','unsent','validated','transport_failed','version'])
+    def test_closed_http_decoder_rejects_forged_shape_and_contradictions(tmp_path,sdk_io,mock_jar,monkeypatch,change):
+        result,ledger,*_=failing_exchange(tmp_path,sdk_io,mock_jar,monkeypatch)
+&gt;       packet=private_packet(result,ledger);last=packet['last_http']
+                                                  ^^^^^^^^^^^^^^^^^^^
+E       KeyError: 'last_http'
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-http-diagnostics\UltimaAgent\src\brain\tests\test_work_http_failure_diagnostics.py:162: KeyError</failure></testcase><testcase classname="" name="test_closed_http_decoder_rejects_forged_shape_and_contradictions[inspected]" time="0.361"><failure message="KeyError: 'last_http'">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-native-http-diagnostics-20261107-r1/offline/http-red-20261107T083618967067Z/temp/test_closed_http_decoder_rejec14')
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x00000224A6757CD0&gt;, [('search', 'Research a subject')], {})
+mock_jar = (&lt;openjarvis.sdk.Jarvis object at 0x00000224A682B8B0&gt;, &lt;function _run_work_agent at 0x00000224A50A1D00&gt;, [{'format': {...tx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [&lt;function early_case.&lt;locals&gt;.reply at 0x00000224A65B8E00&gt;])
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x00000224A686AD60&gt;
+change = 'inspected'
+
+    @pytest.mark.parametrize('change',['field','route','status_bool','status_low','status_high','generation_zero','generation_high',
+        'index_bool','index_high','bytes_bool','bytes_high','digest','downloaded_bool','downloaded_high','inspected',
+        'retained','unsent','validated','transport_failed','version'])
+    def test_closed_http_decoder_rejects_forged_shape_and_contradictions(tmp_path,sdk_io,mock_jar,monkeypatch,change):
+        result,ledger,*_=failing_exchange(tmp_path,sdk_io,mock_jar,monkeypatch)
+&gt;       packet=private_packet(result,ledger);last=packet['last_http']
+                                                  ^^^^^^^^^^^^^^^^^^^
+E       KeyError: 'last_http'
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-http-diagnostics\UltimaAgent\src\brain\tests\test_work_http_failure_diagnostics.py:162: KeyError</failure></testcase><testcase classname="" name="test_closed_http_decoder_rejects_forged_shape_and_contradictions[retained]" time="0.408"><failure message="KeyError: 'last_http'">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-native-http-diagnostics-20261107-r1/offline/http-red-20261107T083618967067Z/temp/test_closed_http_decoder_rejec15')
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x00000224A6650A50&gt;, [('search', 'Research a subject')], {})
+mock_jar = (&lt;openjarvis.sdk.Jarvis object at 0x00000224A683A570&gt;, &lt;function _run_work_agent at 0x00000224A50A1D00&gt;, [{'format': {...tx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [&lt;function early_case.&lt;locals&gt;.reply at 0x00000224A65C1E40&gt;])
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x00000224A6868DE0&gt;
+change = 'retained'
+
+    @pytest.mark.parametrize('change',['field','route','status_bool','status_low','status_high','generation_zero','generation_high',
+        'index_bool','index_high','bytes_bool','bytes_high','digest','downloaded_bool','downloaded_high','inspected',
+        'retained','unsent','validated','transport_failed','version'])
+    def test_closed_http_decoder_rejects_forged_shape_and_contradictions(tmp_path,sdk_io,mock_jar,monkeypatch,change):
+        result,ledger,*_=failing_exchange(tmp_path,sdk_io,mock_jar,monkeypatch)
+&gt;       packet=private_packet(result,ledger);last=packet['last_http']
+                                                  ^^^^^^^^^^^^^^^^^^^
+E       KeyError: 'last_http'
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-http-diagnostics\UltimaAgent\src\brain\tests\test_work_http_failure_diagnostics.py:162: KeyError</failure></testcase><testcase classname="" name="test_closed_http_decoder_rejects_forged_shape_and_contradictions[unsent]" time="0.395"><failure message="KeyError: 'last_http'">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-native-http-diagnostics-20261107-r1/offline/http-red-20261107T083618967067Z/temp/test_closed_http_decoder_rejec16')
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x00000224A6875BD0&gt;, [('search', 'Research a subject')], {})
+mock_jar = (&lt;openjarvis.sdk.Jarvis object at 0x00000224A6839700&gt;, &lt;function _run_work_agent at 0x00000224A50A1D00&gt;, [{'format': {...tx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [&lt;function early_case.&lt;locals&gt;.reply at 0x00000224A65BB240&gt;])
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x00000224A6540590&gt;
+change = 'unsent'
+
+    @pytest.mark.parametrize('change',['field','route','status_bool','status_low','status_high','generation_zero','generation_high',
+        'index_bool','index_high','bytes_bool','bytes_high','digest','downloaded_bool','downloaded_high','inspected',
+        'retained','unsent','validated','transport_failed','version'])
+    def test_closed_http_decoder_rejects_forged_shape_and_contradictions(tmp_path,sdk_io,mock_jar,monkeypatch,change):
+        result,ledger,*_=failing_exchange(tmp_path,sdk_io,mock_jar,monkeypatch)
+&gt;       packet=private_packet(result,ledger);last=packet['last_http']
+                                                  ^^^^^^^^^^^^^^^^^^^
+E       KeyError: 'last_http'
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-http-diagnostics\UltimaAgent\src\brain\tests\test_work_http_failure_diagnostics.py:162: KeyError</failure></testcase><testcase classname="" name="test_closed_http_decoder_rejects_forged_shape_and_contradictions[validated]" time="0.334"><failure message="KeyError: 'last_http'">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-native-http-diagnostics-20261107-r1/offline/http-red-20261107T083618967067Z/temp/test_closed_http_decoder_rejec17')
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x00000224A65A8250&gt;, [('search', 'Research a subject')], {})
+mock_jar = (&lt;openjarvis.sdk.Jarvis object at 0x00000224A6838B50&gt;, &lt;function _run_work_agent at 0x00000224A50A1D00&gt;, [{'format': {...tx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [&lt;function early_case.&lt;locals&gt;.reply at 0x00000224A65D7F60&gt;])
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x0000022444EFD470&gt;
+change = 'validated'
+
+    @pytest.mark.parametrize('change',['field','route','status_bool','status_low','status_high','generation_zero','generation_high',
+        'index_bool','index_high','bytes_bool','bytes_high','digest','downloaded_bool','downloaded_high','inspected',
+        'retained','unsent','validated','transport_failed','version'])
+    def test_closed_http_decoder_rejects_forged_shape_and_contradictions(tmp_path,sdk_io,mock_jar,monkeypatch,change):
+        result,ledger,*_=failing_exchange(tmp_path,sdk_io,mock_jar,monkeypatch)
+&gt;       packet=private_packet(result,ledger);last=packet['last_http']
+                                                  ^^^^^^^^^^^^^^^^^^^
+E       KeyError: 'last_http'
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-http-diagnostics\UltimaAgent\src\brain\tests\test_work_http_failure_diagnostics.py:162: KeyError</failure></testcase><testcase classname="" name="test_closed_http_decoder_rejects_forged_shape_and_contradictions[transport_failed]" time="0.321"><failure message="KeyError: 'last_http'">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-native-http-diagnostics-20261107-r1/offline/http-red-20261107T083618967067Z/temp/test_closed_http_decoder_rejec18')
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x0000022444F48550&gt;, [('search', 'Research a subject')], {})
+mock_jar = (&lt;openjarvis.sdk.Jarvis object at 0x00000224A6838310&gt;, &lt;function _run_work_agent at 0x00000224A50A1D00&gt;, [{'format': {...tx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [&lt;function early_case.&lt;locals&gt;.reply at 0x00000224A662ED40&gt;])
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x00000224A673F620&gt;
+change = 'transport_failed'
+
+    @pytest.mark.parametrize('change',['field','route','status_bool','status_low','status_high','generation_zero','generation_high',
+        'index_bool','index_high','bytes_bool','bytes_high','digest','downloaded_bool','downloaded_high','inspected',
+        'retained','unsent','validated','transport_failed','version'])
+    def test_closed_http_decoder_rejects_forged_shape_and_contradictions(tmp_path,sdk_io,mock_jar,monkeypatch,change):
+        result,ledger,*_=failing_exchange(tmp_path,sdk_io,mock_jar,monkeypatch)
+&gt;       packet=private_packet(result,ledger);last=packet['last_http']
+                                                  ^^^^^^^^^^^^^^^^^^^
+E       KeyError: 'last_http'
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-http-diagnostics\UltimaAgent\src\brain\tests\test_work_http_failure_diagnostics.py:162: KeyError</failure></testcase><testcase classname="" name="test_closed_http_decoder_rejects_forged_shape_and_contradictions[version]" time="0.359"><failure message="KeyError: 'last_http'">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-native-http-diagnostics-20261107-r1/offline/http-red-20261107T083618967067Z/temp/test_closed_http_decoder_rejec19')
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x00000224A6651A50&gt;, [('search', 'Research a subject')], {})
+mock_jar = (&lt;openjarvis.sdk.Jarvis object at 0x00000224A682A8E0&gt;, &lt;function _run_work_agent at 0x00000224A50A1D00&gt;, [{'format': {...tx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [&lt;function early_case.&lt;locals&gt;.reply at 0x00000224A65D7CE0&gt;])
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x0000022444EFF700&gt;
+change = 'version'
+
+    @pytest.mark.parametrize('change',['field','route','status_bool','status_low','status_high','generation_zero','generation_high',
+        'index_bool','index_high','bytes_bool','bytes_high','digest','downloaded_bool','downloaded_high','inspected',
+        'retained','unsent','validated','transport_failed','version'])
+    def test_closed_http_decoder_rejects_forged_shape_and_contradictions(tmp_path,sdk_io,mock_jar,monkeypatch,change):
+        result,ledger,*_=failing_exchange(tmp_path,sdk_io,mock_jar,monkeypatch)
+&gt;       packet=private_packet(result,ledger);last=packet['last_http']
+                                                  ^^^^^^^^^^^^^^^^^^^
+E       KeyError: 'last_http'
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-http-diagnostics\UltimaAgent\src\brain\tests\test_work_http_failure_diagnostics.py:162: KeyError</failure></testcase></testsuite></testsuites>

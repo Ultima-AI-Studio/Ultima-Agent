@@ -1,0 +1,916 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="32" skipped="0" tests="38" time="3.521" timestamp="2026-11-06T10:12:28.630746+08:00" hostname="DESKTOP-B366PQ9"><testcase classname="code.test_round3_predecessors" name="test_two_distinct_passes_admit_only_round3_and_do_not_pregrant_facts" time="0.066"><failure message="ValueError: Single round2 allocation with predecessor required">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-source13-round3-20261106/verification/tmp-predecessors-red2/test_two_distinct_passes_admit0')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x00000188520CA2C0&gt;
+
+    def test_two_distinct_passes_admit_only_round3_and_do_not_pregrant_facts(tmp_path,monkeypatch):
+        entry,authority,proof=package(tmp_path,monkeypatch)
+        backend=Backend(tmp_path,proof)
+&gt;       result=entry.run_once(tmp_path,backend_factory=lambda root:backend)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+code\test_round3_predecessors.py:30: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+code\acceptance_entry.py:204: in run_once
+    admission = validate_release(root, utcnow())
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+code\acceptance_entry.py:156: in validate_release
+    require(all(type(authority[key]) is int and authority[key] == value
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+value = False, message = 'Single round2 allocation with predecessor required'
+
+    def require(value, message):
+        if not value:
+&gt;           raise ValueError(message)
+E           ValueError: Single round2 allocation with predecessor required
+
+code\package_io.py:8: ValueError</failure></testcase><testcase classname="code.test_round3_predecessors" name="test_second_predecessor_ineligible_even_with_new_hashes[terminal.json-candidate-old-candidate]" time="0.129"><failure message="Failed: DID NOT RAISE ValueError">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-source13-round3-20261106/verification/tmp-predecessors-red2/test_second_predecessor_inelig0')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x00000188520CA520&gt;
+file = 'terminal.json', field = 'candidate', value = 'old-candidate'
+
+    @pytest.mark.parametrize('file,field,value',[
+        ('terminal.json','candidate','old-candidate'),
+        ('terminal.json','case','e03-round1'),
+        ('terminal.json','overall','FAIL'),
+        ('terminal.json','mechanical','FAIL'),
+        ('terminal.json','errors',[{'stage':'cleanup','error':'failed'}]),
+        ('terminal.json','cleanup',{'status':'FAIL'}),
+        ('review.json','reviewer','root-self'),
+        ('review.json','scope','e03-round2-acceptance-package'),
+        ('review.json','facts_verdict','FAIL'),
+        ('review.json','final_claim_verdict','FAIL'),
+        ('review.json','candidate_runtime_manifest_sha256','old-runtime'),
+        ('review.json','execution',{'model':'other-model','model_digest':'wrong','work_cli_count':1}),
+        ('registration.json','case_verdict','FAIL'),
+        ('registration.json','acceptance_credit',False),
+        ('registration.json','positive_passed',1),
+        ('registration.json','same_candidate_terminals',1),
+        ('registration.json','cumulative_work_cli_count',1),
+    ])
+    def test_second_predecessor_ineligible_even_with_new_hashes(tmp_path,monkeypatch,file,field,value):
+        entry,authority,proof=package(tmp_path,monkeypatch)
+        path=tmp_path/'inputs/prior-round2'/file;data=read(path);data[field]=value;put(path,data)
+        rebind_second(tmp_path,entry,authority)
+&gt;       with pytest.raises(ValueError,match='[Pp]redecessor'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+code\test_round3_predecessors.py:60: Failed</failure></testcase><testcase classname="code.test_round3_predecessors" name="test_second_predecessor_ineligible_even_with_new_hashes[terminal.json-case-e03-round1]" time="0.084"><failure message="Failed: DID NOT RAISE ValueError">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-source13-round3-20261106/verification/tmp-predecessors-red2/test_second_predecessor_inelig1')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000001885217B410&gt;
+file = 'terminal.json', field = 'case', value = 'e03-round1'
+
+    @pytest.mark.parametrize('file,field,value',[
+        ('terminal.json','candidate','old-candidate'),
+        ('terminal.json','case','e03-round1'),
+        ('terminal.json','overall','FAIL'),
+        ('terminal.json','mechanical','FAIL'),
+        ('terminal.json','errors',[{'stage':'cleanup','error':'failed'}]),
+        ('terminal.json','cleanup',{'status':'FAIL'}),
+        ('review.json','reviewer','root-self'),
+        ('review.json','scope','e03-round2-acceptance-package'),
+        ('review.json','facts_verdict','FAIL'),
+        ('review.json','final_claim_verdict','FAIL'),
+        ('review.json','candidate_runtime_manifest_sha256','old-runtime'),
+        ('review.json','execution',{'model':'other-model','model_digest':'wrong','work_cli_count':1}),
+        ('registration.json','case_verdict','FAIL'),
+        ('registration.json','acceptance_credit',False),
+        ('registration.json','positive_passed',1),
+        ('registration.json','same_candidate_terminals',1),
+        ('registration.json','cumulative_work_cli_count',1),
+    ])
+    def test_second_predecessor_ineligible_even_with_new_hashes(tmp_path,monkeypatch,file,field,value):
+        entry,authority,proof=package(tmp_path,monkeypatch)
+        path=tmp_path/'inputs/prior-round2'/file;data=read(path);data[field]=value;put(path,data)
+        rebind_second(tmp_path,entry,authority)
+&gt;       with pytest.raises(ValueError,match='[Pp]redecessor'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+code\test_round3_predecessors.py:60: Failed</failure></testcase><testcase classname="code.test_round3_predecessors" name="test_second_predecessor_ineligible_even_with_new_hashes[terminal.json-overall-FAIL]" time="0.071"><failure message="Failed: DID NOT RAISE ValueError">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-source13-round3-20261106/verification/tmp-predecessors-red2/test_second_predecessor_inelig2')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x00000188520AAE00&gt;
+file = 'terminal.json', field = 'overall', value = 'FAIL'
+
+    @pytest.mark.parametrize('file,field,value',[
+        ('terminal.json','candidate','old-candidate'),
+        ('terminal.json','case','e03-round1'),
+        ('terminal.json','overall','FAIL'),
+        ('terminal.json','mechanical','FAIL'),
+        ('terminal.json','errors',[{'stage':'cleanup','error':'failed'}]),
+        ('terminal.json','cleanup',{'status':'FAIL'}),
+        ('review.json','reviewer','root-self'),
+        ('review.json','scope','e03-round2-acceptance-package'),
+        ('review.json','facts_verdict','FAIL'),
+        ('review.json','final_claim_verdict','FAIL'),
+        ('review.json','candidate_runtime_manifest_sha256','old-runtime'),
+        ('review.json','execution',{'model':'other-model','model_digest':'wrong','work_cli_count':1}),
+        ('registration.json','case_verdict','FAIL'),
+        ('registration.json','acceptance_credit',False),
+        ('registration.json','positive_passed',1),
+        ('registration.json','same_candidate_terminals',1),
+        ('registration.json','cumulative_work_cli_count',1),
+    ])
+    def test_second_predecessor_ineligible_even_with_new_hashes(tmp_path,monkeypatch,file,field,value):
+        entry,authority,proof=package(tmp_path,monkeypatch)
+        path=tmp_path/'inputs/prior-round2'/file;data=read(path);data[field]=value;put(path,data)
+        rebind_second(tmp_path,entry,authority)
+&gt;       with pytest.raises(ValueError,match='[Pp]redecessor'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+code\test_round3_predecessors.py:60: Failed</failure></testcase><testcase classname="code.test_round3_predecessors" name="test_second_predecessor_ineligible_even_with_new_hashes[terminal.json-mechanical-FAIL]" time="0.071"><failure message="Failed: DID NOT RAISE ValueError">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-source13-round3-20261106/verification/tmp-predecessors-red2/test_second_predecessor_inelig3')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x00000188520AB240&gt;
+file = 'terminal.json', field = 'mechanical', value = 'FAIL'
+
+    @pytest.mark.parametrize('file,field,value',[
+        ('terminal.json','candidate','old-candidate'),
+        ('terminal.json','case','e03-round1'),
+        ('terminal.json','overall','FAIL'),
+        ('terminal.json','mechanical','FAIL'),
+        ('terminal.json','errors',[{'stage':'cleanup','error':'failed'}]),
+        ('terminal.json','cleanup',{'status':'FAIL'}),
+        ('review.json','reviewer','root-self'),
+        ('review.json','scope','e03-round2-acceptance-package'),
+        ('review.json','facts_verdict','FAIL'),
+        ('review.json','final_claim_verdict','FAIL'),
+        ('review.json','candidate_runtime_manifest_sha256','old-runtime'),
+        ('review.json','execution',{'model':'other-model','model_digest':'wrong','work_cli_count':1}),
+        ('registration.json','case_verdict','FAIL'),
+        ('registration.json','acceptance_credit',False),
+        ('registration.json','positive_passed',1),
+        ('registration.json','same_candidate_terminals',1),
+        ('registration.json','cumulative_work_cli_count',1),
+    ])
+    def test_second_predecessor_ineligible_even_with_new_hashes(tmp_path,monkeypatch,file,field,value):
+        entry,authority,proof=package(tmp_path,monkeypatch)
+        path=tmp_path/'inputs/prior-round2'/file;data=read(path);data[field]=value;put(path,data)
+        rebind_second(tmp_path,entry,authority)
+&gt;       with pytest.raises(ValueError,match='[Pp]redecessor'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+code\test_round3_predecessors.py:60: Failed</failure></testcase><testcase classname="code.test_round3_predecessors" name="test_second_predecessor_ineligible_even_with_new_hashes[terminal.json-errors-value4]" time="0.078"><failure message="Failed: DID NOT RAISE ValueError">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-source13-round3-20261106/verification/tmp-predecessors-red2/test_second_predecessor_inelig4')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x00000188529A1550&gt;
+file = 'terminal.json', field = 'errors'
+value = [{'stage': 'cleanup', 'error': 'failed'}]
+
+    @pytest.mark.parametrize('file,field,value',[
+        ('terminal.json','candidate','old-candidate'),
+        ('terminal.json','case','e03-round1'),
+        ('terminal.json','overall','FAIL'),
+        ('terminal.json','mechanical','FAIL'),
+        ('terminal.json','errors',[{'stage':'cleanup','error':'failed'}]),
+        ('terminal.json','cleanup',{'status':'FAIL'}),
+        ('review.json','reviewer','root-self'),
+        ('review.json','scope','e03-round2-acceptance-package'),
+        ('review.json','facts_verdict','FAIL'),
+        ('review.json','final_claim_verdict','FAIL'),
+        ('review.json','candidate_runtime_manifest_sha256','old-runtime'),
+        ('review.json','execution',{'model':'other-model','model_digest':'wrong','work_cli_count':1}),
+        ('registration.json','case_verdict','FAIL'),
+        ('registration.json','acceptance_credit',False),
+        ('registration.json','positive_passed',1),
+        ('registration.json','same_candidate_terminals',1),
+        ('registration.json','cumulative_work_cli_count',1),
+    ])
+    def test_second_predecessor_ineligible_even_with_new_hashes(tmp_path,monkeypatch,file,field,value):
+        entry,authority,proof=package(tmp_path,monkeypatch)
+        path=tmp_path/'inputs/prior-round2'/file;data=read(path);data[field]=value;put(path,data)
+        rebind_second(tmp_path,entry,authority)
+&gt;       with pytest.raises(ValueError,match='[Pp]redecessor'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+code\test_round3_predecessors.py:60: Failed</failure></testcase><testcase classname="code.test_round3_predecessors" name="test_second_predecessor_ineligible_even_with_new_hashes[terminal.json-cleanup-value5]" time="0.073"><failure message="Failed: DID NOT RAISE ValueError">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-source13-round3-20261106/verification/tmp-predecessors-red2/test_second_predecessor_inelig5')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x00000188529A1B50&gt;
+file = 'terminal.json', field = 'cleanup', value = {'status': 'FAIL'}
+
+    @pytest.mark.parametrize('file,field,value',[
+        ('terminal.json','candidate','old-candidate'),
+        ('terminal.json','case','e03-round1'),
+        ('terminal.json','overall','FAIL'),
+        ('terminal.json','mechanical','FAIL'),
+        ('terminal.json','errors',[{'stage':'cleanup','error':'failed'}]),
+        ('terminal.json','cleanup',{'status':'FAIL'}),
+        ('review.json','reviewer','root-self'),
+        ('review.json','scope','e03-round2-acceptance-package'),
+        ('review.json','facts_verdict','FAIL'),
+        ('review.json','final_claim_verdict','FAIL'),
+        ('review.json','candidate_runtime_manifest_sha256','old-runtime'),
+        ('review.json','execution',{'model':'other-model','model_digest':'wrong','work_cli_count':1}),
+        ('registration.json','case_verdict','FAIL'),
+        ('registration.json','acceptance_credit',False),
+        ('registration.json','positive_passed',1),
+        ('registration.json','same_candidate_terminals',1),
+        ('registration.json','cumulative_work_cli_count',1),
+    ])
+    def test_second_predecessor_ineligible_even_with_new_hashes(tmp_path,monkeypatch,file,field,value):
+        entry,authority,proof=package(tmp_path,monkeypatch)
+        path=tmp_path/'inputs/prior-round2'/file;data=read(path);data[field]=value;put(path,data)
+        rebind_second(tmp_path,entry,authority)
+&gt;       with pytest.raises(ValueError,match='[Pp]redecessor'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+code\test_round3_predecessors.py:60: Failed</failure></testcase><testcase classname="code.test_round3_predecessors" name="test_second_predecessor_ineligible_even_with_new_hashes[review.json-reviewer-root-self]" time="0.073"><failure message="Failed: DID NOT RAISE ValueError">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-source13-round3-20261106/verification/tmp-predecessors-red2/test_second_predecessor_inelig6')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x0000018852A3DF40&gt;
+file = 'review.json', field = 'reviewer', value = 'root-self'
+
+    @pytest.mark.parametrize('file,field,value',[
+        ('terminal.json','candidate','old-candidate'),
+        ('terminal.json','case','e03-round1'),
+        ('terminal.json','overall','FAIL'),
+        ('terminal.json','mechanical','FAIL'),
+        ('terminal.json','errors',[{'stage':'cleanup','error':'failed'}]),
+        ('terminal.json','cleanup',{'status':'FAIL'}),
+        ('review.json','reviewer','root-self'),
+        ('review.json','scope','e03-round2-acceptance-package'),
+        ('review.json','facts_verdict','FAIL'),
+        ('review.json','final_claim_verdict','FAIL'),
+        ('review.json','candidate_runtime_manifest_sha256','old-runtime'),
+        ('review.json','execution',{'model':'other-model','model_digest':'wrong','work_cli_count':1}),
+        ('registration.json','case_verdict','FAIL'),
+        ('registration.json','acceptance_credit',False),
+        ('registration.json','positive_passed',1),
+        ('registration.json','same_candidate_terminals',1),
+        ('registration.json','cumulative_work_cli_count',1),
+    ])
+    def test_second_predecessor_ineligible_even_with_new_hashes(tmp_path,monkeypatch,file,field,value):
+        entry,authority,proof=package(tmp_path,monkeypatch)
+        path=tmp_path/'inputs/prior-round2'/file;data=read(path);data[field]=value;put(path,data)
+        rebind_second(tmp_path,entry,authority)
+&gt;       with pytest.raises(ValueError,match='[Pp]redecessor'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+code\test_round3_predecessors.py:60: Failed</failure></testcase><testcase classname="code.test_round3_predecessors" name="test_second_predecessor_ineligible_even_with_new_hashes[review.json-scope-e03-round2-acceptance-package]" time="0.076"><failure message="Failed: DID NOT RAISE ValueError">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-source13-round3-20261106/verification/tmp-predecessors-red2/test_second_predecessor_inelig7')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x0000018852A3E8A0&gt;
+file = 'review.json', field = 'scope', value = 'e03-round2-acceptance-package'
+
+    @pytest.mark.parametrize('file,field,value',[
+        ('terminal.json','candidate','old-candidate'),
+        ('terminal.json','case','e03-round1'),
+        ('terminal.json','overall','FAIL'),
+        ('terminal.json','mechanical','FAIL'),
+        ('terminal.json','errors',[{'stage':'cleanup','error':'failed'}]),
+        ('terminal.json','cleanup',{'status':'FAIL'}),
+        ('review.json','reviewer','root-self'),
+        ('review.json','scope','e03-round2-acceptance-package'),
+        ('review.json','facts_verdict','FAIL'),
+        ('review.json','final_claim_verdict','FAIL'),
+        ('review.json','candidate_runtime_manifest_sha256','old-runtime'),
+        ('review.json','execution',{'model':'other-model','model_digest':'wrong','work_cli_count':1}),
+        ('registration.json','case_verdict','FAIL'),
+        ('registration.json','acceptance_credit',False),
+        ('registration.json','positive_passed',1),
+        ('registration.json','same_candidate_terminals',1),
+        ('registration.json','cumulative_work_cli_count',1),
+    ])
+    def test_second_predecessor_ineligible_even_with_new_hashes(tmp_path,monkeypatch,file,field,value):
+        entry,authority,proof=package(tmp_path,monkeypatch)
+        path=tmp_path/'inputs/prior-round2'/file;data=read(path);data[field]=value;put(path,data)
+        rebind_second(tmp_path,entry,authority)
+&gt;       with pytest.raises(ValueError,match='[Pp]redecessor'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+code\test_round3_predecessors.py:60: Failed</failure></testcase><testcase classname="code.test_round3_predecessors" name="test_second_predecessor_ineligible_even_with_new_hashes[review.json-facts_verdict-FAIL]" time="0.075"><failure message="Failed: DID NOT RAISE ValueError">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-source13-round3-20261106/verification/tmp-predecessors-red2/test_second_predecessor_inelig8')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x0000018852A0E270&gt;
+file = 'review.json', field = 'facts_verdict', value = 'FAIL'
+
+    @pytest.mark.parametrize('file,field,value',[
+        ('terminal.json','candidate','old-candidate'),
+        ('terminal.json','case','e03-round1'),
+        ('terminal.json','overall','FAIL'),
+        ('terminal.json','mechanical','FAIL'),
+        ('terminal.json','errors',[{'stage':'cleanup','error':'failed'}]),
+        ('terminal.json','cleanup',{'status':'FAIL'}),
+        ('review.json','reviewer','root-self'),
+        ('review.json','scope','e03-round2-acceptance-package'),
+        ('review.json','facts_verdict','FAIL'),
+        ('review.json','final_claim_verdict','FAIL'),
+        ('review.json','candidate_runtime_manifest_sha256','old-runtime'),
+        ('review.json','execution',{'model':'other-model','model_digest':'wrong','work_cli_count':1}),
+        ('registration.json','case_verdict','FAIL'),
+        ('registration.json','acceptance_credit',False),
+        ('registration.json','positive_passed',1),
+        ('registration.json','same_candidate_terminals',1),
+        ('registration.json','cumulative_work_cli_count',1),
+    ])
+    def test_second_predecessor_ineligible_even_with_new_hashes(tmp_path,monkeypatch,file,field,value):
+        entry,authority,proof=package(tmp_path,monkeypatch)
+        path=tmp_path/'inputs/prior-round2'/file;data=read(path);data[field]=value;put(path,data)
+        rebind_second(tmp_path,entry,authority)
+&gt;       with pytest.raises(ValueError,match='[Pp]redecessor'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+code\test_round3_predecessors.py:60: Failed</failure></testcase><testcase classname="code.test_round3_predecessors" name="test_second_predecessor_ineligible_even_with_new_hashes[review.json-final_claim_verdict-FAIL]" time="0.281"><failure message="Failed: DID NOT RAISE ValueError">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-source13-round3-20261106/verification/tmp-predecessors-red2/test_second_predecessor_inelig9')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x0000018852A0EC10&gt;
+file = 'review.json', field = 'final_claim_verdict', value = 'FAIL'
+
+    @pytest.mark.parametrize('file,field,value',[
+        ('terminal.json','candidate','old-candidate'),
+        ('terminal.json','case','e03-round1'),
+        ('terminal.json','overall','FAIL'),
+        ('terminal.json','mechanical','FAIL'),
+        ('terminal.json','errors',[{'stage':'cleanup','error':'failed'}]),
+        ('terminal.json','cleanup',{'status':'FAIL'}),
+        ('review.json','reviewer','root-self'),
+        ('review.json','scope','e03-round2-acceptance-package'),
+        ('review.json','facts_verdict','FAIL'),
+        ('review.json','final_claim_verdict','FAIL'),
+        ('review.json','candidate_runtime_manifest_sha256','old-runtime'),
+        ('review.json','execution',{'model':'other-model','model_digest':'wrong','work_cli_count':1}),
+        ('registration.json','case_verdict','FAIL'),
+        ('registration.json','acceptance_credit',False),
+        ('registration.json','positive_passed',1),
+        ('registration.json','same_candidate_terminals',1),
+        ('registration.json','cumulative_work_cli_count',1),
+    ])
+    def test_second_predecessor_ineligible_even_with_new_hashes(tmp_path,monkeypatch,file,field,value):
+        entry,authority,proof=package(tmp_path,monkeypatch)
+        path=tmp_path/'inputs/prior-round2'/file;data=read(path);data[field]=value;put(path,data)
+        rebind_second(tmp_path,entry,authority)
+&gt;       with pytest.raises(ValueError,match='[Pp]redecessor'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+code\test_round3_predecessors.py:60: Failed</failure></testcase><testcase classname="code.test_round3_predecessors" name="test_second_predecessor_ineligible_even_with_new_hashes[review.json-candidate_runtime_manifest_sha256-old-runtime]" time="0.073"><failure message="Failed: DID NOT RAISE ValueError">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-source13-round3-20261106/verification/tmp-predecessors-red2/test_second_predecessor_inelig10')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x0000018852A5FEE0&gt;
+file = 'review.json', field = 'candidate_runtime_manifest_sha256'
+value = 'old-runtime'
+
+    @pytest.mark.parametrize('file,field,value',[
+        ('terminal.json','candidate','old-candidate'),
+        ('terminal.json','case','e03-round1'),
+        ('terminal.json','overall','FAIL'),
+        ('terminal.json','mechanical','FAIL'),
+        ('terminal.json','errors',[{'stage':'cleanup','error':'failed'}]),
+        ('terminal.json','cleanup',{'status':'FAIL'}),
+        ('review.json','reviewer','root-self'),
+        ('review.json','scope','e03-round2-acceptance-package'),
+        ('review.json','facts_verdict','FAIL'),
+        ('review.json','final_claim_verdict','FAIL'),
+        ('review.json','candidate_runtime_manifest_sha256','old-runtime'),
+        ('review.json','execution',{'model':'other-model','model_digest':'wrong','work_cli_count':1}),
+        ('registration.json','case_verdict','FAIL'),
+        ('registration.json','acceptance_credit',False),
+        ('registration.json','positive_passed',1),
+        ('registration.json','same_candidate_terminals',1),
+        ('registration.json','cumulative_work_cli_count',1),
+    ])
+    def test_second_predecessor_ineligible_even_with_new_hashes(tmp_path,monkeypatch,file,field,value):
+        entry,authority,proof=package(tmp_path,monkeypatch)
+        path=tmp_path/'inputs/prior-round2'/file;data=read(path);data[field]=value;put(path,data)
+        rebind_second(tmp_path,entry,authority)
+&gt;       with pytest.raises(ValueError,match='[Pp]redecessor'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+code\test_round3_predecessors.py:60: Failed</failure></testcase><testcase classname="code.test_round3_predecessors" name="test_second_predecessor_ineligible_even_with_new_hashes[review.json-execution-value11]" time="0.077"><failure message="Failed: DID NOT RAISE ValueError">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-source13-round3-20261106/verification/tmp-predecessors-red2/test_second_predecessor_inelig11')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x00000188529D1E50&gt;
+file = 'review.json', field = 'execution'
+value = {'model': 'other-model', 'model_digest': 'wrong', 'work_cli_count': 1}
+
+    @pytest.mark.parametrize('file,field,value',[
+        ('terminal.json','candidate','old-candidate'),
+        ('terminal.json','case','e03-round1'),
+        ('terminal.json','overall','FAIL'),
+        ('terminal.json','mechanical','FAIL'),
+        ('terminal.json','errors',[{'stage':'cleanup','error':'failed'}]),
+        ('terminal.json','cleanup',{'status':'FAIL'}),
+        ('review.json','reviewer','root-self'),
+        ('review.json','scope','e03-round2-acceptance-package'),
+        ('review.json','facts_verdict','FAIL'),
+        ('review.json','final_claim_verdict','FAIL'),
+        ('review.json','candidate_runtime_manifest_sha256','old-runtime'),
+        ('review.json','execution',{'model':'other-model','model_digest':'wrong','work_cli_count':1}),
+        ('registration.json','case_verdict','FAIL'),
+        ('registration.json','acceptance_credit',False),
+        ('registration.json','positive_passed',1),
+        ('registration.json','same_candidate_terminals',1),
+        ('registration.json','cumulative_work_cli_count',1),
+    ])
+    def test_second_predecessor_ineligible_even_with_new_hashes(tmp_path,monkeypatch,file,field,value):
+        entry,authority,proof=package(tmp_path,monkeypatch)
+        path=tmp_path/'inputs/prior-round2'/file;data=read(path);data[field]=value;put(path,data)
+        rebind_second(tmp_path,entry,authority)
+&gt;       with pytest.raises(ValueError,match='[Pp]redecessor'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+code\test_round3_predecessors.py:60: Failed</failure></testcase><testcase classname="code.test_round3_predecessors" name="test_second_predecessor_ineligible_even_with_new_hashes[registration.json-case_verdict-FAIL]" time="0.070"><failure message="Failed: DID NOT RAISE ValueError">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-source13-round3-20261106/verification/tmp-predecessors-red2/test_second_predecessor_inelig12')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x00000188529D19D0&gt;
+file = 'registration.json', field = 'case_verdict', value = 'FAIL'
+
+    @pytest.mark.parametrize('file,field,value',[
+        ('terminal.json','candidate','old-candidate'),
+        ('terminal.json','case','e03-round1'),
+        ('terminal.json','overall','FAIL'),
+        ('terminal.json','mechanical','FAIL'),
+        ('terminal.json','errors',[{'stage':'cleanup','error':'failed'}]),
+        ('terminal.json','cleanup',{'status':'FAIL'}),
+        ('review.json','reviewer','root-self'),
+        ('review.json','scope','e03-round2-acceptance-package'),
+        ('review.json','facts_verdict','FAIL'),
+        ('review.json','final_claim_verdict','FAIL'),
+        ('review.json','candidate_runtime_manifest_sha256','old-runtime'),
+        ('review.json','execution',{'model':'other-model','model_digest':'wrong','work_cli_count':1}),
+        ('registration.json','case_verdict','FAIL'),
+        ('registration.json','acceptance_credit',False),
+        ('registration.json','positive_passed',1),
+        ('registration.json','same_candidate_terminals',1),
+        ('registration.json','cumulative_work_cli_count',1),
+    ])
+    def test_second_predecessor_ineligible_even_with_new_hashes(tmp_path,monkeypatch,file,field,value):
+        entry,authority,proof=package(tmp_path,monkeypatch)
+        path=tmp_path/'inputs/prior-round2'/file;data=read(path);data[field]=value;put(path,data)
+        rebind_second(tmp_path,entry,authority)
+&gt;       with pytest.raises(ValueError,match='[Pp]redecessor'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+code\test_round3_predecessors.py:60: Failed</failure></testcase><testcase classname="code.test_round3_predecessors" name="test_second_predecessor_ineligible_even_with_new_hashes[registration.json-acceptance_credit-False]" time="0.067"><failure message="Failed: DID NOT RAISE ValueError">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-source13-round3-20261106/verification/tmp-predecessors-red2/test_second_predecessor_inelig13')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x0000018852982780&gt;
+file = 'registration.json', field = 'acceptance_credit', value = False
+
+    @pytest.mark.parametrize('file,field,value',[
+        ('terminal.json','candidate','old-candidate'),
+        ('terminal.json','case','e03-round1'),
+        ('terminal.json','overall','FAIL'),
+        ('terminal.json','mechanical','FAIL'),
+        ('terminal.json','errors',[{'stage':'cleanup','error':'failed'}]),
+        ('terminal.json','cleanup',{'status':'FAIL'}),
+        ('review.json','reviewer','root-self'),
+        ('review.json','scope','e03-round2-acceptance-package'),
+        ('review.json','facts_verdict','FAIL'),
+        ('review.json','final_claim_verdict','FAIL'),
+        ('review.json','candidate_runtime_manifest_sha256','old-runtime'),
+        ('review.json','execution',{'model':'other-model','model_digest':'wrong','work_cli_count':1}),
+        ('registration.json','case_verdict','FAIL'),
+        ('registration.json','acceptance_credit',False),
+        ('registration.json','positive_passed',1),
+        ('registration.json','same_candidate_terminals',1),
+        ('registration.json','cumulative_work_cli_count',1),
+    ])
+    def test_second_predecessor_ineligible_even_with_new_hashes(tmp_path,monkeypatch,file,field,value):
+        entry,authority,proof=package(tmp_path,monkeypatch)
+        path=tmp_path/'inputs/prior-round2'/file;data=read(path);data[field]=value;put(path,data)
+        rebind_second(tmp_path,entry,authority)
+&gt;       with pytest.raises(ValueError,match='[Pp]redecessor'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+code\test_round3_predecessors.py:60: Failed</failure></testcase><testcase classname="code.test_round3_predecessors" name="test_second_predecessor_ineligible_even_with_new_hashes[registration.json-positive_passed-1]" time="0.070"><failure message="Failed: DID NOT RAISE ValueError">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-source13-round3-20261106/verification/tmp-predecessors-red2/test_second_predecessor_inelig14')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x0000018852982C50&gt;
+file = 'registration.json', field = 'positive_passed', value = 1
+
+    @pytest.mark.parametrize('file,field,value',[
+        ('terminal.json','candidate','old-candidate'),
+        ('terminal.json','case','e03-round1'),
+        ('terminal.json','overall','FAIL'),
+        ('terminal.json','mechanical','FAIL'),
+        ('terminal.json','errors',[{'stage':'cleanup','error':'failed'}]),
+        ('terminal.json','cleanup',{'status':'FAIL'}),
+        ('review.json','reviewer','root-self'),
+        ('review.json','scope','e03-round2-acceptance-package'),
+        ('review.json','facts_verdict','FAIL'),
+        ('review.json','final_claim_verdict','FAIL'),
+        ('review.json','candidate_runtime_manifest_sha256','old-runtime'),
+        ('review.json','execution',{'model':'other-model','model_digest':'wrong','work_cli_count':1}),
+        ('registration.json','case_verdict','FAIL'),
+        ('registration.json','acceptance_credit',False),
+        ('registration.json','positive_passed',1),
+        ('registration.json','same_candidate_terminals',1),
+        ('registration.json','cumulative_work_cli_count',1),
+    ])
+    def test_second_predecessor_ineligible_even_with_new_hashes(tmp_path,monkeypatch,file,field,value):
+        entry,authority,proof=package(tmp_path,monkeypatch)
+        path=tmp_path/'inputs/prior-round2'/file;data=read(path);data[field]=value;put(path,data)
+        rebind_second(tmp_path,entry,authority)
+&gt;       with pytest.raises(ValueError,match='[Pp]redecessor'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+code\test_round3_predecessors.py:60: Failed</failure></testcase><testcase classname="code.test_round3_predecessors" name="test_second_predecessor_ineligible_even_with_new_hashes[registration.json-same_candidate_terminals-1]" time="0.092"><failure message="Failed: DID NOT RAISE ValueError">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-source13-round3-20261106/verification/tmp-predecessors-red2/test_second_predecessor_inelig15')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x00000188529E91D0&gt;
+file = 'registration.json', field = 'same_candidate_terminals', value = 1
+
+    @pytest.mark.parametrize('file,field,value',[
+        ('terminal.json','candidate','old-candidate'),
+        ('terminal.json','case','e03-round1'),
+        ('terminal.json','overall','FAIL'),
+        ('terminal.json','mechanical','FAIL'),
+        ('terminal.json','errors',[{'stage':'cleanup','error':'failed'}]),
+        ('terminal.json','cleanup',{'status':'FAIL'}),
+        ('review.json','reviewer','root-self'),
+        ('review.json','scope','e03-round2-acceptance-package'),
+        ('review.json','facts_verdict','FAIL'),
+        ('review.json','final_claim_verdict','FAIL'),
+        ('review.json','candidate_runtime_manifest_sha256','old-runtime'),
+        ('review.json','execution',{'model':'other-model','model_digest':'wrong','work_cli_count':1}),
+        ('registration.json','case_verdict','FAIL'),
+        ('registration.json','acceptance_credit',False),
+        ('registration.json','positive_passed',1),
+        ('registration.json','same_candidate_terminals',1),
+        ('registration.json','cumulative_work_cli_count',1),
+    ])
+    def test_second_predecessor_ineligible_even_with_new_hashes(tmp_path,monkeypatch,file,field,value):
+        entry,authority,proof=package(tmp_path,monkeypatch)
+        path=tmp_path/'inputs/prior-round2'/file;data=read(path);data[field]=value;put(path,data)
+        rebind_second(tmp_path,entry,authority)
+&gt;       with pytest.raises(ValueError,match='[Pp]redecessor'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+code\test_round3_predecessors.py:60: Failed</failure></testcase><testcase classname="code.test_round3_predecessors" name="test_second_predecessor_ineligible_even_with_new_hashes[registration.json-cumulative_work_cli_count-1]" time="0.200"><failure message="Failed: DID NOT RAISE ValueError">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-source13-round3-20261106/verification/tmp-predecessors-red2/test_second_predecessor_inelig16')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x00000188529EAC10&gt;
+file = 'registration.json', field = 'cumulative_work_cli_count', value = 1
+
+    @pytest.mark.parametrize('file,field,value',[
+        ('terminal.json','candidate','old-candidate'),
+        ('terminal.json','case','e03-round1'),
+        ('terminal.json','overall','FAIL'),
+        ('terminal.json','mechanical','FAIL'),
+        ('terminal.json','errors',[{'stage':'cleanup','error':'failed'}]),
+        ('terminal.json','cleanup',{'status':'FAIL'}),
+        ('review.json','reviewer','root-self'),
+        ('review.json','scope','e03-round2-acceptance-package'),
+        ('review.json','facts_verdict','FAIL'),
+        ('review.json','final_claim_verdict','FAIL'),
+        ('review.json','candidate_runtime_manifest_sha256','old-runtime'),
+        ('review.json','execution',{'model':'other-model','model_digest':'wrong','work_cli_count':1}),
+        ('registration.json','case_verdict','FAIL'),
+        ('registration.json','acceptance_credit',False),
+        ('registration.json','positive_passed',1),
+        ('registration.json','same_candidate_terminals',1),
+        ('registration.json','cumulative_work_cli_count',1),
+    ])
+    def test_second_predecessor_ineligible_even_with_new_hashes(tmp_path,monkeypatch,file,field,value):
+        entry,authority,proof=package(tmp_path,monkeypatch)
+        path=tmp_path/'inputs/prior-round2'/file;data=read(path);data[field]=value;put(path,data)
+        rebind_second(tmp_path,entry,authority)
+&gt;       with pytest.raises(ValueError,match='[Pp]redecessor'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+code\test_round3_predecessors.py:60: Failed</failure></testcase><testcase classname="code.test_round3_predecessors" name="test_second_predecessor_must_be_sealed[terminal.json]" time="0.056"><failure message="Failed: DID NOT RAISE ValueError">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-source13-round3-20261106/verification/tmp-predecessors-red2/test_second_predecessor_must_b0')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x0000018852A65D90&gt;
+file = 'terminal.json'
+
+    @pytest.mark.parametrize('file',['terminal.json','review.json','registration.json'])
+    def test_second_predecessor_must_be_sealed(tmp_path,monkeypatch,file):
+        entry,authority,proof=package(tmp_path,monkeypatch)
+        manifest=read(tmp_path/'manifest.json')
+        manifest['files']=[row for row in manifest['files'] if row['path']!='inputs/prior-round2/'+file]
+        put(tmp_path/'manifest.json',manifest)
+&gt;       with pytest.raises(ValueError,match='[Rr]untime dependency'): entry.verify_package(tmp_path)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+code\test_round3_predecessors.py:73: Failed</failure></testcase><testcase classname="code.test_round3_predecessors" name="test_second_predecessor_must_be_sealed[review.json]" time="0.053"><failure message="Failed: DID NOT RAISE ValueError">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-source13-round3-20261106/verification/tmp-predecessors-red2/test_second_predecessor_must_b1')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x0000018852A4C050&gt;
+file = 'review.json'
+
+    @pytest.mark.parametrize('file',['terminal.json','review.json','registration.json'])
+    def test_second_predecessor_must_be_sealed(tmp_path,monkeypatch,file):
+        entry,authority,proof=package(tmp_path,monkeypatch)
+        manifest=read(tmp_path/'manifest.json')
+        manifest['files']=[row for row in manifest['files'] if row['path']!='inputs/prior-round2/'+file]
+        put(tmp_path/'manifest.json',manifest)
+&gt;       with pytest.raises(ValueError,match='[Rr]untime dependency'): entry.verify_package(tmp_path)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+code\test_round3_predecessors.py:73: Failed</failure></testcase><testcase classname="code.test_round3_predecessors" name="test_second_predecessor_must_be_sealed[registration.json]" time="0.055"><failure message="Failed: DID NOT RAISE ValueError">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-source13-round3-20261106/verification/tmp-predecessors-red2/test_second_predecessor_must_b2')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x0000018852B1CE50&gt;
+file = 'registration.json'
+
+    @pytest.mark.parametrize('file',['terminal.json','review.json','registration.json'])
+    def test_second_predecessor_must_be_sealed(tmp_path,monkeypatch,file):
+        entry,authority,proof=package(tmp_path,monkeypatch)
+        manifest=read(tmp_path/'manifest.json')
+        manifest['files']=[row for row in manifest['files'] if row['path']!='inputs/prior-round2/'+file]
+        put(tmp_path/'manifest.json',manifest)
+&gt;       with pytest.raises(ValueError,match='[Rr]untime dependency'): entry.verify_package(tmp_path)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+code\test_round3_predecessors.py:73: Failed</failure></testcase><testcase classname="code.test_round3_predecessors" name="test_second_registration_cannot_claim_unbound_two_round_chain[duplicate-case]" time="0.066"><failure message="Failed: DID NOT RAISE ValueError">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-source13-round3-20261106/verification/tmp-predecessors-red2/test_second_registration_canno0')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x00000188529E6D60&gt;
+fault = 'duplicate-case'
+
+    @pytest.mark.parametrize('fault',[
+        'duplicate-case','reversed-order','first-terminal-hash','second-review-hash',
+        'prior-registration-hash','same-task','backwards-time','wrong-sequence','old-binding-candidate','review-prior-hash',
+    ])
+    def test_second_registration_cannot_claim_unbound_two_round_chain(tmp_path,monkeypatch,fault):
+        entry,authority,proof=package(tmp_path,monkeypatch)
+        folder=tmp_path/'inputs/prior-round2';reg=read(folder/'registration.json')
+        rows=reg['same_candidate_terminal_bindings']
+        if fault=='duplicate-case': rows[1]['case']='e03-round1'
+        elif fault=='reversed-order': rows.reverse()
+        elif fault=='first-terminal-hash': rows[0]['sha256']='0'*64
+        elif fault=='second-review-hash': rows[1]['review_sha256']='0'*64
+        elif fault=='prior-registration-hash': reg['predecessor_registration_sha256']='0'*64
+        elif fault=='same-task': rows[1]['task_id']=rows[0]['task_id']
+        elif fault=='backwards-time': rows[1]['finished_at']='2026-11-05T09:59:00+00:00'
+        elif fault=='wrong-sequence': reg['consecutive_positive_cases']=['e03-round1','e03-round1']
+        elif fault=='old-binding-candidate': rows[1]['candidate']='old-candidate'
+        elif fault=='review-prior-hash':
+            review=read(folder/'review.json');review['authority_and_admission']['prior_round1']['review_sha256']='0'*64
+            put(folder/'review.json',review)
+        put(folder/'registration.json',reg)
+        rebind_second(tmp_path,entry,authority,bind_inventory=(fault=='review-prior-hash'))
+&gt;       with pytest.raises(ValueError,match='[Pp]redecessor'): entry.verify_package(tmp_path)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+code\test_round3_predecessors.py:98: Failed</failure></testcase><testcase classname="code.test_round3_predecessors" name="test_second_registration_cannot_claim_unbound_two_round_chain[reversed-order]" time="0.065"><failure message="Failed: DID NOT RAISE ValueError">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-source13-round3-20261106/verification/tmp-predecessors-red2/test_second_registration_canno1')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x00000188529E73F0&gt;
+fault = 'reversed-order'
+
+    @pytest.mark.parametrize('fault',[
+        'duplicate-case','reversed-order','first-terminal-hash','second-review-hash',
+        'prior-registration-hash','same-task','backwards-time','wrong-sequence','old-binding-candidate','review-prior-hash',
+    ])
+    def test_second_registration_cannot_claim_unbound_two_round_chain(tmp_path,monkeypatch,fault):
+        entry,authority,proof=package(tmp_path,monkeypatch)
+        folder=tmp_path/'inputs/prior-round2';reg=read(folder/'registration.json')
+        rows=reg['same_candidate_terminal_bindings']
+        if fault=='duplicate-case': rows[1]['case']='e03-round1'
+        elif fault=='reversed-order': rows.reverse()
+        elif fault=='first-terminal-hash': rows[0]['sha256']='0'*64
+        elif fault=='second-review-hash': rows[1]['review_sha256']='0'*64
+        elif fault=='prior-registration-hash': reg['predecessor_registration_sha256']='0'*64
+        elif fault=='same-task': rows[1]['task_id']=rows[0]['task_id']
+        elif fault=='backwards-time': rows[1]['finished_at']='2026-11-05T09:59:00+00:00'
+        elif fault=='wrong-sequence': reg['consecutive_positive_cases']=['e03-round1','e03-round1']
+        elif fault=='old-binding-candidate': rows[1]['candidate']='old-candidate'
+        elif fault=='review-prior-hash':
+            review=read(folder/'review.json');review['authority_and_admission']['prior_round1']['review_sha256']='0'*64
+            put(folder/'review.json',review)
+        put(folder/'registration.json',reg)
+        rebind_second(tmp_path,entry,authority,bind_inventory=(fault=='review-prior-hash'))
+&gt;       with pytest.raises(ValueError,match='[Pp]redecessor'): entry.verify_package(tmp_path)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+code\test_round3_predecessors.py:98: Failed</failure></testcase><testcase classname="code.test_round3_predecessors" name="test_second_registration_cannot_claim_unbound_two_round_chain[first-terminal-hash]" time="0.066"><failure message="Failed: DID NOT RAISE ValueError">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-source13-round3-20261106/verification/tmp-predecessors-red2/test_second_registration_canno2')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x00000188529E7F50&gt;
+fault = 'first-terminal-hash'
+
+    @pytest.mark.parametrize('fault',[
+        'duplicate-case','reversed-order','first-terminal-hash','second-review-hash',
+        'prior-registration-hash','same-task','backwards-time','wrong-sequence','old-binding-candidate','review-prior-hash',
+    ])
+    def test_second_registration_cannot_claim_unbound_two_round_chain(tmp_path,monkeypatch,fault):
+        entry,authority,proof=package(tmp_path,monkeypatch)
+        folder=tmp_path/'inputs/prior-round2';reg=read(folder/'registration.json')
+        rows=reg['same_candidate_terminal_bindings']
+        if fault=='duplicate-case': rows[1]['case']='e03-round1'
+        elif fault=='reversed-order': rows.reverse()
+        elif fault=='first-terminal-hash': rows[0]['sha256']='0'*64
+        elif fault=='second-review-hash': rows[1]['review_sha256']='0'*64
+        elif fault=='prior-registration-hash': reg['predecessor_registration_sha256']='0'*64
+        elif fault=='same-task': rows[1]['task_id']=rows[0]['task_id']
+        elif fault=='backwards-time': rows[1]['finished_at']='2026-11-05T09:59:00+00:00'
+        elif fault=='wrong-sequence': reg['consecutive_positive_cases']=['e03-round1','e03-round1']
+        elif fault=='old-binding-candidate': rows[1]['candidate']='old-candidate'
+        elif fault=='review-prior-hash':
+            review=read(folder/'review.json');review['authority_and_admission']['prior_round1']['review_sha256']='0'*64
+            put(folder/'review.json',review)
+        put(folder/'registration.json',reg)
+        rebind_second(tmp_path,entry,authority,bind_inventory=(fault=='review-prior-hash'))
+&gt;       with pytest.raises(ValueError,match='[Pp]redecessor'): entry.verify_package(tmp_path)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+code\test_round3_predecessors.py:98: Failed</failure></testcase><testcase classname="code.test_round3_predecessors" name="test_second_registration_cannot_claim_unbound_two_round_chain[second-review-hash]" time="0.067"><failure message="Failed: DID NOT RAISE ValueError">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-source13-round3-20261106/verification/tmp-predecessors-red2/test_second_registration_canno3')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x00000188529E56A0&gt;
+fault = 'second-review-hash'
+
+    @pytest.mark.parametrize('fault',[
+        'duplicate-case','reversed-order','first-terminal-hash','second-review-hash',
+        'prior-registration-hash','same-task','backwards-time','wrong-sequence','old-binding-candidate','review-prior-hash',
+    ])
+    def test_second_registration_cannot_claim_unbound_two_round_chain(tmp_path,monkeypatch,fault):
+        entry,authority,proof=package(tmp_path,monkeypatch)
+        folder=tmp_path/'inputs/prior-round2';reg=read(folder/'registration.json')
+        rows=reg['same_candidate_terminal_bindings']
+        if fault=='duplicate-case': rows[1]['case']='e03-round1'
+        elif fault=='reversed-order': rows.reverse()
+        elif fault=='first-terminal-hash': rows[0]['sha256']='0'*64
+        elif fault=='second-review-hash': rows[1]['review_sha256']='0'*64
+        elif fault=='prior-registration-hash': reg['predecessor_registration_sha256']='0'*64
+        elif fault=='same-task': rows[1]['task_id']=rows[0]['task_id']
+        elif fault=='backwards-time': rows[1]['finished_at']='2026-11-05T09:59:00+00:00'
+        elif fault=='wrong-sequence': reg['consecutive_positive_cases']=['e03-round1','e03-round1']
+        elif fault=='old-binding-candidate': rows[1]['candidate']='old-candidate'
+        elif fault=='review-prior-hash':
+            review=read(folder/'review.json');review['authority_and_admission']['prior_round1']['review_sha256']='0'*64
+            put(folder/'review.json',review)
+        put(folder/'registration.json',reg)
+        rebind_second(tmp_path,entry,authority,bind_inventory=(fault=='review-prior-hash'))
+&gt;       with pytest.raises(ValueError,match='[Pp]redecessor'): entry.verify_package(tmp_path)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+code\test_round3_predecessors.py:98: Failed</failure></testcase><testcase classname="code.test_round3_predecessors" name="test_second_registration_cannot_claim_unbound_two_round_chain[prior-registration-hash]" time="0.070"><failure message="Failed: DID NOT RAISE ValueError">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-source13-round3-20261106/verification/tmp-predecessors-red2/test_second_registration_canno4')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x00000188529E6510&gt;
+fault = 'prior-registration-hash'
+
+    @pytest.mark.parametrize('fault',[
+        'duplicate-case','reversed-order','first-terminal-hash','second-review-hash',
+        'prior-registration-hash','same-task','backwards-time','wrong-sequence','old-binding-candidate','review-prior-hash',
+    ])
+    def test_second_registration_cannot_claim_unbound_two_round_chain(tmp_path,monkeypatch,fault):
+        entry,authority,proof=package(tmp_path,monkeypatch)
+        folder=tmp_path/'inputs/prior-round2';reg=read(folder/'registration.json')
+        rows=reg['same_candidate_terminal_bindings']
+        if fault=='duplicate-case': rows[1]['case']='e03-round1'
+        elif fault=='reversed-order': rows.reverse()
+        elif fault=='first-terminal-hash': rows[0]['sha256']='0'*64
+        elif fault=='second-review-hash': rows[1]['review_sha256']='0'*64
+        elif fault=='prior-registration-hash': reg['predecessor_registration_sha256']='0'*64
+        elif fault=='same-task': rows[1]['task_id']=rows[0]['task_id']
+        elif fault=='backwards-time': rows[1]['finished_at']='2026-11-05T09:59:00+00:00'
+        elif fault=='wrong-sequence': reg['consecutive_positive_cases']=['e03-round1','e03-round1']
+        elif fault=='old-binding-candidate': rows[1]['candidate']='old-candidate'
+        elif fault=='review-prior-hash':
+            review=read(folder/'review.json');review['authority_and_admission']['prior_round1']['review_sha256']='0'*64
+            put(folder/'review.json',review)
+        put(folder/'registration.json',reg)
+        rebind_second(tmp_path,entry,authority,bind_inventory=(fault=='review-prior-hash'))
+&gt;       with pytest.raises(ValueError,match='[Pp]redecessor'): entry.verify_package(tmp_path)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+code\test_round3_predecessors.py:98: Failed</failure></testcase><testcase classname="code.test_round3_predecessors" name="test_second_registration_cannot_claim_unbound_two_round_chain[same-task]" time="0.073"><failure message="Failed: DID NOT RAISE ValueError">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-source13-round3-20261106/verification/tmp-predecessors-red2/test_second_registration_canno5')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x00000188529E47C0&gt;
+fault = 'same-task'
+
+    @pytest.mark.parametrize('fault',[
+        'duplicate-case','reversed-order','first-terminal-hash','second-review-hash',
+        'prior-registration-hash','same-task','backwards-time','wrong-sequence','old-binding-candidate','review-prior-hash',
+    ])
+    def test_second_registration_cannot_claim_unbound_two_round_chain(tmp_path,monkeypatch,fault):
+        entry,authority,proof=package(tmp_path,monkeypatch)
+        folder=tmp_path/'inputs/prior-round2';reg=read(folder/'registration.json')
+        rows=reg['same_candidate_terminal_bindings']
+        if fault=='duplicate-case': rows[1]['case']='e03-round1'
+        elif fault=='reversed-order': rows.reverse()
+        elif fault=='first-terminal-hash': rows[0]['sha256']='0'*64
+        elif fault=='second-review-hash': rows[1]['review_sha256']='0'*64
+        elif fault=='prior-registration-hash': reg['predecessor_registration_sha256']='0'*64
+        elif fault=='same-task': rows[1]['task_id']=rows[0]['task_id']
+        elif fault=='backwards-time': rows[1]['finished_at']='2026-11-05T09:59:00+00:00'
+        elif fault=='wrong-sequence': reg['consecutive_positive_cases']=['e03-round1','e03-round1']
+        elif fault=='old-binding-candidate': rows[1]['candidate']='old-candidate'
+        elif fault=='review-prior-hash':
+            review=read(folder/'review.json');review['authority_and_admission']['prior_round1']['review_sha256']='0'*64
+            put(folder/'review.json',review)
+        put(folder/'registration.json',reg)
+        rebind_second(tmp_path,entry,authority,bind_inventory=(fault=='review-prior-hash'))
+&gt;       with pytest.raises(ValueError,match='[Pp]redecessor'): entry.verify_package(tmp_path)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+code\test_round3_predecessors.py:98: Failed</failure></testcase><testcase classname="code.test_round3_predecessors" name="test_second_registration_cannot_claim_unbound_two_round_chain[backwards-time]" time="0.071"><failure message="Failed: DID NOT RAISE ValueError">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-source13-round3-20261106/verification/tmp-predecessors-red2/test_second_registration_canno6')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x0000018852172970&gt;
+fault = 'backwards-time'
+
+    @pytest.mark.parametrize('fault',[
+        'duplicate-case','reversed-order','first-terminal-hash','second-review-hash',
+        'prior-registration-hash','same-task','backwards-time','wrong-sequence','old-binding-candidate','review-prior-hash',
+    ])
+    def test_second_registration_cannot_claim_unbound_two_round_chain(tmp_path,monkeypatch,fault):
+        entry,authority,proof=package(tmp_path,monkeypatch)
+        folder=tmp_path/'inputs/prior-round2';reg=read(folder/'registration.json')
+        rows=reg['same_candidate_terminal_bindings']
+        if fault=='duplicate-case': rows[1]['case']='e03-round1'
+        elif fault=='reversed-order': rows.reverse()
+        elif fault=='first-terminal-hash': rows[0]['sha256']='0'*64
+        elif fault=='second-review-hash': rows[1]['review_sha256']='0'*64
+        elif fault=='prior-registration-hash': reg['predecessor_registration_sha256']='0'*64
+        elif fault=='same-task': rows[1]['task_id']=rows[0]['task_id']
+        elif fault=='backwards-time': rows[1]['finished_at']='2026-11-05T09:59:00+00:00'
+        elif fault=='wrong-sequence': reg['consecutive_positive_cases']=['e03-round1','e03-round1']
+        elif fault=='old-binding-candidate': rows[1]['candidate']='old-candidate'
+        elif fault=='review-prior-hash':
+            review=read(folder/'review.json');review['authority_and_admission']['prior_round1']['review_sha256']='0'*64
+            put(folder/'review.json',review)
+        put(folder/'registration.json',reg)
+        rebind_second(tmp_path,entry,authority,bind_inventory=(fault=='review-prior-hash'))
+&gt;       with pytest.raises(ValueError,match='[Pp]redecessor'): entry.verify_package(tmp_path)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+code\test_round3_predecessors.py:98: Failed</failure></testcase><testcase classname="code.test_round3_predecessors" name="test_second_registration_cannot_claim_unbound_two_round_chain[wrong-sequence]" time="0.079"><failure message="Failed: DID NOT RAISE ValueError">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-source13-round3-20261106/verification/tmp-predecessors-red2/test_second_registration_canno7')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x0000018852A68EC0&gt;
+fault = 'wrong-sequence'
+
+    @pytest.mark.parametrize('fault',[
+        'duplicate-case','reversed-order','first-terminal-hash','second-review-hash',
+        'prior-registration-hash','same-task','backwards-time','wrong-sequence','old-binding-candidate','review-prior-hash',
+    ])
+    def test_second_registration_cannot_claim_unbound_two_round_chain(tmp_path,monkeypatch,fault):
+        entry,authority,proof=package(tmp_path,monkeypatch)
+        folder=tmp_path/'inputs/prior-round2';reg=read(folder/'registration.json')
+        rows=reg['same_candidate_terminal_bindings']
+        if fault=='duplicate-case': rows[1]['case']='e03-round1'
+        elif fault=='reversed-order': rows.reverse()
+        elif fault=='first-terminal-hash': rows[0]['sha256']='0'*64
+        elif fault=='second-review-hash': rows[1]['review_sha256']='0'*64
+        elif fault=='prior-registration-hash': reg['predecessor_registration_sha256']='0'*64
+        elif fault=='same-task': rows[1]['task_id']=rows[0]['task_id']
+        elif fault=='backwards-time': rows[1]['finished_at']='2026-11-05T09:59:00+00:00'
+        elif fault=='wrong-sequence': reg['consecutive_positive_cases']=['e03-round1','e03-round1']
+        elif fault=='old-binding-candidate': rows[1]['candidate']='old-candidate'
+        elif fault=='review-prior-hash':
+            review=read(folder/'review.json');review['authority_and_admission']['prior_round1']['review_sha256']='0'*64
+            put(folder/'review.json',review)
+        put(folder/'registration.json',reg)
+        rebind_second(tmp_path,entry,authority,bind_inventory=(fault=='review-prior-hash'))
+&gt;       with pytest.raises(ValueError,match='[Pp]redecessor'): entry.verify_package(tmp_path)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+code\test_round3_predecessors.py:98: Failed</failure></testcase><testcase classname="code.test_round3_predecessors" name="test_second_registration_cannot_claim_unbound_two_round_chain[old-binding-candidate]" time="0.074"><failure message="Failed: DID NOT RAISE ValueError">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-source13-round3-20261106/verification/tmp-predecessors-red2/test_second_registration_canno8')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x0000018852A6A660&gt;
+fault = 'old-binding-candidate'
+
+    @pytest.mark.parametrize('fault',[
+        'duplicate-case','reversed-order','first-terminal-hash','second-review-hash',
+        'prior-registration-hash','same-task','backwards-time','wrong-sequence','old-binding-candidate','review-prior-hash',
+    ])
+    def test_second_registration_cannot_claim_unbound_two_round_chain(tmp_path,monkeypatch,fault):
+        entry,authority,proof=package(tmp_path,monkeypatch)
+        folder=tmp_path/'inputs/prior-round2';reg=read(folder/'registration.json')
+        rows=reg['same_candidate_terminal_bindings']
+        if fault=='duplicate-case': rows[1]['case']='e03-round1'
+        elif fault=='reversed-order': rows.reverse()
+        elif fault=='first-terminal-hash': rows[0]['sha256']='0'*64
+        elif fault=='second-review-hash': rows[1]['review_sha256']='0'*64
+        elif fault=='prior-registration-hash': reg['predecessor_registration_sha256']='0'*64
+        elif fault=='same-task': rows[1]['task_id']=rows[0]['task_id']
+        elif fault=='backwards-time': rows[1]['finished_at']='2026-11-05T09:59:00+00:00'
+        elif fault=='wrong-sequence': reg['consecutive_positive_cases']=['e03-round1','e03-round1']
+        elif fault=='old-binding-candidate': rows[1]['candidate']='old-candidate'
+        elif fault=='review-prior-hash':
+            review=read(folder/'review.json');review['authority_and_admission']['prior_round1']['review_sha256']='0'*64
+            put(folder/'review.json',review)
+        put(folder/'registration.json',reg)
+        rebind_second(tmp_path,entry,authority,bind_inventory=(fault=='review-prior-hash'))
+&gt;       with pytest.raises(ValueError,match='[Pp]redecessor'): entry.verify_package(tmp_path)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+code\test_round3_predecessors.py:98: Failed</failure></testcase><testcase classname="code.test_round3_predecessors" name="test_second_registration_cannot_claim_unbound_two_round_chain[review-prior-hash]" time="0.070"><failure message="Failed: DID NOT RAISE ValueError">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-source13-round3-20261106/verification/tmp-predecessors-red2/test_second_registration_canno9')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x00000188529D4910&gt;
+fault = 'review-prior-hash'
+
+    @pytest.mark.parametrize('fault',[
+        'duplicate-case','reversed-order','first-terminal-hash','second-review-hash',
+        'prior-registration-hash','same-task','backwards-time','wrong-sequence','old-binding-candidate','review-prior-hash',
+    ])
+    def test_second_registration_cannot_claim_unbound_two_round_chain(tmp_path,monkeypatch,fault):
+        entry,authority,proof=package(tmp_path,monkeypatch)
+        folder=tmp_path/'inputs/prior-round2';reg=read(folder/'registration.json')
+        rows=reg['same_candidate_terminal_bindings']
+        if fault=='duplicate-case': rows[1]['case']='e03-round1'
+        elif fault=='reversed-order': rows.reverse()
+        elif fault=='first-terminal-hash': rows[0]['sha256']='0'*64
+        elif fault=='second-review-hash': rows[1]['review_sha256']='0'*64
+        elif fault=='prior-registration-hash': reg['predecessor_registration_sha256']='0'*64
+        elif fault=='same-task': rows[1]['task_id']=rows[0]['task_id']
+        elif fault=='backwards-time': rows[1]['finished_at']='2026-11-05T09:59:00+00:00'
+        elif fault=='wrong-sequence': reg['consecutive_positive_cases']=['e03-round1','e03-round1']
+        elif fault=='old-binding-candidate': rows[1]['candidate']='old-candidate'
+        elif fault=='review-prior-hash':
+            review=read(folder/'review.json');review['authority_and_admission']['prior_round1']['review_sha256']='0'*64
+            put(folder/'review.json',review)
+        put(folder/'registration.json',reg)
+        rebind_second(tmp_path,entry,authority,bind_inventory=(fault=='review-prior-hash'))
+&gt;       with pytest.raises(ValueError,match='[Pp]redecessor'): entry.verify_package(tmp_path)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+code\test_round3_predecessors.py:98: Failed</failure></testcase><testcase classname="code.test_round3_predecessors" name="test_round3_authority_requires_both_exact_ordered_bindings[terminal_sha256]" time="0.054" /><testcase classname="code.test_round3_predecessors" name="test_round3_authority_requires_both_exact_ordered_bindings[review_sha256]" time="0.057" /><testcase classname="code.test_round3_predecessors" name="test_round3_authority_requires_both_exact_ordered_bindings[registration_sha256]" time="0.142" /><testcase classname="code.test_round3_predecessors" name="test_round3_authority_requires_both_exact_ordered_bindings[missing]" time="0.255"><failure message="Failed: DID NOT RAISE ValueError">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-source13-round3-20261106/verification/tmp-predecessors-red2/test_round3_authority_requires3')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x00000188529D5630&gt;
+fault = 'missing'
+
+    @pytest.mark.parametrize('fault',['terminal_sha256','review_sha256','registration_sha256','missing','reversed','duplicate','old-scope'])
+    def test_round3_authority_requires_both_exact_ordered_bindings(tmp_path,monkeypatch,fault):
+        entry,authority,proof=package(tmp_path,monkeypatch)
+        if fault=='missing': authority['prior_reviews'].pop()
+        elif fault=='reversed': authority['prior_reviews'].reverse()
+        elif fault=='duplicate': authority['prior_reviews'][1]=dict(authority['prior_reviews'][0])
+        elif fault=='old-scope': authority.update(case='e03-round2',scope='e03-round2-acceptance')
+        else: authority['prior_reviews'][1][fault]='0'*64
+        put(tmp_path/'release/authority.json',authority)
+        made=[]
+&gt;       with pytest.raises(ValueError): entry.run_once(tmp_path,backend_factory=lambda root:made.append(root) or Backend(root,proof))
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+code\test_round3_predecessors.py:114: Failed</failure></testcase><testcase classname="code.test_round3_predecessors" name="test_round3_authority_requires_both_exact_ordered_bindings[reversed]" time="0.059" /><testcase classname="code.test_round3_predecessors" name="test_round3_authority_requires_both_exact_ordered_bindings[duplicate]" time="0.059" /><testcase classname="code.test_round3_predecessors" name="test_round3_authority_requires_both_exact_ordered_bindings[old-scope]" time="0.058" /></testsuite></testsuites>

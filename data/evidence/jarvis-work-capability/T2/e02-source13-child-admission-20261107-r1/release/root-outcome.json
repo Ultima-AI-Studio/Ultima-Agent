@@ -1,0 +1,438 @@
+{
+  "status": "FAIL",
+  "outcome": {
+    "result": {
+      "case": "E02-controlled-1",
+      "folder": "H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\e02-source13-child-admission-20261107-r1\\actual\\E02-controlled-1",
+      "run_id": "81c77cfd-9339-48b8-bae1-f67ec7d05cb4",
+      "timing": {
+        "run_id": "81c77cfd-9339-48b8-bae1-f67ec7d05cb4",
+        "origin_ns": 312896848666500,
+        "clock_domain": "monotonic_ns;same-host=DESKTOP-B366PQ9",
+        "work_cutoff_ns": 313171848666500,
+        "cleanup_cutoff_ns": 313206848666500,
+        "outer_cutoff_ns": 313211848666500
+      },
+      "timing_eligibility": "UNOBSERVED_NEVER_TIMED_PASS",
+      "effective_client_seconds": 263.4351351,
+      "overall": "FAIL",
+      "product_status": "failed",
+      "product_result_sha256": "15ca0de19d1d663ff126a3d999bccef98978ab45c725ebc29e101b07d9f58a2f",
+      "service_first_result_sha256": "347b4b28d29afa267bc404cbe123e1a124f40de91c88045cc2ef671f0229010a",
+      "cleanup": {
+        "status": "PASS",
+        "processes": [
+          {
+            "identity": {
+              "pid": 2936,
+              "created_filetime": 134384602729362926,
+              "exe": "C:\\Users\\Administrator\\AppData\\Local\\Doubao\\User Data\\sandbox_runtime\\bases\\772984f6fd3a8ae0ae7d2422cd7c2bfa\\python\\python.exe"
+            },
+            "absent": true
+          },
+          {
+            "identity": {
+              "pid": 13476,
+              "created_filetime": 134384602795195779,
+              "exe": "C:\\Users\\Administrator\\AppData\\Local\\Doubao\\User Data\\sandbox_runtime\\bases\\772984f6fd3a8ae0ae7d2422cd7c2bfa\\python\\python.exe"
+            },
+            "absent": true
+          },
+          {
+            "identity": {
+              "pid": 31520,
+              "created_filetime": 134384602729152766,
+              "exe": "H:\\UltimaAI\\UltimaAgent\\tools\\venv-openjarvis\\Scripts\\python.exe"
+            },
+            "absent": true
+          },
+          {
+            "identity": {
+              "pid": 2584,
+              "created_filetime": 134384602794981614,
+              "exe": "H:\\UltimaAI\\UltimaAgent\\tools\\venv-openjarvis\\Scripts\\python.exe"
+            },
+            "absent": true
+          },
+          {
+            "identity": {
+              "pid": 23368,
+              "created_filetime": 134384602729218614,
+              "exe": "C:\\Windows\\System32\\conhost.exe"
+            },
+            "absent": true,
+            "authority": "observe-only"
+          },
+          {
+            "identity": {
+              "pid": 32256,
+              "created_filetime": 134384602795065186,
+              "exe": "C:\\Windows\\System32\\conhost.exe"
+            },
+            "absent": true,
+            "authority": "observe-only"
+          }
+        ],
+        "port_closed": true,
+        "errors": [],
+        "port_definitively_closed": true,
+        "logs_closed": true
+      },
+      "errors": [
+        {
+          "stage": "work",
+          "cause": "CLI nonzero; no retry"
+        }
+      ],
+      "first_failure": "work: CLI nonzero; no retry",
+      "work_cli_attempts": 1,
+      "application_native_POST_attempts": 0,
+      "actual_native_start_count": null,
+      "next_case": false,
+      "retry": false,
+      "T2": "NOT_PASSED",
+      "io_events": [
+        {
+          "io": "check_output",
+          "argv": [
+            "powershell.exe",
+            "-NoProfile",
+            "-NonInteractive",
+            "-Command",
+            "Get-CimInstance Win32_Process -Filter \"ProcessId=5708 OR ProcessId=17088 OR ProcessId=17136 OR ProcessId=17916 OR ProcessId=35288 OR ProcessId=36004 OR ProcessId=36176\" | ForEach-Object { [pscustomobject]@{ProcessId=[int]$_.ProcessId;ParentProcessId=[int]$_.ParentProcessId;CreationFileTime=[Int64]$_.CreationDate.ToFileTimeUtc();CommandLineBase64=[Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes([string]$_.CommandLine))} } | ConvertTo-Json -Compress"
+          ],
+          "timeout": 15,
+          "phase": "work"
+        },
+        {
+          "io": "check_output",
+          "argv": [
+            "powershell.exe",
+            "-NoProfile",
+            "-NonInteractive",
+            "-Command",
+            "Get-CimInstance Win32_Process | ForEach-Object { [pscustomobject]@{ProcessId=[int]$_.ProcessId;ParentProcessId=[int]$_.ParentProcessId;CreationFileTime=[Int64]$_.CreationDate.ToFileTimeUtc();CommandLineBase64=[Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes([string]$_.CommandLine))} } | ConvertTo-Json -Compress"
+          ],
+          "timeout": 15,
+          "phase": "work"
+        },
+        {
+          "io": "check_output",
+          "argv": [
+            "powershell.exe",
+            "-NoProfile",
+            "-NonInteractive",
+            "-Command",
+            "Get-CimInstance Win32_Process | ForEach-Object { [pscustomobject]@{ProcessId=[int]$_.ProcessId;ParentProcessId=[int]$_.ParentProcessId;CreationFileTime=[Int64]$_.CreationDate.ToFileTimeUtc();CommandLineBase64=[Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes([string]$_.CommandLine))} } | ConvertTo-Json -Compress"
+          ],
+          "timeout": 15,
+          "phase": "work"
+        },
+        {
+          "io": "check_output",
+          "argv": [
+            "powershell.exe",
+            "-NoProfile",
+            "-NonInteractive",
+            "-Command",
+            "@(Get-NetTCPConnection -State Listen -LocalPort 18799 -ErrorAction SilentlyContinue | Select-Object -ExpandProperty OwningProcess) | ConvertTo-Json -Compress"
+          ],
+          "timeout": 15,
+          "phase": "work"
+        },
+        {
+          "io": "check_output",
+          "argv": [
+            "powershell.exe",
+            "-NoProfile",
+            "-NonInteractive",
+            "-Command",
+            "@(Get-NetTCPConnection -State Listen -LocalPort 18799 -ErrorAction SilentlyContinue | Select-Object -ExpandProperty OwningProcess) | ConvertTo-Json -Compress"
+          ],
+          "timeout": 15,
+          "phase": "work"
+        },
+        {
+          "io": "check_output",
+          "argv": [
+            "powershell.exe",
+            "-NoProfile",
+            "-NonInteractive",
+            "-Command",
+            "@(Get-NetTCPConnection -State Listen -LocalPort 18799 -ErrorAction SilentlyContinue | Select-Object -ExpandProperty OwningProcess) | ConvertTo-Json -Compress"
+          ],
+          "timeout": 15,
+          "phase": "work"
+        },
+        {
+          "io": "check_output",
+          "argv": [
+            "powershell.exe",
+            "-NoProfile",
+            "-NonInteractive",
+            "-Command",
+            "Get-CimInstance Win32_Process | ForEach-Object { [pscustomobject]@{ProcessId=[int]$_.ProcessId;ParentProcessId=[int]$_.ParentProcessId;CreationFileTime=[Int64]$_.CreationDate.ToFileTimeUtc();CommandLineBase64=[Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes([string]$_.CommandLine))} } | ConvertTo-Json -Compress"
+          ],
+          "timeout": 15,
+          "phase": "work"
+        },
+        {
+          "io": "check_output",
+          "argv": [
+            "powershell.exe",
+            "-NoProfile",
+            "-NonInteractive",
+            "-Command",
+            "@(Get-NetTCPConnection -State Listen -LocalPort 18799 -ErrorAction SilentlyContinue | Select-Object -ExpandProperty OwningProcess) | ConvertTo-Json -Compress"
+          ],
+          "timeout": 15,
+          "phase": "work"
+        },
+        {
+          "io": "check_output",
+          "argv": [
+            "powershell.exe",
+            "-NoProfile",
+            "-NonInteractive",
+            "-Command",
+            "Get-CimInstance Win32_Process -Filter \"ProcessId=31520 OR ProcessId=2936\" | ForEach-Object { [pscustomobject]@{ProcessId=[int]$_.ProcessId;ParentProcessId=[int]$_.ParentProcessId;CreationFileTime=[Int64]$_.CreationDate.ToFileTimeUtc();CommandLineBase64=[Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes([string]$_.CommandLine))} } | ConvertTo-Json -Compress"
+          ],
+          "timeout": 15,
+          "phase": "work"
+        },
+        {
+          "io": "check_output",
+          "argv": [
+            "powershell.exe",
+            "-NoProfile",
+            "-NonInteractive",
+            "-Command",
+            "Get-CimInstance Win32_Process -Filter \"ProcessId=5708 OR ProcessId=17088 OR ProcessId=17136 OR ProcessId=17916 OR ProcessId=35288 OR ProcessId=36004 OR ProcessId=36176\" | ForEach-Object { [pscustomobject]@{ProcessId=[int]$_.ProcessId;ParentProcessId=[int]$_.ParentProcessId;CreationFileTime=[Int64]$_.CreationDate.ToFileTimeUtc();CommandLineBase64=[Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes([string]$_.CommandLine))} } | ConvertTo-Json -Compress"
+          ],
+          "timeout": 15,
+          "phase": "work"
+        },
+        {
+          "io": "check_output",
+          "argv": [
+            "powershell.exe",
+            "-NoProfile",
+            "-NonInteractive",
+            "-Command",
+            "Get-CimInstance Win32_Process | ForEach-Object { [pscustomobject]@{ProcessId=[int]$_.ProcessId;ParentProcessId=[int]$_.ParentProcessId;CreationFileTime=[Int64]$_.CreationDate.ToFileTimeUtc();CommandLineBase64=[Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes([string]$_.CommandLine))} } | ConvertTo-Json -Compress"
+          ],
+          "timeout": 15,
+          "phase": "work"
+        },
+        {
+          "io": "wait",
+          "requested": 262.8724818,
+          "effective": 262.8724784,
+          "phase": "work"
+        },
+        {
+          "io": "check_output",
+          "argv": [
+            "powershell.exe",
+            "-NoProfile",
+            "-NonInteractive",
+            "-Command",
+            "Get-CimInstance Win32_Process | ForEach-Object { [pscustomobject]@{ProcessId=[int]$_.ProcessId;ParentProcessId=[int]$_.ParentProcessId;CreationFileTime=[Int64]$_.CreationDate.ToFileTimeUtc();CommandLineBase64=[Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes([string]$_.CommandLine))} } | ConvertTo-Json -Compress"
+          ],
+          "timeout": 15,
+          "phase": "cleanup"
+        },
+        {
+          "io": "check_output",
+          "argv": [
+            "powershell.exe",
+            "-NoProfile",
+            "-NonInteractive",
+            "-Command",
+            "Get-CimInstance Win32_Process | ForEach-Object { [pscustomobject]@{ProcessId=[int]$_.ProcessId;ParentProcessId=[int]$_.ParentProcessId;CreationFileTime=[Int64]$_.CreationDate.ToFileTimeUtc();CommandLineBase64=[Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes([string]$_.CommandLine))} } | ConvertTo-Json -Compress"
+          ],
+          "timeout": 15,
+          "phase": "cleanup"
+        },
+        {
+          "io": "terminate_owned",
+          "identity": {
+            "pid": 2936,
+            "created_filetime": 134384602729362926,
+            "exe": "C:\\Users\\Administrator\\AppData\\Local\\Doubao\\User Data\\sandbox_runtime\\bases\\772984f6fd3a8ae0ae7d2422cd7c2bfa\\python\\python.exe"
+          },
+          "entered": true,
+          "returned": true,
+          "observed_ns": 312912862410400,
+          "late": false
+        },
+        {
+          "io": "check_output",
+          "argv": [
+            "powershell.exe",
+            "-NoProfile",
+            "-NonInteractive",
+            "-Command",
+            "Get-CimInstance Win32_Process | ForEach-Object { [pscustomobject]@{ProcessId=[int]$_.ProcessId;ParentProcessId=[int]$_.ParentProcessId;CreationFileTime=[Int64]$_.CreationDate.ToFileTimeUtc();CommandLineBase64=[Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes([string]$_.CommandLine))} } | ConvertTo-Json -Compress"
+          ],
+          "timeout": 15,
+          "phase": "cleanup"
+        },
+        {
+          "io": "check_output",
+          "argv": [
+            "powershell.exe",
+            "-NoProfile",
+            "-NonInteractive",
+            "-Command",
+            "Get-CimInstance Win32_Process | ForEach-Object { [pscustomobject]@{ProcessId=[int]$_.ProcessId;ParentProcessId=[int]$_.ParentProcessId;CreationFileTime=[Int64]$_.CreationDate.ToFileTimeUtc();CommandLineBase64=[Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes([string]$_.CommandLine))} } | ConvertTo-Json -Compress"
+          ],
+          "timeout": 15,
+          "phase": "cleanup"
+        },
+        {
+          "io": "check_output",
+          "argv": [
+            "powershell.exe",
+            "-NoProfile",
+            "-NonInteractive",
+            "-Command",
+            "Get-CimInstance Win32_Process | ForEach-Object { [pscustomobject]@{ProcessId=[int]$_.ProcessId;ParentProcessId=[int]$_.ParentProcessId;CreationFileTime=[Int64]$_.CreationDate.ToFileTimeUtc();CommandLineBase64=[Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes([string]$_.CommandLine))} } | ConvertTo-Json -Compress"
+          ],
+          "timeout": 15,
+          "phase": "cleanup"
+        },
+        {
+          "io": "check_output",
+          "argv": [
+            "powershell.exe",
+            "-NoProfile",
+            "-NonInteractive",
+            "-Command",
+            "Get-CimInstance Win32_Process | ForEach-Object { [pscustomobject]@{ProcessId=[int]$_.ProcessId;ParentProcessId=[int]$_.ParentProcessId;CreationFileTime=[Int64]$_.CreationDate.ToFileTimeUtc();CommandLineBase64=[Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes([string]$_.CommandLine))} } | ConvertTo-Json -Compress"
+          ],
+          "timeout": 15,
+          "phase": "cleanup"
+        },
+        {
+          "io": "check_output",
+          "argv": [
+            "powershell.exe",
+            "-NoProfile",
+            "-NonInteractive",
+            "-Command",
+            "Get-CimInstance Win32_Process | ForEach-Object { [pscustomobject]@{ProcessId=[int]$_.ProcessId;ParentProcessId=[int]$_.ParentProcessId;CreationFileTime=[Int64]$_.CreationDate.ToFileTimeUtc();CommandLineBase64=[Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes([string]$_.CommandLine))} } | ConvertTo-Json -Compress"
+          ],
+          "timeout": 15,
+          "phase": "cleanup"
+        },
+        {
+          "io": "check_output",
+          "argv": [
+            "powershell.exe",
+            "-NoProfile",
+            "-NonInteractive",
+            "-Command",
+            "Get-CimInstance Win32_Process | ForEach-Object { [pscustomobject]@{ProcessId=[int]$_.ProcessId;ParentProcessId=[int]$_.ParentProcessId;CreationFileTime=[Int64]$_.CreationDate.ToFileTimeUtc();CommandLineBase64=[Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes([string]$_.CommandLine))} } | ConvertTo-Json -Compress"
+          ],
+          "timeout": 15,
+          "phase": "cleanup"
+        },
+        {
+          "io": "check_output",
+          "argv": [
+            "powershell.exe",
+            "-NoProfile",
+            "-NonInteractive",
+            "-Command",
+            "Get-CimInstance Win32_Process | ForEach-Object { [pscustomobject]@{ProcessId=[int]$_.ProcessId;ParentProcessId=[int]$_.ParentProcessId;CreationFileTime=[Int64]$_.CreationDate.ToFileTimeUtc();CommandLineBase64=[Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes([string]$_.CommandLine))} } | ConvertTo-Json -Compress"
+          ],
+          "timeout": 15,
+          "phase": "cleanup"
+        },
+        {
+          "io": "wait",
+          "requested": 2,
+          "effective": 2,
+          "phase": "cleanup"
+        },
+        {
+          "io": "wait",
+          "requested": 2,
+          "effective": 2,
+          "phase": "cleanup"
+        },
+        {
+          "io": "check_output",
+          "argv": [
+            "powershell.exe",
+            "-NoProfile",
+            "-NonInteractive",
+            "-Command",
+            "Get-CimInstance Win32_Process | ForEach-Object { [pscustomobject]@{ProcessId=[int]$_.ProcessId;ParentProcessId=[int]$_.ParentProcessId;CreationFileTime=[Int64]$_.CreationDate.ToFileTimeUtc();CommandLineBase64=[Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes([string]$_.CommandLine))} } | ConvertTo-Json -Compress"
+          ],
+          "timeout": 15,
+          "phase": "cleanup"
+        },
+        {
+          "io": "check_output",
+          "argv": [
+            "powershell.exe",
+            "-NoProfile",
+            "-NonInteractive",
+            "-Command",
+            "Get-CimInstance Win32_Process | ForEach-Object { [pscustomobject]@{ProcessId=[int]$_.ProcessId;ParentProcessId=[int]$_.ParentProcessId;CreationFileTime=[Int64]$_.CreationDate.ToFileTimeUtc();CommandLineBase64=[Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes([string]$_.CommandLine))} } | ConvertTo-Json -Compress"
+          ],
+          "timeout": 15,
+          "phase": "cleanup"
+        },
+        {
+          "io": "port",
+          "code": 10061,
+          "definitive_refusal": true
+        }
+      ],
+      "launch_attempts": [
+        {
+          "role": "server",
+          "attempted": true,
+          "registered": true,
+          "possible_live_effect": true,
+          "registered_launchers": 1,
+          "known_identities": 2
+        },
+        {
+          "role": "cli",
+          "attempted": true,
+          "registered": true,
+          "possible_live_effect": true,
+          "registered_launchers": 2,
+          "known_identities": 4
+        }
+      ]
+    },
+    "witness": {
+      "run_id": "81c77cfd-9339-48b8-bae1-f67ec7d05cb4",
+      "origin_ns": 312896848666500,
+      "clock_domain": "monotonic_ns;same-host=DESKTOP-B366PQ9",
+      "work_cutoff_ns": 313171848666500,
+      "cleanup_cutoff_ns": 313206848666500,
+      "outer_cutoff_ns": 313211848666500,
+      "observed_ns": 312919793986900,
+      "terminal_sha256": null,
+      "eligible": false,
+      "proofs": {},
+      "observer": "trusted-root-enclosing-contract",
+      "permanent": true,
+      "observation_error": "ValueError"
+    }
+  },
+  "candidate": "269aca511d88412dbb9c15d23911138469a37aa2",
+  "model": "qwen3-8b-uncensored",
+  "model_digest": "6d7230a923426bc1933879eb08a7dafc18e5fc0e7606c459ce98f16e0c7f9330",
+  "actual_case_allocation_remaining": 0,
+  "result_review_allocation_remaining": 1,
+  "acceptance_credit": 0,
+  "next_case": false,
+  "retry": false
+}

@@ -1,0 +1,2092 @@
+........................................................................ [ 32%]
+...........................................F............................ [ 65%]
+.............................................................FFFFFFFFFFF [ 98%]
+FFF                                                                      [100%]
+================================== FAILURES ===================================
+_____ test_fix1_h02_substantive_closed_witness_positive_and_faults[none] ______
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-source13-real-controlled-preparation-20261106/code/harness-preparation-20261106T161506433847Z/temp/test_fix1_h02_substantive_clos0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000027B210E5080>
+fault = 'none'
+
+    @pytest.mark.parametrize('fault',['none','protected-empty','native-subset','cleanup-subset','missing-exchange','wrong-endpoint','wrong-listener','wrong-response','nonboolean-response','late-exchange','no-parent-exchange','empty-task-directory'])
+    def test_fix1_h02_substantive_closed_witness_positive_and_faults(tmp_path,monkeypatch,fault):
+>       _substantive_closed_witness_fixture(tmp_path,monkeypatch,fault)
+
+..\..\harness\test_adapter.py:913: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-source13-real-controlled-preparation-20261106/code/harness-preparation-20261106T161506433847Z/temp/test_fix1_h02_substantive_clos0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000027B210E5080>
+fault = 'none', observer_port = None
+
+    def _substantive_closed_witness_fixture(tmp_path,monkeypatch,fault,observer_port=None):
+        import base64,os
+        from collections import OrderedDict
+        original_v=a.V; original_here=a.HERE
+        virtual=tmp_path/'virtual-root'; here=virtual/'harness'; here.mkdir(parents=True)
+        for source in original_here.iterdir():
+            if source.is_file(): (here/source.name).write_bytes(source.read_bytes())
+        (virtual/'inputs').mkdir()
+        (virtual/'inputs/scope.json').write_bytes((original_v/'inputs/scope.json').read_bytes())
+        monkeypatch.setattr(a,'V',virtual); monkeypatch.setattr(a,'HERE',here)
+        package=a.load(here/'manifest.json')
+        package['files']={name:a.sha(here/name) for name in package['files']}
+        (here/'manifest.json').write_text(json.dumps(package),encoding='utf8')
+        a.save_new(virtual/'harness-approval.json',dict(reviewer='root-independent',overall='PASS',manifest_sha256=a.sha(here/'manifest.json')))
+        clock=Clock(); invocation=a.RootInvocation(clock=clock); b=invocation.budget
+        folder=virtual/'inert'/b.run_id; folder.mkdir(parents=True)
+        p4=a.load_p4(); active=set(); _,calls=native_kernel(monkeypatch,p4,active,clock)
+        protected=[p4.identity(pid) for pid in range(51,58)]
+        protected_rows=protected_fixture(virtual,monkeypatch,p4,protected)
+        monkeypatch.setattr(p4,'process_times',lambda proc:(1000001,0))
+        monkeypatch.setattr(p4,'argv_parse',lambda text:json.loads(text))
+        monkeypatch.setattr(a,'load_p4',lambda:p4)
+        authority=dict(kind='source10_inert_qualification',folder=str(folder),port=18799,parent_timing=b.timing())
+        a.save_new(virtual/'inert-authority.json',authority)
+        baseline=dict(protected=protected,candidate=a.CANDIDATE,precision='FILETIME100ns',recorded_at=dt.datetime.now(dt.timezone.utc).isoformat())
+        a.save_new(virtual/'inert-native-baseline.json',baseline)
+        argv=a.inert_argv(folder,18799); snapshot_live=[True]; http_calls=[]
+        command=json.dumps([str(a.PY),*argv])
+        def checkout(cmd,**kwargs):
+            if 'Get-NetTCPConnection' in cmd[-1]: return '2' if snapshot_live[0] else '[]'
+            rows=[dict(ProcessId=pid,CreationFileTime=p4.identity(pid)['created_filetime'],ParentProcessId=0 if pid==1 else 1,CommandLineBase64=base64.b64encode(command.encode('utf-16-le')).decode('ascii')) for pid in (1,2)] if snapshot_live[0] else []
+            rows.extend(dict(row,CommandLineBase64=base64.b64encode(row['CommandLine'].encode('utf-16le')).decode('ascii')) for row in protected_rows.values())
+            return json.dumps(rows).encode('ascii')
+        monkeypatch.setattr(p4.subprocess,'check_output',checkout)
+        class Probe:
+            def settimeout(self,value): pass
+            def connect_ex(self,address): return a.errno.ECONNREFUSED
+            def close(self): pass
+        monkeypatch.setattr(p4.socket,'socket',Probe)
+        class Response:
+            def __enter__(self): return self
+            def __exit__(self,*args): pass
+            def read(self): return b'{"inert":true}'
+        class Opener:
+            def open(self,url,timeout): http_calls.append((url,timeout)); clock.advance(.001); return Response()
+        monkeypatch.setattr(p4.urllib.request,'build_opener',lambda *args:Opener())
+        def entry():
+            admitted=a.admitted_record('inert',folder,18799,authority,baseline,b)
+            a.save_new(folder/'admission.json',admitted)
+            a.save_new(folder/'attempt.json',dict(parent_timing=b.timing()))
+            owned=p4.Owned(folder,{}); b.owned=owned
+            proc=types.SimpleNamespace(pid=1,wait=lambda timeout=None:0)
+            owned.launchers=[dict(proc=proc,identity=p4.identity(1),argv=argv,role='server')]
+            owned.known[1]=dict(identity=p4.identity(1),argv=argv,role='server',parent=0)
+            owned.logs=[open(folder/'server.stdout','w'),open(folder/'server.stderr','w')]
+            context=dict(mode='inert',folder=folder,port=18799,budget=b)
+            with a.PrivateIO(p4,b) as io:
+                a.issue_clearance(context,p4,owned,argv,a.sha(virtual/'inert-authority.json'))
+                identity=p4.identity
+                with monkeypatch.context() as child:
+                    child.setattr(p4,'identity',lambda pid:identity(2) if pid==os.getpid() else identity(pid))
+                    a.consume_clearance(context,p4,argv,a.sha(virtual/'inert-authority.json'))
+                listener=dict(port=18799,identity=identity(2),role='server',argv=argv)
+                a.save_new(folder/'listener.json',listener)
+                a.record_native_members(folder,p4,owned,argv,b)
+                a.observe_inert_exchange(folder,p4,owned,argv,18799,b)
+                a.save_new(folder/'argv-roundtrip.json',dict(question=a.corpus()['query'],argv=argv[4:]))
+                for name in ('protected-before.json','protected-after.json'): a.save_new(folder/name,protected)
+                for name in ('boundary-before.json','boundary-after.json'): a.save_new(folder/name,dict(pins=admitted['pins'],protected=protected))
+                snapshot_live[0]=False
+                cleanup=io.cleanup(owned,18799)
+            if fault=='protected-empty': (folder/'protected-after.json').write_text('[]')
+            elif fault=='native-subset':
+                malformed=a.load(folder/'native-members.json'); malformed['snapshot'].pop('1')
+                (folder/'native-members.json').write_text(json.dumps(malformed))
+            elif fault=='cleanup-subset':
+                malformed=a.load(folder/'cleanup.json'); malformed['processes'].pop()
+                (folder/'cleanup.json').write_text(json.dumps(malformed))
+            elif fault=='missing-exchange': (folder/'inert-exchange.json').unlink()
+            elif fault=='no-parent-exchange': del b.inert_exchange
+            elif fault=='empty-task-directory': (folder/'outputs/unexpected-task').mkdir(parents=True)
+            elif fault in ('wrong-endpoint','wrong-listener','wrong-response','nonboolean-response','late-exchange'):
+                malformed=a.load(folder/'inert-exchange.json')
+                if fault=='wrong-endpoint': malformed['endpoint']='http://127.0.0.1:11434/inert'
+                elif fault=='wrong-listener': malformed['listener']['identity']['pid']=999
+                elif fault=='wrong-response': malformed['response']=dict(inert=False)
+                elif fault=='nonboolean-response': malformed['response']=dict(inert=1)
+                else: malformed['after_ns']=b.cutoff_ns('work')+1
+                (folder/'inert-exchange.json').write_text(json.dumps(malformed))
+            b.phase='seal'
+            terminal=dict(kind='inert',folder=str(folder),run_id=b.run_id,timing=b.timing(),overall='READY_FOR_ROOT_TIMING_WITNESS',cleanup=cleanup,errors=[],first_failure=None)
+            a.save_new(folder/'terminal.json',terminal); a.seal_index(folder,b,p4)
+            if observer_port is not None:
+                if 'remaining' in observer_port:
+                    clock.value=b.cutoff_ns()-int(observer_port['remaining']*1e9)
+                install_delayed_port(p4,clock,observer_port)
+                observer_port['saved_bindings']={key:getattr(p4,key) for key in ('socket','time','subprocess','terminate_owned','save')}
+            return terminal
+        outcome=invocation.call(entry)
+        if observer_port is not None:
+            assert all(getattr(p4,key) is value for key,value in observer_port['saved_bindings'].items())
+        expected=(fault=='none') if observer_port is None else observer_port['eligible']
+>       assert outcome['witness']['eligible']==expected,outcome['witness']
+E       AssertionError: {'run_id': '62e00121-8dcf-4317-86e8-cd1887ebcbfe', 'origin_ns': 1000000000000, 'clock_domain': 'monotonic_ns;same-host=DESKTOP-B366PQ9', 'work_cutoff_ns': 1275000000000, ...}
+E       assert False == True
+
+..\..\harness\test_adapter.py:905: AssertionError
+____ test_port_rev2_real_substantive_observer_delayed_refusal[sufficient] _____
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-source13-real-controlled-preparation-20261106/code/harness-preparation-20261106T161506433847Z/temp/test_port_rev2_real_substantiv0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000027B20F9CDE0>
+scenario = {'name': 'sufficient', 'eligible': True, 'effective': 3}
+
+    @pytest.mark.parametrize('scenario',[
+        dict(name='sufficient',eligible=True,effective=3),
+        dict(name='clipped-sufficient',remaining=2.5,eligible=True,effective=2.5),
+        dict(name='clipped-unknown',remaining=2,eligible=False,effective=2),
+        dict(name='exact-cutoff',remaining=PORT_REFUSAL_DELAY,eligible=False,effective=PORT_REFUSAL_DELAY),
+        dict(name='zero-before-connect',setup=3,eligible=False,effective=None),
+        dict(name='phase-expired-before-hint',remaining=2,setup=2,eligible=False,effective=None),
+        dict(name='late-phase',remaining=2.5,overrun=1,eligible=False,effective=2.5),
+        dict(name='setup-sufficient',setup=.8,eligible=True,effective=2.2),
+        dict(name='setup-unknown',setup=1.1,eligible=False,effective=1.9),
+        dict(name='10035',code=10035,eligible=False,effective=3),
+        dict(name='10060',code=10060,eligible=False,effective=3),
+        dict(name='open',code=0,eligible=False,effective=3),
+        dict(name='error',error=True,eligible=False,effective=3),
+        dict(name='late-private-cap',overrun=1.1,eligible=False,effective=3),
+    ],ids=lambda v:v['name'])
+    def test_port_rev2_real_substantive_observer_delayed_refusal(tmp_path,monkeypatch,scenario):
+        scenario=dict(scenario)
+>       _substantive_closed_witness_fixture(tmp_path,monkeypatch,'none',observer_port=scenario)
+
+..\..\harness\test_adapter.py:1314: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-source13-real-controlled-preparation-20261106/code/harness-preparation-20261106T161506433847Z/temp/test_port_rev2_real_substantiv0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000027B20F9CDE0>
+fault = 'none'
+observer_port = {'name': 'sufficient', 'eligible': True, 'effective': 3}
+
+    def _substantive_closed_witness_fixture(tmp_path,monkeypatch,fault,observer_port=None):
+        import base64,os
+        from collections import OrderedDict
+        original_v=a.V; original_here=a.HERE
+        virtual=tmp_path/'virtual-root'; here=virtual/'harness'; here.mkdir(parents=True)
+        for source in original_here.iterdir():
+            if source.is_file(): (here/source.name).write_bytes(source.read_bytes())
+        (virtual/'inputs').mkdir()
+        (virtual/'inputs/scope.json').write_bytes((original_v/'inputs/scope.json').read_bytes())
+        monkeypatch.setattr(a,'V',virtual); monkeypatch.setattr(a,'HERE',here)
+        package=a.load(here/'manifest.json')
+        package['files']={name:a.sha(here/name) for name in package['files']}
+        (here/'manifest.json').write_text(json.dumps(package),encoding='utf8')
+        a.save_new(virtual/'harness-approval.json',dict(reviewer='root-independent',overall='PASS',manifest_sha256=a.sha(here/'manifest.json')))
+        clock=Clock(); invocation=a.RootInvocation(clock=clock); b=invocation.budget
+        folder=virtual/'inert'/b.run_id; folder.mkdir(parents=True)
+        p4=a.load_p4(); active=set(); _,calls=native_kernel(monkeypatch,p4,active,clock)
+        protected=[p4.identity(pid) for pid in range(51,58)]
+        protected_rows=protected_fixture(virtual,monkeypatch,p4,protected)
+        monkeypatch.setattr(p4,'process_times',lambda proc:(1000001,0))
+        monkeypatch.setattr(p4,'argv_parse',lambda text:json.loads(text))
+        monkeypatch.setattr(a,'load_p4',lambda:p4)
+        authority=dict(kind='source10_inert_qualification',folder=str(folder),port=18799,parent_timing=b.timing())
+        a.save_new(virtual/'inert-authority.json',authority)
+        baseline=dict(protected=protected,candidate=a.CANDIDATE,precision='FILETIME100ns',recorded_at=dt.datetime.now(dt.timezone.utc).isoformat())
+        a.save_new(virtual/'inert-native-baseline.json',baseline)
+        argv=a.inert_argv(folder,18799); snapshot_live=[True]; http_calls=[]
+        command=json.dumps([str(a.PY),*argv])
+        def checkout(cmd,**kwargs):
+            if 'Get-NetTCPConnection' in cmd[-1]: return '2' if snapshot_live[0] else '[]'
+            rows=[dict(ProcessId=pid,CreationFileTime=p4.identity(pid)['created_filetime'],ParentProcessId=0 if pid==1 else 1,CommandLineBase64=base64.b64encode(command.encode('utf-16-le')).decode('ascii')) for pid in (1,2)] if snapshot_live[0] else []
+            rows.extend(dict(row,CommandLineBase64=base64.b64encode(row['CommandLine'].encode('utf-16le')).decode('ascii')) for row in protected_rows.values())
+            return json.dumps(rows).encode('ascii')
+        monkeypatch.setattr(p4.subprocess,'check_output',checkout)
+        class Probe:
+            def settimeout(self,value): pass
+            def connect_ex(self,address): return a.errno.ECONNREFUSED
+            def close(self): pass
+        monkeypatch.setattr(p4.socket,'socket',Probe)
+        class Response:
+            def __enter__(self): return self
+            def __exit__(self,*args): pass
+            def read(self): return b'{"inert":true}'
+        class Opener:
+            def open(self,url,timeout): http_calls.append((url,timeout)); clock.advance(.001); return Response()
+        monkeypatch.setattr(p4.urllib.request,'build_opener',lambda *args:Opener())
+        def entry():
+            admitted=a.admitted_record('inert',folder,18799,authority,baseline,b)
+            a.save_new(folder/'admission.json',admitted)
+            a.save_new(folder/'attempt.json',dict(parent_timing=b.timing()))
+            owned=p4.Owned(folder,{}); b.owned=owned
+            proc=types.SimpleNamespace(pid=1,wait=lambda timeout=None:0)
+            owned.launchers=[dict(proc=proc,identity=p4.identity(1),argv=argv,role='server')]
+            owned.known[1]=dict(identity=p4.identity(1),argv=argv,role='server',parent=0)
+            owned.logs=[open(folder/'server.stdout','w'),open(folder/'server.stderr','w')]
+            context=dict(mode='inert',folder=folder,port=18799,budget=b)
+            with a.PrivateIO(p4,b) as io:
+                a.issue_clearance(context,p4,owned,argv,a.sha(virtual/'inert-authority.json'))
+                identity=p4.identity
+                with monkeypatch.context() as child:
+                    child.setattr(p4,'identity',lambda pid:identity(2) if pid==os.getpid() else identity(pid))
+                    a.consume_clearance(context,p4,argv,a.sha(virtual/'inert-authority.json'))
+                listener=dict(port=18799,identity=identity(2),role='server',argv=argv)
+                a.save_new(folder/'listener.json',listener)
+                a.record_native_members(folder,p4,owned,argv,b)
+                a.observe_inert_exchange(folder,p4,owned,argv,18799,b)
+                a.save_new(folder/'argv-roundtrip.json',dict(question=a.corpus()['query'],argv=argv[4:]))
+                for name in ('protected-before.json','protected-after.json'): a.save_new(folder/name,protected)
+                for name in ('boundary-before.json','boundary-after.json'): a.save_new(folder/name,dict(pins=admitted['pins'],protected=protected))
+                snapshot_live[0]=False
+                cleanup=io.cleanup(owned,18799)
+            if fault=='protected-empty': (folder/'protected-after.json').write_text('[]')
+            elif fault=='native-subset':
+                malformed=a.load(folder/'native-members.json'); malformed['snapshot'].pop('1')
+                (folder/'native-members.json').write_text(json.dumps(malformed))
+            elif fault=='cleanup-subset':
+                malformed=a.load(folder/'cleanup.json'); malformed['processes'].pop()
+                (folder/'cleanup.json').write_text(json.dumps(malformed))
+            elif fault=='missing-exchange': (folder/'inert-exchange.json').unlink()
+            elif fault=='no-parent-exchange': del b.inert_exchange
+            elif fault=='empty-task-directory': (folder/'outputs/unexpected-task').mkdir(parents=True)
+            elif fault in ('wrong-endpoint','wrong-listener','wrong-response','nonboolean-response','late-exchange'):
+                malformed=a.load(folder/'inert-exchange.json')
+                if fault=='wrong-endpoint': malformed['endpoint']='http://127.0.0.1:11434/inert'
+                elif fault=='wrong-listener': malformed['listener']['identity']['pid']=999
+                elif fault=='wrong-response': malformed['response']=dict(inert=False)
+                elif fault=='nonboolean-response': malformed['response']=dict(inert=1)
+                else: malformed['after_ns']=b.cutoff_ns('work')+1
+                (folder/'inert-exchange.json').write_text(json.dumps(malformed))
+            b.phase='seal'
+            terminal=dict(kind='inert',folder=str(folder),run_id=b.run_id,timing=b.timing(),overall='READY_FOR_ROOT_TIMING_WITNESS',cleanup=cleanup,errors=[],first_failure=None)
+            a.save_new(folder/'terminal.json',terminal); a.seal_index(folder,b,p4)
+            if observer_port is not None:
+                if 'remaining' in observer_port:
+                    clock.value=b.cutoff_ns()-int(observer_port['remaining']*1e9)
+                install_delayed_port(p4,clock,observer_port)
+                observer_port['saved_bindings']={key:getattr(p4,key) for key in ('socket','time','subprocess','terminate_owned','save')}
+            return terminal
+        outcome=invocation.call(entry)
+        if observer_port is not None:
+>           assert all(getattr(p4,key) is value for key,value in observer_port['saved_bindings'].items())
+                                                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E           KeyError: 'saved_bindings'
+
+..\..\harness\test_adapter.py:903: KeyError
+_ test_port_rev2_real_substantive_observer_delayed_refusal[clipped-sufficient] _
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-source13-real-controlled-preparation-20261106/code/harness-preparation-20261106T161506433847Z/temp/test_port_rev2_real_substantiv1')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000027B22475940>
+scenario = {'name': 'clipped-sufficient', 'remaining': 2.5, 'eligible': True, 'effective': 2.5}
+
+    @pytest.mark.parametrize('scenario',[
+        dict(name='sufficient',eligible=True,effective=3),
+        dict(name='clipped-sufficient',remaining=2.5,eligible=True,effective=2.5),
+        dict(name='clipped-unknown',remaining=2,eligible=False,effective=2),
+        dict(name='exact-cutoff',remaining=PORT_REFUSAL_DELAY,eligible=False,effective=PORT_REFUSAL_DELAY),
+        dict(name='zero-before-connect',setup=3,eligible=False,effective=None),
+        dict(name='phase-expired-before-hint',remaining=2,setup=2,eligible=False,effective=None),
+        dict(name='late-phase',remaining=2.5,overrun=1,eligible=False,effective=2.5),
+        dict(name='setup-sufficient',setup=.8,eligible=True,effective=2.2),
+        dict(name='setup-unknown',setup=1.1,eligible=False,effective=1.9),
+        dict(name='10035',code=10035,eligible=False,effective=3),
+        dict(name='10060',code=10060,eligible=False,effective=3),
+        dict(name='open',code=0,eligible=False,effective=3),
+        dict(name='error',error=True,eligible=False,effective=3),
+        dict(name='late-private-cap',overrun=1.1,eligible=False,effective=3),
+    ],ids=lambda v:v['name'])
+    def test_port_rev2_real_substantive_observer_delayed_refusal(tmp_path,monkeypatch,scenario):
+        scenario=dict(scenario)
+>       _substantive_closed_witness_fixture(tmp_path,monkeypatch,'none',observer_port=scenario)
+
+..\..\harness\test_adapter.py:1314: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-source13-real-controlled-preparation-20261106/code/harness-preparation-20261106T161506433847Z/temp/test_port_rev2_real_substantiv1')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000027B22475940>
+fault = 'none'
+observer_port = {'name': 'clipped-sufficient', 'remaining': 2.5, 'eligible': True, 'effective': 2.5}
+
+    def _substantive_closed_witness_fixture(tmp_path,monkeypatch,fault,observer_port=None):
+        import base64,os
+        from collections import OrderedDict
+        original_v=a.V; original_here=a.HERE
+        virtual=tmp_path/'virtual-root'; here=virtual/'harness'; here.mkdir(parents=True)
+        for source in original_here.iterdir():
+            if source.is_file(): (here/source.name).write_bytes(source.read_bytes())
+        (virtual/'inputs').mkdir()
+        (virtual/'inputs/scope.json').write_bytes((original_v/'inputs/scope.json').read_bytes())
+        monkeypatch.setattr(a,'V',virtual); monkeypatch.setattr(a,'HERE',here)
+        package=a.load(here/'manifest.json')
+        package['files']={name:a.sha(here/name) for name in package['files']}
+        (here/'manifest.json').write_text(json.dumps(package),encoding='utf8')
+        a.save_new(virtual/'harness-approval.json',dict(reviewer='root-independent',overall='PASS',manifest_sha256=a.sha(here/'manifest.json')))
+        clock=Clock(); invocation=a.RootInvocation(clock=clock); b=invocation.budget
+        folder=virtual/'inert'/b.run_id; folder.mkdir(parents=True)
+        p4=a.load_p4(); active=set(); _,calls=native_kernel(monkeypatch,p4,active,clock)
+        protected=[p4.identity(pid) for pid in range(51,58)]
+        protected_rows=protected_fixture(virtual,monkeypatch,p4,protected)
+        monkeypatch.setattr(p4,'process_times',lambda proc:(1000001,0))
+        monkeypatch.setattr(p4,'argv_parse',lambda text:json.loads(text))
+        monkeypatch.setattr(a,'load_p4',lambda:p4)
+        authority=dict(kind='source10_inert_qualification',folder=str(folder),port=18799,parent_timing=b.timing())
+        a.save_new(virtual/'inert-authority.json',authority)
+        baseline=dict(protected=protected,candidate=a.CANDIDATE,precision='FILETIME100ns',recorded_at=dt.datetime.now(dt.timezone.utc).isoformat())
+        a.save_new(virtual/'inert-native-baseline.json',baseline)
+        argv=a.inert_argv(folder,18799); snapshot_live=[True]; http_calls=[]
+        command=json.dumps([str(a.PY),*argv])
+        def checkout(cmd,**kwargs):
+            if 'Get-NetTCPConnection' in cmd[-1]: return '2' if snapshot_live[0] else '[]'
+            rows=[dict(ProcessId=pid,CreationFileTime=p4.identity(pid)['created_filetime'],ParentProcessId=0 if pid==1 else 1,CommandLineBase64=base64.b64encode(command.encode('utf-16-le')).decode('ascii')) for pid in (1,2)] if snapshot_live[0] else []
+            rows.extend(dict(row,CommandLineBase64=base64.b64encode(row['CommandLine'].encode('utf-16le')).decode('ascii')) for row in protected_rows.values())
+            return json.dumps(rows).encode('ascii')
+        monkeypatch.setattr(p4.subprocess,'check_output',checkout)
+        class Probe:
+            def settimeout(self,value): pass
+            def connect_ex(self,address): return a.errno.ECONNREFUSED
+            def close(self): pass
+        monkeypatch.setattr(p4.socket,'socket',Probe)
+        class Response:
+            def __enter__(self): return self
+            def __exit__(self,*args): pass
+            def read(self): return b'{"inert":true}'
+        class Opener:
+            def open(self,url,timeout): http_calls.append((url,timeout)); clock.advance(.001); return Response()
+        monkeypatch.setattr(p4.urllib.request,'build_opener',lambda *args:Opener())
+        def entry():
+            admitted=a.admitted_record('inert',folder,18799,authority,baseline,b)
+            a.save_new(folder/'admission.json',admitted)
+            a.save_new(folder/'attempt.json',dict(parent_timing=b.timing()))
+            owned=p4.Owned(folder,{}); b.owned=owned
+            proc=types.SimpleNamespace(pid=1,wait=lambda timeout=None:0)
+            owned.launchers=[dict(proc=proc,identity=p4.identity(1),argv=argv,role='server')]
+            owned.known[1]=dict(identity=p4.identity(1),argv=argv,role='server',parent=0)
+            owned.logs=[open(folder/'server.stdout','w'),open(folder/'server.stderr','w')]
+            context=dict(mode='inert',folder=folder,port=18799,budget=b)
+            with a.PrivateIO(p4,b) as io:
+                a.issue_clearance(context,p4,owned,argv,a.sha(virtual/'inert-authority.json'))
+                identity=p4.identity
+                with monkeypatch.context() as child:
+                    child.setattr(p4,'identity',lambda pid:identity(2) if pid==os.getpid() else identity(pid))
+                    a.consume_clearance(context,p4,argv,a.sha(virtual/'inert-authority.json'))
+                listener=dict(port=18799,identity=identity(2),role='server',argv=argv)
+                a.save_new(folder/'listener.json',listener)
+                a.record_native_members(folder,p4,owned,argv,b)
+                a.observe_inert_exchange(folder,p4,owned,argv,18799,b)
+                a.save_new(folder/'argv-roundtrip.json',dict(question=a.corpus()['query'],argv=argv[4:]))
+                for name in ('protected-before.json','protected-after.json'): a.save_new(folder/name,protected)
+                for name in ('boundary-before.json','boundary-after.json'): a.save_new(folder/name,dict(pins=admitted['pins'],protected=protected))
+                snapshot_live[0]=False
+                cleanup=io.cleanup(owned,18799)
+            if fault=='protected-empty': (folder/'protected-after.json').write_text('[]')
+            elif fault=='native-subset':
+                malformed=a.load(folder/'native-members.json'); malformed['snapshot'].pop('1')
+                (folder/'native-members.json').write_text(json.dumps(malformed))
+            elif fault=='cleanup-subset':
+                malformed=a.load(folder/'cleanup.json'); malformed['processes'].pop()
+                (folder/'cleanup.json').write_text(json.dumps(malformed))
+            elif fault=='missing-exchange': (folder/'inert-exchange.json').unlink()
+            elif fault=='no-parent-exchange': del b.inert_exchange
+            elif fault=='empty-task-directory': (folder/'outputs/unexpected-task').mkdir(parents=True)
+            elif fault in ('wrong-endpoint','wrong-listener','wrong-response','nonboolean-response','late-exchange'):
+                malformed=a.load(folder/'inert-exchange.json')
+                if fault=='wrong-endpoint': malformed['endpoint']='http://127.0.0.1:11434/inert'
+                elif fault=='wrong-listener': malformed['listener']['identity']['pid']=999
+                elif fault=='wrong-response': malformed['response']=dict(inert=False)
+                elif fault=='nonboolean-response': malformed['response']=dict(inert=1)
+                else: malformed['after_ns']=b.cutoff_ns('work')+1
+                (folder/'inert-exchange.json').write_text(json.dumps(malformed))
+            b.phase='seal'
+            terminal=dict(kind='inert',folder=str(folder),run_id=b.run_id,timing=b.timing(),overall='READY_FOR_ROOT_TIMING_WITNESS',cleanup=cleanup,errors=[],first_failure=None)
+            a.save_new(folder/'terminal.json',terminal); a.seal_index(folder,b,p4)
+            if observer_port is not None:
+                if 'remaining' in observer_port:
+                    clock.value=b.cutoff_ns()-int(observer_port['remaining']*1e9)
+                install_delayed_port(p4,clock,observer_port)
+                observer_port['saved_bindings']={key:getattr(p4,key) for key in ('socket','time','subprocess','terminate_owned','save')}
+            return terminal
+        outcome=invocation.call(entry)
+        if observer_port is not None:
+>           assert all(getattr(p4,key) is value for key,value in observer_port['saved_bindings'].items())
+                                                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E           KeyError: 'saved_bindings'
+
+..\..\harness\test_adapter.py:903: KeyError
+__ test_port_rev2_real_substantive_observer_delayed_refusal[clipped-unknown] __
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-source13-real-controlled-preparation-20261106/code/harness-preparation-20261106T161506433847Z/temp/test_port_rev2_real_substantiv2')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000027B2291EDD0>
+scenario = {'name': 'clipped-unknown', 'remaining': 2, 'eligible': False, 'effective': 2}
+
+    @pytest.mark.parametrize('scenario',[
+        dict(name='sufficient',eligible=True,effective=3),
+        dict(name='clipped-sufficient',remaining=2.5,eligible=True,effective=2.5),
+        dict(name='clipped-unknown',remaining=2,eligible=False,effective=2),
+        dict(name='exact-cutoff',remaining=PORT_REFUSAL_DELAY,eligible=False,effective=PORT_REFUSAL_DELAY),
+        dict(name='zero-before-connect',setup=3,eligible=False,effective=None),
+        dict(name='phase-expired-before-hint',remaining=2,setup=2,eligible=False,effective=None),
+        dict(name='late-phase',remaining=2.5,overrun=1,eligible=False,effective=2.5),
+        dict(name='setup-sufficient',setup=.8,eligible=True,effective=2.2),
+        dict(name='setup-unknown',setup=1.1,eligible=False,effective=1.9),
+        dict(name='10035',code=10035,eligible=False,effective=3),
+        dict(name='10060',code=10060,eligible=False,effective=3),
+        dict(name='open',code=0,eligible=False,effective=3),
+        dict(name='error',error=True,eligible=False,effective=3),
+        dict(name='late-private-cap',overrun=1.1,eligible=False,effective=3),
+    ],ids=lambda v:v['name'])
+    def test_port_rev2_real_substantive_observer_delayed_refusal(tmp_path,monkeypatch,scenario):
+        scenario=dict(scenario)
+>       _substantive_closed_witness_fixture(tmp_path,monkeypatch,'none',observer_port=scenario)
+
+..\..\harness\test_adapter.py:1314: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-source13-real-controlled-preparation-20261106/code/harness-preparation-20261106T161506433847Z/temp/test_port_rev2_real_substantiv2')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000027B2291EDD0>
+fault = 'none'
+observer_port = {'name': 'clipped-unknown', 'remaining': 2, 'eligible': False, 'effective': 2}
+
+    def _substantive_closed_witness_fixture(tmp_path,monkeypatch,fault,observer_port=None):
+        import base64,os
+        from collections import OrderedDict
+        original_v=a.V; original_here=a.HERE
+        virtual=tmp_path/'virtual-root'; here=virtual/'harness'; here.mkdir(parents=True)
+        for source in original_here.iterdir():
+            if source.is_file(): (here/source.name).write_bytes(source.read_bytes())
+        (virtual/'inputs').mkdir()
+        (virtual/'inputs/scope.json').write_bytes((original_v/'inputs/scope.json').read_bytes())
+        monkeypatch.setattr(a,'V',virtual); monkeypatch.setattr(a,'HERE',here)
+        package=a.load(here/'manifest.json')
+        package['files']={name:a.sha(here/name) for name in package['files']}
+        (here/'manifest.json').write_text(json.dumps(package),encoding='utf8')
+        a.save_new(virtual/'harness-approval.json',dict(reviewer='root-independent',overall='PASS',manifest_sha256=a.sha(here/'manifest.json')))
+        clock=Clock(); invocation=a.RootInvocation(clock=clock); b=invocation.budget
+        folder=virtual/'inert'/b.run_id; folder.mkdir(parents=True)
+        p4=a.load_p4(); active=set(); _,calls=native_kernel(monkeypatch,p4,active,clock)
+        protected=[p4.identity(pid) for pid in range(51,58)]
+        protected_rows=protected_fixture(virtual,monkeypatch,p4,protected)
+        monkeypatch.setattr(p4,'process_times',lambda proc:(1000001,0))
+        monkeypatch.setattr(p4,'argv_parse',lambda text:json.loads(text))
+        monkeypatch.setattr(a,'load_p4',lambda:p4)
+        authority=dict(kind='source10_inert_qualification',folder=str(folder),port=18799,parent_timing=b.timing())
+        a.save_new(virtual/'inert-authority.json',authority)
+        baseline=dict(protected=protected,candidate=a.CANDIDATE,precision='FILETIME100ns',recorded_at=dt.datetime.now(dt.timezone.utc).isoformat())
+        a.save_new(virtual/'inert-native-baseline.json',baseline)
+        argv=a.inert_argv(folder,18799); snapshot_live=[True]; http_calls=[]
+        command=json.dumps([str(a.PY),*argv])
+        def checkout(cmd,**kwargs):
+            if 'Get-NetTCPConnection' in cmd[-1]: return '2' if snapshot_live[0] else '[]'
+            rows=[dict(ProcessId=pid,CreationFileTime=p4.identity(pid)['created_filetime'],ParentProcessId=0 if pid==1 else 1,CommandLineBase64=base64.b64encode(command.encode('utf-16-le')).decode('ascii')) for pid in (1,2)] if snapshot_live[0] else []
+            rows.extend(dict(row,CommandLineBase64=base64.b64encode(row['CommandLine'].encode('utf-16le')).decode('ascii')) for row in protected_rows.values())
+            return json.dumps(rows).encode('ascii')
+        monkeypatch.setattr(p4.subprocess,'check_output',checkout)
+        class Probe:
+            def settimeout(self,value): pass
+            def connect_ex(self,address): return a.errno.ECONNREFUSED
+            def close(self): pass
+        monkeypatch.setattr(p4.socket,'socket',Probe)
+        class Response:
+            def __enter__(self): return self
+            def __exit__(self,*args): pass
+            def read(self): return b'{"inert":true}'
+        class Opener:
+            def open(self,url,timeout): http_calls.append((url,timeout)); clock.advance(.001); return Response()
+        monkeypatch.setattr(p4.urllib.request,'build_opener',lambda *args:Opener())
+        def entry():
+            admitted=a.admitted_record('inert',folder,18799,authority,baseline,b)
+            a.save_new(folder/'admission.json',admitted)
+            a.save_new(folder/'attempt.json',dict(parent_timing=b.timing()))
+            owned=p4.Owned(folder,{}); b.owned=owned
+            proc=types.SimpleNamespace(pid=1,wait=lambda timeout=None:0)
+            owned.launchers=[dict(proc=proc,identity=p4.identity(1),argv=argv,role='server')]
+            owned.known[1]=dict(identity=p4.identity(1),argv=argv,role='server',parent=0)
+            owned.logs=[open(folder/'server.stdout','w'),open(folder/'server.stderr','w')]
+            context=dict(mode='inert',folder=folder,port=18799,budget=b)
+            with a.PrivateIO(p4,b) as io:
+                a.issue_clearance(context,p4,owned,argv,a.sha(virtual/'inert-authority.json'))
+                identity=p4.identity
+                with monkeypatch.context() as child:
+                    child.setattr(p4,'identity',lambda pid:identity(2) if pid==os.getpid() else identity(pid))
+                    a.consume_clearance(context,p4,argv,a.sha(virtual/'inert-authority.json'))
+                listener=dict(port=18799,identity=identity(2),role='server',argv=argv)
+                a.save_new(folder/'listener.json',listener)
+                a.record_native_members(folder,p4,owned,argv,b)
+                a.observe_inert_exchange(folder,p4,owned,argv,18799,b)
+                a.save_new(folder/'argv-roundtrip.json',dict(question=a.corpus()['query'],argv=argv[4:]))
+                for name in ('protected-before.json','protected-after.json'): a.save_new(folder/name,protected)
+                for name in ('boundary-before.json','boundary-after.json'): a.save_new(folder/name,dict(pins=admitted['pins'],protected=protected))
+                snapshot_live[0]=False
+                cleanup=io.cleanup(owned,18799)
+            if fault=='protected-empty': (folder/'protected-after.json').write_text('[]')
+            elif fault=='native-subset':
+                malformed=a.load(folder/'native-members.json'); malformed['snapshot'].pop('1')
+                (folder/'native-members.json').write_text(json.dumps(malformed))
+            elif fault=='cleanup-subset':
+                malformed=a.load(folder/'cleanup.json'); malformed['processes'].pop()
+                (folder/'cleanup.json').write_text(json.dumps(malformed))
+            elif fault=='missing-exchange': (folder/'inert-exchange.json').unlink()
+            elif fault=='no-parent-exchange': del b.inert_exchange
+            elif fault=='empty-task-directory': (folder/'outputs/unexpected-task').mkdir(parents=True)
+            elif fault in ('wrong-endpoint','wrong-listener','wrong-response','nonboolean-response','late-exchange'):
+                malformed=a.load(folder/'inert-exchange.json')
+                if fault=='wrong-endpoint': malformed['endpoint']='http://127.0.0.1:11434/inert'
+                elif fault=='wrong-listener': malformed['listener']['identity']['pid']=999
+                elif fault=='wrong-response': malformed['response']=dict(inert=False)
+                elif fault=='nonboolean-response': malformed['response']=dict(inert=1)
+                else: malformed['after_ns']=b.cutoff_ns('work')+1
+                (folder/'inert-exchange.json').write_text(json.dumps(malformed))
+            b.phase='seal'
+            terminal=dict(kind='inert',folder=str(folder),run_id=b.run_id,timing=b.timing(),overall='READY_FOR_ROOT_TIMING_WITNESS',cleanup=cleanup,errors=[],first_failure=None)
+            a.save_new(folder/'terminal.json',terminal); a.seal_index(folder,b,p4)
+            if observer_port is not None:
+                if 'remaining' in observer_port:
+                    clock.value=b.cutoff_ns()-int(observer_port['remaining']*1e9)
+                install_delayed_port(p4,clock,observer_port)
+                observer_port['saved_bindings']={key:getattr(p4,key) for key in ('socket','time','subprocess','terminate_owned','save')}
+            return terminal
+        outcome=invocation.call(entry)
+        if observer_port is not None:
+>           assert all(getattr(p4,key) is value for key,value in observer_port['saved_bindings'].items())
+                                                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E           KeyError: 'saved_bindings'
+
+..\..\harness\test_adapter.py:903: KeyError
+___ test_port_rev2_real_substantive_observer_delayed_refusal[exact-cutoff] ____
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-source13-real-controlled-preparation-20261106/code/harness-preparation-20261106T161506433847Z/temp/test_port_rev2_real_substantiv3')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000027B228E4FA0>
+scenario = {'name': 'exact-cutoff', 'remaining': 2.0139454, 'eligible': False, 'effective': 2.0139454}
+
+    @pytest.mark.parametrize('scenario',[
+        dict(name='sufficient',eligible=True,effective=3),
+        dict(name='clipped-sufficient',remaining=2.5,eligible=True,effective=2.5),
+        dict(name='clipped-unknown',remaining=2,eligible=False,effective=2),
+        dict(name='exact-cutoff',remaining=PORT_REFUSAL_DELAY,eligible=False,effective=PORT_REFUSAL_DELAY),
+        dict(name='zero-before-connect',setup=3,eligible=False,effective=None),
+        dict(name='phase-expired-before-hint',remaining=2,setup=2,eligible=False,effective=None),
+        dict(name='late-phase',remaining=2.5,overrun=1,eligible=False,effective=2.5),
+        dict(name='setup-sufficient',setup=.8,eligible=True,effective=2.2),
+        dict(name='setup-unknown',setup=1.1,eligible=False,effective=1.9),
+        dict(name='10035',code=10035,eligible=False,effective=3),
+        dict(name='10060',code=10060,eligible=False,effective=3),
+        dict(name='open',code=0,eligible=False,effective=3),
+        dict(name='error',error=True,eligible=False,effective=3),
+        dict(name='late-private-cap',overrun=1.1,eligible=False,effective=3),
+    ],ids=lambda v:v['name'])
+    def test_port_rev2_real_substantive_observer_delayed_refusal(tmp_path,monkeypatch,scenario):
+        scenario=dict(scenario)
+>       _substantive_closed_witness_fixture(tmp_path,monkeypatch,'none',observer_port=scenario)
+
+..\..\harness\test_adapter.py:1314: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-source13-real-controlled-preparation-20261106/code/harness-preparation-20261106T161506433847Z/temp/test_port_rev2_real_substantiv3')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000027B228E4FA0>
+fault = 'none'
+observer_port = {'name': 'exact-cutoff', 'remaining': 2.0139454, 'eligible': False, 'effective': 2.0139454}
+
+    def _substantive_closed_witness_fixture(tmp_path,monkeypatch,fault,observer_port=None):
+        import base64,os
+        from collections import OrderedDict
+        original_v=a.V; original_here=a.HERE
+        virtual=tmp_path/'virtual-root'; here=virtual/'harness'; here.mkdir(parents=True)
+        for source in original_here.iterdir():
+            if source.is_file(): (here/source.name).write_bytes(source.read_bytes())
+        (virtual/'inputs').mkdir()
+        (virtual/'inputs/scope.json').write_bytes((original_v/'inputs/scope.json').read_bytes())
+        monkeypatch.setattr(a,'V',virtual); monkeypatch.setattr(a,'HERE',here)
+        package=a.load(here/'manifest.json')
+        package['files']={name:a.sha(here/name) for name in package['files']}
+        (here/'manifest.json').write_text(json.dumps(package),encoding='utf8')
+        a.save_new(virtual/'harness-approval.json',dict(reviewer='root-independent',overall='PASS',manifest_sha256=a.sha(here/'manifest.json')))
+        clock=Clock(); invocation=a.RootInvocation(clock=clock); b=invocation.budget
+        folder=virtual/'inert'/b.run_id; folder.mkdir(parents=True)
+        p4=a.load_p4(); active=set(); _,calls=native_kernel(monkeypatch,p4,active,clock)
+        protected=[p4.identity(pid) for pid in range(51,58)]
+        protected_rows=protected_fixture(virtual,monkeypatch,p4,protected)
+        monkeypatch.setattr(p4,'process_times',lambda proc:(1000001,0))
+        monkeypatch.setattr(p4,'argv_parse',lambda text:json.loads(text))
+        monkeypatch.setattr(a,'load_p4',lambda:p4)
+        authority=dict(kind='source10_inert_qualification',folder=str(folder),port=18799,parent_timing=b.timing())
+        a.save_new(virtual/'inert-authority.json',authority)
+        baseline=dict(protected=protected,candidate=a.CANDIDATE,precision='FILETIME100ns',recorded_at=dt.datetime.now(dt.timezone.utc).isoformat())
+        a.save_new(virtual/'inert-native-baseline.json',baseline)
+        argv=a.inert_argv(folder,18799); snapshot_live=[True]; http_calls=[]
+        command=json.dumps([str(a.PY),*argv])
+        def checkout(cmd,**kwargs):
+            if 'Get-NetTCPConnection' in cmd[-1]: return '2' if snapshot_live[0] else '[]'
+            rows=[dict(ProcessId=pid,CreationFileTime=p4.identity(pid)['created_filetime'],ParentProcessId=0 if pid==1 else 1,CommandLineBase64=base64.b64encode(command.encode('utf-16-le')).decode('ascii')) for pid in (1,2)] if snapshot_live[0] else []
+            rows.extend(dict(row,CommandLineBase64=base64.b64encode(row['CommandLine'].encode('utf-16le')).decode('ascii')) for row in protected_rows.values())
+            return json.dumps(rows).encode('ascii')
+        monkeypatch.setattr(p4.subprocess,'check_output',checkout)
+        class Probe:
+            def settimeout(self,value): pass
+            def connect_ex(self,address): return a.errno.ECONNREFUSED
+            def close(self): pass
+        monkeypatch.setattr(p4.socket,'socket',Probe)
+        class Response:
+            def __enter__(self): return self
+            def __exit__(self,*args): pass
+            def read(self): return b'{"inert":true}'
+        class Opener:
+            def open(self,url,timeout): http_calls.append((url,timeout)); clock.advance(.001); return Response()
+        monkeypatch.setattr(p4.urllib.request,'build_opener',lambda *args:Opener())
+        def entry():
+            admitted=a.admitted_record('inert',folder,18799,authority,baseline,b)
+            a.save_new(folder/'admission.json',admitted)
+            a.save_new(folder/'attempt.json',dict(parent_timing=b.timing()))
+            owned=p4.Owned(folder,{}); b.owned=owned
+            proc=types.SimpleNamespace(pid=1,wait=lambda timeout=None:0)
+            owned.launchers=[dict(proc=proc,identity=p4.identity(1),argv=argv,role='server')]
+            owned.known[1]=dict(identity=p4.identity(1),argv=argv,role='server',parent=0)
+            owned.logs=[open(folder/'server.stdout','w'),open(folder/'server.stderr','w')]
+            context=dict(mode='inert',folder=folder,port=18799,budget=b)
+            with a.PrivateIO(p4,b) as io:
+                a.issue_clearance(context,p4,owned,argv,a.sha(virtual/'inert-authority.json'))
+                identity=p4.identity
+                with monkeypatch.context() as child:
+                    child.setattr(p4,'identity',lambda pid:identity(2) if pid==os.getpid() else identity(pid))
+                    a.consume_clearance(context,p4,argv,a.sha(virtual/'inert-authority.json'))
+                listener=dict(port=18799,identity=identity(2),role='server',argv=argv)
+                a.save_new(folder/'listener.json',listener)
+                a.record_native_members(folder,p4,owned,argv,b)
+                a.observe_inert_exchange(folder,p4,owned,argv,18799,b)
+                a.save_new(folder/'argv-roundtrip.json',dict(question=a.corpus()['query'],argv=argv[4:]))
+                for name in ('protected-before.json','protected-after.json'): a.save_new(folder/name,protected)
+                for name in ('boundary-before.json','boundary-after.json'): a.save_new(folder/name,dict(pins=admitted['pins'],protected=protected))
+                snapshot_live[0]=False
+                cleanup=io.cleanup(owned,18799)
+            if fault=='protected-empty': (folder/'protected-after.json').write_text('[]')
+            elif fault=='native-subset':
+                malformed=a.load(folder/'native-members.json'); malformed['snapshot'].pop('1')
+                (folder/'native-members.json').write_text(json.dumps(malformed))
+            elif fault=='cleanup-subset':
+                malformed=a.load(folder/'cleanup.json'); malformed['processes'].pop()
+                (folder/'cleanup.json').write_text(json.dumps(malformed))
+            elif fault=='missing-exchange': (folder/'inert-exchange.json').unlink()
+            elif fault=='no-parent-exchange': del b.inert_exchange
+            elif fault=='empty-task-directory': (folder/'outputs/unexpected-task').mkdir(parents=True)
+            elif fault in ('wrong-endpoint','wrong-listener','wrong-response','nonboolean-response','late-exchange'):
+                malformed=a.load(folder/'inert-exchange.json')
+                if fault=='wrong-endpoint': malformed['endpoint']='http://127.0.0.1:11434/inert'
+                elif fault=='wrong-listener': malformed['listener']['identity']['pid']=999
+                elif fault=='wrong-response': malformed['response']=dict(inert=False)
+                elif fault=='nonboolean-response': malformed['response']=dict(inert=1)
+                else: malformed['after_ns']=b.cutoff_ns('work')+1
+                (folder/'inert-exchange.json').write_text(json.dumps(malformed))
+            b.phase='seal'
+            terminal=dict(kind='inert',folder=str(folder),run_id=b.run_id,timing=b.timing(),overall='READY_FOR_ROOT_TIMING_WITNESS',cleanup=cleanup,errors=[],first_failure=None)
+            a.save_new(folder/'terminal.json',terminal); a.seal_index(folder,b,p4)
+            if observer_port is not None:
+                if 'remaining' in observer_port:
+                    clock.value=b.cutoff_ns()-int(observer_port['remaining']*1e9)
+                install_delayed_port(p4,clock,observer_port)
+                observer_port['saved_bindings']={key:getattr(p4,key) for key in ('socket','time','subprocess','terminate_owned','save')}
+            return terminal
+        outcome=invocation.call(entry)
+        if observer_port is not None:
+>           assert all(getattr(p4,key) is value for key,value in observer_port['saved_bindings'].items())
+                                                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E           KeyError: 'saved_bindings'
+
+..\..\harness\test_adapter.py:903: KeyError
+_ test_port_rev2_real_substantive_observer_delayed_refusal[zero-before-connect] _
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-source13-real-controlled-preparation-20261106/code/harness-preparation-20261106T161506433847Z/temp/test_port_rev2_real_substantiv4')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000027B226B3E00>
+scenario = {'name': 'zero-before-connect', 'setup': 3, 'eligible': False, 'effective': None}
+
+    @pytest.mark.parametrize('scenario',[
+        dict(name='sufficient',eligible=True,effective=3),
+        dict(name='clipped-sufficient',remaining=2.5,eligible=True,effective=2.5),
+        dict(name='clipped-unknown',remaining=2,eligible=False,effective=2),
+        dict(name='exact-cutoff',remaining=PORT_REFUSAL_DELAY,eligible=False,effective=PORT_REFUSAL_DELAY),
+        dict(name='zero-before-connect',setup=3,eligible=False,effective=None),
+        dict(name='phase-expired-before-hint',remaining=2,setup=2,eligible=False,effective=None),
+        dict(name='late-phase',remaining=2.5,overrun=1,eligible=False,effective=2.5),
+        dict(name='setup-sufficient',setup=.8,eligible=True,effective=2.2),
+        dict(name='setup-unknown',setup=1.1,eligible=False,effective=1.9),
+        dict(name='10035',code=10035,eligible=False,effective=3),
+        dict(name='10060',code=10060,eligible=False,effective=3),
+        dict(name='open',code=0,eligible=False,effective=3),
+        dict(name='error',error=True,eligible=False,effective=3),
+        dict(name='late-private-cap',overrun=1.1,eligible=False,effective=3),
+    ],ids=lambda v:v['name'])
+    def test_port_rev2_real_substantive_observer_delayed_refusal(tmp_path,monkeypatch,scenario):
+        scenario=dict(scenario)
+>       _substantive_closed_witness_fixture(tmp_path,monkeypatch,'none',observer_port=scenario)
+
+..\..\harness\test_adapter.py:1314: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-source13-real-controlled-preparation-20261106/code/harness-preparation-20261106T161506433847Z/temp/test_port_rev2_real_substantiv4')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000027B226B3E00>
+fault = 'none'
+observer_port = {'name': 'zero-before-connect', 'setup': 3, 'eligible': False, 'effective': None}
+
+    def _substantive_closed_witness_fixture(tmp_path,monkeypatch,fault,observer_port=None):
+        import base64,os
+        from collections import OrderedDict
+        original_v=a.V; original_here=a.HERE
+        virtual=tmp_path/'virtual-root'; here=virtual/'harness'; here.mkdir(parents=True)
+        for source in original_here.iterdir():
+            if source.is_file(): (here/source.name).write_bytes(source.read_bytes())
+        (virtual/'inputs').mkdir()
+        (virtual/'inputs/scope.json').write_bytes((original_v/'inputs/scope.json').read_bytes())
+        monkeypatch.setattr(a,'V',virtual); monkeypatch.setattr(a,'HERE',here)
+        package=a.load(here/'manifest.json')
+        package['files']={name:a.sha(here/name) for name in package['files']}
+        (here/'manifest.json').write_text(json.dumps(package),encoding='utf8')
+        a.save_new(virtual/'harness-approval.json',dict(reviewer='root-independent',overall='PASS',manifest_sha256=a.sha(here/'manifest.json')))
+        clock=Clock(); invocation=a.RootInvocation(clock=clock); b=invocation.budget
+        folder=virtual/'inert'/b.run_id; folder.mkdir(parents=True)
+        p4=a.load_p4(); active=set(); _,calls=native_kernel(monkeypatch,p4,active,clock)
+        protected=[p4.identity(pid) for pid in range(51,58)]
+        protected_rows=protected_fixture(virtual,monkeypatch,p4,protected)
+        monkeypatch.setattr(p4,'process_times',lambda proc:(1000001,0))
+        monkeypatch.setattr(p4,'argv_parse',lambda text:json.loads(text))
+        monkeypatch.setattr(a,'load_p4',lambda:p4)
+        authority=dict(kind='source10_inert_qualification',folder=str(folder),port=18799,parent_timing=b.timing())
+        a.save_new(virtual/'inert-authority.json',authority)
+        baseline=dict(protected=protected,candidate=a.CANDIDATE,precision='FILETIME100ns',recorded_at=dt.datetime.now(dt.timezone.utc).isoformat())
+        a.save_new(virtual/'inert-native-baseline.json',baseline)
+        argv=a.inert_argv(folder,18799); snapshot_live=[True]; http_calls=[]
+        command=json.dumps([str(a.PY),*argv])
+        def checkout(cmd,**kwargs):
+            if 'Get-NetTCPConnection' in cmd[-1]: return '2' if snapshot_live[0] else '[]'
+            rows=[dict(ProcessId=pid,CreationFileTime=p4.identity(pid)['created_filetime'],ParentProcessId=0 if pid==1 else 1,CommandLineBase64=base64.b64encode(command.encode('utf-16-le')).decode('ascii')) for pid in (1,2)] if snapshot_live[0] else []
+            rows.extend(dict(row,CommandLineBase64=base64.b64encode(row['CommandLine'].encode('utf-16le')).decode('ascii')) for row in protected_rows.values())
+            return json.dumps(rows).encode('ascii')
+        monkeypatch.setattr(p4.subprocess,'check_output',checkout)
+        class Probe:
+            def settimeout(self,value): pass
+            def connect_ex(self,address): return a.errno.ECONNREFUSED
+            def close(self): pass
+        monkeypatch.setattr(p4.socket,'socket',Probe)
+        class Response:
+            def __enter__(self): return self
+            def __exit__(self,*args): pass
+            def read(self): return b'{"inert":true}'
+        class Opener:
+            def open(self,url,timeout): http_calls.append((url,timeout)); clock.advance(.001); return Response()
+        monkeypatch.setattr(p4.urllib.request,'build_opener',lambda *args:Opener())
+        def entry():
+            admitted=a.admitted_record('inert',folder,18799,authority,baseline,b)
+            a.save_new(folder/'admission.json',admitted)
+            a.save_new(folder/'attempt.json',dict(parent_timing=b.timing()))
+            owned=p4.Owned(folder,{}); b.owned=owned
+            proc=types.SimpleNamespace(pid=1,wait=lambda timeout=None:0)
+            owned.launchers=[dict(proc=proc,identity=p4.identity(1),argv=argv,role='server')]
+            owned.known[1]=dict(identity=p4.identity(1),argv=argv,role='server',parent=0)
+            owned.logs=[open(folder/'server.stdout','w'),open(folder/'server.stderr','w')]
+            context=dict(mode='inert',folder=folder,port=18799,budget=b)
+            with a.PrivateIO(p4,b) as io:
+                a.issue_clearance(context,p4,owned,argv,a.sha(virtual/'inert-authority.json'))
+                identity=p4.identity
+                with monkeypatch.context() as child:
+                    child.setattr(p4,'identity',lambda pid:identity(2) if pid==os.getpid() else identity(pid))
+                    a.consume_clearance(context,p4,argv,a.sha(virtual/'inert-authority.json'))
+                listener=dict(port=18799,identity=identity(2),role='server',argv=argv)
+                a.save_new(folder/'listener.json',listener)
+                a.record_native_members(folder,p4,owned,argv,b)
+                a.observe_inert_exchange(folder,p4,owned,argv,18799,b)
+                a.save_new(folder/'argv-roundtrip.json',dict(question=a.corpus()['query'],argv=argv[4:]))
+                for name in ('protected-before.json','protected-after.json'): a.save_new(folder/name,protected)
+                for name in ('boundary-before.json','boundary-after.json'): a.save_new(folder/name,dict(pins=admitted['pins'],protected=protected))
+                snapshot_live[0]=False
+                cleanup=io.cleanup(owned,18799)
+            if fault=='protected-empty': (folder/'protected-after.json').write_text('[]')
+            elif fault=='native-subset':
+                malformed=a.load(folder/'native-members.json'); malformed['snapshot'].pop('1')
+                (folder/'native-members.json').write_text(json.dumps(malformed))
+            elif fault=='cleanup-subset':
+                malformed=a.load(folder/'cleanup.json'); malformed['processes'].pop()
+                (folder/'cleanup.json').write_text(json.dumps(malformed))
+            elif fault=='missing-exchange': (folder/'inert-exchange.json').unlink()
+            elif fault=='no-parent-exchange': del b.inert_exchange
+            elif fault=='empty-task-directory': (folder/'outputs/unexpected-task').mkdir(parents=True)
+            elif fault in ('wrong-endpoint','wrong-listener','wrong-response','nonboolean-response','late-exchange'):
+                malformed=a.load(folder/'inert-exchange.json')
+                if fault=='wrong-endpoint': malformed['endpoint']='http://127.0.0.1:11434/inert'
+                elif fault=='wrong-listener': malformed['listener']['identity']['pid']=999
+                elif fault=='wrong-response': malformed['response']=dict(inert=False)
+                elif fault=='nonboolean-response': malformed['response']=dict(inert=1)
+                else: malformed['after_ns']=b.cutoff_ns('work')+1
+                (folder/'inert-exchange.json').write_text(json.dumps(malformed))
+            b.phase='seal'
+            terminal=dict(kind='inert',folder=str(folder),run_id=b.run_id,timing=b.timing(),overall='READY_FOR_ROOT_TIMING_WITNESS',cleanup=cleanup,errors=[],first_failure=None)
+            a.save_new(folder/'terminal.json',terminal); a.seal_index(folder,b,p4)
+            if observer_port is not None:
+                if 'remaining' in observer_port:
+                    clock.value=b.cutoff_ns()-int(observer_port['remaining']*1e9)
+                install_delayed_port(p4,clock,observer_port)
+                observer_port['saved_bindings']={key:getattr(p4,key) for key in ('socket','time','subprocess','terminate_owned','save')}
+            return terminal
+        outcome=invocation.call(entry)
+        if observer_port is not None:
+>           assert all(getattr(p4,key) is value for key,value in observer_port['saved_bindings'].items())
+                                                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E           KeyError: 'saved_bindings'
+
+..\..\harness\test_adapter.py:903: KeyError
+_ test_port_rev2_real_substantive_observer_delayed_refusal[phase-expired-before-hint] _
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-source13-real-controlled-preparation-20261106/code/harness-preparation-20261106T161506433847Z/temp/test_port_rev2_real_substantiv5')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000027B226F4C90>
+scenario = {'name': 'phase-expired-before-hint', 'remaining': 2, 'setup': 2, 'eligible': False, ...}
+
+    @pytest.mark.parametrize('scenario',[
+        dict(name='sufficient',eligible=True,effective=3),
+        dict(name='clipped-sufficient',remaining=2.5,eligible=True,effective=2.5),
+        dict(name='clipped-unknown',remaining=2,eligible=False,effective=2),
+        dict(name='exact-cutoff',remaining=PORT_REFUSAL_DELAY,eligible=False,effective=PORT_REFUSAL_DELAY),
+        dict(name='zero-before-connect',setup=3,eligible=False,effective=None),
+        dict(name='phase-expired-before-hint',remaining=2,setup=2,eligible=False,effective=None),
+        dict(name='late-phase',remaining=2.5,overrun=1,eligible=False,effective=2.5),
+        dict(name='setup-sufficient',setup=.8,eligible=True,effective=2.2),
+        dict(name='setup-unknown',setup=1.1,eligible=False,effective=1.9),
+        dict(name='10035',code=10035,eligible=False,effective=3),
+        dict(name='10060',code=10060,eligible=False,effective=3),
+        dict(name='open',code=0,eligible=False,effective=3),
+        dict(name='error',error=True,eligible=False,effective=3),
+        dict(name='late-private-cap',overrun=1.1,eligible=False,effective=3),
+    ],ids=lambda v:v['name'])
+    def test_port_rev2_real_substantive_observer_delayed_refusal(tmp_path,monkeypatch,scenario):
+        scenario=dict(scenario)
+>       _substantive_closed_witness_fixture(tmp_path,monkeypatch,'none',observer_port=scenario)
+
+..\..\harness\test_adapter.py:1314: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-source13-real-controlled-preparation-20261106/code/harness-preparation-20261106T161506433847Z/temp/test_port_rev2_real_substantiv5')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000027B226F4C90>
+fault = 'none'
+observer_port = {'name': 'phase-expired-before-hint', 'remaining': 2, 'setup': 2, 'eligible': False, ...}
+
+    def _substantive_closed_witness_fixture(tmp_path,monkeypatch,fault,observer_port=None):
+        import base64,os
+        from collections import OrderedDict
+        original_v=a.V; original_here=a.HERE
+        virtual=tmp_path/'virtual-root'; here=virtual/'harness'; here.mkdir(parents=True)
+        for source in original_here.iterdir():
+            if source.is_file(): (here/source.name).write_bytes(source.read_bytes())
+        (virtual/'inputs').mkdir()
+        (virtual/'inputs/scope.json').write_bytes((original_v/'inputs/scope.json').read_bytes())
+        monkeypatch.setattr(a,'V',virtual); monkeypatch.setattr(a,'HERE',here)
+        package=a.load(here/'manifest.json')
+        package['files']={name:a.sha(here/name) for name in package['files']}
+        (here/'manifest.json').write_text(json.dumps(package),encoding='utf8')
+        a.save_new(virtual/'harness-approval.json',dict(reviewer='root-independent',overall='PASS',manifest_sha256=a.sha(here/'manifest.json')))
+        clock=Clock(); invocation=a.RootInvocation(clock=clock); b=invocation.budget
+        folder=virtual/'inert'/b.run_id; folder.mkdir(parents=True)
+        p4=a.load_p4(); active=set(); _,calls=native_kernel(monkeypatch,p4,active,clock)
+        protected=[p4.identity(pid) for pid in range(51,58)]
+        protected_rows=protected_fixture(virtual,monkeypatch,p4,protected)
+        monkeypatch.setattr(p4,'process_times',lambda proc:(1000001,0))
+        monkeypatch.setattr(p4,'argv_parse',lambda text:json.loads(text))
+        monkeypatch.setattr(a,'load_p4',lambda:p4)
+        authority=dict(kind='source10_inert_qualification',folder=str(folder),port=18799,parent_timing=b.timing())
+        a.save_new(virtual/'inert-authority.json',authority)
+        baseline=dict(protected=protected,candidate=a.CANDIDATE,precision='FILETIME100ns',recorded_at=dt.datetime.now(dt.timezone.utc).isoformat())
+        a.save_new(virtual/'inert-native-baseline.json',baseline)
+        argv=a.inert_argv(folder,18799); snapshot_live=[True]; http_calls=[]
+        command=json.dumps([str(a.PY),*argv])
+        def checkout(cmd,**kwargs):
+            if 'Get-NetTCPConnection' in cmd[-1]: return '2' if snapshot_live[0] else '[]'
+            rows=[dict(ProcessId=pid,CreationFileTime=p4.identity(pid)['created_filetime'],ParentProcessId=0 if pid==1 else 1,CommandLineBase64=base64.b64encode(command.encode('utf-16-le')).decode('ascii')) for pid in (1,2)] if snapshot_live[0] else []
+            rows.extend(dict(row,CommandLineBase64=base64.b64encode(row['CommandLine'].encode('utf-16le')).decode('ascii')) for row in protected_rows.values())
+            return json.dumps(rows).encode('ascii')
+        monkeypatch.setattr(p4.subprocess,'check_output',checkout)
+        class Probe:
+            def settimeout(self,value): pass
+            def connect_ex(self,address): return a.errno.ECONNREFUSED
+            def close(self): pass
+        monkeypatch.setattr(p4.socket,'socket',Probe)
+        class Response:
+            def __enter__(self): return self
+            def __exit__(self,*args): pass
+            def read(self): return b'{"inert":true}'
+        class Opener:
+            def open(self,url,timeout): http_calls.append((url,timeout)); clock.advance(.001); return Response()
+        monkeypatch.setattr(p4.urllib.request,'build_opener',lambda *args:Opener())
+        def entry():
+            admitted=a.admitted_record('inert',folder,18799,authority,baseline,b)
+            a.save_new(folder/'admission.json',admitted)
+            a.save_new(folder/'attempt.json',dict(parent_timing=b.timing()))
+            owned=p4.Owned(folder,{}); b.owned=owned
+            proc=types.SimpleNamespace(pid=1,wait=lambda timeout=None:0)
+            owned.launchers=[dict(proc=proc,identity=p4.identity(1),argv=argv,role='server')]
+            owned.known[1]=dict(identity=p4.identity(1),argv=argv,role='server',parent=0)
+            owned.logs=[open(folder/'server.stdout','w'),open(folder/'server.stderr','w')]
+            context=dict(mode='inert',folder=folder,port=18799,budget=b)
+            with a.PrivateIO(p4,b) as io:
+                a.issue_clearance(context,p4,owned,argv,a.sha(virtual/'inert-authority.json'))
+                identity=p4.identity
+                with monkeypatch.context() as child:
+                    child.setattr(p4,'identity',lambda pid:identity(2) if pid==os.getpid() else identity(pid))
+                    a.consume_clearance(context,p4,argv,a.sha(virtual/'inert-authority.json'))
+                listener=dict(port=18799,identity=identity(2),role='server',argv=argv)
+                a.save_new(folder/'listener.json',listener)
+                a.record_native_members(folder,p4,owned,argv,b)
+                a.observe_inert_exchange(folder,p4,owned,argv,18799,b)
+                a.save_new(folder/'argv-roundtrip.json',dict(question=a.corpus()['query'],argv=argv[4:]))
+                for name in ('protected-before.json','protected-after.json'): a.save_new(folder/name,protected)
+                for name in ('boundary-before.json','boundary-after.json'): a.save_new(folder/name,dict(pins=admitted['pins'],protected=protected))
+                snapshot_live[0]=False
+                cleanup=io.cleanup(owned,18799)
+            if fault=='protected-empty': (folder/'protected-after.json').write_text('[]')
+            elif fault=='native-subset':
+                malformed=a.load(folder/'native-members.json'); malformed['snapshot'].pop('1')
+                (folder/'native-members.json').write_text(json.dumps(malformed))
+            elif fault=='cleanup-subset':
+                malformed=a.load(folder/'cleanup.json'); malformed['processes'].pop()
+                (folder/'cleanup.json').write_text(json.dumps(malformed))
+            elif fault=='missing-exchange': (folder/'inert-exchange.json').unlink()
+            elif fault=='no-parent-exchange': del b.inert_exchange
+            elif fault=='empty-task-directory': (folder/'outputs/unexpected-task').mkdir(parents=True)
+            elif fault in ('wrong-endpoint','wrong-listener','wrong-response','nonboolean-response','late-exchange'):
+                malformed=a.load(folder/'inert-exchange.json')
+                if fault=='wrong-endpoint': malformed['endpoint']='http://127.0.0.1:11434/inert'
+                elif fault=='wrong-listener': malformed['listener']['identity']['pid']=999
+                elif fault=='wrong-response': malformed['response']=dict(inert=False)
+                elif fault=='nonboolean-response': malformed['response']=dict(inert=1)
+                else: malformed['after_ns']=b.cutoff_ns('work')+1
+                (folder/'inert-exchange.json').write_text(json.dumps(malformed))
+            b.phase='seal'
+            terminal=dict(kind='inert',folder=str(folder),run_id=b.run_id,timing=b.timing(),overall='READY_FOR_ROOT_TIMING_WITNESS',cleanup=cleanup,errors=[],first_failure=None)
+            a.save_new(folder/'terminal.json',terminal); a.seal_index(folder,b,p4)
+            if observer_port is not None:
+                if 'remaining' in observer_port:
+                    clock.value=b.cutoff_ns()-int(observer_port['remaining']*1e9)
+                install_delayed_port(p4,clock,observer_port)
+                observer_port['saved_bindings']={key:getattr(p4,key) for key in ('socket','time','subprocess','terminate_owned','save')}
+            return terminal
+        outcome=invocation.call(entry)
+        if observer_port is not None:
+>           assert all(getattr(p4,key) is value for key,value in observer_port['saved_bindings'].items())
+                                                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E           KeyError: 'saved_bindings'
+
+..\..\harness\test_adapter.py:903: KeyError
+____ test_port_rev2_real_substantive_observer_delayed_refusal[late-phase] _____
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-source13-real-controlled-preparation-20261106/code/harness-preparation-20261106T161506433847Z/temp/test_port_rev2_real_substantiv6')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000027B22476200>
+scenario = {'name': 'late-phase', 'remaining': 2.5, 'overrun': 1, 'eligible': False, ...}
+
+    @pytest.mark.parametrize('scenario',[
+        dict(name='sufficient',eligible=True,effective=3),
+        dict(name='clipped-sufficient',remaining=2.5,eligible=True,effective=2.5),
+        dict(name='clipped-unknown',remaining=2,eligible=False,effective=2),
+        dict(name='exact-cutoff',remaining=PORT_REFUSAL_DELAY,eligible=False,effective=PORT_REFUSAL_DELAY),
+        dict(name='zero-before-connect',setup=3,eligible=False,effective=None),
+        dict(name='phase-expired-before-hint',remaining=2,setup=2,eligible=False,effective=None),
+        dict(name='late-phase',remaining=2.5,overrun=1,eligible=False,effective=2.5),
+        dict(name='setup-sufficient',setup=.8,eligible=True,effective=2.2),
+        dict(name='setup-unknown',setup=1.1,eligible=False,effective=1.9),
+        dict(name='10035',code=10035,eligible=False,effective=3),
+        dict(name='10060',code=10060,eligible=False,effective=3),
+        dict(name='open',code=0,eligible=False,effective=3),
+        dict(name='error',error=True,eligible=False,effective=3),
+        dict(name='late-private-cap',overrun=1.1,eligible=False,effective=3),
+    ],ids=lambda v:v['name'])
+    def test_port_rev2_real_substantive_observer_delayed_refusal(tmp_path,monkeypatch,scenario):
+        scenario=dict(scenario)
+>       _substantive_closed_witness_fixture(tmp_path,monkeypatch,'none',observer_port=scenario)
+
+..\..\harness\test_adapter.py:1314: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-source13-real-controlled-preparation-20261106/code/harness-preparation-20261106T161506433847Z/temp/test_port_rev2_real_substantiv6')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000027B22476200>
+fault = 'none'
+observer_port = {'name': 'late-phase', 'remaining': 2.5, 'overrun': 1, 'eligible': False, ...}
+
+    def _substantive_closed_witness_fixture(tmp_path,monkeypatch,fault,observer_port=None):
+        import base64,os
+        from collections import OrderedDict
+        original_v=a.V; original_here=a.HERE
+        virtual=tmp_path/'virtual-root'; here=virtual/'harness'; here.mkdir(parents=True)
+        for source in original_here.iterdir():
+            if source.is_file(): (here/source.name).write_bytes(source.read_bytes())
+        (virtual/'inputs').mkdir()
+        (virtual/'inputs/scope.json').write_bytes((original_v/'inputs/scope.json').read_bytes())
+        monkeypatch.setattr(a,'V',virtual); monkeypatch.setattr(a,'HERE',here)
+        package=a.load(here/'manifest.json')
+        package['files']={name:a.sha(here/name) for name in package['files']}
+        (here/'manifest.json').write_text(json.dumps(package),encoding='utf8')
+        a.save_new(virtual/'harness-approval.json',dict(reviewer='root-independent',overall='PASS',manifest_sha256=a.sha(here/'manifest.json')))
+        clock=Clock(); invocation=a.RootInvocation(clock=clock); b=invocation.budget
+        folder=virtual/'inert'/b.run_id; folder.mkdir(parents=True)
+        p4=a.load_p4(); active=set(); _,calls=native_kernel(monkeypatch,p4,active,clock)
+        protected=[p4.identity(pid) for pid in range(51,58)]
+        protected_rows=protected_fixture(virtual,monkeypatch,p4,protected)
+        monkeypatch.setattr(p4,'process_times',lambda proc:(1000001,0))
+        monkeypatch.setattr(p4,'argv_parse',lambda text:json.loads(text))
+        monkeypatch.setattr(a,'load_p4',lambda:p4)
+        authority=dict(kind='source10_inert_qualification',folder=str(folder),port=18799,parent_timing=b.timing())
+        a.save_new(virtual/'inert-authority.json',authority)
+        baseline=dict(protected=protected,candidate=a.CANDIDATE,precision='FILETIME100ns',recorded_at=dt.datetime.now(dt.timezone.utc).isoformat())
+        a.save_new(virtual/'inert-native-baseline.json',baseline)
+        argv=a.inert_argv(folder,18799); snapshot_live=[True]; http_calls=[]
+        command=json.dumps([str(a.PY),*argv])
+        def checkout(cmd,**kwargs):
+            if 'Get-NetTCPConnection' in cmd[-1]: return '2' if snapshot_live[0] else '[]'
+            rows=[dict(ProcessId=pid,CreationFileTime=p4.identity(pid)['created_filetime'],ParentProcessId=0 if pid==1 else 1,CommandLineBase64=base64.b64encode(command.encode('utf-16-le')).decode('ascii')) for pid in (1,2)] if snapshot_live[0] else []
+            rows.extend(dict(row,CommandLineBase64=base64.b64encode(row['CommandLine'].encode('utf-16le')).decode('ascii')) for row in protected_rows.values())
+            return json.dumps(rows).encode('ascii')
+        monkeypatch.setattr(p4.subprocess,'check_output',checkout)
+        class Probe:
+            def settimeout(self,value): pass
+            def connect_ex(self,address): return a.errno.ECONNREFUSED
+            def close(self): pass
+        monkeypatch.setattr(p4.socket,'socket',Probe)
+        class Response:
+            def __enter__(self): return self
+            def __exit__(self,*args): pass
+            def read(self): return b'{"inert":true}'
+        class Opener:
+            def open(self,url,timeout): http_calls.append((url,timeout)); clock.advance(.001); return Response()
+        monkeypatch.setattr(p4.urllib.request,'build_opener',lambda *args:Opener())
+        def entry():
+            admitted=a.admitted_record('inert',folder,18799,authority,baseline,b)
+            a.save_new(folder/'admission.json',admitted)
+            a.save_new(folder/'attempt.json',dict(parent_timing=b.timing()))
+            owned=p4.Owned(folder,{}); b.owned=owned
+            proc=types.SimpleNamespace(pid=1,wait=lambda timeout=None:0)
+            owned.launchers=[dict(proc=proc,identity=p4.identity(1),argv=argv,role='server')]
+            owned.known[1]=dict(identity=p4.identity(1),argv=argv,role='server',parent=0)
+            owned.logs=[open(folder/'server.stdout','w'),open(folder/'server.stderr','w')]
+            context=dict(mode='inert',folder=folder,port=18799,budget=b)
+            with a.PrivateIO(p4,b) as io:
+                a.issue_clearance(context,p4,owned,argv,a.sha(virtual/'inert-authority.json'))
+                identity=p4.identity
+                with monkeypatch.context() as child:
+                    child.setattr(p4,'identity',lambda pid:identity(2) if pid==os.getpid() else identity(pid))
+                    a.consume_clearance(context,p4,argv,a.sha(virtual/'inert-authority.json'))
+                listener=dict(port=18799,identity=identity(2),role='server',argv=argv)
+                a.save_new(folder/'listener.json',listener)
+                a.record_native_members(folder,p4,owned,argv,b)
+                a.observe_inert_exchange(folder,p4,owned,argv,18799,b)
+                a.save_new(folder/'argv-roundtrip.json',dict(question=a.corpus()['query'],argv=argv[4:]))
+                for name in ('protected-before.json','protected-after.json'): a.save_new(folder/name,protected)
+                for name in ('boundary-before.json','boundary-after.json'): a.save_new(folder/name,dict(pins=admitted['pins'],protected=protected))
+                snapshot_live[0]=False
+                cleanup=io.cleanup(owned,18799)
+            if fault=='protected-empty': (folder/'protected-after.json').write_text('[]')
+            elif fault=='native-subset':
+                malformed=a.load(folder/'native-members.json'); malformed['snapshot'].pop('1')
+                (folder/'native-members.json').write_text(json.dumps(malformed))
+            elif fault=='cleanup-subset':
+                malformed=a.load(folder/'cleanup.json'); malformed['processes'].pop()
+                (folder/'cleanup.json').write_text(json.dumps(malformed))
+            elif fault=='missing-exchange': (folder/'inert-exchange.json').unlink()
+            elif fault=='no-parent-exchange': del b.inert_exchange
+            elif fault=='empty-task-directory': (folder/'outputs/unexpected-task').mkdir(parents=True)
+            elif fault in ('wrong-endpoint','wrong-listener','wrong-response','nonboolean-response','late-exchange'):
+                malformed=a.load(folder/'inert-exchange.json')
+                if fault=='wrong-endpoint': malformed['endpoint']='http://127.0.0.1:11434/inert'
+                elif fault=='wrong-listener': malformed['listener']['identity']['pid']=999
+                elif fault=='wrong-response': malformed['response']=dict(inert=False)
+                elif fault=='nonboolean-response': malformed['response']=dict(inert=1)
+                else: malformed['after_ns']=b.cutoff_ns('work')+1
+                (folder/'inert-exchange.json').write_text(json.dumps(malformed))
+            b.phase='seal'
+            terminal=dict(kind='inert',folder=str(folder),run_id=b.run_id,timing=b.timing(),overall='READY_FOR_ROOT_TIMING_WITNESS',cleanup=cleanup,errors=[],first_failure=None)
+            a.save_new(folder/'terminal.json',terminal); a.seal_index(folder,b,p4)
+            if observer_port is not None:
+                if 'remaining' in observer_port:
+                    clock.value=b.cutoff_ns()-int(observer_port['remaining']*1e9)
+                install_delayed_port(p4,clock,observer_port)
+                observer_port['saved_bindings']={key:getattr(p4,key) for key in ('socket','time','subprocess','terminate_owned','save')}
+            return terminal
+        outcome=invocation.call(entry)
+        if observer_port is not None:
+>           assert all(getattr(p4,key) is value for key,value in observer_port['saved_bindings'].items())
+                                                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E           KeyError: 'saved_bindings'
+
+..\..\harness\test_adapter.py:903: KeyError
+_ test_port_rev2_real_substantive_observer_delayed_refusal[setup-sufficient] __
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-source13-real-controlled-preparation-20261106/code/harness-preparation-20261106T161506433847Z/temp/test_port_rev2_real_substantiv7')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000027B22737000>
+scenario = {'name': 'setup-sufficient', 'setup': 0.8, 'eligible': True, 'effective': 2.2}
+
+    @pytest.mark.parametrize('scenario',[
+        dict(name='sufficient',eligible=True,effective=3),
+        dict(name='clipped-sufficient',remaining=2.5,eligible=True,effective=2.5),
+        dict(name='clipped-unknown',remaining=2,eligible=False,effective=2),
+        dict(name='exact-cutoff',remaining=PORT_REFUSAL_DELAY,eligible=False,effective=PORT_REFUSAL_DELAY),
+        dict(name='zero-before-connect',setup=3,eligible=False,effective=None),
+        dict(name='phase-expired-before-hint',remaining=2,setup=2,eligible=False,effective=None),
+        dict(name='late-phase',remaining=2.5,overrun=1,eligible=False,effective=2.5),
+        dict(name='setup-sufficient',setup=.8,eligible=True,effective=2.2),
+        dict(name='setup-unknown',setup=1.1,eligible=False,effective=1.9),
+        dict(name='10035',code=10035,eligible=False,effective=3),
+        dict(name='10060',code=10060,eligible=False,effective=3),
+        dict(name='open',code=0,eligible=False,effective=3),
+        dict(name='error',error=True,eligible=False,effective=3),
+        dict(name='late-private-cap',overrun=1.1,eligible=False,effective=3),
+    ],ids=lambda v:v['name'])
+    def test_port_rev2_real_substantive_observer_delayed_refusal(tmp_path,monkeypatch,scenario):
+        scenario=dict(scenario)
+>       _substantive_closed_witness_fixture(tmp_path,monkeypatch,'none',observer_port=scenario)
+
+..\..\harness\test_adapter.py:1314: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-source13-real-controlled-preparation-20261106/code/harness-preparation-20261106T161506433847Z/temp/test_port_rev2_real_substantiv7')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000027B22737000>
+fault = 'none'
+observer_port = {'name': 'setup-sufficient', 'setup': 0.8, 'eligible': True, 'effective': 2.2}
+
+    def _substantive_closed_witness_fixture(tmp_path,monkeypatch,fault,observer_port=None):
+        import base64,os
+        from collections import OrderedDict
+        original_v=a.V; original_here=a.HERE
+        virtual=tmp_path/'virtual-root'; here=virtual/'harness'; here.mkdir(parents=True)
+        for source in original_here.iterdir():
+            if source.is_file(): (here/source.name).write_bytes(source.read_bytes())
+        (virtual/'inputs').mkdir()
+        (virtual/'inputs/scope.json').write_bytes((original_v/'inputs/scope.json').read_bytes())
+        monkeypatch.setattr(a,'V',virtual); monkeypatch.setattr(a,'HERE',here)
+        package=a.load(here/'manifest.json')
+        package['files']={name:a.sha(here/name) for name in package['files']}
+        (here/'manifest.json').write_text(json.dumps(package),encoding='utf8')
+        a.save_new(virtual/'harness-approval.json',dict(reviewer='root-independent',overall='PASS',manifest_sha256=a.sha(here/'manifest.json')))
+        clock=Clock(); invocation=a.RootInvocation(clock=clock); b=invocation.budget
+        folder=virtual/'inert'/b.run_id; folder.mkdir(parents=True)
+        p4=a.load_p4(); active=set(); _,calls=native_kernel(monkeypatch,p4,active,clock)
+        protected=[p4.identity(pid) for pid in range(51,58)]
+        protected_rows=protected_fixture(virtual,monkeypatch,p4,protected)
+        monkeypatch.setattr(p4,'process_times',lambda proc:(1000001,0))
+        monkeypatch.setattr(p4,'argv_parse',lambda text:json.loads(text))
+        monkeypatch.setattr(a,'load_p4',lambda:p4)
+        authority=dict(kind='source10_inert_qualification',folder=str(folder),port=18799,parent_timing=b.timing())
+        a.save_new(virtual/'inert-authority.json',authority)
+        baseline=dict(protected=protected,candidate=a.CANDIDATE,precision='FILETIME100ns',recorded_at=dt.datetime.now(dt.timezone.utc).isoformat())
+        a.save_new(virtual/'inert-native-baseline.json',baseline)
+        argv=a.inert_argv(folder,18799); snapshot_live=[True]; http_calls=[]
+        command=json.dumps([str(a.PY),*argv])
+        def checkout(cmd,**kwargs):
+            if 'Get-NetTCPConnection' in cmd[-1]: return '2' if snapshot_live[0] else '[]'
+            rows=[dict(ProcessId=pid,CreationFileTime=p4.identity(pid)['created_filetime'],ParentProcessId=0 if pid==1 else 1,CommandLineBase64=base64.b64encode(command.encode('utf-16-le')).decode('ascii')) for pid in (1,2)] if snapshot_live[0] else []
+            rows.extend(dict(row,CommandLineBase64=base64.b64encode(row['CommandLine'].encode('utf-16le')).decode('ascii')) for row in protected_rows.values())
+            return json.dumps(rows).encode('ascii')
+        monkeypatch.setattr(p4.subprocess,'check_output',checkout)
+        class Probe:
+            def settimeout(self,value): pass
+            def connect_ex(self,address): return a.errno.ECONNREFUSED
+            def close(self): pass
+        monkeypatch.setattr(p4.socket,'socket',Probe)
+        class Response:
+            def __enter__(self): return self
+            def __exit__(self,*args): pass
+            def read(self): return b'{"inert":true}'
+        class Opener:
+            def open(self,url,timeout): http_calls.append((url,timeout)); clock.advance(.001); return Response()
+        monkeypatch.setattr(p4.urllib.request,'build_opener',lambda *args:Opener())
+        def entry():
+            admitted=a.admitted_record('inert',folder,18799,authority,baseline,b)
+            a.save_new(folder/'admission.json',admitted)
+            a.save_new(folder/'attempt.json',dict(parent_timing=b.timing()))
+            owned=p4.Owned(folder,{}); b.owned=owned
+            proc=types.SimpleNamespace(pid=1,wait=lambda timeout=None:0)
+            owned.launchers=[dict(proc=proc,identity=p4.identity(1),argv=argv,role='server')]
+            owned.known[1]=dict(identity=p4.identity(1),argv=argv,role='server',parent=0)
+            owned.logs=[open(folder/'server.stdout','w'),open(folder/'server.stderr','w')]
+            context=dict(mode='inert',folder=folder,port=18799,budget=b)
+            with a.PrivateIO(p4,b) as io:
+                a.issue_clearance(context,p4,owned,argv,a.sha(virtual/'inert-authority.json'))
+                identity=p4.identity
+                with monkeypatch.context() as child:
+                    child.setattr(p4,'identity',lambda pid:identity(2) if pid==os.getpid() else identity(pid))
+                    a.consume_clearance(context,p4,argv,a.sha(virtual/'inert-authority.json'))
+                listener=dict(port=18799,identity=identity(2),role='server',argv=argv)
+                a.save_new(folder/'listener.json',listener)
+                a.record_native_members(folder,p4,owned,argv,b)
+                a.observe_inert_exchange(folder,p4,owned,argv,18799,b)
+                a.save_new(folder/'argv-roundtrip.json',dict(question=a.corpus()['query'],argv=argv[4:]))
+                for name in ('protected-before.json','protected-after.json'): a.save_new(folder/name,protected)
+                for name in ('boundary-before.json','boundary-after.json'): a.save_new(folder/name,dict(pins=admitted['pins'],protected=protected))
+                snapshot_live[0]=False
+                cleanup=io.cleanup(owned,18799)
+            if fault=='protected-empty': (folder/'protected-after.json').write_text('[]')
+            elif fault=='native-subset':
+                malformed=a.load(folder/'native-members.json'); malformed['snapshot'].pop('1')
+                (folder/'native-members.json').write_text(json.dumps(malformed))
+            elif fault=='cleanup-subset':
+                malformed=a.load(folder/'cleanup.json'); malformed['processes'].pop()
+                (folder/'cleanup.json').write_text(json.dumps(malformed))
+            elif fault=='missing-exchange': (folder/'inert-exchange.json').unlink()
+            elif fault=='no-parent-exchange': del b.inert_exchange
+            elif fault=='empty-task-directory': (folder/'outputs/unexpected-task').mkdir(parents=True)
+            elif fault in ('wrong-endpoint','wrong-listener','wrong-response','nonboolean-response','late-exchange'):
+                malformed=a.load(folder/'inert-exchange.json')
+                if fault=='wrong-endpoint': malformed['endpoint']='http://127.0.0.1:11434/inert'
+                elif fault=='wrong-listener': malformed['listener']['identity']['pid']=999
+                elif fault=='wrong-response': malformed['response']=dict(inert=False)
+                elif fault=='nonboolean-response': malformed['response']=dict(inert=1)
+                else: malformed['after_ns']=b.cutoff_ns('work')+1
+                (folder/'inert-exchange.json').write_text(json.dumps(malformed))
+            b.phase='seal'
+            terminal=dict(kind='inert',folder=str(folder),run_id=b.run_id,timing=b.timing(),overall='READY_FOR_ROOT_TIMING_WITNESS',cleanup=cleanup,errors=[],first_failure=None)
+            a.save_new(folder/'terminal.json',terminal); a.seal_index(folder,b,p4)
+            if observer_port is not None:
+                if 'remaining' in observer_port:
+                    clock.value=b.cutoff_ns()-int(observer_port['remaining']*1e9)
+                install_delayed_port(p4,clock,observer_port)
+                observer_port['saved_bindings']={key:getattr(p4,key) for key in ('socket','time','subprocess','terminate_owned','save')}
+            return terminal
+        outcome=invocation.call(entry)
+        if observer_port is not None:
+>           assert all(getattr(p4,key) is value for key,value in observer_port['saved_bindings'].items())
+                                                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E           KeyError: 'saved_bindings'
+
+..\..\harness\test_adapter.py:903: KeyError
+___ test_port_rev2_real_substantive_observer_delayed_refusal[setup-unknown] ___
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-source13-real-controlled-preparation-20261106/code/harness-preparation-20261106T161506433847Z/temp/test_port_rev2_real_substantiv8')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000027B228DA900>
+scenario = {'name': 'setup-unknown', 'setup': 1.1, 'eligible': False, 'effective': 1.9}
+
+    @pytest.mark.parametrize('scenario',[
+        dict(name='sufficient',eligible=True,effective=3),
+        dict(name='clipped-sufficient',remaining=2.5,eligible=True,effective=2.5),
+        dict(name='clipped-unknown',remaining=2,eligible=False,effective=2),
+        dict(name='exact-cutoff',remaining=PORT_REFUSAL_DELAY,eligible=False,effective=PORT_REFUSAL_DELAY),
+        dict(name='zero-before-connect',setup=3,eligible=False,effective=None),
+        dict(name='phase-expired-before-hint',remaining=2,setup=2,eligible=False,effective=None),
+        dict(name='late-phase',remaining=2.5,overrun=1,eligible=False,effective=2.5),
+        dict(name='setup-sufficient',setup=.8,eligible=True,effective=2.2),
+        dict(name='setup-unknown',setup=1.1,eligible=False,effective=1.9),
+        dict(name='10035',code=10035,eligible=False,effective=3),
+        dict(name='10060',code=10060,eligible=False,effective=3),
+        dict(name='open',code=0,eligible=False,effective=3),
+        dict(name='error',error=True,eligible=False,effective=3),
+        dict(name='late-private-cap',overrun=1.1,eligible=False,effective=3),
+    ],ids=lambda v:v['name'])
+    def test_port_rev2_real_substantive_observer_delayed_refusal(tmp_path,monkeypatch,scenario):
+        scenario=dict(scenario)
+>       _substantive_closed_witness_fixture(tmp_path,monkeypatch,'none',observer_port=scenario)
+
+..\..\harness\test_adapter.py:1314: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-source13-real-controlled-preparation-20261106/code/harness-preparation-20261106T161506433847Z/temp/test_port_rev2_real_substantiv8')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000027B228DA900>
+fault = 'none'
+observer_port = {'name': 'setup-unknown', 'setup': 1.1, 'eligible': False, 'effective': 1.9}
+
+    def _substantive_closed_witness_fixture(tmp_path,monkeypatch,fault,observer_port=None):
+        import base64,os
+        from collections import OrderedDict
+        original_v=a.V; original_here=a.HERE
+        virtual=tmp_path/'virtual-root'; here=virtual/'harness'; here.mkdir(parents=True)
+        for source in original_here.iterdir():
+            if source.is_file(): (here/source.name).write_bytes(source.read_bytes())
+        (virtual/'inputs').mkdir()
+        (virtual/'inputs/scope.json').write_bytes((original_v/'inputs/scope.json').read_bytes())
+        monkeypatch.setattr(a,'V',virtual); monkeypatch.setattr(a,'HERE',here)
+        package=a.load(here/'manifest.json')
+        package['files']={name:a.sha(here/name) for name in package['files']}
+        (here/'manifest.json').write_text(json.dumps(package),encoding='utf8')
+        a.save_new(virtual/'harness-approval.json',dict(reviewer='root-independent',overall='PASS',manifest_sha256=a.sha(here/'manifest.json')))
+        clock=Clock(); invocation=a.RootInvocation(clock=clock); b=invocation.budget
+        folder=virtual/'inert'/b.run_id; folder.mkdir(parents=True)
+        p4=a.load_p4(); active=set(); _,calls=native_kernel(monkeypatch,p4,active,clock)
+        protected=[p4.identity(pid) for pid in range(51,58)]
+        protected_rows=protected_fixture(virtual,monkeypatch,p4,protected)
+        monkeypatch.setattr(p4,'process_times',lambda proc:(1000001,0))
+        monkeypatch.setattr(p4,'argv_parse',lambda text:json.loads(text))
+        monkeypatch.setattr(a,'load_p4',lambda:p4)
+        authority=dict(kind='source10_inert_qualification',folder=str(folder),port=18799,parent_timing=b.timing())
+        a.save_new(virtual/'inert-authority.json',authority)
+        baseline=dict(protected=protected,candidate=a.CANDIDATE,precision='FILETIME100ns',recorded_at=dt.datetime.now(dt.timezone.utc).isoformat())
+        a.save_new(virtual/'inert-native-baseline.json',baseline)
+        argv=a.inert_argv(folder,18799); snapshot_live=[True]; http_calls=[]
+        command=json.dumps([str(a.PY),*argv])
+        def checkout(cmd,**kwargs):
+            if 'Get-NetTCPConnection' in cmd[-1]: return '2' if snapshot_live[0] else '[]'
+            rows=[dict(ProcessId=pid,CreationFileTime=p4.identity(pid)['created_filetime'],ParentProcessId=0 if pid==1 else 1,CommandLineBase64=base64.b64encode(command.encode('utf-16-le')).decode('ascii')) for pid in (1,2)] if snapshot_live[0] else []
+            rows.extend(dict(row,CommandLineBase64=base64.b64encode(row['CommandLine'].encode('utf-16le')).decode('ascii')) for row in protected_rows.values())
+            return json.dumps(rows).encode('ascii')
+        monkeypatch.setattr(p4.subprocess,'check_output',checkout)
+        class Probe:
+            def settimeout(self,value): pass
+            def connect_ex(self,address): return a.errno.ECONNREFUSED
+            def close(self): pass
+        monkeypatch.setattr(p4.socket,'socket',Probe)
+        class Response:
+            def __enter__(self): return self
+            def __exit__(self,*args): pass
+            def read(self): return b'{"inert":true}'
+        class Opener:
+            def open(self,url,timeout): http_calls.append((url,timeout)); clock.advance(.001); return Response()
+        monkeypatch.setattr(p4.urllib.request,'build_opener',lambda *args:Opener())
+        def entry():
+            admitted=a.admitted_record('inert',folder,18799,authority,baseline,b)
+            a.save_new(folder/'admission.json',admitted)
+            a.save_new(folder/'attempt.json',dict(parent_timing=b.timing()))
+            owned=p4.Owned(folder,{}); b.owned=owned
+            proc=types.SimpleNamespace(pid=1,wait=lambda timeout=None:0)
+            owned.launchers=[dict(proc=proc,identity=p4.identity(1),argv=argv,role='server')]
+            owned.known[1]=dict(identity=p4.identity(1),argv=argv,role='server',parent=0)
+            owned.logs=[open(folder/'server.stdout','w'),open(folder/'server.stderr','w')]
+            context=dict(mode='inert',folder=folder,port=18799,budget=b)
+            with a.PrivateIO(p4,b) as io:
+                a.issue_clearance(context,p4,owned,argv,a.sha(virtual/'inert-authority.json'))
+                identity=p4.identity
+                with monkeypatch.context() as child:
+                    child.setattr(p4,'identity',lambda pid:identity(2) if pid==os.getpid() else identity(pid))
+                    a.consume_clearance(context,p4,argv,a.sha(virtual/'inert-authority.json'))
+                listener=dict(port=18799,identity=identity(2),role='server',argv=argv)
+                a.save_new(folder/'listener.json',listener)
+                a.record_native_members(folder,p4,owned,argv,b)
+                a.observe_inert_exchange(folder,p4,owned,argv,18799,b)
+                a.save_new(folder/'argv-roundtrip.json',dict(question=a.corpus()['query'],argv=argv[4:]))
+                for name in ('protected-before.json','protected-after.json'): a.save_new(folder/name,protected)
+                for name in ('boundary-before.json','boundary-after.json'): a.save_new(folder/name,dict(pins=admitted['pins'],protected=protected))
+                snapshot_live[0]=False
+                cleanup=io.cleanup(owned,18799)
+            if fault=='protected-empty': (folder/'protected-after.json').write_text('[]')
+            elif fault=='native-subset':
+                malformed=a.load(folder/'native-members.json'); malformed['snapshot'].pop('1')
+                (folder/'native-members.json').write_text(json.dumps(malformed))
+            elif fault=='cleanup-subset':
+                malformed=a.load(folder/'cleanup.json'); malformed['processes'].pop()
+                (folder/'cleanup.json').write_text(json.dumps(malformed))
+            elif fault=='missing-exchange': (folder/'inert-exchange.json').unlink()
+            elif fault=='no-parent-exchange': del b.inert_exchange
+            elif fault=='empty-task-directory': (folder/'outputs/unexpected-task').mkdir(parents=True)
+            elif fault in ('wrong-endpoint','wrong-listener','wrong-response','nonboolean-response','late-exchange'):
+                malformed=a.load(folder/'inert-exchange.json')
+                if fault=='wrong-endpoint': malformed['endpoint']='http://127.0.0.1:11434/inert'
+                elif fault=='wrong-listener': malformed['listener']['identity']['pid']=999
+                elif fault=='wrong-response': malformed['response']=dict(inert=False)
+                elif fault=='nonboolean-response': malformed['response']=dict(inert=1)
+                else: malformed['after_ns']=b.cutoff_ns('work')+1
+                (folder/'inert-exchange.json').write_text(json.dumps(malformed))
+            b.phase='seal'
+            terminal=dict(kind='inert',folder=str(folder),run_id=b.run_id,timing=b.timing(),overall='READY_FOR_ROOT_TIMING_WITNESS',cleanup=cleanup,errors=[],first_failure=None)
+            a.save_new(folder/'terminal.json',terminal); a.seal_index(folder,b,p4)
+            if observer_port is not None:
+                if 'remaining' in observer_port:
+                    clock.value=b.cutoff_ns()-int(observer_port['remaining']*1e9)
+                install_delayed_port(p4,clock,observer_port)
+                observer_port['saved_bindings']={key:getattr(p4,key) for key in ('socket','time','subprocess','terminate_owned','save')}
+            return terminal
+        outcome=invocation.call(entry)
+        if observer_port is not None:
+>           assert all(getattr(p4,key) is value for key,value in observer_port['saved_bindings'].items())
+                                                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E           KeyError: 'saved_bindings'
+
+..\..\harness\test_adapter.py:903: KeyError
+_______ test_port_rev2_real_substantive_observer_delayed_refusal[10035] _______
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-source13-real-controlled-preparation-20261106/code/harness-preparation-20261106T161506433847Z/temp/test_port_rev2_real_substantiv9')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000027B227EE7B0>
+scenario = {'name': '10035', 'code': 10035, 'eligible': False, 'effective': 3}
+
+    @pytest.mark.parametrize('scenario',[
+        dict(name='sufficient',eligible=True,effective=3),
+        dict(name='clipped-sufficient',remaining=2.5,eligible=True,effective=2.5),
+        dict(name='clipped-unknown',remaining=2,eligible=False,effective=2),
+        dict(name='exact-cutoff',remaining=PORT_REFUSAL_DELAY,eligible=False,effective=PORT_REFUSAL_DELAY),
+        dict(name='zero-before-connect',setup=3,eligible=False,effective=None),
+        dict(name='phase-expired-before-hint',remaining=2,setup=2,eligible=False,effective=None),
+        dict(name='late-phase',remaining=2.5,overrun=1,eligible=False,effective=2.5),
+        dict(name='setup-sufficient',setup=.8,eligible=True,effective=2.2),
+        dict(name='setup-unknown',setup=1.1,eligible=False,effective=1.9),
+        dict(name='10035',code=10035,eligible=False,effective=3),
+        dict(name='10060',code=10060,eligible=False,effective=3),
+        dict(name='open',code=0,eligible=False,effective=3),
+        dict(name='error',error=True,eligible=False,effective=3),
+        dict(name='late-private-cap',overrun=1.1,eligible=False,effective=3),
+    ],ids=lambda v:v['name'])
+    def test_port_rev2_real_substantive_observer_delayed_refusal(tmp_path,monkeypatch,scenario):
+        scenario=dict(scenario)
+>       _substantive_closed_witness_fixture(tmp_path,monkeypatch,'none',observer_port=scenario)
+
+..\..\harness\test_adapter.py:1314: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-source13-real-controlled-preparation-20261106/code/harness-preparation-20261106T161506433847Z/temp/test_port_rev2_real_substantiv9')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000027B227EE7B0>
+fault = 'none'
+observer_port = {'name': '10035', 'code': 10035, 'eligible': False, 'effective': 3}
+
+    def _substantive_closed_witness_fixture(tmp_path,monkeypatch,fault,observer_port=None):
+        import base64,os
+        from collections import OrderedDict
+        original_v=a.V; original_here=a.HERE
+        virtual=tmp_path/'virtual-root'; here=virtual/'harness'; here.mkdir(parents=True)
+        for source in original_here.iterdir():
+            if source.is_file(): (here/source.name).write_bytes(source.read_bytes())
+        (virtual/'inputs').mkdir()
+        (virtual/'inputs/scope.json').write_bytes((original_v/'inputs/scope.json').read_bytes())
+        monkeypatch.setattr(a,'V',virtual); monkeypatch.setattr(a,'HERE',here)
+        package=a.load(here/'manifest.json')
+        package['files']={name:a.sha(here/name) for name in package['files']}
+        (here/'manifest.json').write_text(json.dumps(package),encoding='utf8')
+        a.save_new(virtual/'harness-approval.json',dict(reviewer='root-independent',overall='PASS',manifest_sha256=a.sha(here/'manifest.json')))
+        clock=Clock(); invocation=a.RootInvocation(clock=clock); b=invocation.budget
+        folder=virtual/'inert'/b.run_id; folder.mkdir(parents=True)
+        p4=a.load_p4(); active=set(); _,calls=native_kernel(monkeypatch,p4,active,clock)
+        protected=[p4.identity(pid) for pid in range(51,58)]
+        protected_rows=protected_fixture(virtual,monkeypatch,p4,protected)
+        monkeypatch.setattr(p4,'process_times',lambda proc:(1000001,0))
+        monkeypatch.setattr(p4,'argv_parse',lambda text:json.loads(text))
+        monkeypatch.setattr(a,'load_p4',lambda:p4)
+        authority=dict(kind='source10_inert_qualification',folder=str(folder),port=18799,parent_timing=b.timing())
+        a.save_new(virtual/'inert-authority.json',authority)
+        baseline=dict(protected=protected,candidate=a.CANDIDATE,precision='FILETIME100ns',recorded_at=dt.datetime.now(dt.timezone.utc).isoformat())
+        a.save_new(virtual/'inert-native-baseline.json',baseline)
+        argv=a.inert_argv(folder,18799); snapshot_live=[True]; http_calls=[]
+        command=json.dumps([str(a.PY),*argv])
+        def checkout(cmd,**kwargs):
+            if 'Get-NetTCPConnection' in cmd[-1]: return '2' if snapshot_live[0] else '[]'
+            rows=[dict(ProcessId=pid,CreationFileTime=p4.identity(pid)['created_filetime'],ParentProcessId=0 if pid==1 else 1,CommandLineBase64=base64.b64encode(command.encode('utf-16-le')).decode('ascii')) for pid in (1,2)] if snapshot_live[0] else []
+            rows.extend(dict(row,CommandLineBase64=base64.b64encode(row['CommandLine'].encode('utf-16le')).decode('ascii')) for row in protected_rows.values())
+            return json.dumps(rows).encode('ascii')
+        monkeypatch.setattr(p4.subprocess,'check_output',checkout)
+        class Probe:
+            def settimeout(self,value): pass
+            def connect_ex(self,address): return a.errno.ECONNREFUSED
+            def close(self): pass
+        monkeypatch.setattr(p4.socket,'socket',Probe)
+        class Response:
+            def __enter__(self): return self
+            def __exit__(self,*args): pass
+            def read(self): return b'{"inert":true}'
+        class Opener:
+            def open(self,url,timeout): http_calls.append((url,timeout)); clock.advance(.001); return Response()
+        monkeypatch.setattr(p4.urllib.request,'build_opener',lambda *args:Opener())
+        def entry():
+            admitted=a.admitted_record('inert',folder,18799,authority,baseline,b)
+            a.save_new(folder/'admission.json',admitted)
+            a.save_new(folder/'attempt.json',dict(parent_timing=b.timing()))
+            owned=p4.Owned(folder,{}); b.owned=owned
+            proc=types.SimpleNamespace(pid=1,wait=lambda timeout=None:0)
+            owned.launchers=[dict(proc=proc,identity=p4.identity(1),argv=argv,role='server')]
+            owned.known[1]=dict(identity=p4.identity(1),argv=argv,role='server',parent=0)
+            owned.logs=[open(folder/'server.stdout','w'),open(folder/'server.stderr','w')]
+            context=dict(mode='inert',folder=folder,port=18799,budget=b)
+            with a.PrivateIO(p4,b) as io:
+                a.issue_clearance(context,p4,owned,argv,a.sha(virtual/'inert-authority.json'))
+                identity=p4.identity
+                with monkeypatch.context() as child:
+                    child.setattr(p4,'identity',lambda pid:identity(2) if pid==os.getpid() else identity(pid))
+                    a.consume_clearance(context,p4,argv,a.sha(virtual/'inert-authority.json'))
+                listener=dict(port=18799,identity=identity(2),role='server',argv=argv)
+                a.save_new(folder/'listener.json',listener)
+                a.record_native_members(folder,p4,owned,argv,b)
+                a.observe_inert_exchange(folder,p4,owned,argv,18799,b)
+                a.save_new(folder/'argv-roundtrip.json',dict(question=a.corpus()['query'],argv=argv[4:]))
+                for name in ('protected-before.json','protected-after.json'): a.save_new(folder/name,protected)
+                for name in ('boundary-before.json','boundary-after.json'): a.save_new(folder/name,dict(pins=admitted['pins'],protected=protected))
+                snapshot_live[0]=False
+                cleanup=io.cleanup(owned,18799)
+            if fault=='protected-empty': (folder/'protected-after.json').write_text('[]')
+            elif fault=='native-subset':
+                malformed=a.load(folder/'native-members.json'); malformed['snapshot'].pop('1')
+                (folder/'native-members.json').write_text(json.dumps(malformed))
+            elif fault=='cleanup-subset':
+                malformed=a.load(folder/'cleanup.json'); malformed['processes'].pop()
+                (folder/'cleanup.json').write_text(json.dumps(malformed))
+            elif fault=='missing-exchange': (folder/'inert-exchange.json').unlink()
+            elif fault=='no-parent-exchange': del b.inert_exchange
+            elif fault=='empty-task-directory': (folder/'outputs/unexpected-task').mkdir(parents=True)
+            elif fault in ('wrong-endpoint','wrong-listener','wrong-response','nonboolean-response','late-exchange'):
+                malformed=a.load(folder/'inert-exchange.json')
+                if fault=='wrong-endpoint': malformed['endpoint']='http://127.0.0.1:11434/inert'
+                elif fault=='wrong-listener': malformed['listener']['identity']['pid']=999
+                elif fault=='wrong-response': malformed['response']=dict(inert=False)
+                elif fault=='nonboolean-response': malformed['response']=dict(inert=1)
+                else: malformed['after_ns']=b.cutoff_ns('work')+1
+                (folder/'inert-exchange.json').write_text(json.dumps(malformed))
+            b.phase='seal'
+            terminal=dict(kind='inert',folder=str(folder),run_id=b.run_id,timing=b.timing(),overall='READY_FOR_ROOT_TIMING_WITNESS',cleanup=cleanup,errors=[],first_failure=None)
+            a.save_new(folder/'terminal.json',terminal); a.seal_index(folder,b,p4)
+            if observer_port is not None:
+                if 'remaining' in observer_port:
+                    clock.value=b.cutoff_ns()-int(observer_port['remaining']*1e9)
+                install_delayed_port(p4,clock,observer_port)
+                observer_port['saved_bindings']={key:getattr(p4,key) for key in ('socket','time','subprocess','terminate_owned','save')}
+            return terminal
+        outcome=invocation.call(entry)
+        if observer_port is not None:
+>           assert all(getattr(p4,key) is value for key,value in observer_port['saved_bindings'].items())
+                                                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E           KeyError: 'saved_bindings'
+
+..\..\harness\test_adapter.py:903: KeyError
+_______ test_port_rev2_real_substantive_observer_delayed_refusal[10060] _______
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-source13-real-controlled-preparation-20261106/code/harness-preparation-20261106T161506433847Z/temp/test_port_rev2_real_substantiv10')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000027B22800600>
+scenario = {'name': '10060', 'code': 10060, 'eligible': False, 'effective': 3}
+
+    @pytest.mark.parametrize('scenario',[
+        dict(name='sufficient',eligible=True,effective=3),
+        dict(name='clipped-sufficient',remaining=2.5,eligible=True,effective=2.5),
+        dict(name='clipped-unknown',remaining=2,eligible=False,effective=2),
+        dict(name='exact-cutoff',remaining=PORT_REFUSAL_DELAY,eligible=False,effective=PORT_REFUSAL_DELAY),
+        dict(name='zero-before-connect',setup=3,eligible=False,effective=None),
+        dict(name='phase-expired-before-hint',remaining=2,setup=2,eligible=False,effective=None),
+        dict(name='late-phase',remaining=2.5,overrun=1,eligible=False,effective=2.5),
+        dict(name='setup-sufficient',setup=.8,eligible=True,effective=2.2),
+        dict(name='setup-unknown',setup=1.1,eligible=False,effective=1.9),
+        dict(name='10035',code=10035,eligible=False,effective=3),
+        dict(name='10060',code=10060,eligible=False,effective=3),
+        dict(name='open',code=0,eligible=False,effective=3),
+        dict(name='error',error=True,eligible=False,effective=3),
+        dict(name='late-private-cap',overrun=1.1,eligible=False,effective=3),
+    ],ids=lambda v:v['name'])
+    def test_port_rev2_real_substantive_observer_delayed_refusal(tmp_path,monkeypatch,scenario):
+        scenario=dict(scenario)
+>       _substantive_closed_witness_fixture(tmp_path,monkeypatch,'none',observer_port=scenario)
+
+..\..\harness\test_adapter.py:1314: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-source13-real-controlled-preparation-20261106/code/harness-preparation-20261106T161506433847Z/temp/test_port_rev2_real_substantiv10')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000027B22800600>
+fault = 'none'
+observer_port = {'name': '10060', 'code': 10060, 'eligible': False, 'effective': 3}
+
+    def _substantive_closed_witness_fixture(tmp_path,monkeypatch,fault,observer_port=None):
+        import base64,os
+        from collections import OrderedDict
+        original_v=a.V; original_here=a.HERE
+        virtual=tmp_path/'virtual-root'; here=virtual/'harness'; here.mkdir(parents=True)
+        for source in original_here.iterdir():
+            if source.is_file(): (here/source.name).write_bytes(source.read_bytes())
+        (virtual/'inputs').mkdir()
+        (virtual/'inputs/scope.json').write_bytes((original_v/'inputs/scope.json').read_bytes())
+        monkeypatch.setattr(a,'V',virtual); monkeypatch.setattr(a,'HERE',here)
+        package=a.load(here/'manifest.json')
+        package['files']={name:a.sha(here/name) for name in package['files']}
+        (here/'manifest.json').write_text(json.dumps(package),encoding='utf8')
+        a.save_new(virtual/'harness-approval.json',dict(reviewer='root-independent',overall='PASS',manifest_sha256=a.sha(here/'manifest.json')))
+        clock=Clock(); invocation=a.RootInvocation(clock=clock); b=invocation.budget
+        folder=virtual/'inert'/b.run_id; folder.mkdir(parents=True)
+        p4=a.load_p4(); active=set(); _,calls=native_kernel(monkeypatch,p4,active,clock)
+        protected=[p4.identity(pid) for pid in range(51,58)]
+        protected_rows=protected_fixture(virtual,monkeypatch,p4,protected)
+        monkeypatch.setattr(p4,'process_times',lambda proc:(1000001,0))
+        monkeypatch.setattr(p4,'argv_parse',lambda text:json.loads(text))
+        monkeypatch.setattr(a,'load_p4',lambda:p4)
+        authority=dict(kind='source10_inert_qualification',folder=str(folder),port=18799,parent_timing=b.timing())
+        a.save_new(virtual/'inert-authority.json',authority)
+        baseline=dict(protected=protected,candidate=a.CANDIDATE,precision='FILETIME100ns',recorded_at=dt.datetime.now(dt.timezone.utc).isoformat())
+        a.save_new(virtual/'inert-native-baseline.json',baseline)
+        argv=a.inert_argv(folder,18799); snapshot_live=[True]; http_calls=[]
+        command=json.dumps([str(a.PY),*argv])
+        def checkout(cmd,**kwargs):
+            if 'Get-NetTCPConnection' in cmd[-1]: return '2' if snapshot_live[0] else '[]'
+            rows=[dict(ProcessId=pid,CreationFileTime=p4.identity(pid)['created_filetime'],ParentProcessId=0 if pid==1 else 1,CommandLineBase64=base64.b64encode(command.encode('utf-16-le')).decode('ascii')) for pid in (1,2)] if snapshot_live[0] else []
+            rows.extend(dict(row,CommandLineBase64=base64.b64encode(row['CommandLine'].encode('utf-16le')).decode('ascii')) for row in protected_rows.values())
+            return json.dumps(rows).encode('ascii')
+        monkeypatch.setattr(p4.subprocess,'check_output',checkout)
+        class Probe:
+            def settimeout(self,value): pass
+            def connect_ex(self,address): return a.errno.ECONNREFUSED
+            def close(self): pass
+        monkeypatch.setattr(p4.socket,'socket',Probe)
+        class Response:
+            def __enter__(self): return self
+            def __exit__(self,*args): pass
+            def read(self): return b'{"inert":true}'
+        class Opener:
+            def open(self,url,timeout): http_calls.append((url,timeout)); clock.advance(.001); return Response()
+        monkeypatch.setattr(p4.urllib.request,'build_opener',lambda *args:Opener())
+        def entry():
+            admitted=a.admitted_record('inert',folder,18799,authority,baseline,b)
+            a.save_new(folder/'admission.json',admitted)
+            a.save_new(folder/'attempt.json',dict(parent_timing=b.timing()))
+            owned=p4.Owned(folder,{}); b.owned=owned
+            proc=types.SimpleNamespace(pid=1,wait=lambda timeout=None:0)
+            owned.launchers=[dict(proc=proc,identity=p4.identity(1),argv=argv,role='server')]
+            owned.known[1]=dict(identity=p4.identity(1),argv=argv,role='server',parent=0)
+            owned.logs=[open(folder/'server.stdout','w'),open(folder/'server.stderr','w')]
+            context=dict(mode='inert',folder=folder,port=18799,budget=b)
+            with a.PrivateIO(p4,b) as io:
+                a.issue_clearance(context,p4,owned,argv,a.sha(virtual/'inert-authority.json'))
+                identity=p4.identity
+                with monkeypatch.context() as child:
+                    child.setattr(p4,'identity',lambda pid:identity(2) if pid==os.getpid() else identity(pid))
+                    a.consume_clearance(context,p4,argv,a.sha(virtual/'inert-authority.json'))
+                listener=dict(port=18799,identity=identity(2),role='server',argv=argv)
+                a.save_new(folder/'listener.json',listener)
+                a.record_native_members(folder,p4,owned,argv,b)
+                a.observe_inert_exchange(folder,p4,owned,argv,18799,b)
+                a.save_new(folder/'argv-roundtrip.json',dict(question=a.corpus()['query'],argv=argv[4:]))
+                for name in ('protected-before.json','protected-after.json'): a.save_new(folder/name,protected)
+                for name in ('boundary-before.json','boundary-after.json'): a.save_new(folder/name,dict(pins=admitted['pins'],protected=protected))
+                snapshot_live[0]=False
+                cleanup=io.cleanup(owned,18799)
+            if fault=='protected-empty': (folder/'protected-after.json').write_text('[]')
+            elif fault=='native-subset':
+                malformed=a.load(folder/'native-members.json'); malformed['snapshot'].pop('1')
+                (folder/'native-members.json').write_text(json.dumps(malformed))
+            elif fault=='cleanup-subset':
+                malformed=a.load(folder/'cleanup.json'); malformed['processes'].pop()
+                (folder/'cleanup.json').write_text(json.dumps(malformed))
+            elif fault=='missing-exchange': (folder/'inert-exchange.json').unlink()
+            elif fault=='no-parent-exchange': del b.inert_exchange
+            elif fault=='empty-task-directory': (folder/'outputs/unexpected-task').mkdir(parents=True)
+            elif fault in ('wrong-endpoint','wrong-listener','wrong-response','nonboolean-response','late-exchange'):
+                malformed=a.load(folder/'inert-exchange.json')
+                if fault=='wrong-endpoint': malformed['endpoint']='http://127.0.0.1:11434/inert'
+                elif fault=='wrong-listener': malformed['listener']['identity']['pid']=999
+                elif fault=='wrong-response': malformed['response']=dict(inert=False)
+                elif fault=='nonboolean-response': malformed['response']=dict(inert=1)
+                else: malformed['after_ns']=b.cutoff_ns('work')+1
+                (folder/'inert-exchange.json').write_text(json.dumps(malformed))
+            b.phase='seal'
+            terminal=dict(kind='inert',folder=str(folder),run_id=b.run_id,timing=b.timing(),overall='READY_FOR_ROOT_TIMING_WITNESS',cleanup=cleanup,errors=[],first_failure=None)
+            a.save_new(folder/'terminal.json',terminal); a.seal_index(folder,b,p4)
+            if observer_port is not None:
+                if 'remaining' in observer_port:
+                    clock.value=b.cutoff_ns()-int(observer_port['remaining']*1e9)
+                install_delayed_port(p4,clock,observer_port)
+                observer_port['saved_bindings']={key:getattr(p4,key) for key in ('socket','time','subprocess','terminate_owned','save')}
+            return terminal
+        outcome=invocation.call(entry)
+        if observer_port is not None:
+>           assert all(getattr(p4,key) is value for key,value in observer_port['saved_bindings'].items())
+                                                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E           KeyError: 'saved_bindings'
+
+..\..\harness\test_adapter.py:903: KeyError
+_______ test_port_rev2_real_substantive_observer_delayed_refusal[open] ________
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-source13-real-controlled-preparation-20261106/code/harness-preparation-20261106T161506433847Z/temp/test_port_rev2_real_substantiv11')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000027B227C5A20>
+scenario = {'name': 'open', 'code': 0, 'eligible': False, 'effective': 3}
+
+    @pytest.mark.parametrize('scenario',[
+        dict(name='sufficient',eligible=True,effective=3),
+        dict(name='clipped-sufficient',remaining=2.5,eligible=True,effective=2.5),
+        dict(name='clipped-unknown',remaining=2,eligible=False,effective=2),
+        dict(name='exact-cutoff',remaining=PORT_REFUSAL_DELAY,eligible=False,effective=PORT_REFUSAL_DELAY),
+        dict(name='zero-before-connect',setup=3,eligible=False,effective=None),
+        dict(name='phase-expired-before-hint',remaining=2,setup=2,eligible=False,effective=None),
+        dict(name='late-phase',remaining=2.5,overrun=1,eligible=False,effective=2.5),
+        dict(name='setup-sufficient',setup=.8,eligible=True,effective=2.2),
+        dict(name='setup-unknown',setup=1.1,eligible=False,effective=1.9),
+        dict(name='10035',code=10035,eligible=False,effective=3),
+        dict(name='10060',code=10060,eligible=False,effective=3),
+        dict(name='open',code=0,eligible=False,effective=3),
+        dict(name='error',error=True,eligible=False,effective=3),
+        dict(name='late-private-cap',overrun=1.1,eligible=False,effective=3),
+    ],ids=lambda v:v['name'])
+    def test_port_rev2_real_substantive_observer_delayed_refusal(tmp_path,monkeypatch,scenario):
+        scenario=dict(scenario)
+>       _substantive_closed_witness_fixture(tmp_path,monkeypatch,'none',observer_port=scenario)
+
+..\..\harness\test_adapter.py:1314: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-source13-real-controlled-preparation-20261106/code/harness-preparation-20261106T161506433847Z/temp/test_port_rev2_real_substantiv11')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000027B227C5A20>
+fault = 'none'
+observer_port = {'name': 'open', 'code': 0, 'eligible': False, 'effective': 3}
+
+    def _substantive_closed_witness_fixture(tmp_path,monkeypatch,fault,observer_port=None):
+        import base64,os
+        from collections import OrderedDict
+        original_v=a.V; original_here=a.HERE
+        virtual=tmp_path/'virtual-root'; here=virtual/'harness'; here.mkdir(parents=True)
+        for source in original_here.iterdir():
+            if source.is_file(): (here/source.name).write_bytes(source.read_bytes())
+        (virtual/'inputs').mkdir()
+        (virtual/'inputs/scope.json').write_bytes((original_v/'inputs/scope.json').read_bytes())
+        monkeypatch.setattr(a,'V',virtual); monkeypatch.setattr(a,'HERE',here)
+        package=a.load(here/'manifest.json')
+        package['files']={name:a.sha(here/name) for name in package['files']}
+        (here/'manifest.json').write_text(json.dumps(package),encoding='utf8')
+        a.save_new(virtual/'harness-approval.json',dict(reviewer='root-independent',overall='PASS',manifest_sha256=a.sha(here/'manifest.json')))
+        clock=Clock(); invocation=a.RootInvocation(clock=clock); b=invocation.budget
+        folder=virtual/'inert'/b.run_id; folder.mkdir(parents=True)
+        p4=a.load_p4(); active=set(); _,calls=native_kernel(monkeypatch,p4,active,clock)
+        protected=[p4.identity(pid) for pid in range(51,58)]
+        protected_rows=protected_fixture(virtual,monkeypatch,p4,protected)
+        monkeypatch.setattr(p4,'process_times',lambda proc:(1000001,0))
+        monkeypatch.setattr(p4,'argv_parse',lambda text:json.loads(text))
+        monkeypatch.setattr(a,'load_p4',lambda:p4)
+        authority=dict(kind='source10_inert_qualification',folder=str(folder),port=18799,parent_timing=b.timing())
+        a.save_new(virtual/'inert-authority.json',authority)
+        baseline=dict(protected=protected,candidate=a.CANDIDATE,precision='FILETIME100ns',recorded_at=dt.datetime.now(dt.timezone.utc).isoformat())
+        a.save_new(virtual/'inert-native-baseline.json',baseline)
+        argv=a.inert_argv(folder,18799); snapshot_live=[True]; http_calls=[]
+        command=json.dumps([str(a.PY),*argv])
+        def checkout(cmd,**kwargs):
+            if 'Get-NetTCPConnection' in cmd[-1]: return '2' if snapshot_live[0] else '[]'
+            rows=[dict(ProcessId=pid,CreationFileTime=p4.identity(pid)['created_filetime'],ParentProcessId=0 if pid==1 else 1,CommandLineBase64=base64.b64encode(command.encode('utf-16-le')).decode('ascii')) for pid in (1,2)] if snapshot_live[0] else []
+            rows.extend(dict(row,CommandLineBase64=base64.b64encode(row['CommandLine'].encode('utf-16le')).decode('ascii')) for row in protected_rows.values())
+            return json.dumps(rows).encode('ascii')
+        monkeypatch.setattr(p4.subprocess,'check_output',checkout)
+        class Probe:
+            def settimeout(self,value): pass
+            def connect_ex(self,address): return a.errno.ECONNREFUSED
+            def close(self): pass
+        monkeypatch.setattr(p4.socket,'socket',Probe)
+        class Response:
+            def __enter__(self): return self
+            def __exit__(self,*args): pass
+            def read(self): return b'{"inert":true}'
+        class Opener:
+            def open(self,url,timeout): http_calls.append((url,timeout)); clock.advance(.001); return Response()
+        monkeypatch.setattr(p4.urllib.request,'build_opener',lambda *args:Opener())
+        def entry():
+            admitted=a.admitted_record('inert',folder,18799,authority,baseline,b)
+            a.save_new(folder/'admission.json',admitted)
+            a.save_new(folder/'attempt.json',dict(parent_timing=b.timing()))
+            owned=p4.Owned(folder,{}); b.owned=owned
+            proc=types.SimpleNamespace(pid=1,wait=lambda timeout=None:0)
+            owned.launchers=[dict(proc=proc,identity=p4.identity(1),argv=argv,role='server')]
+            owned.known[1]=dict(identity=p4.identity(1),argv=argv,role='server',parent=0)
+            owned.logs=[open(folder/'server.stdout','w'),open(folder/'server.stderr','w')]
+            context=dict(mode='inert',folder=folder,port=18799,budget=b)
+            with a.PrivateIO(p4,b) as io:
+                a.issue_clearance(context,p4,owned,argv,a.sha(virtual/'inert-authority.json'))
+                identity=p4.identity
+                with monkeypatch.context() as child:
+                    child.setattr(p4,'identity',lambda pid:identity(2) if pid==os.getpid() else identity(pid))
+                    a.consume_clearance(context,p4,argv,a.sha(virtual/'inert-authority.json'))
+                listener=dict(port=18799,identity=identity(2),role='server',argv=argv)
+                a.save_new(folder/'listener.json',listener)
+                a.record_native_members(folder,p4,owned,argv,b)
+                a.observe_inert_exchange(folder,p4,owned,argv,18799,b)
+                a.save_new(folder/'argv-roundtrip.json',dict(question=a.corpus()['query'],argv=argv[4:]))
+                for name in ('protected-before.json','protected-after.json'): a.save_new(folder/name,protected)
+                for name in ('boundary-before.json','boundary-after.json'): a.save_new(folder/name,dict(pins=admitted['pins'],protected=protected))
+                snapshot_live[0]=False
+                cleanup=io.cleanup(owned,18799)
+            if fault=='protected-empty': (folder/'protected-after.json').write_text('[]')
+            elif fault=='native-subset':
+                malformed=a.load(folder/'native-members.json'); malformed['snapshot'].pop('1')
+                (folder/'native-members.json').write_text(json.dumps(malformed))
+            elif fault=='cleanup-subset':
+                malformed=a.load(folder/'cleanup.json'); malformed['processes'].pop()
+                (folder/'cleanup.json').write_text(json.dumps(malformed))
+            elif fault=='missing-exchange': (folder/'inert-exchange.json').unlink()
+            elif fault=='no-parent-exchange': del b.inert_exchange
+            elif fault=='empty-task-directory': (folder/'outputs/unexpected-task').mkdir(parents=True)
+            elif fault in ('wrong-endpoint','wrong-listener','wrong-response','nonboolean-response','late-exchange'):
+                malformed=a.load(folder/'inert-exchange.json')
+                if fault=='wrong-endpoint': malformed['endpoint']='http://127.0.0.1:11434/inert'
+                elif fault=='wrong-listener': malformed['listener']['identity']['pid']=999
+                elif fault=='wrong-response': malformed['response']=dict(inert=False)
+                elif fault=='nonboolean-response': malformed['response']=dict(inert=1)
+                else: malformed['after_ns']=b.cutoff_ns('work')+1
+                (folder/'inert-exchange.json').write_text(json.dumps(malformed))
+            b.phase='seal'
+            terminal=dict(kind='inert',folder=str(folder),run_id=b.run_id,timing=b.timing(),overall='READY_FOR_ROOT_TIMING_WITNESS',cleanup=cleanup,errors=[],first_failure=None)
+            a.save_new(folder/'terminal.json',terminal); a.seal_index(folder,b,p4)
+            if observer_port is not None:
+                if 'remaining' in observer_port:
+                    clock.value=b.cutoff_ns()-int(observer_port['remaining']*1e9)
+                install_delayed_port(p4,clock,observer_port)
+                observer_port['saved_bindings']={key:getattr(p4,key) for key in ('socket','time','subprocess','terminate_owned','save')}
+            return terminal
+        outcome=invocation.call(entry)
+        if observer_port is not None:
+>           assert all(getattr(p4,key) is value for key,value in observer_port['saved_bindings'].items())
+                                                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E           KeyError: 'saved_bindings'
+
+..\..\harness\test_adapter.py:903: KeyError
+_______ test_port_rev2_real_substantive_observer_delayed_refusal[error] _______
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-source13-real-controlled-preparation-20261106/code/harness-preparation-20261106T161506433847Z/temp/test_port_rev2_real_substantiv12')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000027B226B1550>
+scenario = {'name': 'error', 'error': True, 'eligible': False, 'effective': 3}
+
+    @pytest.mark.parametrize('scenario',[
+        dict(name='sufficient',eligible=True,effective=3),
+        dict(name='clipped-sufficient',remaining=2.5,eligible=True,effective=2.5),
+        dict(name='clipped-unknown',remaining=2,eligible=False,effective=2),
+        dict(name='exact-cutoff',remaining=PORT_REFUSAL_DELAY,eligible=False,effective=PORT_REFUSAL_DELAY),
+        dict(name='zero-before-connect',setup=3,eligible=False,effective=None),
+        dict(name='phase-expired-before-hint',remaining=2,setup=2,eligible=False,effective=None),
+        dict(name='late-phase',remaining=2.5,overrun=1,eligible=False,effective=2.5),
+        dict(name='setup-sufficient',setup=.8,eligible=True,effective=2.2),
+        dict(name='setup-unknown',setup=1.1,eligible=False,effective=1.9),
+        dict(name='10035',code=10035,eligible=False,effective=3),
+        dict(name='10060',code=10060,eligible=False,effective=3),
+        dict(name='open',code=0,eligible=False,effective=3),
+        dict(name='error',error=True,eligible=False,effective=3),
+        dict(name='late-private-cap',overrun=1.1,eligible=False,effective=3),
+    ],ids=lambda v:v['name'])
+    def test_port_rev2_real_substantive_observer_delayed_refusal(tmp_path,monkeypatch,scenario):
+        scenario=dict(scenario)
+>       _substantive_closed_witness_fixture(tmp_path,monkeypatch,'none',observer_port=scenario)
+
+..\..\harness\test_adapter.py:1314: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-source13-real-controlled-preparation-20261106/code/harness-preparation-20261106T161506433847Z/temp/test_port_rev2_real_substantiv12')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000027B226B1550>
+fault = 'none'
+observer_port = {'name': 'error', 'error': True, 'eligible': False, 'effective': 3}
+
+    def _substantive_closed_witness_fixture(tmp_path,monkeypatch,fault,observer_port=None):
+        import base64,os
+        from collections import OrderedDict
+        original_v=a.V; original_here=a.HERE
+        virtual=tmp_path/'virtual-root'; here=virtual/'harness'; here.mkdir(parents=True)
+        for source in original_here.iterdir():
+            if source.is_file(): (here/source.name).write_bytes(source.read_bytes())
+        (virtual/'inputs').mkdir()
+        (virtual/'inputs/scope.json').write_bytes((original_v/'inputs/scope.json').read_bytes())
+        monkeypatch.setattr(a,'V',virtual); monkeypatch.setattr(a,'HERE',here)
+        package=a.load(here/'manifest.json')
+        package['files']={name:a.sha(here/name) for name in package['files']}
+        (here/'manifest.json').write_text(json.dumps(package),encoding='utf8')
+        a.save_new(virtual/'harness-approval.json',dict(reviewer='root-independent',overall='PASS',manifest_sha256=a.sha(here/'manifest.json')))
+        clock=Clock(); invocation=a.RootInvocation(clock=clock); b=invocation.budget
+        folder=virtual/'inert'/b.run_id; folder.mkdir(parents=True)
+        p4=a.load_p4(); active=set(); _,calls=native_kernel(monkeypatch,p4,active,clock)
+        protected=[p4.identity(pid) for pid in range(51,58)]
+        protected_rows=protected_fixture(virtual,monkeypatch,p4,protected)
+        monkeypatch.setattr(p4,'process_times',lambda proc:(1000001,0))
+        monkeypatch.setattr(p4,'argv_parse',lambda text:json.loads(text))
+        monkeypatch.setattr(a,'load_p4',lambda:p4)
+        authority=dict(kind='source10_inert_qualification',folder=str(folder),port=18799,parent_timing=b.timing())
+        a.save_new(virtual/'inert-authority.json',authority)
+        baseline=dict(protected=protected,candidate=a.CANDIDATE,precision='FILETIME100ns',recorded_at=dt.datetime.now(dt.timezone.utc).isoformat())
+        a.save_new(virtual/'inert-native-baseline.json',baseline)
+        argv=a.inert_argv(folder,18799); snapshot_live=[True]; http_calls=[]
+        command=json.dumps([str(a.PY),*argv])
+        def checkout(cmd,**kwargs):
+            if 'Get-NetTCPConnection' in cmd[-1]: return '2' if snapshot_live[0] else '[]'
+            rows=[dict(ProcessId=pid,CreationFileTime=p4.identity(pid)['created_filetime'],ParentProcessId=0 if pid==1 else 1,CommandLineBase64=base64.b64encode(command.encode('utf-16-le')).decode('ascii')) for pid in (1,2)] if snapshot_live[0] else []
+            rows.extend(dict(row,CommandLineBase64=base64.b64encode(row['CommandLine'].encode('utf-16le')).decode('ascii')) for row in protected_rows.values())
+            return json.dumps(rows).encode('ascii')
+        monkeypatch.setattr(p4.subprocess,'check_output',checkout)
+        class Probe:
+            def settimeout(self,value): pass
+            def connect_ex(self,address): return a.errno.ECONNREFUSED
+            def close(self): pass
+        monkeypatch.setattr(p4.socket,'socket',Probe)
+        class Response:
+            def __enter__(self): return self
+            def __exit__(self,*args): pass
+            def read(self): return b'{"inert":true}'
+        class Opener:
+            def open(self,url,timeout): http_calls.append((url,timeout)); clock.advance(.001); return Response()
+        monkeypatch.setattr(p4.urllib.request,'build_opener',lambda *args:Opener())
+        def entry():
+            admitted=a.admitted_record('inert',folder,18799,authority,baseline,b)
+            a.save_new(folder/'admission.json',admitted)
+            a.save_new(folder/'attempt.json',dict(parent_timing=b.timing()))
+            owned=p4.Owned(folder,{}); b.owned=owned
+            proc=types.SimpleNamespace(pid=1,wait=lambda timeout=None:0)
+            owned.launchers=[dict(proc=proc,identity=p4.identity(1),argv=argv,role='server')]
+            owned.known[1]=dict(identity=p4.identity(1),argv=argv,role='server',parent=0)
+            owned.logs=[open(folder/'server.stdout','w'),open(folder/'server.stderr','w')]
+            context=dict(mode='inert',folder=folder,port=18799,budget=b)
+            with a.PrivateIO(p4,b) as io:
+                a.issue_clearance(context,p4,owned,argv,a.sha(virtual/'inert-authority.json'))
+                identity=p4.identity
+                with monkeypatch.context() as child:
+                    child.setattr(p4,'identity',lambda pid:identity(2) if pid==os.getpid() else identity(pid))
+                    a.consume_clearance(context,p4,argv,a.sha(virtual/'inert-authority.json'))
+                listener=dict(port=18799,identity=identity(2),role='server',argv=argv)
+                a.save_new(folder/'listener.json',listener)
+                a.record_native_members(folder,p4,owned,argv,b)
+                a.observe_inert_exchange(folder,p4,owned,argv,18799,b)
+                a.save_new(folder/'argv-roundtrip.json',dict(question=a.corpus()['query'],argv=argv[4:]))
+                for name in ('protected-before.json','protected-after.json'): a.save_new(folder/name,protected)
+                for name in ('boundary-before.json','boundary-after.json'): a.save_new(folder/name,dict(pins=admitted['pins'],protected=protected))
+                snapshot_live[0]=False
+                cleanup=io.cleanup(owned,18799)
+            if fault=='protected-empty': (folder/'protected-after.json').write_text('[]')
+            elif fault=='native-subset':
+                malformed=a.load(folder/'native-members.json'); malformed['snapshot'].pop('1')
+                (folder/'native-members.json').write_text(json.dumps(malformed))
+            elif fault=='cleanup-subset':
+                malformed=a.load(folder/'cleanup.json'); malformed['processes'].pop()
+                (folder/'cleanup.json').write_text(json.dumps(malformed))
+            elif fault=='missing-exchange': (folder/'inert-exchange.json').unlink()
+            elif fault=='no-parent-exchange': del b.inert_exchange
+            elif fault=='empty-task-directory': (folder/'outputs/unexpected-task').mkdir(parents=True)
+            elif fault in ('wrong-endpoint','wrong-listener','wrong-response','nonboolean-response','late-exchange'):
+                malformed=a.load(folder/'inert-exchange.json')
+                if fault=='wrong-endpoint': malformed['endpoint']='http://127.0.0.1:11434/inert'
+                elif fault=='wrong-listener': malformed['listener']['identity']['pid']=999
+                elif fault=='wrong-response': malformed['response']=dict(inert=False)
+                elif fault=='nonboolean-response': malformed['response']=dict(inert=1)
+                else: malformed['after_ns']=b.cutoff_ns('work')+1
+                (folder/'inert-exchange.json').write_text(json.dumps(malformed))
+            b.phase='seal'
+            terminal=dict(kind='inert',folder=str(folder),run_id=b.run_id,timing=b.timing(),overall='READY_FOR_ROOT_TIMING_WITNESS',cleanup=cleanup,errors=[],first_failure=None)
+            a.save_new(folder/'terminal.json',terminal); a.seal_index(folder,b,p4)
+            if observer_port is not None:
+                if 'remaining' in observer_port:
+                    clock.value=b.cutoff_ns()-int(observer_port['remaining']*1e9)
+                install_delayed_port(p4,clock,observer_port)
+                observer_port['saved_bindings']={key:getattr(p4,key) for key in ('socket','time','subprocess','terminate_owned','save')}
+            return terminal
+        outcome=invocation.call(entry)
+        if observer_port is not None:
+>           assert all(getattr(p4,key) is value for key,value in observer_port['saved_bindings'].items())
+                                                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E           KeyError: 'saved_bindings'
+
+..\..\harness\test_adapter.py:903: KeyError
+_ test_port_rev2_real_substantive_observer_delayed_refusal[late-private-cap] __
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-source13-real-controlled-preparation-20261106/code/harness-preparation-20261106T161506433847Z/temp/test_port_rev2_real_substantiv13')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000027B2266AD60>
+scenario = {'name': 'late-private-cap', 'overrun': 1.1, 'eligible': False, 'effective': 3}
+
+    @pytest.mark.parametrize('scenario',[
+        dict(name='sufficient',eligible=True,effective=3),
+        dict(name='clipped-sufficient',remaining=2.5,eligible=True,effective=2.5),
+        dict(name='clipped-unknown',remaining=2,eligible=False,effective=2),
+        dict(name='exact-cutoff',remaining=PORT_REFUSAL_DELAY,eligible=False,effective=PORT_REFUSAL_DELAY),
+        dict(name='zero-before-connect',setup=3,eligible=False,effective=None),
+        dict(name='phase-expired-before-hint',remaining=2,setup=2,eligible=False,effective=None),
+        dict(name='late-phase',remaining=2.5,overrun=1,eligible=False,effective=2.5),
+        dict(name='setup-sufficient',setup=.8,eligible=True,effective=2.2),
+        dict(name='setup-unknown',setup=1.1,eligible=False,effective=1.9),
+        dict(name='10035',code=10035,eligible=False,effective=3),
+        dict(name='10060',code=10060,eligible=False,effective=3),
+        dict(name='open',code=0,eligible=False,effective=3),
+        dict(name='error',error=True,eligible=False,effective=3),
+        dict(name='late-private-cap',overrun=1.1,eligible=False,effective=3),
+    ],ids=lambda v:v['name'])
+    def test_port_rev2_real_substantive_observer_delayed_refusal(tmp_path,monkeypatch,scenario):
+        scenario=dict(scenario)
+>       _substantive_closed_witness_fixture(tmp_path,monkeypatch,'none',observer_port=scenario)
+
+..\..\harness\test_adapter.py:1314: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-source13-real-controlled-preparation-20261106/code/harness-preparation-20261106T161506433847Z/temp/test_port_rev2_real_substantiv13')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000027B2266AD60>
+fault = 'none'
+observer_port = {'name': 'late-private-cap', 'overrun': 1.1, 'eligible': False, 'effective': 3}
+
+    def _substantive_closed_witness_fixture(tmp_path,monkeypatch,fault,observer_port=None):
+        import base64,os
+        from collections import OrderedDict
+        original_v=a.V; original_here=a.HERE
+        virtual=tmp_path/'virtual-root'; here=virtual/'harness'; here.mkdir(parents=True)
+        for source in original_here.iterdir():
+            if source.is_file(): (here/source.name).write_bytes(source.read_bytes())
+        (virtual/'inputs').mkdir()
+        (virtual/'inputs/scope.json').write_bytes((original_v/'inputs/scope.json').read_bytes())
+        monkeypatch.setattr(a,'V',virtual); monkeypatch.setattr(a,'HERE',here)
+        package=a.load(here/'manifest.json')
+        package['files']={name:a.sha(here/name) for name in package['files']}
+        (here/'manifest.json').write_text(json.dumps(package),encoding='utf8')
+        a.save_new(virtual/'harness-approval.json',dict(reviewer='root-independent',overall='PASS',manifest_sha256=a.sha(here/'manifest.json')))
+        clock=Clock(); invocation=a.RootInvocation(clock=clock); b=invocation.budget
+        folder=virtual/'inert'/b.run_id; folder.mkdir(parents=True)
+        p4=a.load_p4(); active=set(); _,calls=native_kernel(monkeypatch,p4,active,clock)
+        protected=[p4.identity(pid) for pid in range(51,58)]
+        protected_rows=protected_fixture(virtual,monkeypatch,p4,protected)
+        monkeypatch.setattr(p4,'process_times',lambda proc:(1000001,0))
+        monkeypatch.setattr(p4,'argv_parse',lambda text:json.loads(text))
+        monkeypatch.setattr(a,'load_p4',lambda:p4)
+        authority=dict(kind='source10_inert_qualification',folder=str(folder),port=18799,parent_timing=b.timing())
+        a.save_new(virtual/'inert-authority.json',authority)
+        baseline=dict(protected=protected,candidate=a.CANDIDATE,precision='FILETIME100ns',recorded_at=dt.datetime.now(dt.timezone.utc).isoformat())
+        a.save_new(virtual/'inert-native-baseline.json',baseline)
+        argv=a.inert_argv(folder,18799); snapshot_live=[True]; http_calls=[]
+        command=json.dumps([str(a.PY),*argv])
+        def checkout(cmd,**kwargs):
+            if 'Get-NetTCPConnection' in cmd[-1]: return '2' if snapshot_live[0] else '[]'
+            rows=[dict(ProcessId=pid,CreationFileTime=p4.identity(pid)['created_filetime'],ParentProcessId=0 if pid==1 else 1,CommandLineBase64=base64.b64encode(command.encode('utf-16-le')).decode('ascii')) for pid in (1,2)] if snapshot_live[0] else []
+            rows.extend(dict(row,CommandLineBase64=base64.b64encode(row['CommandLine'].encode('utf-16le')).decode('ascii')) for row in protected_rows.values())
+            return json.dumps(rows).encode('ascii')
+        monkeypatch.setattr(p4.subprocess,'check_output',checkout)
+        class Probe:
+            def settimeout(self,value): pass
+            def connect_ex(self,address): return a.errno.ECONNREFUSED
+            def close(self): pass
+        monkeypatch.setattr(p4.socket,'socket',Probe)
+        class Response:
+            def __enter__(self): return self
+            def __exit__(self,*args): pass
+            def read(self): return b'{"inert":true}'
+        class Opener:
+            def open(self,url,timeout): http_calls.append((url,timeout)); clock.advance(.001); return Response()
+        monkeypatch.setattr(p4.urllib.request,'build_opener',lambda *args:Opener())
+        def entry():
+            admitted=a.admitted_record('inert',folder,18799,authority,baseline,b)
+            a.save_new(folder/'admission.json',admitted)
+            a.save_new(folder/'attempt.json',dict(parent_timing=b.timing()))
+            owned=p4.Owned(folder,{}); b.owned=owned
+            proc=types.SimpleNamespace(pid=1,wait=lambda timeout=None:0)
+            owned.launchers=[dict(proc=proc,identity=p4.identity(1),argv=argv,role='server')]
+            owned.known[1]=dict(identity=p4.identity(1),argv=argv,role='server',parent=0)
+            owned.logs=[open(folder/'server.stdout','w'),open(folder/'server.stderr','w')]
+            context=dict(mode='inert',folder=folder,port=18799,budget=b)
+            with a.PrivateIO(p4,b) as io:
+                a.issue_clearance(context,p4,owned,argv,a.sha(virtual/'inert-authority.json'))
+                identity=p4.identity
+                with monkeypatch.context() as child:
+                    child.setattr(p4,'identity',lambda pid:identity(2) if pid==os.getpid() else identity(pid))
+                    a.consume_clearance(context,p4,argv,a.sha(virtual/'inert-authority.json'))
+                listener=dict(port=18799,identity=identity(2),role='server',argv=argv)
+                a.save_new(folder/'listener.json',listener)
+                a.record_native_members(folder,p4,owned,argv,b)
+                a.observe_inert_exchange(folder,p4,owned,argv,18799,b)
+                a.save_new(folder/'argv-roundtrip.json',dict(question=a.corpus()['query'],argv=argv[4:]))
+                for name in ('protected-before.json','protected-after.json'): a.save_new(folder/name,protected)
+                for name in ('boundary-before.json','boundary-after.json'): a.save_new(folder/name,dict(pins=admitted['pins'],protected=protected))
+                snapshot_live[0]=False
+                cleanup=io.cleanup(owned,18799)
+            if fault=='protected-empty': (folder/'protected-after.json').write_text('[]')
+            elif fault=='native-subset':
+                malformed=a.load(folder/'native-members.json'); malformed['snapshot'].pop('1')
+                (folder/'native-members.json').write_text(json.dumps(malformed))
+            elif fault=='cleanup-subset':
+                malformed=a.load(folder/'cleanup.json'); malformed['processes'].pop()
+                (folder/'cleanup.json').write_text(json.dumps(malformed))
+            elif fault=='missing-exchange': (folder/'inert-exchange.json').unlink()
+            elif fault=='no-parent-exchange': del b.inert_exchange
+            elif fault=='empty-task-directory': (folder/'outputs/unexpected-task').mkdir(parents=True)
+            elif fault in ('wrong-endpoint','wrong-listener','wrong-response','nonboolean-response','late-exchange'):
+                malformed=a.load(folder/'inert-exchange.json')
+                if fault=='wrong-endpoint': malformed['endpoint']='http://127.0.0.1:11434/inert'
+                elif fault=='wrong-listener': malformed['listener']['identity']['pid']=999
+                elif fault=='wrong-response': malformed['response']=dict(inert=False)
+                elif fault=='nonboolean-response': malformed['response']=dict(inert=1)
+                else: malformed['after_ns']=b.cutoff_ns('work')+1
+                (folder/'inert-exchange.json').write_text(json.dumps(malformed))
+            b.phase='seal'
+            terminal=dict(kind='inert',folder=str(folder),run_id=b.run_id,timing=b.timing(),overall='READY_FOR_ROOT_TIMING_WITNESS',cleanup=cleanup,errors=[],first_failure=None)
+            a.save_new(folder/'terminal.json',terminal); a.seal_index(folder,b,p4)
+            if observer_port is not None:
+                if 'remaining' in observer_port:
+                    clock.value=b.cutoff_ns()-int(observer_port['remaining']*1e9)
+                install_delayed_port(p4,clock,observer_port)
+                observer_port['saved_bindings']={key:getattr(p4,key) for key in ('socket','time','subprocess','terminate_owned','save')}
+            return terminal
+        outcome=invocation.call(entry)
+        if observer_port is not None:
+>           assert all(getattr(p4,key) is value for key,value in observer_port['saved_bindings'].items())
+                                                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E           KeyError: 'saved_bindings'
+
+..\..\harness\test_adapter.py:903: KeyError
+=========================== short test summary info ===========================
+FAILED ..\..\harness\test_adapter.py::test_fix1_h02_substantive_closed_witness_positive_and_faults[none]
+FAILED ..\..\harness\test_adapter.py::test_port_rev2_real_substantive_observer_delayed_refusal[sufficient]
+FAILED ..\..\harness\test_adapter.py::test_port_rev2_real_substantive_observer_delayed_refusal[clipped-sufficient]
+FAILED ..\..\harness\test_adapter.py::test_port_rev2_real_substantive_observer_delayed_refusal[clipped-unknown]
+FAILED ..\..\harness\test_adapter.py::test_port_rev2_real_substantive_observer_delayed_refusal[exact-cutoff]
+FAILED ..\..\harness\test_adapter.py::test_port_rev2_real_substantive_observer_delayed_refusal[zero-before-connect]
+FAILED ..\..\harness\test_adapter.py::test_port_rev2_real_substantive_observer_delayed_refusal[phase-expired-before-hint]
+FAILED ..\..\harness\test_adapter.py::test_port_rev2_real_substantive_observer_delayed_refusal[late-phase]
+FAILED ..\..\harness\test_adapter.py::test_port_rev2_real_substantive_observer_delayed_refusal[setup-sufficient]
+FAILED ..\..\harness\test_adapter.py::test_port_rev2_real_substantive_observer_delayed_refusal[setup-unknown]
+FAILED ..\..\harness\test_adapter.py::test_port_rev2_real_substantive_observer_delayed_refusal[10035]
+FAILED ..\..\harness\test_adapter.py::test_port_rev2_real_substantive_observer_delayed_refusal[10060]
+FAILED ..\..\harness\test_adapter.py::test_port_rev2_real_substantive_observer_delayed_refusal[open]
+FAILED ..\..\harness\test_adapter.py::test_port_rev2_real_substantive_observer_delayed_refusal[error]
+FAILED ..\..\harness\test_adapter.py::test_port_rev2_real_substantive_observer_delayed_refusal[late-private-cap]
+15 failed, 204 passed in 52.37s

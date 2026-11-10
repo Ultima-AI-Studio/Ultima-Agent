@@ -1,0 +1,387 @@
+{
+  "reviewer": "root-independent",
+  "agent_identity": "/root/review_e03_source13_negative_result",
+  "scope": "e03-negative-result-review",
+  "case": "e03-negative",
+  "candidate": "269aca511d88412dbb9c15d23911138469a37aa2",
+  "candidate_root": "C:/Users/Administrator/.codex/worktrees/jarvis-e03-source13/UltimaAgent",
+  "package_root": "H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-source13-negative-20261106",
+  "candidate_runtime_manifest_sha256": "957669cb3463eab549df80f0b8fc6345c244daa2f613925abe8622d0aab3d9d3",
+  "preparation_manifest_sha256": "b98dcf3ff92f623238fd15cea6c7929875bba056dee3dae74245e89b44a7266f",
+  "result_manifest_sha256": "f2e78b61a40f9f185ce8668568422e11083a44399d73710628df3cb7f1ed70e8",
+  "terminal_sha256": "02416c8a60b536fc61d5e2f60de40c44e62a47b8439838d7b43a5dc621d80a07",
+  "negative_result_sha256": "bda1c75259bb895ab979d35bcc5ef77844ffcc29b883b9bb5e91e15522659816",
+  "verdict": "PASS",
+  "case_verdict": "PASS",
+  "mechanical_verdict": "PASS",
+  "behavior_verdict": "PASS",
+  "target_verdict": "PASS",
+  "file_verdict": "PASS",
+  "cleanup_verdict": "PASS",
+  "environment_verdict": "PASS",
+  "facts_scope": {
+    "status": "NOT_APPLICABLE",
+    "generated_content_present": false,
+    "generated_content_facts_verdict": null,
+    "reason": "本例没有模型生成内容或交付文档，不能填写生成内容事实 PASS。本次审查对象是实际目标变化、产品重新观察与拒写、文字和产物不变、清理及保存的环境证据。"
+  },
+  "acceptance_credit_recommended": true,
+  "credit_scope": {
+    "recommended_negative_cases": 1,
+    "scope": "仅本次已执行的 e03-negative：focus 只读重观察和 selection 拒写两个场景组成的一例负例。",
+    "raw_terminal_changed": false,
+    "raw_terminal_overall": "PENDING_FACT_REVIEW",
+    "raw_terminal_mechanical": "PASS",
+    "raw_terminal_acceptance_credit": false,
+    "further_execution_authority_issued": false,
+    "E01_authorized": false,
+    "E02_authorized": false,
+    "T2_exit_granted": false,
+    "Owner_acceptance_granted": false,
+    "overall_goal_completion_granted": false
+  },
+  "assessment": "在本次结果审查范围内未发现阻断缺陷。独立重算封存摘要并检查原始 JSON、JSONL、XML、候选源码及调用顺序后，证据支持真实焦点迁移后的原绑定窗口重观察，以及真实选区变化触发产品拒写。两个场景均在原准入期限内完成目标检查，没有 before_send 标记、native.replace 尝试、文字替换或非空产物。该结论没有扩大为 focus-only 完整替换链通过。",
+  "scenario_conclusions": [
+    {
+      "scenario": "focus",
+      "verdict": "PASS",
+      "operation": "validate_work_target",
+      "captured_at": "2026-11-06T04:19:42.365365+00:00",
+      "capture_source": "win32.standard_edit",
+      "capture_id": "92729a75-f224-4a1f-a882-fecf9b00a379",
+      "bound_target": {
+        "hwnd": 1313900,
+        "control_hwnd": 15009170,
+        "pid": 31056,
+        "process_created_filetime": 134384123644574569
+      },
+      "changed_foreground": [
+        2755042,
+        985816
+      ],
+      "native_bound_target_reobservations": 1,
+      "native_observe_foreground_argument": false,
+      "target_revalidation": true,
+      "original_target_text_and_selection_unchanged": true,
+      "conclusion": "前台焦点实际迁移到第二个自有窗口。真实 WorkContextProvider.validate_work_target 调用真实 Win32Edit.observe，重新读取第一个原绑定 HWND；观察值与变化后外部读回的原目标一致。契约 E03 允许重新观察，因此本场景满足其只读重观察范围。",
+      "full_focus_only_replacement_chain_exercised": false,
+      "evidence": [
+        "C:/Users/Administrator/.codex/worktrees/jarvis-e03-source13/UltimaAgent/docs/specs/jarvis-work-capability-contract-20261101.md:48",
+        "C:/Users/Administrator/.codex/worktrees/jarvis-e03-source13/UltimaAgent/src/brain/work_context.py:157",
+        "H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-source13-negative-20261106/code/controller.py:685",
+        "H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-source13-negative-20261106/actual/e03-negative/negative-evidence.json:65"
+      ]
+    },
+    {
+      "scenario": "selection",
+      "verdict": "PASS",
+      "operation": "replace_selection",
+      "captured_at": "2026-11-06T04:19:48.112564+00:00",
+      "capture_source": "win32.standard_edit",
+      "capture_id": "409caf47-eabb-4346-ba2b-fa5ffdd8f550",
+      "captured_selection_utf16": [
+        0,
+        41
+      ],
+      "changed_selection_utf16": [
+        0,
+        1
+      ],
+      "foreground": [
+        1313900,
+        15009170
+      ],
+      "native_bound_target_reobservations": 1,
+      "native_observe_foreground_argument": false,
+      "refusal": {
+        "type": "ValueError",
+        "error": "Selection target stale or unauthorized",
+        "rejected": true
+      },
+      "before_send_calls": 0,
+      "native_write_attempts": 0,
+      "conclusion": "捕获后原目标选区实际从 0..41 改为 0..1。真实 replace_selection 调用 validate_work_target，fresh 原生重读得到变化后的同一目标，因当前观察与捕获原值不同，在 before_send 之前抛出上述产品 ValueError。审计代理 replace 的 RuntimeError 路径未触发，也没有被当作预期拒绝。",
+      "evidence": [
+        "C:/Users/Administrator/.codex/worktrees/jarvis-e03-source13/UltimaAgent/src/brain/work_context.py:165",
+        "H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-source13-negative-20261106/code/controller.py:694",
+        "H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-source13-negative-20261106/code/controller.py:717",
+        "H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-source13-negative-20261106/code/controller.py:727",
+        "H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-source13-negative-20261106/actual/e03-negative/negative-evidence.json:186"
+      ]
+    }
+  ],
+  "admission_and_timing": {
+    "user_authorization_source": "request_user_input_async/call_e9aa1dcf3131472d85d464b422ae1ed3/0",
+    "user_approval_sha256": "c4f887c0b1d9d2e9ca785d86c81299f9fd126a76e41d62992620599f79e64aa7",
+    "authority_sha256": "62583bd0a6935a7efd05113929995aa12e96f54a8c766a388498a8813055876b",
+    "proof_sha256": "2cb1d0cc4e4a02a01c6971c0616f12a7154d88acc1d5818d509655b699a98518",
+    "proof_recorded_at": "2026-11-06T04:19:19.422358+00:00",
+    "proof_max_age_seconds": 60,
+    "authority_issued_at": "2026-11-06T04:19:19.471508+00:00",
+    "authority_expires_at": "2026-11-06T04:21:19.471508+00:00",
+    "authority_duration_seconds": 120,
+    "manual_start_ready_at": "2026-11-06T04:19:24.703781+00:00",
+    "manual_start_accepted_at": "2026-11-06T04:19:35.704911+00:00",
+    "manual_start_wall_elapsed_seconds": 11.00113,
+    "manual_start_recorded_monotonic_elapsed_seconds": 10.99984309996944,
+    "manual_start_timeout_seconds": 15,
+    "scenario_guard_bounds": [
+      {
+        "scenario": "focus",
+        "lower_bound_utc": "2026-11-06T04:19:42.951496+00:00",
+        "upper_bound_utc": "2026-11-06T04:19:47.485587+00:00",
+        "proof_age_upper_seconds": 28.063229,
+        "authority_age_upper_seconds": 28.014079,
+        "capture_age_upper_seconds": 5.120222
+      },
+      {
+        "scenario": "selection",
+        "lower_bound_utc": "2026-11-06T04:19:48.695048+00:00",
+        "upper_bound_utc": "2026-11-06T04:19:53.198959+00:00",
+        "proof_age_upper_seconds": 33.776601,
+        "authority_age_upper_seconds": 33.727451,
+        "capture_age_upper_seconds": 5.086395
+      }
+    ],
+    "basis": "独立从变化后 observer 的 ended_at、操作后 observer 的 started_at 计算上下界，并核对源码顺序：变化和前台检查完成后执行 before_attempt；其中 revalidate 后执行 admit_cli，最后再次采样原 authority/proof 期限，然后才进入产品操作。原 proof 没有被刷新或放宽。",
+    "admission_null_interpretation": "场景 admission:null 是成功回调的隐式 None 返回值。该回调位于预期产品 ValueError 捕获之外；若准入失败，场景将记录 admission_unknown 并 FAIL，不能生成当前完整的成功观察证据。",
+    "evidence": [
+      "H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-source13-negative-20261106/code/acceptance_entry.py:52",
+      "H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-source13-negative-20261106/code/acceptance_entry.py:426",
+      "H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-source13-negative-20261106/code/acceptance_backend.py:129",
+      "H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-source13-negative-20261106/code/controller.py:711",
+      "H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-source13-negative-20261106/actual/e03-negative/negative-focus-after-timing.json:2",
+      "H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-source13-negative-20261106/actual/e03-negative/negative-selection-after-timing.json:2"
+    ]
+  },
+  "target_and_file_evidence": {
+    "fixture_windows": 2,
+    "authorized_product_targets": 1,
+    "target_identity_fields_checked": [
+      "hwnd",
+      "control_hwnd",
+      "pid",
+      "process_created_filetime",
+      "title",
+      "class"
+    ],
+    "baseline_equals_dispatch_baseline": true,
+    "both_capture_text_sha256": "fadd83a97e274d1f8070ee9f5a5d72308b50c64b3090ac48a874cdabc2b84b18",
+    "capture_text_utf16_units": 41,
+    "both_windows_text_unchanged_through_pre_cleanup": true,
+    "initial_outputs": [],
+    "focus_after_outputs": [],
+    "selection_after_outputs": [],
+    "accepted_outputs": [],
+    "pre_cleanup_outputs": [],
+    "current_outputs_directory_exists": false,
+    "owned_environment_file_count": 0,
+    "negative_evidence_matches_incremental_observations": true,
+    "recorded_snapshots_match_scenario_evidence": true
+  },
+  "cleanup_and_environment": {
+    "owned_process_identities": 9,
+    "owned_console_auxiliary_identities": 1,
+    "cleanup_identity_records": 10,
+    "cleanup_identity_set_matches_owned_tree": true,
+    "recorded_owned_identities_absent": 10,
+    "console_auxiliary_authority": "observe-only",
+    "owned_protected_identity_overlap": 0,
+    "legacy_audit_records": 6,
+    "legacy_audit_started_controls": 2,
+    "legacy_audit_stopped_controls": 2,
+    "legacy_probe_events": 2,
+    "legacy_input_events": 0,
+    "legacy_programmatic_events": 0,
+    "input_origin_records": 18,
+    "input_origin_message_records": 16,
+    "input_origin_message_counts": {
+      "0": 2,
+      "641": 4,
+      "642": 10
+    },
+    "input_origin_closed": true,
+    "input_origin_errors": 0,
+    "input_origin_open_frames": 0,
+    "sender_process_identified": false,
+    "protected_identities_matched_between_baseline_proof_and_saved_postcheck": 7,
+    "postcheck_recorded_at": "2026-11-06T04:22:03.0238028Z",
+    "postcheck_producer": "root",
+    "postcheck_owned_absent_records": 10,
+    "saved_voice_state": "ready",
+    "saved_voice_ready": true,
+    "saved_voice_fresh": true,
+    "saved_voice_worker_ready": true,
+    "saved_voice_instance_lock_held": true,
+    "saved_voice_identity_and_run_id_match_baseline": true,
+    "saved_model": "qwen3-8b-uncensored:latest",
+    "saved_model_digest": "6d7230a923426bc1933879eb08a7dafc18e5fc0e7606c459ce98f16e0c7f9330",
+    "saved_native_version": "0.32.15",
+    "scope": "环境 PASS 限于本例保存的边界检查及 root 在本地时间 12:22:03 保存的后查；这些不是 reviewer 本人对现场的查询，也不证明此后持续可用。",
+    "server_port_closure_applicability": "本负例未启动产品服务器，context.port 为 None；cleanup.port_closed=true 不作为实际产品服务器监听关闭的证明。"
+  },
+  "execution_counts": {
+    "actual_negative_cases": 1,
+    "scenario_count": 2,
+    "focus_validate_work_target_attempts": 1,
+    "selection_replace_selection_attempts": 1,
+    "captures": 2,
+    "captures_released": 2,
+    "recorded_product_target_reobservations": 2,
+    "external_observer_processes": 7,
+    "fixture_launcher_and_runtime_processes": 2,
+    "console_auxiliaries": 1,
+    "work_cli_count": 0,
+    "agent_server_launches": 0,
+    "model_requests": 0,
+    "model_inference_requests": 0,
+    "audio_actions": 0,
+    "mutation_sends": 0,
+    "native_write_attempts": 0,
+    "product_output_files": 0,
+    "reruns_or_retries_recorded": 0,
+    "actual_native_start_count": null
+  },
+  "verified_counts": {
+    "preparation_manifest_files_hashed": 80,
+    "preparation_manifest_unique_paths": 80,
+    "preparation_hash_or_size_mismatches": 0,
+    "result_manifest_files_hashed": 61,
+    "result_manifest_unique_paths": 61,
+    "result_hash_or_size_mismatches": 0,
+    "combined_sealed_unique_paths": 141,
+    "candidate_source_files_hashed": 57,
+    "candidate_source_hash_mismatches": 0,
+    "dependency_files_hashed": 7,
+    "dependency_hash_mismatches": 0,
+    "sdk_components": 4,
+    "sdk_files_hashed": 1346,
+    "sdk_hash_mismatches": 0,
+    "local_model_manifest_files_hashed": 1,
+    "local_model_manifest_digest_matches": true,
+    "head_matches_candidate": true,
+    "sealed_json_files_parsed": 77,
+    "sealed_jsonl_files_parsed": 3,
+    "sealed_jsonl_records_parsed": 30,
+    "sealed_xml_files_parsed": 7,
+    "sealed_python_files_ast_parsed": 23,
+    "candidate_python_files_ast_parsed": 46,
+    "parse_errors": 0,
+    "prior_round_original_copy_pairs_hashed_and_parsed": 9,
+    "prior_round_original_copy_pair_mismatches": 0,
+    "independent_result_cross_checks": 56,
+    "independent_result_cross_checks_passed": 56,
+    "independent_result_cross_checks_failed": 0,
+    "archived_final_xml_tests": 255,
+    "archived_final_xml_failures": 0,
+    "archived_final_xml_errors": 0,
+    "archived_final_xml_skipped": 0,
+    "final_guard_denied": 0,
+    "final_guard_allowed": 0,
+    "final_guard_open_owned_listeners": 0,
+    "test_executions_by_reviewer": 0,
+    "product_or_native_imports_by_reviewer": 0,
+    "live_process_or_service_queries_by_reviewer": 0,
+    "network_requests_by_reviewer": 0,
+    "UI_keyboard_mouse_audio_or_model_actions_by_reviewer": 0,
+    "file_writes_by_reviewer": 0,
+    "Git_mutations_by_reviewer": 0,
+    "subagents_spawned_by_reviewer": 0
+  },
+  "preparation_and_predecessor_eligibility": {
+    "preparation_review_original_sha256": "e75862e5454e3c24419fad3a759ba04fd344af8ee920091b78806ff883b9cf34",
+    "preparation_review_normalized_sha256": "1959e61bec45a273c3b2b160c2b4cf7f35d2f43ec35a2006d4325b1a9a6b98bd",
+    "release_review_equals_normalized_review": true,
+    "normalized_review_original_hash_binding_matches": true,
+    "preparation_review_scope_preserved": true,
+    "eligible_prior_positive_cases": 3,
+    "prior_original_receipts_verified": 9,
+    "distinct_prior_task_ids": [
+      "91f6f93b-5b52-4c55-849c-600b7646189b",
+      "a3f15fe8-acd4-4f15-9d83-7dbfc9b1b557",
+      "76b240be-3fe2-49b3-bf14-50fa19db1266"
+    ],
+    "prior_finished_times_strictly_increasing": true,
+    "three_cumulative_terminal_review_task_time_bindings_match": true,
+    "same_candidate_and_current_8b_bindings_match": true,
+    "prior_raw_pending_terminals_preserved": true,
+    "round3_post_case_environment_failure_preserved": true,
+    "qualification_scope": "三个正例按其独立结果收据和登记原件作为前置资格；本次没有重新裁定其生成内容事实，也没有把旧环境 FAIL 改写为 PASS。"
+  },
+  "findings": [],
+  "finding_severity_counts": {
+    "critical": 0,
+    "important": 0,
+    "minor": 0
+  },
+  "considered_non_findings": [
+    {
+      "subject": "focus-only 没有拒写",
+      "assessment": "不是本次缺陷。E03 契约允许重新观察，且用户批准的具体范围明确为 focus 重观察；实际原生读取和返回值满足该范围。",
+      "evidence": "C:/Users/Administrator/.codex/worktrees/jarvis-e03-source13/UltimaAgent/docs/specs/jarvis-work-capability-contract-20261101.md:48"
+    },
+    {
+      "subject": "选区拒绝是否由审计代理制造",
+      "assessment": "不是代理拒绝。记录包含成功的原目标 fresh observe 和产品 ValueError，before_send 与 native_write_attempts 均为空；代理 RuntimeError 属另一条失败路径。",
+      "evidence": "H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-source13-negative-20261106/code/controller.py:694"
+    },
+    {
+      "subject": "pre-cleanup-effects 中缺少 cli.stdout",
+      "assessment": "本例零 CLI，通用 effects 收集器保留 product_unknown、native_start_count:null 和断连生成 unknown 与实际路径相符，不表示存在未复核的生成内容，也不应擅自改成零或 PASS。",
+      "evidence": "H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-source13-negative-20261106/actual/e03-negative/pre-cleanup-effects.json:3"
+    }
+  ],
+  "declined_to_judge": [
+    {
+      "scope": "focus-only 完整 replace_selection、before_send 和最终写入前重读链",
+      "reason": "本次焦点场景只调用 validate_work_target，没有执行该完整替换链；不能由只读重观察推定完整链通过。",
+      "evidence": "H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-source13-negative-20261106/code/controller.py:721"
+    },
+    {
+      "scope": "选区在 before_send 之后才变化的竞态及成功写入后的验证",
+      "reason": "本次选区在产品操作前已经改变，并在初次 validate_work_target 处被拒绝，未到达 before_send 后的再次重读、native.replace 或 verify_replacement。",
+      "evidence": "C:/Users/Administrator/.codex/worktrees/jarvis-e03-source13/UltimaAgent/src/brain/work_context.py:173"
+    },
+    {
+      "scope": "生成内容事实正确性",
+      "reason": "没有生成内容，facts_scope 不适用；不能预填生成内容事实 PASS。",
+      "evidence": "H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-source13-negative-20261106/actual/e03-negative/negative-evidence.json:253"
+    },
+    {
+      "scope": "三个既有正例的事实正确性重新裁定",
+      "reason": "授权仅覆盖本次负例结果。已检查九份资格原件、独立收据、同候选绑定、不同 task 和递增完成时间，但不重新分配旧结果复核。"
+    },
+    {
+      "scope": "此刻或未来的现场存活、语音持续 ready、下一次执行准入",
+      "reason": "reviewer 未查询现场。12:22:03 后查是 root 保存的时点观察，未来执行仍需自己的有效授权和 fresh proof。",
+      "evidence": "H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-source13-negative-20261106/verification/result-protected-readback.json:158"
+    },
+    {
+      "scope": "输入发送者的进程身份或硬件来源归因",
+      "reason": "输入审计记录完整性可检查，但 sender_process_identified=false，source origin_id 为 unavailable；它不提供发送进程或人的身份鉴定。",
+      "evidence": "H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-source13-negative-20261106/code/fixture_input_origin.py:105"
+    },
+    {
+      "scope": "native 引擎底层总启动数、断连后生成行为及产品服务器端口关闭",
+      "reason": "原记录保留 actual_native_start_count:null 和 generation_after_disconnect:unknown；本例没有产品服务器、CLI 或推理，不能借本例给这些未执行行为签发结论。",
+      "evidence": "H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-source13-negative-20261106/actual/e03-negative/pre-cleanup-effects.json:3"
+    },
+    {
+      "scope": "255 项准备测试或 485/8 产品回归在当前时刻重新通过",
+      "reason": "只解析封存测试报告及静态 AST，没有执行测试。255 是归档最终 XML 中的计数，不能表述为 reviewer 的重跑结果。"
+    },
+    {
+      "scope": "E01、E02、T2 出口、Owner 验收和整体目标完成",
+      "reason": "均超出本次 e03-negative-result-review；本 PASS 和负例 credit 建议不签发后续权限或整体完成结论。"
+    }
+  ],
+  "limits": [
+    "使用文件读取、JSON/JSONL/XML 解析、Python AST 解析、摘要计算、文本检索及只读 Git HEAD/branch 查询；没有执行或导入产品、native 或测试代码，没有写文件、Git 变更或子代理。",
+    "141 项封存文件均独立核对字节数与摘要；候选源码、依赖和 SDK 的摘要核对不等于逐行审计其全部实现。",
+    "结果判断由原始场景记录、外部窗口读回、审计、清理、授权和源码交叉支持，没有仅依赖 root 的 result-content-readback。",
+    "产品操作与准入回调没有各自单独的直接时间戳。所报时间是由 observer timing 和已核对的调用顺序推导出的上下界，不冒充精确操作时间。",
+    "零输入事件、零 programmatic 事件和闭合审计的结论限于两个自有 Edit 控件及已记录的审计生命周期；未作全桌面输入或发送者身份断言。",
+    "原 terminal、negative-evidence、准备 manifest 和结果 manifest 在审查末尾再次核算，均保持请求中的摘要；原 terminal 仍为 PENDING_FACT_REVIEW、mechanical PASS、credit false。",
+    "此回执只推荐本次一例负例的验收 credit，不修改或取代原始 terminal，也不恢复、扩展或续期原执行授权。"
+  ]
+}

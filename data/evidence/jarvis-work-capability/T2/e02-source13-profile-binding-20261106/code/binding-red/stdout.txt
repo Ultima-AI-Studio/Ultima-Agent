@@ -1,0 +1,130 @@
+FFFFFFFF                                                                 [100%]
+================================== FAILURES ===================================
+_________________ test_source13_admission_candidate[current] __________________
+
+candidate = '269aca511d88412dbb9c15d23911138469a37aa2', accepted = True
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-source13-profile-binding-20261106/code/binding-red/temp/test_source13_admission_candid0')
+
+    @pytest.mark.parametrize('candidate,accepted', [(CURRENT_SOURCE13, True), ('118ba152b007c30d358c8bc44c51aabe8ae820f0', False)], ids=['current', 'old'])
+    def test_source13_admission_candidate(candidate, accepted, tmp_path):
+        p = implementation()
+        pins = {key: 'a' * 64 for key in ('profile_manifest_sha256', 'candidate_manifest_sha256', 'corpus_sha256')}
+        grant = admission_double(p, tmp_path, pins)
+        grant['candidate'] = candidate
+        if accepted:
+>           p.validate_admission(grant, tmp_path, pins)
+
+test_profile.py:28: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+profile.py:585: in validate_admission
+    require(grant['candidate']==CANDIDATE and grant['model_digest']==MODEL_DIGEST
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+condition = False, category = 'Admission scope'
+
+    def require(condition, category):
+        if not condition:
+>           raise ValueError(category)
+E           ValueError: Admission scope
+
+profile.py:38: ValueError
+___________________ test_source13_admission_candidate[old] ____________________
+
+candidate = '118ba152b007c30d358c8bc44c51aabe8ae820f0', accepted = False
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-source13-profile-binding-20261106/code/binding-red/temp/test_source13_admission_candid1')
+
+    @pytest.mark.parametrize('candidate,accepted', [(CURRENT_SOURCE13, True), ('118ba152b007c30d358c8bc44c51aabe8ae820f0', False)], ids=['current', 'old'])
+    def test_source13_admission_candidate(candidate, accepted, tmp_path):
+        p = implementation()
+        pins = {key: 'a' * 64 for key in ('profile_manifest_sha256', 'candidate_manifest_sha256', 'corpus_sha256')}
+        grant = admission_double(p, tmp_path, pins)
+        grant['candidate'] = candidate
+        if accepted:
+            p.validate_admission(grant, tmp_path, pins)
+        else:
+>           with pytest.raises(ValueError):
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^
+E           Failed: DID NOT RAISE ValueError
+
+test_profile.py:30: Failed
+____________________ test_source13_adapter_bound_candidate ____________________
+
+    def test_source13_adapter_bound_candidate():
+        adapter = binding_adapter()
+>       assert adapter.CANDIDATE == CURRENT_SOURCE13
+E       AssertionError: assert '118ba152b007...1aabe8ae820f0' == '269aca511d88...1138469a37aa2'
+E         
+E         - 269aca511d88412dbb9c15d23911138469a37aa2
+E         + 118ba152b007c30d358c8bc44c51aabe8ae820f0
+
+test_profile.py:36: AssertionError
+_______________ test_source13_adapter_has_no_legacy_entry[main] _______________
+
+name = 'main'
+
+    @pytest.mark.parametrize('name', ['main', 'run_case', 'RootInvocation', 'actual_child_entry', 'inert_child_entry'])
+    def test_source13_adapter_has_no_legacy_entry(name):
+>       assert not hasattr(binding_adapter(), name)
+E       AssertionError: assert not True
+E        +  where True = hasattr(<module 'source13_profile_adapter' from 'H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\e02-source13-profile-binding-20261106\\profile-adapter.py'>, 'main')
+E        +    where <module 'source13_profile_adapter' from 'H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\e02-source13-profile-binding-20261106\\profile-adapter.py'> = binding_adapter()
+
+test_profile.py:42: AssertionError
+_____________ test_source13_adapter_has_no_legacy_entry[run_case] _____________
+
+name = 'run_case'
+
+    @pytest.mark.parametrize('name', ['main', 'run_case', 'RootInvocation', 'actual_child_entry', 'inert_child_entry'])
+    def test_source13_adapter_has_no_legacy_entry(name):
+>       assert not hasattr(binding_adapter(), name)
+E       AssertionError: assert not True
+E        +  where True = hasattr(<module 'source13_profile_adapter' from 'H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\e02-source13-profile-binding-20261106\\profile-adapter.py'>, 'run_case')
+E        +    where <module 'source13_profile_adapter' from 'H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\e02-source13-profile-binding-20261106\\profile-adapter.py'> = binding_adapter()
+
+test_profile.py:42: AssertionError
+__________ test_source13_adapter_has_no_legacy_entry[RootInvocation] __________
+
+name = 'RootInvocation'
+
+    @pytest.mark.parametrize('name', ['main', 'run_case', 'RootInvocation', 'actual_child_entry', 'inert_child_entry'])
+    def test_source13_adapter_has_no_legacy_entry(name):
+>       assert not hasattr(binding_adapter(), name)
+E       AssertionError: assert not True
+E        +  where True = hasattr(<module 'source13_profile_adapter' from 'H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\e02-source13-profile-binding-20261106\\profile-adapter.py'>, 'RootInvocation')
+E        +    where <module 'source13_profile_adapter' from 'H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\e02-source13-profile-binding-20261106\\profile-adapter.py'> = binding_adapter()
+
+test_profile.py:42: AssertionError
+________ test_source13_adapter_has_no_legacy_entry[actual_child_entry] ________
+
+name = 'actual_child_entry'
+
+    @pytest.mark.parametrize('name', ['main', 'run_case', 'RootInvocation', 'actual_child_entry', 'inert_child_entry'])
+    def test_source13_adapter_has_no_legacy_entry(name):
+>       assert not hasattr(binding_adapter(), name)
+E       AssertionError: assert not True
+E        +  where True = hasattr(<module 'source13_profile_adapter' from 'H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\e02-source13-profile-binding-20261106\\profile-adapter.py'>, 'actual_child_entry')
+E        +    where <module 'source13_profile_adapter' from 'H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\e02-source13-profile-binding-20261106\\profile-adapter.py'> = binding_adapter()
+
+test_profile.py:42: AssertionError
+________ test_source13_adapter_has_no_legacy_entry[inert_child_entry] _________
+
+name = 'inert_child_entry'
+
+    @pytest.mark.parametrize('name', ['main', 'run_case', 'RootInvocation', 'actual_child_entry', 'inert_child_entry'])
+    def test_source13_adapter_has_no_legacy_entry(name):
+>       assert not hasattr(binding_adapter(), name)
+E       AssertionError: assert not True
+E        +  where True = hasattr(<module 'source13_profile_adapter' from 'H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\e02-source13-profile-binding-20261106\\profile-adapter.py'>, 'inert_child_entry')
+E        +    where <module 'source13_profile_adapter' from 'H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\e02-source13-profile-binding-20261106\\profile-adapter.py'> = binding_adapter()
+
+test_profile.py:42: AssertionError
+=========================== short test summary info ===========================
+FAILED test_profile.py::test_source13_admission_candidate[current] - ValueErr...
+FAILED test_profile.py::test_source13_admission_candidate[old] - Failed: DID ...
+FAILED test_profile.py::test_source13_adapter_bound_candidate - AssertionErro...
+FAILED test_profile.py::test_source13_adapter_has_no_legacy_entry[main] - Ass...
+FAILED test_profile.py::test_source13_adapter_has_no_legacy_entry[run_case]
+FAILED test_profile.py::test_source13_adapter_has_no_legacy_entry[RootInvocation]
+FAILED test_profile.py::test_source13_adapter_has_no_legacy_entry[actual_child_entry]
+FAILED test_profile.py::test_source13_adapter_has_no_legacy_entry[inert_child_entry]
+8 failed, 549 deselected in 1.81s

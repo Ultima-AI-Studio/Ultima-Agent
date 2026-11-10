@@ -1,0 +1,257 @@
+FFF....FFFFFFFF                                                          [100%]
+================================== FAILURES ===================================
+________________ test_worker_exit_observed_on_retained_handle _________________
+
+    def test_worker_exit_observed_on_retained_handle():
+        api = Native()
+>       with RetainedExit(owner(), KEY, 'worker', api=api, clock=api.now) as observer:
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+test_native_observation.py:53: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <native_observation.RetainedExit object at 0x000001E83FDBE900>
+owned = namespace(known={417: {'identity': {'pid': 417, 'created_filetime': 134384100000000123, 'exe': 'C:\\Python\\python.exe'}, 'role': 'worker'}}, forbidden={81})
+key = {'pid': 417, 'created_filetime': 134384100000000123, 'exe': 'C:\\Python\\python.exe'}
+role = 'worker'
+api = <test_native_observation.Native object at 0x000001E83FDBE7B0>
+clock = <bound method Native.now of <test_native_observation.Native object at 0x000001E83FDBE7B0>>
+
+    def __init__(self, owned, key, role, *, api, clock):
+>       raise ValueError('Unconfigured retained native observation')
+E       ValueError: Unconfigured retained native observation
+
+native_observation.py:4: ValueError
+______________ test_native_exit_failure_is_not_launcher_success _______________
+
+    def test_native_exit_failure_is_not_launcher_success():
+        api = Native(); api.code = 7
+>       with RetainedExit(owner(), KEY, 'worker', api=api, clock=api.now) as observer:
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+test_native_observation.py:62: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <native_observation.RetainedExit object at 0x000001E83FD9BB10>
+owned = namespace(known={417: {'identity': {'pid': 417, 'created_filetime': 134384100000000123, 'exe': 'C:\\Python\\python.exe'}, 'role': 'worker'}}, forbidden={81})
+key = {'pid': 417, 'created_filetime': 134384100000000123, 'exe': 'C:\\Python\\python.exe'}
+role = 'worker'
+api = <test_native_observation.Native object at 0x000001E83FD9B9D0>
+clock = <bound method Native.now of <test_native_observation.Native object at 0x000001E83FD9B9D0>>
+
+    def __init__(self, owned, key, role, *, api, clock):
+>       raise ValueError('Unconfigured retained native observation')
+E       ValueError: Unconfigured retained native observation
+
+native_observation.py:4: ValueError
+_____________ test_no_exit_code_is_observed_until_handle_signals ______________
+
+    def test_no_exit_code_is_observed_until_handle_signals():
+        api = Native(); api.wait = 258
+>       with RetainedExit(owner(), KEY, 'worker', api=api, clock=api.now) as observer:
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+test_native_observation.py:68: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <native_observation.RetainedExit object at 0x000001E83FE48550>
+owned = namespace(known={417: {'identity': {'pid': 417, 'created_filetime': 134384100000000123, 'exe': 'C:\\Python\\python.exe'}, 'role': 'worker'}}, forbidden={81})
+key = {'pid': 417, 'created_filetime': 134384100000000123, 'exe': 'C:\\Python\\python.exe'}
+role = 'worker'
+api = <test_native_observation.Native object at 0x000001E83FE48410>
+clock = <bound method Native.now of <test_native_observation.Native object at 0x000001E83FE48410>>
+
+    def __init__(self, owned, key, role, *, api, clock):
+>       raise ValueError('Unconfigured retained native observation')
+E       ValueError: Unconfigured retained native observation
+
+native_observation.py:4: ValueError
+__________ test_handle_creation_mismatch_closes_without_exit_credit ___________
+
+    def test_handle_creation_mismatch_closes_without_exit_credit():
+        api = Native(); api.created += 1
+        with pytest.raises(ValueError):
+            RetainedExit(owner(), KEY, 'worker', api=api, clock=api.now)
+>       assert api.closed == [29]
+E       assert [] == [29]
+E         
+E         Right contains one more item: 29
+E         Use -v to get more diff
+
+test_native_observation.py:90: AssertionError
+___________________ test_pid_reuse_after_open_closes_handle ___________________
+
+    def test_pid_reuse_after_open_closes_handle():
+        api = Native()
+        old_open = api.open
+        def replaced(pid):
+            handle = old_open(pid)
+            api.key['created_filetime'] += 20
+            return handle
+        api.open = replaced
+        with pytest.raises(ValueError):
+            RetainedExit(owner(), KEY, 'worker', api=api, clock=api.now)
+>       assert api.closed == [29]
+E       assert [] == [29]
+E         
+E         Right contains one more item: 29
+E         Use -v to get more diff
+
+test_native_observation.py:103: AssertionError
+______ test_missing_or_expired_original_clock_never_returns_success[99] _______
+
+at = 99
+
+    @pytest.mark.parametrize('at', [99, 111, True])
+    def test_missing_or_expired_original_clock_never_returns_success(at):
+        api = Native(); api.clock = at
+>       with RetainedExit(owner(), KEY, 'worker', api=api, clock=api.now) as observer:
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+test_native_observation.py:109: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <native_observation.RetainedExit object at 0x000001E83F56FA50>
+owned = namespace(known={417: {'identity': {'pid': 417, 'created_filetime': 134384100000000123, 'exe': 'C:\\Python\\python.exe'}, 'role': 'worker'}}, forbidden={81})
+key = {'pid': 417, 'created_filetime': 134384100000000123, 'exe': 'C:\\Python\\python.exe'}
+role = 'worker'
+api = <test_native_observation.Native object at 0x000001E83F56F750>
+clock = <bound method Native.now of <test_native_observation.Native object at 0x000001E83F56F750>>
+
+    def __init__(self, owned, key, role, *, api, clock):
+>       raise ValueError('Unconfigured retained native observation')
+E       ValueError: Unconfigured retained native observation
+
+native_observation.py:4: ValueError
+______ test_missing_or_expired_original_clock_never_returns_success[111] ______
+
+at = 111
+
+    @pytest.mark.parametrize('at', [99, 111, True])
+    def test_missing_or_expired_original_clock_never_returns_success(at):
+        api = Native(); api.clock = at
+>       with RetainedExit(owner(), KEY, 'worker', api=api, clock=api.now) as observer:
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+test_native_observation.py:109: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <native_observation.RetainedExit object at 0x000001E83FDF6F30>
+owned = namespace(known={417: {'identity': {'pid': 417, 'created_filetime': 134384100000000123, 'exe': 'C:\\Python\\python.exe'}, 'role': 'worker'}}, forbidden={81})
+key = {'pid': 417, 'created_filetime': 134384100000000123, 'exe': 'C:\\Python\\python.exe'}
+role = 'worker'
+api = <test_native_observation.Native object at 0x000001E83FDF6E40>
+clock = <bound method Native.now of <test_native_observation.Native object at 0x000001E83FDF6E40>>
+
+    def __init__(self, owned, key, role, *, api, clock):
+>       raise ValueError('Unconfigured retained native observation')
+E       ValueError: Unconfigured retained native observation
+
+native_observation.py:4: ValueError
+_____ test_missing_or_expired_original_clock_never_returns_success[True] ______
+
+at = True
+
+    @pytest.mark.parametrize('at', [99, 111, True])
+    def test_missing_or_expired_original_clock_never_returns_success(at):
+        api = Native(); api.clock = at
+>       with RetainedExit(owner(), KEY, 'worker', api=api, clock=api.now) as observer:
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+test_native_observation.py:109: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <native_observation.RetainedExit object at 0x000001E83FDF4B90>
+owned = namespace(known={417: {'identity': {'pid': 417, 'created_filetime': 134384100000000123, 'exe': 'C:\\Python\\python.exe'}, 'role': 'worker'}}, forbidden={81})
+key = {'pid': 417, 'created_filetime': 134384100000000123, 'exe': 'C:\\Python\\python.exe'}
+role = 'worker'
+api = <test_native_observation.Native object at 0x000001E83FDF55E0>
+clock = <bound method Native.now of <test_native_observation.Native object at 0x000001E83FDF55E0>>
+
+    def __init__(self, owned, key, role, *, api, clock):
+>       raise ValueError('Unconfigured retained native observation')
+E       ValueError: Unconfigured retained native observation
+
+native_observation.py:4: ValueError
+________________ test_clock_is_checked_after_native_exit_read _________________
+
+    def test_clock_is_checked_after_native_exit_read():
+        api = Native()
+        def slow_exit(handle):
+            api.clock = 111
+            return 0
+        api.exit_code = slow_exit
+>       with RetainedExit(owner(), KEY, 'worker', api=api, clock=api.now) as observer:
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+test_native_observation.py:120: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <native_observation.RetainedExit object at 0x000001E83FEAD390>
+owned = namespace(known={417: {'identity': {'pid': 417, 'created_filetime': 134384100000000123, 'exe': 'C:\\Python\\python.exe'}, 'role': 'worker'}}, forbidden={81})
+key = {'pid': 417, 'created_filetime': 134384100000000123, 'exe': 'C:\\Python\\python.exe'}
+role = 'worker'
+api = <test_native_observation.Native object at 0x000001E83FEAD1D0>
+clock = <bound method Native.now of <test_native_observation.Native object at 0x000001E83FEAD1D0>>
+
+    def __init__(self, owned, key, role, *, api, clock):
+>       raise ValueError('Unconfigured retained native observation')
+E       ValueError: Unconfigured retained native observation
+
+native_observation.py:4: ValueError
+______ test_exit_observation_is_stable_on_pid_reuse_after_original_exit _______
+
+    def test_exit_observation_is_stable_on_pid_reuse_after_original_exit():
+        api = Native()
+>       with RetainedExit(owner(), KEY, 'worker', api=api, clock=api.now) as observer:
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+test_native_observation.py:127: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <native_observation.RetainedExit object at 0x000001E83FE33A10>
+owned = namespace(known={417: {'identity': {'pid': 417, 'created_filetime': 134384100000000123, 'exe': 'C:\\Python\\python.exe'}, 'role': 'worker'}}, forbidden={81})
+key = {'pid': 417, 'created_filetime': 134384100000000123, 'exe': 'C:\\Python\\python.exe'}
+role = 'worker'
+api = <test_native_observation.Native object at 0x000001E83FE32F90>
+clock = <bound method Native.now of <test_native_observation.Native object at 0x000001E83FE32F90>>
+
+    def __init__(self, owned, key, role, *, api, clock):
+>       raise ValueError('Unconfigured retained native observation')
+E       ValueError: Unconfigured retained native observation
+
+native_observation.py:4: ValueError
+_____________________ test_closed_handle_cannot_be_reused _____________________
+
+    def test_closed_handle_cannot_be_reused():
+>       api = Native(); observer = RetainedExit(owner(), KEY, 'worker', api=api, clock=api.now)
+                                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+test_native_observation.py:133: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <native_observation.RetainedExit object at 0x000001E83FEA0460>
+owned = namespace(known={417: {'identity': {'pid': 417, 'created_filetime': 134384100000000123, 'exe': 'C:\\Python\\python.exe'}, 'role': 'worker'}}, forbidden={81})
+key = {'pid': 417, 'created_filetime': 134384100000000123, 'exe': 'C:\\Python\\python.exe'}
+role = 'worker'
+api = <test_native_observation.Native object at 0x000001E83FEA1160>
+clock = <bound method Native.now of <test_native_observation.Native object at 0x000001E83FEA1160>>
+
+    def __init__(self, owned, key, role, *, api, clock):
+>       raise ValueError('Unconfigured retained native observation')
+E       ValueError: Unconfigured retained native observation
+
+native_observation.py:4: ValueError
+=========================== short test summary info ===========================
+FAILED test_native_observation.py::test_worker_exit_observed_on_retained_handle
+FAILED test_native_observation.py::test_native_exit_failure_is_not_launcher_success
+FAILED test_native_observation.py::test_no_exit_code_is_observed_until_handle_signals
+FAILED test_native_observation.py::test_handle_creation_mismatch_closes_without_exit_credit
+FAILED test_native_observation.py::test_pid_reuse_after_open_closes_handle - ...
+FAILED test_native_observation.py::test_missing_or_expired_original_clock_never_returns_success[99]
+FAILED test_native_observation.py::test_missing_or_expired_original_clock_never_returns_success[111]
+FAILED test_native_observation.py::test_missing_or_expired_original_clock_never_returns_success[True]
+FAILED test_native_observation.py::test_clock_is_checked_after_native_exit_read
+FAILED test_native_observation.py::test_exit_observation_is_stable_on_pid_reuse_after_original_exit
+FAILED test_native_observation.py::test_closed_handle_cannot_be_reused - Valu...
+11 failed, 4 passed in 0.19s

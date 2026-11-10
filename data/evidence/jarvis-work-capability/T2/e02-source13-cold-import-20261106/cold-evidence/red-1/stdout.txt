@@ -1,0 +1,58 @@
+FF..                                                                     [100%]
+================================== FAILURES ===================================
+______________________ test_real_sdk_cold_import[worker] ______________________
+
+role = 'worker'
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-source13-cold-import-20261106/cold-evidence/red-1/temp/test_real_sdk_cold_import_work0')
+
+    @pytest.mark.parametrize('role',['worker','reader'])
+    def test_real_sdk_cold_import(role,tmp_path):
+        """No eager fixture or warmed platform: the original SDK runs in a new PID."""
+        import os
+        import subprocess
+        p=implementation()
+        forbidden={'OLLAMA_HOST','OLLAMA_API_KEY','OLLAMA_MODELS','PYTHONPATH','PYTHONHOME','PYTHONSTARTUP',
+            'OPENJARVIS_HOME','OPENJARVIS_CONFIG','XDG_DATA_HOME','XDG_CACHE_HOME','TMP','TEMP','TMPDIR','OPENJARVIS_SSRF_FAIL_OPEN'}
+        env={k:v for k,v in os.environ.items() if k.upper() not in forbidden and not k.upper().endswith('_PROXY')}
+        result=tmp_path/'result.json'
+        command=[str(p.PY),'-I','-B','-X','utf8',str(HERE.parent/'cold/cold_import_probe.py'),role,str(tmp_path/'cold'),str(result)]
+        run=subprocess.run(command,env=env,cwd=HERE,capture_output=True,timeout=45,creationflags=subprocess.CREATE_NO_WINDOW)
+        (tmp_path/'stdout.txt').write_bytes(run.stdout);(tmp_path/'stderr.txt').write_bytes(run.stderr)
+        assert result.exists(),run.stderr.decode('utf-8','replace')
+        value=json.loads(result.read_bytes())
+>       assert run.returncode==0 and value['outcome']=='PASS',value
+E       AssertionError: {'scope': 'REAL_SDK_COLD_IMPORT_ONLY', 'role': 'worker', 'pid': 21540, 'isolated': True, ...}
+E       assert (1 == 0)
+E        +  where 1 = CompletedProcess(args=['H:\\UltimaAI\\UltimaAgent\\tools\\venv-openjarvis\\Scripts\\python.exe', '-I', '-B', '-X', 'ut...import-20261106\\\\cold-evidence\\\\red-1\\\\temp\\\\test_real_sdk_cold_import_work0\\\\result.json"}\r\n', stderr=b'').returncode
+
+test_profile.py:3338: AssertionError
+______________________ test_real_sdk_cold_import[reader] ______________________
+
+role = 'reader'
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-source13-cold-import-20261106/cold-evidence/red-1/temp/test_real_sdk_cold_import_read0')
+
+    @pytest.mark.parametrize('role',['worker','reader'])
+    def test_real_sdk_cold_import(role,tmp_path):
+        """No eager fixture or warmed platform: the original SDK runs in a new PID."""
+        import os
+        import subprocess
+        p=implementation()
+        forbidden={'OLLAMA_HOST','OLLAMA_API_KEY','OLLAMA_MODELS','PYTHONPATH','PYTHONHOME','PYTHONSTARTUP',
+            'OPENJARVIS_HOME','OPENJARVIS_CONFIG','XDG_DATA_HOME','XDG_CACHE_HOME','TMP','TEMP','TMPDIR','OPENJARVIS_SSRF_FAIL_OPEN'}
+        env={k:v for k,v in os.environ.items() if k.upper() not in forbidden and not k.upper().endswith('_PROXY')}
+        result=tmp_path/'result.json'
+        command=[str(p.PY),'-I','-B','-X','utf8',str(HERE.parent/'cold/cold_import_probe.py'),role,str(tmp_path/'cold'),str(result)]
+        run=subprocess.run(command,env=env,cwd=HERE,capture_output=True,timeout=45,creationflags=subprocess.CREATE_NO_WINDOW)
+        (tmp_path/'stdout.txt').write_bytes(run.stdout);(tmp_path/'stderr.txt').write_bytes(run.stderr)
+        assert result.exists(),run.stderr.decode('utf-8','replace')
+        value=json.loads(result.read_bytes())
+>       assert run.returncode==0 and value['outcome']=='PASS',value
+E       AssertionError: {'scope': 'REAL_SDK_COLD_IMPORT_ONLY', 'role': 'reader', 'pid': 19448, 'isolated': True, ...}
+E       assert (1 == 0)
+E        +  where 1 = CompletedProcess(args=['H:\\UltimaAI\\UltimaAgent\\tools\\venv-openjarvis\\Scripts\\python.exe', '-I', '-B', '-X', 'ut...import-20261106\\\\cold-evidence\\\\red-1\\\\temp\\\\test_real_sdk_cold_import_read0\\\\result.json"}\r\n', stderr=b'').returncode
+
+test_profile.py:3338: AssertionError
+=========================== short test summary info ===========================
+FAILED test_profile.py::test_real_sdk_cold_import[worker] - AssertionError: {...
+FAILED test_profile.py::test_real_sdk_cold_import[reader] - AssertionError: {...
+2 failed, 2 passed, 557 deselected in 3.62s

@@ -1,0 +1,333 @@
+# Original corpus profile code preparation
+
+This five-file package is code preparation under authority
+`66594150736fa55820a19f7643a5707c530ab2a75fab1440f7517ceb2fc719be`.
+It grants no original-profile, Root runtime, model, endpoint, DNS, production,
+SDK modification, publication, or allocation permission. No runtime CLI exists.
+The only executable CLI is the fixed offline contract runner:
+
+```powershell
+& H:/UltimaAI/UltimaAgent/tools/venv-openjarvis/Scripts/python.exe -I -B -X utf8 .\run_checks.py --contracts
+```
+
+Run it from this package directory. All other arguments return 2. It runs only
+the pinned `test_profile.py`, requires the manifest's exact unique JUnit node-ID
+inventory with zero failures/errors/skips, compares package and all external
+dependencies before/after, and retains one unique `code/profile-preparation-*`
+stage with command, snapshots, versions, raw stdout/stderr/JUnit and receipt.
+A passing contract suite qualifies synthetic contracts only. It never issues
+a code/runtime gate or launches the original profile. Focused historical stages
+are separate evidence; a subset passing is not full-suite qualification.
+
+## Fixed scope and inputs
+
+Candidate is C118 `118ba152b007c30d358c8bc44c51aabe8ae820f0`.
+Only current8B `6d7230a923426bc1933879eb08a7dafc18e5fc0e7606c459ce98f16e0c7f9330`
+is in product scope permanently. Preparation uses zero model calls. Preserve
+the original 774-byte query, ordered four text/plain bodies of
+7236/3252/4643/13559 bytes, actual persona/scanners/configuration and accepted
+source/SDK/harness/caller bytes. `manifest.json` contains exact external file
+hashes and roles, and four member hashes. The manifest cannot hash itself;
+Root independently pins its raw bytes. No archived response, issued reference,
+nonce, outcome or corpus replacement is used. The archived replay is a source
+only for the two exact approved mock metadata identity strings.
+
+Owner origin is exactly `http://localhost:11434`; research origin is exactly
+`http://127.0.0.1:11434`. They are distinct private MockTransports. Owner
+construction must originate in the pinned SDK initializer frame with exact
+raw self/type/host/timeout and a unique owner. Build/send rechecks its raw
+client binding. Bootstrap charges one metadata reservation before request
+construction; owner and research share a 16-attempt nonrefundable budget.
+There is no ordinary HTTP or inference fallback. Unknown/denied selected
+operations dirty the result even if the SDK catches the immediate refusal.
+
+The unused eager Ollama type-import object is separately fenced before any
+transitive SDK import, moved behind private MockTransport before constructor
+return, has zero sends/metadata charges, and is verifiably closed before type
+use. Retained aliases refuse exactly at their instance send. Constructor,
+import, send, profiler, identity or close failure cannot yield a clean receipt.
+
+## Later Root integration is mandatory
+
+`RootControls` exposes only read-only `admit(folder,pins)` and
+`readback(folder,first)`. The default implementation fails. A worker dictionary
+or worker-chosen record/hash is never a capability. This consumer interface
+is not a confinement or arbitrary-Python authenticity claim. The later
+separately reviewed Root entry must supply independently verified capabilities,
+actual process creation identity, consumed allocation/admission, source and
+control pins, protected-file evidence, actual exit and earliest monotonic clock.
+No issuer, launcher, process controller or record-owning Root service is included.
+Root also injects the independently admitted `ssrf_backend`, `reader_root` and
+`worker_evidence_roots`; they cannot come from a worker result. Worker and reader
+reject inherited `OLLAMA_MODELS`, `OPENJARVIS_CONFIG` and `XDG_DATA_HOME` overrides
+before selected imports, alongside host/key/proxy/startup/path injection.
+
+`run_profile(folder,pins,controls)` is an import-only callable for that later
+entry. It admits before SDK construction, consumes the process-local invocation
+before work, submits once through the real factory and WorkService, closes
+owned resources, writes exclusive bounded index/first/failure evidence, and
+returns only a worker candidate. Failed work is never resubmitted. Existing
+`service-first-result.json` remains authoritative even when export raises.
+
+`read_profile(folder,first,p4,*,controls,pins)` requires Root-injected controls
+and pins. `first` is comparison-only. The reader's fresh canonical non-reparse
+`pins.reader_root` must lie outside the sealed case and every
+`pins.worker_evidence_roots` boundary. Only reader home/cache/tmp/temp are created
+there; environment and import paths are restored exactly. No owner/research
+client, factory, health/chat, worker submission, network or inference occurs.
+Only the OP-D01 fenced unused eager object is permitted as an import side effect.
+
+Root privately owns the original clock; the profile never reconstructs it from
+worker timestamps or a worker admission copy. IF02C requires two read-only
+readbacks on success: before typed replay and as the final reader action after
+pure reconstruction, replay, external reopen and immutable hashes. Both bind
+the same consumed records/identity/references. Only Root's observed time may
+advance, still by the original 315-second cutoff. The outer Root entry must
+independently qualify actual reader return/exit. No real Root qualification is
+established by the synthetic controls in these tests.
+
+## Evidence and publication predicate
+
+CAPTURE02 transparently observes the original ToolExecutor.execute boundary,
+actual preflight bus and WorkLedger.record before composition/serialization.
+One search/four GET SDK-to-adapter ID pairs and original events/results must
+link unambiguously. Missing, duplicate, unrelated or incomplete capture cannot
+be filled from exported collection/replay. Independent RuntimeInputs are
+captured at their original freeze boundary; default allowance is exactly 2048
+and the prompt must equal C118's actual assembly. Read observations, original
+policy/catalogue hash/nonce and writer generation have separately closed files.
+
+The writer journal observes only the enrolled nested writer and the private
+FileWriteTool constructor binding. It preserves original argument objects,
+result/exception identity and execution count; it records pre-loss caller,
+permit/claim/staging/linkage before the real navigation callback can drop END.
+Diagnostic failure marks observer incomplete without replacing product outcomes.
+File presence/hash/size is distinct from SDK success, retained/confirmed END,
+verified readback and ACK. Unknown/unreached values stay null. Failure receipts
+contain bounded event classes/booleans, validated IDs, counts and text hashes/
+lengths, not raw event/error content. Cleanup/export errors remain secondary.
+
+Quarantined raw members remain private until all checks succeed: independent
+pure reconstruction from original pins/captures; exact closed collection and
+replay types/keys; actual producer JSON strings and nested 12000/10240 character
+cuts; pinned typed readonly V2 verifier; external byte reopen; exact inventory;
+unchanged closed hashes; both Root readbacks and all selected counter gates.
+`trusted-export.complete` alone releases nothing. Failure returns bounded
+stage/error type and zero released members. Candidate mechanical success still
+has `outer_root_gate=NOT_ISSUED` and grants no T2/T3/Owner/product/runtime release.
+
+## Measurement limits
+
+Private metadata reservations, MockTransport handlers/completions, fixture
+search/GETs, SDK inference events and blocked audited attempts are separate
+counts. SDK inference events from scripted transport are not model inference.
+Ordinary OS-wide HTTP, native DNS/cache/wire attempts, peer/socket bytes, packets
+and opaque native activity remain unmeasured/null. The historical mock END first
+cause remains unknown.
+
+Tests use explicit doubles for Root capabilities, scopes, scanner findings,
+SDK/service objects and the full runtime-packet verifier where noted. Other
+tests execute the pinned pure producer/transport/constructor/V2-helper source
+with synthetic dependencies. These boundaries do not qualify actual original
+configuration, fresh entropy, END reliability, successful file bytes, actual
+Root identity/timing, or a real zero-inference run. Root must independently
+review the entire package and later control entry before any separate runtime
+consideration.
+
+## Bounded review-fix seal, 2026-11-03
+
+The first sealed package received NOT READY. Its exact five files and report
+remain preserved in `code/profile-preparation-review-fix-baseline-20261103T1306376291199`.
+The new manifest inventory contains 444 unique contract IDs. This revision is
+pending fresh independent review. The final fixed runner has not been invoked;
+focused pytest and collect-only receipts do not replace that later gate.
+
+The runner child removes inherited PYTHON*/PYTEST_* settings, disables plugin
+autoload, uses Python isolated mode, a stage-owned empty pytest configuration,
+`--noconftest`, fixed package root/confcutdir and importlib mode. The child still
+runs only this one fixed test file and must match the exact manifest allowlist.
+The parent runner launch must use `-I` before the script path, as in the fixed
+command above. Its entry also requires sys.flags.isolated before loading pins
+or delegating a child; Python startup precedes Python-level checks.
+Raw evidence hash/read errors keep a nonzero result even after pytest passes.
+Runner contract tests use subprocess doubles; no full runner or original
+profile execution is represented by their synthetic child receipts.
+
+Only schema-validated producer collection JSON-string fields may use exact
+UTF-8 comparisons up to the existing 4 MiB member cap. General diagnostic
+object equality retains its smaller bound. The full original-length four-body
+trace and an equal-length mutation have separate offline tests.
+
+Owner/research phase and route are checked before budget reservation or request
+construction. Issued requests retain their phase through send; a failed legal
+reservation is never refunded. SSRF baseline is checked at entry, before each
+lookup, at guarded-scope close and after successful restoration. A close
+failure dirties the receipt and cannot replace an existing primary exception.
+The original work deadline is checked again immediately before submit.
+
+The writer observer binds the claimed report/dispatch/file UUIDs under the
+ledger lock. It records original pre/post END confirmation and bounded seal
+cause hashes, and observes only the pinned Leaf/View/Transport ACK marker
+callers. Attempted, send-admitted, file-verified and secured/verified ACK are
+distinct; unknown values remain null. ACK success followed by pinned exporter
+failure preserves both the original exception and first product bytes. A
+successful reader needs a nonempty, closed, ordered writer journal linked to
+the runtime file/effect and final secured ACK; an empty or foreign journal
+cannot release candidate members. Reader success returns bounded ACK flags.
+
+The first Root readback is validated and copied to immutable scalar values;
+mutating a reused controls dictionary cannot rewrite the prior observation.
+Preflight executor capture is admitted only from the pinned producer invoke
+code and its exact bus/call/binding/ledger. Its independently observed common
+collection deadline enters FixtureExpectations; collection and all attempts
+cannot choose a replacement deadline by agreeing with one another.
+
+## Second bounded correction seal, 2026-11-03
+
+The second independent review also returned NOT READY, with five remaining
+Important items R12-R16. The previous five files and report are preserved in
+code/profile-preparation-review-fix-2-baseline-20261103T1416113476001. This
+revision has 476 unique contract node IDs and awaits another independent
+review. The final fixed runner and original profile have still not run.
+
+An issued HTTPX request now binds its exact method, raw path/target, raw
+scheme/host/port/userinfo and phase. Canonical literal allowed targets are
+checked before reservation/build; percent-escaped path aliases are rejected.
+Send checks the stored raw identity before its attempt counter or saved sender
+can run. A failed legal build keeps its reservation.
+
+The first observed seal is latched even when its bounded cause is unknown.
+Canonical active report/dispatch/file UUIDs and typed seq/generation are
+captured under the original ledger lock before revocation; later seal rows
+are secondary and cannot rewrite that first observation. Terminal missing END
+or missing secured ACK is derived from closed writer/product observations,
+not a caller-supplied stage label. Unobserved absence has no invented negative
+event time; a real earlier seal/negative row keeps its observed order/time.
+Successful journal validation requires typed/null-correct contiguous inspector
+START/END pairs, one writer START/ATTEMPT/outcome/confirmed END and final ACK
+phase/send/secured order. Trailing/duplicate START, foreign IDs, unknown events,
+wrong nullable flags and bool/float seq/generation values cannot be released.
+
+Worker first.counters.ssrf and reader result.ssrf preserve separate bounded
+context/phase/source-index observations, including the pinned source URL hash,
+observed backend/baseline verdict, original checker none/rejected/exception
+counts and Python resolver entries. Reader entry refusal retains the shared
+counter object before context-manager admission. Projection uses copied typed
+scalars; source hashes are checked against original ordered URL pins. Native
+DNS/cache/packets always remain null, including when synthetic inputs supply
+zero values. These are selected Python observations, not whole-process or
+native-network measurements; all tests use explicit offline resolver doubles.
+
+## Third bounded correction seal, 2026-11-03
+
+The next independent review returned NOT READY for R01 and R12-R16. This
+revision preserves the fix-2 seal in
+code/profile-preparation-review-fix-3-baseline-20261103T1446442452556 and awaits
+a fresh independent review. It has 512 exact unique contract IDs. The final
+fixed runner and original profile still have zero actual invocations.
+
+The parent command requires Python -I before startup and the runner entry
+checks sys.flags.isolated. Fixed Host authority is checked before reservation
+and build, after construction and before send; conflicting or duplicate Host
+values cannot enter the saved sender or either private handler. The first seal
+observation and original seal call now share the same existing ledger RLock,
+so concurrent revocation cannot make the observer latch a different first cause.
+Only a complete closed observer window may infer missing END or secured ACK;
+diagnostic failures, the 256-row cap and an open window leave the absence
+classification unknown, retaining actual earlier negative observations.
+Inspector END dispatch UUIDs are matched by typed seq/generation to independent
+verified read keys and must remain distinct from writer role identities.
+
+For the pinned normal no-redirect worker path there are exactly 16 SSRF
+lookups: four canonical_url checks in source order, then BrowserChannel initial,
+SDK http_request.execute initial, and BrowserChannel final checks for each
+GET. Their source-index order is
+[1,2,3,4,1,1,1,2,2,2,3,3,3,4,4,4]. The SDK redirect-only check does not execute
+on this path. Complete worker receipts require entry, these sixteen successful
+lookup verdicts, close and restored, in exact order. Reader receipts preserve
+their actual lookup count with the same ordered boundaries. Every record's
+backend is compared with the existing independent Root grant/pins ssrf_backend;
+the private mechanical/observation helpers require expected_backend explicitly.
+Native DNS/cache/packet measurements remain null. The positive offline chain
+executes pinned canonicalizer, BrowserChannel and SDK guard/redirect-helper AST
+with explicit HTTP/ToolResult/resolver doubles; it constructs no real SDK
+service and performs no real DNS or network request.
+
+## Fourth bounded correction seal, 2026-11-03
+
+The next independent review left only R14 and R07/R12. This revision preserves
+the fix-3 final package/report in
+code/profile-preparation-review-fix-4-baseline-20261103T1526227108361 and awaits
+a fresh independent review. It has 527 exact unique contract IDs; final runner
+and original-profile invocations remain zero.
+
+observe_submission keeps last progress separate from actual negative events.
+A failed service result or original submission exception never copies sdk_attempt
+or another successful checkpoint into first_failure_stage. Bounded independent
+submission_status, submission_exception_type and export_exception_type retain
+the returned result, original exception or post-first-result exporter error.
+Only actually observed SDK/NAV failures set the negative-event latch. Incomplete
+opened observation windows without a known negative remain unknown with
+terminal_missing=null, including lost END and lost SDK-outcome diagnostic rows.
+Complete terminal windows classify their observed END/ACK state; known first
+negatives and the authoritative first product bytes remain preserved.
+
+The request-level params and HTTPX client.params query-merge sources are checked
+before reservation and original request building. Both owner and research
+clients refuse nonempty query sources with unchanged budgets and zero saved
+builder/sender calls. Empty sources remain legal; a legal build that later
+fails retains its reservation. Existing raw target, Host, phase and send checks
+continue to apply.
+
+## Fifth bounded correction seal, 2026-11-03
+
+This revision addresses only the three remaining R14 status paths and preserves
+the fix-4 package/report in
+code/profile-preparation-review-fix-5-baseline-20261103T1553340729168. It has 535
+exact unique contract IDs and awaits fresh independent review. Final fixed
+runner and original-profile invocations remain zero.
+
+A single terminal-status policy includes needs_attention alongside failed,
+cancelled and timeout; succeeded is the only successful candidate status.
+submission_status, product_status and terminal failure classification retain
+the pinned WorkService needs_attention outcome without changing first result
+bytes. Incomplete observation windows without an earlier known negative keep
+unknown/terminal_missing=null even when a post-first-result exporter raises,
+whether SDK success or END diagnostics were lost. The original exporter
+exception type and immutable first product bytes remain independent evidence.
+With complete observations, confirmed END and secured ACK, a failed or
+needs_attention service return is classified service_result while ACK verified
+and product status stay intact. An earlier known SDK negative still takes
+priority. These tests use the actual observe_submission/export wrapper with
+explicit service/ledger/SDK/ACK doubles; they qualify no real original-profile
+execution or runtime release.
+
+## Sixth bounded correction seal, 2026-11-03
+
+This revision addresses only the remaining R14c real service-handler order. It
+preserves the fix-5 package/report in
+code/profile-preparation-review-fix-6-baseline-20261103T1612103086405 and awaits
+fresh independent review. There are 540 exact unique contract IDs; final fixed
+runner and original-profile invocations remain zero.
+
+The temporary seal observer records a bounded service_handler boolean only
+when its immediate caller code is the original WorkService.submit_work code
+captured before the trusted exporter shim. It keeps the existing RLock,
+original call/result/exception and first seal cause/identity unchanged. This
+private diagnostic attribution adds no Root method, issuer or runtime entry.
+
+Failure classification distinguishes negative observations before ACK_SECURED
+from the pinned service catch's SEAL after ACK. With complete observations,
+confirmed END/ACK and failed/needs_attention service outcome, only handler SEALs
+strictly after the secured ACK may coexist with stage=service_result. Their
+first-negative time/order/cause hash remain visible. Earlier SDK false/other
+negative observations retain priority. A subsequent exporter exception remains
+export_exception_type and cannot replace service_result.
+
+Offline cases execute the pinned research verifier branch and unchanged
+WorkService except/seal/effects logic as the original service method at the
+observe_submission boundary. WorkLedger.seal is also extracted from the fixed
+source. Explicit verifier/ledger/outcome/file doubles cover effects true/false
+with exporter success/exception and an SDK-false-before-ACK priority control.
+No product service is started, and no real
+profile, model, network or DNS call occurs.

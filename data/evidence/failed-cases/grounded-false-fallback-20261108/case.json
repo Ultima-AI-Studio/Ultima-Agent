@@ -1,0 +1,30 @@
+{
+  "case_id": "grounded-false-fallback-20261108",
+  "work_order": "wo-ultimaagent-20261108-0026",
+  "captured_at": "2026-11-08T00:00:00Z",
+  "failure_stage": "structured_reply_grounding_gate",
+  "input": {
+    "query": "根据现有证据给出状态。",
+    "draft": "任务已经完成。",
+    "tool_results": []
+  },
+  "model_output": {
+    "reply_text": "任务已经完成。",
+    "confidence": 0.91,
+    "grounded": false
+  },
+  "actual": {
+    "accepted": false,
+    "issue": "grounded_required",
+    "reason": "The claim has no user or tool evidence and is rejected by the grounding gate."
+  },
+  "expected": {
+    "degraded": true,
+    "fallback_reply": "这个问题我暂时无法可靠回答。",
+    "grounded": true
+  },
+  "retest": {
+    "command": "tools/venv-openjarvis/Scripts/python.exe -X utf8 -m unittest src.brain.tests.test_closed_loop_audit.TestClosedLoopAudit.test_grounded_false_archived_case_falls_back_offline -v",
+    "test": "src.brain.tests.test_closed_loop_audit.TestClosedLoopAudit.test_grounded_false_archived_case_falls_back_offline"
+  }
+}

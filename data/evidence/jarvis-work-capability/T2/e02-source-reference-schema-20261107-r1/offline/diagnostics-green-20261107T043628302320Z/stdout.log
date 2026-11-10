@@ -1,0 +1,160 @@
+============================= test session starts =============================
+platform win32 -- Python 3.13.16, pytest-9.2.0, pluggy-1.7.0 -- H:\UltimaAI\UltimaAgent\tools\venv-openjarvis\Scripts\python.exe
+rootdir: H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-source-reference-schema-20261107-r1\offline\diagnostics-green-20261107T043628302320Z
+collecting ... collected 17 items
+
+::test_real_writer_reason_survives_failed_end[unissued-UNISSUED_REFERENCE] <- C:\Users\Administrator\.codex\worktrees\jarvis-e02-source-reference\UltimaAgent\src\brain\tests\test_work_write_diagnostics.py FAILED [  5%]
+::test_real_writer_reason_survives_failed_end[foreign-FOREIGN_REFERENCE] <- C:\Users\Administrator\.codex\worktrees\jarvis-e02-source-reference\UltimaAgent\src\brain\tests\test_work_write_diagnostics.py FAILED [ 11%]
+::test_real_writer_reason_survives_failed_end[duplicate_source-INVALID_SOURCE_SECTION] <- C:\Users\Administrator\.codex\worktrees\jarvis-e02-source-reference\UltimaAgent\src\brain\tests\test_work_write_diagnostics.py FAILED [ 17%]
+::test_real_writer_reason_survives_failed_end[multiline_claim-INVALID_REPORT_TEXT] <- C:\Users\Administrator\.codex\worktrees\jarvis-e02-source-reference\UltimaAgent\src\brain\tests\test_work_write_diagnostics.py PASSED [ 23%]
+::test_earliest_writer_reason_wins_over_later_ledger_and_sdk_errors <- C:\Users\Administrator\.codex\worktrees\jarvis-e02-source-reference\UltimaAgent\src\brain\tests\test_work_write_diagnostics.py FAILED [ 29%]
+::test_unknown_exception_text_never_enters_public_diagnostic[secret-token-123 source body and prompt] <- C:\Users\Administrator\.codex\worktrees\jarvis-e02-source-reference\UltimaAgent\src\brain\tests\test_work_write_diagnostics.py PASSED [ 35%]
+::test_unknown_exception_text_never_enters_public_diagnostic[Unknown or unissued reference: secret-token-123] <- C:\Users\Administrator\.codex\worktrees\jarvis-e02-source-reference\UltimaAgent\src\brain\tests\test_work_write_diagnostics.py PASSED [ 41%]
+::test_unknown_exception_text_never_enters_public_diagnostic[Unknown or unissued reference\n] <- C:\Users\Administrator\.codex\worktrees\jarvis-e02-source-reference\UltimaAgent\src\brain\tests\test_work_write_diagnostics.py PASSED [ 47%]
+::test_unknown_exception_text_never_enters_public_diagnostic[message3] <- C:\Users\Administrator\.codex\worktrees\jarvis-e02-source-reference\UltimaAgent\src\brain\tests\test_work_write_diagnostics.py PASSED [ 52%]
+::test_unknown_exception_text_never_enters_public_diagnostic[secret-token-123\ud800] <- C:\Users\Administrator\.codex\worktrees\jarvis-e02-source-reference\UltimaAgent\src\brain\tests\test_work_write_diagnostics.py PASSED [ 58%]
+::test_reason_mapping_requires_value_error[RuntimeError] <- C:\Users\Administrator\.codex\worktrees\jarvis-e02-source-reference\UltimaAgent\src\brain\tests\test_work_write_diagnostics.py PASSED [ 64%]
+::test_reason_mapping_requires_value_error[TypeError] <- C:\Users\Administrator\.codex\worktrees\jarvis-e02-source-reference\UltimaAgent\src\brain\tests\test_work_write_diagnostics.py PASSED [ 70%]
+::test_reason_mapping_requires_value_error[KeyError] <- C:\Users\Administrator\.codex\worktrees\jarvis-e02-source-reference\UltimaAgent\src\brain\tests\test_work_write_diagnostics.py PASSED [ 76%]
+::test_arbitrary_exception_type_is_bounded <- C:\Users\Administrator\.codex\worktrees\jarvis-e02-source-reference\UltimaAgent\src\brain\tests\test_work_write_diagnostics.py PASSED [ 82%]
+::test_sdk_failure_cannot_create_trusted_writer_diagnostic <- C:\Users\Administrator\.codex\worktrees\jarvis-e02-source-reference\UltimaAgent\src\brain\tests\test_work_write_diagnostics.py PASSED [ 88%]
+::test_legal_research_keeps_success_and_has_no_failure_diagnostic <- C:\Users\Administrator\.codex\worktrees\jarvis-e02-source-reference\UltimaAgent\src\brain\tests\test_work_write_diagnostics.py PASSED [ 94%]
+::test_early_failure_and_nonresearch_do_not_gain_writer_diagnostic <- C:\Users\Administrator\.codex\worktrees\jarvis-e02-source-reference\UltimaAgent\src\brain\tests\test_work_write_diagnostics.py PASSED [100%]
+
+================================== FAILURES ===================================
+__ test_real_writer_reason_survives_failed_end[unissued-UNISSUED_REFERENCE] ___
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-source-reference-schema-20261107-r1/offline/diagnostics-green-20261107T043628302320Z/temp/test_real_writer_reason_surviv0')
+sdk_io = (<src.brain.browser.channel.BrowserChannel object at 0x000001FFE2ACC980>, [('search', 'Research a subject'), ('get', '...'https://example.com/source/3'), ('get', 'https://example.com/source/4'), ('get', 'https://example.com/source/5')], {})
+fault = 'unissued', reason = 'UNISSUED_REFERENCE'
+
+    @pytest.mark.parametrize('fault,reason', [
+        ('unissued', 'UNISSUED_REFERENCE'),
+        ('foreign', 'FOREIGN_REFERENCE'),
+        ('duplicate_source', 'INVALID_SOURCE_SECTION'),
+        ('multiline_claim', 'INVALID_REPORT_TEXT'),
+    ])
+    def test_real_writer_reason_survives_failed_end(tmp_path, sdk_io, fault, reason):
+        payload = report_payload()
+        if fault == 'unissued':
+            payload['sections'][0]['facts'][0]['evidence_id'] = 'N3.' + '0' * 16
+        elif fault == 'foreign':
+            payload['sections'][0]['facts'][0]['evidence_id'] = 'issued:S2'
+        elif fault == 'duplicate_source':
+            payload['sections'][1]['source_id'] = 'S1'
+        else:
+            payload['sections'][0]['facts'][0]['claim'] = 'first line\nsecond line'
+        result = failed_write(tmp_path, sdk_io, payload)
+        assert result['status'] == 'failed' and not result['artifacts']
+>       assert result['error'] == 'Unlinked or failed END'
+E       AssertionError: assert 'Invalid native research envelope' == 'Unlinked or failed END'
+E         
+E         - Unlinked or failed END
+E         + Invalid native research envelope
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-source-reference\UltimaAgent\src\brain\tests\test_work_write_diagnostics.py:48: AssertionError
+----------------------------- Captured log setup ------------------------------
+WARNING  src.brain.voice.voice_profile:voice_profile.py:174 voice reference audio unavailable or invalid; using L1 Jarvis reference: C:\Users\Administrator\.codex\worktrees\jarvis-e02-source-reference\UltimaAgent\data\voice\yangmi-ref\yangmi_cv3_full_s6_v54.wav
+___ test_real_writer_reason_survives_failed_end[foreign-FOREIGN_REFERENCE] ____
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-source-reference-schema-20261107-r1/offline/diagnostics-green-20261107T043628302320Z/temp/test_real_writer_reason_surviv1')
+sdk_io = (<src.brain.browser.channel.BrowserChannel object at 0x000001FFE3526C10>, [('search', 'Research a subject'), ('get', '...'https://example.com/source/3'), ('get', 'https://example.com/source/4'), ('get', 'https://example.com/source/5')], {})
+fault = 'foreign', reason = 'FOREIGN_REFERENCE'
+
+    @pytest.mark.parametrize('fault,reason', [
+        ('unissued', 'UNISSUED_REFERENCE'),
+        ('foreign', 'FOREIGN_REFERENCE'),
+        ('duplicate_source', 'INVALID_SOURCE_SECTION'),
+        ('multiline_claim', 'INVALID_REPORT_TEXT'),
+    ])
+    def test_real_writer_reason_survives_failed_end(tmp_path, sdk_io, fault, reason):
+        payload = report_payload()
+        if fault == 'unissued':
+            payload['sections'][0]['facts'][0]['evidence_id'] = 'N3.' + '0' * 16
+        elif fault == 'foreign':
+            payload['sections'][0]['facts'][0]['evidence_id'] = 'issued:S2'
+        elif fault == 'duplicate_source':
+            payload['sections'][1]['source_id'] = 'S1'
+        else:
+            payload['sections'][0]['facts'][0]['claim'] = 'first line\nsecond line'
+        result = failed_write(tmp_path, sdk_io, payload)
+        assert result['status'] == 'failed' and not result['artifacts']
+>       assert result['error'] == 'Unlinked or failed END'
+E       AssertionError: assert 'Invalid native research envelope' == 'Unlinked or failed END'
+E         
+E         - Unlinked or failed END
+E         + Invalid native research envelope
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-source-reference\UltimaAgent\src\brain\tests\test_work_write_diagnostics.py:48: AssertionError
+_ test_real_writer_reason_survives_failed_end[duplicate_source-INVALID_SOURCE_SECTION] _
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-source-reference-schema-20261107-r1/offline/diagnostics-green-20261107T043628302320Z/temp/test_real_writer_reason_surviv2')
+sdk_io = (<src.brain.browser.channel.BrowserChannel object at 0x000001FFE36E0CD0>, [('search', 'Research a subject'), ('get', '...'https://example.com/source/3'), ('get', 'https://example.com/source/4'), ('get', 'https://example.com/source/5')], {})
+fault = 'duplicate_source', reason = 'INVALID_SOURCE_SECTION'
+
+    @pytest.mark.parametrize('fault,reason', [
+        ('unissued', 'UNISSUED_REFERENCE'),
+        ('foreign', 'FOREIGN_REFERENCE'),
+        ('duplicate_source', 'INVALID_SOURCE_SECTION'),
+        ('multiline_claim', 'INVALID_REPORT_TEXT'),
+    ])
+    def test_real_writer_reason_survives_failed_end(tmp_path, sdk_io, fault, reason):
+        payload = report_payload()
+        if fault == 'unissued':
+            payload['sections'][0]['facts'][0]['evidence_id'] = 'N3.' + '0' * 16
+        elif fault == 'foreign':
+            payload['sections'][0]['facts'][0]['evidence_id'] = 'issued:S2'
+        elif fault == 'duplicate_source':
+            payload['sections'][1]['source_id'] = 'S1'
+        else:
+            payload['sections'][0]['facts'][0]['claim'] = 'first line\nsecond line'
+        result = failed_write(tmp_path, sdk_io, payload)
+        assert result['status'] == 'failed' and not result['artifacts']
+>       assert result['error'] == 'Unlinked or failed END'
+E       AssertionError: assert 'Invalid native research envelope' == 'Unlinked or failed END'
+E         
+E         - Unlinked or failed END
+E         + Invalid native research envelope
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-source-reference\UltimaAgent\src\brain\tests\test_work_write_diagnostics.py:48: AssertionError
+______ test_earliest_writer_reason_wins_over_later_ledger_and_sdk_errors ______
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-source-reference-schema-20261107-r1/offline/diagnostics-green-20261107T043628302320Z/temp/test_earliest_writer_reason_wi0')
+sdk_io = (<src.brain.browser.channel.BrowserChannel object at 0x000001FFE35AD5B0>, [('search', 'Research a subject'), ('get', '...'https://example.com/source/3'), ('get', 'https://example.com/source/4'), ('get', 'https://example.com/source/5')], {})
+
+    def test_earliest_writer_reason_wins_over_later_ledger_and_sdk_errors(tmp_path, sdk_io):
+        payload = report_payload()
+        payload['sections'][0]['facts'][0]['evidence_id'] = 'N3.' + '0' * 16
+        def after(response, ledger):
+            ledger.record(dict(tool_name=WRITE, success=False, error_type='ValueError',
+                               error='Foreign reference'))
+            response.setdefault('tool_results', []).insert(0, dict(
+                tool_name=WRITE, success=False, error_type='ValueError',
+                error='Foreign reference', research_failure={'reason_code': 'FORGED'}))
+        result = failed_write(tmp_path, sdk_io, payload, after)
+>       assert result['error'] == 'Unlinked or failed END'
+E       AssertionError: assert 'Invalid native research envelope' == 'Unlinked or failed END'
+E         
+E         - Unlinked or failed END
+E         + Invalid native research envelope
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-source-reference\UltimaAgent\src\brain\tests\test_work_write_diagnostics.py:71: AssertionError
+- generated xml file: H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-source-reference-schema-20261107-r1\offline\diagnostics-green-20261107T043628302320Z\junit.xml -
+=========================== short test summary info ===========================
+FAILED ::test_real_writer_reason_survives_failed_end[unissued-UNISSUED_REFERENCE] - AssertionError: assert 'Invalid native research envelope' == 'Unlinked or failed END'
+  
+  - Unlinked or failed END
+  + Invalid native research envelope
+FAILED ::test_real_writer_reason_survives_failed_end[foreign-FOREIGN_REFERENCE] - AssertionError: assert 'Invalid native research envelope' == 'Unlinked or failed END'
+  
+  - Unlinked or failed END
+  + Invalid native research envelope
+FAILED ::test_real_writer_reason_survives_failed_end[duplicate_source-INVALID_SOURCE_SECTION] - AssertionError: assert 'Invalid native research envelope' == 'Unlinked or failed END'
+  
+  - Unlinked or failed END
+  + Invalid native research envelope
+FAILED ::test_earliest_writer_reason_wins_over_later_ledger_and_sdk_errors - AssertionError: assert 'Invalid native research envelope' == 'Unlinked or failed END'
+  
+  - Unlinked or failed END
+  + Invalid native research envelope
+======================== 4 failed, 13 passed in 14.71s ========================

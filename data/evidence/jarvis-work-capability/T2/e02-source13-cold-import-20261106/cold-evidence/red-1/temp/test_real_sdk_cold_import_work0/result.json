@@ -1,0 +1,41 @@
+{
+  "scope": "REAL_SDK_COLD_IMPORT_ONLY",
+  "role": "worker",
+  "pid": 21540,
+  "isolated": true,
+  "bytecode_disabled": true,
+  "runtime_authority": false,
+  "admission": "SYNTHETIC_INIT_ONLY",
+  "profile_invocations": 0,
+  "research_submissions": 0,
+  "model_calls": 0,
+  "native_OS_activity": null,
+  "audit_events": [
+    "socket.gethostname"
+  ],
+  "refused_io": [],
+  "eager_audit": {
+    "metadata_charged": 0,
+    "eager": {
+      "clean": false,
+      "constructors": 0,
+      "import_attempts": 0,
+      "pinned_send_calls": 0,
+      "later_attempts": 0,
+      "closed": null,
+      "secondary_errors": [],
+      "early_close_attempted": false,
+      "early_closed": null,
+      "cleanup_closed": null,
+      "first_error_type": "ValueError"
+    }
+  },
+  "outcome": "FAIL",
+  "platform_cache_cold": true,
+  "real_sdk_not_preloaded": true,
+  "profile_source_sha256": "41361a399e1f8a8bf69b79514478fabd3e3931b00f5bc900c439cc99e02fb392",
+  "profile_manifest_sha256": "eb0de6afe99ac9c65be1db5d2c8f65975d0ed6452e877de053bc1451a901530e",
+  "error_type": "ValueError",
+  "error": "Unexpected audited operation",
+  "traceback": "Traceback (most recent call last):\n  File \"C:\\Users\\Administrator\\AppData\\Local\\Doubao\\User Data\\sandbox_runtime\\bases\\772984f6fd3a8ae0ae7d2422cd7c2bfa\\python\\Lib\\platform.py\", line 987, in uname\n    system, node, release, version, machine = infos = os.uname()\n                                                      ^^^^^^^^\nAttributeError: module 'os' has no attribute 'uname'. Did you mean: 'name'?\n\nDuring handling of the above exception, another exception occurred:\n\nTraceback (most recent call last):\n  File \"H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\e02-source13-cold-import-20261106\\cold\\cold_import_probe.py\", line 98, in main\n    with scope:\n         ^^^^^\n  File \"C:\\Users\\Administrator\\AppData\\Local\\Doubao\\User Data\\sandbox_runtime\\bases\\772984f6fd3a8ae0ae7d2422cd7c2bfa\\python\\Lib\\contextlib.py\", line 141, in __enter__\n    return next(self.gen)\n  File \"H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\e02-source13-cold-import-20261106\\profile-preparation\\profile.py\", line 498, in private_scope\n    eager=stack.enter_context(own_ollama_types(pins,eager_audit))\n  File \"C:\\Users\\Administrator\\AppData\\Local\\Doubao\\User Data\\sandbox_runtime\\bases\\772984f6fd3a8ae0ae7d2422cd7c2bfa\\python\\Lib\\contextlib.py\", line 530, in enter_context\n    result = _enter(cm)\n  File \"C:\\Users\\Administrator\\AppData\\Local\\Doubao\\User Data\\sandbox_runtime\\bases\\772984f6fd3a8ae0ae7d2422cd7c2bfa\\python\\Lib\\contextlib.py\", line 141, in __enter__\n    return next(self.gen)\n  File \"H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\e02-source13-cold-import-20261106\\cold\\cold_import_probe.py\", line 68, in stop_after_ownership\n    with original(pinned,audit) as state:\n         ~~~~~~~~^^^^^^^^^^^^^^\n  File \"C:\\Users\\Administrator\\AppData\\Local\\Doubao\\User Data\\sandbox_runtime\\bases\\772984f6fd3a8ae0ae7d2422cd7c2bfa\\python\\Lib\\contextlib.py\", line 141, in __enter__\n    return next(self.gen)\n  File \"H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\e02-source13-cold-import-20261106\\profile-preparation\\profile.py\", line 243, in own_ollama_types\n    package=importlib.import_module('ollama')\n  File \"C:\\Users\\Administrator\\AppData\\Local\\Doubao\\User Data\\sandbox_runtime\\bases\\772984f6fd3a8ae0ae7d2422cd7c2bfa\\python\\Lib\\importlib\\__init__.py\", line 88, in import_module\n    return _bootstrap._gcd_import(name[level:], package, level)\n           ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"<frozen importlib._bootstrap>\", line 1404, in _gcd_import\n  File \"<frozen importlib._bootstrap>\", line 1369, in _find_and_load\n  File \"<frozen importlib._bootstrap>\", line 1340, in _find_and_load_unlocked\n  File \"<frozen importlib._bootstrap>\", line 935, in _load_unlocked\n  File \"<frozen importlib._bootstrap_external>\", line 1027, in exec_module\n  File \"<frozen importlib._bootstrap>\", line 488, in _call_with_frames_removed\n  File \"H:\\UltimaAI\\UltimaAgent\\tools\\venv-openjarvis\\Lib\\site-packages\\ollama\\__init__.py\", line 68, in <module>\n    _client = Client()\n  File \"H:\\UltimaAI\\UltimaAgent\\tools\\venv-openjarvis\\Lib\\site-packages\\ollama\\_client.py\", line 136, in __init__\n    super().__init__(httpx.Client, host, **kwargs)\n    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"H:\\UltimaAI\\UltimaAgent\\tools\\venv-openjarvis\\Lib\\site-packages\\ollama\\_client.py\", line 108, in __init__\n    'User-Agent': f'ollama-python/{__version__} ({platform.machine()} {platform.system().lower()}) Python/{platform.python_version()}',\n                                                  ~~~~~~~~~~~~~~~~^^\n  File \"C:\\Users\\Administrator\\AppData\\Local\\Doubao\\User Data\\sandbox_runtime\\bases\\772984f6fd3a8ae0ae7d2422cd7c2bfa\\python\\Lib\\platform.py\", line 1110, in machine\n    return uname().machine\n           ~~~~~^^\n  File \"C:\\Users\\Administrator\\AppData\\Local\\Doubao\\User Data\\sandbox_runtime\\bases\\772984f6fd3a8ae0ae7d2422cd7c2bfa\\python\\Lib\\platform.py\", line 990, in uname\n    node = _node()\n  File \"C:\\Users\\Administrator\\AppData\\Local\\Doubao\\User Data\\sandbox_runtime\\bases\\772984f6fd3a8ae0ae7d2422cd7c2bfa\\python\\Lib\\platform.py\", line 698, in _node\n    return socket.gethostname()\n           ~~~~~~~~~~~~~~~~~~^^\n  File \"H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\e02-source13-cold-import-20261106\\profile-preparation\\profile.py\", line 191, in __call__\n    raise ValueError('Unexpected audited operation')\nValueError: Unexpected audited operation\n"
+}

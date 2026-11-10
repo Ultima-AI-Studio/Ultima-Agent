@@ -1,0 +1,63 @@
+Traceback (most recent call last):
+  File "C:\Users\Administrator\AppData\Local\Doubao\User Data\sandbox_runtime\bases\772984f6fd3a8ae0ae7d2422cd7c2bfa\python\Lib\platform.py", line 987, in uname
+    system, node, release, version, machine = infos = os.uname()
+                                                      ^^^^^^^^
+AttributeError: module 'os' has no attribute 'uname'. Did you mean: 'name'?
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-source13-root-entry-20261106\code\entry.py", line 206, in <module>
+    if __name__=='__main__':raise SystemExit(main(sys.argv[1:]))
+                                             ~~~~^^^^^^^^^^^^^^
+  File "H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-source13-root-entry-20261106\code\entry.py", line 196, in main
+    ctx=Context(ROOT,argv[3]);return child(ctx,argv[1])
+                                     ~~~~~^^^^^^^^^^^^^
+  File "H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-source13-root-entry-20261106\code\entry.py", line 174, in child
+    result=bootstrap(ctx,lambda pins:PROFILE.run_profile(ctx.case,pins,WorkerControls(ctx)))
+  File "H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-source13-root-entry-20261106\code\entry.py", line 28, in bootstrap
+    return callback(pins)
+  File "H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-source13-root-entry-20261106\code\entry.py", line 174, in <lambda>
+    result=bootstrap(ctx,lambda pins:PROFILE.run_profile(ctx.case,pins,WorkerControls(ctx)))
+                                     ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-source13-profile-binding-20261106\profile-preparation\profile.py", line 2073, in run_profile
+    with private_scope(folder,pins,admission) as scope:
+         ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\AppData\Local\Doubao\User Data\sandbox_runtime\bases\772984f6fd3a8ae0ae7d2422cd7c2bfa\python\Lib\contextlib.py", line 141, in __enter__
+    return next(self.gen)
+  File "H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-source13-profile-binding-20261106\profile-preparation\profile.py", line 498, in private_scope
+    eager=stack.enter_context(own_ollama_types(pins,eager_audit))
+  File "C:\Users\Administrator\AppData\Local\Doubao\User Data\sandbox_runtime\bases\772984f6fd3a8ae0ae7d2422cd7c2bfa\python\Lib\contextlib.py", line 530, in enter_context
+    result = _enter(cm)
+  File "C:\Users\Administrator\AppData\Local\Doubao\User Data\sandbox_runtime\bases\772984f6fd3a8ae0ae7d2422cd7c2bfa\python\Lib\contextlib.py", line 141, in __enter__
+    return next(self.gen)
+  File "H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-source13-profile-binding-20261106\profile-preparation\profile.py", line 243, in own_ollama_types
+    package=importlib.import_module('ollama')
+  File "C:\Users\Administrator\AppData\Local\Doubao\User Data\sandbox_runtime\bases\772984f6fd3a8ae0ae7d2422cd7c2bfa\python\Lib\importlib\__init__.py", line 88, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1404, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1369, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1340, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 935, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 1027, in exec_module
+  File "<frozen importlib._bootstrap>", line 488, in _call_with_frames_removed
+  File "H:\UltimaAI\UltimaAgent\tools\venv-openjarvis\Lib\site-packages\ollama\__init__.py", line 68, in <module>
+    _client = Client()
+  File "H:\UltimaAI\UltimaAgent\tools\venv-openjarvis\Lib\site-packages\ollama\_client.py", line 136, in __init__
+    super().__init__(httpx.Client, host, **kwargs)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "H:\UltimaAI\UltimaAgent\tools\venv-openjarvis\Lib\site-packages\ollama\_client.py", line 108, in __init__
+    'User-Agent': f'ollama-python/{__version__} ({platform.machine()} {platform.system().lower()}) Python/{platform.python_version()}',
+                                                  ~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Administrator\AppData\Local\Doubao\User Data\sandbox_runtime\bases\772984f6fd3a8ae0ae7d2422cd7c2bfa\python\Lib\platform.py", line 1110, in machine
+    return uname().machine
+           ~~~~~^^
+  File "C:\Users\Administrator\AppData\Local\Doubao\User Data\sandbox_runtime\bases\772984f6fd3a8ae0ae7d2422cd7c2bfa\python\Lib\platform.py", line 990, in uname
+    node = _node()
+  File "C:\Users\Administrator\AppData\Local\Doubao\User Data\sandbox_runtime\bases\772984f6fd3a8ae0ae7d2422cd7c2bfa\python\Lib\platform.py", line 698, in _node
+    return socket.gethostname()
+           ~~~~~~~~~~~~~~~~~~^^
+  File "H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-source13-profile-binding-20261106\profile-preparation\profile.py", line 191, in __call__
+    raise ValueError('Unexpected audited operation')
+ValueError: Unexpected audited operation

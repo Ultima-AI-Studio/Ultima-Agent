@@ -1,0 +1,58 @@
+{
+  "work_order": "wo-ultimaagent-20261108-0027",
+  "status": "READY_FOR_REVIEW",
+  "phase": "T1",
+  "run_id": "wo-ultimaagent-20261108-0027-T1-20261108",
+  "input_sha256": "9fe651555744beefc613e830cbbcf778453eeafbc0257699cd94a2576ea8fd5e",
+  "executor": "Codex execution session",
+  "exit_code": 0,
+  "reviewReason": "The independent-review JSON contract and reusable single-stage dispatch template are documented; the stage is awaiting an independent audit-session conclusion.",
+  "stdoutText": "The live T0 precondition gate returned passed=true with no reasons before T1 work began. Two reusable specifications were added without changing product runtime semantics or introducing dependencies.",
+  "evidence": [
+    {
+      "path": "data/evidence/wo-ultimaagent-20261108-0027/T1/previous-stage-gate.json",
+      "kind": "data",
+      "summary": "Live T0 gate readback authorizing T1 start"
+    },
+    {
+      "path": "docs/specs/independent-review-contract.md",
+      "kind": "config",
+      "summary": "Independent review ownership, schema, evidence and commit contract"
+    },
+    {
+      "path": "docs/specs/stage-gated-dispatch-template.md",
+      "kind": "config",
+      "summary": "Reusable one-stage dispatch, refusal and payload template"
+    },
+    {
+      "path": "data/evidence/wo-ultimaagent-20261108-0027/T0/independent-review.json",
+      "kind": "data",
+      "summary": "Independent T0 conclusion consumed by the precondition gate"
+    }
+  ],
+  "acceptance": [
+    {
+      "id": "T1-REVIEW-CONTRACT",
+      "result": "PASS",
+      "evidence": "The contract defines ReceiptValidator fields plus ReviewResult fields, counts, findings and evidence resolution."
+    },
+    {
+      "id": "T1-OWNERSHIP",
+      "result": "PASS",
+      "evidence": "Only an independent review session may write the conclusion; execution and audit commits are separate and audit commits use [audit]."
+    },
+    {
+      "id": "T1-DISPATCH-TEMPLATE",
+      "result": "PASS",
+      "evidence": "The reusable template dispatches one stage, calls the prior stage gate, refuses on failure, and forbids global completion or tracker percentage changes."
+    },
+    {
+      "id": "T1-PRECONDITION",
+      "result": "PASS",
+      "evidence": "The current T0 gate returned passed=true and reasons=[]."
+    }
+  ],
+  "scopeDeclaration": "Only the two T1 specification files and wo-ultimaagent-20261108-0027/T1 evidence were created. No automatic scheduler, module4 orchestration, tracker, reviewer.py, receipt.py or 0026 artifact was modified.",
+  "environmentDeclaration": "The T1 precondition used H:/UltimaAI/UltimaAgent/tools/venv-openjarvis/Scripts/python.exe. T1 documentation work made no daemon restart, model/KWS change, microphone, recording or external request.",
+  "openSourceSelection": "No dependency was added; the template reuses the standard library and existing stage_gate, ReceiptValidator and ReviewResult contract."
+}

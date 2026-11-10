@@ -1,0 +1,53 @@
+# E02 原生响应拒绝诊断：离线补修报告
+
+状态：PASS_FRESH_OFFLINE_CURRENT_BYTES；独立准备审查待完成。
+
+原单 wo-ultimaagent-20261101-0021 / T2；父候选 6d758d9c3961f156a062e349ec4a949e2ee7a9a9；新候选 d860b2ab4e4d9974e33c96472e4ea15abb807280，路径 C:\Users\Administrator\.codex\worktrees\jarvis-e02-native-rejection\UltimaAgent。
+tag：ultimaagent-e02-native-rejection-candidate-20261107。产品仅修改计划列出的五文件，父候选保持冻结。
+
+## 改动与含义
+
+原生响应校验的各拒绝分支附加18项固定原因码，保持原接受域、短路顺序和公开错误 `Invalid native research response`。只有这一校验的 ValueError 边界生成受限私有快照；JSON解析、scanner、typed/schema错误没有被改写为原生拒绝。诊断自身抛错仍传播原产品失败，不发起第二次请求。
+
+诊断包升级v4，新增native_response闭合字段：固定原因、有界计数、请求与响应SHA256、响应字节数、generation与receipt_index。两次核对同一HTTP回执，保留16KiB、冻结一次、公开仅摘要；不存响应正文、思考文本或任意字段/模型/错误文本。独立decoder只能核对包内结构和关联；响应SHA的真实性由捕获和投影阶段的可信transport回执绑定，不能把自洽JSON当成原始响应证明。
+
+旧v3结构仍按原闭合字段读取。新decoder直接读取父候选真实失败包 ba5a830752dc9e4663e800a5b24fe1aa13b09c2960ae807695d591c91dc46304，原字节未改；原N17 adapter函数未经改动，在当前候选SDK离线调用链导出v4。写后ACK拒绝保持 needs_attention、已写入及未ACK，不伪装成未产生写入或已交付。
+
+## 验证
+
+先在原产品上执行新增测试：122项缺失诊断失败、9项通过，零collection错误；随后新native组131/131通过。最终按JUnit身份核对 909 项：产品 906 项、旧包及观察器兼容 3 项；去重0。各组选用相同最终源码的日志、JUnit及审计快照，未改变源码后重复计数；原N16的781/N17的344均为历史，不计入本次。
+
+| 组 | 新鲜通过数 |
+| --- | ---: |
+| json-green | 35 |
+| native-green | 131 |
+| compatibility | 3 |
+| coverage-green | 40 |
+| http-green | 43 |
+| failure-green | 31 |
+| metadata-green | 43 |
+| diagnostics-green | 17 |
+| target-green | 19 |
+| reference-green | 29 |
+| claim-green | 28 |
+| unique-green | 21 |
+| grounding-green | 11 |
+| research-a | 68 |
+| research-b | 110 |
+| navigation | 90 |
+| transport | 104 |
+| delivery | 86 |
+
+所有分片保持原90秒守卫及最多2并行；Python操作审计干净，不宣称抓包验证。沿用原delivery两项排除 test_http_work_legacy_and_cli / test_reparse_rejected；未运行真实HTTP服务/Windows UI/音频/模型或官方converter。成功SDK写入、哈希读回、ACK和严格replay通过离线链验证，不替代真实8B验收。
+
+## 历史、环境与后续
+
+父候选唯一实际 bc216374-f59c-4967-99f2-ded53a4ea49d 仍为FAIL_CONFIRMED：第7次原生请求HTTP200、8328响应字节计数、未通过原生外层校验，无research.md/write/ACK。真实失败具体原因尚未建立，本补修只完成诊断缺口，不认定length截断或某一字段导致。
+
+N17准备234成员、结果56成员、完整输入1579及依赖保全；九个无关工作文件不动。七保护身份只在记录的前后核对点确认一致，不声称连续存活。只读环境观察继承ee1bef61检查器，其字段不能作为当前产品身份；当前候选由本报告HEAD/tag及完整源码绑定确认。
+
+仅当前 qwen3-8b-uncensored，原摘要、原题四来源、CLI1/search1/GET4/inspect6/write1/ACK1/nativePOST8、service260/client300/root275/cleanup310/seal315秒、context16384和输出256/2048均保持。新actual/model=0，actual/result-review分配=0，未创建release/authority/actual。E02仍0/3；旧E01/E03信用不迁移，T2/Owner未通过。
+
+下一步为新候选准备受控入口和完整绑定；准备独审完成后仍须用户明确分配单例，才能获取真实拒绝原因回执。远端push此前遭自动审批blocked by policy，本轮不重试，待本地提交/tag/镜像读回收口。
+
+执行裁定：使用现有Windows离线守卫和保留型ledger；计划缩写统一解析到src/brain及src/brain/tests；继承检查器标记另存澄清。无延期产品缺陷裁定或校验放宽。

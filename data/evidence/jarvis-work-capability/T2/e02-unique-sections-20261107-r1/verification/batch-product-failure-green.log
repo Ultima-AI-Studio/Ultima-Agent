@@ -1,0 +1,71 @@
+wser.channel.BrowserChannel object at 0x000001EB23DD8260>, [('search', 'Research a subject')], {})
+
+mock_jar = (<openjarvis.sdk.Jarvis object at 0x000001EB23DD8CB0>, <function _run_work_agent at 0x000001EB22207880>, [{'format': {...ser'}], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [])
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001EB2275B5C0>
+
+change = 'extra'
+
+
+
+    @pytest.mark.parametrize('change',['complete','credit','binding','extra','limit','branch','card'])
+
+    def test_closed_decoder_rejects_coherent_diagnostic_forgery(tmp_path,sdk_io,mock_jar,monkeypatch,change):
+
+        from src.brain.work_research_diagnostics import validate_failure_diagnostic
+
+        from src.brain.work_navigation import canonical_v3
+
+        result,ledger=early_case(tmp_path,sdk_io,mock_jar,monkeypatch,reads=1)
+
+>       packet=private_packet(result,ledger)
+
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-unique-sections\UltimaAgent\src\brain\tests\test_work_failure_diagnostics.py:179: 
+
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+
+
+result = {'request_id': 'r', 'session_id': 's', 'task_id': '00000000-0000-0000-0000-0000000003e8', 'status': 'failed', ...}
+
+ledger = <src.brain.work_tools.WorkLedger object at 0x000001EAFF48EC10>
+
+
+
+    def private_packet(result,ledger):
+
+        assert isinstance(result.get('research_diagnostic'),dict), 'failed SDK result loses final branch and selected pages'
+
+        raw=getattr(ledger,'_failure_diagnostic',None)
+
+>       assert type(raw) is bytes and len(raw)<=16384, 'missing bounded immutable private diagnostic'
+
+E       AssertionError: missing bounded immutable private diagnostic
+
+E       assert (<class 'NoneType'> is bytes)
+
+E        +  where <class 'NoneType'> = type(None)
+
+
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-unique-sections\UltimaAgent\src\brain\tests\test_work_failure_diagnostics.py:39: AssertionError
+
+- generated xml file: H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-unique-sections-20261107-r1\offline\failure-green-20261107T073748588032Z\junit.xml -
+
+=========================== short test summary info ===========================
+
+FAILED ::test_closed_decoder_rejects_coherent_diagnostic_forgery[extra] - AssertionError: missing bounded immutable private diagnostic
+
+assert (<class 'NoneType'> is bytes)
+
+ +  where <class 'NoneType'> = type(None)
+
+======================== 1 failed, 22 passed in 17.03s ========================
+
+
+
+RECEIPT H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-unique-sections-20261107-r1\offline\failure-green-20261107T073748588032Z\receipt.json

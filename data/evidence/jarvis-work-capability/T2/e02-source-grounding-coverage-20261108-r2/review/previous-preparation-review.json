@@ -1,0 +1,412 @@
+{
+  "kind": "ROOT_INDEPENDENT_PREPARATION_REVIEW",
+  "reviewer": "root-independent",
+  "review_agent": "/root/review_e02_source_grounding_preparation",
+  "reviewed_at_utc": "2026-11-08T05:23:26.257680+00:00",
+  "verdict": "NEEDS_FIXES",
+  "candidate": "43da3f014a763b8ea3963872a8f1ce8ebea77531",
+  "candidate_root": "C:\\Users\\Administrator\\.codex\\worktrees\\jarvis-e02-source-grounding-r1\\UltimaAgent",
+  "parent": "d8f8d97cd0147ffc6f45746ffd1ec80bc4d48b2b",
+  "manifest_sha256": "1d4b39c7457eb146fae9ab33f59c945de0b6e9ea74236271d25a37e9f23cae4f",
+  "manifest_members": 4293,
+  "actual_run_authorized": false,
+  "acceptance_credit": 0,
+  "E02": "NOT_PASSED_0_OF_3",
+  "T2": "NOT_PASSED",
+  "findings": [
+    {
+      "id": "PREP-001",
+      "priority": 2,
+      "severity": "BLOCKING_PREPARATION",
+      "title": "Frozen preservation verifier requires a stale hash of an actively changing unrelated HTML file",
+      "file": "H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\e02-source-grounding-coverage-20261108-r1\\verification\\verify_offline.py",
+      "line": 31,
+      "evidence": {
+        "read_only_verifier_result": "AssertionError in foreign_readback at line 31",
+        "script_sha256": "7aca2e3d50cba2e20b9776b7d0407c5ef13d30b025931f2f6f8f01ea41fd8040",
+        "path": "H:\\UltimaAI\\UltimaAgent\\docs\\tracker\\北极星上线任务清单.html",
+        "baseline_sha256": "fb36a276c8d6b9592ae976f9a59bdcf1d66ab0e22a4f0b5c8f9527d9117a1af3",
+        "frozen_observation_sha256": "77300820b260e685bb1ee106b7ba6df73e5d73aa3e338b335228004df7dc0e6b",
+        "independently_observed_live_sha256": "26a9089bd3f56e01f826a3bd888ac8e2495abd6b122a892e5857361085e1dd92",
+        "independently_observed_live_bytes": 12408,
+        "independently_observed_last_write_utc": "2026-11-08T05:13:25.9401562Z",
+        "frozen_snapshot_unchanged": true,
+        "original_baseline_unchanged": true,
+        "attribution": "UNDETERMINED"
+      },
+      "impact": "The exact r1 package cannot pass its declared preservation gate and must not receive PASS_PREPARATION_ONLY. This is an external live-state binding failure, not product, dependency, corpus or predecessor evidence drift.",
+      "required_action": "Preserve r1, its original baseline, frozen observation and this failed review. Use a separately frozen preparation revision that distinguishes immutable snapshots from subsequent live observations for this one explicitly unrelated HTML file. Keep the other 14 unrelated files and all product, dependency, corpus and predecessor pins strict. Never overwrite or stage the original HTML to make this check pass. Obtain the necessary independent review on the new exact binding.",
+      "implemented_by_reviewer": false
+    }
+  ],
+  "blocking_findings": 1,
+  "only_blocking_issue": "PREP-001",
+  "checks": {
+    "frozen_package": {
+      "status": "PASS",
+      "manifest_members_checked": 4293,
+      "member_mismatches": [],
+      "saved_product_diff_matches_git": true,
+      "product_diff_sha256": "c77e2569eb3d49fb6a67f501b13a6270324cd243f5ef19d2ccd2accf6fe0bbf1",
+      "candidate_head_matches": true,
+      "parent_matches": true,
+      "candidate_clean": true,
+      "candidate_tag": "ultimaagent-e02-source-grounding-candidate-20261108-r1",
+      "candidate_tag_matches": true,
+      "plan_sha256": "223d97202583e7a7a5475c0822547339ed178cb7e3b2345d72db7e97ca5f8490",
+      "plan_review_sha256": "82b7d2213526760e097563a775bc23210f26124ca93d9186818dcefcebebb14f",
+      "plan_review_verdict": "PASS_PLAN_ONLY",
+      "plan_inputs_checked": 30,
+      "parent_source_snapshots_checked": 7,
+      "manifest_scope_note": "Manifest binds selected evidence, snapshots, receipts and logs. 2131 test temp/owned-env files and progress.md are outside it and are not acceptance inputs."
+    },
+    "product_scope": {
+      "status": "PASS",
+      "changed_files": [
+        "src/brain/agent_server.py",
+        "src/brain/tests/test_work_evidence_first_generation.py",
+        "src/brain/tests/test_work_failure_diagnostics.py",
+        "src/brain/tests/test_work_research.py",
+        "src/brain/tests/test_work_sampler_json_strings.py",
+        "src/brain/tests/test_work_source_coverage_budget.py",
+        "src/brain/tests/test_work_source_reference_schema.py",
+        "src/brain/work_navigation.py"
+      ],
+      "production_files": [
+        "src/brain/agent_server.py",
+        "src/brain/work_navigation.py"
+      ],
+      "production_functions_changed": [
+        "_research_sampler_schema",
+        "v3_research_phase",
+        "v3_phase_inspect_schema"
+      ],
+      "other_top_level_AST_unchanged": true,
+      "existing_test_files_migrated": 5,
+      "new_test_files": 1,
+      "strict_writer_and_rendering_unchanged": true,
+      "minimum_source_count": 3,
+      "inspect_limit": 6
+    },
+    "schema_review": {
+      "status": "PASS_STATIC_AND_RECORDED_OFFLINE_EVIDENCE",
+      "observations": [
+        "The new transform matches only a closed object with exactly claim and evidence_id and exactly those two required fields; it preserves the projected child constraints and leaves the strict input untouched via deepcopy.",
+        "Traversal uses recognized schema keywords, so const, enum, default, examples and extension literals are not treated as schemas.",
+        "Two required properties plus maxProperties=2 and type=object preserve closure; minProperties=2 is consistent. The allOf array survives J3 key sorting and orders evidence_id before claim.",
+        "Pinned Python/C++ reference code collects allOf properties in array order, marks both required and passes no additional-property production; top-level additionalProperties is deliberately absent to select that converter branch.",
+        "The existing source/reference enum and code-operation pattern remain bound; the API still emits original claim/evidence_id objects. This does not establish natural-language entailment."
+      ]
+    },
+    "source_reserve_review": {
+      "status": "PASS_STATIC_AND_RECORDED_OFFLINE_EVIDENCE",
+      "observations": [
+        "Only source choices change: unseen sources are reserved when remaining reads are at most their count. Available-source order and model-chosen start_line are preserved.",
+        "Existing invalid-input, empty-card, duplicate-reference, insufficient-three-source and six-read rejection gates remain. Empty evidence does not purchase source coverage.",
+        "Three nonempty sources still enable writing or refusal; full-source coverage is not promoted to a new writer requirement.",
+        "SDK generation and independent runtime replay rebuild choices and projection from the same shared functions. Recorded coherent-hash tampering negatives cover reordered allOf and widened inspect choices."
+      ]
+    },
+    "fixture_migrations": {
+      "status": "PASS",
+      "observations": [
+        "Source-reference and sampler tests extract the same evidence_id/claim fields from either the strict properties shape or ordered sampler allOf; assertions on ID mapping, operation pattern and corruption rejection remain.",
+        "The diagnostic fixture explicitly supplies its original three sources, keeps six reads, seven diagnostic posts and all original error assertions. Native and output-structure diagnostic assertion bodies were not changed.",
+        "The dedicated five-source SDK fixture still proves six reads, five source opportunities, writer/ACK and independent replay. Its token expectation reflects the unchanged three-source writer eligibility starting earlier.",
+        "No new skip or deselection was added; only the two historical delivery exclusions remain."
+      ]
+    },
+    "final_regression": {
+      "status": "PASS_RECORDED_RECEIPTS_READBACK_ONLY",
+      "batch_sha256": "e3149019f13b1932872e27032eca73ef9209af18ad57574e9f974f16d6ffef40",
+      "groups": {
+        "contract-green": {
+          "tests": 19,
+          "receipt": "H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\e02-source-grounding-coverage-20261108-r1\\offline\\contract-green-20261108T050458353038Z\\receipt.json",
+          "receipt_sha256": "64703967a1206e4f9feb237af8091a6f6800390576a5a62b60a04d5daabd4707",
+          "junit_sha256": "4fdf4ddb8521a06d7724062832447837a5ce1b27f76bf53d33e84e805addd1b4",
+          "audit_sha256": "1e8242428e2ad8c2a43c166f6dbec7cefd1f327f3cb936dd4f8fcadac11705b0"
+        },
+        "evidence-first-green": {
+          "tests": 14,
+          "receipt": "H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\e02-source-grounding-coverage-20261108-r1\\offline\\evidence-first-green-20261108T050458353002Z\\receipt.json",
+          "receipt_sha256": "ec68c96a7245dcae9196339ef887379af2068fb1bf76528be81e78af2e9bccca",
+          "junit_sha256": "f2a9ca191292420354ef03d990ffc492c77e96f005e493447fb62d79d2711981",
+          "audit_sha256": "1e8242428e2ad8c2a43c166f6dbec7cefd1f327f3cb936dd4f8fcadac11705b0"
+        },
+        "grammar": {
+          "tests": 10,
+          "receipt": "H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\e02-source-grounding-coverage-20261108-r1\\offline\\grammar-20261108T050504149732Z\\receipt.json",
+          "receipt_sha256": "46f4b90b447253f4f42bc9f21b8709b4b3dc4fc2781b4d4c5949e2f13949dcd4",
+          "junit_sha256": "637766c7c989f1ef0f3aed1001e532a2b6447aacd33fc96eaa6a6a7b44681f0e",
+          "audit_sha256": "8571cd62ca72afadba417ef736d1adbef3b8b99960975ba479c0ef1a921870a5"
+        },
+        "structure-green": {
+          "tests": 51,
+          "receipt": "H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\e02-source-grounding-coverage-20261108-r1\\offline\\structure-green-20261108T050505044765Z\\receipt.json",
+          "receipt_sha256": "507cb89431bbbf55523e7f6a00009bb9b8463bb2736b7aa82425ad41e134cc1d",
+          "junit_sha256": "f9dee806c5c553f64093b4f6effe534e1af00bf791aa5570a7487c7cc7568c1e",
+          "audit_sha256": "1e8242428e2ad8c2a43c166f6dbec7cefd1f327f3cb936dd4f8fcadac11705b0"
+        },
+        "native-green": {
+          "tests": 131,
+          "receipt": "H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\e02-source-grounding-coverage-20261108-r1\\offline\\native-green-20261108T050509325309Z\\receipt.json",
+          "receipt_sha256": "b58ec835a3cf6943ccee61232a13cfb8ad7a063bcbcececbe1b9b58da4724a9c",
+          "junit_sha256": "b644616405cf3f4478e6d111adf4c18ab61e187a5e0bff4dd029d28cfcf202b8",
+          "audit_sha256": "1e8242428e2ad8c2a43c166f6dbec7cefd1f327f3cb936dd4f8fcadac11705b0"
+        },
+        "compatibility": {
+          "tests": 4,
+          "receipt": "H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\e02-source-grounding-coverage-20261108-r1\\offline\\compatibility-20261108T050531947407Z\\receipt.json",
+          "receipt_sha256": "30cd1f43ff78fec57acfc400040fe19f6ae01cec4cb07a43cc1985974c28fb2a",
+          "junit_sha256": "113d4e642a3ac23578b4f0ce70b0e2d91329023449963332d7789e6de9be1a8b",
+          "audit_sha256": "1e8242428e2ad8c2a43c166f6dbec7cefd1f327f3cb936dd4f8fcadac11705b0"
+        },
+        "budget-green": {
+          "tests": 18,
+          "receipt": "H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\e02-source-grounding-coverage-20261108-r1\\offline\\budget-green-20261108T050534646052Z\\receipt.json",
+          "receipt_sha256": "b017338c7a5d49c605f96a26c7241cd65d0eb62aaf096abf9e9658ef1327535f",
+          "junit_sha256": "de5eedfe0c71798c0fe82d4843ae38e9304923bf39e0bb128e88ccbf8353f5e1",
+          "audit_sha256": "1e8242428e2ad8c2a43c166f6dbec7cefd1f327f3cb936dd4f8fcadac11705b0"
+        },
+        "json-green": {
+          "tests": 35,
+          "receipt": "H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\e02-source-grounding-coverage-20261108-r1\\offline\\json-green-20261108T050538424876Z\\receipt.json",
+          "receipt_sha256": "61ea5913726925e5593331ca8b9f55a45a4551fc6eca7019fe334f988254b6d6",
+          "junit_sha256": "101c2e099b9808bc2322aaa13b89dd24d75a930ada38da5127cef165e198c787",
+          "audit_sha256": "1e8242428e2ad8c2a43c166f6dbec7cefd1f327f3cb936dd4f8fcadac11705b0"
+        },
+        "coverage-green": {
+          "tests": 40,
+          "receipt": "H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\e02-source-grounding-coverage-20261108-r1\\offline\\coverage-green-20261108T050544808423Z\\receipt.json",
+          "receipt_sha256": "7ca5afce73e56119581f6cec7bda1b1d5a94c05ce3b6331b20f5cc080a036541",
+          "junit_sha256": "661a05b49d8919715d44c143332c1ab8898a610931016ebae0f3c299745b1656",
+          "audit_sha256": "1e8242428e2ad8c2a43c166f6dbec7cefd1f327f3cb936dd4f8fcadac11705b0"
+        },
+        "failure-green": {
+          "tests": 31,
+          "receipt": "H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\e02-source-grounding-coverage-20261108-r1\\offline\\failure-green-20261108T050548233269Z\\receipt.json",
+          "receipt_sha256": "fdd72275805703d5665e404dba34737aceb0882a23dab2a818ff6808af31207d",
+          "junit_sha256": "cf8e4fc0076e40a2cfdb99d8e0c939c3c00afa0c52e751a383d2694ed1946be7",
+          "audit_sha256": "1e8242428e2ad8c2a43c166f6dbec7cefd1f327f3cb936dd4f8fcadac11705b0"
+        },
+        "http-green": {
+          "tests": 43,
+          "receipt": "H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\e02-source-grounding-coverage-20261108-r1\\offline\\http-green-20261108T050555468302Z\\receipt.json",
+          "receipt_sha256": "194e377582f3d89e3f89a000d5e52b5145aad89ddfc0062e8a980eee07ec554c",
+          "junit_sha256": "f19677319200f1f3dcf6588e48ed00ac2e16c40d3c4a24320241ce6af5ad62cb",
+          "audit_sha256": "1e8242428e2ad8c2a43c166f6dbec7cefd1f327f3cb936dd4f8fcadac11705b0"
+        },
+        "unique-green": {
+          "tests": 21,
+          "receipt": "H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\e02-source-grounding-coverage-20261108-r1\\offline\\unique-green-20261108T050604726938Z\\receipt.json",
+          "receipt_sha256": "8102c97ffe80ee1a9e9e435e6f5f3e4004b04ad9ba03b6e3e566845417bdd102",
+          "junit_sha256": "25784b1a88d0b18c426e84fb5f029ac1c8edbfd128a54e64871ff03a50d74778",
+          "audit_sha256": "1e8242428e2ad8c2a43c166f6dbec7cefd1f327f3cb936dd4f8fcadac11705b0"
+        },
+        "metadata-green": {
+          "tests": 43,
+          "receipt": "H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\e02-source-grounding-coverage-20261108-r1\\offline\\metadata-green-20261108T050614684283Z\\receipt.json",
+          "receipt_sha256": "8cd0c520f47ca3d5712f6ca41a9b8a863521553b6ca3210c001d5b7b70b38ca0",
+          "junit_sha256": "3fc6b18f221e98f989258499a1bd8fc417d5ebfef64371bb27cd63ec7b21c1a3",
+          "audit_sha256": "8571cd62ca72afadba417ef736d1adbef3b8b99960975ba479c0ef1a921870a5"
+        },
+        "grounding-green": {
+          "tests": 11,
+          "receipt": "H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\e02-source-grounding-coverage-20261108-r1\\offline\\grounding-green-20261108T050611692061Z\\receipt.json",
+          "receipt_sha256": "02fd4ac091bb6123745b32959465fdf346bc26aa899a598a667a60caf4d8aa53",
+          "junit_sha256": "22304ed19365980b4d61c2b76fd1be7e8f313c1551a7b87c29293999ce583b47",
+          "audit_sha256": "1e8242428e2ad8c2a43c166f6dbec7cefd1f327f3cb936dd4f8fcadac11705b0"
+        },
+        "reference-green": {
+          "tests": 29,
+          "receipt": "H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\e02-source-grounding-coverage-20261108-r1\\offline\\reference-green-20261108T050619101328Z\\receipt.json",
+          "receipt_sha256": "8e674a10c5c8cdcbc97b0164c7682d41b6b7355ffa4d3fd5cbd43c3121984869",
+          "junit_sha256": "3ba798cc35cc8a67efe10d9f1f1d77b895d7ce9f36b54b52db2dde56675af520",
+          "audit_sha256": "1e8242428e2ad8c2a43c166f6dbec7cefd1f327f3cb936dd4f8fcadac11705b0"
+        },
+        "claim-green": {
+          "tests": 28,
+          "receipt": "H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\e02-source-grounding-coverage-20261108-r1\\offline\\claim-green-20261108T050618493406Z\\receipt.json",
+          "receipt_sha256": "7189e8b513b0cb5a5865d713cbb9e4fe8e8dc0530d223f655edbd65b2a4a930a",
+          "junit_sha256": "c83857157f4d6587e68a54bed4822c3c367c0f6365d5211df1cd78d61fdd7070",
+          "audit_sha256": "1e8242428e2ad8c2a43c166f6dbec7cefd1f327f3cb936dd4f8fcadac11705b0"
+        },
+        "target-green": {
+          "tests": 19,
+          "receipt": "H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\e02-source-grounding-coverage-20261108-r1\\offline\\target-green-20261108T050633763630Z\\receipt.json",
+          "receipt_sha256": "fe82783735b83c40d99e36e3a6a78716a5d2aa9bf8abf478176f4a6948f52345",
+          "junit_sha256": "3121ca0f65af3046ea817057cf3911cf322c2e49adee0a760d481ddbd466a0d9",
+          "audit_sha256": "1e8242428e2ad8c2a43c166f6dbec7cefd1f327f3cb936dd4f8fcadac11705b0"
+        },
+        "diagnostics-green": {
+          "tests": 17,
+          "receipt": "H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\e02-source-grounding-coverage-20261108-r1\\offline\\diagnostics-green-20261108T050635170199Z\\receipt.json",
+          "receipt_sha256": "b4b9223eb46c35b5c3ef9a088f9a1058da4a7b4691cfb235d8a37d29bbe29e51",
+          "junit_sha256": "443591946b3b74deba6ecdb58eca9d9b46d3610484b28f76ffc8ee581473dd8d",
+          "audit_sha256": "1e8242428e2ad8c2a43c166f6dbec7cefd1f327f3cb936dd4f8fcadac11705b0"
+        },
+        "research-a": {
+          "tests": 68,
+          "receipt": "H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\e02-source-grounding-coverage-20261108-r1\\offline\\research-a-20261108T050641121475Z\\receipt.json",
+          "receipt_sha256": "54ee36ed82863e1195c9582e43cbfe5a6d1bd1dbc07be56d9630452052b1c910",
+          "junit_sha256": "7b1ee944df8106b728d720ef830d612605dfb4f92e78ef72b95a7c775ec2d594",
+          "audit_sha256": "1e8242428e2ad8c2a43c166f6dbec7cefd1f327f3cb936dd4f8fcadac11705b0"
+        },
+        "navigation": {
+          "tests": 90,
+          "receipt": "H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\e02-source-grounding-coverage-20261108-r1\\offline\\navigation-20261108T050724645382Z\\receipt.json",
+          "receipt_sha256": "25d864db9388ce5eae3b3a57d5cf74aed154d99d53e670e486277736f9f9d385",
+          "junit_sha256": "99ba14ce2e547320976f68708070ca89002415fb6a7c74cdf5bf7d41be27a267",
+          "audit_sha256": "1e8242428e2ad8c2a43c166f6dbec7cefd1f327f3cb936dd4f8fcadac11705b0"
+        },
+        "research-b": {
+          "tests": 110,
+          "receipt": "H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\e02-source-grounding-coverage-20261108-r1\\offline\\research-b-20261108T050655967988Z\\receipt.json",
+          "receipt_sha256": "4f3553588d76939616018351d30bcc085f8c7eb4e1ef3d802343b083e73a5c1c",
+          "junit_sha256": "8c20e08ee4d5f990d846284d6d9e4bfbe2244950c25aa27252129b666a4a03da",
+          "audit_sha256": "1e8242428e2ad8c2a43c166f6dbec7cefd1f327f3cb936dd4f8fcadac11705b0"
+        },
+        "delivery": {
+          "tests": 86,
+          "receipt": "H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\e02-source-grounding-coverage-20261108-r1\\offline\\delivery-20261108T050755934442Z\\receipt.json",
+          "receipt_sha256": "a3e1b6a7585c66aec6c2fb584b44bf5f8c5589db9bfbf3f0fc48ffb26ac762e5",
+          "junit_sha256": "dae85877404e471b8dbde78f8cb60922c0ea7a95f2f26af92d7ab486143a6a2d",
+          "audit_sha256": "1e8242428e2ad8c2a43c166f6dbec7cefd1f327f3cb936dd4f8fcadac11705b0"
+        },
+        "transport": {
+          "tests": 104,
+          "receipt": "H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\e02-source-grounding-coverage-20261108-r1\\offline\\transport-20261108T050731311552Z\\receipt.json",
+          "receipt_sha256": "dfe4938ae60a8e3677da159abc96b8861888caf0b1939da93b9b513b35fa7f4c",
+          "junit_sha256": "d2ad677332da8b42267dad52262744ebefd2d850cc6d58e9c2e86bc322f3ee41",
+          "audit_sha256": "1e8242428e2ad8c2a43c166f6dbec7cefd1f327f3cb936dd4f8fcadac11705b0"
+        }
+      },
+      "group_count": 23,
+      "distinct_junit_cases": 1022,
+      "product_cases": 1008,
+      "compatibility_cases": 4,
+      "reference_conversion_cases": 10,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "source_hash_bindings_per_group": 48,
+      "all_source_hash_bindings_match_current": true,
+      "candidate_input_bindings": 79,
+      "current_input_pins": 1603,
+      "max_observed_parallel_workers": 2,
+      "per_group_timeout_seconds": 90,
+      "audits_clean": true,
+      "expected_import_probes_closed": true,
+      "reviewer_reran_tests": false
+    },
+    "retained_failures": {
+      "status": "PASS",
+      "parent_baseline_passes": 75,
+      "new_red_cases": 14,
+      "new_red_failures": 12,
+      "new_red_passes": 2,
+      "parent_production_hashes_match_red": true,
+      "first_full_batch": {
+        "sha256": "7737f4afcc47e0633d6ec56fd363c6047655ca4ed23267ab497a85f5dcde4226",
+        "tests": 1022,
+        "failures": 10
+      },
+      "second_full_batch": {
+        "sha256": "dbe76c856257ff2ba10ebfd93f51c690a2f7b6aea751126564196c03ae1fe0a3",
+        "tests": 1022,
+        "failures": 8
+      },
+      "dense_five_source_fixture_hit_original_strict_prompt_cap": true,
+      "production_caps_enlarged": false,
+      "prior_actual_run_id": "1496a844-668d-407a-a91b-89be246ba05b",
+      "prior_actual_verdict": "FAIL_CONFIRMED",
+      "prior_claims": 9,
+      "prior_claims_passing_fact_and_selected_citation": [
+        7
+      ],
+      "prior_S4_inspects": 0,
+      "original_question_coverage_not_passed": true
+    },
+    "reference_conversion": {
+      "status": "PASS_RECORDED_REFERENCE_ONLY",
+      "revision": "b10488",
+      "fact_rules": 8,
+      "all_evidence_before_claim": true,
+      "original_entity_bytes": 32699,
+      "projected_entity_bytes": 33371,
+      "entity_limit": 49152,
+      "grammar_utf8_lf_bytes": 14502,
+      "saved_windows_grammar_bytes": 14591,
+      "saved_grammar_sha256": "bdd1346f0cc6fdb04d9a4e11a796e8d40c8e138fad8fd119f6ae0425fb19fc80",
+      "grammar_size_note": "14502 is converter text bytes; saved text uses Windows CRLF and is 14591 bytes. Manifest hash verifies the saved bytes.",
+      "compiled_native_validator_run": false,
+      "native_model_calls": 0,
+      "semantic_acceptance_credit": 0
+    },
+    "preservation": {
+      "status": "FAIL_LIVE_UNRELATED_HTML_BINDING_ONLY",
+      "previous_preparation_members": 394,
+      "previous_result_members": 67,
+      "previous_seal_members": 38,
+      "parent_product_preparation_members": 1434,
+      "all_predecessor_members_match": true,
+      "previous_input_pins": 1602,
+      "dependency_pins": 1567,
+      "all_dependency_and_input_pins_match": true,
+      "parent_worktree_clean": true,
+      "unrelated_baseline_matches": 14,
+      "unrelated_total": 15,
+      "only_exception_path": "docs/tracker/北极星上线任务清单.html",
+      "original_baseline_manifest_sha256": "70b08e094b7fe3f57cf6cfbc68375a7c1284c95925bfd0970ad36f9741334c17",
+      "observation_json_sha256": "f346d28ecf6f1114f54a85c94df91bcbc7ed7fbc628dc025d459572a254c9ce0",
+      "immutable_observation_snapshot_matches": true,
+      "project_staging_empty": true,
+      "mirror_staging_empty": true,
+      "unrelated_html_not_staged": true,
+      "unrelated_html_not_written_by_reviewer": true,
+      "attribution": "UNDETERMINED"
+    },
+    "authorization_and_limits": {
+      "status": "UNCHANGED",
+      "model": "qwen3-8b-uncensored",
+      "model_digest": "6d7230a923426bc1933879eb08a7dafc18e5fc0e7606c459ce98f16e0c7f9330",
+      "model_evidence": "Frozen configuration and input pins; no live model/service query.",
+      "budgets": {
+        "cli": 1,
+        "search": 1,
+        "GET": 4,
+        "inspect": 6,
+        "write": 1,
+        "ACK": 1,
+        "native_POST": 8,
+        "service_seconds": 260,
+        "client_seconds": 300,
+        "work_seconds": 275,
+        "cleanup_seconds": 310,
+        "outer_seconds": 315,
+        "retry": 0
+      },
+      "context_tokens": 16384,
+      "strict_prompt_bytes": 32768,
+      "entity_bytes": 49152,
+      "max_output_tokens": 2048,
+      "smaller_phase_caps_preserved": true,
+      "actual_cases": 0,
+      "model_calls": 0,
+      "actual_case_allocation_remaining": 0,
+      "result_review_allocation_remaining": 0,
+      "last_actual_result_preserved": true,
+      "no_actual_release_or_controller_authority_under_N": true,
+      "live_gate_released": false,
+      "next_stage_released": false
+    }
+  },
+  "limits": [
+    "Read-only source, JSON, hash, AST, Git and JUnit inspection. The existing pure evidence verifier was run and failed at the live unrelated-HTML comparison; it was not patched or bypassed to produce a pass.",
+    "No product, profile, controller, test, reference converter, native binary or model entry was executed by this reviewer; no tests were rerun.",
+    "No network, UI, audio, service, model call, live protected-process inspection, process termination, staging or publication operation was performed.",
+    "No installed native-binary compatibility, semantic entailment, complete original-question answer, fresh runtime preflight or E02 acceptance credit follows from the offline evidence.",
+    "Only independent-preparation-review.json and independent-preparation-review.md are created by this reviewer. No existing package member or unrelated HTML was modified."
+  ]
+}

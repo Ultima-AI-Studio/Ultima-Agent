@@ -1,0 +1,437 @@
+diff --git a/src/brain/agent_server.py b/src/brain/agent_server.py
+index 0d342c74..248b9d03 100644
+--- a/src/brain/agent_server.py
++++ b/src/brain/agent_server.py
+@@ -551,7 +551,8 @@ class _ResearchEngineView:
+         import copy,hashlib
+         from jsonschema import Draft7Validator
+         from openjarvis.core.types import Message,Role
+-        from .work_navigation import canonical_v3,v3_writer_schema,v3_phase_writer_schema,v3_research_phase,v3_research_envelope
++        from .work_navigation import (canonical_v3,v3_writer_schema,v3_phase_writer_schema,
++            v3_research_phase,v3_research_envelope,v3_phase_inspect_schema,v3_research_final_schema)
+         self.check_dispatch()
+         self.generation+=1
+         if self.final: raise ValueError('Research already finalized')
+@@ -567,9 +568,8 @@ class _ResearchEngineView:
+             self.history+=_research_message_dicts([Message(role=Role.ASSISTANT,content=self.last_content),
+                 Message(role=Role.USER,content='Observation: '+staged['content'])])
+         if _research_message_dicts(messages)!=self.history: raise ValueError('Research SDK history drift')
+-        final=dict(type='object',additionalProperties=False,required=['final_answer'],
+-            properties=dict(final_answer=dict(type='string',minLength=1,maxLength=1000)))
+         ack=self.expected=='ultima_work_research_write'
++        final=v3_research_final_schema(ack=ack)
+         pending=self.ledger._staged.get(self.ledger._sequence)
+         reads=list(self.ledger._issued)
+         if pending and pending.get('view') and pending['confirmed'] and not pending['promoted']:
+@@ -584,10 +584,14 @@ class _ResearchEngineView:
+             phase='Acknowledge the verified research.md file. No further action is authorized.'
+         else:
+             self.ledger.admit_report()
+-            report_schema=v3_phase_writer_schema(tuple(
+-                (view.source_id,view.cards_json) for _,view in reads)) if eligible else v3_writer_schema()
+-            if self.ledger._read_count<6:
+-                alternatives.append(action('ultima_work_research_inspect',self.ledger._enrolled['ultima_work_research_inspect'].spec.parameters))
++            visible=tuple((view.source_id,view.cards_json) for _,view in reads)
++            report_schema=v3_phase_writer_schema(visible) if eligible else v3_writer_schema()
++            inspect_schema=v3_phase_inspect_schema(
++                self.ledger._enrolled['ultima_work_research_inspect'].spec.parameters,
++                tuple(s.source_id for s in self.caps.navigation.sources if s.available),
++                visible,self.ledger._read_count)
++            if inspect_schema is not None:
++                alternatives.append(action('ultima_work_research_inspect',inspect_schema))
+             if eligible: alternatives.append(action('ultima_work_research_write',report_schema))
+             schema=v3_research_envelope([*alternatives,final])
+             limit=min(kwargs['max_tokens'],2048 if eligible else 256)
+diff --git a/src/brain/tests/test_work_failure_diagnostics.py b/src/brain/tests/test_work_failure_diagnostics.py
+index 29681116..c26daa1f 100644
+--- a/src/brain/tests/test_work_failure_diagnostics.py
++++ b/src/brain/tests/test_work_failure_diagnostics.py
+@@ -9,7 +9,7 @@ from src.brain import work_tools as wt
+ from src.brain.tests.test_work_research import sdk_io,mock_jar,submit,RESTRICTED,stable_navigation_entropy
+ from src.brain.tests.test_work_navigation_transport import genuine_navigation,navigation_reply
+ 
+-FINAL='现有证据不足以回答原题的任务架构；未写入研究文件。'
++FINAL='本次研究未交付。'
+ 
+ 
+ def test_trusted_numeric_deadline_is_not_interpreted_as_text_pii(tmp_path,sdk_io,mock_jar,monkeypatch):
+@@ -87,7 +87,8 @@ def test_six_reads_then_final_preserves_branch_pages_and_budget_without_delivery
+         assert page['range']==[view.start,view.end] and page['view_sha256']==view.wire_sha256
+         assert page['confirmed'] and page['visible']
+         assert [c['id'] for c in page['cards']]==[c[0] for c in cards]
+-    assert 'Visible fact' not in json.dumps(packet) and FINAL not in json.dumps(result,ensure_ascii=False)
++    assert 'Visible fact' not in json.dumps(packet)
++    assert 'final_answer' not in json.dumps(result) and result['content']==FINAL
+     assert not getattr(ledger,'_runtime_final',None) and not list(tmp_path.rglob('research.md'))
+ 
+ 
+@@ -184,9 +185,17 @@ def test_scanner_failure_blocks_private_diagnostic_without_changing_failure(tmp_
+ 
+ 
+ def test_maximum_allowed_final_is_bounded_and_private(tmp_path,sdk_io,mock_jar,monkeypatch):
++    from src.brain import work_service
+     final='测'*1000
+-    result,ledger=early_case(tmp_path,sdk_io,mock_jar,monkeypatch,reads=1,final=final)
++    def fail(*args,**kwargs):raise ValueError('synthetic independent artifact failure')
++    monkeypatch.setattr(work_service,'verify_artifacts',fail)
++    def ack(body):return json.dumps(dict(final_answer=final))
++    ack.no_auto_navigation=True
++    mock_jar[3].extend([navigation_reply]*4+[ack])
++    result=submit(tmp_path,sdk_io[0],mock_jar[1]);ledger=RESTRICTED[result['task_id']]
+     packet=private_packet(result,ledger)
++    assert result['status']=='needs_attention' and packet['branch']=='ack'
++    assert packet['write_confirmed'] and packet['ack_confirmed'] and packet['acceptance_credit']==0
+     assert packet['final_answer']['text']==final and len(ledger._failure_diagnostic)<=16384
+     assert final not in json.dumps(result,ensure_ascii=False)
+ 
+diff --git a/src/brain/tests/test_work_navigation_transport.py b/src/brain/tests/test_work_navigation_transport.py
+index 26c71432..db4929e9 100644
+--- a/src/brain/tests/test_work_navigation_transport.py
++++ b/src/brain/tests/test_work_navigation_transport.py
+@@ -591,7 +591,8 @@ def test_v3_provisional_third_card_no_promotion_on_failure(tmp_path,sdk_io,mock_
+     ledger=RESTRICTED[result['task_id']]
+     assert result['status']=='failed' and not list(tmp_path.rglob('research.md'))
+     if fault=='blank_final':
+-        assert result['error']=='Empty research final answer'
++        # Prewrite finals now fail the fixed non-delivery enum before the blank check.
++        assert result['error']=='Invalid native research envelope'
+         assert ledger._read_count==3 and count[0]==4
+         assert [n['seq'] for n in ledger._timeline if n['kind']=='sdk_end']==[1,2,3]
+         assert [n['seq'] for n in ledger._timeline if n['kind']=='sdk_start']==[1,2,3]
+diff --git a/src/brain/tests/test_work_source_coverage_budget.py b/src/brain/tests/test_work_source_coverage_budget.py
+new file mode 100644
+index 00000000..264de273
+--- /dev/null
++++ b/src/brain/tests/test_work_source_coverage_budget.py
+@@ -0,0 +1,214 @@
++"""Preserve coverage opportunities within six reads and report non-delivery honestly."""
++from copy import deepcopy
++import hashlib
++import json
++from pathlib import Path
++
++import httpx
++import pytest
++from jsonschema import Draft7Validator
++
++from src.brain import agent_server as server, work_navigation as nav
++from src.brain.work_tools import WorkInspectTool
++from src.brain.tests.test_work_research import sdk_io, mock_jar, submit, RESTRICTED, stable_navigation_entropy
++from src.brain.tests.test_work_navigation_transport import navigation_reply
++
++NOT_DELIVERED='本次研究未交付。'
++SOURCES=('S1','S2','S3','S4','S5')
++
++
++def page(sid, number=1, *, empty=False):
++    cards=[] if empty else [[f'N3.{number:016x}','documented','text',1,1,1,1]]
++    return sid,nav.canonical_v3(cards)
++
++
++def phase(available=SOURCES, visible=(), used=0, base=None):
++    helper=getattr(nav,'v3_phase_inspect_schema',None)
++    assert callable(helper), 'missing shared read-budget/source-coverage contract'
++    return helper(WorkInspectTool.parameters if base is None else base,available,visible,used)
++
++
++@pytest.mark.parametrize('available,visible,used,expected',[
++    (SOURCES,(),0,list(SOURCES)),
++    (SOURCES,tuple(page('S1',i) for i in range(1,4)),3,list(SOURCES)),
++    (SOURCES,tuple(page('S1',i) for i in range(1,5)),4,['S2','S3','S4','S5']),
++    (SOURCES,tuple(page('S1',i) for i in range(1,5))+(page('S2',5),),5,['S3','S4','S5']),
++    (SOURCES,(page('S1'),page('S2',2),page('S3',3)),5,list(SOURCES)),
++    (SOURCES,(page('S1'),page('S2',2),page('S3',3)),6,None),
++    (SOURCES,(page('S1',empty=True),),4,None),
++    (SOURCES,(page('S1'),page('S2',2,empty=True)),4,['S2','S3','S4','S5']),
++    (SOURCES,tuple(page('S1',i) for i in range(1,6)),5,None),
++    (('S1','S2'),(page('S1'),),1,None),
++    ((),(),0,None),
++    (('S5','S3','S1'),tuple(page('S5',i) for i in range(1,5)),4,['S3','S1']),
++])
++def test_budget_reserves_only_the_reads_needed_for_missing_sources(available,visible,used,expected):
++    before=deepcopy(WorkInspectTool.parameters)
++    schema=phase(available,visible,used)
++    assert WorkInspectTool.parameters==before
++    if expected is None:
++        assert schema is None
++    else:
++        wanted=deepcopy(before);wanted['properties']['source_id']['enum']=expected
++        assert schema==wanted and schema is not WorkInspectTool.parameters
++        assert Draft7Validator(before).is_valid(dict(source_id=expected[0],start_line=17))
++        assert Draft7Validator(schema).is_valid(dict(source_id=expected[0],start_line=17))
++
++
++@pytest.mark.parametrize('used',[True,False,-1,7,1.5,'4',None])
++def test_read_count_is_a_strict_bounded_integer(used):
++    with pytest.raises(ValueError):phase(used=used)
++
++
++@pytest.mark.parametrize('available',[['S1','S2','S3'],('S1','S1','S2'),('S6',),('S1',True)])
++def test_availability_cannot_be_malformed_or_model_invented(available):
++    with pytest.raises(ValueError):phase(available)
++
++
++@pytest.mark.parametrize('empty',[False,True])
++def test_even_empty_visible_pages_must_belong_to_trusted_availability(empty):
++    with pytest.raises(ValueError):phase(('S1','S2','S3'),(page('S5',empty=empty),),1)
++
++
++def test_phase_never_expands_original_tool_capability():
++    base=deepcopy(WorkInspectTool.parameters);base['properties']['source_id']['enum']=['S1','S2','S3']
++    with pytest.raises(ValueError):phase(SOURCES,base=base)
++
++
++@pytest.mark.parametrize('visible,used',[
++    ((page('S1'),),0),
++    ((page('S1'),page('S2')),2),
++    ((('S1',b'[[]]'),),1),
++    ([page('S1')],1),
++])
++def test_invalid_or_duplicate_visible_evidence_does_not_buy_coverage(visible,used):
++    with pytest.raises(ValueError):phase(visible=visible,used=used)
++
++
++def inspect_params(schema):
++    for option in schema.get('anyOf',[]):
++        properties=option.get('properties',{})
++        if properties.get('action',{}).get('enum')==['ultima_work_research_inspect']:
++            return properties['action_input']
++    return None
++
++
++def repeated_case(tmp_path,sdk_io,mock_jar,monkeypatch,*,adaptive):
++    def get(method,url,**kwargs):
++        assert method=='GET'
++        # One card per page: exercise six real reads without changing request caps.
++        body='\n'.join('Visible fact %d for %s.' % (i,url) if i%24==0 else '' for i in range(145))
++        return httpx.Response(200,headers={'content-type':'text/plain'},text=body,request=httpx.Request(method,url))
++    monkeypatch.setattr(httpx,'request',get)
++    def reply(body):
++        observed=[json.loads(m['content'][13:]) for m in body['messages']
++                  if m['role']=='user' and m['content'].startswith('Observation: ')]
++        pages=[p for p in observed if p.get('v')==3]
++        if len(pages)<6:
++            allowed=inspect_params(body['format'])['properties']['source_id']['enum']
++            sid='S1' if not adaptive or 'S1' in allowed else allowed[0]
++            start=1+24*sum(p['source_id']==sid for p in pages)
++            return json.dumps(dict(action='ultima_work_research_inspect',action_input=dict(source_id=sid,start_line=start)))
++        if not adaptive:return json.dumps(dict(final_answer=NOT_DELIVERED))
++        if len(observed)==6:
++            chosen={}
++            for p in pages:chosen.setdefault(p['source_id'],p)
++            return json.dumps(dict(action='ultima_work_research_write',action_input=dict(path='research.md',title='Coverage report',
++                sections=[dict(source_id=sid,heading=sid,facts=[dict(claim=p['lines'][0][1].split(' for ')[0],
++                    evidence_id=p['cards'][0][0])]) for sid,p in sorted(chosen.items())])))
++        return json.dumps(dict(final_answer='Saved research.md'))
++    reply.no_auto_navigation=True
++    mock_jar[3].extend([reply]*8)
++    result=submit(tmp_path,sdk_io[0],mock_jar[1])
++    return result,RESTRICTED[result['task_id']]
++
++
++def test_sdk_rejects_fifth_same_source_read_before_spending_reserved_budget(tmp_path,sdk_io,mock_jar,monkeypatch):
++    result,ledger=repeated_case(tmp_path,sdk_io,mock_jar,monkeypatch,adaptive=False)
++    assert ledger._read_count==4, 'fifth same-source read consumed the coverage reserve'
++    assert len(mock_jar[2])==5 and result['status']=='failed'
++    assert 'Invalid native research envelope' in result['error']
++    assert result['content']==NOT_DELIVERED
++    assert not list(tmp_path.rglob('research.md')) and not getattr(ledger,'_runtime_final',None)
++
++
++def test_sdk_uses_six_reads_then_write_ack_and_independent_replay(tmp_path,sdk_io,mock_jar,monkeypatch):
++    result,ledger=repeated_case(tmp_path,sdk_io,mock_jar,monkeypatch,adaptive=True)
++    assert result['status']=='succeeded',result['error']
++    assert ledger._read_count==6 and len(mock_jar[2])==8
++    assert [v.source_id for _,v in ledger._issued]==['S1']*4+['S2','S3']
++    assert inspect_params(mock_jar[2][4]['format'])['properties']['source_id']['enum']==['S2','S3','S4','S5']
++    assert inspect_params(mock_jar[2][5]['format'])['properties']['source_id']['enum']==['S3','S4','S5']
++    assert inspect_params(mock_jar[2][6]['format']) is None
++    assert [b['options']['num_predict'] for b in mock_jar[2]]==[256]*6+[2048,256]
++    assert len(result['artifacts'])==1 and Path(result['artifacts'][0]['path']).is_file()
++    assert {s['source_id'] for s in result['sources']}=={'S1','S2','S3'}
++    from src.brain.work_research import verify_runtime_packet
++    verify_runtime_packet(ledger._binding,ledger.issued_snapshot,ledger._collection,ledger._runtime_final,
++        require_ack=True,runtime_inputs=ledger._runtime_inputs)
++
++
++def test_replay_rejects_coherently_widened_fifth_read_schema(tmp_path,sdk_io,mock_jar,monkeypatch):
++    result,ledger=repeated_case(tmp_path,sdk_io,mock_jar,monkeypatch,adaptive=True)
++    assert result['status']=='succeeded',result['error']
++    packet=json.loads(ledger._runtime_prewrite);wire=packet['wires'][4]
++    inspect_params(wire['strict_schema'])['properties']['source_id']['enum']=list(SOURCES)
++    wire['sampler_schema']=server._research_sampler_schema(wire['strict_schema'])
++    request=json.loads(wire['entity']);request['format']=wire['sampler_schema']
++    entity=nav.canonical_v3(request);wire['entity']=entity.decode()
++    wire['hashes'].update({k:hashlib.sha256(v).hexdigest() for k,v in dict(
++        strict=nav.canonical_v3(wire['strict_schema']),sampler=nav.canonical_v3(wire['sampler_schema']),entity=entity).items()})
++    packet['transport']['receipts'][14].update(entity_sha256=wire['hashes']['entity'],entity_bytes=len(entity))
++    packet['transport']['post_bytes']=sum(len(w['entity'].encode()) for w in packet['wires'])
++    from src.brain.work_research import verify_runtime_packet
++    with pytest.raises(ValueError,match='Runtime phase schema or output budget drift'):
++        verify_runtime_packet(ledger._binding,ledger.issued_snapshot,ledger._collection,nav.canonical_v3(packet),
++            runtime_inputs=ledger._runtime_inputs)
++
++
++@pytest.mark.parametrize('text',['已保存research.md','已交付完整报告','测'*1000])
++def test_false_or_arbitrary_prewrite_final_is_rejected(tmp_path,sdk_io,mock_jar,text):
++    mock_jar[3].append(json.dumps(dict(final_answer=text)))
++    result=submit(tmp_path,sdk_io[0],mock_jar[1]);ledger=RESTRICTED[result['task_id']]
++    assert result['error']=='Invalid native research envelope'
++    assert result['status']=='failed' and result['content']==NOT_DELIVERED
++    assert not list(tmp_path.rglob('research.md')) and not getattr(ledger,'_runtime_final',None)
++    assert json.loads(ledger._failure_diagnostic)['final_answer'] is None
++
++
++def test_valid_non_delivery_final_remains_available_without_delivery_credit(tmp_path,sdk_io,mock_jar):
++    mock_jar[3].append(json.dumps(dict(final_answer=NOT_DELIVERED)))
++    result=submit(tmp_path,sdk_io[0],mock_jar[1]);ledger=RESTRICTED[result['task_id']]
++    assert result['error']=='Missing nonempty immutable runtime proof' and result['status']=='failed'
++    assert result['content']==NOT_DELIVERED and not result['artifacts']
++    diagnostic=json.loads(ledger._failure_diagnostic)
++    assert diagnostic['branch']=='final_before_write' and diagnostic['final_answer']['text']==NOT_DELIVERED
++    assert diagnostic['acceptance_credit']==0 and not diagnostic['write_confirmed'] and not diagnostic['ack_confirmed']
++
++
++def test_unconfirmed_delivery_keeps_partial_effect_warning(tmp_path,sdk_io,mock_jar):
++    def bad_ack(body):return json.dumps(dict(final_answer='x'*1001))
++    bad_ack.no_auto_navigation=True
++    mock_jar[3].extend([navigation_reply]*4+[bad_ack])
++    result=submit(tmp_path,sdk_io[0],mock_jar[1])
++    assert result['status']=='needs_attention' and list(tmp_path.rglob('research.md'))
++    assert result['content']=='本次研究未交付，部分操作可能已生效，请核对结果。'
++
++
++def test_nonresearch_failure_keeps_existing_message(tmp_path):
++    from src.brain.work_service import WorkService
++    def fail(*args,**kwargs):raise ValueError('synthetic nonresearch failure')
++    result=WorkService(tmp_path,runner=fail).submit_work('task',request_id='r',session_id='s')
++    assert result['status']=='failed' and result['content']=='本次任务未完成。'
++
++
++def test_final_schema_distinguishes_refusal_from_verified_ack():
++    helper=getattr(nav,'v3_research_final_schema',None)
++    assert callable(helper), 'missing shared delivery-state contract'
++    assert Draft7Validator(helper()).is_valid(dict(final_answer=NOT_DELIVERED))
++    assert not Draft7Validator(helper()).is_valid(dict(final_answer='Saved research.md'))
++    assert Draft7Validator(helper(ack=True)).is_valid(dict(final_answer='Saved research.md'))
++    assert Draft7Validator(helper(ack=True)).is_valid(dict(final_answer='测'*1000))
++    assert not Draft7Validator(helper(ack=True)).is_valid(dict(final_answer='测'*1001))
++    for bad in (0,1,None,'yes'):
++        with pytest.raises(ValueError):helper(ack=bad)
+diff --git a/src/brain/work_navigation.py b/src/brain/work_navigation.py
+index d8a17b6d..2530f9b7 100644
+--- a/src/brain/work_navigation.py
++++ b/src/brain/work_navigation.py
+@@ -452,6 +452,43 @@ def v3_source_reference_map(visible: tuple[tuple[str, bytes], ...]) -> dict[str,
+     return {sid:tuple(sorted(sources[sid])) for sid in sorted(sources)}
+ 
+ 
++def v3_phase_inspect_schema(base: dict, available: tuple[str, ...],
++                            visible: tuple[tuple[str, bytes], ...], used: int) -> dict | None:
++    """Reserve reads for missing sources using only trusted, confirmed pages."""
++    from copy import deepcopy
++    if type(used) is not int or not 0<=used<=6:
++        raise ValueError('Invalid read budget')
++    permitted=base['properties']['source_id']['enum']
++    if (type(available) is not tuple or len(available)>5
++            or any(type(sid) is not str or not re.fullmatch(r'S[1-5]',sid)
++                   or sid not in permitted for sid in available)
++            or len(set(available))!=len(available)):
++        raise ValueError('Invalid available sources')
++    covered=v3_source_reference_map(visible)
++    if len(visible)>used or any(sid not in available for sid,_ in visible):
++        raise ValueError('Visible source or read budget drift')
++    remaining=6-used; missing=max(0,3-len(covered))
++    unseen=[sid for sid in available if sid not in covered]
++    if remaining==0 or remaining<missing or len(unseen)<missing:
++        return None
++    choices=unseen if missing and remaining==missing else list(available)
++    schema=deepcopy(base)
++    schema['properties']['source_id']['enum']=choices
++    return schema
++
++
++RESEARCH_NOT_DELIVERED='本次研究未交付。'
++
++
++def v3_research_final_schema(*, ack: bool = False) -> dict:
++    """Only a verified write may receive a free-form acknowledgement."""
++    if type(ack) is not bool: raise ValueError('Invalid acknowledgement phase')
++    text=dict(type='string',minLength=1,maxLength=1000)
++    if not ack: text['enum']=[RESEARCH_NOT_DELIVERED]
++    return dict(type='object',additionalProperties=False,required=['final_answer'],
++                properties=dict(final_answer=text))
++
++
+ def v3_writer_schema(source_refs: dict[str, tuple[str, ...]] | None = None) -> dict:
+     def obj(**props): return dict(type='object',additionalProperties=False,properties=props,required=list(props))
+     def text(n): return dict(type='string',minLength=1,maxLength=n)
+diff --git a/src/brain/work_research.py b/src/brain/work_research.py
+index a87aec9b..9b34557a 100644
+--- a/src/brain/work_research.py
++++ b/src/brain/work_research.py
+@@ -646,7 +646,8 @@ def _verify_runtime_order(packet,reads,written,require_ack,runtime_inputs):
+ 
+ def verify_runtime_packet(binding, snapshot, collection, raw, *, require_ack=False,runtime_inputs=None):
+     """Reconstruct native entities, history and read/event links independently."""
+-    from .work_navigation import canonical_v3,v3_writer_schema,v3_phase_writer_schema
++    from .work_navigation import (canonical_v3,v3_writer_schema,v3_phase_writer_schema,
++        v3_phase_inspect_schema,v3_research_final_schema)
+     from .work_tools import WorkInspectTool,WorkResearchWriteTool
+     from openjarvis.tools._stubs import ToolSpec,build_tool_descriptions
+     from types import SimpleNamespace
+@@ -692,7 +693,9 @@ def verify_runtime_packet(binding, snapshot, collection, raw, *, require_ack=Fal
+     events=[_strict_json(e) for e in packet['events']]
+     starts=[e['data'] for e in events if e['type']=='tool_call_start']
+     ends=[e['data'] for e in events if e['type']=='tool_call_end']
+-    reads=json.loads(snapshot.replay_json)['reads']
++    navigation=json.loads(snapshot.replay_json)
++    reads=navigation['reads']
++    available=tuple(s['source_id'] for s in navigation['catalogue'] if s['available'])
+     wires=packet['wires']
+     if not len(reads)+1<=len(wires)<=8: raise ValueError('Runtime generation count')
+     written=packet['execution']['intent'] is not None
+@@ -785,18 +788,18 @@ def verify_runtime_packet(binding, snapshot, collection, raw, *, require_ack=Fal
+         scan_strings(envelope)
+         if isinstance(envelope,dict) and isinstance(envelope.get('final_answer'),str) and not envelope['final_answer'].strip():
+             raise ValueError('Empty research final answer')
+-        final=dict(type='object',additionalProperties=False,required=['final_answer'],
+-            properties=dict(final_answer=dict(type='string',minLength=1,maxLength=1000)))
+         ack=index==len(reads)+1
++        final=v3_research_final_schema(ack=ack)
+         allowed=[]
+         def action(name,params):
+             return dict(type='object',additionalProperties=False,required=['action','action_input'],properties=dict(action=dict(enum=[name]),action_input=params))
+         visible=reads[:index]
+         eligible=len({r['source_id'] for r in visible if r['wire']['cards']})>=3
+-        report_schema=v3_phase_writer_schema(tuple(
+-            (r['source_id'],canonical_v3(r['wire']['cards'])) for r in visible)) if eligible else v3_writer_schema()
++        visible_pages=tuple((r['source_id'],canonical_v3(r['wire']['cards'])) for r in visible)
++        report_schema=v3_phase_writer_schema(visible_pages) if eligible else v3_writer_schema()
+         if not ack:
+-            if index<6: allowed.append(action('ultima_work_research_inspect',WorkInspectTool.parameters))
++            inspect_schema=v3_phase_inspect_schema(WorkInspectTool.parameters,available,visible_pages,index)
++            if inspect_schema is not None: allowed.append(action('ultima_work_research_inspect',inspect_schema))
+             if eligible: allowed.append(action('ultima_work_research_write',report_schema))
+         from .work_navigation import v3_research_envelope
+         expected_schema=final if ack else v3_research_envelope([*allowed,final])
+diff --git a/src/brain/work_service.py b/src/brain/work_service.py
+index 7e556ac7..9c5a7965 100644
+--- a/src/brain/work_service.py
++++ b/src/brain/work_service.py
+@@ -211,8 +211,13 @@ class WorkService:
+                 effects |= any(effect['state'] != 'rejected' for effect in research_effects)
+             result['status'] = 'needs_attention' if effects else 'failed'
+             result['error'] = str(exc)
+-            result['content'] = ('本次任务未完成，部分操作可能已生效，请核对结果。'
+-                                 if effects else '本次任务未完成。')
++            if isinstance(context,dict) and context.get('research'):
++                from .work_navigation import RESEARCH_NOT_DELIVERED
++                result['content'] = ('本次研究未交付，部分操作可能已生效，请核对结果。'
++                                     if effects else RESEARCH_NOT_DELIVERED)
++            else:
++                result['content'] = ('本次任务未完成，部分操作可能已生效，请核对结果。'
++                                     if effects else '本次任务未完成。')
+         finally:
+             if captured and self._context_provider: self._context_provider.release(captured)
+         result['tool_results'] = sdk_results + records

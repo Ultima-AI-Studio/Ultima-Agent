@@ -277,6 +277,9 @@
 | v2.5 | 2026-11-01 | 新增 L35 agent_server 8756 "查新闻" 500 根因链（旧进程未加载 0016/0017 + Qwen3 thinking 空 content + you.com 不可达吞 fallback；修复=启动脚本注入 OPENJARVIS_WEB_SEARCH_ENGINE=duckduckgo + 重启，实测 200 grounded=true） |
 | v2.6 | 2026-11-04 | 新增 L36 kws_listener.py 参数与权威基线漂移（score=1.0/num_trailing_blanks=0 vs 基线 2.0/8）+ 基线文档"产品主入口"声明与实测运行入口（daemon）不一致 |
 | v2.7 | 2026-11-05 | 新增 L37 T4 全量回归两项环境既有失败（测试子进程 PATH 缺 Ollama 目录 + jarvis ask 14B 真实推理在 12GB 卡 cudaMalloc OOM）；处置=主脑豁免裁决收口 + 两项登记环境债（测试环境注入 PATH / 真推理测试改 8B 或加显存前置） |
+| v2.8 | 2026-11-06 | 新增 L39-L42 抖音热榜视频提取四坑（纯 HTTP 返回空壳 / 详情页跳精选页但 SSR 数据可直读 / SSR 分片是 JSON 字符串字面量必先解码 / CDN 直链需 Referer 且签名有时效）；配套链路 `H:\UltimaAI\_shared\tools\scrapling-test\`（hot_fetch.py + hot_video.py + 播放页模板） |
+| v2.9 | 2026-11-06 | 新增 L43 Windows 桌面自动化四处系统级限制（USER_CONTROL 控制权让路需重试 / SetForegroundWindow 前台锁定 / UI 树 500 元素上限 / 13 窗口 UIA 读不出 + README 门控参数在本机不存在）；配套配置文档 `docs/specs/windows-mcp-executor-channel.md`，能力清单「执行」组新增「操作桌面窗口和按钮」 |
+| v3.0 | 2026-11-06 | 新增 L44 git 推送"代理连不上"假象（github.com 单独配 1083 失效端口，全局 1080 正常）；处置=单次 `-c` 覆盖到 7897 推分支与标签，`ls-remote` 带同覆盖回读确认 `6b433698` 已在远端 |
 
 ## L35 agent_server 8756 "查新闻" 500 根因链（2026-11-01 · 实测修复）
 
@@ -319,3 +322,668 @@
 - **教训**：① 派发前置检查不能只看进程名，必须叠加"证据目录/工作树近 N 分钟写盘"信号（本例 0021 在写 `data/evidence/jarvis-work-capability/T2/e03-source12-20261105-r30-*`）；② 主表 blocked 不等于实况没跑，授权恢复轮期间应先把主表改 executing；③ 用户在 App 里手动发起的执行端与派发器拉起的是两套形态，WIP 计数要按"实际在写盘的工作"而不是按进程名。
 - **遗留**：前置检查脚本（dispatch 前置探针）待补"活跃写盘"判定项；0024 待 0021 收口后按 WIP 重派。
 - **复发**：0（首登记）
+
+## L39 抖音热榜纯 HTTP 抓取返回 200 但正文是空壳（工具链/静默失败 · 2026-11-06）
+
+- **现象**：`scrapling extract get https://www.douyin.com/hot` 返回 200，HTML 落地 72,911 字节，但 `<body>` 为空，只剩 `_$jsvmprt` 开头的 JS 挑战脚本，Markdown 产物 0 字节。抓取命令"成功"，数据一条没有。
+- **根因**：抖音用 JS 挑战拦截无浏览器执行环境的请求，HTTP 层伪装 TLS 指纹过不去；状态码和文件大小都不能证明拿到了正文。
+- **规避**：热榜必须走浏览器渲染模式（`extract fetch` + `--disable-resources` + `--wait-selector 'a[href^="/hot/"]'`），实测 5.1 秒拿到 97 万字节完整页面；抓完必须校验正文含榜单条目（`/hot/` 链接数 > 0），不能只看 exit code 和文件大小。
+- **复发**：1（本会话首次实测即踩中）
+
+## L40 热榜条目详情页在浏览器里跳精选页弹窗，改读 SSR 数据可绕过（工具链 · 2026-11-06）
+
+- **现象**：未登录浏览器打开 `https://www.douyin.com/hot/2731877/BLG战胜DK晋级半决赛` 被重定向到 `https://www.douyin.com/jingxuan?modal_id=7671977518265650478`，三次分别拿到导航壳 / 漫威解说 / 钓鱼视频，全部与榜单条目无关；而同批次的 WTT 条目却正常。同一条目后来改用 SSR 直读，一次成功。
+- **根因**：未登录态下详情页有跳精选页弹窗逻辑，跳转后的 `modal_id` 与榜单条目不保证对应（成因未完全验证）；但跳转发生在 UI 呈现层，页面 HTML 本身携带的 SSR 数据仍是该话题的。
+- **规避**：不要"打开页面看"，直接抓 HTML 读 SSR 里的 `hotList` 与 `video` 对象；BLG 那条改走 SSR 后标题、画面（BLG vs DK 比赛画面 + "BLG3比0横扫DK"字幕）、文件大小三项全部对上。判据：只要 SSR 里 `hotTitle` 与榜单标题一致，就说明数据这条对了。
+- **复发**：1（同一坑本会话撞过三次才定位到"UI 跳转不影响 SSR 数据"）
+
+## L41 抖音详情页 SSR 是 JSON 字符串字面量，直接搜字段名必 0 命中（工具链 · 2026-11-06）
+
+- **现象**：在详情页 HTML 里搜 `"playAddr":[` 返回 0 命中，据此误判"页面里没有视频地址"，转而去读 `<video>` 标签，`currentSrc` 又是空，白绕一圈。
+- **根因**：页面用 Next.js 风格分片 `self.__pace_f.push([1,"..."])`，每段内容是被转义后的 JSON 字符串字面量，HTML 里实际形态是 `\"playAddr\":[`；不先解码就搜原始字段名必然搜不到。
+- **规避**：先用正则 `self\.__pace_f\.push\(\[1,("(?:[^"\\]|\\.)*")\]\)` 取出每段字符串，逐个 `json.loads` 解码后拼接成 payload，再在 payload 里搜字段。本会话此坑踩中两次。
+- **复发**：2
+
+## L42 抖音视频 CDN 直链需 Referer 且签名有时效（工具链/外部依赖 · 2026-11-06）
+
+- **现象**：对 `v26-web.douyinvod.com` 的视频地址做 `Range: bytes=0-1023` 请求，不带 Referer 返回 403 Forbidden；带 `Referer: https://www.douyin.com/` + Chrome UA 返回 206、`Content-Type: video/mp4`、首 8 字节 `ftyp`。
+- **根因**：CDN 做来源页防盗链校验。
+- **规避**：下载必须带 Referer 与桌面 Chrome UA；地址含时间戳和签名（单条 557 字符），每次从当天详情页现取，禁止硬编码复用；验证取流成功要看状态码 206 + `ftyp` 头，不只看文件非空。
+- **复发**：1
+
+## L43 Windows 桌面自动化四处系统级限制：控制权让路 / 前台锁定 / 元素上限 / 窗口读不出（工具链 · 2026-11-06）
+
+- **现象**（Windows-MCP 0.8.8 受限实例真机验证中）：
+  1. `App(mode=launch_executable)` 与后续 `Click` 返回 `{"code":"USER_CONTROL","status":{"state":"user","generation":2,"wait_seconds":9.998}}`，人在动鼠标时输入类动作直接被拒不排队，约 10 秒空闲后才放行；被拒后的快照只剩 105 字符且无 Focused Window 段。
+  2. `App(mode=switch, name="计算器")` 报 `Failed to bring 计算器 to the foreground within 1 second`，底层 `pywintypes.error: (5, 'SetForegroundWindow', '拒绝访问。')`，窗口已在列表中却切不过去。
+  3. 快照报 `[Tree] Capture truncated at 500 elements (limit=500)`；`region=[0,0,900,1300]` 的区域快照 UI 树被 `Thomas` 窗口元素占满，计算器按钮读不出来。
+  4. 13 个窗口报 `UIA_E_ELEMENTNOTAVAILABLE (-2147220991)`，日志 `[Tree] 13 window(s) failed to capture`；重试日志还出现 `attempt 4/3` 越界计数。
+  另：README 宣称的 `--no-control` / `--control-policy` / 三档 `relaxed/balanced/strict` 在本机 0.8.8 全部不存在（`serve --help` 实测）。
+- **根因**：① 控制权门控是设计内的「人在用时 AI 让路」，空闲即还权，不是失败也不是排队；② Windows 前台锁定策略禁止非前台进程抢焦点；③ UI 树默认上限 500 元素（`WINDOWS_MCP_MAX_TREE_ELEMENTS`），聊天类大窗口吃光预算；④ 部分应用（Electron 类）不吐 UIA 元素；⑤ 文档版本与本机包版本脱节（服务自报 4.1.6 vs 包 0.8.8）。
+- **规避**：① 调用层必须写「被拒 → 等 2 秒 → 最多重试 10 次」，全失败才判失败并上报，不能一次被拒就当任务失败；② 不依赖 `switch`，改点击目标窗口可见区域激活，或对未被遮挡的窗口直接按坐标点击；③ 调高 `WINDOWS_MCP_MAX_TREE_ELEMENTS`、配 `WINDOWS_MCP_EXCLUDE_PROCESSES` 排除干扰进程，紧急时用 `region` + `Screenshot` 按坐标点击（注意图片会缩放，坐标按 900/747 ≈ 1.204 反算）；④ UIA 超时用 `WINDOWS_MCP_UIA_CONNECTION_TIMEOUT_MS`（默认 2000）/ `WINDOWS_MCP_UIA_TRANSACTION_TIMEOUT_MS`（默认 5000），读不出的窗口一律走截图；⑤ 门控参数以本机 `serve --help` 为准，不信 README。
+- **复发**：1（同会话内 ① 复现 3 次（两次点击 + 一次启动）、② 复现 1 次、④ 每轮快照都在报）
+
+## L44 git 推送报"代理连不上"实为 github.com 单独配了失效端口（工具链 · 2026-11-06）
+
+- **现象**：`git push origin codex/voice-fsmn-new-path` 连续两次报 `fatal: unable to access 'https://github.com/Ultima-AI-Studio/Ultima-Agent.git/': Failed to connect to github.com:443 over proxy 127.0.0.1 after 2067 ms / 2063 ms`，看起来像本机代理整体挂了。但同一时刻 `curl -x http://127.0.0.1:1080 -I https://github.com` 返回 200、`Test-NetConnection 127.0.0.1 -Port 1080` 为 True。
+- **根因**：`C:/Users/Administrator/.gitconfig` 里除全局 `http.proxy=http://127.0.0.1:1080`、`https.proxy=http://127.0.0.1:1080` 之外，还有一条 `http.https://github.com.proxy=http://127.0.0.1:1083`。git 按 URL 精确匹配的代理优先级高于全局代理，于是所有 github.com 请求都走已失效的 1083 端口（同一端口用 curl 测也是 `curl: (7) Failed to connect ... after 2033 ms`）。全局代理是好的，报错文案却统一指向 `127.0.0.1`，容易误判。
+- **规避**：① 遇到"代理连不上"先 `git config --list --show-origin | Select-String -Pattern 'proxy'`，分清全局代理与按 URL 的专属代理，别只看 `http.proxy`；② 用单次覆盖跑通，不改全局配置：`git -c 'http.https://github.com.proxy=http://127.0.0.1:7897' push origin <ref>`；③ 推送后用 `git ls-remote` 回读核对，且回读命令必须带同样的 `-c` 覆盖，否则 `ls-remote` 会因同一个 1083 再报一次错，被误当成"推送没成"；④ 本机实测可用端口为 1080 与 7897，1083 与 7890/7891 均不通。
+- **复发**：2（分支与标签各失败一次，图案相同）
+
+## L45 无头截图验单页动效的两个假象：虚拟时间不走 CSS 过渡 / 无头窗口有最小宽度（工具链 · 2026-11-06）
+
+- **现象**：① 用 `msedge --headless=new --virtual-time-budget=12000 --screenshot` 截单页 HTML，元素靠 CSS `transition` 做位移时只走到半程（环停在中央偏右一点、步骤文字近乎透明），看起来像"定位规则失效 / 元素丢失"；② 加 `--run-all-compositor-stages-before-draw --disable-new-content-rendering-timeout` 后现象不变；③ 用 `--window-size=390,844` 截窄屏，图确实是 390 宽，但右侧输入栏控件被切，疑似布局溢出。
+- **根因**：① `--virtual-time-budget` 只快进 `setTimeout`/定时器，CSS transition 走的是真实时钟，页面加载到截图真实只过了不到 1 秒，过渡自然停在起始段；DOM 里 `class="orb-wrap focus"` 已正确挂载，规则本身没问题；② Edge 无头窗口受系统最小窗口宽度限制，`--window-size=390` 时 `innerWidth` 实测 470，布局按 470 排，截图仍按 390 输出，于是"看起来溢出"。同一次量测：`vw:470`、`composer.right:447`、`send.right:437`，控件实际都在容器内。
+- **规避**：① 验动效终止态必须走真实时钟：`--remote-debugging-port` 起无头实例，`/json` 取 page target，`ClientWebSocket` 发 `Page.captureScreenshot`，等够秒数再抓；不要用虚拟时间判断过渡结果；② 判定"是否真溢出"用 `Runtime.evaluate` 读 `innerWidth` + `getBoundingClientRect`，不靠目测截图；③ 验窄屏必须发 `Emulation.setDeviceMetricsOverride`（width/height/deviceScaleFactor/mobile）设视口，不能只靠 `--window-size`；④ 抓 page target 要按 `url -like 'file:*'` 过滤，否则可能截到 Edge 自身的同步提示页；⑤ PowerShell 里 `ClientWebSocket.SendAsync`/`ReceiveAsync` 传裸 `byte[]` 会报 "Multiple ambiguous overloads"，必须包 `[ArraySegment[byte]]`。
+- **复发**：3（虚拟时间误判 2 次、窄屏误判 1 次）
+
+## L46 Canvas 重设尺寸会清空画面，绘制循环必须与尺寸回调解耦（前端 · 2026-11-06）
+
+- **现象**：粒子环元素用 CSS transition 从 340px 缩到 186px 并位移后，整块 canvas 一片空白；同一时刻 rAF 循环并未报错。
+- **根因**：给 `canvas.width/height` 赋值会立即清空画布内容；重设发生在过渡中间，若其后没有马上补画一帧（或 rAF 恰被挂起），画面就留白。原实现把绘制与调度写在一个 `draw()` 里，递归 rAF 依赖上一帧是否执行，尺寸变化时容易断链。
+- **规避**：① 拆成 `paint(ts)` 纯绘制 + `loop(ts)` 负责 `requestAnimationFrame`；② `ResizeObserver` 回调里设完 `canvas.width/height` 后立刻调一次 `paint(performance.now())` 补帧；③ `prefers-reduced-motion: reduce` 分支末尾同样补一帧，因为该分支不跑循环；④ 验收判据是"缩小后画面仍在"，不是"代码里有 resize 处理"。
+- **复发**：1
+## L47 卡片"从 0 展开"用 grid 行高过渡，别用 max-height；占位列表会让展开先撑满空框（前端 · 2026-11-06）
+
+- **现象**：给右栏步骤区补"卡片淡入 + 展开"时，第一版用 `max-height:0 → 220px` 过渡，展开过程前 60% 几乎没有高度变化（先快后停），且不同内容高度要反复调数值。第二版改用 `grid-template-rows:0fr → 1fr`，展开顺滑，但卡片一展开就是最终高度（内容区一片空白），文字随后才逐条淡入，看起来像"空框先撑满"。
+- **根因**：① `max-height` 过渡是线性作用于一个远大于真实高度的上限，缓动曲线被拉平；grid 的 `0fr → 1fr` 直接对真实内容高度做插值，曲线正确；② 步骤行用 `opacity:0` 隐藏但仍在文档流里占位，容器高度在展开开始时就等于"全部步骤"的高度，于是空框先到顶。这是"透明 ≠ 折叠"的必然结果。
+- **规避**：① 通用展开用 `display:grid;grid-template-rows:0fr` + 内层 `min-height:0;overflow:hidden`，`open` 时 `1fr`；② 若希望容器随内容增长，占位行也必须收到 0（`max-height:0` 或折叠），不能只做透明；③ 若接受"先有框再有字"（原片就是这个节奏：卡片先张开、内容再填入），保持占位即可，但必须让第一条内容在展开完成前出现，否则空框会被看成加载失败；④ 验收要抓三个点：展开中、内容满、收起后，只看终态会漏掉中间态异常。
+- **复发**：1
+
+## L48 接口候选池的三条建模铁律：声明即契约、一池一标的、快不等于对（数据源 · 2026-11-06）
+
+- **现象**：给常见问答做"配置表 + 自动巡检"时连续翻车三次。① `weather.today` 首选被换成 26ms 的实况接口 `sk_2d`，它没有今日最高/最低，模板填不出高低温；② 把 `dingzhi` 的 `provides` 写成了 `temperature/condition/wind/temp_range`，它靠 33ms 直接上位，实际只覆盖今天和今夜；③ 把恒生与道指放进同一个意图、把伦敦金与 COMEX 放进同一个意图，自动升权会把道指当恒生报、把期货价当现货价报。
+- **根因**：覆盖度门禁只比对"候选声明的 `provides`"与"意图要求的 `requires_coverage`"，**声明是人工写的，门禁无法验证字段真假**——写宽了等于开后门。另外排序只按延迟，而"延迟最低"与"答得全"是两件事；不同标的放同一池，等于允许系统用一个品种的价答另一个品种的问题。
+- **规避**：① `provides` 按实测字段写，不确定就不写；宁可少声明、让它降级，也不要把模板要用的字段写宽；② 一个意图只对应一个标的，候选只能是**同标的不同源**，不同标的必须拆成独立意图（伦敦金/COMEX、恒生/道指/纳指各一条）；③ 覆盖度不足一票否决，不论多快；④ 换首选加"快 20% 以上"门槛，避免每天抖动；⑤ 备选掉线只记录不报警，只有"某意图无可用首选"才判失败，否则巡检天天红等于没红。
+- **验收判据**：看"首选能不能填满模板"和"每个意图的候选是不是同一标的"，而不是看"首选是不是最快"。
+- **复发**：1
+
+## L49 降级备用要"先比覆盖字段、再比延迟"，否则最快那条恰好答不了关键问题（数据源 · 2026-11-06）
+
+- **现象**：建路器给 `weather.today` 建备用，排在第二位的备选是 `sk_2d`（28ms，全场最快），而不是 `dingzhi`（164ms）。但 `sk_2d` 只有温湿度，说不了晴/雨；`dingzhi` 能给温度和天气现象。"今天天气怎么样"最缺的恰恰是晴雨。
+- **根因**：完整源（字段全覆盖）按延迟排序没问题；降级源（字段不全）也照抄了按延迟排序。延迟低只说明它快，不说明它还能答出多少。
+- **规避**：① 降级源排序改为"覆盖必需字段的比例降序、比例相同再比延迟"；② 把 `coverage_ratio` 与 `missing_fields` 写进候选，回复时能直接说缺什么；③ 建路与巡检两处必须用同一套排序，否则建的时候对、巡检一跑又换回去。
+- **验收判据**：看备用位上的源"能答出几条必需字段"，不是看它多快。
+- **复发**：1
+
+## L50 巡检判"坏"要连续失败，单轮 3 次采样挂 1 次不算（数据源 · 2026-11-06）
+
+- **现象**：巡检第二轮，`open-meteo` 这一轮 3 次采样里挂了 1 次（`http:URLError`），当场被降出备选位，`changelog` 里多了一条角色变化；下一轮它又正常了。照这么跑，每天都会因为一次超时来回换角色。
+- **根因**：升降级只看本轮 `ok_rate >= 0.9`，等于"一次超时即判坏"。配置里本来就有 `demotion.fail_streak = 3`（连续失败才让位），但代码没读它。
+- **规避**：① 健康判定改为"本轮成功率过半 且 连续失败轮数未到 3"，`fail_streak` 由 `apply_health` 维护；② 换首选仍保留"快 20% 以上"门槛，两道门一起防抖；③ 验收要看"连续跑三轮角色有没有变化"，只看一轮看不出来。
+- **验收判据**：连续三轮巡检，除耗时数字外，角色与 `changelog` 不新增变化。
+- **复发**：1
+
+## L51 「问到才建路」接进对话主链时，最容易静默答错的三处（数据源 · 2026-11-06）
+
+- **现象**：接线冒烟 8 条问句，第一轮 2 条 MISS（"沈阳天气怎么样"、"白银多少钱"）、1 条答错（恒生报成 24404.62，那是今开，不是现价 24502.44）。三处修完才 8/8 全绿。
+- **根因**：① 五个解析器里只有新浪带 `asset` 参数，其余按单参调用，`TypeError` 被上层的 `except Exception: return None` 吞掉，表现成"没命中"，看着像意图识别问题；② 港股字段 `[2]` 是今开、`[6]` 才是现价，凭印象取 `[2]` 就把开盘价报成现价，数字看着合理不会报警；③ 种子册 `catalog` 条目没带 `asset`，新建分支拿不到标的，建路器直接判"缺 asset"退出；④ `汇率`、`指数多少点` 这类宽触发词会把别的品种吞进来（"欧元汇率"答成美元兑人民币、"深成指"答成上证）。
+- **规避**：① 解析器统一签名 `(text, asset)`，调用方不按类型分支；② 字段下标一律以实测样本为准，改完必须用一条已知值反算核对（恒生 24502.44 − 24796.98 = −1.19%，对得上才收工）；③ `catalog` 条目必须自带 `asset`，由脚本从配置回填而不是手写；④ 触发词只写明确品种名，宽泛品类词（汇率/指数/金价）留给专用意图或兜底；⑤ 冒烟用例必须含"没配过的类型"，否则建路分支根本没被测到。
+- **验收判据**：8 条问句全绿；同一条问句第一次 `built=True`、第二次 `built=False`；数值与实抓样本对得上（不是"有回复"就算过）；写回的配置里能看到 `build_state` 和候选角色。
+- **复发**：1
+
+## L52 验收读端的逐字节断言和生产端的 JSON 键序对不上时，测试会全绿却判不过（T2/E02 · 2026-11-06）
+
+- **现象**：E02 source13 冷导入第六轮之前，审计层已经零拒绝、例外收据 `clean=true`，产品侧 `research.md` 711B 六轮不变；但正式运行仍以 `"Exact producer JSON-string bytes/order"` 失败。把消息补成带偏移的诊断后，首差在偏移 582：存储串是 `"agent": "58e6ddf…`，期望串是 `"success": true`。
+- **根因**：读端有两份"期望重建"（`rebuild_expectations` 与 `validate_collection`）把 TOOL_CALL_END 的 data 按 `tool, agent, success, latency, result, metadata` 构造，而真实生产端 `openjarvis\tools\_stubs.py` 发布顺序是 `tool, success, latency, result, metadata, agent`。`_safe_equal` 只比数值、忽略键序，所以值级校验全过；`json.dumps` 整串比逐字节，键序不同即失败。测试夹具 `quarantine_fixture` 复刻了同一个错误顺序，于是 566 条测试全绿也抓不到。
+- **规避**：① 凡是要做"逐字节相等"的期望重建，键序必须从真实 producer 的字面构造取证，不能按语义字段顺序凭印象写；② 值比较和串比较不能混用同一套期望——要串比就全链路保序；③ 夹具必须携带生产端真实序列化顺序，否则测试只验证了"自己跟自己一致"；④ 断言消息里带首个差异偏移与前后窗口，否则只能看到一句"bytes/order"。
+- **验收判据**：定向 59 条与全量 566 条全绿只是前置；真正的判据是正式运行 reader 退出码 0、`candidate_mechanical_verified`、四条 trusted 成员放行（`c794f6fd` 已达到）。
+- **复发**：1
+
+## L53 机械通过不等于验收通过：自签授权链把“跑完了”和“判过了”分成两件事（T2/E02 · 2026-11-06）
+
+- **现象**：修复读端键序后，正式运行 `c794f6fd` 的 reader 退出码 0、`candidate_mechanical_verified`、`mechanical=PASS`、cleanup PASS，但终态仍是 `PENDING_RESULT_REVIEW`，`e02=NOT_PASSED`、`acceptance_credit=false`、`outer_root_gate=NOT_ISSUED`。看上去“都绿了”，实际一分未得。
+- **根因**：`entry.py` L155–156 把 `e02='NOT_PASSED'`、`acceptance_credit=False` 写死，L142 成功后只进 `PENDING_RESULT_REVIEW`；验收分只由外层独立结果复核签发，准备门本身是 `PASS_PREPARATION_ONLY`、`actual_authority=false`。同一会话自签的准备评审只能作诊断证据，文件必须带 `independence_note`。
+- **规避**：① 汇报时必须把“机械链路通过 / 验收结论产出”分成两行写，不能用一个 PASS 概括；② 判定 E02 这类复合任务，先把终态字段（`terminal.status`、`e02`、`acceptance_credit`、`outer_root_gate`）逐项读出，再决定下一步是重跑还是复核；③ 配额为 0 时不要用重跑代替复核——重跑只会消耗新的执行配额，仍拿不到验收分；④ 看板的“done”只能表示定性任务完成，必须在描述里同步写“E02 尚未验收”。
+- **验收判据**：终态出现 `outer_root_gate` 已签发、`acceptance_credit=true`、`e02=PASSED` 三项同时成立，才算 E02 过；只出现 `candidate_mechanical_verified` 不算。
+- **复发**：1
+
+
+## L54 只读复核先怀疑自己的映射，再怀疑产物（T2/E02 · 2026-11-06）
+
+- **现象**：对已完成 run 做逐字节复核时，27 项里有 2 项报红：`first_result_sha256` 对不上 cleanup-observation，保护快照三份文件哈希不一致。第一反应容易写成“产物有问题”。
+- **实情**：`first_result_sha256` 对应的是 `profile-first-result.json`，不是 cleanup-observation；保护快照的 `identities` 是 7 条，但文件顶层还有 `observed_at_ns`，按顶层键数会数成 3。两处都是复核脚本的映射错误，产物本身没问题。
+- **规避**：① 摘要字段先找“它到底是谁的摘要”，用文件逐个试算比对，不按名字猜；② 结构计数要数到目标数组（`identities[]`），不数外层键；③ 复核报告里保留“复核人自纠”记录，第一版误报不能悄悄改绿；④ 复核脚本自身也要有失败路径，宁可报红后查明，不可为了让结果好看放宽断言。
+- **验收判据**：27 项全绿且每一项都有“字段→文件→重算值”的对应关系；只有“全绿”没有对应关系不算复核。
+- **复发**：1
+
+## L55 项目队列写 executing 不等于全局主表已登记，Codex 会 fail-closed 停在 T0 前（UltimaAgent · 2026-11-08）
+
+- **现象**：工单 0013 在项目队列 `tasks/queue/index.md` 里是 `executing`，但首派回执是 `BLOCKED_BEFORE_T0`，T0–T3 全部未开始、源码零改动、tag 未产生。用 `rg` 精确搜工单号，全局主表 `_shared/queue/global-queue-index.md` 零命中。
+- **根因**：G-DISPATCH-001 的准入以全局主表为准，项目队列的 `executing` 只是项目级视图，不能替代全局登记。Codex 的写域不含"项目外权威文件"，按 fail-closed 拒绝越域自行补登记，停在准入门。
+- **规避**：① 派发前先在全局主表 `rg` 工单号做回读命中，命中后才算准入；② 主表结构是 `<!-- queue-items:start -->` 到文件末尾，明细行格式 `| 项目 | 工单号 | 状态 | 说明 |`，补登记只写明细行，不手改上方统计表（看门狗重算）；③ 补登记必须留备份与回读证据，并在载荷里写明"已在主表登记、上一轮 fail-closed 未改源码、本轮从 T0 全新开始"。
+- **验收判据**：主表 `rg` 命中且状态正确 + 派发载荷含准入说明 + 回执不再是 `BLOCKED_BEFORE_T0`。
+- **复发**：1
+
+## L56 Codex 进程被终止不会写 final 回执；policy 拦截与模型刷新超时是噪声，不等于任务失败（UltimaAgent · 2026-11-08）
+
+- **现象**：0027 在 T2 全量门约 35% 时进程消失，run 目录没有 `final.json`，主表登记仍停在 `executing`。0013 执行中反复出现 `failed to refresh available models: request timed out`、`exec_command ... rejected: blocked by policy`、`Reconnecting... waiting for network`，但最终 T0–T4 全 PASS 并正常生成回执。
+- **根因**：`codex exec --output-last-message` 只在会话自然结束时写回执文件，被终止/崩溃时不写；`blocked by policy` 是 Codex 自身命令策略拒绝（涉及 `Remove-Item -Recurse -Force`、敏感临时目录等），它会换等价命令重试；模型刷新与网络重连是后台噪声，不影响已完成的工具调用。
+- **规避**：① 判断任务结束看"进程是否存活 + final 文件是否生成"两件事，只有进程消失没回执要判为中断并人工纠正主表状态；② 见到 policy 拦截先看后续是否有等价命令成功，不据此判死；③ 见到重连/刷新超时看 out 日志字节是否仍在增长，增长即仍在推进（0027 与 0013 的差别就在这一点）；④ 主脑独立复核时，真实推理类用例在全量并发下会冷启动超时，失败时应单跑复验再定性。
+- **验收判据**：只有 final 回执 + tag 远端 SHA 回读一致 + 主脑独立定向复核通过，才可把工单判为完成。
+- **复发**：1
+## L57 「最小改动边界」与「加一页还在预算内」都必须先用证据核验，不能由提案口气决定（UltimaAgent · 2026-11-08）
+
+- **现象**：工单 0028 只读评审 E02 写入资格提案，推翻了两条被当作前提的说法。①边界：冻结候选工作树 `src/brain/work_research.py:810-823` 独立重算 `eligible=len({source_id for visible if cards})>=3` 并 `allowed.append(action('..._write'))`，即独立重放侧自己也持有一份写入资格判定，只改 `work_navigation.py` + `agent_server.py` 不会自动传到重放；②容量：用保存的 `trusted-runtime.raw`/`trusted-replay.raw` 按 canonical JSON 只读重建，当前第 6 代 `messages+schema` = 29,998（余量 2,770），新增任一可渲染 S4 页后为 33,837–39,147，284 个起点无一落在 32,768 硬门内；③revision：提案依据 commit `43da3f0`，而当前分支 `codex/voice-fsmn-new-path` 根本没有 `src/brain/work_navigation.py`，`agent_server.py` 与之相差 650 增 18 删。
+- **根因**：写方案时把"设计上应该只有两处""再加一页应该够"当成结论，没有在目标 commit 上做模块归属核查与数值重建；评审侧一旦照抄，就会拿着错误 revision 的补丁去"最小修复"。
+- **规避**：① 任何"最小改动边界"结论前，先在目标 revision 上 grep 同一个判定表达式（如 `eligible`、`>=3`、`allowed`、write permit）列出全部持有处，逐处编号；② 任何"再加一页/一条仍在预算内"的主张前，用保存 wire 只读重建出各门的实际数值，不用估算；③ 提案必须写明依据 commit，并与当前工作树比对，不一致就先锁 revision 再谈改法。
+- **验收判据**：边界结论附"文件:行号"逐处清单；容量结论附下界数值与重建方法；revision 一致，或明确锁定待改对象。
+- **复发**：1
+## L58 「元工具看板」与「产品看板」是两种写权，不能互相塞工单（UltimaAgent · 2026-11-08）
+
+- **现象**：北极星 HTML 焦点框「运行中 55 分钟」刷新多次不变，复核查出 `final-message.json` 已于 17:00:23 落盘，进程 PID 39672 早已退出——看板把一个结束半小时的工单显示成在跑。修第一版时仅用 PID 存在性判存活，被系统复用给别的进程骗过，误报「运行中 1 小时 33 分钟」。同时数出看板 56 条任务条目里 34 条带人工填写百分比。为避免继续失真，一度打算把采集需求写进模块4 工单 0030。
+- **根因**：把「豆包自己的仪表盘（元工具）」与「Agent 产品内执行看板（产品能力）」当成一件事。前者属于主脑写权、应当直接维护；后者才是 Codex 写域。混在一起的后果是：既给 Codex 塞了不属于它的活，又让产品工单范围失去闭合性。
+- **规避**：① 北极星 HTML、工单卡、全局主表状态行 = 主脑写权，直接改、不派单；② ledger、活动级阶段解析器、A2UI 执行看板页 = Codex 写域，0030 已写明「本阶段不改 `docs\tracker\北极星上线任务清单.html` 的数据源」；③ 判任务是否在跑必须「进程存在 + 启动时间与派发时间吻合（±180s）」，单看 PID 会被复用骗过；④ 看板只要还有手填百分比，页面就必须显式标注「人工校准口径」，不得默认为实时。
+- **验收判据**：看板上每一处「事实」字段，都能说出它的采集来源与采集时刻；说不出来的，必须在页面上标为人工校准。派发前核对：工单写域是否包含主脑元工具路径，包含则退回改写。
+- **复发**：1
+## L59 计划任务调本地脚本：任务结束会杀掉整个进程树，SYSTEM 还看不见用户盘符（UltimaAgent · 2026-11-08）
+
+- **现象**：把看板采集挂成每 5 分钟无窗计划任务，连挂三次都「成功」却零产出。①`-RepetitionDuration ([TimeSpan]::MaxValue)` 报 `任务 XML 包含格式不正确或超出范围的值 (10,42):Duration:P99999999DT23H59M59S`，任务根本没建成；②改 SYSTEM 身份后 `LastTaskResult=0`，但 `live-data.js` 的 `updatedAt` 纹丝不动、日志也没生成——SYSTEM 会话看不到 H: 盘符，python 从未真正执行；③再换回当前用户仍不刷新，根因是 vbs 里 `ws.Run "cmd /c ...", 0, False` 传了异步，wscript 立即退出，Task Scheduler 判定任务完成即回收整个进程树，python 被连带杀掉。
+- **根因**：计划任务的进程管理与普通 shell 不同——任务实例结束就关闭 Job Object，子孙进程一起终止；且服务账户（SYSTEM）与交互用户会话的盘符映射视图不共享，`H:` 这类用户会话内可见的盘符在 SYSTEM 下可能不存在。`LastTaskResult=0` 只证明「被启动的那个 exe 正常退出」，不证明业务动作完成。
+- **规避**：①`-RepetitionDuration` 不用 `[TimeSpan]::MaxValue`，改固定时长（实测 `New-TimeSpan -Days 3650` 可用）；②运行主体优先用当前登录用户 `-LogonType Interactive`，目标文件在用户会话可见盘符上时更稳；③非要用 vbs 包装，`ws.Run` 第三参必须 `True`（保活到子进程结束）；④最省事也最无窗的做法是放弃 vbs+cmd，让任务动作直接是 `pythonw.exe`（无控制台，天然无窗、无中间层）；⑤判成败看产物时间戳是否前进，不看 `LastTaskResult`。
+- **验收判据**：连续两次周期触发后产物 `updatedAt` 都前进；`NextRunTime` 已推进；可见窗口进程表为空（`MainWindowHandle -ne 0` 无命中）。
+- **复发**：1
+
+## L60 审计「100% 已完成」不能看标注，要先取运行时实证；且「人工可用」不等于「自动可用」（UltimaAgent · 2026-11-08）
+
+- **现象**：对北极星看板模块1/2 做独立审计，逐条取证后推翻两条标注。①模块1「UltimaManager 全局工单登记接口：100% ✅」——`Test-NetConnection 127.0.0.1:18766` 返回 False、无 UltimaManager 进程，实际登记是 `GlobalQueueRegistrar` 直接写 `global-queue-index.md` 纯文本，该接口属「代码在、服务未部署」；②模块1「Git 自动打 Tag：100% ✅」——`git tag` 确有 248 个，但没有任何脚本会在任务完成时自动打 tag，全部手工；`freeze-approved-v01/v03.py` 只是针对特定版本基线的专用冻结脚本，不是通用门。模块1 真实 5/6，而非 6/6。
+- **根因**：看板进度用机械规则累计（条目文本是否含「100% ✅」），标注全靠人工维护，且维护者容易把「规范写了」「代码在仓库里」「我手工跑通过」都记成 100%。更深一层：模块1/2 的完成度本质是「人推着系统走」的流程完备，而北极星要的是「系统自己跑」的自动化能力，两者被同一套百分比混算了。
+- **规避**：① 任何标 100% 的条目，审计必须给出可复现取证命令与实测输出（端口 `Test-NetConnection`、进程 `Get-Process`、文件体积/条数、代码 grep 命中行）；② 端口类能力未监听一律判未完成，不能因「项目目录存在」而放行；③ 涉及「自动」二字的条目，必须指出具体自动化的触发点与脚本路径，指不出来的按人工处理降级；④ 区分「人工可用」与「系统自动可用」两档分别计分，自动化档位另立条目，不与流程档位混在一个百分比里。
+- **验收判据**：每条 100% 都附「取证命令 + 实测输出」；说不清采集来源的事实字段，页面必须标注「人工校准口径」。
+- **复发**：1
+
+## L61 队列引擎「三件套齐全」不等于「接通了」：状态机/依赖DAG/插队都在，但没有一条真实链路调用它（UltimaAgent · 2026-11-08）
+
+- **现象**：用户按目标架构追问「任务应在队列与交付之间形成闭环：合格打 tag、不合格标记问题后重审依赖再插回队列」，核对代码发现 `tasks\queue_engine\` 里能力其实齐备——`state_machine.py` 8 态迁移表含 `AUDIT→COMPLETED` 强制 `audit_passed`、`FAILED→QUEUED` 限 2 次重试后转 `BLOCKED`、`block_failed_dependents` 依赖失败自动冻结下游；`priority_deps.py` 有 `requeue_before` 插队、`validate_acyclic` 环检测、`dependency_gate` 依赖门。但真实派发从未经过它：引擎数据源是 `tasks.json`（46 条，`voice-01`/`s2-tool-extend` 等老卡 ID，其中 5 条状态值为 `TERMINATED`，根本不在 8 态枚举内），而实际派发走 `tasks\queue\wo-*.md` 卡 + 手改 `global-queue-index.md` + 手工起 codex 进程。引擎实例化点只在 `cli.py`/`audit.py`/`dispatcher.py` 内部及一个自测脚本，没有一个被真实派发脚本调用。
+- **根因**：能力建设与链路接线是两件事，被当成了一件。代码写完后从未有一次真实工单走过 `QUEUED→EXECUTING→SELF-CHECK→AUDIT→COMPLETED`，于是没人发现数据源格式（Markdown 卡 vs tasks.json）、状态命名（8 态 vs TERMINATED 等历史值）、派发入口（cli vs 手写 dispatch 脚本）三处全部对不上。叠加结果：看板上的「有序」由主脑人工模拟，闭环的最后一环比初判完整：`audit.py:243 RecoveryManager.create_correction` 已实现「FAILED/BLOCKED → 派生 `{root}~r{N}` 修正子卡 → 挂进原卡 dependsOn → 原卡等子卡审计通过才重验」，并清空历史 ACCEPT、不覆盖旧卡、retryCount≥2 拒建（比原地重放严谨得多）。但它同样只认 `tasks\cards\` 老卡格式（要求卡内含 `**task_id**：` 与 `## dependsOn[]` 章节），未接 `wo-*.md`；且它只修单卡，不重排其他工单的依赖——「重审依赖关系」这一步依旧空白。另：`fileDomain` 字段与 `_all_paths_in_domain` 守界审计已在，但缺「两个并行任务 fileDomain 重叠」的前置判定。
+- **规避**：① 判断某能力「已实现」必须同时验证三层：代码存在、**实例化点被真实入口调用**、**数据源格式与状态取值能对上**，任一断裂即判「未接线」，不得计入完成度；② 引擎与 `wo-*.md` 之间必须先有适配层（0031 的 schema + validator 正是前置），接通前不得对外宣称「队列自动化」；③ 审计失败的闭环要单独立项设计「返修工单生成 + 依赖重排 + 插队」，不能拿 `retryCount` 原地重放冒充；④ 索引里出现枚举外状态值即视为跨体系污染，先做状态映射再谈迁移。
+- **验收判据**：`tasks.json` 中 `wo-` 前缀占比、全部状态值落在 8 态枚举内、派发脚本里能 grep 到 `QueueStorage`/`QueuePlanner` 调用行、且至少一张真实工单留下完整 `events/<task_id>.jsonl` 迁移链。
+- **复发**：1
+
+### L62 · 看板对「已冻结但无 final-message」的工单永久误报中断（2026-11-08）
+
+- **现象**：0031 打上冻结 tag、主表改 frozen 之后，看板焦点框仍显示「中断 · 无 final-message」，elapsed 从派发时刻持续增长（57 分钟 → 1 小时 2 分钟），越看越像还在跑。
+- **根因**：`scripts/tracker-live.py` 的 `decide()` 只有三档判定（存活=运行中 / 不存活有 final=已结束 / 不存活无 final=中断），没有把主表状态纳入。工单靠「打 tag + 改主表」收口、日志里没有 final-message 时，必然落进中断档；elapsed 用 `now - dispatch_ts` 计算，没有封顶。
+- **规避**：`decide()` 增加主表状态查询 `queue_state()`，`frozen/completed/done` 判「已完成 · 已冻结」，elapsed 改用最后一条日志的 mtime 当结束时刻。
+- **复发标记**：1 次。同类风险：任何「结束状态写在别处、日志里没有收尾记录」的工单都会撞这条。
+
+## L63 公共账本 fail-closed 是「正确的错误」：主表一个自造状态词就能打断全项目派发（UltimaAgent · 2026-11-08）
+
+- **现象**：5 次派发中 2 次在启动 40 秒内被打断，run 目录只落 `before.json`/`prompt.txt`/`registry-*`、无 codex 进程，而主表该单已被写成 `executing`（假执行中）。3 小时内同一位置出现 3 个不同自造状态词：`proposal-pending-gate`、`arch-review-approved`，连工单号都被改成 `wo-ultimasentinel-*`。写者实为 `H:\UltimaAI\UltimaSentinel` 项目的 codex exec（PID 28720）在跑自己的 pipeline 测试时写入。
+- **根因**：`queue-status-gen.py` 把 `STATES` 锁死为 6 态，遇其他任何词 `raise ValueError` 退出 1；而它是 `dispatch-work-order.py` 的硬前置且不捕获 → 任何一个项目往公共主表写自己的状态词，全项目派发全部失效。这是**公共池子 + 单一权威判据**的结构性错配：账本没有写入门，读出端却按最严标准 fail-closed。
+- **规避**：① 判「主表打断」不要只看 status-gen 报错文案（它把「重复」和「非法」合并成一句），必须独立扫描区分：重复 `(project,wid)` 才是真损坏，未知状态词只是语义外溢；② 派发前先跑一次 `queue-status-gen.py` + 独立扫描双确认，不能只信 dry-run `ready:true`（dry-run 会过，execute 才调 status-gen）；③ 抢修数据用 `read_bytes().decode()` 分行，`Path.read_text()` 的 universal newlines 会把 CRLF 吞成 LF 让整文件变一行，导致修复脚本静默「无可修复项」；④ 机制修法二选一（宽进严出加 unknown 分组 / 约束写入方只写 6 态）属标准变更，需 Owner 拍板，抢修只做数据归一。
+- **验收判据**：主表 150 条 / 唯一 150 / 0 重复 / 0 非法；`queue-status-gen.py` 退出 0；派发后 run 目录内出现 `out.jsonl` 增长 + codex 进程存活。
+- **复发**：3
+
+## L64 回执判读的三个静默洞：短路掩盖 TypeError、裸子串串单、全角冒号吃掉「待审计」（UltimaAgent · 2026-11-08）
+
+- **现象**：`done.json` 连续写 `receipt_valid:false, state:blocked`，而 Codex 回执明确是 `READY_FOR_DEEPSEEK_AUDIT`。逐层复现出三个洞：① `status in {…}` 在 status 为 list 时抛 `unhashable type: 'list'`，但被 `valid_payload` 短路掩盖，只在 evidence 有效时暴露，而派发器调用处**无 try/except**，真触发会打崩派发器；② `if work_order not in text` 裸子串，`wo-orb-w7` 命中 `wo-orb-w7x`；③ 自检判据写 `自检\s*PASS`，而回执实际是 `- 自检：PASS`（全角冒号），正则不认 → 整个回执判 invalid → 待审计落 blocked。
+- **根因**：回执契约用「弱信号叠加」（工单号出现 + READY 词 + 自检 PASS）代替「结构化字段判定」，且正则按半角标点写死。中文回执的全角标点是常态，任何 `\s*` 连接都会被冒号打断。
+- **规避**：① 类型不可信字段先 `isinstance` 收口再进集合判断，不能靠短路侥幸；② 工单号匹配一律加 `(?<![\w-])…(?![\w-])` 边界；③ 中文语境的固定词判据必须容忍 `[：:]`，`自检\s*[：:]?\s*(?:PASS|通过)`；④ 验证回执契约必须用**真实历史回执**做正反样本（待审计/BLOCKED 各一份），合成样本会漏掉真实排版差异。
+- **验收判据**：三份真实 final.json 判读正确（w6 待审计→audit、w6 BLOCKED→blocked、w7 READY→audit）；`status=[]`/`{}` 落 `blocked,valid=False` 且不抛异常；`wo-orb-w7x` 不得判成功。
+- **复发**：1
+
+## L65 「全量」在这个仓库没有定义：根递归收进外部源码与证据快照，14028 errors（UltimaAgent · 2026-11-08）
+
+- **现象**：Codex 首轮按工单跑根目录全量，`collection errors=14028`、耗时 1997.14s 后失败，`passed=0`。而按白名单口径 `tests src scripts tasks execution` 只有 **1143 tests collected in 8.51s**。
+- **根因**：仓库顶层是混合体——`libs`（外部库）、`legacy-topo`（历史工程）、`data`（证据快照，同名测试触发 `import file mismatch`）、`docs/research/sources`（研究源码）、`tools/*/source`（上游源码）与自有代码同级。没有 `pytest.ini` 时 pytest 一律根递归，把别人的测试当成自己的。
+- **规避**：① 「全量」必须写成显式目录白名单 `testpaths`，不能默认根递归；② 定口径前先数 `test_*.py` 分布（`src` 93 / `tasks` 9 / `scripts` 3 / `tests` 5 / `execution` 1），再决定白名单，不要凭「tests/ 只有几个文件」推断覆盖范围；③ 收窄作用域前先判断是否只剩自测——本仓库 `tests/` 只有 5 个文件全是近期新写，若 `testpaths=tests` 就等于自测门零回归，必须带上 `src`；④ 排除历史备份用引号包 `"Topo Backup"`。
+- **验收判据**：根目录无位置参数执行，`collection errors=0`，收集量约 1143，耗时 10 秒级。
+- **复发**：1
+
+## L66 · 主表写入方不守契约，生成器又把行尾翻掉（2026-11-08）
+
+- **现象 A**：`queue-status-gen.py` 解析主表时报 `ValueError: too many values to unpack`。定位到 UltimaSentinel 侧新写一条 `closed` 状态，且 reason 字段里夹了 5 个 `|`，把一行撕成 9 列。
+- **现象 B**：生成器用 `read_text` + `write_text(encoding='utf-8')` 写回。`read_text` 的 universal newlines 把 CRLF 吞成 LF，一旦摘要表内容变化触发写回，整张 2.8 万行主表就被翻成 LF——下一次按 CRLF 切行的修复脚本会静默 no-op。
+- **修法**：①`read_items` 改为「字段数 >=3 才解析，第 4 段之后全部并回 reason」，畸形行登记 `MALFORMED` 继续生成；②未知状态归一 `unregistered`，继续生成并在 stdout 点名清单，只有重复 `(project,wid)` 仍 fail-closed；③读写改 `read_bytes`/`write_bytes`，行尾由原文 `NL` 决定（摘要表拼接也用 `NL`）。
+- **口径**：公共账本无法约束所有写入方，读出端必须「宽进严出」——容忍未知状态和畸形行并点名，只对真正的数据损坏（重复工单）硬停。写入门（6 态白名单 + 4 列格式校验）须落在各项目自己的登记脚本里，不能只靠读出端兜底。
+- **复发记录**：两小时内 UltimaSentinel 侧共写入 5 次非 6 态值（`proposal-pending-gate`、`arch-review-approved`×2、`closed`×2），全部来自 `H:\UltimaAI\UltimaSentinel` 的 codex 进程。
+
+## L67 · 串行名额没有出口，队列会被一个被遗忘的工单永久堵死（2026-11-09）
+
+- **现象**：`wo-orb-w9` 回执已判定有效（`receipt_valid: true`），却仍落 `state: blocked`、`audit_slot_busy: true`。查主表发现 5 个工单同时停在 `audit`。
+- **根因**：审计名额的判定是「主表里只要还有**别的**工单处于 audit，就降级 blocked」。规则方向没错（审计必须串行），但只写了入场条件，没写**离场条件**——一个被遗忘或长期待 Owner 验收的工单会永久占着唯一名额，后面所有工单只能无限排队。限流机制如果只有「进」没有「出」，等价于全队列停摆。
+- **修法**（`scripts/dispatch-work-order.py::audit_slot_holders`）：①等待超过 `AUDIT_SLOT_MAX_AGE_DAYS`（默认 7，环境变量 `ULTIMA_AUDIT_SLOT_MAX_AGE_DAYS` 可覆盖）不再占位；②状态理由已写明「范围外冻结/已冻结」的直接不占位，与天数无关——这类单已不在流程内；③**取不到任何时间戳仍算占位**（fail-closed），信息缺失不是驱赶在途单的许可；④取证顺序为该单最新 run 的 `done.json.finished_at` → 主表理由里的显式日期 → 放弃，**最新证据优先**，避免旧文案里的历史日期把一个刚重派的单赶走。
+- **实测**：真实主表 5 个 audit → 3 个超 7 天放过、1 个标冻结放过，只剩 1 个在途（0.1 天）正常占位。回归 58 passed。
+- **口径**：凡「限 N 个在途」的准入控制，必须同时定义超时/失效出口，并在放行时点名**放过了谁、为什么**（落 `audit-slot.json` 与状态理由），否则限流会退化成死锁且事后无从追查。
+- **边界**：机制只决定「是否占位」，不替这些工单改状态。是否把滞留单正式转 blocked，属于人的裁决，不自动化。
+- **复发**：1
+
+## L68 · 执行器升级换了安装位置，派发器 "找不到" 就全线停摆（2026-11-09）
+
+- **现象**：`wo-orb-w9` 派发返回 `{"blocked": true, "reason": "Codex 执行器不存在"}`。同机同工单，几分钟前还能正常派发。
+- **根因**：派发器只用 `shutil.which('codex.exe')` 一条路找执行器。Codex 更新到 `26.1103.4239.0` 后主程序被放进版本化包目录 `C:\Program Files\WindowsApps\OpenAI.Codex_<版本>_x64__<publisher>\app\resources\codex.exe`，而 `WindowsApps` alias 目录只保留两个辅助 exe，**主程序不再有 alias**。PATH 查不到 → 判定"没装"。
+- **误导性**：报错文案字面是"执行器不存在"，看起来像未安装，实际是"装了但搬家了"。且断裂发生在升级瞬间，前一次派发仍正常，"昨天能跑"无法作为排除依据。
+- **修法**：`resolve_codex_exe()` 多路解析 —— ①环境变量 `ULTIMA_CODEX_EXE` 最高优先（路径不存在则忽略、不硬失败）；②`shutil.which('codex.exe'|'codex')`；③四组 glob 兜底（Store 版本化包、WindowsApps、npm 全局、`Programs\*`）。多版本共存按 mtime 取最新，防止捡到旧版。
+- **实测**：解析到 `OpenAI.Codex_26.1103.4239.0_x64__2p2nqsd0c76g0\app\resources\codex.exe`，真派发走完全链路 `exit_code: 0`，`audit-slot.json` 与 `done.json` 新字段落盘实证。回归 62 passed。
+- **口径**：任何"外部可执行体路径"都不得只靠 PATH 判定存在性，尤其是会自更新的桌面客户端——升级会改安装位置且可能不留 alias。找不到时的报错必须区分"未安装"与"安装了但位置变了"，否则运维会朝错误方向排查。
+- **附带**：`%LOCALAPPDATA%\CrashDumps` 里 codex 崩溃转储已累积 5 个（11-01/11-02/11-04/11-08），属持续数日的间歇性崩溃，与卡点 D 同源，待单独跟进。
+- **复发**：1
+
+## L69 · 验收卡的 goal 承诺了 ACC 没验的条件，判据自相矛盾必然 FAIL（2026-11-09）
+
+- **现象**：`orb-w9` 复验卡两轮独立审计都判 FAIL。实际结果 `receipt_valid: true`（回执有效）但 `state: blocked`（没拿到审计名额）。审计指出「与 goal 写的『而不是落到阻塞』矛盾」——判得对。
+- **根因**：同一张卡的两句话在说两件事，却被当成一件事。goal 写「使回执被判为有效（`receipt_valid: true`、`state: audit`），而不是落到阻塞」——把"回执有效性"和"最终状态落位"绑在一起；而 ACC-5 只验 `receipt_valid` 为 true。`state` 实际由**审计名额是否空闲**这类外部条件决定，根本不是本卡能控制的。于是无论跑几次，只要名额被占，goal 就为假、ACC-5 就为真，永远收敛不了。
+- **修法**：把两件事显式拆开。goal 只承诺「判读器判为有效」，并写明「`state` 落哪一态由外部条件决定，不在本卡可控范围、不作判据」；ACC-5 补一句「`state` 字段不参与本卡判定」。
+- **口径（通用）**：①验收卡的 goal 与 ACC 必须验**同一件事**，goal 里出现的每个结果词都要有对应 ACC，否则就是承诺了不验的东西；②凡结果依赖**本卡不可控的外部条件**（名额、配额、队列状态、他人改动），一律写进边界说明并排除出判据，不能混入 goal；③自相矛盾的判据不会"有时通过"，只会稳定失败，且审计每次都能正确抓到——问题不在审计，在卡。
+- **附加**：本卡后来整体失效（目标文件已被 `30b36e7b` 提交进 HEAD，「新增唯一文件」前提消失）。验收卡依赖"文件尚未存在"，一旦上游把该文件提交，卡就作废，这类卡应标注失效而不是反复重派。
+- **复发**：1
+
+## L70 · 为验证开源项目能否运行，把它的宿主运行时框架装进了本机（2026-11-09）
+
+- **现象**：判断 `cft0808/edict` 能否跑时，看到 `install.ps1:30-34` 缺 `openclaw` CLI 就 `exit 1`，于是 `npm install -g openclaw` 装上 2026.11.2，准备据此"验证 edict"。
+- **定性**：方向错误。edict 的代码（`scripts/kanban_update.py` 等）是纯标准库 Python，与 OpenClaw 无调用关系；`openclaw` 只是它声明的**宿主运行环境**。装宿主 = 引入第二个第三方产品，与"把人家源码搬进我方仓库"正相反。用户当场两次否决。
+- **误导来源**：先做的依赖核查其实已给出"不需要宿主"的证据（`requirements.txt` 明写"均为 Python 标准库"、`kanban_update.py` 只 import 标准库 + 同目录两个模块），但被"install.ps1 要求 openclaw"这一条盖过 —— 把**安装器的前置检查**误当成**代码的运行前提**。
+- **处置**：`npm uninstall -g openclaw` → `removed 508 packages`，`openclaw.cmd` 已不存在，`~/.openclaw` 从未创建，无进程残留。
+- **替代做法（已验证可行）**：只搬 `file_lock.py` / `utils.py` / `kanban_update.py` 三个文件，改 8 处硬编码（数据根目录、刷新钩子、身份环境变量），`tests/test_gorch_kanban.py` 8 passed，8 进程并发写零丢失。全程零第三方依赖。
+- **口径（通用）**：开源项目的 `install.*` 脚本要装什么，只说明**作者预设的部署形态**，不说明**代码本身依赖什么**。判断能否只搬代码，看 import 图，不看安装器；安装器要求的宿主一律先当作"可丢弃的部署外壳"。
+- **复发**：1
+
+## L71 · 薄编排 gate 把"读不到结果"静默当成"可开工"，fail-open 被 fail-closed 收口（2026-11-09）
+
+- **现象**：`test_full_batch_ready_blocked_summary` 单独跑稳定通过，与其他测试文件合并跑时低频失败（一次系统高负载，耗时 62s vs 正常 26s），`assert ready == []` 报 ready 多出 3 项、首项 '1'——即 1 已 in-progress、本应整批 blocked，却把 1/2/3 错判成"可开工"。
+- **根因**：`gate_check` 是 **fail-open** 设计。它对每次 bash 调用预设 `status=''`、`unmet=[]`、`conflicts=[]`，再用 `startswith` 挑能匹配的行；当子进程输出丢失、或文件被实时杀毒短暂锁定导致 ccpm 的 `grep` 静默返回空时，标记行缺失/值为空，全部默认值恰好落在"可开工"分支。空结果被当成了"通过"。
+- **修复（已提交 59cfd538）**：改为确定性 **fail-closed**——① STATUS/UNMET/CONFLICTS 三个标记必须齐全，缺任一即报错；② status 必须属于已知合法状态集合，空值或未知值报错；③ stderr 非空即报错；④ 子进程加超时。任何读取不可靠都停止派发，不猜。
+- **教训（通用）**：接线层/解析层的默认值必须朝"拒绝"方向设计——空输出、缺字段、超时都应触发报错，绝不能让默认值恰好等于"放行/通过"。对子进程输出要校验"应有的标记是否齐全"，而不是只解析能匹配上的行、其余静默忽略。
+- **复发**：0
+## L72 · wt merge 超时被当成"没动手"，实际分支已被删除、提交变成孤儿（2026-11-09）
+
+- **现象**：S7 真跑一单时调 `wt merge gorch/WO-README`，180s 超时被拦，报"fail-closed"。随后核查现场发现：worktree 目录没了、`gorch/WO-README` 分支没了、工作分支 `codex/voice-fsmn-new-path` 上没出现 `config/gorch/README.md`，执行端提交 `def92006` 不在任何分支上。
+- **根因**：两层叠加。① `MERGE_TIMEOUT` 沿用了 `wt switch` 的 180s，而本仓库有 32 万+ 未跟踪文件，单次 `git status` 就要 90s+，`wt merge` 的 commit→squash→rebase 串下来必然超过 180s；② 超时处理把"进程被 terminate"一律当成"未变更"，但 `wt` 的第 7 步 cleanup 会删分支与 worktree，超时点落在 cleanup 之后时，分支已经消失而合并并未完成。
+- **补正（2026-11-09 收口复核，推翻原结论）**：上面"没合入"的判断**是错的**。收口时回读 `main` 发现 `d1e51eb3 Squash commits from gorch/WO-README` —— 那次合并**实际合进了 `main`**（`wt merge` 的 TARGET 缺省是 default branch，不是当前检出分支），只是没合进工作分支 `codex/voice-fsmn-new-path`。所以真实失效是"**合错了分支**"，而不是"没合"。后续把 `def92006` cherry-pick 成 `ea6f08ec` 补到工作分支，等于同一份改动现在在两条链上各有一份。详见 L74。
+- **处置**：`def92006` 对象仍在（git 未 gc），用 `git cherry-pick def92006` 恢复，产出 `ea6f08ec`、README.md 4209B 与执行端产物逐字节一致。同时改代码：`MERGE_TIMEOUT=600` 独立于 `WT_TIMEOUT`；超时后先调 `_branch_exists()` 探现场，分支已不存在就明说"可能已删分支但未完成合入，不要假定无改动"，分支仍在才敢说"主线应未变更"。新增 4 条测试锁住两种表述。**收口实测**：修好 target 后再跑真实合并，耗时 **227.4s**、`rc=0`、`rebased:true`、主线前进 `50af6549→3d0fc8dd`、报告 4020B 落地——600s 预算已被真实合并验证（227.4s 恰好落在"旧的 180s 会超时、新的 600s 有余量"之间）。
+- **补充（2026-11-09 晚，remove 侧仍未收口）**：`MERGE_TIMEOUT` 已改 600s，但 `wt remove` 走的是另一个
+  `WT_TIMEOUT=180s`，没跟着改。当晚清理三卡/双卡批次时 **TC-B、TC-C、MM-B 三次全部报"wt remove 超时（180s），
+  fail-closed"，而三次目录都已删除、分支都已按 `--delete-branch` 消掉**——现象与本节完全同源：超时点落在
+  wt 内部 cleanup 之后。三次全中说明这不是偶发，是 Windows 上 `wt remove` 的稳定耗时。处置建议（未实施，待 Owner 裁）：
+  超时后回读"worktree 目录是否还在 + 分支是否还在"，两者都已消失就报"已清理（超时）"而不是 fail-closed。
+- **复发**：3
+- **教训（通用）**：① **超时 ≠ 无副作用**。对会做清理动作（删分支/删目录/删文件）的外部工具，超时后必须回读现场状态再下结论，不能把"进程没返回 0"等同于"什么都没发生"；② 一条工具的多个子命令，超时预算要按各自最坏耗时分别设定，不能共用；③ 判断"合并成功"只看最终产物是否在目标分支上，不看工具自己的 JSON 回执——本次回执根本没来得及产出；④ **"没合入"要限定到具体分支**。回读范围只覆盖工作分支时，"主线没出现产物"和"合到了别处"长得一模一样，必须把 default branch 也列进检查面。
+- **复发**：1
+
+## L73 · 把工单里合法的命令示例判定成"模型试图调用工具"（2026-11-09）
+
+- **现象**：S7 冒烟单两次真跑，`work_order` 阶段都被判成 `stage work_order returned a tool-call attempt instead of an analysis result`。落盘原文显示 `matched_markers` 只有 `["```bash"]`，命中的是工单正文里合法的命令示例（`cp slots.example.json slots.json`），不是任何工具调用。
+- **根因**：`_TOOL_CALL_MARKERS` 把 ```bash / ```shell / ```powershell 当成了工具调用标记。但 `work_order` 阶段的产出**本来就要**给执行端照做的命令（工单模板明确要求贴命令与输出），用代码块标记判定等于把合法工单整张误杀。又一次"拿字符串标记当类型系统"。
+- **处置**：判定改走**协议级信号**——供应商在 `message` 里给出原生 `tool_calls` 字段才算工具调用，文本标记只留控制 token 泄漏（`<｜｜`/`｜｜>`/`DSML`）与带引号的 `"tool_calls"` 键。同时在 `run_stage` 失败落盘加 `response_excerpt` 与 `matched_markers`，否则"为什么被判成工具调用"无从复盘，只能重跑烧额度。新增 6 条测试（命令块不算、原生 tool_calls 必须拦）。
+- **教训（通用）**：① 能用协议字段判断的，绝不用文本扫描；文本扫描只作为协议字段缺失时的兜底，且标记集合必须限定在"正常产出绝不会出现"的字符串上；② 判定规则要先问"目标阶段的合法产出里会不会自然出现这个模式"，会出现的就不能当违规信号；③ 失败必须留原文摘录，否则同类问题每次都要靠重跑复现。
+- **复发**：0
+
+## L74 · `wt merge` 的 TARGET 缺省是 default branch，编排把施工全铺到了 main（2026-11-09）
+
+- **现象**：收口阶段再跑一次真实合并，`wt merge gorch/S7-smoke-report` 20.8s 就 `rc=1`，报 `CONFLICT (add/add): scripts/gorch/batch_orchestrator.py`、`CONFLICT (add/add): src/brain/orchestrator.py`、`CONFLICT (content): docs/tracker/北极星上线任务清单.html`。而从当前 HEAD 建的新分支不可能与同一 HEAD 的 target 产生 add/add 冲突。
+- **根因**：`wt merge [OPTIONS] [TARGET]` 的第一个位置参数是**目标分支**，源分支才走 `--branch`；**TARGET 缺省就是 default branch（本仓库为 `main`）**。编排层 `merge()` 调 `wt_merge(branch)` 时没传 target，于是每次合并都把 `gorch/*` 分支 rebase 到 `main` 再 ff `main`——施工分支 `codex/voice-fsmn-new-path` 反而永远落后。上一单的 `d1e51eb3 Squash commits from gorch/WO-README` 正是这样合进 `main` 的，随后第二个分支再合过来时 `main` 已有同名文件，直接 add/add。
+- **处置**：`scripts/gorch/batch_orchestrator.py` 新增 `_current_branch()`（`git rev-parse --abbrev-ref HEAD`）；`merge()` 加 `target` 参数，默认取当前检出分支，detached HEAD 时 `SystemExit` 明确要求显式传；CLI `merge` 加 `--target` 并在 JSON 输出 `target`。新增 5 条测试（当前分支读取、默认显式传 target、显式覆盖、detached 拒绝、`TARGET` 必须排在 `--branch` 之前）。修好后真实合并：**227.4s、rc=0、rebased:true、removed:true、主线 `50af6549→3d0fc8dd`、报告 4020B 落地**。
+- **教训（通用）**：① **位置参数的含义必须按 `--help` 核实，不能按"直觉顺序"填**——`wt merge [TARGET] --branch <源>` 与直觉的 `<源> [TARGET]` 正好相反，写反了不报错、只合错地方；② 任何"合回主线"的自动化都必须显式写目标分支，交给工具的 default 缺省等于把决定权交给了仓库配置；③ 同一个仓库里存在默认分支与工作分支两条链时，先想清楚"施工落在哪条链、发布走哪条链"，否则会长期双写；④ 出现 add/add 冲突先怀疑"两边各自新增了同名文件"，而不是"内容改坏了"。
+- **复发**：0
+
+## L75 · "零自研"的口径只写了件级、漏了层级：约 170KB 自建校验层从未进入照搬映射表（2026-11-09）
+
+- **现象**：`docs/plans/gorch-assembly-mapping-20261109.md` §2.2 与结论段写"全部照搬，零自研算法""唯一新增的代码是薄编排层"。治理体检逐项核对后，自建部分远不止"薄编排"——判定交付物能否冻结的整个解析/校验层都是自写，而它从未出现在映射表里。
+- **根因**：映射表按**件**登记（wt / ccpm / codex），没有按**层**登记（解析层 / 校验层 / 编排层 / 适配层）。自建的解析器与校验器因为没有第三方来源，天然不在"照搬映射表"的视野里——于是既没被当成"自研需附开源替代排查"的对象（与"任何自写模块开工前必须附开源替代排查结论"的口径冲突），也没被当成"控制主体需机检兜底"的对象。
+- **实测差异**：ccpm 原版 16 个脚本，只接了 `lib.sh` 的 `unmet_deps` / `active_conflicts` 两个函数；`validate.sh`（原版校验器）未接；`next.sh`（决定下一单）未接——所以"下一单不会自己起来"这个缺口，是原版本来有、我们没搬。任务发现机制也从原版 `.claude/epics/<数字>.md` 换成批次目录 `<id>.md`，状态词因此三套并存（ccpm `closed/completed/done`、`codex-channel.json` `done/blocked`、`kanban_update.py` `completed/in-progress/not-started`）。
+- **自建清单（本次实测，随审计工单 02 一并登记）**：`scripts/gorch_contract.py` 5.2KB（解析器，L1-04 缺陷位）、`scripts/verify-order.py` 46.4KB（校验器，L1-02 缺陷位）、`scripts/audit-work-order.py` 17.7KB、`scripts/freeze-work-order.py` 28.1KB、`scripts/gorch/kanban_update.py` 42.0KB、`scripts/gorch/batch_orchestrator.py` 30.8KB（编排壳）、`scripts/gorch/codex_channel.py` 10.3KB、`src/brain/slot_adapter.py`（三插槽适配）——合计 170KB+，全部 Ultima 自建。
+- **教训（通用）**：① 判断"是否自研"要看**层的来源**，不能看"被调用的件有没有上游"——件是开源的，调用它的壳、喂它数据的解析器、判它结果的校验器都可以是自研；② 自建清单必须与照搬清单**并列登记在同一张表**，否则自建层在评审视野里是隐身的，出问题前没人问、出问题后找不到责任人；③ 控制主体（判定交付物能不能冻结的那一层）即使是"薄"的也要有机检兜底，因为它的失效等于门失效；④ "零自研算法"字面成立不等于风险成立——没有算法，不等于没有判断。
+- **复发**：0
+## L76 · "畸形行"要分两类：没进扫描范围（补范围）和解析不出（必须拒）（2026-11-09）
+
+- **现象**：按 L1-04 收紧 `gorch_contract.py` 时，原判据说"4 类畸形行 4/4 REFUSE"。实际第①类（缩进卡行 `  | T1 s1-... |`）的正确做法是**把它读出来**，不是拒绝——缩进是 Markdown 嵌套表格（标题/列表下的表），拒绝会把合法结构判成非法。真正的畸形只有三类：任务号与卡号无分隔（`T2s1-...`）、门 ID 前缀冒充（`ACC-1x`）、门 ID 无编号（`ACC-X`）。
+- **根因**：把"没被扫到"和"扫到但读不出"合成一个词。前者是**范围问题**（块收集条件太窄），后者是**解析问题**（正则太松或太严）。两类修法相反：一类要放宽收集，一类要收紧匹配；混为一谈就会用错方向。
+- **连带查出**：14 份真实文档里 **0 份含 `ACC` 字样**——`freeze-work-order.py:388` 的 `if gate_ids and (...)` 意味着"卡没有判据表时直接跳过每门必审"。也就是说判据门的**判据表存在性**从来没被门管过，解析器修好了也管不到这一层。
+- **教训（通用）**：① 修解析器前先问"这一行是被漏掉还是被读错"，两者的修法相反；② 判据表"能解析"与"存在"是两个判据，必须各配一条机检；③ 验证收紧是否误伤，最省成本的办法是 `git show HEAD:<file>` 取旧源码在同一批真实样本上并排跑，而不是只跑合成用例；④ 第三方脚本在本地跑不起来时（`next.sh` 的 `list_task_files()` 只认 `.claude/epics/<纯数字>.md`），"接它"的正确含义是接它的**判定语义**（调它依赖的原函数），不是抄它的脚本文本。
+- **复发**：0
+## L77 · cygwin 的 fork 噪声被当成"判定失败"，一条 warning 能拦下整批派发（2026-11-09）
+
+- **现象**：G-ORCH 双卡并发批次跑通后跑全量，`tests/test_gorch_batch_orchestrator.py` 1 failed、`tests/test_verify_order.py` 7 errors。报错串不是断言失败，而是 `lib.sh: fork: retry: Resource temporarily unavailable`、`child_copy: cygheap read copy failed`、`bash dofork: child -1: forked process ... died unexpectedly`。同样这 8 条**逐条单跑全部 PASS**（冲突用例 6.18s 过、untracked 写入域用例 4.62s 过）。
+- **根因**：`scripts/gorch/batch_orchestrator.py` 的 `gate_check` 里写着 `if r.stderr.strip(): raise SystemExit('ccpm 判定出现错误输出 ...')`——把"bash 往 stderr 输出了任何东西"当成"判定逻辑失败"。而 cygwin 在连续 fork 抖动时就会往 stderr 写这种噪声，真正的判定结果（STATUS / UNMET / CONFLICTS 三个 printf）其实完好无损。于是判据是假的坏、派发被真的停。
+- **处置**：本轮登记为缺口（报告 §七 第 9 条），未修。建议改成——以 `returncode` 为唯一契约；`stderr` 只在 `returncode != 0` 时作为附加诊断信息；对 `fork: retry` / `cygheap` / `dofork` 这类已知 cygwin 噪声置白名单。
+- **收口与二次踩坑（2026-11-09 同日）**：第一版按上述建议只删了 stderr 判定、留 `stderr_diag` 纯诊断，**被 Codex 第二轮审计判定为新开的漏口**。原因是执行串是 `printf 'STATUS:%s' "$(frontmatter_field …)"` 这种命令替换——函数内部的失败（`grep: Permission denied` / `No such file`）**不会变成外层退出码**，于是 `CONFLICTS:` 空成"无冲突"、rc 仍是 0、三标记仍齐，有冲突的卡被判可开工。审计当轮实测复现了 `outer_rc=0` + `grep: other.md: Permission denied` 的组合。最终收口为双向判定：bash 串加 `set -o pipefail` 且三函数先各自赋值、失败即 `exit 71/72/73`；stderr 走白名单——只放行 cygwin 噪声（`fork: retry`/`cygheap`/`dofork`/`child_copy`/`Resource temporarily unavailable`/`^\s*\d+\s*[main]`），其余任何一行仍 `SystemExit`。
+- **教训（通用）**：① **"stderr 非空"不等于"失败"**。exit code 才是契约，stderr 是诊断通道；把诊断通道当契约会造出假阴性，而假阴性在 fail-closed 系统里表现为"整批不动"——系统看起来是"正常地什么都没做"，比假阳性难发现得多。② Windows 上依赖 bash fork 的测试套，全量连跑数百次必撞 cygwin fork 受限；判"逻辑坏没坏"必须用**单条重跑**，不能拿全量结果直接定性。③ 全量结果必须分类报出（稳定红 / 环境性失败 / 通过），合成一个数字会让人以为代码坏了。
+- **补充教训（通用）**：① **放宽一条 fail-closed 判据前，必须先证明"被放宽的那类输出不会携带真实失败"**。这里的反例就是命令替换：`printf "$(cmd)"` 的退出码只反映 printf，`cmd` 内部报错全被吞。凡是用 `$( … )` 拼判定的地方，都要先补 `pipefail` + 显式传递失败码，再谈放宽。② "噪声"必须**白名单枚举**，不能"删掉整个 stderr 判定"——白名单让未知情况继续 fail-closed，黑名单/全删会让未知情况 fail-open。③ 审计提的"降低证据强度"与"测试没钉住挂载点"是两类不同缺陷：前者是话说过头，后者是删掉被测代码测试仍绿；只测 helper 不测主流程等于没测。
+- **复发**：0
+## L78 · 每 5 分钟连闪 6 个黑窗：为了读一个 pid 的启动时间，起了 6 个 PowerShell 进程（2026-11-09）
+
+- **现象**：屏幕上每隔几分钟就连续闪出 6 个控制台窗口，反复不断。看起来像有任务在周期性派发。
+- **误判过程（值得记）**：① 先猜"我的 G-ORCH 批次还在跑"——普查显示当前无 `bash`/`codex`/`wt` 存活，批次早已结束；② 再查 6 个常驻 `conhost.exe`，逐个反查父进程，结果是 ArmouryCrate / ollama / verge-mihomo / Codex 扩展的 cmd / agent_server / 我自己的 shell——全是长驻宿主，不是"新弹出"；③ 90 秒采样一无所获（周期比采样窗口长，直接漏掉）。**只有把采样拉到 330 秒覆盖完整 5 分钟周期，才在 19:36:04 抓到真凶。**
+- **根因**：`scripts/tracker-live.py` 的 `process_start()` 为了取一个 pid 的启动时间，起一个完整 PowerShell：
+
+  ```python
+  subprocess.check_output(["powershell", "-NoProfile", "-Command", f"$p=Get-Process -Id {pid} ..."])
+  ```
+
+  而刷新逻辑是 `for it in items[:6]: it["alive"] = alive(it["pid"], ...)`——**固定最近 6 条，每条一次调用**。脚本由计划任务 `UltimaAgentTrackerLive` 每 5 分钟拉起（repeat `PT5M`），三个条件叠起来就是"每隔几分钟连续 6 个窗口"。这些 `powershell.exe` 都没有 `-WindowStyle Hidden`、也没有 `CREATE_NO_WINDOW`，于是每次调用都建一个 conhost。
+- **处置**：`process_start()` 改为直接调 kernel32（`OpenProcess` + `GetProcessTimes` 读 FILETIME），零子进程、零窗口，顺带把每轮 6 次 × 几百毫秒的进程启动开销也去掉了；算式 `ticks/1e7 - 11644473600` 得 UTC 再转 CST，与原口径一致。同一类缺陷一起收：`batch_orchestrator.py` 7 处 `subprocess.run/Popen`（bash / wt / git）加 `creationflags=_NO_WINDOW`，`kanban_update.py:135` 的看板刷新 `Popen` 加 `CREATE_NO_WINDOW`。验证：三文件 `py_compile` 通过、`test_conflict_blocked_when_other_in_progress` 单条 1.75s 通过、`tracker-live.py` 真跑一次 rc=0 且 `live-data.js` 正常更新（判定结果正确：已退出的 pid 判 `running:false`）。
+- **教训（通用）**：① **为了读一个字段而启动一个完整 shell 进程，代价是几百毫秒加一个窗口**——本机能用 API 直接读的信息（进程创建时间、文件属性、服务状态），不要绕道 shell；② 排查"是不是我造成的"必须做到**子进程 + 父进程链 + 时间戳**三要素，只看进程名会漏掉"父进程已经退出、只剩宿主"的情况；③ 周期性的问题，**采样窗口必须 ≥ 一个完整周期**，否则连续采样也永远看不到，反而得出"没有周期性进程"的错误结论；④ 在自己 shell 里执行 `Get-Command powershell` 找不到，不等于计划任务里也找不到——计划任务由 svchost 拉起，PATH 是系统 PATH，环境不同；判断"这个调用会不会弹窗"要去目标环境实测。
+- **复发**：1
+## L79 · 收紧三处判据时踩到的两类坑：Edit 吃换行、mtime 假“最新”（2026-11-09）
+
+- **背景**：第三轮按审计清单收紧三处判据——gate 三标记“各出现且仅一次 + 禁多余行”、`find_done_tasks` 只认每任务最新一条真实记录、执行段用 `git status --porcelain` 基线快照只认“相对基线的新增改动”。
+- **坑 1（工具层）：Edit 吃掉换行 → SyntaxError，53 个用例 collect 就 ERROR。** 在 argparse 段替换时 old_string 未带行尾换行、new_string 又接了新内容，结果两行被拼成一行（`...（只搬不解析）')    b.add_argument(...)`）。pytest 报 `17 passed, 53 errors`，看着像大面积破坏，实际只是一处语法错误。处置：`python -m py_compile` 直接指到 791 行，补回换行即恢复。
+  **教训**：批量 Edit 之后、跑测试之前先对每个被改文件做 `py_compile`；“大量 ERROR”优先怀疑语法，不要先怀疑逻辑。
+- **坑 2（测试层）：mtime 假“最新”。** 新用例本意是“任务 2 先 done、再 blocked（较新）”，给两条记录设了 mtime `1_700_000_000` / `1_700_000_100`（2023 年）。但任务 2 的 done 记录是 `write_run` 刚建的、mtime 是真实的 2026 年，比人工设的值大得多 → “最新”实际是 done，用例假红。处置：三条记录统一显式 `os.utime`。
+  **教训**：用 mtime 造“新旧关系”时，必须把参与比较的**每一条**都显式赋值；只要有一条是新建文件，它天然就是“最新”。
+- **本轮收紧的取舍（留档，供审计对照）**：
+  ① `find_done_tasks` 从“跳过 blocked 找 done”改为“只认最新一条真实记录”——旧语义会把一次失败的执行当成果合并，属“造错误结果”级缺陷，“失败后沿用上次成功”的运营习惯不值得保留。
+  ② `clean` 保持默认严格，只开一道有名字的门 `--no-change-allowed`（批次路径从卡 frontmatter 逐卡透传）——纯验证卡确实不改仓库，但“整批放行”会连带放过真该产出的卡。
+  ③ 基线快照的已知弱点如实留档：porcelain **行集合**相减，同一文件执行前后都是 ` M` 且内容继续变化时相减为空、会误杀。真正区分需内容哈希，本版没做——这是“宁可误杀不可放过”的有意选择，不是遗漏。
+- **全链一条命令首次真跑（`batch_orchestrator.py run`）**：两卡并发 → 两 commit 合入 → `stopped_at=done`。一个易被误读的点：`cleanup` 两卡都报“worktree 已不存在”，看似清理失败，实际是 `wt merge` 在合并时已自行回收 worktree/分支，`cleanup` 只是走了“已不存在即跳过”的既定分支。**不要把这条 skipped 读成缺陷**——判断清理是否真发生，看 `git branch --list` 与主线 commit，不要看 `removed` 是否为空。
+- **未覆盖**：冲突形态的全链（`run` 遇 CONFLICT 停 + 保现场）只有单测，没真跑；`wt remove` 超时回读在本轮真跑里没被触发（`wt merge` 先回收了）。
+- **复发**：0
+## L80 · 第四轮闭环：批量文本替换打偏、Edit 吃换行复发、判据自身被自己的测试揭穿（2026-11-09）
+
+- **背景**：按第三轮 Codex 审计的 10 条 fail-open 逐条修（提交 `2a446b9a`），执行段改内容级指纹 + 基线阻断，编排段 `run_all` 整段重写为七终态 + invocation 绑定。收尾时踩到三个坑，都属于"改法本身有问题"而不是代码逻辑。
+- **坑 1（工具层）：用 `str.replace` 按一行字面值给测试补断言，打偏到另一条用例。** 同一行 `assert 'Permission denied' in str(ei.value)` 在两个用例里都存在（旧用例 `test_real_stderr_error_with_intact_markers_fails_closed` 与本轮新用例 `test_gate_check_rejects_error_after_200_chars`），`replace` 命中第一条，于是"共 2 行真错误"这条断言被塞进只造 1 行 stderr 的旧用例 → 旧用例假红。
+  **教训**：改测试断言不能用"某一行文本"当锚点，锚点必须是**用例名 + 该用例独有的一行**；批量替换后必须看一眼 `git diff` 落在哪个函数里，再看测试结果。
+- **坑 2（工具层）：Edit 在替换 `def` 行时把 docstring 首行吃掉。** old_string 取了「`def merge(...)` + docstring 首行」，new_string 只回写了 `def merge(...)`——docstring 起始的 `"""` 丢失，函数体变成裸字符串，`py_compile` 立刻报错。这是 L79 坑 1 的复发（同一类：old/new 结构不对称）。
+  **教训**：Edit 的 old/new **必须行数与结构对称**；要在某个 `def` 前插新函数，就用「`def` 行」当锚点、把新函数完整写在 old_string 里再回写，或直接分成两次 Edit（先插函数、后改函数体）。批量 Edit 之后 `py_compile` 是硬性动作，不是可选动作。
+- **坑 3（实现层）：判据自己暴露了判据不够。** 我按审计 #2 把 stderr 改成"全量逐行分类、只展示首条"，新用例 `test_gate_check_rejects_error_after_200_chars` 用了「噪声行 + 250 个 x 的垃圾行 + `fatal: Permission denied`」，断言 `Permission denied` 必须可见——结果失败：首条真错误是那行 x。这条用例证明"只贴首条"仍会遮住真错误，于是实现改为**前 3 行拼接 + 共 N 行真错误计数**，用例才通过。
+  **教训**：写"错误必须可见"的用例，输入里要**故意放垃圾行在真错误之前**；只造一行 stderr 的用例永远证明不了"截断不会遮住真错误"。
+- **自查另补的一处（未进审计清单）**：`wt merge` 的 JSON 里 branch/target 可能写成 `refs/heads/x`，而本轮新加的一致性校验用裸字符串比对 → 会把"合成功、只是写法不同"判成目标不符并整批 `SystemExit`。已加 `_norm_ref` 归一化再比。这类"新加的严格校验自己造成误杀"必须在同一轮内自查掉，否则就是把 fail-open 修成 fail-closed 误杀。
+- **验证**：`py_compile` 两模块通过；两 gorch 测试文件 `90 passed in 37.57s`（补 `_norm_ref` 后 batch 68 passed 单独复验）；提交 `2a446b9a` 已推远端并打 tag `gorch-r4-failopen-closeout-20261109`。
+- **仍未闭合**：八跳第 4 跳未进 `run_all`；冲突形态全链未真跑；修复后未重跑全链真跑；`main` 与工作分支未合流。
+- **复发**：坑 2 是 L79 坑 1 的同类复发
+## L81 · 第五轮：照着工具名猜字段，把"更严的判据"写成"把整条链打死"（2026-11-09）
+
+- **背景**：第四轮 Codex 审计判「部分一致」，给出 Q3 九条最小修复清单。按清单改 `find_done_tasks` / `merge` / `cleanup` / `run_all` / `fresh_changes` 五处，收尾时踩到三类问题。
+- **坑 1（事实层，最贵）：没有实测 CLI 的真实回执，就按字段名写判据。** 第四轮把「`wt merge --format json` 回执里 `merged is True`」当成合并成功判据。本轮实测（临时仓库 `Temp\wtprobe-r4`）发现回执是 `{branch, target, committed, squashed, rebased, removed}`，**没有 `merged` 字段**——那条判据会让每一次合并都被判失败，是把 fail-open 修成了"整条链必死"，而且静态审计看不出来（审计方也只能读代码）。
+  **教训**：凡是拿第三方 CLI 的**输出字段**当判据，必须先在一个一次性环境里跑出真实输出、把原始 JSON 贴进报告，再写判据。字段名凭印象写 = 判据可能与真实契约反着来。修法：判据改成「回执身份字段（branch/target）必填且精确匹配」+ 「git 侧复核（is-ancestor 或 target tip 前进）」两层。
+- **坑 2（流程层）：一轮里改多处，只跑一次测试，失败 7 条时要挨个反推是哪一处改坏了。** 本轮 5 处改动一起落，测试从 91 passed 变成 7 failed；其中 4 条其实只是 `fresh_changes` 漏写 `return`（`TypeError: cannot unpack non-iterable NoneType`），另外 3 条是被新语义打红——混在一起时，"是语法、是语义、还是桩不匹配"要靠读 traceback 逐条判。
+  **教训**：漏 `return` 这类错误优先看异常类型（`NoneType`/`cannot unpack` 基本就是返回值丢了），不要先怀疑断言；语义变更导致的老用例变红，要在报告里**逐条写明"旧断言为什么不再成立"**，不能只改成新断言了事。
+- **坑 3（测试层）：新加的 fail-closed 阻断把测试桩一起打了。** 加了"指纹 `ERR:*` 立即 blocked"之后，`test_gorch_codex_channel.py` 里 3 条走完整 `main()` 的用例全部变红——因为测试的 `tmp_path` 不是 git 仓库，`worktree_fingerprint` 真去跑 `git diff` 必然返回 `ERR:128`。原来它们依赖"指纹失败就退化按状态行判定"的旧宽容行为，而那个宽容正是审计要求删掉的。
+  **教训**：收紧判定时，凡是被"旧宽容行为"顺带救活的测试桩，都要在桩里补上等价的可信输入（本轮补了 `worktree_fingerprint` 桩），否则看起来像实现坏了，实际是测试环境本来就不满足新前提。
+- **Cygwin 正则的二次修正**：整行锚定版第一稿把 `cygheap` 后面多写了一个 `\w+`，真实噪声行 `bash: child_copy: cygheap read copy failed, 0x2EF8` 不匹配 → 被当成真错误，`test_cygwin_noise_lines_still_pass` 变红。
+  **教训**：白名单正则收紧后，必须**拿真实日志原文**（不是自己手写的近似行）当用例；本轮样本是从实测 stderr 抄的，所以一跑就暴露。
+- **验证**：两模块 `py_compile` 通过；两 gorch 测试 **93 passed / 38.94s**（基线 91，新增 `test_merge_rejects_receipt_without_identity`、`test_merge_rejects_when_git_shows_no_merge`、`test_fingerprint_read_failure_blocks`）。提交 `0190b88c`。
+- **仍未闭合**：写域白名单、ignored 产物、per-card 例外受控 schema（三项涉工单契约，需 Owner 定口径）；独立 merge CLI 未强制 `--run-dir`。
+- **复发**：坑 2 与 L80 坑 1 同类（批量改动后未及时小步验证）
+
+### L82 · 2026-11-09 · r6：收紧判定时，测试桩的语义必须同步收紧
+
+- **坑 1（桩的默认值会掩盖阳性误判）**：`merge` 改成三段式证明后，默认桩
+  `_git_out -> (0,'')` 让「调用前就已经是祖先」恒成立、`_ref_sha` 恒返回同一串让 target 不动，
+  于是所有合并成功用例一起红。桩必须模拟真实时序：`merge-base --is-ancestor` 第一次
+  rc=1（尚未合入）、第二次 rc=0（已合入），SHA 每次调用都变。
+- **坑 2（新代码会调真 subprocess）**：签发 manifest 要记 target，于是 `execute` 调到
+  `_current_branch()` → `subprocess.run`；而执行段用例把 `Popen` 桩成不带 context manager
+  的假对象，直接 `TypeError: '_P' object does not support the context manager protocol`。
+  单测里把 `_current_branch` 一并桩成常量，避免测试打到真实仓库。
+- **坑 3（新落盘点会污染仓库）**：manifest 默认写 `data/gorch/runs/_invocations/`，未隔离时
+  一次跑测就在仓库里堆了 39 个运行期文件（虽被 `.gitignore` 挡住，仍是垃圾）。fixture 默认
+  `RUNS = tmp_path/'runs'` 后，跑测前后文件数都是 0。
+- **坑 4（PowerShell 写补丁脚本的转义）**：here-string 里承载被测源码时，若用普通（非 raw）
+  三引号字符串，源码里的 `\n` 会被解释成真实换行，直接把字面量打断
+  （`SyntaxError: unterminated string literal`）。承载源码必须用 raw 三引号。
+- **坑 5（空数组也能骗过 all()）**：cleanup 的 `schema_ok` 若不写 `bool(items)`，`[]` 会因为
+  `all([])` 为真被判合法；另外测 schema 非法必须让 worktree 目录**先存在**、由假 `wt_remove`
+  删掉再返回坏回执——否则走的是「三处均已不存在」那条分支，根本到不了 schema 校验。
+- **口径**：审计点名的 9 类回归用例全部补齐，合跑 **108 passed / 39.12s**（batch 81 + channel 27）。
+  仍未做：ignored 新产物的显式枚举（`git status` 不列 ignored，等于永远不越域）。
+
+## L83 · r7：PowerShell 写补丁脚本的转义坑 + 「默认签发清单」写法（2026-11-09）
+
+- **坑 1（`\0` 被写成真 NUL 字节）**：补丁脚本文本里写 `split('\0')` 承载到被测源码时，PowerShell
+  here-string 把它落成真 NUL 字符，`py_compile` 报
+  `source code string cannot contain null bytes`。修法：源码里写成字面 `'\\0'`（Python 看到的是
+  `'\0'` 两个字符的转义），再用小脚本把已经落成 `\x00` 的字节换回。写完必 `py_compile`。
+- **坑 2（`'\n'.join(...)` 被展开成真换行）**：同样的原因，写进源码后变成
+  `'\n'` 中间断行 → `SyntaxError: unterminated string literal`。改用 `chr(10).join` /
+  `rstrip(chr(13)+chr(10))` 这类不依赖转义的写法，最稳。
+- **坑 3（补丁锚点里的 `\n` 失配）**：逐段 `assert old in s, tag` 定位时，锚点字符串里的 `'# 工单\n'`
+  在 here-string 中先被展开成真换行，与文件中的字面 `\n` 不匹配，整段中止。锚点内的换行必须写成
+  `\\n`，或者干脆避开含转义的锚点、改用纯文本前缀定位。
+- **坑 4（`channel()` 不签发清单 → 旧用例整批红）**：r7 起执行端无 manifest 一律拒，而 channel
+  测试的 `channel(cmd, data_dir)` 辅助用 `subprocess` 直接起 `main()`，argv 里没有 `--manifest` →
+  7 条旧用例集体 `rc=2`。修法：辅助函数在 argv 不含 `--manifest` 且含 `--task` 时**自动签发一份宽松
+  清单**（`no_change_allowed` / `allow_non_repo` 都为真、写域未强制），保持旧用例原语义；要测拒签的
+  用例在自己的 argv 里显式带 `--manifest` 覆盖自动那份。
+- **坑 5（`lstrip('./')` 吃隐藏目录）**：`.github/workflows/x.yml` 被剥成 `github/workflows/x.yml`，
+  写域校验就比对错位；`lstrip` 的字符集语义本来就不是「剥前缀」。修法：`_norm_path` 用
+  `while p.startswith('./')` 只剥真正的相对前缀，并补 `test_hidden_dir_path_is_not_truncated`。
+- **坑 6（cleanup 超时豁免用例必须先让目录存在）**：`cleanup` 在 `wt_path.is_dir()` 为假时走的是
+  「调用前已不存在」分支，根本到不了 `wt_remove`。要测「超时但现场已空」，必须让假 `wt_remove`
+  **先删目录再返回 rc=-1**，而不是在调用前把目录删掉。
+- **口径**：r7 合跑 **128 passed / 42.18s**（batch 92 + channel 36），r6 基线 108 passed / 39.12s；
+  新增 20 条（channel 9 / batch 11，含 2 条 cleanup 证据）。仍未做：真实批次重跑 `run_all`、
+  冲突形态全链真跑、`done_no_merge` 三分组落定。
+## L84 · r8：分级证据拆判据的两个坑 + 锁路径必须运行时可重定向（2026-11-09）
+
+- **坑 1（`_git_out` 返回顺序写反 → 旧用例整片红）**：`_git_out` 返回 `(rc, stdout)`，新加的
+  `git rev-parse <sha>^{tree}` 取证写成 `_t, _ = _git_out(...)`，`_t` 拿到的是 int → 4 条既有
+  merge 用例同时 `AttributeError: 'int' object has no attribute 'strip'`。取证一律按
+  `_rc, out = _git_out(...)` 解，并只在 `_rc == 0` 时采信输出。
+- **坑 2（把布尔判据拆成多级时漏支）**：r7 的 `proven = wt_action or (rc_anc==0 and (not pre_anc
+  or src_moved))` 拆成 `ff / tree / wt_receipt` 三级时，把 `pre_anc 且 src_moved` 这一支丢了 →
+  `test_merge_all_sequential_order` 里合第二个任务时 `pre_anc` 恒真、`proof` 为空、被判 failed。
+  拆判据必须逐支对照原条件（这里原 A 支 = `not pre_anc or src_moved`）。
+- **坑 3（`write_run(run_dir='')` 造不出「缺字段」）**：helper 里是
+  `str(run_dir or d.resolve())`，空串 falsy 会回落成默认真实目录，负向用例根本走不到「缺
+  run_dir」分支。造缺字段要用 `extra={'run_dir': ''}`（`payload.update(extra)` 在默认值之后）覆盖。
+- **坑 4（`merge()` 不给 `tasks` 时对 stale 不抛）**：`targets = list(done)`，全 stale 时直接
+  `return done, [], [], stale`。想断言 `SystemExit` 必须同时传 `tasks=[...]`（unknown 分支才抛）。
+- **坑 5（锁路径写成模块级常量会被测试重定向绕开）**：`_LOCKS = RUNS.parent / 'locks'` 在 import
+  时求值，fixture 再 `monkeypatch RUNS` 也改不动它 → 用例把锁落到真实仓库 `data/gorch/locks`。
+  锁目录必须在 `__init__` 里按当时 `RUNS` 计算，测试才能真正隔离。
+- **口径**：r8 合跑 **139 passed / 40.63s**（batch 98 + channel 41），r7 基线 128 / 42.18s。
+  r8 新增 10 条（batch 6 / channel 4）+ 前段作业里的 2 条 rename 真实 NUL 用例。
+  仍未做：真实批次重跑 `run_all`（旧卡会被「无新增」判 blocked，需换任务名）、`done_no_merge`
+  三分组、manifest 签发签名/受控目录。
+
+## L85 · r9：proof 收紧会连带打死「应成功」的用例 + 锁与身份严格化的连带改动（2026-11-09）
+
+- **坑 1（新增前态取证会改动既有桩的调用序列）**：r9 给 proof 加了「target 前态 tree」，
+  `rev-parse <sha>^{tree}` 的调用顺序变成 ①源 tree ②target 前态 ③target 后态。`mod` fixture
+  原本对所有 `rev-parse` 返回 `(0, '')` → 前后态都是空串 → `content_changed` 恒假 → 5 条
+  「应成功」的 merge 用例集体判 failed。修法：fixture 里加 `_tree = {'n': 0}` 让 tree 随调用
+  递增；两条定制桩按**调用序号**给出「前态 ≠ 后态」的序列（不是按 ref 猜）。
+- **坑 2（断言改语义要跟着改 payload，不能只改断言）**：`find_done_tasks` 把 `dry_run` /
+  `result` / `mergeable` / `invocation` 前置后，旧负向用例的 payload 缺 `dry_run` 就先进了
+  broken，`started_at` / `invocation` 那两个分支根本走不到。必须补 `dry_run: False,
+  mergeable: True` 才能让用例回到它本来要测的那条判据。
+- **坑 3（`reason` 文案不再是记录自报**）：`test_find_done_tasks_only_reads_this_invocation`
+  原断言 `'本轮失败' in reason`——那是记录 payload 里的 `reason` 字段被透传。身份前置后
+  blocked 记录不进候选池，`stale` 的 reason 改由校验方生成（`result=... 不是 done`）。
+  断言要改成「有 reason」或匹配校验方文案，不要匹配被审对象的自述。
+- **坑 4（argparse `required=True` 不经 `main` 的返回路径）**：`merge --invocation` 缺失时是
+  parse 阶段抛 `SystemExit(2)`，`rc == 2` 这条断言永远拿不到返回码。断言要写
+  `pytest.raises(SystemExit)` + `code == 2`。
+- **坑 5（生产路径与展示路径别混用）**：`test_status_rows_keeps_rename_source_from_real_nul`
+  原来把 `rows` 拼成 `状态码 + 空格 + 路径` 再交给 `_fresh_paths` 去剥前缀——这正好把
+  「按前缀猜格式」的 fail-open 固化成了用例。生产侧是直接取 `[p for _c, p in rows]`，用例
+  也应当照生产路径写。
+- **口径**：r9 合跑 **147 passed / 47.90s**（batch 104 + channel 43），r8 基线 139 / 40.63s；
+  新增 8 条（batch 6 / channel 2）。仍未做：13.2 的 5 条口径拍板、真实批次重跑 `run_all`、
+  `done_no_merge` 三分组、manifest 签名 / 受控目录。
+
+## L86 · r10：前置守卫会抢在旧判据前面 + 两处「声明跑在实现前面」的补法（2026-11-09）
+
+- **坑 1（新守卫插在错位置，会把两类失败揉成同一个出口）**：r10 给 merge 加「target 前态
+  tree 取不到即停」时，第一版把守卫放在 proof 段之后——那时 `wt_merge()` 已经跑完（wt 还可能
+  顺手删掉 source 分支），于是「取证失败」和「确实没合进去」落进同一个 `failed` 文案。守卫必须
+  在**调用之前**：前态取不到就不许动仓库。判据：新增用例断言 `wt_merge` 调用计数为 0。
+- **坑 2（新守卫会先撞上旧用例的桩，别把它当成实现错）**：三条 merge 负向用例的 `_git_out`
+  桩恒返 `(1,'')`，新守卫一上来就判「前态 tree 取不到」，原本要测的 proof 分支根本走不到。
+  这时要区分两种可能：桩没给新依赖（补 `rev-parse → tree`） vs 实现顺序真的错了（改代码）。
+  先看失败文案指向哪个出口，再决定改测试还是改实现——不要因为「用例红了」就回退守卫。
+- **坑 3（porcelain 的 R/C 在两位，不在第一位）**：` R`（工作区侧未暂存 rename）的 R 在 X 位
+  是空格、Y 位才是 R。只看 `code[:1]` 会漏掉它，紧随的裸源路径被当成下一条状态行、
+  `item[3:]` 截掉前三字符 → **域外删除被伪装成域内路径**，越域写因此能过写域校验（不是误杀，
+  是放行）。判据：`any(ch in ('R','C') for ch in code[:2])`。
+- **坑 4（只遍历 after 的差集看不到「消失」）**：基线里有域外脏文件、任务把它恢复成 HEAD，
+  after 集里就没有它了；`a - b` 之外必须补 `b - a`，否则「删掉域外改动」这一步完全不可见，
+  再顺手改一个域内文件就能落 done。
+- **坑 5（同进程第二实例不是互斥证明）**：锁测试若只在同一进程里开第二个 `_MergeLock`，
+  两句 `__enter__` 共享同一句柄环境，锁实现坏了也可能碰巧通过。必须起真子进程持锁再抢；
+  锁键还要先归一 ref（`main` 与 `refs/heads/main` 未归一 = 两把锁，ref 别名可绕锁）。
+- **坑 6（两态目录探针会把「不可读」记成「已清理」）**：`Path.is_dir()` 在权限/IO 异常时返回
+  False，与「确实不存在」共用值。要 exists/absent/unknown 三态，且 unknown 一律不参与
+  「已清理」豁免。
+- **口径**：r10 合跑 **159 passed / 49.58s**（batch 108 + channel 45；r9 为 147 / 47.90s），
+  新增 6 条函数（batch 4 / channel 2，另含 1 个 parametrize 展开 7 例）。
+- **对 L85 坑 3 的更正**：L85 说「`test_find_done_tasks_only_reads_this_invocation` 断言改成
+  『有 reason』或匹配校验方文案」——在**显式 run-dir 模式**下 blocked 是合法执行结果，不是记录
+  损坏，正确断言是钉住 `result == 'blocked'` 与**原样透传**的 `reason`（本例 `'本轮失败'`）。
+  「只要非空就过」等于让任何理由替判据作证，第九轮审计已点名。
+
+### L87 · r11：`kind`、锁键与三态探针的五个坑（第十轮审计「不一致」→ r11）
+
+1. **改返回值不改消费分支**：`_path_state` 从三态变四态时，三个消费点若都写成「`!= 'exists'` 就走 skipped 兜底」，新增态自动被兜住——所以改**枚举**要先确认每个消费点用的是等值判断还是 `!=` 判断；用 `== 'absent'` 判成功的地方，就是新增态会漏的地方。r11 的 `wrong_type` 恰好踩在 `if dir_state == 'absent' and ...` 这一处，靠 else 分支兜住。
+2. **`re.sub` 做文件名 = 假互斥**：任何「非字母数字下划线压成 `_`」的归一化都会把 `feature/a` 和 `feature_a` 撞在一起。锁键要用「可读前缀 + 归一后原文的 sha256 摘要」，而不是「归一后的可读串」。归一化只用于判等，不用于命名。
+3. **同一语义的多个出口必须同形**：cleanup 三个 removed 出口起初一个带 `dir_exists`、一个带 `wt_returncode`、一个什么都不带。下游只要按其中一个 schema 读就会静默读空。修法是**先把三份 evidence 的 key 集写成断言**，再改实现。
+4. **失败不分档 = 把取证失败当冲突**：`run_all` 把 `failed` 一律写 `kept_for_conflict`、note 写「可能为冲突」，现场明明没动过 wt，却引导人去 `rebase --abort`。失败至少要有 `kind`（evidence_failure / merge_conflict / proof_failure），消费端按 kind 分支。
+5. **负向用例多原因失败 = 用例名说谎**：`test_merge_rejects_...` 里前后 tree 相同，`content_changed=False` 本身就能让用例变红——它验的不是名字里那个判据。写负向用例时要用**日志/断言**把其他必要条件钉成「已满足」，让唯一变量就是被测条件。
+6. **口径重复计数**：文档里「合计 12 条」其实是同一语义在两节各列一次。口径条目要按**语义**编号，不能按「每次审计新增几条」累加，否则数字只会越滚越假。
+
+
+
+### L88 · r12：换探针、丢写盘与桩点的七个坑（第十一轮审计「不一致」→ r12）
+
+1. **补丁脚本中途 `sys.exit` 会静默丢掉前面"成功"的替换**：`patch()` 若边替换边写盘，逐对替换则前几对已落盘；若全部替换完才一次性写盘，任一对断言失败（`count != 1`）就整体退出，**前几对也一起丢**。本次就踩了：codex 第 3 对 `count=0` 退出，导致第 1 对（`_digest` 改 lstat）与第 2 对（status 格式先验）全丢，而脚本输出只显示"到第 3 对才 FAIL"，看起来前两对是好的。修法是：要么每对成功后立即写盘，要么在 `sys.exit` 前把已成功的对打出来；更稳的做法是**改完立刻回读文件验证**（`grep` 目标符号），别信脚本的进度。
+2. **换探针（`os.stat` → `os.lstat`）会让所有桩 `os.stat` / `pathlib.Path.stat` 的旧用例变成假通过**：r12 把 `_path_state` 与 `_digest` 都改到 `lstat` 后，两条既有用例仍在桩 `os.stat` / `pathlib.Path.stat`——用例照旧绿，但它已经不测实现路径了（更糟的是桩的签名不收 `follow_symlinks`，会在 pytest 清理阶段抛 `TypeError`，把失败泄漏到 teardown）。改探针时必须同步扫一遍全部桩点。
+3. **`raise SystemExit` 改结构化 `failed` 会连带打红"期望抛异常"的既有用例**：`test_merge_fails_closed_on_unparsable_json` 用 `pytest.raises(SystemExit)`，改完必红。这类"语义升级"要当成**接口变更**处理：先列全部 `pytest.raises` 与 `except SystemExit`，一次改完。
+4. **Windows 上普通权限建不出 symlink**：实测 `os.symlink` 建 file link 报 `FileExistsError [WinError 183]`、建 dir link / dangling 报 `OSError [WinError 87]`，三种全失败。symlink 语义只能**桩化**验证，且必须在报告里如实标「不覆盖真实建 link 后的返回值」，不能写成已覆盖。
+5. **junction 不能靠 lstat 区分**：`New-Item -ItemType Junction` 可建，但它的 `os.lstat` 返回 `islnk=False / isdir=True / mode 0o40777`——lstat 把它当普通目录。所以"用 lstat 就能识别一切 reparse 残留"是错的；junction 会落 `exists` 走正常删除路径。要识别得看 `FILE_ATTRIBUTE_REPARSE_POINT` 的 `dwReserved0` reparse tag，不是 `S_ISLNK`。
+6. **porcelain `-z` 的两处格式坑**：① 每项必须是 `XY <path>`，第 3 字符是空格；无脑 `item[3:]` 遇到 `R?path`、短项、缺分隔符就截出伪路径。② rename/copy 的**源**是紧随的裸项，判"缺源"要识别 `split('\0')` 末尾那个空串（`i == len(parts) - 1 and not parts[i]`），而不是"没有就算了"；同时**不能**对裸 source 套状态项语法（合法文件名可以任意开头）。
+7. **"内层统一"不等于"外层统一"**：r11 只把 `evidence` 内层 key 集拉齐，`removed` 条目外层仍三种形状；按外层键读的 consumer（`removed[0]['schema_ok']`）在前两个出口会 `KeyError`。统一 schema 的断言必须同时覆盖内外两层，并且外层也要「缺值写 null 而不是省略键」。
+
+### L89 · r13：porcelain `-z` 的三处「看起来已收紧」的漏口与早退不清状态（第十二轮审计「不一致」→ r13）
+
+1. **只拒绝「末位空串」不等于拒绝「空 source」**：`-z` 下 rename 的 source 是紧随的独立项，
+   r12 只判 `i == len(parts) - 1 and not parts[i]`，中间的空项被 `if src:` 顺手放过，
+   于是 `R  docs/in\0\0 M docs/y\0` 返回成功、source 静默丢失——**同一类 fail-open 换了个位置**。
+   收紧成「任何空 source 或缺失都整份失败」才对。
+2. **`-z` 的终止 NUL 是契约的一部分**：输出被截断（管道断开 / 超时半截）时最后一项是半个字符串，
+   按完整结果消费会把截断路径当成真实文件名。非空输出必须 `endswith('\0')`，这条比逐项格式校验更靠前。
+3. **早退分支也要初始化出参**：`merge()` 的 `if not targets: return` 早退不清 `trace`，
+   调用方复用同一个 dict 时会把上一轮的 `attempted / not_attempted` 当本轮结果读走。
+   凡是"出参 via 可变容器"的接口，所有 return 分支都要写一遍。
+4. **统一 schema 必须覆盖"早退 + 正常完成"两个分支**：`steps['cleanup']` 只在失败分支写四档
+   `kept_for_*`，早退与正常完成只写 `kept_for_conflict`，按统一 schema 读的下游就 `KeyError`。
+5. **加强旧用例要让"旧实现必红"**：把 `lstat` 桩成 `S_IFLNK` 还不够——若实现仍是 `os.stat`，
+   普通文件也得 `wrong_type`，用例照绿。要同时把 `os.stat` 桩成 dangling 的
+   `FileNotFoundError`，旧实现才会得到 `absent` 并被记 `removed`，用例才真的能挡回退。
+
+### L90 · r14：文档里写行号必漂移，一律用函数名/符号锚定（第十三轮审计「不一致」→ r14）
+
+1. **同一行号连续三轮漂移**：`_path_state` 在 r11、r12、r13 三次记录的行号没有一次与实测一致
+   （r13 写下的值距实测差 6 行）—— 每次都在函数之前插了新代码（r12 加 link 桩、r13 加 cleanup 四档注释）。
+   只要文档里写「文件:行号」，下一次动同文件就必然失效。**规范：引用实现位置一律写
+   函数/类/常量名（`def _path_state(`），行号只作为"本轮实测"的附注，不参与后续引用。**
+2. **局部改对不等于全文闭合**：`:683` 的「3 处 → 5 处」改完了，`:762` 的同一句还留着「3 处」。
+   改数字类断言必须**全文搜同一串**（`3 处`、`五处`、`TYPE:link` 这类原文片段），
+   而不是只改审计箭头指向的那一行。
+3. **补键类修复必须有"撤键即红"的用例**：`_stop` 与正常完成分支各补了三个 `kept_for_*`,
+   但当时只测了失败分流路径 —— 撤掉新增键，测试照样绿。补键/补字段的回归必须
+   断言**完整键集**（集合相等），并覆盖每一个写该字段的分支（早退 / 失败 / 未闭合 / 正常完成）。
+
+### L91 · r14：断言敏感度要按分支逐个证明，别用一条分支的代表性替代全部
+
+第 13 轮把 `run_all` 四个写 `steps['cleanup']` 的点（`_stop` 缺省 / 失败四分流 /
+未闭合保留 / 正常完成）补成六键同构，第 14 轮补了两条断言（`_stop`、正常完成）。
+审计用「撤键探针」逐键验证这两条确实敏感，但同时指出：**未闭合保留分支仍然只有
+AST 保证，没有集合相等断言**——即"补了键"和"证明补的键会被测到"是两件事，
+同一个字段有 N 个写入点就要有 N 条（或一条参数化覆盖 N 点）敏感断言，
+否则总有一条分支是靠代码审查而不是靠测试守着的。
+### L92 · 台账核对：`git checkout` 会吞掉未提交改动；判「产物不存在」必须先查 feature 分支与全量 tag
+
+2026-11-10 全量核对 UltimaAgent 工单台账时连踩两坑：
+
+1. **用 `git checkout -- <file>` 回滚自己的误改，连带抹掉该文件未提交的两行改动**（0029 的统计行与明细行）。工作区里有他线在途改动时，`checkout` 不是「撤销我的修改」，是「恢复成 HEAD」。已按被覆盖前原文逐字重建。正确做法：改前先读全文，只做局部字符串替换；确实要回滚就先 `git stash` 或先备份文件。
+
+2. **只查当前工作树就判定「三件产物全缺」，据此改了全局表状态——判断是错的**。0031 的 schema/validator/冻结门真实存在，在分支 `codex/m2-workorder-contract-20261108` 上，tag `wo-ultimaagent-20261108-0031-frozen-20261108` 指向 `d913a9e2`，三件产物分别 5,749 / 16,738 / 6,558 字节。首轮查 tag 用了 `*workorder*` / `*work-order*` 两个猜出来的匹配词，恰好漏掉真名 `0031-frozen-20261108`。
+
+两条合并成一条口径：**核对「做没做」时，工作树 → feature 分支 → 全量 tag（按工单号 `*0031*` 匹配，不猜命名）三步都要走完再下结论**；改台账文件前先确认它有没有未提交改动。
+
+### L93 · r15：口径类文档必须交独立复核，且要逐条接受对方纠正事实
+
+r15 写七条口径裁决时，草案里 4 处事实错误（函数名写成 `_path_digest`、cleanup 说成「三档」
+实为四桶、把「merge 前全树 clean 门」当成已有机制、把 mtime fallback 说成仍在使用）在文里
+读起来都通顺、都能自圆其说，但每一条都会让后续实现者定位失败或改错地方。
+
+口径：**裁决/规范类文档不能自己写完就算定稿**——必须交独立复核方逐条核验事实，并在文档里
+写死一句「复核修正文本为准，原文不可未经修正直接生效」。复核方指出的事实错误要**逐条列表**
+订正（见 `docs/decisions/pd-20261109-gorch-e2-七条口径裁决.md` §1），不能在正文里悄悄改掉，
+否则下一个人会再踩一次。
+
+### L94 · r15：跑「真实全链」不要用 clone 大仓当载体
+
+想给 `run_all` 做真实批次验收时，第一选择是 `git clone --depth 1 --single-branch` 到临时目录。
+本仓 30 万+ 文件，clone 5 分钟未完成、`HEAD` 处于损坏态（`fatal: your current branch appears to be
+broken`），整个验收卡在这一步，只能记未完成。
+
+口径：真实链路验收的载体用 **`git worktree add`**——共享对象库（秒级）、分支独立（不污染已推
+分支）、与 `wt` 的 worktree 语义一致。clone 只适合小仓或需要完全独立 `.git` 的场景。
+### L95 · 台账收口四坑：feature 分支不可见 / 验收测试过期 / 「代做一行」挤掉 def / 失败字样误伤
+
+2026-11-10 连续收口 ORB 与 0029 时又踩四处，都属「状态看着对、底下不对」：
+
+1. **0029 与 0031 是同一类**：产物（`src/brain/work_navigation.py` 691 行）在分支 `codex/jarvis-e02-source-grounding-r1`，主分支完全没有；T5 报告全仓缺失，两张表却都标 frozen。合并归口缺失已出现**两个实例**，不再是偶发。
+2. **「未提交」不等于「没做」**：ORB-W8 工单本身要求「不提交 git」，执行端照做了；产物后来由别的提交带进 HEAD，但验收测试已过期——`fake_run_stage` 缺 `model` 参数、工具标记断言没跟上实现，跑出来 3 failed。修完 16 passed。**验收测试必须与实现同批更新**，否则「当时全绿」会随时间变成红。
+3. **「主脑代做一行」把 def 行挤掉了**：commit `1952160b` 想在上一个测试后追加新测试，结果替换了 `def test_text_receipt_requires_complete_work_order_boundary` 这一行、把原函数体留在原处，两个测试粘成一个。文件照样能跑、pytest 照样绿，结构已经坏了。改动测试文件时，插入点要选在**两个函数之间**，不要覆盖 def 行。
+4. **判据加「见 failed 就否决」会被二次误伤**：ORB-W7 的真实回执正文写着「修复前定向回归：3 failed」和「28 项既有债」，如果按「出现 failed 就不给过」判，会把干完的活第二次判成 blocked。文本回执里叙述的历史失败不能当本次失败，本次是否通过由 `exit_code` + 执行端 READY 声明决定。
+
+### L96 · r15/r16：噪声识别用「前缀 + 白名单」，并发因果只能「事后回读」，都别靠枚举
+
+2026-11-09 G-ORCH r15 第二轮收口时踩到的三处共性错误，都是「看着对、机制上不成立」：
+
+1. **枚举尾部必定追不上形态变化；"业务词表反向排除"又会吞掉真错误**：`_CYGWIN_NOISE` 原先逐条整行正则锚定 MSYS 报错，实测三种真实行里只有两种命中——`errno`、pid、`(12144)`、`CreateProcessW failed for '<path>'` 任一处变化就漏，一次 fork 抖动把整批 200 绿判成红。r15 先改成两层（`_MSYS_DIAG` 认前缀 + `_BIZ_FAIL` 做语义闸门），r15b 审计随即实测出另一头漏：`could not lock config file`、`bad object`、`index file corrupt`、`cannot lock ref`、`unable to write new index file`、`invalid path`、`error: …` 七例**带 `[main]` 前缀的业务失败**全被当噪声放行（fail-open）。r16 定稿为**正向白名单**：`_MSYS_DIAG` 只说明"来自 MSYS 运行时"，尾部必须完整命中 `_MSYS_PURE`（整行 `$` 锚定三种实测纯运行时形态）才算噪声，未识别尾部**一律判真错误**，`_BIZ_FAIL` 作双保险。r16 审计又实测到白名单**自己**留了后门：`child_copy` 分支写成 `copy failed(?:,.*)?`，逗号后任意文本都放行，`copy failed, authentication rejected` 不含任何业务词、直接被吞——白名单里的每一个 `.*` 都是新的 fail-open 入口，必须逐字段写死（r17 收紧为地址范围 / done N / windows pid N / Win32 error N）。教训：**黑名单排除**（判"不含业务词就放行"）在未知形态面前就是 fail-open；**白名单里带通配尾巴**等于半个黑名单，只有"白名单 + 逐字段 + 默认拒"才符合 fail-closed。
+2. **双采样只是异常检测；reflog 回读也不绑定写者，别自称 CAS**：锁内「前态 sha → 调 wt → 后态 sha」三档（ff / tree / wt_receipt）证明不了「**是本次**动的」——第三方在窗口内合入同一 source 时三档照样全绿。强因果理论上只能靠 `git update-ref <ref> <new> <old>` 的 old-value 原子绑定。r16 之前把「事后回读 reflog 的 `new` 那一跳 old == 锁内基线」记成 `cas`，属于**表述失真**：reflog 不记 invocation，第三方恰从同一基线推到同一候选时回读结果完全相同，且排除不了 ABA、日志截断/GC/`logAllRefUpdates=false`、wt 一次写多 ref、非 ff 无 actor。r16 收紧为 `causal='reflog-consistent'`（另加 selector 相邻性校验：缺失/跳号/中间行不可解析一律 `unknown`），真 CAS 列为「wt 不写 target」的架构变更待办。教训：**能证明"与基线衔接"和能证明"是本次写的"是两件事**，文档措辞必须跟着证据强度走。
+3. **「新增一个锁」不会让旧的不生效，只会让两个同时放行**：锁键从 16-hex 换 32-hex 时，单看「旧锁文件没人持有」没有意义；真正的危险是迁移期新旧进程**各持一把**同时进临界区。迁移必须双锁（先旧后新，第二把失败释放已持锁），旧进程全部退场后才撤旧锁。
+4. **junction 的危害是「可变域外目标」，不是「SHA 不稳定」**：目录指纹必须 `scandir` 先查 `FILE_ATTRIBUTE_REPARSE_POINT`、只记 `R` 不跟随；否则域外目录内容一变，摘要跟着变，取证污染成假变更。文件型符号链接同理：只证明 link 对象 + 指向文本，域外目标内容**明确不在**证明范围，不能宣称「已被覆盖」。
+
+### L97 · 0027 T2：全量门 1008 passed 不是稳定结果——preference 时间戳同毫秒 flake 必须先定性再表态
+
+2026-11-10 派 Codex 收尾 0027 T2 时，全量门 `pytest src` 在**同一份代码**上跑出「绿—红—红—绿」：
+
+- 11:07 首跑 `1008 passed, 122 subtests passed, 0 failed`，`PYTEST_EXIT_CODE=0`，据此提交 `c1a00752`、打 tag。
+- 11:25 提交后复跑 `1 failed, 1007 passed`，`PYTEST_EXIT_CODE=1`，失败项 `src/brain/memory/tests/test_preference_p2.py::TestPreferenceStore::test_upsert_idempotent`。
+- 11:30 第二轮复跑同一项再失败。
+- 11:35 第三轮才绿，tag 指向 `2894638f`。
+
+根因不是 0027 引入的回归，是**既有代码的时间戳精度缺陷**：`store.set()` 在同一毫秒内完成两次 upsert，`created_at` 与 `updated_at` 取到同一个 `2026-11-10T03:20:56.802+00:00`，`assertNotEqual(first.updated_at, second.updated_at)` 直接失败。执行端自己跑了 `preference-upsert-flake-probe.log`（10 次采样：8 过 2 挂，**失败率 20%**），并把「已知 preference flake」与「提交后抖动证据」一并补录进 `2894638f`——这是正确的处置：先定性，不硬挤。
+
+两条可复用的判断：
+
+1. **「全量门绿」只等于「这一轮绿」，不等于「代码正确」，也不等于「稳定」**。同一棵树 4 次运行 2 绿 2 红，就没资格用单次绿给结论背书；必须先用 probe 采样统计失败率，再决定是修、是隔离、还是明确接受。否则「提交后复跑变红」会被误读成新提交破坏了什么，倒过来逼人回滚正确的改动。
+2. **时间戳类断言天然对「同毫秒」免疫不了**。`updated_at` 要么在写入侧保证严格单调（`max(now, last + 1µs)`），要么断言侧放宽成 `>=`。用 `assertNotEqual` 比较两个「可能同秒同毫秒」的时间戳，是把时钟精度当成业务语义，属于结构性 flake。
+
+处置：本次不修（不属 0027 范围，改 `src/brain/memory` 会越界），登记为待立工单的技术债；`0027/T2` 的结论以 11:07 首跑 + 11:35 复跑**两次绿**为准，并保留 11:25/11:30 两次红与 probe 日志作为实测留痕。
+
+### L98 · 看门狗三件常被漏掉的事：自身窗口、子进程监护、脚本归档
+
+**背景**：0027 T2 收尾后，串行看门狗（PID 20328）在 2026-11-10T11:41:25 自动派发 0032（PID 25060），主脑复核时被问到「窗口隐藏了没」「用完删了没」。三处均不达标。
+
+**1. 看门狗自身窗口非零**
+- 现象：进程不可见，但 `python.exe` 是控制台子系统程序，`Start-Process -WindowStyle Hidden` 只是把 conhost 窗口设为不可见，不是不创建；启动瞬间仍可能有 conhost 一闪。
+- 关键区分：脚本里给**派出的子进程**加了 `creationflags=subprocess.CREATE_NO_WINDOW`（codex 侧是干净的），却**没有管它自己**。
+- 修法：看门狗自身必须用 `pythonw.exe`（无控制台子系统）启动，`-WindowStyle Hidden` 作为第二重保险。实测 `tools\python31313\pythonw.exe` 可用；`MainWindowHandle=0`、`MainWindowTitle` 为空即为零窗口的证据。
+- 判据：不要以「我没看到窗口」当结论，要看 `MainWindowHandle` 与进程名是否为 `pythonw`。
+
+**2. 派发即 return，子进程成孤儿**
+- 现象：`Get-CimInstance Win32_Process -Filter "ProcessId=25060"` → `ParentProcessId=20328`，而 20328 早已退出。0032 挂着跑，但**无监护、无回收、无完成通知**。
+- 根因：看门狗 `dispatch_0032()` 之后直接 `return`，把「派发」当成「完成」，实际只管到派出那一刻。
+- 修法：派发型看门狗与监护型看门狗分离——派发脚本派完即退（这是对的，不占资源），但**必须同时起一个只读监护进程**接管新 PID，等到 `final-message.json` 落盘才算闭环。
+
+**3. 一次性脚本从不归档**
+- 现象：`tasks/queue/` 堆了 19 个 `dispatch-wo-*-now.py`（2026-10-30 至 11-10），全部未跟踪（`??`），从未清理；本次两个同样滞留。
+- 根因：把「留痕」等同于「留在原地」，但未跟踪文件既不进 git 也不进证据目录，是纯垃圾。
+- 修法：一次性派发/看门狗脚本完成使命后移入 `tasks/queue/_done/<日期>/`，并在对应工单证据目录写 `dispatch-provenance.md` 记录触发链（脚本可丢，链路不可丢）。`_done/` 加入 `.gitignore`，避免下次 `git add .` 误收。
+
+**本次处置**：
+- `dispatch-0027-t2-closeout.py`、`watch-0027-then-dispatch-0032.py` → `tasks/queue/_done/20261110/`
+- 链路记录 → `data/evidence/wo-ultimaagent-20261110-0032/dispatch-provenance.md`
+- 新增 `watch-0032-completion.py`，以 `pythonw.exe` 起动（PID 968，`MainWindowHandle=0`），仅监视 25060，完成后自归档副本 + 写 DONE 标记
+
+### L99 · 未提交改动会被同仓并发 merge 清掉；SyntaxError 定位看括号闭合，不看报的行号
+
+1. r17 的 7 个文件改动落在主仓工作区却没能提交——主仓处于别人未完成的 merge（`MERGE_HEAD=43da3f01`、169 个他人已暂存），`git commit -- <paths>` 被 `fatal: cannot do a partial commit during a merge` 直接拒（rc=128）。下一轮再查，工作区已回到 r16：另一条 jarvis-e02 线的合并清理覆盖了未提交改动。**结论：未提交改动随时可能被同仓的 worktree/merge 操作冲掉**；两条硬规矩——要么立刻提交（主仓不可写时先提交到 detached worktree），要么把改动固化成可整序重放的补丁脚本（本轮靠 `%TEMP%\r17_*.py` 全序重放救回）。
+2. 补丁脚本自报 `ok bytes=124842` 只证明"字节数写对了"，不证明"能编译"。`doctor` 那段内层 dict 闭合写成 `),}`（缺尾逗号），`compile()` 报 `line 2045  'locks': {'dir': ...  invalid syntax. Perhaps you forgot a comma?`——报的是 dict **起始行**，真正的缺口在**内层 dict 的闭合行**（2051）。判断方法：`tokenize` 全过而 `compile` 失败 ⇒ 问题只在语句结构（逗号/括号/缩进配对），不在词法。
+3. 补丁脚本必须自带 `compile(src, path, "exec")` 自检后才落盘；只靠 `assert src.count(old)==1` 会漏掉这种"数量对、结构坏"的畸形。
+
+### L100 · 「声明过强」会让独立审计永远收敛不了；停手前必须重核阻塞状态
+
+1. **现象**：r17/r18 十轮独立审计，P0 从 4 条降到 1 条后就长期卡住，其中六轮全落在同一处（`cleanup` 构造点绑定 + 那个 20 行的 AST 遮蔽收集器）。每轮 Codex 都裁「补实现，不放宽文档」，照做之后它又指出「文档点名的分支还有一个没覆盖」。
+2. **根因在文档侧**：裁决书 §2.4 原文写的是「覆盖全部绑定形态」。Python 的本地绑定形态是开放集合（解构/星号/for/with/comprehension/形参/局部 def/class/import as/match 三种捕获/except/globals/setattr…），**「全部」这个词本身就是审计的反例生成器**。承诺超出实现能力后，只剩不停补实现去兑现一句自己加的修辞。
+3. **判据**：文档里出现「全部/所有/无条件/永远」，就是把验收标准交给对手去枚举。只写**可枚举清单 + 显式未覆盖项**，判据锚在清单上，不锚在绝对化措辞上。
+4. **停手判据（防无限循环）**：同一条 P0 连续两轮落在同一函数或同一句文档上，立刻二选一——收窄声明，或判定该层不可穷尽并显式登记未覆盖项。继续补实现只会延长链条，十轮里有六轮属于这一层，纯空转。
+5. **另一类空转**：把早前的阻塞状态当现行事实。`MERGE_HEAD=43da3f01` 的旧记录让「主仓不能提交」成了默认前提，实际它已在别处收尾（`HEAD` 由 `9ecea595`→`055e1611`、`MERGE_HEAD` 清空），我因此把 14 个提交压在 detached worktree 里空转数轮。**动手前用 `git rev-parse HEAD` 与 `git rev-parse -q --verify MERGE_HEAD` 现场重核，不引用旧快照。**
+6. **收口动作**：r17/r18 成果已挂具名分支 `gorch/r17-closeout`（`e7627b19`）并推送远端，tag `gorch-r17-audit-fix-20261110` 同步推送；第十轮 Codex 只读审计判「一致」，全量 226 passed。

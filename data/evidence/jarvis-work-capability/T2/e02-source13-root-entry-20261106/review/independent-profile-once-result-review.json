@@ -1,0 +1,367 @@
+{
+  "schema": 1,
+  "reviewer": "root-independent",
+  "scope": "e02-source13-profile-once-result",
+  "run_id": "6e8e644e-962a-4afe-83ed-e488b6da5fc1",
+  "result_manifest_sha256": "8b4be01051fa19d149d21706aeb342464e5ae958ae5356d962e6902e727e644f",
+  "entry_manifest_sha256": "8b63f148aa43f923b85ac5fa97a40a358e4eff5ab85e7adb2dde8f29951e542f",
+  "verdict": "PASS_FAILED_RESULT_PRESERVATION",
+  "execution_verdict": "FAIL",
+  "mechanical_verdict": "FAIL",
+  "artifact_delivery": "NOT_PRODUCED",
+  "acceptance_credit": false,
+  "E02": "NOT_PASSED",
+  "T2": "NOT_PASSED",
+  "runtime_authority": false,
+  "reviewer_tests_run": 0,
+  "reviewer_native_operations": 0,
+  "authorization": {
+    "question_id": "call_e2d3b965cd22479087e7a5b013e77e65",
+    "approval": "execution/scope-approval.json",
+    "approval_sha256": "f7f80a77ca0bc5c6a634d80ea06465a94a3b92cd77d7bf83e7d949e8db06119e",
+    "allocation": "execution/result-review-allocation.json",
+    "allocation_sha256": "1ca4312b31fe085d1e73c799be2be1be753dee20e76a926e6779cc6a80918aa6",
+    "reviewer_task": "/root/review_e02_profile_once_result",
+    "root_entry_limit": 1,
+    "actual_profile_limit": 1,
+    "result_review_limit": 1,
+    "root_entry_invocations": 1,
+    "profile_function_invocations": 1,
+    "result_reviews_consumed": 1,
+    "remaining_root_invocations": 0,
+    "remaining_profile_invocations": 0,
+    "remaining_result_reviews": 0,
+    "retry": 0,
+    "current_one_case_and_one_review_scope": "EXHAUSTED",
+    "next_runtime_authority": false,
+    "basis": [
+      "Scope approval binds the exact entry manifest and preparation review.",
+      "execution/root-invocation.json, root-launch.json and root-exit.json describe one root invocation; release/consumed.json records consumed=1, max_submissions=1 and retry=0.",
+      "The entry-grant binds the exact consumed and release file hashes. The saved worker trace enters PROFILE.run_profile once.",
+      "The only directory under runs is this run_id; its 12 retained files contain no reader-go or reader output. The invocation wrapper contains one root Popen, no retry loop, and exclusive creation guards.",
+      "The later result-review allocation records allocated=1, consumed=1 and remaining=0 for this reviewer."
+    ]
+  },
+  "evidence_integrity": {
+    "method": "Fresh read-only file hashing, byte-length checks, saved-record comparisons and static source inspection; no reviewed Python source was imported or executed.",
+    "result_manifest_hash_matches": true,
+    "result_files_rehashed": 36,
+    "result_file_size_mismatches": 0,
+    "result_file_sha256_mismatches": 0,
+    "entry_manifest_hash_matches": true,
+    "entry_bindings_rehashed": 38,
+    "entry_binding_sha256_mismatches": 0,
+    "base_profile_manifest_sha256": "09d20cb628ed1d01bf639a97782f71a7ddff468dbe460d08064d11c728e5e51e",
+    "base_profile_manifest_hash_matches": true,
+    "original_profile_sha256": "41361a399e1f8a8bf69b79514478fabd3e3931b00f5bc900c439cc99e02fb392",
+    "original_controller_sha256": "5e7a636c0e1f7330bf140fa212c2d51569b389aac93cb9b84840b51ba5ade2ea",
+    "dependency_source_checks": [
+      {
+        "path": "H:\\UltimaAI\\UltimaAgent\\tools\\venv-openjarvis\\Lib\\site-packages\\ollama\\__init__.py",
+        "sha256": "e0d91852cb2a18279e63a42c7b3d90eedb238aa1a16a658b8a758c45e5bc9279",
+        "matches_base_manifest": true
+      },
+      {
+        "path": "H:\\UltimaAI\\UltimaAgent\\tools\\venv-openjarvis\\Lib\\site-packages\\ollama\\_client.py",
+        "sha256": "0fc253f255e2ffb9f6e7135848abef48593d53318d84fae4b65d9da2237f7065",
+        "matches_base_manifest": true
+      }
+    ],
+    "limits": "The outer historical manifest was rehashed as a result-manifest member. This review did not re-audit all historical archive semantics or all 1461 base dependencies. Current platform.py was read to corroborate the retained traceback, not claimed as an independently pinned base-manifest member."
+  },
+  "execution": {
+    "exit_code": 1,
+    "root_elapsed_seconds": 9.0441578,
+    "elapsed_basis": "Recomputed (terminal.observed_at_ns - terminal.origin_ns) / 1e9; agrees with execution/root-result-readback.json.",
+    "terminal_error": {
+      "type": "ValueError",
+      "message": "Worker exited before complete independent progress"
+    },
+    "root_stdout_and_terminal_status_agree": true,
+    "root_stdout_stderr_hashes_match_exit_record": true,
+    "reader_invocations": 0,
+    "missing_artifacts": [
+      "runs/6e8e644e-962a-4afe-83ed-e488b6da5fc1/worker/case/service-first-result.json",
+      "runs/6e8e644e-962a-4afe-83ed-e488b6da5fc1/worker/case/profile-first-result.json",
+      "runs/6e8e644e-962a-4afe-83ed-e488b6da5fc1/control/reader-go.json",
+      "research.md anywhere under this run"
+    ],
+    "artifact_absence_basis": "Fresh read-only inventory found the same 12 run files covered by the result manifest, and no files under the worker case or reader directory.",
+    "conclusion": "One authorized root invocation reached the profile function but failed while entering its private scope. No research submission or delivered research artifact followed."
+  },
+  "root_cause": {
+    "classification": "IMPORT_TIME_WORKER_AUDIT_DENIAL",
+    "exception": "ValueError: Unexpected audited operation",
+    "audited_operation": "socket.gethostname",
+    "chain": [
+      "code/entry.py:174 -> PROFILE.run_profile",
+      "H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\e02-source13-profile-binding-20261106\\profile-preparation\\profile.py:2073 -> private_scope.__enter__",
+      "H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\e02-source13-profile-binding-20261106\\profile-preparation\\profile.py:498 -> own_ollama_types.__enter__",
+      "H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\e02-source13-profile-binding-20261106\\profile-preparation\\profile.py:243 -> importlib.import_module('ollama')",
+      "ollama/__init__.py:68 -> module default Client()",
+      "ollama/_client.py:136 and :108 -> User-Agent evaluation through platform.machine()",
+      "platform.py:1110 -> uname(); :987-990 -> normal Windows os.uname absence fallback; :698 -> socket.gethostname()",
+      "H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\e02-source13-profile-binding-20261106\\profile-preparation\\profile.py:188-191 -> WorkerAudit rejects socket.* except explicitly scoped getaddrinfo"
+    ],
+    "primary_trace": {
+      "path": "runs/6e8e644e-962a-4afe-83ed-e488b6da5fc1/process/worker.stderr",
+      "sha256": "c0ebfa0778bfcae2a79360c248d9bda4202b9619f757dfc3656505b894d14296",
+      "relevant_lines": [
+        16,
+        20,
+        23,
+        28,
+        34,
+        45,
+        50,
+        53,
+        56,
+        58,
+        59,
+        61,
+        62,
+        63
+      ]
+    },
+    "exact_source_evidence": [
+      {
+        "path": "H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\e02-source13-profile-binding-20261106\\profile-preparation\\profile.py",
+        "lines": "179-191",
+        "claim": "WorkerAudit is enabled and refuses socket.gethostname; the only socket exception is _DNS-scoped getaddrinfo for raw.githubusercontent.com."
+      },
+      {
+        "path": "H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\e02-source13-profile-binding-20261106\\profile-preparation\\profile.py",
+        "lines": "194-265",
+        "claim": "own_ollama_types imports ollama at line 243 before it can yield the eager owner."
+      },
+      {
+        "path": "H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\e02-source13-profile-binding-20261106\\profile-preparation\\profile.py",
+        "lines": "475-510",
+        "claim": "The audit is installed at line 490; eager import at line 498 precedes adapter and workload owner setup."
+      },
+      {
+        "path": "H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\e02-source13-profile-binding-20261106\\profile-preparation\\profile.py",
+        "lines": "2067-2119",
+        "claim": "The with-entry fails before scope is assigned. Line 2087 immediately rethrows when scope is None, so selected_counters and profile-first-result writing are not reached."
+      },
+      {
+        "path": "H:\\UltimaAI\\UltimaAgent\\tools\\venv-openjarvis\\Lib\\site-packages\\ollama\\_client.py",
+        "lines": "102-122",
+        "claim": "User-Agent platform evaluation at line 108 precedes the inner httpx client constructor at line 116."
+      },
+      {
+        "path": "H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\e02-source13-root-entry-20261106\\code\\entry.py",
+        "lines": "73-85, 114-157, 166-175",
+        "claim": "Root waits for complete service/profile progress, reports the observed early exit as FAIL, and still runs cleanup in finally."
+      }
+    ],
+    "handoff_fix_assessment": "The retained worker HELLO, qualified native grant and actual run_profile traceback show that worker launch/admission passed the pending-handoff checks in this case. The concrete failure occurs in the unchanged original profile import path, not at a cleanup-reservation or handoff assertion. This single early failure does not establish that every later handoff, reader launch or deadline path is correct.",
+    "cold_start_repair_assessment": "No proposed cold-start repair was executed or validated by this review. Removing or changing this failure would not establish that the remaining profile, reader or research path succeeds."
+  },
+  "cleanup": {
+    "saved_terminal_status": "PASS",
+    "raw_cleanup_status": "PASS",
+    "owned_worker_members": [
+      {
+        "pid": 38156,
+        "original_identity_matches_owned_tree": true,
+        "absent_in_raw_cleanup": true,
+        "absent_in_postcheck": true
+      },
+      {
+        "pid": 32340,
+        "original_identity_matches_owned_tree": true,
+        "absent_in_raw_cleanup": true,
+        "absent_in_postcheck": true
+      }
+    ],
+    "observed_console": {
+      "pid": 24340,
+      "authority": "observe-only",
+      "original_identity_matches_owned_tree": true,
+      "absent_in_raw_cleanup": true,
+      "absent_in_postcheck": true
+    },
+    "root": {
+      "pid": 33404,
+      "identity_source": "release/consumed.json",
+      "original_identity_matches_postcheck": true,
+      "absent_in_postcheck": true
+    },
+    "logs_closed": true,
+    "logs_closed_basis": "The terminal cleanup receipt includes logs_closed=true; code/native_observation.py:38-49 adds it from owned.logs after original Owned.cleanup. The raw process/cleanup.json does not itself contain logs_closed.",
+    "unregistered_launch_possible_in_terminal": false,
+    "saved_cleanup_errors": [],
+    "port_probe": "NOT_APPLICABLE_NO_LISTENER",
+    "port_limit": "port_closed=true in this no-listener cleanup is not a probe of the protected Ollama listener or evidence that port 11434 was closed.",
+    "evidence": [
+      "runs/6e8e644e-962a-4afe-83ed-e488b6da5fc1/process/owned-tree.json",
+      "runs/6e8e644e-962a-4afe-83ed-e488b6da5fc1/process/cleanup.json",
+      "runs/6e8e644e-962a-4afe-83ed-e488b6da5fc1/control/terminal.json",
+      "execution/postcheck.json",
+      "H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\e02-source13-root-entry-20261106\\code\\native_observation.py:38-49,200-203"
+    ],
+    "conclusion": "Saved receipts consistently establish absence of the original two worker identities and observe-only console at cleanup, followed by absence of those three plus the original root identity at the later postcheck.",
+    "limits": "Only the retained point-in-time observations were reviewed. No live native/process query, continuous liveness observation, arbitrary unknown-tree guarantee or future absence claim was made."
+  },
+  "protected": {
+    "count": 7,
+    "pids": [
+      5708,
+      17088,
+      17136,
+      17916,
+      36176,
+      36004,
+      35288
+    ],
+    "compared_fields": [
+      "pid",
+      "created_filetime",
+      "exe",
+      "parent_pid",
+      "command_line_sha256"
+    ],
+    "baseline_matches_before": true,
+    "baseline_matches_final": true,
+    "baseline_matches_preflight_v2": true,
+    "baseline_matches_postcheck": true,
+    "before_observed_at_ns": 288919722885300,
+    "final_observed_at_ns": 288927424832400,
+    "postcheck_recorded_at": "2026-11-06T19:00:14.239312+08:00",
+    "evidence": [
+      "inputs/protected-baseline.json",
+      "runs/6e8e644e-962a-4afe-83ed-e488b6da5fc1/control/protected-before.json",
+      "runs/6e8e644e-962a-4afe-83ed-e488b6da5fc1/control/protected-final.json",
+      "execution/preflight-v2.json",
+      "execution/postcheck.json"
+    ],
+    "conclusion": "All seven saved identities exactly match the baseline on the five listed fields at each recorded comparison.",
+    "limits": "Identity preservation at these observations does not measure continuous availability, intervening behavior, audio activity, functional service health or unrelated global activity."
+  },
+  "counters_basis": {
+    "method": "Failure traceback plus reviewed static control flow, not a completed profile counter receipt.",
+    "structured_profile_counters_produced": false,
+    "profile_first_result_produced": false,
+    "sdk_research_submission_reached": false,
+    "model_inference_path_reached": false,
+    "eager_inner_httpx_client_construction_reached": false,
+    "actual_model_calls_observed": 0,
+    "model_zero_interpretation": "No model invocation is observed in this failed scoped path; workload inference code is later than the failed with-entry. This is not an OS-wide or external-service model-call measurement.",
+    "HTTP_and_11434_interpretation": "The cited failure precedes the eager inner client constructor and workload HTTP/inference paths. No complete profile HTTP/11434 counter receipt exists; no packet capture or listener probe was performed by this reviewer.",
+    "native_network_packets": null,
+    "native_DNS_calls": null,
+    "global_unrelated_activity": null,
+    "intended_scope": {
+      "inference_allowed": 0,
+      "HTTP_allowed": 0,
+      "port11434_allowed": 0,
+      "possible_normal_SSRF_DNS_host": "raw.githubusercontent.com",
+      "UI_allowed": 0,
+      "audio_allowed": 0,
+      "services_allowed": 0
+    },
+    "limits": "socket.gethostname is the denied import-time operation; it is not evidence of an HTTP request or proof of native DNS packets. No universal inactivity or model-capability conclusion follows."
+  },
+  "preflight_assessment": {
+    "initial_status": "FAIL_PREFLIGHT",
+    "diagnosis": "The original preflight added exact equality between CIM CreationFileTime and native created_filetime. Its retained source shows this assertion at line 43. The saved diagnosis reports native identity, parent and command hash matching for all seven identities, while only exact CIM creation equality is false.",
+    "correction": "verification/profile-once-preflight.py:24,38 uses the existing pinned controller.snapshot_identity_matches helper; controller.py:332-335 requires equal PID and creation-time difference <=20 ticks. Exact native identity, executable, parent and command-hash comparisons remain at preflight lines 35-37.",
+    "corrected_status": "PASS_POINT_IN_TIME_PREFLIGHT",
+    "sealed_source_unchanged": true,
+    "initial_profile_runs": 0,
+    "preflight_is_additional_profile_execution": false,
+    "production_criterion_relaxed": false,
+    "evidence": [
+      "execution/preflight.json",
+      "execution/preflight-original-source.py:38-44",
+      "execution/preflight-protected-diagnosis.json",
+      "execution/preflight-v2.json",
+      "verification/profile-once-preflight.py:24,35-39",
+      "H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\e01-source13-round3-20261106\\code\\controller.py:332-335"
+    ],
+    "limits": "The saved diagnosis does not publish the numerical CIM timestamp deltas. This review verifies the corrected predicate and retained passing receipt, without making a new native query. The bookkeeping correction is outside the sealed 38-file entry binding."
+  },
+  "findings": [
+    {
+      "id": "RESULT-1",
+      "severity": "IMPORTANT",
+      "effect": "Execution and artifact delivery remain failed; this does not block accurate preservation of that failure.",
+      "evidence": [
+        "runs/6e8e644e-962a-4afe-83ed-e488b6da5fc1/process/worker.stderr:23-63",
+        "H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\e02-source13-profile-binding-20261106\\profile-preparation\\profile.py:188-191,498,2073,2087",
+        "execution/root-exit.json",
+        "runs/6e8e644e-962a-4afe-83ed-e488b6da5fc1/control/terminal.json"
+      ],
+      "conclusion": "Cold Ollama import triggers the existing socket audit before the profile workload; the root correctly retains FAIL."
+    },
+    {
+      "id": "RESULT-2",
+      "severity": "LIMITATION",
+      "effect": "No complete structured profile counters, research artifact, reader result or model-capability result can be credited.",
+      "evidence": [
+        "H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\e02-source13-profile-binding-20261106\\profile-preparation\\profile.py:2067-2119",
+        "execution/root-result-readback.json",
+        "Fresh inventory of all 12 files in the sole run directory"
+      ],
+      "conclusion": "Scope remains None and the exception rethrows before counter/result emission; zero-observed model activity is trace-derived and native packet/DNS activity stays unmeasured."
+    },
+    {
+      "id": "RESULT-3",
+      "severity": "INFORMATIONAL",
+      "effect": "The initial preflight failure is preserved and its bookkeeping correction does not change sealed production criteria or consume another profile run.",
+      "evidence": [
+        "execution/preflight-original-source.py:43",
+        "execution/preflight-protected-diagnosis.json",
+        "verification/profile-once-preflight.py:24,35-39",
+        "H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\e01-source13-round3-20261106\\code\\controller.py:332-335",
+        "38/38 entry binding hashes matched"
+      ],
+      "conclusion": "The correction reuses the already pinned CIM precision predicate while retaining exact native identity comparisons."
+    },
+    {
+      "id": "RESULT-4",
+      "severity": "LIMITATION",
+      "effect": "Cleanup and protected-identity conclusions are limited to retained observation times.",
+      "evidence": [
+        "runs/6e8e644e-962a-4afe-83ed-e488b6da5fc1/process/cleanup.json",
+        "runs/6e8e644e-962a-4afe-83ed-e488b6da5fc1/control/terminal.json",
+        "runs/6e8e644e-962a-4afe-83ed-e488b6da5fc1/control/protected-before.json",
+        "runs/6e8e644e-962a-4afe-83ed-e488b6da5fc1/control/protected-final.json",
+        "execution/postcheck.json"
+      ],
+      "conclusion": "The saved cleanup and identity records are internally consistent; they do not prove continuous service health or global inactivity."
+    },
+    {
+      "id": "RESULT-5",
+      "severity": "INFORMATIONAL",
+      "effect": "No retry or additional result-review authority remains.",
+      "evidence": [
+        "release/consumed.json",
+        "execution/root-invocation.json",
+        "verification/execute-profile-once.py:11,48-60",
+        "execution/result-review-allocation.json"
+      ],
+      "conclusion": "The single invocation and single review allocations are consumed. The earlier 11:00:14 UTC root-result-readback PENDING/remaining_result_reviews=1 is a historical snapshot preceding the 11:00:41 UTC allocation; it is not contradictory or continuing authority."
+    }
+  ],
+  "declined_to_judge": [
+    "Whether any unexecuted cold-import repair or later profile/reader path would succeed.",
+    "Actual model capability, research quality, usable research delivery, E02 acceptance or T2 acceptance.",
+    "Native packets, OS DNS totals, OS-wide or unrelated model/network/UI/audio/service activity.",
+    "Current live protected-process state, continuous liveness, acoustic behavior or functional service health.",
+    "Universal cleanup guarantees under arbitrary OS, filesystem, unknown-tree or registration failures.",
+    "Full historical archive semantics and the meaning of older acceptance claims beyond the files needed for this failed-result review."
+  ],
+  "review_effect": "Approves preservation and interpretation of one failed execution only. It does not accept the implementation or issue runtime authority.",
+  "review_operations": {
+    "file_reads_and_hashes_only_except_report": true,
+    "reviewed_source_imports_or_execution": 0,
+    "profile_or_model_runs": 0,
+    "native_process_or_service_queries": 0,
+    "network_UI_audio_actions": 0,
+    "git_mutations": 0,
+    "subagents_spawned": 0,
+    "only_written_file": "H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\e02-source13-root-entry-20261106\\review\\independent-profile-once-result-review.json"
+  }
+}

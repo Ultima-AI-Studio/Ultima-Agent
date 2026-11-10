@@ -1,0 +1,32 @@
+# E03 source13目标变化负例现场结果
+
+原工单wo-ultimaagent-20261101-0021，候选269aca511d88412dbb9c15d23911138469a37aa2。用户明确授权一例负例及一次只读独立结果复核。当前8B模型保持qwen3-8b-uncensored，未使用其他权重。
+
+本次现场负例机械检查、行为/目标/空产物/清理/环境保存证据及独立结果复核均PASS，0待修项。主线程已依据独审另存登记：当前候选E03三正例3/3加本负例1/1，E03固定样本组通过；T2仍未通过。原terminal保持PENDING_FACT_REVIEW与acceptance_credit=false，未篡改为PASS。
+
+现场为一个e03-negative、两个顺序场景，没有重试。北京时间12:19:35开始按钮交接在显示约11秒后记录ACCEPTED；12:20:08.522786写出终态。focus场景将焦点移至另一个自有测试窗口，真实产品validate_work_target以foreground=False重新读取原绑定窗口和原选区；selection场景改变原选区后调用真实replace_selection，因重新读回的选区已改变而报Selection target stale or unauthorized。两次校验区间上界距原proof分别28.063229秒、33.776601秒，60秒proof/120秒authority未放宽。
+
+两个窗口的文字与身份前后保持，mutation_sends=0、native_write_attempts=0、产物文件集合为空。工作CLI0、模型请求0、音频操作0；没有启动隔离Agent服务器。此处0模型请求指本次已审负例代码路径，不推定共享机器的原生总推理活动；原生总计数仍未知。
+
+focus场景仅证明产品重新观察原绑定目标，不尝试或证明焦点丢失后的完整替换链。契约允许重新观察或明确停止；selection场景证明目标已变时拒写。两者不表示任意应用或开放任务已验收。
+
+10个本例owned/辅助进程身份在清理收据中均消失；北京时间12:22:03主线程只读后查再次确认10身份消失、7保护身份匹配、Ollama版本0.32.15及当前8B摘要匹配，官方语音ready/fresh。未做现场音频功能重测。闭合审计PASS，发送进程来源未识别，不对输入事件来源作推断。旧round3后环境FAIL及用户手动恢复记录均保持，不宣称旧PID15264持续存活。
+
+证据根：data/evidence/jarvis-work-capability/T2/e03-source13-negative-20261106。
+- 准备manifest80文件：b98dcf3ff92f623238fd15cea6c7929875bba056dee3dae74245e89b44a7266f。
+- 结果manifest61文件：f2e78b61a40f9f185ce8668568422e11083a44399d73710628df3cb7f1ed70e8。
+- 原terminal：02416c8a60b536fc61d5e2f60de40c44e62a47b8439838d7b43a5dc621d80a07。
+- negative-evidence：bda1c75259bb895ab979d35bcc5ef77844ffcc29b883b9bb5e91e15522659816。
+- 主线程内容读回与保护后查分别为verification/result-content-readback.json、verification/result-protected-readback.json。
+
+本次没有新增代码、测试或模型推理；255离线准备检查和485/8历史回归不表述为现场后的新重跑。此前提交检查中原始RED日志、diff及继承EOF空行触发严格全量格式警告，原字节保留，新增代码行和文档的定点格式检查通过；不把全量格式检查表述为PASS。
+
+下一步只读发现已记录verification/next-e01-readiness.md：本候选E01需要新鲜三轮真实8B文件交付回归，固定材料保留；旧候选通过不能替代。先准备E01 round1的隔离入口和独立审查，再按具体提案分配现场例；原CLI/SDK/controller时限保留，不能直接使用旧harness的900秒等待。当前未创建E01 authority或实际用例，也未通过E02/T2/T3—T5/Owner。
+
+本次报告与下一步E01计划同步UltimaDocs，本地结果tag为`ultimaagent-t2-e03-source13-negative-result-20261106`，实际commit及字节读回见verification/result-local-checkpoint.json；远端推送此前被自动审批以blocked by policy拦截，本轮未换通道重试，不声称远端已同步。
+
+独立结果reviewer：`/root/review_e03_source13_negative_result`；完整回执SHA `a4f5efc616ea83ab30c5752bd9fae914dda684a8222b7a1c3a9a630d4979b6c5`。独审独立核对准备80/结果61文件、57源码/7依赖/1346SDK、九前轮原件及56项结果交叉检查，全部通过。事实字段明确NOT_APPLICABLE，不预填生成事实PASS。九项declined范围全部作为限制接受，见result-review-disposition.json；没有新的现场权限或目标完成。
+
+结果登记SHA `3a45e5c46fdf696f357043c9a662b72bc6605486dd28e22feaf7c86316457eb8`，累计实际E03四例、CLI3、完成推理事件9；本例CLI/模型均0。根线程转存reviewer JSON时曾因JavaScript Number精度把一个FILETIME整数序列化错误，已按reviewer原文的精确整数用Python恢复；错误副本与纠正收据都保留，实际原件和独审判断未变，未追加审查。
+
+下一步计划：docs/plans/jarvis-work-e01-source13-round1-plan-20261106.md。这次一例负例与一次结果复核额度已全部使用；下一步仅继续E01离线准备，没有E01实际授权。

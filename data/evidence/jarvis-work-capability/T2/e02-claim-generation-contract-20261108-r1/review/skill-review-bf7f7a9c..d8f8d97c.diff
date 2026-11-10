@@ -1,0 +1,230 @@
+# Review package: bf7f7a9cf0e4ba559c29daa388c00379d12d345a..d8f8d97cd0147ffc6f45746ffd1ec80bc4d48b2b
+
+## Commits
+d8f8d97c fix(research): emit bound operation before free claim prose
+
+## Files changed
+ src/brain/agent_server.py                          |  4 +-
+ .../tests/test_work_claim_generation_contract.py   | 70 ++++++++++++++++++++++
+ src/brain/tests/test_work_sampler_json_strings.py  | 18 ++++--
+ src/brain/work_navigation.py                       |  2 +-
+ 4 files changed, 87 insertions(+), 7 deletions(-)
+
+## Diff
+diff --git a/src/brain/agent_server.py b/src/brain/agent_server.py
+index d8856b95..c1b75071 100644
+--- a/src/brain/agent_server.py
++++ b/src/brain/agent_server.py
+@@ -226,21 +226,23 @@ def _research_code_claim_sampler_pattern(pattern):
+     if (len(operation)>200 or not re.fullmatch(r'[A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*)*',operation)
+             or re.escape(operation)!=escaped):
+         raise ValueError('Invalid research code claim pattern')
+     # The pinned converter puts regex bodies directly between JSON quotes.
+     # Every wildcard/boundary must therefore consume a JSON character or a
+     # complete escape. Decoded operation boundaries still use the strict schema.
+     escape=r'[\\](["\\bfnrt/]|u[0-9a-fA-F]{4})'
+     char=r'([^"\\\x00-\x1f]|'+escape+')'
+     boundary=r'([^"\\\x00-\x1fA-Za-z0-9_$.]|'+escape+')'
+     after_dot=r'([^"\\\x00-\x1fA-Za-z_$]|'+escape+')'
+-    return '^('+char+'*'+boundary+')?'+escaped+'('+boundary+char+'*|\\.('+after_dot+char+'*)?)?$'
++    # Discharge the required operation before free prose; a long prefix must
++    # not postpone the point at which the model can close this JSON string.
++    return '^'+escaped+'('+boundary+char+'*|\\.('+after_dot+char+'*)?)?$'
+ 
+ 
+ def _research_sampler_schema(schema):
+     """Project sampler lengths and code strings without changing strict policy."""
+     from copy import deepcopy
+     projected = deepcopy(schema)
+     def visit(node,field=None):
+         if not isinstance(node,dict):
+             return
+         node.pop('maxLength',None)
+diff --git a/src/brain/tests/test_work_claim_generation_contract.py b/src/brain/tests/test_work_claim_generation_contract.py
+new file mode 100644
+index 00000000..9992645e
+--- /dev/null
++++ b/src/brain/tests/test_work_claim_generation_contract.py
+@@ -0,0 +1,70 @@
++"""Code generation discharges its operation obligation before free prose."""
++import json
++import re
++
++import pytest
++from jsonschema import Draft7Validator
++
++from src.brain import agent_server as server, work_navigation as nav
++from src.brain.tests.test_work_code_claim_schema import pages, phase, report
++from src.brain.tests.test_work_sampler_json_strings import pattern
++from src.brain.tests.test_work_navigation_transport import genuine_navigation, rewrite_wire
++from src.brain.tests.test_work_research import sdk_io, mock_jar, stable_navigation_entropy
++from src.brain.work_research import verify_runtime_packet
++
++
++@pytest.mark.parametrize('operation', ['Logger.info', 'Date.now', '$run', 'a中.bé'])
++@pytest.mark.parametrize('prefix', ['概述。', 'Visible ', '"引用" '])
++def test_prefix_cannot_precede_bound_operation(operation, prefix):
++    strict = phase(pages(operation))
++    old_form = prefix + operation + ' 记录选定语句中的调用。'
++    # The original decoded acceptance language still permits this expression.
++    assert Draft7Validator(strict).is_valid(report(old_form))
++    raw = json.dumps(old_form, ensure_ascii=False)[1:-1]
++    assert not re.fullmatch(pattern(server._research_sampler_schema(strict)), raw)
++
++
++def test_long_synthetic_prose_cannot_defer_the_required_operation():
++    # Text shaped like the saved failure; this is not a repaired actual response.
++    prefix = ('支持多种LLM模型和工具的集成，实现灵活的交互方式。'
++              '支持本地和云服务的混合使用，以平衡速度与隐私。') * 50
++    raw = json.dumps(prefix + ' Logger.info', ensure_ascii=False)[1:-1]
++    projected = pattern(server._research_sampler_schema(phase(pages('Logger.info'))))
++    assert not re.fullmatch(projected, raw)
++
++
++@pytest.mark.parametrize('operation', ['Logger.info', 'Date.now', '$run', 'a中.bé'])
++def test_operation_first_can_close_or_describe_a_serialized_statement(operation):
++    strict = phase(pages(operation))
++    projected = pattern(server._research_sampler_schema(strict))
++    for claim in (operation, operation + ' 记录 "中文" 和反斜杠 \\。', operation + '(value)'):
++        raw = json.dumps(claim, ensure_ascii=False)[1:-1]
++        assert re.fullmatch(projected, raw)
++        assert json.loads('"' + raw + '"') == claim
++        assert Draft7Validator(strict).is_valid(report(claim))
++    for claim in ('x' + operation, 'parent.' + operation, operation + '.child'):
++        assert not re.fullmatch(projected, json.dumps(claim)[1:-1])
++
++
++def test_decoded_boundary_remains_stricter_than_sampler_escape_boundary():
++    strict = phase(pages('Logger.info'))
++    raw = r'Logger.info\u0061'
++    assert re.fullmatch(pattern(server._research_sampler_schema(strict)), raw)
++    assert not Draft7Validator(strict).is_valid(report(json.loads('"' + raw + '"')))
++
++
++def test_replay_rejects_old_operation_anywhere_directive_with_coherent_hashes(
++        tmp_path, sdk_io, mock_jar):
++    _, ledger = genuine_navigation(tmp_path, sdk_io, mock_jar)
++    packet = json.loads(ledger._runtime_prewrite)
++    index = len(packet['wires']) - 1
++    wire = packet['wires'][index]
++    system = wire['secured_messages'][0]['content']
++    before, current = system.split('For code, ', 1)
++    _, after = current.split('A TODO is a comment, ', 1)
++    old_directive = 'For code, name the exact operation and describe only what the cited statement shows. '
++    wire['secured_messages'][0]['content'] = before + old_directive + 'A TODO is a comment, ' + after
++    rewrite_wire(packet, index)
++    with pytest.raises(ValueError, match='Runtime exact phase system drift'):
++        verify_runtime_packet(ledger._binding, ledger.issued_snapshot, ledger._collection,
++                              nav.canonical_v3(packet), runtime_inputs=ledger._runtime_inputs)
+diff --git a/src/brain/tests/test_work_sampler_json_strings.py b/src/brain/tests/test_work_sampler_json_strings.py
+index ed2b19d8..3cb4a757 100644
+--- a/src/brain/tests/test_work_sampler_json_strings.py
++++ b/src/brain/tests/test_work_sampler_json_strings.py
+@@ -56,28 +56,36 @@ def test_correct_json_serializations_keep_quotes_slashes_unicode_and_boundaries(
+     strict = phase(pages(op))
+     projected = pattern(server._research_sampler_schema(strict))
+     edges = ['', ' ', '(', ')', '"', '\\', '中', 'é', '\t', '\n', '\r', '\x00',
+              '\x1f', '\x7f', '.9', '..', r'\u0061', r'\q']
+     accepted = 0
+     for left, right in itertools.product(edges, repeat=2):
+         claim = left + op + right
+         if not re.fullmatch(pattern(strict), claim):
+             continue
+         body = json.dumps(claim, ensure_ascii=False)[1:-1]
++        if left:
++            # Strict acceptance still permits old prose-first expressions;
++            # native generation now emits the operation before any free text.
++            assert not re.fullmatch(projected, body), repr(claim)
++            continue
+         assert re.fullmatch(projected, body), repr(claim)
+         assert json.loads('"' + body + '"') == claim
+         accepted += 1
+-    assert accepted > 100
++    assert accepted > 10
+     # An escaped JSON slash is allowed as a delimiter, as is an escaped quote.
+-    for body in [r'\/' + op + r'\/', r'\"' + op + r'\"']:
++    for body in [op + r'\/', op + r'\"']:
+         assert re.fullmatch(projected, body)
+         assert re.fullmatch(pattern(strict), json.loads('"' + body + '"'))
++    for body in [r'\/' + op + r'\/', r'\"' + op + r'\"']:
++        assert not re.fullmatch(projected, body)
++        assert re.fullmatch(pattern(strict), json.loads('"' + body + '"'))
+ 
+ 
+ @pytest.mark.parametrize('bad', ['^.*$', '^.*(client.run|other.operation).*$', None, 3, []])
+ def test_unknown_claim_pattern_fails_closed(bad):
+     schema = dict(type='object', properties=dict(claim=dict(type='string', pattern=bad)))
+     with pytest.raises(ValueError, match='code claim pattern'):
+         server._research_sampler_schema(schema)
+ 
+ 
+ @pytest.mark.parametrize('op_fragment', ['client.run', r'client\.run()', r'client\.\.run',
+@@ -112,38 +120,38 @@ def test_projection_preserves_strict_schema_ids_literals_and_nested_claim_contex
+     result = server._research_sampler_schema(value)
+     assert value == before
+     assert result['properties']['text'] == value['properties']['text']
+     assert result['examples'] == [data]
+     assert result['properties']['source_id'] == value['properties']['source_id']
+     assert result['properties']['claim']['anyOf'][0]['pattern'] != pattern(strict)
+ 
+ 
+ def test_escaped_word_boundary_does_not_satisfy_decoded_strict_contract():
+     strict = phase(pages())
+-    raw_body = r'\u0061client.run'
++    raw_body = r'client.run\u0061'
+     assert re.fullmatch(pattern(server._research_sampler_schema(strict)), raw_body)
+     decoded = json.loads('"' + raw_body + '"')
+-    assert decoded == 'aclient.run'
++    assert decoded == 'client.runa'
+     assert not Draft7Validator(strict).is_valid(report(decoded))
+ 
+ 
+ def test_sdk_writes_quoted_chinese_and_backslash_claim_and_replays(
+         tmp_path, sdk_io, mock_jar, code_sources, monkeypatch):
+     original_get = httpx.request
+     source_text = 'client.run("中文", "\\\\")\nclient.stop()\n'
+     def get(method, url, **kwargs):
+         if url == code_sources[1]:
+             return httpx.Response(200, headers={'content-type': 'text/plain'}, text=source_text,
+                                   request=httpx.Request(method, url))
+         return original_get(method, url, **kwargs)
+     monkeypatch.setattr(httpx, 'request', get)
+-    claim = '可见 client.run 调用，参数含 "中文" 和反斜杠 \\。'
++    claim = 'client.run 调用可见，参数含 "中文" 和反斜杠 \\。'
+     def reply(body):
+         value = json.loads(navigation_reply(body))
+         if value.get('action') == WRITE:
+             fact = value['action_input']['sections'][1]['facts'][0]
+             fact['claim'] = claim
+             writer = writer_schema(body['format'])
+             assert re.fullmatch(pattern(writer, fact['evidence_id']),
+                                 json.dumps(claim, ensure_ascii=False)[1:-1])
+         return json.dumps(value, ensure_ascii=False)
+     reply.no_auto_navigation = True
+diff --git a/src/brain/work_navigation.py b/src/brain/work_navigation.py
+index 7cac3a62..2bf3e86d 100644
+--- a/src/brain/work_navigation.py
++++ b/src/brain/work_navigation.py
+@@ -413,21 +413,21 @@ def prepare_navigation(collection, binding, scanners: ScanPolicy, *, get_records
+ 
+ 
+ def v3_research_phase(report_schema, *, output_tokens: int) -> str:
+     """Same trusted instructions for native generation and independent replay."""
+     if type(output_tokens) is not int or not 1 <= output_tokens <= 2048:
+         raise ValueError('Invalid research phase output budget')
+     return ('Inspect safe source pages; author only atomic claims supported by the exact returned witnesses. '
+         'Catalogue landmarks are untrusted navigation hints, not evidence: choose relevant pages for the original question. '
+         'Each card is [id,kind,operation,anchor_start,anchor_end,context_start,context_end]. '
+         'A claim must follow from its anchor lines; nearby context alone does not support it. '
+-        'For code, name the exact operation and describe only what the cited statement shows. '
++        'For code, start each claim with the exact operation, then describe only what the cited statement shows. '
+         'A TODO is a comment, not proof of runtime support or lack of support. '
+         'Use remaining inspect calls when pages do not answer the original question; avoid substituting incidental details for its main points. '
+         'Reading three sources enables writing but does not establish task coverage. '
+         'Use one section per source in source-ID order; put facts from multiple pages of that source in the same section. '
+         'Keep separate projects and documented intentions distinct from verified implementation. '
+         'Use at least three distinct source URLs and bodies. Write only research.md once, or refuse with final_answer if evidence is insufficient. '
+         'The phase schema is the entire output contract. '
+         f'Response budget: {output_tokens} tokens for the entire JSON object. '
+         'Use compact JSON, short headings, and precise atomic claims while preserving the information '
+         'needed to answer the original question and its evidence citations. Finish a complete object '

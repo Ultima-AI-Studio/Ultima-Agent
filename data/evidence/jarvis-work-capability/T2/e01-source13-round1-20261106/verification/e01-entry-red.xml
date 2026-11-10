@@ -1,0 +1,654 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="24" skipped="0" tests="57" time="8.411" timestamp="2026-11-06T12:55:30.719804+08:00" hostname="DESKTOP-B366PQ9"><testcase classname="code.test_acceptance_entry" name="test_original_sixty_second_proof_freshness_boundary[0-True]" time="0.127"><failure message="ValueError: Negative package must allocate zero calls">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e01-source13-round1-20261106/verification/tmp-e01-entry-red/test_original_sixty_second_pro0')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000001D93E759810&gt;
+age = 0, allowed = True
+
+    @pytest.mark.parametrize('age,allowed', [(0,True),(60,True),(60.000001,False),(-0.000001,False)])
+    def test_original_sixty_second_proof_freshness_boundary(tmp_path, monkeypatch, age, allowed):
+        entry, authority, proof=package(tmp_path,monkeypatch)
+        proof['recorded_at']=(NOW-dt.timedelta(seconds=age)).isoformat()
+        put(tmp_path/'release/preflight/test.json', proof)
+        authority['proof_sha256']=entry.sha(tmp_path/'release/preflight/test.json')
+        put(tmp_path/'release/authority.json', authority)
+        if allowed:
+&gt;           assert entry.validate_release(tmp_path, NOW)['proof']==proof
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+code\test_acceptance_entry.py:83: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+code\acceptance_entry.py:443: in validate_release
+    manifest_hash, review_hash = reviewed_package(root)
+                                 ^^^^^^^^^^^^^^^^^^^^^^
+code\acceptance_entry.py:412: in reviewed_package
+    digest = verify_package(root)
+             ^^^^^^^^^^^^^^^^^^^^
+code\acceptance_entry.py:393: in verify_package
+    require(all(type(manifest.get(k)) is int and manifest[k] == 0
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+value = False, message = 'Negative package must allocate zero calls'
+
+    def require(value, message):
+        if not value:
+&gt;           raise ValueError(message)
+E           ValueError: Negative package must allocate zero calls
+
+code\package_io.py:8: ValueError</failure></testcase><testcase classname="code.test_acceptance_entry" name="test_original_sixty_second_proof_freshness_boundary[60-True]" time="0.128"><failure message="ValueError: Negative package must allocate zero calls">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e01-source13-round1-20261106/verification/tmp-e01-entry-red/test_original_sixty_second_pro1')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000001D93E7596E0&gt;
+age = 60, allowed = True
+
+    @pytest.mark.parametrize('age,allowed', [(0,True),(60,True),(60.000001,False),(-0.000001,False)])
+    def test_original_sixty_second_proof_freshness_boundary(tmp_path, monkeypatch, age, allowed):
+        entry, authority, proof=package(tmp_path,monkeypatch)
+        proof['recorded_at']=(NOW-dt.timedelta(seconds=age)).isoformat()
+        put(tmp_path/'release/preflight/test.json', proof)
+        authority['proof_sha256']=entry.sha(tmp_path/'release/preflight/test.json')
+        put(tmp_path/'release/authority.json', authority)
+        if allowed:
+&gt;           assert entry.validate_release(tmp_path, NOW)['proof']==proof
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+code\test_acceptance_entry.py:83: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+code\acceptance_entry.py:443: in validate_release
+    manifest_hash, review_hash = reviewed_package(root)
+                                 ^^^^^^^^^^^^^^^^^^^^^^
+code\acceptance_entry.py:412: in reviewed_package
+    digest = verify_package(root)
+             ^^^^^^^^^^^^^^^^^^^^
+code\acceptance_entry.py:393: in verify_package
+    require(all(type(manifest.get(k)) is int and manifest[k] == 0
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+value = False, message = 'Negative package must allocate zero calls'
+
+    def require(value, message):
+        if not value:
+&gt;           raise ValueError(message)
+E           ValueError: Negative package must allocate zero calls
+
+code\package_io.py:8: ValueError</failure></testcase><testcase classname="code.test_acceptance_entry" name="test_original_sixty_second_proof_freshness_boundary[60.000001-False]" time="0.128"><failure message="AssertionError: Regex pattern did not match.&#10;  Expected regex: 'proof'&#10;  Actual message: 'Negative package must allocate zero calls'">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e01-source13-round1-20261106/verification/tmp-e01-entry-red/test_original_sixty_second_pro2')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000001D93F0456D0&gt;
+age = 60.000001, allowed = False
+
+    @pytest.mark.parametrize('age,allowed', [(0,True),(60,True),(60.000001,False),(-0.000001,False)])
+    def test_original_sixty_second_proof_freshness_boundary(tmp_path, monkeypatch, age, allowed):
+        entry, authority, proof=package(tmp_path,monkeypatch)
+        proof['recorded_at']=(NOW-dt.timedelta(seconds=age)).isoformat()
+        put(tmp_path/'release/preflight/test.json', proof)
+        authority['proof_sha256']=entry.sha(tmp_path/'release/preflight/test.json')
+        put(tmp_path/'release/authority.json', authority)
+        if allowed:
+            assert entry.validate_release(tmp_path, NOW)['proof']==proof
+        else:
+&gt;           with pytest.raises(ValueError, match='proof'):
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E           AssertionError: Regex pattern did not match.
+E             Expected regex: 'proof'
+E             Actual message: 'Negative package must allocate zero calls'
+
+code\test_acceptance_entry.py:85: AssertionError</failure></testcase><testcase classname="code.test_acceptance_entry" name="test_original_sixty_second_proof_freshness_boundary[-1e-06-False]" time="0.151"><failure message="AssertionError: Regex pattern did not match.&#10;  Expected regex: 'proof'&#10;  Actual message: 'Negative package must allocate zero calls'">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e01-source13-round1-20261106/verification/tmp-e01-entry-red/test_original_sixty_second_pro3')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000001D93E73B9B0&gt;
+age = -1e-06, allowed = False
+
+    @pytest.mark.parametrize('age,allowed', [(0,True),(60,True),(60.000001,False),(-0.000001,False)])
+    def test_original_sixty_second_proof_freshness_boundary(tmp_path, monkeypatch, age, allowed):
+        entry, authority, proof=package(tmp_path,monkeypatch)
+        proof['recorded_at']=(NOW-dt.timedelta(seconds=age)).isoformat()
+        put(tmp_path/'release/preflight/test.json', proof)
+        authority['proof_sha256']=entry.sha(tmp_path/'release/preflight/test.json')
+        put(tmp_path/'release/authority.json', authority)
+        if allowed:
+            assert entry.validate_release(tmp_path, NOW)['proof']==proof
+        else:
+&gt;           with pytest.raises(ValueError, match='proof'):
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E           AssertionError: Regex pattern did not match.
+E             Expected regex: 'proof'
+E             Actual message: 'Negative package must allocate zero calls'
+
+code\test_acceptance_entry.py:85: AssertionError</failure></testcase><testcase classname="code.test_acceptance_entry" name="test_release_rejects_expanded_or_legacy_scope[scope-fixture-only-diagnostic]" time="0.118" /><testcase classname="code.test_acceptance_entry" name="test_release_rejects_expanded_or_legacy_scope[case-e03-round1]" time="0.161" /><testcase classname="code.test_acceptance_entry" name="test_release_rejects_expanded_or_legacy_scope[candidate-old]" time="0.118" /><testcase classname="code.test_acceptance_entry" name="test_release_rejects_expanded_or_legacy_scope[model-qwen2.5:14b]" time="0.135" /><testcase classname="code.test_acceptance_entry" name="test_release_rejects_expanded_or_legacy_scope[digest-wrong]" time="0.113" /><testcase classname="code.test_acceptance_entry" name="test_release_rejects_expanded_or_legacy_scope[case_cap-True]" time="0.119" /><testcase classname="code.test_acceptance_entry" name="test_release_rejects_expanded_or_legacy_scope[case_cap-2]" time="0.110" /><testcase classname="code.test_acceptance_entry" name="test_release_rejects_expanded_or_legacy_scope[product_cli_cap-2]" time="0.211" /><testcase classname="code.test_acceptance_entry" name="test_release_rejects_expanded_or_legacy_scope[audio_actions-1]" time="0.145" /><testcase classname="code.test_acceptance_entry" name="test_release_rejects_expanded_or_legacy_scope[retry_authorized-True]" time="0.172" /><testcase classname="code.test_acceptance_entry" name="test_release_rejects_expanded_or_legacy_scope[acceptance_credit-True]" time="0.212" /><testcase classname="code.test_acceptance_entry" name="test_release_rejects_expanded_or_legacy_scope[prior_reviews-value11]" time="0.219" /><testcase classname="code.test_acceptance_entry" name="test_release_rejects_expanded_or_legacy_scope[user_authorization-]" time="0.179" /><testcase classname="code.test_acceptance_entry" name="test_release_rejects_expanded_or_legacy_scope[proof_path-../old/proof.json]" time="0.237" /><testcase classname="code.test_acceptance_entry" name="test_release_rejects_expanded_or_legacy_scope[expires_at-2026-11-06T12:02:01+00:00]" time="0.167" /><testcase classname="code.test_acceptance_entry" name="test_release_denies_before_native_construction[no-review]" time="0.173" /><testcase classname="code.test_acceptance_entry" name="test_release_denies_before_native_construction[wrong-review]" time="0.170" /><testcase classname="code.test_acceptance_entry" name="test_release_denies_before_native_construction[file-drift]" time="0.159" /><testcase classname="code.test_acceptance_entry" name="test_release_denies_before_native_construction[unsealed-python]" time="0.160" /><testcase classname="code.test_acceptance_entry" name="test_release_denies_before_native_construction[proof-drift]" time="0.142" /><testcase classname="code.test_acceptance_entry" name="test_release_denies_before_native_construction[proof-model]" time="0.131" /><testcase classname="code.test_acceptance_entry" name="test_release_denies_before_native_construction[protected-drift]" time="0.146" /><testcase classname="code.test_acceptance_entry" name="test_one_case_keeps_fact_review_pending_and_cannot_be_reentered" time="0.115"><failure message="ValueError: Negative package must allocate zero calls">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e01-source13-round1-20261106/verification/tmp-e01-entry-red/test_one_case_keeps_fact_revie0')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000001D93F0A3380&gt;
+
+    def test_one_case_keeps_fact_review_pending_and_cannot_be_reentered(tmp_path, monkeypatch):
+        entry,authority,proof=package(tmp_path,monkeypatch);backend=Backend(tmp_path,proof)
+&gt;       result=entry.run_once(tmp_path,backend_factory=lambda root:backend)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+code\test_acceptance_entry.py:161: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+code\acceptance_entry.py:498: in run_once
+    admission = validate_release(root, utcnow())
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+code\acceptance_entry.py:443: in validate_release
+    manifest_hash, review_hash = reviewed_package(root)
+                                 ^^^^^^^^^^^^^^^^^^^^^^
+code\acceptance_entry.py:412: in reviewed_package
+    digest = verify_package(root)
+             ^^^^^^^^^^^^^^^^^^^^
+code\acceptance_entry.py:393: in verify_package
+    require(all(type(manifest.get(k)) is int and manifest[k] == 0
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+value = False, message = 'Negative package must allocate zero calls'
+
+    def require(value, message):
+        if not value:
+&gt;           raise ValueError(message)
+E           ValueError: Negative package must allocate zero calls
+
+code\package_io.py:8: ValueError</failure></testcase><testcase classname="code.test_acceptance_entry" name="test_failure_retains_claim_and_always_attempts_all_finalization[start]" time="0.156"><failure message="ValueError: Negative package must allocate zero calls">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e01-source13-round1-20261106/verification/tmp-e01-entry-red/test_failure_retains_claim_and0')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000001D93F0A3770&gt;
+fail = 'start'
+
+    @pytest.mark.parametrize('fail',['start','product','effects','close','audit','postflight'])
+    def test_failure_retains_claim_and_always_attempts_all_finalization(tmp_path,monkeypatch,fail):
+        entry,authority,proof=package(tmp_path,monkeypatch);backend=Backend(tmp_path,proof,fail)
+&gt;       result=entry.run_once(tmp_path,backend_factory=lambda root:backend)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+code\test_acceptance_entry.py:174: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+code\acceptance_entry.py:498: in run_once
+    admission = validate_release(root, utcnow())
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+code\acceptance_entry.py:443: in validate_release
+    manifest_hash, review_hash = reviewed_package(root)
+                                 ^^^^^^^^^^^^^^^^^^^^^^
+code\acceptance_entry.py:412: in reviewed_package
+    digest = verify_package(root)
+             ^^^^^^^^^^^^^^^^^^^^
+code\acceptance_entry.py:393: in verify_package
+    require(all(type(manifest.get(k)) is int and manifest[k] == 0
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+value = False, message = 'Negative package must allocate zero calls'
+
+    def require(value, message):
+        if not value:
+&gt;           raise ValueError(message)
+E           ValueError: Negative package must allocate zero calls
+
+code\package_io.py:8: ValueError</failure></testcase><testcase classname="code.test_acceptance_entry" name="test_failure_retains_claim_and_always_attempts_all_finalization[product]" time="0.121"><failure message="ValueError: Negative package must allocate zero calls">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e01-source13-round1-20261106/verification/tmp-e01-entry-red/test_failure_retains_claim_and1')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000001D93F069080&gt;
+fail = 'product'
+
+    @pytest.mark.parametrize('fail',['start','product','effects','close','audit','postflight'])
+    def test_failure_retains_claim_and_always_attempts_all_finalization(tmp_path,monkeypatch,fail):
+        entry,authority,proof=package(tmp_path,monkeypatch);backend=Backend(tmp_path,proof,fail)
+&gt;       result=entry.run_once(tmp_path,backend_factory=lambda root:backend)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+code\test_acceptance_entry.py:174: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+code\acceptance_entry.py:498: in run_once
+    admission = validate_release(root, utcnow())
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+code\acceptance_entry.py:443: in validate_release
+    manifest_hash, review_hash = reviewed_package(root)
+                                 ^^^^^^^^^^^^^^^^^^^^^^
+code\acceptance_entry.py:412: in reviewed_package
+    digest = verify_package(root)
+             ^^^^^^^^^^^^^^^^^^^^
+code\acceptance_entry.py:393: in verify_package
+    require(all(type(manifest.get(k)) is int and manifest[k] == 0
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+value = False, message = 'Negative package must allocate zero calls'
+
+    def require(value, message):
+        if not value:
+&gt;           raise ValueError(message)
+E           ValueError: Negative package must allocate zero calls
+
+code\package_io.py:8: ValueError</failure></testcase><testcase classname="code.test_acceptance_entry" name="test_failure_retains_claim_and_always_attempts_all_finalization[effects]" time="0.118"><failure message="ValueError: Negative package must allocate zero calls">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e01-source13-round1-20261106/verification/tmp-e01-entry-red/test_failure_retains_claim_and2')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000001D93F06B8C0&gt;
+fail = 'effects'
+
+    @pytest.mark.parametrize('fail',['start','product','effects','close','audit','postflight'])
+    def test_failure_retains_claim_and_always_attempts_all_finalization(tmp_path,monkeypatch,fail):
+        entry,authority,proof=package(tmp_path,monkeypatch);backend=Backend(tmp_path,proof,fail)
+&gt;       result=entry.run_once(tmp_path,backend_factory=lambda root:backend)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+code\test_acceptance_entry.py:174: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+code\acceptance_entry.py:498: in run_once
+    admission = validate_release(root, utcnow())
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+code\acceptance_entry.py:443: in validate_release
+    manifest_hash, review_hash = reviewed_package(root)
+                                 ^^^^^^^^^^^^^^^^^^^^^^
+code\acceptance_entry.py:412: in reviewed_package
+    digest = verify_package(root)
+             ^^^^^^^^^^^^^^^^^^^^
+code\acceptance_entry.py:393: in verify_package
+    require(all(type(manifest.get(k)) is int and manifest[k] == 0
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+value = False, message = 'Negative package must allocate zero calls'
+
+    def require(value, message):
+        if not value:
+&gt;           raise ValueError(message)
+E           ValueError: Negative package must allocate zero calls
+
+code\package_io.py:8: ValueError</failure></testcase><testcase classname="code.test_acceptance_entry" name="test_failure_retains_claim_and_always_attempts_all_finalization[close]" time="0.117"><failure message="ValueError: Negative package must allocate zero calls">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e01-source13-round1-20261106/verification/tmp-e01-entry-red/test_failure_retains_claim_and3')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000001D93F0A06E0&gt;
+fail = 'close'
+
+    @pytest.mark.parametrize('fail',['start','product','effects','close','audit','postflight'])
+    def test_failure_retains_claim_and_always_attempts_all_finalization(tmp_path,monkeypatch,fail):
+        entry,authority,proof=package(tmp_path,monkeypatch);backend=Backend(tmp_path,proof,fail)
+&gt;       result=entry.run_once(tmp_path,backend_factory=lambda root:backend)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+code\test_acceptance_entry.py:174: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+code\acceptance_entry.py:498: in run_once
+    admission = validate_release(root, utcnow())
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+code\acceptance_entry.py:443: in validate_release
+    manifest_hash, review_hash = reviewed_package(root)
+                                 ^^^^^^^^^^^^^^^^^^^^^^
+code\acceptance_entry.py:412: in reviewed_package
+    digest = verify_package(root)
+             ^^^^^^^^^^^^^^^^^^^^
+code\acceptance_entry.py:393: in verify_package
+    require(all(type(manifest.get(k)) is int and manifest[k] == 0
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+value = False, message = 'Negative package must allocate zero calls'
+
+    def require(value, message):
+        if not value:
+&gt;           raise ValueError(message)
+E           ValueError: Negative package must allocate zero calls
+
+code\package_io.py:8: ValueError</failure></testcase><testcase classname="code.test_acceptance_entry" name="test_failure_retains_claim_and_always_attempts_all_finalization[audit]" time="0.126"><failure message="ValueError: Negative package must allocate zero calls">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e01-source13-round1-20261106/verification/tmp-e01-entry-red/test_failure_retains_claim_and4')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000001D93F0A24A0&gt;
+fail = 'audit'
+
+    @pytest.mark.parametrize('fail',['start','product','effects','close','audit','postflight'])
+    def test_failure_retains_claim_and_always_attempts_all_finalization(tmp_path,monkeypatch,fail):
+        entry,authority,proof=package(tmp_path,monkeypatch);backend=Backend(tmp_path,proof,fail)
+&gt;       result=entry.run_once(tmp_path,backend_factory=lambda root:backend)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+code\test_acceptance_entry.py:174: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+code\acceptance_entry.py:498: in run_once
+    admission = validate_release(root, utcnow())
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+code\acceptance_entry.py:443: in validate_release
+    manifest_hash, review_hash = reviewed_package(root)
+                                 ^^^^^^^^^^^^^^^^^^^^^^
+code\acceptance_entry.py:412: in reviewed_package
+    digest = verify_package(root)
+             ^^^^^^^^^^^^^^^^^^^^
+code\acceptance_entry.py:393: in verify_package
+    require(all(type(manifest.get(k)) is int and manifest[k] == 0
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+value = False, message = 'Negative package must allocate zero calls'
+
+    def require(value, message):
+        if not value:
+&gt;           raise ValueError(message)
+E           ValueError: Negative package must allocate zero calls
+
+code\package_io.py:8: ValueError</failure></testcase><testcase classname="code.test_acceptance_entry" name="test_failure_retains_claim_and_always_attempts_all_finalization[postflight]" time="0.128"><failure message="ValueError: Negative package must allocate zero calls">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e01-source13-round1-20261106/verification/tmp-e01-entry-red/test_failure_retains_claim_and5')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000001D93F063770&gt;
+fail = 'postflight'
+
+    @pytest.mark.parametrize('fail',['start','product','effects','close','audit','postflight'])
+    def test_failure_retains_claim_and_always_attempts_all_finalization(tmp_path,monkeypatch,fail):
+        entry,authority,proof=package(tmp_path,monkeypatch);backend=Backend(tmp_path,proof,fail)
+&gt;       result=entry.run_once(tmp_path,backend_factory=lambda root:backend)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+code\test_acceptance_entry.py:174: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+code\acceptance_entry.py:498: in run_once
+    admission = validate_release(root, utcnow())
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+code\acceptance_entry.py:443: in validate_release
+    manifest_hash, review_hash = reviewed_package(root)
+                                 ^^^^^^^^^^^^^^^^^^^^^^
+code\acceptance_entry.py:412: in reviewed_package
+    digest = verify_package(root)
+             ^^^^^^^^^^^^^^^^^^^^
+code\acceptance_entry.py:393: in verify_package
+    require(all(type(manifest.get(k)) is int and manifest[k] == 0
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+value = False, message = 'Negative package must allocate zero calls'
+
+    def require(value, message):
+        if not value:
+&gt;           raise ValueError(message)
+E           ValueError: Negative package must allocate zero calls
+
+code\package_io.py:8: ValueError</failure></testcase><testcase classname="code.test_acceptance_entry" name="test_live_drift_refuses_before_claim_or_windows" time="0.123"><failure message="AssertionError: Regex pattern did not match.&#10;  Expected regex: 'drift'&#10;  Actual message: 'Negative package must allocate zero calls'">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e01-source13-round1-20261106/verification/tmp-e01-entry-red/test_live_drift_refuses_before0')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000001D93F0608A0&gt;
+
+    def test_live_drift_refuses_before_claim_or_windows(tmp_path,monkeypatch):
+        entry,authority,proof=package(tmp_path,monkeypatch)
+        live=json.loads(json.dumps(proof));live['protected_processes'][0]['created_filetime']+=1
+        backend=Backend(tmp_path,live)
+&gt;       with pytest.raises(ValueError,match='drift'):entry.run_once(tmp_path,backend_factory=lambda root:backend)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AssertionError: Regex pattern did not match.
+E         Expected regex: 'drift'
+E         Actual message: 'Negative package must allocate zero calls'
+
+code\test_acceptance_entry.py:186: AssertionError</failure></testcase><testcase classname="code.test_acceptance_entry" name="test_readonly_preflight_has_no_authority_or_actual_allocation" time="0.110"><failure message="ValueError: Negative package must allocate zero calls">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e01-source13-round1-20261106/verification/tmp-e01-entry-red/test_readonly_preflight_has_no0')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000001D93F03A510&gt;
+
+    def test_readonly_preflight_has_no_authority_or_actual_allocation(tmp_path,monkeypatch):
+        entry,authority,proof=package(tmp_path,monkeypatch)
+        (tmp_path/'release/authority.json').unlink()
+        backend=Backend(tmp_path,proof)
+&gt;       result=entry.write_preflight(tmp_path,backend_factory=lambda root:backend)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+code\test_acceptance_entry.py:194: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+code\acceptance_entry.py:485: in write_preflight
+    reviewed_package(root)
+code\acceptance_entry.py:412: in reviewed_package
+    digest = verify_package(root)
+             ^^^^^^^^^^^^^^^^^^^^
+code\acceptance_entry.py:393: in verify_package
+    require(all(type(manifest.get(k)) is int and manifest[k] == 0
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+value = False, message = 'Negative package must allocate zero calls'
+
+    def require(value, message):
+        if not value:
+&gt;           raise ValueError(message)
+E           ValueError: Negative package must allocate zero calls
+
+code\package_io.py:8: ValueError</failure></testcase><testcase classname="code.test_acceptance_entry" name="test_proof_expiring_during_live_inspection_stops_before_next_effect[1]" time="0.103"><failure message="AssertionError: Regex pattern did not match.&#10;  Expected regex: 'proof'&#10;  Actual message: 'Negative package must allocate zero calls'">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e01-source13-round1-20261106/verification/tmp-e01-entry-red/test_proof_expiring_during_liv0')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000001D93F1ED5C0&gt;
+inspection = 1
+
+    @pytest.mark.parametrize('inspection', [1,2])
+    def test_proof_expiring_during_live_inspection_stops_before_next_effect(tmp_path,monkeypatch,inspection):
+        entry,authority,proof=package(tmp_path,monkeypatch);backend=Backend(tmp_path,proof)
+        original=backend.inspect
+        def slow_inspection():
+            result=original()
+            if backend.calls.count('inspect')==inspection:
+                monkeypatch.setattr(entry,'utcnow',lambda:NOW+dt.timedelta(seconds=61))
+            return result
+        backend.inspect=slow_inspection
+        if inspection==1:
+&gt;           with pytest.raises(ValueError,match='proof'):entry.run_once(tmp_path,backend_factory=lambda root:backend)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E           AssertionError: Regex pattern did not match.
+E             Expected regex: 'proof'
+E             Actual message: 'Negative package must allocate zero calls'
+
+code\test_acceptance_entry.py:212: AssertionError</failure></testcase><testcase classname="code.test_acceptance_entry" name="test_proof_expiring_during_live_inspection_stops_before_next_effect[2]" time="0.107"><failure message="ValueError: Negative package must allocate zero calls">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e01-source13-round1-20261106/verification/tmp-e01-entry-red/test_proof_expiring_during_liv1')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000001D93F1EF770&gt;
+inspection = 2
+
+    @pytest.mark.parametrize('inspection', [1,2])
+    def test_proof_expiring_during_live_inspection_stops_before_next_effect(tmp_path,monkeypatch,inspection):
+        entry,authority,proof=package(tmp_path,monkeypatch);backend=Backend(tmp_path,proof)
+        original=backend.inspect
+        def slow_inspection():
+            result=original()
+            if backend.calls.count('inspect')==inspection:
+                monkeypatch.setattr(entry,'utcnow',lambda:NOW+dt.timedelta(seconds=61))
+            return result
+        backend.inspect=slow_inspection
+        if inspection==1:
+            with pytest.raises(ValueError,match='proof'):entry.run_once(tmp_path,backend_factory=lambda root:backend)
+            assert not (tmp_path/'actual').exists() and 'start' not in backend.calls
+        else:
+&gt;           result=entry.run_once(tmp_path,backend_factory=lambda root:backend)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+code\test_acceptance_entry.py:215: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+code\acceptance_entry.py:498: in run_once
+    admission = validate_release(root, utcnow())
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+code\acceptance_entry.py:443: in validate_release
+    manifest_hash, review_hash = reviewed_package(root)
+                                 ^^^^^^^^^^^^^^^^^^^^^^
+code\acceptance_entry.py:412: in reviewed_package
+    digest = verify_package(root)
+             ^^^^^^^^^^^^^^^^^^^^
+code\acceptance_entry.py:393: in verify_package
+    require(all(type(manifest.get(k)) is int and manifest[k] == 0
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+value = False, message = 'Negative package must allocate zero calls'
+
+    def require(value, message):
+        if not value:
+&gt;           raise ValueError(message)
+E           ValueError: Negative package must allocate zero calls
+
+code\package_io.py:8: ValueError</failure></testcase><testcase classname="code.test_acceptance_entry" name="test_mechanical_flag_without_product_receipt_cannot_be_pending_acceptance" time="0.121"><failure message="ValueError: Negative package must allocate zero calls">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e01-source13-round1-20261106/verification/tmp-e01-entry-red/test_mechanical_flag_without_p0')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000001D93F03A820&gt;
+
+    def test_mechanical_flag_without_product_receipt_cannot_be_pending_acceptance(tmp_path,monkeypatch):
+        entry,authority,proof=package(tmp_path,monkeypatch);backend=Backend(tmp_path,proof)
+        original=backend.product
+        def missing_receipt(revalidate,admit_cli):
+            result=original(revalidate,admit_cli);(backend.folder/'product-result.json').unlink();return result
+        backend.product=missing_receipt
+&gt;       result=entry.run_once(tmp_path,backend_factory=lambda root:backend)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+code\test_acceptance_entry.py:225: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+code\acceptance_entry.py:498: in run_once
+    admission = validate_release(root, utcnow())
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+code\acceptance_entry.py:443: in validate_release
+    manifest_hash, review_hash = reviewed_package(root)
+                                 ^^^^^^^^^^^^^^^^^^^^^^
+code\acceptance_entry.py:412: in reviewed_package
+    digest = verify_package(root)
+             ^^^^^^^^^^^^^^^^^^^^
+code\acceptance_entry.py:393: in verify_package
+    require(all(type(manifest.get(k)) is int and manifest[k] == 0
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+value = False, message = 'Negative package must allocate zero calls'
+
+    def require(value, message):
+        if not value:
+&gt;           raise ValueError(message)
+E           ValueError: Negative package must allocate zero calls
+
+code\package_io.py:8: ValueError</failure></testcase><testcase classname="code.test_acceptance_entry" name="test_sealed_wrapper_drift_during_case_invalidates_final_boundary" time="0.123"><failure message="ValueError: Negative package must allocate zero calls">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e01-source13-round1-20261106/verification/tmp-e01-entry-red/test_sealed_wrapper_drift_duri0')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000001D93F02FC40&gt;
+
+    def test_sealed_wrapper_drift_during_case_invalidates_final_boundary(tmp_path,monkeypatch):
+        entry,authority,proof=package(tmp_path,monkeypatch);backend=Backend(tmp_path,proof)
+        original=backend.product
+        def change_wrapper(revalidate,admit_cli):
+            result=original(revalidate,admit_cli);(tmp_path/'code/package_io.py').write_text('# drift\n');return result
+        backend.product=change_wrapper
+&gt;       result=entry.run_once(tmp_path,backend_factory=lambda root:backend)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+code\test_acceptance_entry.py:235: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+code\acceptance_entry.py:498: in run_once
+    admission = validate_release(root, utcnow())
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+code\acceptance_entry.py:443: in validate_release
+    manifest_hash, review_hash = reviewed_package(root)
+                                 ^^^^^^^^^^^^^^^^^^^^^^
+code\acceptance_entry.py:412: in reviewed_package
+    digest = verify_package(root)
+             ^^^^^^^^^^^^^^^^^^^^
+code\acceptance_entry.py:393: in verify_package
+    require(all(type(manifest.get(k)) is int and manifest[k] == 0
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+value = False, message = 'Negative package must allocate zero calls'
+
+    def require(value, message):
+        if not value:
+&gt;           raise ValueError(message)
+E           ValueError: Negative package must allocate zero calls
+
+code\package_io.py:8: ValueError</failure></testcase><testcase classname="code.test_e01_entry" name="test_only_one_e01_cli_scope_can_reach_native_factory[scope-e03-negative-acceptance]" time="0.123" /><testcase classname="code.test_e01_entry" name="test_only_one_e01_cli_scope_can_reach_native_factory[case-e03-negative]" time="0.109" /><testcase classname="code.test_e01_entry" name="test_only_one_e01_cli_scope_can_reach_native_factory[product_cli_cap-0]" time="0.114" /><testcase classname="code.test_e01_entry" name="test_only_one_e01_cli_scope_can_reach_native_factory[product_cli_cap-True]" time="0.111" /><testcase classname="code.test_e01_entry" name="test_only_one_e01_cli_scope_can_reach_native_factory[case_cap-2]" time="0.108" /><testcase classname="code.test_e01_entry" name="test_package_cannot_describe_expanded_or_wrong_execution[proof_max_age_seconds-61]" time="0.129" /><testcase classname="code.test_e01_entry" name="test_package_cannot_describe_expanded_or_wrong_execution[admission_max_seconds-121]" time="0.130" /><testcase classname="code.test_e01_entry" name="test_package_cannot_describe_expanded_or_wrong_execution[fixture_required-True]" time="0.128" /><testcase classname="code.test_e01_entry" name="test_package_cannot_describe_expanded_or_wrong_execution[product_timeouts-value3]" time="0.131" /><testcase classname="code.test_e01_entry" name="test_package_cannot_describe_expanded_or_wrong_execution[product_cli_cap-0]" time="0.142" /><testcase classname="code.test_e01_entry" name="test_package_cannot_describe_expanded_or_wrong_execution[product_cli_cap-True]" time="0.137" /><testcase classname="code.test_e01_entry" name="test_negative_dependencies_must_be_sealed_before_native_construction[terminal]" time="0.128"><failure message="AssertionError: Regex pattern did not match.&#10;  Expected regex: '[Rr]untime dependency'&#10;  Actual message: 'Negative package must allocate zero calls'">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e01-source13-round1-20261106/verification/tmp-e01-entry-red/test_negative_dependencies_mus0')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000001D93F063000&gt;
+name = 'terminal'
+
+    @pytest.mark.parametrize('name', ['terminal','review','registration','result-manifest','negative-evidence'])
+    def test_negative_dependencies_must_be_sealed_before_native_construction(tmp_path, monkeypatch, name):
+        entry, authority, proof = package(tmp_path, monkeypatch)
+        manifest = read(tmp_path / 'manifest.json')
+        omitted = 'inputs/prior-negative/' + name + '.json'
+        manifest['files'] = [row for row in manifest['files'] if row['path'] != omitted]
+        put(tmp_path / 'manifest.json', manifest)
+        reseal(tmp_path, entry, authority)
+        made = []
+&gt;       with pytest.raises(ValueError, match='[Rr]untime dependency'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AssertionError: Regex pattern did not match.
+E         Expected regex: '[Rr]untime dependency'
+E         Actual message: 'Negative package must allocate zero calls'
+
+code\test_e01_entry.py:44: AssertionError</failure></testcase><testcase classname="code.test_e01_entry" name="test_negative_dependencies_must_be_sealed_before_native_construction[review]" time="0.135"><failure message="AssertionError: Regex pattern did not match.&#10;  Expected regex: '[Rr]untime dependency'&#10;  Actual message: 'Negative package must allocate zero calls'">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e01-source13-round1-20261106/verification/tmp-e01-entry-red/test_negative_dependencies_mus1')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000001D93F0A3000&gt;
+name = 'review'
+
+    @pytest.mark.parametrize('name', ['terminal','review','registration','result-manifest','negative-evidence'])
+    def test_negative_dependencies_must_be_sealed_before_native_construction(tmp_path, monkeypatch, name):
+        entry, authority, proof = package(tmp_path, monkeypatch)
+        manifest = read(tmp_path / 'manifest.json')
+        omitted = 'inputs/prior-negative/' + name + '.json'
+        manifest['files'] = [row for row in manifest['files'] if row['path'] != omitted]
+        put(tmp_path / 'manifest.json', manifest)
+        reseal(tmp_path, entry, authority)
+        made = []
+&gt;       with pytest.raises(ValueError, match='[Rr]untime dependency'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AssertionError: Regex pattern did not match.
+E         Expected regex: '[Rr]untime dependency'
+E         Actual message: 'Negative package must allocate zero calls'
+
+code\test_e01_entry.py:44: AssertionError</failure></testcase><testcase classname="code.test_e01_entry" name="test_negative_dependencies_must_be_sealed_before_native_construction[registration]" time="0.127"><failure message="AssertionError: Regex pattern did not match.&#10;  Expected regex: '[Rr]untime dependency'&#10;  Actual message: 'Negative package must allocate zero calls'">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e01-source13-round1-20261106/verification/tmp-e01-entry-red/test_negative_dependencies_mus2')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000001D93F1FC750&gt;
+name = 'registration'
+
+    @pytest.mark.parametrize('name', ['terminal','review','registration','result-manifest','negative-evidence'])
+    def test_negative_dependencies_must_be_sealed_before_native_construction(tmp_path, monkeypatch, name):
+        entry, authority, proof = package(tmp_path, monkeypatch)
+        manifest = read(tmp_path / 'manifest.json')
+        omitted = 'inputs/prior-negative/' + name + '.json'
+        manifest['files'] = [row for row in manifest['files'] if row['path'] != omitted]
+        put(tmp_path / 'manifest.json', manifest)
+        reseal(tmp_path, entry, authority)
+        made = []
+&gt;       with pytest.raises(ValueError, match='[Rr]untime dependency'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AssertionError: Regex pattern did not match.
+E         Expected regex: '[Rr]untime dependency'
+E         Actual message: 'Negative package must allocate zero calls'
+
+code\test_e01_entry.py:44: AssertionError</failure></testcase><testcase classname="code.test_e01_entry" name="test_negative_dependencies_must_be_sealed_before_native_construction[result-manifest]" time="0.131"><failure message="AssertionError: Regex pattern did not match.&#10;  Expected regex: '[Rr]untime dependency'&#10;  Actual message: 'Negative package must allocate zero calls'">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e01-source13-round1-20261106/verification/tmp-e01-entry-red/test_negative_dependencies_mus3')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000001D93F0680C0&gt;
+name = 'result-manifest'
+
+    @pytest.mark.parametrize('name', ['terminal','review','registration','result-manifest','negative-evidence'])
+    def test_negative_dependencies_must_be_sealed_before_native_construction(tmp_path, monkeypatch, name):
+        entry, authority, proof = package(tmp_path, monkeypatch)
+        manifest = read(tmp_path / 'manifest.json')
+        omitted = 'inputs/prior-negative/' + name + '.json'
+        manifest['files'] = [row for row in manifest['files'] if row['path'] != omitted]
+        put(tmp_path / 'manifest.json', manifest)
+        reseal(tmp_path, entry, authority)
+        made = []
+&gt;       with pytest.raises(ValueError, match='[Rr]untime dependency'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AssertionError: Regex pattern did not match.
+E         Expected regex: '[Rr]untime dependency'
+E         Actual message: 'Negative package must allocate zero calls'
+
+code\test_e01_entry.py:44: AssertionError</failure></testcase><testcase classname="code.test_e01_entry" name="test_negative_dependencies_must_be_sealed_before_native_construction[negative-evidence]" time="0.132"><failure message="AssertionError: Regex pattern did not match.&#10;  Expected regex: '[Rr]untime dependency'&#10;  Actual message: 'Negative package must allocate zero calls'">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e01-source13-round1-20261106/verification/tmp-e01-entry-red/test_negative_dependencies_mus4')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000001D93F0A1780&gt;
+name = 'negative-evidence'
+
+    @pytest.mark.parametrize('name', ['terminal','review','registration','result-manifest','negative-evidence'])
+    def test_negative_dependencies_must_be_sealed_before_native_construction(tmp_path, monkeypatch, name):
+        entry, authority, proof = package(tmp_path, monkeypatch)
+        manifest = read(tmp_path / 'manifest.json')
+        omitted = 'inputs/prior-negative/' + name + '.json'
+        manifest['files'] = [row for row in manifest['files'] if row['path'] != omitted]
+        put(tmp_path / 'manifest.json', manifest)
+        reseal(tmp_path, entry, authority)
+        made = []
+&gt;       with pytest.raises(ValueError, match='[Rr]untime dependency'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AssertionError: Regex pattern did not match.
+E         Expected regex: '[Rr]untime dependency'
+E         Actual message: 'Negative package must allocate zero calls'
+
+code\test_e01_entry.py:44: AssertionError</failure></testcase><testcase classname="code.test_e01_entry" name="test_ineligible_negative_after_rehash_denied_before_backend" time="0.194"><failure message="AssertionError: Regex pattern did not match.&#10;  Expected regex: 'Negative predecessor'&#10;  Actual message: 'Negative package must allocate zero calls'">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e01-source13-round1-20261106/verification/tmp-e01-entry-red/test_ineligible_negative_after0')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000001D93F188440&gt;
+
+    def test_ineligible_negative_after_rehash_denied_before_backend(tmp_path, monkeypatch):
+        entry, authority, proof = package(tmp_path, monkeypatch)
+        path = tmp_path / 'inputs/prior-negative/review.json'
+        review = read(path)
+        review['behavior_verdict'] = 'FAIL'
+        put(path, review)
+        rebind(tmp_path)
+        reseal(tmp_path, entry, authority)
+        made = []
+&gt;       with pytest.raises(ValueError, match='Negative predecessor'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AssertionError: Regex pattern did not match.
+E         Expected regex: 'Negative predecessor'
+E         Actual message: 'Negative package must allocate zero calls'
+
+code\test_e01_entry.py:58: AssertionError</failure></testcase><testcase classname="code.test_e01_entry" name="test_fake_completed_mechanical_with_zero_cli_does_not_pass" time="0.113"><failure message="ValueError: Negative package must allocate zero calls">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e01-source13-round1-20261106/verification/tmp-e01-entry-red/test_fake_completed_mechanical0')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000001D93F18ABA0&gt;
+
+    def test_fake_completed_mechanical_with_zero_cli_does_not_pass(tmp_path, monkeypatch):
+        entry, authority, proof = package(tmp_path, monkeypatch)
+        backend = Backend(tmp_path, proof)
+        original = backend.product
+        def no_cli(revalidate, admit_cli):
+            result = original(revalidate, admit_cli)
+            backend.cli_count = 0
+            return result
+        backend.product = no_cli
+&gt;       result = entry.run_once(tmp_path, backend_factory=lambda root: backend)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+code\test_e01_entry.py:72: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+code\acceptance_entry.py:498: in run_once
+    admission = validate_release(root, utcnow())
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+code\acceptance_entry.py:443: in validate_release
+    manifest_hash, review_hash = reviewed_package(root)
+                                 ^^^^^^^^^^^^^^^^^^^^^^
+code\acceptance_entry.py:412: in reviewed_package
+    digest = verify_package(root)
+             ^^^^^^^^^^^^^^^^^^^^
+code\acceptance_entry.py:393: in verify_package
+    require(all(type(manifest.get(k)) is int and manifest[k] == 0
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+value = False, message = 'Negative package must allocate zero calls'
+
+    def require(value, message):
+        if not value:
+&gt;           raise ValueError(message)
+E           ValueError: Negative package must allocate zero calls
+
+code\package_io.py:8: ValueError</failure></testcase></testsuite></testsuites>

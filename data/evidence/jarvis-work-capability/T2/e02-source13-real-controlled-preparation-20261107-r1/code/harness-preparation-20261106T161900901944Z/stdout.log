@@ -1,0 +1,312 @@
+.................FFF.................................................... [ 32%]
+..........................F............................................. [ 65%]
+....F................................................................... [ 98%]
+...                                                                      [100%]
+================================== FAILURES ===================================
+________ test_adapter_first_failure_retained_and_no_next_case[cleanup] ________
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-source13-real-controlled-preparation-20261106/code/harness-preparation-20261106T161900901944Z/temp/test_adapter_first_failure_ret5')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000158A1A98E10>
+failure = 'cleanup'
+sdk_io = (<src.brain.browser.channel.BrowserChannel object at 0x00000158A157DA30>, [('search', 'Research a subject'), ('get', '...'https://example.com/source/2'), ('get', 'https://example.com/source/3'), ('get', 'https://example.com/source/4')], {})
+mock_jar = (<openjarvis.sdk.Jarvis object at 0x00000158A19FC6E0>, <function _run_work_agent at 0x00000158A0E393A0>, [{'format': {..., ...], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [])
+
+    @pytest.mark.parametrize('failure',['timeout','nonzero','invalidJSON','partialpacket','missingEND','cleanup','finalboundary','transientextra'])
+    def test_adapter_first_failure_retained_and_no_next_case(tmp_path,monkeypatch,failure,sdk_io,mock_jar):
+        first,ledger=synthetic_bundle(tmp_path,sdk_io,mock_jar,monkeypatch)
+        p4=a.load_p4()
+        protected=[dict(pid=pid,created_filetime=100,exe=sys.executable) for pid in range(51,58)]
+        protected_rows=protected_fixture(tmp_path,monkeypatch,p4,protected)
+        monkeypatch.setattr(p4,'identity',lambda pid:dict(pid=pid,created_filetime=100,exe=sys.executable))
+        monkeypatch.setattr(p4,'process_times',lambda proc:(100,0))
+        monkeypatch.setattr(p4,'process_snapshot',lambda *args,**kwargs:dict(protected_rows))
+        monkeypatch.setattr(p4,'terminate_owned',lambda key:None)
+        monkeypatch.setattr(p4,'listener_owner',lambda port:[7891])
+        class Probe:
+            def settimeout(self,value): pass
+            def connect_ex(self,address): return a.errno.ECONNREFUSED
+            def close(self): pass
+        monkeypatch.setattr(p4.socket,'socket',Probe)
+        if failure in ('partialpacket','missingEND'):
+            export=a.load(tmp_path/'trusted-export.json')
+            if failure=='partialpacket': export['members']['runtime']['sha256']='0'*64
+            else: export['END']=False
+            (tmp_path/'trusted-export.json').write_text(json.dumps(export),encoding='utf8')
+        pin_reads=[]
+        def pins():
+            pin_reads.append(1)
+            return {'drift':'changed'} if failure=='finalboundary' and len(pin_reads)>=3 else {}
+        monkeypatch.setattr(a,'check_inputs',pins)
+        if failure=='transientextra':
+            save=a.save_new
+            def transient(path,value):
+                save(path,value)
+                if Path(path).name=='accepted-effects.json': (tmp_path/'outputs'/first['task_id']/'transient.md').write_bytes(b'known transient effect')
+            monkeypatch.setattr(a,'save_new',transient)
+        launches=[]
+        class Proc:
+            def __init__(self,cli):
+                self.pid=7892 if cli else 7891; self.returncode=2 if cli and failure=='nonzero' else 0
+            def wait(self,timeout=None):
+                if failure=='timeout' and timeout and timeout>3: raise TimeoutError('CLI timeout')
+                if failure=='transientextra' and timeout and timeout<=3: (tmp_path/'outputs'/first['task_id']/'transient.md').unlink(missing_ok=True)
+                return self.returncode
+        def launch(argv,env,out,err):
+            launches.append(argv)
+            if '--research' in argv: out.write('{broken' if failure=='invalidJSON' else json.dumps(first)); out.flush()
+            return Proc('--research' in argv)
+        # Patch only the actual launcher boundary; real P4 Owned.launch/discover/cleanup execute.
+        root=a.C
+        monkeypatch.syspath_prepend(str(root))
+        from src.brain.tests import work_context_acceptance as helper
+        monkeypatch.setattr(helper,'launch',launch)
+        if failure=='cleanup':
+            monkeypatch.setattr(p4,'terminate_owned',lambda key: (_ for _ in ()).throw(OSError('cleanup blocked')))
+            monkeypatch.setattr(p4,'process_snapshot',lambda *args,**kwargs:dict(protected_rows) | {pid:dict(ProcessId=pid,CreationFileTime=100,ParentProcessId=0,CommandLine='') for pid in (7891,7892)})
+        baseline=dict(candidate=a.CANDIDATE,precision='FILETIME100ns',recorded_at=dt.datetime.now(dt.timezone.utc).isoformat(),protected=protected)
+        context=dict(folder=tmp_path,port=18799,request_id='r',session_id='s',baseline=baseline,authority={},ledger={})
+        result=a.execute_case(context,p4)
+        assert len(launches)<=2
+        assert result['work_cli_attempts']==1
+        assert result['actual_native_start_count'] is None
+        assert result['overall']=='FAIL'
+        assert result['next_case'] is False
+        expected={'timeout':'CLI timeout','nonzero':'CLI nonzero','invalidJSON':'Expecting property name','partialpacket':'Export member digest','missingEND':'Missing complete packet or END','cleanup':'cleanup terminate_owned: cleanup blocked','finalboundary':'final-boundary: Input drift','transientextra':'pre-cleanup-effects: Observed pre-cleanup output drift'}
+>       assert expected[failure] in result['first_failure']
+E       AssertionError: assert 'cleanup terminate_owned: cleanup blocked' in 'packet and external readback: Canonical UUID4 required'
+
+..\..\harness\test_adapter.py:177: AssertionError
+_____ test_adapter_first_failure_retained_and_no_next_case[finalboundary] _____
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-source13-real-controlled-preparation-20261106/code/harness-preparation-20261106T161900901944Z/temp/test_adapter_first_failure_ret6')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000158A1BAE8D0>
+failure = 'finalboundary'
+sdk_io = (<src.brain.browser.channel.BrowserChannel object at 0x000001587EBEB350>, [('search', 'Research a subject'), ('get', '...'https://example.com/source/2'), ('get', 'https://example.com/source/3'), ('get', 'https://example.com/source/4')], {})
+mock_jar = (<openjarvis.sdk.Jarvis object at 0x000001587EB9DC50>, <function _run_work_agent at 0x00000158A0E393A0>, [{'format': {..., ...], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [])
+
+    @pytest.mark.parametrize('failure',['timeout','nonzero','invalidJSON','partialpacket','missingEND','cleanup','finalboundary','transientextra'])
+    def test_adapter_first_failure_retained_and_no_next_case(tmp_path,monkeypatch,failure,sdk_io,mock_jar):
+        first,ledger=synthetic_bundle(tmp_path,sdk_io,mock_jar,monkeypatch)
+        p4=a.load_p4()
+        protected=[dict(pid=pid,created_filetime=100,exe=sys.executable) for pid in range(51,58)]
+        protected_rows=protected_fixture(tmp_path,monkeypatch,p4,protected)
+        monkeypatch.setattr(p4,'identity',lambda pid:dict(pid=pid,created_filetime=100,exe=sys.executable))
+        monkeypatch.setattr(p4,'process_times',lambda proc:(100,0))
+        monkeypatch.setattr(p4,'process_snapshot',lambda *args,**kwargs:dict(protected_rows))
+        monkeypatch.setattr(p4,'terminate_owned',lambda key:None)
+        monkeypatch.setattr(p4,'listener_owner',lambda port:[7891])
+        class Probe:
+            def settimeout(self,value): pass
+            def connect_ex(self,address): return a.errno.ECONNREFUSED
+            def close(self): pass
+        monkeypatch.setattr(p4.socket,'socket',Probe)
+        if failure in ('partialpacket','missingEND'):
+            export=a.load(tmp_path/'trusted-export.json')
+            if failure=='partialpacket': export['members']['runtime']['sha256']='0'*64
+            else: export['END']=False
+            (tmp_path/'trusted-export.json').write_text(json.dumps(export),encoding='utf8')
+        pin_reads=[]
+        def pins():
+            pin_reads.append(1)
+            return {'drift':'changed'} if failure=='finalboundary' and len(pin_reads)>=3 else {}
+        monkeypatch.setattr(a,'check_inputs',pins)
+        if failure=='transientextra':
+            save=a.save_new
+            def transient(path,value):
+                save(path,value)
+                if Path(path).name=='accepted-effects.json': (tmp_path/'outputs'/first['task_id']/'transient.md').write_bytes(b'known transient effect')
+            monkeypatch.setattr(a,'save_new',transient)
+        launches=[]
+        class Proc:
+            def __init__(self,cli):
+                self.pid=7892 if cli else 7891; self.returncode=2 if cli and failure=='nonzero' else 0
+            def wait(self,timeout=None):
+                if failure=='timeout' and timeout and timeout>3: raise TimeoutError('CLI timeout')
+                if failure=='transientextra' and timeout and timeout<=3: (tmp_path/'outputs'/first['task_id']/'transient.md').unlink(missing_ok=True)
+                return self.returncode
+        def launch(argv,env,out,err):
+            launches.append(argv)
+            if '--research' in argv: out.write('{broken' if failure=='invalidJSON' else json.dumps(first)); out.flush()
+            return Proc('--research' in argv)
+        # Patch only the actual launcher boundary; real P4 Owned.launch/discover/cleanup execute.
+        root=a.C
+        monkeypatch.syspath_prepend(str(root))
+        from src.brain.tests import work_context_acceptance as helper
+        monkeypatch.setattr(helper,'launch',launch)
+        if failure=='cleanup':
+            monkeypatch.setattr(p4,'terminate_owned',lambda key: (_ for _ in ()).throw(OSError('cleanup blocked')))
+            monkeypatch.setattr(p4,'process_snapshot',lambda *args,**kwargs:dict(protected_rows) | {pid:dict(ProcessId=pid,CreationFileTime=100,ParentProcessId=0,CommandLine='') for pid in (7891,7892)})
+        baseline=dict(candidate=a.CANDIDATE,precision='FILETIME100ns',recorded_at=dt.datetime.now(dt.timezone.utc).isoformat(),protected=protected)
+        context=dict(folder=tmp_path,port=18799,request_id='r',session_id='s',baseline=baseline,authority={},ledger={})
+        result=a.execute_case(context,p4)
+        assert len(launches)<=2
+        assert result['work_cli_attempts']==1
+        assert result['actual_native_start_count'] is None
+        assert result['overall']=='FAIL'
+        assert result['next_case'] is False
+        expected={'timeout':'CLI timeout','nonzero':'CLI nonzero','invalidJSON':'Expecting property name','partialpacket':'Export member digest','missingEND':'Missing complete packet or END','cleanup':'cleanup terminate_owned: cleanup blocked','finalboundary':'final-boundary: Input drift','transientextra':'pre-cleanup-effects: Observed pre-cleanup output drift'}
+>       assert expected[failure] in result['first_failure']
+E       AssertionError: assert 'final-boundary: Input drift' in 'packet and external readback: Canonical UUID4 required'
+
+..\..\harness\test_adapter.py:177: AssertionError
+____ test_adapter_first_failure_retained_and_no_next_case[transientextra] _____
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-source13-real-controlled-preparation-20261106/code/harness-preparation-20261106T161900901944Z/temp/test_adapter_first_failure_ret7')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000158A19A38D0>
+failure = 'transientextra'
+sdk_io = (<src.brain.browser.channel.BrowserChannel object at 0x00000158A19B8380>, [('search', 'Research a subject'), ('get', '...'https://example.com/source/2'), ('get', 'https://example.com/source/3'), ('get', 'https://example.com/source/4')], {})
+mock_jar = (<openjarvis.sdk.Jarvis object at 0x00000158A1C2FC70>, <function _run_work_agent at 0x00000158A0E393A0>, [{'format': {..., ...], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [])
+
+    @pytest.mark.parametrize('failure',['timeout','nonzero','invalidJSON','partialpacket','missingEND','cleanup','finalboundary','transientextra'])
+    def test_adapter_first_failure_retained_and_no_next_case(tmp_path,monkeypatch,failure,sdk_io,mock_jar):
+        first,ledger=synthetic_bundle(tmp_path,sdk_io,mock_jar,monkeypatch)
+        p4=a.load_p4()
+        protected=[dict(pid=pid,created_filetime=100,exe=sys.executable) for pid in range(51,58)]
+        protected_rows=protected_fixture(tmp_path,monkeypatch,p4,protected)
+        monkeypatch.setattr(p4,'identity',lambda pid:dict(pid=pid,created_filetime=100,exe=sys.executable))
+        monkeypatch.setattr(p4,'process_times',lambda proc:(100,0))
+        monkeypatch.setattr(p4,'process_snapshot',lambda *args,**kwargs:dict(protected_rows))
+        monkeypatch.setattr(p4,'terminate_owned',lambda key:None)
+        monkeypatch.setattr(p4,'listener_owner',lambda port:[7891])
+        class Probe:
+            def settimeout(self,value): pass
+            def connect_ex(self,address): return a.errno.ECONNREFUSED
+            def close(self): pass
+        monkeypatch.setattr(p4.socket,'socket',Probe)
+        if failure in ('partialpacket','missingEND'):
+            export=a.load(tmp_path/'trusted-export.json')
+            if failure=='partialpacket': export['members']['runtime']['sha256']='0'*64
+            else: export['END']=False
+            (tmp_path/'trusted-export.json').write_text(json.dumps(export),encoding='utf8')
+        pin_reads=[]
+        def pins():
+            pin_reads.append(1)
+            return {'drift':'changed'} if failure=='finalboundary' and len(pin_reads)>=3 else {}
+        monkeypatch.setattr(a,'check_inputs',pins)
+        if failure=='transientextra':
+            save=a.save_new
+            def transient(path,value):
+                save(path,value)
+                if Path(path).name=='accepted-effects.json': (tmp_path/'outputs'/first['task_id']/'transient.md').write_bytes(b'known transient effect')
+            monkeypatch.setattr(a,'save_new',transient)
+        launches=[]
+        class Proc:
+            def __init__(self,cli):
+                self.pid=7892 if cli else 7891; self.returncode=2 if cli and failure=='nonzero' else 0
+            def wait(self,timeout=None):
+                if failure=='timeout' and timeout and timeout>3: raise TimeoutError('CLI timeout')
+                if failure=='transientextra' and timeout and timeout<=3: (tmp_path/'outputs'/first['task_id']/'transient.md').unlink(missing_ok=True)
+                return self.returncode
+        def launch(argv,env,out,err):
+            launches.append(argv)
+            if '--research' in argv: out.write('{broken' if failure=='invalidJSON' else json.dumps(first)); out.flush()
+            return Proc('--research' in argv)
+        # Patch only the actual launcher boundary; real P4 Owned.launch/discover/cleanup execute.
+        root=a.C
+        monkeypatch.syspath_prepend(str(root))
+        from src.brain.tests import work_context_acceptance as helper
+        monkeypatch.setattr(helper,'launch',launch)
+        if failure=='cleanup':
+            monkeypatch.setattr(p4,'terminate_owned',lambda key: (_ for _ in ()).throw(OSError('cleanup blocked')))
+            monkeypatch.setattr(p4,'process_snapshot',lambda *args,**kwargs:dict(protected_rows) | {pid:dict(ProcessId=pid,CreationFileTime=100,ParentProcessId=0,CommandLine='') for pid in (7891,7892)})
+        baseline=dict(candidate=a.CANDIDATE,precision='FILETIME100ns',recorded_at=dt.datetime.now(dt.timezone.utc).isoformat(),protected=protected)
+        context=dict(folder=tmp_path,port=18799,request_id='r',session_id='s',baseline=baseline,authority={},ledger={})
+        result=a.execute_case(context,p4)
+        assert len(launches)<=2
+        assert result['work_cli_attempts']==1
+        assert result['actual_native_start_count'] is None
+        assert result['overall']=='FAIL'
+        assert result['next_case'] is False
+        expected={'timeout':'CLI timeout','nonzero':'CLI nonzero','invalidJSON':'Expecting property name','partialpacket':'Export member digest','missingEND':'Missing complete packet or END','cleanup':'cleanup terminate_owned: cleanup blocked','finalboundary':'final-boundary: Input drift','transientextra':'pre-cleanup-effects: Observed pre-cleanup output drift'}
+>       assert expected[failure] in result['first_failure']
+E       AssertionError: assert 'pre-cleanup-effects: Observed pre-cleanup output drift' in 'packet and external readback: Canonical UUID4 required'
+
+..\..\harness\test_adapter.py:177: AssertionError
+__________ test_fix1_genuine_synthetic_export_and_external_readback ___________
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-source13-real-controlled-preparation-20261106/code/harness-preparation-20261106T161900901944Z/temp/test_fix1_genuine_synthetic_ex0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000158A0E633F0>
+sdk_io = (<src.brain.browser.channel.BrowserChannel object at 0x00000158A1B23550>, [('search', 'Research a subject'), ('get', '...'https://example.com/source/2'), ('get', 'https://example.com/source/3'), ('get', 'https://example.com/source/4')], {})
+mock_jar = (<openjarvis.sdk.Jarvis object at 0x00000158A1BB9C10>, <function _run_work_agent at 0x00000158A0E393A0>, [{'format': {..., ...], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [])
+
+    def test_fix1_genuine_synthetic_export_and_external_readback(tmp_path,monkeypatch,sdk_io,mock_jar):
+        result,ledger=synthetic_bundle(tmp_path,sdk_io,mock_jar,monkeypatch)
+>       verified=a.verify_exports(tmp_path,result,a.load_p4())
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+..\..\harness\test_adapter.py:720: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+..\..\harness\adapter.py:834: in verify_exports
+    verify_readback(folder,result,p4,rendered.content,readonly=readonly)
+..\..\harness\adapter.py:846: in verify_readback
+    else: artifacts=p4.read_artifacts(folder,result)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\..\e01-source13-round3-20261106\code\controller.py:555: in read_artifacts
+    task=uuid_text(result.get('task_id')); artifacts=[]; attempts=[]
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\..\e01-source13-round3-20261106\code\controller.py:162: in uuid_text
+    require(str(parsed)==value and parsed.version==4,'Canonical UUID4 required')
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+ok = False, message = 'Canonical UUID4 required'
+
+    def require(ok,message):
+>       if not ok: raise ValueError(message)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       ValueError: Canonical UUID4 required
+
+..\..\..\e01-source13-round3-20261106\code\controller.py:28: ValueError
+____________ test_fix3_f2_observation_ack_is_genuine_scanned_prose ____________
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-source13-real-controlled-preparation-20261106/code/harness-preparation-20261106T161900901944Z/temp/test_fix3_f2_observation_ack_i0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000158A0E24DE0>
+sdk_io = (<src.brain.browser.channel.BrowserChannel object at 0x00000158A320BCF0>, [('search', 'Research a subject'), ('get', '...'https://example.com/source/2'), ('get', 'https://example.com/source/3'), ('get', 'https://example.com/source/4')], {})
+mock_jar = (<openjarvis.sdk.Jarvis object at 0x00000158A3E7B5F0>, <function _run_work_agent at 0x00000158A0E393A0>, [{'format': {..., ...], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [])
+
+    def test_fix3_f2_observation_ack_is_genuine_scanned_prose(tmp_path,monkeypatch,sdk_io,mock_jar):
+        from dataclasses import asdict
+        from src.brain.work_navigation import canonical_v3
+        from src.brain.work_research import verify_runtime_packet
+        from src.brain.tests.test_work_navigation_transport import rewrite_response
+        result,ledger=synthetic_bundle(tmp_path,sdk_io,mock_jar,monkeypatch,write=False)
+        answer='Observation: the report is complete.'
+        assert all(s.scan(answer).clean for s in ledger._policy.scanners)
+        packet=json.loads(ledger._runtime_final); value=dict(final_answer=answer)
+        rewrite_response(packet,len(packet['wires'])-1,value,canonical_v3(value).decode())
+        raw=canonical_v3(packet)
+        verify_runtime_packet(ledger._binding,ledger.issued_snapshot,ledger._collection,raw,require_ack=True,runtime_inputs=ledger._runtime_inputs)
+        ledger._runtime_final=raw; result['content']=answer
+        a.save_new(tmp_path/'service-first-result.json',result); a.save_new(tmp_path/'runtime-inputs.json',asdict(ledger._runtime_inputs))
+        a.export_completed(tmp_path,ledger,result)
+>       assert a.verify_exports(tmp_path,result,a.load_p4())['native_POST_attempts']==5
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+..\..\harness\test_adapter.py:1111: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+..\..\harness\adapter.py:834: in verify_exports
+    verify_readback(folder,result,p4,rendered.content,readonly=readonly)
+..\..\harness\adapter.py:846: in verify_readback
+    else: artifacts=p4.read_artifacts(folder,result)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\..\e01-source13-round3-20261106\code\controller.py:555: in read_artifacts
+    task=uuid_text(result.get('task_id')); artifacts=[]; attempts=[]
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\..\e01-source13-round3-20261106\code\controller.py:162: in uuid_text
+    require(str(parsed)==value and parsed.version==4,'Canonical UUID4 required')
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+ok = False, message = 'Canonical UUID4 required'
+
+    def require(ok,message):
+>       if not ok: raise ValueError(message)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       ValueError: Canonical UUID4 required
+
+..\..\..\e01-source13-round3-20261106\code\controller.py:28: ValueError
+=========================== short test summary info ===========================
+FAILED ..\..\harness\test_adapter.py::test_adapter_first_failure_retained_and_no_next_case[cleanup]
+FAILED ..\..\harness\test_adapter.py::test_adapter_first_failure_retained_and_no_next_case[finalboundary]
+FAILED ..\..\harness\test_adapter.py::test_adapter_first_failure_retained_and_no_next_case[transientextra]
+FAILED ..\..\harness\test_adapter.py::test_fix1_genuine_synthetic_export_and_external_readback
+FAILED ..\..\harness\test_adapter.py::test_fix3_f2_observation_ack_is_genuine_scanned_prose
+5 failed, 214 passed in 63.74s (0:01:03)

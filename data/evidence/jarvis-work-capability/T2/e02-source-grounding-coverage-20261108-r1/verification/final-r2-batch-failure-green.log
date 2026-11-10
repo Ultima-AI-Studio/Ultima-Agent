@@ -1,0 +1,34 @@
+strator\.codex\worktrees\jarvis-e02-source-grounding-r1\UltimaAgent\src\brain\tests\test_work_failure_diagnostics.py PASSED [ 96%]
+::test_post_ack_artifact_failure_stays_failed_and_keeps_ack_distinct <- C:\Users\Administrator\.codex\worktrees\jarvis-e02-source-grounding-r1\UltimaAgent\src\brain\tests\test_work_failure_diagnostics.py PASSED [100%]
+
+================================== FAILURES ===================================
+_ test_six_reads_then_final_preserves_branch_pages_and_budget_without_delivery _
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-source-grounding-coverage-20261108-r1/offline/failure-green-20261108T050040720133Z/temp/test_six_reads_then_final_pres0')
+sdk_io = (<src.brain.browser.channel.BrowserChannel object at 0x000001CB21BF5D90>, [('search', 'Research a subject')], {})
+mock_jar = (<openjarvis.sdk.Jarvis object at 0x000001CB211487D0>, <function _run_work_agent at 0x000001CB2112A480>, [{'format': {...x': 16384, 'num_predict': 2048, 'temperature': 0}, ...}], [<function early_case.<locals>.reply at 0x000001CB21BAE8E0>])
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001CB21BEE350>
+
+    def test_six_reads_then_final_preserves_branch_pages_and_budget_without_delivery(tmp_path,sdk_io,mock_jar,monkeypatch):
+        result,ledger=early_case(tmp_path,sdk_io,mock_jar,monkeypatch)
+>       assert result['status']=='failed' and result['error']=='Missing nonempty immutable runtime proof'
+E       AssertionError: assert ('failed' == 'failed'
+E         
+E           failed and 'Research strict prompt byte cap' == 'Missing nonempty immutable runtime proof'
+E         
+E         - Missing nonempty immutable runtime proof
+E         + Research strict prompt byte cap)
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-source-grounding-r1\UltimaAgent\src\brain\tests\test_work_failure_diagnostics.py:81: AssertionError
+- generated xml file: H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-source-grounding-coverage-20261108-r1\offline\failure-green-20261108T050040720133Z\junit.xml -
+=========================== short test summary info ===========================
+FAILED ::test_six_reads_then_final_preserves_branch_pages_and_budget_without_delivery - AssertionError: assert ('failed' == 'failed'
+  
+    failed and 'Research strict prompt byte cap' == 'Missing nonempty immutable runtime proof'
+  
+  - Missing nonempty immutable runtime proof
+  + Research strict prompt byte cap)
+======================== 1 failed, 30 passed in 20.49s ========================
+
+
+RECEIPT H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-source-grounding-coverage-20261108-r1\offline\failure-green-20261108T050040720133Z\receipt.json

@@ -1,0 +1,57 @@
+.......................F................................................ [ 81%]
+................                                                         [100%]
+================================== FAILURES ===================================
+________________________ test_http_work_legacy_and_cli ________________________
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-source13-native-metadata-20261107-r1/offline/delivery-20261106T175639172827Z/temp/test_http_work_legacy_and_cli0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001BDA086FD10>
+capsys = <_pytest.capture.CaptureFixture object at 0x000001BDA0862A50>
+
+    def test_http_work_legacy_and_cli(tmp_path, monkeypatch, capsys):
+        from src.brain import agent_server, agent_client, cli
+        from http.server import ThreadingHTTPServer
+        import threading
+        monkeypatch.setattr(agent_server, '_work_service', WorkService(tmp_path, runner=write_runner))
+        monkeypatch.setattr(agent_server, 'ask_once', lambda *a, **kw: {'content': 'legacy'})
+>       server = ThreadingHTTPServer(('127.0.0.1', 0), agent_server._Handler)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-native-metadata\UltimaAgent\src\brain\tests\test_work_delivery.py:190: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+C:\Users\Administrator\AppData\Local\Doubao\User Data\sandbox_runtime\bases\772984f6fd3a8ae0ae7d2422cd7c2bfa\python\Lib\socketserver.py:453: in __init__
+    self.socket = socket.socket(self.address_family,
+C:\Users\Administrator\AppData\Local\Doubao\User Data\sandbox_runtime\bases\772984f6fd3a8ae0ae7d2422cd7c2bfa\python\Lib\socket.py:233: in __init__
+    _socket.socket.__init__(self, family, type, proto, fileno)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <accepted_offline_guard.WorkerAudit object at 0x000001BD67756CF0>
+event = 'socket.__new__'
+args = (<socket.socket fd=-1, family=0, type=0, proto=0>, 2, 1, 0)
+
+    def __call__(self,event,args):
+        if not self.enabled:
+            return
+        # platform.machine() reads local Windows metadata during cold SDK import.
+        if event=='socket.gethostname':
+            return
+        if event=='socket.getaddrinfo' and _DNS.get():
+            if args and args[0]=='raw.githubusercontent.com': return
+        if (event.startswith('socket.') or event.startswith('subprocess.') or
+            event in ('os.system','os.startfile','os.startfile/2','os.posix_spawn','os.spawn')):
+            # Only the pinned urllib3 IPv6 probe is exempted; keep its ownership
+            # until closeout and require that same socket to have been closed.
+            if _import_probe(event,args,self):
+                self.expected[event]=self.expected.get(event,0)+1
+                if len(self.expected_sites)<_SITE_LIMIT: self.expected_sites.append(_audit_site(event))
+                else: self.expected_sites_truncated=True
+                return
+            self.denied[event]=self.denied.get(event,0)+1
+            if len(self.denied_sites)<_SITE_LIMIT: self.denied_sites.append(_audit_site(event))
+            else: self.denied_sites_truncated=True
+>           raise ValueError('Unexpected audited operation')
+E           ValueError: Unexpected audited operation
+
+..\..\..\e02-source13-exact-probe-20261106\profile-preparation\profile.py:280: ValueError
+=========================== short test summary info ===========================
+FAILED ::test_http_work_legacy_and_cli - ValueError: Unexpected audited opera...
+1 failed, 87 passed in 5.39s

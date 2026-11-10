@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="10" time="7.672" timestamp="2026-11-07T18:33:36.744642+08:00" hostname="DESKTOP-B366PQ9"><testcase classname="harness.test_adapter" name="test_failure_diagnostic_export_current_http_receipt[http500]" time="1.006" /><testcase classname="harness.test_adapter" name="test_failure_diagnostic_export_current_http_receipt[bad_json]" time="0.357" /><testcase classname="harness.test_adapter" name="test_failure_diagnostic_export_current_http_receipt[scan]" time="0.553" /><testcase classname="harness.test_adapter" name="test_failure_diagnostic_export_real_sdk_failure_is_private_and_bounded" time="0.449"><failure message="assert '本次研究未交付。' not in '{&quot;request_i...credit&quot;: 0}}'&#10;  &#10;  '本次研究未交付。' is contained here:&#10;[+3 more lines; full report in element text]">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-source-coverage-controlled-preparation-20261107-r1/code/harness-preparation-20261107T103335382018Z/temp/test_failure_diagnostic_export3')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000001FE22472E00&gt;
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x000001FD88B535C0&gt;, [('search', 'Research a subject')], {})
+mock_jar = (&lt;openjarvis.sdk.Jarvis object at 0x000001FD89C4B350&gt;, &lt;function _run_work_agent at 0x000001FE21D66F20&gt;, [{'format': {...ser'}], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [])
+
+    def test_failure_diagnostic_export_real_sdk_failure_is_private_and_bounded(tmp_path,monkeypatch,sdk_io,mock_jar):
+        from src.brain.tests.test_work_failure_diagnostics import early_case,FINAL
+        observe_failure_exports(tmp_path,monkeypatch)
+        result,ledger=early_case(tmp_path/'outputs',sdk_io,mock_jar,monkeypatch,reads=1)
+        assert result['status']=='failed' and result['error']=='Missing nonempty immutable runtime proof'
+        path=tmp_path/'trusted-failure-diagnostic.raw'
+        assert path.exists(), 'failure observer discards the private diagnostic'
+        assert path.read_bytes()==ledger._failure_diagnostic and path.stat().st_size&lt;=16384
+        receipt=a.load(tmp_path/'trusted-failure-diagnostic.export.json')
+        assert receipt['status']=='SAVED' and receipt['sha256']==a.sha(path) and receipt['complete'] is False and receipt['END'] is False
+&gt;       assert FINAL not in json.dumps(result,ensure_ascii=False)
+E       assert '本次研究未交付。' not in '{"request_i...credit": 0}}'
+E         
+E         '本次研究未交付。' is contained here:
+E         ?           ^^                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       ...
+E         
+E         ...Full output truncated, use '-vv' to show
+
+..\..\harness\test_adapter.py:57: AssertionError</failure></testcase><testcase classname="harness.test_adapter" name="test_failure_diagnostic_export_rejects_changed_or_unsafe_packet[binding]" time="0.414" /><testcase classname="harness.test_adapter" name="test_failure_diagnostic_export_rejects_changed_or_unsafe_packet[digest]" time="0.455" /><testcase classname="harness.test_adapter" name="test_failure_diagnostic_export_rejects_changed_or_unsafe_packet[field]" time="0.469" /><testcase classname="harness.test_adapter" name="test_failure_diagnostic_export_rejects_changed_or_unsafe_packet[unsafe]" time="0.502" /><testcase classname="harness.test_adapter" name="test_failure_diagnostic_export_disk_failure_cannot_replace_product_error" time="0.815" /><testcase classname="harness.test_adapter" name="test_failure_diagnostic_export_never_creates_packet_when_capture_unavailable" time="0.349" /></testsuite></testsuites>

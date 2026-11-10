@@ -1,0 +1,52 @@
+== git log -4 ==
+de04e8d6 Changes to gorch-tc-probe.md
+7fec8fb4 test(gorch): 加 modify/modify 冲突探针基线文件
+aeb0b3c0 docs: L77 补收口与二次踩坑 + 北极星清单登记本轮
+004672bf fix(gorch): 按第二轮审计加固判定闸与执行段产出闸
+
+== branches gorch/GORCH-TC* ==
+gorch/GORCH-TC-B
++ gorch/GORCH-TC-C
+
+== C branch tip ==
+7fec8fb4
+
+== C 产物在主线？(128=不存在，即 C 未合并) ==
+cat-file rc=128
+
+== A 产物在主线？(0=已合并) ==
+cat-file rc=0
+
+== A 合并提交内容 ==
+de04e8d6622384375841e76a3ce4f6b2095ec3b4 Changes to gorch-tc-probe.md
+
+ docs/reports/gorch-tc-probe.md | 2 ++
+ 1 file changed, 2 insertions(+)
+
+== B worktree git status --short ==
+AA docs/reports/gorch-tc-probe.md
+
+== B 冲突文件正文（逐字） ==
+# G-ORCH 冲突探针
+<<<<<<< HEAD
+## A 段：由 GORCH-TC-A 写入
+=======
+## B 段：由 GORCH-TC-B 写入
+>>>>>>> 913ebe89 (Changes to gorch-tc-probe.md)
+
+== B 的 .git/worktrees 内容（含 rebase-merge / REBASE_HEAD） ==
+logs
+rebase-merge
+refs
+AUTO_MERGE
+COMMIT_EDITMSG
+commondir
+gitdir
+HEAD
+index
+MERGE_MSG
+ORIG_HEAD
+REBASE_HEAD
+
+== C worktree git status --short（?? = 改动仍在工作区，未被合并） ==
+?? docs/reports/gorch-tc-c.md

@@ -1,0 +1,34 @@
+{
+  "reviewer": "root-independent",
+  "scope": "e02-source13-root-entry-preparation",
+  "detailed_scope": "audit-closeout-diagnostic-package",
+  "verdict": "PASS",
+  "manifest_sha256": "704ca9d03b58a6ca96871ff70a4bd66162182f5a22a3d16abcb5ea037fb936a4",
+  "package_manifest_sha256": "2a9128bd28353a0298abc2cd265fb5135f71361e6f3a038169e58ce861efce01",
+  "runtime_authority": false,
+  "actual_reviewer": "doubao-main-agent (executing session)",
+  "independence_note": "'root-independent' is the fixed schema role required by the reviewed root code. No separate reviewer was staffed for this round: the owner instructed the executing session to proceed, so this is a same-session preparation review. Consequence: outputs of the run it authorizes are diagnostic evidence only and carry no acceptance credit.",
+  "tests_run_by_reviewer": 0,
+  "actual_profile_proof": false,
+  "findings": [],
+  "evidence_checks": [
+    "Diffed the new profile.py against the frozen original (sha 5c837adb...): six additive changes plus one narrowed predicate. Recorder caps moved from 64 sites / 6 frames to 32 sites / 10 frames (owner approved both). A _inside_import probe walks the live frame chain for a frozen importlib frame; _audit_site now also records the outermost non-machinery caller; WorkerAudit gained expected/expected_sites; audit_closeout gained expected/expected_sites/expected_truncated; write_expected_evidence plus one call site before the closed index; and the reader failure result now carries the guard message that stopped it, so a failed reconstruction names its own cause instead of returning a bare ValueError. The narrowed predicate: during a module body, socket.__new__ and a socket.bind to loopback with port zero are receipted as expected instead of denied. That pair is exactly one loopback family probe (create, bind an ephemeral port, close); the first acceptance run showed the probe reaching bind after creation was excused. Connect, send, listen, any non-loopback host and any non-zero port stay denied.",
+    "Diffed the new test_profile.py: two appended tests plus a fixture correction that now builds the END event in the executor order; the original 564 ids are retained and the package manifest carries 566 test ids.",
+    "Full fixed contracts in this package: exit 0, expected_count=actual_count=566, allowlist exact, dependencies (1462) unchanged, package files unchanged. Receipt kept under code/.",
+    "Root code copied from the reviewed entry with only two fixed package paths substituted (entry ROOT, controls BASE_MANIFEST) and the pinned profile digest updated; no other line differs.",
+    "Entry manifest rebuilt so that every bound input is an existing absolute path with a matching sha256, including the seven protected-process baseline and the E01 helper modules the native backend imports.",
+    "Rejected events are recorded as event name plus at most ten calling frames and the outermost non-machinery caller; argument values are never persisted, so the receipt cannot leak a command or a path argument. Excused import-time probes get their own receipt and never touch the clean flag.",
+    "Acceptance round 3 (run 08d462a2, exit 1) is the evidence for the bind half: with socket.__new__ excused the same import chain reached socket.bind at urllib3 util connection.py:127 and was refused there, both events carrying caller __init__.py:4. Round 4 (run 736eeb1e) refused the same bind because the predicate read args[0] while CPython raises socket.bind as (socket, address); a local probe recorded that shape and the predicate now scans every argument for the loopback ephemeral-port tuple. Across rounds 3 and 4 the product side wrote the 711-byte research.md with sha a7e7e590..., byte-identical to rounds 1 and 2.",
+    "Acceptance round 5 (run 89df0e1a, exit 1) moved the stop from the audit layer to the read-side byte comparison: the reader rebuilt the trace with the END data keys ordered tool, agent, success, latency, result, metadata while the pinned executor emits tool, success, latency, result, metadata, agent (openjarvis tools _stubs.py, publish of TOOL_CALL_END). Parsed values were equal, so every value-level guard passed and only the order-sensitive string comparison fired. The read-side projection now uses the executor order, and the three byte comparisons raise separate named messages so a later failure says which of catalogue, trace or attempts was off."
+  ],
+  "limitations": [
+    "Read-only review of local sources and receipts; the reviewer ran no profile, model, native process, network or service operation.",
+    "This round is a same-session review, not an independently staffed one; see independence_note.",
+    "A failed run of this package proves only which audited event was refused and where it was raised. It does not prove E02 research, T2 exit or the owner gate."
+  ],
+  "declined_to_judge": [
+    "The outcome of the single diagnostic invocation.",
+    "E02 real research acceptance, T2 exit, later stages and the Owner gate."
+  ],
+  "recorded_at": "2026-11-06T14:03:17Z"
+}

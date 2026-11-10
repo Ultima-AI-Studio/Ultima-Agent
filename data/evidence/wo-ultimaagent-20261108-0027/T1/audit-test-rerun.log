@@ -1,0 +1,61 @@
+wo-ultimaagent-20261108-0027 T1 independent audit test rerun
+role: eng.audit
+timestamp_utc: 2026-11-08T06:32:33.219Z
+
+[interpreter]
+command: H:/UltimaAI/UltimaAgent/tools/venv-openjarvis/Scripts/python.exe --version
+raw_output:
+Python 3.13.16
+exit_code: 0
+
+[stage_gate_unit_tests]
+command: H:/UltimaAI/UltimaAgent/tools/venv-openjarvis/Scripts/python.exe -m unittest src.brain.guardrails.tests.test_stage_gate -v
+raw_output:
+test_blocker_finding_is_blocked (src.brain.guardrails.tests.test_stage_gate.TestStageGate.test_blocker_finding_is_blocked) ... ok
+test_checked_without_write_domain_check_is_blocked (src.brain.guardrails.tests.test_stage_gate.TestStageGate.test_checked_without_write_domain_check_is_blocked) ... ok
+test_clean_independent_review_passes (src.brain.guardrails.tests.test_stage_gate.TestStageGate.test_clean_independent_review_passes) ... ok
+test_dev_role_is_blocked (src.brain.guardrails.tests.test_stage_gate.TestStageGate.test_dev_role_is_blocked) ... ok
+test_empty_checked_is_blocked (src.brain.guardrails.tests.test_stage_gate.TestStageGate.test_empty_checked_is_blocked) ... ok
+test_invalid_json_is_blocked (src.brain.guardrails.tests.test_stage_gate.TestStageGate.test_invalid_json_is_blocked) ... ok
+test_missing_review_file_is_blocked (src.brain.guardrails.tests.test_stage_gate.TestStageGate.test_missing_review_file_is_blocked) ... ok
+
+----------------------------------------------------------------------
+Ran 7 tests in 0.079s
+
+OK
+exit_code: 0
+
+[t1_receipt_validator]
+command: H:/UltimaAI/UltimaAgent/tools/venv-openjarvis/Scripts/python.exe -c "from src.brain.guardrails.receipt import ReceiptValidator; validate data/evidence/wo-ultimaagent-20261108-0027/T1/receipt.json with base Path('.')"
+raw_output:
+{
+  "ok": true,
+  "path": "data\\evidence\\wo-ultimaagent-20261108-0027\\T1\\receipt.json",
+  "issue_count": 0,
+  "issues": []
+}
+exit_code: 0
+
+[t0_current_gate]
+command: H:/UltimaAI/UltimaAgent/tools/venv-openjarvis/Scripts/python.exe -c "from src.brain.guardrails.stage_gate import check_stage; check_stage('wo-ultimaagent-20261108-0027', 'T0', Path('data/evidence'))"
+raw_output:
+{
+  "passed": true,
+  "reasons": []
+}
+exit_code: 0
+
+[contract_json_example_parse]
+command: H:/UltimaAI/UltimaAgent/tools/venv-openjarvis/Scripts/python.exe -c "extract every fenced json block from docs/specs/independent-review-contract.md and json.loads each block"
+raw_output:
+{
+  "file": "docs/specs/independent-review-contract.md",
+  "json_block_count": 1,
+  "parsed_block_count": 1,
+  "root_types": [
+    "dict"
+  ]
+}
+exit_code: 0
+
+summary: stage_gate tests 7/7 passed; receipt issues 0; T0 gate passed with 0 reasons; contract JSON examples parsed 1/1.

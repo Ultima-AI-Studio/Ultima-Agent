@@ -1,0 +1,54 @@
+== git log -3 ==
+9f9d6b58 Changes to gorch-mm-probe.md
+de04e8d6 Changes to gorch-tc-probe.md
+7fec8fb4 test(gorch): 加 modify/modify 冲突探针基线文件
+
+== 主线 docs/reports/gorch-mm-probe.md 正文（A 已合入） ==
+# G-ORCH modify/modify 探针
+
+line1: baseline
+line2: A
+line3: baseline
+
+== B worktree git status --short ==
+UU docs/reports/gorch-mm-probe.md
+
+== B 冲突文件正文（逐字） ==
+# G-ORCH modify/modify 探针
+
+line1: baseline
+<<<<<<< HEAD
+line2: A
+=======
+line2: B
+>>>>>>> d0386cec (Changes to gorch-mm-probe.md)
+line3: baseline
+
+== B 的 .git/worktrees 内容 ==
+logs
+rebase-merge
+refs
+AUTO_MERGE
+COMMIT_EDITMSG
+commondir
+gitdir
+HEAD
+index
+MERGE_MSG
+ORIG_HEAD
+REBASE_HEAD
+
+== 分支状态 ==
+gorch/GORCH-MM-B
+
+== merge-tree 独立复核（不依赖 wt） ==
+merged
+  result 100644 5721486b5585304caadcdaed438c54098f93c21f docs/reports/gorch-mm-probe.md
+  our    100644 9142ce5593487fc5041b2d552806ec4606ef6b20 docs/reports/gorch-mm-probe.md
+@@ -1,5 +1,5 @@
+ # G-ORCH modify/modify 探针
+ 
+ line1: baseline
+-line2: A
++line2: B
+ line3: baseline

@@ -1,0 +1,88 @@
+{
+  "kind": "INDEPENDENT_EXACT_PLAN_REVIEW",
+  "verdict": "PASS_PLAN_ONLY",
+  "reviewer": "/root/review_e02_json_string_plan",
+  "reviewed_utc": "2026-11-07T11:21:31.1671413Z",
+  "original_order": "wo-ultimaagent-20261101-0021",
+  "stage": "T2",
+  "plan_path": "H:/UltimaAI/UltimaAgent/docs/plans/jarvis-work-e02-json-string-sampler-plan-20261107.md",
+  "plan_sha256": "e186e142e773cef8bc5a3b7a80d6841dc87e1f06136026a26e5833f9025d1b8b",
+  "mirror_sha256": "e186e142e773cef8bc5a3b7a80d6841dc87e1f06136026a26e5833f9025d1b8b",
+  "frozen_commit": "e40a55b40c223181040dbb6a09d0c4d2da5026cf",
+  "method": "Read-only source and retained evidence inspection; no tests, target-code imports, network, model calls, native validator or process/service operations.",
+  "blocking_findings": [],
+  "focus": [
+    {
+      "lines": "31-39,49-50,58",
+      "assessment": "Raw JSON grammar projection is separate from decoded Draft7 validation. Escaped boundaries can admit decoded forbidden neighbors; strict rejection is explicitly required before writer. Same projection reused by replay; strict schema remains immutable.",
+      "id": 1,
+      "evidence": "agent_server.py:400-417; work_research.py:748-758,831",
+      "verdict": "PASS_PLAN"
+    },
+    {
+      "lines": "34-38,43,49,59",
+      "assessment": "J excludes literal quotes, backslashes and U+0000..001F, accepts legal escapes including slash and four hex digits, and preserves ordinary Unicode. Op extraction preserves issued identifier grammar, including dollar and Unicode continuation characters. JSON expressibility of controls does not grant writer acceptance: existing _text rejects decoded controls.",
+      "id": 2,
+      "evidence": "work_navigation.py:525-530; diagnosis/projected.gbnf; work_research.py:149-154",
+      "verdict": "PASS_PLAN"
+    },
+    {
+      "lines": "31-34,44,50,60",
+      "assessment": "Known canonical claim patterns only; schema traversal avoids enum/const/default business payloads, retains IDs, sources, refs, terminal and length gates. Canonical-but-wrong operation fixture preserves coherent-hash replay test; separate unknown-pattern rejection avoids weakening it.",
+      "id": 3,
+      "evidence": "work_navigation.py:516-550; agent_server.py:217-235; tests/test_work_code_claim_schema.py:175-200",
+      "verdict": "PASS_PLAN"
+    },
+    {
+      "lines": "21-23,45,51,53,61",
+      "assessment": "49152 is serialized HTTP entity cap, not a measured compiled GBNF size or complexity cap. Existing time/output limits and fail-closed oversized entity behavior remain. Native compilation/sampling performance is explicitly unverified; reference conversion cannot establish it.",
+      "id": 4,
+      "evidence": "agent_server.py:286,386,400-404; work_research.py:831; diagnosis/proof.json",
+      "verdict": "PASS_PLAN_WITH_LIMITATION"
+    },
+    {
+      "lines": "14-16,41,49,53-54,62",
+      "assessment": "Retained six 200/one 500, 840 tokens, truncated=0 and malformed text support a compatibility hypothesis, not request-bound causality or factual delivery. C++ pattern bypasses JSON char primitive; b10488 pin and supplied compat patch agree. 896 cases and 3 malformed bodies are recorded Python-reference evidence only, not reviewer reruns or native validation.",
+      "id": 5,
+      "evidence": "inputs/native-log-supplement/capture.json; native-status-lines.log; inputs/upstream/LLAMA_CPP_VERSION; json-schema-to-grammar.cpp:245-246,446-463,554,961-975; 001-llama-cpp-hooks.patch",
+      "verdict": "PASS_PLAN"
+    }
+  ],
+  "observations": [
+    {
+      "file": "H:/UltimaAI/UltimaAgent/docs/plans/jarvis-work-e02-json-string-sampler-plan-20261107.md",
+      "line": 61,
+      "message": "Read the 49152 bound as HTTP entity size. Do not report compiled grammar size/performance as proven from this cap.",
+      "severity": "INFO"
+    },
+    {
+      "file": "H:/UltimaAI/UltimaAgent/docs/plans/jarvis-work-e02-json-string-sampler-plan-20261107.md",
+      "line": 59,
+      "message": "Control-character JSON encoding coverage is distinct from writer eligibility. Retain _text rejection and strict decoded boundary rejection.",
+      "severity": "INFO"
+    }
+  ],
+  "required_followthrough": [
+    "Fresh guarded RED/GREEN for new tests on isolated candidate.",
+    "Actual SDK MockTransport write/hash/ACK/replay success and negative boundary/tamper/source coverage.",
+    "Retain all budgets, frozen source, old failure, original order, unrelated files and evidence.",
+    "Independent preparation review binds final candidate and fresh evidence; this review does not certify implementation."
+  ],
+  "authority": {
+    "actual_allocation": 0,
+    "result_review_allocation": 0,
+    "model_calls": 0,
+    "actual_calls": 0,
+    "tests_run": 0,
+    "network_calls": 0,
+    "process_operations": 0,
+    "product_writes": 0,
+    "E02": "0/3",
+    "T2": "NOT_PASSED",
+    "Owner": "NOT_PASSED"
+  },
+  "write_scope": [
+    "review/independent-plan-review.json",
+    "review/independent-plan-review.md"
+  ]
+}

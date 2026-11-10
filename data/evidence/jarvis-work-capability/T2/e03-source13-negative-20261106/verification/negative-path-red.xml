@@ -1,0 +1,435 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="23" skipped="0" tests="31" time="2.764" timestamp="2026-11-06T11:50:14.836112+08:00" hostname="DESKTOP-B366PQ9"><testcase classname="code.test_negative_scenarios" name="test_focus_reobserves_same_target_then_selection_rejects_without_native_write" time="0.043"><failure message="RuntimeError: Offline native write trap">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-source13-negative-20261106/verification/tmp-negative-path-red/test_focus_reobserves_same_tar0')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000001211108E780&gt;
+
+    def test_focus_reobserves_same_target_then_selection_rejects_without_native_write(tmp_path,monkeypatch):
+        run,calls,context,instances=scenario(tmp_path,monkeypatch)
+&gt;       assert run()=={'mechanical':'PASS','facts':'PENDING_ROOT_INDEPENDENT_REVIEW'}
+               ^^^^^
+
+code\test_negative_scenarios.py:107: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+code\test_negative_scenarios.py:101: in run
+    return method(context,baseline)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+&lt;actual Case.negative&gt;:700: in negative
+    ???
+code\test_negative_scenarios.py:61: in replace_selection
+    return super().replace_selection(capture,content,before_send=before_send)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Administrator\.codex\worktrees\jarvis-e03-source13\UltimaAgent\src\brain\work_context.py:178: in replace_selection
+    self._native.replace(t,content)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = &lt;test_negative_scenarios.scenario.&lt;locals&gt;.Native object at 0x00000121110B67B0&gt;
+target = {'allowed_operations': ['capture', 'replace_selection'], 'class': 'Edit', 'control_hwnd': 3, 'hwnd': 1, ...}
+content = 'SHOULD NEVER WRITE'
+
+    def replace(self,target,content):
+        calls.append(('native-write',target['hwnd']))
+&gt;       raise RuntimeError('Offline native write trap')
+E       RuntimeError: Offline native write trap
+
+code\test_negative_scenarios.py:43: RuntimeError</failure></testcase><testcase classname="code.test_negative_scenarios" name="test_failure_retains_partial_observation_and_never_counts_negative_pass[reset]" time="0.031" /><testcase classname="code.test_negative_scenarios" name="test_failure_retains_partial_observation_and_never_counts_negative_pass[capture]" time="0.032" /><testcase classname="code.test_negative_scenarios" name="test_failure_retains_partial_observation_and_never_counts_negative_pass[change]" time="0.033" /><testcase classname="code.test_negative_scenarios" name="test_failure_retains_partial_observation_and_never_counts_negative_pass[no-change]" time="0.031" /><testcase classname="code.test_negative_scenarios" name="test_failure_retains_partial_observation_and_never_counts_negative_pass[false-validation]" time="0.031"><failure message="Failed: DID NOT RAISE any of (ValueError, RuntimeError)">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-source13-negative-20261106/verification/tmp-negative-path-red/test_failure_retains_partial_o4')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x0000012111132250&gt;
+fault = 'false-validation'
+
+    @pytest.mark.parametrize('fault',[
+        'reset','capture','change','no-change','false-validation','unexpected-refusal','false-success',
+        'unrelated-value-error','send-marker','changed-text','files','readback','release',
+        'admission-focus','admission-selection',
+    ])
+    def test_failure_retains_partial_observation_and_never_counts_negative_pass(tmp_path,monkeypatch,fault):
+        run,calls,context,instances=scenario(tmp_path,monkeypatch,fault)
+&gt;       with pytest.raises((ValueError,RuntimeError)):run()
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE any of (ValueError, RuntimeError)
+
+code\test_negative_scenarios.py:133: Failed</failure></testcase><testcase classname="code.test_negative_scenarios" name="test_failure_retains_partial_observation_and_never_counts_negative_pass[unexpected-refusal]" time="0.032" /><testcase classname="code.test_negative_scenarios" name="test_failure_retains_partial_observation_and_never_counts_negative_pass[false-success]" time="0.033" /><testcase classname="code.test_negative_scenarios" name="test_failure_retains_partial_observation_and_never_counts_negative_pass[unrelated-value-error]" time="0.033"><failure message="Failed: DID NOT RAISE any of (ValueError, RuntimeError)">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-source13-negative-20261106/verification/tmp-negative-path-red/test_failure_retains_partial_o7')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x0000012111B5D310&gt;
+fault = 'unrelated-value-error'
+
+    @pytest.mark.parametrize('fault',[
+        'reset','capture','change','no-change','false-validation','unexpected-refusal','false-success',
+        'unrelated-value-error','send-marker','changed-text','files','readback','release',
+        'admission-focus','admission-selection',
+    ])
+    def test_failure_retains_partial_observation_and_never_counts_negative_pass(tmp_path,monkeypatch,fault):
+        run,calls,context,instances=scenario(tmp_path,monkeypatch,fault)
+&gt;       with pytest.raises((ValueError,RuntimeError)):run()
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE any of (ValueError, RuntimeError)
+
+code\test_negative_scenarios.py:133: Failed</failure></testcase><testcase classname="code.test_negative_scenarios" name="test_failure_retains_partial_observation_and_never_counts_negative_pass[send-marker]" time="0.041"><failure message="assert not True&#10; +  where True = any(&lt;generator object test_failure_retains_partial_observation_and_never_counts_negative_pass.&lt;locals&gt;.&lt;genexpr&gt; at 0x0000012111D70FB0&gt;)">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-source13-negative-20261106/verification/tmp-negative-path-red/test_failure_retains_partial_o8')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000001211110B4D0&gt;
+fault = 'send-marker'
+
+    @pytest.mark.parametrize('fault',[
+        'reset','capture','change','no-change','false-validation','unexpected-refusal','false-success',
+        'unrelated-value-error','send-marker','changed-text','files','readback','release',
+        'admission-focus','admission-selection',
+    ])
+    def test_failure_retains_partial_observation_and_never_counts_negative_pass(tmp_path,monkeypatch,fault):
+        run,calls,context,instances=scenario(tmp_path,monkeypatch,fault)
+        with pytest.raises((ValueError,RuntimeError)):run()
+        assert not (tmp_path/'negative-evidence.json').exists()
+        packet=load(tmp_path/'negative-observations.json');last=packet['scenarios'][-1]
+        assert last['completion']=='FAIL' and last.get('unobserved_reason')
+&gt;       assert not any(x[0]=='native-write' for x in calls)
+E       assert not True
+E        +  where True = any(&lt;generator object test_failure_retains_partial_observation_and_never_counts_negative_pass.&lt;locals&gt;.&lt;genexpr&gt; at 0x0000012111D70FB0&gt;)
+
+code\test_negative_scenarios.py:137: AssertionError</failure></testcase><testcase classname="code.test_negative_scenarios" name="test_failure_retains_partial_observation_and_never_counts_negative_pass[changed-text]" time="0.034"><failure message="assert not True&#10; +  where True = any(&lt;generator object test_failure_retains_partial_observation_and_never_counts_negative_pass.&lt;locals&gt;.&lt;genexpr&gt; at 0x0000012111AA9D80&gt;)">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-source13-negative-20261106/verification/tmp-negative-path-red/test_failure_retains_partial_o9')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x0000012111B20130&gt;
+fault = 'changed-text'
+
+    @pytest.mark.parametrize('fault',[
+        'reset','capture','change','no-change','false-validation','unexpected-refusal','false-success',
+        'unrelated-value-error','send-marker','changed-text','files','readback','release',
+        'admission-focus','admission-selection',
+    ])
+    def test_failure_retains_partial_observation_and_never_counts_negative_pass(tmp_path,monkeypatch,fault):
+        run,calls,context,instances=scenario(tmp_path,monkeypatch,fault)
+        with pytest.raises((ValueError,RuntimeError)):run()
+        assert not (tmp_path/'negative-evidence.json').exists()
+        packet=load(tmp_path/'negative-observations.json');last=packet['scenarios'][-1]
+        assert last['completion']=='FAIL' and last.get('unobserved_reason')
+&gt;       assert not any(x[0]=='native-write' for x in calls)
+E       assert not True
+E        +  where True = any(&lt;generator object test_failure_retains_partial_observation_and_never_counts_negative_pass.&lt;locals&gt;.&lt;genexpr&gt; at 0x0000012111AA9D80&gt;)
+
+code\test_negative_scenarios.py:137: AssertionError</failure></testcase><testcase classname="code.test_negative_scenarios" name="test_failure_retains_partial_observation_and_never_counts_negative_pass[files]" time="0.033"><failure message="assert not True&#10; +  where True = any(&lt;generator object test_failure_retains_partial_observation_and_never_counts_negative_pass.&lt;locals&gt;.&lt;genexpr&gt; at 0x0000012111A13920&gt;)">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-source13-negative-20261106/verification/tmp-negative-path-red/test_failure_retains_partial_o10')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x0000012111C95BF0&gt;
+fault = 'files'
+
+    @pytest.mark.parametrize('fault',[
+        'reset','capture','change','no-change','false-validation','unexpected-refusal','false-success',
+        'unrelated-value-error','send-marker','changed-text','files','readback','release',
+        'admission-focus','admission-selection',
+    ])
+    def test_failure_retains_partial_observation_and_never_counts_negative_pass(tmp_path,monkeypatch,fault):
+        run,calls,context,instances=scenario(tmp_path,monkeypatch,fault)
+        with pytest.raises((ValueError,RuntimeError)):run()
+        assert not (tmp_path/'negative-evidence.json').exists()
+        packet=load(tmp_path/'negative-observations.json');last=packet['scenarios'][-1]
+        assert last['completion']=='FAIL' and last.get('unobserved_reason')
+&gt;       assert not any(x[0]=='native-write' for x in calls)
+E       assert not True
+E        +  where True = any(&lt;generator object test_failure_retains_partial_observation_and_never_counts_negative_pass.&lt;locals&gt;.&lt;genexpr&gt; at 0x0000012111A13920&gt;)
+
+code\test_negative_scenarios.py:137: AssertionError</failure></testcase><testcase classname="code.test_negative_scenarios" name="test_failure_retains_partial_observation_and_never_counts_negative_pass[readback]" time="0.033"><failure message="assert not True&#10; +  where True = any(&lt;generator object test_failure_retains_partial_observation_and_never_counts_negative_pass.&lt;locals&gt;.&lt;genexpr&gt; at 0x00000121110935E0&gt;)">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-source13-negative-20261106/verification/tmp-negative-path-red/test_failure_retains_partial_o11')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x0000012111AAD850&gt;
+fault = 'readback'
+
+    @pytest.mark.parametrize('fault',[
+        'reset','capture','change','no-change','false-validation','unexpected-refusal','false-success',
+        'unrelated-value-error','send-marker','changed-text','files','readback','release',
+        'admission-focus','admission-selection',
+    ])
+    def test_failure_retains_partial_observation_and_never_counts_negative_pass(tmp_path,monkeypatch,fault):
+        run,calls,context,instances=scenario(tmp_path,monkeypatch,fault)
+        with pytest.raises((ValueError,RuntimeError)):run()
+        assert not (tmp_path/'negative-evidence.json').exists()
+        packet=load(tmp_path/'negative-observations.json');last=packet['scenarios'][-1]
+        assert last['completion']=='FAIL' and last.get('unobserved_reason')
+&gt;       assert not any(x[0]=='native-write' for x in calls)
+E       assert not True
+E        +  where True = any(&lt;generator object test_failure_retains_partial_observation_and_never_counts_negative_pass.&lt;locals&gt;.&lt;genexpr&gt; at 0x00000121110935E0&gt;)
+
+code\test_negative_scenarios.py:137: AssertionError</failure></testcase><testcase classname="code.test_negative_scenarios" name="test_failure_retains_partial_observation_and_never_counts_negative_pass[release]" time="0.032"><failure message="assert not True&#10; +  where True = any(&lt;generator object test_failure_retains_partial_observation_and_never_counts_negative_pass.&lt;locals&gt;.&lt;genexpr&gt; at 0x0000012111D71080&gt;)">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-source13-negative-20261106/verification/tmp-negative-path-red/test_failure_retains_partial_o12')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x0000012111AAD910&gt;
+fault = 'release'
+
+    @pytest.mark.parametrize('fault',[
+        'reset','capture','change','no-change','false-validation','unexpected-refusal','false-success',
+        'unrelated-value-error','send-marker','changed-text','files','readback','release',
+        'admission-focus','admission-selection',
+    ])
+    def test_failure_retains_partial_observation_and_never_counts_negative_pass(tmp_path,monkeypatch,fault):
+        run,calls,context,instances=scenario(tmp_path,monkeypatch,fault)
+        with pytest.raises((ValueError,RuntimeError)):run()
+        assert not (tmp_path/'negative-evidence.json').exists()
+        packet=load(tmp_path/'negative-observations.json');last=packet['scenarios'][-1]
+        assert last['completion']=='FAIL' and last.get('unobserved_reason')
+&gt;       assert not any(x[0]=='native-write' for x in calls)
+E       assert not True
+E        +  where True = any(&lt;generator object test_failure_retains_partial_observation_and_never_counts_negative_pass.&lt;locals&gt;.&lt;genexpr&gt; at 0x0000012111D71080&gt;)
+
+code\test_negative_scenarios.py:137: AssertionError</failure></testcase><testcase classname="code.test_negative_scenarios" name="test_failure_retains_partial_observation_and_never_counts_negative_pass[admission-focus]" time="0.032"><failure message="assert not True&#10; +  where True = any(&lt;generator object test_failure_retains_partial_observation_and_never_counts_negative_pass.&lt;locals&gt;.&lt;genexpr&gt; at 0x00000121119B6670&gt;)">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-source13-negative-20261106/verification/tmp-negative-path-red/test_failure_retains_partial_o13')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x0000012111AB8C00&gt;
+fault = 'admission-focus'
+
+    @pytest.mark.parametrize('fault',[
+        'reset','capture','change','no-change','false-validation','unexpected-refusal','false-success',
+        'unrelated-value-error','send-marker','changed-text','files','readback','release',
+        'admission-focus','admission-selection',
+    ])
+    def test_failure_retains_partial_observation_and_never_counts_negative_pass(tmp_path,monkeypatch,fault):
+        run,calls,context,instances=scenario(tmp_path,monkeypatch,fault)
+        with pytest.raises((ValueError,RuntimeError)):run()
+        assert not (tmp_path/'negative-evidence.json').exists()
+        packet=load(tmp_path/'negative-observations.json');last=packet['scenarios'][-1]
+        assert last['completion']=='FAIL' and last.get('unobserved_reason')
+&gt;       assert not any(x[0]=='native-write' for x in calls)
+E       assert not True
+E        +  where True = any(&lt;generator object test_failure_retains_partial_observation_and_never_counts_negative_pass.&lt;locals&gt;.&lt;genexpr&gt; at 0x00000121119B6670&gt;)
+
+code\test_negative_scenarios.py:137: AssertionError</failure></testcase><testcase classname="code.test_negative_scenarios" name="test_failure_retains_partial_observation_and_never_counts_negative_pass[admission-selection]" time="0.034"><failure message="assert not True&#10; +  where True = any(&lt;generator object test_failure_retains_partial_observation_and_never_counts_negative_pass.&lt;locals&gt;.&lt;genexpr&gt; at 0x0000012111C975E0&gt;)">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-source13-negative-20261106/verification/tmp-negative-path-red/test_failure_retains_partial_o14')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x0000012111AB9020&gt;
+fault = 'admission-selection'
+
+    @pytest.mark.parametrize('fault',[
+        'reset','capture','change','no-change','false-validation','unexpected-refusal','false-success',
+        'unrelated-value-error','send-marker','changed-text','files','readback','release',
+        'admission-focus','admission-selection',
+    ])
+    def test_failure_retains_partial_observation_and_never_counts_negative_pass(tmp_path,monkeypatch,fault):
+        run,calls,context,instances=scenario(tmp_path,monkeypatch,fault)
+        with pytest.raises((ValueError,RuntimeError)):run()
+        assert not (tmp_path/'negative-evidence.json').exists()
+        packet=load(tmp_path/'negative-observations.json');last=packet['scenarios'][-1]
+        assert last['completion']=='FAIL' and last.get('unobserved_reason')
+&gt;       assert not any(x[0]=='native-write' for x in calls)
+E       assert not True
+E        +  where True = any(&lt;generator object test_failure_retains_partial_observation_and_never_counts_negative_pass.&lt;locals&gt;.&lt;genexpr&gt; at 0x0000012111C975E0&gt;)
+
+code\test_negative_scenarios.py:137: AssertionError</failure></testcase><testcase classname="code.test_negative_entry" name="test_negative_authority_rejects_any_nonzero_or_boolean_cli_allocation[1]" time="0.157"><failure message="AttributeError: 'NoneType' object has no attribute 'inspect'">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-source13-negative-20261106/verification/tmp-negative-path-red/test_negative_authority_reject0')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x0000012111B4B7F0&gt;
+value = 1
+
+    @pytest.mark.parametrize('value',[1,True,2])
+    def test_negative_authority_rejects_any_nonzero_or_boolean_cli_allocation(tmp_path,monkeypatch,value):
+        entry,authority,proof=package(tmp_path,monkeypatch)
+        authority['product_cli_cap']=value;put(tmp_path/'release/authority.json',authority)
+        made=[]
+&gt;       with pytest.raises(ValueError):entry.run_once(tmp_path,backend_factory=lambda root:made.append(root))
+                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+code\test_negative_entry.py:14: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+root = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-source13-negative-20261106/verification/tmp-negative-path-red/test_negative_authority_reject0')
+backend_factory = &lt;function test_negative_authority_rejects_any_nonzero_or_boolean_cli_allocation.&lt;locals&gt;.&lt;lambda&gt; at 0x0000012111AD87C0&gt;
+
+    def run_once(root, *, backend_factory=None):
+        root = safe_path(root)
+        admission = validate_release(root, utcnow())
+        backend = make_backend(root, backend_factory)
+&gt;       assert_same_live(admission['proof'], backend.inspect())
+                                             ^^^^^^^^^^^^^^^
+E       AttributeError: 'NoneType' object has no attribute 'inspect'
+
+code\acceptance_entry.py:412: AttributeError</failure></testcase><testcase classname="code.test_negative_entry" name="test_negative_authority_rejects_any_nonzero_or_boolean_cli_allocation[True]" time="0.107" /><testcase classname="code.test_negative_entry" name="test_negative_authority_rejects_any_nonzero_or_boolean_cli_allocation[2]" time="0.107" /><testcase classname="code.test_negative_entry" name="test_package_cannot_allocate_calls_for_negative[product_cli_cap]" time="0.118"><failure message="Failed: DID NOT RAISE ValueError">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-source13-negative-20261106/verification/tmp-negative-path-red/test_package_cannot_allocate_c0')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x0000012111C9DAD0&gt;
+field = 'product_cli_cap'
+
+    @pytest.mark.parametrize('field',['product_cli_cap','model_requests','audio_actions'])
+    def test_package_cannot_allocate_calls_for_negative(tmp_path,monkeypatch,field):
+        entry,authority,proof=package(tmp_path,monkeypatch)
+        path=tmp_path/'manifest.json';manifest=json.loads(path.read_text());manifest[field]=1;put(path,manifest)
+        reseal(tmp_path,entry,authority)
+&gt;       with pytest.raises(ValueError):entry.verify_package(tmp_path)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+code\test_negative_entry.py:23: Failed</failure></testcase><testcase classname="code.test_negative_entry" name="test_package_cannot_allocate_calls_for_negative[model_requests]" time="0.124"><failure message="Failed: DID NOT RAISE ValueError">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-source13-negative-20261106/verification/tmp-negative-path-red/test_package_cannot_allocate_c1')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x0000012111B33750&gt;
+field = 'model_requests'
+
+    @pytest.mark.parametrize('field',['product_cli_cap','model_requests','audio_actions'])
+    def test_package_cannot_allocate_calls_for_negative(tmp_path,monkeypatch,field):
+        entry,authority,proof=package(tmp_path,monkeypatch)
+        path=tmp_path/'manifest.json';manifest=json.loads(path.read_text());manifest[field]=1;put(path,manifest)
+        reseal(tmp_path,entry,authority)
+&gt;       with pytest.raises(ValueError):entry.verify_package(tmp_path)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+code\test_negative_entry.py:23: Failed</failure></testcase><testcase classname="code.test_negative_entry" name="test_package_cannot_allocate_calls_for_negative[audio_actions]" time="0.140"><failure message="Failed: DID NOT RAISE ValueError">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-source13-negative-20261106/verification/tmp-negative-path-red/test_package_cannot_allocate_c2')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x00000121119AB9A0&gt;
+field = 'audio_actions'
+
+    @pytest.mark.parametrize('field',['product_cli_cap','model_requests','audio_actions'])
+    def test_package_cannot_allocate_calls_for_negative(tmp_path,monkeypatch,field):
+        entry,authority,proof=package(tmp_path,monkeypatch)
+        path=tmp_path/'manifest.json';manifest=json.loads(path.read_text());manifest[field]=1;put(path,manifest)
+        reseal(tmp_path,entry,authority)
+&gt;       with pytest.raises(ValueError):entry.verify_package(tmp_path)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+code\test_negative_entry.py:23: Failed</failure></testcase><testcase classname="code.test_negative_entry" name="test_negative_dependencies_must_be_in_seal[prior-round3/terminal.json]" time="0.189"><failure message="Failed: DID NOT RAISE ValueError">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-source13-negative-20261106/verification/tmp-negative-path-red/test_negative_dependencies_mus0')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x00000121119AB380&gt;
+name = 'prior-round3/terminal.json'
+
+    @pytest.mark.parametrize('name',[
+        'prior-round3/terminal.json','prior-round3/review.json','prior-round3/registration.json',
+        'runtime-reconciliation.json','runtime-user-approval.json','runtime-manual-confirmation.json',
+        'protected-baseline-before-recovery.json',
+    ])
+    def test_negative_dependencies_must_be_in_seal(tmp_path,monkeypatch,name):
+        entry,authority,proof=package(tmp_path,monkeypatch)
+        path=tmp_path/'manifest.json';manifest=json.loads(path.read_text())
+        manifest['files']=[r for r in manifest['files'] if r['path']!='inputs/'+name];put(path,manifest)
+&gt;       with pytest.raises(ValueError,match='Runtime dependency'):entry.verify_package(tmp_path)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+code\test_negative_entry.py:35: Failed</failure></testcase><testcase classname="code.test_negative_entry" name="test_negative_dependencies_must_be_in_seal[prior-round3/review.json]" time="0.123"><failure message="Failed: DID NOT RAISE ValueError">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-source13-negative-20261106/verification/tmp-negative-path-red/test_negative_dependencies_mus1')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x0000012111A3BF50&gt;
+name = 'prior-round3/review.json'
+
+    @pytest.mark.parametrize('name',[
+        'prior-round3/terminal.json','prior-round3/review.json','prior-round3/registration.json',
+        'runtime-reconciliation.json','runtime-user-approval.json','runtime-manual-confirmation.json',
+        'protected-baseline-before-recovery.json',
+    ])
+    def test_negative_dependencies_must_be_in_seal(tmp_path,monkeypatch,name):
+        entry,authority,proof=package(tmp_path,monkeypatch)
+        path=tmp_path/'manifest.json';manifest=json.loads(path.read_text())
+        manifest['files']=[r for r in manifest['files'] if r['path']!='inputs/'+name];put(path,manifest)
+&gt;       with pytest.raises(ValueError,match='Runtime dependency'):entry.verify_package(tmp_path)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+code\test_negative_entry.py:35: Failed</failure></testcase><testcase classname="code.test_negative_entry" name="test_negative_dependencies_must_be_in_seal[prior-round3/registration.json]" time="0.126"><failure message="Failed: DID NOT RAISE ValueError">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-source13-negative-20261106/verification/tmp-negative-path-red/test_negative_dependencies_mus2')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x0000012111A38280&gt;
+name = 'prior-round3/registration.json'
+
+    @pytest.mark.parametrize('name',[
+        'prior-round3/terminal.json','prior-round3/review.json','prior-round3/registration.json',
+        'runtime-reconciliation.json','runtime-user-approval.json','runtime-manual-confirmation.json',
+        'protected-baseline-before-recovery.json',
+    ])
+    def test_negative_dependencies_must_be_in_seal(tmp_path,monkeypatch,name):
+        entry,authority,proof=package(tmp_path,monkeypatch)
+        path=tmp_path/'manifest.json';manifest=json.loads(path.read_text())
+        manifest['files']=[r for r in manifest['files'] if r['path']!='inputs/'+name];put(path,manifest)
+&gt;       with pytest.raises(ValueError,match='Runtime dependency'):entry.verify_package(tmp_path)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+code\test_negative_entry.py:35: Failed</failure></testcase><testcase classname="code.test_negative_entry" name="test_negative_dependencies_must_be_in_seal[runtime-reconciliation.json]" time="0.110"><failure message="Failed: DID NOT RAISE ValueError">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-source13-negative-20261106/verification/tmp-negative-path-red/test_negative_dependencies_mus3')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000001211111F690&gt;
+name = 'runtime-reconciliation.json'
+
+    @pytest.mark.parametrize('name',[
+        'prior-round3/terminal.json','prior-round3/review.json','prior-round3/registration.json',
+        'runtime-reconciliation.json','runtime-user-approval.json','runtime-manual-confirmation.json',
+        'protected-baseline-before-recovery.json',
+    ])
+    def test_negative_dependencies_must_be_in_seal(tmp_path,monkeypatch,name):
+        entry,authority,proof=package(tmp_path,monkeypatch)
+        path=tmp_path/'manifest.json';manifest=json.loads(path.read_text())
+        manifest['files']=[r for r in manifest['files'] if r['path']!='inputs/'+name];put(path,manifest)
+&gt;       with pytest.raises(ValueError,match='Runtime dependency'):entry.verify_package(tmp_path)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+code\test_negative_entry.py:35: Failed</failure></testcase><testcase classname="code.test_negative_entry" name="test_negative_dependencies_must_be_in_seal[runtime-user-approval.json]" time="0.195"><failure message="Failed: DID NOT RAISE ValueError">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-source13-negative-20261106/verification/tmp-negative-path-red/test_negative_dependencies_mus4')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x00000121119CD9B0&gt;
+name = 'runtime-user-approval.json'
+
+    @pytest.mark.parametrize('name',[
+        'prior-round3/terminal.json','prior-round3/review.json','prior-round3/registration.json',
+        'runtime-reconciliation.json','runtime-user-approval.json','runtime-manual-confirmation.json',
+        'protected-baseline-before-recovery.json',
+    ])
+    def test_negative_dependencies_must_be_in_seal(tmp_path,monkeypatch,name):
+        entry,authority,proof=package(tmp_path,monkeypatch)
+        path=tmp_path/'manifest.json';manifest=json.loads(path.read_text())
+        manifest['files']=[r for r in manifest['files'] if r['path']!='inputs/'+name];put(path,manifest)
+&gt;       with pytest.raises(ValueError,match='Runtime dependency'):entry.verify_package(tmp_path)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+code\test_negative_entry.py:35: Failed</failure></testcase><testcase classname="code.test_negative_entry" name="test_negative_dependencies_must_be_in_seal[runtime-manual-confirmation.json]" time="0.143"><failure message="Failed: DID NOT RAISE ValueError">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-source13-negative-20261106/verification/tmp-negative-path-red/test_negative_dependencies_mus5')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x0000012111A3A040&gt;
+name = 'runtime-manual-confirmation.json'
+
+    @pytest.mark.parametrize('name',[
+        'prior-round3/terminal.json','prior-round3/review.json','prior-round3/registration.json',
+        'runtime-reconciliation.json','runtime-user-approval.json','runtime-manual-confirmation.json',
+        'protected-baseline-before-recovery.json',
+    ])
+    def test_negative_dependencies_must_be_in_seal(tmp_path,monkeypatch,name):
+        entry,authority,proof=package(tmp_path,monkeypatch)
+        path=tmp_path/'manifest.json';manifest=json.loads(path.read_text())
+        manifest['files']=[r for r in manifest['files'] if r['path']!='inputs/'+name];put(path,manifest)
+&gt;       with pytest.raises(ValueError,match='Runtime dependency'):entry.verify_package(tmp_path)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+code\test_negative_entry.py:35: Failed</failure></testcase><testcase classname="code.test_negative_entry" name="test_negative_dependencies_must_be_in_seal[protected-baseline-before-recovery.json]" time="0.108"><failure message="Failed: DID NOT RAISE ValueError">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-source13-negative-20261106/verification/tmp-negative-path-red/test_negative_dependencies_mus6')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x0000012111A39160&gt;
+name = 'protected-baseline-before-recovery.json'
+
+    @pytest.mark.parametrize('name',[
+        'prior-round3/terminal.json','prior-round3/review.json','prior-round3/registration.json',
+        'runtime-reconciliation.json','runtime-user-approval.json','runtime-manual-confirmation.json',
+        'protected-baseline-before-recovery.json',
+    ])
+    def test_negative_dependencies_must_be_in_seal(tmp_path,monkeypatch,name):
+        entry,authority,proof=package(tmp_path,monkeypatch)
+        path=tmp_path/'manifest.json';manifest=json.loads(path.read_text())
+        manifest['files']=[r for r in manifest['files'] if r['path']!='inputs/'+name];put(path,manifest)
+&gt;       with pytest.raises(ValueError,match='Runtime dependency'):entry.verify_package(tmp_path)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+code\test_negative_entry.py:35: Failed</failure></testcase><testcase classname="code.test_negative_entry" name="test_nonzero_cli_terminal_is_fail_even_with_mechanical_flag_and_receipts" time="0.113"><failure message="ValueError: Single round3 allocation with two predecessors required">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-source13-negative-20261106/verification/tmp-negative-path-red/test_nonzero_cli_terminal_is_f0')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x00000121119A94E0&gt;
+
+    def test_nonzero_cli_terminal_is_fail_even_with_mechanical_flag_and_receipts(tmp_path,monkeypatch):
+        entry,authority,proof=package(tmp_path,monkeypatch);backend=Backend(tmp_path,proof)
+        original=backend.product
+        def unexpected_cli(revalidate,admit):
+            result=original(revalidate,admit);backend.cli_count=1
+            put(backend.folder/'product-result.json',{'test_only':True})
+            return result
+        backend.product=unexpected_cli
+&gt;       result=entry.run_once(tmp_path,backend_factory=lambda root:backend)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+code\test_negative_entry.py:46: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+code\acceptance_entry.py:410: in run_once
+    admission = validate_release(root, utcnow())
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+code\acceptance_entry.py:362: in validate_release
+    require(all(type(authority[key]) is int and authority[key] == value
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+value = False
+message = 'Single round3 allocation with two predecessors required'
+
+    def require(value, message):
+        if not value:
+&gt;           raise ValueError(message)
+E           ValueError: Single round3 allocation with two predecessors required
+
+code\package_io.py:8: ValueError</failure></testcase><testcase classname="code.test_acceptance_backend" name="test_negative_uses_only_fixture_and_revalidates_each_changed_target" time="0.088"><failure message="ValueError: Protected executable or creation time invalid">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e03-source13-negative-20261106/verification/tmp-negative-path-red/test_negative_uses_only_fixtur0')
+
+    def test_negative_uses_only_fixture_and_revalidates_each_changed_target(tmp_path):
+        native,calls=backend(tmp_path)
+        with pytest.raises(FileNotFoundError):native.controller.source_check()
+&gt;       start(native,tmp_path)
+
+code\test_acceptance_backend.py:126: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+code\test_acceptance_backend.py:120: in start
+    native.inspect();folder=tmp_path/'actual/e03-negative';folder.mkdir(parents=True);native.start(folder)
+    ^^^^^^^^^^^^^^^^
+code\acceptance_backend.py:70: in inspect
+    protected = self._protected()
+                ^^^^^^^^^^^^^^^^^
+code\acceptance_backend.py:50: in _protected
+    expected = c.old.protected_entries(self.baseline)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+baseline = {'schema': 1, 'work_order': 'wo-ultimaagent-20261101-0021', 'stage': 'T2', 'captured_at_utc': '2026-11-06T03:24:07.372130+00:00', ...}
+
+&gt;   ???
+E   ValueError: Protected executable or creation time invalid
+
+&lt;isolated actual protected_entries&gt;:154: ValueError</failure></testcase></testsuite></testsuites>

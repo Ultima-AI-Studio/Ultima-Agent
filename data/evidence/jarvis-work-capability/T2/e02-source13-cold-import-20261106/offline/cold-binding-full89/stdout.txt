@@ -1,0 +1,17 @@
+.............................................F.......................... [ 80%]
+.................                                                        [100%]
+================================== FAILURES ===================================
+______ test_current_import_path_is_derived_without_mutating_old_manifest ______
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-source13-cold-import-20261106/offline/cold-binding-full89/temp/test_current_import_path_is_de0')
+
+    def test_current_import_path_is_derived_without_mutating_old_manifest(tmp_path):
+        f=fixture(tmp_path);before=c.BASE_MANIFEST.read_bytes();pins=f.context.pins()
+        assert pins['import_path'][0]==str(c.BASE_MANIFEST.parent)
+>       assert pins['import_path'][0]!=get(c.BASE_MANIFEST)['import_path'][0]
+E       AssertionError: assert 'H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\e02-source13-cold-import-20261106\\profile-preparation' != 'H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\e02-source13-cold-import-20261106\\profile-preparation'
+
+test_controls.py:160: AssertionError
+=========================== short test summary info ===========================
+FAILED test_controls.py::test_current_import_path_is_derived_without_mutating_old_manifest
+1 failed, 88 passed in 45.52s

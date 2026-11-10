@@ -1,0 +1,15 @@
+# Independent exact plan review — NEEDS_FIXES
+
+Reviewer: root-independent; agent: /root/review_e02_output_budget_plan.
+Plan SHA256: 3d6e455d68278f77cc446f244d4422a88afcb9ff048318cd6f8e2768d1776be2.
+Actual run authorized: false. This is a plan review, not product or actual acceptance.
+
+Blocking F1: The required keyword-only output_tokens interface invalidates existing calls in src/brain/tests/test_work_grounding_context.py:60 and :99. That test file is outside the four-file write domain, although the plan requires the complete grounding regression. Both calls would raise TypeError before their assertions. Add that existing test to the exact write domain, migrate both calls with output_tokens=2048, preserve the assertions and revise changed_files to five. Complete source inventory remains 76: this existing test is already in the parent 75. Do not add a default or omit the regression to evade this migration.
+
+The generation/replay design is otherwise technically feasible: generation computes its actual limit before the call; replay checks phase and exact native options before reconstructing the common prompt. Preserve those checks and pass the same actual num_predict. ACK keeps its existing separate instruction. Eligibility may permit an inspect action with the 2048 phase cap; guidance follows actual limit, not an assumed action name.
+
+Keep all original instructions and schema acceptance unchanged. Compact text must preserve original question coverage, multiple facts/pages, source/reference requirements and insufficient-evidence refusal. Type checks must reject bool and non-integer values. Test 1/32/256/2048 and actual MockTransport options/prompt consistency, successful write/ACK replay and coherent forged or removed guidance. Update every related digest/receipt/post-byte value in the forgery fixture so exact phase comparison is the rejecting predicate.
+
+The two plan copies match the stated SHA. Direct user decision, DoR, progress and all four current registration hashes support offline repair/review/preparation with zero actual/result-review/model allocation. N19 records FAIL_CONFIRMED, length at generation7 and no delivery; the plan correctly preserves it without retry or inference about N17. N21 must consume the frozen product, full inventory and fresh distinct test receipts; retain entry/core AST, independent review and read_ready with absent-grant rejection. Counts 76 and 346 remain future verification targets.
+
+Only static source and evidence reads were performed. No tests, target imports, model/network/runtime, process/UI/audio/service operations were performed. No claim is made about implemented correctness, real 8B improvement, current process liveness, future actual authorization or the unsaved response contents. Preserve all previous evidence, unrelated edits and protected identities. Product and entry preparation require their own later reviews.

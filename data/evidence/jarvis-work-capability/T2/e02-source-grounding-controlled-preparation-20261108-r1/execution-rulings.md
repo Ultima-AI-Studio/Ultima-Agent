@@ -1,0 +1,10 @@
+# Entry preparation rulings
+
+- Root implements the already approved Task3. Product remains frozen. No actual/model/network or service operation.
+- Use the predecessor's correct content-derived zero-allocation preparation binding from inception, with actual source_question_id retained; core AST unchanged.
+- Migrate only reserved-read export fixture counts2/3 and two confirmed pages; keep every negative assertion. No new test deletion or exclusion.
+- The unrelated changing HTML is never written or staged. Preserve original and observed snapshots; report its current drift without treating it as a product input. All other14 files and all product/dependency/failure hashes remain strict.
+- New entry has no actual grant. Original fresh runtime preflight and full original-question facts/citations/coverage/timing/cleanup acceptance remain mandatory after a separately allocated case.
+- User cleared the goal registry; do not recreate one. Local offline task completion is distinct from E02/T2 acceptance.
+- Initial base-b offline group timed out at its original90s bound (exit124); preserve its exact receipt, original batch index and all partial logs/snapshots with zero credit. The child has no completed audit/JUnit receipt; partial dots are never counted. Read-only process observation found no matching remaining test process. One serialized unchanged-source recovery passed140 cases in80.00s with complete guard receipt, retaining90s. No actual or model retry. The verifier identifies the one archived interruption by exact path and SHA and requires the replacement's identical selectors/harness/source pins; all other failures remain fatal.
+- Publication helpers retain unrelated later commits only after ancestry and zero-overlap checks, use NUL-separated names and staged Git blob comparisons, and compare exact commit paths/parent before tagging that commit. No reset, unstaging of foreign work, push or remote workaround. Final readback allows only later nonoverlapping descendant commits.

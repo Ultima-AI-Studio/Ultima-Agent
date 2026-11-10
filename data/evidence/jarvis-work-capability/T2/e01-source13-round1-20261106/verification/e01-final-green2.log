@@ -1,0 +1,26 @@
+........................................................................ [ 34%]
+.....................................................................F.. [ 69%]
+................................................................         [100%]
+================================== FAILURES ===================================
+__________ test_e01_admits_completed_e03_and_keeps_new_facts_pending __________
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e01-source13-round1-20261106/verification/tmp-e01-final-green2/test_e01_admits_completed_e03_0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001CF830C7AF0>
+
+    def test_e01_admits_completed_e03_and_keeps_new_facts_pending(tmp_path,monkeypatch):
+        entry,authority,proof = package(tmp_path,monkeypatch)
+        assert entry.CASE == 'e01-round1' and entry.SCOPE == 'e01-round1-acceptance'
+        backend = Backend(tmp_path,proof)
+        result = entry.run_once(tmp_path,backend_factory=lambda root:backend)
+        assert result['case']=='e01-round1' and result['work_cli_count']==1
+        assert result['facts']=='PENDING_ROOT_INDEPENDENT_REVIEW' and result['acceptance_credit'] is False
+        assert not (tmp_path/'actual/e03-round1').exists()
+        assert (tmp_path/'actual/e01-round1/terminal.json').is_file()
+>       assert len(authority['prior_reviews'])==3
+E       AssertionError: assert 4 == 3
+E        +  where 4 = len([{'case': 'e03-round1', 'candidate': '269aca511d88412dbb9c15d23911138469a37aa2', 'terminal_sha256': '8a7d1c35b600b8eae...b8439838d7b43a5dc621d80a07', 'review_sha256': 'a4f5efc616ea83ab30c5752bd9fae914dda684a8222b7a1c3a9a630d4979b6c5', ...}])
+
+code\test_round2_predecessor.py:49: AssertionError
+=========================== short test summary info ===========================
+FAILED code/test_round2_predecessor.py::test_e01_admits_completed_e03_and_keeps_new_facts_pending
+1 failed, 207 passed in 42.63s

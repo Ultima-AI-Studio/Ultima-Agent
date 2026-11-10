@@ -1,0 +1,497 @@
+# Review package: 900b944165c0175b91492e3fe5b31d96aabdcd5c..a0d21ebf167c41a76410075f7a92f1680926213f
+
+## Commits
+a0d21ebf fix(research): correlate visible source and evidence schema
+
+## Files changed
+ src/brain/agent_server.py                          |   8 +-
+ .../tests/test_work_source_reference_schema.py     | 174 +++++++++++++++++++++
+ src/brain/tests/test_work_write_diagnostics.py     |  29 +++-
+ src/brain/work_navigation.py                       |  40 ++++-
+ src/brain/work_research.py                         |   8 +-
+ 5 files changed, 245 insertions(+), 14 deletions(-)
+
+## Diff
+diff --git a/src/brain/agent_server.py b/src/brain/agent_server.py
+index b6721280..7b3cc8f8 100644
+--- a/src/brain/agent_server.py
++++ b/src/brain/agent_server.py
+@@ -544,21 +544,21 @@ class _ResearchEngineView:
+             raise ValueError('Unlinked research write')
+         verify_research_artifacts(self.binding,verify_artifacts(self.binding,writes),reports,self.caps.research_json,
+             required_version=3,issued_snapshot=self.ledger.issued_snapshot,runtime_packet=self.ledger._runtime_packet(),runtime_inputs=self.ledger._runtime_inputs)
+         self.ledger.admit_ack()
+ 
+     def generate(self,messages,**kwargs):
+         from dataclasses import replace
+         import copy,hashlib
+         from jsonschema import Draft7Validator
+         from openjarvis.core.types import Message,Role
+-        from .work_navigation import canonical_v3,v3_writer_schema
++        from .work_navigation import canonical_v3,v3_writer_schema,v3_source_reference_map
+         self.check_dispatch()
+         self.generation+=1
+         if self.final: raise ValueError('Research already finalized')
+         if self.history is None:
+             self.ledger.close_enrollment()
+             original,replaced=self._system()
+             self.original_system=original; self.replaced_system=replaced
+             self.ledger._runtime_system=original
+             self.history=_research_message_dicts([Message(role=Role.SYSTEM,content=original),Message(role=Role.USER,content=self.prompt)])
+         else:
+@@ -577,29 +577,31 @@ class _ResearchEngineView:
+         eligible=len({view.source_id for _,view in reads if json.loads(view.cards_json)})>=3
+         alternatives=[]
+         def action(name,params):
+             return dict(type='object',additionalProperties=False,required=['action','action_input'],
+                 properties=dict(action=dict(enum=[name]),action_input=params))
+         if ack:
+             self._verify_file(); schema=final; limit=min(kwargs['max_tokens'],256)
+             phase='Acknowledge the verified research.md file. No further action is authorized.'
+         else:
+             self.ledger.admit_report()
++            report_schema=v3_writer_schema(v3_source_reference_map(tuple(
++                (view.source_id,view.cards_json) for _,view in reads))) if eligible else v3_writer_schema()
+             if self.ledger._read_count<6:
+                 alternatives.append(action('ultima_work_research_inspect',self.ledger._enrolled['ultima_work_research_inspect'].spec.parameters))
+-            if eligible: alternatives.append(action('ultima_work_research_write',v3_writer_schema()))
++            if eligible: alternatives.append(action('ultima_work_research_write',report_schema))
+             schema=dict(anyOf=[*alternatives,final])
+             limit=min(kwargs['max_tokens'],2048 if eligible else 256)
+             phase=('Inspect safe source pages; author only atomic claims supported by the exact returned witnesses. '
+                 'Use at least three distinct source URLs and bodies. Write only research.md once, or refuse with final_answer. '
+                 'The phase schema is the entire output contract. Full argument schema (JSON):\n'
+-                +json.dumps(v3_writer_schema(),ensure_ascii=False,separators=(',',':'))+'\nEnd argument schema.')
++                +json.dumps(report_schema,ensure_ascii=False,separators=(',',':'))+'\nEnd argument schema.')
+         outgoing=[replace(messages[0],content=self.replaced_system+'\n\n'+phase),*messages[1:]]
+         _research_budget(outgoing,schema,limit)
+         self.leaf.expected=dict(messages=copy.deepcopy(_research_message_dicts(outgoing)),schema=copy.deepcopy(schema),limit=limit,ack=ack)
+         result=self.inner.generate(outgoing,model=kwargs['model'],temperature=0,max_tokens=limit,response_format=schema)
+         value=_strict_json(result['content'])
+         if not Draft7Validator(schema).is_valid(value): raise ValueError('Invalid secured research envelope')
+         self.ledger._scan_output([result['content'],value])
+         if self.leaf.raw_envelope is None or value!=self.leaf.raw_envelope:
+             raise ValueError('Secured research output drift')
+         self.leaf.transport.check_return(ack)
+diff --git a/src/brain/tests/test_work_source_reference_schema.py b/src/brain/tests/test_work_source_reference_schema.py
+new file mode 100644
+index 00000000..fe81cbc0
+--- /dev/null
++++ b/src/brain/tests/test_work_source_reference_schema.py
+@@ -0,0 +1,174 @@
++"""Source ownership is constrained before dispatch, then independently replayed."""
++import hashlib
++import json
++from pathlib import Path
++
++import pytest
++from jsonschema import Draft7Validator, ValidationError
++
++from src.brain import agent_server as server, work_navigation as nav
++from src.brain.tests.test_work_navigation import stable_navigation_entropy
++from src.brain.tests.test_work_research import RESTRICTED, action, mock_jar, report_payload, sdk_io, submit
++from src.brain.tests.test_work_navigation_transport import navigation_reply
++
++WRITE = 'ultima_work_research_write'
++
++
++def card(number):
++    return [f'N3.{number:016x}', 'documented', '', 1, 1, 1, 1]
++
++
++def visible():
++    return tuple((f'S{i}', nav.canonical_v3([card(i)])) for i in range(1, 4))
++
++
++def refs(pages):
++    assert hasattr(nav, 'v3_source_reference_map'), 'visible source/reference constructor missing'
++    return nav.v3_source_reference_map(pages)
++
++
++def payload():
++    value = report_payload()
++    for i, section in enumerate(value['sections'], 1):
++        section['facts'][0]['evidence_id'] = card(i)[0]
++    return value
++
++
++def writer_schema(schema):
++    return next(a['properties']['action_input'] for a in schema['anyOf']
++                if a['properties'].get('action', {}).get('enum') == [WRITE])
++
++
++def test_correlated_schema_rejects_cross_source_and_unknown_refs():
++    schema = nav.v3_writer_schema(refs(visible()))
++    assert Draft7Validator(schema).is_valid(payload())
++    for bad_ref in (card(2)[0], card(99)[0]):
++        bad = payload(); bad['sections'][0]['facts'][0]['evidence_id'] = bad_ref
++        assert not Draft7Validator(schema).is_valid(bad)
++    assert nav.v3_writer_schema()['properties']['path']['enum'] == ['research.md']
++
++
++def test_visible_map_is_sorted_merges_pages_and_omits_empty_sources():
++    pages = (('S2', nav.canonical_v3([card(9), card(8)])),
++             ('S1', nav.canonical_v3([card(3)])), ('S4', b'[]'),
++             ('S1', nav.canonical_v3([card(2)])))
++    expected = {'S1': (card(2)[0], card(3)[0]), 'S2': (card(8)[0], card(9)[0])}
++    assert refs(pages) == refs(tuple(reversed(pages))) == expected
++    assert refs(()) == {}
++
++
++@pytest.mark.parametrize('pages', [
++    [], (('S0', b'[]'),), (('S6', b'[]'),), (('S1', '[]'),),
++    (('S1', b'{}'),), (('S1', b'[[]]'),),
++    (('S1', nav.canonical_v3([['bad', 'documented', '', 1, 1, 1, 1]])),),
++    (('S1', nav.canonical_v3([[card(1)[0], 'bad', '', 1, 1, 1, 1]])),),
++    (('S1', nav.canonical_v3([[card(1)[0], 'documented', '', True, 1, 1, 1]])),),
++    (('S1', nav.canonical_v3([[card(1)[0], 'documented', '', 2, 1, 1, 1]])),),
++    (('S1', nav.canonical_v3([card(i) for i in range(9)])),),
++    tuple(('S1', b'[]') for _ in range(7)),
++    (('S1', nav.canonical_v3([card(1)])), ('S2', nav.canonical_v3([card(1)]))),
++])
++def test_invalid_or_foreign_visible_cards_fail_closed(pages):
++    with pytest.raises(ValueError): refs(pages)
++
++
++@pytest.mark.parametrize('mapping', [{}, {'S1': ()}, {'S1': (card(1)[0],)},
++    {1: (card(1)[0],), 'S2': (card(2)[0],), 'S3': (card(3)[0],)},
++    {'S1': (card(1)[0],), 'S2': (card(1)[0],), 'S3': (card(3)[0],)}])
++def test_writer_mapping_never_falls_back_when_empty_partial_or_colliding(mapping):
++    with pytest.raises(ValueError): nav.v3_writer_schema(mapping)
++
++
++@pytest.mark.parametrize('fault', ['foreign', 'unissued', 'other_request'])
++def test_native_bad_reference_rejected_before_writer_dispatch(tmp_path, sdk_io, mock_jar, fault):
++    def reply(body):
++        pages = [json.loads(m['content'][13:]) for m in body['messages']
++                 if m['role'] == 'user' and m['content'].startswith('Observation: ')]
++        value = report_payload()
++        for section, page in zip(value['sections'], pages):
++            section['facts'][0]['evidence_id'] = page['cards'][0][0]
++        value['sections'][0]['facts'][0]['evidence_id'] = (
++            pages[1]['cards'][0][0] if fault == 'foreign' else card(99 if fault == 'unissued' else 100)[0])
++        return action(value)
++    mock_jar[3].append(reply)
++    result = submit(tmp_path, sdk_io[0], mock_jar[1])
++    assert result['status'] == 'failed' and result['error'] == 'Invalid native research envelope'
++    ledger = RESTRICTED[result['task_id']]
++    assert not any(r['tool_name'] in (WRITE, 'ultima_work_file_write') for r in ledger.snapshot())
++    assert not result['artifacts'] and not result.get('research_effects')
++    assert 'research_failure' not in result and not list(tmp_path.rglob('research.md'))
++
++
++def delivered(tmp_path, sdk_io, mock_jar):
++    mock_jar[3].extend([navigation_reply] * 5)
++    result = submit(tmp_path, sdk_io[0], mock_jar[1])
++    assert result['status'] == 'succeeded', result['error']
++    ledger = RESTRICTED[result['task_id']]
++    return result, ledger, json.loads(ledger._runtime_final)
++
++
++def test_native_author_schema_uses_confirmed_third_view_and_complete_delivery(tmp_path, sdk_io, mock_jar):
++    result, ledger, packet = delivered(tmp_path, sdk_io, mock_jar)
++    wire = packet['wires'][-2]
++    observations = [json.loads(m['content'][13:]) for m in wire['secured_messages']
++                    if m['role'] == 'user' and m['content'].startswith('Observation: ')]
++    expected = refs(tuple((p['source_id'], nav.canonical_v3(p['cards'])) for p in observations))
++    assert len(expected) == 3
++    for outer in (mock_jar[2][-2]['format'], wire['strict_schema'], wire['sampler_schema']):
++        branches = writer_schema(outer)['properties']['sections']['items']['anyOf']
++        actual = {b['properties']['source_id']['enum'][0]:
++                  tuple(b['properties']['facts']['items']['properties']['evidence_id']['enum']) for b in branches}
++        assert actual == expected
++    for outer in (b['format'] for b in mock_jar[2][:3]):
++        assert not any(a['properties'].get('action', {}).get('enum') == [WRITE] for a in outer['anyOf'])
++    output = Path(result['artifacts'][0]['path'])
++    assert hashlib.sha256(output.read_bytes()).hexdigest() == result['artifacts'][0]['sha256']
++    assert len(result['sources']) == 3 and len(result['research_effects']) == 1
++    from src.brain.work_research import verify_runtime_packet
++    verify_runtime_packet(ledger._binding, ledger.issued_snapshot, ledger._collection,
++                          ledger._runtime_final, require_ack=True, runtime_inputs=ledger._runtime_inputs)
++
++
++@pytest.mark.parametrize('fault', ['foreign', 'remove_branch', 'other_request', 'phase'])
++def test_independent_replay_rejects_correlated_schema_or_phase_forgery(tmp_path, sdk_io, mock_jar, fault):
++    _, ledger, _ = delivered(tmp_path, sdk_io, mock_jar)
++    packet = json.loads(ledger._runtime_prewrite)
++    wire = packet['wires'][-1]
++    branches = writer_schema(wire['strict_schema'])['properties']['sections']['items']['anyOf']
++    if fault == 'phase': wire['secured_messages'][0]['content'] += ' altered'
++    elif fault == 'remove_branch': branches.pop()
++    else:
++        ref = (branches[1]['properties']['facts']['items']['properties']['evidence_id']['enum'][0]
++               if fault == 'foreign' else card(99)[0])
++        branches[0]['properties']['facts']['items']['properties']['evidence_id']['enum'].append(ref)
++    # Coherently repair all self-reported hashes and the actual native entity.
++    # The replay must still reconstruct the contract from trusted visible reads.
++    wire['sampler_schema'] = server._research_sampler_schema(wire['strict_schema'])
++    request = json.loads(wire['entity'])
++    request.update(messages=wire['secured_messages'], format=wire['sampler_schema'])
++    entity = nav.canonical_v3(request); wire['entity'] = entity.decode('utf8')
++    wire['hashes'] = {k: hashlib.sha256(v).hexdigest() for k, v in dict(
++        messages=nav.canonical_v3(wire['secured_messages']), strict=nav.canonical_v3(wire['strict_schema']),
++        sampler=nav.canonical_v3(wire['sampler_schema']), entity=entity).items()}
++    receipt = packet['transport']['receipts'][(len(packet['wires'])-1)*3+2]
++    receipt.update(entity_sha256=wire['hashes']['entity'], entity_bytes=len(entity))
++    packet['transport']['post_bytes'] = sum(len(w['entity'].encode('utf8')) for w in packet['wires'])
++    from src.brain.work_research import verify_runtime_packet
++    expected = ('Runtime exact phase system drift' if fault == 'phase' else
++                None if fault == 'remove_branch' else 'Runtime phase schema or output budget drift')
++    with pytest.raises((ValueError, ValidationError), match=expected):
++        verify_runtime_packet(ledger._binding, ledger.issued_snapshot, ledger._collection,
++                              nav.canonical_v3(packet), runtime_inputs=ledger._runtime_inputs)
++
++
++def test_six_pages_max_cards_schema_keeps_original_budget_and_limits():
++    pages = tuple((f'S{min(page + 1, 5)}', nav.canonical_v3([card(page * 8 + i) for i in range(8)])) for page in range(6))
++    mapping = refs(pages)
++    assert len(mapping) == 5 and sum(map(len, mapping.values())) == 48
++    schema = nav.v3_writer_schema(mapping)
++    assert len(nav.canonical_v3(schema)) < 32768
++    assert schema['properties']['sections']['maxItems'] == 5
++    from openjarvis.core.types import Message, Role
++    server._research_budget([Message(role=Role.USER, content='x')], schema, 2048)
++    with pytest.raises(ValueError):
++        server._research_budget([Message(role=Role.USER, content='x' * 100000)], schema, 2048)
+diff --git a/src/brain/tests/test_work_write_diagnostics.py b/src/brain/tests/test_work_write_diagnostics.py
+index 034dd11f..2b63f260 100644
+--- a/src/brain/tests/test_work_write_diagnostics.py
++++ b/src/brain/tests/test_work_write_diagnostics.py
+@@ -1,17 +1,18 @@
+ """Public failure diagnostics use trusted ledger records, never model summaries.
+ 
+ The SDK/executor/writer/END path is real; native transport and source GETs are
+ offline fixtures. These tests do not establish live research acceptance.
+ """
+ import hashlib
+ import json
++from copy import deepcopy
+ 
+ import pytest
+ 
+ from src.brain import work_tools as wt
+ from src.brain.tests.test_work_navigation import stable_navigation_entropy
+ from src.brain.tests.test_work_research import (
+     RESTRICTED, fixture_dispatch, mock_jar,
+     report_payload, sdk_io, submit,
+ )
+ 
+@@ -20,54 +21,68 @@ WRITE = 'ultima_work_research_write'
+ 
+ def failed_write(tmp_path, sdk_io, payload=None, after=None):
+     def runner(*args, **kwargs):
+         response = fixture_dispatch(payload or report_payload())
+         if after:
+             after(response, wt._ACTIVE.get()[1])
+         return response
+     return submit(tmp_path, sdk_io[0], runner)
+ 
+ 
++def resolver_fault(monkeypatch, fault):
++    # The phase schema now rejects bad references before writer dispatch.
++    # Inject corruption at the resolver boundary to retain diagnostic coverage
++    # of the real writer's independent defense and trusted failure ledger.
++    from src.brain import work_navigation as nav
++    original = nav.resolve_v3
++    def resolve(params, snapshot, collection):
++        params = deepcopy(params)
++        params['sections'][0]['facts'][0]['evidence_id'] = (
++            'N3.' + '0' * 16 if fault == 'unissued'
++            else params['sections'][1]['facts'][0]['evidence_id'])
++        return original(params, snapshot, collection)
++    monkeypatch.setattr(nav, 'resolve_v3', resolve)
++
++
+ @pytest.mark.parametrize('fault,reason', [
+     ('unissued', 'UNISSUED_REFERENCE'),
+     ('foreign', 'FOREIGN_REFERENCE'),
+     ('duplicate_source', 'INVALID_SOURCE_SECTION'),
+     ('multiline_claim', 'INVALID_REPORT_TEXT'),
+ ])
+-def test_real_writer_reason_survives_failed_end(tmp_path, sdk_io, fault, reason):
++def test_real_writer_reason_survives_failed_end(tmp_path, sdk_io, monkeypatch, fault, reason):
+     payload = report_payload()
+-    if fault == 'unissued':
+-        payload['sections'][0]['facts'][0]['evidence_id'] = 'N3.' + '0' * 16
+-    elif fault == 'foreign':
+-        payload['sections'][0]['facts'][0]['evidence_id'] = 'issued:S2'
++    if fault in ('unissued', 'foreign'):
++        resolver_fault(monkeypatch, fault)
+     elif fault == 'duplicate_source':
+         payload['sections'][1]['source_id'] = 'S1'
++        payload['sections'][1]['facts'][0]['evidence_id'] = 'issued:S1'
+     else:
+         payload['sections'][0]['facts'][0]['claim'] = 'first line\nsecond line'
+     result = failed_write(tmp_path, sdk_io, payload)
+     assert result['status'] == 'failed' and not result['artifacts']
+     assert result['error'] == 'Unlinked or failed END'
+     writer = next(r for r in RESTRICTED[result['task_id']].snapshot()
+                   if r['tool_name'] == WRITE and r['success'] is False)
+     diagnostic = result['research_failure']
+     assert diagnostic == dict(
+         stage='research.write', reason_code=reason, error_type='ValueError',
+         error_text_length=len(writer['error']),
+         error_text_sha256=hashlib.sha256(writer['error'].encode('utf8')).hexdigest(),
+     )
+     assert not list(tmp_path.rglob('research.md'))
+     assert all('error' not in r and 'result' not in r for r in result['tool_results'])
+ 
+ 
+-def test_earliest_writer_reason_wins_over_later_ledger_and_sdk_errors(tmp_path, sdk_io):
++def test_earliest_writer_reason_wins_over_later_ledger_and_sdk_errors(tmp_path, sdk_io, monkeypatch):
+     payload = report_payload()
+-    payload['sections'][0]['facts'][0]['evidence_id'] = 'N3.' + '0' * 16
++    resolver_fault(monkeypatch, 'unissued')
+     def after(response, ledger):
+         ledger.record(dict(tool_name=WRITE, success=False, error_type='ValueError',
+                            error='Foreign reference'))
+         response.setdefault('tool_results', []).insert(0, dict(
+             tool_name=WRITE, success=False, error_type='ValueError',
+             error='Foreign reference', research_failure={'reason_code': 'FORGED'}))
+     result = failed_write(tmp_path, sdk_io, payload, after)
+     assert result['error'] == 'Unlinked or failed END'
+     assert result['research_failure']['reason_code'] == 'UNISSUED_REFERENCE'
+     assert 'FORGED' not in json.dumps(result)
+diff --git a/src/brain/work_navigation.py b/src/brain/work_navigation.py
+index 4f46d4b8..c3a38d46 100644
+--- a/src/brain/work_navigation.py
++++ b/src/brain/work_navigation.py
+@@ -386,26 +386,64 @@ def prepare_navigation(collection, binding, scanners: ScanPolicy, *, get_records
+             if entry['landmarks']:
+                 entry['landmarks'].pop(); changed=True
+                 if len(canonical_v3(entries))<=4096: break
+         if not changed: raise ValueError('Mandatory catalogue identities exceed cap')
+     raw=canonical_v3(entries)
+     if _findings(raw.decode('utf8'),scanners): raise ValueError('Unsafe catalogue')
+     validate_scan_policy(scanners)
+     return replace(cat,catalogue_json=raw,catalogue_sha256=_h(raw))
+ 
+ 
+-def v3_writer_schema() -> dict:
++def v3_source_reference_map(visible: tuple[tuple[str, bytes], ...]) -> dict[str, tuple[str, ...]]:
++    """Project already trusted, phase-visible cards; never grant read authority."""
++    if type(visible) is not tuple or len(visible)>6: raise ValueError('Invalid visible pages')
++    sources={}; seen=set()
++    for page in visible:
++        if type(page) is not tuple or len(page)!=2: raise ValueError('Invalid visible page')
++        sid,raw=page
++        if type(sid) is not str or not re.fullmatch(r'S[1-5]',sid) or type(raw) is not bytes:
++            raise ValueError('Invalid visible source')
++        cards=_load(raw)
++        if type(cards) is not list or len(cards)>8: raise ValueError('Invalid visible cards')
++        for card in cards:
++            if (type(card) is not list or len(card)!=7 or type(card[0]) is not str
++                    or not re.fullmatch(r'N3\.[0-9a-f]{16}',card[0])
++                    or card[1] not in ('documented','code','limitation') or type(card[2]) is not str
++                    or any(type(n) is not int for n in card[3:])
++                    or not 1<=card[5]<=card[3]<=card[4]<=card[6]):
++                raise ValueError('Invalid visible card')
++            if card[0] in seen: raise ValueError('Reference collision')
++            seen.add(card[0]); sources.setdefault(sid,[]).append(card[0])
++    return {sid:tuple(sorted(sources[sid])) for sid in sorted(sources)}
++
++
++def v3_writer_schema(source_refs: dict[str, tuple[str, ...]] | None = None) -> dict:
+     def obj(**props): return dict(type='object',additionalProperties=False,properties=props,required=list(props))
+     def text(n): return dict(type='string',minLength=1,maxLength=n)
+     def array(items,a,z): return dict(type='array',items=items,minItems=a,maxItems=z)
+     fact=obj(claim=text(2000),evidence_id=dict(type='string',pattern=r'^N3\.[0-9a-f]{16}$',minLength=19,maxLength=19))
+     section=obj(source_id=dict(type='string',pattern=r'^S[1-5]$',minLength=2,maxLength=2),heading=text(200),facts=array(fact,1,6))
++    if source_refs is not None:
++        if (type(source_refs) is not dict or not 3<=len(source_refs)<=5
++                or any(type(sid) is not str for sid in source_refs)):
++            raise ValueError('Three visible reference sources required')
++        branches=[]; seen=set()
++        for sid,refs in sorted(source_refs.items()):
++            if (type(sid) is not str or not re.fullmatch(r'S[1-5]',sid) or type(refs) is not tuple
++                    or not refs or len(refs)>48 or any(type(ref) is not str or not re.fullmatch(r'N3\.[0-9a-f]{16}',ref) for ref in refs)
++                    or len(set(refs))!=len(refs) or seen.intersection(refs)):
++                raise ValueError('Invalid source reference mapping')
++            seen.update(refs)
++            bound_fact=obj(claim=text(2000),evidence_id=dict(fact['properties']['evidence_id'],enum=sorted(refs)))
++            branches.append(obj(source_id=dict(section['properties']['source_id'],enum=[sid]),heading=text(200),facts=array(bound_fact,1,6)))
++        if len(seen)>48: raise ValueError('Visible reference count exceeds cap')
++        section=dict(anyOf=branches)
+     return obj(path=dict(text(2048),enum=['research.md']),title=text(200),sections=array(section,3,5))
+ 
+ 
+ def _source_packet(source):
+     result=asdict(source)
+     for k in ('identity_json','anchors_json'): result[k]=json.loads(result[k])
+     result['safe_line_pairs']=[list(x) for x in source.safe_line_pairs]
+     result['omissions']=[list(x) for x in source.omissions]
+     return result
+ 
+diff --git a/src/brain/work_research.py b/src/brain/work_research.py
+index 7457915d..e1164b75 100644
+--- a/src/brain/work_research.py
++++ b/src/brain/work_research.py
+@@ -639,21 +639,21 @@ def _verify_runtime_order(packet,reads,written,require_ack,runtime_inputs):
+             if written:
+                 _,remaining=take('intent',seq=seq,file_call_id=key['file_call_id'])
+                 if remaining<55: raise ValueError('Runtime intent reserve exhausted')
+                 take('file_end',file_call_id=key['file_call_id'])
+                 take('sdk_end',seq=seq,event_index=index*2+1)
+     if cursor!=len(timeline): raise ValueError('Unexpected runtime terminal order')
+ 
+ 
+ def verify_runtime_packet(binding, snapshot, collection, raw, *, require_ack=False,runtime_inputs=None):
+     """Reconstruct native entities, history and read/event links independently."""
+-    from .work_navigation import canonical_v3,v3_writer_schema
++    from .work_navigation import canonical_v3,v3_writer_schema,v3_source_reference_map
+     from .work_tools import WorkInspectTool,WorkResearchWriteTool
+     from openjarvis.tools._stubs import ToolSpec,build_tool_descriptions
+     from types import SimpleNamespace
+     from .agent_server import _strict_json,_research_sampler_schema,_RESEARCH_MODEL,MAINBRAIN_SYSTEM_PROMPT
+     from openjarvis.agents.native_react import REACT_SYSTEM_PROMPT
+     from jsonschema import Draft7Validator
+     from openjarvis.security.scanner import SecretScanner,PIIScanner
+     from .work_navigation import make_scan_policy
+     sealed_policy=json.loads(snapshot.replay_json)['policy']
+     factories={c.__module__+'.'+c.__qualname__:c for c in (SecretScanner,PIIScanner)}
+@@ -787,41 +787,43 @@ def verify_runtime_packet(binding, snapshot, collection, raw, *, require_ack=Fal
+             raise ValueError('Empty research final answer')
+         Draft7Validator(wire['strict_schema']).validate(envelope)
+         final=dict(type='object',additionalProperties=False,required=['final_answer'],
+             properties=dict(final_answer=dict(type='string',minLength=1,maxLength=1000)))
+         ack=index==len(reads)+1
+         allowed=[]
+         def action(name,params):
+             return dict(type='object',additionalProperties=False,required=['action','action_input'],properties=dict(action=dict(enum=[name]),action_input=params))
+         visible=reads[:index]
+         eligible=len({r['source_id'] for r in visible if r['wire']['cards']})>=3
++        report_schema=v3_writer_schema(v3_source_reference_map(tuple(
++            (r['source_id'],canonical_v3(r['wire']['cards'])) for r in visible))) if eligible else v3_writer_schema()
+         if not ack:
+             if index<6: allowed.append(action('ultima_work_research_inspect',WorkInspectTool.parameters))
+-            if eligible: allowed.append(action('ultima_work_research_write',v3_writer_schema()))
++            if eligible: allowed.append(action('ultima_work_research_write',report_schema))
+         expected_schema=final if ack else dict(anyOf=[*allowed,final])
+         output_cap=256 if ack or not eligible else 2048
+         if (wire['strict_schema']!=expected_schema or type(request['options']['num_predict']) is not int
+                 or not 0<request['options']['num_predict']<=output_cap):
+             raise ValueError('Runtime phase schema or output budget drift')
+         if (type(runtime_inputs.allowance) is not int or runtime_inputs.allowance<=0 or request['options']!=dict(
+                 num_ctx=16384,temperature=0,num_predict=min(runtime_inputs.allowance,output_cap))
+                 or type(request['options']['num_ctx']) is not int or type(request['options']['temperature']) is not int):
+             raise ValueError('Runtime exact native options drift')
+         checked_native_response(outer,request['options']['num_predict'])
+         from .agent_server import _research_budget
+         from openjarvis.core.types import Message,Role
+         _research_budget([Message(role=Role(m['role']),content=m['content']) for m in messages],wire['strict_schema'],request['options']['num_predict'])
+         phase=('Acknowledge the verified research.md file. No further action is authorized.' if ack else
+             'Inspect safe source pages; author only atomic claims supported by the exact returned witnesses. '
+             'Use at least three distinct source URLs and bodies. Write only research.md once, or refuse with final_answer. '
+             'The phase schema is the entire output contract. Full argument schema (JSON):\n'
+-            +json.dumps(v3_writer_schema(),ensure_ascii=False,separators=(',',':'))+'\nEnd argument schema.')
++            +json.dumps(report_schema,ensure_ascii=False,separators=(',',':'))+'\nEnd argument schema.')
+         if messages[0]['content']!=replaced+'\n\n'+phase: raise ValueError('Runtime exact phase system drift')
+         if 'action' in envelope:
+             start=starts[index]
+             if envelope['action']!=start['tool'] or envelope['action_input']!=start['arguments']:
+                 raise ValueError('Runtime action-to-dispatch drift')
+         elif index!=len(wires)-1 or not require_ack: raise ValueError('Runtime premature final')
+         if (outer.get('done') is not True or outer.get('done_reason')!='stop'
+                 or type(outer.get('eval_count')) is not int or not 0<outer['eval_count']<=request['options']['num_predict']
+                 or len(canonical_v3([messages,wire['strict_schema']]))>32768 or len(entity)>49152):
+             raise ValueError('Runtime response or request admission drift')

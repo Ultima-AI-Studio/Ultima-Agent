@@ -1,0 +1,36 @@
+AUDIT: d99314cd T0 assertion and implementation review
+AUDITED_COMMIT: d99314cd90927a4a8ce71a80783c9e540d067325
+FILES_REVIEWED:
+  src/brain/guardrails/tests/test_stage_gate.py
+  src/brain/guardrails/stage_gate.py
+  src/brain/guardrails/reviewer.py
+  src/brain/guardrails/receipt.py
+
+ASSERTION_REVIEW:
+  PASS - 7 test methods contain 14 outcome/reason assertions; no assertTrue(True), assertFalse(False), bare assert, skipped test, or expected-failure marker is present.
+  PASS - positive case lines 89-95 checks result.passed is true and reasons is exactly an empty list.
+  PASS - missing-file case lines 97-101 checks refusal and a concrete "不存在" reason.
+  PASS - invalid-JSON case lines 103-111 checks refusal and a concrete "非法 JSON" reason.
+  PASS - blocker case lines 113-132 checks refusal and a concrete blocker reason.
+  PASS - dev-role case lines 134-140 checks refusal and a concrete role reason.
+  PASS - empty-checked case lines 142-148 checks refusal and a concrete checked reason.
+  PASS - missing-write-domain case lines 150-156 checks refusal and a concrete 写域核对 reason.
+
+REUSE_REVIEW:
+  PASS - stage_gate.py lines 10-11 import ReceiptValidator plus Finding/ReviewResult from the existing guardrail modules.
+  PASS - line 57 invokes ReceiptValidator(base=root).validate(review_path), so receipt fields and evidence existence use the existing validator.
+  PASS - lines 138-150 construct ReviewResult and call as_dict() to recompute blocker/major/minor counts; declared counts must equal recomputed counts.
+  PASS - no replacement receipt validator or replacement review-result data class is introduced.
+
+FAIL_CLOSED_REVIEW:
+  PASS - missing/unreadable/invalid receipt returns a failed result before semantic review (lines 56-68).
+  PASS - absent ReviewResult fields, wrong work_order, non-audit role, invalid/empty checked, missing required checks, malformed findings, invalid counts, and mismatched counts each append refusal reasons.
+  PASS - any computed or declared blocker adds "blocker 未清零" (lines 152-153).
+  PASS - ok must be a boolean consistent with blocker semantics and exactly true (lines 154-158).
+  PASS - final decision is StageGateResult(not reasons, reasons), so any accumulated validation reason refuses the stage.
+
+OBSERVATION:
+  ReceiptValidator retains its pre-existing shallow type checks for evidence/acceptance containers; d99314cd does not change that existing semantic, as required by the T0 boundary. StageGate independently enforces all ReviewResult fields and required checked entries specified by T0.
+
+FINDING_COUNTS: blocker=0 major=0 minor=0
+CONCLUSION: PASS - assertions are substantive, existing ReceiptValidator/ReviewResult are reused, and the required T0 failure modes are fail-closed.

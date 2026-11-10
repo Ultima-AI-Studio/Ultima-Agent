@@ -1,0 +1,59 @@
+wo-ultimaagent-20261108-0027 T1 independent audit contract review
+role: eng.audit
+timestamp_utc: 2026-11-08T06:32:33.219Z
+review_target_commit: 2a4a2521b9ef743a872858e7880fcc35f53cb68c
+
+[source_contract_alignment]
+src/brain/guardrails/receipt.py:15:REQUIRED_FIELDS = ("reviewReason", "stdoutText", "evidence", "acceptance")
+src/brain/guardrails/receipt.py:16:REQUIRED_TOP = ("work_order", "status")
+src/brain/guardrails/reviewer.py:17:AUDIT_ROLES = ("eng.audit", "eng.security")
+src/brain/guardrails/reviewer.py:18:SEVERITIES = ("blocker", "major", "minor")
+src/brain/guardrails/reviewer.py:33:class ReviewResult:
+src/brain/guardrails/reviewer.py:39:    def as_dict(self) -> dict[str, Any]:
+
+[independent_review_contract_evidence]
+docs/specs/independent-review-contract.md:15:`independent-review.json` **只能由独立复核会话写入或修改，执行端不得写入、
+docs/specs/independent-review-contract.md:16:补写、修正或代签**。执行 commit 与复核 commit 必须分开；复核 commit message
+docs/specs/independent-review-contract.md:17:必须以 `[audit]` 开头。
+docs/specs/independent-review-contract.md:28:- `evidence[].path` 相对调用 `check_stage` 时传入的 `evidence_root` 解析。
+docs/specs/independent-review-contract.md:29:  标准根为仓库下的 `data/evidence`，因此示例路径形如
+docs/specs/independent-review-contract.md:34:结论文件同时复用 `ReceiptValidator` 与 `ReviewResult`，不得另造第二套审计
+docs/specs/independent-review-contract.md:39:| `work_order` | string | 非空，且等于目录中的 `<work_order>` |
+docs/specs/independent-review-contract.md:40:| `status` | string | 独立复核完成后写 `COMPLETED` |
+docs/specs/independent-review-contract.md:41:| `reviewReason` | string | 非空，说明审查范围、结论和关键依据 |
+docs/specs/independent-review-contract.md:42:| `stdoutText` | string | 非空，摘要记录真实命令、计数与退出码 |
+docs/specs/independent-review-contract.md:43:| `evidence` | array | `ReceiptValidator` 证据列表；每项含 `path`、合法 `kind`、非空 `summary`，路径必须存在 |
+docs/specs/independent-review-contract.md:44:| `acceptance` | array | 每项含非空 `id`、`result`、`evidence`；`result` 只能为 `PASS` 或 `FAIL` |
+docs/specs/independent-review-contract.md:45:| `ok` | boolean | 必须与 `ReviewResult` 的 blocker 语义一致；只有 `blocker == 0` 才能为 `true` |
+docs/specs/independent-review-contract.md:46:| `role` | string | 只能为 `eng.audit` 或 `eng.security` |
+docs/specs/independent-review-contract.md:47:| `blocker` | non-negative integer | 必须等于 `findings` 中 `severity=blocker` 的实际数量；大于 0 时门拒绝 |
+docs/specs/independent-review-contract.md:48:| `major` | non-negative integer | 必须等于 `findings` 中 `severity=major` 的实际数量 |
+docs/specs/independent-review-contract.md:49:| `minor` | non-negative integer | 必须等于 `findings` 中 `severity=minor` 的实际数量 |
+docs/specs/independent-review-contract.md:50:| `checked` | array[string] | 非空；每项写明实际动作和原始输出路径，至少包含“测试复跑”和“写域核对” |
+docs/specs/independent-review-contract.md:51:| `findings` | array[object] | 复用 `Finding`：`role`、`severity`、`item`、`detail` |
+docs/specs/independent-review-contract.md:55:必须是字符串。`blocker`、`major`、`minor` 由 `ReviewResult.as_dict()` 重新计算，
+docs/specs/independent-review-contract.md:56:声明计数与计算计数不一致时门拒绝。
+
+[dispatch_template_evidence]
+docs/specs/stage-gated-dispatch-template.md:10:一次只允许派发一个 `TARGET_STAGE`。除首阶段外，启动前必须对
+docs/specs/stage-gated-dispatch-template.md:11:`PREVIOUS_STAGE` 调用 `stage_gate.check_stage`：
+docs/specs/stage-gated-dispatch-template.md:23:decision = check_stage(WORK_ORDER, PREVIOUS_STAGE, EVIDENCE_ROOT)
+docs/specs/stage-gated-dispatch-template.md:33:`passed=False` 时必须拒绝启动，完整保留 `reasons`；不得绕过、降级或用历史
+docs/specs/stage-gated-dispatch-template.md:61:- 本阶段不得自行宣布工单全局完成。
+docs/specs/stage-gated-dispatch-template.md:62:- 不得修改看板百分比；看板回写权归主脑。
+docs/specs/stage-gated-dispatch-template.md:74:5. 最后一阶段通过也只代表各阶段门完成；全局完成声明和看板更新仍由主脑执行。
+
+[checklist]
+PASS C1 ReceiptValidator 顶层字段 work_order/status 与四字段 reviewReason/stdoutText/evidence/acceptance 均被定义。
+PASS C2 ReviewResult 字段 ok/role/blocker/major/minor/checked/findings 均被定义。
+PASS C3 independent-review.json 明确只能由独立复核会话写，执行端不得写入或修改。
+PASS C4 执行 commit 与复核 commit 明确分离，复核 commit 明确要求 [audit] 前缀。
+PASS C5 evidence.path 明确以 check_stage 的 evidence_root 为解析基准，标准根为 data/evidence。
+PASS C6 blocker/major/minor 明确由 ReviewResult.as_dict 重算，声明与计算不一致时拒绝。
+PASS D1 派发模板明确一次只派一个 TARGET_STAGE。
+PASS D2 非首阶段启动前明确调用 check_stage(PREVIOUS_STAGE)。
+PASS D3 passed=False 明确拒绝启动并保留 reasons。
+PASS D4 执行端明确不得自行宣布工单全局完成，末阶段通过也不自动构成全局完成。
+PASS D5 执行端明确不得修改看板百分比，看板回写权归主脑。
+
+summary: 11/11 contract and dispatch requirements passed; blocker=0, major=0, minor=0.

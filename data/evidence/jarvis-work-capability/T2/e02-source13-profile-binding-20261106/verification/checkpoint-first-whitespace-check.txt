@@ -1,0 +1,114 @@
+docs/plans/jarvis-work-e02-source13-profile-binding-plan-20261106.md:1: trailing whitespace.
++# E02 source13 原资料验证包绑定适配计划
+docs/plans/jarvis-work-e02-source13-profile-binding-plan-20261106.md:2: trailing whitespace.
++
+docs/plans/jarvis-work-e02-source13-profile-binding-plan-20261106.md:3: trailing whitespace.
++> **For agentic workers:** 使用 superpowers:executing-plans，由当前 root 内联执行；完成整包后做一次独立准备审查。不得派发实现子代理。
+docs/plans/jarvis-work-e02-source13-profile-binding-plan-20261106.md:4: trailing whitespace.
++
+docs/plans/jarvis-work-e02-source13-profile-binding-plan-20261106.md:5: trailing whitespace.
++**Goal:** 将已有原资料零推理验证代码绑定到当前 source13 候选，形成可独立审查的离线契约包，为后续真实 SDK 原资料运行入口提供已验证组件。
+docs/plans/jarvis-work-e02-source13-profile-binding-plan-20261106.md:6: trailing whitespace.
++
+docs/plans/jarvis-work-e02-source13-profile-binding-plan-20261106.md:7: trailing whitespace.
++**Architecture:** 保留原 profile 算法、540 个测试标识及完整旧修订记录。新目录中的 profile 只改变候选绑定，测试只改变源码路径并补充当前绑定行为；小型 adapter 复用旧 adapter 的五个资料/导出/读回辅助方法，使用当前 manifest 校验输入，不暴露旧运行入口。实际 RootControls 与 worker/reader 进程入口仍为下一项独立工作。
+docs/plans/jarvis-work-e02-source13-profile-binding-plan-20261106.md:8: trailing whitespace.
++
+docs/plans/jarvis-work-e02-source13-profile-binding-plan-20261106.md:9: trailing whitespace.
++**Tech Stack:** Windows、现有 Python 3.13 环境、pytest、标准库；产品 OpenJarvis/SDK 不修改、不升级。
+docs/plans/jarvis-work-e02-source13-profile-binding-plan-20261106.md:10: trailing whitespace.
++
+docs/plans/jarvis-work-e02-source13-profile-binding-plan-20261106.md:11: trailing whitespace.
++**Spec:** `docs/specs/jarvis-work-capability-contract-20261101.md`；已通过的原资料零推理设计及 IF01/IF02B/IF02C；上一级 `docs/plans/jarvis-work-e02-source13-reentry-plan-20261106.md`。
+docs/plans/jarvis-work-e02-source13-profile-binding-plan-20261106.md:12: trailing whitespace.
++
+docs/plans/jarvis-work-e02-source13-profile-binding-plan-20261106.md:13: trailing whitespace.
++## Global Constraints
+docs/plans/jarvis-work-e02-source13-profile-binding-plan-20261106.md:14: trailing whitespace.
++
+docs/plans/jarvis-work-e02-source13-profile-binding-plan-20261106.md:15: trailing whitespace.
++- 原工单 wo-ultimaagent-20261101-0021，T2；只用当前 qwen3-8b-uncensored，模型摘要 6d7230a923426bc1933879eb08a7dafc18e5fc0e7606c459ce98f16e0c7f9330。
+docs/plans/jarvis-work-e02-source13-profile-binding-plan-20261106.md:16: trailing whitespace.
++- 产品候选固定 269aca511d88412dbb9c15d23911138469a37aa2；E01 3/3、E03 3+1 的登记保持，不更改产品源码。新包不自动继承旧包准备 PASS。
+docs/plans/jarvis-work-e02-source13-profile-binding-plan-20261106.md:17: trailing whitespace.
++- 原 query 774 UTF-8 字节，SHA-256 d359dcde318278823ad1e9c48b70c604f0d614152c0b0ec26b88ca310821f61e；原 corpus SHA-256 9e7cdfe6ed7874d22d1657692a103df19d4f763cdbc8eb92e6ec5925b05cd002。四来源顺序、正文、人设、SDK/scanner、写入/END/ACK/外部读回要求不变。
+docs/plans/jarvis-work-e02-source13-profile-binding-plan-20261106.md:18: trailing whitespace.
++- 旧六次修订、最后“待独审”状态、全部失败保留；这是当前候选绑定适配，不重开旧第七轮修复。允许一轮实现及一次新差异审查修正；发现需要修改旧 profile 算法的缺陷时先记录，不在此范围无限修复。
+docs/plans/jarvis-work-e02-source13-profile-binding-plan-20261106.md:19: trailing whitespace.
++- 本包仅代码及模拟契约测试。真实模型、原资料 profile、资料网络/DNS、11434、产品 CLI、UI/音频、服务变更和结果复核分配均为 0。RootControls 继续默认拒绝，不签发运行 authority。
+docs/plans/jarvis-work-e02-source13-profile-binding-plan-20261106.md:20: trailing whitespace.
++- 使用独立证据目录 `data/evidence/jarvis-work-capability/T2/e02-source13-profile-binding-20261106`，下称 B；原包保持原字节。当前候选工作区只读。实际出口仍需受控研究三轮、真实联网、E02/T2 独审及后续门。
+docs/plans/jarvis-work-e02-source13-profile-binding-plan-20261106.md:21: trailing whitespace.
++
+docs/plans/jarvis-work-e02-source13-profile-binding-plan-20261106.md:22: trailing whitespace.
++## Review Focus
+docs/plans/jarvis-work-e02-source13-profile-binding-plan-20261106.md:23: trailing whitespace.
++
+docs/plans/jarvis-work-e02-source13-profile-binding-plan-20261106.md:24: trailing whitespace.
++1. 旧候选仍被接受：新增当前候选准入与拒绝旧候选测试。
+docs/plans/jarvis-work-e02-source13-profile-binding-plan-20261106.md:25: trailing whitespace.
++2. helper 回到旧工作区或旧 authority：新增 adapter 当前 manifest、当前源码集合和旧入口不暴露测试；复用 helper 的原字节和调用链单独审查。
+docs/plans/jarvis-work-e02-source13-profile-binding-plan-20261106.md:26: trailing whitespace.
++3. 准备通过被当作运行权：新增未配置 RootControls 仍拒绝、没有真实入口的检查；报告明确代码门与实际门。
+docs/plans/jarvis-work-e02-source13-profile-binding-plan-20261106.md:27: trailing whitespace.
++4. 失败内容覆盖影响旧 R14c 分类：现有真实 WorkService 方法提取测试必须读取 source13 原文并保留通过/失败语义，新增原方法返回失败声明的证据核对；不得替换为纯自制 service。
+docs/plans/jarvis-work-e02-source13-profile-binding-plan-20261106.md:28: trailing whitespace.
++5. 测试通过但遗漏旧用例或输入变化：对比原 540 标识与实际 JUnit 集合，保存全部 RED/GREEN；包和依赖前后哈希一致。普通 OS/native 活动测量保持未知，不从 Python guard 推断全局零活动。
+docs/plans/jarvis-work-e02-source13-profile-binding-plan-20261106.md:29: trailing whitespace.
++
+docs/plans/jarvis-work-e02-source13-profile-binding-plan-20261106.md:30: trailing whitespace.
++### Task 1: 准备当前绑定和复用接口
+docs/plans/jarvis-work-e02-source13-profile-binding-plan-20261106.md:31: trailing whitespace.
++
+docs/plans/jarvis-work-e02-source13-profile-binding-plan-20261106.md:32: trailing whitespace.
++**Files:** B/profile-preparation/{profile.py,test_profile.py,run_checks.py,README.md,manifest.json}；B/profile-adapter.py；B/verification/{prepare.py,offline_guards.py,run-stage.py}；B/inputs 与 B/history 仅新文件。
+docs/plans/jarvis-work-e02-source13-profile-binding-plan-20261106.md:33: trailing whitespace.
++
+docs/plans/jarvis-work-e02-source13-profile-binding-plan-20261106.md:34: trailing whitespace.
++**Interfaces:** 原 `run_profile(folder,pins,admission)`、`read_profile(folder,first,p4,*,controls,pins)` 不改签名。adapter 只提供 `check_inputs()`、`check_import_origins()`、`corpus()`、`load_p4()`、`install_browser_fixture()`、`install_trusted_exports(folder)`、`verify_exports(folder,result,p4,*,readonly=False)`。准入配置、调用次数及原时限不变。
+docs/plans/jarvis-work-e02-source13-profile-binding-plan-20261106.md:35: trailing whitespace.
++
+docs/plans/jarvis-work-e02-source13-profile-binding-plan-20261106.md:36: trailing whitespace.
++- [ ] 保存旧五文件、当前运行时 manifest、E01/E03 登记、原修订报告与关键裁定的路径/哈希清单，确认原包及当前源码未变。
+docs/plans/jarvis-work-e02-source13-profile-binding-plan-20261106.md:37: trailing whitespace.
++- [ ] 先复制旧代码为新目录基线，新增 `test_source13_admission_candidate`（当前候选接受，118ba152 拒绝），以及绑定/入口差异断言。运行所选测试，保存预期行为 RED，不以收集错误代替 RED。
+docs/plans/jarvis-work-e02-source13-profile-binding-plan-20261106.md:38: trailing whitespace.
++- [ ] profile 仅替换 CANDIDATE 常量及固定前置函数的源码来源路径；历史测试中的旧源码根换成当前只读工作区。建立七方法 adapter，校验当前完整源码/依赖/SDK 哈希，再使用固定旧 SDK origin 校验及五个 helper；不调用旧 run_case/main/RootInvocation，不改旧文件。
+docs/plans/jarvis-work-e02-source13-profile-binding-plan-20261106.md:39: trailing whitespace.
++- [ ] manifest 增加当前运行时文件绑定、当前 adapter 和前置登记；旧历史记录作为来源而非当前通过凭据。原 mock metadata 字节继续只作模拟输入，不冒充当前服务查询。
+docs/plans/jarvis-work-e02-source13-profile-binding-plan-20261106.md:40: trailing whitespace.
++- [ ] 运行定向 GREEN，再一次完整离线契约检查；Expected：全部旧 540 标识保留，新断言通过，无失败/错误/跳过，包/输入前后哈希一致，Python guard 无真实 socket/DNS/子进程请求。长输出保存至新证据路径，失败不覆盖。
+docs/plans/jarvis-work-e02-source13-profile-binding-plan-20261106.md:41: trailing whitespace.
++
+docs/plans/jarvis-work-e02-source13-profile-binding-plan-20261106.md:42: trailing whitespace.
++### Task 2: 封存与独立准备审查
+docs/plans/jarvis-work-e02-source13-profile-binding-plan-20261106.md:43: trailing whitespace.
++
+docs/plans/jarvis-work-e02-source13-profile-binding-plan-20261106.md:44: trailing whitespace.
++**Files:** B/manifest.json、B/review/、B/verification/；项目结果报告及 UltimaDocs 镜像；原工单控制记录。
+docs/plans/jarvis-work-e02-source13-profile-binding-plan-20261106.md:45: trailing whitespace.
++
+docs/plans/jarvis-work-e02-source13-profile-binding-plan-20261106.md:46: trailing whitespace.
++**Interfaces:** 消费 Task 1 的逐文件哈希、JUnit 与执行收据，产生仅限当前绑定包的准备 verdict，不产生运行 authority。
+docs/plans/jarvis-work-e02-source13-profile-binding-plan-20261106.md:47: trailing whitespace.
++
+docs/plans/jarvis-work-e02-source13-profile-binding-plan-20261106.md:48: trailing whitespace.
++- [ ] 核对完整差异，证明 profile 算法未改，所有历史失败/修订保留；具体说明 adapter 的局部模块重绑定及未实现的外层 RootControls。
+docs/plans/jarvis-work-e02-source13-profile-binding-plan-20261106.md:49: trailing whitespace.
++- [ ] 封存并派发一次只读整包独立准备审查。若新差异有 Critical/Important，最多一次限定修正，每项有行为 RED/GREEN；旧代码算法缺陷单独记录，不借新目录重置旧修复额度。
+docs/plans/jarvis-work-e02-source13-profile-binding-plan-20261106.md:50: trailing whitespace.
++- [ ] 审查结果、未裁定项和 root 处置写入报告；本地提交/tag、镜像逐字核验，保留远端自动审批阻断。
+docs/plans/jarvis-work-e02-source13-profile-binding-plan-20261106.md:51: trailing whitespace.
++- [ ] 后续仅准备外层原资料运行入口的具体设计和原时限/保护身份观察；不运行 profile、推理或申请空泛授权。E02/T2 继续 NOT_PASSED，最终须真实工作成果。
+docs/plans/jarvis-work-e02-source13-profile-binding-plan-20261106.md:52: trailing whitespace.
++
+docs/plans/jarvis-work-e02-source13-profile-binding-plan-20261106.md:53: trailing whitespace.
++## 执行裁定
+docs/plans/jarvis-work-e02-source13-profile-binding-plan-20261106.md:54: trailing whitespace.
++
+docs/plans/jarvis-work-e02-source13-profile-binding-plan-20261106.md:55: trailing whitespace.
++用户已授权按原目标持续推进；本计划是已发布 E02 重新准入计划的具体离线准备步骤，沿用内联执行，不再重复询问实施方法。旧历史报告为理解已授权方案而只读引用，旧计划工作目录不写入、不清理。证据需长期保留，因此不执行 skill 默认的工作目录删除步骤。现有 source13 linked worktree 保持冻结，验证适配写入独立 B 目录，按既有证据检查点方式提交至项目 codex 分支；不安装依赖或重跑无关产品测试。
+docs/plans/jarvis-work-e02-source13-profile-binding-plan-20261106.md:56: trailing whitespace.
++
+docs/plans/jarvis-work-e02-source13-profile-binding-plan-20261106.md:57: trailing whitespace.
++2026-11-06 实施裁定：首轮完整检查557项中79失败、8错误，根因限定为一个遗漏的固定源码路径、三处旧目录形状的辅助代码引用、README缺原隔离命令。修正这些绑定及说明，保留所有断言和失败，不改变 profile 算法；这是本轮初始适配中的缺项纠正，未消耗或重开旧六轮算法修复。

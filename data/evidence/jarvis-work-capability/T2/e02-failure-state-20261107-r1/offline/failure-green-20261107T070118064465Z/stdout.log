@@ -1,0 +1,309 @@
+============================= test session starts =============================
+platform win32 -- Python 3.13.16, pytest-9.2.0, pluggy-1.7.0 -- H:\UltimaAI\UltimaAgent\tools\venv-openjarvis\Scripts\python.exe
+rootdir: H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-failure-state-20261107-r1\offline\failure-green-20261107T070118064465Z
+collecting ... collected 15 items
+
+::test_six_reads_then_final_preserves_branch_pages_and_budget_without_delivery <- C:\Users\Administrator\.codex\worktrees\jarvis-e02-failure-state\UltimaAgent\src\brain\tests\test_work_failure_diagnostics.py FAILED [  6%]
+::test_failure_diagnostic_does_not_trust_sdk_supplied_fields <- C:\Users\Administrator\.codex\worktrees\jarvis-e02-failure-state\UltimaAgent\src\brain\tests\test_work_failure_diagnostics.py FAILED [ 13%]
+::test_successful_write_and_ack_have_no_failure_diagnostic <- C:\Users\Administrator\.codex\worktrees\jarvis-e02-failure-state\UltimaAgent\src\brain\tests\test_work_failure_diagnostics.py PASSED [ 20%]
+::test_unverified_or_unsafe_final_never_enters_diagnostic[password = "syntheticsecret"] <- C:\Users\Administrator\.codex\worktrees\jarvis-e02-failure-state\UltimaAgent\src\brain\tests\test_work_failure_diagnostics.py FAILED [ 26%]
+::test_unverified_or_unsafe_final_never_enters_diagnostic[final1] <- C:\Users\Administrator\.codex\worktrees\jarvis-e02-failure-state\UltimaAgent\src\brain\tests\test_work_failure_diagnostics.py FAILED [ 33%]
+::test_frozen_diagnostic_does_not_follow_late_mutation <- C:\Users\Administrator\.codex\worktrees\jarvis-e02-failure-state\UltimaAgent\src\brain\tests\test_work_failure_diagnostics.py FAILED [ 40%]
+::test_no_cards_never_count_as_eligible_source <- C:\Users\Administrator\.codex\worktrees\jarvis-e02-failure-state\UltimaAgent\src\brain\tests\test_work_failure_diagnostics.py FAILED [ 46%]
+::test_unconfirmed_page_is_distinguished_from_confirmed_visible_page <- C:\Users\Administrator\.codex\worktrees\jarvis-e02-failure-state\UltimaAgent\src\brain\tests\test_work_failure_diagnostics.py FAILED [ 53%]
+::test_capture_failure_cannot_replace_original_product_failure <- C:\Users\Administrator\.codex\worktrees\jarvis-e02-failure-state\UltimaAgent\src\brain\tests\test_work_failure_diagnostics.py PASSED [ 60%]
+::test_nonresearch_request_has_no_research_diagnostic <- C:\Users\Administrator\.codex\worktrees\jarvis-e02-failure-state\UltimaAgent\src\brain\tests\test_work_failure_diagnostics.py PASSED [ 66%]
+::test_failure_before_navigation_has_no_fabricated_diagnostic <- C:\Users\Administrator\.codex\worktrees\jarvis-e02-failure-state\UltimaAgent\src\brain\tests\test_work_failure_diagnostics.py PASSED [ 73%]
+::test_write_without_ack_is_preserved_as_unconfirmed_delivery <- C:\Users\Administrator\.codex\worktrees\jarvis-e02-failure-state\UltimaAgent\src\brain\tests\test_work_failure_diagnostics.py FAILED [ 80%]
+::test_scanner_failure_blocks_private_diagnostic_without_changing_failure <- C:\Users\Administrator\.codex\worktrees\jarvis-e02-failure-state\UltimaAgent\src\brain\tests\test_work_failure_diagnostics.py PASSED [ 86%]
+::test_maximum_allowed_final_is_bounded_and_private <- C:\Users\Administrator\.codex\worktrees\jarvis-e02-failure-state\UltimaAgent\src\brain\tests\test_work_failure_diagnostics.py FAILED [ 93%]
+::test_excess_pages_fail_closed_without_dropping_or_truncating_evidence <- C:\Users\Administrator\.codex\worktrees\jarvis-e02-failure-state\UltimaAgent\src\brain\tests\test_work_failure_diagnostics.py PASSED [100%]
+
+================================== FAILURES ===================================
+_ test_six_reads_then_final_preserves_branch_pages_and_budget_without_delivery _
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-failure-state-20261107-r1/offline/failure-green-20261107T070118064465Z/temp/test_six_reads_then_final_pres0')
+sdk_io = (<src.brain.browser.channel.BrowserChannel object at 0x0000029725D88D70>, [('search', 'Research a subject')], {})
+mock_jar = (<openjarvis.sdk.Jarvis object at 0x0000029724C67380>, <function _run_work_agent at 0x0000029725D639C0>, [{'format': {..., 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 2048, 'temperature': 0}, ...}, ...], [])
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000296B4ABB820>
+
+    def test_six_reads_then_final_preserves_branch_pages_and_budget_without_delivery(tmp_path,sdk_io,mock_jar,monkeypatch):
+        result,ledger=early_case(tmp_path,sdk_io,mock_jar,monkeypatch)
+        assert result['status']=='failed' and result['error']=='Missing nonempty immutable runtime proof'
+>       packet=private_packet(result,ledger)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-failure-state\UltimaAgent\src\brain\tests\test_work_failure_diagnostics.py:48: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+result = {'request_id': 'r', 'session_id': 's', 'task_id': '00000000-0000-0000-0000-0000000003e8', 'status': 'failed', ...}
+ledger = <src.brain.work_tools.WorkLedger object at 0x0000029725D896A0>
+
+    def private_packet(result,ledger):
+        assert isinstance(result.get('research_diagnostic'),dict), 'failed SDK result loses final branch and selected pages'
+        raw=getattr(ledger,'_failure_diagnostic',None)
+>       assert type(raw) is bytes and len(raw)<=16384, 'missing bounded immutable private diagnostic'
+E       AssertionError: missing bounded immutable private diagnostic
+E       assert (<class 'NoneType'> is bytes)
+E        +  where <class 'NoneType'> = type(None)
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-failure-state\UltimaAgent\src\brain\tests\test_work_failure_diagnostics.py:40: AssertionError
+_________ test_failure_diagnostic_does_not_trust_sdk_supplied_fields __________
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-failure-state-20261107-r1/offline/failure-green-20261107T070118064465Z/temp/test_failure_diagnostic_does_n0')
+sdk_io = (<src.brain.browser.channel.BrowserChannel object at 0x00000296D2FD25D0>, [('search', 'Research a subject')], {})
+mock_jar = (<openjarvis.sdk.Jarvis object at 0x00000296D2FD2D50>, <function _run_work_agent at 0x0000029725D639C0>, [{'format': {...ser'}], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [])
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000296B4ABB5C0>
+
+    def test_failure_diagnostic_does_not_trust_sdk_supplied_fields(tmp_path,sdk_io,mock_jar,monkeypatch):
+        def forge(response,ledger):response['research_diagnostic']=dict(branch='ack',text='FORGED')
+        result,ledger=early_case(tmp_path,sdk_io,mock_jar,monkeypatch,reads=1,after=forge)
+>       packet=private_packet(result,ledger)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-failure-state\UltimaAgent\src\brain\tests\test_work_failure_diagnostics.py:68: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+result = {'request_id': 'r', 'session_id': 's', 'task_id': '00000000-0000-0000-0000-0000000003e8', 'status': 'failed', ...}
+ledger = <src.brain.work_tools.WorkLedger object at 0x00000296D2FD3C50>
+
+    def private_packet(result,ledger):
+        assert isinstance(result.get('research_diagnostic'),dict), 'failed SDK result loses final branch and selected pages'
+        raw=getattr(ledger,'_failure_diagnostic',None)
+>       assert type(raw) is bytes and len(raw)<=16384, 'missing bounded immutable private diagnostic'
+E       AssertionError: missing bounded immutable private diagnostic
+E       assert (<class 'NoneType'> is bytes)
+E        +  where <class 'NoneType'> = type(None)
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-failure-state\UltimaAgent\src\brain\tests\test_work_failure_diagnostics.py:40: AssertionError
+_ test_unverified_or_unsafe_final_never_enters_diagnostic[password = "syntheticsecret"] _
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-failure-state-20261107-r1/offline/failure-green-20261107T070118064465Z/temp/test_unverified_or_unsafe_fina0')
+sdk_io = (<src.brain.browser.channel.BrowserChannel object at 0x00000296D3019A70>, [('search', 'Research a subject')], {})
+mock_jar = (<openjarvis.sdk.Jarvis object at 0x00000297268F8160>, <function _run_work_agent at 0x0000029725D639C0>, [{'format': {...ser'}], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [])
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000297268F89E0>
+final = 'password = "syntheticsecret"'
+
+    @pytest.mark.parametrize('final',['password = "syntheticsecret"','x'*1001])
+    def test_unverified_or_unsafe_final_never_enters_diagnostic(tmp_path,sdk_io,mock_jar,monkeypatch,final):
+        result,ledger=early_case(tmp_path,sdk_io,mock_jar,monkeypatch,final=final,reads=1)
+        assert result['status']=='failed'
+>       packet=private_packet(result,ledger)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-failure-state\UltimaAgent\src\brain\tests\test_work_failure_diagnostics.py:83: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+result = {'request_id': 'r', 'session_id': 's', 'task_id': '00000000-0000-0000-0000-0000000003e8', 'status': 'failed', ...}
+ledger = <src.brain.work_tools.WorkLedger object at 0x00000297268E5950>
+
+    def private_packet(result,ledger):
+        assert isinstance(result.get('research_diagnostic'),dict), 'failed SDK result loses final branch and selected pages'
+        raw=getattr(ledger,'_failure_diagnostic',None)
+>       assert type(raw) is bytes and len(raw)<=16384, 'missing bounded immutable private diagnostic'
+E       AssertionError: missing bounded immutable private diagnostic
+E       assert (<class 'NoneType'> is bytes)
+E        +  where <class 'NoneType'> = type(None)
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-failure-state\UltimaAgent\src\brain\tests\test_work_failure_diagnostics.py:40: AssertionError
+_______ test_unverified_or_unsafe_final_never_enters_diagnostic[final1] _______
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-failure-state-20261107-r1/offline/failure-green-20261107T070118064465Z/temp/test_unverified_or_unsafe_fina1')
+sdk_io = (<src.brain.browser.channel.BrowserChannel object at 0x00000296D301B360>, [('search', 'Research a subject')], {})
+mock_jar = (<openjarvis.sdk.Jarvis object at 0x00000296D2FC3550>, <function _run_work_agent at 0x0000029725D639C0>, [{'format': {...ser'}], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [])
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000296D3010C00>
+final = 'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx...xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx'
+
+    @pytest.mark.parametrize('final',['password = "syntheticsecret"','x'*1001])
+    def test_unverified_or_unsafe_final_never_enters_diagnostic(tmp_path,sdk_io,mock_jar,monkeypatch,final):
+        result,ledger=early_case(tmp_path,sdk_io,mock_jar,monkeypatch,final=final,reads=1)
+        assert result['status']=='failed'
+>       packet=private_packet(result,ledger)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-failure-state\UltimaAgent\src\brain\tests\test_work_failure_diagnostics.py:83: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+result = {'request_id': 'r', 'session_id': 's', 'task_id': '00000000-0000-0000-0000-0000000003e8', 'status': 'failed', ...}
+ledger = <src.brain.work_tools.WorkLedger object at 0x00000296D2FD25D0>
+
+    def private_packet(result,ledger):
+        assert isinstance(result.get('research_diagnostic'),dict), 'failed SDK result loses final branch and selected pages'
+        raw=getattr(ledger,'_failure_diagnostic',None)
+>       assert type(raw) is bytes and len(raw)<=16384, 'missing bounded immutable private diagnostic'
+E       AssertionError: missing bounded immutable private diagnostic
+E       assert (<class 'NoneType'> is bytes)
+E        +  where <class 'NoneType'> = type(None)
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-failure-state\UltimaAgent\src\brain\tests\test_work_failure_diagnostics.py:40: AssertionError
+____________ test_frozen_diagnostic_does_not_follow_late_mutation _____________
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-failure-state-20261107-r1/offline/failure-green-20261107T070118064465Z/temp/test_frozen_diagnostic_does_no0')
+sdk_io = (<src.brain.browser.channel.BrowserChannel object at 0x00000296D300B410>, [('search', 'Research a subject')], {})
+mock_jar = (<openjarvis.sdk.Jarvis object at 0x00000297267D09B0>, <function _run_work_agent at 0x0000029725D639C0>, [{'format': {...ser'}], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [])
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000297268F4A50>
+
+    def test_frozen_diagnostic_does_not_follow_late_mutation(tmp_path,sdk_io,mock_jar,monkeypatch):
+        result,ledger=early_case(tmp_path,sdk_io,mock_jar,monkeypatch,reads=1)
+>       original=private_packet(result,ledger);raw=ledger._failure_diagnostic
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-failure-state\UltimaAgent\src\brain\tests\test_work_failure_diagnostics.py:90: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+result = {'request_id': 'r', 'session_id': 's', 'task_id': '00000000-0000-0000-0000-0000000003e8', 'status': 'failed', ...}
+ledger = <src.brain.work_tools.WorkLedger object at 0x00000296D2FD39D0>
+
+    def private_packet(result,ledger):
+        assert isinstance(result.get('research_diagnostic'),dict), 'failed SDK result loses final branch and selected pages'
+        raw=getattr(ledger,'_failure_diagnostic',None)
+>       assert type(raw) is bytes and len(raw)<=16384, 'missing bounded immutable private diagnostic'
+E       AssertionError: missing bounded immutable private diagnostic
+E       assert (<class 'NoneType'> is bytes)
+E        +  where <class 'NoneType'> = type(None)
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-failure-state\UltimaAgent\src\brain\tests\test_work_failure_diagnostics.py:40: AssertionError
+________________ test_no_cards_never_count_as_eligible_source _________________
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-failure-state-20261107-r1/offline/failure-green-20261107T070118064465Z/temp/test_no_cards_never_count_as_e0')
+sdk_io = (<src.brain.browser.channel.BrowserChannel object at 0x00000296D3012140>, [('search', 'Research a subject')], {})
+mock_jar = (<openjarvis.sdk.Jarvis object at 0x0000029726776430>, <function _run_work_agent at 0x0000029725D639C0>, [{'format': {...ser'}], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [])
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000297268F5650>
+
+    def test_no_cards_never_count_as_eligible_source(tmp_path,sdk_io,mock_jar,monkeypatch):
+        result,ledger=early_case(tmp_path,sdk_io,mock_jar,monkeypatch,reads=1,empty_first_page=True)
+>       packet=private_packet(result,ledger)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-failure-state\UltimaAgent\src\brain\tests\test_work_failure_diagnostics.py:101: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+result = {'request_id': 'r', 'session_id': 's', 'task_id': '00000000-0000-0000-0000-0000000003e8', 'status': 'failed', ...}
+ledger = <src.brain.work_tools.WorkLedger object at 0x00000296D2FD3390>
+
+    def private_packet(result,ledger):
+        assert isinstance(result.get('research_diagnostic'),dict), 'failed SDK result loses final branch and selected pages'
+        raw=getattr(ledger,'_failure_diagnostic',None)
+>       assert type(raw) is bytes and len(raw)<=16384, 'missing bounded immutable private diagnostic'
+E       AssertionError: missing bounded immutable private diagnostic
+E       assert (<class 'NoneType'> is bytes)
+E        +  where <class 'NoneType'> = type(None)
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-failure-state\UltimaAgent\src\brain\tests\test_work_failure_diagnostics.py:40: AssertionError
+_____ test_unconfirmed_page_is_distinguished_from_confirmed_visible_page ______
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-failure-state-20261107-r1/offline/failure-green-20261107T070118064465Z/temp/test_unconfirmed_page_is_disti0')
+sdk_io = (<src.brain.browser.channel.BrowserChannel object at 0x00000296D3011260>, [('search', 'Research a subject')], {})
+mock_jar = (<openjarvis.sdk.Jarvis object at 0x00000297267C6820>, <function _run_work_agent at 0x0000029725D639C0>, [{'format': {...ser'}], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [])
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000029726A14050>
+
+    def test_unconfirmed_page_is_distinguished_from_confirmed_visible_page(tmp_path,sdk_io,mock_jar,monkeypatch):
+        def unconfirm(response,ledger):
+            item=next(iter(ledger._staged.values()));item.update(confirmed=False,promoted=False)
+        result,ledger=early_case(tmp_path,sdk_io,mock_jar,monkeypatch,reads=1,after=unconfirm)
+>       packet=private_packet(result,ledger)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-failure-state\UltimaAgent\src\brain\tests\test_work_failure_diagnostics.py:109: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+result = {'request_id': 'r', 'session_id': 's', 'task_id': '00000000-0000-0000-0000-0000000003e8', 'status': 'failed', ...}
+ledger = <src.brain.work_tools.WorkLedger object at 0x00000296D2FD1310>
+
+    def private_packet(result,ledger):
+        assert isinstance(result.get('research_diagnostic'),dict), 'failed SDK result loses final branch and selected pages'
+        raw=getattr(ledger,'_failure_diagnostic',None)
+>       assert type(raw) is bytes and len(raw)<=16384, 'missing bounded immutable private diagnostic'
+E       AssertionError: missing bounded immutable private diagnostic
+E       assert (<class 'NoneType'> is bytes)
+E        +  where <class 'NoneType'> = type(None)
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-failure-state\UltimaAgent\src\brain\tests\test_work_failure_diagnostics.py:40: AssertionError
+_________ test_write_without_ack_is_preserved_as_unconfirmed_delivery _________
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-failure-state-20261107-r1/offline/failure-green-20261107T070118064465Z/temp/test_write_without_ack_is_pres0')
+sdk_io = (<src.brain.browser.channel.BrowserChannel object at 0x0000029726A15A90>, [('search', 'Research a subject'), ('get', '...'https://example.com/source/3'), ('get', 'https://example.com/source/4'), ('get', 'https://example.com/source/5')], {})
+mock_jar = (<openjarvis.sdk.Jarvis object at 0x0000029726A04470>, <function _run_work_agent at 0x0000029725D639C0>, [{'format': {..., ...], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [])
+
+    def test_write_without_ack_is_preserved_as_unconfirmed_delivery(tmp_path,sdk_io,mock_jar):
+        def bad_ack(body):return json.dumps(dict(final_answer='x'*1001))
+        bad_ack.no_auto_navigation=True
+        mock_jar[3].extend([navigation_reply]*4+[bad_ack])
+        result=submit(tmp_path,sdk_io[0],mock_jar[1]);ledger=RESTRICTED[result['task_id']]
+        assert result['status']=='needs_attention' and list(tmp_path.rglob('research.md'))
+>       packet=private_packet(result,ledger)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-failure-state\UltimaAgent\src\brain\tests\test_work_failure_diagnostics.py:141: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+result = {'request_id': 'r', 'session_id': 's', 'task_id': '00000000-0000-0000-0000-0000000003e8', 'status': 'needs_attention', ...}
+ledger = <src.brain.work_tools.WorkLedger object at 0x00000296D2FD3890>
+
+    def private_packet(result,ledger):
+        assert isinstance(result.get('research_diagnostic'),dict), 'failed SDK result loses final branch and selected pages'
+        raw=getattr(ledger,'_failure_diagnostic',None)
+>       assert type(raw) is bytes and len(raw)<=16384, 'missing bounded immutable private diagnostic'
+E       AssertionError: missing bounded immutable private diagnostic
+E       assert (<class 'NoneType'> is bytes)
+E        +  where <class 'NoneType'> = type(None)
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-failure-state\UltimaAgent\src\brain\tests\test_work_failure_diagnostics.py:40: AssertionError
+______________ test_maximum_allowed_final_is_bounded_and_private ______________
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-failure-state-20261107-r1/offline/failure-green-20261107T070118064465Z/temp/test_maximum_allowed_final_is_0')
+sdk_io = (<src.brain.browser.channel.BrowserChannel object at 0x0000029726776190>, [('search', 'Research a subject')], {})
+mock_jar = (<openjarvis.sdk.Jarvis object at 0x00000297268995A0>, <function _run_work_agent at 0x0000029725D639C0>, [{'format': {...ser'}], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [])
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000029726873C50>
+
+    def test_maximum_allowed_final_is_bounded_and_private(tmp_path,sdk_io,mock_jar,monkeypatch):
+        final='测'*1000
+        result,ledger=early_case(tmp_path,sdk_io,mock_jar,monkeypatch,reads=1,final=final)
+>       packet=private_packet(result,ledger)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-failure-state\UltimaAgent\src\brain\tests\test_work_failure_diagnostics.py:160: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+result = {'request_id': 'r', 'session_id': 's', 'task_id': '00000000-0000-0000-0000-0000000003e8', 'status': 'failed', ...}
+ledger = <src.brain.work_tools.WorkLedger object at 0x00000296D2FD1310>
+
+    def private_packet(result,ledger):
+        assert isinstance(result.get('research_diagnostic'),dict), 'failed SDK result loses final branch and selected pages'
+        raw=getattr(ledger,'_failure_diagnostic',None)
+>       assert type(raw) is bytes and len(raw)<=16384, 'missing bounded immutable private diagnostic'
+E       AssertionError: missing bounded immutable private diagnostic
+E       assert (<class 'NoneType'> is bytes)
+E        +  where <class 'NoneType'> = type(None)
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-failure-state\UltimaAgent\src\brain\tests\test_work_failure_diagnostics.py:40: AssertionError
+- generated xml file: H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-failure-state-20261107-r1\offline\failure-green-20261107T070118064465Z\junit.xml -
+=========================== short test summary info ===========================
+FAILED ::test_six_reads_then_final_preserves_branch_pages_and_budget_without_delivery - AssertionError: missing bounded immutable private diagnostic
+assert (<class 'NoneType'> is bytes)
+ +  where <class 'NoneType'> = type(None)
+FAILED ::test_failure_diagnostic_does_not_trust_sdk_supplied_fields - AssertionError: missing bounded immutable private diagnostic
+assert (<class 'NoneType'> is bytes)
+ +  where <class 'NoneType'> = type(None)
+FAILED ::test_unverified_or_unsafe_final_never_enters_diagnostic[password = "syntheticsecret"] - AssertionError: missing bounded immutable private diagnostic
+assert (<class 'NoneType'> is bytes)
+ +  where <class 'NoneType'> = type(None)
+FAILED ::test_unverified_or_unsafe_final_never_enters_diagnostic[final1] - AssertionError: missing bounded immutable private diagnostic
+assert (<class 'NoneType'> is bytes)
+ +  where <class 'NoneType'> = type(None)
+FAILED ::test_frozen_diagnostic_does_not_follow_late_mutation - AssertionError: missing bounded immutable private diagnostic
+assert (<class 'NoneType'> is bytes)
+ +  where <class 'NoneType'> = type(None)
+FAILED ::test_no_cards_never_count_as_eligible_source - AssertionError: missing bounded immutable private diagnostic
+assert (<class 'NoneType'> is bytes)
+ +  where <class 'NoneType'> = type(None)
+FAILED ::test_unconfirmed_page_is_distinguished_from_confirmed_visible_page - AssertionError: missing bounded immutable private diagnostic
+assert (<class 'NoneType'> is bytes)
+ +  where <class 'NoneType'> = type(None)
+FAILED ::test_write_without_ack_is_preserved_as_unconfirmed_delivery - AssertionError: missing bounded immutable private diagnostic
+assert (<class 'NoneType'> is bytes)
+ +  where <class 'NoneType'> = type(None)
+FAILED ::test_maximum_allowed_final_is_bounded_and_private - AssertionError: missing bounded immutable private diagnostic
+assert (<class 'NoneType'> is bytes)
+ +  where <class 'NoneType'> = type(None)
+======================== 9 failed, 6 passed in 10.45s =========================

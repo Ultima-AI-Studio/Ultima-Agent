@@ -1,0 +1,64 @@
+{
+  "_readme": [
+    "G-ORCH 三插槽配置样例。复制为 config/gorch/slots.json 后按需改；不配则用内置默认值（= 当前已跑通行为）。",
+    "优先级：环境变量 > 本文件 > 内置默认值。缺项一律回落默认，不做静默替换。",
+    "S-REVIEW 走 OpenAI-compatible /chat/completions，换供应商只改 base_url + model + api_key_env。",
+    "S-EXEC 的 args_template 一旦填写就整体替换 argv；占位符 {exe} {model} {workdir} {last_msg} {effort}。",
+    "S-MAIN 未接线时 enabled 保持 false，require_main() 会 fail-closed 报错。"
+  ],
+  "S-MAIN": {
+    "impl": "ollama-8b",
+    "endpoint": "http://127.0.0.1:18766",
+    "model": "qwen3:8b",
+    "enabled": false
+  },
+  "S-REVIEW": {
+    "impl": "deepseek",
+    "base_url": "https://api.deepseek.com/chat/completions",
+    "model": "deepseek-chat",
+    "api_key_env": "DEEPSEEK_API_KEY",
+    "max_tokens": 4096,
+    "timeout": 60.0
+  },
+  "S-EXEC": {
+    "impl": "codex",
+    "exe": "",
+    "model": "gpt-5.6-sol",
+    "args_template": [],
+    "env": {}
+  },
+  "_其他供应商示例_S-REVIEW": {
+    "openai": {
+      "impl": "openai",
+      "base_url": "https://api.openai.com/v1/chat/completions",
+      "model": "gpt-4.1-mini",
+      "api_key_env": "OPENAI_API_KEY"
+    },
+    "moonshot": {
+      "impl": "moonshot",
+      "base_url": "https://api.moonshot.cn/v1/chat/completions",
+      "model": "kimi-k2",
+      "api_key_env": "MOONSHOT_API_KEY"
+    },
+    "qwen-compatible": {
+      "impl": "qwen",
+      "base_url": "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions",
+      "model": "qwen-plus",
+      "api_key_env": "DASHSCOPE_API_KEY"
+    },
+    "local-vllm": {
+      "impl": "vllm",
+      "base_url": "http://127.0.0.1:8000/v1/chat/completions",
+      "model": "Qwen2.5-Coder-14B-Instruct",
+      "api_key_env": "VLLM_API_KEY"
+    }
+  },
+  "_其他CLI示例_S-EXEC": {
+    "claude-code": {
+      "impl": "claude",
+      "exe": "claude.exe",
+      "args_template": ["{exe}", "-p", "{last_msg}", "--permission-mode", "acceptEdits"]
+    },
+    "note": "模板里的参数语法必须与目标 CLI 的真实参数一致，本适配层不猜测、不翻译。"
+  }
+}

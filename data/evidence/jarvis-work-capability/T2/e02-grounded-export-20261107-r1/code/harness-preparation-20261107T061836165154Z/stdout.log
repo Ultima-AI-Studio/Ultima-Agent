@@ -1,0 +1,155 @@
+FFFFFF.                                                                  [100%]
+================================== FAILURES ===================================
+_ test_export_diagnostics_identifies_stage_without_dynamic_text[runtime_verify] _
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-grounded-export-20261107-r1/code/harness-preparation-20261107T061836165154Z/temp/test_export_diagnostics_identi0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000002E77D4E76F0>
+stage = 'runtime_verify'
+
+    @pytest.mark.parametrize('stage', ['runtime_verify', 'structure_scan', 'member_preserve'])
+    def test_export_diagnostics_identifies_stage_without_dynamic_text(tmp_path, monkeypatch, stage):
+        from src.brain import work_research
+        sentinel='SYNTHETIC_PRIVATE_PAYLOAD_'+'x'*200
+        failure=ValueError(sentinel)
+        ledger=types.SimpleNamespace(_runtime_final=b'{}',_binding=None,issued_snapshot=None,
+            _collection=None,_runtime_inputs=None,_policy=types.SimpleNamespace(scanners=()))
+        def fail(*args,**kwargs):raise failure
+        monkeypatch.setattr(work_research,'verify_runtime_packet',fail if stage=='runtime_verify' else lambda *a,**k:None)
+        monkeypatch.setattr(a,'validate_export_structure',fail if stage=='structure_scan' else lambda *a:None)
+        monkeypatch.setattr(a,'preserve_completed_members',fail if stage=='member_preserve' else lambda *a:None)
+        with pytest.raises(ValueError) as raised:a.export_completed(tmp_path,ledger,{})
+        assert raised.value is failure
+        path=tmp_path/'trusted-export.diagnostic.json'
+>       assert path.exists(), 'export failure lacks a bounded diagnostic'
+E       AssertionError: export failure lacks a bounded diagnostic
+E       assert False
+E        +  where False = exists()
+E        +    where exists = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-grounded-export-20261107-r1/code/harness-preparation-20261107T061836165154Z/temp/test_export_diagnostics_identi0/trusted-export.diagnostic.json').exists
+
+..\..\harness\test_adapter.py:25: AssertionError
+_ test_export_diagnostics_identifies_stage_without_dynamic_text[structure_scan] _
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-grounded-export-20261107-r1/code/harness-preparation-20261107T061836165154Z/temp/test_export_diagnostics_identi1')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000002E77D4E75C0>
+stage = 'structure_scan'
+
+    @pytest.mark.parametrize('stage', ['runtime_verify', 'structure_scan', 'member_preserve'])
+    def test_export_diagnostics_identifies_stage_without_dynamic_text(tmp_path, monkeypatch, stage):
+        from src.brain import work_research
+        sentinel='SYNTHETIC_PRIVATE_PAYLOAD_'+'x'*200
+        failure=ValueError(sentinel)
+        ledger=types.SimpleNamespace(_runtime_final=b'{}',_binding=None,issued_snapshot=None,
+            _collection=None,_runtime_inputs=None,_policy=types.SimpleNamespace(scanners=()))
+        def fail(*args,**kwargs):raise failure
+        monkeypatch.setattr(work_research,'verify_runtime_packet',fail if stage=='runtime_verify' else lambda *a,**k:None)
+        monkeypatch.setattr(a,'validate_export_structure',fail if stage=='structure_scan' else lambda *a:None)
+        monkeypatch.setattr(a,'preserve_completed_members',fail if stage=='member_preserve' else lambda *a:None)
+        with pytest.raises(ValueError) as raised:a.export_completed(tmp_path,ledger,{})
+        assert raised.value is failure
+        path=tmp_path/'trusted-export.diagnostic.json'
+>       assert path.exists(), 'export failure lacks a bounded diagnostic'
+E       AssertionError: export failure lacks a bounded diagnostic
+E       assert False
+E        +  where False = exists()
+E        +    where exists = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-grounded-export-20261107-r1/code/harness-preparation-20261107T061836165154Z/temp/test_export_diagnostics_identi1/trusted-export.diagnostic.json').exists
+
+..\..\harness\test_adapter.py:25: AssertionError
+_ test_export_diagnostics_identifies_stage_without_dynamic_text[member_preserve] _
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-grounded-export-20261107-r1/code/harness-preparation-20261107T061836165154Z/temp/test_export_diagnostics_identi2')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000002E7A0767770>
+stage = 'member_preserve'
+
+    @pytest.mark.parametrize('stage', ['runtime_verify', 'structure_scan', 'member_preserve'])
+    def test_export_diagnostics_identifies_stage_without_dynamic_text(tmp_path, monkeypatch, stage):
+        from src.brain import work_research
+        sentinel='SYNTHETIC_PRIVATE_PAYLOAD_'+'x'*200
+        failure=ValueError(sentinel)
+        ledger=types.SimpleNamespace(_runtime_final=b'{}',_binding=None,issued_snapshot=None,
+            _collection=None,_runtime_inputs=None,_policy=types.SimpleNamespace(scanners=()))
+        def fail(*args,**kwargs):raise failure
+        monkeypatch.setattr(work_research,'verify_runtime_packet',fail if stage=='runtime_verify' else lambda *a,**k:None)
+        monkeypatch.setattr(a,'validate_export_structure',fail if stage=='structure_scan' else lambda *a:None)
+        monkeypatch.setattr(a,'preserve_completed_members',fail if stage=='member_preserve' else lambda *a:None)
+        with pytest.raises(ValueError) as raised:a.export_completed(tmp_path,ledger,{})
+        assert raised.value is failure
+        path=tmp_path/'trusted-export.diagnostic.json'
+>       assert path.exists(), 'export failure lacks a bounded diagnostic'
+E       AssertionError: export failure lacks a bounded diagnostic
+E       assert False
+E        +  where False = exists()
+E        +    where exists = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-grounded-export-20261107-r1/code/harness-preparation-20261107T061836165154Z/temp/test_export_diagnostics_identi2/trusted-export.diagnostic.json').exists
+
+..\..\harness\test_adapter.py:25: AssertionError
+______ test_export_diagnostics_failed_write_preserves_original_exception ______
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-grounded-export-20261107-r1/code/harness-preparation-20261107T061836165154Z/temp/test_export_diagnostics_failed0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000002E7A0637790>
+
+    def test_export_diagnostics_failed_write_preserves_original_exception(tmp_path,monkeypatch):
+        from src.brain import work_research
+        failure=ValueError('original-private-message');calls=[]
+        ledger=types.SimpleNamespace(_runtime_final=b'{}',_binding=None,issued_snapshot=None,_collection=None,_runtime_inputs=None)
+        def fail(*args,**kwargs):raise failure
+        def unavailable(*args):calls.append(args[0]);raise OSError('disk-private-message')
+        monkeypatch.setattr(work_research,'verify_runtime_packet',fail)
+        monkeypatch.setattr(a,'save_new',unavailable)
+        with pytest.raises(ValueError) as raised:a.export_completed(tmp_path,ledger,{})
+        assert raised.value is failure
+>       assert calls==[tmp_path/'trusted-export.diagnostic.json']
+E       AssertionError: assert [] == [WindowsPath(...nostic.json')]
+E         
+E         Right contains one more item: WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-grounded-export-20261107-r1/code/harness-preparation-20261107T061836165154Z/temp/test_export_diagnostics_failed0/trusted-export.diagnostic.json')
+E         Use -v to get more diff
+
+..\..\harness\test_adapter.py:45: AssertionError
+_____ test_export_diagnostics_bounds_unknown_exception_messages[message0] _____
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-grounded-export-20261107-r1/code/harness-preparation-20261107T061836165154Z/temp/test_export_diagnostics_bounds0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000002E7A0637DF0>
+message = 'zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz...zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz'
+
+    @pytest.mark.parametrize('message', ['z'*5000, None])
+    def test_export_diagnostics_bounds_unknown_exception_messages(tmp_path,monkeypatch,message):
+        from src.brain import work_research
+        failure=RuntimeError(message);ledger=types.SimpleNamespace(_runtime_final=b'{}',_binding=None,
+            issued_snapshot=None,_collection=None,_runtime_inputs=None)
+        def fail(*args,**kwargs):raise failure
+        monkeypatch.setattr(work_research,'verify_runtime_packet',fail)
+        with pytest.raises(RuntimeError):a.export_completed(tmp_path,ledger,{})
+>       path=tmp_path/'trusted-export.diagnostic.json';assert path.exists()
+                                                       ^^^^^^^^^^^^^^^^^^^^
+E       AssertionError: assert False
+E        +  where False = exists()
+E        +    where exists = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-grounded-export-20261107-r1/code/harness-preparation-20261107T061836165154Z/temp/test_export_diagnostics_bounds0/trusted-export.diagnostic.json').exists
+
+..\..\harness\test_adapter.py:56: AssertionError
+_______ test_export_diagnostics_bounds_unknown_exception_messages[None] _______
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-grounded-export-20261107-r1/code/harness-preparation-20261107T061836165154Z/temp/test_export_diagnostics_bounds1')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000002E7A077CD50>
+message = None
+
+    @pytest.mark.parametrize('message', ['z'*5000, None])
+    def test_export_diagnostics_bounds_unknown_exception_messages(tmp_path,monkeypatch,message):
+        from src.brain import work_research
+        failure=RuntimeError(message);ledger=types.SimpleNamespace(_runtime_final=b'{}',_binding=None,
+            issued_snapshot=None,_collection=None,_runtime_inputs=None)
+        def fail(*args,**kwargs):raise failure
+        monkeypatch.setattr(work_research,'verify_runtime_packet',fail)
+        with pytest.raises(RuntimeError):a.export_completed(tmp_path,ledger,{})
+>       path=tmp_path/'trusted-export.diagnostic.json';assert path.exists()
+                                                       ^^^^^^^^^^^^^^^^^^^^
+E       AssertionError: assert False
+E        +  where False = exists()
+E        +    where exists = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-grounded-export-20261107-r1/code/harness-preparation-20261107T061836165154Z/temp/test_export_diagnostics_bounds1/trusted-export.diagnostic.json').exists
+
+..\..\harness\test_adapter.py:56: AssertionError
+=========================== short test summary info ===========================
+FAILED ..\..\harness\test_adapter.py::test_export_diagnostics_identifies_stage_without_dynamic_text[runtime_verify]
+FAILED ..\..\harness\test_adapter.py::test_export_diagnostics_identifies_stage_without_dynamic_text[structure_scan]
+FAILED ..\..\harness\test_adapter.py::test_export_diagnostics_identifies_stage_without_dynamic_text[member_preserve]
+FAILED ..\..\harness\test_adapter.py::test_export_diagnostics_failed_write_preserves_original_exception
+FAILED ..\..\harness\test_adapter.py::test_export_diagnostics_bounds_unknown_exception_messages[message0]
+FAILED ..\..\harness\test_adapter.py::test_export_diagnostics_bounds_unknown_exception_messages[None]
+6 failed, 1 passed in 3.21s

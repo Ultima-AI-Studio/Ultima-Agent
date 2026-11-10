@@ -1,0 +1,396 @@
+============================= test session starts =============================
+platform win32 -- Python 3.13.16, pytest-9.2.0, pluggy-1.7.0 -- H:\UltimaAI\UltimaAgent\tools\venv-openjarvis\Scripts\python.exe
+rootdir: H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-native-write-diagnostics-20261107-r1\offline\diagnostics-red-20261106T183638499080Z
+collecting ... collected 17 items
+
+::test_real_writer_reason_survives_failed_end[unissued-UNISSUED_REFERENCE] <- C:\Users\Administrator\.codex\worktrees\jarvis-e02-write-diagnostics\UltimaAgent\src\brain\tests\test_work_write_diagnostics.py FAILED [  5%]
+::test_real_writer_reason_survives_failed_end[foreign-FOREIGN_REFERENCE] <- C:\Users\Administrator\.codex\worktrees\jarvis-e02-write-diagnostics\UltimaAgent\src\brain\tests\test_work_write_diagnostics.py FAILED [ 11%]
+::test_real_writer_reason_survives_failed_end[duplicate_source-INVALID_SOURCE_SECTION] <- C:\Users\Administrator\.codex\worktrees\jarvis-e02-write-diagnostics\UltimaAgent\src\brain\tests\test_work_write_diagnostics.py FAILED [ 17%]
+::test_real_writer_reason_survives_failed_end[multiline_claim-INVALID_REPORT_TEXT] <- C:\Users\Administrator\.codex\worktrees\jarvis-e02-write-diagnostics\UltimaAgent\src\brain\tests\test_work_write_diagnostics.py FAILED [ 23%]
+::test_earliest_writer_reason_wins_over_later_ledger_and_sdk_errors <- C:\Users\Administrator\.codex\worktrees\jarvis-e02-write-diagnostics\UltimaAgent\src\brain\tests\test_work_write_diagnostics.py FAILED [ 29%]
+::test_unknown_exception_text_never_enters_public_diagnostic[secret-token-123 source body and prompt] <- C:\Users\Administrator\.codex\worktrees\jarvis-e02-write-diagnostics\UltimaAgent\src\brain\tests\test_work_write_diagnostics.py FAILED [ 35%]
+::test_unknown_exception_text_never_enters_public_diagnostic[Unknown or unissued reference: secret-token-123] <- C:\Users\Administrator\.codex\worktrees\jarvis-e02-write-diagnostics\UltimaAgent\src\brain\tests\test_work_write_diagnostics.py FAILED [ 41%]
+::test_unknown_exception_text_never_enters_public_diagnostic[Unknown or unissued reference\n] <- C:\Users\Administrator\.codex\worktrees\jarvis-e02-write-diagnostics\UltimaAgent\src\brain\tests\test_work_write_diagnostics.py FAILED [ 47%]
+::test_unknown_exception_text_never_enters_public_diagnostic[message3] <- C:\Users\Administrator\.codex\worktrees\jarvis-e02-write-diagnostics\UltimaAgent\src\brain\tests\test_work_write_diagnostics.py FAILED [ 52%]
+::test_unknown_exception_text_never_enters_public_diagnostic[secret-token-123\ud800] <- C:\Users\Administrator\.codex\worktrees\jarvis-e02-write-diagnostics\UltimaAgent\src\brain\tests\test_work_write_diagnostics.py FAILED [ 58%]
+::test_reason_mapping_requires_value_error[RuntimeError] <- C:\Users\Administrator\.codex\worktrees\jarvis-e02-write-diagnostics\UltimaAgent\src\brain\tests\test_work_write_diagnostics.py FAILED [ 64%]
+::test_reason_mapping_requires_value_error[TypeError] <- C:\Users\Administrator\.codex\worktrees\jarvis-e02-write-diagnostics\UltimaAgent\src\brain\tests\test_work_write_diagnostics.py FAILED [ 70%]
+::test_reason_mapping_requires_value_error[KeyError] <- C:\Users\Administrator\.codex\worktrees\jarvis-e02-write-diagnostics\UltimaAgent\src\brain\tests\test_work_write_diagnostics.py FAILED [ 76%]
+::test_arbitrary_exception_type_is_bounded <- C:\Users\Administrator\.codex\worktrees\jarvis-e02-write-diagnostics\UltimaAgent\src\brain\tests\test_work_write_diagnostics.py FAILED [ 82%]
+::test_sdk_failure_cannot_create_trusted_writer_diagnostic <- C:\Users\Administrator\.codex\worktrees\jarvis-e02-write-diagnostics\UltimaAgent\src\brain\tests\test_work_write_diagnostics.py PASSED [ 88%]
+::test_legal_research_keeps_success_and_has_no_failure_diagnostic <- C:\Users\Administrator\.codex\worktrees\jarvis-e02-write-diagnostics\UltimaAgent\src\brain\tests\test_work_write_diagnostics.py PASSED [ 94%]
+::test_early_failure_and_nonresearch_do_not_gain_writer_diagnostic <- C:\Users\Administrator\.codex\worktrees\jarvis-e02-write-diagnostics\UltimaAgent\src\brain\tests\test_work_write_diagnostics.py PASSED [100%]
+
+================================== FAILURES ===================================
+__ test_real_writer_reason_survives_failed_end[unissued-UNISSUED_REFERENCE] ___
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-native-write-diagnostics-20261107-r1/offline/diagnostics-red-20261106T183638499080Z/temp/test_real_writer_reason_surviv0')
+sdk_io = (<src.brain.browser.channel.BrowserChannel object at 0x00000243A6398980>, [('search', 'Research a subject'), ('get', '...'https://example.com/source/3'), ('get', 'https://example.com/source/4'), ('get', 'https://example.com/source/5')], {})
+fault = 'unissued', reason = 'UNISSUED_REFERENCE'
+
+    @pytest.mark.parametrize('fault,reason', [
+        ('unissued', 'UNISSUED_REFERENCE'),
+        ('foreign', 'FOREIGN_REFERENCE'),
+        ('duplicate_source', 'INVALID_SOURCE_SECTION'),
+        ('multiline_claim', 'INVALID_REPORT_TEXT'),
+    ])
+    def test_real_writer_reason_survives_failed_end(tmp_path, sdk_io, fault, reason):
+        payload = report_payload()
+        if fault == 'unissued':
+            payload['sections'][0]['facts'][0]['evidence_id'] = 'N3.' + '0' * 16
+        elif fault == 'foreign':
+            payload['sections'][0]['facts'][0]['evidence_id'] = 'issued:S2'
+        elif fault == 'duplicate_source':
+            payload['sections'][1]['source_id'] = 'S1'
+        else:
+            payload['sections'][0]['facts'][0]['claim'] = 'first line\nsecond line'
+        result = failed_write(tmp_path, sdk_io, payload)
+        assert result['status'] == 'failed' and not result['artifacts']
+        assert result['error'] == 'Unlinked or failed END'
+        writer = next(r for r in RESTRICTED[result['task_id']].snapshot()
+                      if r['tool_name'] == WRITE and r['success'] is False)
+>       diagnostic = result['research_failure']
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       KeyError: 'research_failure'
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-write-diagnostics\UltimaAgent\src\brain\tests\test_work_write_diagnostics.py:51: KeyError
+----------------------------- Captured log setup ------------------------------
+WARNING  src.brain.voice.voice_profile:voice_profile.py:174 voice reference audio unavailable or invalid; using L1 Jarvis reference: C:\Users\Administrator\.codex\worktrees\jarvis-e02-write-diagnostics\UltimaAgent\data\voice\yangmi-ref\yangmi_cv3_full_s6_v54.wav
+___ test_real_writer_reason_survives_failed_end[foreign-FOREIGN_REFERENCE] ____
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-native-write-diagnostics-20261107-r1/offline/diagnostics-red-20261106T183638499080Z/temp/test_real_writer_reason_surviv1')
+sdk_io = (<src.brain.browser.channel.BrowserChannel object at 0x000002435B506850>, [('search', 'Research a subject'), ('get', '...'https://example.com/source/3'), ('get', 'https://example.com/source/4'), ('get', 'https://example.com/source/5')], {})
+fault = 'foreign', reason = 'FOREIGN_REFERENCE'
+
+    @pytest.mark.parametrize('fault,reason', [
+        ('unissued', 'UNISSUED_REFERENCE'),
+        ('foreign', 'FOREIGN_REFERENCE'),
+        ('duplicate_source', 'INVALID_SOURCE_SECTION'),
+        ('multiline_claim', 'INVALID_REPORT_TEXT'),
+    ])
+    def test_real_writer_reason_survives_failed_end(tmp_path, sdk_io, fault, reason):
+        payload = report_payload()
+        if fault == 'unissued':
+            payload['sections'][0]['facts'][0]['evidence_id'] = 'N3.' + '0' * 16
+        elif fault == 'foreign':
+            payload['sections'][0]['facts'][0]['evidence_id'] = 'issued:S2'
+        elif fault == 'duplicate_source':
+            payload['sections'][1]['source_id'] = 'S1'
+        else:
+            payload['sections'][0]['facts'][0]['claim'] = 'first line\nsecond line'
+        result = failed_write(tmp_path, sdk_io, payload)
+        assert result['status'] == 'failed' and not result['artifacts']
+        assert result['error'] == 'Unlinked or failed END'
+        writer = next(r for r in RESTRICTED[result['task_id']].snapshot()
+                      if r['tool_name'] == WRITE and r['success'] is False)
+>       diagnostic = result['research_failure']
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       KeyError: 'research_failure'
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-write-diagnostics\UltimaAgent\src\brain\tests\test_work_write_diagnostics.py:51: KeyError
+_ test_real_writer_reason_survives_failed_end[duplicate_source-INVALID_SOURCE_SECTION] _
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-native-write-diagnostics-20261107-r1/offline/diagnostics-red-20261106T183638499080Z/temp/test_real_writer_reason_surviv2')
+sdk_io = (<src.brain.browser.channel.BrowserChannel object at 0x00000243A6EB87D0>, [('search', 'Research a subject'), ('get', '...'https://example.com/source/3'), ('get', 'https://example.com/source/4'), ('get', 'https://example.com/source/5')], {})
+fault = 'duplicate_source', reason = 'INVALID_SOURCE_SECTION'
+
+    @pytest.mark.parametrize('fault,reason', [
+        ('unissued', 'UNISSUED_REFERENCE'),
+        ('foreign', 'FOREIGN_REFERENCE'),
+        ('duplicate_source', 'INVALID_SOURCE_SECTION'),
+        ('multiline_claim', 'INVALID_REPORT_TEXT'),
+    ])
+    def test_real_writer_reason_survives_failed_end(tmp_path, sdk_io, fault, reason):
+        payload = report_payload()
+        if fault == 'unissued':
+            payload['sections'][0]['facts'][0]['evidence_id'] = 'N3.' + '0' * 16
+        elif fault == 'foreign':
+            payload['sections'][0]['facts'][0]['evidence_id'] = 'issued:S2'
+        elif fault == 'duplicate_source':
+            payload['sections'][1]['source_id'] = 'S1'
+        else:
+            payload['sections'][0]['facts'][0]['claim'] = 'first line\nsecond line'
+        result = failed_write(tmp_path, sdk_io, payload)
+        assert result['status'] == 'failed' and not result['artifacts']
+        assert result['error'] == 'Unlinked or failed END'
+        writer = next(r for r in RESTRICTED[result['task_id']].snapshot()
+                      if r['tool_name'] == WRITE and r['success'] is False)
+>       diagnostic = result['research_failure']
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       KeyError: 'research_failure'
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-write-diagnostics\UltimaAgent\src\brain\tests\test_work_write_diagnostics.py:51: KeyError
+_ test_real_writer_reason_survives_failed_end[multiline_claim-INVALID_REPORT_TEXT] _
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-native-write-diagnostics-20261107-r1/offline/diagnostics-red-20261106T183638499080Z/temp/test_real_writer_reason_surviv3')
+sdk_io = (<src.brain.browser.channel.BrowserChannel object at 0x000002435B5B1A70>, [('search', 'Research a subject'), ('get', '...'https://example.com/source/3'), ('get', 'https://example.com/source/4'), ('get', 'https://example.com/source/5')], {})
+fault = 'multiline_claim', reason = 'INVALID_REPORT_TEXT'
+
+    @pytest.mark.parametrize('fault,reason', [
+        ('unissued', 'UNISSUED_REFERENCE'),
+        ('foreign', 'FOREIGN_REFERENCE'),
+        ('duplicate_source', 'INVALID_SOURCE_SECTION'),
+        ('multiline_claim', 'INVALID_REPORT_TEXT'),
+    ])
+    def test_real_writer_reason_survives_failed_end(tmp_path, sdk_io, fault, reason):
+        payload = report_payload()
+        if fault == 'unissued':
+            payload['sections'][0]['facts'][0]['evidence_id'] = 'N3.' + '0' * 16
+        elif fault == 'foreign':
+            payload['sections'][0]['facts'][0]['evidence_id'] = 'issued:S2'
+        elif fault == 'duplicate_source':
+            payload['sections'][1]['source_id'] = 'S1'
+        else:
+            payload['sections'][0]['facts'][0]['claim'] = 'first line\nsecond line'
+        result = failed_write(tmp_path, sdk_io, payload)
+        assert result['status'] == 'failed' and not result['artifacts']
+        assert result['error'] == 'Unlinked or failed END'
+        writer = next(r for r in RESTRICTED[result['task_id']].snapshot()
+                      if r['tool_name'] == WRITE and r['success'] is False)
+>       diagnostic = result['research_failure']
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       KeyError: 'research_failure'
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-write-diagnostics\UltimaAgent\src\brain\tests\test_work_write_diagnostics.py:51: KeyError
+______ test_earliest_writer_reason_wins_over_later_ledger_and_sdk_errors ______
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-native-write-diagnostics-20261107-r1/offline/diagnostics-red-20261106T183638499080Z/temp/test_earliest_writer_reason_wi0')
+sdk_io = (<src.brain.browser.channel.BrowserChannel object at 0x000002435B5B3950>, [('search', 'Research a subject'), ('get', '...'https://example.com/source/3'), ('get', 'https://example.com/source/4'), ('get', 'https://example.com/source/5')], {})
+
+    def test_earliest_writer_reason_wins_over_later_ledger_and_sdk_errors(tmp_path, sdk_io):
+        payload = report_payload()
+        payload['sections'][0]['facts'][0]['evidence_id'] = 'N3.' + '0' * 16
+        def after(response, ledger):
+            ledger.record(dict(tool_name=WRITE, success=False, error_type='ValueError',
+                               error='Foreign reference'))
+            response.setdefault('tool_results', []).insert(0, dict(
+                tool_name=WRITE, success=False, error_type='ValueError',
+                error='Foreign reference', research_failure={'reason_code': 'FORGED'}))
+        result = failed_write(tmp_path, sdk_io, payload, after)
+        assert result['error'] == 'Unlinked or failed END'
+>       assert result['research_failure']['reason_code'] == 'UNISSUED_REFERENCE'
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       KeyError: 'research_failure'
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-write-diagnostics\UltimaAgent\src\brain\tests\test_work_write_diagnostics.py:72: KeyError
+_ test_unknown_exception_text_never_enters_public_diagnostic[secret-token-123 source body and prompt] _
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-native-write-diagnostics-20261107-r1/offline/diagnostics-red-20261106T183638499080Z/temp/test_unknown_exception_text_ne0')
+sdk_io = (<src.brain.browser.channel.BrowserChannel object at 0x000002435B51B9B0>, [('search', 'Research a subject'), ('get', '...'https://example.com/source/3'), ('get', 'https://example.com/source/4'), ('get', 'https://example.com/source/5')], {})
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000243A6EC7B50>
+message = 'secret-token-123 source body and prompt'
+
+    @pytest.mark.parametrize('message', [
+        'secret-token-123 source body and prompt',
+        'Unknown or unissued reference: secret-token-123',
+        'Unknown or unissued reference\n',
+        'secret-token-123' * 400,
+        'secret-token-123\ud800',
+    ])
+    def test_unknown_exception_text_never_enters_public_diagnostic(tmp_path, sdk_io, monkeypatch, message):
+        def reject(*args, **kwargs):
+            raise ValueError(message)
+        monkeypatch.setattr(wt.WorkResearchWriteTool, 'run', reject)
+        result = failed_write(tmp_path, sdk_io)
+        assert result['status'] == 'failed' and result['error'] == 'Unlinked or failed END'
+>       diagnostic = result['research_failure']
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       KeyError: 'research_failure'
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-write-diagnostics\UltimaAgent\src\brain\tests\test_work_write_diagnostics.py:89: KeyError
+_ test_unknown_exception_text_never_enters_public_diagnostic[Unknown or unissued reference: secret-token-123] _
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-native-write-diagnostics-20261107-r1/offline/diagnostics-red-20261106T183638499080Z/temp/test_unknown_exception_text_ne1')
+sdk_io = (<src.brain.browser.channel.BrowserChannel object at 0x000002435B592CF0>, [('search', 'Research a subject'), ('get', '...'https://example.com/source/3'), ('get', 'https://example.com/source/4'), ('get', 'https://example.com/source/5')], {})
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000243A6F8CF50>
+message = 'Unknown or unissued reference: secret-token-123'
+
+    @pytest.mark.parametrize('message', [
+        'secret-token-123 source body and prompt',
+        'Unknown or unissued reference: secret-token-123',
+        'Unknown or unissued reference\n',
+        'secret-token-123' * 400,
+        'secret-token-123\ud800',
+    ])
+    def test_unknown_exception_text_never_enters_public_diagnostic(tmp_path, sdk_io, monkeypatch, message):
+        def reject(*args, **kwargs):
+            raise ValueError(message)
+        monkeypatch.setattr(wt.WorkResearchWriteTool, 'run', reject)
+        result = failed_write(tmp_path, sdk_io)
+        assert result['status'] == 'failed' and result['error'] == 'Unlinked or failed END'
+>       diagnostic = result['research_failure']
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       KeyError: 'research_failure'
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-write-diagnostics\UltimaAgent\src\brain\tests\test_work_write_diagnostics.py:89: KeyError
+_ test_unknown_exception_text_never_enters_public_diagnostic[Unknown or unissued reference\n] _
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-native-write-diagnostics-20261107-r1/offline/diagnostics-red-20261106T183638499080Z/temp/test_unknown_exception_text_ne2')
+sdk_io = (<src.brain.browser.channel.BrowserChannel object at 0x00000243A6EFB240>, [('search', 'Research a subject'), ('get', '...'https://example.com/source/3'), ('get', 'https://example.com/source/4'), ('get', 'https://example.com/source/5')], {})
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000243A6F39F40>
+message = 'Unknown or unissued reference\n'
+
+    @pytest.mark.parametrize('message', [
+        'secret-token-123 source body and prompt',
+        'Unknown or unissued reference: secret-token-123',
+        'Unknown or unissued reference\n',
+        'secret-token-123' * 400,
+        'secret-token-123\ud800',
+    ])
+    def test_unknown_exception_text_never_enters_public_diagnostic(tmp_path, sdk_io, monkeypatch, message):
+        def reject(*args, **kwargs):
+            raise ValueError(message)
+        monkeypatch.setattr(wt.WorkResearchWriteTool, 'run', reject)
+        result = failed_write(tmp_path, sdk_io)
+        assert result['status'] == 'failed' and result['error'] == 'Unlinked or failed END'
+>       diagnostic = result['research_failure']
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       KeyError: 'research_failure'
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-write-diagnostics\UltimaAgent\src\brain\tests\test_work_write_diagnostics.py:89: KeyError
+____ test_unknown_exception_text_never_enters_public_diagnostic[message3] _____
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-native-write-diagnostics-20261107-r1/offline/diagnostics-red-20261106T183638499080Z/temp/test_unknown_exception_text_ne3')
+sdk_io = (<src.brain.browser.channel.BrowserChannel object at 0x00000243A6EC5B50>, [('search', 'Research a subject'), ('get', '...'https://example.com/source/3'), ('get', 'https://example.com/source/4'), ('get', 'https://example.com/source/5')], {})
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000243A6DDB2F0>
+message = 'secret-token-123secret-token-123secret-token-123secret-token-123secret-token-123secret-token-123secret-token-123secre...en-123secret-token-123secret-token-123secret-token-123secret-token-123secret-token-123secret-token-123secret-token-123'
+
+    @pytest.mark.parametrize('message', [
+        'secret-token-123 source body and prompt',
+        'Unknown or unissued reference: secret-token-123',
+        'Unknown or unissued reference\n',
+        'secret-token-123' * 400,
+        'secret-token-123\ud800',
+    ])
+    def test_unknown_exception_text_never_enters_public_diagnostic(tmp_path, sdk_io, monkeypatch, message):
+        def reject(*args, **kwargs):
+            raise ValueError(message)
+        monkeypatch.setattr(wt.WorkResearchWriteTool, 'run', reject)
+        result = failed_write(tmp_path, sdk_io)
+        assert result['status'] == 'failed' and result['error'] == 'Unlinked or failed END'
+>       diagnostic = result['research_failure']
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       KeyError: 'research_failure'
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-write-diagnostics\UltimaAgent\src\brain\tests\test_work_write_diagnostics.py:89: KeyError
+_ test_unknown_exception_text_never_enters_public_diagnostic[secret-token-123\ud800] _
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-native-write-diagnostics-20261107-r1/offline/diagnostics-red-20261106T183638499080Z/temp/test_unknown_exception_text_ne4')
+sdk_io = (<src.brain.browser.channel.BrowserChannel object at 0x00000243A62BAA50>, [('search', 'Research a subject'), ('get', '...'https://example.com/source/3'), ('get', 'https://example.com/source/4'), ('get', 'https://example.com/source/5')], {})
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000002435B52A510>
+message = 'secret-token-123\ud800'
+
+    @pytest.mark.parametrize('message', [
+        'secret-token-123 source body and prompt',
+        'Unknown or unissued reference: secret-token-123',
+        'Unknown or unissued reference\n',
+        'secret-token-123' * 400,
+        'secret-token-123\ud800',
+    ])
+    def test_unknown_exception_text_never_enters_public_diagnostic(tmp_path, sdk_io, monkeypatch, message):
+        def reject(*args, **kwargs):
+            raise ValueError(message)
+        monkeypatch.setattr(wt.WorkResearchWriteTool, 'run', reject)
+        result = failed_write(tmp_path, sdk_io)
+>       assert result['status'] == 'failed' and result['error'] == 'Unlinked or failed END'
+E       assert ('failed' == 'failed'
+E         
+E           failed and "'utf-8' codec can't encode character '\\ud800' in position 16: surrogates not allowed" == 'Unlinked or failed END'
+E         
+E         - Unlinked or failed END
+E         + 'utf-8' codec can't encode character '\ud800' in position 16: surrogates not allowed)
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-write-diagnostics\UltimaAgent\src\brain\tests\test_work_write_diagnostics.py:88: AssertionError
+___________ test_reason_mapping_requires_value_error[RuntimeError] ____________
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-native-write-diagnostics-20261107-r1/offline/diagnostics-red-20261106T183638499080Z/temp/test_reason_mapping_requires_v0')
+sdk_io = (<src.brain.browser.channel.BrowserChannel object at 0x00000243A6DD8B90>, [('search', 'Research a subject'), ('get', '...'https://example.com/source/3'), ('get', 'https://example.com/source/4'), ('get', 'https://example.com/source/5')], {})
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000002435B52A270>
+exception_type = <class 'RuntimeError'>
+
+    @pytest.mark.parametrize('exception_type', [RuntimeError, TypeError, KeyError])
+    def test_reason_mapping_requires_value_error(tmp_path, sdk_io, monkeypatch, exception_type):
+        def reject(*args, **kwargs):
+            raise exception_type('Unknown or unissued reference')
+        monkeypatch.setattr(wt.WorkResearchWriteTool, 'run', reject)
+        result = failed_write(tmp_path, sdk_io)
+>       assert result['research_failure']['reason_code'] == 'UNKNOWN'
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       KeyError: 'research_failure'
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-write-diagnostics\UltimaAgent\src\brain\tests\test_work_write_diagnostics.py:107: KeyError
+_____________ test_reason_mapping_requires_value_error[TypeError] _____________
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-native-write-diagnostics-20261107-r1/offline/diagnostics-red-20261106T183638499080Z/temp/test_reason_mapping_requires_v1')
+sdk_io = (<src.brain.browser.channel.BrowserChannel object at 0x00000243A6F38500>, [('search', 'Research a subject'), ('get', '...'https://example.com/source/3'), ('get', 'https://example.com/source/4'), ('get', 'https://example.com/source/5')], {})
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000243A6E89BF0>
+exception_type = <class 'TypeError'>
+
+    @pytest.mark.parametrize('exception_type', [RuntimeError, TypeError, KeyError])
+    def test_reason_mapping_requires_value_error(tmp_path, sdk_io, monkeypatch, exception_type):
+        def reject(*args, **kwargs):
+            raise exception_type('Unknown or unissued reference')
+        monkeypatch.setattr(wt.WorkResearchWriteTool, 'run', reject)
+        result = failed_write(tmp_path, sdk_io)
+>       assert result['research_failure']['reason_code'] == 'UNKNOWN'
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       KeyError: 'research_failure'
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-write-diagnostics\UltimaAgent\src\brain\tests\test_work_write_diagnostics.py:107: KeyError
+_____________ test_reason_mapping_requires_value_error[KeyError] ______________
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-native-write-diagnostics-20261107-r1/offline/diagnostics-red-20261106T183638499080Z/temp/test_reason_mapping_requires_v2')
+sdk_io = (<src.brain.browser.channel.BrowserChannel object at 0x00000243A6E6BBD0>, [('search', 'Research a subject'), ('get', '...'https://example.com/source/3'), ('get', 'https://example.com/source/4'), ('get', 'https://example.com/source/5')], {})
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000243A6E39610>
+exception_type = <class 'KeyError'>
+
+    @pytest.mark.parametrize('exception_type', [RuntimeError, TypeError, KeyError])
+    def test_reason_mapping_requires_value_error(tmp_path, sdk_io, monkeypatch, exception_type):
+        def reject(*args, **kwargs):
+            raise exception_type('Unknown or unissued reference')
+        monkeypatch.setattr(wt.WorkResearchWriteTool, 'run', reject)
+        result = failed_write(tmp_path, sdk_io)
+>       assert result['research_failure']['reason_code'] == 'UNKNOWN'
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       KeyError: 'research_failure'
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-write-diagnostics\UltimaAgent\src\brain\tests\test_work_write_diagnostics.py:107: KeyError
+__________________ test_arbitrary_exception_type_is_bounded ___________________
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-native-write-diagnostics-20261107-r1/offline/diagnostics-red-20261106T183638499080Z/temp/test_arbitrary_exception_type_0')
+sdk_io = (<src.brain.browser.channel.BrowserChannel object at 0x00000243A6F45010>, [('search', 'Research a subject'), ('get', '...'https://example.com/source/3'), ('get', 'https://example.com/source/4'), ('get', 'https://example.com/source/5')], {})
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000243A6E39010>
+
+    def test_arbitrary_exception_type_is_bounded(tmp_path, sdk_io, monkeypatch):
+        error = type('UntrustedExceptionType' * 100, (Exception,), {})
+        def reject(*args, **kwargs):
+            raise error('private error text')
+        monkeypatch.setattr(wt.WorkResearchWriteTool, 'run', reject)
+        result = failed_write(tmp_path, sdk_io)
+>       assert result['research_failure']['error_type'] == 'UNKNOWN'
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       KeyError: 'research_failure'
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-write-diagnostics\UltimaAgent\src\brain\tests\test_work_write_diagnostics.py:118: KeyError
+- generated xml file: H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-native-write-diagnostics-20261107-r1\offline\diagnostics-red-20261106T183638499080Z\junit.xml -
+=========================== short test summary info ===========================
+FAILED ::test_real_writer_reason_survives_failed_end[unissued-UNISSUED_REFERENCE] - KeyError: 'research_failure'
+FAILED ::test_real_writer_reason_survives_failed_end[foreign-FOREIGN_REFERENCE] - KeyError: 'research_failure'
+FAILED ::test_real_writer_reason_survives_failed_end[duplicate_source-INVALID_SOURCE_SECTION] - KeyError: 'research_failure'
+FAILED ::test_real_writer_reason_survives_failed_end[multiline_claim-INVALID_REPORT_TEXT] - KeyError: 'research_failure'
+FAILED ::test_earliest_writer_reason_wins_over_later_ledger_and_sdk_errors - KeyError: 'research_failure'
+FAILED ::test_unknown_exception_text_never_enters_public_diagnostic[secret-token-123 source body and prompt] - KeyError: 'research_failure'
+FAILED ::test_unknown_exception_text_never_enters_public_diagnostic[Unknown or unissued reference: secret-token-123] - KeyError: 'research_failure'
+FAILED ::test_unknown_exception_text_never_enters_public_diagnostic[Unknown or unissued reference\n] - KeyError: 'research_failure'
+FAILED ::test_unknown_exception_text_never_enters_public_diagnostic[message3] - KeyError: 'research_failure'
+FAILED ::test_unknown_exception_text_never_enters_public_diagnostic[secret-token-123\ud800] - assert ('failed' == 'failed'
+  
+    failed and "'utf-8' codec can't encode character '\\ud800' in position 16: surrogates not allowed" == 'Unlinked or failed END'
+  
+  - Unlinked or failed END
+  + 'utf-8' codec can't encode character '\ud800' in position 16: surrogates not allowed)
+FAILED ::test_reason_mapping_requires_value_error[RuntimeError] - KeyError: 'research_failure'
+FAILED ::test_reason_mapping_requires_value_error[TypeError] - KeyError: 'research_failure'
+FAILED ::test_reason_mapping_requires_value_error[KeyError] - KeyError: 'research_failure'
+FAILED ::test_arbitrary_exception_type_is_bounded - KeyError: 'research_failure'
+======================== 14 failed, 3 passed in 17.76s ========================

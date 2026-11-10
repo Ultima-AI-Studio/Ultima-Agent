@@ -1,0 +1,51 @@
+{
+  "work_order": "wo-ultimaagent-20261108-0027",
+  "status": "COMPLETED",
+  "reviewReason": "独立审计会话对 d99314cd 的 T0 实现完成测试复跑、写域核对和断言/复用/fail-closed 抽查，未发现 blocker、major 或 minor。",
+  "stdoutText": "指定解释器独立复跑 stage_gate 单测：Ran 7 tests in 0.042s，OK，EXIT_CODE=0；d99314cd 共 7 个新增路径，禁改路径命中 0；7 个测试含 14 条实质断言，ReceiptValidator 与 ReviewResult 均被直接复用，T0 规定的拒绝条件为 fail-closed。",
+  "evidence": [
+    {
+      "path": "wo-ultimaagent-20261108-0027/T0/audit-test-rerun.log",
+      "kind": "log",
+      "summary": "指定解释器独立复跑 stage_gate 单测的原始输出和退出码"
+    },
+    {
+      "path": "wo-ultimaagent-20261108-0027/T0/audit-write-domain.log",
+      "kind": "log",
+      "summary": "d99314cd 写域清单与禁改文件匹配结果"
+    },
+    {
+      "path": "wo-ultimaagent-20261108-0027/T0/audit-assertion-review.log",
+      "kind": "log",
+      "summary": "测试断言、ReceiptValidator/ReviewResult 复用和 fail-closed 抽查记录"
+    }
+  ],
+  "acceptance": [
+    {
+      "id": "AUDIT-T0-TEST-RERUN",
+      "result": "PASS",
+      "evidence": "指定解释器真实复跑 7/7 通过，退出码 0。"
+    },
+    {
+      "id": "AUDIT-T0-WRITE-DOMAIN",
+      "result": "PASS",
+      "evidence": "d99314cd 的 7 个新增路径均在 T0 授权域，reviewer.py、receipt.py、看板和 0026 路径命中数为 0。"
+    },
+    {
+      "id": "AUDIT-T0-ASSERTION-REUSE-FAIL-CLOSED",
+      "result": "PASS",
+      "evidence": "7 个测试含 14 条实质断言；实现直接复用 ReceiptValidator 与 ReviewResult，规定失败条件均拒绝放行。"
+    }
+  ],
+  "ok": true,
+  "role": "eng.audit",
+  "blocker": 0,
+  "major": 0,
+  "minor": 0,
+  "checked": [
+    "测试复跑: wo-ultimaagent-20261108-0027/T0/audit-test-rerun.log",
+    "写域核对: wo-ultimaagent-20261108-0027/T0/audit-write-domain.log",
+    "断言抽查: wo-ultimaagent-20261108-0027/T0/audit-assertion-review.log"
+  ],
+  "findings": []
+}

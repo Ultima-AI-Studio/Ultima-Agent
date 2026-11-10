@@ -1,0 +1,51 @@
+{
+  "work_order": "wo-ultimaagent-20261108-0027",
+  "status": "COMPLETED",
+  "reviewReason": "独立审计会话对 2a4a2521 的 T1 规范与派发模板完成测试复跑、写域核对和契约抽查；7 个 stage_gate 单测通过，T1 回执校验无问题，T0 当前门仍通过，规范 JSON 示例可解析，执行提交精确命中 4 个本阶段路径且禁改命中 0，11 项契约要求全部满足，未发现 blocker、major 或 minor。",
+  "stdoutText": "专用 Python 3.13.16 复跑 stage_gate：Ran 7 tests，OK，exit 0；T1 receipt ReceiptValidator issue_count=0；T0 check_stage passed=true/reasons=[]；规范 JSON 代码块 1/1 解析成功；2a4a2521 路径 4/4、禁改命中 0；契约与派发要求 11/11 通过。",
+  "evidence": [
+    {
+      "path": "wo-ultimaagent-20261108-0027/T1/audit-test-rerun.log",
+      "kind": "log",
+      "summary": "专用解释器复跑 7 个单测、校验 T1 receipt、读回 T0 gate 并解析规范 JSON 示例的原始输出"
+    },
+    {
+      "path": "wo-ultimaagent-20261108-0027/T1/audit-write-domain.log",
+      "kind": "log",
+      "summary": "执行提交 2a4a2521 的精确路径集合、状态与禁改命中核对"
+    },
+    {
+      "path": "wo-ultimaagent-20261108-0027/T1/audit-contract-review.log",
+      "kind": "log",
+      "summary": "独立复核契约和单阶段派发模板 11 项逐条审查记录"
+    }
+  ],
+  "acceptance": [
+    {
+      "id": "AUDIT-T1-TEST-RERUN",
+      "result": "PASS",
+      "evidence": "专用解释器真实复跑 stage_gate 7/7 通过；T1 receipt 校验 issue_count=0；T0 当前门 passed=true；规范 JSON 示例 1/1 可解析。"
+    },
+    {
+      "id": "AUDIT-T1-WRITE-DOMAIN",
+      "result": "PASS",
+      "evidence": "2a4a2521 仅含授权的 4 个 T1 新增路径，缺失 0、意外 0、禁改文件命中 0。"
+    },
+    {
+      "id": "AUDIT-T1-CONTRACT-DISPATCH",
+      "result": "PASS",
+      "evidence": "独立复核契约 6 项和派发模板 5 项要求逐条满足，共 11/11。"
+    }
+  ],
+  "ok": true,
+  "role": "eng.audit",
+  "blocker": 0,
+  "major": 0,
+  "minor": 0,
+  "checked": [
+    "测试复跑: wo-ultimaagent-20261108-0027/T1/audit-test-rerun.log",
+    "写域核对: wo-ultimaagent-20261108-0027/T1/audit-write-domain.log",
+    "契约抽查: wo-ultimaagent-20261108-0027/T1/audit-contract-review.log"
+  ],
+  "findings": []
+}

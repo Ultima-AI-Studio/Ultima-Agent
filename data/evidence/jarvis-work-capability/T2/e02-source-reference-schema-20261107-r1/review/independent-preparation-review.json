@@ -1,0 +1,150 @@
+{
+  "reviewer": "root-independent",
+  "verdict": "PASS_PREPARATION_ONLY",
+  "reviewed_utc": "2026-11-07T05:02:31.927181+00:00",
+  "candidate": "a0d21ebf167c41a76410075f7a92f1680926213f",
+  "base": "900b944165c0175b91492e3fe5b31d96aabdcd5c",
+  "manifest_sha256": "1cd281cf72510b099759f000c1b4aab96e815154b71de03f402ed50d13c07f75",
+  "findings": [],
+  "strengths": [
+    "Source-specific anyOf branches bind each evidence enum to one source; trusted projection rejects malformed and colliding cards.",
+    "Live and replay rebuild the phase contract from the current visible reads; replay forgery tests repair self-reported hashes and native entities.",
+    "Preparation receipts retain earlier failures, distinguish corrected final bytes, and confer no real research credit."
+  ],
+  "checks": [
+    {
+      "check": "source ownership and final writer",
+      "status": "PASS",
+      "evidence": [
+        "src/brain/work_navigation.py:396-450",
+        "src/brain/work_navigation.py:495-532"
+      ],
+      "detail": "Source enums and evidence enums are paired within each branch; no generic branch is added for eligible writes. Original independent unissued/foreign reference, fact evidence, duplicate source, URL/body distinctness checks remain."
+    },
+    {
+      "check": "pending visibility and promotion",
+      "status": "PASS",
+      "evidence": [
+        "src/brain/agent_server.py:565-577",
+        "src/brain/agent_server.py:585-613",
+        "src/brain/tests/test_work_source_reference_schema.py:108-130"
+      ],
+      "detail": "Reads are ledger issued views plus only the current confirmed unpromoted pending view. Promotion remains after successful response checks. Fewer than three visible nonempty sources offer no writer action."
+    },
+    {
+      "check": "request isolation ordering multiple pages collisions",
+      "status": "PASS",
+      "evidence": [
+        "src/brain/work_navigation.py:396-446",
+        "src/brain/tests/test_work_source_reference_schema.py:45-98"
+      ],
+      "detail": "Pure mapping reads only caller-supplied trusted pages, sorts sources and refs, merges distinct same-source page refs, rejects all duplicate evidence IDs and malformed inputs; it never backfills from model arguments."
+    },
+    {
+      "check": "independent replay",
+      "status": "PASS",
+      "evidence": [
+        "src/brain/work_research.py:672-731",
+        "src/brain/work_research.py:795-828",
+        "src/brain/tests/test_work_source_reference_schema.py:133-162"
+      ],
+      "detail": "Reconstructs schema and exact phase from snapshot reads[:index] linked to events and frozen inputs; compares reconstructed schema and phase to wire. It does not accept two matching self-reported schemas as proof. Original source reconstruction/fact resolution remains independently required."
+    },
+    {
+      "check": "budgets semantic gates diagnostics",
+      "status": "PASS",
+      "evidence": [
+        "src/brain/agent_server.py:286",
+        "src/brain/agent_server.py:386",
+        "src/brain/agent_server.py:592-608",
+        "src/brain/work_research.py:800-828",
+        "src/brain/tests/test_work_write_diagnostics.py:24-85"
+      ],
+      "detail": "Byte and token gates fail closed without schema truncation. Original output/count/time/cleanup and writer/END/ACK gates unchanged. Test-only resolver fault injection preserves the real writer diagnostic and earliest failure coverage after earlier schema rejection."
+    },
+    {
+      "check": "baseline reconciliation and pin",
+      "status": "PASS",
+      "evidence": [
+        "inputs/protected-reconciliation.json",
+        "inputs/protected-preparation-readback.json",
+        "verification/native-drift-metadata.json",
+        "code/bindings.py:65-104",
+        "tests/test_bindings.py:77-86"
+      ],
+      "detail": "Old baseline SHA independently matches. New baseline changes only Ollama PID and creation fields; other six full rows identical. Parent/executable/command unchanged. New exact path and SHA are required; saved valid RED is 14 pass/2 fail and final binding receipt 16 pass. Initiator unknown; user denied active restart/update; no continuity claim."
+    },
+    {
+      "check": "single-use wrapper and entry",
+      "status": "PASS",
+      "evidence": [
+        "inputs/execution-wrapper.json",
+        "code/entry.py",
+        "../ledger/run_authorized_case.ps1"
+      ],
+      "detail": "Wrapper SHA matches 2819af5b1135ec44025aa1990e5026e7bb5167e5648cb5ecbd07af7837148e13. Wrapper requires checkpoint HEAD and preparation PASS, then creates one 120-second grant. Entry verifies preparation/review/approval bindings, consumes exclusively before running and accepts no overrides. Original native/CIM/parent/command/listener protection remains; runtime function ASTs match predecessor. No release, actual, controller-authority or controller-ledger exists at review."
+    },
+    {
+      "check": "sealed bytes and saved test evidence",
+      "status": "PASS",
+      "evidence": [
+        "manifest.json",
+        "inputs/input-manifest.json",
+        "verification/offline-preparation-readback.json"
+      ],
+      "detail": "Independently hashed all 895 manifest members, 1557 bound inputs, and 9 foreign files. All match. Read saved final JUnit and receipts, verified exit zero, zero errors/failures/skips where JUnit used, source hashes and harness before/after hashes match current bytes. Failed setup/RED and obsolete-hash runs retained and excluded."
+    }
+  ],
+  "counts": {
+    "manifest_members": 895,
+    "bound_inputs": 1557,
+    "candidate_sources": 62,
+    "foreign_files_unchanged": 9,
+    "saved_product_passes": 566,
+    "saved_harness_passes": 238,
+    "saved_binding_entry_boundary_passes": 53,
+    "saved_total_passes": 857,
+    "hash_mismatches": 0,
+    "harness_runtime_functions_changed": 0
+  },
+  "limits": {
+    "model": "qwen3-8b-uncensored",
+    "model_digest": "6d7230a923426bc1933879eb08a7dafc18e5fc0e7606c459ce98f16e0c7f9330",
+    "cli": 1,
+    "search": 1,
+    "GET": 4,
+    "inspect": 6,
+    "write": 1,
+    "ACK": 1,
+    "native_POST": 8,
+    "service_seconds": 260,
+    "client_seconds": 300,
+    "work_seconds": 275,
+    "cleanup_seconds": 310,
+    "seal_seconds": 315,
+    "retry": 0,
+    "conditional_case_max": 1,
+    "result_review_max": 1,
+    "no_14B": true,
+    "no_UI": true,
+    "no_audio": true,
+    "no_service_operations": true
+  },
+  "declined_to_judge": [
+    "Actual current8B research delivery and factual quality: no real case was executed by this reviewer; preparation PASS is not acceptance.",
+    "Native-model compatibility/performance and arbitrary real context fit: saved offline schema/transport tests do not establish live success; original hard byte/token gates remain.",
+    "Live network/SSRF behavior and OS packet totals: no HTTP/DNS calls or packet observation performed; two original offline exclusions remain excluded.",
+    "Cause of Ollama replacement or continuous liveness: saved point evidence records replacement and unknown initiator; user statement only denies active restart/update.",
+    "Current process state beyond saved identity evidence: no process or service operations performed; actual entry must freshly enforce all seven identities.",
+    "Future readiness publication, actual-case outcome, subsequent cases, E01/E03 and owner acceptance: outside this preparation-only review; old credit does not transfer.",
+    "Remote push: prior policy block remains outside this review and was not retried."
+  ],
+  "tests_run": 0,
+  "runtime_calls": 0,
+  "actual_run_authorized": false,
+  "acceptance_credit": false,
+  "old_candidate_credit_transferred": false,
+  "E02": "NOT_PASSED",
+  "T2": "NOT_PASSED",
+  "Owner": "NOT_PASSED"
+}

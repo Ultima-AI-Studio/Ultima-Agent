@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>北极星上线任务清单</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 2l2.4 7.6L22 12l-7.6 2.4L12 22l-2.4-7.6L2 12l7.6-2.4z' fill='%23D9A441'/%3E%3C/svg%3E">
+<style>
+  :root{
+    --bg:#0F1418; --panel:#161D24; --line:#232D36;
+    --text:#E8EDF2; --sub:#93A1AD; --faint:#5E6B77;
+    --gold:#D9A441; --green:#4C9E6D; --amber:#D9A441; --gray:#93A1AD;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html{-webkit-text-size-adjust:100%;}
+  body{
+    background:var(--bg); color:var(--text);
+    font-family:"Microsoft YaHei","PingFang SC","Segoe UI",sans-serif;
+    line-height:1.6; padding:24px 16px 64px;
+  }
+  .wrap{max-width:960px; margin:0 auto;}
+  /* ===== 头部 ===== */
+  header{padding:8px 0 20px;}
+  .kicker{font-size:12px; letter-spacing:.22em; color:var(--faint);}
+  h1{font-size:26px; font-weight:700; margin:2px 0 2px; letter-spacing:.02em;}
+  .subtitle{font-size:13px; color:var(--sub);}
+  .progress-head{display:flex; align-items:baseline; gap:12px; margin-top:16px;}
+  .big-num{font-size:44px; font-weight:800; color:var(--gold); line-height:1;}
+  .big-label{font-size:12px; color:var(--sub);}
+  .bar{height:8px; background:var(--panel); border-radius:4px; overflow:hidden; margin-top:10px; border:1px solid var(--line);}
+  .bar-fill{height:100%; width:0; background:var(--gold); transition:width .3s ease;}
+  /* ===== 验收框架 ===== */
+  .frame{border-top:1px solid var(--line); margin-top:20px;}
+  .frame-head{display:flex; align-items:center; gap:10px; padding:12px 0; cursor:pointer; min-height:44px; user-select:none;}
+  .frame-title{font-size:14px; font-weight:700;}
+  .frame-sub{font-size:12px; color:var(--faint); margin-left:auto;}
+  .frame .chev{color:var(--faint); font-size:11px; transition:transform .2s; width:14px;}
+  .frame.collapsed .chev{transform:rotate(-90deg);}
+  .frame-body{display:none; padding:4px 0 14px;}
+  .frame.open .frame-body{display:block;}
+  .frame-note{font-size:12px; color:var(--sub); margin-bottom:8px;}
+  .frame table{width:100%; border-collapse:collapse; table-layout:fixed; font-size:12px;}
+  .frame col.c1{width:14%;}
+  .frame col.c2{width:22%;}
+  .frame col.c3{width:64%;}
+  .frame th,.frame td{border:1px solid var(--line); padding:6px 8px; text-align:left; vertical-align:top;}
+  .frame th{color:var(--gold); font-weight:600; background:var(--panel);}
+  .frame td{color:var(--sub);}
+  /* ===== 筛选 ===== */
+  .filters{display:flex; gap:8px; margin:18px 0 6px; flex-wrap:wrap;}
+  .filter{
+    appearance:none; border:1px solid var(--line); background:var(--panel); color:var(--sub);
+    padding:7px 14px; border-radius:4px; font-size:13px; cursor:pointer; min-height:36px;
+  }
+  .filter:hover{color:var(--text); border-color:var(--faint);}
+  .filter[aria-pressed="true"]{color:var(--gold); border-color:var(--gold);}
+  /* ===== 分组 ===== */
+  .group{margin-top:22px; border-top:1px solid var(--line);}
+  .group-head{
+    display:flex; align-items:center; gap:10px; padding:14px 0 10px; cursor:pointer;
+    min-height:44px; user-select:none;
+  }
+  .g-no{font-size:12px; color:var(--gold); font-weight:700; width:28px;}
+  .g-name{font-size:17px; font-weight:700;}
+  .g-sub{font-size:12px; color:var(--faint); margin-left:auto;}
+  .g-bar{width:110px; height:4px; background:var(--panel); border-radius:2px; overflow:hidden; border:1px solid var(--line);}
+  .g-bar-fill{height:100%; width:0; background:var(--gold);}
+  .chev{color:var(--faint); font-size:11px; transition:transform .2s; width:14px;}
+  .group.collapsed .chev{transform:rotate(-90deg);}
+  .group.collapsed .tasks{display:none;}
+  /* ===== 任务行 ===== */
+  .tasks{list-style:none;}
+  .task{border-bottom:1px solid var(--line); padding:10px 0 10px 38px; position:relative;}
+  .task .cb{position:absolute; left:0; top:12px;}
+  .cb input{width:19px; height:19px; accent-color:var(--gold); cursor:pointer;}
+  .task-top{display:flex; align-items:center; gap:8px; flex-wrap:wrap;}
+  .t-name{font-size:14px; font-weight:600;}
+  .chip{font-size:11px; padding:2px 8px; border-radius:3px; line-height:1.5; border:1px solid transparent;}
+  .chip.done{color:#BFE6CE; background:rgba(76,158,109,.14); border-color:rgba(76,158,109,.35);}
+  .chip.wip{color:#F2D9A0; background:rgba(217,164,65,.12); border-color:rgba(217,164,65,.35);}
+  .chip.todo{color:var(--sub); background:rgba(94,107,119,.14); border-color:var(--line);}
+  .chip.closed{color:#B9C6D2; background:rgba(143,163,184,.13); border-color:rgba(143,163,184,.35);}
+  .t-desc{font-size:12px; color:var(--sub); margin-top:3px;}
+  .t-accept{margin-top:8px; font-size:12px; color:var(--faint); background:var(--panel);
+    border-left:2px solid var(--gold); padding:6px 10px; display:none; border-radius:0 3px 3px 0;}
+  .t-accept.open{display:block;}
+  .t-toggle{display:inline-block; font-size:11px; color:var(--faint); cursor:pointer; margin-top:6px; min-height:24px; line-height:24px;}
+  .t-toggle:hover{color:var(--gold);}
+  .task.done .t-name{color:var(--faint);}
+  .task.closed .t-name{color:var(--faint);}
+  /* ===== 已知问题 ===== */
+  .known{margin-top:34px; border-top:1px solid var(--line); padding-top:16px;}
+  .known h2{font-size:15px; margin-bottom:8px; color:var(--sub);}
+  .known ul{list-style:none;}
+  .known li{font-size:12px; color:var(--faint); padding:3px 0 3px 16px; position:relative;}
+  .known li::before{content:""; position:absolute; left:2px; top:9px; width:6px; height:6px; background:var(--amber); border-radius:1px;}
+  .reset{margin-top:16px; appearance:none; border:1px solid var(--line); background:var(--panel); color:var(--sub);
+    padding:8px 16px; border-radius:4px; font-size:13px; cursor:pointer; min-height:40px;}
+  .reset:hover{color:#E0A6A6; border-color:#8A4A4A;}
+  footer{margin-top:30px; font-size:11px; color:var(--faint);}
+  @media (max-width:560px){
+    body{padding:18px 12px 48px;}
+    h1{font-size:22px;}
+    .g-bar{width:70px;}
+    .task{padding-left:34px;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="kicker">ULTIMA AGENT · NORTH STAR</div>
+    <h1>北极星上线任务清单</h1>
+    <div class="subtitle">贾维斯形态 · 逐项推进 · 完成一项勾一项，防跑偏</div>
+    <div class="progress-head">
+      <div class="big-num" id="bigNum">0</div>
+      <div class="big-label" id="bigLabel">/ 0 已完成</div>
+    </div>
+    <div class="bar"><div class="bar-fill" id="barFill"></div></div>
+  </header>
+
+  <section class="frame collapsed" id="frameSec">
+    <div class="frame-head" role="button" tabindex="0" aria-expanded="false">
+      <span class="frame-title">北极星工程验收框架</span>
+      <span class="frame-sub">愿景不变 · 工程四维验收</span>
+      <span class="chev">▼</span>
+    </div>
+    <div class="frame-body">
+      <p class="frame-note">愿景层（不变）：贾维斯形态——随时在场 / 听懂你 / 替你做事 / 不打扰 / 有记忆。工程层按 Super Agent 四关键词验收：</p>
+      <table>
+        <colgroup><col class="c1"><col class="c2"><col class="c3"></colgroup>
+        <thead><tr><th>工程维度</th><th>对应验收线</th><th>验收口径</th></tr></thead>
+        <tbody>
+          <tr><td>连续</td><td>随时在场 · 有记忆</td><td>唤醒即响应（热机 ≤18s）；跨轮上下文持续；中断可恢复</td></tr>
+          <tr><td>高效</td><td>替你做事</td><td>工具调用正确率达标；一次到位；成果可验收</td></tr>
+          <tr><td>主动</td><td>不打扰</td><td>主动性 observe→auto 分级；该出手时出手、该安静时安静；需人时结构化单独提问</td></tr>
+          <tr><td>持久</td><td>有记忆 · 随时在场</td><td>会话/任务/偏好持久化；重启可恢复；参数冻结不突变</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <div class="filters" id="filters" role="tablist" aria-label="状态筛选">
+    <button class="filter" data-f="all" aria-pressed="true">全部</button>
+    <button class="filter" data-f="todo" aria-pressed="false">待办</button>
+    <button class="filter" data-f="wip" aria-pressed="false">进行中</button>
+    <button class="filter" data-f="done" aria-pressed="false">已完成</button>
+    <button class="filter" data-f="closed" aria-pressed="false">已关闭</button>
+  </div>
+
+  <div id="groups"></div>
+
+  <section class="known">
+    <h2>当前已知问题（随冻结版本发布，不再无限深挖）</h2>
+    <ul id="knownList"></ul>
+    <button class="reset" id="resetBtn">恢复默认勾选</button>
+  </section>
+
+  <footer>数据保存在本机浏览器（localStorage）· 版本 2026-11-06<br>状态口径：已完成 / 进行中 / 待办 / 已关闭（决定不做，不计入完成率分母）</footer>
+</div>
+
+<script>
+const GROUPS = [
+  {key:"g1", no:"01", name:"感知层 · 随时在场（耳）", sub:"唤醒 / 听清 / 出声"},
+  {key:"g2", no:"02", name:"大脑层 · 听懂你（理解）", sub:"主脑 / 意图 / 记忆"},
+  {key:"g3", no:"03", name:"表达层 · 替你做事（行动）", sub:"工具 / 界面 / 双端"},
+  {key:"g4", no:"04", name:"架构对齐 · 不跑偏（基线）", sub:"对标 / 参考 / 能力池"},
+  {key:"g5", no:"05", name:"发布治理 · 推得动（闭环）", sub:"冻结 / 清单 / 落盘"}
+];
+
+const TASKS = [
+  {id:"kws",   g:"g1", name:"KWS 唤醒基线冻结", st:"done", desc:"threshold=0.08 / score=2.0 已按权威基线文档冻结（kws-wakeup-params-baseline.md），参数改动先读文档", accept:"唤醒词命中率稳定；改参必须同步权威基线文档并记录变更"},
+  {id:"asr",   g:"g1", name:"ASR 近音误识收窄", st:"done", desc:"“水量天听→天气”等近音映射已上线（L33），探针 5 例 + 单测 28 全绿", accept:"“水量天听”类输入归一化为天气查询，回归探针全绿"},
+  {id:"tts",   g:"g1", name:"TTS 音色同源", st:"done", desc:"sherpa MeloTTS 44100Hz，与 KWS 提示音同源同率（L30）；CV3 杨幂零样本 v54 为当前 TTS 主音色（voice-e2e 方案确认）", accept:"提示音与回复同引擎同采样率，真机听感一致"},
+  {id:"audio", g:"g1", name:"音频端点自愈", st:"done", desc:"端点音量探针恢复 1.0 + 播放/采集互斥收口（L27/L32）", accept:"音量漂移开机自动恢复；播放期 KWS 暂停、播完即恢复"},
+  {id:"cold",  g:"g1", name:"冷启动优化", st:"wip", desc:"三段预热已做（ASR/Agent/TTS），冷启动 68s → 热机 18s，目标继续压", accept:"热机首轮响应 ≤18s；冷启动有完整预热日志可查"},
+  {id:"voice_next",g:"g1", name:"语音入口重构（Sherpa 原生）", st:"wip", desc:"0019 WeKws 离线证明 + 0020 Sherpa 原生 KWS/SenseVoice/SAPI 新独立入口；33 测试 + 24 真人回放 PASS，11-01 20:38 用户确认唤醒+时间回答（检查点 ultimaagent-voice-next-live-pass-20261101）；长期质量未冻结", accept:"生产切换完成 + 长期质量冻结 + 真人采集验证后勾选"},
+  {id:"kwsentry",g:"g1", name:"KWS 唤醒词用户入口+持久化", st:"done", desc:"0014 已冻结（8774f3c 收口）：改词+热重载+播报确认+写回 profile+一致性收敛", accept:"改词即生效+播报确认；重启不丢；profile 与 keywords 一致性收敛"},
+  {id:"kwsword",g:"g1", name:"新语音入口唤醒词可改（当前固定「你好问问」）", st:"todo", desc:"2026-11-06 核查：在跑的 voice-next 入口读 config/voice-next/keywords.txt，只有 4 条「你好问问」发音变体（你三声/二声 × 问字正常读/轻读）；turn_worker.py 硬编码拒绝改词（回「当前新语音入口固定使用你好问问，暂不支持修改唤醒词」）。旧词表 models/sherpa/kws/keywords.txt 仍是 6 个「贾维斯」变体 +「幂幂」+ ULTIMA（11-01 14:19 最后改动），但旧入口无进程在跑，喊幂幂/贾维斯无反应。要改当前词只能改文件后重启 live/turn_worker，不支持在线改", accept:"喊新词一遍即唤醒；改词后重启不丢；新入口词表与 voice-profile 一致；旧词表去留明确（双词保留或下线其一）"},
+  {id:"e02audit",g:"g2", name:"E02 冷导入失败定性（审计拒绝证据缺失）", st:"done", desc:"11-06 主脑直接接手，不等执行端。环境侧已排除：Ollama PID 5708 在跑、11434 有监听、运行时对账 PASS。根因在代码侧：审计器拒绝时只记事件次数就抛异常，不留调用帧；失败封存只写 failure-summary 与 closed-index，从不落 audit.denied 明细；上层只把三个布尔塞进计数器，所以只能看到三个 false。已在独立诊断包 e02-source13-audit-closeout-20261106 补上：拒绝时记事件名+调用帧（最多 6 帧、最多 64 条、不记参数值），失败封存额外写 audit-denied-events.json，已存在不覆盖；候选判定一行未动，原精确绑定包只读未改。新增 3 条离线契约测试，全量固定契约 564/564 通过（exit 0，白名单/依赖/包内文件三项一致）。报告：docs/reports/jarvis-work-t2-e02-audit-closeout-diagnosis-20261106.md。11-06 再从失败 run 自身产物直接定位机制：产品是成功的（research.md 已写出、sha 对得上、ack 全真），失败在收尾判定（profile.py:570，新包 591 判脏）；七个脏来源里只有 audit.denied 为真，budget/browser/dns/research/counters/cleanup 全为 0 或空；eager_clean=false 是提前中断带出的假阳性，不是独立故障。仍差具体事件名与行号：需 Root 端签发一次授权，主脑不能自签（entry.py 锁死包根、release 已消费），否则独立控制失真。11-06 晚定性收口：审计层零拒绝（socket.__new__ / socket.bind 已按预期事件留痕，收据 clean=true），卡点实为读端期望重建的 END 键序与真实 producer 不一致（rebuild_expectations 与 validate_collection 两处同源，夹具第三处）；三处修正后定向 59 条、全量 566 条全绿。正式运行 c794f6fd 已到 reader 退出码 0、candidate_mechanical_verified、四条 trusted 成员放行、mechanical=PASS；E02 仍为 NOT_PASSED，因为独立结果复核配额为 0、outer_root_gate 未签发，该项待授权后单独走一轮复核。结论：不是产品缺陷，也不是审计规则误伤，是验收校验器自身的序列化口径错误。定性判定报告：docs/reports/jarvis-work-t2-e02-audit-closeout-verdict-20261106.md。11-06 已按业主授权完成一次只读结果复核：27/27 项通过、0 摘要不符，报告 docs/reports/jarvis-work-t2-e02-result-review-20261106.md；因复核人与运行操作同会话，仍只作诊断证据，E02 未记分、outer_root_gate 未签发，待外部独立签署。", accept:"取到 audit-denied-events.json 并定位到具体事件与行号 → 据此定修法 → 重跑判 PASS 或明确转设计"},
+  {id:"asrsys",g:"g1", name:"ASR 纠错系统化", st:"done", desc:"0015 已冻结（8774f3c 收口）：initial_prompt 高频词 + config/asr-normalize.json 近音映射独立化", accept:"“水量天听/水天”类输入归一化天气查询且意图正确"},
+  {id:"brain", g:"g2", name:"主脑切换 qwen3-8b-uncensored", st:"done", desc:"本地 ollama，2026-11-01 代码（agent_server.py MODEL）+ ollama list 双重核实；2026-11-02 用户裁定永久仅当前 8B、不切 14B", accept:"MODEL=qwen3-8b-uncensored；工具调用链路可用"},
+  {id:"route", g:"g2", name:"意图路由门（工单 C）", st:"done", desc:"0016 已冻结（8774f3c 收口）：三态 ALLOW/DENY/ABSTAIN + DeepSeek 云脑兜底", accept:"注入“水量天听”类输入被拦截并标记 routing；查天气正常回答；pytest 全绿"},
+  {id:"constr",g:"g2", name:"回答约束栈三层（工单 C+D）", st:"done", desc:"0017 已冻结（8774f3c 收口）：约束解码 {reply_text,confidence,grounded} + 校验器升级 + banned 语义化", accept:"输出结构合法；grounded 真实性校验；失败走有界重试+兜底话术"},
+  {id:"mem",   g:"g2", name:"记忆分层", st:"done", desc:"mem0 + nomic-embed + FAISS 已接，偏好/上下文可召回", accept:"跨轮偏好与上下文正常引用"},
+  {id:"diskidx",g:"g2", name:"全盘理解·自管理系统（电脑成为意识体）", st:"wip", desc:"全盘读取→分类打标→双索引（FTS5+向量）→关系图谱→网络球；首次全量建库+增量监听；图谱留本地不上云；隐私沙箱（敏感内容加密隔离+授权闸门）；11-03 用户拍板开工，方案 docs/plans/full-disk-understanding-delivery-plan-20261103.md；工单 0024 首派=BLOCKED/未开工（前置 0022 未过完整验收，执行端守门未写代码）；**11-04 0022 已冻结收口；11-05 0023 已收口（tag ultimaagent-jarvis-p0-20261103）→阻塞全部解除；11-05 12:52 0024 已派发（pid 34552，已产出 M1–M5 实施计划草案），但因同项目 0021 的 R30 恢复轮同步在跑、违反「每项目执行中 ≤1」，13:00 被主脑主动撤回并保留草案，待 0021 收口后按 WIP 重派；11-06 复查仍为 blocked（0021 T2 正例 2/3 未过、WIP 槽位未释放），草案与前置分析可直接复用**（P0 全盘索引只读建库；P1 图谱/网络球、P2 自管理含 CPU/GPU 功耗后续单）", accept:"P0 全盘索引验收冻结 → P1 关系图谱+网络球 → P2 自管理（巡检/资料/功耗）后勾选"},
+  {id:"bench", g:"g2", name:"双模型约束基准实测（已关闭）", st:"closed", desc:"2026-11-02 用户裁定永久仅当前 8B、不切 14B，官方 8B 对照提案未选；双模型对比不再执行 → 本条按「已关闭」归档，不计入完成率", accept:"【已关闭】用户裁定记录在案，对比封存；原验收口径不再适用"},
+  {id:"tools", g:"g3", name:"工具调用白名单", st:"done", desc:"agent_server.py 只暴露实际可调工具，接口宜精不宜多", accept:"工具选择正确率达标；白名单可审计"},
+  {id:"workcap",g:"g3", name:"Jarvis 工作能力交付（0021）", st:"wip", desc:"T0/T1 技术门 PASS；T2 研究接口（当前 8B）修复：R26 诊断 root-independent review PASS，但授权 E03 round2 已消费、runner exit=2 终态 FAIL/NOT ACCEPTED（fixture 41 UTF-16 读回后冻结基线仅读到 1 字符，cleanup 7 条记录 absent）；**2026-11-04 主表=blocked，T2 仍 BLOCKED，E01/E02 与 T3-T5 关闭**；仅当前 8B 生产语音/KWS 不变；**2026-11-06 现状：T2 仍未通过**——R30 恢复轮已按实测 PID 重建保护基线并跑通（R29 原件保留，voice-next 监听 35288/36004、ASR worker 17916/36176 纳入保护），随后 manual-start、input-guidance、source13 runtime fix 逐轮落证；同候选 269aca5 的 E03 round1、round2 各自实跑 + 独立结果复核 PASS（连续正例 2/3、负例 0，累计 CLI 2/完成推理 6），13 本例身份消失/7 保护匹配/语音 ready fresh 绑定 09:43:20 已读回；运行与复核额度已耗尽未重试，下一步同候选 round3 且未签发新 authority；E03 负例、E01、当前 8B 的 E02、T3–T5 与 Owner 门保持关闭；**2026-11-06 10:09 起 round3 离线准备已启动**（plan=docs/plans/jarvis-work-e03-source13-round3-plan-20261106.md，新隔离根 e03-source13-round3-20261106）：本轮只做离线单例准备 + 一次只读全包准备审查，**不签发第三轮实跑 authority**，无实跑/model/audio；Task1 前置两轮绑定输入已完成，RED 首跑 38 例 32 FAIL/6 PASS 符合预期，正在第二遍 RED；远端同步已补齐（main 5f287c86 + 10 个 tag 已推）**；**2026-11-06 19:48 最新停点**：E02 冷导入兼容修复已过（profile 561/561 + 根入口 89/89，独审 PASS，准备提交 0dc7174b），但随后单例实跑 run 726b5883 约 20.4 秒退出 1、机械 FAIL——SDK 已真实写出 research.md 711 字节、服务返回 succeeded，profile 收口 audit_clean/scope_clean/eager_clean 全 false（clients_closed=true），根入口因 worker 非成功退出停止，reader 未启动、两次原读回未发生；清理 PASS、7 个保护进程身份匹配；授权的一次实跑+一次复核已用完，不重试。**卡点**：audit_clean=false 说明出现过被拒审计事件，但导出只存布尔、没有事件名与调用位置，无法定性、也不放宽规则。**下一步提案**：补 audit_closeout 审计收据 + 限定负例 + 一次零推理定点诊断（不跑模型、不联网），见 docs/plans/jarvis-work-e02-source13-audit-closeout-diagnosis-plan-20261106.md，待明确范围授权；**环境侧**：round3 后运行时对账 FAIL_POST_CASE_RUNTIME_ADMISSION_BLOCKED，下一次实跑准入 BLOCKED，恢复动作待用户手动（自动启动被策略挡）。E01 三轮 3/3、E03 三正一负 PASS 不变；E02/T2 未过，T3–T5 与 Owner 门关闭，14B 未批，生产语音/KWS 未动**", accept:"T2 E02 真实任务通过 + 同候选回归 + T3-T5 + Owner 验收 + 冻结 tag 后勾选"},
+  {id:"task",  g:"g3", name:"天气/时间/记忆工具链路", st:"done", desc:"真机验证通过（L30/L33）：“沈阳现在多云，气温8度”类回复正确", accept:"“查天气 / 现在几点”回复正确且 grounded"},
+  {id:"fastpath",g:"g3", name:"接口快路径配置表（数据源自维护）", st:"wip", desc:"config/interface-routing.json v2：一意图一标的的候选池 + provides/requires 覆盖契约 + health（p50/ok_rate/fail_streak/eligible）；新增 config/interface-seeds.json 种子册（只登记实测过的源与字段）+ tools/interface_build.py 建路器：查询类型没配过时，第一次现场实测延迟与字段覆盖，建 1 主 + 2 备写回配置，第二次同参数直接 skip_existing 复用；同标的不够 3 条如实标 degraded，不拿别的品种凑数。tools/interface_probe.py 每轮 3 采样做三项校验（200+可解码、expect 字段命中、覆盖度门禁），按中位延迟重排并写回（连续失败 3 轮才降级，单轮 1 次波动不动角色），写回前备份 config/_backup/；每天 04:40 本地巡检（定时任务已建）。2026-11-06 实跑：天气首次建路 1 主 2 备（itboy 114ms / wttr 2090ms / dingzhi 28ms 降级）、WTI 原油首次建路成功（新浪 hf_CL 96ms，单源 degraded）、二次调用 skip_existing 通过；巡检三轮，第三轮全绿无切换。**2026-11-06 已接线对话主链**：新增 `src/brain/interface_route.py`（配置识别→取数→五家解析器→渲染，未配过的类型现场建路并写回），`interaction.py` `handle()` 1.3 配置表直达排在天气直达之前；8 条真实问句实测全绿（天气148ms/上证117ms/伦敦金60ms/WTI75ms/道指70ms/恒生103ms/汇率67ms/白银首次建路184ms），白银二次调用 built=False 直接复用。取舍：建路预算 2.5s 封顶、不播「稍等」，建完在答案前加一句「刚把这个查询接上了」。已知边界：个股缺中文名→代码映射仍走不到；单源标的必然 degraded", accept:"首次未配置的查询能自动建 1 主 + 2 备并写回，第二次复用不重建；建路与巡检各跑通真实网络验证；种子册补齐同标的多源后 degraded 归零；interaction.py 已读配置表（1.3 直达）；weather.py 尚未改读配置；种子册补齐同标的多源后 degraded 归零"},
+  {id:"deskhand",g:"g3", name:"桌面操作通道（Windows-MCP 受限实例）", st:"wip", desc:"选型 CursorTouch/Windows-MCP（11,149 stars / MIT / Python>=3.14），定位=执行层的手不做脑；受限实例 `H:\UltimaAI\_shared\tools\windows-mcp-test\.venv （Python 3.14.6）`，只开 11 个安全工具（PowerShell/注册表/文件系统/进程全关）；2026-11-06 真机三项验收通过（开计算器 pid 34680 / 读到窗口标题「计算器」502×810 handle 4984680 / 点 7+8= 界面出 15，图 calc-after.png 为证）；四处系统级限制已登记 L43（USER_CONTROL 控制权让路需等 10 秒重试、SetForegroundWindow 前台锁定切不过去、UI 树 500 元素截断、13 窗口 UIA 读不出 + README 门控参数在本机不存在）；配置全文 docs/specs/windows-mcp-executor-channel.md；本轮定位=给 UltimaAgent 预留的执行层能力，只做可行性尝试（能不能开程序、读窗口、点按钮），不追求接入与常驻；尚未接进执行层、未持久化 config.toml、未装常驻计划任务", accept:"受限实例接入执行通道并经主脑真实调用跑通一次任务；被拒重试策略与审计留痕落地；计划任务常驻经用户同意后勾选"},
+  {id:"hud",   g:"g3", name:"HUD 桌面形态", st:"wip", desc:"四角壳 8 锚点布局已冻结（0011，tag ultimaagent-hud-8anchor-20261031）；状态灯 13pt 雅黑与文字中线对齐标准已定；11-03 新增方向：任务窗汇报走人话提炼（中间层供结构化快照→本地主脑无状态翻译→任务窗人话+展开原文入口，工单契约不变，失败回退模板话术）", accept:"桌面常驻无窗后台；状态灯渲染偏移修正达标；任务窗人话提炼链路可用后勾选"},
+  {id:"ui",    g:"g3", name:"双屏平移 UI 范式", st:"todo", desc:"所有关联入口同层右滑入（语音管理⇄声音训练），关闭滑回", accept:"入口跳转均为右侧滑入范式，关闭即滑回原页面"},
+  {id:"mobile",g:"g3", name:"手机端复用", st:"todo", desc:"UltimaWallet 原生库/SDK 形态复用，PC + 移动端", accept:"同一能力双端可复用，移动端不另起炉灶"},
+  {id:"arhud", g:"g3", name:"AR 眼镜 HUD 显示测试机", st:"todo", desc:"【阶段定位：后续拓展阶段，非当前阶段（11-03 用户明确），当前阶段不投入采购/开发】带显示 AR 眼镜当外接显示器，硬约束=双目+彩显（非绿单色）→ 淘汰华强北 ¥129-159 入门档（市面多为单绿/无显示，36氪实查，2026 初已大面积下架）；正选阿里 AR MAX 双目 1080p Micro OLED 1800nits Type-C DP1.4 整机 $230-278 档（1 件起，RGB 全彩已核实：Si-OLED 1920x1080/眼、birdbath FOV 41-43°、近视 0-600），Huynew 双目光学引擎 $90-210 模组备选；UltimaAgent 本地渲染 HUD 画面输出，软件改造全在本地侧，不动冻结语音链路", accept:"【触发条件：进入拓展阶段后】双目彩显机型到手，HUD 画面可投进眼镜 + 分辨率/色彩验清（重点：透光率、边缘畸变、实际 FOV）+ 接入验证后勾选"},
+  {id:"harness",g:"g4", name:"Agent 架构对标盘点", st:"todo", desc:"harness 10 模式逐条对照：有界迭代/上下文压缩/可恢复会话/轨迹保留/工具权限范围化等", accept:"产出缺失项清单 + 补强优先级"},
+  {id:"openclaw",g:"g4", name:"OpenClaw 参考架构 POC", st:"todo", desc:"半天实测其网关/工具/ACP 协议，决定可借鉴点（只借鉴不整体替换）", accept:"产出可嫁接模块清单 + 不采用的明确理由"},
+  {id:"superagent",g:"g4", name:"DeepSeek Super-agent 参考架构调研与迁移评估", st:"done", desc:"2026-11-01 概念调研 + 2026-11-03 拉代码逐组件精读（clone 副本 + 12 组件 + 12,390 行 TS）：判定借鉴重写不整仓拼装；高迁移五项概念级重写 ~1500-2000 行；精读新增 interrupted 恢复/Outbox 回执/exactly-once 评估审计", accept:"排查结论与迁移评估已落盘 docs/research/dsh-superagent-open-source-replacement-conclusion-20261103.md（tag dsh-superagent-oss-conclusion-20261103）"},
+  {id:"midlayer",g:"g4", name:"Super Agent 式中间层 v1（编排服务层）", st:"wip", desc:"三层架构：主脑 qwen3-8b（大脑和嘴，不背任务上下文）+ 中间层（Ticket 状态机/调度队列/Watchdog 超时卡死/SessionStore 持久化/动作级裁决）+ 外脑（CodeX/DeepSeek 照单执行→回执→独立审计→有界修复→冻结）；短问答直连旁路；主脑不兼 Router；落地顺序：先中间层 v1（内脑编排）验收冻结，再接外脑调配（沿用 G-TASKFLOW-001）。11-03 用户确认核心执行原则：边界内自主执行（规则+白名单+路由门 0016 三态=8B 可做范围，8B 自主决策不请示）+ 边界外契约转派（能力缺口四级执行路径：①组合现有工具→②通用兜底工具常驻→③受控自建脚本→④转派外脑/工单→⑤如实说明；转派路径即规则契约=工单三段式+G-TASKFLOW-001，CodeX/DeepSeek 照单执行、主脑跟踪回报）；8B 只做路由决策不做路由创建，路径编排=Router 职责。11-03 规划已落盘（docs/plans/middleware-v1-delivery-plan-20261103.md）→ 工单 0022 已派发一次=BLOCKED：T5 完整工程门 4 项 T0 基线红灯（agent_server 时间前缀断言/时间直答路由/生产 tasks 可读/voice-next soxr），未 commit/tag/push；11-04 用户拍板审计最优=独立修复不挂账→修复单 0025 已冻结（38dd5a54）→0022 完整工程门重跑全绿（932/0/120/36w EXIT=0）→**0022 已冻结收口**（commit 34ac0c79 + tag `ultimaagent-middleware-v1-20261103` 已推远端 main），任务窗人话提炼子需求随 0022 落地（中间层结构化快照→主脑无状态翻译→任务窗人话+展开原文双入口，降级=模板话术）；外脑调配：**0023 Jarvis P0 已收口（2026-11-05 主脑豁免裁决 · ACCEPT WITH EXEMPTIONS）**——首轮 PID 13684（BLOCKED/REVISE）→修复轮 PID 21280（run 20261104T141335097160Z）跑完：KWS 回正权威基线（实测 score=2.0/trailing=8/threshold=0.08，T3=GREEN，语音测试 8 passed）；T4 全树 979 passed/2 failed/120 subtests，两项失败经首轮同用例 PASS 对照判为**环境既有非代码**（Ollama PATH 缺失 + `jarvis ask` 14B 在 12GB 卡 cudaMalloc OOM），裁决档 `data/evidence/jarvis-p0/T4/main-brain-exemption-ruling.json`，环境债 DEBT-ENV-01/02 另立专项；commit 0f944aaa+baa36198，tag `ultimaagent-jarvis-p0-20261103` 已推远端 main（baa36198）；**Owner 真实体验=延期验收项**（用户 11-04 确认当前不可用，不宣称完整 V1 冻结）；0024 按 WIP（每项目 ≤1）重派；18766 服务离线，登记走全局主表，待服务恢复后补登接口", accept:"方案落盘（G-PLAN-002 规划文档，含边界内/边界外执行原则+四级路径）→ 工单 0022 已派发 → 内脑编排验收冻结 → 外脑调配打通后勾选"},
+  {id:"pool",  g:"g4", name:"外部能力池规划", st:"todo", desc:"视频/小说/图像等专用模型按任务路由（未来演进）", accept:"能力路由表草案落盘"},
+  {id:"keep14",g:"g4", name:"14B 留库备用（已关闭）", st:"closed", desc:"qwen2.5:14b 保留不删，留回退空间（2026-11-02 起仅备查，不再作为运行候选）→ 本条按「已关闭」归档，不计入完成率", accept:"【已关闭】库内可查、可随时回退；原验收口径不再适用"},
+  {id:"v1",    g:"g5", name:"第一冻结版本", st:"wip", desc:"最小闭环 KWS→ASR→8B→工具→TTS 锁定中：e2e 真机三要点验收方案已定稿待执行（voice-e2e-acceptance-20261101.md）；0007 伪流式验收 PASS 待打冻结 tag", accept:"冻结门通过，tag 推送，已知问题清单随版本发布"},
+  {id:"issues",g:"g5", name:"已知问题清单维护", st:"wip", desc:"#133 唤醒两遍 / 端点音量漂移 / 冷启动 68s / 跨轮 last_summary 残留", accept:"清单可查、复发有记录、修复有登记（lessons-log）"},
+  {id:"log",   g:"g5", name:"审计与经验落盘", st:"done", desc:"lessons-log L24-L38（L38=派发前置检查漏判 Codex 桌面 App 会话内执行端）+ 本轮北极星对齐审计已落盘", accept:"每次沟通结论即时落盘，不拖到之后"},
+  {id:"flow",  g:"g5", name:"版本冻结门 + 打 tag 推送", st:"done", desc:"G-TASKFLOW-001 流程已建（登记→评审→执行→审计→修复→验收→冻结）", accept:"关键更新自动打 tag 并推送"}
+];
+
+const KNOWN = [
+  "KWS 唤醒两遍（#133，score=2.0 间歇项，基线冻结待专项 A/B）",
+  "端点音量漂移（探针自愈，复发观察中）",
+  "冷启动 68s（三段预热后热机 18s，目标继续压）",
+  "跨轮 last_summary 残留（2b 已挡大部分，待收敛）"
+];
+
+const KEY = "ua-northstar-checklist-v1";
+let filter = "all";
+// 代码里标 done 的项目永远算完成；本地勾选只能追加，不能覆盖或把它们清空
+const CODE_DONE = TASKS.filter(t => t.st === "done").map(t => t.id);
+let doneSet = new Set(CODE_DONE);
+try{
+  const saved = JSON.parse(localStorage.getItem(KEY) || "null");
+  if (saved && Array.isArray(saved)) saved.forEach(id => { if (TASKS.some(t => t.id === id)) doneSet.add(id); });
+}catch(e){}
+
+function save(){
+  try{ localStorage.setItem(KEY, JSON.stringify([...doneSet])); }catch(e){}
+}
+
+function render(){
+  const total = TASKS.length;
+  const closedNum = TASKS.filter(t => t.st === "closed").length;
+  const active = total - closedNum;                                  // 已关闭条目不计入分母
+  const done = TASKS.filter(t => doneSet.has(t.id) && t.st !== "closed").length;
+  const pct = active ? Math.round(done*100/active) : 0;
+  document.getElementById("bigNum").textContent = done;
+  document.getElementById("bigLabel").textContent = "/ " + active + " 已完成 · " + pct + "%" + (closedNum ? "（共 " + total + " 条，另有 " + closedNum + " 条已关闭）" : "");
+  document.getElementById("barFill").style.width = pct + "%";
+
+  const knownUl = document.getElementById("knownList");
+  knownUl.innerHTML = KNOWN.map(k => "<li>" + k + "</li>").join("");
+
+  const groupsEl = document.getElementById("groups");
+  groupsEl.innerHTML = GROUPS.map(g => {
+    const items = TASKS.filter(t => t.g === g.key);
+    const gActive = items.filter(t => t.st !== "closed");
+    const gd = gActive.filter(t => doneSet.has(t.id)).length;
+    const visible = items.filter(t => filter === "all" || (filter === "done" ? doneSet.has(t.id) : t.st === filter));
+    return '<section class="group" data-g="' + g.key + '">' +
+      '<div class="group-head" role="button" tabindex="0" aria-expanded="true">' +
+        '<span class="g-no">' + g.no + '</span>' +
+        '<span class="g-name">' + g.name + '</span>' +
+        '<span class="g-sub">' + g.sub + '</span>' +
+        '<span class="g-bar"><span class="g-bar-fill" style="width:' + (gActive.length ? Math.round(gd*100/gActive.length) : 0) + '%"></span></span>' +
+        '<span class="chev">▼</span>' +
+      '</div>' +
+      '<ul class="tasks">' + visible.map(t => {
+        const isDone = doneSet.has(t.id) && t.st !== "closed";
+        const chip = isDone ? "已完成" : (t.st === "wip" ? "进行中" : (t.st === "closed" ? "已关闭" : "待办"));
+        const chipCls = isDone ? "done" : t.st;
+        return '<li class="task' + (isDone ? " done" : "") + (t.st === "closed" && !isDone ? " closed" : "") + '" data-id="' + t.id + '">' +
+          '<label class="cb"><input type="checkbox"' + (isDone ? " checked" : "") + (t.st === "closed" ? " disabled" : "") + ' aria-label="' + t.name + '"></label>' +
+          '<div class="task-top">' +
+            '<span class="t-name">' + t.name + '</span>' +
+            '<span class="chip ' + chipCls + '">' + chip + '</span>' +
+          '</div>' +
+          '<div class="t-desc">' + t.desc + '</div>' +
+          '<div class="t-accept">验收口径：' + t.accept + '</div>' +
+          '<span class="t-toggle" role="button" tabindex="0">验收口径</span>' +
+        '</li>';
+      }).join("") + '</ul></section>';
+  }).join("");
+
+  document.querySelectorAll(".group-head").forEach(h => {
+    h.addEventListener("click", () => {
+      const g = h.closest(".group");
+      g.classList.toggle("collapsed");
+      h.setAttribute("aria-expanded", !g.classList.contains("collapsed"));
+    });
+  });
+  document.querySelectorAll(".t-toggle").forEach(b => {
+    b.addEventListener("click", e => {
+      e.stopPropagation();
+      const li = b.closest(".task");
+      li.querySelector(".t-accept").classList.toggle("open");
+    });
+  });
+  document.querySelectorAll(".task .cb input").forEach(cb => {
+    cb.addEventListener("change", () => {
+      const id = cb.closest(".task").dataset.id;
+      if (cb.checked) doneSet.add(id); else doneSet.delete(id);
+      save(); render();
+    });
+  });
+}
+
+document.getElementById("frameSec").querySelector(".frame-head").addEventListener("click", () => {
+  const f = document.getElementById("frameSec");
+  f.classList.toggle("open");
+  f.classList.toggle("collapsed");
+  f.querySelector(".frame-head").setAttribute("aria-expanded", f.classList.contains("open"));
+});
+
+document.querySelectorAll(".filter").forEach(f => {
+  f.addEventListener("click", () => {
+    filter = f.dataset.f;
+    document.querySelectorAll(".filter").forEach(x => x.setAttribute("aria-pressed", x === f));
+    render();
+  });
+});
+
+document.getElementById("resetBtn").addEventListener("click", () => {
+  if (confirm("确定清空手动勾选吗？代码里已完成的项目不受影响。")){
+    doneSet = new Set(CODE_DONE); save(); render();
+  }
+});
+
+render();
+</script>
+</body>
+</html>

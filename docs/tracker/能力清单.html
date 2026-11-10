@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>能力清单</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z' fill='%23D9A441'/%3E%3C/svg%3E">
+<style>
+  :root{
+    --bg:#0F1418; --panel:#161D24; --line:#232D36;
+    --text:#E8EDF2; --sub:#93A1AD; --faint:#5E6B77;
+    --gold:#D9A441; --green:#4C9E6D; --gray:#6B7783;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{
+    background:var(--bg); color:var(--text);
+    font-family:"Microsoft YaHei","PingFang SC","Segoe UI",sans-serif;
+    line-height:1.6; padding:24px 16px 64px;
+  }
+  .wrap{max-width:1000px; margin:0 auto;}
+  header{padding:8px 0 20px;}
+  .kicker{font-size:12px; letter-spacing:.22em; color:var(--faint);}
+  h1{font-size:26px; font-weight:700; margin:2px 0 2px;}
+  .subtitle{font-size:13px; color:var(--sub);}
+
+  .split{border:1px solid var(--line); background:var(--panel); border-radius:4px; padding:14px 16px; margin-top:18px;}
+  .split h2{font-size:13px; color:var(--gold); font-weight:600; margin-bottom:8px;}
+  .split-row{display:grid; grid-template-columns:132px 1fr; gap:6px 12px; font-size:12.5px;}
+  .split-row b{color:var(--text); font-weight:600;}
+  .split-row span{color:var(--sub);}
+
+  .stats{display:flex; gap:22px; margin-top:18px; flex-wrap:wrap;}
+  .stat{display:flex; align-items:baseline; gap:8px;}
+  .stat .n{font-size:26px; font-weight:800; line-height:1;}
+  .stat .l{font-size:12px; color:var(--sub);}
+
+  .legend{display:flex; gap:18px; margin-top:12px; flex-wrap:wrap; font-size:12px; color:var(--sub);}
+  .dot{display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:6px; vertical-align:1px;}
+
+  .group{margin-top:26px; border-top:1px solid var(--line);}
+  .group-head{display:flex; align-items:center; gap:12px; padding:14px 0 10px;}
+  .g-no{font-size:12px; color:var(--gold); font-weight:700; width:28px;}
+  .g-name{font-size:17px; font-weight:700;}
+  .g-sub{font-size:12px; color:var(--faint); margin-left:auto;}
+  table{width:100%; border-collapse:collapse; table-layout:fixed; font-size:12.5px;}
+  col.c1{width:26%;} col.c2{width:36%;} col.c3{width:24%;} col.c4{width:14%;}
+  th,td{border:1px solid var(--line); padding:8px 10px; text-align:left; vertical-align:top;}
+  th{color:var(--gold); font-weight:600; background:var(--panel);}
+  td{color:var(--sub);}
+  td.name{color:var(--text); font-weight:600;}
+  .tag{display:inline-block; font-size:11px; padding:1px 7px; border-radius:3px; border:1px solid; white-space:nowrap;}
+  .tag.usable{color:var(--green); border-color:#2F6347; background:rgba(76,158,109,.1);}
+  .tag.partial{color:var(--gold); border-color:#5C4720; background:rgba(217,164,65,.1);}
+  .tag.missing{color:var(--gray); border-color:#313B45; background:rgba(107,119,131,.08);}
+  footer{margin-top:36px; padding-top:14px; border-top:1px solid var(--line); font-size:12px; color:var(--faint);}
+  @media (max-width:640px){
+    body{padding:18px 12px 48px;}
+    h1{font-size:22px;}
+    .split-row{grid-template-columns:1fr; gap:2px;}
+    .split-row b{margin-top:6px;}
+    table{font-size:11.5px;}
+    col.c1{width:32%;} col.c2{width:38%;} col.c3{width:30%;} col.c4{width:0;}
+    th:last-child, td:last-child{display:none;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="kicker">ULTIMA AGENT · CAPABILITY MAP</div>
+    <h1>能力清单</h1>
+    <div class="subtitle">这套程序最终要掌握哪些本事 · 现在到哪一步 · 还缺什么</div>
+  </header>
+
+  <section class="split">
+    <h2>这张表和「北极星上线任务清单」的分工</h2>
+    <div class="split-row">
+      <b>北极星清单</b><span>这一版要上线什么。有验收口径、有冻结门、能打 tag。做完勾掉，版本发布时清零重排。</span>
+      <b>能力清单（本页）</b><span>这套程序长期要会什么。不随版本变化，只随能力增长更新。用来查漏、排优先级、判断某件事该不该立项。</span>
+      <b>怎么配合</b><span>能力缺口 → 决定要不要做 → 做了才变成北极星里的一条上线任务。</span>
+    </div>
+  </section>
+
+  <div class="stats" id="stats"></div>
+
+  <div class="legend">
+    <span><i class="dot" style="background:var(--green)"></i>可用：产品和真机上都验证过</span>
+    <span><i class="dot" style="background:var(--gold)"></i>有模块：代码或链路在，没接进产品</span>
+    <span><i class="dot" style="background:var(--gray)"></i>还没有：只有想法或只有人工做法</span>
+  </div>
+
+  <div id="groups"></div>
+
+  <footer>
+    证据口径：每条都标了依据。证据只到「模块层完成」的一律记「有模块」，不记「可用」。
+    <br>更新：2026-11-06 · 数据写在本文件里，改动请直接改 CAPS 数组
+  </footer>
+</div>
+
+<script>
+const GROUPS = [
+  {key:"c1", no:"01", name:"感知 · 把外面的东西拿进来", sub:"听 / 看 / 读 / 抓"},
+  {key:"c2", no:"02", name:"理解 · 把拿到的变成判断", sub:"听懂 / 想明白 / 分轻重"},
+  {key:"c3", no:"03", name:"执行 · 真的动手做", sub:"调程序 / 调模型 / 生成界面"},
+  {key:"c4", no:"04", name:"表达 · 把结果交到人手上", sub:"说 / 显示 / 播"},
+  {key:"c5", no:"05", name:"记忆 · 越用越懂你", sub:"会话 / 偏好 / 资产"},
+  {key:"c6", no:"06", name:"连接 · 和外面的世界打交道", sub:"渠道 / 定时 / 服务"}
+];
+
+const CAPS = [
+  // 01 感知
+  {g:"c1", name:"听见唤醒词", st:"usable",
+   now:"KWS 基线已冻结，真机可唤醒",
+   gap:"—",
+   ref:"0014 · kws-wakeup-params-baseline.md"},
+  {g:"c1", name:"听清说话内容", st:"usable",
+   now:"ASR 已接，faster-whisper medium，真机对话可用",
+   gap:"嘈杂环境、长句断句还没系统验过",
+   ref:"语音全链路 M05/M06"},
+  {g:"c1", name:"抓网页内容", st:"partial",
+   now:"浏览器通道已建，另有 Scrapling 独立链路（热榜 5.1 秒）",
+   gap:"没接成产品功能，谁触发、什么条件用都没定",
+   ref:"M13 浏览器通道 · scrapling-test"},
+  {g:"c1", name:"搜资料", st:"partial",
+   now:"检索增强模块已完成",
+   gap:"产品里没有触发入口，检索结果怎么用未定",
+   ref:"M14 检索增强"},
+  {g:"c1", name:"读本机文件 / 全盘", st:"partial",
+   now:"全盘理解方案已定，工单 0024 待开工",
+   gap:"索引库还没建，目前读不了全盘",
+   ref:"全盘理解条目 · 0024 blocked"},
+  {g:"c1", name:"读热榜 / 热点源", st:"partial",
+   now:"脚本链路已通：榜单 5.1 秒、条目详情 9 秒、视频下载 0.2 秒",
+   gap:"只有脚本，没接进程序；也没有新闻类多源聚合",
+   ref:"hotvideo 链路 · L39-L42"},
+  {g:"c1", name:"看视频画面", st:"missing",
+   now:"只有人眼截图核验，程序不会自己看懂画面",
+   gap:"缺画面理解能力（抽帧 + 识别 + 判断相关性）",
+   ref:"本轮 BLG 核验靠人看截图"},
+
+  // 02 理解
+  {g:"c2", name:"听懂意图", st:"usable",
+   now:"三态路由 ALLOW / DENY / ABSTAIN 已冻结",
+   gap:"—",
+   ref:"0016 意图路由门"},
+  {g:"c2", name:"回答问题", st:"usable",
+   now:"本地 8B 主脑 + 云脑兜底，中间层已冻结",
+   gap:"复杂多步问题仍会转外脑",
+   ref:"0022/0023 冻结 · 主脑回路 M01"},
+  {g:"c2", name:"记住并调用偏好", st:"usable",
+   now:"mem0 + FAISS 已接，跨轮可召回",
+   gap:"—",
+   ref:"记忆底座 M17"},
+  {g:"c2", name:"判断什么算热点", st:"missing",
+   now:"只会抓，不会选源、不会去重、不会排序",
+   gap:"缺选源规则、热度口径、去重和排序逻辑（Scrapling 本身不提供）",
+   ref:"用户关于「能否当新闻入口」的结论"},
+  {g:"c2", name:"理解一条内容讲什么", st:"missing",
+   now:"标题和元数据能读，正文语义要人来判",
+   gap:"缺内容理解，无法自动判断「这条视频跟标题对不对」",
+   ref:"本轮靠人看画面确认"},
+
+  // 03 执行
+  {g:"c3", name:"调本机程序和命令", st:"usable",
+   now:"本机执行通道已接",
+   gap:"—",
+   ref:"M12 本机执行"},
+  {g:"c3", name:"把活转给外部模型", st:"usable",
+   now:"外部执行器 + Codex 插件已接",
+   gap:"派发前的 WIP 冲突判断还漏过（L38）",
+   ref:"s5 外部执行器 · s6 Codex 插件"},
+  {g:"c3", name:"控浏览器", st:"partial",
+   now:"浏览器通道模块完成",
+   gap:"产品内没有稳定的调用场景，登录态问题没解",
+   ref:"M13"},
+  {g:"c3", name:"操作桌面窗口和按钮", st:"partial",
+   now:"Windows-MCP 受限实例真机验过：开程序、读窗口标题、点按钮全成（7+8=15）",
+   gap:"没接进执行层；人在用时会被拒，切窗口被系统挡，部分窗口读不到控件",
+   ref:"windows-mcp 0.8.8 · docs/specs/windows-mcp-executor-channel.md"},
+  {g:"c3", name:"现场生成界面", st:"usable",
+   now:"A2UI renderer + 组合窗口 WebView2 已接",
+   gap:"播放类组件还没有对应积木",
+   ref:"M10/M11 · L4 组合窗口"},
+  {g:"c3", name:"守门（权限 / 凭证）", st:"usable",
+   now:"范式闸门驻留 + 凭证中心已接，高危要征询",
+   gap:"—",
+   ref:"s3-guard-resident · s3-credential-bus"},
+  {g:"c3", name:"留痕可审计", st:"usable",
+   now:"审计留痕 + 独立复核已接",
+   gap:"—",
+   ref:"s3-audit-trail M21"},
+
+  // 04 表达
+  {g:"c4", name:"说话给人听", st:"usable",
+   now:"TTS 已接，真机可播",
+   gap:"—",
+   ref:"TTS 音色同源 · CV3 主音色"},
+  {g:"c4", name:"桌面常驻显示", st:"partial",
+   now:"四角壳 8 锚点已冻结，状态灯对齐标准已定",
+   gap:"常驻形态和任务窗人话提炼还没验收",
+   ref:"0011 HUD · 0022 人话提炼"},
+  {g:"c4", name:"写文档 / 出文件", st:"usable",
+   now:"能写本地文件、能产出文档",
+   gap:"—",
+   ref:"本机执行 + 主脑"},
+  {g:"c4", name:"播视频", st:"partial",
+   now:"本地播放页已验证可播（Edge 内核实测）",
+   gap:"没接进组合窗口，没有播放积木",
+   ref:"player-hot-*.html"},
+  {g:"c4", name:"该开口时才开口", st:"partial",
+   now:"行为层与心跳模块已完成",
+   gap:"主动性的分级（观察/自动）还没在产品里定",
+   ref:"M07/M08 · M27"},
+
+  // 05 记忆
+  {g:"c5", name:"记住会话和任务", st:"usable",
+   now:"状态与记忆共享轴已接，重启可恢复",
+   gap:"—",
+   ref:"M04 state-axis"},
+  {g:"c5", name:"存住抓来的内容", st:"missing",
+   now:"视频和元数据只落在本地目录，没有索引和检索",
+   gap:"缺内容资产库：按主题/时间/来源查得到",
+   ref:"本轮产物散落在 videos 目录"},
+  {g:"c5", name:"全盘知识库", st:"partial",
+   now:"方案已定，工单未开工",
+   gap:"FTS5 + 向量双索引都还没有",
+   ref:"0024 blocked"},
+
+  // 06 连接
+  {g:"c6", name:"接外部渠道", st:"partial",
+   now:"渠道桥接模块完成",
+   gap:"飞书连接器当前是关的，实际收发没跑通",
+   ref:"M24 ime-bridge"},
+  {g:"c6", name:"按时间自己动", st:"partial",
+   now:"心跳模块完成",
+   gap:"定时任务的真实调度没在产品里验过",
+   ref:"M27 心跳"},
+  {g:"c6", name:"调外部服务接口", st:"partial",
+   now:"外部模型路由已接",
+   gap:"第三方服务（搜索/数据源）没有统一入口和限流",
+   ref:"s5 外部执行器"},
+];
+
+const STATE_TEXT = {usable:"可用", partial:"有模块", missing:"还没有"};
+
+(function(){
+  const counts = {usable:0, partial:0, missing:0};
+  CAPS.forEach(c => counts[c.st]++);
+
+  const stats = [
+    {n:counts.usable, l:"可用", color:"var(--green)"},
+    {n:counts.partial, l:"有模块（没接产品）", color:"var(--gold)"},
+    {n:counts.missing, l:"还没有", color:"var(--gray)"}
+  ];
+  document.getElementById("stats").innerHTML = stats.map(s =>
+    '<div class="stat"><span class="n" style="color:' + s.color + '">' + s.n +
+    '</span><span class="l">' + s.l + '</span></div>'
+  ).join("");
+
+  document.getElementById("groups").innerHTML = GROUPS.map(g => {
+    const items = CAPS.filter(c => c.g === g.key);
+    const rows = items.map(c =>
+      '<tr>' +
+        '<td class="name">' + c.name + '<br><span class="tag ' + c.st + '">' + STATE_TEXT[c.st] + '</span></td>' +
+        '<td>' + c.now + '</td>' +
+        '<td>' + c.gap + '</td>' +
+        '<td>' + c.ref + '</td>' +
+      '</tr>'
+    ).join("");
+    return '<section class="group">' +
+      '<div class="group-head">' +
+        '<span class="g-no">' + g.no + '</span>' +
+        '<span class="g-name">' + g.name + '</span>' +
+        '<span class="g-sub">' + g.sub + '</span>' +
+      '</div>' +
+      '<table><colgroup><col class="c1"><col class="c2"><col class="c3"><col class="c4"></colgroup>' +
+      '<thead><tr><th>能力</th><th>现在到哪一步</th><th>还缺什么</th><th>依据</th></tr></thead>' +
+      '<tbody>' + rows + '</tbody></table>' +
+    '</section>';
+  }).join("");
+})();
+</script>
+</body>
+</html>

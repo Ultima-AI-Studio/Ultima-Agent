@@ -1,0 +1,524 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="29" skipped="0" tests="35" time="11.191" timestamp="2026-11-07T19:22:35.520143+08:00" hostname="DESKTOP-B366PQ9"><testcase classname="" name="test_sampler_rejects_raw_bodies_that_break_json[client.run &quot;unescaped&quot;]" time="0.003"><failure message="assert not &lt;re.Match object; span=(0, 22), match='client.run &quot;unescaped&quot;'&gt;&#10; +  where &lt;re.Match object; span=(0, 22), match='client.run &quot;unescaped&quot;'&gt; = &lt;function fullmatch at 0x0000025916943380&gt;('^(.*[^A-Za-z0-9_$.])?client\\.run([^A-Za-z0-9_$.].*|\\.([^A-Za-z_$].*)?)?$', 'client.run &quot;unescaped&quot;')&#10; +    where &lt;function fullmatch at 0x0000025916943380&gt; = re.fullmatch">body = 'client.run "unescaped"'
+
+    @pytest.mark.parametrize('body', [
+        'client.run "unescaped"',
+        'x",\nclient.run();',
+        'client.run\nx',
+        'client.run\r',
+        'client.run\t',
+        'client.run\x00',
+        'client.run\x1f',
+        'client.run\\',
+        r'client.run\q',
+        r'client.run\x41',
+        r'client.run\u123',
+    ])
+    def test_sampler_rejects_raw_bodies_that_break_json(body):
+        strict = phase(pages())
+        assert re.fullmatch(pattern(strict), body), 'reproducer must pass the old raw pattern'
+        with pytest.raises(json.JSONDecodeError):
+            json.loads('"' + body + '"')
+        projected = pattern(server._research_sampler_schema(strict))
+&gt;       assert not re.fullmatch(projected, body)
+E       assert not &lt;re.Match object; span=(0, 22), match='client.run "unescaped"'&gt;
+E        +  where &lt;re.Match object; span=(0, 22), match='client.run "unescaped"'&gt; = &lt;function fullmatch at 0x0000025916943380&gt;('^(.*[^A-Za-z0-9_$.])?client\\.run([^A-Za-z0-9_$.].*|\\.([^A-Za-z_$].*)?)?$', 'client.run "unescaped"')
+E        +    where &lt;function fullmatch at 0x0000025916943380&gt; = re.fullmatch
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-json-string-projection\UltimaAgent\src\brain\tests\test_work_sampler_json_strings.py:51: AssertionError</failure></testcase><testcase classname="" name="test_sampler_rejects_raw_bodies_that_break_json[x&quot;,\nclient.run();]" time="0.002"><failure message="assert not &lt;re.Match object; span=(0, 17), match='x&quot;,\nclient.run();'&gt;&#10; +  where &lt;re.Match object; span=(0, 17), match='x&quot;,\nclient.run();'&gt; = &lt;function fullmatch at 0x0000025916943380&gt;('^(.*[^A-Za-z0-9_$.])?client\\.run([^A-Za-z0-9_$.].*|\\.([^A-Za-z_$].*)?)?$', 'x&quot;,\nclient.run();')&#10; +    where &lt;function fullmatch at 0x0000025916943380&gt; = re.fullmatch">body = 'x",\nclient.run();'
+
+    @pytest.mark.parametrize('body', [
+        'client.run "unescaped"',
+        'x",\nclient.run();',
+        'client.run\nx',
+        'client.run\r',
+        'client.run\t',
+        'client.run\x00',
+        'client.run\x1f',
+        'client.run\\',
+        r'client.run\q',
+        r'client.run\x41',
+        r'client.run\u123',
+    ])
+    def test_sampler_rejects_raw_bodies_that_break_json(body):
+        strict = phase(pages())
+        assert re.fullmatch(pattern(strict), body), 'reproducer must pass the old raw pattern'
+        with pytest.raises(json.JSONDecodeError):
+            json.loads('"' + body + '"')
+        projected = pattern(server._research_sampler_schema(strict))
+&gt;       assert not re.fullmatch(projected, body)
+E       assert not &lt;re.Match object; span=(0, 17), match='x",\nclient.run();'&gt;
+E        +  where &lt;re.Match object; span=(0, 17), match='x",\nclient.run();'&gt; = &lt;function fullmatch at 0x0000025916943380&gt;('^(.*[^A-Za-z0-9_$.])?client\\.run([^A-Za-z0-9_$.].*|\\.([^A-Za-z_$].*)?)?$', 'x",\nclient.run();')
+E        +    where &lt;function fullmatch at 0x0000025916943380&gt; = re.fullmatch
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-json-string-projection\UltimaAgent\src\brain\tests\test_work_sampler_json_strings.py:51: AssertionError</failure></testcase><testcase classname="" name="test_sampler_rejects_raw_bodies_that_break_json[client.run\nx]" time="0.002"><failure message="AssertionError: assert not &lt;re.Match object; span=(0, 12), match='client.run\nx'&gt;&#10; +  where &lt;re.Match object; span=(0, 12), match='client.run\nx'&gt; = &lt;function fullmatch at 0x0000025916943380&gt;('^(.*[^A-Za-z0-9_$.])?client\\.run([^A-Za-z0-9_$.].*|\\.([^A-Za-z_$].*)?)?$', 'client.run\nx')&#10; +    where &lt;function fullmatch at 0x0000025916943380&gt; = re.fullmatch">body = 'client.run\nx'
+
+    @pytest.mark.parametrize('body', [
+        'client.run "unescaped"',
+        'x",\nclient.run();',
+        'client.run\nx',
+        'client.run\r',
+        'client.run\t',
+        'client.run\x00',
+        'client.run\x1f',
+        'client.run\\',
+        r'client.run\q',
+        r'client.run\x41',
+        r'client.run\u123',
+    ])
+    def test_sampler_rejects_raw_bodies_that_break_json(body):
+        strict = phase(pages())
+        assert re.fullmatch(pattern(strict), body), 'reproducer must pass the old raw pattern'
+        with pytest.raises(json.JSONDecodeError):
+            json.loads('"' + body + '"')
+        projected = pattern(server._research_sampler_schema(strict))
+&gt;       assert not re.fullmatch(projected, body)
+E       AssertionError: assert not &lt;re.Match object; span=(0, 12), match='client.run\nx'&gt;
+E        +  where &lt;re.Match object; span=(0, 12), match='client.run\nx'&gt; = &lt;function fullmatch at 0x0000025916943380&gt;('^(.*[^A-Za-z0-9_$.])?client\\.run([^A-Za-z0-9_$.].*|\\.([^A-Za-z_$].*)?)?$', 'client.run\nx')
+E        +    where &lt;function fullmatch at 0x0000025916943380&gt; = re.fullmatch
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-json-string-projection\UltimaAgent\src\brain\tests\test_work_sampler_json_strings.py:51: AssertionError</failure></testcase><testcase classname="" name="test_sampler_rejects_raw_bodies_that_break_json[client.run\r]" time="0.001"><failure message="AssertionError: assert not &lt;re.Match object; span=(0, 11), match='client.run\r'&gt;&#10; +  where &lt;re.Match object; span=(0, 11), match='client.run\r'&gt; = &lt;function fullmatch at 0x0000025916943380&gt;('^(.*[^A-Za-z0-9_$.])?client\\.run([^A-Za-z0-9_$.].*|\\.([^A-Za-z_$].*)?)?$', 'client.run\r')&#10; +    where &lt;function fullmatch at 0x0000025916943380&gt; = re.fullmatch">body = 'client.run\r'
+
+    @pytest.mark.parametrize('body', [
+        'client.run "unescaped"',
+        'x",\nclient.run();',
+        'client.run\nx',
+        'client.run\r',
+        'client.run\t',
+        'client.run\x00',
+        'client.run\x1f',
+        'client.run\\',
+        r'client.run\q',
+        r'client.run\x41',
+        r'client.run\u123',
+    ])
+    def test_sampler_rejects_raw_bodies_that_break_json(body):
+        strict = phase(pages())
+        assert re.fullmatch(pattern(strict), body), 'reproducer must pass the old raw pattern'
+        with pytest.raises(json.JSONDecodeError):
+            json.loads('"' + body + '"')
+        projected = pattern(server._research_sampler_schema(strict))
+&gt;       assert not re.fullmatch(projected, body)
+E       AssertionError: assert not &lt;re.Match object; span=(0, 11), match='client.run\r'&gt;
+E        +  where &lt;re.Match object; span=(0, 11), match='client.run\r'&gt; = &lt;function fullmatch at 0x0000025916943380&gt;('^(.*[^A-Za-z0-9_$.])?client\\.run([^A-Za-z0-9_$.].*|\\.([^A-Za-z_$].*)?)?$', 'client.run\r')
+E        +    where &lt;function fullmatch at 0x0000025916943380&gt; = re.fullmatch
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-json-string-projection\UltimaAgent\src\brain\tests\test_work_sampler_json_strings.py:51: AssertionError</failure></testcase><testcase classname="" name="test_sampler_rejects_raw_bodies_that_break_json[client.run\t]" time="0.002"><failure message="AssertionError: assert not &lt;re.Match object; span=(0, 11), match='client.run\t'&gt;&#10; +  where &lt;re.Match object; span=(0, 11), match='client.run\t'&gt; = &lt;function fullmatch at 0x0000025916943380&gt;('^(.*[^A-Za-z0-9_$.])?client\\.run([^A-Za-z0-9_$.].*|\\.([^A-Za-z_$].*)?)?$', 'client.run\t')&#10; +    where &lt;function fullmatch at 0x0000025916943380&gt; = re.fullmatch">body = 'client.run\t'
+
+    @pytest.mark.parametrize('body', [
+        'client.run "unescaped"',
+        'x",\nclient.run();',
+        'client.run\nx',
+        'client.run\r',
+        'client.run\t',
+        'client.run\x00',
+        'client.run\x1f',
+        'client.run\\',
+        r'client.run\q',
+        r'client.run\x41',
+        r'client.run\u123',
+    ])
+    def test_sampler_rejects_raw_bodies_that_break_json(body):
+        strict = phase(pages())
+        assert re.fullmatch(pattern(strict), body), 'reproducer must pass the old raw pattern'
+        with pytest.raises(json.JSONDecodeError):
+            json.loads('"' + body + '"')
+        projected = pattern(server._research_sampler_schema(strict))
+&gt;       assert not re.fullmatch(projected, body)
+E       AssertionError: assert not &lt;re.Match object; span=(0, 11), match='client.run\t'&gt;
+E        +  where &lt;re.Match object; span=(0, 11), match='client.run\t'&gt; = &lt;function fullmatch at 0x0000025916943380&gt;('^(.*[^A-Za-z0-9_$.])?client\\.run([^A-Za-z0-9_$.].*|\\.([^A-Za-z_$].*)?)?$', 'client.run\t')
+E        +    where &lt;function fullmatch at 0x0000025916943380&gt; = re.fullmatch
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-json-string-projection\UltimaAgent\src\brain\tests\test_work_sampler_json_strings.py:51: AssertionError</failure></testcase><testcase classname="" name="test_sampler_rejects_raw_bodies_that_break_json[client.run\x00]" time="0.002"><failure message="AssertionError: assert not &lt;re.Match object; span=(0, 11), match='client.run\x00'&gt;&#10; +  where &lt;re.Match object; span=(0, 11), match='client.run\x00'&gt; = &lt;function fullmatch at 0x0000025916943380&gt;('^(.*[^A-Za-z0-9_$.])?client\\.run([^A-Za-z0-9_$.].*|\\.([^A-Za-z_$].*)?)?$', 'client.run\x00')&#10; +    where &lt;function fullmatch at 0x0000025916943380&gt; = re.fullmatch">body = 'client.run\x00'
+
+    @pytest.mark.parametrize('body', [
+        'client.run "unescaped"',
+        'x",\nclient.run();',
+        'client.run\nx',
+        'client.run\r',
+        'client.run\t',
+        'client.run\x00',
+        'client.run\x1f',
+        'client.run\\',
+        r'client.run\q',
+        r'client.run\x41',
+        r'client.run\u123',
+    ])
+    def test_sampler_rejects_raw_bodies_that_break_json(body):
+        strict = phase(pages())
+        assert re.fullmatch(pattern(strict), body), 'reproducer must pass the old raw pattern'
+        with pytest.raises(json.JSONDecodeError):
+            json.loads('"' + body + '"')
+        projected = pattern(server._research_sampler_schema(strict))
+&gt;       assert not re.fullmatch(projected, body)
+E       AssertionError: assert not &lt;re.Match object; span=(0, 11), match='client.run\x00'&gt;
+E        +  where &lt;re.Match object; span=(0, 11), match='client.run\x00'&gt; = &lt;function fullmatch at 0x0000025916943380&gt;('^(.*[^A-Za-z0-9_$.])?client\\.run([^A-Za-z0-9_$.].*|\\.([^A-Za-z_$].*)?)?$', 'client.run\x00')
+E        +    where &lt;function fullmatch at 0x0000025916943380&gt; = re.fullmatch
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-json-string-projection\UltimaAgent\src\brain\tests\test_work_sampler_json_strings.py:51: AssertionError</failure></testcase><testcase classname="" name="test_sampler_rejects_raw_bodies_that_break_json[client.run\x1f]" time="0.003"><failure message="AssertionError: assert not &lt;re.Match object; span=(0, 11), match='client.run\x1f'&gt;&#10; +  where &lt;re.Match object; span=(0, 11), match='client.run\x1f'&gt; = &lt;function fullmatch at 0x0000025916943380&gt;('^(.*[^A-Za-z0-9_$.])?client\\.run([^A-Za-z0-9_$.].*|\\.([^A-Za-z_$].*)?)?$', 'client.run\x1f')&#10; +    where &lt;function fullmatch at 0x0000025916943380&gt; = re.fullmatch">body = 'client.run\x1f'
+
+    @pytest.mark.parametrize('body', [
+        'client.run "unescaped"',
+        'x",\nclient.run();',
+        'client.run\nx',
+        'client.run\r',
+        'client.run\t',
+        'client.run\x00',
+        'client.run\x1f',
+        'client.run\\',
+        r'client.run\q',
+        r'client.run\x41',
+        r'client.run\u123',
+    ])
+    def test_sampler_rejects_raw_bodies_that_break_json(body):
+        strict = phase(pages())
+        assert re.fullmatch(pattern(strict), body), 'reproducer must pass the old raw pattern'
+        with pytest.raises(json.JSONDecodeError):
+            json.loads('"' + body + '"')
+        projected = pattern(server._research_sampler_schema(strict))
+&gt;       assert not re.fullmatch(projected, body)
+E       AssertionError: assert not &lt;re.Match object; span=(0, 11), match='client.run\x1f'&gt;
+E        +  where &lt;re.Match object; span=(0, 11), match='client.run\x1f'&gt; = &lt;function fullmatch at 0x0000025916943380&gt;('^(.*[^A-Za-z0-9_$.])?client\\.run([^A-Za-z0-9_$.].*|\\.([^A-Za-z_$].*)?)?$', 'client.run\x1f')
+E        +    where &lt;function fullmatch at 0x0000025916943380&gt; = re.fullmatch
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-json-string-projection\UltimaAgent\src\brain\tests\test_work_sampler_json_strings.py:51: AssertionError</failure></testcase><testcase classname="" name="test_sampler_rejects_raw_bodies_that_break_json[client.run\\]" time="0.004"><failure message="AssertionError: assert not &lt;re.Match object; span=(0, 11), match='client.run\\'&gt;&#10; +  where &lt;re.Match object; span=(0, 11), match='client.run\\'&gt; = &lt;function fullmatch at 0x0000025916943380&gt;('^(.*[^A-Za-z0-9_$.])?client\\.run([^A-Za-z0-9_$.].*|\\.([^A-Za-z_$].*)?)?$', 'client.run\\')&#10; +    where &lt;function fullmatch at 0x0000025916943380&gt; = re.fullmatch">body = 'client.run\\'
+
+    @pytest.mark.parametrize('body', [
+        'client.run "unescaped"',
+        'x",\nclient.run();',
+        'client.run\nx',
+        'client.run\r',
+        'client.run\t',
+        'client.run\x00',
+        'client.run\x1f',
+        'client.run\\',
+        r'client.run\q',
+        r'client.run\x41',
+        r'client.run\u123',
+    ])
+    def test_sampler_rejects_raw_bodies_that_break_json(body):
+        strict = phase(pages())
+        assert re.fullmatch(pattern(strict), body), 'reproducer must pass the old raw pattern'
+        with pytest.raises(json.JSONDecodeError):
+            json.loads('"' + body + '"')
+        projected = pattern(server._research_sampler_schema(strict))
+&gt;       assert not re.fullmatch(projected, body)
+E       AssertionError: assert not &lt;re.Match object; span=(0, 11), match='client.run\\'&gt;
+E        +  where &lt;re.Match object; span=(0, 11), match='client.run\\'&gt; = &lt;function fullmatch at 0x0000025916943380&gt;('^(.*[^A-Za-z0-9_$.])?client\\.run([^A-Za-z0-9_$.].*|\\.([^A-Za-z_$].*)?)?$', 'client.run\\')
+E        +    where &lt;function fullmatch at 0x0000025916943380&gt; = re.fullmatch
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-json-string-projection\UltimaAgent\src\brain\tests\test_work_sampler_json_strings.py:51: AssertionError</failure></testcase><testcase classname="" name="test_sampler_rejects_raw_bodies_that_break_json[client.run\\q]" time="0.001"><failure message="AssertionError: assert not &lt;re.Match object; span=(0, 12), match='client.run\\q'&gt;&#10; +  where &lt;re.Match object; span=(0, 12), match='client.run\\q'&gt; = &lt;function fullmatch at 0x0000025916943380&gt;('^(.*[^A-Za-z0-9_$.])?client\\.run([^A-Za-z0-9_$.].*|\\.([^A-Za-z_$].*)?)?$', 'client.run\\q')&#10; +    where &lt;function fullmatch at 0x0000025916943380&gt; = re.fullmatch">body = 'client.run\\q'
+
+    @pytest.mark.parametrize('body', [
+        'client.run "unescaped"',
+        'x",\nclient.run();',
+        'client.run\nx',
+        'client.run\r',
+        'client.run\t',
+        'client.run\x00',
+        'client.run\x1f',
+        'client.run\\',
+        r'client.run\q',
+        r'client.run\x41',
+        r'client.run\u123',
+    ])
+    def test_sampler_rejects_raw_bodies_that_break_json(body):
+        strict = phase(pages())
+        assert re.fullmatch(pattern(strict), body), 'reproducer must pass the old raw pattern'
+        with pytest.raises(json.JSONDecodeError):
+            json.loads('"' + body + '"')
+        projected = pattern(server._research_sampler_schema(strict))
+&gt;       assert not re.fullmatch(projected, body)
+E       AssertionError: assert not &lt;re.Match object; span=(0, 12), match='client.run\\q'&gt;
+E        +  where &lt;re.Match object; span=(0, 12), match='client.run\\q'&gt; = &lt;function fullmatch at 0x0000025916943380&gt;('^(.*[^A-Za-z0-9_$.])?client\\.run([^A-Za-z0-9_$.].*|\\.([^A-Za-z_$].*)?)?$', 'client.run\\q')
+E        +    where &lt;function fullmatch at 0x0000025916943380&gt; = re.fullmatch
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-json-string-projection\UltimaAgent\src\brain\tests\test_work_sampler_json_strings.py:51: AssertionError</failure></testcase><testcase classname="" name="test_sampler_rejects_raw_bodies_that_break_json[client.run\\x41]" time="0.003"><failure message="AssertionError: assert not &lt;re.Match object; span=(0, 14), match='client.run\\x41'&gt;&#10; +  where &lt;re.Match object; span=(0, 14), match='client.run\\x41'&gt; = &lt;function fullmatch at 0x0000025916943380&gt;('^(.*[^A-Za-z0-9_$.])?client\\.run([^A-Za-z0-9_$.].*|\\.([^A-Za-z_$].*)?)?$', 'client.run\\x41')&#10; +    where &lt;function fullmatch at 0x0000025916943380&gt; = re.fullmatch">body = 'client.run\\x41'
+
+    @pytest.mark.parametrize('body', [
+        'client.run "unescaped"',
+        'x",\nclient.run();',
+        'client.run\nx',
+        'client.run\r',
+        'client.run\t',
+        'client.run\x00',
+        'client.run\x1f',
+        'client.run\\',
+        r'client.run\q',
+        r'client.run\x41',
+        r'client.run\u123',
+    ])
+    def test_sampler_rejects_raw_bodies_that_break_json(body):
+        strict = phase(pages())
+        assert re.fullmatch(pattern(strict), body), 'reproducer must pass the old raw pattern'
+        with pytest.raises(json.JSONDecodeError):
+            json.loads('"' + body + '"')
+        projected = pattern(server._research_sampler_schema(strict))
+&gt;       assert not re.fullmatch(projected, body)
+E       AssertionError: assert not &lt;re.Match object; span=(0, 14), match='client.run\\x41'&gt;
+E        +  where &lt;re.Match object; span=(0, 14), match='client.run\\x41'&gt; = &lt;function fullmatch at 0x0000025916943380&gt;('^(.*[^A-Za-z0-9_$.])?client\\.run([^A-Za-z0-9_$.].*|\\.([^A-Za-z_$].*)?)?$', 'client.run\\x41')
+E        +    where &lt;function fullmatch at 0x0000025916943380&gt; = re.fullmatch
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-json-string-projection\UltimaAgent\src\brain\tests\test_work_sampler_json_strings.py:51: AssertionError</failure></testcase><testcase classname="" name="test_sampler_rejects_raw_bodies_that_break_json[client.run\\u123]" time="0.002"><failure message="AssertionError: assert not &lt;re.Match object; span=(0, 15), match='client.run\\u123'&gt;&#10; +  where &lt;re.Match object; span=(0, 15), match='client.run\\u123'&gt; = &lt;function fullmatch at 0x0000025916943380&gt;('^(.*[^A-Za-z0-9_$.])?client\\.run([^A-Za-z0-9_$.].*|\\.([^A-Za-z_$].*)?)?$', 'client.run\\u123')&#10; +    where &lt;function fullmatch at 0x0000025916943380&gt; = re.fullmatch">body = 'client.run\\u123'
+
+    @pytest.mark.parametrize('body', [
+        'client.run "unescaped"',
+        'x",\nclient.run();',
+        'client.run\nx',
+        'client.run\r',
+        'client.run\t',
+        'client.run\x00',
+        'client.run\x1f',
+        'client.run\\',
+        r'client.run\q',
+        r'client.run\x41',
+        r'client.run\u123',
+    ])
+    def test_sampler_rejects_raw_bodies_that_break_json(body):
+        strict = phase(pages())
+        assert re.fullmatch(pattern(strict), body), 'reproducer must pass the old raw pattern'
+        with pytest.raises(json.JSONDecodeError):
+            json.loads('"' + body + '"')
+        projected = pattern(server._research_sampler_schema(strict))
+&gt;       assert not re.fullmatch(projected, body)
+E       AssertionError: assert not &lt;re.Match object; span=(0, 15), match='client.run\\u123'&gt;
+E        +  where &lt;re.Match object; span=(0, 15), match='client.run\\u123'&gt; = &lt;function fullmatch at 0x0000025916943380&gt;('^(.*[^A-Za-z0-9_$.])?client\\.run([^A-Za-z0-9_$.].*|\\.([^A-Za-z_$].*)?)?$', 'client.run\\u123')
+E        +    where &lt;function fullmatch at 0x0000025916943380&gt; = re.fullmatch
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-json-string-projection\UltimaAgent\src\brain\tests\test_work_sampler_json_strings.py:51: AssertionError</failure></testcase><testcase classname="" name="test_correct_json_serializations_keep_quotes_slashes_unicode_and_boundaries[Logger.info]" time="0.004"><failure message="AssertionError: '\tLogger.info'&#10;assert None&#10; +  where None = &lt;function fullmatch at 0x0000025916943380&gt;('^(.*[^A-Za-z0-9_$.])?Logger\\.info([^A-Za-z0-9_$.].*|\\.([^A-Za-z_$].*)?)?$', '\\tLogger.info')&#10; +    where &lt;function fullmatch at 0x0000025916943380&gt; = re.fullmatch">op = 'Logger.info'
+
+    @pytest.mark.parametrize('op', ['Logger.info', 'Date.now', '$run', 'a_9.$x', 'a中.bé'])
+    def test_correct_json_serializations_keep_quotes_slashes_unicode_and_boundaries(op):
+        strict = phase(pages(op))
+        projected = pattern(server._research_sampler_schema(strict))
+        edges = ['', ' ', '(', ')', '"', '\\', '中', 'é', '\t', '\n', '\r', '\x00',
+                 '\x1f', '\x7f', '.9', '..', r'\u0061', r'\q']
+        accepted = 0
+        for left, right in itertools.product(edges, repeat=2):
+            claim = left + op + right
+            if not re.fullmatch(pattern(strict), claim):
+                continue
+            body = json.dumps(claim, ensure_ascii=False)[1:-1]
+&gt;           assert re.fullmatch(projected, body), repr(claim)
+E           AssertionError: '\tLogger.info'
+E           assert None
+E            +  where None = &lt;function fullmatch at 0x0000025916943380&gt;('^(.*[^A-Za-z0-9_$.])?Logger\\.info([^A-Za-z0-9_$.].*|\\.([^A-Za-z_$].*)?)?$', '\\tLogger.info')
+E            +    where &lt;function fullmatch at 0x0000025916943380&gt; = re.fullmatch
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-json-string-projection\UltimaAgent\src\brain\tests\test_work_sampler_json_strings.py:66: AssertionError</failure></testcase><testcase classname="" name="test_correct_json_serializations_keep_quotes_slashes_unicode_and_boundaries[Date.now]" time="0.002"><failure message="AssertionError: '\tDate.now'&#10;assert None&#10; +  where None = &lt;function fullmatch at 0x0000025916943380&gt;('^(.*[^A-Za-z0-9_$.])?Date\\.now([^A-Za-z0-9_$.].*|\\.([^A-Za-z_$].*)?)?$', '\\tDate.now')&#10; +    where &lt;function fullmatch at 0x0000025916943380&gt; = re.fullmatch">op = 'Date.now'
+
+    @pytest.mark.parametrize('op', ['Logger.info', 'Date.now', '$run', 'a_9.$x', 'a中.bé'])
+    def test_correct_json_serializations_keep_quotes_slashes_unicode_and_boundaries(op):
+        strict = phase(pages(op))
+        projected = pattern(server._research_sampler_schema(strict))
+        edges = ['', ' ', '(', ')', '"', '\\', '中', 'é', '\t', '\n', '\r', '\x00',
+                 '\x1f', '\x7f', '.9', '..', r'\u0061', r'\q']
+        accepted = 0
+        for left, right in itertools.product(edges, repeat=2):
+            claim = left + op + right
+            if not re.fullmatch(pattern(strict), claim):
+                continue
+            body = json.dumps(claim, ensure_ascii=False)[1:-1]
+&gt;           assert re.fullmatch(projected, body), repr(claim)
+E           AssertionError: '\tDate.now'
+E           assert None
+E            +  where None = &lt;function fullmatch at 0x0000025916943380&gt;('^(.*[^A-Za-z0-9_$.])?Date\\.now([^A-Za-z0-9_$.].*|\\.([^A-Za-z_$].*)?)?$', '\\tDate.now')
+E            +    where &lt;function fullmatch at 0x0000025916943380&gt; = re.fullmatch
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-json-string-projection\UltimaAgent\src\brain\tests\test_work_sampler_json_strings.py:66: AssertionError</failure></testcase><testcase classname="" name="test_correct_json_serializations_keep_quotes_slashes_unicode_and_boundaries[$run]" time="0.002"><failure message="AssertionError: '\t$run'&#10;assert None&#10; +  where None = &lt;function fullmatch at 0x0000025916943380&gt;('^(.*[^A-Za-z0-9_$.])?\\$run([^A-Za-z0-9_$.].*|\\.([^A-Za-z_$].*)?)?$', '\\t$run')&#10; +    where &lt;function fullmatch at 0x0000025916943380&gt; = re.fullmatch">op = '$run'
+
+    @pytest.mark.parametrize('op', ['Logger.info', 'Date.now', '$run', 'a_9.$x', 'a中.bé'])
+    def test_correct_json_serializations_keep_quotes_slashes_unicode_and_boundaries(op):
+        strict = phase(pages(op))
+        projected = pattern(server._research_sampler_schema(strict))
+        edges = ['', ' ', '(', ')', '"', '\\', '中', 'é', '\t', '\n', '\r', '\x00',
+                 '\x1f', '\x7f', '.9', '..', r'\u0061', r'\q']
+        accepted = 0
+        for left, right in itertools.product(edges, repeat=2):
+            claim = left + op + right
+            if not re.fullmatch(pattern(strict), claim):
+                continue
+            body = json.dumps(claim, ensure_ascii=False)[1:-1]
+&gt;           assert re.fullmatch(projected, body), repr(claim)
+E           AssertionError: '\t$run'
+E           assert None
+E            +  where None = &lt;function fullmatch at 0x0000025916943380&gt;('^(.*[^A-Za-z0-9_$.])?\\$run([^A-Za-z0-9_$.].*|\\.([^A-Za-z_$].*)?)?$', '\\t$run')
+E            +    where &lt;function fullmatch at 0x0000025916943380&gt; = re.fullmatch
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-json-string-projection\UltimaAgent\src\brain\tests\test_work_sampler_json_strings.py:66: AssertionError</failure></testcase><testcase classname="" name="test_correct_json_serializations_keep_quotes_slashes_unicode_and_boundaries[a_9.$x]" time="0.002"><failure message="AssertionError: '\ta_9.$x'&#10;assert None&#10; +  where None = &lt;function fullmatch at 0x0000025916943380&gt;('^(.*[^A-Za-z0-9_$.])?a_9\\.\\$x([^A-Za-z0-9_$.].*|\\.([^A-Za-z_$].*)?)?$', '\\ta_9.$x')&#10; +    where &lt;function fullmatch at 0x0000025916943380&gt; = re.fullmatch">op = 'a_9.$x'
+
+    @pytest.mark.parametrize('op', ['Logger.info', 'Date.now', '$run', 'a_9.$x', 'a中.bé'])
+    def test_correct_json_serializations_keep_quotes_slashes_unicode_and_boundaries(op):
+        strict = phase(pages(op))
+        projected = pattern(server._research_sampler_schema(strict))
+        edges = ['', ' ', '(', ')', '"', '\\', '中', 'é', '\t', '\n', '\r', '\x00',
+                 '\x1f', '\x7f', '.9', '..', r'\u0061', r'\q']
+        accepted = 0
+        for left, right in itertools.product(edges, repeat=2):
+            claim = left + op + right
+            if not re.fullmatch(pattern(strict), claim):
+                continue
+            body = json.dumps(claim, ensure_ascii=False)[1:-1]
+&gt;           assert re.fullmatch(projected, body), repr(claim)
+E           AssertionError: '\ta_9.$x'
+E           assert None
+E            +  where None = &lt;function fullmatch at 0x0000025916943380&gt;('^(.*[^A-Za-z0-9_$.])?a_9\\.\\$x([^A-Za-z0-9_$.].*|\\.([^A-Za-z_$].*)?)?$', '\\ta_9.$x')
+E            +    where &lt;function fullmatch at 0x0000025916943380&gt; = re.fullmatch
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-json-string-projection\UltimaAgent\src\brain\tests\test_work_sampler_json_strings.py:66: AssertionError</failure></testcase><testcase classname="" name="test_correct_json_serializations_keep_quotes_slashes_unicode_and_boundaries[a\u4e2d.b\xe9]" time="0.003"><failure message="AssertionError: '\ta中.bé'&#10;assert None&#10; +  where None = &lt;function fullmatch at 0x0000025916943380&gt;('^(.*[^A-Za-z0-9_$.])?a\u4e2d\\.b\xe9([^A-Za-z0-9_$.].*|\\.([^A-Za-z_$].*)?)?$', '\\ta\u4e2d.b\xe9')&#10; +    where &lt;function fullmatch at 0x0000025916943380&gt; = re.fullmatch">op = 'a中.bé'
+
+    @pytest.mark.parametrize('op', ['Logger.info', 'Date.now', '$run', 'a_9.$x', 'a中.bé'])
+    def test_correct_json_serializations_keep_quotes_slashes_unicode_and_boundaries(op):
+        strict = phase(pages(op))
+        projected = pattern(server._research_sampler_schema(strict))
+        edges = ['', ' ', '(', ')', '"', '\\', '中', 'é', '\t', '\n', '\r', '\x00',
+                 '\x1f', '\x7f', '.9', '..', r'\u0061', r'\q']
+        accepted = 0
+        for left, right in itertools.product(edges, repeat=2):
+            claim = left + op + right
+            if not re.fullmatch(pattern(strict), claim):
+                continue
+            body = json.dumps(claim, ensure_ascii=False)[1:-1]
+&gt;           assert re.fullmatch(projected, body), repr(claim)
+E           AssertionError: '\ta中.bé'
+E           assert None
+E            +  where None = &lt;function fullmatch at 0x0000025916943380&gt;('^(.*[^A-Za-z0-9_$.])?a\u4e2d\\.b\xe9([^A-Za-z0-9_$.].*|\\.([^A-Za-z_$].*)?)?$', '\\ta\u4e2d.b\xe9')
+E            +    where &lt;function fullmatch at 0x0000025916943380&gt; = re.fullmatch
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-json-string-projection\UltimaAgent\src\brain\tests\test_work_sampler_json_strings.py:66: AssertionError</failure></testcase><testcase classname="" name="test_unknown_claim_pattern_fails_closed[^.*$]" time="0.001"><failure message="Failed: DID NOT RAISE ValueError">bad = '^.*$'
+
+    @pytest.mark.parametrize('bad', ['^.*$', '^.*(client.run|other.operation).*$', None, 3, []])
+    def test_unknown_claim_pattern_fails_closed(bad):
+        schema = dict(type='object', properties=dict(claim=dict(type='string', pattern=bad)))
+&gt;       with pytest.raises(ValueError, match='code claim pattern'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-json-string-projection\UltimaAgent\src\brain\tests\test_work_sampler_json_strings.py:79: Failed</failure></testcase><testcase classname="" name="test_unknown_claim_pattern_fails_closed[^.*(client.run|other.operation).*$]" time="0.001"><failure message="Failed: DID NOT RAISE ValueError">bad = '^.*(client.run|other.operation).*$'
+
+    @pytest.mark.parametrize('bad', ['^.*$', '^.*(client.run|other.operation).*$', None, 3, []])
+    def test_unknown_claim_pattern_fails_closed(bad):
+        schema = dict(type='object', properties=dict(claim=dict(type='string', pattern=bad)))
+&gt;       with pytest.raises(ValueError, match='code claim pattern'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-json-string-projection\UltimaAgent\src\brain\tests\test_work_sampler_json_strings.py:79: Failed</failure></testcase><testcase classname="" name="test_unknown_claim_pattern_fails_closed[None]" time="0.001"><failure message="Failed: DID NOT RAISE ValueError">bad = None
+
+    @pytest.mark.parametrize('bad', ['^.*$', '^.*(client.run|other.operation).*$', None, 3, []])
+    def test_unknown_claim_pattern_fails_closed(bad):
+        schema = dict(type='object', properties=dict(claim=dict(type='string', pattern=bad)))
+&gt;       with pytest.raises(ValueError, match='code claim pattern'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-json-string-projection\UltimaAgent\src\brain\tests\test_work_sampler_json_strings.py:79: Failed</failure></testcase><testcase classname="" name="test_unknown_claim_pattern_fails_closed[3]" time="0.001"><failure message="Failed: DID NOT RAISE ValueError">bad = 3
+
+    @pytest.mark.parametrize('bad', ['^.*$', '^.*(client.run|other.operation).*$', None, 3, []])
+    def test_unknown_claim_pattern_fails_closed(bad):
+        schema = dict(type='object', properties=dict(claim=dict(type='string', pattern=bad)))
+&gt;       with pytest.raises(ValueError, match='code claim pattern'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-json-string-projection\UltimaAgent\src\brain\tests\test_work_sampler_json_strings.py:79: Failed</failure></testcase><testcase classname="" name="test_unknown_claim_pattern_fails_closed[bad4]" time="0.001"><failure message="Failed: DID NOT RAISE ValueError">bad = []
+
+    @pytest.mark.parametrize('bad', ['^.*$', '^.*(client.run|other.operation).*$', None, 3, []])
+    def test_unknown_claim_pattern_fails_closed(bad):
+        schema = dict(type='object', properties=dict(claim=dict(type='string', pattern=bad)))
+&gt;       with pytest.raises(ValueError, match='code claim pattern'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-json-string-projection\UltimaAgent\src\brain\tests\test_work_sampler_json_strings.py:79: Failed</failure></testcase><testcase classname="" name="test_noncanonical_operation_encoding_fails_closed[client.run]" time="0.001"><failure message="Failed: DID NOT RAISE ValueError">op_fragment = 'client.run'
+
+    @pytest.mark.parametrize('op_fragment', ['client.run', r'client\.run()', r'client\.\.run',
+                                             'x' * 201, r'9run', r'client\.run\q'])
+    def test_noncanonical_operation_encoding_fails_closed(op_fragment):
+        value = r'^(.*[^A-Za-z0-9_$.])?' + op_fragment + r'([^A-Za-z0-9_$.].*|\.([^A-Za-z_$].*)?)?$'
+        schema = dict(type='object', properties=dict(claim=dict(type='string', pattern=value)))
+&gt;       with pytest.raises(ValueError, match='code claim pattern'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-json-string-projection\UltimaAgent\src\brain\tests\test_work_sampler_json_strings.py:88: Failed</failure></testcase><testcase classname="" name="test_noncanonical_operation_encoding_fails_closed[client\\.run()]" time="0.001"><failure message="Failed: DID NOT RAISE ValueError">op_fragment = 'client\\.run()'
+
+    @pytest.mark.parametrize('op_fragment', ['client.run', r'client\.run()', r'client\.\.run',
+                                             'x' * 201, r'9run', r'client\.run\q'])
+    def test_noncanonical_operation_encoding_fails_closed(op_fragment):
+        value = r'^(.*[^A-Za-z0-9_$.])?' + op_fragment + r'([^A-Za-z0-9_$.].*|\.([^A-Za-z_$].*)?)?$'
+        schema = dict(type='object', properties=dict(claim=dict(type='string', pattern=value)))
+&gt;       with pytest.raises(ValueError, match='code claim pattern'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-json-string-projection\UltimaAgent\src\brain\tests\test_work_sampler_json_strings.py:88: Failed</failure></testcase><testcase classname="" name="test_noncanonical_operation_encoding_fails_closed[client\\.\\.run]" time="0.001"><failure message="Failed: DID NOT RAISE ValueError">op_fragment = 'client\\.\\.run'
+
+    @pytest.mark.parametrize('op_fragment', ['client.run', r'client\.run()', r'client\.\.run',
+                                             'x' * 201, r'9run', r'client\.run\q'])
+    def test_noncanonical_operation_encoding_fails_closed(op_fragment):
+        value = r'^(.*[^A-Za-z0-9_$.])?' + op_fragment + r'([^A-Za-z0-9_$.].*|\.([^A-Za-z_$].*)?)?$'
+        schema = dict(type='object', properties=dict(claim=dict(type='string', pattern=value)))
+&gt;       with pytest.raises(ValueError, match='code claim pattern'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-json-string-projection\UltimaAgent\src\brain\tests\test_work_sampler_json_strings.py:88: Failed</failure></testcase><testcase classname="" name="test_noncanonical_operation_encoding_fails_closed[op_fragment3]" time="0.001"><failure message="Failed: DID NOT RAISE ValueError">op_fragment = 'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx'
+
+    @pytest.mark.parametrize('op_fragment', ['client.run', r'client\.run()', r'client\.\.run',
+                                             'x' * 201, r'9run', r'client\.run\q'])
+    def test_noncanonical_operation_encoding_fails_closed(op_fragment):
+        value = r'^(.*[^A-Za-z0-9_$.])?' + op_fragment + r'([^A-Za-z0-9_$.].*|\.([^A-Za-z_$].*)?)?$'
+        schema = dict(type='object', properties=dict(claim=dict(type='string', pattern=value)))
+&gt;       with pytest.raises(ValueError, match='code claim pattern'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-json-string-projection\UltimaAgent\src\brain\tests\test_work_sampler_json_strings.py:88: Failed</failure></testcase><testcase classname="" name="test_noncanonical_operation_encoding_fails_closed[9run]" time="0.001"><failure message="Failed: DID NOT RAISE ValueError">op_fragment = '9run'
+
+    @pytest.mark.parametrize('op_fragment', ['client.run', r'client\.run()', r'client\.\.run',
+                                             'x' * 201, r'9run', r'client\.run\q'])
+    def test_noncanonical_operation_encoding_fails_closed(op_fragment):
+        value = r'^(.*[^A-Za-z0-9_$.])?' + op_fragment + r'([^A-Za-z0-9_$.].*|\.([^A-Za-z_$].*)?)?$'
+        schema = dict(type='object', properties=dict(claim=dict(type='string', pattern=value)))
+&gt;       with pytest.raises(ValueError, match='code claim pattern'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-json-string-projection\UltimaAgent\src\brain\tests\test_work_sampler_json_strings.py:88: Failed</failure></testcase><testcase classname="" name="test_noncanonical_operation_encoding_fails_closed[client\\.run\\q]" time="0.001"><failure message="Failed: DID NOT RAISE ValueError">op_fragment = 'client\\.run\\q'
+
+    @pytest.mark.parametrize('op_fragment', ['client.run', r'client\.run()', r'client\.\.run',
+                                             'x' * 201, r'9run', r'client\.run\q'])
+    def test_noncanonical_operation_encoding_fails_closed(op_fragment):
+        value = r'^(.*[^A-Za-z0-9_$.])?' + op_fragment + r'([^A-Za-z0-9_$.].*|\.([^A-Za-z_$].*)?)?$'
+        schema = dict(type='object', properties=dict(claim=dict(type='string', pattern=value)))
+&gt;       with pytest.raises(ValueError, match='code claim pattern'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-json-string-projection\UltimaAgent\src\brain\tests\test_work_sampler_json_strings.py:88: Failed</failure></testcase><testcase classname="" name="test_projection_preserves_strict_schema_ids_literals_and_nested_claim_context" time="0.002"><failure message="AssertionError: assert '^(.*[^A-Za-z0-9_$.])?client\\.run([^A-Za-z0-9_$.].*|\\.([^A-Za-z_$].*)?)?$' != '^(.*[^A-Za-z0-9_$.])?client\\.run([^A-Za-z0-9_$.].*|\\.([^A-Za-z_$].*)?)?$'">def test_projection_preserves_strict_schema_ids_literals_and_nested_claim_context():
+        strict = phase(pages())
+        before = deepcopy(strict)
+        projected = server._research_sampler_schema(strict)
+        assert strict == before
+        for a, b in zip(section_options(strict), section_options(projected)):
+            assert a['properties']['source_id'] == dict(b['properties']['source_id'], maxLength=2)
+            for old, new in zip(facts(a), facts(b)):
+                assert old['properties']['evidence_id'] == dict(new['properties']['evidence_id'], maxLength=19)
+                assert new['properties']['claim']['minLength'] == 1
+                assert 'maxLength' not in new['properties']['claim']
+                if 'pattern' in old['properties']['claim']:
+&gt;                   assert old['properties']['claim']['pattern'] != new['properties']['claim']['pattern']
+E                   AssertionError: assert '^(.*[^A-Za-z0-9_$.])?client\\.run([^A-Za-z0-9_$.].*|\\.([^A-Za-z_$].*)?)?$' != '^(.*[^A-Za-z0-9_$.])?client\\.run([^A-Za-z0-9_$.].*|\\.([^A-Za-z_$].*)?)?$'
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-json-string-projection\UltimaAgent\src\brain\tests\test_work_sampler_json_strings.py:104: AssertionError</failure></testcase><testcase classname="" name="test_escaped_word_boundary_does_not_satisfy_decoded_strict_contract" time="0.001"><failure message="AssertionError: assert None&#10; +  where None = &lt;function fullmatch at 0x0000025916943380&gt;('^(.*[^A-Za-z0-9_$.])?client\\.run([^A-Za-z0-9_$.].*|\\.([^A-Za-z_$].*)?)?$', '\\u0061client.run')&#10; +    where &lt;function fullmatch at 0x0000025916943380&gt; = re.fullmatch&#10;[+3 more lines; full report in element text]">def test_escaped_word_boundary_does_not_satisfy_decoded_strict_contract():
+        strict = phase(pages())
+        raw_body = r'\u0061client.run'
+&gt;       assert re.fullmatch(pattern(server._research_sampler_schema(strict)), raw_body)
+E       AssertionError: assert None
+E        +  where None = &lt;function fullmatch at 0x0000025916943380&gt;('^(.*[^A-Za-z0-9_$.])?client\\.run([^A-Za-z0-9_$.].*|\\.([^A-Za-z_$].*)?)?$', '\\u0061client.run')
+E        +    where &lt;function fullmatch at 0x0000025916943380&gt; = re.fullmatch
+E        +    and   '^(.*[^A-Za-z0-9_$.])?client\\.run([^A-Za-z0-9_$.].*|\\.([^A-Za-z_$].*)?)?$' = pattern({'type': 'object', 'additionalProperties': False, 'properties': {'path': {'type': 'string', 'minLength': 1, 'enum': ['research.md']}, 'title': {'type': 'string', 'minLength': 1}, 'sections': {'type': 'array', 'minItems': 3, 'maxItems': 5, 'anyOf': [{'type': 'array', 'items': [{'$ref': '#/definitions/research_source_S1'}, {'$ref': '#/definitions/research_source_S2'}, {'$ref': '#/definitions/research_source_S3'}], 'minItems': 3, 'maxItems': 3, 'additionalItems': False}]}}, 'required': ['path', 'title', 'sections'], 'definitions': {'research_source_S1': {'type': 'object', 'additionalProperties': False, 'properties': {'source_id': {'type': 'string', 'pattern': '^S[1-5]$', 'minLength': 2, 'enum': ['S1']}, 'heading': {'type': 'string', 'minLength': 1}, 'facts': {'type': 'array', 'items': {'anyOf': [{'type': 'object', 'additionalProperties': False, 'properties': {'claim': {'type': 'string', 'minLength': 1, 'pattern': '^(.*[^A-Za-z0-9_$.])?client\\.run([^A-Za-z0-9_$.].*|\\.([^A-Za-z_$].*)?)?$'}, 'evidence_id': {'type': 'string', 'pattern': '^N3\\.[0-9a-f]{16}$', 'minLength': 19, 'enum': ['N3.0000000000000001']}}, 'required': ['claim', 'evidence_id']}, {'type': 'object', 'additionalProperties': False, 'properties': {'claim': {'type': 'string', 'minLength': 1, 'pattern': '^(.*[^A-Za-z0-9_$.])?client\\.stop([^A-Za-z0-9_$.].*|\\.([^A-Za-z_$].*)?)?$'}, 'evidence_id': {'type': 'string', 'pattern': '^N3\\.[0-9a-f]{16}$', 'minLength': 19, 'enum': ['N3.0000000000000004']}}, 'required': ['claim', 'evidence_id']}, {'type': 'object', 'additionalProperties': False, 'properties': {'claim': {'type': 'string', 'minLength': 1}, 'evidence_id': {'type': 'string', 'pattern': '^N3\\.[0-9a-f]{16}$', 'minLength': 19, 'enum': ['N3.0000000000000005']}}, 'required': ['claim', 'evidence_id']}]}, 'minItems': 1, 'maxItems': 6}}, 'required': ['source_id', 'heading', 'facts']}, 'research_source_S2': {'type': 'object', 'additionalProperties': False, 'properties': {'source_id': {'type': 'string', 'pattern': '^S[1-5]$', 'minLength': 2, 'enum': ['S2']}, 'heading': {'type': 'string', 'minLength': 1}, 'facts': {'type': 'array', 'items': {'type': 'object', 'additionalProperties': False, 'properties': {'claim': {'type': 'string', 'minLength': 1}, 'evidence_id': {'type': 'string', 'pattern': '^N3\\.[0-9a-f]{16}$', 'minLength': 19, 'enum': ['N3.0000000000000002']}}, 'required': ['claim', 'evidence_id']}, 'minItems': 1, 'maxItems': 6}}, 'required': ['source_id', 'heading', 'facts']}, 'research_source_S3': {'type': 'object', 'additionalProperties': False, 'properties': {'source_id': {'type': 'string', 'pattern': '^S[1-5]$', 'minLength': 2, 'enum': ['S3']}, 'heading': {'type': 'string', 'minLength': 1}, 'facts': {'type': 'array', 'items': {'type': 'object', 'additionalProperties': False, 'properties': {'claim': {'type': 'string', 'minLength': 1, 'pattern': '^(.*[^A-Za-z0-9_$.])?console\\.log([^A-Za-z0-9_$.].*|\\.([^A-Za-z_$].*)?)?$'}, 'evidence_id': {'type': 'string', 'pattern': '^N3\\.[0-9a-f]{16}$', 'minLength': 19, 'enum': ['N3.0000000000000003']}}, 'required': ['claim', 'evidence_id']}, 'minItems': 1, 'maxItems': 6}}, 'required': ['source_id', 'heading', 'facts']}}})
+E        +      where {'type': 'object', 'additionalProperties': False, 'properties': {'path': {'type': 'string', 'minLength': 1, 'enum': ['research.md']}, 'title': {'type': 'string', 'minLength': 1}, 'sections': {'type': 'array', 'minItems': 3, 'maxItems': 5, 'anyOf': [{'type': 'array', 'items': [{'$ref': '#/definitions/research_source_S1'}, {'$ref': '#/definitions/research_source_S2'}, {'$ref': '#/definitions/research_source_S3'}], 'minItems': 3, 'maxItems': 3, 'additionalItems': False}]}}, 'required': ['path', 'title', 'sections'], 'definitions': {'research_source_S1': {'type': 'object', 'additionalProperties': False, 'properties': {'source_id': {'type': 'string', 'pattern': '^S[1-5]$', 'minLength': 2, 'enum': ['S1']}, 'heading': {'type': 'string', 'minLength': 1}, 'facts': {'type': 'array', 'items': {'anyOf': [{'type': 'object', 'additionalProperties': False, 'properties': {'claim': {'type': 'string', 'minLength': 1, 'pattern': '^(.*[^A-Za-z0-9_$.])?client\\.run([^A-Za-z0-9_$.].*|\\.([^A-Za-z_$].*)?)?$'}, 'evidence_id': {'type': 'string', 'pattern': '^N3\\.[0-9a-f]{16}$', 'minLength': 19, 'enum': ['N3.0000000000000001']}}, 'required': ['claim', 'evidence_id']}, {'type': 'object', 'additionalProperties': False, 'properties': {'claim': {'type': 'string', 'minLength': 1, 'pattern': '^(.*[^A-Za-z0-9_$.])?client\\.stop([^A-Za-z0-9_$.].*|\\.([^A-Za-z_$].*)?)?$'}, 'evidence_id': {'type': 'string', 'pattern': '^N3\\.[0-9a-f]{16}$', 'minLength': 19, 'enum': ['N3.0000000000000004']}}, 'required': ['claim', 'evidence_id']}, {'type': 'object', 'additionalProperties': False, 'properties': {'claim': {'type': 'string', 'minLength': 1}, 'evidence_id': {'type': 'string', 'pattern': '^N3\\.[0-9a-f]{16}$', 'minLength': 19, 'enum': ['N3.0000000000000005']}}, 'required': ['claim', 'evidence_id']}]}, 'minItems': 1, 'maxItems': 6}}, 'required': ['source_id', 'heading', 'facts']}, 'research_source_S2': {'type': 'object', 'additionalProperties': False, 'properties': {'source_id': {'type': 'string', 'pattern': '^S[1-5]$', 'minLength': 2, 'enum': ['S2']}, 'heading': {'type': 'string', 'minLength': 1}, 'facts': {'type': 'array', 'items': {'type': 'object', 'additionalProperties': False, 'properties': {'claim': {'type': 'string', 'minLength': 1}, 'evidence_id': {'type': 'string', 'pattern': '^N3\\.[0-9a-f]{16}$', 'minLength': 19, 'enum': ['N3.0000000000000002']}}, 'required': ['claim', 'evidence_id']}, 'minItems': 1, 'maxItems': 6}}, 'required': ['source_id', 'heading', 'facts']}, 'research_source_S3': {'type': 'object', 'additionalProperties': False, 'properties': {'source_id': {'type': 'string', 'pattern': '^S[1-5]$', 'minLength': 2, 'enum': ['S3']}, 'heading': {'type': 'string', 'minLength': 1}, 'facts': {'type': 'array', 'items': {'type': 'object', 'additionalProperties': False, 'properties': {'claim': {'type': 'string', 'minLength': 1, 'pattern': '^(.*[^A-Za-z0-9_$.])?console\\.log([^A-Za-z0-9_$.].*|\\.([^A-Za-z_$].*)?)?$'}, 'evidence_id': {'type': 'string', 'pattern': '^N3\\.[0-9a-f]{16}$', 'minLength': 19, 'enum': ['N3.0000000000000003']}}, 'required': ['claim', 'evidence_id']}, 'minItems': 1, 'maxItems': 6}}, 'required': ['source_id', 'heading', 'facts']}}} = &lt;function _research_sampler_schema at 0x00000259A4B42660&gt;({'type': 'object', 'additionalProperties': False, 'properties': {'path': {'type': 'string', 'minLength': 1, 'maxLength': 2048, 'enum': ['research.md']}, 'title': {'type': 'string', 'minLength': 1, 'maxLength': 200}, 'sections': {'type': 'array', 'minItems': 3, 'maxItems': 5, 'anyOf': [{'type': 'array', 'items': [{'$ref': '#/definitions/research_source_S1'}, {'$ref': '#/definitions/research_source_S2'}, {'$ref': '#/definitions/research_source_S3'}], 'minItems': 3, 'maxItems': 3, 'additionalItems': False}]}}, 'required': ['path', 'title', 'sections'], 'definitions': {'research_source_S1': {'type': 'object', 'additionalProperties': False, 'properties': {'source_id': {'type': 'string', 'pattern': '^S[1-5]$', 'minLength': 2, 'maxLength': 2, 'enum': ['S1']}, 'heading': {'type': 'string', 'minLength': 1, 'maxLength': 200}, 'facts': {'type': 'array', 'items': {'anyOf': [{'type': 'object', 'additionalProperties': False, 'properties': {'claim': {'type': 'string', 'minLength': 1, 'maxLength': 2000, 'pattern': '^(.*[^A-Za-z0-9_$.])?client\\.run([^A-Za-z0-9_$.].*|\\.([^A-Za-z_$].*)?)?$'}, 'evidence_id': {'type': 'string', 'pattern': '^N3\\.[0-9a-f]{16}$', 'minLength': 19, 'maxLength': 19, 'enum': ['N3.0000000000000001']}}, 'required': ['claim', 'evidence_id']}, {'type': 'object', 'additionalProperties': False, 'properties': {'claim': {'type': 'string', 'minLength': 1, 'maxLength': 2000, 'pattern': '^(.*[^A-Za-z0-9_$.])?client\\.stop([^A-Za-z0-9_$.].*|\\.([^A-Za-z_$].*)?)?$'}, 'evidence_id': {'type': 'string', 'pattern': '^N3\\.[0-9a-f]{16}$', 'minLength': 19, 'maxLength': 19, 'enum': ['N3.0000000000000004']}}, 'required': ['claim', 'evidence_id']}, {'type': 'object', 'additionalProperties': False, 'properties': {'claim': {'type': 'string', 'minLength': 1, 'maxLength': 2000}, 'evidence_id': {'type': 'string', 'pattern': '^N3\\.[0-9a-f]{16}$', 'minLength': 19, 'maxLength': 19, 'enum': ['N3.0000000000000005']}}, 'required': ['claim', 'evidence_id']}]}, 'minItems': 1, 'maxItems': 6}}, 'required': ['source_id', 'heading', 'facts']}, 'research_source_S2': {'type': 'object', 'additionalProperties': False, 'properties': {'source_id': {'type': 'string', 'pattern': '^S[1-5]$', 'minLength': 2, 'maxLength': 2, 'enum': ['S2']}, 'heading': {'type': 'string', 'minLength': 1, 'maxLength': 200}, 'facts': {'type': 'array', 'items': {'type': 'object', 'additionalProperties': False, 'properties': {'claim': {'type': 'string', 'minLength': 1, 'maxLength': 2000}, 'evidence_id': {'type': 'string', 'pattern': '^N3\\.[0-9a-f]{16}$', 'minLength': 19, 'maxLength': 19, 'enum': ['N3.0000000000000002']}}, 'required': ['claim', 'evidence_id']}, 'minItems': 1, 'maxItems': 6}}, 'required': ['source_id', 'heading', 'facts']}, 'research_source_S3': {'type': 'object', 'additionalProperties': False, 'properties': {'source_id': {'type': 'string', 'pattern': '^S[1-5]$', 'minLength': 2, 'maxLength': 2, 'enum': ['S3']}, 'heading': {'type': 'string', 'minLength': 1, 'maxLength': 200}, 'facts': {'type': 'array', 'items': {'type': 'object', 'additionalProperties': False, 'properties': {'claim': {'type': 'string', 'minLength': 1, 'maxLength': 2000, 'pattern': '^(.*[^A-Za-z0-9_$.])?console\\.log([^A-Za-z0-9_$.].*|\\.([^A-Za-z_$].*)?)?$'}, 'evidence_id': {'type': 'string', 'pattern': '^N3\\.[0-9a-f]{16}$', 'minLength': 19, 'maxLength': 19, 'enum': ['N3.0000000000000003']}}, 'required': ['claim', 'evidence_id']}, 'minItems': 1, 'maxItems': 6}}, 'required': ['source_id', 'heading', 'facts']}}})
+E        +        where &lt;function _research_sampler_schema at 0x00000259A4B42660&gt; = server._research_sampler_schema
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-json-string-projection\UltimaAgent\src\brain\tests\test_work_sampler_json_strings.py:123: AssertionError</failure></testcase><testcase classname="" name="test_sdk_writes_quoted_chinese_and_backslash_claim_and_replays" time="1.481" /><testcase classname="" name="test_sdk_strict_validation_and_writer_keep_bad_claims_unwritten[escaped_word_boundary]" time="0.625" /><testcase classname="" name="test_sdk_strict_validation_and_writer_keep_bad_claims_unwritten[missing_operation]" time="0.668" /><testcase classname="" name="test_sdk_strict_validation_and_writer_keep_bad_claims_unwritten[control_character]" time="0.854" /><testcase classname="" name="test_sdk_strict_validation_and_writer_keep_bad_claims_unwritten[raw_json]" time="0.873" /><testcase classname="" name="test_replay_rejects_coherently_rehashed_sampler_grammar_corruption" time="0.918" /></testsuite></testsuites>

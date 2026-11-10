@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="10" time="6.011" timestamp="2026-11-07T14:22:24.282030+08:00" hostname="DESKTOP-B366PQ9"><testcase classname="harness.test_adapter" name="test_export_diagnostics_identifies_stage_without_dynamic_text[runtime_verify]" time="0.007" /><testcase classname="harness.test_adapter" name="test_export_diagnostics_identifies_stage_without_dynamic_text[structure_scan]" time="0.006" /><testcase classname="harness.test_adapter" name="test_export_diagnostics_identifies_stage_without_dynamic_text[member_preserve]" time="0.005" /><testcase classname="harness.test_adapter" name="test_export_diagnostics_failed_write_preserves_original_exception" time="0.005" /><testcase classname="harness.test_adapter" name="test_export_diagnostics_bounds_unknown_exception_messages[message0]" time="0.008" /><testcase classname="harness.test_adapter" name="test_export_diagnostics_bounds_unknown_exception_messages[None]" time="0.006" /><testcase classname="harness.test_adapter" name="test_export_diagnostics_success_keeps_original_result" time="0.003" /><testcase classname="harness.test_adapter" name="test_export_diagnostics_saved_native_metadata_full_mock_chain" time="0.678"><failure message="AssertionError: Attempted to read or stream some content, but the content has already been streamed. For requests, this could be due to passing a generator as request content, and then receiving a redirect response or a secondary request as part of an authentication flow.For responses, this could be due to attempting to stream the response content more than once.&#10;assert 'failed' == 'succeeded'&#10;  &#10;  - succeeded&#10;  + failed">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-grounded-export-20261107-r1/code/harness-preparation-20261107T062223079143Z/temp/test_export_diagnostics_saved_0')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x0000019BA5D5E8A0&gt;
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x0000019BA5D75D30&gt;, [('search', 'Research a subject'), ('get', '...'https://example.com/source/2'), ('get', 'https://example.com/source/3'), ('get', 'https://example.com/source/4')], {})
+mock_jar = (&lt;openjarvis.sdk.Jarvis object at 0x0000019BA5D74440&gt;, &lt;function _run_work_agent at 0x0000019BA5CBC180&gt;, [], [&lt;functio...00019B1541B7E0&gt;, &lt;function navigation_reply at 0x0000019B1541B7E0&gt;, &lt;function navigation_reply at 0x0000019B1541B7E0&gt;])
+
+    def test_export_diagnostics_saved_native_metadata_full_mock_chain(tmp_path,monkeypatch,sdk_io,mock_jar):
+        import httpx
+        metadata=json.loads((a.C/'src/brain/tests/fixtures/native_metadata_0_32_15.json').read_bytes())
+        send=httpx.Client.send;observed=[]
+        def recorded(client,request,**kwargs):
+            if request.url.path in ('/api/version','/api/tags'):
+                observed.append(request.url.path)
+                key='version' if request.url.path=='/api/version' else 'tags'
+                return httpx.Response(200,json=metadata[key],request=request)
+            return send(client,request,**kwargs)
+        monkeypatch.setattr(httpx.Client,'send',recorded)
+&gt;       result,ledger=synthetic_bundle(tmp_path,sdk_io,mock_jar,monkeypatch)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+..\..\harness\test_adapter.py:83: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+..\..\harness\test_adapter.py:124: in synthetic_bundle
+    result,ledger=genuine_navigation(folder/'outputs',sdk_io,mock_jar)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-grounded-export-20261107-r1/code/harness-preparation-20261107T062223079143Z/temp/test_export_diagnostics_saved_0/outputs')
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x0000019BA5D75D30&gt;, [('search', 'Research a subject'), ('get', '...'https://example.com/source/2'), ('get', 'https://example.com/source/3'), ('get', 'https://example.com/source/4')], {})
+mock_jar = (&lt;openjarvis.sdk.Jarvis object at 0x0000019BA5D74440&gt;, &lt;function _run_work_agent at 0x0000019BA5CBC180&gt;, [], [&lt;functio...00019B1541B7E0&gt;, &lt;function navigation_reply at 0x0000019B1541B7E0&gt;, &lt;function navigation_reply at 0x0000019B1541B7E0&gt;])
+
+    def genuine_navigation(tmp_path,sdk_io,mock_jar):
+        from src.brain.tests.test_work_research import RESTRICTED
+        mock_jar[3].extend([navigation_reply]*5)
+        result=submit(tmp_path,sdk_io[0],mock_jar[1])
+&gt;       assert result['status']=='succeeded',result['error']
+E       AssertionError: Attempted to read or stream some content, but the content has already been streamed. For requests, this could be due to passing a generator as request content, and then receiving a redirect response or a secondary request as part of an authentication flow.For responses, this could be due to attempting to stream the response content more than once.
+E       assert 'failed' == 'succeeded'
+E         
+E         - succeeded
+E         + failed
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-grounded-export\UltimaAgent\src\brain\tests\test_work_navigation_transport.py:50: AssertionError</failure></testcase><testcase classname="harness.test_adapter" name="test_fix1_genuine_synthetic_export_and_external_readback" time="1.382" /><testcase classname="harness.test_adapter" name="test_fix1_h07_unsafe_completed_values_never_exported" time="1.033" /></testsuite></testsuites>

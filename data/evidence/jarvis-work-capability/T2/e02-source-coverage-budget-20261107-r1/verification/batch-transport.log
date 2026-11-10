@@ -1,0 +1,44 @@
+nner=view.leaf
+                return view,client
+            monkeypatch.setattr(server,'_borrow_research',skip)
+        elif fault=='secured_output':
+            from openjarvis.security.guardrails import GuardrailsEngine
+            generate=GuardrailsEngine.generate
+            turns=[0]
+            def redact(self,*a,**kw):
+                result=generate(self,*a,**kw); turns[0]+=1
+                if turns[0]==4: result=dict(result,content='{"final_answer":"changed secured envelope"}')
+                return result
+            monkeypatch.setattr(GuardrailsEngine,'generate',redact)
+        elif fault=='blank_final':
+            replies[3]=json.dumps({'final_answer':' '})
+        elif fault in ('raw_unknown','unsafe_unknown'):
+            def bad(body):
+                content=navigation_reply(body)
+                if fault=='unsafe_unknown': content=json.dumps(dict(json.loads(content),extra='password = syntheticsecret'))
+                return httpx.Response(200,stream=httpx.ByteStream(json.dumps(dict(model='qwen3-8b-uncensored',done=True,
+                    done_reason='stop',prompt_eval_count=25,eval_count=10,message=dict(role='assistant',content=content),
+                    **({'unexpected':True} if fault=='raw_unknown' else {}))).encode()))
+            bad.no_auto_navigation=True
+            replies[3]=bad
+        result=submit(tmp_path,sdk_io[0],runner)
+        ledger=RESTRICTED[result['task_id']]
+        assert result['status']=='failed' and not list(tmp_path.rglob('research.md'))
+        if fault=='blank_final':
+>           assert result['error']=='Empty research final answer'
+E           AssertionError: assert 'Invalid native research envelope' == 'Empty research final answer'
+E             
+E             - Empty research final answer
+E             + Invalid native research envelope
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-source-coverage\UltimaAgent\src\brain\tests\test_work_navigation_transport.py:594: AssertionError
+- generated xml file: H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-source-coverage-budget-20261107-r1\offline\transport-20261107T094309094973Z\junit.xml -
+=========================== short test summary info ===========================
+FAILED ::test_v3_provisional_third_card_no_promotion_on_failure[blank_final] - AssertionError: assert 'Invalid native research envelope' == 'Empty research final answer'
+  
+  - Empty research final answer
+  + Invalid native research envelope
+================== 1 failed, 103 passed in 73.63s (0:01:13) ===================
+
+
+RECEIPT H:\UltimaAI\UltimaAgent\data\evidence\jarvis-work-capability\T2\e02-source-coverage-budget-20261107-r1\offline\transport-20261107T094309094973Z\receipt.json

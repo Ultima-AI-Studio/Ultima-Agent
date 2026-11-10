@@ -1,0 +1,251 @@
+.......FFFFFFF................                                           [100%]
+================================== FAILURES ===================================
+________ test_export_diagnostics_saved_native_metadata_full_mock_chain ________
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-grounded-export-20261107-r1/code/harness-preparation-20261107T062424188712Z/temp/test_export_diagnostics_saved_0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001C7A3C22210>
+sdk_io = (<src.brain.browser.channel.BrowserChannel object at 0x000001C7A3C29D30>, [('search', 'Research a subject'), ('get', '...'https://example.com/source/2'), ('get', 'https://example.com/source/3'), ('get', 'https://example.com/source/4')], {})
+mock_jar = (<openjarvis.sdk.Jarvis object at 0x000001C7A3C28440>, <function _run_work_agent at 0x000001C7A3B4C0E0>, [{'format': {..., ...], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [])
+
+    def test_export_diagnostics_saved_native_metadata_full_mock_chain(tmp_path,monkeypatch,sdk_io,mock_jar):
+        import httpx
+        metadata=json.loads((a.C/'src/brain/tests/fixtures/native_metadata_0_32_15.json').read_bytes())
+        send=httpx.Client.send;observed=[]
+        def recorded(client,request,**kwargs):
+            if request.url.path in ('/api/version','/api/tags'):
+                observed.append(request.url.path)
+                key='version' if request.url.path=='/api/version' else 'tags'
+                return httpx.Response(200,stream=httpx.ByteStream(json.dumps(metadata[key]).encode('utf8')),request=request)
+            return send(client,request,**kwargs)
+        monkeypatch.setattr(httpx.Client,'send',recorded)
+>       result,ledger=synthetic_bundle(tmp_path,sdk_io,mock_jar,monkeypatch)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+..\..\harness\test_adapter.py:83: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+..\..\harness\test_adapter.py:185: in synthetic_bundle
+    a.export_completed(folder,ledger,result)
+..\..\harness\adapter.py:680: in export_completed
+    validate_export_structure(strict_json(raw),ledger._policy.scanners)
+..\..\harness\adapter.py:782: in validate_export_structure
+    if packet['prewrite_packet'] is not None: validate_export_structure(object_json(packet['prewrite_packet']),scanners)
+                                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\harness\adapter.py:826: in validate_export_structure
+    require(key in ('parent_model','format','family','families','parameter_size','quantization_level')
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+ok = False, message = 'Producer model detail type'
+
+    def require(ok,message):
+>       if not ok: raise ValueError(message)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       ValueError: Producer model detail type
+
+..\..\harness\adapter.py:213: ValueError
+_ test_export_diagnostics_model_lengths_have_exact_integer_domain[0-context_length] _
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-grounded-export-20261107-r1/code/harness-preparation-20261107T062424188712Z/temp/test_export_diagnostics_model_0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001C72B94A030>
+sdk_io = (<src.brain.browser.channel.BrowserChannel object at 0x000001C7A4559BD0>, [('search', 'Research a subject'), ('get', '...'https://example.com/source/2'), ('get', 'https://example.com/source/3'), ('get', 'https://example.com/source/4')], {})
+mock_jar = (<openjarvis.sdk.Jarvis object at 0x000001C7A4559310>, <function _run_work_agent at 0x000001C7A3B4C0E0>, [{'format': {..., ...], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [])
+field = 'context_length', value = 0
+
+    @pytest.mark.parametrize('field',['context_length','embedding_length'])
+    @pytest.mark.parametrize('value',[0,4096,2**63-1,True,-1,2**63,None,'4096',1.5,{},[]])
+    def test_export_diagnostics_model_lengths_have_exact_integer_domain(tmp_path,monkeypatch,sdk_io,mock_jar,field,value):
+        result,ledger=synthetic_bundle(tmp_path,sdk_io,mock_jar,monkeypatch,write=False)
+        packet=json.loads(ledger._runtime_final)
+        tags=json.loads(packet['wires'][0]['identity']['tags_response'])
+        tags['models'][0].setdefault('details',{})[field]=value
+        packet['wires'][0]['identity']['tags_response']=json.dumps(tags)
+        if type(value) is int and 0<=value<2**63:
+>           a.validate_export_structure(packet,ledger._policy.scanners)
+
+..\..\harness\test_adapter.py:98: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+..\..\harness\adapter.py:826: in validate_export_structure
+    require(key in ('parent_model','format','family','families','parameter_size','quantization_level')
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+ok = False, message = 'Producer model detail type'
+
+    def require(ok,message):
+>       if not ok: raise ValueError(message)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       ValueError: Producer model detail type
+
+..\..\harness\adapter.py:213: ValueError
+_ test_export_diagnostics_model_lengths_have_exact_integer_domain[0-embedding_length] _
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-grounded-export-20261107-r1/code/harness-preparation-20261107T062424188712Z/temp/test_export_diagnostics_model_1')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001C7A3BDCD70>
+sdk_io = (<src.brain.browser.channel.BrowserChannel object at 0x000001C7A455B390>, [('search', 'Research a subject'), ('get', '...'https://example.com/source/2'), ('get', 'https://example.com/source/3'), ('get', 'https://example.com/source/4')], {})
+mock_jar = (<openjarvis.sdk.Jarvis object at 0x000001C72B94DCD0>, <function _run_work_agent at 0x000001C7A3B4C0E0>, [{'format': {..., ...], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [])
+field = 'embedding_length', value = 0
+
+    @pytest.mark.parametrize('field',['context_length','embedding_length'])
+    @pytest.mark.parametrize('value',[0,4096,2**63-1,True,-1,2**63,None,'4096',1.5,{},[]])
+    def test_export_diagnostics_model_lengths_have_exact_integer_domain(tmp_path,monkeypatch,sdk_io,mock_jar,field,value):
+        result,ledger=synthetic_bundle(tmp_path,sdk_io,mock_jar,monkeypatch,write=False)
+        packet=json.loads(ledger._runtime_final)
+        tags=json.loads(packet['wires'][0]['identity']['tags_response'])
+        tags['models'][0].setdefault('details',{})[field]=value
+        packet['wires'][0]['identity']['tags_response']=json.dumps(tags)
+        if type(value) is int and 0<=value<2**63:
+>           a.validate_export_structure(packet,ledger._policy.scanners)
+
+..\..\harness\test_adapter.py:98: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+..\..\harness\adapter.py:826: in validate_export_structure
+    require(key in ('parent_model','format','family','families','parameter_size','quantization_level')
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+ok = False, message = 'Producer model detail type'
+
+    def require(ok,message):
+>       if not ok: raise ValueError(message)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       ValueError: Producer model detail type
+
+..\..\harness\adapter.py:213: ValueError
+_ test_export_diagnostics_model_lengths_have_exact_integer_domain[4096_0-context_length] _
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-grounded-export-20261107-r1/code/harness-preparation-20261107T062424188712Z/temp/test_export_diagnostics_model_2')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001C72B95F310>
+sdk_io = (<src.brain.browser.channel.BrowserChannel object at 0x000001C72B94FE10>, [('search', 'Research a subject'), ('get', '...'https://example.com/source/2'), ('get', 'https://example.com/source/3'), ('get', 'https://example.com/source/4')], {})
+mock_jar = (<openjarvis.sdk.Jarvis object at 0x000001C7A455FBD0>, <function _run_work_agent at 0x000001C7A3B4C0E0>, [{'format': {..., ...], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [])
+field = 'context_length', value = 4096
+
+    @pytest.mark.parametrize('field',['context_length','embedding_length'])
+    @pytest.mark.parametrize('value',[0,4096,2**63-1,True,-1,2**63,None,'4096',1.5,{},[]])
+    def test_export_diagnostics_model_lengths_have_exact_integer_domain(tmp_path,monkeypatch,sdk_io,mock_jar,field,value):
+        result,ledger=synthetic_bundle(tmp_path,sdk_io,mock_jar,monkeypatch,write=False)
+        packet=json.loads(ledger._runtime_final)
+        tags=json.loads(packet['wires'][0]['identity']['tags_response'])
+        tags['models'][0].setdefault('details',{})[field]=value
+        packet['wires'][0]['identity']['tags_response']=json.dumps(tags)
+        if type(value) is int and 0<=value<2**63:
+>           a.validate_export_structure(packet,ledger._policy.scanners)
+
+..\..\harness\test_adapter.py:98: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+..\..\harness\adapter.py:826: in validate_export_structure
+    require(key in ('parent_model','format','family','families','parameter_size','quantization_level')
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+ok = False, message = 'Producer model detail type'
+
+    def require(ok,message):
+>       if not ok: raise ValueError(message)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       ValueError: Producer model detail type
+
+..\..\harness\adapter.py:213: ValueError
+_ test_export_diagnostics_model_lengths_have_exact_integer_domain[4096_0-embedding_length] _
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-grounded-export-20261107-r1/code/harness-preparation-20261107T062424188712Z/temp/test_export_diagnostics_model_3')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001C7A5D47860>
+sdk_io = (<src.brain.browser.channel.BrowserChannel object at 0x000001C7A5D4DBA0>, [('search', 'Research a subject'), ('get', '...'https://example.com/source/2'), ('get', 'https://example.com/source/3'), ('get', 'https://example.com/source/4')], {})
+mock_jar = (<openjarvis.sdk.Jarvis object at 0x000001C7A4731550>, <function _run_work_agent at 0x000001C7A3B4C0E0>, [{'format': {..., ...], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [])
+field = 'embedding_length', value = 4096
+
+    @pytest.mark.parametrize('field',['context_length','embedding_length'])
+    @pytest.mark.parametrize('value',[0,4096,2**63-1,True,-1,2**63,None,'4096',1.5,{},[]])
+    def test_export_diagnostics_model_lengths_have_exact_integer_domain(tmp_path,monkeypatch,sdk_io,mock_jar,field,value):
+        result,ledger=synthetic_bundle(tmp_path,sdk_io,mock_jar,monkeypatch,write=False)
+        packet=json.loads(ledger._runtime_final)
+        tags=json.loads(packet['wires'][0]['identity']['tags_response'])
+        tags['models'][0].setdefault('details',{})[field]=value
+        packet['wires'][0]['identity']['tags_response']=json.dumps(tags)
+        if type(value) is int and 0<=value<2**63:
+>           a.validate_export_structure(packet,ledger._policy.scanners)
+
+..\..\harness\test_adapter.py:98: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+..\..\harness\adapter.py:826: in validate_export_structure
+    require(key in ('parent_model','format','family','families','parameter_size','quantization_level')
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+ok = False, message = 'Producer model detail type'
+
+    def require(ok,message):
+>       if not ok: raise ValueError(message)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       ValueError: Producer model detail type
+
+..\..\harness\adapter.py:213: ValueError
+_ test_export_diagnostics_model_lengths_have_exact_integer_domain[9223372036854775807-context_length] _
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-grounded-export-20261107-r1/code/harness-preparation-20261107T062424188712Z/temp/test_export_diagnostics_model_4')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001C7A46F2450>
+sdk_io = (<src.brain.browser.channel.BrowserChannel object at 0x000001C7A3BA8A70>, [('search', 'Research a subject'), ('get', '...'https://example.com/source/2'), ('get', 'https://example.com/source/3'), ('get', 'https://example.com/source/4')], {})
+mock_jar = (<openjarvis.sdk.Jarvis object at 0x000001C7A3C20D70>, <function _run_work_agent at 0x000001C7A3B4C0E0>, [{'format': {..., ...], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [])
+field = 'context_length', value = 9223372036854775807
+
+    @pytest.mark.parametrize('field',['context_length','embedding_length'])
+    @pytest.mark.parametrize('value',[0,4096,2**63-1,True,-1,2**63,None,'4096',1.5,{},[]])
+    def test_export_diagnostics_model_lengths_have_exact_integer_domain(tmp_path,monkeypatch,sdk_io,mock_jar,field,value):
+        result,ledger=synthetic_bundle(tmp_path,sdk_io,mock_jar,monkeypatch,write=False)
+        packet=json.loads(ledger._runtime_final)
+        tags=json.loads(packet['wires'][0]['identity']['tags_response'])
+        tags['models'][0].setdefault('details',{})[field]=value
+        packet['wires'][0]['identity']['tags_response']=json.dumps(tags)
+        if type(value) is int and 0<=value<2**63:
+>           a.validate_export_structure(packet,ledger._policy.scanners)
+
+..\..\harness\test_adapter.py:98: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+..\..\harness\adapter.py:826: in validate_export_structure
+    require(key in ('parent_model','format','family','families','parameter_size','quantization_level')
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+ok = False, message = 'Producer model detail type'
+
+    def require(ok,message):
+>       if not ok: raise ValueError(message)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       ValueError: Producer model detail type
+
+..\..\harness\adapter.py:213: ValueError
+_ test_export_diagnostics_model_lengths_have_exact_integer_domain[9223372036854775807-embedding_length] _
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-grounded-export-20261107-r1/code/harness-preparation-20261107T062424188712Z/temp/test_export_diagnostics_model_5')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001C7A46F1FD0>
+sdk_io = (<src.brain.browser.channel.BrowserChannel object at 0x000001C7A473ECF0>, [('search', 'Research a subject'), ('get', '...'https://example.com/source/2'), ('get', 'https://example.com/source/3'), ('get', 'https://example.com/source/4')], {})
+mock_jar = (<openjarvis.sdk.Jarvis object at 0x000001C7A46EDB70>, <function _run_work_agent at 0x000001C7A3B4C0E0>, [{'format': {..., ...], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [])
+field = 'embedding_length', value = 9223372036854775807
+
+    @pytest.mark.parametrize('field',['context_length','embedding_length'])
+    @pytest.mark.parametrize('value',[0,4096,2**63-1,True,-1,2**63,None,'4096',1.5,{},[]])
+    def test_export_diagnostics_model_lengths_have_exact_integer_domain(tmp_path,monkeypatch,sdk_io,mock_jar,field,value):
+        result,ledger=synthetic_bundle(tmp_path,sdk_io,mock_jar,monkeypatch,write=False)
+        packet=json.loads(ledger._runtime_final)
+        tags=json.loads(packet['wires'][0]['identity']['tags_response'])
+        tags['models'][0].setdefault('details',{})[field]=value
+        packet['wires'][0]['identity']['tags_response']=json.dumps(tags)
+        if type(value) is int and 0<=value<2**63:
+>           a.validate_export_structure(packet,ledger._policy.scanners)
+
+..\..\harness\test_adapter.py:98: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+..\..\harness\adapter.py:826: in validate_export_structure
+    require(key in ('parent_model','format','family','families','parameter_size','quantization_level')
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+ok = False, message = 'Producer model detail type'
+
+    def require(ok,message):
+>       if not ok: raise ValueError(message)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       ValueError: Producer model detail type
+
+..\..\harness\adapter.py:213: ValueError
+=========================== short test summary info ===========================
+FAILED ..\..\harness\test_adapter.py::test_export_diagnostics_saved_native_metadata_full_mock_chain
+FAILED ..\..\harness\test_adapter.py::test_export_diagnostics_model_lengths_have_exact_integer_domain[0-context_length]
+FAILED ..\..\harness\test_adapter.py::test_export_diagnostics_model_lengths_have_exact_integer_domain[0-embedding_length]
+FAILED ..\..\harness\test_adapter.py::test_export_diagnostics_model_lengths_have_exact_integer_domain[4096_0-context_length]
+FAILED ..\..\harness\test_adapter.py::test_export_diagnostics_model_lengths_have_exact_integer_domain[4096_0-embedding_length]
+FAILED ..\..\harness\test_adapter.py::test_export_diagnostics_model_lengths_have_exact_integer_domain[9223372036854775807-context_length]
+FAILED ..\..\harness\test_adapter.py::test_export_diagnostics_model_lengths_have_exact_integer_domain[9223372036854775807-embedding_length]
+7 failed, 23 passed in 27.11s

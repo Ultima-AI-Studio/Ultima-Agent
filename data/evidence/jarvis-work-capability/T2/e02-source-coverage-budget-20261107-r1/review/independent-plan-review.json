@@ -1,0 +1,80 @@
+{
+  "schema_version": 1,
+  "verdict": "PASS_PLAN_ONLY",
+  "reviewed_at": "2026-11-07T09:37:49.4029255Z",
+  "plan_path": "H:/UltimaAI/UltimaAgent/docs/plans/jarvis-work-e02-source-coverage-budget-plan-20261107.md",
+  "plan_sha256": "1f5e5776f7db9b5c406bc85c6670af50d1a4ba43ce145718067fb6e48a4de5ab",
+  "evidence_plan_sha256": "1f5e5776f7db9b5c406bc85c6670af50d1a4ba43ce145718067fb6e48a4de5ab",
+  "candidate": "C:/Users/Administrator/.codex/worktrees/jarvis-e02-source-coverage/UltimaAgent",
+  "candidate_head": "ee1bef61f04169c64978538dbc4ba799ef7be6c0",
+  "candidate_status_at_review": "clean",
+  "scope": "Independent read-only exact plan and baseline source review. Only these review artifacts written. No tests, network, inference, service, process, UI or audio actions.",
+  "findings": [],
+  "checks": [
+    {
+      "refs": [
+        "plan:20-22,30,46",
+        "src/brain/work_navigation.py:432-452,560-595",
+        "src/brain/work_tools.py:675-692"
+      ],
+      "status": "PASS_PLAN_ONLY",
+      "rationale": "Availability comes from trusted catalogue and validated snapshot, not prompt or model. Validate every visible source ID against availability, including empty-card pages; source_reference_map alone omits empty pages. Shared helper narrows original source enum and retains all other parameter constraints.",
+      "id": "authority"
+    },
+    {
+      "refs": [
+        "plan:21,30,32",
+        "src/brain/agent_server.py:564-577,609-610",
+        "src/brain/work_research.py:722-731,794-799"
+      ],
+      "status": "PASS_PLAN_ONLY",
+      "rationale": "Live includes issued plus confirmed unpromoted pending page once; replay uses current generation read prefix. Unconfirmed observation remains rejected. Empty cards do not count, repeated source counts once, and used is a strict int in 0..6.",
+      "id": "visibility"
+    },
+    {
+      "refs": [
+        "plan:29-33,46",
+        "src/brain/agent_server.py:589-594",
+        "src/brain/work_research.py:790-806"
+      ],
+      "status": "PASS_PLAN_ONLY",
+      "rationale": "After four card-bearing same-source reads, used=4 covered=1 yields remaining=missing=2 and excludes that source. Fifth distinct source yields remaining=missing=1 and preserves third-source opportunity. Empty-card selection may still make completion impossible; plan promises opportunity, not guaranteed facts. Feasible six-read plus write plus ACK remains eight POST. No source order, facts, page start, budget, or model is imposed by helper.",
+      "id": "feasible_budget"
+    },
+    {
+      "refs": [
+        "plan:23-24,37-39",
+        "src/brain/agent_server.py:570-583,612-614",
+        "src/brain/work_service.py:191-215",
+        "src/brain/work_research.py:788-808,832-833"
+      ],
+      "status": "PASS_PLAN_ONLY",
+      "rationale": "Fixed prewrite refusal rejects false saved claims without granting delivery. ACK keeps existing bounded schema only after verified-file gate. Public failure states non-delivery, preserves partial-effect caveat and does not claim absent file. Existing proof and artifact gates remain required.",
+      "id": "honest_terminal"
+    },
+    {
+      "refs": [
+        "plan:29,33,39-40,46",
+        "src/brain/tests/test_work_research.py:365-423",
+        "src/brain/tests/test_work_navigation_transport.py:26-51,90-103",
+        "src/brain/tests/test_work_failure_diagnostics.py:164-191"
+      ],
+      "status": "PASS_PLAN_ONLY",
+      "rationale": "Plan requires real SDK with MockTransport and real temporary artifact/write/ACK/replay, not mocked success. Old fifth same-source action must fail at strict schema and not dispatch. Replay tampering must preserve surrounding hashes/links enough to target phase schema checks. Supplement moving valid max-length private final to ACK then synthetic independent-artifact failure is compatible with plan lines 24/38-39; keep bounded/private and new arbitrary-prewrite rejection tests.",
+      "id": "meaningful_validation"
+    }
+  ],
+  "implementation_acceptance_notes": [
+    "Source/schema equality and trusted-source rejection must be verified by fresh tests; this review executes none.",
+    "Do not treat prewrite refusal as a successful runtime proof; existing replay verifier accepts writer and authorized ACK transcripts, not delivery from refusal.",
+    "Ensure malicious replay changes cannot widen available IDs even when prompt/catalogue-looking text or claimed strict schema is altered.",
+    "Keep original SDK tool spec unchanged; deep-copy narrow schema so no shared mutation persists."
+  ],
+  "limitations": [
+    "Plan approval only; no implementation reviewed or tested.",
+    "Frozen actual N13 factual outcome supplied in proposal/task; historical receipt not rerun or altered.",
+    "No current runtime identity or model checks performed by this reviewer.",
+    "No live case allocated; actual/model calls zero. E02 remains 0/3; T2/Owner not passed.",
+    "Original write-phase HTTP500 remains unconfirmed and is not declared fixed."
+  ]
+}

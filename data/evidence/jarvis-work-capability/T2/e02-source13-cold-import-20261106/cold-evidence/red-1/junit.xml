@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="2" skipped="0" tests="4" time="3.526" timestamp="2026-11-06T19:28:18.210509+08:00" hostname="DESKTOP-B366PQ9"><properties><property name="interpreter" value="H:\UltimaAI\UltimaAgent\tools\venv-openjarvis\Scripts\python.exe" /><property name="python" value="3.13.16 (main, Oct 14 2026, 01:05:56) [MSC v.1944 64 bit (AMD64)]" /><property name="import_path" value="[&quot;C:\\Users\\Administrator\\AppData\\Local\\Doubao\\User Data\\sandbox_runtime\\bases\\772984f6fd3a8ae0ae7d2422cd7c2bfa\\python\\python313.zip&quot;, &quot;C:\\Users\\Administrator\\AppData\\Local\\Doubao\\User Data\\sandbox_runtime\\bases\\772984f6fd3a8ae0ae7d2422cd7c2bfa\\python\\DLLs&quot;, &quot;C:\\Users\\Administrator\\AppData\\Local\\Doubao\\User Data\\sandbox_runtime\\bases\\772984f6fd3a8ae0ae7d2422cd7c2bfa\\python\\Lib&quot;, &quot;C:\\Users\\Administrator\\AppData\\Local\\Doubao\\User Data\\sandbox_runtime\\bases\\772984f6fd3a8ae0ae7d2422cd7c2bfa\\python&quot;, &quot;H:\\UltimaAI\\UltimaAgent\\tools\\venv-openjarvis&quot;, &quot;H:\\UltimaAI\\UltimaAgent\\tools\\venv-openjarvis\\Lib\\site-packages&quot;]" /><property name="pytest" value="9.2.0" /><property name="httpx" value="0.28.1" /><property name="openjarvis" value="1.0.4" /></properties><testcase classname="test_profile" name="test_real_sdk_cold_import[worker]" time="1.436"><failure message="AssertionError: {'scope': 'REAL_SDK_COLD_IMPORT_ONLY', 'role': 'worker', 'pid': 21540, 'isolated': True, ...}&#10;assert (1 == 0)&#10; +  where 1 = CompletedProcess(args=['H:\\UltimaAI\\UltimaAgent\\tools\\venv-openjarvis\\Scripts\\python.exe', '-I', '-B', '-X', 'ut...import-20261106\\\\cold-evidence\\\\red-1\\\\temp\\\\test_real_sdk_cold_import_work0\\\\result.json&quot;}\r\n', stderr=b'').returncode">role = 'worker'
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-source13-cold-import-20261106/cold-evidence/red-1/temp/test_real_sdk_cold_import_work0')
+
+    @pytest.mark.parametrize('role',['worker','reader'])
+    def test_real_sdk_cold_import(role,tmp_path):
+        """No eager fixture or warmed platform: the original SDK runs in a new PID."""
+        import os
+        import subprocess
+        p=implementation()
+        forbidden={'OLLAMA_HOST','OLLAMA_API_KEY','OLLAMA_MODELS','PYTHONPATH','PYTHONHOME','PYTHONSTARTUP',
+            'OPENJARVIS_HOME','OPENJARVIS_CONFIG','XDG_DATA_HOME','XDG_CACHE_HOME','TMP','TEMP','TMPDIR','OPENJARVIS_SSRF_FAIL_OPEN'}
+        env={k:v for k,v in os.environ.items() if k.upper() not in forbidden and not k.upper().endswith('_PROXY')}
+        result=tmp_path/'result.json'
+        command=[str(p.PY),'-I','-B','-X','utf8',str(HERE.parent/'cold/cold_import_probe.py'),role,str(tmp_path/'cold'),str(result)]
+        run=subprocess.run(command,env=env,cwd=HERE,capture_output=True,timeout=45,creationflags=subprocess.CREATE_NO_WINDOW)
+        (tmp_path/'stdout.txt').write_bytes(run.stdout);(tmp_path/'stderr.txt').write_bytes(run.stderr)
+        assert result.exists(),run.stderr.decode('utf-8','replace')
+        value=json.loads(result.read_bytes())
+&gt;       assert run.returncode==0 and value['outcome']=='PASS',value
+E       AssertionError: {'scope': 'REAL_SDK_COLD_IMPORT_ONLY', 'role': 'worker', 'pid': 21540, 'isolated': True, ...}
+E       assert (1 == 0)
+E        +  where 1 = CompletedProcess(args=['H:\\UltimaAI\\UltimaAgent\\tools\\venv-openjarvis\\Scripts\\python.exe', '-I', '-B', '-X', 'ut...import-20261106\\\\cold-evidence\\\\red-1\\\\temp\\\\test_real_sdk_cold_import_work0\\\\result.json"}\r\n', stderr=b'').returncode
+
+test_profile.py:3338: AssertionError</failure></testcase><testcase classname="test_profile" name="test_real_sdk_cold_import[reader]" time="1.346"><failure message="AssertionError: {'scope': 'REAL_SDK_COLD_IMPORT_ONLY', 'role': 'reader', 'pid': 19448, 'isolated': True, ...}&#10;assert (1 == 0)&#10; +  where 1 = CompletedProcess(args=['H:\\UltimaAI\\UltimaAgent\\tools\\venv-openjarvis\\Scripts\\python.exe', '-I', '-B', '-X', 'ut...import-20261106\\\\cold-evidence\\\\red-1\\\\temp\\\\test_real_sdk_cold_import_read0\\\\result.json&quot;}\r\n', stderr=b'').returncode">role = 'reader'
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-source13-cold-import-20261106/cold-evidence/red-1/temp/test_real_sdk_cold_import_read0')
+
+    @pytest.mark.parametrize('role',['worker','reader'])
+    def test_real_sdk_cold_import(role,tmp_path):
+        """No eager fixture or warmed platform: the original SDK runs in a new PID."""
+        import os
+        import subprocess
+        p=implementation()
+        forbidden={'OLLAMA_HOST','OLLAMA_API_KEY','OLLAMA_MODELS','PYTHONPATH','PYTHONHOME','PYTHONSTARTUP',
+            'OPENJARVIS_HOME','OPENJARVIS_CONFIG','XDG_DATA_HOME','XDG_CACHE_HOME','TMP','TEMP','TMPDIR','OPENJARVIS_SSRF_FAIL_OPEN'}
+        env={k:v for k,v in os.environ.items() if k.upper() not in forbidden and not k.upper().endswith('_PROXY')}
+        result=tmp_path/'result.json'
+        command=[str(p.PY),'-I','-B','-X','utf8',str(HERE.parent/'cold/cold_import_probe.py'),role,str(tmp_path/'cold'),str(result)]
+        run=subprocess.run(command,env=env,cwd=HERE,capture_output=True,timeout=45,creationflags=subprocess.CREATE_NO_WINDOW)
+        (tmp_path/'stdout.txt').write_bytes(run.stdout);(tmp_path/'stderr.txt').write_bytes(run.stderr)
+        assert result.exists(),run.stderr.decode('utf-8','replace')
+        value=json.loads(result.read_bytes())
+&gt;       assert run.returncode==0 and value['outcome']=='PASS',value
+E       AssertionError: {'scope': 'REAL_SDK_COLD_IMPORT_ONLY', 'role': 'reader', 'pid': 19448, 'isolated': True, ...}
+E       assert (1 == 0)
+E        +  where 1 = CompletedProcess(args=['H:\\UltimaAI\\UltimaAgent\\tools\\venv-openjarvis\\Scripts\\python.exe', '-I', '-B', '-X', 'ut...import-20261106\\\\cold-evidence\\\\red-1\\\\temp\\\\test_real_sdk_cold_import_read0\\\\result.json"}\r\n', stderr=b'').returncode
+
+test_profile.py:3338: AssertionError</failure></testcase><testcase classname="test_profile" name="test_hostname_exception_is_exact[socket.gethostname_extra]" time="0.033" /><testcase classname="test_profile" name="test_hostname_exception_is_exact[socket.gethostname.exfiltrate]" time="0.034" /></testsuite></testsuites>

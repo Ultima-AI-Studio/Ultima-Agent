@@ -1,0 +1,604 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="28" skipped="0" tests="28" time="14.582" timestamp="2026-11-07T12:29:38.961320+08:00" hostname="DESKTOP-B366PQ9"><testcase classname="" name="test_correlated_schema_rejects_cross_source_and_unknown_refs" time="0.002"><failure message="AssertionError: visible source/reference constructor missing&#10;assert False&#10; +  where False = hasattr(nav, 'v3_source_reference_map')">def test_correlated_schema_rejects_cross_source_and_unknown_refs():
+&gt;       schema = nav.v3_writer_schema(refs(visible()))
+                                      ^^^^^^^^^^^^^^^
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-source-reference\UltimaAgent\src\brain\tests\test_work_source_reference_schema.py:44: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+pages = (('S1', b'[["N3.0000000000000001","documented","",1,1,1,1]]'), ('S2', b'[["N3.0000000000000002","documented","",1,1,1,1]]'), ('S3', b'[["N3.0000000000000003","documented","",1,1,1,1]]'))
+
+    def refs(pages):
+&gt;       assert hasattr(nav, 'v3_source_reference_map'), 'visible source/reference constructor missing'
+E       AssertionError: visible source/reference constructor missing
+E       assert False
+E        +  where False = hasattr(nav, 'v3_source_reference_map')
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-source-reference\UltimaAgent\src\brain\tests\test_work_source_reference_schema.py:27: AssertionError</failure></testcase><testcase classname="" name="test_visible_map_is_sorted_merges_pages_and_omits_empty_sources" time="0.001"><failure message="AssertionError: visible source/reference constructor missing&#10;assert False&#10; +  where False = hasattr(nav, 'v3_source_reference_map')">def test_visible_map_is_sorted_merges_pages_and_omits_empty_sources():
+        pages = (('S2', nav.canonical_v3([card(9), card(8)])),
+                 ('S1', nav.canonical_v3([card(3)])), ('S4', b'[]'),
+                 ('S1', nav.canonical_v3([card(2)])))
+        expected = {'S1': (card(2)[0], card(3)[0]), 'S2': (card(8)[0], card(9)[0])}
+&gt;       assert refs(pages) == refs(tuple(reversed(pages))) == expected
+               ^^^^^^^^^^^
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-source-reference\UltimaAgent\src\brain\tests\test_work_source_reference_schema.py:57: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+pages = (('S2', b'[["N3.0000000000000009","documented","",1,1,1,1],["N3.0000000000000008","documented","",1,1,1,1]]'), ('S1', ...000000000003","documented","",1,1,1,1]]'), ('S4', b'[]'), ('S1', b'[["N3.0000000000000002","documented","",1,1,1,1]]'))
+
+    def refs(pages):
+&gt;       assert hasattr(nav, 'v3_source_reference_map'), 'visible source/reference constructor missing'
+E       AssertionError: visible source/reference constructor missing
+E       assert False
+E        +  where False = hasattr(nav, 'v3_source_reference_map')
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-source-reference\UltimaAgent\src\brain\tests\test_work_source_reference_schema.py:27: AssertionError</failure></testcase><testcase classname="" name="test_invalid_or_foreign_visible_cards_fail_closed[pages0]" time="0.001"><failure message="AssertionError: visible source/reference constructor missing&#10;assert False&#10; +  where False = hasattr(nav, 'v3_source_reference_map')">pages = []
+
+    @pytest.mark.parametrize('pages', [
+        [], (('S0', b'[]'),), (('S6', b'[]'),), (('S1', '[]'),),
+        (('S1', b'{}'),), (('S1', b'[[]]'),),
+        (('S1', nav.canonical_v3([['bad', 'documented', '', 1, 1, 1, 1]])),),
+        (('S1', nav.canonical_v3([[card(1)[0], 'bad', '', 1, 1, 1, 1]])),),
+        (('S1', nav.canonical_v3([[card(1)[0], 'documented', '', True, 1, 1, 1]])),),
+        (('S1', nav.canonical_v3([[card(1)[0], 'documented', '', 2, 1, 1, 1]])),),
+        (('S1', nav.canonical_v3([card(i) for i in range(9)])),),
+        tuple(('S1', b'[]') for _ in range(7)),
+        (('S1', nav.canonical_v3([card(1)])), ('S2', nav.canonical_v3([card(1)]))),
+    ])
+    def test_invalid_or_foreign_visible_cards_fail_closed(pages):
+&gt;       with pytest.raises(ValueError): refs(pages)
+                                        ^^^^^^^^^^^
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-source-reference\UltimaAgent\src\brain\tests\test_work_source_reference_schema.py:73: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+pages = []
+
+    def refs(pages):
+&gt;       assert hasattr(nav, 'v3_source_reference_map'), 'visible source/reference constructor missing'
+E       AssertionError: visible source/reference constructor missing
+E       assert False
+E        +  where False = hasattr(nav, 'v3_source_reference_map')
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-source-reference\UltimaAgent\src\brain\tests\test_work_source_reference_schema.py:27: AssertionError</failure></testcase><testcase classname="" name="test_invalid_or_foreign_visible_cards_fail_closed[pages1]" time="0.001"><failure message="AssertionError: visible source/reference constructor missing&#10;assert False&#10; +  where False = hasattr(nav, 'v3_source_reference_map')">pages = (('S0', b'[]'),)
+
+    @pytest.mark.parametrize('pages', [
+        [], (('S0', b'[]'),), (('S6', b'[]'),), (('S1', '[]'),),
+        (('S1', b'{}'),), (('S1', b'[[]]'),),
+        (('S1', nav.canonical_v3([['bad', 'documented', '', 1, 1, 1, 1]])),),
+        (('S1', nav.canonical_v3([[card(1)[0], 'bad', '', 1, 1, 1, 1]])),),
+        (('S1', nav.canonical_v3([[card(1)[0], 'documented', '', True, 1, 1, 1]])),),
+        (('S1', nav.canonical_v3([[card(1)[0], 'documented', '', 2, 1, 1, 1]])),),
+        (('S1', nav.canonical_v3([card(i) for i in range(9)])),),
+        tuple(('S1', b'[]') for _ in range(7)),
+        (('S1', nav.canonical_v3([card(1)])), ('S2', nav.canonical_v3([card(1)]))),
+    ])
+    def test_invalid_or_foreign_visible_cards_fail_closed(pages):
+&gt;       with pytest.raises(ValueError): refs(pages)
+                                        ^^^^^^^^^^^
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-source-reference\UltimaAgent\src\brain\tests\test_work_source_reference_schema.py:73: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+pages = (('S0', b'[]'),)
+
+    def refs(pages):
+&gt;       assert hasattr(nav, 'v3_source_reference_map'), 'visible source/reference constructor missing'
+E       AssertionError: visible source/reference constructor missing
+E       assert False
+E        +  where False = hasattr(nav, 'v3_source_reference_map')
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-source-reference\UltimaAgent\src\brain\tests\test_work_source_reference_schema.py:27: AssertionError</failure></testcase><testcase classname="" name="test_invalid_or_foreign_visible_cards_fail_closed[pages2]" time="0.001"><failure message="AssertionError: visible source/reference constructor missing&#10;assert False&#10; +  where False = hasattr(nav, 'v3_source_reference_map')">pages = (('S6', b'[]'),)
+
+    @pytest.mark.parametrize('pages', [
+        [], (('S0', b'[]'),), (('S6', b'[]'),), (('S1', '[]'),),
+        (('S1', b'{}'),), (('S1', b'[[]]'),),
+        (('S1', nav.canonical_v3([['bad', 'documented', '', 1, 1, 1, 1]])),),
+        (('S1', nav.canonical_v3([[card(1)[0], 'bad', '', 1, 1, 1, 1]])),),
+        (('S1', nav.canonical_v3([[card(1)[0], 'documented', '', True, 1, 1, 1]])),),
+        (('S1', nav.canonical_v3([[card(1)[0], 'documented', '', 2, 1, 1, 1]])),),
+        (('S1', nav.canonical_v3([card(i) for i in range(9)])),),
+        tuple(('S1', b'[]') for _ in range(7)),
+        (('S1', nav.canonical_v3([card(1)])), ('S2', nav.canonical_v3([card(1)]))),
+    ])
+    def test_invalid_or_foreign_visible_cards_fail_closed(pages):
+&gt;       with pytest.raises(ValueError): refs(pages)
+                                        ^^^^^^^^^^^
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-source-reference\UltimaAgent\src\brain\tests\test_work_source_reference_schema.py:73: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+pages = (('S6', b'[]'),)
+
+    def refs(pages):
+&gt;       assert hasattr(nav, 'v3_source_reference_map'), 'visible source/reference constructor missing'
+E       AssertionError: visible source/reference constructor missing
+E       assert False
+E        +  where False = hasattr(nav, 'v3_source_reference_map')
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-source-reference\UltimaAgent\src\brain\tests\test_work_source_reference_schema.py:27: AssertionError</failure></testcase><testcase classname="" name="test_invalid_or_foreign_visible_cards_fail_closed[pages3]" time="0.001"><failure message="AssertionError: visible source/reference constructor missing&#10;assert False&#10; +  where False = hasattr(nav, 'v3_source_reference_map')">pages = (('S1', '[]'),)
+
+    @pytest.mark.parametrize('pages', [
+        [], (('S0', b'[]'),), (('S6', b'[]'),), (('S1', '[]'),),
+        (('S1', b'{}'),), (('S1', b'[[]]'),),
+        (('S1', nav.canonical_v3([['bad', 'documented', '', 1, 1, 1, 1]])),),
+        (('S1', nav.canonical_v3([[card(1)[0], 'bad', '', 1, 1, 1, 1]])),),
+        (('S1', nav.canonical_v3([[card(1)[0], 'documented', '', True, 1, 1, 1]])),),
+        (('S1', nav.canonical_v3([[card(1)[0], 'documented', '', 2, 1, 1, 1]])),),
+        (('S1', nav.canonical_v3([card(i) for i in range(9)])),),
+        tuple(('S1', b'[]') for _ in range(7)),
+        (('S1', nav.canonical_v3([card(1)])), ('S2', nav.canonical_v3([card(1)]))),
+    ])
+    def test_invalid_or_foreign_visible_cards_fail_closed(pages):
+&gt;       with pytest.raises(ValueError): refs(pages)
+                                        ^^^^^^^^^^^
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-source-reference\UltimaAgent\src\brain\tests\test_work_source_reference_schema.py:73: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+pages = (('S1', '[]'),)
+
+    def refs(pages):
+&gt;       assert hasattr(nav, 'v3_source_reference_map'), 'visible source/reference constructor missing'
+E       AssertionError: visible source/reference constructor missing
+E       assert False
+E        +  where False = hasattr(nav, 'v3_source_reference_map')
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-source-reference\UltimaAgent\src\brain\tests\test_work_source_reference_schema.py:27: AssertionError</failure></testcase><testcase classname="" name="test_invalid_or_foreign_visible_cards_fail_closed[pages4]" time="0.001"><failure message="AssertionError: visible source/reference constructor missing&#10;assert False&#10; +  where False = hasattr(nav, 'v3_source_reference_map')">pages = (('S1', b'{}'),)
+
+    @pytest.mark.parametrize('pages', [
+        [], (('S0', b'[]'),), (('S6', b'[]'),), (('S1', '[]'),),
+        (('S1', b'{}'),), (('S1', b'[[]]'),),
+        (('S1', nav.canonical_v3([['bad', 'documented', '', 1, 1, 1, 1]])),),
+        (('S1', nav.canonical_v3([[card(1)[0], 'bad', '', 1, 1, 1, 1]])),),
+        (('S1', nav.canonical_v3([[card(1)[0], 'documented', '', True, 1, 1, 1]])),),
+        (('S1', nav.canonical_v3([[card(1)[0], 'documented', '', 2, 1, 1, 1]])),),
+        (('S1', nav.canonical_v3([card(i) for i in range(9)])),),
+        tuple(('S1', b'[]') for _ in range(7)),
+        (('S1', nav.canonical_v3([card(1)])), ('S2', nav.canonical_v3([card(1)]))),
+    ])
+    def test_invalid_or_foreign_visible_cards_fail_closed(pages):
+&gt;       with pytest.raises(ValueError): refs(pages)
+                                        ^^^^^^^^^^^
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-source-reference\UltimaAgent\src\brain\tests\test_work_source_reference_schema.py:73: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+pages = (('S1', b'{}'),)
+
+    def refs(pages):
+&gt;       assert hasattr(nav, 'v3_source_reference_map'), 'visible source/reference constructor missing'
+E       AssertionError: visible source/reference constructor missing
+E       assert False
+E        +  where False = hasattr(nav, 'v3_source_reference_map')
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-source-reference\UltimaAgent\src\brain\tests\test_work_source_reference_schema.py:27: AssertionError</failure></testcase><testcase classname="" name="test_invalid_or_foreign_visible_cards_fail_closed[pages5]" time="0.001"><failure message="AssertionError: visible source/reference constructor missing&#10;assert False&#10; +  where False = hasattr(nav, 'v3_source_reference_map')">pages = (('S1', b'[[]]'),)
+
+    @pytest.mark.parametrize('pages', [
+        [], (('S0', b'[]'),), (('S6', b'[]'),), (('S1', '[]'),),
+        (('S1', b'{}'),), (('S1', b'[[]]'),),
+        (('S1', nav.canonical_v3([['bad', 'documented', '', 1, 1, 1, 1]])),),
+        (('S1', nav.canonical_v3([[card(1)[0], 'bad', '', 1, 1, 1, 1]])),),
+        (('S1', nav.canonical_v3([[card(1)[0], 'documented', '', True, 1, 1, 1]])),),
+        (('S1', nav.canonical_v3([[card(1)[0], 'documented', '', 2, 1, 1, 1]])),),
+        (('S1', nav.canonical_v3([card(i) for i in range(9)])),),
+        tuple(('S1', b'[]') for _ in range(7)),
+        (('S1', nav.canonical_v3([card(1)])), ('S2', nav.canonical_v3([card(1)]))),
+    ])
+    def test_invalid_or_foreign_visible_cards_fail_closed(pages):
+&gt;       with pytest.raises(ValueError): refs(pages)
+                                        ^^^^^^^^^^^
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-source-reference\UltimaAgent\src\brain\tests\test_work_source_reference_schema.py:73: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+pages = (('S1', b'[[]]'),)
+
+    def refs(pages):
+&gt;       assert hasattr(nav, 'v3_source_reference_map'), 'visible source/reference constructor missing'
+E       AssertionError: visible source/reference constructor missing
+E       assert False
+E        +  where False = hasattr(nav, 'v3_source_reference_map')
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-source-reference\UltimaAgent\src\brain\tests\test_work_source_reference_schema.py:27: AssertionError</failure></testcase><testcase classname="" name="test_invalid_or_foreign_visible_cards_fail_closed[pages6]" time="0.001"><failure message="AssertionError: visible source/reference constructor missing&#10;assert False&#10; +  where False = hasattr(nav, 'v3_source_reference_map')">pages = (('S1', b'[["bad","documented","",1,1,1,1]]'),)
+
+    @pytest.mark.parametrize('pages', [
+        [], (('S0', b'[]'),), (('S6', b'[]'),), (('S1', '[]'),),
+        (('S1', b'{}'),), (('S1', b'[[]]'),),
+        (('S1', nav.canonical_v3([['bad', 'documented', '', 1, 1, 1, 1]])),),
+        (('S1', nav.canonical_v3([[card(1)[0], 'bad', '', 1, 1, 1, 1]])),),
+        (('S1', nav.canonical_v3([[card(1)[0], 'documented', '', True, 1, 1, 1]])),),
+        (('S1', nav.canonical_v3([[card(1)[0], 'documented', '', 2, 1, 1, 1]])),),
+        (('S1', nav.canonical_v3([card(i) for i in range(9)])),),
+        tuple(('S1', b'[]') for _ in range(7)),
+        (('S1', nav.canonical_v3([card(1)])), ('S2', nav.canonical_v3([card(1)]))),
+    ])
+    def test_invalid_or_foreign_visible_cards_fail_closed(pages):
+&gt;       with pytest.raises(ValueError): refs(pages)
+                                        ^^^^^^^^^^^
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-source-reference\UltimaAgent\src\brain\tests\test_work_source_reference_schema.py:73: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+pages = (('S1', b'[["bad","documented","",1,1,1,1]]'),)
+
+    def refs(pages):
+&gt;       assert hasattr(nav, 'v3_source_reference_map'), 'visible source/reference constructor missing'
+E       AssertionError: visible source/reference constructor missing
+E       assert False
+E        +  where False = hasattr(nav, 'v3_source_reference_map')
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-source-reference\UltimaAgent\src\brain\tests\test_work_source_reference_schema.py:27: AssertionError</failure></testcase><testcase classname="" name="test_invalid_or_foreign_visible_cards_fail_closed[pages7]" time="0.001"><failure message="AssertionError: visible source/reference constructor missing&#10;assert False&#10; +  where False = hasattr(nav, 'v3_source_reference_map')">pages = (('S1', b'[["N3.0000000000000001","bad","",1,1,1,1]]'),)
+
+    @pytest.mark.parametrize('pages', [
+        [], (('S0', b'[]'),), (('S6', b'[]'),), (('S1', '[]'),),
+        (('S1', b'{}'),), (('S1', b'[[]]'),),
+        (('S1', nav.canonical_v3([['bad', 'documented', '', 1, 1, 1, 1]])),),
+        (('S1', nav.canonical_v3([[card(1)[0], 'bad', '', 1, 1, 1, 1]])),),
+        (('S1', nav.canonical_v3([[card(1)[0], 'documented', '', True, 1, 1, 1]])),),
+        (('S1', nav.canonical_v3([[card(1)[0], 'documented', '', 2, 1, 1, 1]])),),
+        (('S1', nav.canonical_v3([card(i) for i in range(9)])),),
+        tuple(('S1', b'[]') for _ in range(7)),
+        (('S1', nav.canonical_v3([card(1)])), ('S2', nav.canonical_v3([card(1)]))),
+    ])
+    def test_invalid_or_foreign_visible_cards_fail_closed(pages):
+&gt;       with pytest.raises(ValueError): refs(pages)
+                                        ^^^^^^^^^^^
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-source-reference\UltimaAgent\src\brain\tests\test_work_source_reference_schema.py:73: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+pages = (('S1', b'[["N3.0000000000000001","bad","",1,1,1,1]]'),)
+
+    def refs(pages):
+&gt;       assert hasattr(nav, 'v3_source_reference_map'), 'visible source/reference constructor missing'
+E       AssertionError: visible source/reference constructor missing
+E       assert False
+E        +  where False = hasattr(nav, 'v3_source_reference_map')
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-source-reference\UltimaAgent\src\brain\tests\test_work_source_reference_schema.py:27: AssertionError</failure></testcase><testcase classname="" name="test_invalid_or_foreign_visible_cards_fail_closed[pages8]" time="0.001"><failure message="AssertionError: visible source/reference constructor missing&#10;assert False&#10; +  where False = hasattr(nav, 'v3_source_reference_map')">pages = (('S1', b'[["N3.0000000000000001","documented","",true,1,1,1]]'),)
+
+    @pytest.mark.parametrize('pages', [
+        [], (('S0', b'[]'),), (('S6', b'[]'),), (('S1', '[]'),),
+        (('S1', b'{}'),), (('S1', b'[[]]'),),
+        (('S1', nav.canonical_v3([['bad', 'documented', '', 1, 1, 1, 1]])),),
+        (('S1', nav.canonical_v3([[card(1)[0], 'bad', '', 1, 1, 1, 1]])),),
+        (('S1', nav.canonical_v3([[card(1)[0], 'documented', '', True, 1, 1, 1]])),),
+        (('S1', nav.canonical_v3([[card(1)[0], 'documented', '', 2, 1, 1, 1]])),),
+        (('S1', nav.canonical_v3([card(i) for i in range(9)])),),
+        tuple(('S1', b'[]') for _ in range(7)),
+        (('S1', nav.canonical_v3([card(1)])), ('S2', nav.canonical_v3([card(1)]))),
+    ])
+    def test_invalid_or_foreign_visible_cards_fail_closed(pages):
+&gt;       with pytest.raises(ValueError): refs(pages)
+                                        ^^^^^^^^^^^
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-source-reference\UltimaAgent\src\brain\tests\test_work_source_reference_schema.py:73: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+pages = (('S1', b'[["N3.0000000000000001","documented","",true,1,1,1]]'),)
+
+    def refs(pages):
+&gt;       assert hasattr(nav, 'v3_source_reference_map'), 'visible source/reference constructor missing'
+E       AssertionError: visible source/reference constructor missing
+E       assert False
+E        +  where False = hasattr(nav, 'v3_source_reference_map')
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-source-reference\UltimaAgent\src\brain\tests\test_work_source_reference_schema.py:27: AssertionError</failure></testcase><testcase classname="" name="test_invalid_or_foreign_visible_cards_fail_closed[pages9]" time="0.001"><failure message="AssertionError: visible source/reference constructor missing&#10;assert False&#10; +  where False = hasattr(nav, 'v3_source_reference_map')">pages = (('S1', b'[["N3.0000000000000001","documented","",2,1,1,1]]'),)
+
+    @pytest.mark.parametrize('pages', [
+        [], (('S0', b'[]'),), (('S6', b'[]'),), (('S1', '[]'),),
+        (('S1', b'{}'),), (('S1', b'[[]]'),),
+        (('S1', nav.canonical_v3([['bad', 'documented', '', 1, 1, 1, 1]])),),
+        (('S1', nav.canonical_v3([[card(1)[0], 'bad', '', 1, 1, 1, 1]])),),
+        (('S1', nav.canonical_v3([[card(1)[0], 'documented', '', True, 1, 1, 1]])),),
+        (('S1', nav.canonical_v3([[card(1)[0], 'documented', '', 2, 1, 1, 1]])),),
+        (('S1', nav.canonical_v3([card(i) for i in range(9)])),),
+        tuple(('S1', b'[]') for _ in range(7)),
+        (('S1', nav.canonical_v3([card(1)])), ('S2', nav.canonical_v3([card(1)]))),
+    ])
+    def test_invalid_or_foreign_visible_cards_fail_closed(pages):
+&gt;       with pytest.raises(ValueError): refs(pages)
+                                        ^^^^^^^^^^^
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-source-reference\UltimaAgent\src\brain\tests\test_work_source_reference_schema.py:73: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+pages = (('S1', b'[["N3.0000000000000001","documented","",2,1,1,1]]'),)
+
+    def refs(pages):
+&gt;       assert hasattr(nav, 'v3_source_reference_map'), 'visible source/reference constructor missing'
+E       AssertionError: visible source/reference constructor missing
+E       assert False
+E        +  where False = hasattr(nav, 'v3_source_reference_map')
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-source-reference\UltimaAgent\src\brain\tests\test_work_source_reference_schema.py:27: AssertionError</failure></testcase><testcase classname="" name="test_invalid_or_foreign_visible_cards_fail_closed[pages10]" time="0.001"><failure message="AssertionError: visible source/reference constructor missing&#10;assert False&#10; +  where False = hasattr(nav, 'v3_source_reference_map')">pages = (('S1', b'[["N3.0000000000000000","documented","",1,1,1,1],["N3.0000000000000001","documented","",1,1,1,1],["N3.000000...ented","",1,1,1,1],["N3.0000000000000007","documented","",1,1,1,1],["N3.0000000000000008","documented","",1,1,1,1]]'),)
+
+    @pytest.mark.parametrize('pages', [
+        [], (('S0', b'[]'),), (('S6', b'[]'),), (('S1', '[]'),),
+        (('S1', b'{}'),), (('S1', b'[[]]'),),
+        (('S1', nav.canonical_v3([['bad', 'documented', '', 1, 1, 1, 1]])),),
+        (('S1', nav.canonical_v3([[card(1)[0], 'bad', '', 1, 1, 1, 1]])),),
+        (('S1', nav.canonical_v3([[card(1)[0], 'documented', '', True, 1, 1, 1]])),),
+        (('S1', nav.canonical_v3([[card(1)[0], 'documented', '', 2, 1, 1, 1]])),),
+        (('S1', nav.canonical_v3([card(i) for i in range(9)])),),
+        tuple(('S1', b'[]') for _ in range(7)),
+        (('S1', nav.canonical_v3([card(1)])), ('S2', nav.canonical_v3([card(1)]))),
+    ])
+    def test_invalid_or_foreign_visible_cards_fail_closed(pages):
+&gt;       with pytest.raises(ValueError): refs(pages)
+                                        ^^^^^^^^^^^
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-source-reference\UltimaAgent\src\brain\tests\test_work_source_reference_schema.py:73: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+pages = (('S1', b'[["N3.0000000000000000","documented","",1,1,1,1],["N3.0000000000000001","documented","",1,1,1,1],["N3.000000...ented","",1,1,1,1],["N3.0000000000000007","documented","",1,1,1,1],["N3.0000000000000008","documented","",1,1,1,1]]'),)
+
+    def refs(pages):
+&gt;       assert hasattr(nav, 'v3_source_reference_map'), 'visible source/reference constructor missing'
+E       AssertionError: visible source/reference constructor missing
+E       assert False
+E        +  where False = hasattr(nav, 'v3_source_reference_map')
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-source-reference\UltimaAgent\src\brain\tests\test_work_source_reference_schema.py:27: AssertionError</failure></testcase><testcase classname="" name="test_invalid_or_foreign_visible_cards_fail_closed[pages11]" time="0.001"><failure message="AssertionError: visible source/reference constructor missing&#10;assert False&#10; +  where False = hasattr(nav, 'v3_source_reference_map')">pages = (('S1', b'[]'), ('S1', b'[]'), ('S1', b'[]'), ('S1', b'[]'), ('S1', b'[]'), ('S1', b'[]'), ...)
+
+    @pytest.mark.parametrize('pages', [
+        [], (('S0', b'[]'),), (('S6', b'[]'),), (('S1', '[]'),),
+        (('S1', b'{}'),), (('S1', b'[[]]'),),
+        (('S1', nav.canonical_v3([['bad', 'documented', '', 1, 1, 1, 1]])),),
+        (('S1', nav.canonical_v3([[card(1)[0], 'bad', '', 1, 1, 1, 1]])),),
+        (('S1', nav.canonical_v3([[card(1)[0], 'documented', '', True, 1, 1, 1]])),),
+        (('S1', nav.canonical_v3([[card(1)[0], 'documented', '', 2, 1, 1, 1]])),),
+        (('S1', nav.canonical_v3([card(i) for i in range(9)])),),
+        tuple(('S1', b'[]') for _ in range(7)),
+        (('S1', nav.canonical_v3([card(1)])), ('S2', nav.canonical_v3([card(1)]))),
+    ])
+    def test_invalid_or_foreign_visible_cards_fail_closed(pages):
+&gt;       with pytest.raises(ValueError): refs(pages)
+                                        ^^^^^^^^^^^
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-source-reference\UltimaAgent\src\brain\tests\test_work_source_reference_schema.py:73: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+pages = (('S1', b'[]'), ('S1', b'[]'), ('S1', b'[]'), ('S1', b'[]'), ('S1', b'[]'), ('S1', b'[]'), ...)
+
+    def refs(pages):
+&gt;       assert hasattr(nav, 'v3_source_reference_map'), 'visible source/reference constructor missing'
+E       AssertionError: visible source/reference constructor missing
+E       assert False
+E        +  where False = hasattr(nav, 'v3_source_reference_map')
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-source-reference\UltimaAgent\src\brain\tests\test_work_source_reference_schema.py:27: AssertionError</failure></testcase><testcase classname="" name="test_invalid_or_foreign_visible_cards_fail_closed[pages12]" time="0.001"><failure message="AssertionError: visible source/reference constructor missing&#10;assert False&#10; +  where False = hasattr(nav, 'v3_source_reference_map')">pages = (('S1', b'[["N3.0000000000000001","documented","",1,1,1,1]]'), ('S2', b'[["N3.0000000000000001","documented","",1,1,1,1]]'))
+
+    @pytest.mark.parametrize('pages', [
+        [], (('S0', b'[]'),), (('S6', b'[]'),), (('S1', '[]'),),
+        (('S1', b'{}'),), (('S1', b'[[]]'),),
+        (('S1', nav.canonical_v3([['bad', 'documented', '', 1, 1, 1, 1]])),),
+        (('S1', nav.canonical_v3([[card(1)[0], 'bad', '', 1, 1, 1, 1]])),),
+        (('S1', nav.canonical_v3([[card(1)[0], 'documented', '', True, 1, 1, 1]])),),
+        (('S1', nav.canonical_v3([[card(1)[0], 'documented', '', 2, 1, 1, 1]])),),
+        (('S1', nav.canonical_v3([card(i) for i in range(9)])),),
+        tuple(('S1', b'[]') for _ in range(7)),
+        (('S1', nav.canonical_v3([card(1)])), ('S2', nav.canonical_v3([card(1)]))),
+    ])
+    def test_invalid_or_foreign_visible_cards_fail_closed(pages):
+&gt;       with pytest.raises(ValueError): refs(pages)
+                                        ^^^^^^^^^^^
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-source-reference\UltimaAgent\src\brain\tests\test_work_source_reference_schema.py:73: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+pages = (('S1', b'[["N3.0000000000000001","documented","",1,1,1,1]]'), ('S2', b'[["N3.0000000000000001","documented","",1,1,1,1]]'))
+
+    def refs(pages):
+&gt;       assert hasattr(nav, 'v3_source_reference_map'), 'visible source/reference constructor missing'
+E       AssertionError: visible source/reference constructor missing
+E       assert False
+E        +  where False = hasattr(nav, 'v3_source_reference_map')
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-source-reference\UltimaAgent\src\brain\tests\test_work_source_reference_schema.py:27: AssertionError</failure></testcase><testcase classname="" name="test_writer_mapping_never_falls_back_when_empty_partial_or_colliding[mapping0]" time="0.001"><failure message="TypeError: v3_writer_schema() takes 0 positional arguments but 1 was given">mapping = {}
+
+    @pytest.mark.parametrize('mapping', [{}, {'S1': ()}, {'S1': (card(1)[0],)},
+        {'S1': (card(1)[0],), 'S2': (card(1)[0],), 'S3': (card(3)[0],)}])
+    def test_writer_mapping_never_falls_back_when_empty_partial_or_colliding(mapping):
+&gt;       with pytest.raises(ValueError): nav.v3_writer_schema(mapping)
+                                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       TypeError: v3_writer_schema() takes 0 positional arguments but 1 was given
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-source-reference\UltimaAgent\src\brain\tests\test_work_source_reference_schema.py:79: TypeError</failure></testcase><testcase classname="" name="test_writer_mapping_never_falls_back_when_empty_partial_or_colliding[mapping1]" time="0.001"><failure message="TypeError: v3_writer_schema() takes 0 positional arguments but 1 was given">mapping = {'S1': ()}
+
+    @pytest.mark.parametrize('mapping', [{}, {'S1': ()}, {'S1': (card(1)[0],)},
+        {'S1': (card(1)[0],), 'S2': (card(1)[0],), 'S3': (card(3)[0],)}])
+    def test_writer_mapping_never_falls_back_when_empty_partial_or_colliding(mapping):
+&gt;       with pytest.raises(ValueError): nav.v3_writer_schema(mapping)
+                                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       TypeError: v3_writer_schema() takes 0 positional arguments but 1 was given
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-source-reference\UltimaAgent\src\brain\tests\test_work_source_reference_schema.py:79: TypeError</failure></testcase><testcase classname="" name="test_writer_mapping_never_falls_back_when_empty_partial_or_colliding[mapping2]" time="0.001"><failure message="TypeError: v3_writer_schema() takes 0 positional arguments but 1 was given">mapping = {'S1': ('N3.0000000000000001',)}
+
+    @pytest.mark.parametrize('mapping', [{}, {'S1': ()}, {'S1': (card(1)[0],)},
+        {'S1': (card(1)[0],), 'S2': (card(1)[0],), 'S3': (card(3)[0],)}])
+    def test_writer_mapping_never_falls_back_when_empty_partial_or_colliding(mapping):
+&gt;       with pytest.raises(ValueError): nav.v3_writer_schema(mapping)
+                                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       TypeError: v3_writer_schema() takes 0 positional arguments but 1 was given
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-source-reference\UltimaAgent\src\brain\tests\test_work_source_reference_schema.py:79: TypeError</failure></testcase><testcase classname="" name="test_writer_mapping_never_falls_back_when_empty_partial_or_colliding[mapping3]" time="0.001"><failure message="TypeError: v3_writer_schema() takes 0 positional arguments but 1 was given">mapping = {'S1': ('N3.0000000000000001',), 'S2': ('N3.0000000000000001',), 'S3': ('N3.0000000000000003',)}
+
+    @pytest.mark.parametrize('mapping', [{}, {'S1': ()}, {'S1': (card(1)[0],)},
+        {'S1': (card(1)[0],), 'S2': (card(1)[0],), 'S3': (card(3)[0],)}])
+    def test_writer_mapping_never_falls_back_when_empty_partial_or_colliding(mapping):
+&gt;       with pytest.raises(ValueError): nav.v3_writer_schema(mapping)
+                                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       TypeError: v3_writer_schema() takes 0 positional arguments but 1 was given
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-source-reference\UltimaAgent\src\brain\tests\test_work_source_reference_schema.py:79: TypeError</failure></testcase><testcase classname="" name="test_native_bad_reference_rejected_before_writer_dispatch[foreign]" time="1.325"><failure message="AssertionError: assert ('failed' == 'failed'&#10;  &#10;    failed and 'Unlinked or failed END' == 'Invalid native research envelope'&#10;  &#10;  - Invalid native research envelope&#10;  + Unlinked or failed END)">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-source-reference-schema-20261107-r1/offline/reference-red-20261107T042935781849Z/temp/test_native_bad_reference_reje0')
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x00000243A5F634D0&gt;, [('search', 'Research a subject'), ('get', '...'https://example.com/source/3'), ('get', 'https://example.com/source/4'), ('get', 'https://example.com/source/5')], {})
+mock_jar = (&lt;openjarvis.sdk.Jarvis object at 0x00000243A5F61BE0&gt;, &lt;function _run_work_agent at 0x00000243A4260680&gt;, [{'format': {... ...], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 2048, 'temperature': 0}, ...}], [])
+fault = 'foreign'
+
+    @pytest.mark.parametrize('fault', ['foreign', 'unissued', 'other_request'])
+    def test_native_bad_reference_rejected_before_writer_dispatch(tmp_path, sdk_io, mock_jar, fault):
+        def reply(body):
+            pages = [json.loads(m['content'][13:]) for m in body['messages']
+                     if m['role'] == 'user' and m['content'].startswith('Observation: ')]
+            value = report_payload()
+            for section, page in zip(value['sections'], pages):
+                section['facts'][0]['evidence_id'] = page['cards'][0][0]
+            value['sections'][0]['facts'][0]['evidence_id'] = (
+                pages[1]['cards'][0][0] if fault == 'foreign' else card(99 if fault == 'unissued' else 100)[0])
+            return action(value)
+        mock_jar[3].append(reply)
+        result = submit(tmp_path, sdk_io[0], mock_jar[1])
+&gt;       assert result['status'] == 'failed' and result['error'] == 'Invalid native research envelope'
+E       AssertionError: assert ('failed' == 'failed'
+E         
+E           failed and 'Unlinked or failed END' == 'Invalid native research envelope'
+E         
+E         - Invalid native research envelope
+E         + Unlinked or failed END)
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-source-reference\UltimaAgent\src\brain\tests\test_work_source_reference_schema.py:95: AssertionError</failure></testcase><testcase classname="" name="test_native_bad_reference_rejected_before_writer_dispatch[unissued]" time="0.917"><failure message="AssertionError: assert ('failed' == 'failed'&#10;  &#10;    failed and 'Unlinked or failed END' == 'Invalid native research envelope'&#10;  &#10;  - Invalid native research envelope&#10;  + Unlinked or failed END)">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-source-reference-schema-20261107-r1/offline/reference-red-20261107T042935781849Z/temp/test_native_bad_reference_reje1')
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x00000243A5798550&gt;, [('search', 'Research a subject'), ('get', '...'https://example.com/source/3'), ('get', 'https://example.com/source/4'), ('get', 'https://example.com/source/5')], {})
+mock_jar = (&lt;openjarvis.sdk.Jarvis object at 0x00000243A5CEB9D0&gt;, &lt;function _run_work_agent at 0x00000243A4260680&gt;, [{'format': {... ...], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 2048, 'temperature': 0}, ...}], [])
+fault = 'unissued'
+
+    @pytest.mark.parametrize('fault', ['foreign', 'unissued', 'other_request'])
+    def test_native_bad_reference_rejected_before_writer_dispatch(tmp_path, sdk_io, mock_jar, fault):
+        def reply(body):
+            pages = [json.loads(m['content'][13:]) for m in body['messages']
+                     if m['role'] == 'user' and m['content'].startswith('Observation: ')]
+            value = report_payload()
+            for section, page in zip(value['sections'], pages):
+                section['facts'][0]['evidence_id'] = page['cards'][0][0]
+            value['sections'][0]['facts'][0]['evidence_id'] = (
+                pages[1]['cards'][0][0] if fault == 'foreign' else card(99 if fault == 'unissued' else 100)[0])
+            return action(value)
+        mock_jar[3].append(reply)
+        result = submit(tmp_path, sdk_io[0], mock_jar[1])
+&gt;       assert result['status'] == 'failed' and result['error'] == 'Invalid native research envelope'
+E       AssertionError: assert ('failed' == 'failed'
+E         
+E           failed and 'Unlinked or failed END' == 'Invalid native research envelope'
+E         
+E         - Invalid native research envelope
+E         + Unlinked or failed END)
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-source-reference\UltimaAgent\src\brain\tests\test_work_source_reference_schema.py:95: AssertionError</failure></testcase><testcase classname="" name="test_native_bad_reference_rejected_before_writer_dispatch[other_request]" time="0.900"><failure message="AssertionError: assert ('failed' == 'failed'&#10;  &#10;    failed and 'Unlinked or failed END' == 'Invalid native research envelope'&#10;  &#10;  - Invalid native research envelope&#10;  + Unlinked or failed END)">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-source-reference-schema-20261107-r1/offline/reference-red-20261107T042935781849Z/temp/test_native_bad_reference_reje2')
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x00000243A5799E50&gt;, [('search', 'Research a subject'), ('get', '...'https://example.com/source/3'), ('get', 'https://example.com/source/4'), ('get', 'https://example.com/source/5')], {})
+mock_jar = (&lt;openjarvis.sdk.Jarvis object at 0x00000243A5EEB820&gt;, &lt;function _run_work_agent at 0x00000243A4260680&gt;, [{'format': {... ...], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 2048, 'temperature': 0}, ...}], [])
+fault = 'other_request'
+
+    @pytest.mark.parametrize('fault', ['foreign', 'unissued', 'other_request'])
+    def test_native_bad_reference_rejected_before_writer_dispatch(tmp_path, sdk_io, mock_jar, fault):
+        def reply(body):
+            pages = [json.loads(m['content'][13:]) for m in body['messages']
+                     if m['role'] == 'user' and m['content'].startswith('Observation: ')]
+            value = report_payload()
+            for section, page in zip(value['sections'], pages):
+                section['facts'][0]['evidence_id'] = page['cards'][0][0]
+            value['sections'][0]['facts'][0]['evidence_id'] = (
+                pages[1]['cards'][0][0] if fault == 'foreign' else card(99 if fault == 'unissued' else 100)[0])
+            return action(value)
+        mock_jar[3].append(reply)
+        result = submit(tmp_path, sdk_io[0], mock_jar[1])
+&gt;       assert result['status'] == 'failed' and result['error'] == 'Invalid native research envelope'
+E       AssertionError: assert ('failed' == 'failed'
+E         
+E           failed and 'Unlinked or failed END' == 'Invalid native research envelope'
+E         
+E         - Invalid native research envelope
+E         + Unlinked or failed END)
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-source-reference\UltimaAgent\src\brain\tests\test_work_source_reference_schema.py:95: AssertionError</failure></testcase><testcase classname="" name="test_native_author_schema_uses_confirmed_third_view_and_complete_delivery" time="1.389"><failure message="AssertionError: visible source/reference constructor missing&#10;assert False&#10; +  where False = hasattr(nav, 'v3_source_reference_map')">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-source-reference-schema-20261107-r1/offline/reference-red-20261107T042935781849Z/temp/test_native_author_schema_uses0')
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x00000243A57EF360&gt;, [('search', 'Research a subject'), ('get', '...'https://example.com/source/3'), ('get', 'https://example.com/source/4'), ('get', 'https://example.com/source/5')], {})
+mock_jar = (&lt;openjarvis.sdk.Jarvis object at 0x00000243A585EE00&gt;, &lt;function _run_work_agent at 0x00000243A4260680&gt;, [{'format': {..., ...], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [])
+
+    def test_native_author_schema_uses_confirmed_third_view_and_complete_delivery(tmp_path, sdk_io, mock_jar):
+        result, ledger, packet = delivered(tmp_path, sdk_io, mock_jar)
+        wire = packet['wires'][-2]
+        observations = [json.loads(m['content'][13:]) for m in wire['secured_messages']
+                        if m['role'] == 'user' and m['content'].startswith('Observation: ')]
+&gt;       expected = refs(tuple((p['source_id'], nav.canonical_v3(p['cards'])) for p in observations))
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-source-reference\UltimaAgent\src\brain\tests\test_work_source_reference_schema.py:115: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+pages = (('S1', b'[["N3.ea5a9ad6b7e2370f","documented","",1,1,1,1]]'), ('S2', b'[["N3.30352f05163f684d","documented","",1,1,1,1]]'), ('S3', b'[["N3.16d73f16210e2962","documented","",1,1,1,1]]'))
+
+    def refs(pages):
+&gt;       assert hasattr(nav, 'v3_source_reference_map'), 'visible source/reference constructor missing'
+E       AssertionError: visible source/reference constructor missing
+E       assert False
+E        +  where False = hasattr(nav, 'v3_source_reference_map')
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-source-reference\UltimaAgent\src\brain\tests\test_work_source_reference_schema.py:27: AssertionError</failure></testcase><testcase classname="" name="test_independent_replay_rejects_correlated_schema_or_phase_forgery[foreign]" time="1.045"><failure message="KeyError: 'anyOf'">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-source-reference-schema-20261107-r1/offline/reference-red-20261107T042935781849Z/temp/test_independent_replay_reject0')
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x00000243A57EE060&gt;, [('search', 'Research a subject'), ('get', '...'https://example.com/source/3'), ('get', 'https://example.com/source/4'), ('get', 'https://example.com/source/5')], {})
+mock_jar = (&lt;openjarvis.sdk.Jarvis object at 0x00000243A5BFDA50&gt;, &lt;function _run_work_agent at 0x00000243A4260680&gt;, [{'format': {..., ...], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [])
+fault = 'foreign'
+
+    @pytest.mark.parametrize('fault', ['foreign', 'remove_branch', 'other_request', 'phase'])
+    def test_independent_replay_rejects_correlated_schema_or_phase_forgery(tmp_path, sdk_io, mock_jar, fault):
+        _, ledger, packet = delivered(tmp_path, sdk_io, mock_jar)
+        wire = packet['wires'][-2]
+&gt;       branches = writer_schema(wire['strict_schema'])['properties']['sections']['items']['anyOf']
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       KeyError: 'anyOf'
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-source-reference\UltimaAgent\src\brain\tests\test_work_source_reference_schema.py:136: KeyError</failure></testcase><testcase classname="" name="test_independent_replay_rejects_correlated_schema_or_phase_forgery[remove_branch]" time="0.733"><failure message="KeyError: 'anyOf'">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-source-reference-schema-20261107-r1/offline/reference-red-20261107T042935781849Z/temp/test_independent_replay_reject1')
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x00000243A5974050&gt;, [('search', 'Research a subject'), ('get', '...'https://example.com/source/3'), ('get', 'https://example.com/source/4'), ('get', 'https://example.com/source/5')], {})
+mock_jar = (&lt;openjarvis.sdk.Jarvis object at 0x00000243A5528140&gt;, &lt;function _run_work_agent at 0x00000243A4260680&gt;, [{'format': {..., ...], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [])
+fault = 'remove_branch'
+
+    @pytest.mark.parametrize('fault', ['foreign', 'remove_branch', 'other_request', 'phase'])
+    def test_independent_replay_rejects_correlated_schema_or_phase_forgery(tmp_path, sdk_io, mock_jar, fault):
+        _, ledger, packet = delivered(tmp_path, sdk_io, mock_jar)
+        wire = packet['wires'][-2]
+&gt;       branches = writer_schema(wire['strict_schema'])['properties']['sections']['items']['anyOf']
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       KeyError: 'anyOf'
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-source-reference\UltimaAgent\src\brain\tests\test_work_source_reference_schema.py:136: KeyError</failure></testcase><testcase classname="" name="test_independent_replay_rejects_correlated_schema_or_phase_forgery[other_request]" time="1.057"><failure message="KeyError: 'anyOf'">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-source-reference-schema-20261107-r1/offline/reference-red-20261107T042935781849Z/temp/test_independent_replay_reject2')
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x00000243A585E8B0&gt;, [('search', 'Research a subject'), ('get', '...'https://example.com/source/3'), ('get', 'https://example.com/source/4'), ('get', 'https://example.com/source/5')], {})
+mock_jar = (&lt;openjarvis.sdk.Jarvis object at 0x00000243A5878910&gt;, &lt;function _run_work_agent at 0x00000243A4260680&gt;, [{'format': {..., ...], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [])
+fault = 'other_request'
+
+    @pytest.mark.parametrize('fault', ['foreign', 'remove_branch', 'other_request', 'phase'])
+    def test_independent_replay_rejects_correlated_schema_or_phase_forgery(tmp_path, sdk_io, mock_jar, fault):
+        _, ledger, packet = delivered(tmp_path, sdk_io, mock_jar)
+        wire = packet['wires'][-2]
+&gt;       branches = writer_schema(wire['strict_schema'])['properties']['sections']['items']['anyOf']
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       KeyError: 'anyOf'
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-source-reference\UltimaAgent\src\brain\tests\test_work_source_reference_schema.py:136: KeyError</failure></testcase><testcase classname="" name="test_independent_replay_rejects_correlated_schema_or_phase_forgery[phase]" time="1.289"><failure message="KeyError: 'anyOf'">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-source-reference-schema-20261107-r1/offline/reference-red-20261107T042935781849Z/temp/test_independent_replay_reject3')
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x00000243A578DF20&gt;, [('search', 'Research a subject'), ('get', '...'https://example.com/source/3'), ('get', 'https://example.com/source/4'), ('get', 'https://example.com/source/5')], {})
+mock_jar = (&lt;openjarvis.sdk.Jarvis object at 0x00000243A59E0460&gt;, &lt;function _run_work_agent at 0x00000243A4260680&gt;, [{'format': {..., ...], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [])
+fault = 'phase'
+
+    @pytest.mark.parametrize('fault', ['foreign', 'remove_branch', 'other_request', 'phase'])
+    def test_independent_replay_rejects_correlated_schema_or_phase_forgery(tmp_path, sdk_io, mock_jar, fault):
+        _, ledger, packet = delivered(tmp_path, sdk_io, mock_jar)
+        wire = packet['wires'][-2]
+&gt;       branches = writer_schema(wire['strict_schema'])['properties']['sections']['items']['anyOf']
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       KeyError: 'anyOf'
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-source-reference\UltimaAgent\src\brain\tests\test_work_source_reference_schema.py:136: KeyError</failure></testcase><testcase classname="" name="test_six_pages_max_cards_schema_keeps_original_budget_and_limits" time="0.001"><failure message="AssertionError: visible source/reference constructor missing&#10;assert False&#10; +  where False = hasattr(nav, 'v3_source_reference_map')">def test_six_pages_max_cards_schema_keeps_original_budget_and_limits():
+        pages = tuple((f'S{min(page + 1, 5)}', nav.canonical_v3([card(page * 8 + i) for i in range(8)])) for page in range(6))
+&gt;       mapping = refs(pages)
+                  ^^^^^^^^^^^
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-source-reference\UltimaAgent\src\brain\tests\test_work_source_reference_schema.py:151: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+pages = (('S1', b'[["N3.0000000000000000","documented","",1,1,1,1],["N3.0000000000000001","documented","",1,1,1,1],["N3.000000...mented","",1,1,1,1],["N3.000000000000002e","documented","",1,1,1,1],["N3.000000000000002f","documented","",1,1,1,1]]'))
+
+    def refs(pages):
+&gt;       assert hasattr(nav, 'v3_source_reference_map'), 'visible source/reference constructor missing'
+E       AssertionError: visible source/reference constructor missing
+E       assert False
+E        +  where False = hasattr(nav, 'v3_source_reference_map')
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-source-reference\UltimaAgent\src\brain\tests\test_work_source_reference_schema.py:27: AssertionError</failure></testcase></testsuite></testsuites>

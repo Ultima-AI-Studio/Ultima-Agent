@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="7" skipped="0" tests="7" time="7.790" timestamp="2026-11-07T15:04:48.535257+08:00" hostname="DESKTOP-B366PQ9"><testcase classname="harness.test_adapter" name="test_failure_diagnostic_export_real_sdk_failure_is_private_and_bounded" time="1.097"><failure message="AssertionError: failure observer discards the private diagnostic&#10;assert False&#10; +  where False = exists()&#10; +    where exists = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-failure-state-20261107-r1/code/harness-preparation-20261107T070446703979Z/temp/test_failure_diagnostic_export0/trusted-failure-diagnostic.raw').exists">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-failure-state-20261107-r1/code/harness-preparation-20261107T070446703979Z/temp/test_failure_diagnostic_export0')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x0000023AD66176F0&gt;
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x0000023B1F8F9A90&gt;, [('search', 'Research a subject')], {})
+mock_jar = (&lt;openjarvis.sdk.Jarvis object at 0x0000023B1F8F81A0&gt;, &lt;function _run_work_agent at 0x0000023B1F827380&gt;, [{'format': {...ser'}], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [])
+
+    def test_failure_diagnostic_export_real_sdk_failure_is_private_and_bounded(tmp_path,monkeypatch,sdk_io,mock_jar):
+        from src.brain.tests.test_work_failure_diagnostics import early_case,FINAL
+        observe_failure_exports(tmp_path,monkeypatch)
+        result,ledger=early_case(tmp_path/'outputs',sdk_io,mock_jar,monkeypatch,reads=1)
+        assert result['status']=='failed' and result['error']=='Missing nonempty immutable runtime proof'
+        path=tmp_path/'trusted-failure-diagnostic.raw'
+&gt;       assert path.exists(), 'failure observer discards the private diagnostic'
+E       AssertionError: failure observer discards the private diagnostic
+E       assert False
+E        +  where False = exists()
+E        +    where exists = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-failure-state-20261107-r1/code/harness-preparation-20261107T070446703979Z/temp/test_failure_diagnostic_export0/trusted-failure-diagnostic.raw').exists
+
+..\..\harness\test_adapter.py:26: AssertionError</failure></testcase><testcase classname="harness.test_adapter" name="test_failure_diagnostic_export_rejects_changed_or_unsafe_packet[binding]" time="0.374"><failure message="AssertionError: missing restricted failure export boundary&#10;assert False&#10; +  where False = hasattr(a, 'export_failure_diagnostic')">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-failure-state-20261107-r1/code/harness-preparation-20261107T070446703979Z/temp/test_failure_diagnostic_export1')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x0000023AD66175C0&gt;
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x0000023B20351450&gt;, [('search', 'Research a subject')], {})
+mock_jar = (&lt;openjarvis.sdk.Jarvis object at 0x0000023B20350910&gt;, &lt;function _run_work_agent at 0x0000023B1F827380&gt;, [{'format': {...ser'}], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [])
+fault = 'binding'
+
+    @pytest.mark.parametrize('fault',['binding','digest','field','unsafe'])
+    def test_failure_diagnostic_export_rejects_changed_or_unsafe_packet(tmp_path,monkeypatch,sdk_io,mock_jar,fault):
+        from src.brain.tests.test_work_failure_diagnostics import early_case
+        from src.brain.work_navigation import canonical_v3
+        result,ledger=early_case(tmp_path/'outputs',sdk_io,mock_jar,monkeypatch,reads=1)
+&gt;       assert hasattr(a,'export_failure_diagnostic'), 'missing restricted failure export boundary'
+E       AssertionError: missing restricted failure export boundary
+E       assert False
+E        +  where False = hasattr(a, 'export_failure_diagnostic')
+
+..\..\harness\test_adapter.py:40: AssertionError</failure></testcase><testcase classname="harness.test_adapter" name="test_failure_diagnostic_export_rejects_changed_or_unsafe_packet[digest]" time="0.492"><failure message="AssertionError: missing restricted failure export boundary&#10;assert False&#10; +  where False = hasattr(a, 'export_failure_diagnostic')">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-failure-state-20261107-r1/code/harness-preparation-20261107T070446703979Z/temp/test_failure_diagnostic_export2')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x0000023B203EC170&gt;
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x0000023B20353890&gt;, [('search', 'Research a subject')], {})
+mock_jar = (&lt;openjarvis.sdk.Jarvis object at 0x0000023AD7652650&gt;, &lt;function _run_work_agent at 0x0000023B1F827380&gt;, [{'format': {...ser'}], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [])
+fault = 'digest'
+
+    @pytest.mark.parametrize('fault',['binding','digest','field','unsafe'])
+    def test_failure_diagnostic_export_rejects_changed_or_unsafe_packet(tmp_path,monkeypatch,sdk_io,mock_jar,fault):
+        from src.brain.tests.test_work_failure_diagnostics import early_case
+        from src.brain.work_navigation import canonical_v3
+        result,ledger=early_case(tmp_path/'outputs',sdk_io,mock_jar,monkeypatch,reads=1)
+&gt;       assert hasattr(a,'export_failure_diagnostic'), 'missing restricted failure export boundary'
+E       AssertionError: missing restricted failure export boundary
+E       assert False
+E        +  where False = hasattr(a, 'export_failure_diagnostic')
+
+..\..\harness\test_adapter.py:40: AssertionError</failure></testcase><testcase classname="harness.test_adapter" name="test_failure_diagnostic_export_rejects_changed_or_unsafe_packet[field]" time="0.447"><failure message="AssertionError: missing restricted failure export boundary&#10;assert False&#10; +  where False = hasattr(a, 'export_failure_diagnostic')">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-failure-state-20261107-r1/code/harness-preparation-20261107T070446703979Z/temp/test_failure_diagnostic_export3')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x0000023AD764DF20&gt;
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x0000023AD7653950&gt;, [('search', 'Research a subject')], {})
+mock_jar = (&lt;openjarvis.sdk.Jarvis object at 0x0000023AD764DAE0&gt;, &lt;function _run_work_agent at 0x0000023B1F827380&gt;, [{'format': {...ser'}], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [])
+fault = 'field'
+
+    @pytest.mark.parametrize('fault',['binding','digest','field','unsafe'])
+    def test_failure_diagnostic_export_rejects_changed_or_unsafe_packet(tmp_path,monkeypatch,sdk_io,mock_jar,fault):
+        from src.brain.tests.test_work_failure_diagnostics import early_case
+        from src.brain.work_navigation import canonical_v3
+        result,ledger=early_case(tmp_path/'outputs',sdk_io,mock_jar,monkeypatch,reads=1)
+&gt;       assert hasattr(a,'export_failure_diagnostic'), 'missing restricted failure export boundary'
+E       AssertionError: missing restricted failure export boundary
+E       assert False
+E        +  where False = hasattr(a, 'export_failure_diagnostic')
+
+..\..\harness\test_adapter.py:40: AssertionError</failure></testcase><testcase classname="harness.test_adapter" name="test_failure_diagnostic_export_rejects_changed_or_unsafe_packet[unsafe]" time="0.506"><failure message="AssertionError: missing restricted failure export boundary&#10;assert False&#10; +  where False = hasattr(a, 'export_failure_diagnostic')">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-failure-state-20261107-r1/code/harness-preparation-20261107T070446703979Z/temp/test_failure_diagnostic_export4')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x0000023AD764FDF0&gt;
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x0000023B203F0C30&gt;, [('search', 'Research a subject')], {})
+mock_jar = (&lt;openjarvis.sdk.Jarvis object at 0x0000023AD75FB650&gt;, &lt;function _run_work_agent at 0x0000023B1F827380&gt;, [{'format': {...ser'}], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [])
+fault = 'unsafe'
+
+    @pytest.mark.parametrize('fault',['binding','digest','field','unsafe'])
+    def test_failure_diagnostic_export_rejects_changed_or_unsafe_packet(tmp_path,monkeypatch,sdk_io,mock_jar,fault):
+        from src.brain.tests.test_work_failure_diagnostics import early_case
+        from src.brain.work_navigation import canonical_v3
+        result,ledger=early_case(tmp_path/'outputs',sdk_io,mock_jar,monkeypatch,reads=1)
+&gt;       assert hasattr(a,'export_failure_diagnostic'), 'missing restricted failure export boundary'
+E       AssertionError: missing restricted failure export boundary
+E       assert False
+E        +  where False = hasattr(a, 'export_failure_diagnostic')
+
+..\..\harness\test_adapter.py:40: AssertionError</failure></testcase><testcase classname="harness.test_adapter" name="test_failure_diagnostic_export_disk_failure_cannot_replace_product_error" time="0.954"><failure message="AssertionError: missing bounded failure-export error status&#10;assert False&#10; +  where False = exists()&#10; +    where exists = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-failure-state-20261107-r1/code/harness-preparation-20261107T070446703979Z/temp/test_failure_diagnostic_export5/trusted-failure-diagnostic.export.json').exists">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-failure-state-20261107-r1/code/harness-preparation-20261107T070446703979Z/temp/test_failure_diagnostic_export5')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x0000023B203E5150&gt;
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x0000023B203ECEF0&gt;, [('search', 'Research a subject')], {})
+mock_jar = (&lt;openjarvis.sdk.Jarvis object at 0x0000023AD7655040&gt;, &lt;function _run_work_agent at 0x0000023B1F827380&gt;, [{'format': {...ser'}], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [])
+
+    def test_failure_diagnostic_export_disk_failure_cannot_replace_product_error(tmp_path,monkeypatch,sdk_io,mock_jar):
+        from src.brain.tests.test_work_failure_diagnostics import early_case
+        observe_failure_exports(tmp_path,monkeypatch)
+        original=a.write_raw_new
+        def fail(path,raw):
+            if path.name=='trusted-failure-diagnostic.raw':raise OSError('private disk error')
+            return original(path,raw)
+        monkeypatch.setattr(a,'write_raw_new',fail)
+        result,ledger=early_case(tmp_path/'outputs',sdk_io,mock_jar,monkeypatch,reads=1)
+        assert result['status']=='failed' and result['error']=='Missing nonempty immutable runtime proof'
+        path=tmp_path/'trusted-failure-diagnostic.export.json'
+&gt;       assert path.exists(), 'missing bounded failure-export error status'
+E       AssertionError: missing bounded failure-export error status
+E       assert False
+E        +  where False = exists()
+E        +    where exists = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-failure-state-20261107-r1/code/harness-preparation-20261107T070446703979Z/temp/test_failure_diagnostic_export5/trusted-failure-diagnostic.export.json').exists
+
+..\..\harness\test_adapter.py:65: AssertionError</failure></testcase><testcase classname="harness.test_adapter" name="test_failure_diagnostic_export_never_creates_packet_when_capture_unavailable" time="0.383"><failure message="AssertionError: missing explicit unavailable diagnostic status&#10;assert False&#10; +  where False = exists()&#10; +    where exists = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-failure-state-20261107-r1/code/harness-preparation-20261107T070446703979Z/temp/test_failure_diagnostic_export6/trusted-failure-diagnostic.export.json').exists">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-failure-state-20261107-r1/code/harness-preparation-20261107T070446703979Z/temp/test_failure_diagnostic_export6')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x0000023B203E5650&gt;
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x0000023AD764CE20&gt;, [('search', 'Research a subject')], {})
+mock_jar = (&lt;openjarvis.sdk.Jarvis object at 0x0000023B1F8E91D0&gt;, &lt;function _run_work_agent at 0x0000023B1F827380&gt;, [{'format': {...ser'}], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [])
+
+    def test_failure_diagnostic_export_never_creates_packet_when_capture_unavailable(tmp_path,monkeypatch,sdk_io,mock_jar):
+        from src.brain.tests.test_work_failure_diagnostics import early_case
+        observe_failure_exports(tmp_path,monkeypatch)
+        def poison(response,ledger):ledger._runtime_wires=None
+        result,ledger=early_case(tmp_path/'outputs',sdk_io,mock_jar,monkeypatch,reads=1,after=poison)
+        path=tmp_path/'trusted-failure-diagnostic.export.json'
+&gt;       assert path.exists(), 'missing explicit unavailable diagnostic status'
+E       AssertionError: missing explicit unavailable diagnostic status
+E       assert False
+E        +  where False = exists()
+E        +    where exists = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-failure-state-20261107-r1/code/harness-preparation-20261107T070446703979Z/temp/test_failure_diagnostic_export6/trusted-failure-diagnostic.export.json').exists
+
+..\..\harness\test_adapter.py:76: AssertionError</failure></testcase></testsuite></testsuites>

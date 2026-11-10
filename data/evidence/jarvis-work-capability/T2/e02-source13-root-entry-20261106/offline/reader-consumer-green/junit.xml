@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="2" time="2.241" timestamp="2026-11-06T16:50:07.687783+08:00" hostname="DESKTOP-B366PQ9"><testcase classname="test_entry" name="test_concrete_reader_controls_through_original_read_profile" time="0.447"><failure message="TypeError: &lt;class 'original_counter_fixtures.pure_reconstruction.&lt;locals&gt;.Scanner'&gt; is a built-in class">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-source13-root-entry-20261106/offline/reader-consumer-green/temp/test_concrete_reader_controls_0')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000001AAD7BD8FC0&gt;
+
+    def test_concrete_reader_controls_through_original_read_profile(tmp_path,monkeypatch):
+        """Reuse the original synthetic pure-replay fixture; no native profile/client.
+    
+        Its existing scanner/typed-runtime doubles remain explicit. Root consumption,
+        worker observation, file hashes and BOTH actual RootControls calls are real.
+        """
+        from test_controls import admitted
+        f=fixture(tmp_path);admitted(f)
+        f.case.rmdir()  # empty synthetic pytest folder; original fixture creates it
+&gt;       r=fixtures.pure_reconstruction.__wrapped__(monkeypatch,tmp_path/'reconstruction',SimpleNamespace())
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+test_entry.py:151: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+..\..\e02-source13-profile-binding-20261106\profile-preparation\test_profile.py:1226: in pure_reconstruction
+    policy=nav.make_scan_policy((Scanner(),Scanner()),'redact')
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Administrator\.codex\worktrees\jarvis-e03-source13\UltimaAgent\src\brain\work_navigation.py:143: in make_scan_policy
+    raw=canonical_v3(_policy_data(scanners,mode))
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Administrator\.codex\worktrees\jarvis-e03-source13\UltimaAgent\src\brain\work_navigation.py:126: in _policy_data
+    path=inspect.getsourcefile(cls)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Administrator\AppData\Local\Doubao\User Data\sandbox_runtime\bases\772984f6fd3a8ae0ae7d2422cd7c2bfa\python\Lib\inspect.py:974: in getsourcefile
+    filename = getfile(object)
+               ^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+object = &lt;class 'original_counter_fixtures.pure_reconstruction.&lt;locals&gt;.Scanner'&gt;
+
+    def getfile(object):
+        """Work out which source or compiled file an object was defined in."""
+        if ismodule(object):
+            if getattr(object, '__file__', None):
+                return object.__file__
+            raise TypeError('{!r} is a built-in module'.format(object))
+        if isclass(object):
+            if hasattr(object, '__module__'):
+                module = sys.modules.get(object.__module__)
+                if getattr(module, '__file__', None):
+                    return module.__file__
+                if object.__module__ == '__main__':
+                    raise OSError('source code not available')
+&gt;           raise TypeError('{!r} is a built-in class'.format(object))
+E           TypeError: &lt;class 'original_counter_fixtures.pure_reconstruction.&lt;locals&gt;.Scanner'&gt; is a built-in class
+
+C:\Users\Administrator\AppData\Local\Doubao\User Data\sandbox_runtime\bases\772984f6fd3a8ae0ae7d2422cd7c2bfa\python\Lib\inspect.py:943: TypeError</failure></testcase><testcase classname="test_entry" name="test_real_root_closes_only_after_both_actual_exits_and_two_readbacks" time="1.423" /></testsuite></testsuites>

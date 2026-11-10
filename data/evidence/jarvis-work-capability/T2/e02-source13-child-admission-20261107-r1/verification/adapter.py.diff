@@ -1,0 +1,56 @@
+--- preserved/adapter.py
++++ recovery/adapter.py
+@@ -322,14 +322,20 @@
+     issued,expiry=stamp(authority['issued_at']),stamp(authority['expires_at'])
+     require(issued<=now<expiry and 0<(expiry-issued).total_seconds()<=120,'Expired inert admission')
+ 
+-def check_native_baseline(proof,p4):
++def check_native_baseline(proof,p4,*,child=False):
+     require(proof.get('precision')=='FILETIME100ns' and proof.get('candidate')==CANDIDATE,'Native baseline binding')
+     require(0<=(dt.datetime.now(dt.timezone.utc)-stamp(proof['recorded_at'])).total_seconds()<=60,'Stale native baseline')
+     identities=proof['protected']
+-    validate_protected_members(identities,p4)
++    if child:
++        # Parent admission and the pre-CLI boundary verify parent/command/CIM.
++        # The not-yet-cleared child must not create observation subprocesses
++        # underneath the exact launcher/base tree it is asking to join.
++        validate_protected_native_members(identities,p4)
++    else:
++        validate_protected_members(identities,p4)
+     return identities
+ 
+-def validate_protected_members(identities,p4):
++def validate_protected_native_members(identities,p4):
+     require(type(identities) is list and len(identities)==7 and len({x['pid'] for x in identities})==7,'Exact protected member inventory: seven required')
+     baseline=load(PROTECTED_BASELINE)
+     rows=baseline.get('protected5',[])+baseline.get('protected_listener_pair',[])
+@@ -338,6 +344,11 @@
+     require({x['pid']:x for x in identities}=={x['pid']:x for x in expected},'Exact protected member binding')
+     require({x['pid']:x for x in p4.protected()}=={x['pid']:x for x in expected},'Protected live inventory drift')
+     require(all(type(x['created_filetime']) is int and x['created_filetime']>0 and p4.identity(x['pid'])==x for x in identities),'Exact native identity drift')
++    return rows
++
++def validate_protected_members(identities,p4):
++    rows=validate_protected_native_members(identities,p4)
++    expected=[{k:row[k] for k in ('pid','created_filetime','exe')} for row in rows]
+     snapshot=p4.process_snapshot(pids=sorted(x['pid'] for x in identities))
+     for row,key in zip(rows,expected):
+         current=snapshot.get(row['pid'])
+@@ -397,7 +408,7 @@
+     budget.call('package admission',package_check,p4); budget.call('operational import admission',check_import_origins)
+     require(a.get('ledger_sha256')==sha(ledger_path) and a.get('approval_sha256')==sha(V/'harness-approval.json'),'Ledger/approval binding')
+     proofpath=p4.no_reparse(V/'native-preflight'/f'{CASE}.json'); proof=budget.call('native proof read',load,proofpath)
+-    require(a.get('native_preflight_sha256')==sha(proofpath),'Native preflight binding'); budget.call('native admission baseline',check_native_baseline,proof,p4)
++    require(a.get('native_preflight_sha256')==sha(proofpath),'Native preflight binding'); budget.call('native admission baseline',check_native_baseline,proof,p4,child=child)
+     m=bindings.load_inputs(INPUTS_PATH)
+     local_manifest=budget.call('local model manifest read',Path(m['model_manifest_path']).read_bytes)
+     budget.call('local native metadata verification',p4.old.metadata_valid,dict(ok=True,model=MODEL,agent='native_react'),proof['version'],proof['tags'],local_manifest)
+@@ -1106,7 +1117,7 @@
+     require(authority.get('folder')==str(folder) and type(authority.get('port')) is int and 1024<=authority['port']<=65535 and authority['port']!=11434,'Inert root/port')
+     proof=load(p4.no_reparse(V/'inert-native-baseline.json'))
+     require(authority.get('native_baseline_sha256')==sha(V/'inert-native-baseline.json'),'Inert native baseline binding')
+-    baseline=budget.call('inert native baseline',check_native_baseline,proof,p4)
++    baseline=budget.call('inert native baseline',check_native_baseline,proof,p4,child=child)
+     if child: require((folder/'attempt.json').exists(),'Claimed inert child required')
+     else:
+         with PrivateIO(p4,budget): require(not folder.exists() and not p4.listener_owner(authority['port']),'Exclusive inert folder/port required')

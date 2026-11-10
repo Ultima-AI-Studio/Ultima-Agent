@@ -1,0 +1,51 @@
+{
+  "work_order": "wo-ultimaagent-20261108-0026",
+  "status": "COMPLETED",
+  "reviewReason": "eng.audit 对 0026 的 T0/T1 真实提交 46adbd1f 与 1ee325f4 完成专用解释器测试复跑、写域核对和断言逐项抽查；15 项测试通过，20 个提交路径条目均在 0026 授权域，15 个测试方法的 27 个断言调用点无空断言，未发现 blocker、major 或 minor。",
+  "stdoutText": "Python 3.13.16；pytest 15 passed, 2 subtests passed，PYTEST_EXIT_CODE=0；写域 touched=20/outside=0/forbidden=0；断言 test_count=15/call_sites=27/empty=0。",
+  "evidence": [
+    {
+      "path": "wo-ultimaagent-20261108-0027/T2/audit-test-rerun.log",
+      "kind": "log",
+      "summary": "专用解释器真实复跑 0026 T0/T1 测试的命令、原始输出和退出码"
+    },
+    {
+      "path": "wo-ultimaagent-20261108-0027/T2/audit-write-domain.log",
+      "kind": "log",
+      "summary": "0026 T0/T1 两个提交逐路径对照 0026 工单 fileDomain 的原始核对记录"
+    },
+    {
+      "path": "wo-ultimaagent-20261108-0027/T2/audit-assertion-review.log",
+      "kind": "log",
+      "summary": "0026 T0/T1 测试逐方法、逐断言调用点的源码抽查与语义审查记录"
+    }
+  ],
+  "acceptance": [
+    {
+      "id": "AUDIT-0026-T0T1-TEST-RERUN",
+      "result": "PASS",
+      "evidence": "专用 Python 3.13.16 真实复跑 15 项测试通过，退出码 0。"
+    },
+    {
+      "id": "AUDIT-0026-T0T1-WRITE-DOMAIN",
+      "result": "PASS",
+      "evidence": "46adbd1f 与 1ee325f4 共 20 个路径条目全部位于 0026 授权写域，reviewer.py/receipt.py 命中 0。"
+    },
+    {
+      "id": "AUDIT-0026-T0T1-ASSERTIONS",
+      "result": "PASS",
+      "evidence": "15 个测试方法均有实质断言；27 个断言调用点未发现 assertTrue(True)、assertFalse(False) 或同值比较式空断言。"
+    }
+  ],
+  "ok": true,
+  "role": "eng.audit",
+  "blocker": 0,
+  "major": 0,
+  "minor": 0,
+  "checked": [
+    "测试复跑: wo-ultimaagent-20261108-0027/T2/audit-test-rerun.log",
+    "写域核对: wo-ultimaagent-20261108-0027/T2/audit-write-domain.log",
+    "断言抽查: wo-ultimaagent-20261108-0027/T2/audit-assertion-review.log"
+  ],
+  "findings": []
+}

@@ -1,0 +1,41 @@
+........................................................................ [ 38%]
+.................................................F...................... [ 76%]
+F...........................................                             [100%]
+================================== FAILURES ===================================
+_ test_negative_admits_three_matching_predecessors_and_keeps_new_facts_pending _
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e01-source13-round1-20261106/verification/tmp-e01-entry-green/test_negative_admits_three_mat0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000022447ACAA50>
+
+    def test_negative_admits_three_matching_predecessors_and_keeps_new_facts_pending(tmp_path,monkeypatch):
+        entry,authority,proof = package(tmp_path,monkeypatch)
+        assert entry.CASE == 'e01-round1' and entry.SCOPE == 'e01-round1-acceptance'
+        backend = Backend(tmp_path,proof)
+        result = entry.run_once(tmp_path,backend_factory=lambda root:backend)
+>       assert result['case']=='e03-negative' and result['work_cli_count']==0
+E       AssertionError: assert ('e01-round1' == 'e03-negative'
+E         
+E         - e03-negative
+E         + e01-round1)
+
+code\test_round2_predecessor.py:45: AssertionError
+__ test_three_distinct_passes_admit_only_negative_and_do_not_pregrant_facts ___
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e01-source13-round1-20261106/verification/tmp-e01-entry-green/test_three_distinct_passes_adm0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000022447C09940>
+
+    def test_three_distinct_passes_admit_only_negative_and_do_not_pregrant_facts(tmp_path,monkeypatch):
+        entry,authority,proof=package(tmp_path,monkeypatch)
+        backend=Backend(tmp_path,proof)
+        result=entry.run_once(tmp_path,backend_factory=lambda root:backend)
+>       assert result['case']=='e03-negative' and result['work_cli_count']==0
+E       AssertionError: assert ('e01-round1' == 'e03-negative'
+E         
+E         - e03-negative
+E         + e01-round1)
+
+code\test_round3_predecessors.py:31: AssertionError
+=========================== short test summary info ===========================
+FAILED code/test_round2_predecessor.py::test_negative_admits_three_matching_predecessors_and_keeps_new_facts_pending
+FAILED code/test_round3_predecessors.py::test_three_distinct_passes_admit_only_negative_and_do_not_pregrant_facts
+2 failed, 186 passed in 30.91s

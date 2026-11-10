@@ -1,0 +1,68 @@
+{
+  "work_order": "wo-ultimaagent-20261108-0027",
+  "status": "READY_FOR_REVIEW",
+  "phase": "T0",
+  "run_id": "wo-ultimaagent-20261108-0027-T0-20261108",
+  "input_sha256": "9fe651555744beefc613e830cbbcf778453eeafbc0257699cd94a2576ea8fd5e",
+  "executor": "Codex execution session",
+  "exit_code": 0,
+  "reviewReason": "StageGateResult and fail-closed check_stage behavior are implemented with ReceiptValidator and ReviewResult reuse; the stage is awaiting an independent audit-session conclusion.",
+  "stdoutText": "Initial RED command produced 7 expected failures but its PowerShell pipeline masked the process exit metadata; the preserved confirmed RED rerun produced the same 7 failures. GREEN passed 7/7 and the focused reviewer/receipt/audit regression passed 35/35.",
+  "evidence": [
+    {
+      "path": "src/brain/guardrails/stage_gate.py",
+      "kind": "code",
+      "summary": "Fail-closed stage gate implementation"
+    },
+    {
+      "path": "src/brain/guardrails/tests/test_stage_gate.py",
+      "kind": "test",
+      "summary": "One passing case and six real blocking assertions"
+    },
+    {
+      "path": "data/evidence/wo-ultimaagent-20261108-0027/T0/red-test.log",
+      "kind": "log",
+      "summary": "First RED run; 7 expected failures, with wrapper exit-code masking retained"
+    },
+    {
+      "path": "data/evidence/wo-ultimaagent-20261108-0027/T0/red-test-confirmed.log",
+      "kind": "log",
+      "summary": "Confirmed RED run; 7 expected missing-module failures"
+    },
+    {
+      "path": "data/evidence/wo-ultimaagent-20261108-0027/T0/green-test.log",
+      "kind": "log",
+      "summary": "Stage-gate unit tests passed 7/7"
+    },
+    {
+      "path": "data/evidence/wo-ultimaagent-20261108-0027/T0/focused-regression.log",
+      "kind": "log",
+      "summary": "Stage gate plus existing audit prompt and audit S3 regression passed 35/35"
+    }
+  ],
+  "acceptance": [
+    {
+      "id": "T0-API",
+      "result": "PASS",
+      "evidence": "check_stage(work_order, stage, evidence_root) returns StageGateResult(passed, reasons)."
+    },
+    {
+      "id": "T0-REUSE",
+      "result": "PASS",
+      "evidence": "ReceiptValidator validates receipt evidence and ReviewResult computes finding counts/blocker semantics."
+    },
+    {
+      "id": "T0-FAIL-CLOSED",
+      "result": "PASS",
+      "evidence": "Missing file, invalid JSON, blocker, dev role, empty checked and missing write-domain check are blocked."
+    },
+    {
+      "id": "T0-TESTS",
+      "result": "PASS",
+      "evidence": "7/7 stage-gate tests and 35/35 focused audit regressions passed with real assertions."
+    }
+  ],
+  "scopeDeclaration": "Only T0 stage-gate code, tests and wo-ultimaagent-20261108-0027/T0 evidence were created. Existing reviewer.py, receipt.py, the tracker and 0026 artifacts were not modified or staged.",
+  "environmentDeclaration": "Used H:/UltimaAI/UltimaAgent/tools/venv-openjarvis/Scripts/python.exe. No daemon restart, model/KWS change, microphone, recording or network request was used for T0 tests.",
+  "openSourceSelection": "No dependency was added; Python standard library and existing ReceiptValidator/ReviewResult types were reused."
+}

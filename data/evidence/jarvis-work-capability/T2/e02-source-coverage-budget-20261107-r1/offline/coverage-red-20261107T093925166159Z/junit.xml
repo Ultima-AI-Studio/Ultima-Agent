@@ -1,0 +1,939 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="39" skipped="0" tests="40" time="10.152" timestamp="2026-11-07T17:39:26.651557+08:00" hostname="DESKTOP-B366PQ9"><testcase classname="" name="test_budget_reserves_only_the_reads_needed_for_missing_sources[available0-visible0-0-expected0]" time="0.003"><failure message="AssertionError: missing shared read-budget/source-coverage contract&#10;assert False&#10; +  where False = callable(None)">available = ('S1', 'S2', 'S3', 'S4', 'S5'), visible = (), used = 0
+expected = ['S1', 'S2', 'S3', 'S4', 'S5']
+
+    @pytest.mark.parametrize('available,visible,used,expected',[
+        (SOURCES,(),0,list(SOURCES)),
+        (SOURCES,tuple(page('S1',i) for i in range(1,4)),3,list(SOURCES)),
+        (SOURCES,tuple(page('S1',i) for i in range(1,5)),4,['S2','S3','S4','S5']),
+        (SOURCES,tuple(page('S1',i) for i in range(1,5))+(page('S2',5),),5,['S3','S4','S5']),
+        (SOURCES,(page('S1'),page('S2',2),page('S3',3)),5,list(SOURCES)),
+        (SOURCES,(page('S1'),page('S2',2),page('S3',3)),6,None),
+        (SOURCES,(page('S1',empty=True),),4,None),
+        (SOURCES,(page('S1'),page('S2',2,empty=True)),4,['S2','S3','S4','S5']),
+        (SOURCES,tuple(page('S1',i) for i in range(1,6)),5,None),
+        (('S1','S2'),(page('S1'),),1,None),
+        ((),(),0,None),
+        (('S5','S3','S1'),tuple(page('S5',i) for i in range(1,5)),4,['S3','S1']),
+    ])
+    def test_budget_reserves_only_the_reads_needed_for_missing_sources(available,visible,used,expected):
+        before=deepcopy(WorkInspectTool.parameters)
+&gt;       schema=phase(available,visible,used)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-source-coverage\UltimaAgent\src\brain\tests\test_work_source_coverage_budget.py:47: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+available = ('S1', 'S2', 'S3', 'S4', 'S5'), visible = (), used = 0, base = None
+
+    def phase(available=SOURCES, visible=(), used=0, base=None):
+        helper=getattr(nav,'v3_phase_inspect_schema',None)
+&gt;       assert callable(helper), 'missing shared read-budget/source-coverage contract'
+E       AssertionError: missing shared read-budget/source-coverage contract
+E       assert False
+E        +  where False = callable(None)
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-source-coverage\UltimaAgent\src\brain\tests\test_work_source_coverage_budget.py:27: AssertionError</failure></testcase><testcase classname="" name="test_budget_reserves_only_the_reads_needed_for_missing_sources[available1-visible1-3-expected1]" time="0.003"><failure message="AssertionError: missing shared read-budget/source-coverage contract&#10;assert False&#10; +  where False = callable(None)">available = ('S1', 'S2', 'S3', 'S4', 'S5')
+visible = (('S1', b'[["N3.0000000000000001","documented","text",1,1,1,1]]'), ('S1', b'[["N3.0000000000000002","documented","text",1,1,1,1]]'), ('S1', b'[["N3.0000000000000003","documented","text",1,1,1,1]]'))
+used = 3, expected = ['S1', 'S2', 'S3', 'S4', 'S5']
+
+    @pytest.mark.parametrize('available,visible,used,expected',[
+        (SOURCES,(),0,list(SOURCES)),
+        (SOURCES,tuple(page('S1',i) for i in range(1,4)),3,list(SOURCES)),
+        (SOURCES,tuple(page('S1',i) for i in range(1,5)),4,['S2','S3','S4','S5']),
+        (SOURCES,tuple(page('S1',i) for i in range(1,5))+(page('S2',5),),5,['S3','S4','S5']),
+        (SOURCES,(page('S1'),page('S2',2),page('S3',3)),5,list(SOURCES)),
+        (SOURCES,(page('S1'),page('S2',2),page('S3',3)),6,None),
+        (SOURCES,(page('S1',empty=True),),4,None),
+        (SOURCES,(page('S1'),page('S2',2,empty=True)),4,['S2','S3','S4','S5']),
+        (SOURCES,tuple(page('S1',i) for i in range(1,6)),5,None),
+        (('S1','S2'),(page('S1'),),1,None),
+        ((),(),0,None),
+        (('S5','S3','S1'),tuple(page('S5',i) for i in range(1,5)),4,['S3','S1']),
+    ])
+    def test_budget_reserves_only_the_reads_needed_for_missing_sources(available,visible,used,expected):
+        before=deepcopy(WorkInspectTool.parameters)
+&gt;       schema=phase(available,visible,used)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-source-coverage\UltimaAgent\src\brain\tests\test_work_source_coverage_budget.py:47: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+available = ('S1', 'S2', 'S3', 'S4', 'S5')
+visible = (('S1', b'[["N3.0000000000000001","documented","text",1,1,1,1]]'), ('S1', b'[["N3.0000000000000002","documented","text",1,1,1,1]]'), ('S1', b'[["N3.0000000000000003","documented","text",1,1,1,1]]'))
+used = 3, base = None
+
+    def phase(available=SOURCES, visible=(), used=0, base=None):
+        helper=getattr(nav,'v3_phase_inspect_schema',None)
+&gt;       assert callable(helper), 'missing shared read-budget/source-coverage contract'
+E       AssertionError: missing shared read-budget/source-coverage contract
+E       assert False
+E        +  where False = callable(None)
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-source-coverage\UltimaAgent\src\brain\tests\test_work_source_coverage_budget.py:27: AssertionError</failure></testcase><testcase classname="" name="test_budget_reserves_only_the_reads_needed_for_missing_sources[available2-visible2-4-expected2]" time="0.001"><failure message="AssertionError: missing shared read-budget/source-coverage contract&#10;assert False&#10; +  where False = callable(None)">available = ('S1', 'S2', 'S3', 'S4', 'S5')
+visible = (('S1', b'[["N3.0000000000000001","documented","text",1,1,1,1]]'), ('S1', b'[["N3.0000000000000002","documented","text...N3.0000000000000003","documented","text",1,1,1,1]]'), ('S1', b'[["N3.0000000000000004","documented","text",1,1,1,1]]'))
+used = 4, expected = ['S2', 'S3', 'S4', 'S5']
+
+    @pytest.mark.parametrize('available,visible,used,expected',[
+        (SOURCES,(),0,list(SOURCES)),
+        (SOURCES,tuple(page('S1',i) for i in range(1,4)),3,list(SOURCES)),
+        (SOURCES,tuple(page('S1',i) for i in range(1,5)),4,['S2','S3','S4','S5']),
+        (SOURCES,tuple(page('S1',i) for i in range(1,5))+(page('S2',5),),5,['S3','S4','S5']),
+        (SOURCES,(page('S1'),page('S2',2),page('S3',3)),5,list(SOURCES)),
+        (SOURCES,(page('S1'),page('S2',2),page('S3',3)),6,None),
+        (SOURCES,(page('S1',empty=True),),4,None),
+        (SOURCES,(page('S1'),page('S2',2,empty=True)),4,['S2','S3','S4','S5']),
+        (SOURCES,tuple(page('S1',i) for i in range(1,6)),5,None),
+        (('S1','S2'),(page('S1'),),1,None),
+        ((),(),0,None),
+        (('S5','S3','S1'),tuple(page('S5',i) for i in range(1,5)),4,['S3','S1']),
+    ])
+    def test_budget_reserves_only_the_reads_needed_for_missing_sources(available,visible,used,expected):
+        before=deepcopy(WorkInspectTool.parameters)
+&gt;       schema=phase(available,visible,used)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-source-coverage\UltimaAgent\src\brain\tests\test_work_source_coverage_budget.py:47: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+available = ('S1', 'S2', 'S3', 'S4', 'S5')
+visible = (('S1', b'[["N3.0000000000000001","documented","text",1,1,1,1]]'), ('S1', b'[["N3.0000000000000002","documented","text...N3.0000000000000003","documented","text",1,1,1,1]]'), ('S1', b'[["N3.0000000000000004","documented","text",1,1,1,1]]'))
+used = 4, base = None
+
+    def phase(available=SOURCES, visible=(), used=0, base=None):
+        helper=getattr(nav,'v3_phase_inspect_schema',None)
+&gt;       assert callable(helper), 'missing shared read-budget/source-coverage contract'
+E       AssertionError: missing shared read-budget/source-coverage contract
+E       assert False
+E        +  where False = callable(None)
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-source-coverage\UltimaAgent\src\brain\tests\test_work_source_coverage_budget.py:27: AssertionError</failure></testcase><testcase classname="" name="test_budget_reserves_only_the_reads_needed_for_missing_sources[available3-visible3-5-expected3]" time="0.001"><failure message="AssertionError: missing shared read-budget/source-coverage contract&#10;assert False&#10; +  where False = callable(None)">available = ('S1', 'S2', 'S3', 'S4', 'S5')
+visible = (('S1', b'[["N3.0000000000000001","documented","text",1,1,1,1]]'), ('S1', b'[["N3.0000000000000002","documented","text...N3.0000000000000004","documented","text",1,1,1,1]]'), ('S2', b'[["N3.0000000000000005","documented","text",1,1,1,1]]'))
+used = 5, expected = ['S3', 'S4', 'S5']
+
+    @pytest.mark.parametrize('available,visible,used,expected',[
+        (SOURCES,(),0,list(SOURCES)),
+        (SOURCES,tuple(page('S1',i) for i in range(1,4)),3,list(SOURCES)),
+        (SOURCES,tuple(page('S1',i) for i in range(1,5)),4,['S2','S3','S4','S5']),
+        (SOURCES,tuple(page('S1',i) for i in range(1,5))+(page('S2',5),),5,['S3','S4','S5']),
+        (SOURCES,(page('S1'),page('S2',2),page('S3',3)),5,list(SOURCES)),
+        (SOURCES,(page('S1'),page('S2',2),page('S3',3)),6,None),
+        (SOURCES,(page('S1',empty=True),),4,None),
+        (SOURCES,(page('S1'),page('S2',2,empty=True)),4,['S2','S3','S4','S5']),
+        (SOURCES,tuple(page('S1',i) for i in range(1,6)),5,None),
+        (('S1','S2'),(page('S1'),),1,None),
+        ((),(),0,None),
+        (('S5','S3','S1'),tuple(page('S5',i) for i in range(1,5)),4,['S3','S1']),
+    ])
+    def test_budget_reserves_only_the_reads_needed_for_missing_sources(available,visible,used,expected):
+        before=deepcopy(WorkInspectTool.parameters)
+&gt;       schema=phase(available,visible,used)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-source-coverage\UltimaAgent\src\brain\tests\test_work_source_coverage_budget.py:47: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+available = ('S1', 'S2', 'S3', 'S4', 'S5')
+visible = (('S1', b'[["N3.0000000000000001","documented","text",1,1,1,1]]'), ('S1', b'[["N3.0000000000000002","documented","text...N3.0000000000000004","documented","text",1,1,1,1]]'), ('S2', b'[["N3.0000000000000005","documented","text",1,1,1,1]]'))
+used = 5, base = None
+
+    def phase(available=SOURCES, visible=(), used=0, base=None):
+        helper=getattr(nav,'v3_phase_inspect_schema',None)
+&gt;       assert callable(helper), 'missing shared read-budget/source-coverage contract'
+E       AssertionError: missing shared read-budget/source-coverage contract
+E       assert False
+E        +  where False = callable(None)
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-source-coverage\UltimaAgent\src\brain\tests\test_work_source_coverage_budget.py:27: AssertionError</failure></testcase><testcase classname="" name="test_budget_reserves_only_the_reads_needed_for_missing_sources[available4-visible4-5-expected4]" time="0.001"><failure message="AssertionError: missing shared read-budget/source-coverage contract&#10;assert False&#10; +  where False = callable(None)">available = ('S1', 'S2', 'S3', 'S4', 'S5')
+visible = (('S1', b'[["N3.0000000000000001","documented","text",1,1,1,1]]'), ('S2', b'[["N3.0000000000000002","documented","text",1,1,1,1]]'), ('S3', b'[["N3.0000000000000003","documented","text",1,1,1,1]]'))
+used = 5, expected = ['S1', 'S2', 'S3', 'S4', 'S5']
+
+    @pytest.mark.parametrize('available,visible,used,expected',[
+        (SOURCES,(),0,list(SOURCES)),
+        (SOURCES,tuple(page('S1',i) for i in range(1,4)),3,list(SOURCES)),
+        (SOURCES,tuple(page('S1',i) for i in range(1,5)),4,['S2','S3','S4','S5']),
+        (SOURCES,tuple(page('S1',i) for i in range(1,5))+(page('S2',5),),5,['S3','S4','S5']),
+        (SOURCES,(page('S1'),page('S2',2),page('S3',3)),5,list(SOURCES)),
+        (SOURCES,(page('S1'),page('S2',2),page('S3',3)),6,None),
+        (SOURCES,(page('S1',empty=True),),4,None),
+        (SOURCES,(page('S1'),page('S2',2,empty=True)),4,['S2','S3','S4','S5']),
+        (SOURCES,tuple(page('S1',i) for i in range(1,6)),5,None),
+        (('S1','S2'),(page('S1'),),1,None),
+        ((),(),0,None),
+        (('S5','S3','S1'),tuple(page('S5',i) for i in range(1,5)),4,['S3','S1']),
+    ])
+    def test_budget_reserves_only_the_reads_needed_for_missing_sources(available,visible,used,expected):
+        before=deepcopy(WorkInspectTool.parameters)
+&gt;       schema=phase(available,visible,used)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-source-coverage\UltimaAgent\src\brain\tests\test_work_source_coverage_budget.py:47: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+available = ('S1', 'S2', 'S3', 'S4', 'S5')
+visible = (('S1', b'[["N3.0000000000000001","documented","text",1,1,1,1]]'), ('S2', b'[["N3.0000000000000002","documented","text",1,1,1,1]]'), ('S3', b'[["N3.0000000000000003","documented","text",1,1,1,1]]'))
+used = 5, base = None
+
+    def phase(available=SOURCES, visible=(), used=0, base=None):
+        helper=getattr(nav,'v3_phase_inspect_schema',None)
+&gt;       assert callable(helper), 'missing shared read-budget/source-coverage contract'
+E       AssertionError: missing shared read-budget/source-coverage contract
+E       assert False
+E        +  where False = callable(None)
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-source-coverage\UltimaAgent\src\brain\tests\test_work_source_coverage_budget.py:27: AssertionError</failure></testcase><testcase classname="" name="test_budget_reserves_only_the_reads_needed_for_missing_sources[available5-visible5-6-None]" time="0.001"><failure message="AssertionError: missing shared read-budget/source-coverage contract&#10;assert False&#10; +  where False = callable(None)">available = ('S1', 'S2', 'S3', 'S4', 'S5')
+visible = (('S1', b'[["N3.0000000000000001","documented","text",1,1,1,1]]'), ('S2', b'[["N3.0000000000000002","documented","text",1,1,1,1]]'), ('S3', b'[["N3.0000000000000003","documented","text",1,1,1,1]]'))
+used = 6, expected = None
+
+    @pytest.mark.parametrize('available,visible,used,expected',[
+        (SOURCES,(),0,list(SOURCES)),
+        (SOURCES,tuple(page('S1',i) for i in range(1,4)),3,list(SOURCES)),
+        (SOURCES,tuple(page('S1',i) for i in range(1,5)),4,['S2','S3','S4','S5']),
+        (SOURCES,tuple(page('S1',i) for i in range(1,5))+(page('S2',5),),5,['S3','S4','S5']),
+        (SOURCES,(page('S1'),page('S2',2),page('S3',3)),5,list(SOURCES)),
+        (SOURCES,(page('S1'),page('S2',2),page('S3',3)),6,None),
+        (SOURCES,(page('S1',empty=True),),4,None),
+        (SOURCES,(page('S1'),page('S2',2,empty=True)),4,['S2','S3','S4','S5']),
+        (SOURCES,tuple(page('S1',i) for i in range(1,6)),5,None),
+        (('S1','S2'),(page('S1'),),1,None),
+        ((),(),0,None),
+        (('S5','S3','S1'),tuple(page('S5',i) for i in range(1,5)),4,['S3','S1']),
+    ])
+    def test_budget_reserves_only_the_reads_needed_for_missing_sources(available,visible,used,expected):
+        before=deepcopy(WorkInspectTool.parameters)
+&gt;       schema=phase(available,visible,used)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-source-coverage\UltimaAgent\src\brain\tests\test_work_source_coverage_budget.py:47: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+available = ('S1', 'S2', 'S3', 'S4', 'S5')
+visible = (('S1', b'[["N3.0000000000000001","documented","text",1,1,1,1]]'), ('S2', b'[["N3.0000000000000002","documented","text",1,1,1,1]]'), ('S3', b'[["N3.0000000000000003","documented","text",1,1,1,1]]'))
+used = 6, base = None
+
+    def phase(available=SOURCES, visible=(), used=0, base=None):
+        helper=getattr(nav,'v3_phase_inspect_schema',None)
+&gt;       assert callable(helper), 'missing shared read-budget/source-coverage contract'
+E       AssertionError: missing shared read-budget/source-coverage contract
+E       assert False
+E        +  where False = callable(None)
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-source-coverage\UltimaAgent\src\brain\tests\test_work_source_coverage_budget.py:27: AssertionError</failure></testcase><testcase classname="" name="test_budget_reserves_only_the_reads_needed_for_missing_sources[available6-visible6-4-None]" time="0.001"><failure message="AssertionError: missing shared read-budget/source-coverage contract&#10;assert False&#10; +  where False = callable(None)">available = ('S1', 'S2', 'S3', 'S4', 'S5'), visible = (('S1', b'[]'),), used = 4
+expected = None
+
+    @pytest.mark.parametrize('available,visible,used,expected',[
+        (SOURCES,(),0,list(SOURCES)),
+        (SOURCES,tuple(page('S1',i) for i in range(1,4)),3,list(SOURCES)),
+        (SOURCES,tuple(page('S1',i) for i in range(1,5)),4,['S2','S3','S4','S5']),
+        (SOURCES,tuple(page('S1',i) for i in range(1,5))+(page('S2',5),),5,['S3','S4','S5']),
+        (SOURCES,(page('S1'),page('S2',2),page('S3',3)),5,list(SOURCES)),
+        (SOURCES,(page('S1'),page('S2',2),page('S3',3)),6,None),
+        (SOURCES,(page('S1',empty=True),),4,None),
+        (SOURCES,(page('S1'),page('S2',2,empty=True)),4,['S2','S3','S4','S5']),
+        (SOURCES,tuple(page('S1',i) for i in range(1,6)),5,None),
+        (('S1','S2'),(page('S1'),),1,None),
+        ((),(),0,None),
+        (('S5','S3','S1'),tuple(page('S5',i) for i in range(1,5)),4,['S3','S1']),
+    ])
+    def test_budget_reserves_only_the_reads_needed_for_missing_sources(available,visible,used,expected):
+        before=deepcopy(WorkInspectTool.parameters)
+&gt;       schema=phase(available,visible,used)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-source-coverage\UltimaAgent\src\brain\tests\test_work_source_coverage_budget.py:47: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+available = ('S1', 'S2', 'S3', 'S4', 'S5'), visible = (('S1', b'[]'),), used = 4
+base = None
+
+    def phase(available=SOURCES, visible=(), used=0, base=None):
+        helper=getattr(nav,'v3_phase_inspect_schema',None)
+&gt;       assert callable(helper), 'missing shared read-budget/source-coverage contract'
+E       AssertionError: missing shared read-budget/source-coverage contract
+E       assert False
+E        +  where False = callable(None)
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-source-coverage\UltimaAgent\src\brain\tests\test_work_source_coverage_budget.py:27: AssertionError</failure></testcase><testcase classname="" name="test_budget_reserves_only_the_reads_needed_for_missing_sources[available7-visible7-4-expected7]" time="0.001"><failure message="AssertionError: missing shared read-budget/source-coverage contract&#10;assert False&#10; +  where False = callable(None)">available = ('S1', 'S2', 'S3', 'S4', 'S5')
+visible = (('S1', b'[["N3.0000000000000001","documented","text",1,1,1,1]]'), ('S2', b'[]'))
+used = 4, expected = ['S2', 'S3', 'S4', 'S5']
+
+    @pytest.mark.parametrize('available,visible,used,expected',[
+        (SOURCES,(),0,list(SOURCES)),
+        (SOURCES,tuple(page('S1',i) for i in range(1,4)),3,list(SOURCES)),
+        (SOURCES,tuple(page('S1',i) for i in range(1,5)),4,['S2','S3','S4','S5']),
+        (SOURCES,tuple(page('S1',i) for i in range(1,5))+(page('S2',5),),5,['S3','S4','S5']),
+        (SOURCES,(page('S1'),page('S2',2),page('S3',3)),5,list(SOURCES)),
+        (SOURCES,(page('S1'),page('S2',2),page('S3',3)),6,None),
+        (SOURCES,(page('S1',empty=True),),4,None),
+        (SOURCES,(page('S1'),page('S2',2,empty=True)),4,['S2','S3','S4','S5']),
+        (SOURCES,tuple(page('S1',i) for i in range(1,6)),5,None),
+        (('S1','S2'),(page('S1'),),1,None),
+        ((),(),0,None),
+        (('S5','S3','S1'),tuple(page('S5',i) for i in range(1,5)),4,['S3','S1']),
+    ])
+    def test_budget_reserves_only_the_reads_needed_for_missing_sources(available,visible,used,expected):
+        before=deepcopy(WorkInspectTool.parameters)
+&gt;       schema=phase(available,visible,used)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-source-coverage\UltimaAgent\src\brain\tests\test_work_source_coverage_budget.py:47: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+available = ('S1', 'S2', 'S3', 'S4', 'S5')
+visible = (('S1', b'[["N3.0000000000000001","documented","text",1,1,1,1]]'), ('S2', b'[]'))
+used = 4, base = None
+
+    def phase(available=SOURCES, visible=(), used=0, base=None):
+        helper=getattr(nav,'v3_phase_inspect_schema',None)
+&gt;       assert callable(helper), 'missing shared read-budget/source-coverage contract'
+E       AssertionError: missing shared read-budget/source-coverage contract
+E       assert False
+E        +  where False = callable(None)
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-source-coverage\UltimaAgent\src\brain\tests\test_work_source_coverage_budget.py:27: AssertionError</failure></testcase><testcase classname="" name="test_budget_reserves_only_the_reads_needed_for_missing_sources[available8-visible8-5-None]" time="0.001"><failure message="AssertionError: missing shared read-budget/source-coverage contract&#10;assert False&#10; +  where False = callable(None)">available = ('S1', 'S2', 'S3', 'S4', 'S5')
+visible = (('S1', b'[["N3.0000000000000001","documented","text",1,1,1,1]]'), ('S1', b'[["N3.0000000000000002","documented","text...N3.0000000000000004","documented","text",1,1,1,1]]'), ('S1', b'[["N3.0000000000000005","documented","text",1,1,1,1]]'))
+used = 5, expected = None
+
+    @pytest.mark.parametrize('available,visible,used,expected',[
+        (SOURCES,(),0,list(SOURCES)),
+        (SOURCES,tuple(page('S1',i) for i in range(1,4)),3,list(SOURCES)),
+        (SOURCES,tuple(page('S1',i) for i in range(1,5)),4,['S2','S3','S4','S5']),
+        (SOURCES,tuple(page('S1',i) for i in range(1,5))+(page('S2',5),),5,['S3','S4','S5']),
+        (SOURCES,(page('S1'),page('S2',2),page('S3',3)),5,list(SOURCES)),
+        (SOURCES,(page('S1'),page('S2',2),page('S3',3)),6,None),
+        (SOURCES,(page('S1',empty=True),),4,None),
+        (SOURCES,(page('S1'),page('S2',2,empty=True)),4,['S2','S3','S4','S5']),
+        (SOURCES,tuple(page('S1',i) for i in range(1,6)),5,None),
+        (('S1','S2'),(page('S1'),),1,None),
+        ((),(),0,None),
+        (('S5','S3','S1'),tuple(page('S5',i) for i in range(1,5)),4,['S3','S1']),
+    ])
+    def test_budget_reserves_only_the_reads_needed_for_missing_sources(available,visible,used,expected):
+        before=deepcopy(WorkInspectTool.parameters)
+&gt;       schema=phase(available,visible,used)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-source-coverage\UltimaAgent\src\brain\tests\test_work_source_coverage_budget.py:47: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+available = ('S1', 'S2', 'S3', 'S4', 'S5')
+visible = (('S1', b'[["N3.0000000000000001","documented","text",1,1,1,1]]'), ('S1', b'[["N3.0000000000000002","documented","text...N3.0000000000000004","documented","text",1,1,1,1]]'), ('S1', b'[["N3.0000000000000005","documented","text",1,1,1,1]]'))
+used = 5, base = None
+
+    def phase(available=SOURCES, visible=(), used=0, base=None):
+        helper=getattr(nav,'v3_phase_inspect_schema',None)
+&gt;       assert callable(helper), 'missing shared read-budget/source-coverage contract'
+E       AssertionError: missing shared read-budget/source-coverage contract
+E       assert False
+E        +  where False = callable(None)
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-source-coverage\UltimaAgent\src\brain\tests\test_work_source_coverage_budget.py:27: AssertionError</failure></testcase><testcase classname="" name="test_budget_reserves_only_the_reads_needed_for_missing_sources[available9-visible9-1-None]" time="0.001"><failure message="AssertionError: missing shared read-budget/source-coverage contract&#10;assert False&#10; +  where False = callable(None)">available = ('S1', 'S2')
+visible = (('S1', b'[["N3.0000000000000001","documented","text",1,1,1,1]]'),)
+used = 1, expected = None
+
+    @pytest.mark.parametrize('available,visible,used,expected',[
+        (SOURCES,(),0,list(SOURCES)),
+        (SOURCES,tuple(page('S1',i) for i in range(1,4)),3,list(SOURCES)),
+        (SOURCES,tuple(page('S1',i) for i in range(1,5)),4,['S2','S3','S4','S5']),
+        (SOURCES,tuple(page('S1',i) for i in range(1,5))+(page('S2',5),),5,['S3','S4','S5']),
+        (SOURCES,(page('S1'),page('S2',2),page('S3',3)),5,list(SOURCES)),
+        (SOURCES,(page('S1'),page('S2',2),page('S3',3)),6,None),
+        (SOURCES,(page('S1',empty=True),),4,None),
+        (SOURCES,(page('S1'),page('S2',2,empty=True)),4,['S2','S3','S4','S5']),
+        (SOURCES,tuple(page('S1',i) for i in range(1,6)),5,None),
+        (('S1','S2'),(page('S1'),),1,None),
+        ((),(),0,None),
+        (('S5','S3','S1'),tuple(page('S5',i) for i in range(1,5)),4,['S3','S1']),
+    ])
+    def test_budget_reserves_only_the_reads_needed_for_missing_sources(available,visible,used,expected):
+        before=deepcopy(WorkInspectTool.parameters)
+&gt;       schema=phase(available,visible,used)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-source-coverage\UltimaAgent\src\brain\tests\test_work_source_coverage_budget.py:47: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+available = ('S1', 'S2')
+visible = (('S1', b'[["N3.0000000000000001","documented","text",1,1,1,1]]'),)
+used = 1, base = None
+
+    def phase(available=SOURCES, visible=(), used=0, base=None):
+        helper=getattr(nav,'v3_phase_inspect_schema',None)
+&gt;       assert callable(helper), 'missing shared read-budget/source-coverage contract'
+E       AssertionError: missing shared read-budget/source-coverage contract
+E       assert False
+E        +  where False = callable(None)
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-source-coverage\UltimaAgent\src\brain\tests\test_work_source_coverage_budget.py:27: AssertionError</failure></testcase><testcase classname="" name="test_budget_reserves_only_the_reads_needed_for_missing_sources[available10-visible10-0-None]" time="0.001"><failure message="AssertionError: missing shared read-budget/source-coverage contract&#10;assert False&#10; +  where False = callable(None)">available = (), visible = (), used = 0, expected = None
+
+    @pytest.mark.parametrize('available,visible,used,expected',[
+        (SOURCES,(),0,list(SOURCES)),
+        (SOURCES,tuple(page('S1',i) for i in range(1,4)),3,list(SOURCES)),
+        (SOURCES,tuple(page('S1',i) for i in range(1,5)),4,['S2','S3','S4','S5']),
+        (SOURCES,tuple(page('S1',i) for i in range(1,5))+(page('S2',5),),5,['S3','S4','S5']),
+        (SOURCES,(page('S1'),page('S2',2),page('S3',3)),5,list(SOURCES)),
+        (SOURCES,(page('S1'),page('S2',2),page('S3',3)),6,None),
+        (SOURCES,(page('S1',empty=True),),4,None),
+        (SOURCES,(page('S1'),page('S2',2,empty=True)),4,['S2','S3','S4','S5']),
+        (SOURCES,tuple(page('S1',i) for i in range(1,6)),5,None),
+        (('S1','S2'),(page('S1'),),1,None),
+        ((),(),0,None),
+        (('S5','S3','S1'),tuple(page('S5',i) for i in range(1,5)),4,['S3','S1']),
+    ])
+    def test_budget_reserves_only_the_reads_needed_for_missing_sources(available,visible,used,expected):
+        before=deepcopy(WorkInspectTool.parameters)
+&gt;       schema=phase(available,visible,used)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-source-coverage\UltimaAgent\src\brain\tests\test_work_source_coverage_budget.py:47: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+available = (), visible = (), used = 0, base = None
+
+    def phase(available=SOURCES, visible=(), used=0, base=None):
+        helper=getattr(nav,'v3_phase_inspect_schema',None)
+&gt;       assert callable(helper), 'missing shared read-budget/source-coverage contract'
+E       AssertionError: missing shared read-budget/source-coverage contract
+E       assert False
+E        +  where False = callable(None)
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-source-coverage\UltimaAgent\src\brain\tests\test_work_source_coverage_budget.py:27: AssertionError</failure></testcase><testcase classname="" name="test_budget_reserves_only_the_reads_needed_for_missing_sources[available11-visible11-4-expected11]" time="0.001"><failure message="AssertionError: missing shared read-budget/source-coverage contract&#10;assert False&#10; +  where False = callable(None)">available = ('S5', 'S3', 'S1')
+visible = (('S5', b'[["N3.0000000000000001","documented","text",1,1,1,1]]'), ('S5', b'[["N3.0000000000000002","documented","text...N3.0000000000000003","documented","text",1,1,1,1]]'), ('S5', b'[["N3.0000000000000004","documented","text",1,1,1,1]]'))
+used = 4, expected = ['S3', 'S1']
+
+    @pytest.mark.parametrize('available,visible,used,expected',[
+        (SOURCES,(),0,list(SOURCES)),
+        (SOURCES,tuple(page('S1',i) for i in range(1,4)),3,list(SOURCES)),
+        (SOURCES,tuple(page('S1',i) for i in range(1,5)),4,['S2','S3','S4','S5']),
+        (SOURCES,tuple(page('S1',i) for i in range(1,5))+(page('S2',5),),5,['S3','S4','S5']),
+        (SOURCES,(page('S1'),page('S2',2),page('S3',3)),5,list(SOURCES)),
+        (SOURCES,(page('S1'),page('S2',2),page('S3',3)),6,None),
+        (SOURCES,(page('S1',empty=True),),4,None),
+        (SOURCES,(page('S1'),page('S2',2,empty=True)),4,['S2','S3','S4','S5']),
+        (SOURCES,tuple(page('S1',i) for i in range(1,6)),5,None),
+        (('S1','S2'),(page('S1'),),1,None),
+        ((),(),0,None),
+        (('S5','S3','S1'),tuple(page('S5',i) for i in range(1,5)),4,['S3','S1']),
+    ])
+    def test_budget_reserves_only_the_reads_needed_for_missing_sources(available,visible,used,expected):
+        before=deepcopy(WorkInspectTool.parameters)
+&gt;       schema=phase(available,visible,used)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-source-coverage\UltimaAgent\src\brain\tests\test_work_source_coverage_budget.py:47: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+available = ('S5', 'S3', 'S1')
+visible = (('S5', b'[["N3.0000000000000001","documented","text",1,1,1,1]]'), ('S5', b'[["N3.0000000000000002","documented","text...N3.0000000000000003","documented","text",1,1,1,1]]'), ('S5', b'[["N3.0000000000000004","documented","text",1,1,1,1]]'))
+used = 4, base = None
+
+    def phase(available=SOURCES, visible=(), used=0, base=None):
+        helper=getattr(nav,'v3_phase_inspect_schema',None)
+&gt;       assert callable(helper), 'missing shared read-budget/source-coverage contract'
+E       AssertionError: missing shared read-budget/source-coverage contract
+E       assert False
+E        +  where False = callable(None)
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-source-coverage\UltimaAgent\src\brain\tests\test_work_source_coverage_budget.py:27: AssertionError</failure></testcase><testcase classname="" name="test_read_count_is_a_strict_bounded_integer[True]" time="0.001"><failure message="AssertionError: missing shared read-budget/source-coverage contract&#10;assert False&#10; +  where False = callable(None)">used = True
+
+    @pytest.mark.parametrize('used',[True,False,-1,7,1.5,'4',None])
+    def test_read_count_is_a_strict_bounded_integer(used):
+&gt;       with pytest.raises(ValueError):phase(used=used)
+                                       ^^^^^^^^^^^^^^^^
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-source-coverage\UltimaAgent\src\brain\tests\test_work_source_coverage_budget.py:60: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+available = ('S1', 'S2', 'S3', 'S4', 'S5'), visible = (), used = True
+base = None
+
+    def phase(available=SOURCES, visible=(), used=0, base=None):
+        helper=getattr(nav,'v3_phase_inspect_schema',None)
+&gt;       assert callable(helper), 'missing shared read-budget/source-coverage contract'
+E       AssertionError: missing shared read-budget/source-coverage contract
+E       assert False
+E        +  where False = callable(None)
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-source-coverage\UltimaAgent\src\brain\tests\test_work_source_coverage_budget.py:27: AssertionError</failure></testcase><testcase classname="" name="test_read_count_is_a_strict_bounded_integer[False]" time="0.001"><failure message="AssertionError: missing shared read-budget/source-coverage contract&#10;assert False&#10; +  where False = callable(None)">used = False
+
+    @pytest.mark.parametrize('used',[True,False,-1,7,1.5,'4',None])
+    def test_read_count_is_a_strict_bounded_integer(used):
+&gt;       with pytest.raises(ValueError):phase(used=used)
+                                       ^^^^^^^^^^^^^^^^
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-source-coverage\UltimaAgent\src\brain\tests\test_work_source_coverage_budget.py:60: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+available = ('S1', 'S2', 'S3', 'S4', 'S5'), visible = (), used = False
+base = None
+
+    def phase(available=SOURCES, visible=(), used=0, base=None):
+        helper=getattr(nav,'v3_phase_inspect_schema',None)
+&gt;       assert callable(helper), 'missing shared read-budget/source-coverage contract'
+E       AssertionError: missing shared read-budget/source-coverage contract
+E       assert False
+E        +  where False = callable(None)
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-source-coverage\UltimaAgent\src\brain\tests\test_work_source_coverage_budget.py:27: AssertionError</failure></testcase><testcase classname="" name="test_read_count_is_a_strict_bounded_integer[-1]" time="0.001"><failure message="AssertionError: missing shared read-budget/source-coverage contract&#10;assert False&#10; +  where False = callable(None)">used = -1
+
+    @pytest.mark.parametrize('used',[True,False,-1,7,1.5,'4',None])
+    def test_read_count_is_a_strict_bounded_integer(used):
+&gt;       with pytest.raises(ValueError):phase(used=used)
+                                       ^^^^^^^^^^^^^^^^
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-source-coverage\UltimaAgent\src\brain\tests\test_work_source_coverage_budget.py:60: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+available = ('S1', 'S2', 'S3', 'S4', 'S5'), visible = (), used = -1, base = None
+
+    def phase(available=SOURCES, visible=(), used=0, base=None):
+        helper=getattr(nav,'v3_phase_inspect_schema',None)
+&gt;       assert callable(helper), 'missing shared read-budget/source-coverage contract'
+E       AssertionError: missing shared read-budget/source-coverage contract
+E       assert False
+E        +  where False = callable(None)
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-source-coverage\UltimaAgent\src\brain\tests\test_work_source_coverage_budget.py:27: AssertionError</failure></testcase><testcase classname="" name="test_read_count_is_a_strict_bounded_integer[7]" time="0.001"><failure message="AssertionError: missing shared read-budget/source-coverage contract&#10;assert False&#10; +  where False = callable(None)">used = 7
+
+    @pytest.mark.parametrize('used',[True,False,-1,7,1.5,'4',None])
+    def test_read_count_is_a_strict_bounded_integer(used):
+&gt;       with pytest.raises(ValueError):phase(used=used)
+                                       ^^^^^^^^^^^^^^^^
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-source-coverage\UltimaAgent\src\brain\tests\test_work_source_coverage_budget.py:60: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+available = ('S1', 'S2', 'S3', 'S4', 'S5'), visible = (), used = 7, base = None
+
+    def phase(available=SOURCES, visible=(), used=0, base=None):
+        helper=getattr(nav,'v3_phase_inspect_schema',None)
+&gt;       assert callable(helper), 'missing shared read-budget/source-coverage contract'
+E       AssertionError: missing shared read-budget/source-coverage contract
+E       assert False
+E        +  where False = callable(None)
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-source-coverage\UltimaAgent\src\brain\tests\test_work_source_coverage_budget.py:27: AssertionError</failure></testcase><testcase classname="" name="test_read_count_is_a_strict_bounded_integer[1.5]" time="0.001"><failure message="AssertionError: missing shared read-budget/source-coverage contract&#10;assert False&#10; +  where False = callable(None)">used = 1.5
+
+    @pytest.mark.parametrize('used',[True,False,-1,7,1.5,'4',None])
+    def test_read_count_is_a_strict_bounded_integer(used):
+&gt;       with pytest.raises(ValueError):phase(used=used)
+                                       ^^^^^^^^^^^^^^^^
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-source-coverage\UltimaAgent\src\brain\tests\test_work_source_coverage_budget.py:60: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+available = ('S1', 'S2', 'S3', 'S4', 'S5'), visible = (), used = 1.5
+base = None
+
+    def phase(available=SOURCES, visible=(), used=0, base=None):
+        helper=getattr(nav,'v3_phase_inspect_schema',None)
+&gt;       assert callable(helper), 'missing shared read-budget/source-coverage contract'
+E       AssertionError: missing shared read-budget/source-coverage contract
+E       assert False
+E        +  where False = callable(None)
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-source-coverage\UltimaAgent\src\brain\tests\test_work_source_coverage_budget.py:27: AssertionError</failure></testcase><testcase classname="" name="test_read_count_is_a_strict_bounded_integer[4]" time="0.001"><failure message="AssertionError: missing shared read-budget/source-coverage contract&#10;assert False&#10; +  where False = callable(None)">used = '4'
+
+    @pytest.mark.parametrize('used',[True,False,-1,7,1.5,'4',None])
+    def test_read_count_is_a_strict_bounded_integer(used):
+&gt;       with pytest.raises(ValueError):phase(used=used)
+                                       ^^^^^^^^^^^^^^^^
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-source-coverage\UltimaAgent\src\brain\tests\test_work_source_coverage_budget.py:60: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+available = ('S1', 'S2', 'S3', 'S4', 'S5'), visible = (), used = '4'
+base = None
+
+    def phase(available=SOURCES, visible=(), used=0, base=None):
+        helper=getattr(nav,'v3_phase_inspect_schema',None)
+&gt;       assert callable(helper), 'missing shared read-budget/source-coverage contract'
+E       AssertionError: missing shared read-budget/source-coverage contract
+E       assert False
+E        +  where False = callable(None)
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-source-coverage\UltimaAgent\src\brain\tests\test_work_source_coverage_budget.py:27: AssertionError</failure></testcase><testcase classname="" name="test_read_count_is_a_strict_bounded_integer[None]" time="0.001"><failure message="AssertionError: missing shared read-budget/source-coverage contract&#10;assert False&#10; +  where False = callable(None)">used = None
+
+    @pytest.mark.parametrize('used',[True,False,-1,7,1.5,'4',None])
+    def test_read_count_is_a_strict_bounded_integer(used):
+&gt;       with pytest.raises(ValueError):phase(used=used)
+                                       ^^^^^^^^^^^^^^^^
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-source-coverage\UltimaAgent\src\brain\tests\test_work_source_coverage_budget.py:60: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+available = ('S1', 'S2', 'S3', 'S4', 'S5'), visible = (), used = None
+base = None
+
+    def phase(available=SOURCES, visible=(), used=0, base=None):
+        helper=getattr(nav,'v3_phase_inspect_schema',None)
+&gt;       assert callable(helper), 'missing shared read-budget/source-coverage contract'
+E       AssertionError: missing shared read-budget/source-coverage contract
+E       assert False
+E        +  where False = callable(None)
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-source-coverage\UltimaAgent\src\brain\tests\test_work_source_coverage_budget.py:27: AssertionError</failure></testcase><testcase classname="" name="test_availability_cannot_be_malformed_or_model_invented[available0]" time="0.001"><failure message="AssertionError: missing shared read-budget/source-coverage contract&#10;assert False&#10; +  where False = callable(None)">available = ['S1', 'S2', 'S3']
+
+    @pytest.mark.parametrize('available',[['S1','S2','S3'],('S1','S1','S2'),('S6',),('S1',True)])
+    def test_availability_cannot_be_malformed_or_model_invented(available):
+&gt;       with pytest.raises(ValueError):phase(available)
+                                       ^^^^^^^^^^^^^^^^
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-source-coverage\UltimaAgent\src\brain\tests\test_work_source_coverage_budget.py:65: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+available = ['S1', 'S2', 'S3'], visible = (), used = 0, base = None
+
+    def phase(available=SOURCES, visible=(), used=0, base=None):
+        helper=getattr(nav,'v3_phase_inspect_schema',None)
+&gt;       assert callable(helper), 'missing shared read-budget/source-coverage contract'
+E       AssertionError: missing shared read-budget/source-coverage contract
+E       assert False
+E        +  where False = callable(None)
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-source-coverage\UltimaAgent\src\brain\tests\test_work_source_coverage_budget.py:27: AssertionError</failure></testcase><testcase classname="" name="test_availability_cannot_be_malformed_or_model_invented[available1]" time="0.001"><failure message="AssertionError: missing shared read-budget/source-coverage contract&#10;assert False&#10; +  where False = callable(None)">available = ('S1', 'S1', 'S2')
+
+    @pytest.mark.parametrize('available',[['S1','S2','S3'],('S1','S1','S2'),('S6',),('S1',True)])
+    def test_availability_cannot_be_malformed_or_model_invented(available):
+&gt;       with pytest.raises(ValueError):phase(available)
+                                       ^^^^^^^^^^^^^^^^
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-source-coverage\UltimaAgent\src\brain\tests\test_work_source_coverage_budget.py:65: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+available = ('S1', 'S1', 'S2'), visible = (), used = 0, base = None
+
+    def phase(available=SOURCES, visible=(), used=0, base=None):
+        helper=getattr(nav,'v3_phase_inspect_schema',None)
+&gt;       assert callable(helper), 'missing shared read-budget/source-coverage contract'
+E       AssertionError: missing shared read-budget/source-coverage contract
+E       assert False
+E        +  where False = callable(None)
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-source-coverage\UltimaAgent\src\brain\tests\test_work_source_coverage_budget.py:27: AssertionError</failure></testcase><testcase classname="" name="test_availability_cannot_be_malformed_or_model_invented[available2]" time="0.001"><failure message="AssertionError: missing shared read-budget/source-coverage contract&#10;assert False&#10; +  where False = callable(None)">available = ('S6',)
+
+    @pytest.mark.parametrize('available',[['S1','S2','S3'],('S1','S1','S2'),('S6',),('S1',True)])
+    def test_availability_cannot_be_malformed_or_model_invented(available):
+&gt;       with pytest.raises(ValueError):phase(available)
+                                       ^^^^^^^^^^^^^^^^
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-source-coverage\UltimaAgent\src\brain\tests\test_work_source_coverage_budget.py:65: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+available = ('S6',), visible = (), used = 0, base = None
+
+    def phase(available=SOURCES, visible=(), used=0, base=None):
+        helper=getattr(nav,'v3_phase_inspect_schema',None)
+&gt;       assert callable(helper), 'missing shared read-budget/source-coverage contract'
+E       AssertionError: missing shared read-budget/source-coverage contract
+E       assert False
+E        +  where False = callable(None)
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-source-coverage\UltimaAgent\src\brain\tests\test_work_source_coverage_budget.py:27: AssertionError</failure></testcase><testcase classname="" name="test_availability_cannot_be_malformed_or_model_invented[available3]" time="0.001"><failure message="AssertionError: missing shared read-budget/source-coverage contract&#10;assert False&#10; +  where False = callable(None)">available = ('S1', True)
+
+    @pytest.mark.parametrize('available',[['S1','S2','S3'],('S1','S1','S2'),('S6',),('S1',True)])
+    def test_availability_cannot_be_malformed_or_model_invented(available):
+&gt;       with pytest.raises(ValueError):phase(available)
+                                       ^^^^^^^^^^^^^^^^
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-source-coverage\UltimaAgent\src\brain\tests\test_work_source_coverage_budget.py:65: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+available = ('S1', True), visible = (), used = 0, base = None
+
+    def phase(available=SOURCES, visible=(), used=0, base=None):
+        helper=getattr(nav,'v3_phase_inspect_schema',None)
+&gt;       assert callable(helper), 'missing shared read-budget/source-coverage contract'
+E       AssertionError: missing shared read-budget/source-coverage contract
+E       assert False
+E        +  where False = callable(None)
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-source-coverage\UltimaAgent\src\brain\tests\test_work_source_coverage_budget.py:27: AssertionError</failure></testcase><testcase classname="" name="test_even_empty_visible_pages_must_belong_to_trusted_availability[False]" time="0.001"><failure message="AssertionError: missing shared read-budget/source-coverage contract&#10;assert False&#10; +  where False = callable(None)">empty = False
+
+    @pytest.mark.parametrize('empty',[False,True])
+    def test_even_empty_visible_pages_must_belong_to_trusted_availability(empty):
+&gt;       with pytest.raises(ValueError):phase(('S1','S2','S3'),(page('S5',empty=empty),),1)
+                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-source-coverage\UltimaAgent\src\brain\tests\test_work_source_coverage_budget.py:70: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+available = ('S1', 'S2', 'S3')
+visible = (('S5', b'[["N3.0000000000000001","documented","text",1,1,1,1]]'),)
+used = 1, base = None
+
+    def phase(available=SOURCES, visible=(), used=0, base=None):
+        helper=getattr(nav,'v3_phase_inspect_schema',None)
+&gt;       assert callable(helper), 'missing shared read-budget/source-coverage contract'
+E       AssertionError: missing shared read-budget/source-coverage contract
+E       assert False
+E        +  where False = callable(None)
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-source-coverage\UltimaAgent\src\brain\tests\test_work_source_coverage_budget.py:27: AssertionError</failure></testcase><testcase classname="" name="test_even_empty_visible_pages_must_belong_to_trusted_availability[True]" time="0.001"><failure message="AssertionError: missing shared read-budget/source-coverage contract&#10;assert False&#10; +  where False = callable(None)">empty = True
+
+    @pytest.mark.parametrize('empty',[False,True])
+    def test_even_empty_visible_pages_must_belong_to_trusted_availability(empty):
+&gt;       with pytest.raises(ValueError):phase(('S1','S2','S3'),(page('S5',empty=empty),),1)
+                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-source-coverage\UltimaAgent\src\brain\tests\test_work_source_coverage_budget.py:70: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+available = ('S1', 'S2', 'S3'), visible = (('S5', b'[]'),), used = 1
+base = None
+
+    def phase(available=SOURCES, visible=(), used=0, base=None):
+        helper=getattr(nav,'v3_phase_inspect_schema',None)
+&gt;       assert callable(helper), 'missing shared read-budget/source-coverage contract'
+E       AssertionError: missing shared read-budget/source-coverage contract
+E       assert False
+E        +  where False = callable(None)
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-source-coverage\UltimaAgent\src\brain\tests\test_work_source_coverage_budget.py:27: AssertionError</failure></testcase><testcase classname="" name="test_phase_never_expands_original_tool_capability" time="0.001"><failure message="AssertionError: missing shared read-budget/source-coverage contract&#10;assert False&#10; +  where False = callable(None)">def test_phase_never_expands_original_tool_capability():
+        base=deepcopy(WorkInspectTool.parameters);base['properties']['source_id']['enum']=['S1','S2','S3']
+&gt;       with pytest.raises(ValueError):phase(SOURCES,base=base)
+                                       ^^^^^^^^^^^^^^^^^^^^^^^^
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-source-coverage\UltimaAgent\src\brain\tests\test_work_source_coverage_budget.py:75: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+available = ('S1', 'S2', 'S3', 'S4', 'S5'), visible = (), used = 0
+base = {'type': 'object', 'additionalProperties': False, 'properties': {'source_id': {'type': 'string', 'enum': ['S1', 'S2', 'S3']}, 'start_line': {'type': 'integer', 'minimum': 1, 'maximum': 1024}}, 'required': ['source_id', 'start_line']}
+
+    def phase(available=SOURCES, visible=(), used=0, base=None):
+        helper=getattr(nav,'v3_phase_inspect_schema',None)
+&gt;       assert callable(helper), 'missing shared read-budget/source-coverage contract'
+E       AssertionError: missing shared read-budget/source-coverage contract
+E       assert False
+E        +  where False = callable(None)
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-source-coverage\UltimaAgent\src\brain\tests\test_work_source_coverage_budget.py:27: AssertionError</failure></testcase><testcase classname="" name="test_invalid_or_duplicate_visible_evidence_does_not_buy_coverage[visible0-0]" time="0.001"><failure message="AssertionError: missing shared read-budget/source-coverage contract&#10;assert False&#10; +  where False = callable(None)">visible = (('S1', b'[["N3.0000000000000001","documented","text",1,1,1,1]]'),)
+used = 0
+
+    @pytest.mark.parametrize('visible,used',[
+        ((page('S1'),),0),
+        ((page('S1'),page('S2')),2),
+        ((('S1',b'[[]]'),),1),
+        ([page('S1')],1),
+    ])
+    def test_invalid_or_duplicate_visible_evidence_does_not_buy_coverage(visible,used):
+&gt;       with pytest.raises(ValueError):phase(visible=visible,used=used)
+                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-source-coverage\UltimaAgent\src\brain\tests\test_work_source_coverage_budget.py:85: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+available = ('S1', 'S2', 'S3', 'S4', 'S5')
+visible = (('S1', b'[["N3.0000000000000001","documented","text",1,1,1,1]]'),)
+used = 0, base = None
+
+    def phase(available=SOURCES, visible=(), used=0, base=None):
+        helper=getattr(nav,'v3_phase_inspect_schema',None)
+&gt;       assert callable(helper), 'missing shared read-budget/source-coverage contract'
+E       AssertionError: missing shared read-budget/source-coverage contract
+E       assert False
+E        +  where False = callable(None)
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-source-coverage\UltimaAgent\src\brain\tests\test_work_source_coverage_budget.py:27: AssertionError</failure></testcase><testcase classname="" name="test_invalid_or_duplicate_visible_evidence_does_not_buy_coverage[visible1-2]" time="0.001"><failure message="AssertionError: missing shared read-budget/source-coverage contract&#10;assert False&#10; +  where False = callable(None)">visible = (('S1', b'[["N3.0000000000000001","documented","text",1,1,1,1]]'), ('S2', b'[["N3.0000000000000001","documented","text",1,1,1,1]]'))
+used = 2
+
+    @pytest.mark.parametrize('visible,used',[
+        ((page('S1'),),0),
+        ((page('S1'),page('S2')),2),
+        ((('S1',b'[[]]'),),1),
+        ([page('S1')],1),
+    ])
+    def test_invalid_or_duplicate_visible_evidence_does_not_buy_coverage(visible,used):
+&gt;       with pytest.raises(ValueError):phase(visible=visible,used=used)
+                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-source-coverage\UltimaAgent\src\brain\tests\test_work_source_coverage_budget.py:85: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+available = ('S1', 'S2', 'S3', 'S4', 'S5')
+visible = (('S1', b'[["N3.0000000000000001","documented","text",1,1,1,1]]'), ('S2', b'[["N3.0000000000000001","documented","text",1,1,1,1]]'))
+used = 2, base = None
+
+    def phase(available=SOURCES, visible=(), used=0, base=None):
+        helper=getattr(nav,'v3_phase_inspect_schema',None)
+&gt;       assert callable(helper), 'missing shared read-budget/source-coverage contract'
+E       AssertionError: missing shared read-budget/source-coverage contract
+E       assert False
+E        +  where False = callable(None)
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-source-coverage\UltimaAgent\src\brain\tests\test_work_source_coverage_budget.py:27: AssertionError</failure></testcase><testcase classname="" name="test_invalid_or_duplicate_visible_evidence_does_not_buy_coverage[visible2-1]" time="0.001"><failure message="AssertionError: missing shared read-budget/source-coverage contract&#10;assert False&#10; +  where False = callable(None)">visible = (('S1', b'[[]]'),), used = 1
+
+    @pytest.mark.parametrize('visible,used',[
+        ((page('S1'),),0),
+        ((page('S1'),page('S2')),2),
+        ((('S1',b'[[]]'),),1),
+        ([page('S1')],1),
+    ])
+    def test_invalid_or_duplicate_visible_evidence_does_not_buy_coverage(visible,used):
+&gt;       with pytest.raises(ValueError):phase(visible=visible,used=used)
+                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-source-coverage\UltimaAgent\src\brain\tests\test_work_source_coverage_budget.py:85: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+available = ('S1', 'S2', 'S3', 'S4', 'S5'), visible = (('S1', b'[[]]'),)
+used = 1, base = None
+
+    def phase(available=SOURCES, visible=(), used=0, base=None):
+        helper=getattr(nav,'v3_phase_inspect_schema',None)
+&gt;       assert callable(helper), 'missing shared read-budget/source-coverage contract'
+E       AssertionError: missing shared read-budget/source-coverage contract
+E       assert False
+E        +  where False = callable(None)
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-source-coverage\UltimaAgent\src\brain\tests\test_work_source_coverage_budget.py:27: AssertionError</failure></testcase><testcase classname="" name="test_invalid_or_duplicate_visible_evidence_does_not_buy_coverage[visible3-1]" time="0.001"><failure message="AssertionError: missing shared read-budget/source-coverage contract&#10;assert False&#10; +  where False = callable(None)">visible = [('S1', b'[["N3.0000000000000001","documented","text",1,1,1,1]]')]
+used = 1
+
+    @pytest.mark.parametrize('visible,used',[
+        ((page('S1'),),0),
+        ((page('S1'),page('S2')),2),
+        ((('S1',b'[[]]'),),1),
+        ([page('S1')],1),
+    ])
+    def test_invalid_or_duplicate_visible_evidence_does_not_buy_coverage(visible,used):
+&gt;       with pytest.raises(ValueError):phase(visible=visible,used=used)
+                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-source-coverage\UltimaAgent\src\brain\tests\test_work_source_coverage_budget.py:85: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+available = ('S1', 'S2', 'S3', 'S4', 'S5')
+visible = [('S1', b'[["N3.0000000000000001","documented","text",1,1,1,1]]')]
+used = 1, base = None
+
+    def phase(available=SOURCES, visible=(), used=0, base=None):
+        helper=getattr(nav,'v3_phase_inspect_schema',None)
+&gt;       assert callable(helper), 'missing shared read-budget/source-coverage contract'
+E       AssertionError: missing shared read-budget/source-coverage contract
+E       assert False
+E        +  where False = callable(None)
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-source-coverage\UltimaAgent\src\brain\tests\test_work_source_coverage_budget.py:27: AssertionError</failure></testcase><testcase classname="" name="test_sdk_rejects_fifth_same_source_read_before_spending_reserved_budget" time="1.679"><failure message="AssertionError: fifth same-source read consumed the coverage reserve&#10;assert 6 == 4&#10; +  where 6 = &lt;src.brain.work_tools.WorkLedger object at 0x00000180A183BB60&gt;._read_count">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-source-coverage-budget-20261107-r1/offline/coverage-red-20261107T093925166159Z/temp/test_sdk_rejects_fifth_same_so0')
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x00000180A183B4D0&gt;, [('search', 'Research a subject')], {})
+mock_jar = (&lt;openjarvis.sdk.Jarvis object at 0x00000180A1839BE0&gt;, &lt;function _run_work_agent at 0x000001809FBD0400&gt;, [{'format': {...84, 'num_predict': 256, 'temperature': 0}, ...}, ...], [&lt;function repeated_case.&lt;locals&gt;.reply at 0x00000180A173E7A0&gt;])
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x00000180A1737930&gt;
+
+    def test_sdk_rejects_fifth_same_source_read_before_spending_reserved_budget(tmp_path,sdk_io,mock_jar,monkeypatch):
+        result,ledger=repeated_case(tmp_path,sdk_io,mock_jar,monkeypatch,adaptive=False)
+&gt;       assert ledger._read_count==4, 'fifth same-source read consumed the coverage reserve'
+E       AssertionError: fifth same-source read consumed the coverage reserve
+E       assert 6 == 4
+E        +  where 6 = &lt;src.brain.work_tools.WorkLedger object at 0x00000180A183BB60&gt;._read_count
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-source-coverage\UltimaAgent\src\brain\tests\test_work_source_coverage_budget.py:128: AssertionError</failure></testcase><testcase classname="" name="test_sdk_uses_six_reads_then_write_ack_and_independent_replay" time="1.268"><failure message="AssertionError: Invalid native research envelope&#10;assert 'failed' == 'succeeded'&#10;  &#10;  - succeeded&#10;  + failed">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-source-coverage-budget-20261107-r1/offline/coverage-red-20261107T093925166159Z/temp/test_sdk_uses_six_reads_then_w0')
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x00000180A181ED50&gt;, [('search', 'Research a subject')], {})
+mock_jar = (&lt;openjarvis.sdk.Jarvis object at 0x00000180A12A7B10&gt;, &lt;function _run_work_agent at 0x000001809FBD0400&gt;, [{'format': {...84, 'num_predict': 256, 'temperature': 0}, ...}, ...], [&lt;function repeated_case.&lt;locals&gt;.reply at 0x00000180A1529C60&gt;])
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x00000180A0DDD780&gt;
+
+    def test_sdk_uses_six_reads_then_write_ack_and_independent_replay(tmp_path,sdk_io,mock_jar,monkeypatch):
+        result,ledger=repeated_case(tmp_path,sdk_io,mock_jar,monkeypatch,adaptive=True)
+&gt;       assert result['status']=='succeeded',result['error']
+E       AssertionError: Invalid native research envelope
+E       assert 'failed' == 'succeeded'
+E         
+E         - succeeded
+E         + failed
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-source-coverage\UltimaAgent\src\brain\tests\test_work_source_coverage_budget.py:137: AssertionError</failure></testcase><testcase classname="" name="test_replay_rejects_coherently_widened_fifth_read_schema" time="1.562"><failure message="AssertionError: Invalid native research envelope&#10;assert 'failed' == 'succeeded'&#10;  &#10;  - succeeded&#10;  + failed">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-source-coverage-budget-20261107-r1/offline/coverage-red-20261107T093925166159Z/temp/test_replay_rejects_coherently0')
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x00000180A181CE10&gt;, [('search', 'Research a subject')], {})
+mock_jar = (&lt;openjarvis.sdk.Jarvis object at 0x00000180A180DBA0&gt;, &lt;function _run_work_agent at 0x000001809FBD0400&gt;, [{'format': {...84, 'num_predict': 256, 'temperature': 0}, ...}, ...], [&lt;function repeated_case.&lt;locals&gt;.reply at 0x00000180A173C400&gt;])
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x00000180A0DDC600&gt;
+
+    def test_replay_rejects_coherently_widened_fifth_read_schema(tmp_path,sdk_io,mock_jar,monkeypatch):
+        result,ledger=repeated_case(tmp_path,sdk_io,mock_jar,monkeypatch,adaptive=True)
+&gt;       assert result['status']=='succeeded',result['error']
+E       AssertionError: Invalid native research envelope
+E       assert 'failed' == 'succeeded'
+E         
+E         - succeeded
+E         + failed
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-source-coverage\UltimaAgent\src\brain\tests\test_work_source_coverage_budget.py:153: AssertionError</failure></testcase><testcase classname="" name="test_false_or_arbitrary_prewrite_final_is_rejected[\u5df2\u4fdd\u5b58research.md]" time="0.615"><failure message="AssertionError: assert 'Missing nonempty immutable runtime proof' == 'Invalid native research envelope'&#10;  &#10;  - Invalid native research envelope&#10;  + Missing nonempty immutable runtime proof">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-source-coverage-budget-20261107-r1/offline/coverage-red-20261107T093925166159Z/temp/test_false_or_arbitrary_prewri0')
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x00000180A1253BB0&gt;, [('search', 'Research a subject'), ('get', '...'https://example.com/source/3'), ('get', 'https://example.com/source/4'), ('get', 'https://example.com/source/5')], {})
+mock_jar = (&lt;openjarvis.sdk.Jarvis object at 0x00000180A0D99D00&gt;, &lt;function _run_work_agent at 0x000001809FBD0400&gt;, [{'format': {...ser'}], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [])
+text = '已保存research.md'
+
+    @pytest.mark.parametrize('text',['已保存research.md','已交付完整报告','测'*1000])
+    def test_false_or_arbitrary_prewrite_final_is_rejected(tmp_path,sdk_io,mock_jar,text):
+        mock_jar[3].append(json.dumps(dict(final_answer=text)))
+        result=submit(tmp_path,sdk_io[0],mock_jar[1]);ledger=RESTRICTED[result['task_id']]
+&gt;       assert result['error']=='Invalid native research envelope'
+E       AssertionError: assert 'Missing nonempty immutable runtime proof' == 'Invalid native research envelope'
+E         
+E         - Invalid native research envelope
+E         + Missing nonempty immutable runtime proof
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-source-coverage\UltimaAgent\src\brain\tests\test_work_source_coverage_budget.py:173: AssertionError</failure></testcase><testcase classname="" name="test_false_or_arbitrary_prewrite_final_is_rejected[\u5df2\u4ea4\u4ed8\u5b8c\u6574\u62a5\u544a]" time="0.221"><failure message="AssertionError: assert 'Missing nonempty immutable runtime proof' == 'Invalid native research envelope'&#10;  &#10;  - Invalid native research envelope&#10;  + Missing nonempty immutable runtime proof">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-source-coverage-budget-20261107-r1/offline/coverage-red-20261107T093925166159Z/temp/test_false_or_arbitrary_prewri1')
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x00000180A14F95B0&gt;, [('search', 'Research a subject'), ('get', '...'https://example.com/source/3'), ('get', 'https://example.com/source/4'), ('get', 'https://example.com/source/5')], {})
+mock_jar = (&lt;openjarvis.sdk.Jarvis object at 0x00000180A0DADF50&gt;, &lt;function _run_work_agent at 0x000001809FBD0400&gt;, [{'format': {...ser'}], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [])
+text = '已交付完整报告'
+
+    @pytest.mark.parametrize('text',['已保存research.md','已交付完整报告','测'*1000])
+    def test_false_or_arbitrary_prewrite_final_is_rejected(tmp_path,sdk_io,mock_jar,text):
+        mock_jar[3].append(json.dumps(dict(final_answer=text)))
+        result=submit(tmp_path,sdk_io[0],mock_jar[1]);ledger=RESTRICTED[result['task_id']]
+&gt;       assert result['error']=='Invalid native research envelope'
+E       AssertionError: assert 'Missing nonempty immutable runtime proof' == 'Invalid native research envelope'
+E         
+E         - Invalid native research envelope
+E         + Missing nonempty immutable runtime proof
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-source-coverage\UltimaAgent\src\brain\tests\test_work_source_coverage_budget.py:173: AssertionError</failure></testcase><testcase classname="" name="test_false_or_arbitrary_prewrite_final_is_rejected[text2]" time="0.252"><failure message="AssertionError: assert 'Missing nonempty immutable runtime proof' == 'Invalid native research envelope'&#10;  &#10;  - Invalid native research envelope&#10;  + Missing nonempty immutable runtime proof">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-source-coverage-budget-20261107-r1/offline/coverage-red-20261107T093925166159Z/temp/test_false_or_arbitrary_prewri2')
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x00000180A0D879B0&gt;, [('search', 'Research a subject'), ('get', '...'https://example.com/source/3'), ('get', 'https://example.com/source/4'), ('get', 'https://example.com/source/5')], {})
+mock_jar = (&lt;openjarvis.sdk.Jarvis object at 0x00000180A112DD60&gt;, &lt;function _run_work_agent at 0x000001809FBD0400&gt;, [{'format': {...ser'}], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [])
+text = '测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测...测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测'
+
+    @pytest.mark.parametrize('text',['已保存research.md','已交付完整报告','测'*1000])
+    def test_false_or_arbitrary_prewrite_final_is_rejected(tmp_path,sdk_io,mock_jar,text):
+        mock_jar[3].append(json.dumps(dict(final_answer=text)))
+        result=submit(tmp_path,sdk_io[0],mock_jar[1]);ledger=RESTRICTED[result['task_id']]
+&gt;       assert result['error']=='Invalid native research envelope'
+E       AssertionError: assert 'Missing nonempty immutable runtime proof' == 'Invalid native research envelope'
+E         
+E         - Invalid native research envelope
+E         + Missing nonempty immutable runtime proof
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-source-coverage\UltimaAgent\src\brain\tests\test_work_source_coverage_budget.py:173: AssertionError</failure></testcase><testcase classname="" name="test_valid_non_delivery_final_remains_available_without_delivery_credit" time="0.352"><failure message="AssertionError: assert ('本次任务未完成。' == '本次研究未交付。'&#10;  &#10;  - 本次研究未交付。&#10;  + 本次任务未完成。)">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-source-coverage-budget-20261107-r1/offline/coverage-red-20261107T093925166159Z/temp/test_valid_non_delivery_final_0')
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x00000180A0DB29C0&gt;, [('search', 'Research a subject'), ('get', '...'https://example.com/source/3'), ('get', 'https://example.com/source/4'), ('get', 'https://example.com/source/5')], {})
+mock_jar = (&lt;openjarvis.sdk.Jarvis object at 0x00000180A1199FD0&gt;, &lt;function _run_work_agent at 0x000001809FBD0400&gt;, [{'format': {...ser'}], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [])
+
+    def test_valid_non_delivery_final_remains_available_without_delivery_credit(tmp_path,sdk_io,mock_jar):
+        mock_jar[3].append(json.dumps(dict(final_answer=NOT_DELIVERED)))
+        result=submit(tmp_path,sdk_io[0],mock_jar[1]);ledger=RESTRICTED[result['task_id']]
+        assert result['error']=='Missing nonempty immutable runtime proof' and result['status']=='failed'
+&gt;       assert result['content']==NOT_DELIVERED and not result['artifacts']
+E       AssertionError: assert ('本次任务未完成。' == '本次研究未交付。'
+E         
+E         - 本次研究未交付。
+E         + 本次任务未完成。)
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-source-coverage\UltimaAgent\src\brain\tests\test_work_source_coverage_budget.py:183: AssertionError</failure></testcase><testcase classname="" name="test_unconfirmed_delivery_keeps_partial_effect_warning" time="0.793"><failure message="AssertionError: assert '本次任务未完成，部分操作可能已生效，请核对结果。' == '本次研究未交付，部分操作可能已生效，请核对结果。'&#10;  &#10;  - 本次研究未交付，部分操作可能已生效，请核对结果。&#10;  ?   ^^ ^^&#10;  + 本次任务未完成，部分操作可能已生效，请核对结果。&#10;  ?   ^^ ^^">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-source-coverage-budget-20261107-r1/offline/coverage-red-20261107T093925166159Z/temp/test_unconfirmed_delivery_keep0')
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x00000180A0DB2140&gt;, [('search', 'Research a subject'), ('get', '...'https://example.com/source/3'), ('get', 'https://example.com/source/4'), ('get', 'https://example.com/source/5')], {})
+mock_jar = (&lt;openjarvis.sdk.Jarvis object at 0x00000180A11BB790&gt;, &lt;function _run_work_agent at 0x000001809FBD0400&gt;, [{'format': {..., ...], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [])
+
+    def test_unconfirmed_delivery_keeps_partial_effect_warning(tmp_path,sdk_io,mock_jar):
+        def bad_ack(body):return json.dumps(dict(final_answer='x'*1001))
+        bad_ack.no_auto_navigation=True
+        mock_jar[3].extend([navigation_reply]*4+[bad_ack])
+        result=submit(tmp_path,sdk_io[0],mock_jar[1])
+        assert result['status']=='needs_attention' and list(tmp_path.rglob('research.md'))
+&gt;       assert result['content']=='本次研究未交付，部分操作可能已生效，请核对结果。'
+E       AssertionError: assert '本次任务未完成，部分操作可能已生效，请核对结果。' == '本次研究未交付，部分操作可能已生效，请核对结果。'
+E         
+E         - 本次研究未交付，部分操作可能已生效，请核对结果。
+E         ?   ^^ ^^
+E         + 本次任务未完成，部分操作可能已生效，请核对结果。
+E         ?   ^^ ^^
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-source-coverage\UltimaAgent\src\brain\tests\test_work_source_coverage_budget.py:195: AssertionError</failure></testcase><testcase classname="" name="test_nonresearch_failure_keeps_existing_message" time="0.003" /><testcase classname="" name="test_final_schema_distinguishes_refusal_from_verified_ack" time="0.001"><failure message="AssertionError: missing shared delivery-state contract&#10;assert False&#10; +  where False = callable(None)">def test_final_schema_distinguishes_refusal_from_verified_ack():
+        helper=getattr(nav,'v3_research_final_schema',None)
+&gt;       assert callable(helper), 'missing shared delivery-state contract'
+E       AssertionError: missing shared delivery-state contract
+E       assert False
+E        +  where False = callable(None)
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-source-coverage\UltimaAgent\src\brain\tests\test_work_source_coverage_budget.py:207: AssertionError</failure></testcase></testsuite></testsuites>

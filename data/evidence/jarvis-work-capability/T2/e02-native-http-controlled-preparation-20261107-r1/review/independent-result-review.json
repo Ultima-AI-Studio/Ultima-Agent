@@ -1,0 +1,272 @@
+{
+  "reviewer": "root-independent",
+  "assigned_agent": "/root/review_e02_http_controlled_result",
+  "original_work_order_id": "wo-ultimaagent-20261101-0021",
+  "stage": "T2",
+  "candidate": "ee1bef61f04169c64978538dbc4ba799ef7be6c0",
+  "run_id": "91406fa9-5952-4e3a-99af-a94c8857c8d3",
+  "result_manifest_sha256": "8d1b3920f1b15e3deec3c0b380eeb9476a2701454a0aa4f7f8c34fe79c43641e",
+  "preparation_manifest_sha256": "01d1c12f63e19d7ea72020a28fad3f2a4ba1496aaa31ccbd6112a245919ec7cb",
+  "preparation_review_sha256": "92c9eb76aa4a51c788797f44b7f1837dd13f3913ecd90d7c4547c55a46d0f7d9",
+  "verdict": "FAIL_CONFIRMED",
+  "recorded_utc": "2026-11-07T09:25:49.088021+00:00",
+  "hash_verification": {
+    "result_members": 60,
+    "preparation_members": 149,
+    "current_input_pins": 1567,
+    "candidate_source_files": 68,
+    "actual_seal_members": 31,
+    "mismatches": [],
+    "raw_equals_cli": true,
+    "raw_json_equals_product": true,
+    "service_product_binding_equal": true,
+    "diagnostic_canonical_and_binding_hash_valid": true,
+    "diagnostic_final_text_hash_valid": true
+  },
+  "findings": [
+    {
+      "id": "F1",
+      "severity": "blocking",
+      "classification": "observed",
+      "summary": "No research.md, no write tool result, no ACK and no nonempty immutable runtime proof. Service/product failed and root FAIL.",
+      "evidence": [
+        "actual/E02-controlled-1/first-product.raw",
+        "actual/E02-controlled-1/product-result.json",
+        "actual/E02-controlled-1/service-first-result.json",
+        "actual/E02-controlled-1/trusted-export.json",
+        "release/root-outcome.json"
+      ]
+    },
+    {
+      "id": "F2",
+      "severity": "high",
+      "classification": "diagnostic fact plus frozen-source reconstruction",
+      "summary": "Six confirmed visible pages cover only S1 and S2. At read_count=6, inspect is removed; fewer than three distinct sources with cards makes eligible false and omits write. The remaining final_answer string accepts an untrue saved-file statement. Outer delivery gate rejects it correctly.",
+      "evidence": [
+        "actual/E02-controlled-1/trusted-failure-diagnostic.raw",
+        "src/brain/agent_server.py:570-615",
+        "src/brain/work_research.py:788-817",
+        "src/brain/work_tools.py:675-692"
+      ]
+    },
+    {
+      "id": "F3",
+      "severity": "limit",
+      "classification": "unproven compatibility",
+      "summary": "Current last HTTP 200/validated_response=true is not evidence that the historical eligible-three-source writer schema/2048 phase HTTP500 cause is repaired."
+    }
+  ],
+  "facts_citations_coverage": {
+    "artifact_present": false,
+    "artifact_fact_audit": "NOT_EVALUABLE_NO_ARTIFACT",
+    "artifact_citation_audit": "NOT_EVALUABLE_NO_ARTIFACT",
+    "original_question_delivery_coverage": "NOT_PASSED",
+    "four_sources_fetched": true,
+    "source_ids_inspected": [
+      "S1",
+      "S2"
+    ],
+    "source_ids_not_inspected": [
+      "S3",
+      "S4"
+    ],
+    "original_final_is_delivery": false,
+    "false_completion_text": "已整理Jarvis.ceo桌面端的任务架构与现有开源接入的带来源文档，保存为research.md。",
+    "note": "GET success/catalogue availability does not establish model reading or report factual coverage. No invented fact/citation pass or zero-error metric."
+  },
+  "diagnostic_facts": {
+    "sha256": "1b7dbff86d384510390931c0f4c0c7245d205a88ac29b78e3bca51514ee88772",
+    "bytes": 6158,
+    "binding_sha256": "de2317005df610d5d570e31ec4bf2ca9afc9094e0cd5185863015316a3bf1ff6",
+    "branch": "final_before_write",
+    "confirmed_pages": 6,
+    "visible_pages": 6,
+    "read_requests": [
+      {
+        "source_id": "S1",
+        "start_line": 26
+      },
+      {
+        "source_id": "S1",
+        "start_line": 50
+      },
+      {
+        "source_id": "S1",
+        "start_line": 74
+      },
+      {
+        "source_id": "S1",
+        "start_line": 98
+      },
+      {
+        "source_id": "S1",
+        "start_line": 122
+      },
+      {
+        "source_id": "S2",
+        "start_line": 20
+      }
+    ],
+    "eligible_source_ids": [
+      "S1",
+      "S2"
+    ],
+    "budget": {
+      "completed_posts": 7,
+      "deadline_remaining_microseconds": 247183454,
+      "generations": 7,
+      "native_posts": 7,
+      "native_posts_limit": 8,
+      "read_bytes": 9448,
+      "reads_limit": 6,
+      "reads_used": 6,
+      "write_admission_open": true
+    },
+    "last_http": {
+      "admitted": 441,
+      "downloaded": 441,
+      "generation": 7,
+      "inspected": 441,
+      "receipt_index": 20,
+      "request_bytes": 21600,
+      "request_sha256": "b163dd845ad4dd2c5d274eb7710566cd4ec933f43d16299f240722df5c6f412f",
+      "retained": 441,
+      "route": "chat",
+      "send_reserved": true,
+      "status": 200,
+      "transport_failed": false,
+      "validated_response": true
+    },
+    "write_confirmed": false,
+    "ack_confirmed": false,
+    "complete": false
+  },
+  "root_cause_limits": [
+    "Final-only schema and num_predict<=256 are reconstructed from hash-verified frozen source and observed reads/eligibility. Full outgoing request bytes/schema were not retained in this failure diagnostic; request SHA and byte count are direct diagnostic facts, not a reconstructed body.",
+    "write_admission_open=true measures remaining-time admission, not source eligibility. The 247.183454 seconds remaining rules out deadline exhaustion at this snapshot, not every possible internal cause.",
+    "Old N11 diagnostics have S1/S2/S3 eligible and native supplement records 2048 evaluation tokens and HTTP500. Current 200 final-only outcome does not exercise or prove writer-phase compatibility.",
+    "No assertion that prompt/schema alone universally causes HTTP500, nor that native request SHA alone establishes semantic request contents.",
+    "Root witness eligible=false, terminal_sha256=null and UNOBSERVED_NEVER_TIMED_PASS remain unchanged. Short elapsed duration is not successful timed acceptance.",
+    "Protected identities are verified against sealed observation records only; reviewer performed no process query and makes no continuous-liveness claim."
+  ],
+  "original_gates_and_budget": {
+    "model": "qwen3-8b-uncensored",
+    "model_digest": "6d7230a923426bc1933879eb08a7dafc18e5fc0e7606c459ce98f16e0c7f9330",
+    "limits": {
+      "CLI": 1,
+      "search": 1,
+      "GET": 4,
+      "inspect": 6,
+      "write": 1,
+      "ACK": 1,
+      "native_POST": 8,
+      "service_seconds": 260,
+      "client_seconds": 300,
+      "root_work_seconds": 275,
+      "cleanup_seconds": 310,
+      "seal_seconds": 315,
+      "context": 16384,
+      "messages_schema_bytes": 32768,
+      "entity_bytes": 49152,
+      "maximum_output_tokens": 2048,
+      "retry": 0
+    },
+    "observed": {
+      "CLI": 1,
+      "search": 1,
+      "GET": 4,
+      "inspect": 6,
+      "write": 0,
+      "ACK": 0,
+      "native_POST": 7,
+      "completed_POST": 7,
+      "entry_elapsed_seconds": 35.68289250001544,
+      "retry": 0
+    },
+    "source_minimum_preserved": 3,
+    "numeric_counts_within_limits": true,
+    "timed_acceptance": "NOT_PASSED",
+    "full_success_runtime_proof_available": false,
+    "controlled_corpus_not_live_internet_acceptance": true
+  },
+  "cleanup_and_protection": {
+    "original_cleanup_status": "PASS",
+    "owned_identities_recorded_absent": 6,
+    "sealed_port_closed": true,
+    "logs_closed": true,
+    "boundary_before_after_equal": true,
+    "protected_count": 7,
+    "protected_all_equal_in_sealed_closeout": true,
+    "observation_start_utc": "2026-11-07T09:18:37.723031+00:00",
+    "observation_end_utc": "2026-11-07T09:18:40.152890+00:00",
+    "reviewer_process_queries": 0,
+    "continuous_liveness_measured": false,
+    "retrospective_cleanup_upgrade": false
+  },
+  "allocation": {
+    "question_id": "call_7ea1218e1bc347188fc72c160c50097a",
+    "actual_allocated": 1,
+    "actual_consumed": 1,
+    "actual_remaining": 0,
+    "review_allocated": 1,
+    "review_consumed": 1,
+    "review_remaining": 0,
+    "retry": 0,
+    "release_consumption_precedes_entry_result": true
+  },
+  "seal_repair_review": {
+    "initial_error": "TypeError: validate_failure_diagnostic requires raw bytes and binding_key",
+    "initial_call": "validate_failure_diagnostic(packet)",
+    "initial_script_sha256": "ff4f25ed120452c079538a41c11406e0193611b34e303057e6182971fa778377",
+    "failure_receipt_sha256": "a87361af807c56054ab9fa169255dd440b3764b4c3d86ae1ea98cebedae88371",
+    "corrected_call": "validate_failure_diagnostic(raw, binding), binding from product request/session/task IDs equals runtime-inputs binding_key",
+    "corrected_script_sha256": "2c874af63973606e608532455c3ced44c5973893bf925c676d219fff6347e2b1",
+    "classification": "post-case read-only evidence sealing correction",
+    "product_reruns": 0,
+    "product_evidence_overwrite_observed": false,
+    "note": "Reviewed scripts and sealed receipts; did not execute either helper. Exclusive x-mode writes and preserved initial script/failure retain correction history."
+  },
+  "predecessor_preservation": {
+    "N12_manifest_members_verified": 808,
+    "N12_current_input_pins_verified": 1568,
+    "N11_manifest_members_verified": 2501,
+    "N11_result_manifest_members_verified": 49,
+    "N11_native_supplement_members_verified": 4,
+    "old_dependency_pins_verified": 1563,
+    "N11_manifest_and_review_digest_bindings_verified": true,
+    "mismatches": [],
+    "N11_result": "FAIL_CONFIRMED",
+    "N12_offline_tests_credit_transferred": 0,
+    "historical_339_checks_rerun": false,
+    "clean_git_status": "sealed preservation receipt only; no reviewer git invocation"
+  },
+  "minimal_followup_direction": {
+    "proposal_only": true,
+    "recommendations": [
+      "Link remaining six-read budget with uncovered eligible sources before reads can exhaust all report paths. Preserve original three-source, fact/reference and time/token gates.",
+      "Provide an honest refusal terminal when writing is inadmissible; do not treat unrestricted final_answer text as evidence of delivery.",
+      "Validate reachable writer phase and historical HTTP500 separately only under new explicit allocation."
+    ],
+    "prohibited_shortcuts": [
+      "lowering source minimum",
+      "forcing a two-source write",
+      "disabling refusal to force writing",
+      "increasing budget or changing model",
+      "automatic retry or product repair"
+    ]
+  },
+  "acceptance_credit": 0,
+  "E02": "NOT_PASSED",
+  "T2": "NOT_PASSED",
+  "Owner": "NOT_PASSED",
+  "tests_run": 0,
+  "model_calls": 0,
+  "actual_runs": 0,
+  "tests_run_by_reviewer": 0,
+  "model_calls_by_reviewer": 0,
+  "actual_runs_by_reviewer": 0,
+  "network_calls_by_reviewer": 0,
+  "product_imports_by_reviewer": 0,
+  "product_changes": 0,
+  "review_method": "Read-only files, hashes and JSON/source reasoning. No product/test/model/runtime/process/UI/audio operations. Only two allocated review output files written."
+}

@@ -1,0 +1,29 @@
+--- previous/harness/adapter.py
++++ current/harness/adapter.py
+@@ -22,12 +22,12 @@
+ HERE=Path(__file__).resolve().parent
+ V=HERE.parent
+ T=V.parent
+-C=Path('C:/Users/Administrator/.codex/worktrees/jarvis-e02-fixed-target-schema/UltimaAgent')
++C=Path('C:/Users/Administrator/.codex/worktrees/jarvis-e02-source-reference/UltimaAgent')
+ P4=T/'e01-source13-round3-20261106/code/controller.py'
+ P1=P4.parent.parent/'preparation-support/acceptance_adapter.py'
+-MANIFEST_SHA='a79450622f6e7fd96269cc169ded5df720f9a52695da1a0e8d11b7f27dd1555a'
++MANIFEST_SHA='1cab75bc9fe42cab18100a3980843f64378b714ee36f3cbc2dce44019e6d6cac'
+ PREPARATION_SHA='38a38c9c0c2e27cc998603fef60ee64efd44a07661167500f7274c0e807a69f6'
+-CANDIDATE='900b944165c0175b91492e3fe5b31d96aabdcd5c'
++CANDIDATE='a0d21ebf167c41a76410075f7a92f1680926213f'
+ MODEL='qwen3-8b-uncensored'
+ CASE='E02-controlled-1'
+ BUDGETS=dict(cli=1,search=1,GET=4,inspect=6,write=1,ACK=1,native_POST=8,service_seconds=260,client_seconds=300,outer_seconds=315,retry=0)
+@@ -40,8 +40,8 @@
+ 
+ INPUTS_PATH=V/'inputs/input-manifest.json'
+ BINDINGS_PATH=V/'code/bindings.py'
+-BINDINGS_SHA='835acae821abcc7fd4cc4782402c47999f056be6dd1aab50b4764c89d8459dc3'
+-PROTECTED_BASELINE=T/'e02-source13-exact-probe-20261106/inputs/protected-baseline.json'
++BINDINGS_SHA='2dd2f178399233db46c49d9936fdaadc1744a839ef01c7cdd281dc5fa01794b2'
++PROTECTED_BASELINE=V/'inputs/protected-baseline.json'
+ SDK_SOURCES=('H:\\UltimaAI\\UltimaAgent\\tools\\venv-openjarvis\\Lib\\site-packages\\openjarvis\\_rust_bridge.py', 'H:\\UltimaAI\\UltimaAgent\\tools\\venv-openjarvis\\Lib\\site-packages\\openjarvis\\agents\\_stubs.py', 'H:\\UltimaAI\\UltimaAgent\\tools\\venv-openjarvis\\Lib\\site-packages\\openjarvis\\agents\\native_react.py', 'H:\\UltimaAI\\UltimaAgent\\tools\\venv-openjarvis\\Lib\\site-packages\\openjarvis\\agents\\prompt_loader.py', 'H:\\UltimaAI\\UltimaAgent\\tools\\venv-openjarvis\\Lib\\site-packages\\openjarvis\\cli\\ask.py', 'H:\\UltimaAI\\UltimaAgent\\tools\\venv-openjarvis\\Lib\\site-packages\\openjarvis\\core\\config.py', 'H:\\UltimaAI\\UltimaAgent\\tools\\venv-openjarvis\\Lib\\site-packages\\openjarvis\\core\\events.py', 'H:\\UltimaAI\\UltimaAgent\\tools\\venv-openjarvis\\Lib\\site-packages\\openjarvis\\core\\registry.py', 'H:\\UltimaAI\\UltimaAgent\\tools\\venv-openjarvis\\Lib\\site-packages\\openjarvis\\core\\types.py', 'H:\\UltimaAI\\UltimaAgent\\tools\\venv-openjarvis\\Lib\\site-packages\\openjarvis\\engine\\_base.py', 'H:\\UltimaAI\\UltimaAgent\\tools\\venv-openjarvis\\Lib\\site-packages\\openjarvis\\engine\\_stubs.py', 'H:\\UltimaAI\\UltimaAgent\\tools\\venv-openjarvis\\Lib\\site-packages\\openjarvis\\engine\\ollama.py', 'H:\\UltimaAI\\UltimaAgent\\tools\\venv-openjarvis\\Lib\\site-packages\\openjarvis\\sdk.py', 'H:\\UltimaAI\\UltimaAgent\\tools\\venv-openjarvis\\Lib\\site-packages\\openjarvis\\security\\capabilities.py', 'H:\\UltimaAI\\UltimaAgent\\tools\\venv-openjarvis\\Lib\\site-packages\\openjarvis\\security\\guardrails.py', 'H:\\UltimaAI\\UltimaAgent\\tools\\venv-openjarvis\\Lib\\site-packages\\openjarvis\\security\\runtime.py', 'H:\\UltimaAI\\UltimaAgent\\tools\\venv-openjarvis\\Lib\\site-packages\\openjarvis\\security\\scanner.py', 'H:\\UltimaAI\\UltimaAgent\\tools\\venv-openjarvis\\Lib\\site-packages\\openjarvis\\telemetry\\instrumented_engine.py', 'H:\\UltimaAI\\UltimaAgent\\tools\\venv-openjarvis\\Lib\\site-packages\\openjarvis\\tools\\_stubs.py', 'H:\\UltimaAI\\UltimaAgent\\tools\\venv-openjarvis\\Lib\\site-packages\\openjarvis\\tools\\description_loader.py', 'H:\\UltimaAI\\UltimaAgent\\tools\\venv-openjarvis\\Lib\\site-packages\\openjarvis\\tools\\file_read.py', 'H:\\UltimaAI\\UltimaAgent\\tools\\venv-openjarvis\\Lib\\site-packages\\openjarvis\\tools\\file_write.py')
+ if hashlib.sha256(BINDINGS_PATH.read_bytes()).hexdigest()!=BINDINGS_SHA:raise ValueError('Binding source drift')
+ _binding_spec=importlib.util.spec_from_file_location('source13_real_input_bindings',BINDINGS_PATH)

@@ -1,0 +1,25 @@
+# E02 代码事实生成起点候选：受控入口准备
+
+状态：PASS_OFFLINE_AND_INDEPENDENT_PREPARATION_REVIEW；仅准备通过。
+
+原工单wo-ultimaagent-20261101-0021 / T2。产品候选d8f8d97cd0147ffc6f45746ffd1ec80bc4d48b2b，独立产品准备PASS，精确1434成员已封存；本地产品准备提交915ecdf5，镜像c2d34b9，最终读回PASS。本入口只绑定已冻结产品，不再改产品代码。
+
+本轮用户授权离线补修、必要独审和入口准备，实际研究及独立结果复核分配均0；模型调用0，网络请求0，无UI/音频/生产服务操作。E02仍0/3，T2/Owner未通过。旧E01/E03通过不移作本候选信用。目标工具登记仍blocked，和本轮已授权的离线工作分开记录。
+
+本候选改动只移除代码claim中精确operation之前的任意前缀，并使共享生成/重放提示要求operation开头。原strict、writer、来源/引用、事实、覆盖、预算、写入/读回及ACK保持。原真实正文重复50/49次、引用错配和未读S4证据保留；后缀与非代码自由字符串仍能耗尽预算，不能说实际研究交付已修好。
+
+新鲜入口检查350项通过：adapter按JUnit身份去重289项，binding16、entry34、boundary11。五组adapter原始291项含2个既有交叉身份；最终受限轮次的八组检查同源码，失败/错误/跳过均0；首轮3项失败保留：1项准备ID拒绝门、2项旧采样表达；随后恢复轮次剩1项成品文本期望漏迁移，独立回执保留，另保留批次汇总独占文件名冲突。最终修正剩余期望并使用新汇总文件，不覆写任何旧回执，最多2组并发。继续覆盖v3/v4/v5导出、FULL/EXCERPTS/OMITTED_POLICY、原16384字节上限、矛盾状态拒绝和零验收信用。原obsolete-v4 RED仅保留历史，不伪造新失败。产品1004项（994产品/4兼容/6官方参考转换）是本轮先前已封存证据，没有重跑或加进350。审计denied为空、预期冷导入探针已关闭；操作审计不等于OS抓包，OS数据包数量未测量。
+
+完整78个产品源码、1602项输入文件摘要绑定当前冻结根；check_inputs另核对其输入manifest、bindings和scope三文件，不能混淆两种计数。entry/bindings/adapter的全部函数/class AST与上一入口一致。原question、四来源corpus、current8B摘要、CLI1/search1/GET4/inspect6/write1/ACK1/nativePOST8、service260/client300/rootwork275/cleanup310/seal315、writer2048/read-ACK256及所有字节上限保持。
+
+运行态明确PENDING_FRESH_ACTUAL_PREFLIGHT。准备期未运行旧read_runtime.py，也未读取/api/version或/api/tags。旧原生/保护身份快照只作为历史摘要引用；不声称当前七保护身份或端口状态已通过。另行明确分配后，原run_released与adapter仍须在原同一时钟内执行全部新鲜身份、监听/隔离端口和模型摘要门，失败消耗单例、不得绕过或重试。
+
+旧产品与入口、实际FAIL、依赖、15个无关文件均保全；新根没有release、controller-authority、native-preflight、actual或实际ledger。原平台准备答复在source_question_id准确记录为call_5411de619a6c4de0bab414126a228c7d；执行绑定decision_id为明确标记的内容派生ID。actual/result-review均0，原direct谓词验证其不可升格actual1。两个导出fixture改成operation开头与右侧Unicode伪装边界，保留原成功写回/严格拒绝用途；不删除失败断言或改协议。
+
+准备登记期间root误用PowerShell ConvertFrom-Json，遇到T2/t2异大小写键后继续执行，曾将current-run写为空值。已保留坏字节并从此前本轮快照恢复全部原键和last_actual，重放仅本轮注册字段，Python读回PASS。后续状态使用Python JSON。旧registration回执是历史时点，最终检查独立核对现态；该失误不是产品测试失败，也不被删除或包装为全过程无错误。
+
+独审PASS后只创建harness准备审批并调用read_ready/read_release证明缺少grant会拒绝；不调用run_once或run_released。新单例提案见同目录execution-proposal.md，完整原题、原8B、原预算、失败不重试与独立事实复核门全部保留。
+
+本地提交/tag、三份镜像和最终读回由后置独立回执证明，不伪称属于先前封存manifest。先前远端push和scratch删除被自动审批blocked by policy拦截，本轮不重试、不换通道，保留技能ledger副本。
+
+独立准备审查PASS_PREPARATION_ONLY；manifest c36908a9a99f290889cb420613a93d70611386ace39765e8b970f55f5ea1f16a，394成员；review SHA256 112435823a9ab087ede87457026e0a78d11659e39a1cff22a2b14dafa767af5d。harness-approval/read_ready通过；缺少grant时read_release拒绝，run_once未调用。

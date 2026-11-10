@@ -3,307 +3,248 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>北极星上线任务清单</title>
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 2l2.4 7.6L22 12l-7.6 2.4L12 22l-2.4-7.6L2 12l7.6-2.4z' fill='%23D9A441'/%3E%3C/svg%3E">
-<style>
-  :root{
-    --bg:#0F1418; --panel:#161D24; --line:#232D36;
-    --text:#E8EDF2; --sub:#93A1AD; --faint:#5E6B77;
-    --gold:#D9A441; --green:#4C9E6D; --amber:#D9A441; --gray:#93A1AD;
-  }
-  *{box-sizing:border-box; margin:0; padding:0;}
-  html{-webkit-text-size-adjust:100%;}
-  body{
-    background:var(--bg); color:var(--text);
-    font-family:"Microsoft YaHei","PingFang SC","Segoe UI",sans-serif;
-    line-height:1.6; padding:24px 16px 64px;
-  }
-  .wrap{max-width:960px; margin:0 auto;}
-  /* ===== 头部 ===== */
-  header{padding:8px 0 20px;}
-  .kicker{font-size:12px; letter-spacing:.22em; color:var(--faint);}
-  h1{font-size:26px; font-weight:700; margin:2px 0 2px; letter-spacing:.02em;}
-  .subtitle{font-size:13px; color:var(--sub);}
-  .progress-head{display:flex; align-items:baseline; gap:12px; margin-top:16px;}
-  .big-num{font-size:44px; font-weight:800; color:var(--gold); line-height:1;}
-  .big-label{font-size:12px; color:var(--sub);}
-  .bar{height:8px; background:var(--panel); border-radius:4px; overflow:hidden; margin-top:10px; border:1px solid var(--line);}
-  .bar-fill{height:100%; width:0; background:var(--gold); transition:width .3s ease;}
-  /* ===== 验收框架 ===== */
-  .frame{border-top:1px solid var(--line); margin-top:20px;}
-  .frame-head{display:flex; align-items:center; gap:10px; padding:12px 0; cursor:pointer; min-height:44px; user-select:none;}
-  .frame-title{font-size:14px; font-weight:700;}
-  .frame-sub{font-size:12px; color:var(--faint); margin-left:auto;}
-  .frame .chev{color:var(--faint); font-size:11px; transition:transform .2s; width:14px;}
-  .frame.collapsed .chev{transform:rotate(-90deg);}
-  .frame-body{display:none; padding:4px 0 14px;}
-  .frame.open .frame-body{display:block;}
-  .frame-note{font-size:12px; color:var(--sub); margin-bottom:8px;}
-  .frame table{width:100%; border-collapse:collapse; table-layout:fixed; font-size:12px;}
-  .frame col.c1{width:14%;}
-  .frame col.c2{width:22%;}
-  .frame col.c3{width:64%;}
-  .frame th,.frame td{border:1px solid var(--line); padding:6px 8px; text-align:left; vertical-align:top;}
-  .frame th{color:var(--gold); font-weight:600; background:var(--panel);}
-  .frame td{color:var(--sub);}
-  /* ===== 筛选 ===== */
-  .filters{display:flex; gap:8px; margin:18px 0 6px; flex-wrap:wrap;}
-  .filter{
-    appearance:none; border:1px solid var(--line); background:var(--panel); color:var(--sub);
-    padding:7px 14px; border-radius:4px; font-size:13px; cursor:pointer; min-height:36px;
-  }
-  .filter:hover{color:var(--text); border-color:var(--faint);}
-  .filter[aria-pressed="true"]{color:var(--gold); border-color:var(--gold);}
-  /* ===== 分组 ===== */
-  .group{margin-top:22px; border-top:1px solid var(--line);}
-  .group-head{
-    display:flex; align-items:center; gap:10px; padding:14px 0 10px; cursor:pointer;
-    min-height:44px; user-select:none;
-  }
-  .g-no{font-size:12px; color:var(--gold); font-weight:700; width:28px;}
-  .g-name{font-size:17px; font-weight:700;}
-  .g-sub{font-size:12px; color:var(--faint); margin-left:auto;}
-  .g-bar{width:110px; height:4px; background:var(--panel); border-radius:2px; overflow:hidden; border:1px solid var(--line);}
-  .g-bar-fill{height:100%; width:0; background:var(--gold);}
-  .chev{color:var(--faint); font-size:11px; transition:transform .2s; width:14px;}
-  .group.collapsed .chev{transform:rotate(-90deg);}
-  .group.collapsed .tasks{display:none;}
-  /* ===== 任务行 ===== */
-  .tasks{list-style:none;}
-  .task{border-bottom:1px solid var(--line); padding:10px 0 10px 38px; position:relative;}
-  .task .cb{position:absolute; left:0; top:12px;}
-  .cb input{width:19px; height:19px; accent-color:var(--gold); cursor:pointer;}
-  .task-top{display:flex; align-items:center; gap:8px; flex-wrap:wrap;}
-  .t-name{font-size:14px; font-weight:600;}
-  .chip{font-size:11px; padding:2px 8px; border-radius:3px; line-height:1.5; border:1px solid transparent;}
-  .chip.done{color:#BFE6CE; background:rgba(76,158,109,.14); border-color:rgba(76,158,109,.35);}
-  .chip.wip{color:#F2D9A0; background:rgba(217,164,65,.12); border-color:rgba(217,164,65,.35);}
-  .chip.todo{color:var(--sub); background:rgba(94,107,119,.14); border-color:var(--line);}
-  .t-desc{font-size:12px; color:var(--sub); margin-top:3px;}
-  .t-accept{margin-top:8px; font-size:12px; color:var(--faint); background:var(--panel);
-    border-left:2px solid var(--gold); padding:6px 10px; display:none; border-radius:0 3px 3px 0;}
-  .t-accept.open{display:block;}
-  .t-toggle{display:inline-block; font-size:11px; color:var(--faint); cursor:pointer; margin-top:6px; min-height:24px; line-height:24px;}
-  .t-toggle:hover{color:var(--gold);}
-  .task.done .t-name{color:var(--faint);}
-  /* ===== 已知问题 ===== */
-  .known{margin-top:34px; border-top:1px solid var(--line); padding-top:16px;}
-  .known h2{font-size:15px; margin-bottom:8px; color:var(--sub);}
-  .known ul{list-style:none;}
-  .known li{font-size:12px; color:var(--faint); padding:3px 0 3px 16px; position:relative;}
-  .known li::before{content:""; position:absolute; left:2px; top:9px; width:6px; height:6px; background:var(--amber); border-radius:1px;}
-  .reset{margin-top:16px; appearance:none; border:1px solid var(--line); background:var(--panel); color:var(--sub);
-    padding:8px 16px; border-radius:4px; font-size:13px; cursor:pointer; min-height:40px;}
-  .reset:hover{color:#E0A6A6; border-color:#8A4A4A;}
-  footer{margin-top:30px; font-size:11px; color:var(--faint);}
-  @media (max-width:560px){
-    body{padding:18px 12px 48px;}
-    h1{font-size:22px;}
-    .g-bar{width:70px;}
-    .task{padding-left:34px;}
-  }
-</style>
+<title>UltimaAgent 北极星主线看板</title>
+<style> .ultima-tracker{font-family:Microsoft YaHei,SimHei,sans-serif;font-size:14px;color:#e5e7eb;background:#111827;padding:16px;border-radius:10px;line-height:1.6;} .ultima-tracker h3{margin:6px 0 8px 0;color:#f9fafb;font-size:16px;} .level1{margin:12px 0 16px 0;border-left:3px solid #3b82f6;padding-left:12px;} .level2{margin:8px 0 10px 0;border-left:2px solid #60a5fa;padding-left:10px;} .level3{margin:4px 0 6px 0;padding-left:8px;color:#d1d5db;} .done{color:#34d399;font-weight:500;} .wait{color:#fbbf24;} .pending{color:#9ca3af;} .progress-bar-wrap{display:inline-block;width:120px;height:8px;background:#1f2937;border-radius:4px;margin:0 8px;vertical-align:middle;overflow:hidden;} .progress-bar{height:100%;background:#3b82f6;transition:width 0.3s;} .tag-done{display:inline-block;background:#065f46;color:#a7f3d0;padding:1px 6px;border-radius:4px;font-size:12px;margin-left:6px;} .tag-running{display:inline-block;background:#78350f;color:#fcd34d;padding:1px 6px;border-radius:4px;font-size:12px;margin-left:6px;} .tag-pending{display:inline-block;background:#374151;color:#9ca3af;padding:1px 6px;border-radius:4px;font-size:12px;margin-left:6px;}  /* ========== 主线工作流样式 ========== */ .flow-track{margin-bottom:24px;} .flow-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;} .flow-node{padding:10px 12px;border-radius:8px;min-width:160px;text-align:center;box-sizing:border-box;transition:all 0.3s;} .flow-arrow{color:#60a5fa;font-size:20px;user-select:none;} .flow-done{background:#064e3b;border:1px solid #059669;color:#a7f3d0;} .flow-active{background:#1e3a8a;border:1px solid #3b82f6;color:#bfdbfe;box-shadow:0 0 10px #2563eb66;} .flow-next{background:#451a03;border:1px solid #d97706;color:#fcd34d;} .flow-wait{background:#1f2937;border:1px solid #4b5563;color:#9ca3af;} .flow-node-title{font-weight:bold;font-size:14px;display:block;margin-bottom:4px;} .flow-node-desc{font-size:12px;opacity:0.8;} .flow-info-box{margin-top:10px;padding:10px;background:#1f2937;border-radius:6px;font-size:13px;color:#d1d5db;} .live-block{margin:14px 0 18px 0;border-left:3px solid #f59e0b;padding-left:12px;} .live-block h3{margin:6px 0 8px 0;color:#fcd34d;font-size:16px;}.wo-tag{display:inline-block;padding:0 5px;border-radius:3px;font-size:11px;margin-right:6px;font-family:Consolas,'Courier New',monospace;vertical-align:baseline;letter-spacing:0;}.wo-tag.num{background:#1e3a8a;color:#bfdbfe;}.wo-tag.live{background:#78350f;color:#fcd34d;border:1px solid #b45309;}.wo-tag.none{background:#374151;color:#9ca3af;}.wo-tag.todo{background:#27272a;color:#a1a1aa;font-style:italic;}.blocker{margin:4px 0 10px 0;padding:5px 9px;background:#1f1a1a;border-left:2px solid #ef4444;border-radius:3px;font-size:12px;color:#fca5a5;line-height:1.7;}.blocker b{color:#fecaca;}.blocker.ok{border-left-color:#f59e0b;color:#fcd34d;background:#211c12;}.blocker.ok b{color:#fde68a;}.blocker.gray{border-left-color:#4b5563;color:#9ca3af;background:#181c22;}.blocker.gray b{color:#cbd5e1;}</style>
 </head>
 <body>
-<div class="wrap">
-  <header>
-    <div class="kicker">ULTIMA AGENT · NORTH STAR</div>
-    <h1>北极星上线任务清单</h1>
-    <div class="subtitle">贾维斯形态 · 逐项推进 · 完成一项勾一项，防跑偏</div>
-    <div class="progress-head">
-      <div class="big-num" id="bigNum">0</div>
-      <div class="big-label" id="bigLabel">/ 0 已完成</div>
+<div class="ultima-tracker"> <h3>📌 UltimaAgent 北极星主线看板（贾维斯目标）</h3>
+<div style="margin:8px 0 12px 0;padding:8px 10px;background:#111827;border-left:3px solid #64748b;border-radius:4px;font-size:12px;color:#94a3b8;line-height:1.7;">
+  <b style="color:#cbd5e1;">数据口径：</b>「执行中任务」的进程状态与耗时由采集脚本实时注入（<span id="liveUpdatedAt">待采集</span>，每 5 分钟自动采集，Windows 计划任务 UltimaAgentTrackerLive 无窗后台运行）；<br>
+  <b style="color:#cbd5e1;">模块完成度</b>按任务条目计数得出，属<b>人工校准口径</b>，非工单系统实时数据 —— 工单级权威状态请查全局主表与台账（此项为模块4 T1/T2 要接通的目标）。
+</div>
+<!-- ========== 执行中任务（工单级｜运行时状态由 scripts/tracker-live.py 注入，下方文字为人工分析快照） ========== -->
+    <div class="level3"><b style="color:#34d399;">刚完成：r9 实现闭环（第八轮审计「不一致」→ N8–N11 + N2 复发 + 文档一致性）</b>｜<b>提交 57d5578f（代码 4 文件 +428/−216）+ 0b03b1ba（docs 3 文件 +88/−2）+ tag gorch-r9-failopen-closeout-20261109（已推）</b>｜<b>N8 锁范围</b>：`target_sha` 移进 `with _MergeLock(...)` 块首，前态取证（`src_before` / `src_tree` / `target_tree_before` / `pre_anc`）、`wt_merge()`、回执解析、后态取证（`rc_anc` / `sha_after` / `src_after` / `top_tree`）、proof 判定、`merged.append` <b>全在同一把锁内</b><b style="color:#fbbf24;">（更正：r9 提交时 `failed.append` / `merged.append` 仍在 `with` 外，r10 已整段移入）</b>｜<b>N9 三档 proof</b>：新增共同前置 <b>`content_changed`</b>（`target_tree_before` 与 `top_tree` 必须不同，空提交 / revert 回同一 tree 不再算合入）；`ff` 在 `pre_anc=True` 时<b>不再用旧 `src_before`</b>查 `merge-base`（那恒真），改核 <b>`src_after` 新 tip</b>；`wt_receipt` 沿用 branch/target 严格等值｜<b>N10 身份严格化</b>：`dry_run is not False` / `result != done` / `mergeable is not True` / `invocation` 非空且等值 <b>四项前置</b>到入候选池之前；`run_dirs` 模式不给 `expect_invocation` 直接 `SystemExit`；CLI `merge --invocation` 改 <b>required</b>｜<b>N11 路径解析</b>：删 `_STATE_PREFIX`，`_fresh_paths` <b>只收纯路径</b>（`SRC docs/…` / ` M …` 不再被剥前缀，按真实文件名判越域）｜<b>N2 复发</b>：`_digest` 只对 `FileNotFoundError` 返 `ABSENT`，其余 `OSError` 返 `None`（整份指纹失效）｜<b>证据</b>：两测试文件合跑 <b>147 passed / 47.90s</b>（batch <b>104</b> + channel <b>43</b>；r8 为 139 / 40.63s），新增 <b>8</b> 条（batch 6 / channel 2）<b style="color:#fbbf24;">（更正：`test_merge_lock_is_exclusive` 实为同进程第二实例，r10 已补真跨进程用例）</b>，另改 5 条既有用例语义（`_fresh_paths` 纯路径、身份项前置后补 `dry_run` / `mergeable`、`--invocation` 经 argparse SystemExit）｜<b>报告</b> fix-gorch-r5-failopen <b>§13</b>（并更正 §12 五处「声明强于实现」）、<b>L85</b>｜<b>仍未闭合</b>：<b>5 条口径</b>（merge 严格因果 / 预已祖先 squash 语义 / manifest 签发可信边界 / manifest target 是否绑定独立 merge / `wt_receipt` 能否作最终兜底）仍无 Owner 书面批准；外部 git 不受本锁约束、wt 无 invocation 级回执；`run_all` 未用真实批次复跑；`done_no_merge` 三分组未落｜<b>下一步</b>：交第九轮 Codex 独立只读审计（第②环）</div>
+    <div class="level3"><b style="color:#34d399;">刚完成：r10 实现闭环（第九轮审计「不一致」→ 可直改九条）</b>｜<b>提交 c341c6dc（代码+测试 4 文件 +276/−49）+ 09903f1c（docs 3 文件 +111/−5）+ tag gorch-r10-failopen-closeout-20261109（已推）</b>｜<b>三高反例</b>：① `_status_rows` 的 XY 两位都认 R/C（` R` / ` C` 的裸源路径不再被当成下一条状态行、`item[3:]` 不再截前三字符，域外删除不再伪装成域内路径）；② `fresh_changes` 回补 `b_paths - a_paths`（把基线域外脏文件恢复成 HEAD 不再隐形）；③ `_MergeLock` 锁键先 `_norm_ref`（`main` 与 `refs/heads/main` 落到同一把锁）｜<b>其余点名</b>：`pre_anc` 改查冻结 `src_before`；`target_tree_before` 取不到即在 `wt_merge` <b>之前</b> fail-closed（新增「合并前取证失败」出口，不再与「未证明合入」混档）；`failed.append` / `merged.append` 整段移进 `with _MergeLock(...)`；新增 `_path_state` exists/absent/unknown 三态，cleanup 的 <b>unknown 不计「已清理」</b>｜<b>测试</b>：<b>159 passed / 49.58s</b>（batch <b>108</b> + channel <b>45</b>，含 1 个 parametrize 展开 7 例；r9 为 147 / 47.90s），新增真跨进程锁、锁键归一、前态 tree 前置、`dry_run`/`mergeable` 宽松类型（0 / 1 / "true"）、R/C 两位状态码、消失路径 6 条函数；被削弱的 reason 断言钉回 `result == blocked` + 原样 reason｜<b>报告</b> fix-gorch-r5-failopen <b>§14</b>、<b>L86</b>｜<b>仍未闭合</b>：需口径共 <b>12</b> 条（前两轮 5 + 第九轮 7）全无 Owner 书面批准；`_scope_match` 的 `.strip()`、`_digest` 的 `is_file()==False→ABSENT`、fallback 的条件式 invocation 未改；`run_all` 未用真实批次复跑；<b>下一步</b>：第十轮审计已跑并判「不一致」（可直改 7 / 需口径 10）→ r11 修复</div>
+    <div class="level3"><b style="color:#34d399;">刚完成：r11 实现闭环（第十轮审计「不一致」→ 可直改七条）</b>｜<b>提交 d2640d95（代码+测试 4 文件 +283/−27）+ 0c414494（docs 3 文件 +77/−2）+ tag gorch-r11-failopen-closeout-20261109（已推）</b>｜<b>可直改七条</b>：① `_path_state` 增第四态 <b>`wrong_type`</b>（存在的普通文件不再记 absent，cleanup 三处消费点不允许它参与「已清理」豁免）；② `_digest` 对存在的非普通文件返 <b>`TYPE:dir` / `TYPE:link` / `TYPE:other`</b>，不再与 ABSENT 共用；③ `_MergeLock` 锁键改 <b>可读前缀 + sha256(ref)[:16]</b>（`feature/a` 与 `feature_a` 不再抢同一把锁，`main` ≡ `refs/heads/main` 仍同锁）；④ cleanup 三个 removed 出口统一成 <b>同一组 6 key</b> 的 evidence（` dir_state / branch_state / worktree_registered / wt_returncode / exemption / readback`），删 `dir_exists`、rc=0 成功条目补 evidence；⑤ 新增 vanished ignored / 已暂存 `R ` rename / `_path_state` 普通文件与 unknown / 锁键碰撞与异键不互斥 / 三出口 schema / run_all 取证失败分档 用例，两条 proof 负向用例改<b>前后不同 tree</b> 以隔离 ancestor 条件；⑥ merge `failed` 增 <b>`kind`</b>（`evidence_failure` / `merge_conflict` / `proof_failure`），`run_all` 拆 `kept_for_conflict` / `kept_for_evidence`，取证失败不再引导去 abort rebase；⑦ 报告 <b>§15</b> + §14.3 口径去重（唯一语义 <b>8 类</b>，第十轮真新增 4 条 → 合计 <b>12 类</b>）+ §14.6 三项补记 + <b>L87</b>｜<b>测试</b>：<b>168 passed / 48.12s</b>（batch <b>114</b> + channel <b>48</b>，含 1 个 parametrize 展开 7 例；r10 为 159 / 49.58s），新增 9 条函数（batch 6 / channel 3）｜<b>仍未闭合</b>：<b>12 类口径</b>全无 Owner 书面批准；外部 git 不受锁约束、wt 无 invocation 级回执；`_scope_match` 的 `.strip()` 与 fallback 条件式 invocation 未改；`_digest` 对目录只记类型摘要、目录内文件变化仍不可见（新残余，如实记）；`run_all` 未用真实批次复跑｜<b>下一步</b>：交第十一轮 Codex 独立只读审计（第②环）</div>
+    <div class="level3"><b style="color:#34d399;">刚完成：r12 实现闭环（第十一轮审计「不一致」→ 可直改八条；第十二轮审计仍判「不一致」→ r13 收尾）</b>｜<b>提交 597d52b2（代码+测试 4 文件 +400/−51）+ 135d2f56（docs 3 文件 +90/−2）+ tag gorch-r12-failopen-closeout-20261109（已推）</b>｜<b>八条</b>：① `_path_state` 改 **`os.lstat`**（不跟随）——`S_ISDIR` 才算 `exists`，**所有 symlink 形态（link→file / link→dir / dangling）落 `wrong_type`**，dangling 不再落 `absent` 被记已清理（<b>边界：junction 的 lstat 仍报目录 → 落 `exists` 走正常 `wt remove`，不是 wrong_type</b>）；② `_digest` 先 lstat，link 一律 **`LINK:<sha256(readlink 文本)>`**，其余非普通文件折 `TYPE:dir` / `TYPE:other`；③ merge 的 **5 处 `raise SystemExit`**（target SHA / 回执不可解析 / 回执非对象 / branch 不一致 / target 不一致）全改**结构化 `failed` + `break`**（前 1 处 evidence_failure、后 4 处 proof_failure）；④ `run_all` 失败分档由二分改**四分流**（conflict / evidence / proof / unknown）；⑤ `merge(..., trace=)` 回传 **attempted / not_attempted**；⑥ `removed` **外层** 统一 10 个固定 key；⑦ `_status_rows` 加 porcelain 格式先验；⑧ 报告 **§16** + §14.3 改 **11 类** + §15 五处更正 + **L88** + 看板 r11 收口｜<b>测试</b>：**176 passed / 47.21s**（batch **119** + channel **51**；r11 为 168 / 48.12s），新增 8 条函数（batch 5 / channel 3），<b>改桩/改断言 5 条既有用例</b>（`test_merge_fails_closed_on_unparsable_json` / `test_path_state_distinguishes_regular_file_and_unknown` / `test_cleanup_evidence_schema_is_uniform` / `test_digest_stat_error_is_not_absent` / `test_digest_reports_non_regular_type`）｜<b>桩化与实测边界</b>：symlink 语义全部**桩化**（本机 `os.symlink` 三种形态全失败：WinError 183 / 87）；junction 实测 `os.lstat` **仍报目录**（`islnk=False, isdir=True, 0o40777`）→ 落 `exists`｜<b>第十二轮审计</b>：1026.8s / 16,679B / 239 行 / 153,699 tokens，判**不一致**（口径①③：非末位空 rename source fail-open + 文档 6 处矛盾；E1 四条 + D 段六项 → r13）</div>
+    <div class="level3"><b style="color:#34d399;">刚完成：r13 实现闭环（第十二轮审计「不一致」→ E1 四条 + 文档六处）</b>｜<b>E1 四条</b>：① `_status_rows` 的 rename source 由「仅末位空串」改「**任何**空 source 或缺失即整份失败」（反例 `R  docs/in\0\0 M docs/y\0` 不再被接受）；② `-z` 非空输出必须 `endswith('\0')`，截断流整份失败；③ `merge` 空 targets 早退前把 `trace` 归零；④ `run_all` 的 `cleanup` 外层四档 `kept_for_*` 在 `_stop` 与正常完成分支补齐｜<b>文档六处</b>：§16.2 #1 reparse 表述收窄 + 位置改**函数名锚定**（`def _path_state(`，r14 实测 `:1395`；早年记录的三个行号均已漂移，见 L90）、§15.2「3 处 SystemExit」→**5 处**、L88 标题「六个坑」→**七个坑**、「既有用例 3 条」→**5 条**、看板 r12 行去自相矛盾并补提交号/tag｜<b>测试</b>：**182 passed / 47.90s**（batch **123** + channel **53**；r12 为 176 / 47.21s），新增 6 条函数（batch 4 / channel 2），加强 1 条既有用例（`test_cleanup_treats_any_symlink_as_wrong_type` 追加 `os.stat` dangling 桩 + `_path_state` 直接断言，消除假通过）｜<b>仍未闭合</b>：E2 需口径 7 条全无 Owner 书面批准；`TYPE:other` 折叠 FIFO/socket/device；`wt_remove_rc` 与 `wt_returncode` 语义重叠；junction 真实删除未验收；`run_all` 未用真实批次复跑｜<b>第十三轮审计</b>：718.3s / 15,304B / 176 行 / 154,999 tokens，判**不一致**（口径①③：行号漂到 `:1395`、`:762` 仍写「3 处」、E1-4 缺回归断言）→ r14 收口</div>
+    <div class="level3"><b style="color:#34d399;">刚完成：r14 收口（第十四轮审计判【一致】）（第十三轮审计「不一致」→ 文档锚点化 + 回归断言）</b>｜<b>四项</b>：① 报告 §16.2 #1/§17.3 与看板全部改 **函数名锚定**（`def _path_state(`，实测 `:1395`），不再写会漂的行号；② 报告 `:762` 的「3 处 `SystemExit`」→**5 处**并逐条列出；③ `test_run_all_without_ready_has_merge_key` 加 cleanup **六键同构**断言，新增 `test_run_all_normal_completion_cleanup_has_all_keepers` 覆盖**正常完成分支**（`stopped_at=done`、四档 `kept_for_*` 全空、六键齐全）；④ 真实 junction `wt remove` / 真实批次 `run_all` 仍列未验收｜<b>测试</b>：新增 1 条函数（batch **124** / channel **53**，collect 130 + 53 = **183**），另一条加六键同构断言；合跑 **183 passed / 49.24s**（r13 为 182 / 47.90s）｜<b>第十四轮审计</b>：631.0s / 11,366B / 128 行，身份 8 项全对，**判一致**（未命中口径①②③④）；审计方用只读内存探针实跑真实 `run_all`（gate / done 两路径六键齐全），并逐键撤除 `kept_for_evidence/proof/unknown` 验证断言必红；collect 实测 183 ｜<b>非阻断遗留（E1）</b>：未闭合保留分支缺六键集合断言、正常完成用例的 `find_done_tasks` 为冗余桩、`183 passed / 49.24s` 属实施侧回执、真实 junction `wt remove` 与真实批次 `run_all` 仍待验收</div>
+    <div class="level3"><b style="color:#34d399;">刚完成：r15 推进（第十四轮审计 E1 四项 + E2 七条口径）</b>｜<b>E1 四项</b>：① 新增 `test_run_all_unclosed_leftover_keeps_all_keepers`（未闭合保留分支 `set(cleanup)==CLEANUP_KEYS` + 断言未闭合时 cleanup 从未被调用）；② 正常完成用例删掉冗余 `find_done_tasks` 桩，真实形状直接过 consumer；③ **撤键即红实测**（删未闭合分支三键 → 1 failed，恢复 → 1 passed，源码零 diff）；④ 全量 **184 passed / 61.19s**（r14 183/49.24s）｜<b>真实 junction `wt remove` 验收完成</b>：`-f` 只删 junction 不删目标目录，回执 「Discarding uncommitted changes」是误报；`_path_state` 对 junction 永远报 `exists`、永不落 `wrong_type`｜<b>七条口径由 Codex 复核定稿</b>（`docs/decisions/pd-20261109-gorch-e2-七条口径裁决.md`）：① 只证 link 对象+指向；② 目录条目名集合哈希且**不跟随 reparse**、submodule 记 gitlink；③ 128 bit + 迁移期双锁；④ 三 kind 四桶；⑤ 双采样只算观察性证明，硬因果要 expected-old CAS；⑥ 新增**只读** `doctor`；⑦ 删非显式 glob 分支。复核纠正工程侧 4 处事实错误（`_digest` 非 `_path_digest`、四桶非三档、无双采样外的 clean 门、mtime fallback 已删）｜<b>未闭合</b>：真实批次 `run_all` 未跑成（clone 大仓超时 + HEAD 损坏，改用 `git worktree add` 载体），七条口径实现未开始（顺序 ⑤→⑦→③→②→⑥→④→①）</div>
+<div class="level3"><b style="color:#34d399;">刚完成：r15 第二轮（E2 七条口径全部落代码 ⑤⑦③②⑥④①＋MSYS 噪声修复）</b>｜<b>提交 eefd7ccc（代码+测试 5 文件 +940/−276）+ docs 4 文件 + tag gorch-r15-e2-closeout-20261109（已推）</b>｜<b>⑤ 第三方并发</b>：裁决「双采样只算观察性证明」→ 代码与文档同步改述；新增 <b>`_ref_update_from`</b> 读 target reflog 中「推到 sha_after 那一跳」绑定的旧值，与锁内基线 `target_sha` 比对——相等记 <b><s>`causal='cas'`</s>（r16 审计判定失真，本表述作废——实为 `reflog-consistent`）</b>，不等即 <b>`proof_failure`</b>（保留现场），reflog 不可读降级 <b>`observational`</b>；<b>不加</b> clean-tree 门；4 条用例含「第三方在窗口内合入同一 source」负例（三档全绿仍判死）｜<b>⑦</b> `find_done_tasks` 删非显式 glob 分支 −108 行，`run_dirs is None` / 缺 `expect_invocation` 双守卫 fail-closed，`merge` 同拒，usage 同步｜<b>③</b> `_MergeLock` 改 `sha256(norm_target)[:32]` 主键 + `[:16]` 旧键，迁移期双锁（先旧后新，第二把失败释放已持锁），`_held=[(path,fh)]`；8 条锁用例｜<b>②</b> `_dir_digest` 用 `scandir` 直接条目名集合 + 长度分隔哈希、不递归，命中 `FILE_ATTRIBUTE_REPARSE_POINT` 只记 `R`；`worktree_fingerprint` 用 `ls-files -s -z` 识 `160000`，记 gitlink OID + 子仓 HEAD／`unconfirmed`；真 junction 用例证明「改域外内容摘要不变」｜<b>⑥</b> 只读 `doctor(batch_dir)` + 子命令（`mode: read-only`），卡片状态改 `is_file()`（`_path_state` 对文件一律 `wrong_type`）；零写入用整棵目录树 `relpath/size/mtime_ns` 快照相等 + AST 断言无 `wt_remove/unlink/rmdir/删除分支`｜<b>④</b> `MERGE_FAILURE_KINDS` / `CLEANUP_UNCLOSED_BUCKETS` 单源常量，`run_all` 四桶由常量构造，AST 契约锁死 merge 内 kind ⊆ 常量｜<b>①</b> 补「指向文本不变、目标内容变 → 摘要不变」用例并明写为**预期边界**（域外目标仍属 §16 残余）｜<b>额外实测缺陷</b>：MSYS fork 诊断（`dofork:` / `child_copy:` / `CreateProcessW failed for <path>`）被当「真错误」，一次抖动整批判红——改两层规则 <b>`_MSYS_DIAG`</b>（认 `<n> [main] <prog> …<事件>:` 前缀形态）+ <b>`_BIZ_FAIL`</b>（同行含业务失败词仍判真），6 条用例｜<b>证据</b>：三文件全量 <b>207 passed / 42.72s</b>（r14 183 → r15/E1 184 → 207，净 +23），⑤ 定向 4 passed｜<b>报告</b> fix-gorch-r5-failopen <b>§21</b>、裁决书 <b>§4.1</b>、<b>L96</b>｜<b>仍未闭合</b>：真实批次 `run_all` 仍未跑成（改用 `git worktree add` 载体，不在主仓直跑）；第十/十二/十三/十四轮审计全文仍在 Temp 未入库；⑤ 若改 `update-ref` 直接接管合并写入需再引入 candidate 事务｜<b>下一步</b>：交 Codex 只读审计 r15 第二轮（判「一致」后进第③环）</div>
+<div class="level3"><b style="color:#34d399;">刚完成：r16 回修（r15b 审计判「不一致」→ ②③④⑤ + MSYS fail-open 收敛）</b>｜<b>审计依据</b> r15b 只读审计（854.5s / 19,069B）：①⑥⑦ 一致，<b>②③④⑤ 不一致</b>，另报 MSYS 真 fail-open 七例 + 4 处文档过强声明｜<b>②</b> `_digest` 目录分支先判 `st_file_attributes & FILE_ATTRIBUTE_REPARSE_POINT` → `REPARSE:dir`，绝不 `scandir`（补「路径自身是 junction」真用例）｜<b>③</b> `_acquire` 把 `open()` 移入 `try`（`OSError → SystemExit … fail-closed`），`__enter__` 改为捕 `BaseException` 并先 `_release_all()`；补「primary open 抛 `PermissionError` 后 legacy 可被另一实例立即重取」用例｜<b>④</b> 新增 `_CLEANUP_KEY_FOR` + `cleanup_schema()` 唯一构造入口，`run_all` 四处手写 `kept_for_*` 全部改 `**cleanup_schema(...)`；AST 契约升级为「禁手写键 + helper ≥4 处调用 + 未知桶 KeyError」｜<b>⑤</b> `causal` 由 `cas` 改 <b>`reflog-consistent`</b>（事后回读不绑定写者，第 23 行 `causal='cas'` 的表述据此作废），`_ref_update_from` 加 selector 相邻性校验（缺失 / 跳号 / 中间行不可解析 → `unknown`），`proof_failure` 文案改「reflog 回读不一致」｜<b>MSYS</b> 由「业务词表反向排除」改为<b>纯运行时白名单</b> `_MSYS_PURE` + `_BIZ_FAIL` 双保险，七个已知反例判真错误（`child_copy` 尾段当时仍是 `(?:,.*)?` 通配，r17 才收紧为四类字段白名单）；上述例参数化进 `gate_check` 层负例｜<b>证据</b>：全量 <b>221 passed / 52.99s</b>（207 → 净 +14），定向 31 passed，digest/fingerprint 13 passed｜<b>文档</b> 裁决书 §4.1（含「不是等价 CAS」差异清单）、报告 §21.1/§21.2/§21.3 + 新增 §21.6、L96 两点收紧｜<b>仍未闭合</b>：真 CAS（需 wt 不写 target 的架构变更）；⑤ 超 12 跳 / 选择性过期 / 多次写 ref / 非 ff 负例；真实批次 `run_all`；3 条待裁口径（`cas_state='unknown'` 是否放行 cleanup、迁移期 32-hex-only 进程是否存在、MSYS 未识别尾部默认阻断）— 已由 Codex 当场自裁：unknown 阻断 cleanup / 保持双锁 + 进程退场门 / 未识别尾部默认阻断，落地见下一行｜<b>结果</b> 已提交 e057b7bc + tag gorch-r16-audit-fix-20261110 并推送；r16 只读审计判「不一致」，由下一行 r17 接续</div>
+<div class="level3"><b style="color:#34d399;">刚完成：r17 回修（r16 审计判「不一致」→ 9 条可直改中的 8 条 + 3 条口径全部落地）</b>｜<b>审计依据</b> r16 只读审计（1050.7s / 17,967B / 142 行）：②根 reparse、③锁异常释放判<b>一致</b>；④cleanup 契约过度声明、⑤强因果表述残留、MSYS <code>child_copy</code> 任意尾段 fail-open 判<b>不一致</b>，另给 9 条可直改 + 3 条口径裁定｜<b>口径 1</b> <code>cas_state='unknown'</code> 由「降级 observational 仍合并」改为 <b><code>proof_failure</code> 阻断</b>：不进 merged、<code>run_all</code> 保留现场、不执行 cleanup｜<b>口径 2</b> 双锁保留 + 可审计回执：<code>LOCK_PROTOCOL = dual(legacy-sha256-16 + sha256-32)</code> 写进 merge 记录，<code>doctor</code> 增 <code>protocol</code> / <code>legacy_present</code> / <code>by_hex</code>（仍零写入只读）｜<b>口径 3</b> MSYS 未识别尾部默认阻断：<code>child_copy</code> 由 <code>(?:,.*)?</code> 收紧为「地址范围 / done N / windows pid N / Win32 error N」四类字段、顺序固定｜<b>④</b> <code>_CLEANUP_KEY_FOR</code> 升为唯一声明源（<code>CLEANUP_UNCLOSED_BUCKETS = tuple(...)</code> 派生），AST 契约改为「按四处 <code>steps['cleanup']</code> / <code>setdefault('cleanup', ...)</code> 赋值目标逐点检查：各一 <code>**cleanup_schema(...)</code>、调用总数恰四」+「<code>kept_for_*</code> 常量只许出现在映射里」｜<b>⑤</b> <code>_ref_update_from</code> docstring 删「强因果 / 等价于没有第三方写过」，只留观察性衔接；第 23 行 <code>causal='cas'</code> 本行加删除线并标作废｜<b>②</b> 根 junction 用例补「删除 junction 后 <code>_digest == 'ABSENT'</code> 且 ≠ <code>'REPARSE:dir'</code>」｜<b>证据</b> 定向 53 passed；digest/fingerprint 13 passed；三文件全量 <b>224 passed / 51.17s</b>（r16 221 → 净 +3）｜<b>文档</b> 裁决书 §4.1、报告 §21.1/§21.2/§21.3/§21.4 + 新增 §21.7、L96 第 1 点、看板本行同步收窄｜<b>仍未闭合</b> 真 CAS（需 wt 不写 target 的架构变更）；⑤ 超 12 跳 / 选择性过期 / 多次写 ref / 非 ff 负例；真实批次 <code>run_all</code>（E1-4 后半）；legacy 锁只有回执、没有进程退场证明｜<b>已落地</b> 678437d2（代码+测试）+ 57ce7e7e（文档 4 份）+ 2b541872（第 7 条 junction 删除后断言 ABSENT）+ ac05f181（看板收口 + L99）+ r18（审计 4 条 P0：完整行样例与两层回归、对象身份、占位符、§2.4 契约）+ r18b（cleanup AST 契约改按构造点绑定：四处各一 `**cleanup_schema(...)`、调用数恰 4；实参形状按源码顺序钉住（空参/buckets/{merge_conflict}/空参）+ 禁同名遮蔽（本地绑定收集器：解构/for/with/except/import 绑定名/局部 class/match 捕获；22 类逐形态负例；未覆盖 globals/setattr 注入与 exec/eval 动态创建；第十轮审计一致（2026-11-10），分支 gorch/r17-closeout 已推送）；变量拼 key / 别名额外更新 / 构造后按计算键追加仍可绕过），tag <code>gorch-r17-audit-fix-20261110</code>（随 r18 回修推进，指向 r17 收口提交；本行不写死短 hash，避免自我引用）；三文件全量 <b>224 passed / 49.94s</b>（改动曾被另一条 merge 线清掉，本题为按补丁整序重放后的独立复跑，非沿用旧数字）｜<b>卡点</b> 主仓处于未完成 merge（MERGE_HEAD 43da3f01、169 他人已暂存），partial commit 被拒；分支上还有他人未推提交 → 该 merge 收尾后把 <code>codex/voice-fsmn-new-path</code> fast-forward 到该 tag 目标再推，随后交 Codex 只读审计</div>
+    <div class="level3"><b style="color:#34d399;">刚完成：r8 实现闭环（第七轮审计「不一致」→ N1–N7 + 可直改八条 + 口径② 分级证据）</b>｜<b>提交 bf846825（代码 4 文件 +713/−94）+ 323e6353（文档 3 文件 +76）</b>｜<b>tag gorch-r8-failopen-closeout-20261109（已推）</b>｜<b>可直改八条全部落地</b>：① 生产 record 写 manifest/invocation/target（N1 生产者—消费者断裂）；② run-record 七项身份（根对象 / task 精确 / run_dir 必填（`resolve()` 后等价即可，未要求记录文本为绝对路径） / invocation 等值 / dry_run 为假 / result=done / mergeable 严格 True）；③ `-z` 把 rename/copy 源路径收进结构化 row（用例直接喂真实 NUL 序列）；④ `_digest` 改流式 sha256、读失败即整份指纹 `ERR:digest:` 不可用；⑤ `_norm_path` 去 `strip()` 只剥 `./`，新增 `_repo_relative_safe` 拒绝对/UNC/盘符/`..` 段，`docs/../outside` 判越域；⑥ cleanup `dir_exists: not wt_gone`；⑦ `provision(tasks=)` + CLI `provision/execute --tasks` + `merge --invocation`；⑧ manifest / run-record 一律先验根节点为对象（不再抛 AttributeError）｜<b>口径② 落定形态（三级证据，写进 merged 记录）</b>：`ff`（target 前进且调前 sha 为祖先，且「调前非祖先 或 源 tip 移动」）/ `tree`（结果 tree 与调前源 tree 完全相同，覆盖 wt squash 删 source 的 N3） / `wt_receipt`（wt 回执 committed/squashed/rebased，兜底未提交产出 squash 的情形）；新增 `_MergeLock`（Windows msvcrt / POSIX flock，按 repo+target 非阻塞，占用即 fail-closed）串行化同仓合并｜<b>证据</b>：两测试文件合跑 <b>139 passed / 40.63s</b>（batch 98 + channel 41；r7 为 128 / 42.18s），新增 10 条且挂载点在真实层（真实 NUL 解析 / merge 与 find_done_tasks 入口 / channel main() 真实落盘后被消费）｜<b>报告</b> fix-gorch-r5-failopen <b>§12</b>、<b>L84</b>｜<b>仍未闭合</b>：锁只约束本工程 gorch、不约束外部 git（无 wt 事务回执）；manifest 签发来源真实性（受控目录/hash/签名）未做；`run_all` 未用真实批次复跑（旧卡会判「无新增」）；`done_no_merge` 三分组未完备｜<b>下一步</b>：交第八轮 Codex 独立审计（第②环）</div>
+    <div class="level3"><b style="color:#fca5a5;">第七轮 Codex 独立审计（r7 交付后复核）：不一致</b>｜<b>882.0s / 24,336B / 144,283 tokens</b>｜<b>口径 1 ✅ / 2 ❌；（② merge 因果证明仍不成立，③ cleanup dir_exists 值反写）</b>｜<b>❌</b> ① 真实 <b>-z rename 源路径被丢弃</b>（`codex_channel.py:84` 遇第二路径 `i += 1`，`_fresh_paths` 期待的 `' -> '` 在结构化数据里不存在）、`_norm_path` 仍 `strip()` 改写首尾空格文件名；② fallback 侧 manifest/run-record 根非 dict 仍在 `data.get` 崩；③ run-record 身份<b>只比 basename、run_dir 缺失即放行、invocation 只验非空不验等值、mergeable 未验</b>；④ `BIG:size:mtime` / `ERR:errno` 不是内容指纹 → 脏基线域外大文件等长改写可漏检；⑤ 用例多条只测 helper（rename 手造箭头串、run-record 人工注入 invocation、cleanup 断言了相反值）｜<b>另点名 7 条新问题</b>：<b>N1 严重</b>——生产 record 不写 invocation 而消费端强制要求 → 正常 run_all 执行成功后仍被 merge 误杀（现有用例 `write_run()` 人工注入正好掩盖它）；N2 大文件/读失败摘要可碰撞；N3 wt squash 删 source 后仍用分支名查 `merge-base`/`src_after` → 真成功判 failed；N4 首空格文件名误授权、`docs/../outside` 因前缀命中被接受；N5 部分拒签仍被 `provision()` 重建 worktree、CLI `execute --manifest` 子集整批误杀；N6 manifest 根非对象崩；N7 cleanup evidence 值反写｜<b>流程判定</b>：第②环不一致 → 第③环前提不成立，回第①环做 <b>r8</b>｜<b>需 Owner 口径 3 项</b>：merge 因果证明方式（独占锁/invocation 绑定事务/reflog 对应）/ 预已祖先时的 squash 语义接受哪种证据 / 「编排方签发 manifest」是否要来源真实性（受控目录·hash·签名）｜<b>报告</b> fix-gorch-r5-failopen §11</div>
+    <div class="level3"><b style="color:#34d399;">刚完成：r7 实现闭环（第六轮审计 4 ❌ / 1 ⚠️ / 八条新问题 / 三条口径）</b>｜<b>未提交</b>｜<b>口径落定</b>：① <b>禁止 CLI 自授权</b>——无 manifest 即置 problem 退出码 2，`--no-change-allowed` / `--allow-non-repo` 只写进 `ignored_cli_flags` 留痕、取值一律以清单为准；② <b>merge 必须证明「本次调用造成」</b>——调用前取 `target_sha` / `src_before` / `rc_pre`，`target_sha` 缺失即 `SystemExit`，`src_before` 空或 `rc_pre ∉ {0,1}` 记 failed 并停后续；③ <b>cleanup 两条豁免带独立证据</b>——新增 `evidence`（`dir_exists` / `branch_state` / `worktree_registered` / 超时那条加 `wt_returncode` / `exemption` / `readback`），不再凭 rc 记成功｜<b>代码</b>：<b>严格 UTC</b>（无 tzinfo 或 utcoffset≠0 一律 None）+ fallback `dup_inv` 阻断；<b>run-record 四道身份校验</b>（根非 dict / task / run_dir basename / invocation 空，全前置于 dry_run）；<b>写域解析</b>——`_STATE_PREFIX` 只剥两字符状态+空格、`_scope_match` 自写正则（`*`→`[^/]*`、`**`→`.*`、`?`→`[^/]`）、rename 两端都留、`_norm_path` 只剥真正的 `./`；<b>脏基线</b>——`status --porcelain -z -uall --ignored`，`!!` 进 ignored 且计入 paths，指纹改逐路径 sha256（超 8MiB 记 `BIG:`、读失败记 `ERR:`），`fresh_changes` 判「新路径 ∪ 同路径摘要变」；<b>拒签流程</b>——`_stop` 前移、`execute(tasks=)` 只收窄、`run_all` 传 `tasks=ready`｜<b>证据</b>：两测试文件合跑 <b>128 passed / 42.18s</b>（batch 92 + channel 36；r6 基线 108 passed / 39.12s，新增 20 条）、四文件 `py_compile` 全 ok｜<b>报告</b> fix-gorch-r5-failopen §10、<b>L83</b>｜<b>仍未闭合</b>：`done_no_merge` 三分组未定 / `run_all` 未用真实批次重跑（旧卡会判无新增）/ 冲突全链与 `#9` 恢复路径只有单测 / 八跳第 4 跳未进 `run_all` / 「本次调用造成」仍依赖 SHA 与时序 / 第七轮 Codex 复核未跑（第②环待启动）</div>
+    <div class="level3"><b style="color:#fbbf24;">第六轮 Codex 独立审计（r6 交付后复核）：部分一致</b>｜<b>810.3s / 17,450B / 127,146 tokens</b>｜<b>逐条 11 项：6 ✅ / 4 ❌ / 1 ⚠️</b>｜<b>✅</b> 结构化终态（verified 只认 result）/ merge 三条件 + pre_anc 前置 / 预已祖先与无关 target 均能拒 / 无 --run-dir 即 rc=2 且 fallback 无 mtime / 执行前脏基线 ERR 前置阻断 / cleanup schema 参与 removed（bool(items) 堵住 all([])）｜<b>❌</b> ① `_utc_ts` 把无时区值 replace(tzinfo=UTC) 当严格 UTC，同 invocation 多条不同时间不判不唯一，根节点非 dict 会崩；② `_fresh_paths` 先 strip() 吃掉 porcelain 首空格、fnmatch 的 * 跨 /、rename 只留目标；③ 脏基线同路径内容变化只生成无路径 `~ …` 汇总被丢弃 → outside=[] 仍写 done，`status -uall` 无 `--ignored`；④ 不传 manifest 时仍退回 CLI 自授权（source=cli）｜<b>另点名 8 条新问题</b>：脏基线同路径越域 / ignored 不可见 / rename 源删除不校验 / merge 前态查询失败被折叠成"非祖先" / 显式 run-dir 未核对 run-record 身份（B 的 done 可映射给 A）/ CLI 自授权入口 / 合法 tracked 修改因首空格被误杀 / 全部拒签时 `_stop` 定义在调用之后崩、部分拒签时 execute 重建全部 ready 导致已授权任务也执行不了｜<b>流程判定</b>：第②环未达成一致 → 第③环前提不成立，回第①环做 <b>r7</b>｜<b>需 Owner 口径 3 项</b>：手工调用 codex_channel 是否允许 CLI 自授权 / merge 是否必须证明"本次调用造成" / cleanup 在"调用前已三处消失"时是否可不要求合法 schema｜<b>报告</b> fix-gorch-r5-failopen §9</div>
+    <div class="level3"><b style="color:#34d399;">刚完成：r6 实现闭环（第五轮审计 7 条清单 + 两条授权口径落定）</b>｜<b>授权口径（Owner）</b>：不在执行期参与授权/审批；写域白名单由任务审核 agent 批准；per-card 例外同原则 → <b>授权源在编排方 manifest</b>｜<b>落地</b>：① <b>结构化终态</b>——verified 只认 result==done_no_merge，不再由 reason 子串摘出；② <b>merge 三段式证明</b>——target tip 前进 + is-ancestor rc=0 + （预已祖先时源 tip 必变），merged 带 source_sha_before/after；③ <b>删 glob/mtime 授权</b>——merge CLI 强制 --run-dir TASK=PATH（缺则 rc=2），fallback 损坏记录阻断 / 严格 UTC started_at / invocation 非空 / 并列即阻断；④ <b>脏基线 ERR 前置阻断</b>（调 Codex 之前）+ changed 分支按 manifest write_scope 校验新增路径，越域 blocked；⑤ <b>cleanup schema 纳入成功条件</b>（非空 + 全 dict + branch_outcome 非空 str + 只认 deleted）；⑥ <b>per-card 例外迁 manifest</b>——grant_invocation 签发 RUNS/_invocations/&lt;invocation&gt;.json，writes + no_change_allowed 矛盾即拒签，run_all 记 steps.authorizations｜<b>实测</b>：<b>wt remove 回执无 removed 字段</b>（数组，成功值仅 branch_outcome=deleted）｜<b>证据</b>：<b>108 passed / 39.12s</b>（新增 15 条覆盖审计点名 9 类；跑测不再污染 data/gorch）｜<b>报告</b> fix-gorch-r5-failopen §8、<b>L82</b>｜<b>仍未闭合</b>：done_no_merge 终态名未落定 / 执行前是否必须 clean 口径不同 / 独立 merge CLI 是否保留 / run_all 未真跑全链 / ignored 新产物未显式枚举</div>
+    <div class="level3"><b style="color:#34d399;">刚完成：第五轮 fail-open 收口（对照第四轮 Codex 审计 Q3 九条清单）</b>｜<b>提交 0190b88c</b>（4 文件 / <b>296+ / 86-</b>）｜<b>按 Q3 清单</b>：① <b>run_dirs is not None</b>——显式空映射走 invocation 模式整体阻断，不落回 glob+mtime；② <b>merge 增 only_tasks</b>，run_all 只算 ready；③ 兜底路径<b>删掉 mtime 授权</b>，改按记录内 <b>started_at</b> 选、并列 invocation 阻断、损坏记录不再静默跳过；④ <b>done_no_merge 移出 stale</b> 单列 verified_only，独立 merge CLI 在 <b>merged 为空或有 stale 时也返回非 0</b>；⑤ <b>_CYGWIN_NOISE 三条整行 + 行尾锚定</b>，前缀后挂多余文本一律当真错误；⑥ <b>git status 加 -uall</b>、fresh_changes 改<b>内容指纹优先</b>（指纹相同不采信状态行差集，纯 git add 不再假成功）、<b>指纹 ERR:* 立即 blocked</b>；⑦ <b>cleanup rc=0 也回读三处</b>（目录 / 分支 / 登记），三处全消失才 removed，retained 或不明记 partial；⑧ <b>tasks=None 全部 / [] 一个也不做</b>，stale/leftover 判定<b>前置到 cleanup 之前</b>，merge 回执 branch+target 必须存在且精确匹配｜<b>本轮最关键实测</b>：<b>wt merge --format json 回执里没有 merged 字段</b>（真实形状 <b>{branch,target,committed,squashed,rebased,removed}</b>），第四轮那条 <b>merged is True</b> 判据会让<b>每次合并都判失败</b>——已改为「回执身份必填 + <b>git 侧复核</b>（is-ancestor 或 target tip 前进）」｜<b>证据</b>：两测试文件 <b>93 passed / 38.94s</b>（新增 3 条：回执缺身份 / git 侧未见合入 / 指纹取不到即阻断）｜<b>报告</b> docs/reports/fix-gorch-r5-failopen-20261109.md、<b>L81</b>｜<b>第五轮 Codex 审计（792.3s / 186,585 tokens）判「部分一致」</b>：4 条 ✅（1(a) 前置失败落记录 / 1(e) dry-run / Cygwin 整行白名单 / tasks 语义与 cleanup 时序回执身份）+ 6 条 ⚠️ + 1 条 ❌，并指出<b>本轮新引入 3 条 fail-open</b>：① <b>done_no_merge 用 reason 子串判 verified</b>，任意 blocked 文本含该词即可伪装成非合并成功终态；② merge <b>未记「调用前是否已是祖先」的前态</b>，脏 worktree 可判 merged；③ <b>任意无关进程推进 target 即可冒充本任务合入</b>｜<b>下一步 r6</b>：先修这 3 条 + cleanup 把 schema 纳入 removed 条件 + 独立 merge 强制 --run-dir + 脏基线 ERR 阻断；<b>仍待 Owner 拍板</b>：授权写域白名单、per-card 例外改由 manifest 授权（两项会改工单灰度）</div>
+    <div class="level3"><b style="color:#34d399;">刚完成：第四轮 fail-open 闭环（对照第三轮 Codex 审计 10 条）</b>｜<b>提交 2a446b9a</b>（4 文件 / <b>743+ / 104-</b>）｜<b>tag</b> gorch-r4-failopen-closeout-20261109｜<b>已推远端</b>｜<b>执行段</b>：① 新增内容级指纹（<b>sha256(git diff HEAD)</b> + 未跟踪路径集合）修「同文件续改误杀」「仅 git add 就 fail-open」；② 新增 <b>_BaselineUnusable</b>，基线读成 error / 未放行的 not_repo 时<b>起 Codex 之前</b>就阻断；③ record 前置建立 + <b>_fail_early</b>，空工单与找不到执行体也落 blocked 记录；④ <b>--no-change-allowed</b> 终态改 <b>done_no_merge</b>（mergeable=False，不进合并池）｜<b>编排段</b>：⑤ <b>_CYGWIN_NOISE</b> 改整行锚定、stderr 先全量分类再展示（前 3 行 + 真错误行数）；⑥ 新增 <b>_branch_state</b>（show-ref 精确 / unknown 三态）与 <b>_worktree_registered</b>；⑦ <b>wt_remove 超时</b>改结构化返回 rc=-1，cleanup 三处回读（目录 / 登记 / 分支）全消失才算 removed，半清理与 retained_unmerged 一律 <b>partial</b>；⑧ <b>find_done_tasks(run_dirs=)</b> 只认本次 invocation 显式登记的 run-dir，损坏记录<b>阻断不回退</b>；⑨ merge 要求 <b>merged is True</b> 且 branch/target 一致；⑩ <b>run_all 整段重写</b>：开始固定 invocation+target、execute 任一非零即停、dry-run 不合并不清理、cleanup 只清已确认合并成功的任务、<b>stopped_at 七终态</b>、CLI 退出码 stopped_at==done｜<b>证据</b>：两测试文件 <b>90 passed / 37.57s</b>（新增 20 条，含正反例）｜<b>报告</b> docs/reports/fix-gorch-dispatch-failopen-20261109.md、<b>L80</b>｜<b>进行中</b>：Codex 第四轮独立只读审计｜<b>仍缺</b>：八跳第 4 跳未进 run_all、冲突形态全链未真跑、修复后未重跑全链真跑、main 未合流</div>
+    <div class="level3"><b style="color:#34d399;">刚完成：第三轮审计闭环 + 全链一条命令首次真跑</b>｜<b>提交 595ed52a</b>｜<b>代码</b>：① gate 三标记改为"各出现且仅一次 + 禁多余行"（缺/重/多余三道 SystemExit）；② <b>find_done_tasks 只认每任务最新一条真实记录</b>（重跑失败不再被上次成功掩盖，merge 增 <b>not_merged</b> 明细）；③ 执行段加<b>执行前基线快照</b>，只认相对基线的新增改动；④ 新增 <b>--no-change-allowed</b>（按卡 frontmatter 透传，不再整批放行）；⑤ <b>cleanup</b> 遇 wt remove 非 0 回读目录与分支再判成败；⑥ 新增 <b>run 子命令</b>一条命令串 gate→provision→execute→merge→cleanup｜<b>证据</b>：两测试文件 <b>70 passed / 36.42s / EXIT=0</b>（新增 10 条）；<b>真实 ccpm 未误伤</b>（两卡均"可开工"、stderr_diag 空）；<b>全链真跑</b>：<b>%TEMP%\gorch-run</b> 两卡并发 → execute 两卡 rc=0 → merge 两卡成功（<b>3296f24a / 1a382d31</b>）→ <b>stopped_at=done</b>，run record <b>baseline=clean</b>、<b>new_changes</b> 恰为本次新建文件｜<b>L79</b>｜<b>仍缺</b>：<b>#4</b> porcelain 行集合口径（同文件内容续改会误杀）、<b>#6</b> 第 4 跳仍只有单测、<b>#9</b> 冲突恢复路径未做、<b>#10</b> main 未合流；冲突形态的全链只有单测未真跑</div>
+    <div class="level3"><b style="color:#34d399;">刚完成：按审计顺序补三个场景（三卡停派 / modify-modify / 证据入库）</b>｜① <b>三卡 A/B/C 真跑</b>：A 合入 <b>de04e8d6</b>、B 撞 <b>add/add</b> rc=1、<b>C 未被合并</b>——三条独立证据齐（merge 输出无 C 条目 / <b>gorch/GORCH-TC-C 分支仍在</b> tip 未变 / 主线 <b>cat-file</b> 128 且 C worktree 仍是未跟踪态）｜② <b>已有跟踪文件 modify/modify</b>：两卡改同一行，A 合入 <b>9f9d6b58</b>、B <b>CONFLICT (content)</b> rc=1，<b>UU</b> + <b>rebase-merge</b> + <b>merge-tree</b> 独立复核｜③ <b>证据入库</b>：<b>docs/reports/evidence/gorch-conflict-verify-20261109/</b>（四步调用序列带 rc、现场快照、5 份 codex-channel.json）｜顺带第三次复现 <b>wt remove 180s 超时</b>（目录与分支均已消失）</div>
+    <div class="level3"><b style="color:#34d399;">刚完成：G-ORCH 收口三项 + 第二轮 Codex 审计 + 按审计加固</b>｜<b>三项</b>：① 判定闸不再把 cygwin fork 噪声当失败；② 执行段 done 增加 worktree 产出校验（<b>clean / not_repo / error 分别改判 blocked</b>）；③ <b>真冲突批次实跑</b>——两卡同建 <b>docs/reports/gorch-conflict-probe.md</b>，A 合入主线 <b>d07644ad</b>，B rebase 撞 <b>add/add 冲突</b> rc=1 停下，<b>rebase-merge 现场与 &lt;&lt;&lt;&lt;&lt;&lt;&lt; 标记留在源 worktree</b>｜<b>审计（676.1s / 91,934 tokens）5 条全指缺口</b>，其中最关键一条：原修法把 stderr 判定整段删掉，而 <b>`printf "$(f)"` 会吞掉函数内部退出码</b>，审计实测凑出「rc=0 + 三标记齐全 + CONFLICTS 空」把冲突卡判可开工 → <b>已加固为双向判定</b>（pipefail + 三函数显式 exit 71/72/73；stderr 只放行 cygwin 噪声白名单，其余一律拒）｜另按审计堵 <b>not_repo 绕过合并闸</b>（需显式 --allow-non-repo）、<b>dry-run 不再构成合并授权</b>、失败原因落 <b>record['reason']</b>｜测试 <b>60 passed / 37.91s</b>（新增主流程级 4 条 + gate 真错误反例）｜提交 <b>2af70452 / fc2e29bd / 004672bf</b>，tag <b>gorch-closeout-three-20261109</b> / <b>gorch-closeout-audit-fix-20261109</b>｜<b>仍缺</b>：三卡 A/B/C 停派证明、modify/modify 冲突、冲突证据入库、clean 误伤纯验证卡（产出策略待裁）
     </div>
-    <div class="bar"><div class="bar-fill" id="barFill"></div></div>
-  </header>
+<div class="live-block" id="live-exec">
+  <h3>⏱ 执行队列（现在是哪一步 · 下一步是谁 · 堵在哪） <span id="liveCount" class="tag-pending">—</span></h3>
+  <div style="margin:6px 0 10px 0;padding:6px 9px;background:#0f172a;border-left:2px solid #3b82f6;border-radius:3px;font-size:12px;color:#93c5fd;line-height:1.7;">阅读顺序：<b>① 现在在跑</b> → <b>② 下一步按优先级</b> → <b>③ 等谁点头</b> → <b>④ 为什么停</b>；再往下看模块区，每块标题下都有红色「卡点」条，直接说明卡在哪个功能上。</div>
 
-  <section class="frame collapsed" id="frameSec">
-    <div class="frame-head" role="button" tabindex="0" aria-expanded="false">
-      <span class="frame-title">北极星工程验收框架</span>
-      <span class="frame-sub">愿景不变 · 工程四维验收</span>
-      <span class="chev">▼</span>
-    </div>
-    <div class="frame-body">
-      <p class="frame-note">愿景层（不变）：贾维斯形态——随时在场 / 听懂你 / 替你做事 / 不打扰 / 有记忆。工程层按 Super Agent 四关键词验收：</p>
-      <table>
-        <colgroup><col class="c1"><col class="c2"><col class="c3"></colgroup>
-        <thead><tr><th>工程维度</th><th>对应验收线</th><th>验收口径</th></tr></thead>
-        <tbody>
-          <tr><td>连续</td><td>随时在场 · 有记忆</td><td>唤醒即响应（热机 ≤18s）；跨轮上下文持续；中断可恢复</td></tr>
-          <tr><td>高效</td><td>替你做事</td><td>工具调用正确率达标；一次到位；成果可验收</td></tr>
-          <tr><td>主动</td><td>不打扰</td><td>主动性 observe→auto 分级；该出手时出手、该安静时安静；需人时结构化单独提问</td></tr>
-          <tr><td>持久</td><td>有记忆 · 随时在场</td><td>会话/任务/偏好持久化；重启可恢复；参数冻结不突变</td></tr>
-        </tbody>
-      </table>
-    </div>
-  </section>
-
-  <div class="filters" id="filters" role="tablist" aria-label="状态筛选">
-    <button class="filter" data-f="all" aria-pressed="true">全部</button>
-    <button class="filter" data-f="todo" aria-pressed="false">待办</button>
-    <button class="filter" data-f="wip" aria-pressed="false">进行中</button>
-    <button class="filter" data-f="done" aria-pressed="false">已完成</button>
+  <div class="level2">▶ ① 现在在跑
+    <div class="level3"><b style="color:#fbbf24;">当前无在跑任务</b>｜上一单 <span class="wo-tag live">wo-ultimaagent-20261108-0031</span> 已于 2026-11-08 完成闭环并冻结 ｜ tag <b>wo-ultimaagent-20261108-0031-frozen-20261108</b></div>
+    <div class="level3"><b style="color:#34d399;">刚完成：修掉「每隔几分钟连闪 6 个控制台窗口」</b>｜<b>真凶</b>：<b>scripts/tracker-live.py</b> 的 process_start 为了读一个 pid 的启动时间起一个完整 PowerShell（既无 -WindowStyle Hidden 也无 CREATE_NO_WINDOW），而刷新逻辑固定取最近 6 条、每条调一次，计划任务 UltimaAgentTrackerLive 每 5 分钟拉起 —— 三者叠加 = 每 5 分钟连续 6 个窗口｜<b>排查</b>：90 秒采样全漏（周期比采样窗口长），拉到 330 秒才在 19:36:04 抓到 pythonw→powershell 的父子链｜<b>修复</b>：改成 kernel32 GetProcessTimes 直读（零子进程、零窗口），并给 batch_orchestrator 7 处子进程与看板刷新 Popen 补 CREATE_NO_WINDOW｜<b>实证</b>：19:46:03 计划任务照常触发、live-data.js 正常更新，该轮 <b>powershell 进程 0 个</b>（修复前同一时刻是 3 个）｜提交 <b>995cbbfb</b>，tag <b>fix-console-flash-20261109</b>，<b>L78</b></div>
+    <div class="level3"><b style="color:#34d399;">刚完成：G-ORCH 按 Codex 审计校正派发流程，端到端 + 双卡并发实跑</b>｜<b>代码侧</b>：审计 7 步落地 6 步半（第 4 步为弱化版、第 7 步按 Owner 口径不做）——status_map 精确归一、waiver 进 gorch-manifest、空 ACC 分支加 verifier 回执绑定、审计段空表回落 WAIVER 伪门｜<b>派发层</b>：四场景真跑 ccpm（三张 open→派一张；含 blocked→整批 fail-closed；冲突→派非冲突那张；completed/done/in_progress→全进 blocked），并坐实 <b>conflicts_with 填的是任务 id、不是写入域字符串</b>｜<b>端到端</b>：单卡真起 Codex <b>52.2s / 27,177 tokens</b>，squash 成 <b>762f9d08</b>、worktree 与源分支均回收｜<b>并发</b>：2 通道<b>同一秒启动</b>，<b>84.7s / 30.5s、墙钟 88s</b>（串行应约 115s），两 worktree 写入域互不干扰；其中一张是「写代码 + 4 条 pytest 用例」的真测试工单，worktree 与主线均 <b>4 passed</b>；两次串行 merge，第二条因目标已前进自动 rebase 后再 squash｜提交 <b>d1e382a9</b>，tag <b>gorch-e2e-smoke-20261109</b> / <b>gorch-concurrency-smoke-20261109</b>｜<b>新登记缺口</b>：执行段判 done 只看退出码（不校验写入域与产出文件）、gate_check 把 stderr 非空当判定失败（cygwin fork 噪声可整批拒派，<b>L77</b>）｜<b>仍待验</b>：3 通道同轮、同文件真冲突、冲突卡重派</div>
+    <div class="level3"><b style="color:#34d399;">刚完成：S7 收口 + G-ORCH 治理体检（结论不 PASS）</b>｜<b>收口两项</b>：① <b>S-MAIN 主脑接到真在跑的本地 8B</b>（<b>127.0.0.1:11434 / qwen3-8b-uncensored:latest</b>，原 18766 是无落地的自定端口），跳 1 真跑 12.4s 通过、本轮独立复跑 15.6s 通过；② <b>MERGE_TIMEOUT=600 经真实合并验证</b>（<b>227.4s rc=0</b>，主线 50af6549→3d0fc8dd，报告 4020B 落地）——227.4s 恰好落在"旧 180s 必超时、新 600s 有余量"之间 ｜ 顺带修掉 <b>wt merge 的 TARGET 缺省是 main</b>（导致施工全铺到 main、工作分支反而落后，新增 <b>L74</b>；并补正 L72：上一单其实合进了 main d1e51eb3，不是没合入）｜ 八文件回归 <b>121 passed / 38.43s</b> ｜ 提交 <b>5cd59ee3</b> + tag <b>gorch-s7-closeout-20261109</b> ｜ 契约 v1.3 ｜ <b>审计报告</b>：<b>docs/reports/g-orch-governance-audit-20261109.md</b>（25 项判定 <b>7 绿 / 11 不一致 / 4 缺</b>，提交 258cc8c1 + tag <b>gorch-audit-20261109</b>）</div>
+    <div class="level3">0031 交付：JSON Schema + validator + 派发前 DoR 硬门 + 通用冻结门（dry-run）｜ 24 passed 独立复现 ｜ REVISE 补票已完成（工单补 OSS 排查段、0030 打 T0–T2 冻结 tag）</div>
+    <div class="level3"><b style="color:#fca5a5;">⚠ 仍无自动接力</b>：下一单不会自己起来——必须人工从 ② 队列挑一单派发。这是当前唯一"队列不会自己动"的缺口</div>
   </div>
 
-  <div id="groups"></div>
+  <div class="level2">▶ ② 队列：按这个顺序往下做（人工登记，非系统自动排队）
+    <div class="level3"><span class="wo-tag num">P1</span>0030 T3–T6 ｜ <b>模块4</b> 台账续派：T3 阶段解析 / T4 A2UI 看板 / T5 审批门接线 / T6 对账自愈 ｜ 底座 T0–T2 已验收，<b>可立即派</b> ｜ 待拍板</div>
+    <div class="level3"><span class="wo-tag num">P2</span>0027 续跑 ｜ <b>模块3</b> 审计阶段门 T2（约 35% 处中断）｜ 已定排在 0029 验收之后 ｜ 未派</div>
+    <div class="level3"><span class="wo-tag todo">P3</span>通用冻结门推广到存量 6 张以上工单卡（0031 已冻结，dry-run 已验）｜ 未立项</div>
+    <div class="level3"><span class="wo-tag todo">P4</span>模块5 全部（Scrapling / Lux3D / CV3 / HUD / AR）｜ 均未立项，无工单号</div>
+  </div>
 
-  <section class="known">
-    <h2>当前已知问题（随冻结版本发布，不再无限深挖）</h2>
-    <ul id="knownList"></ul>
-    <button class="reset" id="resetBtn">重置所有勾选</button>
-  </section>
+  <div class="level2">▶ ③ 等门：这些不处理就一直堵着
+    <div class="level3"><span class="wo-tag none">验收门</span>completed 待独立验收：0029（8 个既有测试被改，须判是否放宽断言）/ 0028 / 0013 ｜ audit 待 Owner 验收：0007 / 0019 / 0020</div>
+    <div class="level3"><span class="wo-tag none">拍板门</span>INDEX G-DISPATCH-001 措辞（18766 已废）/ 18766 是否恢复 / 0030 合并决策（已打 T0–T2 冻结 tag a4d968af，分支仍未合回主仓）/ E02 P3 方向 / Aholo 封顶授权 / Sentinel 远端 / HUD 资产卡 / KWS 唤醒词去留</div>
+  </div>
 
-  <footer>数据保存在本机浏览器（localStorage）· 版本 2026-11-06</footer>
-</div>
+  <div class="level2">▶ ④ 阻塞：外部条件没到，不是没在干
+    <div class="level3"><span class="wo-tag todo">blocked 5</span>wo-s1-composite-window（整单 Owner 门）/ wo-s1-engineering-packaging（待净机真机环境）/ wo-s1-remote-update / 0021（E02 配额）/ 0024（已撤回）</div>
+    <div class="level3"><span class="wo-tag todo">pending 1</span>req-agent-cv3-voice-clone：请求草稿待准入，正式工单号未分配</div>
+  </div>
 
+  <div class="level2">▶ ⑤ 口径与数据来源
+    <div class="level3">• ① 的时长/状态由 UltimaAgentTrackerLive 每 5 分钟采集刷新；②③④ 为 2026-11-08 19:58 人工快照，权威源是全局主表 84 行 UltimaAgent 工单</div>
+    <div class="level3">• ② 的顺序是人工登记的优先级，<b>系统不会自动排队</b>；要让它自己续上，需模块4 的 T4 看板 + T5 审批门接线做完</div>
+  </div>
+</div>    <!-- ========== 贯穿式主线工作流（JS自动联动） ========== --> <div class="flow-track" id="mainFlowTrack">   <h3 style="margin:6px 0 10px 0;color:#f9fafb;font-size:16px;">🔗 主线贯穿工作流（依赖顺序）</h3>   <div class="flow-row" id="flowRow">     <div class="flow-node" data-module-index="0">       <span class="flow-node-title">模块1｜底座基础设施</span>       <span class="flow-node-desc"></span>     </div>     <span class="flow-arrow">→</span>     <div class="flow-node" data-module-index="1">       <span class="flow-node-title">模块2｜G-TASKFLOW 工单契约</span>       <span class="flow-node-desc"></span>     </div>     <span class="flow-arrow">→</span>     <div class="flow-node" data-module-index="2">       <span class="flow-node-title">模块3｜单Agent主干加固</span>       <span class="flow-node-desc"></span>     </div>     <span class="flow-arrow">→</span>     <div class="flow-node" data-module-index="3">       <span class="flow-node-title">模块4｜多Agent编排层</span>       <span class="flow-node-desc"></span>     </div>     <span class="flow-arrow">→</span>     <div class="flow-node" data-module-index="4">       <span class="flow-node-title">模块5｜扩展能力层</span>       <span class="flow-node-desc"></span>     </div>   </div>   <div class="flow-info-box" id="flowInfoBox">     <b>📋 当前焦点任务：</b> <span id="focusTaskText">—（等待实时采集；若长期停留此占位，说明 live-data.js 未加载，不是任务在跑）</span>     <br>     <b>➡️ 主表登记的下一个 pending 工单（不是自动接力，人工队列见上方②）：</b> <span id="nextTaskText">—（以全局主表为准；当前排队工单由人工登记，暂无自动流转）</span>   </div> </div>  <script src="live-data.js"></script>
 <script>
-const GROUPS = [
-  {key:"g1", no:"01", name:"感知层 · 随时在场（耳）", sub:"唤醒 / 听清 / 出声"},
-  {key:"g2", no:"02", name:"大脑层 · 听懂你（理解）", sub:"主脑 / 意图 / 记忆"},
-  {key:"g3", no:"03", name:"表达层 · 替你做事（行动）", sub:"工具 / 界面 / 双端"},
-  {key:"g4", no:"04", name:"架构对齐 · 不跑偏（基线）", sub:"对标 / 参考 / 能力池"},
-  {key:"g5", no:"05", name:"发布治理 · 推得动（闭环）", sub:"冻结 / 清单 / 落盘"}
+/* 主线模块顺序，与页面从上到下一一对应。
+   注：原版此注释后缺换行，导致 moduleMeta 声明被整条吞进注释、updateFlow 抛 ReferenceError，动态联动从未生效。已修正。 */
+const moduleMeta = [
+  {name:"模块1｜底座基础设施", focus:"底盘全部底座能力、环境、版本、工单底座"},
+  {name:"模块2｜G-TASKFLOW 工单契约", focus:"工单Schema、流转契约基线定稿"},
+  {name:"模块3｜单Agent主干加固", focus:"标准化审计提示词、统一审计报告格式、补齐闭环测试用例"},
+  {name:"模块4｜多Agent编排层 G-PLAN-MA-001", focus:"Orchestrator、消息总线、熔断守卫、回调钩子、单元测试"},
+  {name:"模块5｜扩展能力层", focus:"工具插件、HUD、AR对接、远期调研"}
 ];
 
-const TASKS = [
-  {id:"kws",   g:"g1", name:"KWS 唤醒基线冻结", st:"done", desc:"threshold=0.08 / score=2.0 已按权威基线文档冻结（kws-wakeup-params-baseline.md），参数改动先读文档", accept:"唤醒词命中率稳定；改参必须同步权威基线文档并记录变更"},
-  {id:"asr",   g:"g1", name:"ASR 近音误识收窄", st:"done", desc:"“水量天听→天气”等近音映射已上线（L33），探针 5 例 + 单测 28 全绿", accept:"“水量天听”类输入归一化为天气查询，回归探针全绿"},
-  {id:"tts",   g:"g1", name:"TTS 音色同源", st:"done", desc:"sherpa MeloTTS 44100Hz，与 KWS 提示音同源同率（L30）；CV3 杨幂零样本 v54 为当前 TTS 主音色（voice-e2e 方案确认）", accept:"提示音与回复同引擎同采样率，真机听感一致"},
-  {id:"audio", g:"g1", name:"音频端点自愈", st:"done", desc:"端点音量探针恢复 1.0 + 播放/采集互斥收口（L27/L32）", accept:"音量漂移开机自动恢复；播放期 KWS 暂停、播完即恢复"},
-  {id:"cold",  g:"g1", name:"冷启动优化", st:"wip", desc:"三段预热已做（ASR/Agent/TTS），冷启动 68s → 热机 18s，目标继续压", accept:"热机首轮响应 ≤18s；冷启动有完整预热日志可查"},
-  {id:"voice_next",g:"g1", name:"语音入口重构（Sherpa 原生）", st:"wip", desc:"0019 WeKws 离线证明 + 0020 Sherpa 原生 KWS/SenseVoice/SAPI 新独立入口；33 测试 + 24 真人回放 PASS，11-01 20:38 用户确认唤醒+时间回答（检查点 ultimaagent-voice-next-live-pass-20261101）；长期质量未冻结", accept:"生产切换完成 + 长期质量冻结 + 真人采集验证后勾选"},
-  {id:"kwsentry",g:"g1", name:"KWS 唤醒词用户入口+持久化", st:"done", desc:"0014 已冻结（8774f3c 收口）：改词+热重载+播报确认+写回 profile+一致性收敛", accept:"改词即生效+播报确认；重启不丢；profile 与 keywords 一致性收敛"},
-  {id:"asrsys",g:"g1", name:"ASR 纠错系统化", st:"done", desc:"0015 已冻结（8774f3c 收口）：initial_prompt 高频词 + config/asr-normalize.json 近音映射独立化", accept:"“水量天听/水天”类输入归一化天气查询且意图正确"},
-  {id:"brain", g:"g2", name:"主脑切换 qwen3-8b-uncensored", st:"done", desc:"本地 ollama，2026-11-01 代码（agent_server.py MODEL）+ ollama list 双重核实；2026-11-02 用户裁定永久仅当前 8B、不切 14B", accept:"MODEL=qwen3-8b-uncensored；工具调用链路可用"},
-  {id:"route", g:"g2", name:"意图路由门（工单 C）", st:"done", desc:"0016 已冻结（8774f3c 收口）：三态 ALLOW/DENY/ABSTAIN + DeepSeek 云脑兜底", accept:"注入“水量天听”类输入被拦截并标记 routing；查天气正常回答；pytest 全绿"},
-  {id:"constr",g:"g2", name:"回答约束栈三层（工单 C+D）", st:"done", desc:"0017 已冻结（8774f3c 收口）：约束解码 {reply_text,confidence,grounded} + 校验器升级 + banned 语义化", accept:"输出结构合法；grounded 真实性校验；失败走有界重试+兜底话术"},
-  {id:"mem",   g:"g2", name:"记忆分层", st:"done", desc:"mem0 + nomic-embed + FAISS 已接，偏好/上下文可召回", accept:"跨轮偏好与上下文正常引用"},
-  {id:"diskidx",g:"g2", name:"全盘理解·自管理系统（电脑成为意识体）", st:"wip", desc:"全盘读取→分类打标→双索引（FTS5+向量）→关系图谱→网络球；首次全量建库+增量监听；图谱留本地不上云；隐私沙箱（敏感内容加密隔离+授权闸门）；11-03 用户拍板开工，方案 docs/plans/full-disk-understanding-delivery-plan-20261103.md；工单 0024 首派=BLOCKED/未开工（前置 0022 未过完整验收，执行端守门未写代码）；**11-04 0022 已冻结收口；11-05 0023 已收口（tag ultimaagent-jarvis-p0-20261103）→阻塞全部解除；11-05 12:52 0024 已派发（pid 34552，已产出 M1–M5 实施计划草案），但因同项目 0021 的 R30 恢复轮同步在跑、违反「每项目执行中 ≤1」，13:00 被主脑主动撤回并保留草案，待 0021 收口后按 WIP 重派；11-06 复查仍为 blocked（0021 T2 正例 2/3 未过、WIP 槽位未释放），草案与前置分析可直接复用**（P0 全盘索引只读建库；P1 图谱/网络球、P2 自管理含 CPU/GPU 功耗后续单）", accept:"P0 全盘索引验收冻结 → P1 关系图谱+网络球 → P2 自管理（巡检/资料/功耗）后勾选"},
-  {id:"bench", g:"g2", name:"双模型约束基准实测（已封存）", st:"done", desc:"2026-11-02 用户裁定永久仅当前 8B、不切 14B，官方 8B 对照提案未选；双模型对比不再执行", accept:"用户裁定记录在案，对比封存"},
-  {id:"tools", g:"g3", name:"工具调用白名单", st:"done", desc:"agent_server.py 只暴露实际可调工具，接口宜精不宜多", accept:"工具选择正确率达标；白名单可审计"},
-  {id:"workcap",g:"g3", name:"Jarvis 工作能力交付（0021）", st:"wip", desc:"T0/T1 技术门 PASS；T2 研究接口（当前 8B）修复：R26 诊断 root-independent review PASS，但授权 E03 round2 已消费、runner exit=2 终态 FAIL/NOT ACCEPTED（fixture 41 UTF-16 读回后冻结基线仅读到 1 字符，cleanup 7 条记录 absent）；**2026-11-04 主表=blocked，T2 仍 BLOCKED，E01/E02 与 T3-T5 关闭**；仅当前 8B 生产语音/KWS 不变；**2026-11-06 现状：T2 仍未通过**——R30 恢复轮已按实测 PID 重建保护基线并跑通（R29 原件保留，voice-next 监听 35288/36004、ASR worker 17916/36176 纳入保护），随后 manual-start、input-guidance、source13 runtime fix 逐轮落证；同候选 269aca5 的 E03 round1、round2 各自实跑 + 独立结果复核 PASS（连续正例 2/3、负例 0，累计 CLI 2/完成推理 6），13 本例身份消失/7 保护匹配/语音 ready fresh 绑定 09:43:20 已读回；运行与复核额度已耗尽未重试，下一步同候选 round3 且未签发新 authority；E03 负例、E01、当前 8B 的 E02、T3–T5 与 Owner 门保持关闭；**2026-11-06 10:09 起 round3 离线准备已启动**（plan=docs/plans/jarvis-work-e03-source13-round3-plan-20261106.md，新隔离根 e03-source13-round3-20261106）：本轮只做离线单例准备 + 一次只读全包准备审查，**不签发第三轮实跑 authority**，无实跑/model/audio；Task1 前置两轮绑定输入已完成，RED 首跑 38 例 32 FAIL/6 PASS 符合预期，正在第二遍 RED；远端同步已补齐（main 5f287c86 + 10 个 tag 已推）**", accept:"T2 E02 真实任务通过 + 同候选回归 + T3-T5 + Owner 验收 + 冻结 tag 后勾选"},
-  {id:"task",  g:"g3", name:"天气/时间/记忆工具链路", st:"done", desc:"真机验证通过（L30/L33）：“沈阳现在多云，气温8度”类回复正确", accept:"“查天气 / 现在几点”回复正确且 grounded"},
-  {id:"hud",   g:"g3", name:"HUD 桌面形态", st:"wip", desc:"四角壳 8 锚点布局已冻结（0011，tag ultimaagent-hud-8anchor-20261031）；状态灯 13pt 雅黑与文字中线对齐标准已定；11-03 新增方向：任务窗汇报走人话提炼（中间层供结构化快照→本地主脑无状态翻译→任务窗人话+展开原文入口，工单契约不变，失败回退模板话术）", accept:"桌面常驻无窗后台；状态灯渲染偏移修正达标；任务窗人话提炼链路可用后勾选"},
-  {id:"ui",    g:"g3", name:"双屏平移 UI 范式", st:"todo", desc:"所有关联入口同层右滑入（语音管理⇄声音训练），关闭滑回", accept:"入口跳转均为右侧滑入范式，关闭即滑回原页面"},
-  {id:"mobile",g:"g3", name:"手机端复用", st:"todo", desc:"UltimaWallet 原生库/SDK 形态复用，PC + 移动端", accept:"同一能力双端可复用，移动端不另起炉灶"},
-  {id:"arhud", g:"g3", name:"AR 眼镜 HUD 显示测试机", st:"todo", desc:"【阶段定位：后续拓展阶段，非当前阶段（11-03 用户明确），当前阶段不投入采购/开发】带显示 AR 眼镜当外接显示器，硬约束=双目+彩显（非绿单色）→ 淘汰华强北 ¥129-159 入门档（市面多为单绿/无显示，36氪实查，2026 初已大面积下架）；正选阿里 AR MAX 双目 1080p Micro OLED 1800nits Type-C DP1.4 整机 $230-278 档（1 件起，RGB 全彩已核实：Si-OLED 1920x1080/眼、birdbath FOV 41-43°、近视 0-600），Huynew 双目光学引擎 $90-210 模组备选；UltimaAgent 本地渲染 HUD 画面输出，软件改造全在本地侧，不动冻结语音链路", accept:"【触发条件：进入拓展阶段后】双目彩显机型到手，HUD 画面可投进眼镜 + 分辨率/色彩验清（重点：透光率、边缘畸变、实际 FOV）+ 接入验证后勾选"},
-  {id:"harness",g:"g4", name:"Agent 架构对标盘点", st:"todo", desc:"harness 10 模式逐条对照：有界迭代/上下文压缩/可恢复会话/轨迹保留/工具权限范围化等", accept:"产出缺失项清单 + 补强优先级"},
-  {id:"openclaw",g:"g4", name:"OpenClaw 参考架构 POC", st:"todo", desc:"半天实测其网关/工具/ACP 协议，决定可借鉴点（只借鉴不整体替换）", accept:"产出可嫁接模块清单 + 不采用的明确理由"},
-  {id:"superagent",g:"g4", name:"DeepSeek Super-agent 参考架构调研与迁移评估", st:"done", desc:"2026-11-01 概念调研 + 2026-11-03 拉代码逐组件精读（clone 副本 + 12 组件 + 12,390 行 TS）：判定借鉴重写不整仓拼装；高迁移五项概念级重写 ~1500-2000 行；精读新增 interrupted 恢复/Outbox 回执/exactly-once 评估审计", accept:"排查结论与迁移评估已落盘 docs/research/dsh-superagent-open-source-replacement-conclusion-20261103.md（tag dsh-superagent-oss-conclusion-20261103）"},
-  {id:"midlayer",g:"g4", name:"Super Agent 式中间层 v1（编排服务层）", st:"wip", desc:"三层架构：主脑 qwen3-8b（大脑和嘴，不背任务上下文）+ 中间层（Ticket 状态机/调度队列/Watchdog 超时卡死/SessionStore 持久化/动作级裁决）+ 外脑（CodeX/DeepSeek 照单执行→回执→独立审计→有界修复→冻结）；短问答直连旁路；主脑不兼 Router；落地顺序：先中间层 v1（内脑编排）验收冻结，再接外脑调配（沿用 G-TASKFLOW-001）。11-03 用户确认核心执行原则：边界内自主执行（规则+白名单+路由门 0016 三态=8B 可做范围，8B 自主决策不请示）+ 边界外契约转派（能力缺口四级执行路径：①组合现有工具→②通用兜底工具常驻→③受控自建脚本→④转派外脑/工单→⑤如实说明；转派路径即规则契约=工单三段式+G-TASKFLOW-001，CodeX/DeepSeek 照单执行、主脑跟踪回报）；8B 只做路由决策不做路由创建，路径编排=Router 职责。11-03 规划已落盘（docs/plans/middleware-v1-delivery-plan-20261103.md）→ 工单 0022 已派发一次=BLOCKED：T5 完整工程门 4 项 T0 基线红灯（agent_server 时间前缀断言/时间直答路由/生产 tasks 可读/voice-next soxr），未 commit/tag/push；11-04 用户拍板审计最优=独立修复不挂账→修复单 0025 已冻结（38dd5a54）→0022 完整工程门重跑全绿（932/0/120/36w EXIT=0）→**0022 已冻结收口**（commit 34ac0c79 + tag `ultimaagent-middleware-v1-20261103` 已推远端 main），任务窗人话提炼子需求随 0022 落地（中间层结构化快照→主脑无状态翻译→任务窗人话+展开原文双入口，降级=模板话术）；外脑调配：**0023 Jarvis P0 已收口（2026-11-05 主脑豁免裁决 · ACCEPT WITH EXEMPTIONS）**——首轮 PID 13684（BLOCKED/REVISE）→修复轮 PID 21280（run 20261104T141335097160Z）跑完：KWS 回正权威基线（实测 score=2.0/trailing=8/threshold=0.08，T3=GREEN，语音测试 8 passed）；T4 全树 979 passed/2 failed/120 subtests，两项失败经首轮同用例 PASS 对照判为**环境既有非代码**（Ollama PATH 缺失 + `jarvis ask` 14B 在 12GB 卡 cudaMalloc OOM），裁决档 `data/evidence/jarvis-p0/T4/main-brain-exemption-ruling.json`，环境债 DEBT-ENV-01/02 另立专项；commit 0f944aaa+baa36198，tag `ultimaagent-jarvis-p0-20261103` 已推远端 main（baa36198）；**Owner 真实体验=延期验收项**（用户 11-04 确认当前不可用，不宣称完整 V1 冻结）；0024 按 WIP（每项目 ≤1）重派；18766 服务离线，登记走全局主表，待服务恢复后补登接口", accept:"方案落盘（G-PLAN-002 规划文档，含边界内/边界外执行原则+四级路径）→ 工单 0022 已派发 → 内脑编排验收冻结 → 外脑调配打通后勾选"},
-  {id:"pool",  g:"g4", name:"外部能力池规划", st:"todo", desc:"视频/小说/图像等专用模型按任务路由（未来演进）", accept:"能力路由表草案落盘"},
-  {id:"keep14",g:"g4", name:"14B 留库备用", st:"done", desc:"qwen2.5:14b 保留不删，留分层路由与回退空间（2026-11-02 起仅备查，不再作为运行候选）", accept:"库内可查、可随时回退切换"},
-  {id:"v1",    g:"g5", name:"第一冻结版本", st:"wip", desc:"最小闭环 KWS→ASR→8B→工具→TTS 锁定中：e2e 真机三要点验收方案已定稿待执行（voice-e2e-acceptance-20261101.md）；0007 伪流式验收 PASS 待打冻结 tag", accept:"冻结门通过，tag 推送，已知问题清单随版本发布"},
-  {id:"issues",g:"g5", name:"已知问题清单维护", st:"wip", desc:"#133 唤醒两遍 / 端点音量漂移 / 冷启动 68s / 跨轮 last_summary 残留", accept:"清单可查、复发有记录、修复有登记（lessons-log）"},
-  {id:"log",   g:"g5", name:"审计与经验落盘", st:"done", desc:"lessons-log L24-L38（L38=派发前置检查漏判 Codex 桌面 App 会话内执行端）+ 本轮北极星对齐审计已落盘", accept:"每次沟通结论即时落盘，不拖到之后"},
-  {id:"flow",  g:"g5", name:"版本冻结门 + 打 tag 推送", st:"done", desc:"G-TASKFLOW-001 流程已建（登记→评审→执行→审计→修复→验收→冻结）", accept:"关键更新自动打 tag 并推送"}
-];
-
-const KNOWN = [
-  "KWS 唤醒两遍（#133，score=2.0 间歇项，基线冻结待专项 A/B）",
-  "端点音量漂移（探针自愈，复发观察中）",
-  "冷启动 68s（三段预热后热机 18s，目标继续压）",
-  "跨轮 last_summary 残留（2b 已挡大部分，待收敛）"
-];
-
-const KEY = "ua-northstar-checklist-v1";
-let filter = "all";
-let doneSet = new Set(
-  TASKS.filter(t => t.st === "done").map(t => t.id)
-);
-try{
-  const saved = JSON.parse(localStorage.getItem(KEY) || "null");
-  if (saved && Array.isArray(saved)) doneSet = new Set(saved.filter(id => TASKS.some(t => t.id === id)));
-}catch(e){}
-
-function save(){
-  try{ localStorage.setItem(KEY, JSON.stringify([...doneSet])); }catch(e){}
+function calcModuleProgress(l1){
+  const l2s = l1.querySelectorAll('.level2');
+  let total = 0, done = 0;
+  l2s.forEach(l2=>{
+    l2.querySelectorAll('.level3').forEach(l3=>{
+      total++;
+      if(l3.textContent.includes('100% ✅')) done++;
+    });
+  });
+  return {pct: total === 0 ? 0 : Math.round(done/total*100), totalThird: total, doneThird: done};
 }
 
-function render(){
-  const total = TASKS.length, done = doneSet.size, pct = total ? Math.round(done*100/total) : 0;
-  document.getElementById("bigNum").textContent = done;
-  document.getElementById("bigLabel").textContent = "/ " + total + " 已完成 · " + pct + "%";
-  document.getElementById("barFill").style.width = pct + "%";
-
-  const knownUl = document.getElementById("knownList");
-  knownUl.innerHTML = KNOWN.map(k => "<li>" + k + "</li>").join("");
-
-  const groupsEl = document.getElementById("groups");
-  groupsEl.innerHTML = GROUPS.map(g => {
-    const items = TASKS.filter(t => t.g === g.key);
-    const gd = items.filter(t => doneSet.has(t.id)).length;
-    const visible = items.filter(t => filter === "all" || (filter === "done" ? doneSet.has(t.id) : t.st === filter));
-    return '<section class="group" data-g="' + g.key + '">' +
-      '<div class="group-head" role="button" tabindex="0" aria-expanded="true">' +
-        '<span class="g-no">' + g.no + '</span>' +
-        '<span class="g-name">' + g.name + '</span>' +
-        '<span class="g-sub">' + g.sub + '</span>' +
-        '<span class="g-bar"><span class="g-bar-fill" style="width:' + Math.round(gd*100/items.length) + '%"></span></span>' +
-        '<span class="chev">▼</span>' +
-      '</div>' +
-      '<ul class="tasks">' + visible.map(t => {
-        const isDone = doneSet.has(t.id);
-        const chip = isDone ? "已完成" : (t.st === "wip" ? "进行中" : "待办");
-        const chipCls = isDone ? "done" : t.st;
-        return '<li class="task' + (isDone ? " done" : "") + '" data-id="' + t.id + '">' +
-          '<label class="cb"><input type="checkbox"' + (isDone ? " checked" : "") + ' aria-label="' + t.name + '"></label>' +
-          '<div class="task-top">' +
-            '<span class="t-name">' + t.name + '</span>' +
-            '<span class="chip ' + chipCls + '">' + chip + '</span>' +
-          '</div>' +
-          '<div class="t-desc">' + t.desc + '</div>' +
-          '<div class="t-accept">验收口径：' + t.accept + '</div>' +
-          '<span class="t-toggle" role="button" tabindex="0">验收口径</span>' +
-        '</li>';
-      }).join("") + '</ul></section>';
-  }).join("");
-
-  document.querySelectorAll(".group-head").forEach(h => {
-    h.addEventListener("click", () => {
-      const g = h.closest(".group");
-      g.classList.toggle("collapsed");
-      h.setAttribute("aria-expanded", !g.classList.contains("collapsed"));
-    });
+function updateTags(){
+  document.querySelectorAll('.level1').forEach(l1=>{
+    const r = calcModuleProgress(l1);
+    const t = l1.querySelector('h3 .tag-done, h3 .tag-running, h3 .tag-pending');
+    if(!t) return;
+    t.className = r.pct >= 100 ? 'tag-done' : (r.pct > 0 ? 'tag-running' : 'tag-pending');
+    t.textContent = r.pct >= 100 ? '100% ✅' : (r.pct > 0 ? r.pct + '% 进行中' : '0% 待启动');
   });
-  document.querySelectorAll(".t-toggle").forEach(b => {
-    b.addEventListener("click", e => {
-      e.stopPropagation();
-      const li = b.closest(".task");
-      li.querySelector(".t-accept").classList.toggle("open");
-    });
-  });
-  document.querySelectorAll(".task .cb input").forEach(cb => {
-    cb.addEventListener("change", () => {
-      const id = cb.closest(".task").dataset.id;
-      if (cb.checked) doneSet.add(id); else doneSet.delete(id);
-      save(); render();
-    });
+  document.querySelectorAll('.level1 .level2').forEach(l2=>{
+    const l3s = l2.querySelectorAll('.level3');
+    if(l3s.length === 0) return;
+    let d = 0;
+    l3s.forEach(x=>{ if(x.textContent.includes('100% ✅')) d++; });
+    const pct = Math.round(d/l3s.length*100);
+    const t = l2.querySelector('.tag-done, .tag-running, .tag-pending');
+    if(!t) return;
+    t.className = pct >= 100 ? 'tag-done' : (pct > 0 ? 'tag-running' : 'tag-pending');
+    t.textContent = pct >= 100 ? '100% ✅' : (pct > 0 ? pct + '% 进行中' : '0% 待启动');
   });
 }
 
-document.getElementById("frameSec").querySelector(".frame-head").addEventListener("click", () => {
-  const f = document.getElementById("frameSec");
-  f.classList.toggle("open");
-  f.classList.toggle("collapsed");
-  f.querySelector(".frame-head").setAttribute("aria-expanded", f.classList.contains("open"));
-});
-
-document.querySelectorAll(".filter").forEach(f => {
-  f.addEventListener("click", () => {
-    filter = f.dataset.f;
-    document.querySelectorAll(".filter").forEach(x => x.setAttribute("aria-pressed", x === f));
-    render();
+function updateFlow(){
+  const list = [];
+  document.querySelectorAll('.level1').forEach(l1=>list.push(calcModuleProgress(l1)));
+  let activeIndex = -1;
+  for(let i=0;i<list.length;i++){ if(list[i].pct < 100){ activeIndex = i; break; } }
+  document.querySelectorAll('.flow-node').forEach((node, idx)=>{
+    const pct = list[idx] ? list[idx].pct : 0;
+    node.classList.remove('flow-done','flow-active','flow-next','flow-wait');
+    const desc = node.querySelector('.flow-node-desc');
+    if(pct >= 100){ node.classList.add('flow-done'); if(desc) desc.textContent = '✅ 已冻结，100%'; }
+    else if(idx === activeIndex){ node.classList.add('flow-active'); if(desc) desc.textContent = '🔥 当前进行中'; }
+    else if(idx === activeIndex + 1){ node.classList.add('flow-next'); if(desc) desc.textContent = '⏭️ 下一个任务'; }
+    else { node.classList.add('flow-wait'); if(desc) desc.textContent = '📅 远期排队'; }
   });
-});
+  /* 焦点框固定承载工单级实时信息（本区静态文本手工维护），此处不再覆盖为模块级文案 */
+}
 
-document.getElementById("resetBtn").addEventListener("click", () => {
-  if (confirm("确定重置所有勾选吗？进度数据将清空。")){
-    doneSet = new Set(); save(); render();
+function fmtMin(ms){
+  const m = Math.max(1, Math.round(ms/60000));
+  return m < 60 ? m + ' 分钟' : Math.floor(m/60) + ' 小时 ' + (m%60) + ' 分钟';
+}
+function applyLive(){
+  const L = window.ULTIMA_LIVE;
+  if(!L || !L.focus) return;
+  const f = L.focus;
+  const ft = document.getElementById('focusTaskText');
+  if(ft){
+    let el = f.elapsedLabel || '—';
+    if(f.running && L.updatedAtMs){
+      el = fmtMin(Date.now() - L.updatedAtMs + (f.elapsedMs || 0));
+    }
+    ft.textContent = f.order + ' · ' + (f.activity || '') + '（' + f.stateLabel + ' · ' + el + '）';
   }
-});
+  const nt = document.getElementById('nextTaskText');
+  if(nt && L.next){ nt.textContent = L.next.order + ' · ' + (L.next.activity || '') + '（' + (L.next.stateLabel || '') + '）'; }
+  else if(nt && !L.next){ nt.textContent = '暂无 UltimaAgent 排队工单'; }
+  const up = document.getElementById('liveUpdatedAt');
+  if(up){ up.textContent = '数据采集 ' + (L.updatedLabel || ''); }
+  const cnt = document.getElementById('liveCount');
+  if(cnt){
+    const n = (L.recent || []).filter(r => r.running).length;
+    cnt.className = n > 0 ? 'tag-running' : 'tag-pending';
+    cnt.textContent = n > 0 ? n + ' 单在跑' : '当前无在跑任务';
+  }
+  const ftag = document.getElementById('liveFocusTag');
+  if(ftag){
+    ftag.className = f.running ? 'tag-running' : 'tag-done';
+    ftag.textContent = f.stateLabel + ' · ' + (f.running && L.updatedAtMs ? fmtMin(Date.now() - L.updatedAtMs + (f.elapsedMs || 0)) : (f.elapsedLabel || '—'));
+  }
+  syncFlowToRunning(f);
+}
 
-render();
-</script>
+/* 流程条按「实际在跑工单所属模块」高亮，而不是「第一个未满 100% 的模块」——
+   旧逻辑会把模块1（67%）误标成"当前进行中"，与焦点框的 0031（模块2）自相矛盾。 */
+const ORDER_MODULE = {
+  'wo-ultimaagent-20261108-0031': 1,
+  'wo-ultimaagent-20261108-0030': 3,
+  'wo-ultimaagent-20261108-0029': 2,
+  'wo-ultimaagent-20261108-0028': 2,
+  'wo-ultimaagent-20261108-0027': 2,
+  'wo-ultimaagent-20261101-0013': 2
+};
+function syncFlowToRunning(f){
+  if(!f || !f.order || !f.running) return;
+  const mi = ORDER_MODULE[f.order];
+  if(mi === undefined) return;
+  const l1s = document.querySelectorAll('.level1');
+  document.querySelectorAll('#flowRow .flow-node').forEach(node=>{
+    const idx = parseInt(node.dataset.moduleIndex, 10);
+    const desc = node.querySelector('.flow-node-desc');
+    node.classList.remove('flow-done','flow-active','flow-next','flow-wait');
+    if(idx === mi){
+      node.classList.add('flow-active');
+      if(desc) desc.textContent = '🔥 在跑 ' + String(f.order).slice(-4);
+    } else {
+      const pct = l1s[idx] ? calcModuleProgress(l1s[idx]).pct : 0;
+      if(pct >= 100){ node.classList.add('flow-done'); if(desc) desc.textContent = '✅ 已冻结，100%'; }
+      else { node.classList.add('flow-wait'); if(desc) desc.textContent = '⏸ 未收口 ' + pct + '%'; }
+    }
+  });
+}
+window.addEventListener('load', ()=>{ updateTags(); updateFlow(); applyLive(); });
+setInterval(()=>{ if(window.ULTIMA_LIVE && window.ULTIMA_LIVE.focus && window.ULTIMA_LIVE.focus.running) applyLive(); }, 30000);
+</script>  <!-- ========== 5大模块看板 ========== --> <!-- 模块1：底座基础设施 --> <div class="level1">   <h3>模块1｜底座基础设施 <span class="tag-done">100% ✅</span></h3>
+  <div class="blocker ok"><b>卡点</b>：① 已解决（0031 交付通用冻结门并冻结，tag wo-ultimaagent-20261108-0031-frozen-20261108）② UltimaManager 18766 接口未部署、调用量 0，登记只到文件级</div>   <div class="level2">     ▶ 运行环境与解释器 <span class="tag-done">100% ✅</span>     <div class="level3"><span class="wo-tag none">无工单 · 主脑直建</span>• 专用 venv-openjarvis Python3.13.16 环境：100% ✅</div>   </div>   <div class="level2">     ▶ 版本与归档体系 <span class="tag-done">100% ✅</span>     <div class="level3"><span class="wo-tag num">wo-ultimaagent-20261108-0031</span>• Git tag 体系已立（249 个 tag，命名规范统一）；「自动打 tag」与「通用冻结门」未实现（仅 freeze-approved-v01/v03 版本专用脚本，无通用入口、非自动触发）：部分</div>     <div class="level3"><span class="wo-tag none">无工单 · 主脑直建</span>• lessons-log 复盘日志规范：100% ✅</div>   </div>   <div class="level2">     ▶ 工单与追踪底座 <span class="tag-done">100% ✅</span>     <div class="level3"><span class="wo-tag num">wo-ultimaagent-20261029-0001</span>• 全局工单登记：文件级已通（GlobalQueueRegistrar 直写 global-queue-index.md）；UltimaManager HTTP 18766 接口未部署（端口无监听、调用量 0）：部分</div>     <div class="level3"><span class="wo-tag none">无工单 · 主脑直建</span>• 文档目录规范（docs/specs/references/reports）：100% ✅</div>   </div>   <div class="level2">     ▶ 语音基线文档 <span class="tag-done">100% ✅</span>     <div class="level3"><span class="wo-tag num">wo-ultimaagent-20261031-0009</span>• KWS唤醒参数基线文档 kws-wakeup-params-baseline.md：100% ✅</div>   </div> </div>  <!-- 模块2：G-TASKFLOW 工单规范基线 --> <div class="level1">   <h3>模块2｜G-TASKFLOW-001 工单契约规范 <span class="tag-done">100% ✅</span><span style="font-size:11px;color:#6ee7b7;margin-left:6px;">已冻结 · 0031</span></h3>
+  <div class="blocker ok"><b>卡点</b>：机器可校验契约（schema + validator + DoR 硬门）已冻结（0031 收口）；本模块剩余是工单基线文档的存量推广</div>   <div class="level2">     ▶ 工单基线文档 <span class="tag-done">100% ✅</span>     <div class="level3"><span class="wo-tag num">wo-ultimaagent-20261029-0001</span>• 根工单、子工单Schema、验收/冻结规则定稿（文档级 + queue.py TaskRecord 代码级）：100% ✅</div><div class="level3"><span class="wo-tag num">wo-ultimaagent-20261108-0031</span>• 机器可校验契约 work-order.schema.json + validate_work_order.py + 派发前 DoR 硬门：100% ✅ 已冻结（tag wo-ultimaagent-20261108-0031-frozen-20261108，24 passed 独立复现；REVISE 补票完成）</div>   </div>   <div class="level2">     ▶ 基础流转流程定义 <span class="tag-done">100% ✅</span>     <div class="level3"><span class="wo-tag none">无工单 · G-TASKFLOW-001 规范</span>• 需求→拆解→执行→审计→归档 标准流程：100% ✅</div>   </div> </div>  <!-- 模块3：现有单Agent主干（存量主程序） --> <div class="level1">   <h3>模块3｜单Agent主干（存量） <span class="tag-running">83% 进行中</span></h3>
+  <div class="blocker ok"><b>卡点</b>：审计阶段门 0027 的 T2 已于 2026-11-10 11:39 收口（tag ultimaagent-audit-stage-gate-20261108 @ 2894638f，已推送）；0029 由 frozen 改判 blocked（产物仅存在于 feature 分支、主干不可见），其合并归口并入 0032 合并工单——0032 已由串行看门狗在 0027 退出 + 90s flush 后自动拉起（2026-11-10 11:41，PID 25060），正在合入 0031 + 0029 分支；本模块唯一未收口项转移至 0032</div>   <div class="level2">     ▶ 主Agent核心能力 <span class="tag-done">100% ✅</span>     <div class="level3"><span class="wo-tag none">无工单 · 主脑直建</span>• 基础任务拆解、工具调用、调用Codex：100% ✅</div>     <div class="level3"><span class="wo-tag num">wo-ultimaagent-20261101-0013</span>• 本地主脑 8B 残留引用清理（工单0013，tag ultimaagent-mainbrain-qwen3-8b-cleanup-20261101）：100% ✅</div>
+     <div class="level3"><span class="wo-tag num">wo-ultimaagent-20261108-0028</span>• E02 写入资格与证据范围提案独立评审（工单0028，只读零配额）：已评审，结论「需补充澄清后再修」——两文件边界漏 work_research.py 的重放侧写入资格判定、新增 S4 页后 messages+schema 最小 33,837B 超 32,768 硬门、通用覆盖契约缺可计算定义、提案 revision 43da3f0 与当前分支不一致；未授权代码修改，待 6 项澄清答复（2026-11-08）</div>
+     <div class="level3"><span class="wo-tag none">无工单 · 主脑直建</span>• 接口快路径（配置表直达 + 每日巡检）：13 个意图全部有可用首选（66–122ms），端到端 6/6 意图命中、3/3 取数成功（61–161ms）；巡检已写回配置并留备份 interface-routing-20261108-155323.json；定时调度侧仍待重建（2026-11-08）</div>   </div>   <div class="level2">     ▶ 自检审计能力 <span class="tag-done">100% ✅</span>     <div class="level3"><span class="wo-tag none">无工单 · 主脑直建</span>• 现有prompt自检：100% ✅</div>     <div class="level3"><span class="wo-tag num">wo-ultimaagent-20261108-0026</span>• 标准化审计提示词：100% ✅</div>     <div class="level3"><span class="wo-tag num">wo-ultimaagent-20261108-0026</span>• 统一审计报告格式：100% ✅</div>     <div class="level3"><span class="wo-tag num">wo-ultimaagent-20261108-0027</span>• 审计阶段门（独立复核机制，工单0027）：T0/T1 已独立审计通过｜T2 已于 2026-11-10 11:39 收口（READY_FOR_DEEPSEEK_AUDIT）——正例 independent-review.json（COMPLETED，15 passed / 2 subtests）、三案反例全拒（case_count=3 / all_refused=true）、全量门 1008 passed / 122 subtests / JUnit failures=0 errors=0、receipt.json 6,759B 合法 JSON（exit_code=0）、T2 报告 7,387B；tag ultimaagent-audit-stage-gate-20261108 @ 2894638f，三笔提交已推送｜<b style="color:#fca5a5;">遗留</b>：全量门在提交后复跑出现 2 红 2 绿，根因为既有 preference 时间戳同毫秒 flake（20% 失败率，已登记 L97，待立工单</div>   </div>   <div class="level2">     ▶ 单Agent闭环测试用例 <span class="tag-done">100% ✅</span>     <div class="level3"><span class="wo-tag num">wo-ultimaagent-20261108-0026</span>• 全流程闭环测试、失败case归档：100% ✅</div>   </div> </div>  <!-- 模块4：多Agent编排层 G-PLAN-MA-001（新增） --> <div class="level1">
+  <h3>模块4｜多Agent编排层 G-PLAN-MA-001 <span class="tag-running">进行中</span></h3>
+  <div class="blocker ok"><b>卡点</b>：台账只做完 T0–T2 底座，T3–T6（阶段解析 / A2UI 看板 / 审批门 / 对账）<b>尚未派单</b>；Agent 实例池、MessageBus 仍为 0% 待立项</div>
+  <div class="level2">
+    ▶ 方案与基线文档 <span class="tag-done">100% ✅</span>
+    <div class="level3"><span class="wo-tag none">无工单 · 主脑直建</span>• 最小开发方案、角色定义、工单通信Schema：100% ✅</div>
+    <div class="level3"><span class="wo-tag num">wo-ultimaagent-20261108-0030</span>• 模块4 吸收 Manager 能力方案（2026-11-08，契约复用、不搬 3.4 万行后端代码、不启用 WPF）：100% ✅</div>
+  </div>
+  <div class="level2">
+    ▶ 编排核心调度代码 <span class="tag-running">部分完成</span>
+    <div class="level3"><span class="wo-tag none">无工单 · M4 里程碑验收</span>• Orchestrator 状态机核心 LangGraphStateMachine + ApprovalGate + AuditTrail（M4 里程碑 2026-10-25 验收 10/10）：100% ✅</div>
+    <div class="level3"><span class="wo-tag num">wo-ultimaagent-20261029-0001</span>• 全局队列登记器 GlobalQueueRegistrar（queue.py 461 行，写 md 主表）：100% ✅</div>
+    <div class="level3"><span class="wo-tag num">wo-orb-w6 / w7 / w8</span>• ②③④ 外脑封装 + ⑤ 常驻监工 + 原始需求原文落盘（2026-11-10 独立审计通过并冻结）：100% ✅ 已冻结（tag wo-orb-w6/w7/w8-frozen-20261110；复跑 20 / 12 / 16 passed；提交零越界，回执判据同步硬化）</div>
+    <div class="level3"><span class="wo-tag todo">待立项</span>• Agent实例池、上下文隔离：0%</div>
+    <div class="level3"><span class="wo-tag todo">待立项</span>• MessageBus 本地消息总线、持久化（ultima_bus 仍为空壳）：0%</div>
+    <div class="level3"><span class="wo-tag none">无工单 · 主脑直做</span>• G-ORCH 多通道并发编排（<b>照搬 ccpm 的两个判定函数 + worktrunk</b>；另<b>自建约 170KB 解析 / 校验 / 编排层</b>，此前未登记）：<b>S1–S7 + 插槽适配层已提交</b>（gate/provision/execute 真实 2 通道并发跑通；merge/cleanup 含真实冲突硬验收；三插槽换 API/CLI/模型零改码；S7 bridge 接通 A→B 并用真 DeepSeek + 真 Codex 跑通一单八跳，独立复检全 PASS）｜ <b>2026-11-09 收口</b>：跳 1 主脑已接本地 8B 真跑通过 ｜ <b>审计后仍缺（4 项 P0）</b>：①<b>判据基线未冻结</b>（其自述"必须修完"的 L1-02/03/04 实测全未达标：四类畸形行已修（1 读出 / 3 REFUSE，10 条测试，14 份真实工单 0 误伤）、python3 仍被接受、skip 政策仍只有合成 XML）②<b>文档清单脱节</b>（22 个 G-ORCH 文件 20 个未登记）③<b>无 ADR</b>（5 个重大选型无决策记录）④<b>无正式工单</b>（tasks/ 0 张）｜ 另：<b>跳 4 未串跑</b>、<b>并发 3 通道实测 2/3 且非同轮</b>（JOB-3 无产物）、<b>config/gorch 教学文档仍教 18766 + qwen3:8b</b> ｜ <b>第二轮（B+A）已交付</b>：解析器收紧（1 读出 / 3 REFUSE）+ <b>next 选单子命令</b>（复用 ccpm 判定，无下一单 exit 1）+ <b>176 passed / 0 failed</b>；新查两个洞未改：真实工单 0 份含 ACC 表（冻结门「每门必审」空转 fail-open）、<b>status:blocked 让整批 fail-closed</b>（状态词缺一格）：约 92%</div>
+  </div>
+  <div class="level2">
+    ▶ 台账与执行看板（吸收 Manager） <span class="tag-pending">0% 待启动</span>
+    <div class="level3">• 方案与工单 0030 已冻结（tag agent-m4-ledger-plan-frozen-20261108 @27433fb1，2026-11-08）：100% ✅</div>
+    <div class="level3">• T0 台账契约冻结（与 Manager store.py 逐字段对齐，实测 13 表、差异 0、核心 5 表；方案原写 7 表、work_orders 15 列 / runs 25 列与冻结方案 14/26 有偏差已记录）：100% ✅（a96330c9）</div>
+    <div class="level3">• T1 轻量 SQLite 台账 store（put/CAS/事务）：100% ✅（16df59b5）</div>
+    <div class="level3">• T2 双写登记台（md 主表 + ledger），登记失败不阻断派发：100% ✅（a4d968af，31 项 Gate 独立复跑通过）</div>
+    <div class="level3"><span class="wo-tag num">wo-ultimaagent-20261108-0030</span>• T3 活动级阶段解析器（补 Manager 到不了的"正在写报告"颗粒度）：待开工</div>
+    <div class="level3"><span class="wo-tag num">wo-ultimaagent-20261108-0030</span>• T4 A2UI 执行看板页（14 字段对齐 ExecutionBoard，在跑三要素判定）：待开工</div>
+    <div class="level3"><span class="wo-tag num">wo-ultimaagent-20261108-0030</span>• T5 审批门接线 ledger（approvals + events）：待开工</div>
+    <div class="level3"><span class="wo-tag num">wo-ultimaagent-20261108-0030</span>• T6 降级与对账自愈（md ↔ ledger 补登）：待开工</div>
+  </div>
+  <div class="level2">
+    ▶ 熔断与权限守卫 <span class="tag-pending">0% 待开发</span>
+    <div class="level3"><span class="wo-tag todo">待立项</span>• Guard超时/重试/并发上限控制：0%</div>
+    <div class="level3"><span class="wo-tag todo">待立项</span>• 角色权限白名单隔离：0%</div>
+  </div>
+  <div class="level2">
+    ▶ 兼容开关与回调钩子 <span class="tag-pending">0% 待开发</span>
+    <div class="level3"><span class="wo-tag todo">待立项</span>• enable_multi_agent 切换开关：0%</div>
+    <div class="level3"><span class="wo-tag todo">待立项</span>• 北极星/工单/lessons-log/git tag回调：0%</div>
+  </div>
+  <div class="level2">
+    ▶ 单元测试与验收 <span class="tag-pending">0% 待开发</span>
+    <div class="level3"><span class="wo-tag todo">待立项</span>• 正常流转、驳回、超时、并发分支测试：0%</div>
+  </div>
+</div>
+<!-- 模块5：扩展能力层（收拢所有上层、插件、远期） --> <div class="level1">   <h3>模块5｜扩展能力层 <span class="tag-pending">0% 排队</span></h3>
+  <div class="blocker gray"><b>卡点</b>：整模块未立项，10 条任务无工单号，属主动排队而非停滞</div>   <div class="level2">     ▶ Executor工具插件生态 <span class="tag-pending">0%</span>     <div class="level3"><span class="wo-tag todo">待立项</span>• Scrapling爬虫工具注册：0%</div>     <div class="level3"><span class="wo-tag todo">待立项</span>• Aholo Lux3D + Blender管线接入：0%</div>     <div class="level3"><span class="wo-tag todo">待立项</span>• CV3语音训练管线接入：0%</div>   </div>   <div class="level2">     ▶ PySide6 桌面HUD / 四角壳 <span class="tag-pending">0%</span>     <div class="level3"><span class="wo-tag todo">待立项</span>• 状态展示、消息推送、四角悬浮壳：0%</div>   </div>   <div class="level2">     ▶ AR眼镜HUD对接层 <span class="tag-pending">0% 远期调研</span>     <div class="level3"><span class="wo-tag todo">待立项</span>• Bird/阿里AR Max 协议调研、消息推送：0%</div>   </div>   <div class="level2">     ▶ 远期探索池 <span class="tag-pending">0% 调研池</span>     <div class="level3"><span class="wo-tag todo">待立项</span>• DAG复杂依赖调度、动态角色（仅调研）：0%</div>     <div class="level3"><span class="wo-tag todo">待立项</span>• Agent自由协商（仅调研，不进MVP）：0%</div>   </div> </div>  <hr style="border-color:#27272a;margin:18px 0;"> <h3>📎 独立产品线（单独追踪，不计入UltimaAgent主线进度）</h3> <div class="level2">• UltimaGA 交易终端（MT5、金融爬虫）</div> <div class="level2">• Ultima骑士（摩托骑行语音Agent APP）</div> <div class="level2">• UltimaWallet 冷热分离钱包SDK</div><div class="level2">• UltimaSentinel 合规线（PDPA 第一期） <span class="tag-done">已冻结 ✅</span><div class="level3">• P 族规则库 v1.0：14 条四层（公域 5/系统 4/流程 4/专项 1），Act 709 + A1727 修正案，security/compliance/all 三模式隔离，tag pdpa-rules-20261108（2026-11-08）</div><div class="level3">• 场景编排层 v0.9.1：资产盘点/合规比对/DPO 工作台/标准报告 四 Agent 顺序链，en/ms/zh-CN 三语报告 + 整改清单，独立复跑 17 例全绿，tag v0.9.1-pdpa（2026-11-08）</div><div class="level3">• 汇总验收 CONSOLE-SUM-20261108-001 通过：交付四类齐全、基线与双 tag 同步；4 条既有核心链路债已登记 lessons（本期范围外）；两 tag 本地未推（仓库无远端）</div></div>  </div>
 </body>
 </html>

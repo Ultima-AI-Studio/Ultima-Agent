@@ -1,0 +1,251 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="12" skipped="0" tests="14" time="12.698" timestamp="2026-11-08T12:49:16.755278+08:00" hostname="DESKTOP-B366PQ9"><testcase classname="" name="test_fact_projection_preserves_closed_object_contract[code]" time="0.002"><failure message="AssertionError: native fact generation still emits claim before its evidence&#10;[+1 more line; full report in element text]">kind = 'code'
+
+    @pytest.mark.parametrize('kind', ['code', 'documented', 'limitation'])
+    def test_fact_projection_preserves_closed_object_contract(kind):
+        strict = fact_node(kind)
+        before = deepcopy(strict)
+        projected = server._research_sampler_schema(strict)
+&gt;       assert 'allOf' in projected, 'native fact generation still emits claim before its evidence'
+E       AssertionError: native fact generation still emits claim before its evidence
+E       assert 'allOf' in {'type': 'object', 'additionalProperties': False, 'properties': {'claim': {'type': 'string', 'minLength': 1, 'pattern': '^client\\.run(([^"\\\\\\x00-\\x1fA-Za-z0-9_$.]|[\\\\](["\\\\bfnrt/]|u[0-9a-fA-F]{4}))([^"\\\\\\x00-\\x1f]|[\\\\](["\\\\bfnrt/]|u[0-9a-fA-F]{4}))*|\\.(([^"\\\\\\x00-\\x1fA-Za-z_$]|[\\\\](["\\\\bfnrt/]|u[0-9a-fA-F]{4}))([^"\\\\\\x00-\\x1f]|[\\\\](["\\\\bfnrt/]|u[0-9a-fA-F]{4}))*)?)?$'}, 'evidence_id': {'type': 'string', 'pattern': '^N3\\.[0-9a-f]{16}$', 'minLength': 19, 'enum': ['N3.0000000000000001']}}, 'required': ['claim', 'evidence_id']}
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-source-grounding-r1\UltimaAgent\src\brain\tests\test_work_evidence_first_generation.py:33: AssertionError</failure></testcase><testcase classname="" name="test_fact_projection_preserves_closed_object_contract[documented]" time="0.001"><failure message="AssertionError: native fact generation still emits claim before its evidence&#10;assert 'allOf' in {'type': 'object', 'additionalProperties': False, 'required': ['claim', 'evidence_id'], 'properties': {'claim': {'type': 'string', 'minLength': 1}, 'evidence_id': {'type': 'string', 'enum': ['N3.0000000000000001']}}}">kind = 'documented'
+
+    @pytest.mark.parametrize('kind', ['code', 'documented', 'limitation'])
+    def test_fact_projection_preserves_closed_object_contract(kind):
+        strict = fact_node(kind)
+        before = deepcopy(strict)
+        projected = server._research_sampler_schema(strict)
+&gt;       assert 'allOf' in projected, 'native fact generation still emits claim before its evidence'
+E       AssertionError: native fact generation still emits claim before its evidence
+E       assert 'allOf' in {'type': 'object', 'additionalProperties': False, 'required': ['claim', 'evidence_id'], 'properties': {'claim': {'type': 'string', 'minLength': 1}, 'evidence_id': {'type': 'string', 'enum': ['N3.0000000000000001']}}}
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-source-grounding-r1\UltimaAgent\src\brain\tests\test_work_evidence_first_generation.py:33: AssertionError</failure></testcase><testcase classname="" name="test_fact_projection_preserves_closed_object_contract[limitation]" time="0.001"><failure message="AssertionError: native fact generation still emits claim before its evidence&#10;assert 'allOf' in {'type': 'object', 'additionalProperties': False, 'required': ['claim', 'evidence_id'], 'properties': {'claim': {'type': 'string', 'minLength': 1}, 'evidence_id': {'type': 'string', 'enum': ['N3.0000000000000001']}}}">kind = 'limitation'
+
+    @pytest.mark.parametrize('kind', ['code', 'documented', 'limitation'])
+    def test_fact_projection_preserves_closed_object_contract(kind):
+        strict = fact_node(kind)
+        before = deepcopy(strict)
+        projected = server._research_sampler_schema(strict)
+&gt;       assert 'allOf' in projected, 'native fact generation still emits claim before its evidence'
+E       AssertionError: native fact generation still emits claim before its evidence
+E       assert 'allOf' in {'type': 'object', 'additionalProperties': False, 'required': ['claim', 'evidence_id'], 'properties': {'claim': {'type': 'string', 'minLength': 1}, 'evidence_id': {'type': 'string', 'enum': ['N3.0000000000000001']}}}
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-source-grounding-r1\UltimaAgent\src\brain\tests\test_work_evidence_first_generation.py:33: AssertionError</failure></testcase><testcase classname="" name="test_projection_does_not_rewrite_literals_or_other_object_contracts" time="0.001" /><testcase classname="" name="test_canonical_request_keeps_reference_before_claim" time="0.001"><failure message="AssertionError: canonical sorting still controls fact property emission order&#10;assert 'allOf' in {'additionalProperties': False, 'properties': {'claim': {'minLength': 1, 'type': 'string'}, 'evidence_id': {'enum': ['N3.0000000000000001'], 'type': 'string'}}, 'required': ['claim', 'evidence_id'], 'type': 'object'}">def test_canonical_request_keeps_reference_before_claim():
+        projected = server._research_sampler_schema(fact_node('documented'))
+        request = json.loads(nav.canonical_v3(dict(format=projected)))
+&gt;       assert 'allOf' in request['format'], 'canonical sorting still controls fact property emission order'
+E       AssertionError: canonical sorting still controls fact property emission order
+E       assert 'allOf' in {'additionalProperties': False, 'properties': {'claim': {'minLength': 1, 'type': 'string'}, 'evidence_id': {'enum': ['N3.0000000000000001'], 'type': 'string'}}, 'required': ['claim', 'evidence_id'], 'type': 'object'}
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-source-grounding-r1\UltimaAgent\src\brain\tests\test_work_evidence_first_generation.py:78: AssertionError</failure></testcase><testcase classname="" name="test_source_reserve_protects_remaining_unread_opportunities[available0-visible0-3-expected0]" time="0.001"><failure message="AssertionError: assert ['S1', 'S2', 'S3', 'S4'] == ['S2', 'S3', 'S4']&#10;  &#10;  At index 0 diff: 'S1' != 'S2'&#10;  Left contains one more item: 'S4'&#10;  &#10;  Full diff: (-: missing in left side, +: extra in left side)&#10;    [&#10;  +     'S1',&#10;        'S2',&#10;        'S3',&#10;        'S4',&#10;    ]">available = ('S1', 'S2', 'S3', 'S4')
+visible = (('S1', b'[["N3.0000000000000001","documented","text",1,1,1,1]]'), ('S1', b'[["N3.0000000000000002","documented","text",1,1,1,1]]'), ('S1', b'[["N3.0000000000000003","documented","text",1,1,1,1]]'))
+used = 3, expected = ['S2', 'S3', 'S4']
+
+    @pytest.mark.parametrize('available,visible,used,expected', [
+        (('S1', 'S2', 'S3', 'S4'), tuple(page('S1', i) for i in range(1, 4)), 3, ['S2', 'S3', 'S4']),
+        (('S1', 'S2', 'S3', 'S4', 'S5'), (page('S1'), page('S1', 2)), 2, ['S2', 'S3', 'S4', 'S5']),
+        (('S5', 'S3', 'S1', 'S2'), tuple(page('S5', i) for i in range(1, 4)), 3, ['S3', 'S1', 'S2']),
+        (('S1', 'S2', 'S3', 'S4', 'S5'), tuple(page('S1', i) for i in range(1, 4)), 3, ['S2', 'S3', 'S4', 'S5']),
+        (('S1', 'S2', 'S3', 'S4'), (page('S1'), page('S2', 2), page('S3', 3)), 5, ['S4']),
+        (('S1', 'S2', 'S3', 'S4'), (page('S1'), page('S2', 2, empty=True)), 3, ['S2', 'S3', 'S4']),
+    ])
+    def test_source_reserve_protects_remaining_unread_opportunities(available, visible, used, expected):
+        original = deepcopy(WorkInspectTool.parameters)
+        schema = nav.v3_phase_inspect_schema(original, available, visible, used)
+        assert schema is not None
+&gt;       assert schema['properties']['source_id']['enum'] == expected
+E       AssertionError: assert ['S1', 'S2', 'S3', 'S4'] == ['S2', 'S3', 'S4']
+E         
+E         At index 0 diff: 'S1' != 'S2'
+E         Left contains one more item: 'S4'
+E         
+E         Full diff: (-: missing in left side, +: extra in left side)
+E           [
+E         +     'S1',
+E               'S2',
+E               'S3',
+E               'S4',
+E           ]
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-source-grounding-r1\UltimaAgent\src\brain\tests\test_work_evidence_first_generation.py:95: AssertionError</failure></testcase><testcase classname="" name="test_source_reserve_protects_remaining_unread_opportunities[available1-visible1-2-expected1]" time="0.001"><failure message="AssertionError: assert ['S1', 'S2', 'S3', 'S4', 'S5'] == ['S2', 'S3', 'S4', 'S5']&#10;  &#10;  At index 0 diff: 'S1' != 'S2'&#10;  Left contains one more item: 'S5'&#10;  &#10;  Full diff: (-: missing in left side, +: extra in left side)&#10;    [&#10;  +     'S1',&#10;        'S2',&#10;        'S3',&#10;        'S4',&#10;        'S5',&#10;    ]">available = ('S1', 'S2', 'S3', 'S4', 'S5')
+visible = (('S1', b'[["N3.0000000000000001","documented","text",1,1,1,1]]'), ('S1', b'[["N3.0000000000000002","documented","text",1,1,1,1]]'))
+used = 2, expected = ['S2', 'S3', 'S4', 'S5']
+
+    @pytest.mark.parametrize('available,visible,used,expected', [
+        (('S1', 'S2', 'S3', 'S4'), tuple(page('S1', i) for i in range(1, 4)), 3, ['S2', 'S3', 'S4']),
+        (('S1', 'S2', 'S3', 'S4', 'S5'), (page('S1'), page('S1', 2)), 2, ['S2', 'S3', 'S4', 'S5']),
+        (('S5', 'S3', 'S1', 'S2'), tuple(page('S5', i) for i in range(1, 4)), 3, ['S3', 'S1', 'S2']),
+        (('S1', 'S2', 'S3', 'S4', 'S5'), tuple(page('S1', i) for i in range(1, 4)), 3, ['S2', 'S3', 'S4', 'S5']),
+        (('S1', 'S2', 'S3', 'S4'), (page('S1'), page('S2', 2), page('S3', 3)), 5, ['S4']),
+        (('S1', 'S2', 'S3', 'S4'), (page('S1'), page('S2', 2, empty=True)), 3, ['S2', 'S3', 'S4']),
+    ])
+    def test_source_reserve_protects_remaining_unread_opportunities(available, visible, used, expected):
+        original = deepcopy(WorkInspectTool.parameters)
+        schema = nav.v3_phase_inspect_schema(original, available, visible, used)
+        assert schema is not None
+&gt;       assert schema['properties']['source_id']['enum'] == expected
+E       AssertionError: assert ['S1', 'S2', 'S3', 'S4', 'S5'] == ['S2', 'S3', 'S4', 'S5']
+E         
+E         At index 0 diff: 'S1' != 'S2'
+E         Left contains one more item: 'S5'
+E         
+E         Full diff: (-: missing in left side, +: extra in left side)
+E           [
+E         +     'S1',
+E               'S2',
+E               'S3',
+E               'S4',
+E               'S5',
+E           ]
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-source-grounding-r1\UltimaAgent\src\brain\tests\test_work_evidence_first_generation.py:95: AssertionError</failure></testcase><testcase classname="" name="test_source_reserve_protects_remaining_unread_opportunities[available2-visible2-3-expected2]" time="0.001"><failure message="AssertionError: assert ['S5', 'S3', 'S1', 'S2'] == ['S3', 'S1', 'S2']&#10;  &#10;  At index 0 diff: 'S5' != 'S3'&#10;  Left contains one more item: 'S2'&#10;  &#10;  Full diff: (-: missing in left side, +: extra in left side)&#10;    [&#10;  +     'S5',&#10;        'S3',&#10;        'S1',&#10;        'S2',&#10;    ]">available = ('S5', 'S3', 'S1', 'S2')
+visible = (('S5', b'[["N3.0000000000000001","documented","text",1,1,1,1]]'), ('S5', b'[["N3.0000000000000002","documented","text",1,1,1,1]]'), ('S5', b'[["N3.0000000000000003","documented","text",1,1,1,1]]'))
+used = 3, expected = ['S3', 'S1', 'S2']
+
+    @pytest.mark.parametrize('available,visible,used,expected', [
+        (('S1', 'S2', 'S3', 'S4'), tuple(page('S1', i) for i in range(1, 4)), 3, ['S2', 'S3', 'S4']),
+        (('S1', 'S2', 'S3', 'S4', 'S5'), (page('S1'), page('S1', 2)), 2, ['S2', 'S3', 'S4', 'S5']),
+        (('S5', 'S3', 'S1', 'S2'), tuple(page('S5', i) for i in range(1, 4)), 3, ['S3', 'S1', 'S2']),
+        (('S1', 'S2', 'S3', 'S4', 'S5'), tuple(page('S1', i) for i in range(1, 4)), 3, ['S2', 'S3', 'S4', 'S5']),
+        (('S1', 'S2', 'S3', 'S4'), (page('S1'), page('S2', 2), page('S3', 3)), 5, ['S4']),
+        (('S1', 'S2', 'S3', 'S4'), (page('S1'), page('S2', 2, empty=True)), 3, ['S2', 'S3', 'S4']),
+    ])
+    def test_source_reserve_protects_remaining_unread_opportunities(available, visible, used, expected):
+        original = deepcopy(WorkInspectTool.parameters)
+        schema = nav.v3_phase_inspect_schema(original, available, visible, used)
+        assert schema is not None
+&gt;       assert schema['properties']['source_id']['enum'] == expected
+E       AssertionError: assert ['S5', 'S3', 'S1', 'S2'] == ['S3', 'S1', 'S2']
+E         
+E         At index 0 diff: 'S5' != 'S3'
+E         Left contains one more item: 'S2'
+E         
+E         Full diff: (-: missing in left side, +: extra in left side)
+E           [
+E         +     'S5',
+E               'S3',
+E               'S1',
+E               'S2',
+E           ]
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-source-grounding-r1\UltimaAgent\src\brain\tests\test_work_evidence_first_generation.py:95: AssertionError</failure></testcase><testcase classname="" name="test_source_reserve_protects_remaining_unread_opportunities[available3-visible3-3-expected3]" time="0.001"><failure message="AssertionError: assert ['S1', 'S2', 'S3', 'S4', 'S5'] == ['S2', 'S3', 'S4', 'S5']&#10;  &#10;  At index 0 diff: 'S1' != 'S2'&#10;  Left contains one more item: 'S5'&#10;  &#10;  Full diff: (-: missing in left side, +: extra in left side)&#10;    [&#10;  +     'S1',&#10;        'S2',&#10;        'S3',&#10;        'S4',&#10;        'S5',&#10;    ]">available = ('S1', 'S2', 'S3', 'S4', 'S5')
+visible = (('S1', b'[["N3.0000000000000001","documented","text",1,1,1,1]]'), ('S1', b'[["N3.0000000000000002","documented","text",1,1,1,1]]'), ('S1', b'[["N3.0000000000000003","documented","text",1,1,1,1]]'))
+used = 3, expected = ['S2', 'S3', 'S4', 'S5']
+
+    @pytest.mark.parametrize('available,visible,used,expected', [
+        (('S1', 'S2', 'S3', 'S4'), tuple(page('S1', i) for i in range(1, 4)), 3, ['S2', 'S3', 'S4']),
+        (('S1', 'S2', 'S3', 'S4', 'S5'), (page('S1'), page('S1', 2)), 2, ['S2', 'S3', 'S4', 'S5']),
+        (('S5', 'S3', 'S1', 'S2'), tuple(page('S5', i) for i in range(1, 4)), 3, ['S3', 'S1', 'S2']),
+        (('S1', 'S2', 'S3', 'S4', 'S5'), tuple(page('S1', i) for i in range(1, 4)), 3, ['S2', 'S3', 'S4', 'S5']),
+        (('S1', 'S2', 'S3', 'S4'), (page('S1'), page('S2', 2), page('S3', 3)), 5, ['S4']),
+        (('S1', 'S2', 'S3', 'S4'), (page('S1'), page('S2', 2, empty=True)), 3, ['S2', 'S3', 'S4']),
+    ])
+    def test_source_reserve_protects_remaining_unread_opportunities(available, visible, used, expected):
+        original = deepcopy(WorkInspectTool.parameters)
+        schema = nav.v3_phase_inspect_schema(original, available, visible, used)
+        assert schema is not None
+&gt;       assert schema['properties']['source_id']['enum'] == expected
+E       AssertionError: assert ['S1', 'S2', 'S3', 'S4', 'S5'] == ['S2', 'S3', 'S4', 'S5']
+E         
+E         At index 0 diff: 'S1' != 'S2'
+E         Left contains one more item: 'S5'
+E         
+E         Full diff: (-: missing in left side, +: extra in left side)
+E           [
+E         +     'S1',
+E               'S2',
+E               'S3',
+E               'S4',
+E               'S5',
+E           ]
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-source-grounding-r1\UltimaAgent\src\brain\tests\test_work_evidence_first_generation.py:95: AssertionError</failure></testcase><testcase classname="" name="test_source_reserve_protects_remaining_unread_opportunities[available4-visible4-5-expected4]" time="0.001"><failure message="AssertionError: assert ['S1', 'S2', 'S3', 'S4'] == ['S4']&#10;  &#10;  At index 0 diff: 'S1' != 'S4'&#10;  Left contains 3 more items, first extra item: 'S2'&#10;  &#10;  Full diff: (-: missing in left side, +: extra in left side)&#10;    [&#10;  +     'S1',&#10;  +     'S2',&#10;  +     'S3',&#10;        'S4',&#10;    ]">available = ('S1', 'S2', 'S3', 'S4')
+visible = (('S1', b'[["N3.0000000000000001","documented","text",1,1,1,1]]'), ('S2', b'[["N3.0000000000000002","documented","text",1,1,1,1]]'), ('S3', b'[["N3.0000000000000003","documented","text",1,1,1,1]]'))
+used = 5, expected = ['S4']
+
+    @pytest.mark.parametrize('available,visible,used,expected', [
+        (('S1', 'S2', 'S3', 'S4'), tuple(page('S1', i) for i in range(1, 4)), 3, ['S2', 'S3', 'S4']),
+        (('S1', 'S2', 'S3', 'S4', 'S5'), (page('S1'), page('S1', 2)), 2, ['S2', 'S3', 'S4', 'S5']),
+        (('S5', 'S3', 'S1', 'S2'), tuple(page('S5', i) for i in range(1, 4)), 3, ['S3', 'S1', 'S2']),
+        (('S1', 'S2', 'S3', 'S4', 'S5'), tuple(page('S1', i) for i in range(1, 4)), 3, ['S2', 'S3', 'S4', 'S5']),
+        (('S1', 'S2', 'S3', 'S4'), (page('S1'), page('S2', 2), page('S3', 3)), 5, ['S4']),
+        (('S1', 'S2', 'S3', 'S4'), (page('S1'), page('S2', 2, empty=True)), 3, ['S2', 'S3', 'S4']),
+    ])
+    def test_source_reserve_protects_remaining_unread_opportunities(available, visible, used, expected):
+        original = deepcopy(WorkInspectTool.parameters)
+        schema = nav.v3_phase_inspect_schema(original, available, visible, used)
+        assert schema is not None
+&gt;       assert schema['properties']['source_id']['enum'] == expected
+E       AssertionError: assert ['S1', 'S2', 'S3', 'S4'] == ['S4']
+E         
+E         At index 0 diff: 'S1' != 'S4'
+E         Left contains 3 more items, first extra item: 'S2'
+E         
+E         Full diff: (-: missing in left side, +: extra in left side)
+E           [
+E         +     'S1',
+E         +     'S2',
+E         +     'S3',
+E               'S4',
+E           ]
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-source-grounding-r1\UltimaAgent\src\brain\tests\test_work_evidence_first_generation.py:95: AssertionError</failure></testcase><testcase classname="" name="test_source_reserve_protects_remaining_unread_opportunities[available5-visible5-3-expected5]" time="0.001"><failure message="AssertionError: assert ['S1', 'S2', 'S3', 'S4'] == ['S2', 'S3', 'S4']&#10;  &#10;  At index 0 diff: 'S1' != 'S2'&#10;  Left contains one more item: 'S4'&#10;  &#10;  Full diff: (-: missing in left side, +: extra in left side)&#10;    [&#10;  +     'S1',&#10;        'S2',&#10;        'S3',&#10;        'S4',&#10;    ]">available = ('S1', 'S2', 'S3', 'S4')
+visible = (('S1', b'[["N3.0000000000000001","documented","text",1,1,1,1]]'), ('S2', b'[]'))
+used = 3, expected = ['S2', 'S3', 'S4']
+
+    @pytest.mark.parametrize('available,visible,used,expected', [
+        (('S1', 'S2', 'S3', 'S4'), tuple(page('S1', i) for i in range(1, 4)), 3, ['S2', 'S3', 'S4']),
+        (('S1', 'S2', 'S3', 'S4', 'S5'), (page('S1'), page('S1', 2)), 2, ['S2', 'S3', 'S4', 'S5']),
+        (('S5', 'S3', 'S1', 'S2'), tuple(page('S5', i) for i in range(1, 4)), 3, ['S3', 'S1', 'S2']),
+        (('S1', 'S2', 'S3', 'S4', 'S5'), tuple(page('S1', i) for i in range(1, 4)), 3, ['S2', 'S3', 'S4', 'S5']),
+        (('S1', 'S2', 'S3', 'S4'), (page('S1'), page('S2', 2), page('S3', 3)), 5, ['S4']),
+        (('S1', 'S2', 'S3', 'S4'), (page('S1'), page('S2', 2, empty=True)), 3, ['S2', 'S3', 'S4']),
+    ])
+    def test_source_reserve_protects_remaining_unread_opportunities(available, visible, used, expected):
+        original = deepcopy(WorkInspectTool.parameters)
+        schema = nav.v3_phase_inspect_schema(original, available, visible, used)
+        assert schema is not None
+&gt;       assert schema['properties']['source_id']['enum'] == expected
+E       AssertionError: assert ['S1', 'S2', 'S3', 'S4'] == ['S2', 'S3', 'S4']
+E         
+E         At index 0 diff: 'S1' != 'S2'
+E         Left contains one more item: 'S4'
+E         
+E         Full diff: (-: missing in left side, +: extra in left side)
+E           [
+E         +     'S1',
+E               'S2',
+E               'S3',
+E               'S4',
+E           ]
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-source-grounding-r1\UltimaAgent\src\brain\tests\test_work_evidence_first_generation.py:95: AssertionError</failure></testcase><testcase classname="" name="test_three_source_minimum_is_not_replaced_by_all_source_writer_requirement" time="0.001" /><testcase classname="" name="test_http_request_uses_evidence_first_schema_with_original_writer_arguments" time="4.549"><failure message="AssertionError: actual prepared HTTP entity has no reference-first fact contract&#10;assert []">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-source-grounding-coverage-20261108-r1/offline/evidence-first-red-20261108T044915327189Z/temp/test_http_request_uses_evidenc0')
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x0000024E217F7CB0&gt;, [('search', 'Research a subject')], {})
+mock_jar = (&lt;openjarvis.sdk.Jarvis object at 0x0000024E217F63C0&gt;, &lt;function _run_work_agent at 0x0000024E1FAB39C0&gt;, [{'format': {..., ...], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [])
+code_sources = ['https://example.com/one.md', 'https://example.com/two.py', 'https://example.com/three.js']
+
+    def test_http_request_uses_evidence_first_schema_with_original_writer_arguments(tmp_path, sdk_io, mock_jar, code_sources):
+        result, ledger = delivered(tmp_path, sdk_io, mock_jar, code_sources)
+        wire = json.loads(ledger._runtime_final)['wires'][-2]
+        request = json.loads(wire['entity'])
+        bound = list(projected_facts(writer_schema(request['format'])))
+&gt;       assert bound, 'actual prepared HTTP entity has no reference-first fact contract'
+E       AssertionError: actual prepared HTTP entity has no reference-first fact contract
+E       assert []
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-source-grounding-r1\UltimaAgent\src\brain\tests\test_work_evidence_first_generation.py:126: AssertionError</failure></testcase><testcase classname="" name="test_replay_refuses_coherently_reordered_fact_components" time="5.861"><failure message="AssertionError: cannot protect an ordering contract that is absent&#10;assert []">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-source-grounding-coverage-20261108-r1/offline/evidence-first-red-20261108T044915327189Z/temp/test_replay_refuses_coherently0')
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x0000024E217C8E10&gt;, [('search', 'Research a subject')], {})
+mock_jar = (&lt;openjarvis.sdk.Jarvis object at 0x0000024E20D25450&gt;, &lt;function _run_work_agent at 0x0000024E1FAB39C0&gt;, [{'format': {..., ...], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [])
+code_sources = ['https://example.com/one.md', 'https://example.com/two.py', 'https://example.com/three.js']
+
+    def test_replay_refuses_coherently_reordered_fact_components(tmp_path, sdk_io, mock_jar, code_sources):
+        _, ledger = delivered(tmp_path, sdk_io, mock_jar, code_sources)
+        packet = json.loads(ledger._runtime_prewrite)
+        wire = packet['wires'][-1]
+        bound = list(projected_facts(wire['sampler_schema']))
+&gt;       assert bound, 'cannot protect an ordering contract that is absent'
+E       AssertionError: cannot protect an ordering contract that is absent
+E       assert []
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-source-grounding-r1\UltimaAgent\src\brain\tests\test_work_evidence_first_generation.py:140: AssertionError</failure></testcase></testsuite></testsuites>

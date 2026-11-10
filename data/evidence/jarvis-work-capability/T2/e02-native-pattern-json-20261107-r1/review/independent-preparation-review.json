@@ -1,0 +1,122 @@
+{
+  "kind": "INDEPENDENT_PREPARATION_WHOLE_BRANCH_REVIEW",
+  "verdict": "PASS_PREPARATION_ONLY",
+  "reviewer": "/root/review_e02_json_string_preparation",
+  "reviewed_utc": "2026-11-07T11:34:11.681564+00:00",
+  "original_order": "wo-ultimaagent-20261101-0021",
+  "stage": "T2",
+  "candidate_root": "C:\\Users\\Administrator\\.codex\\worktrees\\jarvis-e02-json-string-projection\\UltimaAgent",
+  "candidate": "6d758d9c3961f156a062e349ec4a949e2ee7a9a9",
+  "parent": "e40a55b40c223181040dbb6a09d0c4d2da5026cf",
+  "tag": "ultimaagent-e02-json-string-candidate-20261107",
+  "candidate_clean": true,
+  "manifest_sha256": "a8a65256c90f96c8fcac5b6126633bd9e95d135a1cc079fcc1c1523cba28ff95",
+  "plan_sha256": "e186e142e773cef8bc5a3b7a80d6841dc87e1f06136026a26e5833f9025d1b8b",
+  "plan_review_sha256": "d2ecc69b70d01a6448e2dd612db4e9d98348794a743e94658c97e6ab2872fe53",
+  "method": "Read-only source/full branch diff, retained JSON/XML evidence and independent SHA256 readback. No tests, target imports, network, runtime queries, model/native execution or service operations. Only these two review artifacts created exclusively.",
+  "blocking_findings": [],
+  "focus": [
+    {
+      "id": 1,
+      "verdict": "PASS",
+      "file": "src/brain/agent_server.py",
+      "lines": "217-258,424-435",
+      "assessment": "Projection is raw JSON string-body grammar only. Deepcopy preserves decoded strict schema, which validates parsed envelope before writer; replay reconstructs the same projection and independently validates expected strict schema. Escaped word-boundary overacceptance is explicitly exercised and refused by decoded strict validation."
+    },
+    {
+      "id": 2,
+      "verdict": "PASS",
+      "file": "src/brain/agent_server.py",
+      "lines": "232-236",
+      "assessment": "JSON units exclude raw quotes, backslashes and U+0000..001F, admit complete standard escapes and four-digit Unicode escapes, and preserve ordinary Chinese/Unicode. Dollar and Unicode operation continuations use the original identifier contract. JSON-encoded controls remain expressible at sampler layer but decoded writer single-line validation still refuses them."
+    },
+    {
+      "id": 3,
+      "verdict": "PASS",
+      "file": "src/brain/agent_server.py",
+      "lines": "220-258",
+      "assessment": "Canonical prefix/suffix, operation <=200, original identifier grammar and exact re.escape roundtrip restrict projection to issued claim patterns. Unknown shapes fail closed. Properties.claim traversal leaves ID patterns and enum/const/default business data unchanged. Only agent_server.py and two test files differ; writer, navigation, source binding and replay modules unchanged. Canonical wrong-operation fixture preserves coherent-hash replay rejection."
+    },
+    {
+      "id": 4,
+      "verdict": "PASS_WITH_LIMITATION",
+      "file": "src/brain/agent_server.py",
+      "lines": "310,424-427",
+      "assessment": "Existing 49152-byte HTTP entity cap, aggregate body limit, deadlines and output budgets remain. No compiled GBNF size/performance or actual native binary execution is established; report explicitly discloses this. Python reference conversion is diagnostic compatibility evidence only."
+    },
+    {
+      "id": 5,
+      "verdict": "PASS_WITH_LIMITATION",
+      "file": "preparation-report.md",
+      "lines": "5-7,15-27",
+      "assessment": "Shared service log supplement is correlated by time/status/card only, not request-bound response or qualified facts. Official pinned converter and 896 prototype combinations do not count as product delivery. 781 unique retained test cases comprise 775 product and 6 reference cases; SDK writes are mocked offline writes, not actual research credit. Old actual FAIL_CONFIRMED and exhausted allocations preserved."
+    }
+  ],
+  "observations": [
+    {
+      "severity": "INFO",
+      "file": "src/brain/agent_server.py",
+      "line": 234,
+      "message": "Escaped delimiters can decode to forbidden word neighbors. Safety relies on retained decoded strict validation; sampler schema must never replace the strict response schema."
+    },
+    {
+      "severity": "INFO",
+      "file": "preparation-report.md",
+      "line": 25,
+      "message": "49152 is an HTTP entity limit. Native grammar compilation size, latency and actual 8B behavior remain unmeasured; no HTTP500-resolution claim is granted."
+    },
+    {
+      "severity": "INFO",
+      "file": "verification/runtime-readback.json",
+      "line": 5,
+      "message": "Inherited observer identity ee1bef6 describes the read-only observer; product candidate is 6d758d9. Retained checkpoint is not fresh runtime proof or continuous-liveness evidence from this reviewer."
+    }
+  ],
+  "readback": {
+    "manifest_members": 956,
+    "current_input_pins": 1576,
+    "hash_mismatches": 0,
+    "selected_shards": 17,
+    "unique_tests": 781,
+    "product_tests": 775,
+    "reference_tests": 6,
+    "duplicate_tests": 0,
+    "source_snapshot_pairs": 714,
+    "red_failures": 29,
+    "red_passes": 6,
+    "intermediate_green_not_added": true,
+    "old_preparation_members": 189,
+    "old_result_members": 56,
+    "old_input_pins": 1575,
+    "unrelated_files": 9,
+    "old_worktree_clean": true,
+    "plan_copies_identical": true
+  },
+  "supplemental_scripts": {
+    "scope": "Static inspection only; not sealed manifest members; no publication execution or success attested",
+    "sha256": {
+      "closeout.py": "0df02b594c6076f8fa6ceffe3d22197d0e15523c18cbfdbb4c3df26209c223f2",
+      "publish.py": "4d2a567b22d3b8f519639fc2c60c75b8b95b501e92fd46ccf68ed21db926a16a"
+    }
+  },
+  "boundaries": {
+    "actual_cases": 0,
+    "model_calls": 0,
+    "tests_run_by_reviewer": 0,
+    "runtime_queries": 0,
+    "service_operations": 0,
+    "acceptance_credit": 0,
+    "actual_authority": false,
+    "actual_allocation": 0,
+    "result_review_allocation": 0,
+    "E02": "0/3",
+    "T2_passed": false,
+    "Owner_passed": false,
+    "publication_verified": false
+  },
+  "changed_file_sha256": {
+    "src/brain/agent_server.py": "977949cfae2aed5f3b0757ccd49ebfc1249b73ce69cda62a2acaefba4952e5bd",
+    "src/brain/tests/test_work_code_claim_schema.py": "13c3ffec0a32d8c80ac86ea98de1beae651f6e3ebc0dd72326a59f4d09a92010",
+    "src/brain/tests/test_work_sampler_json_strings.py": "90db8ee2cdb6fb32c34ebefafa4b7d8c155a746f07b1bf7401ad0364eea721f0"
+  }
+}

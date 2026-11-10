@@ -1,0 +1,132 @@
+{
+  "recorded_at": "2026-11-06T02:26:51.581493+00:00",
+  "controller": "root",
+  "scope": "e03-round3-acceptance-package",
+  "review_sha256": "53b55db7a3472747567c47237f6bcd8982ca5b7524c739faa10eff15f182ff73",
+  "manifest_sha256": "968f69a1bb4a5f72ef0776ec4c234c20e9af79d46d7236de01d271b637776a21",
+  "decision": "ACCEPT_PREPARATION_PASS_WITH_ONE_DEFERRED_MINOR",
+  "regrading": {
+    "Critical": 0,
+    "Important": 0,
+    "Minor": 1
+  },
+  "minor_dispositions": [
+    {
+      "finding": {
+        "file": "code/test_round3_predecessors.py",
+        "lines": "85-86",
+        "issue": "The same-task and backwards-time variants alter only cumulative registration rows. They test row-to-credential mismatch, but do not directly exercise the distinct-task and chronological-order guards with coherently rebound review/terminal credentials.",
+        "impact": "The implementation contains both guards and rejects these inputs; this is a diagnostic coverage limitation rather than an observed admission defect.",
+        "recommendation": "In a future authorized test update, add coherent duplicate-task and reversed-terminal-time fixtures with all dependent hashes and cumulative rows updated, plus a missing cumulative-row variant.",
+        "blocking": false
+      },
+      "grade": "Minor",
+      "disposition": "DEFERRED_NONBLOCKING_TEST_COVERAGE",
+      "reason": "Both required guards exist in the actual entry. Current cases reject via row-to-credential consistency before those more specific guards; no admitted-invalid behavior is observed. Keep the limitation explicit and do not alter this sealed candidate merely for extra diagnostic precision.",
+      "future_scope": "Coherently rebind duplicate task/reversed actual terminal times and missing cumulative row when tests are next legitimately changed."
+    }
+  ],
+  "decline_dispositions": [
+    {
+      "scope": "Fresh factual re-review of round1 and round2",
+      "reviewer_reason": "Their immutable independent reviews were checked as prerequisite credentials; no new factual result-review allocation was used.",
+      "controller_ruling": "ACCEPT_SCOPE_LIMIT",
+      "effect": "No broader current-state or acceptance claim is granted; retain separate original gate."
+    },
+    {
+      "scope": "Actual round3 target identity, selection, rewrite facts, file delivery, final claim and cleanup",
+      "reviewer_reason": "No round3 actual allocation or actual result exists; synthetic execution cannot establish these outcomes.",
+      "controller_ruling": "ACCEPT_SCOPE_LIMIT",
+      "effect": "No broader current-state or acceptance claim is granted; retain separate original gate."
+    },
+    {
+      "scope": "Current live model, service and protected-process health",
+      "reviewer_reason": "Live inspection was prohibited. Saved evidence and frozen file hashes do not prove current live state.",
+      "controller_ruling": "ACCEPT_SCOPE_LIMIT",
+      "effect": "No broader current-state or acceptance claim is granted; retain separate original gate."
+    },
+    {
+      "scope": "Voice, KWS, microphone, playback and Owner experience",
+      "reviewer_reason": "No audio or UI interaction was authorized or performed.",
+      "controller_ruling": "ACCEPT_SCOPE_LIMIT",
+      "effect": "No broader current-state or acceptance claim is granted; retain separate original gate."
+    },
+    {
+      "scope": "Global absence of native I/O during recorded tests",
+      "reviewer_reason": "Zero Python socket/subprocess guard counts cover intercepted operations only; receipt summary constants are not whole-machine instrumentation.",
+      "controller_ruling": "ACCEPT_SCOPE_LIMIT",
+      "effect": "No broader current-state or acceptance claim is granted; retain separate original gate."
+    },
+    {
+      "scope": "Fresh 485/8 product regression reproduction, default SDK-home compatibility and live semantic routing",
+      "reviewer_reason": "Only stored hash-bound regression evidence was reviewed; its documented isolation and fixture limitations remain.",
+      "controller_ruling": "ACCEPT_SCOPE_LIMIT",
+      "effect": "No broader current-state or acceptance claim is granted; retain separate original gate."
+    },
+    {
+      "scope": "E03 negative case and whole E03 acceptance",
+      "reviewer_reason": "Only two same-candidate positives are registered; the third actual positive and required negative acceptance remain outstanding.",
+      "controller_ruling": "ACCEPT_SCOPE_LIMIT",
+      "effect": "No broader current-state or acceptance claim is granted; retain separate original gate."
+    },
+    {
+      "scope": "E01, current-8B E02, T2 completion, T3-T5, Owner release and whole-goal completion",
+      "reviewer_reason": "These retain their separate original gates and are outside this preparation review.",
+      "controller_ruling": "ACCEPT_SCOPE_LIMIT",
+      "effect": "No broader current-state or acceptance claim is granted; retain separate original gate."
+    },
+    {
+      "scope": "Remote synchronization, push and release",
+      "reviewer_reason": "No network or Git mutation was allowed; the existing remote approval block is unaffected.",
+      "controller_ruling": "ACCEPT_SCOPE_LIMIT",
+      "effect": "No broader current-state or acceptance claim is granted; retain separate original gate."
+    }
+  ],
+  "ruling_assessments": [
+    {
+      "file": "plan.md",
+      "line": 43,
+      "ruling": "Continue authorized offline preparation and the technical preparation review without repeating execution-method confirmation.",
+      "assessment": "Accepted for this narrow review. controller-offline-release.json sets actual_case_allocation and actual_result_review_allocation to zero; it cannot authorize round3 execution."
+    },
+    {
+      "file": "plan.md",
+      "line": 44,
+      "ruling": "Retain the evidence root as the isolated plan workspace.",
+      "assessment": "Accepted. Persistent evidence supports auditability and does not change acceptance requirements."
+    },
+    {
+      "file": "progress.md",
+      "line": 6,
+      "ruling": "Validate the actual distinct prior-review schemas and preserve exact copies.",
+      "assessment": "Accepted and implemented. Original/copy hashes and field inspection substantiate this ruling."
+    },
+    {
+      "file": "progress.md",
+      "line": 7,
+      "ruling": "Preserve this evidence root.",
+      "assessment": "Accepted; no cleanup or replacement of prior evidence is required for this preparation verdict."
+    },
+    {
+      "file": "progress.md",
+      "line": 9,
+      "ruling": "Repair the missing-authority test spy and repeat RED before runtime changes.",
+      "assessment": "Accepted. Saved source hashes show only test_round3_predecessors.py changed between RED and RED2; acceptance_entry.py matched the parent in both. The missing case changed from AttributeError on None.inspect to DID NOT RAISE ValueError. Both runs remain retained."
+    },
+    {
+      "file": "progress.md",
+      "line": 12,
+      "ruling": "Reuse hash-bound 485/8 product regression receipts without rerunning unchanged product code.",
+      "assessment": "Accepted for preparation only. Receipt hashes, candidates, passing counts and source bindings match; these remain historical executions and do not constitute a fresh regression run or live validation."
+    }
+  ],
+  "new_product_changes": 0,
+  "review_fix_passes_used": 0,
+  "new_actual_allocation": 0,
+  "new_actual_result_review_allocation": 0,
+  "current_positive": 2,
+  "required_positive": 3,
+  "negative_passed": false,
+  "T2": "NOT_PASSED",
+  "goal_status": "active"
+}

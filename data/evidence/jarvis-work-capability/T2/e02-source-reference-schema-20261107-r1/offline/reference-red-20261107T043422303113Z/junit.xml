@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="4" skipped="0" tests="29" time="10.077" timestamp="2026-11-07T12:34:23.402286+08:00" hostname="DESKTOP-B366PQ9"><testcase classname="" name="test_correlated_schema_rejects_cross_source_and_unknown_refs" time="0.003" /><testcase classname="" name="test_visible_map_is_sorted_merges_pages_and_omits_empty_sources" time="0.001" /><testcase classname="" name="test_invalid_or_foreign_visible_cards_fail_closed[pages0]" time="0.001" /><testcase classname="" name="test_invalid_or_foreign_visible_cards_fail_closed[pages1]" time="0.000" /><testcase classname="" name="test_invalid_or_foreign_visible_cards_fail_closed[pages2]" time="0.000" /><testcase classname="" name="test_invalid_or_foreign_visible_cards_fail_closed[pages3]" time="0.000" /><testcase classname="" name="test_invalid_or_foreign_visible_cards_fail_closed[pages4]" time="0.001" /><testcase classname="" name="test_invalid_or_foreign_visible_cards_fail_closed[pages5]" time="0.000" /><testcase classname="" name="test_invalid_or_foreign_visible_cards_fail_closed[pages6]" time="0.001" /><testcase classname="" name="test_invalid_or_foreign_visible_cards_fail_closed[pages7]" time="0.001" /><testcase classname="" name="test_invalid_or_foreign_visible_cards_fail_closed[pages8]" time="0.000" /><testcase classname="" name="test_invalid_or_foreign_visible_cards_fail_closed[pages9]" time="0.000" /><testcase classname="" name="test_invalid_or_foreign_visible_cards_fail_closed[pages10]" time="0.000" /><testcase classname="" name="test_invalid_or_foreign_visible_cards_fail_closed[pages11]" time="0.000" /><testcase classname="" name="test_invalid_or_foreign_visible_cards_fail_closed[pages12]" time="0.000" /><testcase classname="" name="test_writer_mapping_never_falls_back_when_empty_partial_or_colliding[mapping0]" time="0.000" /><testcase classname="" name="test_writer_mapping_never_falls_back_when_empty_partial_or_colliding[mapping1]" time="0.000" /><testcase classname="" name="test_writer_mapping_never_falls_back_when_empty_partial_or_colliding[mapping2]" time="0.000" /><testcase classname="" name="test_writer_mapping_never_falls_back_when_empty_partial_or_colliding[mapping3]" time="0.001"><failure message="TypeError: '&lt;' not supported between instances of 'str' and 'int'">mapping = {1: ('N3.0000000000000001',), 'S2': ('N3.0000000000000002',), 'S3': ('N3.0000000000000003',)}
+
+    @pytest.mark.parametrize('mapping', [{}, {'S1': ()}, {'S1': (card(1)[0],)},
+        {1: (card(1)[0],), 'S2': (card(2)[0],), 'S3': (card(3)[0],)},
+        {'S1': (card(1)[0],), 'S2': (card(1)[0],), 'S3': (card(3)[0],)}])
+    def test_writer_mapping_never_falls_back_when_empty_partial_or_colliding(mapping):
+&gt;       with pytest.raises(ValueError): nav.v3_writer_schema(mapping)
+                                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-source-reference\UltimaAgent\src\brain\tests\test_work_source_reference_schema.py:79: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+source_refs = {1: ('N3.0000000000000001',), 'S2': ('N3.0000000000000002',), 'S3': ('N3.0000000000000003',)}
+
+    def v3_writer_schema(source_refs: dict[str, tuple[str, ...]] | None = None) -&gt; dict:
+        def obj(**props): return dict(type='object',additionalProperties=False,properties=props,required=list(props))
+        def text(n): return dict(type='string',minLength=1,maxLength=n)
+        def array(items,a,z): return dict(type='array',items=items,minItems=a,maxItems=z)
+        fact=obj(claim=text(2000),evidence_id=dict(type='string',pattern=r'^N3\.[0-9a-f]{16}$',minLength=19,maxLength=19))
+        section=obj(source_id=dict(type='string',pattern=r'^S[1-5]$',minLength=2,maxLength=2),heading=text(200),facts=array(fact,1,6))
+        if source_refs is not None:
+            if type(source_refs) is not dict or not 3&lt;=len(source_refs)&lt;=5:
+                raise ValueError('Three visible reference sources required')
+            branches=[]; seen=set()
+&gt;           for sid,refs in sorted(source_refs.items()):
+                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E           TypeError: '&lt;' not supported between instances of 'str' and 'int'
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-source-reference\UltimaAgent\src\brain\work_navigation.py:429: TypeError</failure></testcase><testcase classname="" name="test_writer_mapping_never_falls_back_when_empty_partial_or_colliding[mapping4]" time="0.001" /><testcase classname="" name="test_native_bad_reference_rejected_before_writer_dispatch[foreign]" time="0.935" /><testcase classname="" name="test_native_bad_reference_rejected_before_writer_dispatch[unissued]" time="0.807" /><testcase classname="" name="test_native_bad_reference_rejected_before_writer_dispatch[other_request]" time="0.405" /><testcase classname="" name="test_native_author_schema_uses_confirmed_third_view_and_complete_delivery" time="0.888" /><testcase classname="" name="test_independent_replay_rejects_correlated_schema_or_phase_forgery[foreign]" time="1.007"><failure message="AssertionError: Regex pattern did not match.&#10;  Expected regex: 'Runtime phase schema or output budget drift'&#10;  Actual message: 'Runtime prewrite transcript drift'">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-source-reference-schema-20261107-r1/offline/reference-red-20261107T043422303113Z/temp/test_independent_replay_reject0')
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x000001B22754DA70&gt;, [('search', 'Research a subject'), ('get', '...'https://example.com/source/3'), ('get', 'https://example.com/source/4'), ('get', 'https://example.com/source/5')], {})
+mock_jar = (&lt;openjarvis.sdk.Jarvis object at 0x000001B2270D8750&gt;, &lt;function _run_work_agent at 0x000001B225A60680&gt;, [{'format': {..., ...], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [])
+fault = 'foreign'
+
+    @pytest.mark.parametrize('fault', ['foreign', 'remove_branch', 'other_request', 'phase'])
+    def test_independent_replay_rejects_correlated_schema_or_phase_forgery(tmp_path, sdk_io, mock_jar, fault):
+        _, ledger, packet = delivered(tmp_path, sdk_io, mock_jar)
+        wire = packet['wires'][-2]
+        branches = writer_schema(wire['strict_schema'])['properties']['sections']['items']['anyOf']
+        if fault == 'phase': wire['secured_messages'][0]['content'] += ' altered'
+        elif fault == 'remove_branch': branches.pop()
+        else:
+            ref = (branches[1]['properties']['facts']['items']['properties']['evidence_id']['enum'][0]
+                   if fault == 'foreign' else card(99)[0])
+            branches[0]['properties']['facts']['items']['properties']['evidence_id']['enum'].append(ref)
+        # Coherently repair all self-reported hashes and the actual native entity.
+        # The replay must still reconstruct the contract from trusted visible reads.
+        wire['sampler_schema'] = server._research_sampler_schema(wire['strict_schema'])
+        request = json.loads(wire['entity'])
+        request.update(messages=wire['secured_messages'], format=wire['sampler_schema'])
+        entity = nav.canonical_v3(request); wire['entity'] = entity.decode('utf8')
+        wire['hashes'] = {k: hashlib.sha256(v).hexdigest() for k, v in dict(
+            messages=nav.canonical_v3(wire['secured_messages']), strict=nav.canonical_v3(wire['strict_schema']),
+            sampler=nav.canonical_v3(wire['sampler_schema']), entity=entity).items()}
+        receipt = packet['transport']['receipts'][(len(packet['wires'])-2)*3+2]
+        receipt.update(entity_sha256=wire['hashes']['entity'], entity_bytes=len(entity))
+        packet['transport']['post_bytes'] = sum(len(w['entity'].encode('utf8')) for w in packet['wires'])
+        from src.brain.work_research import verify_runtime_packet
+        expected = ('Runtime exact phase system drift' if fault == 'phase' else
+                    None if fault == 'remove_branch' else 'Runtime phase schema or output budget drift')
+&gt;       with pytest.raises((ValueError, ValidationError), match=expected):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AssertionError: Regex pattern did not match.
+E         Expected regex: 'Runtime phase schema or output budget drift'
+E         Actual message: 'Runtime prewrite transcript drift'
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-source-reference\UltimaAgent\src\brain\tests\test_work_source_reference_schema.py:158: AssertionError</failure></testcase><testcase classname="" name="test_independent_replay_rejects_correlated_schema_or_phase_forgery[remove_branch]" time="0.807" /><testcase classname="" name="test_independent_replay_rejects_correlated_schema_or_phase_forgery[other_request]" time="0.888"><failure message="AssertionError: Regex pattern did not match.&#10;  Expected regex: 'Runtime phase schema or output budget drift'&#10;  Actual message: 'Runtime prewrite transcript drift'">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-source-reference-schema-20261107-r1/offline/reference-red-20261107T043422303113Z/temp/test_independent_replay_reject2')
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x000001B2274B5150&gt;, [('search', 'Research a subject'), ('get', '...'https://example.com/source/3'), ('get', 'https://example.com/source/4'), ('get', 'https://example.com/source/5')], {})
+mock_jar = (&lt;openjarvis.sdk.Jarvis object at 0x000001B227115710&gt;, &lt;function _run_work_agent at 0x000001B225A60680&gt;, [{'format': {..., ...], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [])
+fault = 'other_request'
+
+    @pytest.mark.parametrize('fault', ['foreign', 'remove_branch', 'other_request', 'phase'])
+    def test_independent_replay_rejects_correlated_schema_or_phase_forgery(tmp_path, sdk_io, mock_jar, fault):
+        _, ledger, packet = delivered(tmp_path, sdk_io, mock_jar)
+        wire = packet['wires'][-2]
+        branches = writer_schema(wire['strict_schema'])['properties']['sections']['items']['anyOf']
+        if fault == 'phase': wire['secured_messages'][0]['content'] += ' altered'
+        elif fault == 'remove_branch': branches.pop()
+        else:
+            ref = (branches[1]['properties']['facts']['items']['properties']['evidence_id']['enum'][0]
+                   if fault == 'foreign' else card(99)[0])
+            branches[0]['properties']['facts']['items']['properties']['evidence_id']['enum'].append(ref)
+        # Coherently repair all self-reported hashes and the actual native entity.
+        # The replay must still reconstruct the contract from trusted visible reads.
+        wire['sampler_schema'] = server._research_sampler_schema(wire['strict_schema'])
+        request = json.loads(wire['entity'])
+        request.update(messages=wire['secured_messages'], format=wire['sampler_schema'])
+        entity = nav.canonical_v3(request); wire['entity'] = entity.decode('utf8')
+        wire['hashes'] = {k: hashlib.sha256(v).hexdigest() for k, v in dict(
+            messages=nav.canonical_v3(wire['secured_messages']), strict=nav.canonical_v3(wire['strict_schema']),
+            sampler=nav.canonical_v3(wire['sampler_schema']), entity=entity).items()}
+        receipt = packet['transport']['receipts'][(len(packet['wires'])-2)*3+2]
+        receipt.update(entity_sha256=wire['hashes']['entity'], entity_bytes=len(entity))
+        packet['transport']['post_bytes'] = sum(len(w['entity'].encode('utf8')) for w in packet['wires'])
+        from src.brain.work_research import verify_runtime_packet
+        expected = ('Runtime exact phase system drift' if fault == 'phase' else
+                    None if fault == 'remove_branch' else 'Runtime phase schema or output budget drift')
+&gt;       with pytest.raises((ValueError, ValidationError), match=expected):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AssertionError: Regex pattern did not match.
+E         Expected regex: 'Runtime phase schema or output budget drift'
+E         Actual message: 'Runtime prewrite transcript drift'
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-source-reference\UltimaAgent\src\brain\tests\test_work_source_reference_schema.py:158: AssertionError</failure></testcase><testcase classname="" name="test_independent_replay_rejects_correlated_schema_or_phase_forgery[phase]" time="2.152"><failure message="AssertionError: Regex pattern did not match.&#10;  Expected regex: 'Runtime exact phase system drift'&#10;  Actual message: 'Runtime prewrite transcript drift'">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-source-reference-schema-20261107-r1/offline/reference-red-20261107T043422303113Z/temp/test_independent_replay_reject3')
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x000001B2274B78A0&gt;, [('search', 'Research a subject'), ('get', '...'https://example.com/source/3'), ('get', 'https://example.com/source/4'), ('get', 'https://example.com/source/5')], {})
+mock_jar = (&lt;openjarvis.sdk.Jarvis object at 0x000001B226C6C050&gt;, &lt;function _run_work_agent at 0x000001B225A60680&gt;, [{'format': {..., ...], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [])
+fault = 'phase'
+
+    @pytest.mark.parametrize('fault', ['foreign', 'remove_branch', 'other_request', 'phase'])
+    def test_independent_replay_rejects_correlated_schema_or_phase_forgery(tmp_path, sdk_io, mock_jar, fault):
+        _, ledger, packet = delivered(tmp_path, sdk_io, mock_jar)
+        wire = packet['wires'][-2]
+        branches = writer_schema(wire['strict_schema'])['properties']['sections']['items']['anyOf']
+        if fault == 'phase': wire['secured_messages'][0]['content'] += ' altered'
+        elif fault == 'remove_branch': branches.pop()
+        else:
+            ref = (branches[1]['properties']['facts']['items']['properties']['evidence_id']['enum'][0]
+                   if fault == 'foreign' else card(99)[0])
+            branches[0]['properties']['facts']['items']['properties']['evidence_id']['enum'].append(ref)
+        # Coherently repair all self-reported hashes and the actual native entity.
+        # The replay must still reconstruct the contract from trusted visible reads.
+        wire['sampler_schema'] = server._research_sampler_schema(wire['strict_schema'])
+        request = json.loads(wire['entity'])
+        request.update(messages=wire['secured_messages'], format=wire['sampler_schema'])
+        entity = nav.canonical_v3(request); wire['entity'] = entity.decode('utf8')
+        wire['hashes'] = {k: hashlib.sha256(v).hexdigest() for k, v in dict(
+            messages=nav.canonical_v3(wire['secured_messages']), strict=nav.canonical_v3(wire['strict_schema']),
+            sampler=nav.canonical_v3(wire['sampler_schema']), entity=entity).items()}
+        receipt = packet['transport']['receipts'][(len(packet['wires'])-2)*3+2]
+        receipt.update(entity_sha256=wire['hashes']['entity'], entity_bytes=len(entity))
+        packet['transport']['post_bytes'] = sum(len(w['entity'].encode('utf8')) for w in packet['wires'])
+        from src.brain.work_research import verify_runtime_packet
+        expected = ('Runtime exact phase system drift' if fault == 'phase' else
+                    None if fault == 'remove_branch' else 'Runtime phase schema or output budget drift')
+&gt;       with pytest.raises((ValueError, ValidationError), match=expected):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AssertionError: Regex pattern did not match.
+E         Expected regex: 'Runtime exact phase system drift'
+E         Actual message: 'Runtime prewrite transcript drift'
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-source-reference\UltimaAgent\src\brain\tests\test_work_source_reference_schema.py:158: AssertionError</failure></testcase><testcase classname="" name="test_six_pages_max_cards_schema_keeps_original_budget_and_limits" time="0.001" /></testsuite></testsuites>

@@ -139,6 +139,17 @@ class InteractionLoop:
         if adjusted is not None:
             return adjusted
 
+        # 1.3 配置表直达（2026-11-06 新增）：
+        #     行情/天气今天的首选都登记在 config/interface-routing.json。
+        #     ① 配了且首选可用 → 直接取数答（几十毫秒，不落模型）
+        #     ② 没配这个类型、或配了但一个可用首选都没有 → 现场从种子册建路
+        #        （1 主 + 2 备，预算 2.5 秒），建完立刻用这条新路答，同时写回配置
+        #     ③ 第二次再问直接命中写回的意图，不重建
+        #     置于天气直达之前：天气今天的首选就是配置里的 itboy，比 wttr.in 快一个量级。
+        config_reply = self._try_config_direct(normalized)
+        if config_reply is not None:
+            return config_reply
+
         # 1.4 天气直达（2026-10-29 新增，此处提前于征询/确认判断）：
         #     含"怎么样/如何/行不行"的天气句（如"明天上海的天气怎么样"）必须先走
         #     天气直达，否则被 _CONSULT_INTENT 的"怎么样"拦截 → 误触发队列征询
@@ -440,6 +451,39 @@ class InteractionLoop:
     # 天气查询失败降级话术（2026-10-29 21:1x 加固）：意图命中但查询失败时
     # 快速给一句话反馈，不再静默降级 14B 干等 40s（真机反馈"查天气没回复"）。
     _WEATHER_DEGRADE = "天气服务暂时不可用，请稍后再试。"
+
+    # ── 配置表直达（2026-11-06 新增）─────────────────────────────
+    # 问一句 → 配置表里有这条意图且首选可用 → 直接取数答（几十毫秒，不落模型）。
+    # 没配这个类型 / 配了但没有可用首选 → 现场从种子册建路（1 主 + 2 备，预算 2.5 秒），
+    # 建完立刻用这条新路答，同时写回 config/interface-routing.json。
+    # 第二次再问直接命中写回的意图，不重建（rebuild_policy=never_if_primary_exists）。
+    # 只有"今天/现在"的问句走这里；明天/后天/预报仍交给原天气路径按日期取。
+    _FUTURE_WEATHER = re.compile(r"(明天|后天|未来|这周|下周|周[一二三四五六日天]|预报)")
+
+    def _try_config_direct(self, text: str) -> InteractionResponse | None:
+        """配置表直达：命中即答；未配置则建路后答。取不到数返回 None 交给后面的路径。"""
+        try:
+            from . import interface_route
+        except Exception:
+            return None
+        try:
+            kind, intent, _meta = interface_route.match_intent(text)
+            if kind == "miss":
+                return None
+            if (intent or {}).get("id") == "weather.today" and self._FUTURE_WEATHER.search(text):
+                return None
+            result = interface_route.answer(text)
+        except Exception:
+            return None
+        if result is None:
+            return None
+        reply, info = result
+        if info.get("built"):
+            reply = "刚把这个查询接上了。" + reply
+        self.last_summary = reply
+        self.adjusted = False
+        self.phase = _PENDING_CONFIRM
+        return self._respond(True, True, reply, "配置直达", self.phase)
 
     def _try_weather_fallback(self, text: str) -> InteractionResponse | None:
         """天气意图直达：返回一句话天气回答；非天气/查询失败返回 None 走 14B 兜底。"""

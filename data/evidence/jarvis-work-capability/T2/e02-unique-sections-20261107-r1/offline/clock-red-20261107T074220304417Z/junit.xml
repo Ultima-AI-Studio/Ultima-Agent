@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="1" time="3.010" timestamp="2026-11-07T15:42:21.522103+08:00" hostname="DESKTOP-B366PQ9"><testcase classname="" name="test_trusted_numeric_deadline_is_not_interpreted_as_text_pii" time="0.715"><failure message="AssertionError: missing bounded immutable private diagnostic&#10;assert (&lt;class 'NoneType'&gt; is bytes)&#10; +  where &lt;class 'NoneType'&gt; = type(None)">tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-unique-sections-20261107-r1/offline/clock-red-20261107T074220304417Z/temp/test_trusted_numeric_deadline_0')
+sdk_io = (&lt;src.brain.browser.channel.BrowserChannel object at 0x000002609FF78EC0&gt;, [('search', 'Research a subject')], {})
+mock_jar = (&lt;openjarvis.sdk.Jarvis object at 0x000002609EE474D0&gt;, &lt;function _run_work_agent at 0x000002609FF4B9C0&gt;, [{'format': {...ser'}], 'model': 'qwen3-8b-uncensored', 'options': {'num_ctx': 16384, 'num_predict': 256, 'temperature': 0}, ...}], [])
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x0000026056D1B820&gt;
+
+    def test_trusted_numeric_deadline_is_not_interpreted_as_text_pii(tmp_path,sdk_io,mock_jar,monkeypatch):
+        # This internal seconds value has the same digit shape as a phone number.
+        # It is a counter, not user/source text, and must not discard the snapshot.
+        remaining=259.1234567
+        def clock(response,ledger):
+            ledger.deadline=remaining;monkeypatch.setattr(wt,'monotonic',lambda:0.0)
+        result,ledger=early_case(tmp_path,sdk_io,mock_jar,monkeypatch,reads=1,after=clock)
+        assert result['status']=='failed' and result['error']=='Missing nonempty immutable runtime proof'
+&gt;       packet=private_packet(result,ledger)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-unique-sections\UltimaAgent\src\brain\tests\test_work_failure_diagnostics.py:22: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+result = {'request_id': 'r', 'session_id': 's', 'task_id': '00000000-0000-0000-0000-0000000003e8', 'status': 'failed', ...}
+ledger = &lt;src.brain.work_tools.WorkLedger object at 0x000002609FF797F0&gt;
+
+    def private_packet(result,ledger):
+        assert isinstance(result.get('research_diagnostic'),dict), 'failed SDK result loses final branch and selected pages'
+        raw=getattr(ledger,'_failure_diagnostic',None)
+&gt;       assert type(raw) is bytes and len(raw)&lt;=16384, 'missing bounded immutable private diagnostic'
+E       AssertionError: missing bounded immutable private diagnostic
+E       assert (&lt;class 'NoneType'&gt; is bytes)
+E        +  where &lt;class 'NoneType'&gt; = type(None)
+
+C:\Users\Administrator\.codex\worktrees\jarvis-e02-unique-sections\UltimaAgent\src\brain\tests\test_work_failure_diagnostics.py:53: AssertionError</failure></testcase></testsuite></testsuites>

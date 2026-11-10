@@ -1,0 +1,124 @@
+..FF............FFF                                                      [100%]
+================================== FAILURES ===================================
+_______ test_recovery_full_admit_observation_role[child-no-subprocess] ________
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-source-reference-schema-20261107-r1/code/harness-preparation-20261107T045335695715Z/temp/test_recovery_full_admit_obser0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000022F05F3B0B0>
+child = True
+
+    @pytest.mark.parametrize('child',[True,False],ids=['child-no-subprocess','parent-full-snapshot'])
+    def test_recovery_full_admit_observation_role(tmp_path,monkeypatch,child):
+        f=child_admission_fixture(tmp_path,monkeypatch,child)
+>       context,p4=a.admit(f['authority_path'],f['ledger_path'],child=child,budget=f['budget'])
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+..\..\harness\test_adapter.py:1406: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+..\..\harness\adapter.py:407: in admit
+    validate_documents(a,l,dt.datetime.now(dt.timezone.utc)); bind_parent(budget,a,p4)
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\harness\adapter.py:307: in validate_documents
+    require(a.get('case')==CASE and a.get('candidate')==CANDIDATE and a.get('candidate_manifest_sha256')==MANIFEST_SHA,'Candidate/source mismatch')
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+ok = False, message = 'Candidate/source mismatch'
+
+    def require(ok,message):
+>       if not ok: raise ValueError(message)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       ValueError: Candidate/source mismatch
+
+..\..\harness\adapter.py:213: ValueError
+_______ test_recovery_full_admit_observation_role[parent-full-snapshot] _______
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-source-reference-schema-20261107-r1/code/harness-preparation-20261107T045335695715Z/temp/test_recovery_full_admit_obser1')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000022F7EBC7790>
+child = False
+
+    @pytest.mark.parametrize('child',[True,False],ids=['child-no-subprocess','parent-full-snapshot'])
+    def test_recovery_full_admit_observation_role(tmp_path,monkeypatch,child):
+        f=child_admission_fixture(tmp_path,monkeypatch,child)
+>       context,p4=a.admit(f['authority_path'],f['ledger_path'],child=child,budget=f['budget'])
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+..\..\harness\test_adapter.py:1406: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+..\..\harness\adapter.py:407: in admit
+    validate_documents(a,l,dt.datetime.now(dt.timezone.utc)); bind_parent(budget,a,p4)
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\harness\adapter.py:307: in validate_documents
+    require(a.get('case')==CASE and a.get('candidate')==CANDIDATE and a.get('candidate_manifest_sha256')==MANIFEST_SHA,'Candidate/source mismatch')
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+ok = False, message = 'Candidate/source mismatch'
+
+    def require(ok,message):
+>       if not ok: raise ValueError(message)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       ValueError: Candidate/source mismatch
+
+..\..\harness\adapter.py:213: ValueError
+__ test_recovery_parent_still_rejects_full_protected_snapshot_drift[parent] ___
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-source-reference-schema-20261107-r1/code/harness-preparation-20261107T045335695715Z/temp/test_recovery_parent_still_rej0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000022F7F3BCE10>
+fault = 'parent'
+
+    @pytest.mark.parametrize('fault',['parent','command','cim-created'])
+    def test_recovery_parent_still_rejects_full_protected_snapshot_drift(tmp_path,monkeypatch,fault):
+        f=child_admission_fixture(tmp_path,monkeypatch,False)
+        if fault=='parent': f['rows'][106]['ParentProcessId']+=1
+        elif fault=='command': f['rows'][106]['CommandLine']='unbound command'
+        else: f['rows'][106]['CreationFileTime']+=1000
+        with pytest.raises(ValueError):
+            a.admit(f['authority_path'],f['ledger_path'],budget=f['budget'])
+>       assert len(f['queries'])==1
+E       assert 0 == 1
+E        +  where 0 = len([])
+
+..\..\harness\test_adapter.py:1444: AssertionError
+__ test_recovery_parent_still_rejects_full_protected_snapshot_drift[command] __
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-source-reference-schema-20261107-r1/code/harness-preparation-20261107T045335695715Z/temp/test_recovery_parent_still_rej1')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000022F7F365EF0>
+fault = 'command'
+
+    @pytest.mark.parametrize('fault',['parent','command','cim-created'])
+    def test_recovery_parent_still_rejects_full_protected_snapshot_drift(tmp_path,monkeypatch,fault):
+        f=child_admission_fixture(tmp_path,monkeypatch,False)
+        if fault=='parent': f['rows'][106]['ParentProcessId']+=1
+        elif fault=='command': f['rows'][106]['CommandLine']='unbound command'
+        else: f['rows'][106]['CreationFileTime']+=1000
+        with pytest.raises(ValueError):
+            a.admit(f['authority_path'],f['ledger_path'],budget=f['budget'])
+>       assert len(f['queries'])==1
+E       assert 0 == 1
+E        +  where 0 = len([])
+
+..\..\harness\test_adapter.py:1444: AssertionError
+_ test_recovery_parent_still_rejects_full_protected_snapshot_drift[cim-created] _
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-source-reference-schema-20261107-r1/code/harness-preparation-20261107T045335695715Z/temp/test_recovery_parent_still_rej2')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000022F7EDA8560>
+fault = 'cim-created'
+
+    @pytest.mark.parametrize('fault',['parent','command','cim-created'])
+    def test_recovery_parent_still_rejects_full_protected_snapshot_drift(tmp_path,monkeypatch,fault):
+        f=child_admission_fixture(tmp_path,monkeypatch,False)
+        if fault=='parent': f['rows'][106]['ParentProcessId']+=1
+        elif fault=='command': f['rows'][106]['CommandLine']='unbound command'
+        else: f['rows'][106]['CreationFileTime']+=1000
+        with pytest.raises(ValueError):
+            a.admit(f['authority_path'],f['ledger_path'],budget=f['budget'])
+>       assert len(f['queries'])==1
+E       assert 0 == 1
+E        +  where 0 = len([])
+
+..\..\harness\test_adapter.py:1444: AssertionError
+=========================== short test summary info ===========================
+FAILED ..\..\harness\test_adapter.py::test_recovery_full_admit_observation_role[child-no-subprocess]
+FAILED ..\..\harness\test_adapter.py::test_recovery_full_admit_observation_role[parent-full-snapshot]
+FAILED ..\..\harness\test_adapter.py::test_recovery_parent_still_rejects_full_protected_snapshot_drift[parent]
+FAILED ..\..\harness\test_adapter.py::test_recovery_parent_still_rejects_full_protected_snapshot_drift[command]
+FAILED ..\..\harness\test_adapter.py::test_recovery_parent_still_rejects_full_protected_snapshot_drift[cim-created]
+5 failed, 14 passed in 14.78s

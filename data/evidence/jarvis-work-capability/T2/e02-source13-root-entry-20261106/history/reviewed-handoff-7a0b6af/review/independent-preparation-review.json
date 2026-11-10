@@ -1,0 +1,60 @@
+{
+  "reviewer": "root-independent",
+  "scope": "e02-source13-root-entry-preparation",
+  "verdict": "NEEDS_FIXES",
+  "manifest_sha256": "a73b7a91c652176c69bef7939c6d719f048c827de4770db29766e19cc7bf8b47",
+  "package_manifest_sha256": "58c031979d3ac860763f42841256a2183ba76d1df28b6f8109bab404087061ef",
+  "runtime_authority": false,
+  "findings": [
+    {
+      "id": "R1",
+      "severity": "Important",
+      "path": "H:\\UltimaAI\\UltimaAgent\\data\\evidence\\jarvis-work-capability\\T2\\e02-source13-root-entry-20261106\\code\\entry.py",
+      "line": 69,
+      "title": "Reserve existing Owned termination allowance before waiting through the final windows",
+      "effect": "If the worker returns service-first-result before275 but hangs during cleanup, wait_worker waits until310 before failing. cleanup_no_listener then has at most5 seconds left to315. The reused PrivateIO terminate wrapper requires full_ns=10000000000 before entering the unchanged termination function, so it refuses to terminate every still-live registered process. A reader hanging through315 is worse: cleanup_no_listener pre-check throws before Owned.cleanup is entered at all. Thus failure is correctly classified but the owned worker/reader may remain alive with open logs after the root exits. This violates the practical cleanup expectation; a failed verdict alone is not process cleanup.",
+      "evidence": [
+        "code/entry.py:69-80 waits through cleanup310 and exit315",
+        "code/entry.py reader polling and finally cleanup share315",
+        "code/native_observation.py:41 performs deadline pre-check before Owned.cleanup",
+        "navigation-source10-validation-20261103-inert2/harness/adapter.py PrivateIO.terminate requires10 seconds remaining",
+        "test_entry.py NativeDouble.cleanup does not model the reused deadline/termination admission"
+      ],
+      "remedy": "Schedule failure cleanup early enough to retain the unchanged Owned termination allowance plus required discovery/wait/final-proof time within the original315 origin. Do not extend deadlines or add a new killer. If preserving the full consumer windows cannot coexist with that existing helper, explicitly record the incompatibility as blocking instead of proposing runtime. Add a synthetic contract exercising the actual reused Deadline/PrivateIO with a still-live owned member near310 and a reader stall; demonstrate cleanup is entered with sufficient original budget and closes logs."
+    }
+  ],
+  "declined_to_judge": [
+    "Actual Windows process discovery, venv launcher/native-worker behavior, retained-handle API execution and termination success: native operations expressly prohibited in this review; simulations are not runtime proof.",
+    "Actual original profile SDK/client execution and full original-source result correctness: no runtime allocation; original profile algorithm is frozen and not being reimplemented or exhaustively re-reviewed.",
+    "Actual DNS resolver/native Rust activity, HTTP absence and OS packet counts: no network/native observations authorized; normal scoped DNS is explicitly disclosed and native counts remain unknown.",
+    "Current liveness of seven protected identities: only saved bindings and comparison code reviewed; live process queries prohibited.",
+    "Model research capability, three real E02 research rounds, T2/later gates and Owner acceptance: zero-inference preparation cannot establish them.",
+    "Adversarial Python/OS isolation or cryptographic authorization: explicitly trusted-code scope, not a sandbox."
+  ],
+  "evidence": {
+    "package_members_rehashed": 227,
+    "package_member_mismatches": 0,
+    "runtime_bindings_rehashed": 36,
+    "runtime_binding_mismatches": 0,
+    "base_dependency_files_rehashed": 1461,
+    "base_dependency_mismatches": 0,
+    "retained_stages": 13,
+    "final_junit": {
+      "tests": 81,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "reviewer_tests_run": 0,
+    "reviewer_runtime_operations": 0,
+    "git_range": "5e3ac7042fc07b59dcd047a8ad597045e367a3c4..83312d5f9573ff9cce2a9e331ce70e84e483888c",
+    "reviewed": "Current eight code files, plan/proposal, implementation and progress rulings, SDD ledger, IF01/IF02/IF02B/IF02C, relevant original profile consumer/bootstrap and Owned/Deadline/PrivateIO implementation, retained receipts and raw JUnit/inventory. All package members hashed; hashes are not a claim of exhaustive semantic review of every historical snapshot."
+  },
+  "limitations": [
+    "No test, profile, SDK, native process, HTTP/DNS, UI/audio or service operation performed.",
+    "Retained81PASS suite uses native doubles; concrete original reader consumer test still uses synthetic replay fixture and scanner/typed-runtime doubles.",
+    "Conservative profile-first-result observation by310 can reject internally timely cleanup whose seal appears later; this is disclosed and accepted as conservative evidence.",
+    "No actual release or user approval supplied; review provides neither execution nor result-review authority."
+  ],
+  "assessment": "Closed schemas, exact model/candidate binding, exclusive consumption, retained actual-role handles, protected identity comparisons and twice-readback/final verification are carefully separated from acceptance. Preparation nevertheless needs fixes because waiting can consume the budget required by the reused cleanup helper and leave owned processes running. No Critical or Minor finding added."
+}

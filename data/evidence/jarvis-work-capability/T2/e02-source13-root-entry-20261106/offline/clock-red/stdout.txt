@@ -1,0 +1,84 @@
+FFFF                                                                     [100%]
+================================== FAILURES ===================================
+_________ test_parent_wait_after_admission_keeps_original_seal_window _________
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-source13-root-entry-20261106/offline/clock-red/temp/test_parent_wait_after_admissi0')
+
+    def test_parent_wait_after_admission_keeps_original_seal_window(tmp_path):
+        obj,api,row=qualification_fixture(tmp_path);obj.budget=SimpleNamespace(phase='work')
+        obj.qualify('worker',{'pid':417})
+        try:
+            assert obj.poll('worker')['exit_code']==0
+>           assert obj.budget.phase=='seal' and obj.origin==100
+E           AssertionError: assert ('work' == 'seal'
+E             
+E             - seal
+E             + work)
+
+test_native_observation.py:121: AssertionError
+_ test_readback_also_rejects_worker_claims_outside_original_clock[work_returned_ns-275] _
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-source13-root-entry-20261106/offline/clock-red/temp/test_readback_also_rejects_wor0')
+field = 'work_returned_ns', offset = 275
+
+    @pytest.mark.parametrize('field,offset',[('work_returned_ns',275),('cleanup_closed_ns',311),('sealed_ns',316)])
+    def test_readback_also_rejects_worker_claims_outside_original_clock(tmp_path,field,offset):
+        f=fixture(tmp_path);first=closed(f)
+        first[field]=ORIGIN+offset*10**9;put(f.case/'profile-first-result.json',first)
+        # Even consistently re-bound comparison files cannot create a new clock.
+        cleanup=get(f.control/'cleanup-observation.json');cleanup['sha256']=digest(f.case/'profile-first-result.json')
+        put(f.control/'cleanup-observation.json',cleanup)
+        progress=get(f.control/'worker-progress.json');progress['cleanup']=cleanup;put(f.control/'worker-progress.json',progress)
+        observed=get(f.control/'worker-observation.json');observed['hashes']['first_result_sha256']=digest(f.case/'profile-first-result.json')
+        observed['progress_sha256']=digest(f.control/'worker-progress.json');put(f.control/'worker-observation.json',observed)
+>       with pytest.raises(ValueError):c.ReaderControls(f.context).readback(f.case,first)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+test_controls.py:123: Failed
+_ test_readback_also_rejects_worker_claims_outside_original_clock[cleanup_closed_ns-311] _
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-source13-root-entry-20261106/offline/clock-red/temp/test_readback_also_rejects_wor1')
+field = 'cleanup_closed_ns', offset = 311
+
+    @pytest.mark.parametrize('field,offset',[('work_returned_ns',275),('cleanup_closed_ns',311),('sealed_ns',316)])
+    def test_readback_also_rejects_worker_claims_outside_original_clock(tmp_path,field,offset):
+        f=fixture(tmp_path);first=closed(f)
+        first[field]=ORIGIN+offset*10**9;put(f.case/'profile-first-result.json',first)
+        # Even consistently re-bound comparison files cannot create a new clock.
+        cleanup=get(f.control/'cleanup-observation.json');cleanup['sha256']=digest(f.case/'profile-first-result.json')
+        put(f.control/'cleanup-observation.json',cleanup)
+        progress=get(f.control/'worker-progress.json');progress['cleanup']=cleanup;put(f.control/'worker-progress.json',progress)
+        observed=get(f.control/'worker-observation.json');observed['hashes']['first_result_sha256']=digest(f.case/'profile-first-result.json')
+        observed['progress_sha256']=digest(f.control/'worker-progress.json');put(f.control/'worker-observation.json',observed)
+>       with pytest.raises(ValueError):c.ReaderControls(f.context).readback(f.case,first)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+test_controls.py:123: Failed
+_ test_readback_also_rejects_worker_claims_outside_original_clock[sealed_ns-316] _
+
+tmp_path = WindowsPath('H:/UltimaAI/UltimaAgent/data/evidence/jarvis-work-capability/T2/e02-source13-root-entry-20261106/offline/clock-red/temp/test_readback_also_rejects_wor2')
+field = 'sealed_ns', offset = 316
+
+    @pytest.mark.parametrize('field,offset',[('work_returned_ns',275),('cleanup_closed_ns',311),('sealed_ns',316)])
+    def test_readback_also_rejects_worker_claims_outside_original_clock(tmp_path,field,offset):
+        f=fixture(tmp_path);first=closed(f)
+        first[field]=ORIGIN+offset*10**9;put(f.case/'profile-first-result.json',first)
+        # Even consistently re-bound comparison files cannot create a new clock.
+        cleanup=get(f.control/'cleanup-observation.json');cleanup['sha256']=digest(f.case/'profile-first-result.json')
+        put(f.control/'cleanup-observation.json',cleanup)
+        progress=get(f.control/'worker-progress.json');progress['cleanup']=cleanup;put(f.control/'worker-progress.json',progress)
+        observed=get(f.control/'worker-observation.json');observed['hashes']['first_result_sha256']=digest(f.case/'profile-first-result.json')
+        observed['progress_sha256']=digest(f.control/'worker-progress.json');put(f.control/'worker-observation.json',observed)
+>       with pytest.raises(ValueError):c.ReaderControls(f.context).readback(f.case,first)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+test_controls.py:123: Failed
+=========================== short test summary info ===========================
+FAILED test_native_observation.py::test_parent_wait_after_admission_keeps_original_seal_window
+FAILED test_controls.py::test_readback_also_rejects_worker_claims_outside_original_clock[work_returned_ns-275]
+FAILED test_controls.py::test_readback_also_rejects_worker_claims_outside_original_clock[cleanup_closed_ns-311]
+FAILED test_controls.py::test_readback_also_rejects_worker_claims_outside_original_clock[sealed_ns-316]
+4 failed in 2.52s

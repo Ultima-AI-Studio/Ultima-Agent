@@ -1,0 +1,87 @@
+TIMESTAMP=2026-11-10T11:26:07.2355027+08:00
+INTERPRETER=H:\UltimaAI\UltimaAgent\tools\venv-openjarvis\Scripts\python.exe
+TARGET=src/brain/memory/tests/test_preference_p2.py::TestPreferenceStore::test_upsert_idempotent
+ROOT_CAUSE=PreferenceStore uses datetime.now(timezone.utc).isoformat(timespec="milliseconds"); adjacent writes may receive the same updated_at.
+BEGIN_PROBE=1
+F                                                                        [100%]
+================================== FAILURES ===================================
+_________________ TestPreferenceStore.test_upsert_idempotent __________________
+
+self = <test_preference_p2.TestPreferenceStore testMethod=test_upsert_idempotent>
+
+    def test_upsert_idempotent(self):
+        first = self.store.set("report", "style", "结论先行", source="user", priority=1)
+        second = self.store.set("report", "style", "结论先行+异常优先", source="user", priority=2)
+        self.assertEqual(first.created_at, second.created_at)
+>       self.assertNotEqual(first.updated_at, second.updated_at)
+E       AssertionError: '2026-11-10T03:26:09.972+00:00' == '2026-11-10T03:26:09.972+00:00'
+
+src\brain\memory\tests\test_preference_p2.py:52: AssertionError
+=========================== short test summary info ===========================
+FAILED src/brain/memory/tests/test_preference_p2.py::TestPreferenceStore::test_upsert_idempotent
+1 failed in 1.31s
+PROBE_EXIT_CODE=1
+END_PROBE=1
+BEGIN_PROBE=2
+.                                                                        [100%]
+1 passed in 0.81s
+PROBE_EXIT_CODE=0
+END_PROBE=2
+BEGIN_PROBE=3
+.                                                                        [100%]
+1 passed in 0.79s
+PROBE_EXIT_CODE=0
+END_PROBE=3
+BEGIN_PROBE=4
+.                                                                        [100%]
+1 passed in 0.74s
+PROBE_EXIT_CODE=0
+END_PROBE=4
+BEGIN_PROBE=5
+F                                                                        [100%]
+================================== FAILURES ===================================
+_________________ TestPreferenceStore.test_upsert_idempotent __________________
+
+self = <test_preference_p2.TestPreferenceStore testMethod=test_upsert_idempotent>
+
+    def test_upsert_idempotent(self):
+        first = self.store.set("report", "style", "结论先行", source="user", priority=1)
+        second = self.store.set("report", "style", "结论先行+异常优先", source="user", priority=2)
+        self.assertEqual(first.created_at, second.created_at)
+>       self.assertNotEqual(first.updated_at, second.updated_at)
+E       AssertionError: '2026-11-10T03:26:21.737+00:00' == '2026-11-10T03:26:21.737+00:00'
+
+src\brain\memory\tests\test_preference_p2.py:52: AssertionError
+=========================== short test summary info ===========================
+FAILED src/brain/memory/tests/test_preference_p2.py::TestPreferenceStore::test_upsert_idempotent
+1 failed in 1.32s
+PROBE_EXIT_CODE=1
+END_PROBE=5
+BEGIN_PROBE=6
+.                                                                        [100%]
+1 passed in 0.80s
+PROBE_EXIT_CODE=0
+END_PROBE=6
+BEGIN_PROBE=7
+.                                                                        [100%]
+1 passed in 0.83s
+PROBE_EXIT_CODE=0
+END_PROBE=7
+BEGIN_PROBE=8
+.                                                                        [100%]
+1 passed in 0.80s
+PROBE_EXIT_CODE=0
+END_PROBE=8
+BEGIN_PROBE=9
+.                                                                        [100%]
+1 passed in 0.80s
+PROBE_EXIT_CODE=0
+END_PROBE=9
+BEGIN_PROBE=10
+.                                                                        [100%]
+1 passed in 0.89s
+PROBE_EXIT_CODE=0
+END_PROBE=10
+PROBE_PASSES=8
+PROBE_FAILURES=2
+PROBE_RESULT=DIAGNOSTIC_COMPLETE

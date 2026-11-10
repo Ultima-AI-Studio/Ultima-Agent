@@ -1,0 +1,62 @@
+{
+  "work_order": "wo-ultimaagent-20261108-0026",
+  "status": "COMPLETED",
+  "phase": "T1",
+  "run_id": "wo-ultimaagent-20261108-0026-T1-20261108",
+  "input_sha256": "8c1e4a267b57d6058c978a06881cc0a14e3923df66de45808609e301a724cfb0",
+  "executor": "Codex",
+  "exit_code": 0,
+  "reviewReason": "T1 unified Markdown report specification, renderer, evidence gate, and generated real example passed focused regression.",
+  "stdoutText": "RED exit 1 with 5 expected failures; GREEN 5/5; T0/T1 focused regression 33/33; sample generation exit 0.",
+  "evidence": [
+    {
+      "path": "tasks/queue/runs/wo-ultimaagent-20261108-0026/T1/red-test.log",
+      "kind": "log",
+      "summary": "T1 pre-implementation RED output"
+    },
+    {
+      "path": "tasks/queue/runs/wo-ultimaagent-20261108-0026/T1/green-test.log",
+      "kind": "log",
+      "summary": "T1 report generator tests, 5/5 passed"
+    },
+    {
+      "path": "tasks/queue/runs/wo-ultimaagent-20261108-0026/T1/focused-regression.log",
+      "kind": "log",
+      "summary": "T0, T1 and existing audit tests, 33/33 passed"
+    },
+    {
+      "path": "docs/reports/wo-ultimaagent-20261108-0026-audit-example.md",
+      "kind": "report",
+      "summary": "Real unified audit report generated from T0 evidence"
+    },
+    {
+      "path": "docs/reports/wo-ultimaagent-20261108-0026-t1.md",
+      "kind": "report",
+      "summary": "T1 stage report"
+    }
+  ],
+  "acceptance": [
+    {
+      "id": "T1-SPEC",
+      "result": "PASS",
+      "evidence": "The audit report spec defines all seven fixed sections and aligned fields."
+    },
+    {
+      "id": "T1-RENDERER",
+      "result": "PASS",
+      "evidence": "ReviewResult and audit data render deterministic UTF-8 Markdown."
+    },
+    {
+      "id": "T1-EVIDENCE-GATE",
+      "result": "PASS",
+      "evidence": "A clean review without evidence renders HOLD and never a pass conclusion."
+    },
+    {
+      "id": "T1-EXAMPLE",
+      "result": "PASS",
+      "evidence": "write_audit_report generated the checked-in example from real T0 artifacts."
+    }
+  ],
+  "scopeDeclaration": "Only T1 work-order fileDomain paths and the module-3 level3 text were changed; unrelated in-flight changes were not staged or modified.",
+  "openSourceSelection": "No dependency added; Python standard library and existing ReviewResult were reused."
+}
