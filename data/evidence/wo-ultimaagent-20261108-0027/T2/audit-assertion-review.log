@@ -1,0 +1,57 @@
+TIMESTAMP=2026-11-10T11:01:00.6287071+08:00
+INTERPRETER=H:\UltimaAI\UltimaAgent\tools\venv-openjarvis\Scripts\python.exe
+AUDIT_TARGET=0026 T0/T1 test assertions
+METHOD=Python AST enumeration plus manual semantic review of every test method and assertion call site
+FILE=src/brain/guardrails/tests/test_audit_prompt.py
+TEST=test_default_prompt_loads_for_independent_auditor LINE=20 ASSERTION_CALL_SITES=1
+  ASSERT line=22 expr=self.assertTrue(prompt.strip())
+TEST=test_missing_prompt_fails_closed LINE=24 ASSERTION_CALL_SITES=1
+  ASSERT line=27 expr=self.assertRaises(module.AuditPromptError)
+TEST=test_empty_prompt_fails_closed LINE=30 ASSERTION_CALL_SITES=1
+  ASSERT line=35 expr=self.assertRaises(module.AuditPromptError)
+TEST=test_dev_role_is_rejected LINE=38 ASSERTION_CALL_SITES=1
+  ASSERT line=40 expr=self.assertRaises(module.AuditPromptError)
+TEST=test_json_schema_uses_existing_severity_vocabulary LINE=45 ASSERTION_CALL_SITES=2
+  ASSERT line=48 expr=self.assertEqual( finding["properties"]["severity"]["enum"], ["blocker", "major", "minor"], )
+  ASSERT line=52 expr=self.assertEqual(module.AUDIT_OUTPUT_JSON_SCHEMA["required"], ["findings", "gate"])
+TEST=test_valid_output_becomes_review_result LINE=54 ASSERTION_CALL_SITES=4
+  ASSERT line=76 expr=self.assertFalse(result.ok)
+  ASSERT line=77 expr=self.assertEqual(result.role, "eng.audit")
+  ASSERT line=78 expr=self.assertEqual(result.as_dict()["blocker"], 1)
+  ASSERT line=79 expr=self.assertEqual(result.as_dict()["minor"], 1)
+TEST=test_gate_must_match_deterministic_reviewer LINE=81 ASSERTION_CALL_SITES=1
+  ASSERT line=91 expr=self.assertRaises(module.AuditPromptError)
+TEST=test_invalid_severity_fails_closed LINE=94 ASSERTION_CALL_SITES=1
+  ASSERT line=104 expr=self.assertRaises(module.AuditPromptError)
+TEST=test_extra_or_duplicate_fields_fail_closed LINE=107 ASSERTION_CALL_SITES=1
+  ASSERT line=113 expr=self.assertRaises(module.AuditPromptError)
+TEST=test_dev_cannot_use_output_adapter LINE=116 ASSERTION_CALL_SITES=1
+  ASSERT line=118 expr=self.assertRaises(module.AuditPromptError)
+END_FILE=src/brain/guardrails/tests/test_audit_prompt.py
+FILE=src/brain/guardrails/tests/test_audit_report.py
+TEST=test_report_has_all_fixed_sections_and_summary LINE=59 ASSERTION_CALL_SITES=5
+  ASSERT line=71 expr=self.assertIn(section, report)
+  ASSERT line=72 expr=self.assertIn("| blocker | 0 |", report)
+  ASSERT line=73 expr=self.assertIn("| minor | 1 |", report)
+  ASSERT line=74 expr=self.assertIn("Gate: **PASS**", report)
+  ASSERT line=75 expr=self.assertIn("结论：**通过**", report)
+TEST=test_no_evidence_cannot_render_pass_conclusion LINE=77 ASSERTION_CALL_SITES=3
+  ASSERT line=80 expr=self.assertIn("Gate: **HOLD**", report)
+  ASSERT line=81 expr=self.assertIn("EVIDENCE_REQUIRED", report)
+  ASSERT line=82 expr=self.assertNotIn("通过", report)
+TEST=test_blocker_forces_fail_even_with_evidence LINE=84 ASSERTION_CALL_SITES=2
+  ASSERT line=88 expr=self.assertIn("Gate: **FAIL**", report)
+  ASSERT line=89 expr=self.assertNotIn("结论：**通过**", report)
+TEST=test_table_values_are_escaped LINE=91 ASSERTION_CALL_SITES=2
+  ASSERT line=99 expr=self.assertIn("a\\|b.md", report)
+  ASSERT line=100 expr=self.assertIn("line1<br>line2", report)
+TEST=test_writer_persists_exact_rendered_report LINE=102 ASSERTION_CALL_SITES=1
+  ASSERT line=109 expr=self.assertEqual(path.read_text(encoding="utf-8"), expected)
+END_FILE=src/brain/guardrails/tests/test_audit_report.py
+TEST_COUNT=15
+ASSERTION_CALL_SITE_COUNT=27
+EMPTY_ASSERTION_COUNT=0
+MANUAL_SEMANTIC_REVIEW=T0 assertions exercise prompt presence, missing/empty fail-closed, dev-role rejection, severity schema, ReviewResult counts, gate consistency, malformed fields, and adapter role rejection.
+MANUAL_SEMANTIC_REVIEW=T1 assertions exercise seven fixed report sections, count/gate/conclusion rendering, no-evidence HOLD, blocker FAIL, Markdown escaping, and exact persisted output.
+ASSERTION_REVIEW_RESULT=PASS
+ASSERTION_REVIEW_EXIT_CODE=0
