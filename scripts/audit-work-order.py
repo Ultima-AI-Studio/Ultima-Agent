@@ -44,6 +44,7 @@ from typing import Sequence
 # differently. Importing from the sibling directory keeps a single definition.
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from gorch_contract import acc_rows, gate_waivers   # noqa: E402
+from order_naming import resolve_card_path  # noqa: E402
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -188,7 +189,7 @@ def _waiver_for(card_path: str | Path, work_order: str) -> dict | None:
     0 条是"没有豁免"；超过 1 条是两份豁免争同一个替代判据，谁都不能作准，直接拒绝。
     """
     card = _card_id(card_path)
-    order_file = ROOT / "tasks" / "queue" / f"{work_order}.md"
+    order_file = resolve_card_path(work_order, ROOT / "tasks" / "queue")
     try:
         text = order_file.read_text(encoding="utf-8-sig")
     except (OSError, UnicodeError) as exc:

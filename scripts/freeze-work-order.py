@@ -44,6 +44,7 @@ ROOT = Path(__file__).resolve().parents[1]
 # which rows exist, and a row one of them skipped was never reported as missing.
 sys.path.insert(0, str(ROOT / "scripts"))
 from gorch_contract import acc_rows, gate_waivers, order_cards as contract_order_cards   # noqa: E402
+from order_naming import resolve_card_path  # noqa: E402
 
 
 def _git_exe() -> str:
@@ -403,14 +404,14 @@ def main(argv: Sequence[str] | None = None) -> int:
         return _refuse("done.json records no dispatched cards; a multi-card order "
                        "cannot be verified from a receipt that names none")
     order_cards = []
-    order_file = Path(ROOT) / "tasks" / "queue" / f"{args.work_order}.md"
     try:
+        order_file = resolve_card_path(args.work_order, Path(ROOT) / "tasks" / "queue")
         order_text = order_file.read_text(encoding="utf-8-sig")
         order_cards = sorted(contract_order_cards(order_text))
     except (OSError, UnicodeError) as exc:
         return _refuse(f"could not read the order to enumerate its cards: {exc}")
     except ValueError as exc:
-        return _refuse(f"the order's card table cannot be read: {exc}")
+        return _refuse(f"the order card cannot be resolved or read: {exc}")
     recorded_ids = []
     recorded = {}
     cards_root = (Path(ROOT) / "tasks" / "cards").resolve()

@@ -3,12 +3,12 @@
 from __future__ import annotations
 
 import json
-import re
 from pathlib import Path
 from unittest.mock import patch
 
 import pytest
 
+from scripts.order_naming import is_valid_order
 from src.brain.orchestration.queue import (
     GlobalQueueRegistrar,
     OrchestratorError,
@@ -83,7 +83,7 @@ def test_work_order_number_resets_on_next_day(tmp_path):
 def test_work_order_number_matches_standard_format(tmp_path):
     task = TaskQueue(tmp_path).create("format")
 
-    assert re.fullmatch(r"wo-[a-z]+-\d{8}-\d{4}", task.task_id)
+    assert is_valid_order(task.task_id)
 
 
 def test_historical_uuid_task_id_remains_readable(tmp_path):

@@ -51,6 +51,8 @@ from pathlib import Path
 from typing import Sequence
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "scripts"))
+from order_naming import resolve_card_path  # noqa: E402
 
 
 def _git_exe() -> str:
@@ -711,7 +713,12 @@ def verify(work_order: str, run_dir: Path) -> dict:
         add("tree_unchanged", tree_same and entries_same and files_same, detail,
             "git rev-parse HEAD^{tree}; git status --porcelain -uno; sha256 of each recorded file")
 
-    order_path = ROOT / "tasks/queue" / f"{work_order}.md"
+    try:
+        order_path = resolve_card_path(work_order, ROOT / "tasks/queue")
+        add("order_card_resolved", True, str(order_path), "resolve_card_path")
+    except ValueError as exc:
+        add("order_card_resolved", False, str(exc), "resolve_card_path")
+        order_path = ROOT / "tasks/queue" / "__unresolved_order_card__.md"
     order_manifest = _manifest(order_path)
     if order_manifest is None:
         # Prose parsing is a fallback, and a fallback is not a contract: it cannot
