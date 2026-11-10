@@ -17,7 +17,28 @@ from ctypes import wintypes as W
 from contextlib import contextmanager
 
 ROOT = Path(__file__).resolve().parents[1]
-SHARED = ROOT.parent / '_shared/queue'
+
+
+def _resolve_shared_queue(root: Path) -> Path:
+    """定位共享队列目录，使隔离工作树里也能派发。
+
+    ``root.parent/'_shared/queue'`` 只在主仓布局成立（root=H:\\UltimaAI\\UltimaAgent）。
+    在隔离工作树（H:\\UltimaAI\\_worktrees\\gorch\\<task>）下 parent 不是 H:\\UltimaAI，
+    会指到不存在的目录，派发直接撞 Errno 2。这里优先环境变量，其次自 root 向上
+    逐级探测带 global-queue-index.md 的 _shared/queue；都没有时退回旧行为，
+    保持主仓语义不变。
+    """
+    override = os.environ.get('GORCH_SHARED_QUEUE')
+    if override:
+        return Path(override)
+    for base in (root, *root.parents):
+        candidate = base / '_shared' / 'queue'
+        if (candidate / 'global-queue-index.md').is_file():
+            return candidate
+    return root.parent / '_shared/queue'
+
+
+SHARED = _resolve_shared_queue(ROOT)
 sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(ROOT / 'scripts'))
 from tasks.queue_engine.dispatcher import DispatchLock, process_identity
@@ -455,8 +476,9 @@ def main():
         raise ValueError('工单文件无法按 UTF-8 读取')
     except ValueError as exc:
         raise ValueError(f'工单任务卡表不可解析：{exc}')
-    if not cards:
-        raise ValueError('工单没有可核对的任务卡')
+    # 卡引用是可选形态：s1/orb 系列用 `| T1 <card-id> |` 指名 tasks/cards/<id>，
+    # ultimaagent 系列的任务表只写文件路径、不引用卡。空集不代表工单不合格，
+    # 只表示卡固化机制对该工单不适用；一旦引用了卡，下面的逐卡校验与固化照旧从严。
     versions = set()
     for card_id in cards:
         card = ROOT / 'tasks/cards' / card_id / 'task.md'
@@ -466,9 +488,10 @@ def main():
         if not version:
             raise ValueError('任务卡阶段不可核对')
         versions.add(version.group(1))
-    if len(versions) != 1:
+    if cards and len(versions) != 1:
         raise ValueError('工单引用任务阶段不一致')
-    check_version_gates({'card_path': str(ROOT / 'tasks/cards' / cards[0] / 'task.md')}, ROOT / 'tasks')
+    if cards:
+        check_version_gates({'card_path': str(ROOT / 'tasks/cards' / cards[0] / 'task.md')}, ROOT / 'tasks')
     # Every card the order names is fixed at dispatch time, not just the first one.
     # An order may reference several cards (`wo-s1-host-shell` names five), and a
     # single hash covered only the one that happened to be used for the audit.
@@ -477,8 +500,10 @@ def main():
         path = ROOT / 'tasks/cards' / cid / 'task.md'
         card_records.append({'path': str(path),
                              'sha256': hashlib.sha256(path.read_bytes()).hexdigest()})
-    card_path = ROOT / 'tasks/cards' / cards[0] / 'task.md'
-    card_sha256 = hashlib.sha256(card_path.read_bytes()).hexdigest()
+    card_path = card_sha256 = None
+    if cards:
+        card_path = ROOT / 'tasks/cards' / cards[0] / 'task.md'
+        card_sha256 = hashlib.sha256(card_path.read_bytes()).hexdigest()
     if (ROOT / 'tasks/.pause-dispatch').exists() or (SHARED / '.pause-dispatch').exists():
         raise ValueError('派发暂停标记存在')
     codex = resolve_codex_exe()
@@ -490,9 +515,10 @@ def main():
         check_recovery_fence(match,args.expected_state,args.expected_run,args.expected_reservation)
         if match.group(1) not in ({'pending', 'blocked', 'audit'} if args.repair else {'pending'}):
             raise ValueError('锁内复核：工单状态不再允许派发')
-        check_version_gates({'card_path': str(ROOT / 'tasks/cards' / cards[0] / 'task.md')}, ROOT / 'tasks')
-        if any(not (ROOT / 'tasks/cards' / card_id / 'task.md').is_file() for card_id in cards):
-            raise ValueError('锁内复核：任务卡缺失')
+        if cards:
+            check_version_gates({'card_path': str(ROOT / 'tasks/cards' / cards[0] / 'task.md')}, ROOT / 'tasks')
+            if any(not (ROOT / 'tasks/cards' / card_id / 'task.md').is_file() for card_id in cards):
+                raise ValueError('锁内复核：任务卡缺失')
         if (ROOT / 'tasks/.pause-dispatch').exists() or (SHARED / '.pause-dispatch').exists():
             raise ValueError('锁内复核：派发已暂停')
         processes = native.codex_processes()
