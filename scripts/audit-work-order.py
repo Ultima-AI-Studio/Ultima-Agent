@@ -43,7 +43,7 @@ from typing import Sequence
 # script skips is a row the freeze gate would also skip - or, worse, one each reads
 # differently. Importing from the sibling directory keeps a single definition.
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from gorch_contract import acc_rows, gate_waivers   # noqa: E402
+from gorch_contract import acc_rows, gate_waivers, stage_gates   # noqa: E402
 from order_naming import resolve_card_path  # noqa: E402
 
 
@@ -57,6 +57,8 @@ ROOT = Path(__file__).resolve().parents[1]
 
 DEEPSEEK_URL = "https://api.deepseek.com/chat/completions"
 DEFAULT_MODEL = "deepseek-chat"
+CARD_INJECTION_LIMIT = 16000
+EVIDENCE_INJECTION_LIMIT = 12000
 
 
 class OrchestratorError(RuntimeError):
@@ -171,16 +173,20 @@ def gates(card: str) -> list[dict]:
     are fatal, not merged, because two rows numbered ACC-2 give one verdict the power
     to stand in for two different criteria.
     """
-    return acc_rows(card)
+    rows = acc_rows(card)
+    return rows if rows else stage_gates(card)
 
 
 def _card_id(card_path: str | Path) -> str:
-    """卡片目录名就是卡 id（``tasks/cards/<id>/task.md``）。"""
+    """Read the id from either supported canonical card shape."""
     path = Path(card_path)
-    if path.name != "task.md" or path.parent.parent.name != "cards":
-        raise ValueError(
-            f"card {path} is not at tasks/cards/<id>/task.md; its id cannot be read")
-    return path.parent.name
+    if path.name == "task.md" and path.parent.parent.name == "cards":
+        return path.parent.name
+    if path.suffix == ".md" and path.parent.name == "queue":
+        return path.stem
+    raise ValueError(
+        f"card {path} is not at tasks/cards/<id>/task.md or tasks/queue/*.md; "
+        "its id cannot be read")
 
 
 def _waiver_for(card_path: str | Path, work_order: str) -> dict | None:
@@ -214,15 +220,23 @@ def per_gate(text: str, gate_ids: list[str]) -> dict[str, str]:
         stripped = line.strip().strip("*_` ")
         # The evidence after the verdict must be non-empty: a bare "ACC-1: PASS"
         # asserts a conclusion without saying what it saw.
+        # `Gate T3` and a bare `T3` name the same gate: the stage-gate parser
+        # labels queue-card gates `Gate Tn`, while a reviewer answering a queue
+        # card writes `T0: FAIL - ...`. Refusing the bare form read a full verdict
+        # set back as all-MISSING, which is a parser defect, not a laxer verdict.
         match = re.match(
-            r"(ACC-\d+|WAIVER:[A-Za-z0-9][A-Za-z0-9-]*)\s*[：:]\s*"
+            r"(ACC-\d+|Gate\s+T\d+|T\d+|WAIVER:[A-Za-z0-9][A-Za-z0-9-]*)\s*[：:]\s*"
             r"(PASS|FAIL)\s*[-—:：]\s*(\S.*)$", stripped, re.IGNORECASE)
         if not match:
             continue
         raw_gate = match.group(1)
         # ACC 门统一大写；waiver key 后面是仓库里的小写卡 id，不能被 upper 改写。
-        gid = (raw_gate.upper() if raw_gate.upper().startswith("ACC-")
-               else "WAIVER:" + raw_gate.split(":", 1)[1].lower())
+        if raw_gate.upper().startswith("ACC-"):
+            gid = raw_gate.upper()
+        elif raw_gate.upper().startswith("GATE") or re.fullmatch(r"T\d+", raw_gate.upper()):
+            gid = f"Gate T{int(re.search(r'\d+', raw_gate).group())}"
+        else:
+            gid = "WAIVER:" + raw_gate.split(":", 1)[1].lower()
         ordered.setdefault(gid, []).append(match.group(2).upper())
 
     result: dict[str, str] = {}
@@ -256,7 +270,11 @@ def overall(text: str) -> str:
     seen = []
     for line in text.splitlines():
         token = line.strip().strip("*_` ").upper()
-        match = re.fullmatch(r"AUDIT\s*[：:]\s*(PASS|FAIL)", token)
+        # `Overall: FAIL - ...` carries the same closing verdict as `AUDIT: FAIL`.
+        # Requiring the whole line to be exactly `AUDIT: ...` turned a stated
+        # verdict with a qualifier into UNKNOWN, which is a parser defect.
+        match = re.fullmatch(
+            r"(?:AUDIT|OVERALL)\s*[：:]\s*(PASS|FAIL)(?:\s*[-—:：]\s*\S.*)?", token)
         if match:
             seen.append(match.group(1))
     if not seen:
@@ -342,16 +360,18 @@ def main(argv: Sequence[str] | None = None) -> int:
                 return 2
             raw = _decode(data)
             digest = hashlib.sha256(data).hexdigest()
-            truncated = len(raw) > 6000
+            truncated = len(raw) > EVIDENCE_INJECTION_LIMIT
             evidence_meta.append({"path": str(p), "bytes": len(data),
-                                  "sha256": digest, "shown_chars": min(len(raw), 6000),
+                                  "sha256": digest,
+                                  "shown_chars": min(len(raw), EVIDENCE_INJECTION_LIMIT),
                                   "complete": not truncated})
             if truncated:
                 incomplete.append(f"{Path(p).name} ({len(raw)} chars)")
-            body = raw[:6000] + ("\n[INCOMPLETE: truncated for the reviewer's window]" if truncated else "")
+            body = raw[:EVIDENCE_INJECTION_LIMIT] + (
+                "\n[INCOMPLETE: truncated for the reviewer's window]" if truncated else "")
             evidence_parts.append(f"## {Path(p).name}\n{body}")
 
-        card_truncated = len(card) > 4000
+        card_truncated = len(card) > CARD_INJECTION_LIMIT
         if card_truncated:
             incomplete.append(f"{Path(args.card).name} (card {len(card)} chars)")
         card_meta = {"path": str(args.card),
@@ -363,7 +383,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         base = (
             f"Work order: {args.work_order}\n\n"
             f"## Gates to judge\n{checklist}\n\n"
-            f"## Work order card (full text)\n{card[:4000]}\n"
+            f"## Work order card (full text)\n{card[:CARD_INJECTION_LIMIT]}\n"
             f"{'[INCOMPLETE: card truncated]' if card_truncated else ''}\n\n"
             f"## Author artifacts\n{evidence_text}\n"
         )

@@ -46,6 +46,7 @@ _TASK_CELL = re.compile(r"^T\d+(?![0-9])(.*)$")
 # Acceptance gate ids are matched whole, and only a table cell can open a row.
 _ACC_ID = re.compile(r"^ACC-\d+$")
 _ACC_LOOKS = re.compile(r"^ACC[-_]", re.IGNORECASE)
+_STAGE_GATE = re.compile(r"^\*\*验收（Gate T(\d+)）\*\*：\s*$")
 
 
 def _blocks(text: str) -> list[list[str]]:
@@ -151,6 +152,52 @@ def acc_rows(text: str) -> list[dict]:
         raise ValueError(
             f"card reuses gate ids: {duplicates}; one verdict would cover several criteria")
     return found
+
+
+def stage_gates(card_text: str) -> list[dict]:
+    """Acceptance gates from ``**验收（Gate Tn）**：`` bullet blocks.
+
+    Queue-style work orders carry one acceptance block per stage instead of an
+    ACC table. Only the immediately following Markdown bullets belong to that
+    stage; later prose such as ``**禁止**`` must never leak into the criterion.
+    """
+    found: list[tuple[int, dict]] = []
+    seen: set[int] = set()
+    lines = card_text.splitlines()
+    index = 0
+    while index < len(lines):
+        match = _STAGE_GATE.match(lines[index].strip())
+        if not match:
+            index += 1
+            continue
+
+        number = int(match.group(1))
+        if number in seen:
+            raise ValueError(f"card reuses stage gate ids: ['Gate T{number}']")
+        seen.add(number)
+
+        bullets: list[str] = []
+        cursor = index + 1
+        while cursor < len(lines) and not lines[cursor].strip():
+            cursor += 1
+        while cursor < len(lines):
+            stripped = lines[cursor].strip()
+            if not stripped.startswith("- "):
+                break
+            criterion = stripped[2:].strip()
+            if criterion:
+                bullets.append(criterion)
+            cursor += 1
+        if not bullets:
+            raise ValueError(f"Gate T{number} has no acceptance bullets")
+        found.append((number, {
+            "id": f"Gate T{number}",
+            "criterion": "；".join(bullets),
+            "how": "作者在阶段报告里逐条自证",
+        }))
+        index = cursor
+
+    return [gate for _, gate in sorted(found, key=lambda item: item[0])]
 
 
 # `verify-order.py` 定义了这个块的格式，这里是它的唯一读取口：一行

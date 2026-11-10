@@ -43,7 +43,12 @@ ROOT = Path(__file__).resolve().parents[1]
 # audit use. A second parser here meant the four scripts could disagree about
 # which rows exist, and a row one of them skipped was never reported as missing.
 sys.path.insert(0, str(ROOT / "scripts"))
-from gorch_contract import acc_rows, gate_waivers, order_cards as contract_order_cards   # noqa: E402
+from gorch_contract import (  # noqa: E402
+    acc_rows,
+    gate_waivers,
+    order_cards as contract_order_cards,
+    stage_gates,
+)
 from order_naming import resolve_card_path  # noqa: E402
 
 
@@ -202,6 +207,91 @@ def _audit_inconsistencies(audit: dict) -> list[str]:
     return problems
 
 
+def _resolve_order_binding(
+        work_order: str, receipt_cards: list[dict], audited_card: str | Path) -> dict:
+    """Bind the audit card to either legacy card rows or the queue order itself.
+
+    Legacy orders keep the existing canonical ``tasks/cards/<id>/task.md``
+    checks. A queue-style order has no referenced card ids, so its uniquely
+    resolved work-order file is the reviewed object and an old empty receipt is
+    represented by a path-plus-hash record synthesized from that same file.
+    """
+    order_file = resolve_card_path(work_order, Path(ROOT) / "tasks" / "queue")
+    order_text = order_file.read_text(encoding="utf-8-sig")
+    order_cards = sorted(contract_order_cards(order_text))
+    supplied = list(receipt_cards or [])
+
+    if not order_cards:
+        expected = order_file.resolve()
+        if Path(audited_card).resolve() != expected:
+            raise ValueError(
+                "the audited card is not the resolved queue card for this work order")
+        if not supplied:
+            supplied = [{"path": str(order_file), "sha256": _sha256_file(order_file)}]
+        if len(supplied) != 1:
+            raise ValueError("a queue-style order must bind exactly one queue card")
+        record = supplied[0]
+        recorded_path = Path(str(record.get("path") or ""))
+        if recorded_path.resolve() != expected:
+            raise ValueError(
+                "a queue-style receipt does not name the resolved queue card")
+        current = _sha256_file(order_file)
+        if not record.get("sha256") or record.get("sha256") != current:
+            raise ValueError("the resolved queue card does not match its receipt hash")
+        key = order_file.stem
+        return {
+            "order_file": order_file,
+            "order_text": order_text,
+            "order_cards": [],
+            "receipt_cards": supplied,
+            "recorded_ids": [key],
+            "recorded": {key: record},
+            "queue_style": True,
+        }
+
+    if not supplied:
+        raise ValueError(
+            "done.json records no dispatched cards; a multi-card order cannot be "
+            "verified from a receipt that names none")
+    recorded_ids: list[str] = []
+    recorded: dict[str, dict] = {}
+    cards_root = (Path(ROOT) / "tasks" / "cards").resolve()
+    for record in supplied:
+        path = Path(str(record.get("path") or ""))
+        try:
+            key = path.resolve().relative_to(cards_root).parts[0]
+        except (ValueError, IndexError):
+            raise ValueError(
+                "a dispatched card sits outside tasks/cards; its id cannot be tied "
+                f"to the one the order names: {path}") from None
+        if key in recorded:
+            raise ValueError(f"the receipt lists the same card more than once: {key}")
+        if path.resolve() != cards_root / key / "task.md":
+            raise ValueError(
+                f"a dispatched card is not at tasks/cards/<id>/task.md: {key}: {path}")
+        recorded[key] = record
+        recorded_ids.append(key)
+    recorded_ids.sort()
+    if len(supplied) != 1:
+        raise ValueError(
+            f"this gate audits a single card; the order dispatched more: {len(supplied)}")
+    if recorded_ids != order_cards:
+        raise ValueError(
+            f"the receipt does not name every card the order references: "
+            f"order={order_cards}, receipt={recorded_ids}")
+    if Path(audited_card).resolve() != Path(str(supplied[0].get("path") or "")).resolve():
+        raise ValueError("the audited card is not the canonical dispatched card")
+    return {
+        "order_file": order_file,
+        "order_text": order_text,
+        "order_cards": order_cards,
+        "receipt_cards": supplied,
+        "recorded_ids": recorded_ids,
+        "recorded": recorded,
+        "queue_style": False,
+    }
+
+
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--work-order", required=True)
@@ -355,17 +445,6 @@ def main(argv: Sequence[str] | None = None) -> int:
         return _refuse("the card changed after the audit; the verdict no longer describes it",
                        card=card_path, recorded=card_meta["sha256"][:12], now=(current or "missing")[:12])
 
-    # The card must be the one this order was dispatched on. Otherwise freeze can be
-    # handed any weaker card that happens to be internally consistent with its own
-    # audit, and the tag would faithfully preserve the wrong input.
-    dispatched_card = str(receipt.get("card_sha256") or "").strip()
-    if not dispatched_card:
-        return _refuse("done.json records no card_sha256; the reviewed card cannot be "
-                       "tied to the one the order dispatched on", card=card_path)
-    if dispatched_card != card_meta["sha256"]:
-        return _refuse("the card handed to freeze is not the card this order dispatched on",
-                       dispatched=dispatched_card[:12], supplied=card_meta["sha256"][:12])
-
     try:
         card_text = Path(card_path).read_text(encoding="utf-8-sig")
     except (OSError, UnicodeError) as exc:
@@ -380,6 +459,8 @@ def main(argv: Sequence[str] | None = None) -> int:
     # skipped by one script and read by the other.
     try:
         gate_rows = acc_rows(card_text)
+        if not gate_rows:
+            gate_rows = stage_gates(card_text)
     except ValueError as exc:
         return _refuse(f"the card's acceptance table cannot be read: {exc}")
     gate_ids = {row["id"] for row in gate_rows}
@@ -395,55 +476,36 @@ def main(argv: Sequence[str] | None = None) -> int:
     # 判定要等 receipt 与 order 的绑定确认之后（下面的 empty-gates 分支），因为
     # 只有那时候才知道这张卡的 id、也才能读到工单自己的 manifest。
 
-    # Binding only the first card left the rest of a multi-card order free to change.
-    # Every card the dispatch recorded has to be the one that is here now — and the
-    # record has to name every card the order references, not a subset of it. An
-    # empty or missing list used to skip the loop entirely, so an old receipt passed.
-    receipt_cards = receipt.get("cards") or []
-    if not receipt_cards:
-        return _refuse("done.json records no dispatched cards; a multi-card order "
-                       "cannot be verified from a receipt that names none")
-    order_cards = []
+    # Bind the reviewed path to one of the two canonical card forms. A card-style
+    # order still needs the complete dispatched-card receipt. A queue-style order
+    # declares no child cards, so the uniquely resolved order file is the card and
+    # an empty legacy receipt is represented by that file's current path and hash.
     try:
-        order_file = resolve_card_path(args.work_order, Path(ROOT) / "tasks" / "queue")
-        order_text = order_file.read_text(encoding="utf-8-sig")
-        order_cards = sorted(contract_order_cards(order_text))
+        binding = _resolve_order_binding(
+            args.work_order, receipt.get("cards") or [], card_path)
     except (OSError, UnicodeError) as exc:
         return _refuse(f"could not read the order to enumerate its cards: {exc}")
     except ValueError as exc:
         return _refuse(f"the order card cannot be resolved or read: {exc}")
-    recorded_ids = []
-    recorded = {}
-    cards_root = (Path(ROOT) / "tasks" / "cards").resolve()
-    for rec in receipt_cards:
-        path = Path(str(rec.get("path") or ""))
-        try:
-            key = path.resolve().relative_to(cards_root).parts[0]
-        except (ValueError, IndexError):
-            return _refuse("a dispatched card sits outside tasks/cards; its id cannot be "
-                           "tied to the one the order names", path=str(path))
-        if key in recorded:
-            return _refuse("the receipt lists the same card more than once", card=key)
-        # The path has to be the canonical one. Comparing directory names alone let
-        # any file that happened to sit in a directory called <id> stand in for the
-        # card, and the hash was then taken from that path rather than from the card.
-        if path.resolve() != (cards_root / key / "task.md"):
-            return _refuse("a dispatched card is not at tasks/cards/<id>/task.md",
-                           card=key, path=str(path))
-        recorded[key] = rec
-        recorded_ids.append(key)
-    recorded_ids.sort()
-    if not order_cards:
-        return _refuse("the order references no card; nothing ties the run to an artifact")
-    if len(receipt_cards) != 1:
-        # Audit reviews one card, so a freeze over several would only have hashed them.
-        # Until every card's gates are audited, this gate refuses the order instead of
-        # signing off gates nobody read.
-        return _refuse("this gate audits a single card; the order dispatched more",
-                       dispatched=len(receipt_cards))
-    if recorded_ids != order_cards:
-        return _refuse("the receipt does not name every card the order references",
-                       order=order_cards, receipt=recorded_ids)
+    order_text = binding["order_text"]
+    order_cards = binding["order_cards"]
+    receipt_cards = binding["receipt_cards"]
+    recorded_ids = binding["recorded_ids"]
+    recorded = binding["recorded"]
+
+    # Card-style receipts bind the audit to the hash captured at dispatch. A queue
+    # run has no legacy card_sha256, so its synthesized/recorded queue-card entry is
+    # the equivalent binding.
+    if binding["queue_style"]:
+        dispatched_card = str(receipt_cards[0].get("sha256") or "").strip()
+    else:
+        dispatched_card = str(receipt.get("card_sha256") or "").strip()
+        if not dispatched_card:
+            return _refuse("done.json records no card_sha256; the reviewed card cannot be "
+                           "tied to the one the order dispatched on", card=card_path)
+    if dispatched_card != card_meta["sha256"]:
+        return _refuse("the card handed to freeze is not the card this order dispatched on",
+                       dispatched=dispatched_card[:12], supplied=card_meta["sha256"][:12])
 
     # 空 ACC 门表：只有工单为这张卡声明的 waiver 能顶替一次"每门必审"。
     # 没有 waiver 就在这里拒绝 —— 而不是让上面的集合比较被整段短路掉。
@@ -488,8 +550,8 @@ def main(argv: Sequence[str] | None = None) -> int:
                 failed=[c.get("check") for c in hit if c.get("passed") is not True])
 
     changed_cards = []
-    for cid in order_cards:
-        path = cards_root / cid / "task.md"
+    for cid in recorded_ids:
+        path = Path(str(recorded[cid].get("path") or ""))
         now = _sha256_file(path) if path.is_file() else None
         if now != recorded[cid].get("sha256"):
             changed_cards.append(cid)
