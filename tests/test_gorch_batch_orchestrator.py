@@ -2697,28 +2697,41 @@ def _cleanup_schema_shadow_sites(func):
     return sites
 
 
-def test_cleanup_shadow_collector_catches_destructuring_and_for_target():
-    '''收集器必须抓住元组解构、for 目标、形参与局部 def 四类绑定。'''
+def test_cleanup_shadow_collector_catches_every_binding_form():
+    '''逐形态表驱动（不是代表样本）：每一种本地绑定形态都必须被收集器捕获。'''
     import ast as _ast
-    src = (
-        'def run_all(steps, cleanup_schema=None):\n'
-        '    (cleanup_schema, _x) = (1, 2)\n'
-        '    for cleanup_schema in steps:\n'
-        '        pass\n'
-        '    def cleanup_schema():\n'
-        '        return None\n'
-        '    import cleanup_schema\n'
-        '    class cleanup_schema:\n'
-        '        pass\n'
-        '    match steps:\n'
-        '        case [cleanup_schema]:\n'
-        '            pass\n'
-        '    return None\n'
-    )
-    fn = next(n for n in _ast.walk(_ast.parse(src)) if isinstance(n, _ast.FunctionDef))
-    got = _cleanup_schema_shadow_sites(fn)
-    assert sorted(got) == ['Store', 'Store', 'arg', 'class', 'def',
-                           'import', 'match'], got
+    cases = [
+        ('assign', 'def run_all():\n    cleanup_schema = None\n'),
+        ('tuple-unpack', 'def run_all():\n    (cleanup_schema, _x) = (1, 2)\n'),
+        ('list-unpack', 'def run_all():\n    [cleanup_schema, _x] = [1, 2]\n'),
+        ('star-unpack', 'def run_all():\n    (cleanup_schema, *_x) = (1, 2)\n'),
+        ('annassign', 'def run_all():\n    cleanup_schema: int = 0\n'),
+        ('augassign', 'def run_all():\n    cleanup_schema = 0\n    cleanup_schema += 1\n'),
+        ('for-target', 'def run_all():\n    for cleanup_schema in (1,):\n        pass\n'),
+        ('with-target', 'def run_all():\n    with open("x") as cleanup_schema:\n        pass\n'),
+        ('comprehension', 'def run_all():\n    _ = [cleanup_schema for cleanup_schema in (1,)]\n'),
+        ('param', 'def run_all(cleanup_schema):\n    return None\n'),
+        ('kwonly-param', 'def run_all(*, cleanup_schema=None):\n    return None\n'),
+        ('local-def', 'def run_all():\n    def cleanup_schema():\n        pass\n'),
+        ('local-async-def', 'def run_all():\n    async def cleanup_schema():\n        pass\n'),
+        ('import-plain', 'def run_all():\n    import cleanup_schema\n'),
+        ('import-as', 'def run_all():\n    import x as cleanup_schema\n'),
+        ('from-import', 'def run_all():\n    from x import cleanup_schema\n'),
+        ('from-import-as', 'def run_all():\n    from x import y as cleanup_schema\n'),
+        ('class', 'def run_all():\n    class cleanup_schema:\n        pass\n'),
+        ('match-as', 'def run_all(x):\n    match x:\n        case [cleanup_schema]:\n            pass\n'),
+        ('match-star', 'def run_all(x):\n    match x:\n        case [*cleanup_schema]:\n            pass\n'),
+        ('match-mapping', 'def run_all(x):\n    match x:\n        case {**cleanup_schema}:\n            pass\n'),
+        ('except-as', 'def run_all():\n    try:\n        pass\n    except Exception as cleanup_schema:\n        pass\n'),
+    ]
+    assert len(cases) == 22, len(cases)
+    missed = []
+    for label, src in cases:
+        fn = next(n for n in _ast.walk(_ast.parse(src))
+                  if isinstance(n, _ast.FunctionDef))
+        if _cleanup_schema_shadow_sites(fn) == []:
+            missed.append(label)
+    assert missed == [], f'未被收集器捕获的绑定形态：{missed}'
 
 
 def test_run_all_cleanup_constructed_only_by_helper(mod):
