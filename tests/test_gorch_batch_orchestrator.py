@@ -2505,6 +2505,39 @@ def test_merge_lock_blocks_when_legacy_lock_is_held(mod, monkeypatch, tmp_path):
     finally:
         holder._release_all()
 
+
+def test_merge_lock_oserror_on_primary_open_releases_legacy(mod, monkeypatch, tmp_path):
+    """r16（r15b 审计 B-中）：第二把锁在 `open()` 阶段抛原生 OSError 时，
+    已持的 legacy 锁也必须释放，且另一实例能立即重取。
+
+    旧实现的 `open()` 在 try 之外、`__enter__` 只捕 `SystemExit` → 异常穿出时
+    legacy 锁留在 `_held` 与 OS 句柄里，直到进程退出（fail-closed 退化成拒绝服务）。
+    """
+    monkeypatch.setattr(mod, 'RUNS', tmp_path / 'runs')
+    lock = mod._MergeLock('main')
+    import builtins
+    real_open = builtins.open
+    opened = []
+
+    def fake_open(path, *a, **k):
+        opened.append(str(path))
+        if len(opened) == 2:                     # 第二次 = primary
+            raise PermissionError(13, 'Access denied', str(path))
+        return real_open(path, *a, **k)
+
+    monkeypatch.setattr(mod, 'open', fake_open, raising=False)
+    with pytest.raises(SystemExit) as ei:
+        lock.__enter__()
+    assert '无法打开' in str(ei.value)
+    monkeypatch.setattr(mod, 'open', real_open)   # 复原以便下一实例真开锁
+    assert lock._held == []
+
+    # 另一实例必须能立刻拿到 legacy（说明旧锁确实被放掉，没泄漏）
+    other = mod._MergeLock('main')
+    with other:
+        assert [p.name for p, _ in other._held] == [other.legacy_path.name,
+                                                    other.primary_path.name]
+
 # --- r15（E2 口径 ⑥）：只读体检 doctor ------------------------------------
 
 
@@ -2611,6 +2644,51 @@ def test_merge_failure_kinds_are_single_sourced(mod):
     # cleanup 的四个构造点都按四桶分支；键名固定，不随实现漂移
     assert set(mod.CLEANUP_UNCLOSED_BUCKETS) == {
         'merge_conflict', 'evidence_failure', 'proof_failure', 'unknown'}
+
+
+def test_run_all_cleanup_constructed_only_by_helper(mod):
+    """r16（r15b 审计 F-5）：`run_all` 内不许再手写 `kept_for_*`，只能调 `cleanup_schema`。
+
+    旧契约只断言常量值与 merge 内 kind 字面量，四个 cleanup 构造点仍各自手抄四个
+    键（审计实测 1677/1763/1779/1794）——常量改了但键名漂移不会被发现。这里改为：
+      1. `run_all` 体内不得出现 `kept_for_` 字符串常量；
+      2. `run_all` 必须至少 4 处调用 `cleanup_schema`（_stop / 失败分流 / 未闭合 /
+         正常完成），少一处就红；
+      3. bucket → `kept_for_*` 映射必须与四桶集合一一对应。
+    """
+    import ast as _ast
+
+    assert set(mod._CLEANUP_KEY_FOR) == set(mod.CLEANUP_UNCLOSED_BUCKETS)
+    assert len(set(mod._CLEANUP_KEY_FOR.values())) == len(mod.CLEANUP_UNCLOSED_BUCKETS)
+
+    src = ORCH.read_text(encoding='utf-8')
+    fn = None
+    for node in _ast.parse(src).body:
+        if isinstance(node, _ast.FunctionDef) and node.name == 'run_all':
+            fn = node
+            break
+    assert fn is not None
+
+    handwritten = [n.value for n in _ast.walk(fn)
+                   if isinstance(n, _ast.Constant) and isinstance(n.value, str)
+                   and n.value.startswith('kept_for_')]
+    assert handwritten == [], f'run_all 内仍手写 cleanup 键: {handwritten}'
+
+    calls = [n for n in _ast.walk(fn)
+             if isinstance(n, _ast.Call) and isinstance(n.func, _ast.Name)
+             and n.func.id == 'cleanup_schema']
+    assert len(calls) >= 4, f'cleanup_schema 调用点只有 {len(calls)} 处（应 ≥4）'
+
+
+def test_cleanup_schema_rejects_unknown_bucket(mod):
+    """r16：未登记的桶必须立即 KeyError，不允许运行期长出第五种。"""
+    import pytest as _pytest
+    with _pytest.raises(KeyError):
+        mod.cleanup_schema({'whatever': ['1']})
+    got = mod.cleanup_schema({'proof_failure': ['1']})
+    assert got['kept_for_proof'] == ['1']
+    assert got['kept_for_conflict'] == [] and got['kept_for_unknown'] == []
+    assert set(got) == {v for v in mod._CLEANUP_KEY_FOR.values()}
 
 def test_cygwin_noise_createprocessw_failure_is_noise(mod, monkeypatch, tmp_path):
     """r15 第三种实测格式：`dofork: child -1 - CreateProcessW failed for '<path>', errno 11`。
@@ -2723,18 +2801,26 @@ def test_merge_flags_third_party_race_as_proof_failure(mod, monkeypatch, tmp_pat
         mod, monkeypatch, tmp_path, shas=['T0', 'T1', 'T2', 'T3'])
     assert merged == []
     assert failed[0]['kind'] == 'proof_failure'
-    assert 'CAS' in failed[0]['stderr']
+    assert 'reflog 回读不一致' in failed[0]['stderr']
 
 
-def test_merge_cas_bound_when_reflog_old_value_matches_baseline(mod, monkeypatch, tmp_path):
-    """r15 ⑤ 正例：reflog 旧值 == 锁内基线 → 强因果成立，记 causal='cas'。"""
+def test_merge_reflog_consistent_never_labelled_cas(mod, monkeypatch, tmp_path):
+    """r16（r15b 审计 B-高）：旧值==基线也只记 `reflog-consistent`，**不得**记 `cas`。
+
+    Codex 指出的失真点：reflog 不记录"哪个进程/invocation 写了 ref"。第三方恰好
+    从同一基线把 target 推到同一候选时，回读同样得到 old==基线——这证明不了本次
+    调用是写者。所以本工程只允许把它表述为"与基线衔接"，并把真 CAS（本进程执行
+    `update-ref <target> <candidate> <expected-old>`）列为待做的架构变更。
+    """
     monkeypatch.setattr(mod, '_ref_update_from',
                         lambda ref, sha: ('ok', 'T0'))
     done, merged, failed, stale = _seed_merge_case(
         mod, monkeypatch, tmp_path, shas=['T0', 'T1', 'T2', 'T3'])
     assert failed == []
-    assert merged[0]['causal'] == 'cas'
+    assert merged[0]['causal'] == 'reflog-consistent'
+    assert merged[0]['cas_state'] == 'ok'
     assert merged[0]['cas_from'] == 'T0'
+    assert 'cas' not in {merged[0]['causal']}
 
 
 def test_merge_reflog_unavailable_degrades_to_observational(mod, monkeypatch, tmp_path):
@@ -2750,3 +2836,76 @@ def test_merge_reflog_unavailable_degrades_to_observational(mod, monkeypatch, tm
     assert merged[0]['cas_state'] == 'unknown'
     assert merged[0]['causal'] == 'observational'
 
+
+def test_ref_update_from_requires_adjacent_selector(mod, monkeypatch):
+    """r16（r15b 审计 B-高）：selector 缺失 / 跳号 / 中间行不可解析 → 一律 unknown。
+
+    旧实现"selector 缺失即接受"，会把非相邻条目当成"这一跳替换掉的旧值"，于是
+    第三方推进被误判成自家 CAS。三条反例都只允许返回 unknown。
+    """
+    new_sha = 'N'
+    cases = [
+        'N\nA@{1}',                        # 首行没有 selector
+        'N\tN@{0}\nA\tA@{2}',              # 相邻行跳号（中间那跳缺失）
+        'N\tN@{0}\nmalformed\nA\tA@{2}',   # 中间行无法解析
+    ]
+    for text in cases:
+        monkeypatch.setattr(mod, '_git_out',
+                            lambda args, timeout=60, _t=text: (0, _t))
+        assert mod._ref_update_from('main', new_sha) == ('unknown', ''), text
+
+
+def test_ref_update_from_accepts_clean_adjacent_pair(mod, monkeypatch):
+    """正例：`N@{0}` 紧跟 `A@{1}` → 读出 A（此时仍只算 reflog 一致）。"""
+    monkeypatch.setattr(mod, '_git_out',
+                        lambda args, timeout=60: (0, 'N\tN@{0}\nA\tA@{1}'))
+    assert mod._ref_update_from('main', 'N') == ('ok', 'A')
+
+
+# --- r16（r15b 审计 B-高）：MSYS 前缀行默认 fail-closed ---------------------
+
+_MSYS_BIZ_SAMPLES = (
+    'could not lock config file .git/config: File exists',
+    'bad object deadbeef',
+    'index file corrupt',
+    'cannot lock ref refs/heads/main',
+    'unable to write new index file',
+    'invalid path aux',
+    'error: failed to push some refs',
+)
+
+
+@pytest.mark.parametrize('text', _MSYS_BIZ_SAMPLES)
+def test_msys_prefixed_business_failures_are_real_errors(mod, monkeypatch, tmp_path, text):
+    """带 `[main]` 前缀但尾挂业务失败的行必须是**真错误**（审计实测七例全被漏放）。
+
+    从 `gate_check` 层验、不只测 helper —— 否则"helper 判对但调用点没用"照样会漏。
+    """
+
+    write_task(tmp_path, 1)
+    line = f'0 [main] git 123 dofork: {text}'
+
+    class _R:
+        returncode = 0
+        stdout = 'STATUS:open\nUNMET:\nCONFLICTS:\n'
+        stderr = line + '\n'
+
+    monkeypatch.setattr(mod.subprocess, 'run', lambda *a, **k: _R())
+    with pytest.raises(SystemExit) as ei:
+        mod.gate_check(str(tmp_path))
+    assert '错误输出' in str(ei.value)
+    assert mod._is_cygwin_noise(line) is False
+
+
+def test_msys_known_runtime_shapes_still_treated_as_noise(mod):
+    """对照：三种实测纯运行时形态（含 retry / exit code / errno 尾部）仍判噪声。"""
+    lines = [
+        '0 [main] bash 7095 dofork: child -1 - forked process 25912 died '
+        'unexpectedly, retry 0, exit code 0xC000012D, errno 11',
+        '0 [main] tr (12144) child_copy: cygheap read copy failed, '
+        '0x0..0x800800C5C0, done 0, windows pid 12144, Win32 error 299',
+        "0 [main] bash 1130 dofork: child -1 - CreateProcessW failed for "
+        "'C:\\Program Files\\Git\\bin\\..\\usr\\bin\\bash.exe', errno 11",
+    ]
+    for ln in lines:
+        assert mod._is_cygwin_noise(ln) is True, ln

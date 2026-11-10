@@ -74,6 +74,33 @@ BRANCH_PREFIX = 'gorch/'
 MERGE_FAILURE_KINDS = ('evidence_failure', 'merge_conflict', 'proof_failure')
 CLEANUP_UNCLOSED_BUCKETS = ('merge_conflict', 'evidence_failure',
                             'proof_failure', 'unknown')
+# r16（r15b 审计 F-5）：bucket → `kept_for_*` 的唯一映射。此前 run_all 的四个
+# cleanup 构造点各自手抄四个键，常量只覆盖 `buckets`，键名仍可能漂移；现在
+# 所有构造点只调 `cleanup_schema()`，映射改一处即可。
+_CLEANUP_KEY_FOR = {
+    'merge_conflict': 'kept_for_conflict',
+    'evidence_failure': 'kept_for_evidence',
+    'proof_failure': 'kept_for_proof',
+    'unknown': 'kept_for_unknown',
+}
+assert set(_CLEANUP_KEY_FOR) == set(CLEANUP_UNCLOSED_BUCKETS), \
+    'bucket 与 kept_for_* 映射必须一一对应'
+
+
+def cleanup_schema(buckets=None):
+    """把 bucket 分组装配成统一 cleanup schema（唯一构造入口）。
+
+    ``buckets`` 形如 ``{'merge_conflict': [task, ...], ...}``；未给的桶一律空列表。
+    未知桶名直接 KeyError —— 新桶必须先登记进 ``CLEANUP_UNCLOSED_BUCKETS``
+    与 ``_CLEANUP_KEY_FOR``，不允许运行期动态长出第五种。
+    """
+    groups = {b: [] for b in CLEANUP_UNCLOSED_BUCKETS}
+    for bucket, tasks in (buckets or {}).items():
+        if bucket not in groups:
+            raise KeyError(f'未知 cleanup bucket: {bucket!r}，'
+                           f'只允许 {CLEANUP_UNCLOSED_BUCKETS}')
+        groups[bucket].extend(list(tasks or []))
+    return {_CLEANUP_KEY_FOR[b]: groups[b] for b in CLEANUP_UNCLOSED_BUCKETS}
 # 只把 git-bash/cygwin 的 fork 噪声降级为诊断；其余 stderr 一律当错误看。
 # 噪声特征：fork 重试、cygheap 读写失败、dofork 死亡，以及 cygwin 的 "123 [main] xxx" 前缀行。
 # 第四轮审计：原来按关键词**子串**匹配，会把「真实错误里恰好含 cygheap /
@@ -86,17 +113,38 @@ CLEANUP_UNCLOSED_BUCKETS = ('merge_conflict', 'evidence_failure',
 # `CreateProcessW failed for '<path>', errno N` / `cygheap read copy failed,
 # 0x0..0xNN, done N, windows pid N, Win32 error N`）。逐条枚举尾部永远追不上，
 # 但这类行的共同点是：**业务程序（bash/sh/git）自己的错误不走 `[main]` 前缀**。
-# 因此规则改为两层：
-#   · 整行命中 `[main]` 前缀 → 视为运行时诊断，放行；
-#   · 但同一行里若还挂着业务失败语义（denied / No such file / fatal: / cannot…），
-#     仍判真错误——保住「尾部多挂内容就不算噪声」这条防线；
+# 因此规则改为两层（r16 起第二层由「业务词表排除」改为「纯运行时白名单」）：
+#   · 整行必须以 `[main]` 前缀开头（`_MSYS_DIAG`）；
+#   · 且尾部必须**完整命中**已知纯运行时形态（`_MSYS_PURE`）才放行；未识别的尾部
+#     一律判真错误（fail-closed）。旧实现在这一步用有限业务词表做反向排除，
+#     r15b 审计实测七例漏放（`could not lock config file` / `bad object` /
+#     `index file corrupt` / `cannot lock ref` / `unable to write new index file` /
+#     `invalid path` / `error: …`），代价是把真错误吞掉——与本工程的 fail-closed
+#     底线冲突，故改为白名单。
 #   · 不带 `[main]` 前缀的老格式（如 `bash: child_copy: cygheap …`）继续整行锚定。
 _MSYS_DIAG = re.compile(
     r'^\s*\d+\s*\[main\]\s+\S+\s+(?:\(\d+\)\s+|\d+\s+)?'
     r'(?:fork|dofork|child_copy|signal_chk|sig_chain|proc_stuff):')
+_MSYS_PURE = re.compile(
+    r"^\s*\d+\s*\[main\]\s+\S+\s+(?:\(\d+\)\s+|\d+\s+)?"
+    r"(?:"
+    # 实测①：dofork 拉子进程失败（附 retry / exit code / errno）
+    r"dofork:\s+child\s+-1\s+-\s+forked process\s+\d+\s+died unexpectedly"
+    r"(?:,\s*retry\s+\d+)?(?:,\s*exit code\s+0x[0-9A-Fa-f]+)?(?:,\s*errno\s+\d+)?"
+    # 实测②：dofork 里 CreateProcessW 失败（只认路径 + errno）
+    r"|dofork:\s+child\s+-1\s+-\s+CreateProcessW\s+failed\s+for\s+'[^']*'"
+    r"(?:,\s*errno\s+\d+)?"
+    # 实测③：cygheap 拷贝失败（尾部是地址/pid/Win32 码，允许逗号分隔的尾段）
+    r"|child_copy:\s+cygheap\s+(?:read|write)\s+copy\s+failed(?:,.*)?"
+    # 老式：fork retry（资源暂时不可用）
+    r"|fork:\s+retry:\s+Resource temporarily unavailable"
+    r")$",
+    re.IGNORECASE)
 _BIZ_FAIL = re.compile(
     r'(?i)(permission denied|access is denied|no such file|not found|'
-    r'not a git repository|fatal:|cannot open|cannot create|'
+    r'not a git repository|fatal:|cannot open|cannot create|cannot lock|'
+    r"could not lock|unable to |corrupt|bad object|invalid path|error:|"
+    r"failed to |"
     r'must be run in a work tree)')
 _CYGWIN_NOISE = re.compile(
     # 不带 [main] 前缀的老格式：整行锚定（含行尾）。
@@ -111,15 +159,19 @@ _CYGWIN_NOISE = re.compile(
 
 
 def _is_cygwin_noise(line):
-    """这一行是不是 MSYS/Cygwin 运行时噪声（不是判定错误）。"""
+    """这一行是不是 MSYS/Cygwin 运行时噪声（不是判定错误）。
+
+    r16（r15b 审计 B-高）：`[main]` 前缀只说明"这行来自 MSYS 运行时"，不代表尾部
+    语义安全。默认判**真错误**，只有尾部完整命中 `_MSYS_PURE` 且不含业务失败词
+    （`_BIZ_FAIL` 双保险）时才当噪声。
+    """
     stripped = line.strip()
     if not stripped:
         return True
     if _CYGWIN_NOISE.match(stripped):
         return True
     if _MSYS_DIAG.match(stripped):
-        # 运行时诊断前缀：只要没挂业务失败语义就算噪声。
-        return not _BIZ_FAIL.search(stripped)
+        return bool(_MSYS_PURE.match(stripped)) and not _BIZ_FAIL.search(stripped)
     return False
 # 「已删干净」的唯一可信 branch_outcome。实测（临时仓库 wtprobe-r5，2026-11-09）
 # `wt remove --format json` 返回**数组**，元素字段是
@@ -970,9 +1022,14 @@ def _ref_update_from(ref, new_sha):
     写过这个 ref」——这是绑定式证据，不是"target 动了就归功于我"的观察性推断。
 
     返回 (state, old_sha)：
-      ('ok', old)     —— 找到该跳；old 由调用方与基线比对，相等才算 bound；
-      ('unknown', '') —— reflog 读不到 / 没有这一跳：**不能**宣称唯一因果，只能
-                         退回双采样做异常检测（口径要求：不得表述为唯一因果）。
+      ('ok', old)     —— 找到该跳、且相邻关系成立；old 由调用方与基线比对；
+      ('unknown', '') —— reflog 读不到 / 没有这一跳 / 相邻关系无法证明。
+
+    **口径收敛（r16，r15b 审计 B-高）**：本函数只是**事后回读 reflog**，它既没有
+    绑定"哪个进程/哪次 invocation 写了 ref"，也排除不了 ABA 与 reflog 缺口，因此
+    **不是** `git update-ref <target> <candidate> <expected-old>` 那种原子 CAS。
+    调用方只允许把它记成 `reflog-consistent`（与基线一致）或 `observational`，
+    **不得**表述为强因果或"CASP 成功"。
     """
     target_ref = str(ref or '').strip()
     if not target_ref or not new_sha:
@@ -995,13 +1052,18 @@ def _ref_update_from(ref, new_sha):
         if sha != new_sha:
             continue
         m = _RE_CAS_SEL.search(sel)
-        # 同一 sha 可能在 reflog 里重复出现（reset 回同一值）；只认 selector 序号与
-        # 该行在输出里的位置一致的那一条，避免把中间态当成"这一跳"。
-        if m and int(m.group(1)) != idx:
-            continue
-        if idx + 1 < len(rows):
-            return 'ok', rows[idx + 1][0]
-        return 'unknown', ''
+        # r16（r15b 审计 B-高）：selector 缺失、或序号与该行位置不一致 —— 都不能
+        # 证明"相邻两跳"，只能 unknown。旧实现"缺失即接受"会把非相邻条目当旧值。
+        if not m or int(m.group(1)) != idx:
+            return 'unknown', ''
+        if idx + 1 >= len(rows):
+            return 'unknown', ''
+        nxt_sel = rows[idx + 1][1]
+        nm = _RE_CAS_SEL.search(nxt_sel)
+        # 邻接行必须存在且序号连续；中间夹了无法解析的行同样只能 unknown。
+        if nm is None or int(nm.group(1)) != idx + 1:
+            return 'unknown', ''
+        return 'ok', rows[idx + 1][0]
     return 'unknown', ''
 
 
@@ -1048,7 +1110,14 @@ class _MergeLock:
 
     # -- 单把锁的取/放（把 OS 细节收在一处，双锁复用它）-------------------
     def _acquire(self, path):
-        fh = open(str(path), 'a+')
+        # r16（r15b 审计 B-中）：`open()` 自身也会失败（ACL / 路径竞态 / I/O 错误）。
+        # 必须和"锁被占用"走同一个出口 —— 否则异常绕开 __enter__ 的释放分支，
+        # 已持有的 legacy 锁泄漏成"永久占用"，fail-closed 退化成拒绝服务。
+        try:
+            fh = open(str(path), 'a+')
+        except OSError as exc:
+            raise SystemExit(
+                f'合并锁文件无法打开（{path}）：{exc}，fail-closed') from exc
         try:
             if os.name == 'nt':
                 import msvcrt
@@ -1096,8 +1165,10 @@ class _MergeLock:
         try:
             for path in order:
                 self._held.append((path, self._acquire(path)))
-        except SystemExit:
+        except BaseException:
             # 第二把拿不到时必须放掉第一把，否则失败路径会把旧锁泄漏成"永久占用"。
+            # r16（r15b 审计 B-中）：捕获面从 `SystemExit` 放到 `BaseException` ——
+            # 原生 `OSError` / 中断也必须先释放已持锁再原样抛出。
             self._release_all()
             raise
         return self
@@ -1342,11 +1413,15 @@ def merge(batch_dir, tasks=None, target=None, run_dirs=None, only_tasks=None,
             #   · 强制 src_moved 也必然不成立（分支没了，tip 自然"没变"）。
             # 改为：源 commit 用**调用前 sha** 查祖先（分支删了对象还在），并接受 wt 回执
             # 里的 committed / squashed / rebased 作为"这次确实做了合并动作"的证据。
-            # 口径说明（r15 ⑤，采 Codex 裁决）：上面这套双采样 + 三档，只是**异常检测**
+            # 口径说明（r15 ⑤ + r16 收敛）：上面这套双采样 + 三档，只是**异常检测**
             # 与"真成功被误杀"的修复，**不构成唯一因果**——"target 前进且源在里面"仍可能
-            # 是第三方在同一窗口内合入了同一 source。强因果另有 CAS：下面
-            # `_ref_update_from` 取"把 target 推到 sha_after 的那一次 ref 更新"所绑定的
-            # 旧值，与锁内观测的 target_sha 比对；不等即 proof_failure。
+            # 是第三方在同一窗口内合入了同一 source。下面 `_ref_update_from` 只做**事后
+            # reflog 回读**：旧值等于锁内基线时记 `reflog-consistent`（说明这段时间内
+            # 这次 ref 更新衔接上了我们的基线），**不是**原子 CAS——它不绑定写者
+            # （哪个进程/invocation），也不排除 ABA 与 reflog 缺口。旧值不等则说明窗口内
+            # 确有第三方推进过该 ref，本次不可归因 → proof_failure。
+            # 真 CAS（`update-ref <target> <candidate> <expected-old>` 由本进程执行）
+            # 需要 wt 不直接写 target，属架构变更，见裁决书 §2.5 待办。
             # 不加 clean-tree 门（Codex ⑤ 明确否决）；脏基线由 ② 的逐路径指纹处置。
             rc_anc, _ = _git_out(['merge-base', '--is-ancestor', src_before, resolved_target])
             sha_after = _ref_sha(resolved_target)
@@ -1392,15 +1467,16 @@ def merge(batch_dir, tasks=None, target=None, run_dirs=None, only_tasks=None,
             elif progressed and content_changed and wt_action:
                 proof = 'wt_receipt'
             proven = bool(proof)
-            # r15 ⑤（CAS）：reflog 里"这一跳"的旧值必须等于锁内基线。不等就说明窗口内
-            # 有第三方写过 target——即便三档全绿，也不能把本次合入归因于本任务。
-            # cas_state='unknown'（reflog 读不到）只降级为观察性证据，不额外阻断。
+            # r15 ⑤ + r16：reflog 回读的旧值必须等于锁内基线。不等就说明窗口内有第三方
+            # 写过 target——即便三档全绿，也不能把本次合入归因于本任务。
+            # cas_state='unknown'（reflog 读不到 / 相邻关系证不出）只降级为观察性证据，
+            # 不额外阻断；此时**不得**表述为强因果。
             if proven and cas_state == 'ok' and cas_from != target_sha:
                 failed.append({
                     'task': task, 'branch': branch, 'returncode': 0,
                     'kind': 'proof_failure',
                     'stdout': r.stdout.strip()[-600:],
-                    'stderr': (f'CAS 校验不通过：target {resolved_target} 推到 '
+                    'stderr': (f'reflog 回读不一致：target {resolved_target} 推到 '
                                f'{sha_after[:12]} 的这次 ref 更新，其旧值是 '
                                f'{cas_from[:12] or "?"}，不等于锁内基线 '
                                f'{target_sha[:12]}——窗口内有第三方推进过该 ref，'
@@ -1441,8 +1517,11 @@ def merge(batch_dir, tasks=None, target=None, run_dirs=None, only_tasks=None,
                            'proof': proof,
                            'cas_state': cas_state,
                            'cas_from': cas_from,
-                           'causal': ('cas' if (cas_state == 'ok'
-                                                and cas_from == target_sha)
+                           # r16（r15b 审计 B-高）：只是 reflog 回读一致，不是原子 CAS。
+                           # 旧值 == 基线记 reflog-consistent；其它一律 observational。
+                           'causal': ('reflog-consistent'
+                                      if (cas_state == 'ok'
+                                          and cas_from == target_sha)
                                       else 'observational'),
                            'source_tree_before': src_tree,
                            'target_tree_before': target_tree_before,
@@ -1675,9 +1754,7 @@ def run_all(batch_dir, prompts_dir, max_channels=MAX_CHANNELS, target=None,
         # 时先调用会触发局部名未绑定）。
         steps.setdefault('merge', {'merged': [], 'failed': [], 'not_merged': {}})
         steps.setdefault('cleanup', {'removed': [], 'skipped': [],
-                                     'kept_for_conflict': [],
-                                     'kept_for_evidence': [], 'kept_for_proof': [],
-                                     'kept_for_unknown': []})
+                                     **cleanup_schema()})
         return {**base, 'steps': steps, 'stopped_at': at, 'note': note}
 
     if refused:
@@ -1760,11 +1837,7 @@ def run_all(batch_dir, prompts_dir, max_channels=MAX_CHANNELS, target=None,
         for f in failed:
             k = f.get('kind')
             buckets[k if k in MERGE_FAILURE_KINDS else 'unknown'].append(f['task'])
-        steps['cleanup'] = {'removed': [], 'skipped': [],
-                            'kept_for_conflict': buckets['merge_conflict'],
-                            'kept_for_evidence': buckets['evidence_failure'],
-                            'kept_for_proof': buckets['proof_failure'],
-                            'kept_for_unknown': buckets['unknown']}
+        steps['cleanup'] = {'removed': [], 'skipped': [], **cleanup_schema(buckets)}
         kinds = sorted({f.get('kind') or 'unspecified' for f in failed})
         return {**base, 'steps': steps, 'stopped_at': 'merge',
                 'note': (f'合并段停止（失败类别={kinds}），跳过 cleanup 以保留现场；'
@@ -1777,9 +1850,7 @@ def run_all(batch_dir, prompts_dir, max_channels=MAX_CHANNELS, target=None,
     leftover = [t for t in ready if t not in merged_tasks and t not in verified]
     if real_stale or leftover:
         steps['cleanup'] = {'removed': [], 'skipped': [],
-                            'kept_for_conflict': merged_tasks,
-                            'kept_for_evidence': [], 'kept_for_proof': [],
-                            'kept_for_unknown': []}
+                            **cleanup_schema({'merge_conflict': merged_tasks})}
         return {**base, 'steps': steps, 'stopped_at': 'merge',
                 'note': (f'{len(real_stale) + len(leftover)} 个任务未进入合并池'
                          '（见 not_merged / verified_only），未执行 cleanup 以保留现场')}
@@ -1793,9 +1864,7 @@ def run_all(batch_dir, prompts_dir, max_channels=MAX_CHANNELS, target=None,
     # schema 读 `kept_for_proof` 的下游会 KeyError。正常完成时四档均为空列表。
     steps['cleanup'] = {'removed': [r['task'] for r in removed],
                         'skipped': c_skipped,
-                        'kept_for_conflict': [],
-                        'kept_for_evidence': [], 'kept_for_proof': [],
-                        'kept_for_unknown': []}
+                        **cleanup_schema()}
 
     partial = [s for s in c_skipped if s.get('partial')] or c_skipped
     if partial:

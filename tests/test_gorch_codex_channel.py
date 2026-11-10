@@ -1109,6 +1109,35 @@ def test_dir_digest_does_not_follow_reparse_points(tmp_path):
     assert c != a                              # link 的出现/消失必须可见
 
 
+def test_digest_root_path_itself_reparse_is_not_followed(tmp_path):
+    """r16（r15b 审计 B-中）：**传入路径自身**是 junction 时绝不 scandir。
+
+    r15 只挡了"普通目录内的 reparse 子条目"，漏了根路径：`_digest(workdir, rel)`
+    里 rel 自己是 junction 时会直接进 `_dir_digest` → `os.scandir` 跟随到可变域外
+    目标。这条要求返回独立 `REPARSE:dir` 标识，且域外条目增删都不改变摘要。
+    """
+    m = _load()
+    outside = tmp_path / 'outside'
+    outside.mkdir()
+    (outside / 'a.txt').write_text('x', encoding='utf-8')
+    repo = tmp_path / 'repo'
+    repo.mkdir()
+    link = repo / 'j'
+    cmd = os.environ.get('ComSpec', r'C:\Windows\System32\cmd.exe')
+    rc = subprocess.run([cmd, '/c', 'mklink', '/J', str(link), str(outside)],
+                        capture_output=True, text=True, encoding='utf-8',
+                        errors='replace').returncode
+    if rc != 0 or not link.exists():
+        pytest.skip('本机无法创建 junction，跳过（口径已写入裁决书 §2.2）')
+    got = m._digest(str(repo), 'j')
+    assert got == 'REPARSE:dir'
+    (outside / 'b.txt').write_text('y', encoding='utf-8')   # 域外新增条目
+    (outside / 'a.txt').write_text('changed', encoding='utf-8')
+    assert m._digest(str(repo), 'j') == 'REPARSE:dir'       # 摘要仍不变
+    os.rmdir(str(link))
+    assert outside.exists() and (outside / 'b.txt').exists()
+
+
 def test_worktree_fingerprint_records_submodule_gitlink(tmp_path):
     """submodule 按 gitlink OID + 已检出 HEAD（或 unconfirmed）取证（口径 ②）。
 

@@ -267,6 +267,11 @@ def _digest(workdir, rel):
     # 只是类型不对"本来就是另一个事实。给带类型的摘要：它仍是可比较的（类型一变
     # 摘要就变），既不误判"没改"，也不会把整份指纹打成不可用（untracked 目录是常态）。
     if stat.S_ISDIR(st.st_mode):
+        # r16（r15b 审计 B-中，Codex 点名的根路径缺口）：路径**自身**是
+        # junction/reparse 时不得 `scandir` —— 那会把采样直接带进可变域外目标。
+        # r15 只挡了"普通目录内的 reparse 子条目"，漏了"被摘要路径本身就是 reparse"。
+        if getattr(st, 'st_file_attributes', 0) & _REPARSE_POINT:
+            return 'REPARSE:dir'
         # r15（E2 口径 ②）：真实目录不能再折成常量 TYPE:dir —— 那样目录里增删改
         # 条目全部不可见。改走直接条目名集合哈希（见 _dir_digest 的取法说明）。
         return _dir_digest(p)
