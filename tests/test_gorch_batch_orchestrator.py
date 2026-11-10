@@ -2670,8 +2670,8 @@ def test_run_all_cleanup_constructed_only_by_helper(mod):
     旧契约只断言常量值与 merge 内 kind 字面量，四个 cleanup 构造点仍各自手抄四个
     键（审计实测 1677/1763/1779/1794）——常量改了但键名漂移不会被发现。这里改为：
       1. `run_all` 体内不得出现 `kept_for_` 字符串常量；
-      2. `run_all` 必须至少 4 处调用 `cleanup_schema`（_stop / 失败分流 / 未闭合 /
-         正常完成），少一处就红；
+      2. `run_all` 必须**恰** 4 处调用 `cleanup_schema`（_stop / 失败分流 / 未闭合 /
+         正常完成），并逐点绑定这四个赋值目标——少一处、多一处都红；
       3. bucket → `kept_for_*` 映射必须与四桶集合一一对应。
     """
     import ast as _ast
