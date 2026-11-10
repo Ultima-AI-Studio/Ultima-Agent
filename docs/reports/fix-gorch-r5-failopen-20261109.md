@@ -980,26 +980,39 @@ Codex 复核（17,177B / 103 行）结论：**「足以作为规范口径」**�
 
 | 项 | 实现 | 关键取舍 |
 |---|---|---|
-| ⑤ 第三方并发 | 新增 `_ref_update_from(ref, new_sha)`：读 target reflog，取「把 ref 推到 `new_sha` 那一跳」所绑定的旧值，与锁内基线 `target_sha` 比对；相等记 `causal='cas'`，不等即 `proof_failure`；reflog 不可读 → `causal='observational'` | 双采样降级为**异常检测**；**不加** clean-tree 门（Codex ⑤ 明确否决）；不写 temp ref（避免进程崩溃残留） |
+| ⑤ 第三方并发 | 新增 `_ref_update_from(ref, new_sha)`：**事后**读 target reflog，取「把 ref 推到 `new_sha` 那一跳」所绑定的旧值（要求 selector 与行位置一致、下一跳 +1；缺失 / 跳号 / 中间行不可解析 → `unknown`），与锁内基线 `target_sha` 比对；相等记 `causal='reflog-consistent'`，不等即 `proof_failure`；不可读 → `causal='observational'` | 双采样降级为**异常检测**；**不加** clean-tree 门（Codex ⑤ 明确否决）；不写 temp ref（避免崩溃残留）——但**这不等于原子 CAS**，回读不绑定写者，见 §21.2 |
 | ⑦ fallback invocation | `find_done_tasks` 删非显式 glob 分支 −108 行；`run_dirs is None` / 缺 `expect_invocation` 双守卫 fail-closed；`merge` 同拒 | 旧签名单测一次性迁移（19 红 → 全绿），非逻辑 bug |
 | ③ 锁键 | `_MergeLock` 重写：`sha256(norm_target)[:32]` 为主键、`[:16]` 保留旧键；迁移期双锁（先旧后新） | 单把未持有的旧锁无约束力；真正危险是**新旧各持一把同时放行** |
-| ② 目录/子仓 | `_dir_digest`：`scandir` 直接条目名 + 长度分隔哈希、不递归；命中 reparse 只记 `R`；`worktree_fingerprint` 识 gitlink `160000` | junction 的危害不是「SHA 随机」而是把**可变域外目标**纳入采样 |
+| ② 目录/子仓 | `_dir_digest`：`scandir` 直接条目名 + 长度分隔哈希、不递归；目录内 reparse 只记 `R`；**路径自身是 reparse 时** `_digest` 返 `REPARSE:dir`、不 `scandir`；`worktree_fingerprint` 识 gitlink `160000` | junction 的危害不是「SHA 随机」而是把**可变域外目标**纳入采样；只挡子条目会漏掉"传进来的就是链接" |
 | ⑥ doctor | 只读 `doctor(batch_dir)` + 子命令，输出四态/三态/登记/run 记录/三条只读复核命令 | 卡片状态必须 `is_file()`——`_path_state` 对文件一律 `wrong_type`（实测红一次后改） |
-| ④ 三 kind / 四桶 | `MERGE_FAILURE_KINDS` / `CLEANUP_UNCLOSED_BUCKETS` 单源常量，`run_all` 四桶由常量构造 | 加 AST 契约：新增第四种 kind 或写错值立刻红 |
+| ④ 三 kind / 四桶 | `MERGE_FAILURE_KINDS` / `CLEANUP_UNCLOSED_BUCKETS` 单源常量 + `_CLEANUP_KEY_FOR`（bucket→`kept_for_*` 唯一映射）+ `cleanup_schema()` 唯一构造函数，`run_all` 四处构造点全部改调 helper | AST 契约：`run_all` 内禁手写 `kept_for_*`、helper ≥4 处调用、未知桶 KeyError——旧契约只看常量值，挡不住键名漂移 |
 | ① LINK 边界 | 补「指向文本不变、目标内容变」用例，docstring 明写**预期边界** | 域外目标仍属 §16 残余，不许宣称「已覆盖」 |
 
-### 21.2 ⑤ 为什么用 reflog 旧值而不是 temp ref
+### 21.2 ⑤ 为什么本轮**没有**做原子 CAS（差异清单）
 
 裁决原文是「temp ref + `git update-ref <target> <candidate> <expected-old-sha>` 原子 CAS」。
-`update-ref` 的 old-value 绑定会在 reflog 留下 `(old → new)` 相邻两跳，所以「`new` 那跳的
-old == 我们锁内观测的基线」与 CAS 成功是**同一件事**：都表示从观测到写入之间没有第三方写过
-该 ref。落地只读 reflog、不写 ref，避免往用户仓库注入瞬时 ref（崩溃即残留，反而变成新的噪声
-与「未知状态」来源）。若将来让 `update-ref` 直接接管合并写入（绕过 wt），再按原文引入 candidate
-事务；届时 `_ref_update_from` 仍是校验侧，可复用。
+本轮落地的是**事后 reflog 回读**，两者不等价，差别五条：
 
-**负例（本轮新增，三档全绿仍判死）**：`test_merge_flags_third_party_race_as_proof_failure`
-——wt 回执身份正确、target 前进、源在当前历史里（`ff_ok` 成立），只要 reflog 旧值 ≠ 基线，
-即判 `proof_failure` 并保留现场。这正是 Codex 点名的「第三方在窗口内合入同一 source」。
+1. **不绑定写者**：reflog 只记 `(old, new, actor 显示名, 时间, 消息)`，不记 invocation id。
+   第三方恰好从同一基线把 target 推到同一候选时，回读同样得到 `old == 基线`——无法据此宣称
+   「这是本任务的写入」。所以代码只记 `causal='reflog-consistent'`，**不出现** `cas`。
+2. **排除不了 ABA**：`old → X → 原值 → X` 的往复在 reflog 里留多条记录，只看「new 那一跳」
+   不足以证明期间无人写过；真 CAS 由 git 在 ref 更新瞬间做比较，是原子的。
+3. **日志缺口**：`core.logAllRefUpdates=false`、reflog 被 `git reflog expire` / GC 清理，或
+   `wt merge` 一次写多次 ref 时，回读只能落到 `unknown` 或读到中间 old。
+4. **非 ff 无 actor**：强制更新只说明 old/new OID，不说明谁推的。
+5. **顺序依赖**：回读发生在合并之后，失败只能「保留现场 + 判 `proof_failure`」，不能阻止写入。
+
+真 CAS 需要「wt 不直接写 target」的架构变更（本进程以 candidate 做
+`update-ref <target> <candidate> <expected-old>`，失败即回滚并记 `proof_failure`），
+已列为待办（见 §21.5）。在它落地之前，代码与文档一律只称 `reflog-consistent` / `observational`。
+
+**负例（三档全绿仍判死）**：`test_merge_flags_third_party_race_as_proof_failure`——wt 回执身份
+正确、target 前进、`ff_ok` 成立，只要回读旧值 ≠ 基线，即判 `proof_failure` 并保留现场。
+配套 `test_ref_update_from_requires_adjacent_selector` 三条反例（首行无 selector / 跳号 /
+中间行 malformed）全部只允许 `unknown`；正例 `test_merge_reflog_consistent_never_labelled_cas`
+显式断言 `'cas' not in {causal}`。
+
 
 ### 21.3 额外实测缺陷：MSYS fork 诊断被当「真错误」
 
@@ -1013,18 +1026,28 @@ old == 我们锁内观测的基线」与 CAS 成功是**同一件事**：都表�
 ```
 
 根因：旧 `_CYGWIN_NOISE` 逐条**整行锚定尾部形态**，一旦 `errno` / pid / 路径变化就追不上，
-一次 fork 抖动把整批判红。改为两层规则：
+一次 fork 抖动把整批判红。改为三层规则：
 
 - `_MSYS_DIAG`：`^\s*\d+\s*\[main\]\s+\S+\s+(?:\(\d+\)\s+|\d+\s+)?…(?:fork|dofork|child_copy|…):`
-  —— 命中即视为运行时诊断；
-- `_BIZ_FAIL`：`permission denied|access is denied|no such file|not found|not a git repository|fatal:|cannot open|cannot create|must be run in a work tree`
-  —— 同一行含业务失败语义时**仍判真错误**（fail-closed 不松）。
+  —— 命中即视为**来自 MSYS 运行时**（这只说明来源，不说明语义安全）；
+- `_MSYS_PURE`（r16 起为**白名单**，整行 `$` 锚定）：只认实测纯运行时尾部——`dofork: child -1
+  - forked process N died unexpectedly[, retry N][, exit code 0x…][, errno N]`、
+  `dofork: child -1 - CreateProcessW failed for '<path>'[, errno N]`、
+  `child_copy: cygheap read|write copy failed, …`，外加老式 `fork: retry: Resource temporarily
+  unavailable`；
+- `_BIZ_FAIL`（双保险，命中即真错误）：`permission denied|access is denied|no such file|not found|
+  not a git repository|fatal:|cannot open|cannot create|cannot lock|could not lock|unable to |
+  corrupt|bad object|invalid path|error:|failed to |must be run in a work tree`。
 
-依据：业务程序（bash/sh/git）自己的报错不走 `[main]` 前缀。6 条用例覆盖：两种长格式放行、
-长格式尾部挂业务文本仍拒、`CreateProcessW failed` 放行、无前缀的 `bash: fork: Permission denied`
-仍拒，另加 `cygheap read copy failed` / `fork: retry` 放行。
+未命中白名单的尾部**一律判真错误**（fail-closed）。r15b 审计实测七例曾被旧「业务词表反向排除」
+全部漏放成噪声：`could not lock config file .git/config: File exists`、`bad object deadbeef`、
+`index file corrupt`、`cannot lock ref refs/heads/main`、`unable to write new index file`、
+`invalid path aux`、`error: failed to push some refs`——现全部进 `gate_check` 层负例。
 
-方法论见 `lessons-log.md` L96：**噪声识别要「前缀 + 语义闸门」两层，不要穷举整行尾部**。
+依据：业务程序（bash/sh/git）自己的报错不走 `[main]` 前缀。用例覆盖：三种实测运行时形态放行
+（含 retry / exit code / errno 尾部）、长格式尾部挂业务文本仍拒、无前缀的
+`bash: fork: Permission denied` 仍拒、审计七例业务尾部逐一在 `gate_check` 层判真错误。
+
 
 ### 21.4 验证（终态）
 
@@ -1037,6 +1060,7 @@ old == 我们锁内观测的基线」与 CAS 成功是**同一件事**：都表�
 | ④①⑥ 后 | 200 + 1 红（MSYS 抖动误判） |
 | MSYS 修复后 | `-k cygwin` 6 passed；全量 **203 passed / 43.12s** |
 | ⑤ 落地后 | ⑤ 定向 4 passed；全量 **207 passed / 42.72s** |
+| r16 回修后 | 定向 31 passed；digest/fingerprint 13 passed；全量 **221 passed / 52.99s** |
 
 `git status --short` 中另有大量与本轮无关的改动（历史报告/脚本/`tasks/*` 等），
 **不入本轮提交**；本轮只 add 下列 5 个文件：
@@ -1051,3 +1075,19 @@ old == 我们锁内观测的基线」与 CAS 成功是**同一件事**：都表�
 - 第十 / 十二 / 十三 / 十四轮审计全文仍只在 `Temp`，未入库成 docs 提交。
 - ⑤ 若改为 `update-ref` 直接接管合并写入（绕过 wt），需再引入 candidate 事务与临时 ref 生命周期。
 
+### 21.6 r16 回修（r15b 审计判「不一致」后的收敛）
+
+第二轮 Codex 只读审计（`codex-r15b-audit-last.md`，854.5s / 19,069B）判 ①⑥⑦ 一致、
+**②③④⑤ 不一致**，另有 MSYS 真 fail-open 七例与四份文档过强声明。本轮据此改：
+
+| 审计项 | 改动 | 用例 |
+|---|---|---|
+| ② 根 reparse | `_digest` 目录分支先判 `st_file_attributes & FILE_ATTRIBUTE_REPARSE_POINT` → `REPARSE:dir`，绝不 `scandir` | 新增「路径自身是 junction」真用例（域外增删条目摘要恒定） |
+| ③ 异常释放 | `_acquire` 把 `open()` 移入 `try`，`OSError → SystemExit('…无法打开…fail-closed')`；`__enter__` 由只捕 `SystemExit` 改为捕 `BaseException`，先 `_release_all()` 再原样抛出 | 新增 primary `open` 抛 `PermissionError` 后 legacy 可被另一实例立即重取 |
+| ④ 真单源 | `_CLEANUP_KEY_FOR` + `cleanup_schema()`；`run_all` 四处手写键全部改 `**cleanup_schema(...)` | AST：`run_all` 内禁 `kept_for_` 字面量、helper ≥4 处调用；未知桶 `KeyError` |
+| ⑤ 因果表述 | `causal` 由 `cas` 改 `reflog-consistent`；`_ref_update_from` 加 selector 相邻性校验；`proof_failure` 文案改「reflog 回读不一致」 | selector 三反例 + 一对正例；改名用例断言永不出 `cas` |
+| MSYS fail-open | `_is_cygwin_noise` 由「业务词表反向排除」改为**纯运行时白名单** `_MSYS_PURE` + `_BIZ_FAIL` 双保险，未识别尾部一律真错误 | 审计七例参数化进 `gate_check` 层负例；三种实测运行时形态放行对照 |
+
+全量：**221 passed / 52.99s**（r15 终态 207 → 净 +14）。
+**仍未做**：真 CAS（需 wt 不写 target 的架构变更）；⑤ 的超 12 跳 / 选择性过期 / 多次写 ref /
+非 ff 负例；真实批次 `run_all`（E1-4 后半）。

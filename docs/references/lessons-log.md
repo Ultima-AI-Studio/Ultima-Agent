@@ -921,11 +921,11 @@ broken`），整个验收卡在这一步，只能记未完成。
 3. **「主脑代做一行」把 def 行挤掉了**：commit `1952160b` 想在上一个测试后追加新测试，结果替换了 `def test_text_receipt_requires_complete_work_order_boundary` 这一行、把原函数体留在原处，两个测试粘成一个。文件照样能跑、pytest 照样绿，结构已经坏了。改动测试文件时，插入点要选在**两个函数之间**，不要覆盖 def 行。
 4. **判据加「见 failed 就否决」会被二次误伤**：ORB-W7 的真实回执正文写着「修复前定向回归：3 failed」和「28 项既有债」，如果按「出现 failed 就不给过」判，会把干完的活第二次判成 blocked。文本回执里叙述的历史失败不能当本次失败，本次是否通过由 `exit_code` + 执行端 READY 声明决定。
 
-### L96 · r15：噪声识别用「前缀 + 语义闸门」，并发因果用「old-value 绑定」，都别靠枚举
+### L96 · r15/r16：噪声识别用「前缀 + 白名单」，并发因果只能「事后回读」，都别靠枚举
 
 2026-11-09 G-ORCH r15 第二轮收口时踩到的三处共性错误，都是「看着对、机制上不成立」：
 
-1. **枚举尾部必定追不上形态变化**：`_CYGWIN_NOISE` 原先是逐条整行正则锚定 MSYS 报错，实测三种真实行里只有两种能命中——`errno`、pid、`(12144)`、`CreateProcessW failed for '<path>'` 任一处变化就漏，一次 fork 抖动把整批 200 绿的测试判成红。改成两层：`_MSYS_DIAG` 只认**前缀形态**（`<n> [main] <prog> …: <事件>:`），再用 `_BIZ_FAIL` 做**语义闸门**（`permission denied|fatal:|no such file|not a git repository|…`），同一条前缀行**含业务失败词时仍判真错误**。判断依据是「业务程序自己的报错不走 `[main]` 前缀」，不是口诀式白名单。落地后 6 条用例（两长格式放行 / 长格式挂业务词仍拒 / `CreateProcessW` 放行 / 无前缀 `bash: fork: Permission denied` 仍拒 / 老两式放行）。
-2. **双采样只是异常检测，不能当唯一因果**：锁内「前态 sha → 调 wt → 后态 sha」三档（ff / tree / wt_receipt）能证明「target 动了且源在里面」，但证明不了「**是本次**动的」——第三方在窗口内合入同一 source 时三档照样全绿。强因果只能看 ref 更新的 old-value 绑定：`git update-ref <ref> <new> <old>` 失败即没推进，成功则 reflog 留 `(old → new)` 相邻两跳。读「`new` 那一跳的 old」并与锁内基线比，相等才算 `cas`，不等即 `proof_failure`；reflog 不可读只能降级 `observational`，**不许写成「已证明唯一因果」**。
+1. **枚举尾部必定追不上形态变化；"业务词表反向排除"又会吞掉真错误**：`_CYGWIN_NOISE` 原先逐条整行正则锚定 MSYS 报错，实测三种真实行里只有两种命中——`errno`、pid、`(12144)`、`CreateProcessW failed for '<path>'` 任一处变化就漏，一次 fork 抖动把整批 200 绿判成红。r15 先改成两层（`_MSYS_DIAG` 认前缀 + `_BIZ_FAIL` 做语义闸门），r15b 审计随即实测出另一头漏：`could not lock config file`、`bad object`、`index file corrupt`、`cannot lock ref`、`unable to write new index file`、`invalid path`、`error: …` 七例**带 `[main]` 前缀的业务失败**全被当噪声放行（fail-open）。r16 定稿为**正向白名单**：`_MSYS_DIAG` 只说明"来自 MSYS 运行时"，尾部必须完整命中 `_MSYS_PURE`（整行 `$` 锚定三种实测纯运行时形态）才算噪声，未识别尾部**一律判真错误**，`_BIZ_FAIL` 作双保险。教训：**黑名单排除**（判"不含业务词就放行"）在未知形态面前就是 fail-open，只有白名单 + 默认拒才符合 fail-closed。
+2. **双采样只是异常检测；reflog 回读也不绑定写者，别自称 CAS**：锁内「前态 sha → 调 wt → 后态 sha」三档（ff / tree / wt_receipt）证明不了「**是本次**动的」——第三方在窗口内合入同一 source 时三档照样全绿。强因果理论上只能靠 `git update-ref <ref> <new> <old>` 的 old-value 原子绑定。r16 之前把「事后回读 reflog 的 `new` 那一跳 old == 锁内基线」记成 `cas`，属于**表述失真**：reflog 不记 invocation，第三方恰从同一基线推到同一候选时回读结果完全相同，且排除不了 ABA、日志截断/GC/`logAllRefUpdates=false`、wt 一次写多 ref、非 ff 无 actor。r16 收紧为 `causal='reflog-consistent'`（另加 selector 相邻性校验：缺失/跳号/中间行不可解析一律 `unknown`），真 CAS 列为「wt 不写 target」的架构变更待办。教训：**能证明"与基线衔接"和能证明"是本次写的"是两件事**，文档措辞必须跟着证据强度走。
 3. **「新增一个锁」不会让旧的不生效，只会让两个同时放行**：锁键从 16-hex 换 32-hex 时，单看「旧锁文件没人持有」没有意义；真正的危险是迁移期新旧进程**各持一把**同时进临界区。迁移必须双锁（先旧后新，第二把失败释放已持锁），旧进程全部退场后才撤旧锁。
 4. **junction 的危害是「可变域外目标」，不是「SHA 不稳定」**：目录指纹必须 `scandir` 先查 `FILE_ATTRIBUTE_REPARSE_POINT`、只记 `R` 不跟随；否则域外目录内容一变，摘要跟着变，取证污染成假变更。文件型符号链接同理：只证明 link 对象 + 指向文本，域外目标内容**明确不在**证明范围，不能宣称「已被覆盖」。
