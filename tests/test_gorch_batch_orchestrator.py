@@ -2725,7 +2725,7 @@ def test_run_all_cleanup_constructed_only_by_helper(mod):
         assert all(isinstance(k, _ast.Constant) or k is None for k in rhs.keys), \
             'cleanup 字典不许出现计算键'
         static = {k.value for k in rhs.keys if isinstance(k, _ast.Constant)}
-        assert static <= {'removed', 'skipped'}, f'cleanup 字典有多余静态键 {static}'
+        assert static == {'removed', 'skipped'}, f'cleanup 字典静态键必须恰为 removed/skipped，实为 {static}'
         spreads = [v for k, v in zip(rhs.keys, rhs.values) if k is None]
         assert len(spreads) == 1, f'每个构造点必须恰展开一次 helper，实为 {len(spreads)}'
         sp = spreads[0]
