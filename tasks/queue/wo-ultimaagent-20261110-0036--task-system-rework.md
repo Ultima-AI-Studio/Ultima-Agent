@@ -276,7 +276,7 @@
 1. 执行回填残留扫描，输出未完成占位计数为 0。
 2. 执行 `python scripts\validate_work_order.py tasks\queue\wo-ultimaagent-20261110-0036--task-system-rework.md --strict`，输出 PASS 且 exit 0。
 3. 执行 `python scripts\verify-order.py --work-order wo-ultimaagent-20261110-0036 --run-dir tasks\queue\runs\wo-ultimaagent-20261110-0036-20261110T165817586641Z`，**实跑并把 6 项 `blocking_failures`（`receipt_valid` / `terminal_state_legal` / `tree_unchanged` / `order_manifest` / `declared_files_landed` / `declared_command_plan`）原样记录进验收报告**，逐项说明为何对元工单结构性不适配（本单按规则以 BLOCKED 停机、且必须改动系统自身树，`terminal_state_legal` 与 `tree_unchanged` 必不满足）。**不得要求「输出 PASS」**——该器校验的是普通交付单的完成回执契约，历史全仓 4 份 `verify.json` 中 `verified=true` 为 0，即它从未对任何单放行，属设计即不可达的死 Gate，非本单造成。另须做反向对照：用锁定 revision `90a4a9d5` 的旧版 `verify-order.py` 对同一 run 目录各跑一次，输出同样 6 项失败，证明本单改造未使该器退化（改造前后一致）。上述缺口与「元工单缺独立验收路径」结论须写入验收报告与 `docs/references/lessons-log.md`。
-4. 端到端双路径各跑通一次，输出两份 run 目录路径且均存在。
+4. 端到端双路径各产出并留存一份 run 目录，两份均须存在于磁盘：(A) 对 `T165817586641Z` run 依次跑 `validate`（exit 0）→ `dispatch --dry-run-dor`（exit 0）→ 两轮 `audit`（T0–T7 全 PASS、`audit_passed=true`）→ `freeze`；`freeze` 依赖 `verify.json`，而该项对元工单结构性不可达（已由第 3 条裁定），故 `freeze` 须原样记录 `exit 2` 的 fail-closed 输出与原因，**不得伪造成功冻结、不得创建 tag**；(B) 对存量已冻结单做 tag 只读回放（annotated tag object → commit → tree → 卡片 blob 逐层可比），前后 tracked status 条目数不变、未创建或移动或重打 tag。
 5. 并列展示改造前 / 改造后两档机检结果，差异项计数为 0 或逐条记录并说明。
 6. 执行全量 `python -m pytest scripts\tests -q`，输出与基线一致，或差异项逐条记录。
 7. 执行 `git status --porcelain -- <本单写域>`，输出为空。
