@@ -45,12 +45,28 @@ def mod(monkeypatch, tmp_path):
 
     monkeypatch.setattr(m, '_git_out', _fake_git_out)
     _seq = {'n': 0}
+    # r17（r16 审计口径 1）：`cas_state='unknown'` 现在阻断合并。默认桩因此给出
+    # "reflog 可读、且这一跳的旧值等于锁内基线"——第一次取到的 sha 就是 merge 锁内
+    # 的 target 基线。与 reflog 有关的用例自己 setattr 覆盖这个默认。
+    _hist = {}
 
     def _fake_ref_sha(ref):
         _seq['n'] += 1
-        return 'sha-' + str(ref) + '-' + str(_seq['n'])
+        sha = 'sha-' + str(ref) + '-' + str(_seq['n'])
+        _hist.setdefault(str(ref), []).append(sha)
+        return sha
 
     monkeypatch.setattr(m, '_ref_sha', _fake_ref_sha)
+
+    def _fake_ref_update_from(ref, sha):
+        # 调用发生在 `sha_after = _ref_sha(target)` 之后，所以同 ref 的倒数第二个值
+        # 就是 merge 锁内取的基线（多任务串行时每轮都会重新取，不会错位）。
+        seen = _hist.get(str(ref), [])
+        return ('ok', seen[-2] if len(seen) >= 2 else '')
+
+    # 直测 `_ref_update_from` 的用例要拿真实现：默认桩会替换模块属性，先另存一份。
+    m._REAL_REF_UPDATE_FROM = m._ref_update_from
+    monkeypatch.setattr(m, '_ref_update_from', _fake_ref_update_from)
     # 签发 manifest 要记 target；单测里不真去读 git（否则会用真实仓库 + 打到
     # 被 stub 的 Popen 上）。需要看默认 target 的用例自己覆盖。
     monkeypatch.setattr(m, '_current_branch', lambda: 'test-branch')
@@ -1689,6 +1705,7 @@ def test_merge_proves_tree_equivalence_when_source_ref_gone(mod, monkeypatch, tm
         return 'target-a' if seq['target'] == 1 else 'target-b'
 
     monkeypatch.setattr(mod, '_ref_sha', fake_ref)
+    monkeypatch.setattr(mod, '_ref_update_from', lambda ref, sha: ('ok', 'target-a'))
 
     def fake_git_out(args, *a, **k):
         if list(args)[:1] == ['merge-base']:
@@ -1729,6 +1746,7 @@ def test_merge_falls_back_to_wt_receipt_after_uncommitted_squash(mod, monkeypatc
         return 'target-a' if seq['target'] == 1 else 'target-b'
 
     monkeypatch.setattr(mod, '_ref_sha', fake_ref)
+    monkeypatch.setattr(mod, '_ref_update_from', lambda ref, sha: ('ok', 'target-a'))
 
     def fake_git_out(args, *a, **k):
         if list(args)[:1] == ['merge-base']:
@@ -2646,14 +2664,84 @@ def test_merge_failure_kinds_are_single_sourced(mod):
         'merge_conflict', 'evidence_failure', 'proof_failure', 'unknown'}
 
 
+def _cleanup_schema_shadow_sites(func):
+    '''按 AST 收集 func 体内会遮蔽 cleanup_schema 的本地绑定，含解构与 for/with 目标。'''
+    import ast as _ast
+    sites = []
+    for n in _ast.walk(func):
+        if isinstance(n, _ast.Name) and n.id == 'cleanup_schema' \
+                and isinstance(n.ctx, (_ast.Store, _ast.Del)):
+            sites.append(type(n.ctx).__name__)
+        elif isinstance(n, _ast.arg) and n.arg == 'cleanup_schema':
+            sites.append('arg')
+        elif isinstance(n, (_ast.FunctionDef, _ast.AsyncFunctionDef)) \
+                and n.name == 'cleanup_schema':
+            sites.append('def')
+        elif isinstance(n, (_ast.Import, _ast.ImportFrom)):
+            for a in n.names:
+                if isinstance(n, _ast.Import):
+                    bound = a.asname or a.name.split('.')[0]
+                else:
+                    bound = a.asname or a.name
+                if bound == 'cleanup_schema':
+                    sites.append('import')
+        elif isinstance(n, _ast.ClassDef) and n.name == 'cleanup_schema':
+            sites.append('class')
+        elif isinstance(n, (_ast.MatchAs, _ast.MatchStar)) \
+                and n.name == 'cleanup_schema':
+            sites.append('match')
+        elif isinstance(n, _ast.MatchMapping) and n.rest == 'cleanup_schema':
+            sites.append('match')
+        elif isinstance(n, _ast.ExceptHandler) and n.name == 'cleanup_schema':
+            sites.append('except')
+    return sites
+
+
+def test_cleanup_shadow_collector_catches_every_binding_form():
+    '''逐形态表驱动（不是代表样本）：每一种本地绑定形态都必须被收集器捕获。'''
+    import ast as _ast
+    cases = [
+        ('assign', 'def run_all():\n    cleanup_schema = None\n'),
+        ('tuple-unpack', 'def run_all():\n    (cleanup_schema, _x) = (1, 2)\n'),
+        ('list-unpack', 'def run_all():\n    [cleanup_schema, _x] = [1, 2]\n'),
+        ('star-unpack', 'def run_all():\n    (cleanup_schema, *_x) = (1, 2)\n'),
+        ('annassign', 'def run_all():\n    cleanup_schema: int = 0\n'),
+        ('augassign', 'def run_all():\n    cleanup_schema = 0\n    cleanup_schema += 1\n'),
+        ('for-target', 'def run_all():\n    for cleanup_schema in (1,):\n        pass\n'),
+        ('with-target', 'def run_all():\n    with open("x") as cleanup_schema:\n        pass\n'),
+        ('comprehension', 'def run_all():\n    _ = [cleanup_schema for cleanup_schema in (1,)]\n'),
+        ('param', 'def run_all(cleanup_schema):\n    return None\n'),
+        ('kwonly-param', 'def run_all(*, cleanup_schema=None):\n    return None\n'),
+        ('local-def', 'def run_all():\n    def cleanup_schema():\n        pass\n'),
+        ('local-async-def', 'def run_all():\n    async def cleanup_schema():\n        pass\n'),
+        ('import-plain', 'def run_all():\n    import cleanup_schema\n'),
+        ('import-as', 'def run_all():\n    import x as cleanup_schema\n'),
+        ('from-import', 'def run_all():\n    from x import cleanup_schema\n'),
+        ('from-import-as', 'def run_all():\n    from x import y as cleanup_schema\n'),
+        ('class', 'def run_all():\n    class cleanup_schema:\n        pass\n'),
+        ('match-as', 'def run_all(x):\n    match x:\n        case [cleanup_schema]:\n            pass\n'),
+        ('match-star', 'def run_all(x):\n    match x:\n        case [*cleanup_schema]:\n            pass\n'),
+        ('match-mapping', 'def run_all(x):\n    match x:\n        case {**cleanup_schema}:\n            pass\n'),
+        ('except-as', 'def run_all():\n    try:\n        pass\n    except Exception as cleanup_schema:\n        pass\n'),
+    ]
+    assert len(cases) == 22, len(cases)
+    missed = []
+    for label, src in cases:
+        fn = next(n for n in _ast.walk(_ast.parse(src))
+                  if isinstance(n, _ast.FunctionDef))
+        if _cleanup_schema_shadow_sites(fn) == []:
+            missed.append(label)
+    assert missed == [], f'未被收集器捕获的绑定形态：{missed}'
+
+
 def test_run_all_cleanup_constructed_only_by_helper(mod):
     """r16（r15b 审计 F-5）：`run_all` 内不许再手写 `kept_for_*`，只能调 `cleanup_schema`。
 
     旧契约只断言常量值与 merge 内 kind 字面量，四个 cleanup 构造点仍各自手抄四个
     键（审计实测 1677/1763/1779/1794）——常量改了但键名漂移不会被发现。这里改为：
       1. `run_all` 体内不得出现 `kept_for_` 字符串常量；
-      2. `run_all` 必须至少 4 处调用 `cleanup_schema`（_stop / 失败分流 / 未闭合 /
-         正常完成），少一处就红；
+      2. `run_all` 必须**恰** 4 处调用 `cleanup_schema`（_stop / 失败分流 / 未闭合 /
+         正常完成），并逐点绑定这四个赋值目标——少一处、多一处都红；
       3. bucket → `kept_for_*` 映射必须与四桶集合一一对应。
     """
     import ast as _ast
@@ -2674,10 +2762,89 @@ def test_run_all_cleanup_constructed_only_by_helper(mod):
                    and n.value.startswith('kept_for_')]
     assert handwritten == [], f'run_all 内仍手写 cleanup 键: {handwritten}'
 
+    def _is_steps_cleanup(node):
+        # `steps['cleanup']`
+        if isinstance(node, _ast.Subscript):
+            base = node.value
+            if isinstance(base, _ast.Name) and base.id == 'steps':
+                sl = node.slice
+                return isinstance(sl, _ast.Constant) and sl.value == 'cleanup'
+        return False
+
+    # r18（r17 审计 P0）：r17 的「逐字典」循环找的是**字典字面量自身含 'cleanup' 键**，
+    # 但真实代码是 `steps['cleanup'] = {...}` / `steps.setdefault('cleanup', {...})`
+    # —— 那个循环命中数为 0、一句断言都没执行。改按**赋值目标**定位四个构造点。
+    sites = []
+    for node in _ast.walk(fn):
+        if isinstance(node, _ast.Assign):
+            if len(node.targets) == 1 and _is_steps_cleanup(node.targets[0]):
+                sites.append(node.value)
+        elif isinstance(node, _ast.Call):
+            f = node.func
+            if (isinstance(f, _ast.Attribute) and f.attr == 'setdefault'
+                    and isinstance(f.value, _ast.Name) and f.value.id == 'steps'
+                    and len(node.args) == 2
+                    and isinstance(node.args[0], _ast.Constant)
+                    and node.args[0].value == 'cleanup'):
+                sites.append(node.args[1])
+
+    assert len(sites) == 4, f'run_all 的 cleanup 构造点有 {len(sites)} 处（应恰 4）'
+
+    for rhs in sites:
+        assert isinstance(rhs, _ast.Dict), 'cleanup 构造点 RHS 必须是字典字面量'
+        assert all(isinstance(k, _ast.Constant) or k is None for k in rhs.keys), \
+            'cleanup 字典不许出现计算键'
+        static = {k.value for k in rhs.keys if isinstance(k, _ast.Constant)}
+        assert static == {'removed', 'skipped'}, f'cleanup 字典静态键必须恰为 removed/skipped，实为 {static}'
+        spreads = [v for k, v in zip(rhs.keys, rhs.values) if k is None]
+        assert len(spreads) == 1, f'每个构造点必须恰展开一次 helper，实为 {len(spreads)}'
+        sp = spreads[0]
+        assert isinstance(sp, _ast.Call) and isinstance(sp.func, _ast.Name) \
+            and sp.func.id == 'cleanup_schema', '展开项必须是 cleanup_schema()'
+
     calls = [n for n in _ast.walk(fn)
              if isinstance(n, _ast.Call) and isinstance(n.func, _ast.Name)
              and n.func.id == 'cleanup_schema']
-    assert len(calls) >= 4, f'cleanup_schema 调用点只有 {len(calls)} 处（应 ≥4）'
+    assert len(calls) == 4, \
+        f'cleanup_schema 调用应恰为 4 处（等于构造点数），实为 {len(calls)}'
+
+    # r18e（r17 审计 A.2.3 续）：只验「被调名字」不够——把 cleanup_schema(buckets) 改成
+    # cleanup_schema() 仍能通过上面的形状断言。按源码顺序钉住四处实参，并禁止同名遮蔽。
+    shapes = []
+    for c in sorted(calls, key=lambda n: n.lineno):
+        if not c.args and not c.keywords:
+            shapes.append('()')
+        elif len(c.args) == 1 and not c.keywords and isinstance(c.args[0], _ast.Name):
+            shapes.append('(%s)' % c.args[0].id)
+        elif len(c.args) == 1 and not c.keywords and isinstance(c.args[0], _ast.Dict):
+            d = c.args[0]
+            keys = [k.value if isinstance(k, _ast.Constant) else '?' for k in d.keys]
+            vals = [v.id if isinstance(v, _ast.Name) else '?' for v in d.values]
+            shapes.append('({%s: %s})' % (keys, vals))
+        else:
+            shapes.append('other')
+    assert shapes == ['()', '(buckets)',
+                      "({['merge_conflict']: ['merged_tasks']})", '()'], \
+        f'四处 cleanup_schema 实参形状不符：{shapes}'
+
+    sites_shadow = _cleanup_schema_shadow_sites(fn)
+    assert sites_shadow == [], f'run_all 内不得遮蔽 cleanup_schema：{sites_shadow}'
+
+    # `_CLEANUP_KEY_FOR` 是 kept_for_* 的唯一声明源：全文件其它位置不许再出现。
+    tree = _ast.parse(src)
+    decl = None
+    for node in tree.body:
+        if isinstance(node, _ast.Assign) and any(
+                isinstance(t, _ast.Name) and t.id == '_CLEANUP_KEY_FOR'
+                for t in node.targets):
+            decl = node
+            break
+    assert decl is not None, '找不到 _CLEANUP_KEY_FOR 的赋值'
+    inside = {id(n) for n in _ast.walk(decl)}
+    stray = [n.value for n in _ast.walk(tree)
+             if isinstance(n, _ast.Constant) and isinstance(n.value, str)
+             and n.value.startswith('kept_for_') and id(n) not in inside]
+    assert stray == [], f'kept_for_* 常量出现在 _CLEANUP_KEY_FOR 之外: {stray}'
 
 
 def test_cleanup_schema_rejects_unknown_bucket(mod):
@@ -2766,11 +2933,11 @@ def test_ref_update_from_reads_cas_old_value(mod, tmp_path, monkeypatch):
 
     monkeypatch.setattr(mod, '_git_out', _real_git_out)
 
-    state, old = mod._ref_update_from('dev', second)
+    state, old = mod._REAL_REF_UPDATE_FROM('dev', second)
     assert state == 'ok'
     assert old == first
     # 不存在的 ref：读不到就如实 unknown，不许当成"绑定成功"
-    assert mod._ref_update_from('nope', second) == ('unknown', '')
+    assert mod._REAL_REF_UPDATE_FROM('nope', second) == ('unknown', '')
 
 
 def _seed_merge_case(mod, monkeypatch, tmp_path, shas=None):
@@ -2823,18 +2990,18 @@ def test_merge_reflog_consistent_never_labelled_cas(mod, monkeypatch, tmp_path):
     assert 'cas' not in {merged[0]['causal']}
 
 
-def test_merge_reflog_unavailable_degrades_to_observational(mod, monkeypatch, tmp_path):
-    """r15 ⑤ 降级：reflog 读不到时只算观察性证据，不得表述为唯一因果。
+def test_merge_reflog_unavailable_stops_instead_of_merging(mod, monkeypatch, tmp_path):
+    """r17（r16 审计口径 1）：reflog 读不到 → 不得放行合并，按 proof_failure 保留现场。
 
-    默认 fixture 的 `_git_out` 对未知命令回 `(0, '')`，于是 `_ref_update_from`
-    落 unknown；此时合并仍可成立（双采样异常检测通过），但必须把 causal 标成
-    observational，不能宣称"这就是本任务造成的"。
+    r15 时这里只把 causal 降级成 observational、合并照旧成立；审计裁定这不够：
+    reflog 不可读意味着排除不了竞争写者，而 run_all 随后会清理现场。用例因此从
+    "降级但仍成功"改为"阻断且不进 merged"。
     """
     monkeypatch.setattr(mod, '_ref_update_from', lambda ref, sha: ('unknown', ''))
     done, merged, failed, stale = _seed_merge_case(mod, monkeypatch, tmp_path)
-    assert failed == []
-    assert merged[0]['cas_state'] == 'unknown'
-    assert merged[0]['causal'] == 'observational'
+    assert merged == []
+    assert [f['kind'] for f in failed] == ['proof_failure']
+    assert 'reflog 不可读' in failed[0]['stderr']
 
 
 def test_ref_update_from_requires_adjacent_selector(mod, monkeypatch):
@@ -2852,26 +3019,31 @@ def test_ref_update_from_requires_adjacent_selector(mod, monkeypatch):
     for text in cases:
         monkeypatch.setattr(mod, '_git_out',
                             lambda args, timeout=60, _t=text: (0, _t))
-        assert mod._ref_update_from('main', new_sha) == ('unknown', ''), text
+        assert mod._REAL_REF_UPDATE_FROM('main', new_sha) == ('unknown', ''), text
 
 
 def test_ref_update_from_accepts_clean_adjacent_pair(mod, monkeypatch):
     """正例：`N@{0}` 紧跟 `A@{1}` → 读出 A（此时仍只算 reflog 一致）。"""
     monkeypatch.setattr(mod, '_git_out',
                         lambda args, timeout=60: (0, 'N\tN@{0}\nA\tA@{1}'))
-    assert mod._ref_update_from('main', 'N') == ('ok', 'A')
+    assert mod._REAL_REF_UPDATE_FROM('main', 'N') == ('ok', 'A')
 
 
 # --- r16（r15b 审计 B-高）：MSYS 前缀行默认 fail-closed ---------------------
 
+# r18（r17 审计 P0-1）：样例一律给**完整 stderr 行**。r17 只给尾段文本、由公共
+# 参数化统一拼 `0 [main] git 123 dofork: {text}`，于是第八例走的是 `dofork:` 分支——
+# 旧实现在该分支同样会拒绝，等于没测到 `child_copy` 的 `(?:,.*)?` 后门。
 _MSYS_BIZ_SAMPLES = (
-    'could not lock config file .git/config: File exists',
-    'bad object deadbeef',
-    'index file corrupt',
-    'cannot lock ref refs/heads/main',
-    'unable to write new index file',
-    'invalid path aux',
-    'error: failed to push some refs',
+    '0 [main] git 123 dofork: could not lock config file .git/config: File exists',
+    '0 [main] git 123 dofork: bad object deadbeef',
+    '0 [main] git 123 dofork: index file corrupt',
+    '0 [main] git 123 dofork: cannot lock ref refs/heads/main',
+    '0 [main] git 123 dofork: unable to write new index file',
+    '0 [main] git 123 dofork: invalid path aux',
+    '0 [main] git 123 dofork: error: failed to push some refs',
+    # 原漏洞行的**原始形态**：没有 `dofork:` 中缀（r16 审计探针原文）。
+    '0 [main] tr 123 child_copy: cygheap read copy failed, authentication rejected',
 )
 
 
@@ -2883,7 +3055,7 @@ def test_msys_prefixed_business_failures_are_real_errors(mod, monkeypatch, tmp_p
     """
 
     write_task(tmp_path, 1)
-    line = f'0 [main] git 123 dofork: {text}'
+    line = text
 
     class _R:
         returncode = 0
@@ -2895,6 +3067,29 @@ def test_msys_prefixed_business_failures_are_real_errors(mod, monkeypatch, tmp_p
         mod.gate_check(str(tmp_path))
     assert '错误输出' in str(ei.value)
     assert mod._is_cygwin_noise(line) is False
+
+def test_msys_child_copy_unknown_tail_is_real_error(mod, monkeypatch, tmp_path):
+    """r18（r17 审计 P0-1）：`child_copy` 后门的回归必须用**原始整行**两层验。
+
+    helper 层：必须是噪声判定为 False；gate 层：必须真的抛错退出。只测一层等于
+    又留回「helper 判对但调用点没用」的口子。
+    """
+
+    line = ('0 [main] tr 123 child_copy: cygheap read copy failed, '
+            'authentication rejected')
+    assert mod._is_cygwin_noise(line) is False
+
+    write_task(tmp_path, 1)
+
+    class _R:
+        returncode = 0
+        stdout = 'STATUS:open\nUNMET:\nCONFLICTS:\n'
+        stderr = line + '\n'
+
+    monkeypatch.setattr(mod.subprocess, 'run', lambda *a, **k: _R())
+    with pytest.raises(SystemExit) as ei:
+        mod.gate_check(str(tmp_path))
+    assert '错误输出' in str(ei.value)
 
 
 def test_msys_known_runtime_shapes_still_treated_as_noise(mod):
@@ -2909,3 +3104,94 @@ def test_msys_known_runtime_shapes_still_treated_as_noise(mod):
     ]
     for ln in lines:
         assert mod._is_cygwin_noise(ln) is True, ln
+def _stub_reflog_unknown(mod, monkeypatch, target='main'):
+    """把一次"wt 报成功、三档证据全绿、但 reflog 读不到"的 merge 现场桩出来。
+
+    三档全绿需要：target 前态 SHA 与后态不同（progressed）、target 前态 tree 与
+    后态不同（content_changed）、调用前源不是祖先且调用后旧 tip 已进 target（ff）。
+    reflog 回读直接桩成 unknown —— 这是"日志被 GC / logAllRefUpdates=false"的真实
+    结果，不是代码 bug。
+    """
+    state = {'target': 0, 'tree': 0, 'mb': 0}
+
+    def fake_ref_sha(ref):
+        if str(ref) in ('main', target, 'refs/heads/' + target):
+            state['target'] += 1
+            # 第 1 次是锁内基线，第 2 次是合并后
+            return 'a' * 40 if state['target'] == 1 else 'b' * 40
+        return 'c' * 40
+
+    def fake_git(args, *a, **k):
+        args = list(args)
+        if args[:1] == ['rev-parse']:
+            state['tree'] += 1
+            return 0, 't%d' % state['tree']
+        if args[:1] == ['merge-base']:
+            state['mb'] += 1
+            return (1 if state['mb'] == 1 else 0), ''
+        return 0, ''
+
+    monkeypatch.setattr(mod, '_ref_sha', fake_ref_sha)
+    monkeypatch.setattr(mod, '_git_out', fake_git)
+    monkeypatch.setattr(mod, '_ref_update_from', lambda *a, **k: ('unknown', ''))
+    monkeypatch.setattr(mod, 'wt_merge', lambda *a, **k: _FakeResult(
+        0, json.dumps({'branch': mod.BRANCH_PREFIX + '1', 'target': target,
+                       'committed': True})))
+
+
+def test_run_all_reflog_unknown_blocks_cleanup(mod, monkeypatch, tmp_path):
+    """r17（r16 审计口径 1）：`cas_state='unknown'` 必须阻断 cleanup、保留现场。
+
+    旧实现只把 causal 降级成 observational，merge 照样进 merged，run_all 随后
+    cleanup —— reflog 读不到意味着排除不了竞争写者，清理会销毁归因证据。
+    """
+    write_task(tmp_path, 1)
+    runs = tmp_path / 'runs'
+    d1 = write_run(runs, '1')
+    monkeypatch.setattr(mod, 'RUNS', runs)
+    monkeypatch.setattr(mod, 'WORKTREE_ROOT', tmp_path / 'wt')
+    prompts = tmp_path / 'prompts'
+    prompts.mkdir()
+    (prompts / '1.txt').write_text('p', encoding='utf-8')
+    monkeypatch.setattr(mod, 'gate_check',
+                        lambda d: [{'task': '1', 'verdict': '可开工'}])
+    monkeypatch.setattr(mod, 'provision', lambda d, tasks=None: ([], [], []))
+    monkeypatch.setattr(mod, 'execute', lambda *a, **k: ([], [
+        {'task': '1', 'channel': 1, 'returncode': 0, 'run_dir': str(d1)}]))
+    _stub_reflog_unknown(mod, monkeypatch)
+    cleaned = []
+    monkeypatch.setattr(mod, 'cleanup',
+                        lambda *a, **k: (cleaned.append(1) or ([], [])))
+    summary = mod.run_all(str(tmp_path), str(prompts), max_channels=1,
+                          invocation='inv-test', target='main')
+
+    assert summary['stopped_at'] == 'merge'
+    failed = summary['steps']['merge']['failed']
+    assert [f['kind'] for f in failed] == ['proof_failure']
+    assert 'reflog 不可读' in failed[0]['stderr']
+    assert summary['steps']['merge']['merged'] == []
+    assert summary['steps']['cleanup']['kept_for_proof'] == ['1']
+    assert summary['steps']['cleanup']['kept_for_conflict'] == []
+    assert cleaned == []
+
+
+def test_doctor_reports_lock_protocol_and_legacy_presence(mod, monkeypatch, tmp_path):
+    """r17（r16 审计口径 2）：撤 legacy 锁的前提要有可审计现场，不靠文档声明。
+
+    doctor 仍是零写入只读快照：只把锁目录按 16/32 hex 分类，报 legacy_present。
+    """
+    batch = tmp_path / 'batch'
+    batch.mkdir()
+    runs = tmp_path / 'data' / 'runs'
+    runs.mkdir(parents=True)
+    locks = runs.parent / 'locks'
+    locks.mkdir()
+    (locks / ('merge-main-' + 'a' * 16 + '.lock')).write_text('', encoding='utf-8')
+    (locks / ('merge-main-' + 'b' * 32 + '.lock')).write_text('', encoding='utf-8')
+    monkeypatch.setattr(mod, 'RUNS', runs)
+    out = mod.doctor(str(batch))
+    assert out['locks']['protocol'] == mod.LOCK_PROTOCOL
+    assert out['locks']['legacy_present'] is True
+    assert len(out['locks']['by_hex']['legacy_16']) == 1
+    assert len(out['locks']['by_hex']['sha256_32']) == 1
+    assert out['locks']['by_hex']['other'] == []

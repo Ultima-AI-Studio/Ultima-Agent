@@ -72,19 +72,25 @@ BRANCH_PREFIX = 'gorch/'
 # 现在只在这里定义，所有出口引用常量；测试断言"实现里出现的 kind 都属于
 # MERGE_FAILURE_KINDS"，改错一处立刻红。
 MERGE_FAILURE_KINDS = ('evidence_failure', 'merge_conflict', 'proof_failure')
-CLEANUP_UNCLOSED_BUCKETS = ('merge_conflict', 'evidence_failure',
-                            'proof_failure', 'unknown')
 # r16（r15b 审计 F-5）：bucket → `kept_for_*` 的唯一映射。此前 run_all 的四个
-# cleanup 构造点各自手抄四个键，常量只覆盖 `buckets`，键名仍可能漂移；现在
-# 所有构造点只调 `cleanup_schema()`，映射改一处即可。
+# cleanup 构造点各自手抄四个键，常量只覆盖 `buckets`，键名仍可能漂移。
+# r17（r16 审计口径 4）：映射升级为**唯一声明源**，桶元组由它派生——此前桶
+# 元组与映射并列两处，改一处漏一处就是新的双源；键值再断言互不重复（两个桶
+# 映射到同一个 `kept_for_*` 会让下游按 schema 读时串桶）。
 _CLEANUP_KEY_FOR = {
     'merge_conflict': 'kept_for_conflict',
     'evidence_failure': 'kept_for_evidence',
     'proof_failure': 'kept_for_proof',
     'unknown': 'kept_for_unknown',
 }
-assert set(_CLEANUP_KEY_FOR) == set(CLEANUP_UNCLOSED_BUCKETS), \
-    'bucket 与 kept_for_* 映射必须一一对应'
+CLEANUP_UNCLOSED_BUCKETS = tuple(_CLEANUP_KEY_FOR)
+assert len(set(_CLEANUP_KEY_FOR.values())) == len(_CLEANUP_KEY_FOR), \
+    '每个 bucket 必须映射到不同的 kept_for_* 键'
+
+# r17（r16 审计口径 2）：锁协议的**可审计回执**。撤 legacy 16-hex 锁的前置条件
+# 是「已确认没有只认旧键的进程在跑」，这个事实只能由现场证据给出（doctor 的
+# legacy_present + 进程清单），不能靠文档声明。协议名同时写进 merge 记录。
+LOCK_PROTOCOL = 'dual(legacy-sha256-16 + sha256-32)'
 
 
 def cleanup_schema(buckets=None):
@@ -134,8 +140,16 @@ _MSYS_PURE = re.compile(
     # 实测②：dofork 里 CreateProcessW 失败（只认路径 + errno）
     r"|dofork:\s+child\s+-1\s+-\s+CreateProcessW\s+failed\s+for\s+'[^']*'"
     r"(?:,\s*errno\s+\d+)?"
-    # 实测③：cygheap 拷贝失败（尾部是地址/pid/Win32 码，允许逗号分隔的尾段）
-    r"|child_copy:\s+cygheap\s+(?:read|write)\s+copy\s+failed(?:,.*)?"
+    # 实测③：cygheap 拷贝失败。r17（r16 审计 B-1，实测 fail-open）：原先的
+    # `(?:,.*)?` 接受任意逗号尾段，`copy failed, authentication rejected` 这种
+    # **业务失败**会被当噪声吞掉。收紧为逐字段白名单：只认地址范围 / done N /
+    # windows pid N / Win32 error N 四类已知形态、字段顺序固定；其余尾段一律
+    # 落到「未识别」→ 判真错误。新增真实形态时必须先补精确子句与回归样例。
+    r"|child_copy:\s+cygheap\s+(?:read|write)\s+copy\s+failed"
+    r"(?:\s*,\s*0x[0-9A-Fa-f]+\s*\.\.\s*0x[0-9A-Fa-f]+)?"
+    r"(?:\s*,\s*done\s+[0-9]+)?"
+    r"(?:\s*,\s*windows\s+pid\s+[0-9]+)?"
+    r"(?:\s*,\s*Win32\s+error\s+[0-9]+)?"
     # 老式：fork retry（资源暂时不可用）
     r"|fork:\s+retry:\s+Resource temporarily unavailable"
     r")$",
@@ -1014,22 +1028,26 @@ _RE_CAS_SEL = re.compile(r'@\{(\d+)\}$')
 
 
 def _ref_update_from(ref, new_sha):
-    """取「把 ref 推到 new_sha 的那一次 ref 更新」所替换掉的旧值（CAS 的 old-value）。
+    """取「把 ref 推到 new_sha 的那一次 ref 更新」所替换掉的旧值（**事后回读**）。
 
-    这是 G-ORCH E2 口径 ⑤ 的强因果落点：`git update-ref <ref> <new> <old>` 只在
-    ref 仍等于 `<old>` 时才写入，写成功后 reflog 留下相邻两跳 (old → new)。
-    于是「new 那跳的旧值 == 锁内观测到的基线」等价于「从观测到写入之间没有第三方
-    写过这个 ref」——这是绑定式证据，不是"target 动了就归功于我"的观察性推断。
+    用途只有一个：把读到的旧值与调用方在锁内观测到的基线比对，判断「观测点之后
+    ref 是先被本进程推进、还是先被别的写者推进过」。它能给出的是**观察性衔接证据**，
+    不是绑定式证据：
+
+      · 不绑定写者：reflog 只有 (old, new, actor 显示名, 时间, 消息)，没有 invocation；
+        第三方恰好从同一基线推到同一候选时，回读结果与本进程写入完全相同；
+      · 排除不了 ABA（old → X → old → X 会在 reflog 里留多条记录）；
+      · 存在日志缺口（`logAllRefUpdates=false`、reflog expire / GC、wt 一次写多 ref、
+        非 ff 无 actor）。
+
+    因此调用方只允许记 `causal='reflog-consistent'`（与基线衔接）；回读不可用、或
+    selector 相邻关系证不出时返回 unknown，调用方按 fail-closed 保留现场，
+    **不得**表述为强因果、**不得**宣称「已证明本次写入是唯一的」（r15b / r16 审计
+    两次就此纠正过措辞）。
 
     返回 (state, old_sha)：
-      ('ok', old)     —— 找到该跳、且相邻关系成立；old 由调用方与基线比对；
+      ('ok', old)     —— 找到该跳、且相邻关系（selector 序号与行位置一致）成立；
       ('unknown', '') —— reflog 读不到 / 没有这一跳 / 相邻关系无法证明。
-
-    **口径收敛（r16，r15b 审计 B-高）**：本函数只是**事后回读 reflog**，它既没有
-    绑定"哪个进程/哪次 invocation 写了 ref"，也排除不了 ABA 与 reflog 缺口，因此
-    **不是** `git update-ref <target> <candidate> <expected-old>` 那种原子 CAS。
-    调用方只允许把它记成 `reflog-consistent`（与基线一致）或 `observational`，
-    **不得**表述为强因果或"CASP 成功"。
     """
     target_ref = str(ref or '').strip()
     if not target_ref or not new_sha:
@@ -1086,6 +1104,7 @@ class _MergeLock:
     才可撤掉 legacy 锁（撤除条件写入裁决书 §2.3）。
     """
 
+    PROTOCOL = LOCK_PROTOCOL       # r17：协议版本进 merge 记录 + doctor 回执
     LEGACY_HEX = 16          # 旧版本锁键（迁移期仍需互斥）
     HEX = 32                 # r15 起：128 bit
 
@@ -1467,11 +1486,30 @@ def merge(batch_dir, tasks=None, target=None, run_dirs=None, only_tasks=None,
             elif progressed and content_changed and wt_action:
                 proof = 'wt_receipt'
             proven = bool(proof)
-            # r15 ⑤ + r16：reflog 回读的旧值必须等于锁内基线。不等就说明窗口内有第三方
-            # 写过 target——即便三档全绿，也不能把本次合入归因于本任务。
-            # cas_state='unknown'（reflog 读不到 / 相邻关系证不出）只降级为观察性证据，
-            # 不额外阻断；此时**不得**表述为强因果。
-            if proven and cas_state == 'ok' and cas_from != target_sha:
+            # r15 ⑤ + r16 + r17：reflog 回读的旧值必须等于锁内基线。不等就说明窗口
+            # 内有第三方写过 target——即便三档全绿，也不能把本次合入归因于本任务。
+            # r17（r16 审计口径 1）：`cas_state='unknown'`（reflog 读不到 / 相邻关系
+            # 证不出）**不再降级放行**。reflog 不可读就等于排除不了竞争写者，此时若
+            # 一路走到 cleanup，会把后续归因所需的现场删掉——那是销毁证据型
+            # fail-open。因此按 proof_failure 停下并保留现场；合法合入撞上日志缺口
+            # （GC / 配置关闭）只能人工复核后再走。
+            if proven and cas_state != 'ok':
+                failed.append({
+                    'task': task, 'branch': branch, 'returncode': 0,
+                    'kind': 'proof_failure',
+                    'stdout': r.stdout.strip()[-600:],
+                    'stderr': (f'reflog 不可读：无法确认 target {resolved_target} 的 '
+                               f'{sha_after[:12]} 那次 ref 更新是否与锁内基线 '
+                               f'{target_sha[:12]} 相衔接（cas_state=unknown）。'
+                               '不能把本次合入归因于本任务，也不清理现场'
+                               '（proof_failure）'),
+                    'hint': ('按不可归因处理：先确认该 ref 的 reflog 可用性'
+                             '（git config core.logAllRefUpdates / git reflog show），'
+                             '核对 target 历史后人工判定是否接受本次合入；'
+                             '现场已保留，后续分支已停止。'),
+                })
+                break
+            if proven and cas_from != target_sha:
                 failed.append({
                     'task': task, 'branch': branch, 'returncode': 0,
                     'kind': 'proof_failure',
@@ -1515,6 +1553,9 @@ def merge(batch_dir, tasks=None, target=None, run_dirs=None, only_tasks=None,
                            'wt_action': wt_action,
                            'source_ref_alive': src_alive,
                            'proof': proof,
+                           # r17（r16 审计口径 2）：协议名入记录，事后可按批次核对
+                           # 这一批用的是哪一版锁（双锁 / 仅 32-hex）。
+                           'lock_protocol': _MergeLock.PROTOCOL,
                            'cas_state': cas_state,
                            'cas_from': cas_from,
                            # r16（r15b 审计 B-高）：只是 reflog 回读一致，不是原子 CAS。
@@ -1983,12 +2024,31 @@ def doctor(batch_dir):
     lock_files = []
     if locks_dir.is_dir():
         lock_files = sorted(p.name for p in locks_dir.glob('*.lock'))
+    # r17（r16 审计口径 2）：撤 legacy 16-hex 锁的前提是「已确认没有只认旧键的
+    # 进程在跑」。doctor 只报现场事实（锁目录里还有没有 16-hex 名字），
+    # 不替人下"可以撤了"的结论——进程清单不在只读快照的可见范围内。
+    lock_hex = {'legacy_16': [], 'sha256_32': [], 'other': []}
+    for _name in lock_files:
+        _tail = _name[:-len('.lock')].rsplit('-', 1)[-1] \
+            if _name.endswith('.lock') else ''
+        if re.fullmatch(r'[0-9a-f]{32}', _tail):
+            lock_hex['sha256_32'].append(_name)
+        elif re.fullmatch(r'[0-9a-f]{16}', _tail):
+            lock_hex['legacy_16'].append(_name)
+        else:
+            lock_hex['other'].append(_name)
     return {
         'batch': str(batch_dir),
         'mode': 'read-only',
         'task_count': len(tasks),
         'tasks': tasks,
-        'locks': {'dir': str(locks_dir), 'files': lock_files},
+        'locks': {'dir': str(locks_dir), 'files': lock_files,
+                  'protocol': LOCK_PROTOCOL,
+                  'legacy_present': bool(lock_hex['legacy_16']),
+                  'by_hex': lock_hex,
+                  'retirement_note': ('legacy_present=True 只说明锁目录里存在 '
+                                      '16-hex 锁文件；能否撤 legacy 还要另外确认'
+                                      '没有只认 16-hex 的进程在运行'),},
         'note': ('只读快照，不是处置结论：unknown / wrong_type 的清理仍走 '
                  'merge/cleanup 既有 fail-closed 路径，doctor 不写、不删'),
     }

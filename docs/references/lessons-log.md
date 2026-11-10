@@ -925,7 +925,7 @@ broken`），整个验收卡在这一步，只能记未完成。
 
 2026-11-09 G-ORCH r15 第二轮收口时踩到的三处共性错误，都是「看着对、机制上不成立」：
 
-1. **枚举尾部必定追不上形态变化；"业务词表反向排除"又会吞掉真错误**：`_CYGWIN_NOISE` 原先逐条整行正则锚定 MSYS 报错，实测三种真实行里只有两种命中——`errno`、pid、`(12144)`、`CreateProcessW failed for '<path>'` 任一处变化就漏，一次 fork 抖动把整批 200 绿判成红。r15 先改成两层（`_MSYS_DIAG` 认前缀 + `_BIZ_FAIL` 做语义闸门），r15b 审计随即实测出另一头漏：`could not lock config file`、`bad object`、`index file corrupt`、`cannot lock ref`、`unable to write new index file`、`invalid path`、`error: …` 七例**带 `[main]` 前缀的业务失败**全被当噪声放行（fail-open）。r16 定稿为**正向白名单**：`_MSYS_DIAG` 只说明"来自 MSYS 运行时"，尾部必须完整命中 `_MSYS_PURE`（整行 `$` 锚定三种实测纯运行时形态）才算噪声，未识别尾部**一律判真错误**，`_BIZ_FAIL` 作双保险。教训：**黑名单排除**（判"不含业务词就放行"）在未知形态面前就是 fail-open，只有白名单 + 默认拒才符合 fail-closed。
+1. **枚举尾部必定追不上形态变化；"业务词表反向排除"又会吞掉真错误**：`_CYGWIN_NOISE` 原先逐条整行正则锚定 MSYS 报错，实测三种真实行里只有两种命中——`errno`、pid、`(12144)`、`CreateProcessW failed for '<path>'` 任一处变化就漏，一次 fork 抖动把整批 200 绿判成红。r15 先改成两层（`_MSYS_DIAG` 认前缀 + `_BIZ_FAIL` 做语义闸门），r15b 审计随即实测出另一头漏：`could not lock config file`、`bad object`、`index file corrupt`、`cannot lock ref`、`unable to write new index file`、`invalid path`、`error: …` 七例**带 `[main]` 前缀的业务失败**全被当噪声放行（fail-open）。r16 定稿为**正向白名单**：`_MSYS_DIAG` 只说明"来自 MSYS 运行时"，尾部必须完整命中 `_MSYS_PURE`（整行 `$` 锚定三种实测纯运行时形态）才算噪声，未识别尾部**一律判真错误**，`_BIZ_FAIL` 作双保险。r16 审计又实测到白名单**自己**留了后门：`child_copy` 分支写成 `copy failed(?:,.*)?`，逗号后任意文本都放行，`copy failed, authentication rejected` 不含任何业务词、直接被吞——白名单里的每一个 `.*` 都是新的 fail-open 入口，必须逐字段写死（r17 收紧为地址范围 / done N / windows pid N / Win32 error N）。教训：**黑名单排除**（判"不含业务词就放行"）在未知形态面前就是 fail-open；**白名单里带通配尾巴**等于半个黑名单，只有"白名单 + 逐字段 + 默认拒"才符合 fail-closed。
 2. **双采样只是异常检测；reflog 回读也不绑定写者，别自称 CAS**：锁内「前态 sha → 调 wt → 后态 sha」三档（ff / tree / wt_receipt）证明不了「**是本次**动的」——第三方在窗口内合入同一 source 时三档照样全绿。强因果理论上只能靠 `git update-ref <ref> <new> <old>` 的 old-value 原子绑定。r16 之前把「事后回读 reflog 的 `new` 那一跳 old == 锁内基线」记成 `cas`，属于**表述失真**：reflog 不记 invocation，第三方恰从同一基线推到同一候选时回读结果完全相同，且排除不了 ABA、日志截断/GC/`logAllRefUpdates=false`、wt 一次写多 ref、非 ff 无 actor。r16 收紧为 `causal='reflog-consistent'`（另加 selector 相邻性校验：缺失/跳号/中间行不可解析一律 `unknown`），真 CAS 列为「wt 不写 target」的架构变更待办。教训：**能证明"与基线衔接"和能证明"是本次写的"是两件事**，文档措辞必须跟着证据强度走。
 3. **「新增一个锁」不会让旧的不生效，只会让两个同时放行**：锁键从 16-hex 换 32-hex 时，单看「旧锁文件没人持有」没有意义；真正的危险是迁移期新旧进程**各持一把**同时进临界区。迁移必须双锁（先旧后新，第二把失败释放已持锁），旧进程全部退场后才撤旧锁。
 4. **junction 的危害是「可变域外目标」，不是「SHA 不稳定」**：目录指纹必须 `scandir` 先查 `FILE_ATTRIBUTE_REPARSE_POINT`、只记 `R` 不跟随；否则域外目录内容一变，摘要跟着变，取证污染成假变更。文件型符号链接同理：只证明 link 对象 + 指向文本，域外目标内容**明确不在**证明范围，不能宣称「已被覆盖」。
@@ -972,3 +972,18 @@ broken`），整个验收卡在这一步，只能记未完成。
 - `dispatch-0027-t2-closeout.py`、`watch-0027-then-dispatch-0032.py` → `tasks/queue/_done/20261110/`
 - 链路记录 → `data/evidence/wo-ultimaagent-20261110-0032/dispatch-provenance.md`
 - 新增 `watch-0032-completion.py`，以 `pythonw.exe` 起动（PID 968，`MainWindowHandle=0`），仅监视 25060，完成后自归档副本 + 写 DONE 标记
+
+### L99 · 未提交改动会被同仓并发 merge 清掉；SyntaxError 定位看括号闭合，不看报的行号
+
+1. r17 的 7 个文件改动落在主仓工作区却没能提交——主仓处于别人未完成的 merge（`MERGE_HEAD=43da3f01`、169 个他人已暂存），`git commit -- <paths>` 被 `fatal: cannot do a partial commit during a merge` 直接拒（rc=128）。下一轮再查，工作区已回到 r16：另一条 jarvis-e02 线的合并清理覆盖了未提交改动。**结论：未提交改动随时可能被同仓的 worktree/merge 操作冲掉**；两条硬规矩——要么立刻提交（主仓不可写时先提交到 detached worktree），要么把改动固化成可整序重放的补丁脚本（本轮靠 `%TEMP%\r17_*.py` 全序重放救回）。
+2. 补丁脚本自报 `ok bytes=124842` 只证明"字节数写对了"，不证明"能编译"。`doctor` 那段内层 dict 闭合写成 `),}`（缺尾逗号），`compile()` 报 `line 2045  'locks': {'dir': ...  invalid syntax. Perhaps you forgot a comma?`——报的是 dict **起始行**，真正的缺口在**内层 dict 的闭合行**（2051）。判断方法：`tokenize` 全过而 `compile` 失败 ⇒ 问题只在语句结构（逗号/括号/缩进配对），不在词法。
+3. 补丁脚本必须自带 `compile(src, path, "exec")` 自检后才落盘；只靠 `assert src.count(old)==1` 会漏掉这种"数量对、结构坏"的畸形。
+
+### L100 · 「声明过强」会让独立审计永远收敛不了；停手前必须重核阻塞状态
+
+1. **现象**：r17/r18 十轮独立审计，P0 从 4 条降到 1 条后就长期卡住，其中六轮全落在同一处（`cleanup` 构造点绑定 + 那个 20 行的 AST 遮蔽收集器）。每轮 Codex 都裁「补实现，不放宽文档」，照做之后它又指出「文档点名的分支还有一个没覆盖」。
+2. **根因在文档侧**：裁决书 §2.4 原文写的是「覆盖全部绑定形态」。Python 的本地绑定形态是开放集合（解构/星号/for/with/comprehension/形参/局部 def/class/import as/match 三种捕获/except/globals/setattr…），**「全部」这个词本身就是审计的反例生成器**。承诺超出实现能力后，只剩不停补实现去兑现一句自己加的修辞。
+3. **判据**：文档里出现「全部/所有/无条件/永远」，就是把验收标准交给对手去枚举。只写**可枚举清单 + 显式未覆盖项**，判据锚在清单上，不锚在绝对化措辞上。
+4. **停手判据（防无限循环）**：同一条 P0 连续两轮落在同一函数或同一句文档上，立刻二选一——收窄声明，或判定该层不可穷尽并显式登记未覆盖项。继续补实现只会延长链条，十轮里有六轮属于这一层，纯空转。
+5. **另一类空转**：把早前的阻塞状态当现行事实。`MERGE_HEAD=43da3f01` 的旧记录让「主仓不能提交」成了默认前提，实际它已在别处收尾（`HEAD` 由 `9ecea595`→`055e1611`、`MERGE_HEAD` 清空），我因此把 14 个提交压在 detached worktree 里空转数轮。**动手前用 `git rev-parse HEAD` 与 `git rev-parse -q --verify MERGE_HEAD` 现场重核，不引用旧快照。**
+6. **收口动作**：r17/r18 成果已挂具名分支 `gorch/r17-closeout`（`e7627b19`）并推送远端，tag `gorch-r17-audit-fix-20261110` 同步推送；第十轮 Codex 只读审计判「一致」，全量 226 passed。

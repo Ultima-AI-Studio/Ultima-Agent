@@ -980,12 +980,12 @@ Codex 复核（17,177B / 103 行）结论：**「足以作为规范口径」**�
 
 | 项 | 实现 | 关键取舍 |
 |---|---|---|
-| ⑤ 第三方并发 | 新增 `_ref_update_from(ref, new_sha)`：**事后**读 target reflog，取「把 ref 推到 `new_sha` 那一跳」所绑定的旧值（要求 selector 与行位置一致、下一跳 +1；缺失 / 跳号 / 中间行不可解析 → `unknown`），与锁内基线 `target_sha` 比对；相等记 `causal='reflog-consistent'`，不等即 `proof_failure`；不可读 → `causal='observational'` | 双采样降级为**异常检测**；**不加** clean-tree 门（Codex ⑤ 明确否决）；不写 temp ref（避免崩溃残留）——但**这不等于原子 CAS**，回读不绑定写者，见 §21.2 |
+| ⑤ 第三方并发 | 新增 `_ref_update_from(ref, new_sha)`：**事后**读 target reflog，取「把 ref 推到 `new_sha` 那一跳」所绑定的旧值（要求 selector 与行位置一致、下一跳 +1；缺失 / 跳号 / 中间行不可解析 → `unknown`），与锁内基线 `target_sha` 比对；相等记 `causal='reflog-consistent'`，不等即 `proof_failure`；不可读 → `proof_failure` 阻断、保留现场、不进 cleanup（r17 按 r16 审计口径 1 收紧） | 双采样降级为**异常检测**；**不加** clean-tree 门（Codex ⑤ 明确否决）；不写 temp ref（避免崩溃残留）——但**这不等于原子 CAS**，回读不绑定写者，见 §21.2 |
 | ⑦ fallback invocation | `find_done_tasks` 删非显式 glob 分支 −108 行；`run_dirs is None` / 缺 `expect_invocation` 双守卫 fail-closed；`merge` 同拒 | 旧签名单测一次性迁移（19 红 → 全绿），非逻辑 bug |
 | ③ 锁键 | `_MergeLock` 重写：`sha256(norm_target)[:32]` 为主键、`[:16]` 保留旧键；迁移期双锁（先旧后新） | 单把未持有的旧锁无约束力；真正危险是**新旧各持一把同时放行** |
 | ② 目录/子仓 | `_dir_digest`：`scandir` 直接条目名 + 长度分隔哈希、不递归；目录内 reparse 只记 `R`；**路径自身是 reparse 时** `_digest` 返 `REPARSE:dir`、不 `scandir`；`worktree_fingerprint` 识 gitlink `160000` | junction 的危害不是「SHA 随机」而是把**可变域外目标**纳入采样；只挡子条目会漏掉"传进来的就是链接" |
 | ⑥ doctor | 只读 `doctor(batch_dir)` + 子命令，输出四态/三态/登记/run 记录/三条只读复核命令 | 卡片状态必须 `is_file()`——`_path_state` 对文件一律 `wrong_type`（实测红一次后改） |
-| ④ 三 kind / 四桶 | `MERGE_FAILURE_KINDS` / `CLEANUP_UNCLOSED_BUCKETS` 单源常量 + `_CLEANUP_KEY_FOR`（bucket→`kept_for_*` 唯一映射）+ `cleanup_schema()` 唯一构造函数，`run_all` 四处构造点全部改调 helper | AST 契约：`run_all` 内禁手写 `kept_for_*`、helper ≥4 处调用、未知桶 KeyError——旧契约只看常量值，挡不住键名漂移 |
+| ④ 三 kind / 四桶 | `MERGE_FAILURE_KINDS` + `_CLEANUP_KEY_FOR`（bucket→`kept_for_*` **唯一声明源**，r17 起 `CLEANUP_UNCLOSED_BUCKETS` 由它派生）+ `cleanup_schema()` 唯一构造入口，`run_all` 四处构造点全部改调 helper | AST 契约（r17 加强、r18 改按构造点）：四处 `steps['cleanup']` / `steps.setdefault('cleanup', ...)` 构造点逐点绑定（每处恰一个 `**cleanup_schema(...)`、只允许 `removed`/`skipped` 静态键、调用总数恰 4）、全文件 `kept_for_*` 只许在映射里、未知桶 KeyError；另按源码顺序钉住四处实参形状（空参 / `buckets` / `{'merge_conflict': merged_tasks}` / 空参）、以本地绑定收集器（覆盖解构 / `for` / `with` / `except` / `import` 绑定名 / 局部 `class` / `match` 捕获名）禁止 `run_all` 内同名遮蔽（收集器有 22 类逐形态负例；未覆盖 `globals()`/`setattr` 注入与 `exec`/`eval` 动态创建）——**变量拼 key、别名或额外更新同一个目标、构造后按计算键追加仍可绕过**，这是静态护栏的能力边界，不得宣称"任何写法都被挡住" |
 | ① LINK 边界 | 补「指向文本不变、目标内容变」用例，docstring 明写**预期边界** | 域外目标仍属 §16 残余，不许宣称「已覆盖」 |
 
 ### 21.2 ⑤ 为什么本轮**没有**做原子 CAS（差异清单）
@@ -1005,7 +1005,7 @@ Codex 复核（17,177B / 103 行）结论：**「足以作为规范口径」**�
 
 真 CAS 需要「wt 不直接写 target」的架构变更（本进程以 candidate 做
 `update-ref <target> <candidate> <expected-old>`，失败即回滚并记 `proof_failure`），
-已列为待办（见 §21.5）。在它落地之前，代码与文档一律只称 `reflog-consistent` / `observational`。
+已列为待办（见 §21.5）。在它落地之前，代码与文档一律只称 `reflog-consistent`；reflog 不可读时（r17 起）按 `proof_failure` 阻断保留现场，不再以 `observational` 名义继续合并。
 
 **负例（三档全绿仍判死）**：`test_merge_flags_third_party_race_as_proof_failure`——wt 回执身份
 正确、target 前进、`ff_ok` 成立，只要回读旧值 ≠ 基线，即判 `proof_failure` 并保留现场。
@@ -1033,20 +1033,27 @@ Codex 复核（17,177B / 103 行）结论：**「足以作为规范口径」**�
 - `_MSYS_PURE`（r16 起为**白名单**，整行 `$` 锚定）：只认实测纯运行时尾部——`dofork: child -1
   - forked process N died unexpectedly[, retry N][, exit code 0x…][, errno N]`、
   `dofork: child -1 - CreateProcessW failed for '<path>'[, errno N]`、
-  `child_copy: cygheap read|write copy failed, …`，外加老式 `fork: retry: Resource temporarily
-  unavailable`；
+  `child_copy: cygheap read|write copy failed[ 地址范围][, done N][, windows pid N][, Win32 error N]`
+  （r17：原为 `copy failed(?:,.*)?`，逗号后任意文本都放行；现收紧为四类已知字段、顺序固定），
+  外加老式 `fork: retry: Resource temporarily unavailable`；
 - `_BIZ_FAIL`（双保险，命中即真错误）：`permission denied|access is denied|no such file|not found|
   not a git repository|fatal:|cannot open|cannot create|cannot lock|could not lock|unable to |
   corrupt|bad object|invalid path|error:|failed to |must be run in a work tree`。
 
-未命中白名单的尾部**一律判真错误**（fail-closed）。r15b 审计实测七例曾被旧「业务词表反向排除」
+未命中白名单的尾部**一律判真错误**（fail-closed）。注意 r16 的白名单里 `child_copy` 分支
+仍写着 `(?:,.*)?`——**这就是 r16 审计实测的第二类 fail-open**：
+`0 [main] tr 123 child_copy: cygheap read copy failed, authentication rejected`
+不含任何 `_BIZ_FAIL` 词，于是被当噪声吞掉。r17 已按「地址范围 / done N / windows pid N /
+Win32 error N」四类字段收紧；在收紧之前，"未识别尾部一律阻断"这句话对 `child_copy` 不成立。
+r15b 审计实测七例曾被旧「业务词表反向排除」
 全部漏放成噪声：`could not lock config file .git/config: File exists`、`bad object deadbeef`、
 `index file corrupt`、`cannot lock ref refs/heads/main`、`unable to write new index file`、
 `invalid path aux`、`error: failed to push some refs`——现全部进 `gate_check` 层负例。
 
 依据：业务程序（bash/sh/git）自己的报错不走 `[main]` 前缀。用例覆盖：三种实测运行时形态放行
 （含 retry / exit code / errno 尾部）、长格式尾部挂业务文本仍拒、无前缀的
-`bash: fork: Permission denied` 仍拒、审计七例业务尾部逐一在 `gate_check` 层判真错误。
+`bash: fork: Permission denied` 仍拒、审计七例业务尾部逐一在 `gate_check` 层判真错误、
+`child_copy` 未知尾段（`authentication rejected`）在 helper 与 `gate_check` 两层都判真错误。
 
 
 ### 21.4 验证（终态）
@@ -1061,6 +1068,7 @@ Codex 复核（17,177B / 103 行）结论：**「足以作为规范口径」**�
 | MSYS 修复后 | `-k cygwin` 6 passed；全量 **203 passed / 43.12s** |
 | ⑤ 落地后 | ⑤ 定向 4 passed；全量 **207 passed / 42.72s** |
 | r16 回修后 | 定向 31 passed；digest/fingerprint 13 passed；全量 **221 passed / 52.99s** |
+| r17 回修后 | 定向 53 passed；digest/fingerprint 13 passed；全量 224 passed / 49.94s（实施侧回执；只读审计未复跑该数字，不作为审计事实） |
 
 `git status --short` 中另有大量与本轮无关的改动（历史报告/脚本/`tasks/*` 等），
 **不入本轮提交**；本轮只 add 下列 5 个文件：
@@ -1084,10 +1092,25 @@ Codex 复核（17,177B / 103 行）结论：**「足以作为规范口径」**�
 |---|---|---|
 | ② 根 reparse | `_digest` 目录分支先判 `st_file_attributes & FILE_ATTRIBUTE_REPARSE_POINT` → `REPARSE:dir`，绝不 `scandir` | 新增「路径自身是 junction」真用例（域外增删条目摘要恒定） |
 | ③ 异常释放 | `_acquire` 把 `open()` 移入 `try`，`OSError → SystemExit('…无法打开…fail-closed')`；`__enter__` 由只捕 `SystemExit` 改为捕 `BaseException`，先 `_release_all()` 再原样抛出 | 新增 primary `open` 抛 `PermissionError` 后 legacy 可被另一实例立即重取 |
-| ④ 真单源 | `_CLEANUP_KEY_FOR` + `cleanup_schema()`；`run_all` 四处手写键全部改 `**cleanup_schema(...)` | AST：`run_all` 内禁 `kept_for_` 字面量、helper ≥4 处调用；未知桶 `KeyError` |
+| ④ 单一构造入口 | `_CLEANUP_KEY_FOR` 为唯一声明源（桶列表派生）+ `cleanup_schema()`；`run_all` 四处手写键全部改 `**cleanup_schema(...)` | AST（r18 按构造点）：四处构造点逐点绑定、每处恰一个 `**cleanup_schema(...)`、调用总数恰 4、`kept_for_*` 常量只许在映射里；未知桶 `KeyError` |
 | ⑤ 因果表述 | `causal` 由 `cas` 改 `reflog-consistent`；`_ref_update_from` 加 selector 相邻性校验；`proof_failure` 文案改「reflog 回读不一致」 | selector 三反例 + 一对正例；改名用例断言永不出 `cas` |
-| MSYS fail-open | `_is_cygwin_noise` 由「业务词表反向排除」改为**纯运行时白名单** `_MSYS_PURE` + `_BIZ_FAIL` 双保险，未识别尾部一律真错误 | 审计七例参数化进 `gate_check` 层负例；三种实测运行时形态放行对照 |
+| MSYS fail-open | `_is_cygwin_noise` 由「业务词表反向排除」改为**纯运行时白名单** `_MSYS_PURE` + `_BIZ_FAIL` 双保险，七例已知反例阻断 | 七例参数化进 `gate_check` 层负例；三种实测运行时形态放行对照；`child_copy` 未知尾段在 r17 才被收紧（r16 仍 fail-open） |
 
 全量：**221 passed / 52.99s**（r15 终态 207 → 净 +14）。
 **仍未做**：真 CAS（需 wt 不写 target 的架构变更）；⑤ 的超 12 跳 / 选择性过期 / 多次写 ref /
 非 ff 负例；真实批次 `run_all`（E1-4 后半）。
+
+### 21.7 r17 回修（r16 审计判「不一致」后的收敛）
+
+第三轮 Codex 只读审计（`codex-r16-audit-last.md`，1050.7s / 17,967B / 142 行）判 **②根 reparse、③锁异常释放「一致」**，**④cleanup 真单源契约过度声明、⑤强因果 docstring/看板残留、MSYS `child_copy` 任意尾段 fail-open「不一致」**，另给三条口径裁定与 9 条可直改。本轮据此改：
+
+| 审计项 | 改动 | 用例 |
+|---|---|---|
+| 口径 1（unknown 不得 cleanup） | `merge()` 由「`cas_state != 'ok'` 只降级 causal」改为 **`proof_failure` 阻断**：不进 merged、run_all 不执行 cleanup、现场保留 | `test_run_all_reflog_unknown_blocks_cleanup`（run_all 级：断言 `kept_for_proof` 收到该任务、`cleanup` 未被调用） |
+| 口径 2（进程版本栅栏） | 新增 `LOCK_PROTOCOL = dual(legacy-sha256-16 + sha256-32)`，写进 merge 记录 `lock_protocol`；`doctor` 增 `locks.protocol` / `legacy_present` / `by_hex`，撤 legacy 锁仍需进程退场证明 | `test_doctor_reports_lock_protocol_and_legacy_presence` |
+| 口径 3（MSYS 未知尾部阻断） | `_MSYS_PURE` 的 `child_copy` 分支删掉 `(?:,.*)?`，改为「地址范围 / done N / windows pid N / Win32 error N」四类字段、顺序固定 | `authentication rejected` 例进 `_MSYS_BIZ_SAMPLES`（r18 起该样例为完整原始行，并由 `test_msys_child_copy_unknown_tail_is_real_error` 在 helper 与 gate 两层断言）（`gate_check` 层）；`test_msys_child_copy_unknown_tail_is_real_error` 兜 helper 层 |
+| ④ 单一构造入口 | `CLEANUP_UNCLOSED_BUCKETS = tuple(_CLEANUP_KEY_FOR)`（映射为唯一声明源）；AST 改为按四处构造点逐点绑定（每处一 `**` 展开、调用总数恰 4）+ 全文件 `kept_for_*` 只许在映射里 | `test_run_all_cleanup_constructed_only_by_helper` 加强 |
+| ⑤ 强因果措辞 | `_ref_update_from` docstring 删「强因果落点 / 等价于没有第三方写过」，改为观察性衔接 + 三条不成立理由；看板第 23 行本行加删除线并标作废；裁决书与本文收窄 | 改名用例断言 `'cas' not in {causal}` 仍绿 |
+| ② 根 junction 边界 | 用例补「删除 junction 后 `_digest == 'ABSENT'` 且 ≠ `REPARSE:dir'`」 | `test_digest_root_path_itself_reparse_is_not_followed` |
+
+**仍未闭合**：真 CAS（需 wt 不写 target）；⑤ 超 12 跳 / 选择性过期 / 多次写 ref / 非 ff 负例；真实批次 `run_all`（E1-4 后半）；legacy 锁只有现场回执，没做进程退场证明。
