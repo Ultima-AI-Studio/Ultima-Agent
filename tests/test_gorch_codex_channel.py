@@ -897,7 +897,10 @@ def test_digest_reports_non_regular_type(tmp_path):
     """
     m = _load()
     (tmp_path / 'd').mkdir()
-    assert m._digest(str(tmp_path), 'd') == 'TYPE:dir'
+    dgot = m._digest(str(tmp_path), 'd')
+    # r15（口径 ②）：目录不再是常量 TYPE:dir，而是直接条目名集合的哈希。
+    assert dgot.startswith('DIR:')
+    assert len(dgot) == len('DIR:') + 64
     f = tmp_path / 'f.txt'
     f.write_text('x', encoding='utf-8')
     got = m._digest(str(tmp_path), 'f.txt')
@@ -1034,3 +1037,149 @@ def test_status_rows_rejects_output_without_trailing_nul(monkeypatch):
     ok, rows, _ig = m._status_rows('w')
     assert ok is True
     assert rows == [(' M', 'docs/x')]
+
+# --- r15（E2 口径 ②）：目录指纹 / submodule 取证 ---------------------------
+
+
+def test_dir_digest_tracks_direct_entry_names(tmp_path):
+    """目录摘要必须是「直接条目名集合」的稳定哈希（r15 口径 ②）。
+
+    r11 只回常量 TYPE:dir，目录里增删改条目全不可见——脏基线里往 untracked 目录
+    写文件会被判"没变"。这里钉三件事：新增/改名必变、同名集合必同、长度分隔防
+    拼接碰撞（`a`+`bc` 与 `ab`+`c` 不能是同一串）。
+    """
+    m = _load()
+    d = tmp_path / 'd'
+    d.mkdir()
+    a = m._digest(str(tmp_path), 'd')
+    assert a.startswith('DIR:')
+    (d / 'one.txt').write_text('1', encoding='utf-8')
+    b = m._digest(str(tmp_path), 'd')
+    assert b != a
+    (d / 'two.txt').write_text('2', encoding='utf-8')
+    c = m._digest(str(tmp_path), 'd')
+    assert c != b
+    # 条目集合相同、创建顺序不同 → 摘要必须相同
+    d2 = tmp_path / 'd2'
+    d2.mkdir()
+    (d2 / 'two.txt').write_text('x', encoding='utf-8')
+    (d2 / 'one.txt').write_text('y', encoding='utf-8')
+    assert m._digest(str(tmp_path), 'd2') == c
+    # 长度分隔：'a'+'bc' 与 'ab'+'c'
+    d3 = tmp_path / 'd3'
+    d3.mkdir()
+    (d3 / 'a').write_text('', encoding='utf-8')
+    (d3 / 'bc').write_text('', encoding='utf-8')
+    d4 = tmp_path / 'd4'
+    d4.mkdir()
+    (d4 / 'ab').write_text('', encoding='utf-8')
+    (d4 / 'c').write_text('', encoding='utf-8')
+    assert m._digest(str(tmp_path), 'd3') != m._digest(str(tmp_path), 'd4')
+
+
+def test_dir_digest_does_not_follow_reparse_points(tmp_path):
+    """junction / reparse 条目只进名字集合、不跟随。
+
+    r15 现场实测：`os.lstat` 对 junction 报目录，`wt remove -f` 只删链接、目标目录
+    与里面的脏文件完全不动。若目录摘要跟随 reparse，采样就被带进**可变域外目标**，
+    同一目录两次摘要会因域外内容变化而抖动（Codex 复核 Q1 点名的不是 SHA 随机性，
+    而是把可变域外目标纳入采样）。
+    """
+    m = _load()
+    outside = tmp_path / 'outside'
+    outside.mkdir()
+    inside = tmp_path / 'inside'
+    inside.mkdir()
+    junk = outside / 'junk.bin'
+    junk.write_text('v1', encoding='utf-8')
+    link = inside / 'j'
+    cmd = os.environ.get('ComSpec', r'C:\Windows\System32\cmd.exe')
+    rc = subprocess.run([cmd, '/c', 'mklink', '/J', str(link), str(outside)],
+                        capture_output=True, text=True, encoding='utf-8',
+                        errors='replace').returncode
+    if rc != 0 or not link.exists():
+        pytest.skip('本机无法创建 junction，跳过（口径已写入裁决书 §2.2）')
+    a = m._digest(str(tmp_path), 'inside')
+    junk.write_text('v2', encoding='utf-8')      # 只改域外目标内容
+    b = m._digest(str(tmp_path), 'inside')
+    assert a == b                              # 不跟随 → 摘要不变（预期边界）
+    os.rmdir(str(link))                        # 只删 junction 本身（rmdir 不删目标）
+    assert outside.exists() and junk.exists()
+    c = m._digest(str(tmp_path), 'inside')
+    assert c != a                              # link 的出现/消失必须可见
+
+
+def test_worktree_fingerprint_records_submodule_gitlink(tmp_path):
+    """submodule 按 gitlink OID + 已检出 HEAD（或 unconfirmed）取证（口径 ②）。
+
+    submodule 在 status 里是「目录」形态，目录摘要只覆盖直接条目名；「子仓 HEAD 换了、
+    条目名没变」会被判"没变"。所以必须回到 index 的 mode 160000 取 gitlink OID。
+    """
+    m = _load()
+    git = r'C:\Program Files\Git\cmd\git.exe'
+    repo = tmp_path / 'repo'
+    repo.mkdir()
+    subprocess.run([git, 'init', '-q', str(repo)], check=True,
+                   capture_output=True)
+    subprocess.run([git, '-C', str(repo), 'config', 'user.email', 't@t.com'],
+                   check=True, capture_output=True)
+    subprocess.run([git, '-C', str(repo), 'config', 'user.name', 't'],
+                   check=True, capture_output=True)
+    (repo / 'a.txt').write_text('a', encoding='utf-8')
+    subprocess.run([git, '-C', str(repo), 'add', 'a.txt'], check=True,
+                   capture_output=True)
+    subprocess.run([git, '-C', str(repo), 'commit', '-qm', 'init'], check=True,
+                   capture_output=True)
+    gitlink = 'b' * 40
+    subprocess.run([git, '-C', str(repo), 'update-index', '--add',
+                    '--cacheinfo', '160000,%s,sub' % gitlink], check=True,
+                   capture_output=True)
+
+    fp = m.worktree_fingerprint(str(repo))
+    # 未检出（sub 目录不存在）→ 只能记 unconfirmed，不许猜
+    assert fp['paths'].get('sub') == 'SUBMODULE:%s:unconfirmed' % gitlink
+
+    # 检出后应记真实的子仓 HEAD
+    sub_head_repo = repo / 'sub'
+    subprocess.run([git, 'init', '-q', str(sub_head_repo)], check=True,
+                   capture_output=True)
+    subprocess.run([git, '-C', str(sub_head_repo), 'config', 'user.email',
+                    't@t.com'], check=True, capture_output=True)
+    subprocess.run([git, '-C', str(sub_head_repo), 'config', 'user.name', 't'],
+                   check=True, capture_output=True)
+    (sub_head_repo / 's.txt').write_text('s', encoding='utf-8')
+    subprocess.run([git, '-C', str(sub_head_repo), 'add', 's.txt'], check=True,
+                   capture_output=True)
+    subprocess.run([git, '-C', str(sub_head_repo), 'commit', '-qm', 'sub'],
+                   check=True, capture_output=True)
+    head = subprocess.run([git, '-C', str(sub_head_repo), 'rev-parse', 'HEAD'],
+                          capture_output=True, text=True, encoding='utf-8').stdout.strip()
+    fp2 = m.worktree_fingerprint(str(repo))
+    assert fp2['paths'].get('sub') == 'SUBMODULE:%s:%s' % (gitlink, head)
+
+# --- r15（E2 口径 ①）：LINK 摘要的三类边界 --------------------------------
+
+
+def test_digest_link_summary_ignores_target_content_as_expected_boundary(tmp_path,
+                                                                        monkeypatch):
+    """口径 ①：LINK 摘要只证「link 对象 + 指向文本」，目标内容变不算变化。
+
+    这是**预期边界**，不是缺陷：目标若本身在 Git 可见集合内，会由它自己的路径另行
+    取证（不是靠 link 摘要覆盖）；不在集合内的域外目标仍属报告 §16 残余，不许宣称
+    「已被覆盖」。反向用例（retarget 必变）见前一条。
+    """
+    import stat as _stat
+
+    m = _load()
+    fake = type('FakeStat', (), {'st_mode': _stat.S_IFLNK | 0o777})()
+    monkeypatch.setattr(m.os, 'lstat', lambda p, *a, **k: fake)
+    monkeypatch.setattr(m.os, 'readlink', lambda p, *a, **k: 'target.txt')
+
+    (tmp_path / 'target.txt').write_text('v1', encoding='utf-8')
+    a = m._digest(str(tmp_path), 'link')
+    assert a.startswith('LINK:') and len(a) == len('LINK:') + 64
+
+    (tmp_path / 'target.txt').write_text('v2', encoding='utf-8')   # 只改目标内容
+    b = m._digest(str(tmp_path), 'link')
+    assert b == a          # 指向文本没变 → 摘要不变（预期边界，写进裁决书）
+

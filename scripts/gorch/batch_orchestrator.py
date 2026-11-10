@@ -15,7 +15,8 @@
   python batch_orchestrator.py gate <批次目录>
   python batch_orchestrator.py provision <批次目录>
   python batch_orchestrator.py execute <批次目录> --prompts-dir <prompt目录>
-  python batch_orchestrator.py merge <批次目录> [--tasks T1 T2]
+  python batch_orchestrator.py merge <批次目录> --invocation <本次invocation> \
+      --run-dir <TASK>=<run目录> [--run-dir ...] [--tasks T1 T2]
   python batch_orchestrator.py cleanup <批次目录> [--tasks T1] [--force]
 批次目录约定：只放任务文件，每个 <id>.md 带 frontmatter
   name/status/depends_on/parallel/conflicts_with，同目录引用 <ref>.md。
@@ -64,23 +65,62 @@ GIT_EXE = str(pathlib.Path(GIT_CMD_DIR) / 'git.exe')
 # 派发一批要跑十几次，否则屏幕上会连续闪黑窗（L78）。
 _NO_WINDOW = 0x08000000 if sys.platform == 'win32' else 0
 BRANCH_PREFIX = 'gorch/'
+
+# r15（E2 口径 ④）：merge 失败三 kind 与 cleanup 未闭合四桶的**单源**定义。
+# 以前这两组取值散落在 merge() 的多个出口与 run_all() 的 buckets 字面量里，
+# 加一个 kind 或改一个桶名都得靠人肉同步（第十三轮审计正是在这类集合上反复翻车）。
+# 现在只在这里定义，所有出口引用常量；测试断言"实现里出现的 kind 都属于
+# MERGE_FAILURE_KINDS"，改错一处立刻红。
+MERGE_FAILURE_KINDS = ('evidence_failure', 'merge_conflict', 'proof_failure')
+CLEANUP_UNCLOSED_BUCKETS = ('merge_conflict', 'evidence_failure',
+                            'proof_failure', 'unknown')
 # 只把 git-bash/cygwin 的 fork 噪声降级为诊断；其余 stderr 一律当错误看。
 # 噪声特征：fork 重试、cygheap 读写失败、dofork 死亡，以及 cygwin 的 "123 [main] xxx" 前缀行。
 # 第四轮审计：原来按关键词**子串**匹配，会把「真实错误里恰好含 cygheap /
 # Resource temporarily unavailable」整行降级成噪声。改成锚定 cygwin / bash 的
 # 整行格式，只有行首形态对上才放行，其余（含未知形态）继续 fail-closed。
+#
+# r15 实测（连续两次全量各抖红 1 例，共 3 种 MSYS 内部格式）：MSYS 的
+# `N [main] <prog> <pid> <func>:` 前缀行是**运行时内部诊断**，尾部形态随版本
+# 与失败原因变化（`child -1 - forked process N died unexpectedly` /
+# `CreateProcessW failed for '<path>', errno N` / `cygheap read copy failed,
+# 0x0..0xNN, done N, windows pid N, Win32 error N`）。逐条枚举尾部永远追不上，
+# 但这类行的共同点是：**业务程序（bash/sh/git）自己的错误不走 `[main]` 前缀**。
+# 因此规则改为两层：
+#   · 整行命中 `[main]` 前缀 → 视为运行时诊断，放行；
+#   · 但同一行里若还挂着业务失败语义（denied / No such file / fatal: / cannot…），
+#     仍判真错误——保住「尾部多挂内容就不算噪声」这条防线；
+#   · 不带 `[main]` 前缀的老格式（如 `bash: child_copy: cygheap …`）继续整行锚定。
+_MSYS_DIAG = re.compile(
+    r'^\s*\d+\s*\[main\]\s+\S+\s+(?:\(\d+\)\s+|\d+\s+)?'
+    r'(?:fork|dofork|child_copy|signal_chk|sig_chain|proc_stuff):')
+_BIZ_FAIL = re.compile(
+    r'(?i)(permission denied|access is denied|no such file|not found|'
+    r'not a git repository|fatal:|cannot open|cannot create|'
+    r'must be run in a work tree)')
 _CYGWIN_NOISE = re.compile(
-    # 每条都要求**整行**格式对上（含行尾锚定）：噪声前缀后面若还挂着额外文本，
-    # 那就不再是已知噪声，而是真错误（第四轮审计 Q1：只锚行首会把
-    # `bash: fork: Permission denied` 整行吞掉）。
-    r'^\s*\d+\s*\[main\]\s+\S+\s+\d+\s+(?:fork|dofork|child_copy):'
-    r'\s*(?:retry:\s*Resource temporarily unavailable|child \d+ - forked OK)\s*$'
-    r'|'
+    # 不带 [main] 前缀的老格式：整行锚定（含行尾）。
     r'^\s*bash:\s*(?:child_copy|dofork|fork):\s*cygheap\s+'
     r'(?:read|write)\s+copy\s+failed,\s*0x[0-9A-F]+\s*$'
     r'|'
-    r'^\s*\S+:\s*fork:\s*retry:\s*Resource temporarily unavailable\s*$',
+    r'^\s*\S+:\s*fork:\s*retry:\s*Resource temporarily unavailable\s*$'
+    r'|'
+    r'^\s*\d+\s*\[main\]\s+\S+\s+\d+\s+(?:fork|dofork|child_copy):'
+    r'\s*(?:retry:\s*Resource temporarily unavailable|child \d+ - forked OK)\s*$',
     re.IGNORECASE)
+
+
+def _is_cygwin_noise(line):
+    """这一行是不是 MSYS/Cygwin 运行时噪声（不是判定错误）。"""
+    stripped = line.strip()
+    if not stripped:
+        return True
+    if _CYGWIN_NOISE.match(stripped):
+        return True
+    if _MSYS_DIAG.match(stripped):
+        # 运行时诊断前缀：只要没挂业务失败语义就算噪声。
+        return not _BIZ_FAIL.search(stripped)
+    return False
 # 「已删干净」的唯一可信 branch_outcome。实测（临时仓库 wtprobe-r5，2026-11-09）
 # `wt remove --format json` 返回**数组**，元素字段是
 #   {kind, branch, path, branch_outcome, branch_checked_out_at}
@@ -152,7 +192,7 @@ def gate_check(batch_dir):
         # 「噪声在前、真错误在后」的组合会让真错误整体不可见。
         raw_err = r.stderr or ''
         real_errs = [ln.strip() for ln in raw_err.splitlines()
-                     if ln.strip() and not _CYGWIN_NOISE.match(ln)]
+                     if ln.strip() and not _is_cygwin_noise(ln)]
         stderr_diag = raw_err.strip()[-400:]
         if real_errs:
             # 只贴第一行会把"垃圾行在前、真错误在后"的情况又遮住一次，所以拼前 3 行。
@@ -762,14 +802,14 @@ def find_done_tasks(batch_dir, with_blocked=False, run_dirs=None, only_tasks=Non
                      expect_invocation=None):
     """返回 result=done 且**可合并**的任务。
 
-    两种取法：
-      · ``run_dirs`` 给定时（run 模式）：只看本次 invocation 显式登记、真的跑出记录的
-        那批 run-dir。不看 mtime、不 glob、不回退——第四轮审计 #1 的根因正是
-        「全局目录 + mtime 排序找最新」：并列时靠枚举顺序、损坏记录被静默跳过、
-        `--run-dir` 指到别处的新 blocked 完全漏匹配。
-      · 未给时（独立 CLI merge，已不推荐）：按严格 UTC started_at + invocation
-        唯一性取证；损坏记录、无时区时间、缺 invocation、同 invocation 多条、
-        并列时间任一命中即阻断，调用方应改走 run 模式拿 invocation 绑定。
+    唯一取法（r15 · E2 口径 ⑦）：必须显式给出 ``run_dirs`` + ``expect_invocation``，
+    只看本次 invocation 显式登记、真的跑出记录的那批 run-dir。不看 mtime、不 glob、
+    不回退——第四轮审计 #1 的根因正是「全局目录 + mtime 排序找最新」：并列时靠枚举
+    顺序、损坏记录被静默跳过、``--run-dir`` 指到别处的新 blocked 完全漏匹配。
+
+    r15 删除了原来的「非显式 glob 兜底」分支：它曾是第二条、更弱、且能被直接 Python
+    API 调用绕入的授权路径（Codex 复核 ⑦）。现在 ``run_dirs is None`` 直接 fail-closed。
+
     ``only_tasks`` 给定时只算这些任务——run 模式只关心本轮 ready 的那几张卡，
     否则批次里任何一张非 ready 卡都会被算成「本次没有执行记录」而假失败
     （第四轮审计 Q1）。
@@ -785,7 +825,14 @@ def find_done_tasks(batch_dir, with_blocked=False, run_dirs=None, only_tasks=Non
     # r9（第八轮审计 N10）：只有 compare-to-expected 才是身份校验。r8 写成
     # `if expect_invocation and ...`，不给期望时退化成「只验非空」，任何历史
     # invocation 的记录都能通过。explicit 模式必须给出本次 invocation，否则拒绝。
-    if run_dirs is not None and not expect_invocation:
+    # r15（E2 口径 ⑦）：唯一的授权路径是显式 run-dir + 本次 invocation。
+    # 原来的非显式 glob 分支（按 started_at 取最新）已删除——它是第二条更弱的授权
+    # 路径，且能被「直接 Python API 调用」绕入；删除后生产与测试只有一套契约。
+    if run_dirs is None:
+        raise SystemExit(
+            'find_done_tasks 必须显式给出本次 run_dirs 与 invocation（run-dir 模式）；'
+            '非显式 glob 兜底已按 G-ORCH E2 口径 ⑦ 删除，fail-closed')
+    if not expect_invocation:
         raise SystemExit(
             '显式 run-dir 模式必须同时给出本次 invocation（--invocation），'
             '否则无法证明记录属于本次调用，fail-closed')
@@ -869,115 +916,6 @@ def find_done_tasks(batch_dir, with_blocked=False, run_dirs=None, only_tasks=Non
             done[task] = str(h)
         return (done, stale) if with_blocked else done
 
-    # 兜底路径（不给 run_dirs 时）：不再有"文件最新即授权"这种语义。
-    # 第四轮 Q1/Q3 + 第五轮 7.3：按 mtime 选"最新的 done"等于谁最后被 touch 谁拿到
-    # 合并授权；损坏记录只进 broken 收集、仍让更旧的 done 上来；started_at 拿字符串
-    # 比大小；invocation 在真实记录里根本不写。这里逐条收紧，且**不再退化 mtime**。
-    for task in tasks:
-        entries, broken = [], []
-        for h in RUNS.glob(f'{task}-ch*/codex-channel.json'):
-            try:
-                data = json.loads(h.read_text(encoding='utf-8'))
-            except (json.JSONDecodeError, OSError, UnicodeDecodeError) as exc:
-                broken.append((str(h), str(exc)))
-                continue
-            # r8（第七轮审计 A⑤ / N6）：根节点非对象此前会在 data.get 上抛未捕获的
-            # AttributeError，把整个 merge 打崩；这里按"记录不可确认"收进 broken。
-            if not isinstance(data, dict):
-                broken.append((str(h), f'根节点不是对象（{type(data).__name__}）'))
-                continue
-            # r9（第八轮审计 N10/N12）：七项身份**全部前置**到加入 entries 之前。
-            # r8 只在选定"最新记录"之后才验 result / mergeable，等于先用一批不合格
-            # 记录参与时间排序、再用它决定"本次执行是哪一条"，诊断顺序也不对。
-            if data.get('dry_run') is not False:
-                broken.append((str(h),
-                               f'dry_run={data.get("dry_run")!r} 不是严格 False'))
-                continue
-            rec_inv = str(data.get('invocation') or '')
-            if not rec_inv:
-                broken.append((str(h), '记录缺少 invocation，无法绑定本次调用'))
-                continue
-            if expect_invocation and rec_inv != str(expect_invocation):
-                broken.append((str(h),
-                               f'invocation={rec_inv!r} 不是本次 {expect_invocation!r}'))
-                continue
-            if data.get('result') != 'done':
-                broken.append((str(h), f'result={data.get("result")!r} 不是 done'))
-                continue
-            if data.get('mergeable') is not True:
-                broken.append((str(h),
-                               f'mergeable={data.get("mergeable")!r} 不是严格 True'))
-                continue
-            # 身份同样要核（第七轮审计 B5）：task 精确相等、run_dir 必须指回本记录
-            # 所在目录——否则"任何 done 就进池"仍在放行不可合并的记录。
-            if str(data.get('task') or '') != task:
-                broken.append((str(h),
-                               f'记录 task={data.get("task")!r} 与目录任务 {task!r} 不符'))
-                continue
-            rec_run = str(data.get('run_dir') or '')
-            try:
-                same_dir = (bool(rec_run)
-                            and pathlib.Path(rec_run).resolve() == h.parent.resolve())
-            except (OSError, ValueError):
-                same_dir = False
-            if not same_dir:
-                broken.append((str(h), f'记录 run_dir={rec_run!r} 不指向本目录'))
-                continue
-            entries.append({'path': str(h), 'data': data,
-                            'started_at': _utc_ts(data.get('started_at')),
-                            'inv': str(data.get('invocation') or '')})
-
-        # 任何损坏记录都阻断（第五轮 Q3-1）：此前 broken 只被收集、扫描继续，
-        # 只要还有一条更旧的 done 就会拿到授权——坏掉的那次执行被悄悄忽略。
-        if broken:
-            stale[task] = {
-                'run_record': broken[0][0],
-                'reason': (f'历史执行记录损坏 {len(broken)} 条，无法确认本次结果：'
-                           f'{broken[0][1]}；请显式传 --run-dir')}
-            continue
-        if not entries:
-            stale[task] = {'run_record': None, 'reason': '无真实执行记录'}
-            continue
-        # started_at 必须是可解析的 UTC ISO（第五轮 Q3-3）：解析不了就阻断，
-        # 不再退回 mtime 当弱判据——弱判据本身就是被点名的授权漏洞。
-        missing_at = [e for e in entries if e['started_at'] is None]
-        if missing_at:
-            stale[task] = {
-                'run_record': missing_at[0]['path'],
-                'reason': ('历史记录缺少可解析的 started_at（UTC ISO8601），'
-                           '拒绝按 mtime 授权；请显式传 --run-dir')}
-            continue
-        empty_inv = [e for e in entries if not e['inv']]
-        if empty_inv:
-            stale[task] = {
-                'run_record': empty_inv[0]['path'],
-                'reason': ('历史记录缺少 invocation，无法唯一确定本次执行；'
-                           '请显式传 --run-dir')}
-            continue
-        # 同一 invocation 出现多条记录 = 本次调用结果不唯一（第七轮审计 #5）。
-        dup_inv = sorted({i for i in (e['inv'] for e in entries)
-                          if sum(1 for e in entries if e['inv'] == i) > 1})
-        if dup_inv:
-            stale[task] = {
-                'run_record': entries[0]['path'],
-                'reason': (f'invocation {dup_inv[:3]} 出现多条执行记录，'
-                           '无法唯一确定本次结果；请显式传 --run-dir')}
-            continue
-        best = max(entries, key=lambda e: e['started_at'])
-        tie = [e for e in entries if e['started_at'] == best['started_at']]
-        if len(tie) > 1:
-            stale[task] = {
-                'run_record': best['path'],
-                'reason': (f'存在 {len(tie)} 条并列 started_at='
-                           f'{_ts_label(best["started_at"])} 的记录'
-                           '（含同一 invocation 的多条），无法唯一确定本次执行；'
-                           '请显式传 --run-dir')}
-            continue
-        # r9：result / mergeable / dry_run / invocation 已在进 entries 前全部验过，
-        # 走到这里说明这条最新记录本身就是合格的可合并 done。
-        done[task] = best['path']
-    return (done, stale) if with_blocked else done
-
 
 def _current_branch():
     """本仓库当前检出的分支名——合并的默认目标。
@@ -1020,6 +958,53 @@ def _norm_ref(ref):
     return s[len('refs/heads/'):] if s.startswith('refs/heads/') else s
 
 
+_RE_CAS_SEL = re.compile(r'@\{(\d+)\}$')
+
+
+def _ref_update_from(ref, new_sha):
+    """取「把 ref 推到 new_sha 的那一次 ref 更新」所替换掉的旧值（CAS 的 old-value）。
+
+    这是 G-ORCH E2 口径 ⑤ 的强因果落点：`git update-ref <ref> <new> <old>` 只在
+    ref 仍等于 `<old>` 时才写入，写成功后 reflog 留下相邻两跳 (old → new)。
+    于是「new 那跳的旧值 == 锁内观测到的基线」等价于「从观测到写入之间没有第三方
+    写过这个 ref」——这是绑定式证据，不是"target 动了就归功于我"的观察性推断。
+
+    返回 (state, old_sha)：
+      ('ok', old)     —— 找到该跳；old 由调用方与基线比对，相等才算 bound；
+      ('unknown', '') —— reflog 读不到 / 没有这一跳：**不能**宣称唯一因果，只能
+                         退回双采样做异常检测（口径要求：不得表述为唯一因果）。
+    """
+    target_ref = str(ref or '').strip()
+    if not target_ref or not new_sha:
+        return 'unknown', ''
+    if not target_ref.startswith('refs/'):
+        target_ref = 'refs/heads/' + target_ref
+    rc, out = _git_out(['reflog', 'show', '--no-abbrev', '-n', '12',
+                        '--format=%H%x09%gD', target_ref], timeout=30)
+    if rc != 0 or not out:
+        return 'unknown', ''
+    rows = []
+    for line in out.splitlines():
+        parts = line.split('\t')
+        if len(parts) < 2:
+            parts = line.split()
+        if len(parts) < 2:
+            continue
+        rows.append((parts[0].strip(), parts[1].strip()))
+    for idx, (sha, sel) in enumerate(rows):
+        if sha != new_sha:
+            continue
+        m = _RE_CAS_SEL.search(sel)
+        # 同一 sha 可能在 reflog 里重复出现（reset 回同一值）；只认 selector 序号与
+        # 该行在输出里的位置一致的那一条，避免把中间态当成"这一跳"。
+        if m and int(m.group(1)) != idx:
+            continue
+        if idx + 1 < len(rows):
+            return 'ok', rows[idx + 1][0]
+        return 'unknown', ''
+    return 'unknown', ''
+
+
 class _MergeLock:
     """同一 repo+target 的合并窗口互斥（本机文件锁，跨进程）。
 
@@ -1029,7 +1014,18 @@ class _MergeLock:
 
     锁目录按 ``RUNS`` 在**运行时**计算：RUNS 是可被测试/编排重定向的模块常量，
     写成模块级常量会让用例把锁落到真实仓库 data/gorch（污染且不可隔离）。
+
+    r15（E2 口径 ③）：摘要从 64 bit（16 hex）升到 128 bit（32 hex）。16 hex 在
+    「同仓多分支长期并发」下已有实际碰撞可能，碰撞 = 两个不同 target 互相阻塞
+    或更糟：两把不同 target 的锁被当成同一把。升级不能一次性切换——旧版本进程
+    只会去看 16-hex 文件名，新版本若只看 32-hex，两者各持一把、同时放行（Codex
+    复核 Q2 指出的正是这个危险）。所以迁移期**双锁**：固定顺序先取旧 16-hex、
+    再取新 32-hex；任一取不到就释放已持有的锁并 fail-closed。旧进程全部退场后
+    才可撤掉 legacy 锁（撤除条件写入裁决书 §2.3）。
     """
+
+    LEGACY_HEX = 16          # 旧版本锁键（迁移期仍需互斥）
+    HEX = 32                 # r15 起：128 bit
 
     def __init__(self, target):
         # r10（第九轮审计）：锁键必须先归一化 ref 写法。`main` 与 `refs/heads/main`
@@ -1037,49 +1033,77 @@ class _MergeLock:
         # 同一 target 的取证窗口——锁等于没加。
         # r11（第十轮审计 C-3）：只做 `re.sub` 会**反向**出事——`feature/a` 与
         # `feature_a` 被压成同一个文件名，两个不同 target 互相阻塞（假互斥，
-        # 属可用性误杀）。所以文件名用「可读前缀 + 归一后 ref 的 sha256 前 16 位」：
+        # 属可用性误杀）。所以文件名用「可读前缀 + 归一后 ref 的 sha256 前缀」：
         # 归一后相同 → 摘要必然相同（同锁）；归一后不同 → 摘要必然不同（不同锁）。
         norm_target = _norm_ref(target) or 'target'
-        digest = hashlib.sha256(norm_target.encode('utf-8')).hexdigest()[:16]
+        self.norm_target = norm_target
+        digest = hashlib.sha256(norm_target.encode('utf-8')).hexdigest()
         safe = re.sub(r'[^0-9A-Za-z._-]', '_', norm_target)[:40] or 'target'
         self.dir = pathlib.Path(RUNS).parent / 'locks'
-        self.path = self.dir / f'merge-{safe}-{digest}.lock'
+        self.primary_path = self.dir / f'merge-{safe}-{digest[:self.HEX]}.lock'
+        self.legacy_path = self.dir / f'merge-{safe}-{digest[:self.LEGACY_HEX]}.lock'
+        # 兼容既有日志/报错只读 `.path` 的地方：指向当前主锁（32-hex）。
+        self.path = self.primary_path
+        self._held = []          # [(path, fh)]，按获取顺序
 
-    def __enter__(self):
-        self.dir.mkdir(parents=True, exist_ok=True)
-        self.fh = open(str(self.path), 'a+')
+    # -- 单把锁的取/放（把 OS 细节收在一处，双锁复用它）-------------------
+    def _acquire(self, path):
+        fh = open(str(path), 'a+')
         try:
             if os.name == 'nt':
                 import msvcrt
-                self.fh.seek(0)
-                msvcrt.locking(self.fh.fileno(), msvcrt.LK_NBLCK, 1)
+                fh.seek(0)
+                msvcrt.locking(fh.fileno(), msvcrt.LK_NBLCK, 1)
             else:
                 import fcntl
-                fcntl.flock(self.fh.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+                fcntl.flock(fh.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
         except OSError as exc:
             try:
-                self.fh.close()
+                fh.close()
             except OSError:
                 pass
             raise SystemExit(
-                f'合并锁被占用（{self.path}）：同仓已有合并在进行，fail-closed（{exc}）')
-        return self
+                f'合并锁被占用（{path}）：同仓已有合并在进行，fail-closed（{exc}）')
+        return fh
 
-    def __exit__(self, *_exc):
+    @staticmethod
+    def _unlock(fh):
         try:
             if os.name == 'nt':
                 import msvcrt
-                self.fh.seek(0)
-                msvcrt.locking(self.fh.fileno(), msvcrt.LK_UNLCK, 1)
+                fh.seek(0)
+                msvcrt.locking(fh.fileno(), msvcrt.LK_UNLCK, 1)
             else:
                 import fcntl
-                fcntl.flock(self.fh.fileno(), fcntl.LOCK_UN)
+                fcntl.flock(fh.fileno(), fcntl.LOCK_UN)
         except OSError:
             pass
         try:
-            self.fh.close()
+            fh.close()
         except OSError:
             pass
+
+    def _release_all(self):
+        for _path, fh in self._held:
+            self._unlock(fh)
+        self._held = []
+
+    def __enter__(self):
+        self.dir.mkdir(parents=True, exist_ok=True)
+        order = [self.legacy_path, self.primary_path]
+        if self.legacy_path == self.primary_path:      # 防御：极端摘要长度配置
+            order = [self.primary_path]
+        try:
+            for path in order:
+                self._held.append((path, self._acquire(path)))
+        except SystemExit:
+            # 第二把拿不到时必须放掉第一把，否则失败路径会把旧锁泄漏成"永久占用"。
+            self._release_all()
+            raise
+        return self
+
+    def __exit__(self, *_exc):
+        self._release_all()
         return False
 
 
@@ -1093,7 +1117,18 @@ def merge(batch_dir, tasks=None, target=None, run_dirs=None, only_tasks=None,
 
     冲突时 wt 会把 rebase 留在源 worktree 的未完成态，必须人工 abort 或解决后才能继续；
     因此这里宁可整批停下并如实回传原始输出，也不在半合并历史上叠加后续分支。
+
+    r15（E2 口径 ⑦）：``run_dirs`` 与 ``expect_invocation`` 都是必需参数，缺任一即
+    fail-closed —— 删掉「不给 run-dir 就去 glob 历史找最新 done」的第二授权路径。
     """
+    if run_dirs is None:
+        raise SystemExit(
+            'merge 必须显式给出 run_dirs（本次执行的 run-dir 映射）；'
+            '非显式兜底已按 G-ORCH E2 口径 ⑦ 删除，fail-closed')
+    if not expect_invocation:
+        raise SystemExit(
+            'merge 必须显式给出 expect_invocation（本次 invocation），'
+            '否则无法证明记录属于本次调用，fail-closed')
     done, stale = find_done_tasks(batch_dir, with_blocked=True, run_dirs=run_dirs,
                                   only_tasks=only_tasks,
                                   expect_invocation=expect_invocation)
@@ -1307,10 +1342,15 @@ def merge(batch_dir, tasks=None, target=None, run_dirs=None, only_tasks=None,
             #   · 强制 src_moved 也必然不成立（分支没了，tip 自然"没变"）。
             # 改为：源 commit 用**调用前 sha** 查祖先（分支删了对象还在），并接受 wt 回执
             # 里的 committed / squashed / rebased 作为"这次确实做了合并动作"的证据。
-            # 口径说明：wt 自报不能证明"唯一因果"；正式口径（独占锁 / 可绑定 invocation
-            # 的事务回执 / reflog 对应）待 Owner 拍板，本条只先修"真成功被判失败"的误杀。
+            # 口径说明（r15 ⑤，采 Codex 裁决）：上面这套双采样 + 三档，只是**异常检测**
+            # 与"真成功被误杀"的修复，**不构成唯一因果**——"target 前进且源在里面"仍可能
+            # 是第三方在同一窗口内合入了同一 source。强因果另有 CAS：下面
+            # `_ref_update_from` 取"把 target 推到 sha_after 的那一次 ref 更新"所绑定的
+            # 旧值，与锁内观测的 target_sha 比对；不等即 proof_failure。
+            # 不加 clean-tree 门（Codex ⑤ 明确否决）；脏基线由 ② 的逐路径指纹处置。
             rc_anc, _ = _git_out(['merge-base', '--is-ancestor', src_before, resolved_target])
             sha_after = _ref_sha(resolved_target)
+            cas_state, cas_from = _ref_update_from(resolved_target, sha_after)
             src_after = _ref_sha(branch)          # 分支被 wt 清掉时为空
             progressed = bool(target_sha and sha_after and target_sha != sha_after)
             src_alive = bool(src_after)
@@ -1352,6 +1392,24 @@ def merge(batch_dir, tasks=None, target=None, run_dirs=None, only_tasks=None,
             elif progressed and content_changed and wt_action:
                 proof = 'wt_receipt'
             proven = bool(proof)
+            # r15 ⑤（CAS）：reflog 里"这一跳"的旧值必须等于锁内基线。不等就说明窗口内
+            # 有第三方写过 target——即便三档全绿，也不能把本次合入归因于本任务。
+            # cas_state='unknown'（reflog 读不到）只降级为观察性证据，不额外阻断。
+            if proven and cas_state == 'ok' and cas_from != target_sha:
+                failed.append({
+                    'task': task, 'branch': branch, 'returncode': 0,
+                    'kind': 'proof_failure',
+                    'stdout': r.stdout.strip()[-600:],
+                    'stderr': (f'CAS 校验不通过：target {resolved_target} 推到 '
+                               f'{sha_after[:12]} 的这次 ref 更新，其旧值是 '
+                               f'{cas_from[:12] or "?"}，不等于锁内基线 '
+                               f'{target_sha[:12]}——窗口内有第三方推进过该 ref，'
+                               '本次合入不能归因于本任务（proof_failure）'),
+                    'hint': ('按不可归因处理：先核 target 的 reflog 找出第三方那次推进，'
+                             '确认本任务提交是否仍在历史里，再决定重试或人工合；'
+                             '后续分支已停止。'),
+                })
+                break
             if not progressed or not proven:
 
                 failed.append({
@@ -1381,6 +1439,11 @@ def merge(batch_dir, tasks=None, target=None, run_dirs=None, only_tasks=None,
                            'wt_action': wt_action,
                            'source_ref_alive': src_alive,
                            'proof': proof,
+                           'cas_state': cas_state,
+                           'cas_from': cas_from,
+                           'causal': ('cas' if (cas_state == 'ok'
+                                                and cas_from == target_sha)
+                                      else 'observational'),
                            'source_tree_before': src_tree,
                            'target_tree_before': target_tree_before,
                            'target_tree_after': top_tree,
@@ -1693,12 +1756,10 @@ def run_all(batch_dir, prompts_dir, max_channels=MAX_CHANNELS, target=None,
         # conflict。proof 失败的现场通常**没有** rebase 可 abort，把下游引去
         # 解决不存在的冲突就是新的误导。改成按 kind 四分流，未知单独一档并
         # fail-closed（既不并进 conflict，也不当成可继续）。
-        buckets = {'merge_conflict': [], 'evidence_failure': [],
-                   'proof_failure': [], 'unknown': []}
+        buckets = {k: [] for k in CLEANUP_UNCLOSED_BUCKETS}
         for f in failed:
             k = f.get('kind')
-            buckets[k if k in ('merge_conflict', 'evidence_failure', 'proof_failure')
-                    else 'unknown'].append(f['task'])
+            buckets[k if k in MERGE_FAILURE_KINDS else 'unknown'].append(f['task'])
         steps['cleanup'] = {'removed': [], 'skipped': [],
                             'kept_for_conflict': buckets['merge_conflict'],
                             'kept_for_evidence': buckets['evidence_failure'],
@@ -1804,6 +1865,66 @@ def bridge(run_dir, batch_dir):
     return manifest
 
 
+def doctor(batch_dir):
+    """只读体检：把「永久 unknown / wrong_type」的现场摊开，**零写入**。
+
+    r15（E2 口径 ⑥）：merge / cleanup 遇到 unknown（git 报错、worktree 登记查不动、
+    锁读不到）时一律 fail-closed 停下，但此前没有任何手段让人**看清**现场，只能
+    人肉翻日志。doctor 只做四件事——读、判、列、给复核命令：
+      · 不调 wt_remove，不 unlink / rmdir，不删分支；
+      · 不写任何文件（含日志、缓存、临时文件）；
+      · 查询失败如实记 unknown / None，不猜、不美化。
+    输出是给人看的现场快照，不是判定结论：真正的处置仍然走 merge/cleanup 的既有
+    fail-closed 路径（口径 ⑥ 明确不许 doctor 自己动手清）。
+    """
+    batch_dir = pathlib.Path(batch_dir)
+    if not batch_dir.is_dir():
+        raise SystemExit(f'批次目录不存在: {batch_dir}')
+    cards = sorted(p for p in batch_dir.glob('*.md') if p.is_file())
+    tasks = []
+    for card in cards:
+        task = card.stem
+        branch = BRANCH_PREFIX + task
+        wt_path = WORKTREE_ROOT / task
+        run_records = []
+        runs_dir = pathlib.Path(RUNS)
+        if runs_dir.is_dir():
+            run_records = sorted(p.name for p in runs_dir.glob(f'{task}-ch*')
+                                 if p.is_dir())
+        tasks.append({
+            'task': task,
+            'card_path': str(card),
+            # 卡片是**文件**，`_path_state` 判的是「是否为真实目录」——直接套会
+            # 把每张卡都记成 wrong_type。这里单独用 is_file 判。
+            'card_state': 'exists' if card.is_file() else 'wrong_type',
+            'branch': branch,
+            'branch_state': _branch_state(branch),
+            'worktree_path': str(wt_path),
+            'worktree_state': _path_state(str(wt_path)),
+            'worktree_registered': _worktree_registered(wt_path),
+            'run_records': run_records,
+            # 复核命令原样给出：人/审计照着跑就能拿到与 doctor 同一口径的底层事实。
+            'recheck_commands': [
+                f'git -C "{ROOT}" show-ref --verify refs/heads/{branch}',
+                f'git -C "{ROOT}" worktree list --porcelain',
+                f'git -C "{ROOT}" status --porcelain -- "{card}"',
+            ],
+        })
+    locks_dir = pathlib.Path(RUNS).parent / 'locks'
+    lock_files = []
+    if locks_dir.is_dir():
+        lock_files = sorted(p.name for p in locks_dir.glob('*.lock'))
+    return {
+        'batch': str(batch_dir),
+        'mode': 'read-only',
+        'task_count': len(tasks),
+        'tasks': tasks,
+        'locks': {'dir': str(locks_dir), 'files': lock_files},
+        'note': ('只读快照，不是处置结论：unknown / wrong_type 的清理仍走 '
+                 'merge/cleanup 既有 fail-closed 路径，doctor 不写、不删'),
+    }
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser(description='GORCH 多通道薄编排（只接线）')
     sub = ap.add_subparsers(dest='cmd', required=True)
@@ -1850,6 +1971,8 @@ def main(argv=None):
     b = sub.add_parser('bridge', help='把审议链 run_dir 的产物登记成交接单（只搬不解析）')
     b.add_argument('--run-dir', required=True, help='orchestrate-order 的 run_dir')
     b.add_argument('--batch-dir', required=True, help='交接给 gate/provision 的批次目录')
+    d = sub.add_parser('doctor', help='只读体检：摊开永久 unknown/wrong_type 现场（零写入）')
+    d.add_argument('batch_dir', help='批次任务目录（只放 <id>.md）')
     rn = sub.add_parser('run', help='一条命令走完 gate→provision→execute→merge→cleanup')
     rn.add_argument('batch_dir', help='批次任务目录（只放 <id>.md）')
     rn.add_argument('--prompts-dir', required=True, help='prompt 文件目录（<id>.md|.txt）')
@@ -1860,6 +1983,10 @@ def main(argv=None):
     rn.add_argument('--force-cleanup', action='store_true',
                     help='cleanup 阶段删带未跟踪文件的脏 worktree')
     args = ap.parse_args(argv)
+
+    if args.cmd == 'doctor':
+        print(json.dumps(doctor(args.batch_dir), ensure_ascii=False, indent=2))
+        return 0
 
     if args.cmd == 'gate':
         rows = gate_check(args.batch_dir)

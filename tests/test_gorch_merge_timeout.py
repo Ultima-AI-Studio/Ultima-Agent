@@ -34,7 +34,7 @@ def _boom(*a, **k):
 
 def test_merge_timeout_with_branch_gone_says_branch_missing(mod, monkeypatch):
     """分支已被 wt 删掉：必须明说"可能已删分支但没合入"，不许写成未变更。"""
-    monkeypatch.setattr(mod, '_branch_exists', lambda b: False)
+    monkeypatch.setattr(mod, '_branch_state', lambda b: 'absent')
     monkeypatch.setattr(mod.subprocess, 'run', _boom)
     with pytest.raises(SystemExit) as exc:
         mod.wt_merge('gorch/T1')
@@ -44,7 +44,7 @@ def test_merge_timeout_with_branch_gone_says_branch_missing(mod, monkeypatch):
 
 
 def test_merge_timeout_with_branch_alive_says_main_untouched(mod, monkeypatch):
-    monkeypatch.setattr(mod, '_branch_exists', lambda b: True)
+    monkeypatch.setattr(mod, '_branch_state', lambda b: 'exists')
     monkeypatch.setattr(mod.subprocess, 'run', _boom)
     with pytest.raises(SystemExit) as exc:
         mod.wt_merge('gorch/T1')
@@ -60,14 +60,31 @@ def test_merge_timeout_budget_is_larger_than_switch(mod):
 
 
 def test_branch_exists_reads_git_branch_list(mod, monkeypatch):
+    """r15：`_branch_exists` 已被三态 `_branch_state` 取代（r11）。
+    分支在不在只认 `show-ref --verify` 的 rc，不认 `branch --list` 的 glob 模式；
+    rc=0 存在、rc=1 明确不存在、其余一律 unknown（交给调用方 fail-closed）。
+    """
     class _R:
-        def __init__(self, out):
+        def __init__(self, rc, out=''):
+            self.returncode = rc
             self.stdout = out
+            self.stderr = ''
 
-    monkeypatch.setattr(mod.subprocess, 'run', lambda *a, **k: _R('  gorch/T1\n'))
-    assert mod._branch_exists('gorch/T1') is True
-    monkeypatch.setattr(mod.subprocess, 'run', lambda *a, **k: _R('\n'))
-    assert mod._branch_exists('gorch/T1') is False
+    captured = {}
+
+    def fake_run(cmd, **kw):
+        captured['cmd'] = cmd
+        return _R(0, 'refs/heads/gorch/T1\n')
+
+    monkeypatch.setattr(mod.subprocess, 'run', fake_run)
+    assert mod._branch_state('gorch/T1') == 'exists'
+    assert 'show-ref' in captured['cmd'] and '--verify' in captured['cmd']
+
+    monkeypatch.setattr(mod.subprocess, 'run', lambda *a, **k: _R(1, ''))
+    assert mod._branch_state('gorch/T1') == 'absent'
+
+    monkeypatch.setattr(mod.subprocess, 'run', lambda *a, **k: _R(2, ''))
+    assert mod._branch_state('gorch/T1') == 'unknown'
 
 
 # --- 合并目标必须是"编排所在分支"，不是 wt 默认的 main -----------------------
@@ -100,13 +117,20 @@ def test_merge_passes_target_explicitly_to_wt(mod, monkeypatch):
         captured['target'] = target
         return _Res('{"branch":"%s"}' % branch)
 
-    monkeypatch.setattr(mod, 'find_done_tasks', lambda d: {'T1': 'run.json'})
+    monkeypatch.setattr(mod, 'find_done_tasks',
+                        lambda *a, **k: ({'T1': 'run.json'}, {}))
     monkeypatch.setattr(mod, '_current_branch',
                         lambda: 'codex/voice-fsmn-new-path')
     monkeypatch.setattr(mod, 'wt_merge', fake_wt_merge)
+    # r15：取证前置已 fail-closed（没 run-dir 连 merge 都进不去），这里给
+    # sha/tree 取证打桩，让用例只测「target 是否被显式传给 wt_merge」。
+    monkeypatch.setattr(mod, '_ref_sha', lambda ref: 'a' * 40)
+    monkeypatch.setattr(mod, '_git_out',
+                        lambda args, timeout=60: (0, 't' * 40))
     monkeypatch.setattr(mod, '_parse_braced_json', lambda s: {'branch': 'T1'})
 
-    mod.merge('batch', tasks=['T1'])
+    mod.merge('batch', tasks=['T1'], run_dirs={'T1': 'run.json'},
+              expect_invocation='inv-x')
     assert captured == {'branch': 'gorch/T1',
                         'target': 'codex/voice-fsmn-new-path'}
 
@@ -118,20 +142,27 @@ def test_merge_explicit_target_overrides_current(mod, monkeypatch):
         captured['target'] = target
         return _Res('{}')
 
-    monkeypatch.setattr(mod, 'find_done_tasks', lambda d: {'T1': 'run.json'})
+    monkeypatch.setattr(mod, 'find_done_tasks',
+                        lambda *a, **k: ({'T1': 'run.json'}, {}))
     monkeypatch.setattr(mod, '_current_branch', lambda: 'codex/voice-fsmn-new-path')
     monkeypatch.setattr(mod, 'wt_merge', fake_wt_merge)
+    monkeypatch.setattr(mod, '_ref_sha', lambda ref: 'a' * 40)
+    monkeypatch.setattr(mod, '_git_out',
+                        lambda args, timeout=60: (0, 't' * 40))
     monkeypatch.setattr(mod, '_parse_braced_json', lambda s: {})
 
-    mod.merge('batch', tasks=['T1'], target='main')
+    mod.merge('batch', tasks=['T1'], target='main',
+              run_dirs={'T1': 'run.json'}, expect_invocation='inv-x')
     assert captured['target'] == 'main'
 
 
 def test_merge_refuses_detached_head(mod, monkeypatch):
-    monkeypatch.setattr(mod, 'find_done_tasks', lambda d: {'T1': 'run.json'})
+    monkeypatch.setattr(mod, 'find_done_tasks',
+                        lambda *a, **k: ({'T1': 'run.json'}, {}))
     monkeypatch.setattr(mod, '_current_branch', lambda: 'HEAD')
     with pytest.raises(SystemExit) as exc:
-        mod.merge('batch', tasks=['T1'])
+        mod.merge('batch', tasks=['T1'], run_dirs={'T1': 'run.json'},
+              expect_invocation='inv-x')
     assert 'detached HEAD' in str(exc.value)
 
 

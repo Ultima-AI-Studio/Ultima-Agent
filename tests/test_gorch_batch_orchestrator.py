@@ -486,34 +486,37 @@ def test_parse_braced_json_parses_remove_array(mod):
     assert data[0]['branch_outcome'] == 'retained_unmerged'
 
 
-def test_find_done_tasks_trusts_latest_record_only(mod, monkeypatch, tmp_path):
-    """第三轮审计 A1：任务重跑失败后，绝不能再按上一次的成功记录合并。
+def test_find_done_tasks_requires_run_dirs(mod, tmp_path):
+    """r15（E2 口径 ⑦）：非显式 glob 兜底已删除，不给 run_dirs 必须 fail-closed。
 
-    旧语义（本轮有意变更）：从新到旧扫，命中第一条 done 就算成功 → 任务 2 会被合进去，
-    等于把一次失败的执行当成成果。新语义只看最新一条真实记录。
+    这是「第二授权路径」的直接防线：改动前 `find_done_tasks(batch)` 会去 RUNS 里
+    glob 历史记录、按记录内 started_at 取最新那条 done，等于「谁最后跑过谁拿合并
+    授权」；改动后即使历史里躺着一条合格 done，也不许无 run_dirs 通过。
     """
     write_task(tmp_path, 1)
-    write_task(tmp_path, 2)
     runs = tmp_path / 'runs'
-    d1 = write_run(runs, '1', result='done')
-    d2_done = write_run(runs, '2', result='done')
-    # 已不再按 mtime 授权（第五轮 Q3-3）：改用记录里的 started_at 拉开先后
-    d2 = write_run(runs, '2', result='blocked', channel=2,
-                   started_at='2026-11-09T00:01:40Z')
-    monkeypatch.setattr(mod, 'RUNS', runs)
-
-    assert mod.find_done_tasks(str(tmp_path)) == {'1': str(d1 / 'codex-channel.json')}
-    done, stale = mod.find_done_tasks(str(tmp_path), with_blocked=True)
-    assert set(done) == {'1'}
-    assert '2' in stale                     # 未进合并池的任务必须显式报出来，不能静默
+    write_run(runs, '1', result='done')          # 历史里有合格 done 也没有用
+    with pytest.raises(SystemExit) as exc:
+        mod.find_done_tasks(str(tmp_path))
+    assert 'run_dirs' in str(exc.value)
 
 
-def test_find_done_tasks_excludes_blocked_only(mod, monkeypatch, tmp_path):
+def test_find_done_tasks_requires_invocation_with_run_dirs(mod, tmp_path):
+    """显式 run-dir 模式必须同时给本次 invocation，否则无法证明记录归属。"""
+    write_task(tmp_path, 1)
+    with pytest.raises(SystemExit) as exc:
+        mod.find_done_tasks(str(tmp_path), run_dirs={})
+    assert 'invocation' in str(exc.value)
+
+
+def test_merge_requires_run_dirs(mod, tmp_path):
+    """merge 层同样拒绝：不允许直接 Python API 调用绕入历史扫描。"""
     write_task(tmp_path, 1)
     runs = tmp_path / 'runs'
-    write_run(runs, '1', result='blocked')
-    monkeypatch.setattr(mod, 'RUNS', runs)
-    assert mod.find_done_tasks(str(tmp_path)) == {}
+    write_run(runs, '1', result='done')
+    with pytest.raises(SystemExit) as exc:
+        mod.merge(str(tmp_path))
+    assert 'run_dirs' in str(exc.value)
 
 
 def test_merge_is_serial_and_stops_on_failure(mod, monkeypatch, tmp_path):
@@ -521,9 +524,10 @@ def test_merge_is_serial_and_stops_on_failure(mod, monkeypatch, tmp_path):
     write_task(tmp_path, 1)
     write_task(tmp_path, 2)
     runs = tmp_path / 'runs'
-    write_run(runs, '1')
-    write_run(runs, '2')
+    d1 = write_run(runs, '1')
+    d2 = write_run(runs, '2')
     monkeypatch.setattr(mod, 'RUNS', runs)
+    run_dirs = {'1': str(d1), '2': str(d2)}
 
     calls = []
 
@@ -535,7 +539,8 @@ def test_merge_is_serial_and_stops_on_failure(mod, monkeypatch, tmp_path):
                                                   'committed': False, 'removed': False}))
 
     monkeypatch.setattr(mod, 'wt_merge', fake_wt_merge)
-    done, merged, failed, _ = mod.merge(str(tmp_path))
+    done, merged, failed, _ = mod.merge(
+        str(tmp_path), run_dirs=run_dirs, expect_invocation='inv-test')
     assert calls == ['gorch/1']                 # 只调了一次，串行且失败即停
     assert merged == []
     assert failed[0]['task'] == '1'
@@ -547,9 +552,10 @@ def test_merge_all_sequential_order(mod, monkeypatch, tmp_path):
     write_task(tmp_path, 1)
     write_task(tmp_path, 2)
     runs = tmp_path / 'runs'
-    write_run(runs, '1')
-    write_run(runs, '2')
+    d1 = write_run(runs, '1')
+    d2 = write_run(runs, '2')
     monkeypatch.setattr(mod, 'RUNS', runs)
+    run_dirs = {'1': str(d1), '2': str(d2)}
     calls = []
 
     def fake_wt_merge(branch, target=None):
@@ -558,7 +564,8 @@ def test_merge_all_sequential_order(mod, monkeypatch, tmp_path):
                                                   'committed': False, 'removed': False}))
 
     monkeypatch.setattr(mod, 'wt_merge', fake_wt_merge)
-    done, merged, failed, _ = mod.merge(str(tmp_path))
+    done, merged, failed, _ = mod.merge(
+        str(tmp_path), run_dirs=run_dirs, expect_invocation='inv-test')
     assert calls == ['gorch/1', 'gorch/2']      # 严格串行，不是并发
     assert [m['task'] for m in merged] == ['1', '2']
     assert failed == []
@@ -568,11 +575,13 @@ def test_merge_refuses_task_without_done_record(mod, monkeypatch, tmp_path):
     write_task(tmp_path, 1)
     write_task(tmp_path, 2)
     runs = tmp_path / 'runs'
-    write_run(runs, '1', result='done')
-    write_run(runs, '2', result='blocked')
+    d1 = write_run(runs, '1', result='done')
+    d2 = write_run(runs, '2', result='blocked')
     monkeypatch.setattr(mod, 'RUNS', runs)
     with pytest.raises(SystemExit):
-        mod.merge(str(tmp_path), tasks=['1', '2'])
+        mod.merge(str(tmp_path), tasks=['1', '2'],
+                  run_dirs={'1': str(d1), '2': str(d2)},
+                  expect_invocation='inv-test')
 
 
 def test_merge_fails_closed_on_unparsable_json(mod, monkeypatch, tmp_path):
@@ -582,11 +591,13 @@ def test_merge_fails_closed_on_unparsable_json(mod, monkeypatch, tmp_path):
     """
     write_task(tmp_path, 1)
     runs = tmp_path / 'runs'
-    write_run(runs, '1')
+    d1 = write_run(runs, '1')
     monkeypatch.setattr(mod, 'RUNS', runs)
     monkeypatch.setattr(mod, 'wt_merge', lambda *a, **k: _FakeResult(0, 'no json'))
     trace = {}
-    done, merged, failed, stale = mod.merge(str(tmp_path), trace=trace)
+    done, merged, failed, stale = mod.merge(
+        str(tmp_path), run_dirs={'1': str(d1)}, expect_invocation='inv-test',
+        trace=trace)
     assert merged == []
     assert [f['task'] for f in failed] == ['1']
     assert failed[0]['kind'] == 'proof_failure'
@@ -599,7 +610,8 @@ def test_merge_no_done_tasks_is_noop(mod, monkeypatch, tmp_path):
     monkeypatch.setattr(mod, 'RUNS', tmp_path / 'runs')
     called = []
     monkeypatch.setattr(mod, 'wt_merge', lambda *a, **k: called.append(a))
-    done, merged, failed, _ = mod.merge(str(tmp_path))
+    done, merged, failed, _ = mod.merge(str(tmp_path), run_dirs={},
+                                       expect_invocation='inv-test')
     assert done == {} and merged == [] and failed == []
     assert called == []
 
@@ -1179,6 +1191,47 @@ def test_cygwin_noise_is_anchored_not_substring(mod, monkeypatch, tmp_path):
     assert 'cygheap' in str(ei.value)
 
 
+def test_cygwin_noise_long_form_still_pass(mod, monkeypatch, tmp_path):
+    """r15 实测：MSYS 的带 pid / 内存区间的两种长格式诊断也是噪声，不该整批判红。
+
+    全量跑里真实抖到过一次（`dofork: ... died unexpectedly` + `child_copy:
+    cygheap read copy failed, 0x0..0x80000C5C0, ... Win32 error 299`），当时被
+    判成 4 行真错误、整批 fail-closed。两条都仍是整行锚定：尾部多出内容仍算真错误
+    （见上一条 anchored 用例）。
+    """
+    write_task(tmp_path, 1)
+
+    class _R:
+        returncode = 0
+        stdout = 'STATUS:open\nUNMET:\nCONFLICTS:\n'
+        stderr = ('0 [main] bash 7095 dofork: child -1 - forked process 25912 '
+                  'died unexpectedly, retry 0, exit code 0xC000012D, errno 11\n'
+                  '0 [main] tr (12144) child_copy: cygheap read copy failed, '
+                  '0x0..0x80000C5C0, done 0, windows pid 12144, Win32 error 299\n')
+
+    monkeypatch.setattr(mod.subprocess, 'run', lambda *a, **k: _R())
+    rows = mod.gate_check(str(tmp_path))
+    assert by_id(rows)['1']['verdict'] == '可开工'
+
+
+def test_cygwin_noise_long_form_tail_text_is_real_error(mod, monkeypatch, tmp_path):
+    """同一行的尾部若还挂着业务错误，整行就不算噪声（整行锚定的意义）。"""
+    write_task(tmp_path, 1)
+
+    class _R:
+        returncode = 0
+        stdout = 'STATUS:open\nUNMET:\nCONFLICTS:\n'
+        stderr = ('0 [main] bash 7095 dofork: child -1 - forked process 25912 '
+                  'died unexpectedly, retry 0, exit code 0xC000012D, errno 11 '
+                  'Permission denied\n')
+
+    monkeypatch.setattr(mod.subprocess, 'run', lambda *a, **k: _R())
+    with pytest.raises(SystemExit) as ei:
+        mod.gate_check(str(tmp_path))
+    # detail 截到 120 字符，尾部业务错误可能被截掉——只要被判成真错误(不落噪声)即可
+    assert 'ccpm 判定出现错误输出' in str(ei.value)
+
+
 def test_cygwin_noise_lines_still_pass(mod, monkeypatch, tmp_path):
     """A2 的反面：整行 fork 噪声仍应放行，不把一次噪声放大成整批拒派。"""
     write_task(tmp_path, 1)
@@ -1233,22 +1286,7 @@ def test_merge_tolerates_refs_heads_prefix(mod, monkeypatch, tmp_path):
     assert merged[0]['task'] == '1'
 
 
-
 # ============ 第五轮：7 条最小修复清单的回归验收（r6） ============
-
-def test_find_done_tasks_blocks_broken_record_even_with_older_done(mod, monkeypatch, tmp_path):
-    """Q3-1：损坏记录不再只收集而继续扫描——有旧 done 也必须阻断。"""
-    write_task(tmp_path, 1)
-    runs = tmp_path / 'runs'
-    write_run(runs, '1', started_at='2026-11-09T00:00:00Z')
-    bad = runs / '1-ch2-20261109T000100Z'
-    bad.mkdir(parents=True)
-    (bad / 'codex-channel.json').write_text('{ not json', encoding='utf-8')
-    monkeypatch.setattr(mod, 'RUNS', runs)
-    done, stale = mod.find_done_tasks(str(tmp_path), with_blocked=True)
-    assert done == {}
-    assert '损坏' in stale['1']['reason']
-
 
 def test_find_done_tasks_explicit_empty_run_dirs_returns_nothing(mod, monkeypatch, tmp_path):
     """显式给空 run_dirs 时不能退回兜底扫描（否则等于没给）。"""
@@ -1259,54 +1297,6 @@ def test_find_done_tasks_explicit_empty_run_dirs_returns_nothing(mod, monkeypatc
     done, stale = mod.find_done_tasks(str(tmp_path), with_blocked=True, expect_invocation='inv-test', run_dirs={})
     assert done == {}
     assert '没有该任务的执行记录' in stale['1']['reason']
-
-
-def test_find_done_tasks_rejects_unparsable_started_at(mod, monkeypatch, tmp_path):
-    """Q3-3：started_at 解析不了即阻断，绝不退 mtime。"""
-    write_task(tmp_path, 1)
-    runs = tmp_path / 'runs'
-    d = runs / '1-ch1-badtime'
-    d.mkdir(parents=True)
-    (d / 'codex-channel.json').write_text(json.dumps(
-        {'task': '1', 'result': 'done', 'invocation': 'inv-x',
-         'dry_run': False, 'mergeable': True,
-         'run_dir': str(d.resolve()),
-         'started_at': 'not-a-time'}), encoding='utf-8')
-    monkeypatch.setattr(mod, 'RUNS', runs)
-    done, stale = mod.find_done_tasks(str(tmp_path), with_blocked=True)
-    assert done == {}
-    assert 'started_at' in stale['1']['reason']
-
-
-def test_find_done_tasks_rejects_empty_invocation(mod, monkeypatch, tmp_path):
-    """Q3-3：invocation 为空无法唯一确定本次执行，阻断。"""
-    write_task(tmp_path, 1)
-    runs = tmp_path / 'runs'
-    d = runs / '1-ch1-nosinv'
-    d.mkdir(parents=True)
-    (d / 'codex-channel.json').write_text(json.dumps(
-        {'task': '1', 'result': 'done', 'invocation': '',
-         'dry_run': False, 'mergeable': True,
-         'run_dir': str(d.resolve()),
-         'started_at': '2026-11-09T00:00:00Z'}), encoding='utf-8')
-    monkeypatch.setattr(mod, 'RUNS', runs)
-    done, stale = mod.find_done_tasks(str(tmp_path), with_blocked=True)
-    assert done == {}
-    assert 'invocation' in stale['1']['reason']
-
-
-def test_find_done_tasks_rejects_tied_started_at(mod, monkeypatch, tmp_path):
-    """Q3-3：并列 started_at（含同一 invocation 多条）一律阻断。"""
-    write_task(tmp_path, 1)
-    runs = tmp_path / 'runs'
-    write_run(runs, '1', channel=1, started_at='2026-11-09T00:00:00Z',
-              invocation='inv-1')
-    write_run(runs, '1', channel=2, started_at='2026-11-09T00:00:00Z',
-              invocation='inv-2')
-    monkeypatch.setattr(mod, 'RUNS', runs)
-    done, stale = mod.find_done_tasks(str(tmp_path), with_blocked=True)
-    assert done == {}
-    assert '并列' in stale['1']['reason']
 
 
 def test_merge_rejects_preexisting_ancestor_without_source_move(mod, monkeypatch, tmp_path):
@@ -1504,19 +1494,6 @@ def test_run_dirs_rejects_non_dict_root(mod, monkeypatch, tmp_path):
                                       expect_invocation='inv-test', run_dirs={'1': str(d)})
     assert done == {}
     assert '根节点' in stale['1']['reason']
-
-
-def test_fallback_rejects_duplicate_invocation(mod, monkeypatch, tmp_path):
-    """r7 #5：同一 invocation 多条记录 = 本次结果不唯一，兜底路径必须阻断。"""
-    write_task(tmp_path, 1)
-    runs = tmp_path / 'runs'
-    write_run(runs, '1', channel=1, invocation='inv-1')
-    write_run(runs, '1', channel=2, started_at='2026-11-09T00:00:01Z',
-              invocation='inv-1')
-    monkeypatch.setattr(mod, 'RUNS', runs)
-    done, stale = mod.find_done_tasks(str(tmp_path), with_blocked=True)
-    assert done == {}
-    assert '多条' in stale['1']['reason']
 
 
 def test_merge_rejects_when_pre_state_probe_fails(mod, monkeypatch, tmp_path):
@@ -2279,8 +2256,9 @@ def test_merge_records_not_attempted_after_failure(mod, monkeypatch, tmp_path):
 
     monkeypatch.setattr(mod, '_git_out', fake_git)
     trace = {}
-    _done, merged, failed, stale = mod.merge(str(tmp_path), tasks=['1', '2', '3'],
-                                             target='main', trace=trace)
+    _done, merged, failed, stale = mod.merge(
+        str(tmp_path), tasks=['1', '2', '3'], target='main', trace=trace,
+        run_dirs={'1': 'r', '2': 'r', '3': 'r'}, expect_invocation='inv-x')
     assert merged == []
     assert [f['task'] for f in failed] == ['1']
     assert failed[0]['kind'] == 'evidence_failure'
@@ -2459,7 +2437,316 @@ def test_merge_empty_targets_resets_trace(mod, monkeypatch, tmp_path):
     monkeypatch.setattr(mod, 'RUNS', runs)
     monkeypatch.setattr(mod, 'find_done_tasks', lambda *a, **k: ({}, {}))
     trace = {'attempted': ['old'], 'not_attempted': ['old2']}
-    _done, merged, failed, _stale = mod.merge(str(tmp_path), tasks=[], trace=trace)
+    _done, merged, failed, _stale = mod.merge(
+        str(tmp_path), tasks=[], trace=trace,
+        run_dirs={}, expect_invocation='inv-x')
     assert merged == [] and failed == []
     assert trace['attempted'] == []
     assert trace['not_attempted'] == []
+
+# --- r15（E2 口径 ③）：锁键 128 bit + 迁移期双锁 ---------------------------
+
+
+def test_merge_lock_key_is_128bit_with_legacy_dual_lock(mod, monkeypatch, tmp_path):
+    """锁键升到 128 bit；迁移期同时持有旧 16-hex 与新 32-hex 两把锁。
+
+    双锁的意义：旧版本进程只会去看 16-hex 文件名。若新版本只看 32-hex，新旧各
+    持一把锁、同时放行同一个 target（Codex 复核 Q2 点名的危险）。所以固定顺序
+    先取旧、再取新。
+    """
+    monkeypatch.setattr(mod, 'RUNS', tmp_path / 'runs')
+    lock = mod._MergeLock('main')
+    dg = mod.hashlib.sha256(b'main').hexdigest()
+    assert lock.legacy_path.name == 'merge-main-%s.lock' % dg[:16]
+    assert lock.primary_path.name == 'merge-main-%s.lock' % dg[:32]
+    assert len(dg[:32]) == 32                      # 128 bit = 32 hex
+
+    with lock:
+        assert lock.legacy_path.exists() and lock.primary_path.exists()
+        assert [p.name for p, _fh in lock._held] == [lock.legacy_path.name,
+                                                    lock.primary_path.name]
+    assert lock._held == []                        # 退出必须两把都放
+
+
+def test_merge_lock_releases_legacy_when_primary_acquire_fails(mod, monkeypatch, tmp_path):
+    """第二把（新 32-hex）拿不到时，必须释放已持的旧 16-hex 锁。
+
+    否则失败路径会把旧锁泄漏成"永久占用"，让旧版本进程此后全部拿不到锁。
+    """
+    monkeypatch.setattr(mod, 'RUNS', tmp_path / 'runs')
+    lock = mod._MergeLock('main')
+    real = lock._acquire
+    calls = []
+
+    def fake_acquire(path):
+        calls.append(path.name)
+        if len(calls) == 2:
+            raise SystemExit('primary busy')
+        return real(path)
+
+    monkeypatch.setattr(lock, '_acquire', fake_acquire)
+    with pytest.raises(SystemExit):
+        lock.__enter__()
+    assert len(calls) == 2
+    assert lock._held == []                        # 已持的旧锁被释放
+
+
+def test_merge_lock_blocks_when_legacy_lock_is_held(mod, monkeypatch, tmp_path):
+    """旧版本进程（只持 16-hex 锁）在场时，新进程必须被挡住 — 互斥不能有窗口。"""
+    monkeypatch.setattr(mod, 'RUNS', tmp_path / 'runs')
+    holder = mod._MergeLock('main')
+    holder.dir.mkdir(parents=True, exist_ok=True)
+    holder._held.append((holder.legacy_path, holder._acquire(holder.legacy_path)))
+    try:
+        with pytest.raises(SystemExit) as exc:
+            with mod._MergeLock('main'):
+                pass
+        assert '合并锁被占用' in str(exc.value)
+    finally:
+        holder._release_all()
+
+# --- r15（E2 口径 ⑥）：只读体检 doctor ------------------------------------
+
+
+def _tree_snapshot(root):
+    out = []
+    for p in sorted(pathlib.Path(root).rglob('*')):
+        st = p.stat()
+        out.append((str(p.relative_to(root)), st.st_size, st.st_mtime_ns))
+    return out
+
+
+def test_doctor_is_read_only_and_reports_states(mod, monkeypatch, tmp_path, capsys):
+    """doctor 必须**零写入**，并把永久 unknown / wrong_type 的现场摊开。
+
+    merge / cleanup 遇到查不动的东西一律 fail-closed 停下，但没有手段让人看清现场
+    就只能人肉翻日志。口径 ⑥ 明确：doctor 只读，不许调 wt_remove / unlink / rmdir /
+    删分支。这里用整棵目录树的 (路径, 大小, mtime_ns) 快照前后比对钉住零写入。
+    """
+    write_task(tmp_path, 1)
+    monkeypatch.setattr(mod, 'WORKTREE_ROOT', tmp_path / 'wt')
+    monkeypatch.setattr(mod, 'RUNS', tmp_path / 'runs')
+    before = _tree_snapshot(tmp_path)
+
+    rc = mod.main(['doctor', str(tmp_path)])
+    assert rc == 0
+
+    after = _tree_snapshot(tmp_path)
+    assert before == after, 'doctor 必须零写入（含日志、缓存、锁目录）'
+
+    out = json.loads(capsys.readouterr().out)
+    assert out['mode'] == 'read-only'
+    assert out['task_count'] == 1
+    row = out['tasks'][0]
+    assert row['task'] == '1'
+    assert row['card_state'] == 'exists'
+    assert row['worktree_state'] == 'absent'      # 未 provision
+    assert row['branch_state'] in ('absent', 'unknown')
+    assert row['worktree_registered'] in (False, None)
+    assert row['run_records'] == []
+    assert len(row['recheck_commands']) == 3      # 复核命令原样给出
+
+def test_doctor_body_has_no_destructive_calls():
+    """口径 ⑥ 的硬约束：doctor 不得调 wt_remove / unlink / rmdir / 删分支。
+
+    零写入用例证明的是「本次调用没写」，这条证明的是「实现里根本没有写的能力」——
+    前者会被后续改动悄悄绕过，后者才钉住边界。用 AST 只看**代码**（调用名、名字、
+    字符串常量），并排除 docstring：禁令文字本来就要写在文档里。
+    """
+    import ast as _ast
+
+    src = ORCH.read_text(encoding='utf-8')
+    fn = None
+    for node in _ast.parse(src).body:
+        if isinstance(node, _ast.FunctionDef) and node.name == 'doctor':
+            fn = node
+            break
+    assert fn is not None, 'doctor 不存在'
+
+    called = {n.attr for n in _ast.walk(fn) if isinstance(n, _ast.Attribute)}
+    names = {n.id for n in _ast.walk(fn) if isinstance(n, _ast.Name)}
+    literals = [n.value for n in _ast.walk(fn)
+                if isinstance(n, _ast.Constant) and isinstance(n.value, str)]
+    if (literals and fn.body and isinstance(fn.body[0], _ast.Expr)
+            and isinstance(fn.body[0].value, _ast.Constant)):
+        literals = literals[1:]          # 去掉 docstring
+    whole = ' '.join(sorted(called) + sorted(names)) + ' ' + ' '.join(literals)
+    for bad in ('wt_remove', 'unlink', 'rmdir', 'delete-branch', 'branch -D'):
+        assert bad not in whole, 'doctor 体内出现破坏性调用: %s' % bad
+
+# --- r15（E2 口径 ④）：三 kind / 四桶单源契约 ------------------------------
+
+
+def test_merge_failure_kinds_are_single_sourced(mod):
+    """口径 ④：merge 失败三 kind / cleanup 四桶必须单源定义，且实现只产出这三类。
+
+    集合类口径最容易"文档写一套、代码又一套"（第十三轮审计在同类集合上反复翻车）。
+    这条从 AST 读 merge 的每个失败出口真实写入的 kind 值，与模块常量比对——
+    新增第四种 kind 或把某个出口写成别的值，立刻红。
+    """
+    import ast as _ast
+
+    assert mod.MERGE_FAILURE_KINDS == ('evidence_failure', 'merge_conflict',
+                                      'proof_failure')
+    assert mod.CLEANUP_UNCLOSED_BUCKETS == ('merge_conflict', 'evidence_failure',
+                                           'proof_failure', 'unknown')
+
+    src = ORCH.read_text(encoding='utf-8')
+    fn = None
+    for node in _ast.parse(src).body:
+        if isinstance(node, _ast.FunctionDef) and node.name == 'merge':
+            fn = node
+            break
+    assert fn is not None
+
+    kinds = set()
+    for node in _ast.walk(fn):
+        if isinstance(node, _ast.Dict):
+            for k, v in zip(node.keys, node.values):
+                if (isinstance(k, _ast.Constant) and k.value == 'kind'
+                        and isinstance(v, _ast.Constant) and isinstance(v.value, str)):
+                    kinds.add(v.value)
+    assert kinds, 'merge 的失败出口里没有找到 kind 字面量'
+    assert kinds <= set(mod.MERGE_FAILURE_KINDS), kinds
+    # cleanup 的四个构造点都按四桶分支；键名固定，不随实现漂移
+    assert set(mod.CLEANUP_UNCLOSED_BUCKETS) == {
+        'merge_conflict', 'evidence_failure', 'proof_failure', 'unknown'}
+
+def test_cygwin_noise_createprocessw_failure_is_noise(mod, monkeypatch, tmp_path):
+    """r15 第三种实测格式：`dofork: child -1 - CreateProcessW failed for '<path>', errno 11`。
+
+    带路径的这条同样来自 MSYS 运行时（拿不到子进程句柄），不是 bash/git 的业务错误。
+    行内有 `[main]` 前缀且不含业务失败语义 → 放行。
+    """
+    write_task(tmp_path, 1)
+
+    class _R:
+        returncode = 0
+        stdout = 'STATUS:open\nUNMET:\nCONFLICTS:\n'
+        stderr = ("0 [main] bash 1130 dofork: child -1 - CreateProcessW failed for "
+                  "'C:\\Program Files\\Git\\bin\\..\\usr\\bin\\bash.exe', errno 11\n")
+
+    monkeypatch.setattr(mod.subprocess, 'run', lambda *a, **k: _R())
+    rows = mod.gate_check(str(tmp_path))
+    assert by_id(rows)['1']['verdict'] == '可开工'
+
+
+def test_cygwin_noise_prefixed_business_error_still_rejected(mod, monkeypatch, tmp_path):
+    """无 `[main]` 前缀的 `bash: fork: Permission denied` 必须仍判真错误。
+
+    这是第四轮审计 Q1 的老防线：MSYS 前缀只解释**带前缀**的行，业务程序自己的
+    报错不走这个前缀，不能被顺带放过。
+    """
+    write_task(tmp_path, 1)
+
+    class _R:
+        returncode = 0
+        stdout = 'STATUS:open\nUNMET:\nCONFLICTS:\n'
+        stderr = 'bash: fork: Permission denied\n'
+
+    monkeypatch.setattr(mod.subprocess, 'run', lambda *a, **k: _R())
+    with pytest.raises(SystemExit) as ei:
+        mod.gate_check(str(tmp_path))
+    assert 'Permission denied' in str(ei.value)
+
+
+def test_ref_update_from_reads_cas_old_value(mod, tmp_path, monkeypatch):
+    """r15 ⑤ 本体：reflog 里"把 ref 推到 new 的那一跳"必须读出它替换掉的旧值。
+
+    真仓库验证（不 mock git）：CAS 的绑定语义就是 (old → new) 相邻两跳，读不出
+    旧值就不能宣称"本次更新是我干的"。
+    """
+    repo = tmp_path / 'repo'
+    repo.mkdir()
+    git = mod.GIT_EXE
+    env = dict(os.environ, GIT_AUTHOR_NAME='t', GIT_AUTHOR_EMAIL='t@t',
+               GIT_COMMITTER_NAME='t', GIT_COMMITTER_EMAIL='t@t')
+
+    def run(*args):
+        r = mod.subprocess.run([git, '-C', str(repo), *args], capture_output=True,
+                               text=True, encoding='utf-8', errors='replace', env=env)
+        assert r.returncode == 0, (args, r.stdout, r.stderr)
+        return r.stdout.strip()
+
+    run('init', '-q')
+    run('config', 'core.logAllRefUpdates', 'true')
+    run('commit', '-q', '--allow-empty', '-m', 'one')
+    first = run('rev-parse', 'HEAD')
+    run('commit', '-q', '--allow-empty', '-m', 'two')
+    second = run('rev-parse', 'HEAD')
+    run('update-ref', 'refs/heads/dev', first)
+    run('update-ref', 'refs/heads/dev', second, first)
+    monkeypatch.setattr(mod, 'ROOT', repo)
+
+    # fixture 默认把 `_git_out` 桩成 (0, '')；本用例要真读 reflog，换回真实实现。
+    def _real_git_out(args, timeout=60):
+        r = mod.subprocess.run([mod.GIT_EXE, '-C', str(repo), *args],
+                               capture_output=True, text=True, encoding='utf-8',
+                               errors='replace', env=env, timeout=timeout,
+                               creationflags=getattr(mod, '_NO_WINDOW', 0))
+        return r.returncode, (r.stdout or '').strip()
+
+    monkeypatch.setattr(mod, '_git_out', _real_git_out)
+
+    state, old = mod._ref_update_from('dev', second)
+    assert state == 'ok'
+    assert old == first
+    # 不存在的 ref：读不到就如实 unknown，不许当成"绑定成功"
+    assert mod._ref_update_from('nope', second) == ('unknown', '')
+
+
+def _seed_merge_case(mod, monkeypatch, tmp_path, shas=None):
+    """构造一次"三档全绿"的合并现场，供 CAS 各状态复用。"""
+    write_task(tmp_path, 1)
+    runs = tmp_path / 'runs'
+    d = write_run(runs, '1')
+    monkeypatch.setattr(mod, 'RUNS', runs)
+    if shas is not None:
+        it = iter(shas)
+        monkeypatch.setattr(mod, '_ref_sha', lambda ref: next(it, 'T9'))
+    monkeypatch.setattr(mod, 'wt_merge', lambda *a, **k: _FakeResult(
+        0, json.dumps({'branch': 'gorch/1', 'target': 'main', 'removed': False})))
+    return mod.merge(str(tmp_path), tasks=['1'], target='main',
+                     expect_invocation='inv-test', run_dirs={'1': str(d)})
+
+
+def test_merge_flags_third_party_race_as_proof_failure(mod, monkeypatch, tmp_path):
+    """r15 ⑤ 负例：第三方在窗口内推进过 target → 不可归因，proof_failure。
+
+    Codex 裁决点名的场景：即便 wt 回执身份正确、target 前进、源在里面三档全绿，
+    只要 reflog 里"这一跳"的旧值不等于锁内基线，就说明还有别人写过 target
+    （例如第三方合入了同一 source），本次不能算本任务的。
+    """
+    monkeypatch.setattr(mod, '_ref_update_from',
+                        lambda ref, sha: ('ok', 'third-party-sha'))
+    done, merged, failed, stale = _seed_merge_case(
+        mod, monkeypatch, tmp_path, shas=['T0', 'T1', 'T2', 'T3'])
+    assert merged == []
+    assert failed[0]['kind'] == 'proof_failure'
+    assert 'CAS' in failed[0]['stderr']
+
+
+def test_merge_cas_bound_when_reflog_old_value_matches_baseline(mod, monkeypatch, tmp_path):
+    """r15 ⑤ 正例：reflog 旧值 == 锁内基线 → 强因果成立，记 causal='cas'。"""
+    monkeypatch.setattr(mod, '_ref_update_from',
+                        lambda ref, sha: ('ok', 'T0'))
+    done, merged, failed, stale = _seed_merge_case(
+        mod, monkeypatch, tmp_path, shas=['T0', 'T1', 'T2', 'T3'])
+    assert failed == []
+    assert merged[0]['causal'] == 'cas'
+    assert merged[0]['cas_from'] == 'T0'
+
+
+def test_merge_reflog_unavailable_degrades_to_observational(mod, monkeypatch, tmp_path):
+    """r15 ⑤ 降级：reflog 读不到时只算观察性证据，不得表述为唯一因果。
+
+    默认 fixture 的 `_git_out` 对未知命令回 `(0, '')`，于是 `_ref_update_from`
+    落 unknown；此时合并仍可成立（双采样异常检测通过），但必须把 causal 标成
+    observational，不能宣称"这就是本任务造成的"。
+    """
+    monkeypatch.setattr(mod, '_ref_update_from', lambda ref, sha: ('unknown', ''))
+    done, merged, failed, stale = _seed_merge_case(mod, monkeypatch, tmp_path)
+    assert failed == []
+    assert merged[0]['cas_state'] == 'unknown'
+    assert merged[0]['causal'] == 'observational'
+

@@ -179,6 +179,50 @@ _STATUS_IGNORED_LIMIT = 4000
 
 
 
+# r15（E2 口径 ②）：Windows reparse point 位（junction / mount point / symlink）。
+# scandir 之后对每个条目先看这个位，命中就**只记名字、绝不跟随**——junction 会把
+# 采样带到可变域外目标上（r15 现场实测：`os.lstat` 对 junction 返回目录，
+# `wt remove -f` 只删链接、目标目录与其中的脏文件完全不动）。
+_REPARSE_POINT = getattr(stat, 'FILE_ATTRIBUTE_REPARSE_POINT', 0x400)
+
+
+def _dir_digest(p):
+    """真实目录的内容指纹：**直接条目名集合**的稳定哈希（不递归、不跟随）。
+
+    r15（E2 口径 ②）：此前目录一律折成常量 ``TYPE:dir``，目录里增删改条目全部不可见
+    ——脏基线里往 untracked 目录写文件会被判"没变"。取法按 Codex 复核要求：
+      · 稳定排序（条目名 + 类型标记一起排序，保证同集合同结果）；
+      · 长度分隔（``len\x1e name \x1e``）——否则 `a`+`bc` 与 `ab`+`c` 会拼成同一串；
+      · reparse 条目只进名字集合、标 ``R``，**不**对它 stat/read/递归；
+      · 不递归：目录树规模与噪声不可控，且递归会踩到 reparse。
+    读不了返回 None（由 worktree_fingerprint 把整份指纹标 ERR，fail-closed）。
+    """
+    entries = []
+    try:
+        with os.scandir(str(p)) as it:
+            for entry in it:
+                try:
+                    st = entry.stat(follow_symlinks=False)
+                except OSError:
+                    return None
+                is_reparse = bool(
+                    getattr(st, 'st_file_attributes', 0) & _REPARSE_POINT)
+                entries.append(('R' if is_reparse else 'N', entry.name))
+    except OSError:
+        return None
+    entries.sort()
+    h = hashlib.sha256()
+    for kind, name in entries:
+        enc = name.encode('utf-8', 'replace')
+        h.update(kind.encode('ascii'))
+        h.update(b'\x1e')
+        h.update(str(len(enc)).encode('ascii'))
+        h.update(b'\x1e')
+        h.update(enc)
+        h.update(b'\x1e')
+    return 'DIR:' + h.hexdigest()
+
+
 def _digest(workdir, rel):
     """单路径内容指纹：存在→流式 sha256；不存在→ABSENT；读失败→None。
 
@@ -222,8 +266,12 @@ def _digest(workdir, rel):
     # 不能与「不存在」共用 ABSENT——两次采样都 ABSENT 会被判"没变"，而"路径还在、
     # 只是类型不对"本来就是另一个事实。给带类型的摘要：它仍是可比较的（类型一变
     # 摘要就变），既不误判"没改"，也不会把整份指纹打成不可用（untracked 目录是常态）。
+    if stat.S_ISDIR(st.st_mode):
+        # r15（E2 口径 ②）：真实目录不能再折成常量 TYPE:dir —— 那样目录里增删改
+        # 条目全部不可见。改走直接条目名集合哈希（见 _dir_digest 的取法说明）。
+        return _dir_digest(p)
     if not stat.S_ISREG(st.st_mode):
-        return 'TYPE:' + ('dir' if stat.S_ISDIR(st.st_mode) else 'other')
+        return 'TYPE:other'
     h = hashlib.sha256()
     try:
         with open(str(p), 'rb') as fh:
@@ -265,6 +313,28 @@ def worktree_fingerprint(workdir, status_detail=None):
     if unreadable:
         return {'paths': paths, 'ignored': ignored, 'rows': rows,
                 'diff_sha': 'ERR:digest:' + unreadable[0]}
+    # r15（E2 口径 ②）：submodule 在 status 里是「目录」形态，而目录摘要只覆盖
+    # 直接条目名——「子仓 HEAD 换了、条目名没变」会被判"没变"。这里按 gitlink 取证：
+    # OID 取自 index（mode 160000），已检出时再读子仓 HEAD；读不到写 unconfirmed，
+    # 不猜、不静默放行（Codex 复核 ② 的原文要求）。
+    rc_ls, ls_out = _git_text(workdir, ['ls-files', '-s', '-z'])
+    if rc_ls != 0:
+        return {'paths': paths, 'ignored': ignored, 'rows': rows,
+                'diff_sha': f'ERR:ls-files:{rc_ls}'}
+    for rec in ls_out.split('\0'):
+        if not rec:
+            continue
+        meta, _, sub = rec.partition('\t')
+        fields = meta.split()
+        if len(fields) < 2 or fields[0] != '160000' or not sub:
+            continue
+        gitlink = fields[1]
+        rc_h, out_h = _git_text(pathlib.Path(workdir) / sub,
+                                ['rev-parse', 'HEAD'], timeout=30)
+        head = out_h.strip() if rc_h == 0 else ''
+        paths[sub] = (f'SUBMODULE:{gitlink}:{head}' if head
+                      else f'SUBMODULE:{gitlink}:unconfirmed')
+
     rc, diff_text = _git_text(workdir, ['diff', 'HEAD'])
 
     diff_sha = (hashlib.sha256(diff_text.encode('utf-8', 'replace')).hexdigest()
