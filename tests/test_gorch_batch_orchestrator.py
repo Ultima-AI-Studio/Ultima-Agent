@@ -2664,6 +2664,43 @@ def test_merge_failure_kinds_are_single_sourced(mod):
         'merge_conflict', 'evidence_failure', 'proof_failure', 'unknown'}
 
 
+def _cleanup_schema_shadow_sites(func):
+    '''按 AST 收集 func 体内会遮蔽 cleanup_schema 的本地绑定，含解构与 for/with 目标。'''
+    import ast as _ast
+    sites = []
+    for n in _ast.walk(func):
+        if isinstance(n, _ast.Name) and n.id == 'cleanup_schema' \
+                and isinstance(n.ctx, (_ast.Store, _ast.Del)):
+            sites.append(type(n.ctx).__name__)
+        elif isinstance(n, _ast.arg) and n.arg == 'cleanup_schema':
+            sites.append('arg')
+        elif isinstance(n, (_ast.FunctionDef, _ast.AsyncFunctionDef)) \
+                and n.name == 'cleanup_schema':
+            sites.append('def')
+        elif isinstance(n, _ast.alias) and n.asname == 'cleanup_schema':
+            sites.append('import')
+        elif isinstance(n, _ast.ExceptHandler) and n.name == 'cleanup_schema':
+            sites.append('except')
+    return sites
+
+
+def test_cleanup_shadow_collector_catches_destructuring_and_for_target():
+    '''收集器必须抓住元组解构、for 目标、形参与局部 def 四类绑定。'''
+    import ast as _ast
+    src = (
+        'def run_all(steps, cleanup_schema=None):\n'
+        '    (cleanup_schema, _x) = (1, 2)\n'
+        '    for cleanup_schema in steps:\n'
+        '        pass\n'
+        '    def cleanup_schema():\n'
+        '        return None\n'
+        '    return cleanup_schema\n'
+    )
+    fn = next(n for n in _ast.walk(_ast.parse(src)) if isinstance(n, _ast.FunctionDef))
+    got = _cleanup_schema_shadow_sites(fn)
+    assert sorted(got) == ['Store', 'Store', 'arg', 'def'], got
+
+
 def test_run_all_cleanup_constructed_only_by_helper(mod):
     """r16（r15b 审计 F-5）：`run_all` 内不许再手写 `kept_for_*`，只能调 `cleanup_schema`。
 
@@ -2757,26 +2794,8 @@ def test_run_all_cleanup_constructed_only_by_helper(mod):
                       "({['merge_conflict']: ['merged_tasks']})", '()'], \
         f'四处 cleanup_schema 实参形状不符：{shapes}'
 
-    shadowed = []
-    for n in _ast.walk(fn):
-        if isinstance(n, _ast.Assign):
-            tgts = n.targets
-        elif isinstance(n, (_ast.AnnAssign, _ast.AugAssign)):
-            tgts = [n.target]
-        else:
-            tgts = []
-        for t in tgts:
-            if isinstance(t, _ast.Name) and t.id == 'cleanup_schema':
-                shadowed.append('assign')
-        if isinstance(n, (_ast.FunctionDef, _ast.AsyncFunctionDef)) \
-                and n.name == 'cleanup_schema':
-            shadowed.append('def')
-        if isinstance(n, _ast.arg) and n.arg == 'cleanup_schema':
-            shadowed.append('arg')
-        if isinstance(n, _ast.For) and isinstance(n.target, _ast.Name) \
-                and n.target.id == 'cleanup_schema':
-            shadowed.append('for')
-    assert shadowed == [], f'run_all 内不得遮蔽 cleanup_schema：{shadowed}'
+    sites_shadow = _cleanup_schema_shadow_sites(fn)
+    assert sites_shadow == [], f'run_all 内不得遮蔽 cleanup_schema：{sites_shadow}'
 
     # `_CLEANUP_KEY_FOR` 是 kept_for_* 的唯一声明源：全文件其它位置不许再出现。
     tree = _ast.parse(src)
