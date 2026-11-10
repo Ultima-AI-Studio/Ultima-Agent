@@ -1,0 +1,57 @@
+# 派发载荷：wo-ultimaagent-20261103-0024 -- 全盘理解 P0 全盘索引链路（只读建库）
+
+- 派发时间：2026-11-03（等待 0022 收尾后按 WIP 顺序执行）
+- 授权：用户 2026-11-03 确认全盘理解完整链路开工；图谱留本地不上云
+- 执行端：Codex（或 DeepSeek 可替换，工作流不变）
+- 权威口径：docs/plans/full-disk-understanding-delivery-plan-20261103.md §4/§5/§6/§7/§8（v0.2）
+- 工单卡：tasks/queue/wo-ultimaagent-20261103-0024--full-disk-understanding.md
+
+## 任务总览
+
+在 UltimaAgent 中落地"全盘理解"P0：把整机文件建立可检索索引（只读，不改任何用户文件）。
+这是"电脑成为 Agent 意识体"愿景的第一步，后续 P1（关系图谱+网络球，**用户 2026-11-03 拍板暂缓**）、P2（自管理）另单。
+
+## 必读材料（按序）
+
+1. `docs/plans/full-disk-understanding-delivery-plan-20261103.md` —— 本单方案（§4 P0 口径、§5 隐私沙箱三层域/白名单/授权模型、§6 部署演进、§7 数据落位、§8 验收；v0.2 已闭环 A1–A5/B1–B6）
+2. `src/brain/environment.py` —— 既有 L3 环境快照（磁盘枚举/关键路径扫描，只读模式参考）
+3. `src/brain/environment_upgrade.py` —— M16 环境认知升级（网络/进程扫描 + 基线 diff，复用其只读扫描模式）
+4. `src/brain/memory/vectors.py` —— 既有 fastembed bge-small-zh-v1.5 嵌入链路（复用，不新建；全盘索引唯一向量通道，Mem0/nomic 不扩权）
+5. `src/brain/agent_server.py` —— 工具表接入点（ultima_disk_search 注册处；另需 0017 工具白名单 + L2 技能白名单三处注册）
+6. `config/disk-scan-excludes.json` —— 跳过域清单（系统/缓存/回收站/自身 data 目录，与增量监听排除共用）
+
+## 交付内容（DoD）
+
+1. `src/brain/disk_index/` 新模块（落位可微调）：
+   - 全盘枚举器：C:–H: os.walk，跳过域清单（config/disk-scan-excludes.json：系统/缓存/回收站/隐藏系统文件/自身 data 目录）；**每盘断点续扫**（scan-log.jsonl 游标，中断恢复幂等）；记录 path/type/size/mtime
+   - 内容提取器：纯 Python 主链（PyMuPDF/python-docx/openpyxl/python-pptx/chardet；Tika 仅环境有 JVM 时兜底）；文本/代码/PDF/Office/DOCX 纯文本；媒体只存元数据；二进制跳过；单文件 >10s 跳过留档
+   - 规则分类器：确定性标签（文档/代码/图片/视频/音频/压缩包/配置/数据/可执行/其他），不依赖 LLM
+   - 双索引：SQLite FTS5 全文 + fastembed bge-small-zh-v1.5 512 维向量 blob 列（同库存储），**墓碑表 tombstones.sqlite 删除/移动双删双更**，落 data/disk-index/；**分域索引模板（v0.4）：文档域全文+向量，图片/音视频/应用/归档域仅元数据无向量，应用域 lnk 解析目标，归档域仅目录清单（不展开内容）**
+   - 文件间关联表 links.sqlite（图谱前置输入）：imports（代码正则）/references（正文链接/路径正则）/launcher（lnk→目标）/duplicate（sha256 相同）确定性抽取；similar（向量相似）留 P1
+   - watchdog 增量监听：文件新增/修改/删除/移动四类事件 → 局部更新（单文件 <5s 生效；事件风暴按 mtime 合并批次）
+2. 检索入口 `ultima_disk_search`：关键词 + 语义 top_k，支持盘符/类型/时间过滤；接入 agent_server 工具表 **+ 0017 工具白名单 + L2 技能白名单（三处注册，验收查痕迹）**
+3. 隐私沙箱（横切，三层域策略）：跳过域（系统/缓存/回收站）/沙箱域（敏感白名单 §5.3：目录 glob + pem/key/p12/pfx/kdbx 等扩展名；**只存元数据、不生成向量**，明文不进持久层）/常规域（全量提取）；内容访问默认拒绝→征询授权（本次/会话/长期三档，持久化 §5.4：会话级 grants-session.json、长期入 L8 DPAPI）→ 审计留痕
+4. 证据与报告：
+   - 首次全量耗时/索引体积/每盘明细 → `data/disk-index/scan-log.jsonl`
+   - 覆盖率 ≥99% 可枚举文件入库；抽样 20 条检索命中 ≥90%（**抽样排除沙箱域，只抽常规域**）
+   - **分域模板抽样核验 + links.sqlite 四类关联（imports/references/launcher/duplicate）各 20 条 ≥80% 正确**
+   - 沙箱隔离验证：沙箱条目元数据可检索、明文不可直接读出
+   - 回归：environment.py / environment_upgrade.py / memory 三层既有行为不倒退
+
+## 验收测试要求
+
+- 解释器必须是 `H:\UltimaAI\UltimaAgent\tools\venv-openjarvis\Scripts\python.exe`（3.13.16），禁用默认 Python
+- 单测 + 真实全盘小样（至少一个盘的真实枚举抽样）双覆盖
+- 每个 ACCEPT 项给真实证据路径，不伪造完成
+
+## 硬性边界（越界即打回）
+
+- 只读：禁止修改/移动/删除任何用户文件；禁止写系统配置；禁止改电源/功耗（P2 范围）
+- 禁止改主脑模型/推理参数；禁止改 production 默认行为；禁止重启现有语音/daemon 进程
+- 禁止跳过前序验收、伪造完成或冻结
+- 新增任何依赖必须先出开源替代排查表（G-OPEN-001），无自研模块
+- 每阶段记录 receipt（原单/阶段/run_id/输入哈希/执行端/真实退出/证据/越界声明/开源选择）
+
+## 完成收口
+
+审计 PASS → Owner 验收 → 冻结 tag（格式 ultimaagent-disk-index-p0-20261103）→ 产出与回滚说明齐备 → 关单。

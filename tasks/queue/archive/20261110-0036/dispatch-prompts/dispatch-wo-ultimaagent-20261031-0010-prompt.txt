@@ -1,0 +1,22 @@
+先读项目引导索引 INDEX.md（H:\UltimaAI\UltimaAgent\docs\INDEX.md），按其权威源地图定位规范与写域，再执行本工单。
+
+Act as the Ultima coding executor.
+
+请执行工单 tasks/queue/wo-ultimaagent-20261031-0010--mainbrain-qwen3-8b.md（工单 ID：wo-ultimaagent-20261031-0010，主脑模型降档切换：qwen2.5:14b → qwen3-8b 无审查版）。
+
+按工单 T0→T4 逐条执行，Gate PASS 再进下一条：
+- T0 环境盘点与模型实测对比：ollama list 基线 → pull richardyoung/qwen3-8b-abliterated:Q4_K_M → cp 建短名 qwen3-8b-uncensored → **同套脚本并列实测两模型**（人设五条/≤2句/banned 拦截/9 工具调用≥3样本/结构输出≥10样本/首 token 耗时/内存 ollama ps）→ 预热脚本写死 14B 引用盘点 → 证据 docs/reports/evidence/mainbrain-qwen3-8b/t0-probe-<ts>.txt
+- T1 选型定案：五项通过率均 ≥14B 九成 → 采用 qwen3-8b 无审查版；任一不达标 → 回退普通 qwen3:8b 或 huihui_ai/qwen2.5-1m-abliterated:7b，写明数据；结论入 docs/reports/stage-mainbrain-qwen3-8b-20261031.md
+- T2 切换接线：src/brain/agent_server.py L46 仅改 MODEL="qwen3-8b-uncensored"（ENGINE_KEY 不变，其余一行不动）；预热脚本写死引用同步（若有）；agent_server 启动 /health model=qwen3-8b-uncensored 端口 8756；真机对话链路冒烟
+- T3 回归收口与冻结：venv-openjarvis 全量 pytest 绿；ollama ps 内存对比下降 ≥3GB；git commit + tag ultimaagent-mainbrain-qwen3-8b-20261031 + git push --tags；阶段报告完整
+- T4 八字段回执
+
+硬约束：
+- 工作目录 H:\UltimaAI\UltimaAgent；工程验收 pytest 必须用 tools\venv-openjarvis\Scripts\python.exe（Python 3.13.16），禁止默认 Python312。
+- 禁止修改：agent_server.py 除 L45-46 外任何内容（HOST/PORT 8756/TOOLS/AGENT/工具注册/路由/RU-05 自检）、qwen2.5:14b 不得删除（蓝绿回滚）、nomic-embed-text、KWS 基线 docs/specs/kws-wakeup-params-baseline.md、voice_profile.py（0003 冻结）、voice-listen-daemon.py（0007 范围）、工单 C/D 约束栈代码。
+- 禁止联网下载非本单指定的模型/依赖（只允许 richardyoung/qwen3-8b-abliterated）；禁止中文模型名（ollama 不支持）；禁止微调/提示词人设改造（模型原样使用）。
+- 关键修改/更新完成即打 git tag 并推送（本单 tag=ultimaagent-mainbrain-qwen3-8b-20261031）。
+
+每 T 记录 Gate 证据到 docs/reports/stage-mainbrain-qwen3-8b-20261031.md + docs/reports/evidence/mainbrain-qwen3-8b/，临时文件执行完自行清理。
+
+最终回执八字段：链路号/执行端/完成状态/根因结论/产出路径/验收证据/越界声明/环境声明。

@@ -1,0 +1,21 @@
+先读项目引导索引 INDEX.md（H:\UltimaAI\UltimaAgent\docs\INDEX.md），按其权威源地图定位规范，再执行工单。北极星=贾维斯：所有调整向贾维斯靠拢；默认音色=贾维斯参考音频（已实测可用）；隐私红线=语音不出本机（云端仅调研，不作主链路；edge-tts 是联网通道，必须从首选降级为可禁用兜底）。
+
+Act as the Ultima coding executor
+
+工单路径：tasks/queue/wo-ultimaagent-20261030-0005--cv3-jarvis-voice.md
+
+执行顺序：按 T0→T4 逐条执行，Gate 全绿才进下一条。工单范围冻结（第 0 节）与任务明细（第 2 节）为唯一事实源，严格按三段式（文件/写什么/验收/禁止）执行。
+
+硬约束：
+- 专用解释器：H:\UltimaAI\UltimaAgent\tools\venv-openjarvis\Scripts\python.exe（Python 3.13.16），禁止用系统 Python312；KWS/ASR 相关链路用 tools\venv-asr 解释器时以工单 T4 指定为准
+- 配置装载仅标准库 json/pathlib/logging，不引入第三方配置库
+- 默认贾维斯参考音频已存在：data/voice/jarvis-ref/jarvis_voice_ref_pcm16.wav（7.93s/24k/单声道，10-30 实测合成英文转写可懂、中文正常发声）——T0 默认值必须指向它，禁止换成 CosyVoice 自带默认音色作为 L1 默认
+- 参考音频缺失时仍回退 CosyVoice 自带 asset/zero_shot_prompt.wav（链路永不因音色文件缺失而断）
+- TTS 本地优先链：daemon(CV3) → 冷启动 CV3 → Piper → Melo → edge-tts（可禁用兜底，engine=cv3 时跳过 edge）；禁止删除 edge-tts 代码、禁止把云端通道设为首选
+- 越界保护 fail-closed：写域仅 H:\UltimaAI\UltimaAgent\ 内（工单文件与阶段报告/证据目录除外）；不做 SFT/换模型版本/云端调优、不做 W6 UI、不改 KWS/ASR 参数基线数值、不改 ASR 通道、不引入第三方配置库
+
+证据落盘：每 T 记录 Gate 证据到 docs/reports/stage-cv3-jarvis-voice-20261030.md + docs/reports/evidence/cv3-jarvis-voice/（单测输出、合成样本转写、优先链实测、回归全量输出）
+
+回执字段（Codex 范式 §5）：工单号 / 执行端 / 完成状态 / 根因结论 / 产出路径 / 验收证据 / 越界声明（无=明确写"无"，含未动范围清单）/ 环境声明（真机实测 vs 仅预期）。
+
+任务粘贴模板（工单第 3 节）：逐 T 填写完成状态与 Gate 证据摘要。

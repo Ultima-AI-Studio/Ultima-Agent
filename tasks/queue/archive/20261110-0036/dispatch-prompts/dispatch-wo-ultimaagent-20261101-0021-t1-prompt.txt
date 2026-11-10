@@ -1,0 +1,21 @@
+你是 UltimaAgent 原单 wo-ultimaagent-20261101-0021 的 T1 产品开发执行端。用户已明确批准“按顺序开始推进”。T0 已完成，独立计划评审 r2 PASS，技术检查点 6b70aa6f9223829682ec995fecc7d51952a3e717 / ultimaagent-work-capability-t0-plan-pass-20261101。只执行T1，不进入T2-T5，不要求逐步确认。
+
+工作区固定 C:/Users/Administrator/.codex/worktrees/jarvis-work-capability-longpaths/UltimaAgent，分支 codex/jarvis-work-capability。原项目 H:/UltimaAI/UltimaAgent 的真实服务与语音运行必须保留：PID32856/18068，run_id c4da056f6ee54f288371f6e04ad23052。原主脑8756也不得停止或重启。测试候选用18757、独立runtime-root/output-root/--isolated。只清理你本人本次创建的测试进程，按PID及创建身份确认，禁止按进程名杀进程。
+
+在工作区阅读 docs/plans/jarvis-work-capability-delivery-plan-20261101.md、docs/specs/jarvis-work-capability-contract-20261101.md、data/evidence/jarvis-work-capability/T0/independent-plan-review-r2.json、src/brain/tests/fixtures/work_capability/acceptance-cases.json。评审绑定 plan SHA256=78d6d0e2584d47894a8e84fbf419b1c7ea8df818996124b63e05459e3ce69ae4，spec=99ebc2de134683d986b62799b70814a9f336f7813f03725687fe469a8edf7047，cases=e8d8c0e75a54d8f04221f54aabaec94a36fe6398a00d5745f6ae746e66038225。源码基线还包含T0 runtime-inputs-snapshot.zip 中的未跟踪文件，这些已经补齐当前工作区，勿删除/重写或全量git add。
+
+遵守根规则：精确写域、DoR六项、开源优先、每项目执行<=1、原单生命周期和回执。规划开发审查分离；父代理负责最终独立审计和检查点推送。模型和KWS不变。你不得启动子代理、并行开发、安装依赖、修改vendor/共享解释器、修改生产队列/真实记忆、触碰原服务或新的音频/截图。证据只能写本次T1证据目录。采用executing-plans、karpathy-guidelines和TDD原则；每项偏离先记录Ruling，不扩大本轮目标。
+
+允许产品实现文件：新增src/brain/work_service.py、work_tools.py、work_verifier.py、tests/test_work_delivery.py；修改src/brain/agent_server.py、agent_client.py、interaction.py、cli.py；固定夹具只读，必要测试材料放该测试目录。其余文件必须先向父代理说明必要性。实际测试解释器是 H:/UltimaAI/UltimaAgent/tools/venv-openjarvis/Scripts/python.exe，cwd为上述C工作区。隔离candidate持久化副作用应限制到本轮runtime根，使用SDK现成配置，不写真实用户记忆/遥测库。
+
+先写有意义的失败测试并运行，保留RED输出，再最小实现并跑GREEN。用真实NativeReAct和SDK工具的确定性集成测试，仅替换推理引擎响应，不用测试专用保存分支。必须覆盖假保存、旧文件冒充、缺候选/工具假成功、越界/重解析点、Unicode/空格、query/context/root扩权、两请求不串绑定、写后篡改/读回不符、旧接口兼容和工作路径不重复执行。
+
+关键SDK接线已查明：ask_full只接受工具名，别名无参构造器要捕获不可变WorkBinding和线程安全请求ledger；execute在SDK工作线程，不能在那里才读调用线程ContextVar。SDK序列化丢metadata，因此adapter真实execute同时记ledger，verifier独立重开文件核验。只能注册唯一别名ultima_work_file_write/read，封装SDK FileWriteTool/FileReadTool并传allowed_dirs=[request_root]；无绑定拒绝，不修改SDK源码、不覆盖原名、不清空注册表。只暴露calculator/think和两文件别名。trusted output_root来自启动配置，request子目录服务端UUID，客户端/模型无扩权能力。
+
+mode='work'走WorkService；无mode旧/ask/ask_agent保持兼容；工作失败不得走纯云聊天或风格重问导致重做。新cli --work真实入口按status返回退出码并输出结构化结果。候选server新增--port --runtime-root --work-output-root --isolated；隔离模式不启动HUD/update，不复用生产锁。产品通用核验只做本轮调用/写入内容/读回/摘要，不硬编码松林和日期；E01语义由独立oracle和实际产物审查判定。
+
+GREEN后指定回归：共享解释器 -m pytest src/brain/tests/test_work_delivery.py src/brain/tests/test_agent_server_sse.py src/brain/tests/test_agent_tools_extend.py src/brain/tests/test_interaction.py -q，并记录JUnit。然后提交精确允许文件作为同一候选（勿git add .，勿stage基线旧的未跟踪文件；没有修改的旧文件不要加入）。不推送、不打产品frozen标签。
+
+从同一候选真实启动独立server，使用真实 src.brain.cli --work 连续三轮E01：'把以下三条材料整理为摘要，保存到本次指定目录的summary.md。材料：项目代号是松林；交付形式是Markdown文档；截止日期是2026年11月8日。' 每轮新runtime/output根，外部进程读回artifact、计算原始字节SHA256并保存完整文本、三事实/无新增事实审查。所有失败也保留，不挑选成功轮，不声称尚未实现的T4取消/恢复或最终Owner通过。若真实模型不能稳定产出，记录具体trace和最小必要修复，不能用写死结果冒充模型。
+
+证据目录和run_id由调度提示补充。完成后返回JSON：原单/阶段/执行端/完成状态、真实RED/GREEN/回归命令与退出、三轮真实CLI和工具证据、候选commit、变更文件、开源复用/为何需要适配、越界声明、环境声明、未解决项。只有自检，不代签独立审计、原单完成或Owner冻结。

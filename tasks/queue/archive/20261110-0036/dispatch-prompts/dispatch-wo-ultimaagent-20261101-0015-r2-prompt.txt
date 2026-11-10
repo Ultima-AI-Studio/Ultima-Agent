@@ -1,0 +1,20 @@
+这是 0015 的收口重派（首次回执 BLOCKED：功能 T0-T2 已通过，T3 全量回归被 0017 未提交改动阻塞；0017 已修复并提交）。
+
+Act as the Ultima coding executor.
+
+请完成工单 tasks/queue/wo-ultimaagent-20261101-0015--asr-correction.md（工单 ID：wo-ultimaagent-20261101-0015，ASR 纠错系统化「工单 F」）的 T3/T4 收口。
+
+**现状（勿重置、勿清理、勿 -A/-u 暂存）**：首次执行的未提交实现草稿保留在工作区——
+- src/brain/voice/asr.py（initial_prompt 扩充）、src/brain/interaction.py（近音归一化接入点）、config/asr-normalize.json（新建）、src/brain/tests/test_asr_normalize.py（新建）
+- docs/reports/stage-asr-correction-20261101.md、docs/reports/evidence/asr-correction/（t1-prompt.txt / t2-normalize.txt / t3/ 等）
+- 首次回执已确认：T0 环境盘点 PASS、T1 prompt 扩充 PASS（两条固定真机 WAV 对比 1/2→1/2 持平不恶化）、T2 映射配置化 PASS（专项及 0016 兼容 30 passed）；唯一失败（T3 fresh 全量 1 failed）根因 = 0017 初版每轮读取 voice profile 破坏 0016 的 per-turn no-read 契约，**0017 已将其改为 agent_server 启动时一次性缓存并提交（commit 5ef3ec3），原失败用例复测 1 passed**。
+
+**收口步骤（T3/T4）**：
+1. fresh 全量回归：`tools\venv-openjarvis\Scripts\python.exe -m pytest src -q`，确认全绿（预期 850+ passed，当前 main 已含 0016/0017/0014 提交）。
+2. 0015 专项复核：test_asr_normalize.py 全绿；近音行为复核（"明天上海的天气"类确定性路径、"水量天听"孤例保持 ABSTAIN 安全门、"水田"/"水天一色"不误伤）。
+3. 精确暂存仅本单写域文件（asr.py、interaction.py 中本单的 hunks、config/asr-normalize.json、test_asr_normalize.py、stage 报告、evidence/）；**禁止 git add -A / -u**，不得碰 0014/0016/0017 已提交文件与未提交的他人改动。
+4. commit 标注「工单 0015 ASR 纠错系统化」；tag `ultimaagent-asr-correction-20261101`（git rev-parse 可解析）。
+5. 免代理推送：`git -c http.proxy= -c https.proxy= -c http.https://github.com.proxy= push`（含 tag）。**若 github.com:443 直连超时/连接重置（当前网络波动已知），如实登记推送阻塞到 docs/reports/evidence/asr-correction/t3-push-blocker.txt，push 允许由调度侧统一在网络恢复后补推；本地 commit/tag 必须完成**。不得因 push 失败回滚或重写任何提交。
+6. 更新 docs/reports/stage-asr-correction-20261101.md（补 T3 全量证据与收口记录）；T4 八字段回执写入 docs/reports/evidence/asr-correction/t4-receipt.txt 并在最终消息中给出。
+
+**硬约束（维持不变）**：工作目录 H:\UltimaAI\UltimaAgent；pytest 必须用 tools\venv-openjarvis\Scripts\python.exe（Python 3.13.16）；禁止修改 ASR 模型/faster-whisper 推理参数/采样链路/daemon 主链/_FUZZY_* 关键词结构/sherpa 备用链/voice profile/KWS 基线/UI；不得杀或重启 daemon（27820 在线）。

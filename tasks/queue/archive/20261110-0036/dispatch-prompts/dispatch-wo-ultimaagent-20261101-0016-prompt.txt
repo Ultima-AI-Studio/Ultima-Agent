@@ -1,0 +1,25 @@
+先读项目引导索引 INDEX.md（H:\UltimaAI\UltimaAgent\docs\INDEX.md），按其权威源地图定位规范与写域，再执行本工单。
+
+Act as the Ultima coding executor.
+
+请执行工单 tasks/queue/wo-ultimaagent-20261101-0016--reply-constraint-routing.md（工单 ID：wo-ultimaagent-20261101-0016，意图路由门+回答校验器+主脑规则接入「工单 C」）。
+
+背景：回答约束栈第①③层 + 主脑规则接入。现状：0003 已落地 voice-profile 软约束（banned 词 4 条 + max_sentences=2），但 ASR final 文本直接进 Agent，域外/不可信输入可被模型自由发挥引用（L33"水量天听"被 14B 引用教训）；主脑 system prompt 只有 jarvis.md 角色五条，无回答/行为硬规则。正式方案：docs/plans/reply-constraint-implementation-plan-20261031.md（2026-11-01 更新：模型引用 8B + 规则接入写域）；主脑规则基线：docs/specs/mainbrain-rules-baseline.md v1.0（已冻结，只读引用不复制进代码常量）。
+
+按工单 T0→T4 逐条执行，Gate PASS 再进下一条：
+- T0 环境盘点：读 src/brain/interaction.py 现有路由/兜底/过滤调用链（_normalize_utterance / _try_agent_fallback / 统一出口）确认接入点；ollama list 确认 nomic-embed-text 在位 + 读 memory/backend.py 嵌入通道调用方式（复用不改）；确认 0003 banned 词实现位置与测试基线；读 src/brain/agent_server.py system prompt 组装处现状（jarvis.md 如何加载/拼装）确认规则块接入点；证据 docs/reports/evidence/reply-constraint-c/t0-env-probe.txt
+- T1 意图路由门实现：规则层（域内意图清单 + DENY 关键词/句式 + ABSTAIN 触发=低置信/ASR 修正标记）→ 相似度层（embedding 余弦阈值，起步阈值可配，复用 memory/backend.py 通道）→ 三态输出 + 置信度；证据 t1-intent-gate.txt（ALLOW/DENY/ABSTAIN 各 ≥3 样例 + 判定日志）
+- T2 回答校验器升级：banned 语义化（规则词 → 词 + embedding 相似度双检，"请关注我"类句式拦截）；≤2 句硬校验 + 有界 1 次重试 → 兜底话术；grounded 校验接口 schema 预留（工单 D 后启用，先留字段）；证据 t2-verifier.txt（banned 拦截/超句截断/重试路径样例）
+- T2.5 主脑规则接入：agent_server.py system prompt 组装处加载 docs/specs/mainbrain-rules-baseline.md v1.0 规则块（与 jarvis.md 角色五条拼接；运行时读基线文件，规则正文不复制进代码常量）；验证恒加载（启动加载一次，每轮 prompt 含规则块，测试或日志断言）；证据 t25-rules.txt（组装后 prompt 摘要 + 规则块在）
+- T3 回归与收口：全量回归 venv-openjarvis 专用解释器 pytest src 全绿 + 0003 voice-profile 专项绿；注入用例（"水量天听"类/诱导编造 → DENY/ABSTAIN 未进 Agent，日志 routing 标记 + 兜底话术；"查天气/时间"正常回答不受影响）；git add 仅本单写域文件（禁止 -A/-u）；commit 标注「工单 0016 意图路由门+校验器+主脑规则接入」；tag ultimaagent-reply-constraint-routing-20261101 + git rev-parse + 免代理推送（git -c http.proxy= -c https.proxy= -c http.https://github.com.proxy= push）；阶段报告 docs/reports/stage-reply-constraint-c-20261101.md 完整
+- T4 八字段回执
+
+硬约束：
+- 工作目录 H:\UltimaAI\UltimaAgent；工程验收 pytest 必须用 tools\venv-openjarvis\Scripts\python.exe（Python 3.13.16），禁止默认 Python312。
+- 禁止修改：ollama / qwen3-8b-uncensored 模型与推理参数（0010 已切换，14B 蓝绿回滚保留）；jarvis.md 人设正文（如需只追加不改既有五条）；daemon 采集/ASR/KWS/TTS 主链；W6 UI；voice_profile.py（0003 冻结）；守护进程不得杀/重启；不引入云端意图 API（隐私红线）；不换推理栈。
+- 主脑规则块以 docs/specs/mainbrain-rules-baseline.md v1.0 为唯一权威源，只读引用（禁止把规则正文复制进代码常量）。
+- 关键修改/更新完成即打 git tag 并推送（本单 tag=ultimaagent-reply-constraint-routing-20261101）。
+
+每 T 记录 Gate 证据到 docs/reports/stage-reply-constraint-c-20261101.md + docs/reports/evidence/reply-constraint-c/，临时文件执行完自行清理。
+
+最终回执八字段：链路号/执行端/完成状态/根因结论/产出路径/验收证据/越界声明/环境声明。

@@ -1,0 +1,32 @@
+先读项目引导索引 INDEX.md（H:\UltimaAI\UltimaAgent\docs\INDEX.md），按其权威源地图定位规范与写域，再执行本工单。
+
+Act as the Ultima coding executor.
+
+请执行工单 tasks/queue/wo-ultimaagent-20261101-0018--voice-stack-opensource-fix.md（工单 ID：wo-ultimaagent-20261101-0018，KWS+ASR+TTS 开源对照修复）。
+
+背景：真机三要点验收暴露三个链路问题，已对照开源官方源码定位根因（方案 docs/reports/voice-stack-opensource-plan-20261101.md）：
+1. TTS 漏句：CosyVoice 官方 inference_zero_shot 内部 text_normalize(split=True) 逐句合成、逐句 yield 多段；我们 tts.py 的 _INLINE_SCRIPT 用 for...break 只取第一段，后续分句全丢（实测拆句正常、整句漏，完全吻合）。
+2. 路由挡用户：intent_gate 封闭集相似度 0.82 阈值，"今天有什么新闻" low_similarity 0.336 触发 ABSTAIN 直接回"我没听清"，云脑/本地模型都没机会；应"理解归模型、宽进严出"，fail-closed 放出口而非入口。
+3. 幂幂唤醒难：keywords.txt 幂幂仅 1 行无变体无逐词 score，实测喊多次才醒；官方 keywords 支持每行 :boosting_score #trigger_threshold，create_stream 支持 per-stream 动态关键词。
+4. ASR：SenseVoice 2024-07-17 旧版，官方确认 SenseVoice（encoder-only）不支持 hotwords；可升级 2025-09-09 int8 版并开 use_itn=1。
+
+按工单 T0→T8 逐条执行，Gate PASS 再进下一条：
+- T0 环境盘点：读 tts.py（_INLINE_SCRIPT break 行号/张量时间轴）、intent_gate.py + interaction.py _route_before_agent、kws_listener.py（create_stream/reload_keywords/L60 keywords_score=1.0）+ kws_reconfig.py、asr.py（_load_sherpa_asr/use_itn）；核对 score 漂移（1.0 vs 基线 2.0）申报不静默改；证据 docs/reports/evidence/voice-stack-fix/t0-env-probe.txt
+- T1 TTS 拼接：去 break，收集全部 yield 段 torch.cat(dim=1) 沿时间轴拼接，保留峰值归一化与 24k 输出；mock 多段单测 + 时间句式"现在是下午四点二十四分，星期日。"离线合成 ≥4.8s 存证；证据 t1-tts.txt
+- T2 路由宽进：intent_gate 保留 DENY 拒绝、ABSTAIN 改放行；interaction _route_before_agent 中 ABSTAIN→return None 放行（仅 DENY 返回拒绝），下游顺序与云脑降级不变；"今天有什么新闻"单测不再被挡；证据 t2-route.txt
+- T3 幂幂变体：官方 text2token/CLI 校验候选音素（m ì m ì 基线 + m í m i / m í m ì / m ì m i / m í m），禁凭猜测写音素；逐词 :boosting_score（2.5，短变体 3.0）走 kws_reconfig，不支持先申报；同步 voice-profile.json、基线文档追加记录；多变体离线命中 + 贾维斯/ULTIMA 行回归；证据 t3-keywords.txt
+- T4 换词统一：对照官方 keyword-spotter.py create_stream 动态词机制评估适用性；统一 kws_listener/daemon 双实现、热重载同 PID；按基线处理 score 漂移并记录；换词/回滚单测；证据 t4-reload.txt
+- T5 ASR 升级：下载 sense-voice int8 2025-09-09（优先 ModelScope 镜像，校验完整性），asr.py 新路径 + use_itn=1（先验证真实参数名），旧模型保留可回滚；数字日期 ITN 断言 + 同音频 CER 不劣化；证据 t5-asr.txt
+- T6 全量验证：venv-openjarvis 解释器 pytest src 全绿 + 语音专项绿 + 真机离线闭环（唤醒→开放提问→完整合成），实测数据落盘；证据 t6-regression.txt
+- T7 收口：冻结值零变动核对；git add 仅本单写域（禁 -A/-u），commit「工单 0018 语音链路开源对照修复」，tag ultimaagent-voice-stack-fix-20261101 + rev-parse；免代理推送（git -c http.proxy= -c https.proxy= -c http.https://github.com.proxy= push，含 --tags）失败留证；阶段报告 docs/reports/stage-voice-stack-fix-20261101.md
+- T8 八字段回执
+
+硬约束：
+- 工作目录 H:\UltimaAI\UltimaAgent；工程验收 pytest 必须用 tools\venv-openjarvis\Scripts\python.exe（Python 3.13.16），禁止默认 Python312。
+- 禁止修改：KWS 模型/onnx/tokens（只改 keywords 文本且走官方工具）；KWS 冻结基线数值（kws-wakeup-params-baseline.md 只可追加变更记录）；感知层采集/增益/重采样；8B 主脑权重与 ollama 配置；W6/HUD/四角壳 UI 与产品功能；不引入重型框架、不替换整体架构。
+- 守护进程热重载必须同 PID，不得杀/重启。
+- 关键修改完成即打 git tag 并推送（本单 tag=ultimaagent-voice-stack-fix-20261101）。
+
+每 T 记录 Gate 证据到 docs/reports/stage-voice-stack-fix-20261101.md + docs/reports/evidence/voice-stack-fix/，临时文件执行完自行清理。
+
+最终回执八字段：链路号/执行端/完成状态/根因结论/产出路径/验收证据/越界声明/环境声明。

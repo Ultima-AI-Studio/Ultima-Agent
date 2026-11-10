@@ -1,0 +1,23 @@
+先读项目引导索引 INDEX.md（H:\UltimaAI\UltimaAgent\docs\INDEX.md），按其权威源地图定位规范与写域，再执行本工单。
+
+Act as the Ultima coding executor.
+
+请执行工单 tasks/queue/wo-ultimaagent-20261101-0017--reply-constraint-structured.md（工单 ID：wo-ultimaagent-20261101-0017，约束解码结构化输出「工单 D」）。
+
+背景：回答约束栈第②层——生成期硬约束。Agent 回答不再自由文本，而是固定 JSON 结构 {reply_text, confidence, grounded}，模型在解码阶段被约束，schema 之外"瞎话形态"（营销话术/编造/跨轮旧文本）生成期即不可能产出。前置：工单 0016（意图路由门+校验器+规则接入）完成后本单才可启动，出口稳定是前提。正式方案：docs/plans/reply-constraint-implementation-plan-20261031.md（2026-11-01 更新：实测对象 qwen3-8b-uncensored）。
+
+按工单 T0→T4 逐条执行，Gate PASS 再进下一条：
+- T0 能力实测：scripts/probe_ollama_format.py 实测 qwen3-8b-uncensored 在 format: json / grammar 下输出合法 JSON 的比率（≥10 样本：天气/时间/任务/闲聊/注入）；记录 schema 字段遵守率、非法输出形态；实测结论决定主路径（ollama 原生 vs Outlines 包装），结论明确落盘；证据 docs/reports/evidence/reply-constraint-d/t0-probe.txt（结论明确即 PASS，不要求遵守率达标）
+- T1 schema 定义与接入：定义 {reply_text, confidence, grounded} schema（src/brain/reply/schema.py）；接入 agent 调用层（agent_server.py 底座）；解析失败/非法 JSON 走降级（自由文本 + 校验器兜底，不裸播）；证据 t1-schema.txt（schema + 接入点 + 降级路径样例）
+- T2 校验器启用：reply_verifier 启用 grounded/confidence 校验（grounded=false → 有界 1 次重试 → 兜底；confidence<阈值 → 兜底）；证据 t2-verifier.txt（grounded=false/低置信/重试路径样例）
+- T3 回归与收口：全量回归 venv-openjarvis 专用解释器 pytest src 全绿 + 0016 专项绿；注入用例全过（不可信输入在 0016 门拦截 + D 结构层双保险；正常问答 reply_text ≤2 句无营销）；git add 仅本单写域文件（禁止 -A/-u）；commit 标注「工单 0017 约束解码结构化输出」；tag ultimaagent-reply-constraint-structured-20261101 + git rev-parse + 免代理推送（git -c http.proxy= -c https.proxy= -c http.https://github.com.proxy= push）；阶段报告 docs/reports/stage-reply-constraint-d-20261101.md 完整
+- T4 八字段回执
+
+硬约束：
+- 工作目录 H:\UltimaAI\UltimaAgent；工程验收 pytest 必须用 tools\venv-openjarvis\Scripts\python.exe（Python 3.13.16），禁止默认 Python312。
+- 禁止修改：模型权重/推理温度等全局参数（如确需调参须先走基线文档评估）；jarvis.md 人设正文（可只追加结构输出指令）；daemon 主链；W6 UI；voice_profile.py（0003 冻结）；不引入云端结构化输出 API；不换推理栈（vLLM 等暂不做，实测 ollama 能力不足时评估 Outlines 包装，仍本地）。
+- 关键修改/更新完成即打 git tag 并推送（本单 tag=ultimaagent-reply-constraint-structured-20261101）。
+
+每 T 记录 Gate 证据到 docs/reports/stage-reply-constraint-d-20261101.md + docs/reports/evidence/reply-constraint-d/，临时文件执行完自行清理。
+
+最终回执八字段：链路号/执行端/完成状态/根因结论/产出路径/验收证据/越界声明/环境声明。

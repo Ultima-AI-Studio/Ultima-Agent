@@ -1,0 +1,36 @@
+你是 UltimaAgent 工单 wo-ultimaagent-20261103-0025 的续跑执行端（第二次派发，resume）。本载荷只要求续跑 T2/T3，T0/T1 已 PASS 勿重做。
+
+# 任务背景
+上一轮执行在 T2 完整工程门 38% 处因执行端会话管道中断而退出（run 目录 dispatch.err.log 记录 code-mode host closed its stdout，10:55:57；dispatch.out.log 10:57:06 停更；PID 22652 已退出；无 T2 gate.json、无 commit、无 final-message.json）。代码修复已落盘在本次 checkout 工作区（未提交），T0/T1 证据完整。本轮续跑目标：核对 T0/T1 已 PASS → 新鲜全量重跑完整工程门（T2）→ 阶段报告与 commit → T3 八字段回执。
+
+# 必读材料（先读后动）
+1. 工单卡：tasks/queue/wo-ultimaagent-20261103-0025--t0-baseline-fix.md（goal/acceptance/写什么与禁止 = 不可变口径）
+2. 修复方案：docs/plans/t0-baseline-fix-plan-20261103.md（G-PLAN-0025）
+3. 上一轮证据（勿重做，先核对 PASS 再续跑）：data/evidence/t0-baseline-fix/T0/gate.json（PASS，RED_CONFIRMED，四项复现+归因）、data/evidence/t0-baseline-fix/T1/gate.json（PASS，GREEN，11 passed + 32 passed+2 subtests）、execution-ledger.md
+4. 0022 完整门基线：data/evidence/middleware-v1/T5/gate.json（921 passed, 4 failed, 120 subtests, 36 warnings in 187.18s）
+5. 语音参数权威基线：docs/specs/kws-wakeup-params-baseline.md（已冻结，不得改动）
+
+# 当前工作区已知状态（git status 实测，上一轮遗留）
+- 已修改未提交：src/brain/interaction.py（_cn_hour 边界修正）、src/brain/queue_source.py（任务库内相对路径 + # 标题解析）、src/brain/routing/tests/test_mainbrain_rules_prompt.py、src/brain/routing/tests/test_routing_integration.py、src/brain/tests/test_queue_source.py（断言对齐+新增边界/路径用例）
+- 未跟踪：data/evidence/t0-baseline-fix/、docs/plans/t0-baseline-fix-plan-20261103.md、tasks/queue/wo-ultimaagent-20261103-0025--t0-baseline-fix.md
+- 环境依赖已补齐：venv-openjarvis 已在线装好 soxr==1.1.0（上一轮 T1 完成，import 回读通过，勿重复安装）
+- 注意：checkout codex/voice-fsmn-new-path 自带既有未提交内容（如 src/brain/agent_server.py、tasks/tasks.json 的 M 状态）——那不是本单写域，不得纳入 commit
+
+# T2 完整工程门（唯一硬门）
+- 解释器必须用 tools/venv-openjarvis/Scripts/python.exe（Python 3.13.16），禁止默认 Python312
+- 新鲜完整运行：python -m pytest src -q --tb=short --junitxml=<T2>/full-src-resume/junit.xml --basetemp=<T2>/full-src-resume/tmp -o cache_dir=<T2>/full-src-resume/pytest-cache，真实退出码写 exit-code.txt
+- 产物落 data/evidence/t0-baseline-fix/T2/full-src-resume/，gate.json 写 data/evidence/t0-baseline-fix/T2/gate.json（status PASS/FAIL、result 摘要、junit 路径、red_green）
+- 通过判据：全绿（921+ 项口径，无 failed；subtests 不计失败）；若仍有失败，按归因三选一有界修复后重跑至全绿，禁止删测试、弱化断言、为绿而绿
+- 经验提示：完整门约 3-4 分钟，38% 后进入含本地 HTTP fixture 与 jarvis.exe CLI 集成用例的慢段，日志可能现 ConnectionAbortedError（WinError 10053）测试噪声——以最终 junit/退出码裁定，不要中途杀 pytest 进程，等待自然完成
+
+# T3 收口
+- 阶段报告 docs/reports/t0-baseline-fix-20261103.md（四项修复说明、T0/T1/T2 证据链、完整门最终结果）
+- git add 仅本单写域：五个 src/brain 文件 + data/evidence/t0-baseline-fix/ + docs/plans/t0-baseline-fix-plan-20261103.md + tasks/queue/wo-ultimaagent-20261103-0025--t0-baseline-fix.md + docs/reports/t0-baseline-fix-20261103.md
+- git commit 标注工单 0025；禁止代 0022 commit/tag/push（防串单）
+- 最终回复按八字段回执（链路号/执行端/完成状态/根因结论/产出路径/验收证据/越界声明/环境声明），含全部产出路径
+
+# 硬约束
+- 不改生产默认行为；不重启现有语音/daemon 进程；不改主脑模型与推理参数；不改 KWS/唤醒词参数基线
+- 测试用隔离目录，禁止写生产记忆/真实用户文件
+- 若本轮会话仍中途中断，优先把已落盘产物（exit-code.txt/junit/gate.json/receipt）留全再停止
+- 每阶段如实汇报真实退出码与证据路径，不编造

@@ -1,0 +1,21 @@
+先读项目引导索引 INDEX.md（H:\UltimaAI\UltimaAgent\docs\INDEX.md），按其权威源地图定位规范，再执行工单。北极星=贾维斯：所有调整向贾维斯靠拢；默认人设固定 Jarvis，允许 L2 用户覆盖；隐私红线=语音不出本机（云端仅调研，不作主链路）。
+
+Act as the Ultima coding executor
+
+工单路径：tasks/queue/wo-ultimaagent-20261030-0003--voice-profile.md
+
+执行顺序：按 T0→T4 逐条执行，Gate 全绿才进下一条。工单范围冻结（第 0 节）与任务明细（第 2 节）为唯一事实源，严格按三段式（文件/写什么/验收/禁止）执行。
+
+硬约束：
+- 专用解释器：H:\UltimaAI\UltimaAgent\tools\venv-openjarvis\Scripts\python.exe（Python 3.13.16），禁止用系统 Python312；KWS/ASR 相关链路用 tools\venv-asr 解释器时以工单 T4 指定为准
+- 配置装载仅标准库 json/pathlib/logging，不引入第三方配置库；不修改 KWS 参数基线数值（阈值/score 归 docs/specs/kws-wakeup-params-baseline.md 管）
+- 人设默认加载 libs/base/openjarvis/configs/openjarvis/prompts/personas/jarvis.md（保留原 loyal/efficient/dry-witted/British butler 骨架，追加三条硬约束：只答事实/禁营销关注点赞话术/≤2句短句）；override 加载失败必须回退 jarvis
+- 唤醒词热重载：改 voice-profile.json custom → 同步 keywords.txt → daemon 重建 spotter（不重启进程）；interaction.py _WAKE_ECHO_ONLY 词根动态化，禁止硬编码"贾维斯/乔维斯"
+- 回答后过滤统一出口（interaction 层），命中 banned_phrases 替换为"收到。"，不误杀正常问答
+- 越界保护 fail-closed：写域仅 H:\UltimaAI\UltimaAgent\ 内（工单文件与阶段报告/证据目录除外）；不做 W6 UI、不做云端 ASR 主链路、不改 KWS 参数基线数值、不做 TTS 克隆、不引入第三方配置库
+
+证据落盘：每 T 记录 Gate 证据到 docs/reports/stage-voice-profile-20261030.md + docs/reports/evidence/voice-profile/（单测输出、热重载实测、回复过滤样例、回归全量输出）
+
+回执字段（Codex 范式 §5）：工单号 / 执行端 / 完成状态 / 根因结论 / 产出路径 / 验收证据 / 越界声明（无=明确写"无"，含未动范围清单）/ 环境声明（真机实测 vs 仅预期）。
+
+任务粘贴模板（工单第 3 节）：逐 T 填写完成状态与 Gate 证据摘要。

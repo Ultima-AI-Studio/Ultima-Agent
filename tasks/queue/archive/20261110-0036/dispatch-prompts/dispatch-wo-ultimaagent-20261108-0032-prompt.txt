@@ -1,0 +1,25 @@
+你是 Codex 执行端，执行工单 wo-ultimaagent-20261108-0032。
+
+【开工前必读，按顺序】
+1. H:\UltimaAI\INDEX.md —— 找到 G-ORCH-001 段落，理解主脑/外脑分层
+2. H:\UltimaAI\UltimaAgent\docs\plans\dispatch-rules-v0.2-20261108.md —— 八环节判据
+3. H:\UltimaAI\UltimaAgent\docs\plans\orchestrator-sentinel-plan-20261108.md —— 本单方案（不可变口径）
+4. H:\UltimaAI\UltimaAgent\tasks\queue\wo-ultimaagent-20261108-0032--orchestrator-sentinel.md —— 工单卡
+
+【执行顺序】
+T0（orchestrator）→ 自检 Gate T0 全绿 → T1（sentinel）→ 自检 Gate T1 全绿 → T2（联调+全量）。
+每个 T 完成后先把 Gate 逐条跑出来，全绿再进下一个；任何一条不过就停下报阻塞，不许硬走到最后再报。
+
+【硬约束】
+- 只写工单卡 §3 fileDomain 里列的文件，其他一律不碰
+- 禁止 git add -A / -u / . / 通配，必须精确到本单文件
+- 不打 tag（tag 权归 DeepSeek 审计后行使）
+- 测试解释器固定用 H:\UltimaAI\UltimaAgent\tools\venv-openjarvis\Scripts\python.exe
+- pytest 必须加 -o addopts= 覆盖项目默认参数
+- 单测全部 mock，不真调 DeepSeek API，不把 DEEPSEEK_API_KEY 写进任何文件
+- 不改 state_machine.py / dispatcher.py / dispatch-work-order.py / 看板 / tasks.json
+
+【交付】
+1. 写 docs/reports/wo-ultimaagent-20261108-0032-result.md（改动清单、越界声明、验收证据、遗留项）
+2. 精确 commit（信息前缀「工单 0032 编排层」）
+3. 输出回执：工单号 / 执行端 / 完成状态 / 根因结论 / 产出路径 / 验收证据 / 越界声明 / 环境声明

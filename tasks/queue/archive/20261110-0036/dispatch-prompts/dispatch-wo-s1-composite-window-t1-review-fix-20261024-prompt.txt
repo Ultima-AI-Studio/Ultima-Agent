@@ -1,0 +1,39 @@
+先读 docs/INDEX.md。本轮是同一原工单 wo-s1-composite-window 的 T1 修复续行，授权来自用户2026-10-24“检查工单和任务推进的问题，修复后继续执行任务推进”。
+原运行20261021T053435036433Z因执行尾部停滞由用户暂停，真实exit125，无final，旧失败必须保留。本轮独立新进程，只续T1，不运行T2/T3，不申请/签署Owner冻结。
+现有T1源码与25项自测已存在；不要重写已通过实现、重复下载固定依赖或把实现删除重做RED。先核对现有三件套和所有来源pin，运行原测试与guardrails，针对确有缺陷做最小修复，修复前增加失败测试，最多2次自修。没有缺陷就整理本轮全新开发回执并正常退出；不能把开发自测称独立验收。全局审计名额被其他项目占用时由监督端排队，不干预共享表。
+本轮产品写入域仍严格沿用下方原T1载荷，只准src/window/、docs/specs/component-dsl-schema.md、docs/specs/registry.md和tasks/cards/s1-window-dsl-schema/。监督脚本的调度修复已单独通过114项测试，不得在产品worker中修改scripts/、队列引擎、brain、shared、sync或其他卡片。新证据放T1卡新的20261024子目录，旧证据不覆盖。
+工具执行用cmd.exe且禁login，所有命令有限时；不要执行全局环境扫描、GUI或显示器枚举。禁止update_plan工具。最终必须输出规定纯JSON后直接结束，不再工具调用。此次执行已设置30分钟硬上限与本轮Job隔离，不能无期限等待。当前已安装codex-cli 0.146.0，模型显式gpt-5.6-sol/high，不能自行换模或宣称ultra。
+以下为原T1的范围和已批准设计，除“已有实现不重复RED/不重新取得上游”的续行说明外全部有效：
+
+先读项目引导索引 docs/INDEX.md，按权威源地图读取 H:/UltimaAI/_shared/paradigms/Codex-外部执行端调用范式.md，再执行。Act as the Ultima coding executor.
+
+唯一原工单wo-s1-composite-window，本轮仅原T1 s1-window-dsl-schema（DS-01~04）独立阶段。读取tasks/queue/wo-s1-composite-window.md、tasks/queue/v04-phase1-plan-20261021.md及T1原卡；T2/T3只读。high推理，一单一真实进程，不派子Agent，不启动其他工单。
+
+用户明确要求持续推进。设计与计划已存在且获批：docs/plans/tech-decisions.md v1.2的TD-01/ADR-007冻结A2UI v0.8；原工单T1四单元为实施计划。不要把component-dsl-schema.md旧草案的“待TD-01评估”当作要重新请求选型，这正是本T1需对齐的陈旧文档。遵循已批准设计与原任务顺序，不另造接口方向，不升级协议版本。
+
+只做DSL协议/schema/目录/图校验，不做渲染、窗口、主题或宿主集成。不播放、不录音、不调用麦克风，不合成新音频。T2 ultra背书、T3依赖s1-voice-four-io及双通道真机门均保留。不得因为当前可做T1就宣称T2/T3/W5或v0.4完成。
+
+先调用冻结队列引擎check_version_gates核对v0.3门；实际v0.3-frozen固定731710a80358b062d1064ccaf08f758483a9d958，Owner凭据tasks/queue/gates/v0.3-frozen.json。v0.1固定43ce13021f16f191bb36615ebb6c68465bf201fa。已有src/brain/与tasks/queue_engine/全部只读。初末核对v03的10项source-manifest、v01的36项source-manifest及生产tasks.json哈希。
+
+读docs/specs/component-dsl-schema.md、docs/specs/registry.md、docs/paradigms/ui-kit-standard.md、docs/specs/protocol-contract.md中HS-005，以及必要主题规范。已查到官方A2UI v0.8规范https://a2ui.org/specification/v0.8-a2ui/，上游官方仓库google/A2UI当前会跳转a2ui-project/a2ui，v0_8路径有server_to_client.json、catalog_description_schema.json、standard_catalog_definition.json。仅采用官方主源，获取必须固定真实commit SHA/源路径/许可证/内容SHA256，缓存必要的v0.8规范schema与许可证到src/window/合适的vendor/spec路径，不使用会变化的main URL作为唯一pin，不拷贝其他产品代码。联网只用于取得官方协议依赖/规范，不传生产任务或秘密；运行与测试必须离线，不在运行时下载catalog或远程$ref。
+
+实现src/window/可复用的跨平台Python校验模块（Python3.13现有基线）。T1只负责协议与组件schema，后续渲染消费校验后的结构；不能用自研缩进DSL替换已批准A2UI。支持范围应清楚写明，未实现的A2UI功能显式拒绝，不声称完整协议渲染器。
+- 校验真实A2UI v0.8消息封套、surface/组件唯一ID、组件目录白名单和props类型/必填/未知字段、合法根与引用。
+- 合法树通过；未知组件、非法属性、重复ID、悬空引用、缺根、环、不可达死组件、混用surface/catalog、安全默认不执行脚本必须真实拒绝。
+- A2UI扁平组件列表用ID引用，不能错误要求嵌套自研树；如支持流式，允许beginRendering前的中间未完帧，最终渲染提交前必须完整合法；不把中间状态误报为可渲染。若仅实现有界批次检查，明确该边界，不伪称已实现流式UI。
+- 组件目录需参数schema/令牌引用/renderer标识/registered状态，不把尚未有渲染实现的组件登记active。安全默认拒绝外部catalog、可执行脚本/HTML回调/动态eval与未批准远程资源，不允许通过未知props透传。采用独立Ultima catalogId，不能把自定义属性冒充官方标准catalog。
+- 目录覆盖原初始组件清单（窗口/按钮/开关/滑块/进度条/列表卡片/输入框/弹窗/悬浮球/播放器/传感器卡片/状态标签）及必要布局/文本组件，协议标准组件与自定义扩展清楚区分；本T1不做真实播放/渲染动作。
+- 保持与官方v0.8schema实例的兼容可核对；如工程限制只支持子集，源规格/子集限制/拒绝例并列记录。不要仅用开发者自造JSON例子宣称A2UI兼容。
+
+先写有意义的失败测试并实际运行观察失败，再最小实现，再完整通过。测试要包含官方固定示例/合法多布局树与对应坏输入；边界、错误返回、输入不被修改、离线/无副作用；不得用mock替代图校验。项目嵌入式Python没有pip，不安装全局依赖或改环境；优先stdlib实现明确有界校验，如采用第三方校验库需固定来源/版本/许可证并限定在本写入域，不能静默引入运行期网络。
+
+精确写入域：src/window/；docs/specs/component-dsl-schema.md与docs/specs/registry.md；tasks/cards/s1-window-dsl-schema/（含证据）。其他docs、logs、scripts、_shared、全局主表、sync、原工单/计划、其他任务卡禁止写。测试输出放本T1卡新证据子目录。三件套、报告version='S1/v0.4'，最终报告明确本T1阶段完成、整单未完成。旧失败/旧证据不得覆盖。
+
+显式Python H:/UltimaAI/UltimaAgent/tools/python31313/python.exe -B -X utf8，入口显式插入project root（嵌入式隔离）。工具优先cmd.exe login=false，避免pwsh挂起；所有子进程CREATE_NO_WINDOW。不要GUI/显示器枚举，本轮只校验协议不需要桌面。不得git commit/push/tag或签Owner冻结。
+最多2次自修；真实问题解决不了回报BLOCKED。禁止update_plan工具，最终纯JSON后不调用工具，保证CLI正常退出。最终字段：work_order='wo-s1-composite-window',status='READY_FOR_REVIEW'或'BLOCKED',phase='T1-only',completion,landed_files=[实际绝对路径],evidence=[实际存在绝对证据文件],remaining_gates=['独立T1审查','T2渲染与ultra背书','T3语音四IO及双通道真机','完整W5及Owner冻结'],scope_violation=false。
+
+本轮最新授权优先：2026-10-24用户明确要求修复独立审查I1/I2/I3并接审计修复闭环。只修这3项与直接回归问题；先读 docs/reports/evidence/window-t1-independent-20261024/review.md、result.json、independent_probe.py，不修改旧审计证据。
+I1：Image/AudioPlayer资源URL采用明确受控本地引用白名单（既有asset:local兼容），拒绝//网络位置、UNC、反斜杠路径、未知scheme、路径遍历和其它未批准定位方式。不要只追加黑名单；在source spec清楚定义允许语法与错误。文本与资源语义分开，不放宽已有安全策略。
+I2：final=False仍必须校验独立于目录的组件封套(id+component必需、未知外字段拒绝)和安全输入。只推迟有文档说明的目录/完整图检查，永不提前ready。旧探针中的unknown组件和属性错误也需核对实际子集规则；不要简单令所有中间帧失败。
+I3：合法1101节点Card/Text链必须不发生RecursionError。优先迭代图遍历，保留环/悬空/不可达检查，不用降低默认递归边界掩盖。输入应不变。
+每项先补能重现的RED测试，再实现GREEN，证据存新T1卡目录，原证据不覆盖。独立审查由监督在你退出后另启进程执行，你不能自签独立PASS或写共享表/观察器。最终仍按原纯JSON，phase=T1-only,status=READY_FOR_REVIEW，evidence为真实绝对路径，正常退出。切勿把最终报告后继续反思当作工作。

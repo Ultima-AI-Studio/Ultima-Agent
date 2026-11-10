@@ -1,0 +1,54 @@
+工单 WO-ORB-W7 · G-ORCH 编排层接线（过渡托底单）
+
+【必读顺序，不得跳】
+1. docs/INDEX.md（G-ORCH-001 整段 + 阅读顺序；实际路径 H:\UltimaAI\INDEX.md）
+2. H:\UltimaAI\_shared\paradigms\Ultima-工程铁律清单.md §9
+3. H:\UltimaAI\_shared\paradigms\UltimaAI-任务工作流范式.md §12
+4. H:\UltimaAI\UltimaAgent\docs\plans\dispatch-rules-v0.2-20261108.md §4 八环节 / §13 试跑结论
+5. H:\UltimaAI\UltimaAgent\docs\reports\wo-orb-w6-oversight-20261108.md 第七节（口径复核）
+6. 工单本体 H:\UltimaAI\UltimaAgent\tasks\queue\wo-orb-w7.md
+
+【三张任务卡，逐卡执行、逐卡验收】
+- tasks/cards/orb-w7-orchestrator-wiring/task.md —— orchestrator 接入派发链 + 回执契约对齐（T1/T4）
+- tasks/cards/orb-w7-sentinel-enable/task.md —— sentinel 挂 run 目录 + 判据对齐（T2）
+- tasks/cards/orb-w7-test-scope/task.md —— pytest 作用域固定（T3）
+
+【执行纪律】
+- 按 T0 → T1 → T2 → T3 → T4 → Tn 顺序，前一 T 全绿才进下一 T
+- 任一验收项不过立即停：回执写 BLOCKED，不写"完成"、不提交、不打 tag
+- 派发器 `scripts/dispatch-work-order.py` 的 CLI 参数与 dry-run 输出格式必须保持不变（后院不能起火）；改完必须自测 dry-run 仍返回 `{"ready": true, ...}`
+- 真实 DeepSeek API 一律不调用（测试全 mock）；`DEEPSEEK_API_KEY` 不得写入任何落盘文件
+- 不改 `state_machine.py` 的 8 态枚举、不改主表 global-queue-index.md
+
+【全量门（口径已定）】
+- 命令：H:\UltimaAI\UltimaAgent\tools\venv-openjarvis\Scripts\python.exe -m pytest -o addopts= -q
+- 在仓库根执行；T3 完成后要求不再收进 `Topo Backup`、errors=0
+- T3 之前（pytest.ini 尚未存在）可先只跑专项，但 Tn 必须给出根目录全量的真实三项数字（passed/failed/skipped）
+
+【收尾】
+1. 写 docs/reports/wo-orb-w7-result.md（改动清单 / 四项 Gate 证据 / 全量门真实数字 / 越界声明 / 遗留项）
+2. 精确提交，信息前缀「工单 WO-ORB-W7 编排层接线」，只提交本单 fileDomain 内文件
+3. 打 annotated tag：`wo-orb-w7-orchestration-wiring-20261108`（本轮为收尾轮，允许打 tag）
+4. 输出回执：工单号 / 执行端 / 完成状态 / 根因结论 / 产出路径 / 验收证据 / 越界声明 / 环境声明
+
+【本次为 T4 收尾加固轮——只修回执契约的两处 fail-closed 缺陷，然后打 tag 交付】
+上一轮 T3 口径修复已 PASS（1143 collected / 1115 passed / 28 failed / 0 collection errors / 581.17s），已提交 `0eef9c81`。28 项失败经核实为仓库既有历史债（KWS 缺 `sherpa_onnx` 3 项、派发与队列生命周期 16 项、Ultima Bus 8 项、推理入口 1 项），**不属于本单引入，本轮不修、不得掩盖**。
+本轮只做两件事：
+
+一、修 `tasks/queue_engine/receipt_contract.py` 的两处 fail-closed 缺陷（主脑已实测复现）：
+1. **`TypeError` 崩溃**：`status in {"READY_FOR_REVIEW", "READY_FOR_DEEPSEEK_AUDIT"}` 在 `status` 为 list/dict 时抛 `unhashable type: 'list'`。实测：`status=[]` + 有效 evidence + `exit_code=0` → `TypeError`。而 `scripts/dispatch-work-order.py:296` 调用处**没有 try/except**，异常会打崩派发器并留下「假执行中」。修法：`status` 非 `str` 时直接 `return INVALID_RECEIPT`，再判 BLOCKED / READY 集合。
+2. **子串串单**：`if work_order not in text` 会让 `wo-orb-w7` 命中 `wo-orb-w7x`。修法：按完整工单号边界匹配（正则 `(?<![\w-])<order>(?![\w-])` 或等价），JSON 侧 `receipt.get("work_order") != work_order` 的精确比较保持不变。
+两处修改后，卡 `orb-w7-orchestrator-wiring` 的 acceptance 已新增对应两条（以磁盘最新为准）。
+
+二、跑验证并交付：
+1. 专项门：`python.exe -m pytest -o addopts= -q tests/test_receipt_contract.py tests/test_orchestrate_order.py tests/test_sentinel.py tests/test_orchestrator.py tests/test_orchestrator_sentinel_integration.py`
+2. 为两处缺陷各补至少 1 个回归用例（`status=[]` 与 `status={}` 必须落 `blocked,valid=False` 且不抛异常；`wo-orb-w7x` 不得被判成功）
+3. **不重跑全量门**（上轮 1143 例结论已固化，避免重复 580s；如需引用直接沿用上轮数字并标注来源 run）
+4. 更新 `docs/reports/wo-orb-w7-result.md`：补「T4 加固」一节，写清修复前后行为对比与回归用例
+5. 精确提交（只提交本单 fileDomain 内文件）
+6. **打 annotated tag**：`wo-orb-w7-orchestration-wiring-20261108`，指向本轮最终提交
+7. 回执里明确：T1/T2/T3/T4 各自的最终状态；tag 名与指向的 commit sha
+
+【口径纪律】
+- 发现新问题照实记录，不擅自扩大改动范围
+- 全量门 28 项失败属既有债，本轮不动、不 ignore、不 skip

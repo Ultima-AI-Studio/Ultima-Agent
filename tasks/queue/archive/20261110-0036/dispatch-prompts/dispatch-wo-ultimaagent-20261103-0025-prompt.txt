@@ -1,0 +1,32 @@
+你是 UltimaAgent 工单 wo-ultimaagent-20261103-0025 的执行端（Codex）。本载荷要求你核实根因并按阶段执行，全程遵守工单卡与修复方案口径。
+
+# 任务背景
+用户已拍板"按照审计最优方案执行"：0022 收口走独立修复路径（不挂账）。本单专治 0022 完整工程门的 4 项 T0 基线既有红灯（gate.json 证实均非 0022 中间层引入的回归），修绿后 0022 过完整工程门并验收冻结，随后恢复 0023/0024 派发链路。
+
+# 必读材料（先读后动）
+1. 工单卡：tasks/queue/wo-ultimaagent-20261103-0025--t0-baseline-fix.md（goal/acceptance/写什么与禁止 = 不可变口径）
+2. 修复方案：docs/plans/t0-baseline-fix-plan-20261103.md（G-PLAN-0025，四项红灯已知根因与修复方向）
+3. 0022 验收证据：data/evidence/middleware-v1/T5/gate.json（红灯清单与完整门基线）、T6/receipt.json、T6/independent-readback.json、execution-ledger.md
+4. 语音参数权威基线：docs/specs/kws-wakeup-params-baseline.md（改动前必须读，已冻结参数不得突变）
+
+# 四项红灯
+1. src/brain/routing/tests/test_mainbrain_rules_prompt.py::test_agent_server_keeps_user_question_separate（agent_server 时间前缀与旧测试断言冲突）
+2. src/brain/routing/tests/test_routing_integration.py::test_time_intent_is_allowed_to_agent（确定性时间直答与旧路由测试冲突；时间直答是 0020 已确认基线，不得削弱）
+3. src/brain/tests/test_queue_source.py::QueueSourceTests::test_production_library_readable_without_mutation（生产 tasks/tasks.json 不可读；"不可变异"语义必须保留）
+4. src/voice-next/test_live.py::test_discontinuity_reset_clears_framers_and_model_cache（voice-next 环境缺 soxr；断开重置清理语义需可真实断言验证）
+
+# 阶段门（每阶段 RED/GREEN + gate.json + 累计回归）
+- T0：基线盘点 + 4 项失败现场复现与根因确认，落盘 data/evidence/t0-baseline-fix/T0/（含各自复现输出、根因结论、归因三选一：行为确认/断言更新/环境依赖）
+- T1：逐项修复实现（RED→GREEN），每项修复说明落盘
+- T2：全量回归收口——venv-openjarvis 专用解释器（tools/venv-openjarvis/Scripts/python.exe，3.13.16）pytest 完整工程门全绿（原 921 passed/4 failed 口径）；阶段报告 docs/reports/t0-baseline-fix-20261103.md；git add 仅本单写域；commit 标注工单 0025；**不代 0022 commit/tag/push**
+- T3：八字段回执（链路号/执行端/完成状态/根因结论/产出路径/验收证据/越界声明/环境声明）
+
+# 硬约束
+- 修复归因以行为确认为主、断言随之对齐；禁止删除测试、弱化断言、为绿而绿、伪造完成或冻结。
+- 不改生产默认行为；不重启现有语音/daemon 进程；不改主脑模型与推理参数；不改 KWS/唤醒词参数基线；不改 0016/0017 已冻结语义。
+- soxr 等环境依赖补齐走现有依赖管理，新增依赖先出开源替代排查表（G-OPEN-001）。
+- 测试用隔离目录与虚拟环境，禁止写生产记忆/真实用户文件。
+- 每阶段如实汇报真实退出码与证据路径，不编造。
+
+# 输出要求
+最终回复按工单卡 receipt 与 T3 八字段回执结构给出，含全部产出路径与验收证据位置。

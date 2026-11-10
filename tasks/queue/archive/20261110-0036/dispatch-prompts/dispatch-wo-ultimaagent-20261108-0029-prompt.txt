@@ -1,0 +1,76 @@
+# 派发 · wo-ultimaagent-20261108-0029（E02 离线最小修复：写入资格 + 任务覆盖 + 证据范围）
+
+你是 Codex 执行端。本单是**离线最小修复 + 离线数值证明**，不是验收，不是真实运行。全单零模型调用。
+
+## 0 准入确认
+
+- 工单卡：`tasks/queue/wo-ultimaagent-20261108-0029--e02-offline-minimal-repair.md`（必读，按 T0→T5 执行）
+- 项目队列已登记：`tasks/queue/index.md` 中该工单为「待派发」
+- 全局主表已登记：`H:\UltimaAI\_shared\queue\global-queue-index.md` 第 13975 行可检索命中
+  · 全局主表是**只读**的，不要写它
+- **工作目录（关键）**：`C:\Users\Administrator\.codex\worktrees\jarvis-e02-source-grounding-r1\UltimaAgent`
+  · 分支 `codex/jarvis-e02-source-grounding-r1`，HEAD 必须是 `43da3f014a763b8ea3963872a8f1ce8ebea77531`
+  · **不要在** `H:\UltimaAI\UltimaAgent` 上改产品源码（那是另一条分支，没有 `work_navigation.py`）
+- 开工前第一步：`git rev-parse HEAD` 核对；不符立即停并回执 BLOCKED
+- WIP：本项目当前无其他 Codex 执行中任务（0013 已收口、0027 判中断、0028 已收口），本单独占
+
+## 1 授权来源
+
+业主 2026-11-08 对 0028 报告 §4 的六项澄清**全部答「是」**，逐项含义如下（这是本单的授权边界，逐条落地）：
+
+1. 修改对象锁定 commit `43da3f014a763b8ea3963872a8f1ce8ebea77531`（或明确等价的新候选），**不是**当前缺 `work_navigation.py` 的 `codex/voice-fsmn-new-path`
+2. 把 `src/brain/work_research.py` 纳入最小产品修改候选，保证 runtime 与 independent replay 使用同一写入资格契约
+3. 先交可由 runtime/replay 同算的**任务无关 coverage 状态机**，再动代码
+4. 修复范围同时覆盖「写入时机」和六类 selected-anchor / 事实表达失败，不是只让模型多读一页
+5. 把 `messages+schema` 的 33,837 字节最小重建值视为当前设计阻断门，要求在不删题、不丢来源、不加预算的条件下给出 `<= 32768` 的离线数值证明
+6. 离线验收必须同时满足：共享资格契约、runtime/replay schema 精确一致、六条保存负例被拒绝或正确拆分、第 7–9 条正例不退化、四项预算门通过、无 controller 代选/改写
+
+**第 5 项的兜底（必须遵守）**：若证明不出 `<= 32768`，**不得**自行放宽预算，也不得选择「删题 / 丢来源 / 减必要证据」；必须输出「设计缺口 + 三选一候选（①减 schema 体积 ②减可渲染页数 ③提高字节预算）」并停在此，等业主裁定。
+
+## 2 已知事实（不必重新证明，但必须用到）
+
+- 第三处写入门实证位置：`work_research.py:661-665,810-846`，其中 `eligible = len({r['source_id'] for r in visible if r['wire']['cards']}) >= 3` → `if eligible: allowed.append(action('ultima_work_research_write', ...))`，含 `output_cap = 256 if ack or not eligible else 2048`
+- runtime 适配点：`agent_server.py` 现行 `626-646`（三来源仍开放 writer）
+- 共享契约点：`work_navigation.py:419-438,464-560`（inspect 保留规则 + writer/schema 合约）
+- `work_tools.py` 执行已签发的 writer permit，不自行判断任务覆盖；`work_service.py` 只做注册与完成后验证——两文件**默认只读**，但你必须回归证明新资格不能绕过其 permit 链
+- 预算实测：当前第 6 代 `messages+schema` canonical 为 `29998`（components `24421+5574=29995`，余量 `2770`）；`entity` `31754`（余量 `17398`）；native `prompt_eval_count=8019`；实际输出 `601/2048`
+- 新增任一可渲染 S4 页后：`messages+schema` **33,837–39,147**（284 个可渲染起点）、`entity` 35,831–42,481
+- 六条负例分类：#1/#2/#4 `FAIL_SELECTED_ANCHOR`；#3 `FAIL_FACT_AND_SELECTED_ANCHOR`；#5 `FAIL_ANCHOR_AND_CURRENT_STATUS_SUMMARY`；#6 `FAIL_FULL_ANCHOR_SUPPORT`
+- 不变预算：context 16384；messages+schema 32768 字节；entity 49152 字节；输出上限 2048；service260 / client300 / rootwork275 / cleanup310 / seal315 秒；CLI1 / search1 / GET4 / inspect6 / write1 / ACK1 / nativePOST8
+
+## 3 边界（硬约束，违反即回执 BLOCKED）
+
+1. **零模型调用、零实际用例、零结果复核配额**，不创建真实入口、不签 grant、不折算 E01/E03 旧信用
+2. 只在锁定 worktree 内改动；`profile.py`、`test_profile.py`、`work_tools.py`、`work_service.py` 只读
+3. 不打 tag、不 push；worktree 内 commit 允许，但不得 `--amend`、不得跳 hooks
+4. 不得改 `data/evidence/**` 既有 run/review/terminal，不改 `current-run.json`，不改 E02/T2/Owner 验收字段
+5. 不得写全局主表；不得改项目队列状态（由主脑收口统一改）
+6. 不得硬编码本题 S4 / URL / 行号 / 标题 / 预制答案；不得把「已下载 / 已编目 / 三来源已读 / 来源 ID 命中」当作覆盖或语义蕴含
+7. 不得增加任何 CLI/search/GET/inspect/write/ACK/native POST 次数，不得提高时间/context/字节/输出预算
+8. 不得由 controller/harness 代选页面、代拆答案、改写失败产物
+
+## 4 产出
+
+1. 产品代码改动（仅三文件）：`src/brain/work_navigation.py`、`src/brain/agent_server.py`、`src/brain/work_research.py`
+2. 定向测试文件（T0 后按仓库实际存在点名，写进报告）
+3. 报告：`docs/reports/jarvis-work-e02-offline-minimal-repair-20261108.md`，五节固定
+   - 一句话结论（**只能是**：可提交独立复审 / 有缺口需裁定 / 阻断）
+   - 改动清单（文件 + 行号 + diff stat）
+   - coverage 契约（输入 / 状态与转移 / 写入资格 / 失败路径）
+   - 预算数值证明（或缺口三选一）
+   - 缺陷与待裁定项 + 越界声明
+
+**不要自判 PASS**，只能写「待独立复审」。
+
+## 5 回执（八字段，写在 last-message）
+
+链路号、工单号、通道、执行端、完成状态、产出路径、验收证据、越界声明。
+
+并显式回答三项：
+- T2 的 `grep` 结果：写入资格判定定义处（应为 1 处）、调用点（`agent_server.py` / `work_research.py` 各 1 处）的行号
+- T3 的预算结论是「数值」还是「缺口三选一」
+- 报告文件路径与 SHA-256
+
+## 6 完成后
+
+不要自行打 tag、不要自行改看板、不要自行提交台账。台账（队列状态、全局主表、北极星看板、lessons-log）由主脑统一写。

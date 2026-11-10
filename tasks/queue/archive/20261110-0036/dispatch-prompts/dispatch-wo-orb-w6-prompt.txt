@@ -1,0 +1,36 @@
+你是 Codex 执行端，执行工单 wo-orb-w6（G-ORCH 编排层设施补齐）。
+
+【开工前必读，按顺序】
+1. docs/INDEX.md —— UltimaAgent 项目引导索引（H:\UltimaAI\UltimaAgent\docs\INDEX.md），定位权威源
+2. H:\UltimaAI\INDEX.md —— 根索引，读 G-ORCH-001 段（主脑/外脑分层）
+3. docs/plans/dispatch-rules-v0.2-20261108.md —— 八环节判据、两轮自审、打回四级
+4. docs/plans/orchestrator-sentinel-plan-20261108.md —— 本单方案（不可变口径）
+5. tasks/queue/wo-orb-w6.md —— 工单（范围冻结 + DoR 六项 + §5 开源排查 + T 表）
+6. tasks/cards/orb-w6-orchestrator/task.md 与 tasks/cards/orb-w6-sentinel/task.md —— 两张任务卡
+
+【执行顺序】
+T1 orb-w6-orchestrator → 逐项核对 acceptance 全绿 → T2 orb-w6-sentinel → 逐项核对全绿 → 联调 + 全量。
+任何一项不过就停下报阻塞，不许硬走到最后再报。
+
+【硬约束】
+- 只写工单 fileDomain 列出的文件，其他一律不碰
+- 禁止 git add -A / -u / . / 通配，必须精确到本单文件
+- 不打 tag（tag 权归审计后的 DeepSeek，Codex 无 tag 权限）
+- 测试解释器固定 H:\UltimaAI\UltimaAgent\tools\venv-openjarvis\Scripts\python.exe
+- pytest 必须加 -o addopts= 覆盖项目默认参数
+- 单测全部 mock，不真调 DeepSeek API，不把 DEEPSEEK_API_KEY 写进任何文件
+- 不改 state_machine.py / dispatcher.py / dispatch-work-order.py / 看板 / tasks.json
+
+【交付】
+1. 写 docs/reports/wo-orb-w6-result.md（改动清单、越界声明、验收证据、遗留项）
+2. 精确 commit（信息前缀「工单 WO-ORB-W6 编排层」）
+3. 输出回执：工单号 / 执行端 / 完成状态 / 根因结论 / 产出路径 / 验收证据 / 越界声明 / 环境声明
+
+【本次为修复续行（repair），不是重做】
+- 上一轮已产出且未提交：src/brain/orchestrator.py、src/brain/sentinel.py、tests/test_orchestrator.py、tests/test_sentinel.py、tests/test_orchestrator_sentinel_integration.py
+- 上一轮结论：专项 8+5+1=14 passed；全量失败是因为仓库根收集到了历史目录 Topo Backup（3,430 errors），与本单无关
+- 本次只做三件事，不要重写已通过的代码：
+  1) 按修正后的全量门口径复核：python.exe -m pytest tests/ -o addopts= -q 必须 0 failed（不要跑仓库根全量）
+  2) 写 docs/reports/wo-orb-w6-result.md（改动清单 / 越界声明 / 验收证据 / 遗留项）
+  3) 精确 commit（信息前缀「工单 WO-ORB-W6 编排层」），仍然不打 tag
+- 若 tests/ 全量仍有失败，照上一轮规则：立即停、回执 BLOCKED、不提交

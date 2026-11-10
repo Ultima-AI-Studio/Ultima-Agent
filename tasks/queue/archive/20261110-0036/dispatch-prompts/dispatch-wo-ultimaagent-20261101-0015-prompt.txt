@@ -1,0 +1,23 @@
+先读项目引导索引 INDEX.md（H:\UltimaAI\UltimaAgent\docs\INDEX.md），按其权威源地图定位规范与写域，再执行本工单。
+
+Act as the Ultima coding executor.
+
+请执行工单 tasks/queue/wo-ultimaagent-20261101-0015--asr-correction.md（工单 ID：wo-ultimaagent-20261101-0015，ASR 纠错系统化「工单 F」）。
+
+背景：ASR 识别跑偏（"查天气→水量天听/水天"类近音误识）需系统化收敛。现状：src/brain/voice/asr.py L61 initial_prompt 只含任务管理词（查询任务状态/优先处理一号任务/插队/好的/确认/取消），无天气/时间高频词；src/brain/interaction.py _normalize_utterance 硬编码 _ASR_NEAR_HOMOPHONE 4 条（水量天听/水平听听清/水平听→天气、明天上海的这→明天上海的天气），覆盖不全不可维护。方案：docs/plans/plan-voice-three-issues-20261101.md 工单 F。
+
+按工单 T0→T4 逐条执行，Gate PASS 再进下一条：
+- T0 环境盘点：读 asr.py L50-61 现状（faster-whisper 调用 + initial_prompt 原文）；读 interaction.py L426-452（_normalize_utterance + _ASR_NEAR_HOMOPHONE）与 _FUZZY_* 兜底词；离线注入基线（现有真机观测 L33/L41 可引用）；证据 docs/reports/evidence/asr-correction/t0-env-probe.txt
+- T1 initial_prompt 扩充：扩充天气/时间/日程类高频词（天气/明天/今天/几点/温度/风/雨/雪/上海/时间/日程/任务/进度等，按观测登记，控制长度上限）；离线验证"查天气"类测试音频（TTS 合成或真机录）转写正确率对比（扩充前后）；证据 t1-prompt.txt
+- T2 近音映射独立化+扩充：新建 config/asr-normalize.json（迁移默认 4 条 + 新增"水天→天气"等观测误识，逐条注明来源/验证状态）；interaction.py _normalize_utterance 改读配置（文件缺失/解析失败回退内置默认表不报错断链）；注入用例断言（"查一下明天的水量天听" / "明天上海的水天" → 归一化天气且下游意图=天气查询）；正常语句回归零误伤（"水田"类真实词不受影响，映射须整词/短语匹配禁单字替换）；证据 t2-normalize.txt
+- T3 收口：全量回归 venv-openjarvis 专用解释器 pytest src 全绿 + 语音专项绿；git add 仅本单写域文件（禁止 -A/-u）；commit 标注「工单 0015 ASR 纠错系统化」；tag ultimaagent-asr-correction-20261101 + git rev-parse + 免代理推送（git -c http.proxy= -c https.proxy= -c http.https://github.com.proxy= push）；阶段报告 docs/reports/stage-asr-correction-20261101.md 完整（扩充前后对比 + 映射表来源登记）
+- T4 八字段回执
+
+硬约束：
+- 工作目录 H:\UltimaAI\UltimaAgent；工程验收 pytest 必须用 tools\venv-openjarvis\Scripts\python.exe（Python 3.13.16），禁止默认 Python312。
+- 禁止修改：ASR 模型/faster-whisper 推理参数/采样链路/daemon 主链；意图规则主结构（_FUZZY_* 关键词与判定逻辑仅保持不重写）；不换识别引擎（sherpa ASR 备用链不动）；voice_profile / KWS 基线 / UI 均不碰。
+- 关键修改/更新完成即打 git tag 并推送（本单 tag=ultimaagent-asr-correction-20261101）。
+
+每 T 记录 Gate 证据到 docs/reports/stage-asr-correction-20261101.md + docs/reports/evidence/asr-correction/，临时文件执行完自行清理。
+
+最终回执八字段：链路号/执行端/完成状态/根因结论/产出路径/验收证据/越界声明/环境声明。

@@ -1,0 +1,22 @@
+先读项目引导索引 INDEX.md（H:\UltimaAI\UltimaAgent\docs\INDEX.md），按其权威源地图定位规范与写域，再执行本工单。
+
+Act as the Ultima coding executor.
+
+请执行工单 tasks/queue/wo-ultimaagent-20261031-0009--kws-wakeword-reconfig.md（工单 ID：wo-ultimaagent-20261031-0009，KWS 唤醒词动态改词自动化验证闭环）。
+
+按工单 T0→T4 逐条执行，Gate PASS 再进下一条：
+- T0 环境盘点与工具链核验（sherpa-onnx 2.0.0 / sherpa-onnx-cli text2token / KWS 模型与 keywords.txt / daemon HotReloadSpotter 热重载机制 / voice_profile 公开接口只读核验）→ 证据 docs/reports/evidence/kws-reconfig/t0-env-probe.txt
+- T1 实现 scripts/kws_reconfig.py（--add / --replace / --list / --validate 四子命令；官方 text2token ppinyin 为准；原子写 + 自动备份 keywords-bak-<ts>.txt；调用 voice_profile.apply_to_daemon 触发热重载；输出 JSON 含生效词表/备份路径/热重载结果）→ 证据 docs/reports/evidence/kws-reconfig/t1-cli-usage.txt
+- T2 自动化验证 scripts/test_kws_reconfig.py（TTS 合成新词离线喂 KWS 命中断言 / 保留词回归 / 替换语义 / 非法输入拒绝 / venv-openjarvis 全量 pytest 回归）→ 证据 docs/reports/evidence/kws-reconfig/t2-verify/
+- T3 收口与基线核对（kws-wakeup-params-baseline.md 参数数值零漂移 diff 核对；git commit + tag ultimaagent-kws-wakeword-reconfig-20261031；阶段报告 docs/reports/stage-kws-reconfig-20261031.md）
+- T4 八字段回执
+
+硬约束：
+- 工作目录 H:\UltimaAI\UltimaAgent；用 tools\venv-asr\Scripts\python.exe 跑 KWS 相关（sherpa-onnx 2.0.0）；用 tools\venv-openjarvis\Scripts\python.exe 跑工程验收 pytest。
+- 禁止修改：模型权重/onnx/tokens.txt、KWS 全局参数数值（score/threshold/trailing，归 kws-wakeup-params-baseline.md 冻结基线）、src/brain/voice/voice_profile.py（0003 冻结）与 data/logs/voice-listen-daemon.py 既有逻辑（只读调用公开接口）、W6 UI、不杀/不重启守护进程（热重载必须同 PID）。
+- 禁止引入第三方 KWS 引擎 / 云端训练 API / 联网下载模型。
+- 关键修改/更新完成即打 git tag 并推送（本单 tag=ultimaagent-kws-wakeword-reconfig-20261031）。
+
+每 T 记录 Gate 证据到 docs/reports/stage-kws-reconfig-20261031.md + docs/reports/evidence/kws-reconfig/，临时文件执行完自行清理。
+
+最终回执八字段：链路号/执行端/完成状态/根因结论/产出路径/验收证据/越界声明/环境声明。

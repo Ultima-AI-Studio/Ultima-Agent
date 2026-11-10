@@ -1,0 +1,30 @@
+先读项目引导索引 INDEX.md（H:\UltimaAI\UltimaAgent\docs\INDEX.md），按其权威源地图定位规范与写域，再执行本工单。
+
+Act as the Ultima coding executor.
+
+请执行工单 tasks/queue/wo-ultimaagent-20261101-0013--qwen3-8b-cleanup.md（工单 ID：wo-ultimaagent-20261101-0013，8B 切换残留引用清理「做干净」）。
+
+背景：前置工单 wo-ultimaagent-20261031-0010 已把主脑模型降档为 qwen3-8b-uncensored（agent_server.py:51 已改、tag ultimaagent-mainbrain-qwen3-8b-20261031 已冻结），但其写域仅覆盖 agent_server.py + 启动脚本注释。以下残留点在 0010 写域外，本单统一清理，使本地 ollama 完整切换 8B、不留 14B 引用。
+
+按工单 T0→T4 逐条执行，Gate PASS 再进下一条：
+- T0 非测试代码/配置/注释统一为短名 qwen3-8b-uncensored：agent_tools_ultima.py:103（子智能体工厂）、memory/backend.py:57+110（记忆提取默认值与注释）、orchestration/engine.py:94+120（docstring 与模型键，8B 置首、14B 保留次级回滚键）、ultima-config.toml:9（default_model）、agent_server.py:13（docstring 注释）；五文件 py_compile 退出 0；逐文件 grep qwen2.5:14b 无命中
+- T1 测试断言与 verify 脚本同步：test_orchestration_m4.py:75+191、test_bootstrap_m6.py:115+126+205+217+228、test_connectivity_m6.py:53、verify_bootstrap_entry.py:53+71、test_credential_s3.py:52（可选样本键）；5 个目标文件单测全绿；禁止为过测试改实现
+- T2 全量回归：venv-openjarvis 专用解释器全量 pytest src 全绿（0 failed）；ollama list 确认 qwen3-8b-uncensored 在位且 qwen2.5:14b 仍在（回滚路径）；ollama ps 实测内存；全仓 grep（排除 data/test-tmp）残留 14B 引用列表明细并说明无害性
+- T3 冻结：git add 仅本单写域文件（禁止 -A/-u）；commit 标注「工单 0013 8B 残留引用清理」；tag ultimaagent-mainbrain-qwen3-8b-cleanup-20261101 + git rev-parse + git push --tags（免代理：git -c http.proxy= -c https.proxy= -c http.https://github.com.proxy= push）；阶段报告 docs/reports/stage-mainbrain-qwen3-8b-cleanup-20261101.md 完整
+- T4 八字段回执
+
+硬约束：
+- 工作目录 H:\UltimaAI\UltimaAgent；工程验收 pytest 必须用 tools\venv-openjarvis\Scripts\python.exe（Python 3.13.16），禁止默认 Python312。
+- 禁止删除/卸载 qwen2.5:14b（蓝绿回滚路径保留）；禁止改动 agent_server.py 的 HOST/PORT(8756)/TOOLS/AGENT/工具注册/路由/RU-05 结构（仅允许 L13 docstring 注释文本）；禁止改动 nomic-embed-text 与记忆后端结构；禁止改动 KWS 基线、voice_profile、voice-listen-daemon、工单 C/D 约束栈；禁止改动 data/test-tmp/ 下任何文件；禁止联网下载/删除模型；禁止中文模型名。
+- 关键修改/更新完成即打 git tag 并推送（本单 tag=ultimaagent-mainbrain-qwen3-8b-cleanup-20261101）。
+
+每 T 记录 Gate 证据到 docs/reports/stage-mainbrain-qwen3-8b-cleanup-20261101.md + docs/reports/evidence/mainbrain-qwen3-8b-cleanup/，临时文件执行完自行清理。
+
+最终回执八字段：链路号/执行端/完成状态/根因结论/产出路径/验收证据/越界声明/环境声明。
+
+
+---
+本轮补充说明（2026-11-08 主脑补登记）：
+1. 前置准入已满足：本工单已在全局主表 H:\UltimaAI\_shared\queue\global-queue-index.md 正式登记（可用 rg 'wo-ultimaagent-20261101-0013' 命中，状态 pending）。上一轮 2026-11-01 因全局主表无本单被 fail-closed 拦在 T0 前，源码零改动；本轮从 T0 全新开始逐门验收。
+2. 工单卡 T0 第 7 项 agent_server.py:13 docstring 已由前置工单 0010 改为 qwen3-8b-uncensored，无需重复修改；其余 6 处（agent_tools_ultima.py:103、memory/backend.py:57+110、orchestration/engine.py:94+120、ultima-config.toml:9）照单执行。
+3. 全局主表只读核对即可，不得写入（主表不在本单写域）。

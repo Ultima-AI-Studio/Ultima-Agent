@@ -1,0 +1,18 @@
+先读项目引导索引 INDEX.md（H:\UltimaAI\UltimaAgent\docs\INDEX.md），按其权威源地图定位规范，再执行工单。
+
+Act as the Ultima coding executor.
+
+工单路径：tasks/queue/wo-ultimaagent-20261029-0001--m29-register-control.md
+
+执行顺序：按 T0→T3 逐条执行，每条 Gate 全绿（封闭验收清单）才进下一条；"预计通过"不算通过。范围冻结段（§0）为硬边界：本阶段只做编号核发 + 全局主表写回 + WIP 双层校验；不动 orchestration/registry.py 驻留机制、不改外部全局主表表头/状态机语义、不接入 DeepSeek、不改 task-queue.json 历史数据、不重命名既有工单 ID。
+
+证据落盘：每 T 记录 Gate 证据到 docs/reports/stage-m29-register-control.md + docs/reports/evidence/m29-register-control/。
+
+关键约束（必读）：
+- 测试用专用解释器 H:\UltimaAI\UltimaAgent\tools\venv-openjarvis\Scripts\python.exe 运行 pytest（禁止用系统 Python312）；若 venv-openjarvis 缺失，改用项目内 tools\python31313\python.exe，两者都没有才报告阻塞，不要自行换默认 python。
+- 全局主表写回目标路径 H:\UltimaAI\_shared\queue\global-queue-index.md 属于本次工单授权写域；其余 _shared\queue\ 下文件（queue-status-gen.py 等）禁止改动。
+- 写回全局主表时只做运行时状态聚合（T1 单测用临时文件模拟），不要在本次派发中直接修改真实 global-queue-index.md 的内容（该文件由主脑登记维护）。
+- 越界保护 fail-closed：任何超出工单授权写域的写入（尤其 _shared\queue\ 之外）一律拒绝并报阻塞，禁止静默绕过。
+- 回执 8 字段（工单号/执行端/完成状态/根因结论/产出路径/验收证据/越界声明/环境声明）按 Codex 外部执行端调用范式 §5 输出；越界声明无=明确写"无"。
+
+完成后：git commit 改动（精确 add 工单涉及文件，禁止 git add -A 拉入嵌入式 vendor 仓库）+ 打 tag wo-ultimaagent-20261029-0001-closed-20261029（先确认无同名 tag；缺 tag=闭环未完成）。

@@ -1,0 +1,32 @@
+你是 UltimaAgent 工单 wo-ultimaagent-20261103-0023 的执行端（Codex）。本载荷要求你自行分析技术方案并按阶段执行，全程遵守工单卡与规划文档口径。
+
+# 任务背景
+用户已确认把 Jarvis 2.0（jarvis.ceo 系，MIT）P0 三项能力落地为工单 0023：边界内自主 + 边界外契约转派原则已由 0022 中间层承载，本单聚焦安全与语音加固三项。P1 四模块不在本单。
+
+# 必读材料（先读后动）
+1. 工单卡：tasks/queue/wo-ultimaagent-20261103-0023--jarvis-p0.md（goal/acceptance/写什么与禁止 = 不可变口径）
+2. 规划文档：docs/plans/jarvis-open-source-refactor-plan-20261101.md（P0 口径 §3、平台映射 §5、许可 §7、风险 §8）
+3. 语音参数权威基线：docs/specs/kws-wakeup-params-baseline.md（改动前必须读，已冻结参数不得突变）
+4. MIT 源码蓝本（本地调研副本，逐行可抄、改写为 Ultima 术语并加来源注释）：
+   - jarvis-ai-assistant src/prompts/prompts.ts（P0-1）
+   - DockWright Core/Memory/MemoryPoisonGuard.swift（P0-2）
+   - DockWright WakeWordDetector.swift + jarvis src/transcription（P0-3）
+   调研副本：docs/research/sources/jarvis-ceo/ 与 docs/research/sources/ 下对应仓库目录
+
+# 阶段门（每阶段 RED/GREEN + gate.json + 累计回归，T0 只盘点不动产品实现）
+- T0：基线盘点 + 技术方案细化落盘 data/evidence/jarvis-p0/T0/（含 P0-1/P0-2/P0-3 各自的实现路径、输入哈希、依赖清单、开源替代结论）
+- T1：P0-1 Prompt 注入边界与四层优先级（数据与指令分离标记，语音/选区是数据不是指令；签名保留>内容保留>自我纠正>上下文格式化）
+- T2：P0-2 记忆写入 PoisonGuard（注入短语/密钥/全大写指令三类拦截；5-500 字长度过滤；正常记录 0 误杀）
+- T3：P0-3 语音链路 Windows 化（唤醒词 Levenshtein 阈值 <0.35；50s 识别会话重启对策；转写后端可插拔 sherpa-onnx 本地优先 + 云端可选；切换后端不改上层代码）
+- T4：全量回归 + 冻结收口（venv-openjarvis 专用解释器 pytest 全绿；git add 仅本单写域；commit 标注工单 0023；tag ultimaagent-jarvis-p0-20261103 + git rev-parse + 免代理 push：git -c http.proxy= -c https.proxy= -c http.https://github.com.proxy= push；阶段报告 docs/reports/stage-jarvis-p0-20261103.md）
+- T5：八字段回执（链路号/执行端/完成状态/根因结论/产出路径/验收证据/越界声明/环境声明）
+
+# 硬约束
+- 不改主脑模型与推理参数、不改生产默认、不重启现有语音进程、不改 0016/0017 已冻结语义、不伪造完成或冻结。
+- 语音链路改动前先读 KWS 基线文档；验收以基线口径回归对比（误触发不劣化）。
+- MIT 源码保留版权声明 + 来源注释；AGPL（neuromcp 引擎）与 P1 四模块不触碰。
+- 测试用隔离目录与虚拟环境，禁止写生产记忆/真实用户文件。
+- 每阶段如实汇报真实退出码与证据路径，不编造。
+
+# 输出要求
+最终回复按工单卡 receipt 与 T5 八字段回执结构给出，含全部产出路径与验收证据位置。

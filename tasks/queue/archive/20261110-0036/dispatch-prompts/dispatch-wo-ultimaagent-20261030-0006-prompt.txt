@@ -1,0 +1,19 @@
+先读项目引导索引 INDEX.md（H:\UltimaAI\UltimaAgent\docs\INDEX.md），按其权威源地图定位规范，再执行工单。北极星=贾维斯：一切调整向贾维斯靠拢；本单为 wo-ultimaagent-20261030-0003 的 T4 阻塞清障（2 个范围外既有失败），不扩展产品范围。
+
+Act as the Ultima coding executor
+
+工单路径：tasks/queue/wo-ultimaagent-20261030-0006--t4-clear.md
+
+执行顺序：按 T0→T2 逐条执行，Gate 全绿才进下一条。工单范围冻结（第 0 节）与任务明细（第 2 节）为唯一事实源，严格按三段式（文件/写什么/验收/禁止）执行。
+
+硬约束：
+- 专用解释器：H:\UltimaAI\UltimaAgent\tools\venv-openjarvis\Scripts\python.exe（Python 3.13.16），禁止用系统 Python312
+- HUD 冻结哈希重冻结：只更新 src/brain/tests/test_agent_server_sse.py 的哈希常量，**禁止修改 docs/previews/hud-live-four-corner/hud-live-four-corner.html 内容**（native 模式样式演进是预期内的，只重冻结）
+- 队列读取容缺：src/brain/queue_source.py `record["terminal_reason"]` → `record.get("terminal_reason")`（缺省 None，非 None 必须为 str）；核对 tasks/queue_engine/storage.py REQUIRED_FIELDS 语义（终止态必填、中间态可选，与 state_machine 写入语义一致）；**禁止修改 tasks/tasks.json 数据**（QUEUED 缺 terminal_reason 是合法状态）
+- 越界保护 fail-closed：写域仅 H:\UltimaAI\UltimaAgent\ 内（工单文件与阶段报告/证据目录除外）；不做 0003 范围外功能、不处理 0004/0005、不引入第三方配置库
+
+证据落盘：每 T 记录 Gate 证据到 docs/reports/stage-0003-t4-clear-20261030.md + docs/reports/evidence/t4-clear/（哈希计算、queue_source 单测、快照读取实测、专项回归 51、全量回归 0 failed 输出）
+
+回执字段（Codex 范式 §5）：工单号 / 执行端 / 完成状态 / 根因结论 / 产出路径 / 验收证据 / 越界声明（无=明确写"无"，含未动范围清单）/ 环境声明（真机实测 vs 仅预期）。
+
+任务粘贴模板（工单第 3 节）：逐 T 填写完成状态与 Gate 证据摘要。

@@ -1,0 +1,21 @@
+先读项目引导索引 INDEX.md（H:\UltimaAI\UltimaAgent\docs\INDEX.md），按其权威源地图定位规范，再执行工单。北极星=贾维斯：语音链路向"任意输入设备零配置可用"靠拢；隐私红线=语音不出本机（云端仅调研，不作主链路）。
+
+Act as the Ultima coding executor
+
+工单路径：tasks/queue/wo-ultimaagent-20261030-0004--input-channel.md
+
+执行顺序：按 T0→T4 逐条执行，Gate 全绿才进下一条。工单范围冻结（第 0 节）与任务明细（第 2 节）为唯一事实源，严格按三段式（文件/写什么/验收/禁止）执行。
+
+硬约束：
+- 专用解释器：H:\UltimaAI\UltimaAgent\tools\venv-asr\Scripts\python.exe（含 sherpa_onnx/faster_whisper/numpy/sounddevice），禁止用系统 Python312
+- 设备探测不硬编码 index（自动探测为唯一入口，L2 device_index 除外）；排除"主声音捕获/声音映射器"等跟随系统类端点（基线文档实证不可靠）
+- resample 只存在一份实现：48k→16k 走整数 3:1、44.1k→16k 走 441:160，禁止 daemon 与 asr.py 各写一套 sinc；不新增第三方音频库（仅 sounddevice 既有依赖）
+- 不改增益/噪声门/门控基线数值（A/B 只在降采样通道维度对比）；不修改 KWS 参数基线数值（threshold=0.08/score=2.0 固定）
+- 探测耗时限制：每设备 ≤2s、总探测 ≤15s；探测失败/全静音回退 voice-profile 的 input.device_index（L2）或内置默认，不崩溃
+- 越界保护 fail-closed：写域仅 H:\UltimaAI\UltimaAgent\ 内（工单文件与阶段报告/证据目录除外）；不做 W6 UI 设备选择页、不做 16k 原生采集改造、不做 TTS 通道、不引入第三方音频库
+
+证据落盘：每 T 记录 Gate 证据到 docs/reports/stage-input-channel-20261030.md + docs/reports/evidence/input-channel/（探测输出、48k 录音样本、A/B 对比表、回归全量输出）；A/B 结论必须登记到 docs/specs/kws-wakeup-params-baseline.md 第七节（新条目，日期 2026-10-30）
+
+回执字段（Codex 范式 §5）：工单号 / 执行端 / 完成状态 / 根因结论 / 产出路径 / 验收证据 / 越界声明（无=明确写"无"，含未动范围清单）/ 环境声明（真机实测 vs 仅预期）。
+
+任务粘贴模板（工单第 3 节）：逐 T 填写完成状态与 Gate 证据摘要。

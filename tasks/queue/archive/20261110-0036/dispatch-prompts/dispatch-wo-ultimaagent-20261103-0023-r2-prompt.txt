@@ -1,0 +1,24 @@
+你是 UltimaAgent 工单 wo-ultimaagent-20261103-0023 的执行端（Codex），本轮为「REVISE 有界修复轮」。首轮 run 20261104T060115840819Z（PID 13684）已返回 BLOCKED/REVISE，两轮独立审计额度已用完；主脑 2026-11-04 已裁决授权本修复轮，修复后由主脑验收，不再拉第三轮独立审计。
+
+# 必读材料（先读后动）
+1. 工单卡：tasks/queue/wo-ultimaagent-20261103-0023--jarvis-p0.md（goal/acceptance/写什么与禁止/「2026-11-04 主脑裁决」节 = 不可变口径）
+2. 规划文档：docs/plans/jarvis-open-source-refactor-plan-20261101.md（P0 口径 §3、平台映射 §5、许可 §7、风险 §8）
+3. 语音参数权威基线：docs/specs/kws-wakeup-params-baseline.md（改动前必须读；已冻结参数不得突变）
+4. 首轮产物已在工作树（未提交）：src/brain/prompt_boundary.py、src/brain/agent_server.py、src/brain/memory_write_boundary.py、src/brain/loop/brain_loop.py、src/memory/poison_guard.py、src/memory/writer.py、src/memory/__init__.py、src/brain/voice/{wake_matching,session_restart,transcription_backends,asr,kws_listener}.py + 三组测试（test_prompt_boundary_p0 / test_poison_guard_p0 / test_jarvis_p0_voice）+ docs/reports/stage-jarvis-p0-20261103.md + data/evidence/jarvis-p0/T0-T5 全套。本轮在其上做有界修复并收口，不得重写或回退首轮实现。
+
+# 本轮修复范围（仅两项，越界即打回）
+1. **KWS 参数回正（消除漂移=回正冻结值，非新调参）**：`src/brain/voice/kws_listener.py` 中 `keywords_score=1.0` → `2.0`、`num_trailing_blanks=0` → `8`，对齐权威基线 docs/specs/kws-wakeup-params-baseline.md 第三节；改前必读基线；代码注释引用基线文档；`KWS_THRESHOLD=0.08` 已对齐不可动；**禁止重启语音进程**（daemon PID 24812/24276 创建 2026-11-03 17:38:54 保持不动）。
+2. **T4 全树重跑 + 竞态豁免**：`test_preference_p2.py:52` 毫秒时间戳竞态=既有非本单问题（0025 a2/a3、0022 已记录，概率性；0022 重跑 932/0 曾未触发），**本单不弱化该竞态代码**；用 tools/venv-openjarvis 专用解释器全量重跑，若失败项仅该竞态，记录豁免证据（与既有记录同源）并按通过处理；若出现竞态之外失败，如实报告、不豁免、不收口。
+
+# Owner 真实体验（延期验收项）
+用户 2026-11-04 确认「真实体验当前不可用」。本轮**不伪造、不代做体验证据**；阶段报告与 T5 回执须明确标注「Owner 真实体验=延期验收项（deferred），待真机验证另行安排，不宣称完整 V1 冻结」。
+
+# 收口流程（修复轮通过后）
+- T4：全树重跑结果 + 竞态豁免声明（若适用）落盘 data/evidence/jarvis-p0/T4/full-green4-junit.xml 与 gate.json（更新）。
+- 冻结收口：git add 仅本单写域（首轮产物 + kws_listener.py 回正 + 证据 + 阶段报告补「2026-11-04 REVISE 修复」节）；commit 标注工单 0023 REVISE 修复；tag `ultimaagent-jarvis-p0-20261103`；git rev-parse 留证；免代理 push：`git -c http.proxy= -c https.proxy= -c http.https://github.com.proxy= push`；git.exe=C:\Program Files\Git\cmd\git.exe。
+- T5：八字段回执更新（根因结论含体验遗留标注，终态按实际填写）。
+
+# 硬约束（继承首轮）
+- 不改主脑模型与推理参数、不改其他生产默认、不重启语音进程、不改 0016/0017 冻结语义、不碰 AGPL（neuromcp）与 P1 四模块、不吸收无关未跟踪工作（agent_server.py 既有 14B→8B 注释差异不暂存）、不伪造完成或冻结。
+- 测试用隔离目录与虚拟环境，禁止写生产记忆/真实用户文件。
+- 每阶段如实汇报真实退出码与证据路径。

@@ -1,0 +1,22 @@
+先读 docs/INDEX.md，沿其权威源地图读规范，再执行。Act as the Ultima coding executor。
+
+本次唯一工单：tasks/queue/wo-s1-host-shell.md（wo-s1-host-shell），用户授权修复剩余宿主问题并完成W1交接，不执行其他工单。
+读取 docs/reports/stage1-host-shell-20261021.md、logs/host-shell-reviewfix-20261021T065131/final-report.md、docs/reports/w2-independent-acceptance-20261021.md。W2第二轮35项技术通过，不等于Owner冻结。
+
+本次根因进展：root已通过Computer Use的宿主自身窗口捕获，看到正常深色背景、Ultima Agent标题及“宿主壳已就绪”。原桌面抓屏白色不能再被当作已证实的显示bug。证据logs/w1-native-2026-10-21T02-26-42-926Z/。不为抓屏白色修改产品资源。
+真实显示器拓扑：DISPLAY3为144DPI、物理rect(0,0,3840,2160)；DISPLAY2为96DPI、rect(3840,0,6400,1440)；DISPLAY1为96DPI、rect(6400,0,8960,1440)。root只读Win32自进程permonitor-v2查询所得，禁止伪造WM_DPICHANGED来冒充硬件验证。
+
+封闭任务：
+T0 保存本次修改前源码备份、源文件哈希与后台开发进程创建身份基线；只停止/关闭本轮自己启动的宿主测试窗口，其他后台进程不动。
+T1 在src/host-shell/内增加仅显式环境开关启用的真实DPI验收仪器。由宿主自身AppWindow.Move移动到真实144/96DPI显示器工作区，读取实际GetDpiForWindow、窗口位置尺寸；每处等待布局稳定并保持1秒；最后恢复原位置。分别记录实际DPI、逻辑/物理尺寸、恢复和保持漂移，写入本次logs/w1-host-resume-*新目录。不要改变系统DPI或显示设置。
+T2 先复现跨DPI行为，若尺寸/拖动区域随DPI未正确更新，只修FloatingBall配置的实际问题，保留初始失败证据再复验。浮球原型逻辑直径180是本工单原有验收原型，不在此重做UI外观；不引入业务界面或默认启动模式变化。
+T3 真实构建0warning/0error、WebView2初始化/渲染/往返、浮球实际跨DPI、原生窗口退出和后台零额外窗口复验。可用项目固定dotnet和已存在的selfcheck-host-shell.ps1。运行PowerShell须固定缓存pwsh路径、无profile、持有本次PID并有合理超时；如启动挂起仅结束自己新建的测试进程，不能杀所有PowerShell/开发进程。不能以NoWarn、脚本退出码或控件属性代替运行证据。所有失败逐项落盘，最多两次自修；不能闭合如实阻塞。
+T4 输出正式交接报告 docs/reports/w1-host-resume-20261021.md 与本次证据清单/哈希。实际鼠标拖动、最终原生窗口显示由root通过Computer Use复核；你不要自称root已完成最终W1。
+
+允许写入：src/host-shell/（但App.xaml禁止改）、scripts/（仅宿主自检必要改动）、logs/w1-host-resume-*、docs/reports/w1-host-resume-20261021.md、docs/reports/evidence/w1-host-resume-*、五张s1-host-shell-*任务卡本轮追加证据。禁止写_shared、全局登记、队列引擎及其测试、W2报告、docs/INDEX.md、任何vault/模型/Topo Backup文件。
+禁止重试上轮自动审查拒绝的桌面CopyFromScreen/资源组合动作，也不换工具绕过。不进行桌面截图，不修改App.xaml。允许已有WebView自身CapturePreview和控件渲染用于对应组件验收，不能据此冒称桌面视觉通过。不要发送鼠标键盘输入、不写PowerShell UIAutomation代码；外部Windows UI操作由root负责。
+未发布、未打任何tag、未签W1、未启动语音/文本/后续工单。保持一单一进程，结束后等待独立验收。
+
+最终最后一条消息必须是纯JSON对象，不要Markdown围栏：
+{"work_order":"wo-s1-host-shell","status":"READY_FOR_REVIEW或BLOCKED","completion":"中文完成/阻塞说明","landed_files":["所有本次改动文件绝对路径"],"evidence":["实际存在的报告/回执绝对路径"],"remaining_gates":["尚未通过的门"],"scope_violation":false}
+READY_FOR_REVIEW只表示可交独立复核，不表示W1或版本冻结通过。

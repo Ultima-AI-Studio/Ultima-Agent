@@ -1,0 +1,18 @@
+先读 H:/UltimaAI/AGENTS.md、H:/UltimaAI/UltimaAgent/docs/INDEX.md 和 H:/UltimaAI/_shared/paradigms/UltimaAI-任务工作流范式.md。你是 UltimaAgent 工单 wo-ultimaagent-20261101-0021 的 T0 只读规划执行端。用户已批准“按顺序开始推进”，不要请求开工许可。
+
+原项目 H:/UltimaAI/UltimaAgent；运行代码基线 3a4f825；计划提交 f6eb808348302cec55bddcf44ee03f5b5736c4d9。当前参考源码 docs/research/sources/jarvis-ceo 是官网仓库 bec50ef6，libs/base/openjarvis 是另一份现有底座。不可混用身份。
+
+必须读：
+- tasks/queue/wo-ultimaagent-20261101-0021--work-capability.md
+- docs/specs/jarvis-work-capability-contract-20261101.md
+- docs/plans/jarvis-work-capability-delivery-plan-20261101.md
+- data/evidence/jarvis-work-capability/T0/input-baseline.json
+- data/evidence/jarvis-work-capability/T0/acceptance-cases-r1.json
+- src/brain/agent_server.py、agent_client.py、agent_tools_ultima.py、interaction.py 的实际入口
+- 已安装 SDK/OpenJarvis 的 native_react、file_read、file_write、SessionStore 接口；可用 H:/UltimaAI/UltimaAgent/tools/venv-openjarvis/Scripts/python.exe 做无副作用的版本/导入检查。
+
+任务：输出可交给下一位执行者的精确 T0 计划。核对 R/E/T 覆盖，找出所有阻塞 T1 的契约缺口，给出最小必要修订，尤其 output 根目录如何绑定请求、验证器如何从真实工具结果获取成果、如何保持旧 /ask 与 cloud 分支兼容，以及如何证明三轮真实产品文字链路。当前必要输入有一部分未跟踪：必须说明隔离工作区如何按 input-baseline.json 补齐并校验，不得假装 Git HEAD 足以复现。
+
+仅规划和读取，不写产品代码/配置，不安装依赖，不录音/截屏/播放，不调用麦克风或实际模型服务，不修改队列/锁/已有任务，不重启服务，不读 auth/token 或真实记忆内容。不进行 Git 提交/推送。证据由控制器保存，最终回复必须是一个 JSON 对象。
+
+JSON 必含：decision(READY_FOR_REVIEW或REVISE)、input_digests、coverage(R01-R08及E01-E08)、baseline_risks、findings、oss_choices、t1_plan(精确文件、函数签名、请求/结果字段、失败语义、真实/隔离验收的 argv 命令)、future_stage_interfaces、required_plan_amendments、next_gate。不要以目录存在或旧报告代替当前代码核实。

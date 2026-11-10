@@ -1,0 +1,36 @@
+工单：wo-ultimaagent-20261108-0031
+标题：G-TASKFLOW-001 工单契约机器可校验化 + 通用冻结门（模块2 P1+P2）
+工单卡：H:\UltimaAI\UltimaAgent\tasks\queue\wo-ultimaagent-20261108-0031--m2-workorder-contract.md
+方案：H:\UltimaAI\UltimaAgent\docs\plans\agent-m2-workorder-contract-plan-20261108.md
+工作目录：C:\Users\Administrator\.codex\worktrees\ultimaagent-m2-workorder-20261108
+分支：codex/m2-workorder-contract-20261108
+基线 revision：163df2c0b044945b01ebd395cb2743bb3676eda9
+执行端解释器：H:\UltimaAI\UltimaAgent\tools\venv-openjarvis\Scripts\python.exe（Python 3.13.16），禁止默认 Python312
+
+开工前第一件事：完整读取上述工单卡与方案文档，按 T0→T4 顺序逐条执行。
+
+执行纪律（硬要求）：
+1. 每完成一个 T，跑该 T 的 Gate 命令，把真实输出贴进回执；Gate 不绿不得进入下一个 T。
+2. 每个 T 完成后单独 git commit（共 ≥4 个提交），提交信息形如 "feat(m2): ... for T0"。
+3. 严格停在本单范围。以下绝对禁止：
+   - 不真正打任何 git tag（T3 只用 --dry-run）。
+   - 不修改任何存量 tasks\queue\wo-*.md 工单卡正文。
+   - 不修改 docs\tracker\北极星上线任务清单.html 与 scripts\tracker-live.py。
+   - 不修改 H:\UltimaAI\UltimaManager 下任何文件。
+   - 不修改 0030 已验收的 src\brain\orchestration\ledger\** 与 queue.py。
+   - 不修改 tasks\queue_engine\card_contract.py。
+   - 不删除既有测试、不放宽既有断言、不使用 skip/xfail 逃逸。
+   - 不引入新的第三方依赖。
+4. 不跑全量 pytest（基线缺未提交的 __init__.py / registry.py，全量必红）。只跑本单新增测试 + 0030 的 31 项回归，并在报告里如实声明"未跑全量及原因"。
+5. pytest 必须带 -o addopts= 覆盖项目默认的 -q，否则 summary 会被吞掉。
+6. 不要伪造任何通过。做不到的项如实写进"已知限制"。
+
+完成后请输出 final-message（JSON 或结构化文本均可），包含：
+- status: READY_FOR_REVIEW 或 BLOCKED
+- 每个 T 的 Gate 结论与关键输出
+- 提交 sha（每个 T 一个）
+- 改动文件清单
+- 越界声明（无则写无）
+- 已知限制
+
+现在开始，从 T0 做起。

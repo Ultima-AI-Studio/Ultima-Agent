@@ -1,0 +1,42 @@
+# 工单 wo-ultimaagent-20261108-0030 · 模块4 编排台账（本次只做 T0–T2）
+
+## 权威输入（先读再动手）
+- 全局规范：`H:\UltimaAI\INDEX.md`（G-DISPATCH-001 自主推进版 / G-PLAN-001 先方案后工单 / G-WO-NAME-001 命名）
+- 项目规范：`H:\UltimaAI\UltimaAgent\docs\INDEX.md`
+- 方案（已冻结，tag `agent-m4-ledger-plan-frozen-20261108`）：`docs/plans/agent-m4-orchestration-ledger-plan-20261108.md`
+- 本工单：`tasks/queue/wo-ultimaagent-20261108-0030--m4-orchestration-ledger.md`
+
+## 本次范围（严格，不得自行扩大）
+- 按 T0 → T1 → T2 顺序执行，每道 Gate 全绿才进下一条。
+- T2 Gate 全绿后**立即停止并回执**，不得进入 T3–T7。
+- 范围依据：工单第 0 节「阶段范围冻结」+ 方案第 2 节「目标与范围冻结」。
+- 若某道 Gate 无法全绿：停止、写清阻塞原因与已落地部分，不得用「预计通过」替代证据。
+
+## 三道门要点（细节见工单正文，以下仅备忘）
+- **T0 台账契约冻结**：与 `H:\UltimaAI\UltimaManager\src\manager\store.py` 的 13 表逐字段比对，核心 5 表（projects/goals/work_orders/stages/runs）差异必须为 0；把比对结果写成可复跑的脚本 + 结果 JSON。
+- **T1 轻量 SQLite store**：只实现核心表的 put / CAS（compare-and-swap）/ 事务边界，用例 ≥8，覆盖正常写入、版本冲突、事务回滚、并发写。
+- **T2 双写登记台**：`src/brain/orchestration/queue.py` 的 `GlobalQueueRegistrar` 增加 ledger 双写；**登记失败不得阻断派发**（只记审计并降级）；提供 `ULTIMA_LEDGER_DISABLED=1` 总开关。
+
+## 写域
+- 允许：`src/brain/orchestration/`、`tests/`、`docs/reports/`（本阶段报告）、`scripts/`（仅 T0 比对脚本）
+- **禁止修改**：`H:\UltimaAI\UltimaManager\**`（只读参照，任何文件都不许动）、`docs\tracker\北极星上线任务清单.html`、`scripts\tracker-live.py`、`ultima_bus\**`
+- 只在本工作树内提交，不要动 `H:\UltimaAI\UltimaAgent` 主仓工作区。
+
+## 环境
+- Python 解释器必须用：`H:\UltimaAI\UltimaAgent\tools\venv-openjarvis\Scripts\python.exe`（3.13.16）
+- pytest 跑汇总时用 `-o addopts=` 覆盖，避免 `-qq` 吞掉 summary
+- 可用依赖：`langgraph` 有；`fastapi`、`psutil`、`manager` 均无，不得引入新依赖
+
+## 回执（必须写入 --output-last-message 指定文件，JSON）
+```json
+{
+  "work_order": "wo-ultimaagent-20261108-0030",
+  "status": "READY_FOR_REVIEW",
+  "gates": {"T0": "PASS", "T1": "PASS", "T2": "PASS"},
+  "evidence": ["<绝对路径，每个必须是真实存在的文件>"],
+  "landed_files": ["<绝对路径>"],
+  "notes": "关键取舍、未做项、已知风险"
+}
+```
+- `evidence` 里每条都必须是盘上真实存在的文件，否则回执判无效。
+- 自报「可提交独立复审」即可，**不要自判整体 PASS**，最终验收由主脑独立复核。

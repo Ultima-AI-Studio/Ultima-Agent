@@ -1,0 +1,38 @@
+你是 Codex，执行工单 wo-ultimaagent-20261110-0035（v2.0 语音入口改判：E3 主线 + CV3 音色）。
+
+## 一、必读（按顺序）
+
+1. 工单卡：`H:\UltimaAI\UltimaAgent\tasks\queue\wo-ultimaagent-20261110-0035--voice-baseline-split.md`（这是唯一执行依据，§0 范围冻结与 §2 每 T 的四段式必须逐条照做）
+2. 索引规范：`docs/INDEX.md`（绝对路径 `H:\UltimaAI\UltimaAgent\docs\INDEX.md`；T6 要往里登记三行，列数与格式必须对齐相邻既有条目）
+3. 现行基线：`H:\UltimaAI\UltimaAgent\docs\specs\kws-wakeup-params-baseline.md`（T3 要改，现为 111 行，除工单指定位置外一字不动）
+4. E3 自述：`H:\UltimaAI\UltimaAgent\src\voice-next\README.md`（T2/T4 需引其原文，尤其第 5、24、44 行）
+
+## 二、执行方式
+
+按 T0 → T7 顺序逐条执行，每 T 的 Gate 全绿再进下一条。
+
+**T0 必须先做**：它要把 status 快照落到 `$env:TEMP\0035-t0-status.txt`，T7 依赖它做差分断言。漏了 T0 的落盘，T7 无法验收。
+
+## 三、硬纪律
+
+1. **禁止 `git add -A`**，只用工单 §2 T7 列出的显式路径。
+2. **禁止 `git stash` / `git checkout` / `git clean`**。入场 `git status --porcelain` 实测 **562 行**（其中 `docs/specs/` 相关 23 条多为未跟踪文件），不得清理、不得伪造干净状态。**若你实测的数值与工单所写不一致，一律以你的实测为准并如实记录进回执，不得为此判 BLOCKED。**
+3. **总验收必须用差分断言**，不得使用「`git status` 恰 N 条」这类绝对断言（入场实测已 562 行，任何绝对数字断言都会失败）。T7 用 `Compare-Object` 比对 T0 与 T7 两份 status 快照，期望**恰好 6 条 `=>`、0 条 `<=`**。
+3.1 **凡工单给出的事实数值（如基线文档 110 行、status 562 行、`docs/decisions` 已存在），都是发单方实测的快照，不是要求你凑数**。实测与之不符时，以实测为准、在回执注明，并继续往下做——不得因此停工。
+4. 不改任何 KWS / ASR / VAD / 门控参数值；`src/voice-next/` 内不新增 `import torch`；不把任何采样率写死进代码。
+5. **本单不实现 CV3 代码**：T4 只产出规格文档，`src/voice-next/live.py` 与 `sapi.ps1` 一行不动。不得宣称 E3 已具备 CV3 音色。
+6. T5 只改 `src/brain/voice/kws_listener.py` 第 43 行（值 26→24 与同行注释），L106/L111 调用点不动。
+7. 不新建 `docs/baselines/` 或 `docs/decisions/` 目录；所有新文档落 `docs/specs/`。
+8. 三项「待定」保持待定，不得写成确定性结论。
+
+## 四、自检与回执
+
+全部完成后，按工单 §4 粘贴模板逐条填写回执，必须包含：
+
+- **T0 四项指纹**：HEAD、status 行数与全文、两个目标文件的 SHA256 与行数、`PLAY_DEVICE` 当前值
+- **每 T 的 Gate 逐项结果**：✅/❌ + 实际命令输出（不得写「预计通过」）
+- **T7 的 `Compare-Object` 原始输出**：须能看出 6 条 `=>`、0 条 `<=`
+- **提交 sha 与 `show --stat` 输出**：须恰 6 个文件
+- **越界声明**：无则明确写「无」
+
+结论写 `VERDICT: COMPLETED`，或有阻塞时写 `VERDICT: BLOCKED` 并给出阻塞原因与已完成部分。

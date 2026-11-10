@@ -1,0 +1,17 @@
+先读项目引导索引 docs/INDEX.md，按权威源规范执行。Act as the Ultima coding executor.
+唯一工单wo-s1-task-text-loop，原工单tasks/queue/wo-s1-task-text-loop.md及三张原卡先读。这是W4打回后的同单修复，不是新工单、不执行其他任务。高推理，一单一真实进程。
+
+Owner最新约束：先只做已有音频离线验证，继续文本闭环；本单不播放、不录音、不采集麦克风。本单只依赖已批准v0.1，实际tag固定43ce13021f16f191bb36615ebb6c68465bf201fa，Owner回执只读。禁止修改冻结引擎/宿主与其测试。
+
+修复前必读 docs/reports/evidence/w4-independent-20261021/round1/ 内实际已落盘完整独立结论与复现证据；不存在最终结论则停止BLOCKED，不凭本prompt预告代替完整review。修复独立审查发现的全部Critical/Important问题，逐项新增能真实失败的回归测试→看到预期失败→最小修复→全套通过，保存RED/GREEN输出，不修改审查脚本去迎合实现。
+
+已知需修复：
+1. 默认不打断：'先不查任务状态'、'不需要查任务状态'、'我看过任务状态了'等被当前子串规则误触发。守住明确请求的窄边界，同时保持原16正例与独立正例至少90%；引用、否定、历史/状态陈述不触发且不读库。不要只硬编码这3句，应修正相应句型规则，并测试同类变体。
+2. 严格只读：QueueStorage.load_tasks自带ensure_layout，会为仅有tasks.json的不完整库创建cards/queue/events等目录。新文本模块可适配/覆盖该布局初始化行为，但禁止更改tasks/queue_engine/storage.py或冻结源。保持用真实队列引擎读取/验证索引，读取前后目录树与文件内容都不变，缺失/损坏/非法内容清楚失败，不伪装空库。新测试应先证明旧文本reader真实创建目录，再修复通过。独立完整审查如有其他Important同样修。
+
+写入域仅src/brain/、logs/（本轮新路径）、三张原任务卡目录。独立review目录只读。不得改_shared、全局主表、sync、docs、tag、生产tasks/tasks.json、冻结回执、旧工程run、备份资源。不得git commit/push，不启动下游。
+首轮失败和通过测试日志、logs/execution-reports/*/summary.json、三件套开发证据原文件均保留不覆盖。修复证据落logs/text-loop-w4-repair-20261021/，相应执行报告子目录含version='S1/v0.3'、已修问题、实际复跑结果、v0.1哈希36/36及生产tasks不变、independent_w4_completed=false。三卡可追加修复说明与新证据指针，不擅自签独立PASS。
+
+使用H:/UltimaAI/UltimaAgent/tools/python31313/python.exe -X utf8，注意嵌入式sys.path显式root。子进程CREATE_NO_WINDOW，优先cmd.exe login=false，不用pwsh。只跑适当必要测试：新增RED/GREEN、全套文本测试、独立审查脚本复跑（若脚本会用独占输出目录，读取其用法使用全新输出路径或为本轮调用入口保留独立路径，禁止覆盖round1）、v0.1冻结哈希及生产空库不变。旧引擎62项首轮偶发失败、复跑通过记录原样保留；本轮未更改引擎且不需要反复运行与本修复无关套件。若其他必需审查指出旧引擎阻断，准确回报不要修改冻结基线。
+
+不得使用update_plan工具，最终纯JSON后不得再调用工具。最终字段work_order='wo-s1-task-text-loop',status='READY_FOR_REVIEW'或'BLOCKED',completion,landed_files=[绝对路径],evidence=[实际存在本轮证据文件绝对路径],remaining_gates=['独立W4修复核对','Owner批准v0.3冻结'],scope_violation=false。最多2次自修，缺证据失败闭合。实际CLI正常退出才能交回。

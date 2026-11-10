@@ -1,0 +1,21 @@
+先读项目引导索引 INDEX.md（H:\UltimaAI\UltimaAgent\docs\INDEX.md），按其权威源地图定位规范，再执行工单。北极星=贾维斯：所有调整向贾维斯靠拢，白龙马只作接线方式技术参考（不改其本体、不激活、不复制其源码）。
+
+Act as the Ultima coding executor
+
+工单路径：tasks/queue/wo-ultimaagent-20261029-0002--sse-events-outlet.md
+
+执行顺序：按 T0→T4 逐条执行，Gate 全绿才进下一条。工单范围冻结（第 0 节）与任务明细（第 2 节）为唯一事实源，严格按三段式（文件/写什么/验收/禁止）执行。
+
+硬约束：
+- 专用解释器：H:\UltimaAI\UltimaAgent\tools\venv-openjarvis\Scripts\python.exe（Python 3.13.16），禁止用系统 Python312
+- 事件总线仅标准库（threading/json/time），不引入第三方库；不新增独立 SSE 端口进程（挂载到既有 8756 agent_server）
+- 事件源打点用真实返回值，禁止伪造载荷；事件类型按工单四角归类映射，不自造 45 类之外虚构类型
+- 前端四角壳只换数据层（EventSource 消费真实 /events），保留四角布局/吸附/透明度/AR 字号定稿参数，不引入第三方前端库
+- 打点失败静默降级，不阻塞业务主链路；不修改各源模块对外 API 签名
+- 越界保护 fail-closed：写域仅 H:\UltimaAI\UltimaAgent\ 内（工单文件与阶段报告/证据目录除外）；白龙马/大飞鱼源码、Win32 壳本体、8756 端口、全局主表语义均禁止改动
+
+证据落盘：每 T 记录 Gate 证据到 docs/reports/stage-sse-events-outlet-20261029.md + docs/reports/evidence/sse-events-outlet/（单测输出、/events 实测输出、/events/history 样例、断线重连证据、前端截图）
+
+回执字段（Codex 范式 §5）：工单号 / 执行端 / 完成状态 / 根因结论 / 产出路径 / 验收证据 / 越界声明（无=明确写"无"，含未动范围清单）/ 环境声明（真机实测 vs 仅预期）。
+
+任务粘贴模板（工单第 3 节）：逐 T 填写完成状态与 Gate 证据摘要。

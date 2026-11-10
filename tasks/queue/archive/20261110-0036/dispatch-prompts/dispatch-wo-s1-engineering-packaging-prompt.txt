@@ -1,0 +1,75 @@
+# 派发：工单⑦ wo-s1-engineering-packaging · 工程封装与安装包（PK-01~05）
+
+Act as the Ultima coding executor.
+
+先读项目引导索引 `H:\UltimaAI\UltimaAgent\docs\INDEX.md`，按其权威源地图定位以下规范再执行：`docs/specs/build-release.md`（§2.1 工程封装规范 PK-01~05）、`tasks/queue/wo-s1-engineering-packaging.md`（工单⑦ 总卡 v1.1）、`tasks/cards/s1-engineering-packaging/task.md`（任务卡，ACCEPT 封闭清单）、`docs/specs/environment-spec.md`（环境门）、`docs/specs/update-manifest-schema.md`（工单⑧ manifest 唯一权威，PK-05 对接用）。
+
+## 0. 环境门核查结果（主脑已核，直接采用）
+
+| 项 | 结论 |
+|---|---|
+| .NET SDK | **8.0.425 可用**，位于用户级 `C:\Users\Administrator\.dotnet`（系统位 `C:\Program Files\dotnet` 无 SDK）。执行 dotnet 命令前必须设 `DOTNET_ROOT=C:\Users\Administrator\.dotnet` 并把 `C:\Users\Administrator\.dotnet` 置 PATH 前缀 |
+| MSBuild | VS Build Tools 2022 17.14 可用：`C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\MSBuild\Current\Bin\MSBuild.exe` |
+| Python | 3.13.16 可用 |
+| WebView2 | 运行时已装（宿主壳在用） |
+| Inno Setup | **6.7.3 已装**：ISCC=`C:\Users\Administrator\AppData\Local\Programs\Inno Setup 6\ISCC.exe`（用户级，非 Program Files (x86)） |
+| 宿主壳工程 | `H:\UltimaAI\UltimaAgent\src\host-shell\UltimaAgent.HostShell\UltimaAgent.HostShell.csproj`：net8.0-windows10.0.19041.0 / WinUI3 / UseWinUI / WindowsAppSDK 1.8.260921001 + WebView2 1.0.3179.45 / x64 / RuntimeIdentifier=win-x64 / SelfContained=true / WindowsAppSDKSelfContained=true / Version=0.1.0 / TreatWarningsAsErrors=true |
+| 悬浮球原生壳 | `H:\UltimaAI\UltimaAgent\src\host-shell\UltimaAgent.OrbNative\UltimaAgent.OrbNative.csproj`（ORB-N1~N3 已验收的 Win32 分层窗口，为当前主悬浮球实现） |
+| 产物目录 | `H:\UltimaAI\UltimaAgent\dist\`（不存在，由你创建；构建输出与安装包暂存于此） |
+| 写入域 | `H:\UltimaAI\UltimaAgent\tools\packaging\`（封装/安装包脚本与配置）、`H:\UltimaAI\UltimaAgent\dist\`、`H:\UltimaAI\UltimaAgent\tasks\cards\s1-engineering-packaging\` |
+
+## 1. 已知缺口（如实声明，禁止伪造 PASS，B1 fail-closed）
+
+1. **版本冻结门**：v0.1-frozen / v0.3-frozen 已存在；**v0.2/v0.4 冻结 tag 缺失**（wo-s1-voice-poc、wo-s1-mvp-freeze 均 cancelled）。本工单**不创建、不宣称**任何版本冻结 tag（stage1-v1.0-frozen 需工单⑥⑦⑧ 共同收口后由 Owner 批准）。打包使用的版本号按工程现状如实登记（HostShell 0.1.0 / 你按 dist 内实际构建产物核对），不得伪造 1.0.0。
+2. **签名密钥**：工单⑧ RU-11 已实现 Ed25519 双签名（私钥加密 PKCS#8 PEM、篡改拒绝、空口令拒绝），但**真实签名密钥对尚未经 L8 注入**（credential_store.json 为空）。因此 PK-04 的"真实安装包签名"**无法完成**——正确做法：实现签名集成（调用/复用 `tools/publisher/ultima_publisher/signing` 同钥机制），用**临时测试密钥**完成"签名可验/篡改拒绝"机制验证并如实标注"真实发布密钥待 L8 注入"，把真实签名项标为 BLOCKED 而非伪造 PASS。
+3. **PK-05 对接更新通道**：依赖工单⑧ RU-12 真实发布（GitHub Release 上传）与安装包真实产物。本工单范围内完成"安装包即更新资产"的**契约对接**（manifest 生成对接 `docs/specs/update-manifest-schema.md`、发布工具可消费产物清单），真实端到端上传/拉取闭环留待工单⑧ 联合收口（总卡 v1.1 执行交接已消除循环等待：PK-01~04 证据明确后主脑登记，允许工单⑧ 消费；PK-05 由工单⑧ 回填）。
+
+## 2. 执行顺序（按 PK-01 → PK-05 逐单元，Gate PASS 再进下一条）
+
+### PK-01 EXE 单文件封装（Gate：零依赖环境可双击运行 + 运行期窗口枚举：宿主 GUI 可见、其余计数 0）
+- 在 `tools/packaging/` 新建封装脚本（PowerShell 或 py 均可，须可复现）：调用 dotnet publish（设 DOTNET_ROOT），参数自包含单文件：`-c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:EnableCompressionInSingleFile=true`，输出到 `dist\`。
+- 注意 HostShell 是 WinUI3（UseWinUI=true），单文件发布需确认 WindowsAppSDK 自包含兼容性；若 WinUI3 单文件方案存在已知不兼容（WindowsAppSDK 1.8 对 PublishSingleFile 的限制），如实登记并在封装脚本中给出**已验证**的替代形态（如自包含目录发布 + 单文件引导器），验收口径不降级：产物必须零依赖双击运行。
+- **Gate 证据**：发布命令与产物文件清单（路径/大小/SHA-256）、零依赖环境（或最小环境）双击运行实测记录、运行期窗口枚举（EnumWindows + IsWindowVisible）结果：宿主 GUI 窗口可见、其余窗口计数 0（N7 绝对纪律）。
+- 禁止：任何前台弹窗、改变宿主壳功能逻辑、改动 `src/` 下的源码（只读引用）。
+
+### PK-02 安装包制作（Gate：可双击安装、快捷方式存在、卸载项存在且可卸）
+- 用 Inno Setup 6 编写 `tools/packaging/UltimaAgentSetup.iss`（或 .iss 模板 + 构建脚本）：AppName=Ultima Agent、版本资源/图标、开始菜单快捷方式、卸载项（UninstallDisplayIcon 等）、输出 `dist\UltimaAgent-Setup-<ver>.exe`。
+- ISCC 调用：`& 'C:\Users\Administrator\AppData\Local\Programs\Inno Setup 6\ISCC.exe' <script>`。
+- **Gate 证据**：ISCC 编译成功、安装包存在、真机实测安装成功（开始菜单快捷方式存在）、卸载项存在且实测可卸（卸载后残留检查：目录/快捷方式清除）。
+- 禁止：安装过程中弹窗打扰（静默安装参数支持）、写死版本号 1.0.0（按 PK-01 实际产物版本）。
+
+### PK-03 依赖引导（Gate：WebView2 缺失时静默安装零弹窗；已有则跳过）
+- 在 Inno Setup 脚本中实现 WebView2 Runtime 检测（注册表/已知路径）与缺失时的引导：下载官方 Evergreen Bootstrapper（https://go.microsoft.com/fwlink/p/?LinkId=2124703）静默安装（`/silent /install`），或登记 Inno Setup 的 webview2 支持；安装全程零弹窗（N7）。
+- **Gate 证据**：检测逻辑实测（本机已有 WebView2 → 跳过路径验证）；缺失模拟路径若无法在本机实测，如实登记"仅真机预期 + 逻辑走查"，禁止冒充已验证。
+- 禁止：引导安装出现任何前台窗口/交互提示。
+
+### PK-04 安装包签名（Gate：签名可验、篡改拒绝；无真实公钥 fail-closed）
+- 复用 `tools/publisher/ultima_publisher/signing`（工单⑧ RU-11 同钥机制，Ed25519 双签名、私钥加密 PKCS#8 PEM、篡改拒绝 InvalidSignature）：为安装包增加签名/验签集成。
+- 用临时测试密钥完成机制验证：签名安装包 → 验签 PASS → 篡改 1 字节 → 拒绝。
+- **Gate 证据**：签名/验签命令与输出、篡改拒绝实测。**真实签名项明确标 BLOCKED（真实密钥待 L8 注入）**，不伪造。
+- 禁止：生成/落盘真实发布私钥、私钥明文入库。
+
+### PK-05 对接更新通道（Gate：安装包即更新资产，契约对接完成）
+- 产出"安装包即更新资产"的对接说明与 manifest 生成样例：按 `docs/specs/update-manifest-schema.md` 生成安装包的 manifest 条目（版本/路径/SHA-256/签名引用），供工单⑧ 发布工具（`tools/publisher`）消费；确认发布工具 manifest schema 与本安装包产物字段一致。
+- **Gate 证据**：manifest 样例 JSON + 字段与 update-manifest-schema.md 逐字段核对记录。真实端到端上传/拉取闭环明确标"留待工单⑧ 联合收口"，不伪造。
+- 禁止：创建 GitHub Release、真实上传、改写工单⑧ 发布工具。
+
+## 3. 回执（必报字段）
+
+- 链路号/工单号：wo-s1-engineering-packaging
+- 执行端：Codex（gpt-5.6-sol）
+- 完成状态：已完成 / 阻塞 / 已终止（如实）
+- 根因结论：每单元关键结论一句话
+- 产出路径：tools/packaging/ + dist/ + 报告 + 证据目录（evidence 放 `docs/reports/evidence/wo-s1-engineering-packaging/`）
+- 验收证据：每 Gate 的真实命令输出/实测记录摘要
+- 越界声明：未动范围（未打版本冻结 tag、未创建 Release、未改动 src/ 源码、未落盘真实密钥）
+- 环境声明：真机 vs 预期，逐项标明
+
+## 4. 禁止清单（硬约束）
+
+- 禁止创建/宣称 v0.2/v0.4/stage1-v1.0 任何冻结 tag
+- 禁止调用 create_cron_job、GitHub Release 创建、真实密钥生成落盘
+- 禁止修改 `src/` 宿主壳源码（只读）
+- 禁止任何前台弹窗（N7）
+- 禁止以"应该能跑"替代实测证据（B1 fail-closed）
+- 禁止把临时测试密钥伪装为真实发布密钥

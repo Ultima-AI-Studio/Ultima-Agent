@@ -1,0 +1,71 @@
+# 工单 wo-ultimaagent-20261108-0030 · 模块4 编排台账（本次只做 T3）
+
+## 权威输入（先读再动手）
+- 全局规范：`H:\UltimaAI\INDEX.md`（G-DISPATCH-001 自主推进版 / G-PLAN-001 先方案后工单 / G-WO-NAME-001 命名）
+- 项目规范：`docs/INDEX.md`（即 `H:\UltimaAI\UltimaAgent\docs\INDEX.md`）
+- 方案（已冻结，tag `agent-m4-ledger-plan-frozen-20261108`）：`docs/plans/agent-m4-orchestration-ledger-plan-20261108.md`
+- 本工单：`tasks/queue/wo-ultimaagent-20261108-0030--m4-orchestration-ledger.md`
+- 前序阶段产物（**已冻结，只读，不得修改**）：
+  - T0 台账契约冻结 `a96330c9`
+  - T1 轻量 SQLite store `16df59b5`
+  - T2 双写登记台 `a4d968af`
+  - 分支 `codex/m4-orchestration-ledger-20261108`
+
+## 本次范围（严格，不得自行扩大）
+- **只做 T3**（活动级阶段解析器），做完 Gate T3 全绿后**立即停止并回执**。
+- **不得重做、不得修改 T0–T2 已冻结产物**（`src/brain/ledger/` 既有 store / registrar 与 T2 接线一行都不许改）。
+- **不得进入 T4–T7**（看板页、审批门接线、对账自愈、总验收）。
+- 若 Gate T3 无法全绿：停止、写清阻塞原因与已落地部分，不得用「预计通过」替代证据。
+
+## T3 要点（细节见工单第 118–142 行，以下仅备忘）
+- **文件**：`src\brain\ledger\stage_parser.py`（新建）、`src\brain\ledger\tests\test_stage_parser.py`（新建）
+- **解析方式**：逐行 `json.loads` 读 `dispatch.out.log`；坏行跳过并计数，**不得抛异常**
+- **六类事件映射（证据驱动，不做语义推断）**：
+  - 写文件 / 打补丁 → `整理补丁`
+  - 执行命令 / 跑测试 → `运行验证`
+  - 生成报告 / 写 markdown → `正在写报告`
+  - 等待模型响应 / token 流式 → `等待模型响应`
+  - 会话开始 / 任务接收 → `接收任务`
+  - 结束 / 完成 → `收尾`
+  - 其余 → `other`，**原样保留触发事件名**供人工判读
+- **输出**：`list[StagePoint(ts, phase, activity, source_event, confidence)]` + 汇总 `(当前阶段, 各阶段耗时)`
+- **confidence**：直接字段命中=high，关键词匹配=medium，未知=low；禁止把 low 当 high 展示
+- **禁止**：用模型/LLM 推断阶段；硬编码某条工单的绝对路径；把 `other` 伪装成正常阶段；忽略解析失败计数
+
+## 样例日志（T3 素材，只读）
+- 0029 真实日志：`H:\UltimaAI\UltimaAgent\tasks\queue\runs\wo-ultimaagent-20261108-0029\20261108T160047506080Z\dispatch.out.log`（2,608,752 B）
+- 该日志须能覆盖 ≥6 类事件；代码里用**参数传入路径**，不把此绝对路径写死进源码
+
+## Gate T3 验收（封闭清单，全绿才过）
+- 用 0029 真实日志跑，输出阶段时间线与各阶段耗时，**覆盖事件类别 ≥6**
+- 坏行（非 JSON）注入测试：不抛异常，计数正确
+- 未知事件归 `other` 且保留原事件名
+- pytest 全绿（本阶段用例 + 既有 ledger 用例零倒退）
+
+## 写域
+- 允许：`src/brain/ledger/stage_parser.py`、`src/brain/ledger/tests/test_stage_parser.py`、`docs/reports/`（T3 阶段报告）
+- **禁止修改**：`H:\UltimaAI\UltimaManager\**`（只读参照）、`docs\tracker\北极星上线任务清单.html`、`scripts\tracker-live.py`、`ultima_bus\**`、T0–T2 既有 ledger 文件
+- 只在本工作树内提交，不要动 `H:\UltimaAI\UltimaAgent` 主仓工作区
+
+## 环境
+- Python 解释器必须用：`H:\UltimaAI\UltimaAgent\tools\venv-openjarvis\Scripts\python.exe`（3.13.16），禁止默认 Python312
+- pytest 跑汇总时用 `-o addopts=` 覆盖，避免 `-qq` 吞掉 summary
+- 不引入新依赖（无 `psutil` / `fastapi` / `manager`）
+
+## 回执（必须写入 --output-last-message 指定文件，JSON）
+```json
+{
+  "work_order": "wo-ultimaagent-20261108-0030",
+  "stage": "T3",
+  "status": "READY_FOR_REVIEW",
+  "gates": {"T3": "PASS"},
+  "event_categories_covered": <整数，须 ≥6>,
+  "bad_line_count": <整数>,
+  "evidence": ["<绝对路径，每个必须是真实存在的文件>"],
+  "landed_files": ["<绝对路径>"],
+  "notes": "关键取舍、未做项、已知风险"
+}
+```
+- `evidence` 里每条都必须是盘上真实存在的文件，否则回执判无效。
+- 自报「可提交独立复审」即可，**不要自判整体 PASS**，最终验收由主脑独立复核。
+- 回执须显式声明「未改动 T0–T2 冻结产物」（有改动=越界，直接判无效）。

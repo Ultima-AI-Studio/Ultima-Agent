@@ -1,0 +1,23 @@
+先读项目引导索引 INDEX.md（H:\UltimaAI\UltimaAgent\docs\INDEX.md），按其权威源地图定位规范与写域，再执行本工单。
+
+Act as the Ultima coding executor.
+
+请执行工单 tasks/queue/wo-ultimaagent-20261101-0014--kws-user-entry.md（工单 ID：wo-ultimaagent-20261101-0014，KWS 唤醒词用户入口+持久化「工单 E」）。
+
+背景：0009 已交付改词 CLI（scripts/kws_reconfig.py 四子命令），本单补"用户入口 + 持久化记住"：语音说"把唤醒词改成XX / 以后叫XX唤醒我" → 改词生效 + 热重载（同 PID）+ 播报确认 + 写回 config/voice-profile.json 的 wakeword.custom（voice_profile.save_user_override 公开接口）+ 一致性收敛（当前 profile custom=null 但 keywords.txt 含"查天气"行，双源不一致需核对来源后收敛并落盘）。方案：docs/plans/plan-voice-three-issues-20261101.md；规则参考 docs/specs/mainbrain-rules-baseline.md v1.0 第 R4 条（用户改设置类指令 → 按工具执行并复述确认）。
+
+按工单 T0→T4 逐条执行，Gate PASS 再进下一条：
+- T0 环境盘点：读 src/brain/interaction.py 意图链路（_normalize_utterance / _FUZZY_* / _try_agent_fallback）确认接入点；读 scripts/kws_reconfig.py 真实 CLI 行为（--replace/--add/备份/热重载触发）；读 voice_profile.save_user_override / load_profile 公开签名（只读不改）；一致性核对（profile custom=null vs keywords.txt 含查天气，排查来源给收敛决定）；证据 docs/reports/evidence/kws-user-entry/t0-env-probe.txt
+- T1 意图分支+写回实现：新增"改唤醒词"意图（近音容忍：改/换/叫/唤醒词），解析新词文本；调 kws_reconfig 改词 → 热重载日志出现（daemon pid 不变）→ save_user_override 写回 profile；生成"唤醒词已改为XX"确认文本（走现有 TTS 链）；一致性收敛执行（回填 custom 或清理 keywords 行，profile 与 keywords 对齐）；证据 t1-entry.txt
+- T2 自动化验证：意图多句式变体单测；save_user_override 后 profile custom=新词断言；模拟重启加载（load_profile）custom 生效断言；全量回归 venv-openjarvis 专用解释器 pytest src 全绿 + voice-profile/语音专项绿；证据 t2/
+- T3 收口：kws-wakeup-params-baseline.md 参数数值零漂移核对（只可追加变更记录）；git add 仅本单写域文件（禁止 -A/-u）；commit 标注「工单 0014 KWS 唤醒词用户入口+持久化」；tag ultimaagent-kws-user-entry-20261101 + git rev-parse + 免代理推送（git -c http.proxy= -c https.proxy= -c http.https://github.com.proxy= push）；阶段报告 docs/reports/stage-kws-user-entry-20261101.md 完整（含一致性收敛记录）
+- T4 八字段回执
+
+硬约束：
+- 工作目录 H:\UltimaAI\UltimaAgent；工程验收 pytest 必须用 tools\venv-openjarvis\Scripts\python.exe（Python 3.13.16），禁止默认 Python312。
+- 禁止修改：KWS 模型/onnx/tokens/keywords 现网 6 变体与 ULTIMA 行（改词只走 scripts/kws_reconfig.py 公开 CLI）；KWS 全局参数数值（kws-wakeup-params-baseline.md 零漂移）；voice_profile.py 逻辑（0003 冻结，只调公开接口，需接口调整必须申报）；daemon 音频栈；W6/HUD UI；守护进程不得杀/重启（热重载必须同 PID）。
+- 关键修改/更新完成即打 git tag 并推送（本单 tag=ultimaagent-kws-user-entry-20261101）。
+
+每 T 记录 Gate 证据到 docs/reports/stage-kws-user-entry-20261101.md + docs/reports/evidence/kws-user-entry/，临时文件执行完自行清理。
+
+最终回执八字段：链路号/执行端/完成状态/根因结论/产出路径/验收证据/越界声明/环境声明。

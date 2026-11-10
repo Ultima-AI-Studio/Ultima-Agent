@@ -1,0 +1,228 @@
+Act as the Ultima coding executor.
+
+先读项目引导索引 H:\UltimaAI\UltimaAgent\docs\INDEX.md，按其权威源地图定位规范，再执行工单。
+
+工单路径：tasks/queue/wo-ultimaagent-20261031-0008--gptsovits-v3-fewshot.md（相对 UltimaAgent 项目根 H:\UltimaAI\UltimaAgent 解析）
+
+执行顺序：按 T0→T5 逐条执行，每条 Gate PASS 再进下一条；任何 Gate FAIL 立即停止并记录，不跳过。
+
+关键约束（工单内已详述，此处重申）：
+1. 只做 V3 few-shot LoRA 微调（s2_train_v3_lora.py 路线），不修改 v3lora 包内任何源码，不训练 s1，不做全量训练。
+2. 训练素材：MOV 音轨（mov3924_full_24k.wav 优先 / yangmi_ref_mov.wav 备选），转写必须经 ASR + 人工复核一致后才可用（错误转写已验证会导致克隆输出乱内容）。
+3. 禁止联网下载模型：BERT/HuBERT/语义特征必须用 v3lora 包内自带 pretrained_models（chinese-roberta-wwm-ext-large 或等价），包内必须自足。
+4. GPU RTX 3080 Ti 12GB：batch ≤4，OOM 必须降 batch 重试，禁止硬跑；训练期间不与 9880 API 并发推理。
+5. 验收测试语固定 18 字："你好，我是你的语音助手，今天有什么可以帮你的吗"（text_language=zh）。
+6. 验收口径（复用本项目历史）：F0 中位 pyin（fmin80/fmax500/frame1024/hop240，wave 原生 24k 读入）贴近 MOV 目标 202.8Hz ±5%（192-213Hz）；ASR 完整输出无吞字；首字"你"窗口 rms > 全句 rms。
+7. 证据落盘：每 T 的 Gate 证据写入 docs/reports/stage-gptsovits-v3-fewshot.md + docs/reports/evidence/stage-gptsovits-v3-fewshot/；音频大文件不入仓（报告写路径即可）。
+
+回执必报八字段：
+- 工单号：wo-ultimaagent-20261031-0008
+- 执行端：Codex
+- 完成状态：已完成 / 阻塞 / 已终止（三选一）
+- 根因结论：一句话（诊断/训练类必填）
+- 产出路径：改动文件 + 报告 + 证据目录
+- 验收证据：训练日志摘要 + 合成产物路径 + F0/ASR/首字实测值
+- 越界声明：无=明确写"无"；含未动范围（包源码未改 / 既有产物未动）
+- 环境声明：API 挂载 or CLI 合成；真机实测 or 仅预期
+
+完成所有 T 后，将回执以纯文本形式输出在最终回复末尾（标记"=== EXECUTION RECEIPT ==="）。
+
+=== 重派补充（2026-10-31 主脑追加）===
+本次为 T1 人工复核门之后的**重派重入**：T1 之前的产出（t0-inventory.txt / t1_transcribe.py / t1-gate-fail.txt）已存在，直接复核其结论并从 T1 重入，不重复 T0。
+
+人工听读复核已完成，结论以此为准（权威记录：docs/reports/evidence/stage-gptsovits-v3-fewshot/human-review-20261031.txt）：
+- **A 段 15.00-23.40s（review-a.wav，可用）定稿文本**：「自己的意见、自己的需求很重要，但是别人的意见也很重。我从来不会说，我一定说的就是对的。」
+- **C 段 123.10-130.50s（review-c.wav，可用）定稿文本**：「寻找问题，出现的原因，这个是我现阶段，对于情绪这个问题的理解。」
+- **B 段 50.50-57.90s（review-b.wav）弃用**：混入主持人声音，该时间窗不入选训练集。
+- **四处全局疑点未确认（不入选训练集）**：00.00-01.20「非常统一」、34-35s 节目名、67.24-69.26「其实是写了妆以后睡觉」、148.62-151.52「我又怕变成PoA/或者是被PoA」。
+
+T1 重入要求：训练集 list 只允许包含 A/C 两段（时间窗 + 上述定稿文本），其余时间窗一律不得写入训练 list；B 段与四处疑点不得出现在任何训练文本中。
+
+=== 二次重派补充（2026-10-31 主脑追加，T2 Gate FAIL 后）===
+已知失败（权威记录：docs/reports/evidence/stage-gptsovits-v3-fewshot/t2-gate-fail.txt）：
+- `prepare_datasets/1-get-text.py` 三次尝试均 exit 1，根因 `ModuleNotFoundError: No module named 'text'`。
+- 根因确认：GPT-SoVITS 便携运行时 `runtime/python39._pth` 仅含 python39.zip / '.' / import site，**忽略 PYTHONPATH**，sys.path 不含 GPT_SoVITS 与包根 → 包内 `import text` 失败。
+- 安全约束：**禁止编辑 python39._pth、禁止修改 GPT_SoVITS 包源码**（v3lora 包内自足验收红线）。
+
+重入要求（从 T2 的 prepare_datasets 重入，不重复 T1）：
+1. 用 wrapper 方式修复：创建临时启动器（python 脚本或 .bat，置于包外），先 `sys.path.insert(0, <v3lora包根>/GPT_SoVITS)` 与 `sys.path.insert(0, <v3lora包根>)`，再以子进程或直接 exec 方式运行 `GPT_SoVITS/prepare_datasets/1-get-text.py`（参数沿用原脚本）；不得改 `_pth`/包源码。
+2. 若 wrapper 仍失败，记录第二次根因证据并停止（不绕过、不降级、不改包）。
+3. 1-get-text.py 通过后，继续 2-get-hubert-wav.py / 3-get-semantic.py（同样路径策略）→ 训练 list（仅 A/C）→ LoRA 训练（3080Ti 12GB batch≤4、禁联网、不并发 9880）→ T3 合成 → T4 验收三标准（音色纯净 / F0≈202.8Hz±5% / 首字完整）→ T5 冻结 tag `ultimaagent-gptsovits-v3-fewshot-20261031` + stage 报告 + 八字段回执。
+4. git 提交只允许 add 本单写域文件（训练证据/报告/脚本），禁止 git add -A；commit 后免代理 push（git -c http.proxy= -c https.proxy= -c http.https://github.com.proxy= push）。
+
+=== 三次重派补充（2026-10-31 主脑追加，T3 Gate FAIL 后）===
+已知失败（权威记录：docs/reports/evidence/stage-gptsovits-v3-fewshot/t3-gate-fail.txt）：
+- `s2_train_v3_lora.py` 训练启动失败：`torch.distributed TCPStore 无法绑定本地随机端口 49717`，Windows socket error 10013（访问被禁止），最终 `dist.init_process_group` RuntimeError；非 OOM/CUDA/NaN，无 LoRA 权重产出。
+- 根因判断：Windows 防火墙/安全软件或 Hyper-V 保留端口区间拦阻了随机高端口绑定（10013 = WSAEACCES）。
+- 安全约束不变：**禁止编辑 python39._pth、禁止修改 GPT-SoVITS 包源码**（v3lora 包内自足验收红线）。
+
+重入要求（从 T3 训练重入，不重复 T2）：
+1. 同样用 wrapper 方式：启动器在 `sys.path.insert(0, <包根>/GPT_SoVITS)` / `sys.path.insert(0, <包根>)` 后，设置环境变量 `MASTER_ADDR=127.0.0.1`、`MASTER_PORT=29500`（固定非保留端口，先确认该端口未被占用：`Get-NetTCPConnection -LocalPort 29500` 为空再启动），再以子进程运行 `GPT_SoVITS/s2_train_v3_lora.py`（参数沿用本次 t3-train-config.json 的口径：batch=1、epochs=2、rank=32、包内 s2Gv3.pth、离线模式）。
+2. 若固定 MASTER_PORT 后仍报 10013：换 30000/30500 再试一次；仍失败则记录根因证据并停止（不绕过、不降级、不改包、不关防火墙服务）。
+3. 训练 exit 0 且产出可加载 LoRA 权重（data/voice/yangmi-ref/train-data/weights/）后 → T4 验收三标准（音色纯净 / F0≈202.8Hz±5% / 首字完整）→ T5 冻结 tag `ultimaagent-gptsovits-v3-fewshot-20261031` + stage 报告 + 八字段回执。
+4. 写域与 push 约束同上次：只 add 本单写域文件；免代理三键 push（含 --tags）。
+5. 9880 全程不得被本单占用/停止（禁联网、不并发 9880）。
+
+=== 四次重派补充（2026-10-31 主脑追加，T4 Gate FAIL 后）===
+已知失败（权威记录：docs/reports/evidence/stage-gptsovits-v3-fewshot/t4-gate-fail.txt + t4-measurements.txt）：
+- 合成路由正确（CLI 直推、s1v3.ckpt + e2_s200_l32.pth、LoRA 挂载 log 证明、"loading sovits_v3pretrained_G <All keys matched>" + "loading sovits_v3_lora32"）。
+- 测量：F0_median=228.9Hz（目标 192-213Hz）FAIL；首字窗 [0.30,0.65]s RMS=0.04636 vs 全句 0.04975（ratio=0.932）FAIL；voice_start=0.527s；full_rms=0.04975。
+- ASR 与主观音色均未跑（FAST-FAIL 纪律正确），T5 未执行，weight.json 已 byte-for-byte 恢复（SHA256 7CEA577F...835C）。
+
+主脑归因（实测证据，用 GPT-SoVITS 便携 runtime pyin 同参数复核）：
+- 训练参考段 review-a F0_median=176.0Hz、review-c F0_median=173.0Hz（偏低）→ 训练数据本身 F0 低于目标。
+- T4 参考段 yangmi_ref_mov.wav F0_median=202.2Hz（贴合 MOV 目标 202.8Hz）→ 参考段选择无误，F0 偏差不来自参考段选错。
+- 结论：合成 F0 偏高属**推理侧参数/韵律采样**问题（非训练、非参考段），首字 RMS 偏低与 **voice_start=0.527s 前导静音被计入测量窗口** 相关（窗口 [0.30,0.65] 起点早于发声起点 0.23s）。
+
+重入要求（从 T4 合成重入，不重训；权重保留 e2_s200_l32.pth）：
+1. **推理参数 A/B 扫描**：同一测试语 + 同一参考段（yangmi_ref_mov.wav + 其配对 MOV 转写），扫描至少 3 组合成参数组合（重点变化项：speed_factor 0.9~1.1、top_k 5~15、top_p 0.9~1.0、temperature 0.6~1.0），每组产出独立 wav + 同口径 pyin 测量（fmin80/fmax500/frame1024/hop240，24k 原生），记录参数→F0 映射表；目标 F0_median 落入 192-213Hz。
+2. **首字测量口径修正**：首字「你」窗口应从发声起点对齐（voice_start 起 0.35s，即 [voice_start, voice_start+0.35]），与全句 RMS 同口径比较；同时记录修剪前导静音（0.527s 前）后的全句 RMS 作对照。判据仍为「首字窗口 RMS > 全句 RMS」，但窗口起点必须 ≥ voice_start，不得把前导静音计入首字能量。
+3. 若参数扫描 + 口径修正后 F0 与首字仍不同时达标：停止，落盘完整参数矩阵证据（每组参数、F0、首字/全句 RMS、产物路径），交主脑决策；**不降级验收口径**（不放松 192-213Hz、不删除首字判据）。
+4. 达标后：ASR（完整输出无吞字）+ 主观音色确认 → T5 冻结 tag `ultimaagent-gptsovits-v3-fewshot-20261031` + stage 报告 + 八字段回执。
+5. 纪律不变：禁联网、不改包/_pth、9880 不占用不停、只 add 本单写域、免代理三键 push（含 --tags）。
+
+
+=== 五次重派补充（2026-10-31 主脑追加，T4 重入 FAIL 后 · 攻坚版）===
+已知失败（权威记录：t4-reentry-gate-fail.txt + t4-parameter-matrix.jsonl）：
+- 六次重派六组参数扫描：首字 Gate 6/6 PASS（ratio 1.17-1.47，旧首字 FAIL 系测量窗口误计前导静音，已闭环）；F0 全部 221.11-231.56Hz 超 213Hz 上限，0/6 同时达标；最佳组 speed=1.1/top_k=5/top_p=1.0/temp=1.0，F0=221.11Hz。
+- 主脑研判：speed 越高 F0 越低（0.9→223.68 / 1.0→224.97 / 1.1→221.11，边际约 -3.9Hz/0.1）；temperature 越低 F0 越高（0.6→231.56）；top_k/top_p 影响小。授权范围压不进窗，但 SoVITS 侧韵律参数（noise_scale / sdp_ratio / noise_scale_w）尚未扫描，speed 档位也未到上限——这些是 F0 贴参考的关键杠杆（noise_scale 越小越贴参考模板 202.2Hz）。
+
+重入要求（从 T4 合成重入，不重训；权重 e2_s200_l32.pth 不变；目标=192-213Hz 且尽量贴近 202.8Hz，口径不放）：
+1. **扩展参数扫描（SoVITS 侧为主）**：固定测试语 + 固定参考段 yangmi_ref_mov.wav + 配对 MOV 转写 + 固定 seed 20261031。优先扫（每组合成独立 wav + 同口径 pyin fmin80/fmax500/frame1024/hop240 24k 原生）：
+   - speed_factor：1.2 / 1.3 / 1.5（验证更高 speed 是否压 F0 进窗；若 F0 达标但语速失真，如实记录时长/听感 tradeoff 供主脑裁决）
+   - noise_scale：0.3 / 0.4 / 0.5（SoVITS 说话风格自由度，越小越贴参考模板）
+   - sdp_ratio：0.0 / 0.2（随机时长比例）
+   - noise_scale_w：如 CLI 暴露则扫 0.4 / 0.8
+   - 组合策略：以 speed=1.1/top_k=5/top_p=1.0/temp=1.0 为底座，每轮单变量变化，至少 6 组；找到 F0 落入 192-213Hz 的组合后，做 1-2 组邻近微调（±0.05 粒度）取最贴近 202.8Hz 者。
+2. **首字测量口径保持修正版**：[voice_start, voice_start+0.35s] RMS > 全句 RMS（含修剪前导静音对照）。判据不变。
+3. 达标判定：F0_median ∈ [192,213] 且首字 PASS → ASR（完整输出无吞字）→ 主观音色确认（候选产物）→ T5 冻结 tag `ultimaagent-gptsovits-v3-fewshot-20261031` + stage 报告 + 八字段回执。
+4. 若全部组合仍超限：落盘完整参数矩阵（每组参数/F0/首字/全句 RMS/产物路径/时长），如实记录哪一侧达到下限，交主脑决策；不放松 F0 窗、不删除首字判据。
+5. 纪律不变：禁联网、不改包/_pth、9880 不占用不停、只 add 本单写域、免代理三键 push（含 --tags）。单测保持 2/2 全绿。扫描音频不入仓。
+=== 六次重派补充（2026-10-31 主脑追加 · 长数据升级路线，用户拍板）===
+用户拍板（权威）：「做一个 30 分钟到数小时的，10 轮修正迭代，力争做到 95% 以上像」+「要最好的结果，不能接受不完美」。0008 范围正式升级：few-shot → 长数据克隆。方案全文：docs/previews/voice-clone-longdata-upgrade-20261031.md（必读）。
+1. **素材（已实测，全部现有资产，无需联网下载）**：
+   - 主素材 yangmi_full_24k.wav（H:\UltimaAI\UltimaAgent\data\voice\yangmi-ref\，24.30min / 1457.9s / 24kHz mono PCM16，峰值 0.984，来源 BV1aU421Z78Q，无现成转写/切分）。
+   - 辅素材 mov3924_full_24k.wav（2.66min）+ 既有 A/C 定稿（review-a/c + human-review-20261031.txt）可并入。
+   - 合计原始 ≈27min，清洗后目标可用 ≥20min。若要数小时级需用户补素材——当前阶段不等待，先用现有全量推进。
+2. **数据准备流水线（本重派核心交付①）**：
+   a. VAD 切分 yangmi_full 全量，保留 ≥1s 语音段，去静音/呼吸/爆音；
+   b. 纯净度筛查（BGM/混主持/嘈杂），不合格剔除并记录原因；
+   c. ASR 转写逐段 → segments.jsonl（start/end/text/wav 路径/F0 中位）；文本人工核验清单产出（用户抽查，执行端不得假装能听音频）；
+   d. **F0 筛查选段（治本）**：每段 GPT-SoVITS runtime pyin（fmin80/fmax500/frame1024/hop240，24k 原生）测 F0 中位，剔除 <160Hz 或 >230Hz 段，使训练集 F0 分布围绕 202.8Hz——从数据层消除 F0 偏高根因（原训练段 173-176Hz 偏低）；
+   e. 训练集落盘：wav32k 副本 + longdata.list（格式同 few-shot list）+ 段映射表。
+3. **训练（本重派核心交付②）**：V3 LoRA 长数据训练，wrapper 沿用固定 MASTER_PORT=29500 范式；batch=2（3080Ti 12GB）、epoch 5-15 按数据量定、rank=32、离线；exit 0 + LoRA 可加载后进合成。s1 不训练（沿用包内 s1v3.ckpt）。
+4. **合成首轮候选（本重派核心交付③）**：固定 18 字测试语 + 参考段选清洗后 F0 最贴 202.8Hz 段，产出 ≥2 组候选 wav（参数组 A/B 含 noise_scale 0.3/0.5、sdp_ratio 0/0.2），同口径 pyin 测量 F0 + 首字窗口 [voice_start, voice_start+0.35s] RMS vs 全句。
+5. **验收与迭代框架**：定量门 F0∈[192,213] 且首字 PASS → 交付用户听验（主观 ≥95%，用户最终判据）；不达标则记录本轮修正项（数据/训练/推理/参考段四类），进入下一轮；**本重派单轮完成，后续迭代由主脑按轮次重派**，最多 10 轮。
+6. 纪律不变：禁联网、不改包/_pth、9880 不占用不停、只 add 本单写域（含方案文件 docs/previews/voice-clone-longdata-upgrade-20261031.md）、免代理三键 push（含 --tags）。单测保持全绿。候选 wav 不入仓，segments.jsonl/F0 清单/证据入仓。
+7. 产出必须回执：数据准备统计（段数/清洗后总时长/F0 分布/剔除原因分布）+ 训练日志摘要 + 候选产物路径 + 定量测量 + 用户听验指引（候选 wav 路径列表，供主脑交付用户）。
+=== 七次重派补充（2026-10-31 主脑追加 · 新素材并入，数据量升级）===
+用户已提供新素材（权威路径：H:\UltimaAI\UltimaAgent\TTS\，5 个 MP4，已探测）：
+- IMG_3923.MP4 = 24.30min（与 yangmi_full_24k.wav 同源，已提取 24k wav，**不要重复提取**，直接复用 yangmi_full_24k.wav）
+- IMG_3925.MP4 = 6.37min（44100Hz/2ch，**新增**，需提取）
+- IMG_3926.MP4 = 23.92min（44100Hz/2ch，**新增**，需提取）
+- IMG_3927.MP4 = 1.93min（44100Hz/2ch，**新增**，需提取）
+- IMG_3928.MP4 = 0.61min（44100Hz/2ch，**新增**，需提取）
+总原始素材 ≈60min（含 mov3924 2.66min），清洗后目标可用 40-50min——已达 30min-数小时目标中段。
+1. **数据准备范围更新**：除 yangmi_full_24k.wav + mov3924 外，对 IMG_3925/3926/3927/3928 四个新 MP4 提取音轨 → 转 24kHz mono PCM16（同 yangmi_full 处理范式：PyAV 或包内 ffmpeg，24k/1ch/2byte）→ 落盘 data/voice/yangmi-ref/train-data/longdata-src/（新素材 wav 命名 im<序号>_full_24k.wav）→ 与 yangmi_full 一起进入 VAD 切分/纯净度筛查/ASR 转写/F0 筛查选段流水线。IMG_3923 不重复提取。
+2. 每素材记录：时长/提取日志/peak/异常（无音轨、损坏等）→ 汇总表。
+3. 其余要求（训练/合成/迭代框架/纪律）不变，沿用六次重派补充。
+4. 产出回执新增：新素材提取统计（每个 MP4 提取时长/失败原因）+ 合并后总清洗统计。
+=== 八次重派补充（2026-10-31 主脑追加 · 第二批新素材并入）===
+用户再次补充 3 个视频（权威路径 H:\UltimaAI\UltimaAgent\TTS\，已探测，全部 44100Hz/2ch）：
+- IMG_3929.MP4 = 0.87min（52.4s，**新增**，需提取）
+- IMG_3930.MP4 = 1.05min（62.9s，**新增**，需提取）
+- IMG_3931.MP4 = 1.90min（114.0s，**新增**，需提取）
+1. **数据准备范围再更新**：在七次重派补充基础上，再对 IMG_3929/3930/3931 提取音轨 → 转 24kHz mono PCM16 → 落盘 train-data/longdata-src/im<序号>_full_24k.wav → 与全部已有素材（yangmi_full/mov3924/im3925/3926/3927/3928）一起进入 VAD 切分/纯净度筛查/ASR 转写/F0 筛查选段流水线。IMG_3923 不重复提取。**round1 已产出自动通过 333 段 13.67min（<20min 目标）且 331 段新转写无人工核验——此结论仍适用：本重派必须全量合并后自动通过 ≥20min 才可进训练；如自动通过时长仍 <20min 但已含人工核验段，需按纪律明确阻塞原因后停住。**
+2. 每素材记录：时长/提取日志/peak/异常 → 汇总表；产出回执新增两批新素材提取统计 + 合并后总清洗统计。
+3. 其余要求（训练/合成/迭代框架/纪律）不变。
+=== 九次重派补充（2026-10-31 主脑追加 · round3 人工核验 FAIL → 重筛重做）===
+**round3 候选池人工抽查判定：GATE FAIL。** 用户在线核验页逐段听读 18 段抽查（seed=71393）：通过 3/18、拒绝 15/18、通过率 17%（远低于 90% 放行线）。用户确认拒绝主因（多选）：① 有别人说话混入（主持人/记者/他人声）；② 有音乐/掌声/环境杂音；③ 转写文本和实际语音不一致。判定文件：docs/reports/evidence/stage-gptsovits-v3-fewshot/longdata-round3/human-review-round3-verdict.txt。
+**根因结论**：round3 自动筛选只做了 VAD 切分 + 低谐波比/无声概率/F0 范围/ASR 置信度过滤，未做说话人分离确认、未做背景杂质检测、ASR 文本未经人工逐段核验；采访/综艺类素材中主持人/记者/音乐/掌声被切段进入候选池（通过段集中于短源 im3929/mov3924，长源 yangmi_full/im3925/im3926/im3927/im3928/im3930/im3931 高拒绝率）。
+1. **本次重派任务范围调整——不做训练/合成，专注候选池重筛**：在既有 9 源（yangmi_full/mov3924/im3925/im3926/im3927/im3928/im3929/im3930/im3931 全部 24k mono wav）基础上重做筛选流水线，新增三道闸：
+   - 说话人分离闸：每候选段必须确认为杨幂本人声纹（可用参考段 yangmi_ref_mov.wav 或经用户核验的纯净段做 speaker embedding/余弦相似度，剔除他人声段；实现方式不限，需在回执中说明方法与阈值）。
+   - 杂质检测闸：过滤含音乐/掌声/人群/环境噪声的段（谐波结构、音乐检测、能量形态等；说明方法与阈值）。
+   - ASR 重转写 + 文本质量闸：对通过前两闸的段重新转写，剔除文本与音频明显不符段；ASR 置信度门槛高于 round3；**产出新候选池清单 + 每段文本**。
+2. 长源逐源诊断：对每个源输出候选段数/通过率/主要拒绝原因统计；杂质不可救的源整源剔除并说明理由。
+3. 重筛后：新候选池自动通过总时长 ≥20min（否则停住说明阻塞）；再分层抽 18 段（覆盖各源首尾 + 低置信段）生成新抽查清单 + wav 落盘 segments24k（复用 round2/round3 目录结构，新目录 longdata-round4）。
+4. **纪律不变**：未人耳核验文本不入训练集；不占 9880/29500；禁联网（HF_HUB_OFFLINE/TRANSFORMERS_OFFLINE/HF_DATASETS_OFFLINE=1）；不动包源码/python39._pth/预训练/既有 LoRA；不训练/不合成/不 commit/tag/push；**训练与合成由后续重派在用户核验通过后再执行**。
+5. 产出回执八字段 + 新增：各源逐源筛选统计表 + 新候选池 F0 统计（同口径 pyin fmin80/fmax500/frame1024/hop240，24k 原生）+ 新抽查 18 段清单（含 segment_id/source/start_s/end_s/duration_s/text/f0_median_hz/asr_avg_probability/harmonic_ratio/wav24k 路径）。
+=== 十次重派补充（2026-10-31 主脑追加 · 用户拍板 B 方案：round4 候选池直接开训）===
+**用户已拍板 B 方案**：不再补素材、不提高门槛，直接用 round4 三闸重筛后的候选池（150 段 / 481.750s ≈ 8.03 分钟，longdata-round4/segments24k）进入训练。此为用户明确决策，覆盖此前 ≥20min 自动候选硬门槛的阻塞判定。
+1. **任务范围：训练 + 合成 + 定量验收门**。基于 longdata-round4 候选池执行 GPT-SoVITS V3 few-shot LoRA 微调（s2_train_v3_lora.py 路线，batch≤2，RTX 3080 Ti 12GB），合成固定 18 字测试语「你好，我是你的语音助手，今天有什么可以帮你的吗」（text_language=zh），参考段沿用 yangmi_ref_mov.wav（F0=202.2Hz，已有）。
+2. **定量验收三闸（历史既有口径，保持不变）**：
+   - ① F0 median：pyin（fmin80/fmax500/frame1024/hop240，wav 原生 24k 读入）∈ 192-213Hz，尽量贴 202.8Hz；
+   - ② 首字「你」窗 [voice_start, voice_start+0.35s] RMS > 全句 RMS（前导静音不计入窗）；
+   - ③ ASR 完整输出无吞字（独立 ASR 或包内 ASR 均可，注明方法）。
+3. **产出**：合成产物 wav（命名 yangmi_gptsovits_v3_longdata.wav，落盘 data/voice/yangmi-ref/）+ 训练日志/权重路径 + 定量门结果；证据写入 docs/reports/stage-gptsovits-v3-fewshot.md + docs/reports/evidence/stage-gptsovits-v3-fewshot/（新目录 longdata-train-b/）。
+4. **纪律不变**：不动 v3lora 包源码/python39._pth/预训练模型/既有 LoRA/round2/round3/round4 证据；不占不停 9880；训练前验 29500 空闲；禁联网三变量；不 commit/tag/push（待用户听验主观相似度 ≥95% 后再收口冻结）。
+5. 回执八字段 + 新增：训练配置摘要（数据段数/时长、epochs、batch、loss 曲线要点）+ 合成产物路径 + 定量三闸逐项结果（数值）。
+6. 主观相似度 ≥95% 由用户听读合成产物后判定；执行端无法听本地音频，只需交付产物路径与定量证据。
+
+=== 十五次重派补充（2026-10-31 主脑追加 · 十四次阻塞修正：参考段须满足包内 3-10 秒硬门槛；换用候选池原生 ≥3 秒低 F0 段）===
+**十四次阻塞（已确认）**：上轮指定 7 段低 F0 参考段时长 1.64-2.88s，全部违反 GPT-SoVITS 包内 inference_webui.py 不可变 3-10 秒参考音频门槛，28/28 组合 skipped、ready=0。执行端预检结论正确，非执行失败。
+1. **本轮任务范围：仅重合成 + 定量四闸，不重训**。复用已训练权重 `data/voice/yangmi-ref/train-data/weights-longdata-b/yangmi_v3_longdata_b_e10_s760_l32.pth` 与包内 `GPT_SoVITS/pretrained_models/s1v3.ckpt`，固定测试语 18 字「你好，我是你的语音助手，今天有什么可以帮你的吗」（text_language=zh）。
+2. **参考段矩阵（合规原生段，wav 均位于 `data/voice/yangmi-ref/train-data/longdata-round4/segments24k/`，时长均已实测 ≥3s 满足门槛）**：
+   - refA im3926-0297.wav（4.88s / F0=167.6Hz / 「因为大家每个人对于角色的反应跟理解都不一样」）
+   - refB ym-0425.wav（3.87s / F0=171.5Hz / 「我最近觉得说时间真的不多了」）
+   - refC im3926-0101.wav（3.66s / F0=172.5Hz / 「那你放弃的这个东西本来可能无足轻重」）
+   每条参考段配其真实文本作为 PROMPT_TEXT（如上），不得混搭。若某段加载失败，记录原因并跳过。
+3. **合成参数网格（语速下探）**：每参考段跑 speed_factor ∈ {0.8, 0.9, 1.0, 1.1}，top_k/top_p/temperature 固定 {5 / 1.0 / 1.0}、sample_steps=32、pause_second=0.3、seed=20261031。3 参考段 × 4 speed = 12 组。
+4. **兜底扩展（仅当 12 组全 FAIL 时启用，需记录依据）**：主脑授权执行端将候选池中相邻同源短段两两拼接为 ≥3s 参考段（如 im3926-0058 1.92s「你看到别人就是什么样的」+ im3926-0392 2.58s「我会觉得所有的明星在代言」→ 拼接后约 4.5s，PROMPT_TEXT 为两句拼接文本，中间以句号分隔），拼接不改变说话内容、仅延长参考时长；拼接段先落盘再作为参考加载，禁止改包门槛。优先选 F0 最低的两段拼接（目标 ≤165Hz）。
+5. **定量验收四闸（逐项数值回执）**：
+   - 闸①（用户要求）：首字「你」声母窗 [voice_start, voice_start+0.35s] F0 median ≥ 180Hz（pyin fmin80/fmax500/frame1024/hop240，wav 原生 24k 读入）；同时报告该窗 F0 min/p10/p90。
+   - 闸②：全句 F0 median ∈ 192-213Hz，尽量贴 202.8Hz（同口径 pyin）。
+   - 闸③：首字「你」窗 RMS > 全句 RMS（前导静音不计入窗）。
+   - 闸④：ASR 完整输出无吞字（独立 ASR 或包内 ASR 均可，注明方法）。
+   - 选中规则：优先同时过 ①②③④；若无全过组，按「闸①≥180 且全句最贴近 202.8」选最优组并在回执注明取舍。
+6. **产出**：合成产物 wav 命名 `yangmi_gptsovits_v3_longdata.wav` 落盘 `data/voice/yangmi-ref/`；全部候选 wav 落盘 `data/voice/yangmi-ref/train-data/longdata-train-b/candidates-ref3/`（命名 candidate-<NN>-ref<IDX>-speed<s> 可辨识）；参数网格与逐项定量结果写入 `docs/reports/evidence/stage-gptsovits-v3-fewshot/longdata-train-b/t4-ref3-matrix.jsonl` + `t4-ref3-synthesis.log`；stage 报告追加「十五次重派 · 合规低 F0 参考段重合成」章节。
+7. **纪律不变**：不动 v3lora 包源码/python39._pth/预训练模型/既有 LoRA（含已训 e10）/round2-4 证据；不占不停 9880；训练前验 29500 空闲；禁联网三变量；不 commit/tag/push。禁止重训、禁止改已有候选目录文件、禁止覆盖十四次证据。
+8. **回执**：八字段 + 参考段矩阵逐段结果 + 四闸逐项数值 + 最优组选中理由；若启用兜底拼接须附拼接段路径/F0/文本依据。
+=== 十六次重派补充（2026-10-31 23:15 · 白龙马路线 · 豆包云端声音复刻 · 最新任务书）===
+**背景（必读）**：十五次重派已完成（PID 11012，exit 0）：16 组合成全部成功，但四闸无一全过——首字 F0 14/16 PASS、全句 F0 0/16 PASS（最高仅 187.004Hz 低于 192 下限）、RMS 13/16 PASS、ASR 16/16 PASS。最优 refC-speed1.0 已交付用户试听，用户反馈「杂音明显、赫兹略偏低、速度略偏慢」，主脑判定：杂音为 GPT-SoVITS 本地合成层硬伤、继续调参压不掉，GPT-SoVITS 路线收口（训练 T3 PASS 资产保留），按用户拍板切白龙马路线全试云端。
+
+**本轮任务（十七次重派 · 2026-11-01 00:0x · 豆包云端复刻续跑）**：白龙马路线 · 豆包（火山）seed-icl-2.0 声音复刻 → 合成测试语 → 定量四闸。
+**凭证更新（必须优先执行）**：十六次已因旧 doubaoKey（指纹 24da）401 阻塞。用户已提供新豆包/火山 API Key，存于 `C:\Users\Administrator\AppData\Local\Doubao\User Data\Default\.doubao\agent_mode\workspace\.sessions\38445027114611970\agents\m_0cwpA7IUVeO\creds-0008-doubao.env`（键 ARK_API_KEY，指纹 vzwq8）。预检顺序：①读该文件取 ARK_API_KEY ②环境变量 ③白龙马 config.json（旧 key 已知无效，仅作对照不主用）。用新 key 调声音复刻接口验证：若通过继续复刻；若仍 401/45000010，如实回报响应码与错误体摘要，不重试硬闯。日志/证据/回执只写指纹后 4 位。
+**凭证已提供（2026-10-31 23:16 用户下发）**：豆包/火山 API Key 已存于 agent workspace 文件 `C:\Users\Administrator\AppData\Local\Doubao\User Data\Default\.doubao\agent_mode\workspace\.sessions\38445027114611970\agents\m_0cwpA7IUVeO\creds-0008-doubao.env`（键 ARK_API_KEY）。预检优先读该文件；日志/证据/回执只写指纹（后 4 位 vzwq8），禁明文。若该 key 调不通（401/鉴权失败），如实回报响应码与错误体摘要，不重试硬闯。
+1. **凭证预检（第一步，不做不往后）**：
+   - 用户已确认当前只有「豆包/火山」凭证。执行端先在以下位置预检豆包方舟/火山引擎凭证（API Key / AK+SK / AppId+Token）：环境变量（如 ARK_API_KEY、VOLC_ACCESSKEY、VOLC_SECRETKEY、VOLC_APPID、VOLC_TOKEN 等常见命名）、`H:\UltimaAI\UltimaAgent\` 下既有 .env 类配置（仅读 .env.example 作模板参考，不得改）、白龙马浅克隆 `docs\research\sources\bailongma\` 内 TTS 凭证配置（src/voice/tts-providers.js 的 TTS_PROVIDER_REQUIREMENTS 预检逻辑可参考）。
+   - **凭证找到**：脱敏使用（日志/证据/回执只写 key 指纹后 4 位，禁明文），继续第 2 步。
+   - **凭证缺失**：不要瞎试硬闯，不要联网乱找，直接输出八字段回执，完成状态=凭证阻塞，明确列出缺哪几项凭证及获取引导（火山引擎控制台开通声音复刻/方舟 API Key 申请路径），本轮到此为止。
+2. **声音复刻**（豆包 seed-icl-2.0，接口文档：火山引擎官方「豆包声音复刻大模型」/「声音复刻 API」，Resource-Id 用 seed-icl-2.0，参考音频=素材段）：
+   - 素材（round4 候选池合规干净段，wav 在 `data\voice\yangmi-ref\train-data\longdata-round4\segments24k\`）：
+     - refA im3926-0297.wav（4.88s/167.6Hz/「因为大家每个人对于角色的反应跟理解都不一样」）
+     - refB ym-0425.wav（3.87s/171.5Hz/「我最近觉得说时间真的不多了」）
+     - refC im3926-0101.wav（3.66s/172.5Hz/「那你放弃的这个东西本来可能无足轻重」）
+   - 对每段调用声音复刻接口生成专属音色（voice_type），记录各自复刻 ID。
+3. **合成测试语**（text_language=zh）：「你好，我是你的语音助手，今天有什么可以帮你的吗」（18 字固定测试语）。用每个复刻音色各合成 1 条；如接口支持语速/语调参数，默认 1.0，可另跑 speed 0.9/1.1 对照（总计 3 音色 × 1-3 speed 档）。
+4. **验收四闸（沿用 0008 口径）**：
+   - ① 首字「你」声母窗 [voice_start, voice_start+0.35s] F0 median ≥180Hz（librosa.pyin fmin80/fmax500/frame1024/hop240、24k 原生读入）
+   - ② 全句 F0 median ∈192-213Hz 贴 202.8Hz（同口径）
+   - ③ 首字「你」窗 RMS > 全句 RMS
+   - ④ ASR 无吞字（本地 faster-whisper 或既有 ASR 链路均可，记录识别结果）
+   - 选中规则：优先四闸全过；否则「①≥180 且全句最贴 202.8」。若多档并列取听感可留 1-2 条候选。
+5. **产物路径**：候选 wav 落 `data\voice\yangmi-ref\candidates-cloud\doubao\`（命名 candidate-<ref>-<speed>.wav）；选定最终产物 `data\voice\yangmi-ref\yangmi_cloud_best.wav`；证据落 `docs\reports\evidence\stage-gptsovits-v3-fewshot\cloud-clone\`（t5-doubao-matrix.jsonl + t5-doubao-synthesis.log + 复刻/合成参数记录 + 凭证脱敏说明）；stage 报告追加「十六次重派 · 白龙马路线 · 豆包云端复刻」章节。
+6. **纪律**：不动 v3lora 包/GPT-SoVITS 训练资产/round2-4 证据/十五次证据（t4-ref3-*）；不 commit/tag/push；凭证禁明文落盘仓库（回执与证据只写指纹）；合成仅限测试语，不外发；不占用 9880。
+7. **回执**：八字段 + 凭证预检结果（找到/缺项明细）+ 复刻音色 ID 列表 + 各组四闸逐项数值 + 选中理由；若凭证阻塞须明确给出下一步获取引导。
+=== 主脑决策记录（2026-10-31 22:45 · 用户设定备选方向）====== 主脑决策记录（2026-10-31 22:45 · 用户设定备选方向）===
+用户指令：若本轮（十五次重派 · 低 F0 参考段重合成）替换克隆音色能力仍不达满意，则放弃继续调 GPT-SoVITS 本地合成，改走「白龙马路线」：按其接线方式全尝试一遍云端 TTS/音色模型（白龙马源码级调研已落盘 docs/research/bailongma-source-voice-audit-20261029.md：ASR 5 云端+本地 Whisper、TTS 5 云端无本地无克隆、KWS sherpa-onnx；TTS 候选 = 豆包/MiniMax/OpenAI/ElevenLabs/火山等）。执行顺序：先等本轮 12 组四闸回执；若失败再按用户拍板切云端模型逐家试，产物与回执格式沿用本工单纪律。
+---
+
+## 十八次重派 · GPT-SoVITS 本地强化训练（+10 轮，2026-11-01）
+
+**背景**：云端豆包复刻两轮（十六/十七次）均因凭证 HTTP 401 阻塞（旧 key 24da、新 key vzwq8 都被拒）。本轮回到本地 GPT-SoVITS V3 LoRA 路线，在既有 10 轮权重基础上**再强化训练 10 轮（e11→e20）**。
+
+**目标产物**：e20 LoRA 权重 + 用 e20 权重合成 18 字测试语候选（≥1 个 wav）+ 四闸定量 + 最优 wav 交用户试听。
+
+**执行要求**：
+1. 训练入口：`H:\UltimaAI\tools\GPT-SoVITS\GPT-SoVITS-v3lora-20250401\GPT_SoVITS\s2_train_v3_lora.py`（LoRA 训练；脚本启动时自动从 `save_root` 下 latest `G_*.pth` resume，`epoch_str+=1` 后从下一轮起训——已核实源码第 158-165 行）。
+2. exp_dir=`H:\UltimaAI\UltimaAgent\data\voice\yangmi-ref\train-data\longdata-train-b`；save_root=`exp_dir\logs_s2_v3_lora_32`（现有最新 `G_760.pth`=e10，resume 后从 e11 起）。
+3. **把 `exp_dir\config.json` 的 `train.epochs` 由 10 改为 20**（=增加 10 轮）；其余参数一律沿用（seed/rank32/batch2/lr=1e-4/fp16/lr_decay 等不变）。改前把原文件备份为 `config-e10.json`。
+4. 预处理产物齐全（2-name2text/6-name2semantic/3-bert/4-cnhubert/5-wav32k 均在 exp_dir），**严禁重新预处理**，直接跑训练。
+5. 解释器用 GPT 包自带 runtime：`H:\UltimaAI\tools\GPT-SoVITS\GPT-SoVITS-v3lora-20250401\runtime\python.exe`；训练前确认 9880 空闲（不得占用 9880；29500 为固定分布式端口）。
+6. 新 LoRA 权重将自动落 `train-data\weights-longdata-b\`（e11_s836 … e20_s1520，命名规则 `{name}_e{epoch}_s{step}_l32.pth`）；新 checkpoint G_836~G_1520 入 `logs_s2_v3_lora_32`。
+7. 训练完成后：用 e20 最终权重，参照十五次脚本 `docs\reports\evidence\stage-gptsovits-v3-fewshot\longdata-train-b\longdata_synthesize_ref3.py`（配套测试 9/9 PASS 可复用）合成 18 字测试语「你好，我是你的语音助手，今天有什么可以帮你的吗」（text_language=zh；ref 段沿用 refA im3926-0297 / refB ym-0425 / refC im3926-0101；speed 组 0.8~1.2）。
+8. 定量四闸（口径沿用，主脑独立复核过）：①首字「你」窗 [voice_start, +0.35s] F0 median≥180Hz ②全句 F0∈192-213Hz 贴 202.8 ③首字 RMS>全句 ④ASR 无吞字。pyin 口径 fmin80/fmax500/frame1024/hop240，24k 原生读入。
+9. 产物落位：候选 wav → `longdata-train-b\candidates-ref4\`；最优 → `data\voice\yangmi-ref\yangmi_gptsovits_v3_e20.wav`；证据 → `docs\reports\evidence\stage-gptsovits-v3-fewshot\longdata-train-b\`（新前缀 `t4-ref4-*`，**勿覆盖** t4-ref2/t4-ref3 任何文件）。
+10. 纪律：不动既有 e1~e10 权重与 G_76~G_760、不 commit/tag/push、不改包源码与 python39._pth、不占用 9880/29500、训练期间不得并行跑其他 GPU 任务（机器上有别项目 codex 在跑，确认 GPU 空闲再训）。
+11. stage 报告 `docs\reports\stage-gptsovits-v3-fewshot.md` 追加「十八次重派」章节（训练 loss 曲线摘要+四闸结果+选中文件）。
+12. 回执格式（8 字段）：工单号/执行端/完成状态/根因结论/产物路径/验收证据（loss 首尾+四闸量化+测试 PASS 数）/越界声明/环境声明；若训练或合成失败，如实列根因与已做尝试，不硬凑产物。

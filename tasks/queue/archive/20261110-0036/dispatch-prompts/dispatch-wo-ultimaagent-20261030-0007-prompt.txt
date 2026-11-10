@@ -1,0 +1,53 @@
+# 执行工单 wo-ultimaagent-20261030-0007（第五派·修复重测）· 双线程伪流式
+
+你是 UltimaAgent 工程的 Codex 执行端。本单已四派。**主脑复核已纠偏四派结论**：四派 T4 耦合标定 0 命中的根因**不是物理距离未确认，而是运行 daemon MME 采集退化**（L25 同型：句柄半死→读静音→CPU 满载空转）。本派任务：修复 daemon 采集 + 完成 T4 3+3 + 确认竞态修复在真机生效。完成后产出 8 字段 final-message，**不得冒充冻结、不得自行打 tag、不得自行 git 提交**。
+
+## 主脑复核结论（必读，勿重做）
+1. **四派 A/C 已完成且正确**：daemon 加模块级 `_LOG_LOCK`（工作树 SHA `3AFEAA9537B0DD4D03CE9C7AE54A3B69FAAC7D456AA209B08CA249D78BA67D19`）；T1-T3 探针 6/6 PASS；T4 解析器防御 2/2 PASS；冻结值 19/19 PASS。**保留，勿改**。
+2. **四派 B 归因作废**：四派把 0 命中归因"物理距离未确认/软件调 gain 无法建立物理路径"——**不成立**。证据：
+   - 运行 daemon（PID 23588，父 21780，均 15:44:15 启动，加载 T1-T3 双线程版无日志锁）自 **16:36:14 起 `kws 环境电平` 恒 peak=0.0000**（每 15s 一条，持续到 16:54:58），16:34:46 还能采到强信号 peak=0.0366——突变窗口 16:34→16:36；
+   - 23588 **CPU=4401s、WS=118MB、Threads=29**——启动至今近满载空转，正是 L25 "MME 句柄半死→read 立即返回空→主循环空转"特征；
+   - 四派标定 JSON 里 16:44/16:51 的 `captured peak=0.0366` 全部来自 T2/T3 探针的**模拟注入路径**（探针内 raise INJECTED_T3_ASR_FAILURE、合成帧），**不证明真实麦克风有声**；四派自身 `direct_second_capture_probe` 也承认 playrec 输入仅 1 LSB 无效。
+   - 结论：**daemon 23588 的 MME 采集自 16:36 起静音，四派 9 次唤醒播放不可能被听到；T4 需先修 daemon 再测。**
+3. **红线豁免（仅本派有效）**：运行 daemon 已采集静音、语音服务实际失效，**授权停 21780/23588 并用工作树最终版（含 _LOG_LOCK）重启 daemon**。这是修复 + 加载日志锁的必要动作。重启后用锁文件/日志确认单实例。
+
+## 本轮任务（按序）
+### A. 修复 daemon 采集（先做，验证后再测 T4）
+1. **独立真麦验证（重启前）**：用 `venv-asr` playrec 探针开 **WASAPI idx30（同一物理麦的另一端点，48k）** 短采 2-3s，记录能否采到环境声/说话声。若 WASAPI 有声 → daemon MME 句柄死（重启修复）；若 WASAPI 也静音 → 硬件/驱动层问题（如实回报，勿继续）。
+2. **重启 daemon**：停 21780/23588 → 用 `tools\venv-asr\Scripts\pythonw.exe -X utf8 data\logs\voice-listen-daemon.py` 从 `H:\UltimaAI\UltimaAgent` 重启（加载工作树最终版含日志锁）→ 确认新 PID + 日志 `KWS 采集打开` 行 + 环境电平**恢复非 0 基线**（参考：15:44-16:34 前 daemon 环境电平常态）。
+3. **唤醒真机验证**：回放「贾维斯」唤醒词，确认 KWS 命中（有 `kws 强信号命中` 或命中日志，peak>0）。记录新 daemon SHA（应=3AFEAA95…）。
+4. **竞态真机回归**：真机跑一轮完整 唤醒→采集→TTS 回放，确认 voice-listen.log **无新增损坏行**（日志锁生效）。
+
+### B. T4 可复现物理耦合 3+3（daemon 恢复后）
+1. **耦合布置**：POISON 耳机 / LOFREE 音箱作为回放单元。**先测当前自然位置**（回放单元与 USB 麦的相对位置不动，只调 gain/音量）：若回采能过门控（块峰值>0.01、rms≥0.002）且 ASR 正确 → 直接用该布置；若电平不足 → 在 `t4-gate.md` 记录所需固定动作（如"把 POISON 耳机移到麦正前方 3-5cm"），**执行端无法移动硬件时如实标注"待操作者固定"，不得伪造距离确认**。
+2. **标定**：gain/音量扫描，目标回采块峰值 ∈(0.01,~0.05)、rms ∈[0.002,~0.008)，ASR 正确。标定参数落盘 `t4-coupling-calibration.json`（覆盖四派版，注明 daemon 已重启）。
+3. **合格轮**：短指令「贾维斯+查天气」（0.6s 级）≥3 + 长指令 ≥3，每轮记唤醒→round→async-play 首字时间戳；对比 #134 串行基线（短 7.0s、长 8.0s/10.0s）量化下降，落盘 `t4-latency-comparison.{json,md}`（**不得为 null**）。
+4. **无回归**：无新增误唤醒/掐断；`t4-gate.md` 判 PASS（含布置、标定参数、复现步骤）。
+5. 若 daemon 恢复后采集正常但**物理位置确实无法满足 3+3**（如回采始终低于门控或失真）：如实回执 BLOCKED 并列出唯一剩余前置（操作者固定回放单元），**不得伪造样本、不得继续无依据调参**。
+
+### C. 收口
+1. `docs/specs/kws-wakeup-params-baseline.md` 第七节 #136 记录更新为"伪流式实装 + 竞态修复 + T4 真机 3+3 完成，待 Owner 冻结验收"（只改该行说明，不改任何参数值）。
+2. `docs/reports/stage-pseudo-streaming-20261030.md` 更新为完整验收版（含四派纠偏说明）。
+3. final-message.json（8 字段）。
+
+## 硬红线（不变）
+1. 禁止引入真流式 ASR 模型；2. 禁止改动冻结参数（threshold=0.08/score=2.0/trailing_blanks=8/QUIET_AFTER_SPEECH=1.2/BEEP_SETTLE_SEC=1.2/sinc/VAD 0.5s/门控 0.4s·rms 0.002·块峰值 0.01/DEV_IN=1）；3. 禁止触碰 TTS 链路；4. 禁止重构 wait_wakeup；5. 节流 1s 不得让识别线程抢占采集；6. 写域仅 `H:\UltimaAI\UltimaAgent\`；7. **daemon 重启仅限本派授权的一次**（停旧→起新，用最终版），不得再反复重启；8. 改动仅限 daemon.py 日志锁相关（已由四派完成）与证据/记录文件，不新增其他代码改动。
+
+## 环境提示
+- 专用解释器：静态/单元用 `tools\venv-openjarvis\Scripts\python.exe`；真机采集/回放/ASR 用 `tools\venv-asr\Scripts\python.exe`。
+- 本机已有多次 Rust OOM 先例：分步执行、每完成一步立即落盘、控制单次运行时长；OOM 就留证说明断点，不谎报。
+
+## 阶段 DoD（全满足才算技术执行完成）
+- [ ] A daemon 采集恢复（重启 + 环境电平非 0 + 唤醒命中）+ 日志锁真机回归（无损坏行）
+- [ ] B 短/长指令各 ≥3 合格轮 + 首字延迟下降量量化（非 null）+ 无回归 + t4-gate PASS + 耦合标定可复现
+- [ ] C 基线 #136 记录更新（不改值）+ stage 报告完整版 + 8 字段回执
+- [ ] 冻结参数零漂移保持
+
+## 验收要点
+- [ ] py_compile SYNTAX_OK（venv-openjarvis）
+- [ ] 新 daemon 单实例确认（锁文件/PID），SHA=3AFEAA95…
+- [ ] t4 对比数据机器可读（json）+ 人类可读（md）+ 复现说明
+- [ ] 回执含 reviewReason/stdoutText/evidence/acceptance
+
+## final-message.json（8 字段，写到运行目录）
+status（技术执行完成/受阻） / reviewReason / stdoutText / evidence（证据路径+关键结论） / acceptance（Gate 逐项 PASS/FAIL） / verdict（未提交未打 tag，待主脑复核与 Owner 冻结） / 越界声明 / nextSteps。

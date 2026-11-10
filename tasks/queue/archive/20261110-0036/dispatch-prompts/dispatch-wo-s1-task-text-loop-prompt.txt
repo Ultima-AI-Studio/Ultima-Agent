@@ -1,0 +1,25 @@
+先读项目引导索引 docs/INDEX.md，按其权威源地图定位规范，再执行工单。禁止跳过。
+
+Act as the Ultima coding executor.
+
+你正在执行 UltimaAgent 阶段一工单：工单④ S1-Task-Text-Loop（任务文本闭环）。
+工单路径：tasks\queue\wo-s1-task-text-loop.md
+执行顺序：按工单内 T1→Tn 顺序逐任务执行，每任务 Gate PASS 后再进下一任务；任务卡见 tasks\cards\<task_id>\task.md（11 字段齐全）。
+派发方式：一单一进程，只执行本工单；完成后停下等主脑工单验收（W4），不越级往下跑。
+
+硬约束：
+- 只执行本工单范围冻结内的内容；禁止触碰清单外内容（见工单"范围冻结"）。
+- 写入域以工单 fileDomain 为准；不得写入 _shared、全局主表、docs/INDEX.md 及工单外路径。
+- 推理强度按工单声明执行；需评审背书的单元（如 eng.security ultra）不得自行宣称通过。
+- 逐任务证据落盘：每任务回执三件套（完成语+落地文件清单+验收证据）写入任务卡目录；Gate 判定写入 docs/reports/evidence/stage1-task-text-loop/ 对应文件。
+- 完成前自核闭环（§8）：未全绿先自修 ≤2 次再交回执；失败回执结构化；证据不明确 fail-closed 判 BLOCKED。
+- 版本冻结：本工单完成即停下，不自行打版本 tag（v0.x-frozen / stage1-v1.0-frozen 由主脑验收+用户拍板后触发）。
+
+回执必报字段（工单完成后输出）：
+- 工单号：wo-s1-task-text-loop
+- 执行端：Codex
+- 完成状态：已完成 / 阻塞 / 已终止
+- 验收证据：各任务 Gate 判定摘要（逐 T）
+- 产出路径：代码/产物目录 + 证据目录
+- 越界声明：无=明确写"无"
+- 环境声明：本机 Win11 开发环境，无额外依赖

@@ -1,0 +1,96 @@
+# 工单 wo-ultimaagent-20261108-0027 派发载荷 · T2 收尾续派（第三次）
+
+你是本工单的执行端，本次**只做 T2 收尾**。T0 / T1 已独立审计通过，**不得重做、不得修改已冻结的 T0/T1 证据与实现**。
+
+工单卡：`tasks/queue/wo-ultimaagent-20261108-0027--audit-stage-gate.md`
+方案（口径不可变）：`docs/plans/audit-stage-gate-plan-20261108.md`
+
+## 一、接手前先核对的现场事实（已由主脑复核，你需复验）
+
+`data/evidence/wo-ultimaagent-20261108-0027/T2/` 现有文件：
+
+| 文件 | 状态 | 说明 |
+|---|---|---|
+| `negative-cases.py` (4,457B) | 已交付 | 三案反例脚本 |
+| `negative-gate-output.json` (1,147B) | **已合格** | case_count=3、all_refused=true、三案 reasons 均命中（不存在 / blocker 未清零 / 角色必须 eng.audit\|eng.security） |
+| `negative-gate-attempt1-import-error.log` (261B) | 失败留痕 | 首次 import 失败，已被后续成功覆盖，**保留不删** |
+| `full-engineering-gate-attempt1.log` (484B) | **不完整** | 只跑到 `[ 42%]` 就断了，**不能作为全量门通过证据** |
+| `previous-stage-gate.json` (146B) | 已有 | 上一阶段门结论 |
+
+**缺失项（本次要补的全部内容）**：
+
+1. 正例端到端演练的 `independent-review.json`（`stage_gate` 判 PASS）
+2. 全量工程门**跑完**的证据（当前只有 42% 的断片）
+3. `T2/receipt.json`（八字段齐全）
+4. `docs/reports/wo-ultimaagent-20261108-0027-t2.md` 演练报告
+5. tag `ultimaagent-audit-stage-gate-20261108`
+
+## 二、任务（四件事，按顺序）
+
+### 1. 正例演练 → `T2/independent-review.json`
+
+对 0026 的 T0/T1 真实产出做一次独立复核，产出合规结论文件，字段按
+`docs/specs/independent-review-contract.md`（ReceiptValidator 四字段 + ReviewResult 的
+`ok/role/blocker/major/minor/checked/findings`）。
+
+硬要求：
+- `role` 必须是 `eng.audit` 或 `eng.security`（不得写 `dev`）
+- `ok` 必须为 `true`，`blocker` 必须为 `0`
+- `checked` **必须含且仅含以下三项实际动作，每项附原始输出文件路径**：
+  - 「测试复跑」→ 指向本次真实复跑日志路径
+  - 「写域核对」→ 指向写域比对日志路径
+  - 「断言抽查」→ 指向断言抽查记录路径
+- 三项动作必须**真做过**：复跑要用专用解释器真跑并落日志；写域核对要对比 0026 提交涉及文件与本单写域；断言抽查要打开 0026 的测试文件逐条看断言是否为真断言（禁止 `assertTrue(True)` 式空断言）
+
+产出后调 `stage_gate.check_stage("wo-ultimaagent-20261108-0026", "T2", <evidence_root>)`，必须返回 `passed=True`；把返回结果（含 reasons 数组）落 `T2/positive-stage-gate.json`。**若不 PASS，不许改判据，先查明原因**。
+
+### 2. 全量工程门跑到底
+
+当前 attempt1 断在 42%，必须重跑完整并留证：
+
+```
+H:\UltimaAI\UltimaAgent\tools\venv-openjarvis\Scripts\python.exe -X utf8 -m pytest src -q --disable-warnings --junitxml=data/evidence/wo-ultimaagent-20261108-0027/T2/full-engineering-gate.xml
+```
+
+- 日志落 `T2/full-engineering-gate.log`（**保留 attempt1，不许删**）
+- JUnit 独立回读 `T2/full-engineering-gate.xml`：记录 tests / failures / errors / skipped 四项计数 + 文件 SHA-256
+- 目标 0 failed。若出现失败，先按下面「已知环境事实」判定，**不得删测试、不得弱化断言、不得加 skip 凑绿**
+
+### 3. `T2/receipt.json`（八字段齐全）
+
+`work_order` / `status` / `phase` / `run_id` / `input_sha256` / `executor` / `exit_code` /
+`reviewReason` / `stdoutText` / `evidence[]` / `acceptance[]` / `scopeDeclaration` /
+`environmentDeclaration` / `openSourceSelection`。
+
+**格式硬约束（本轮新增，违反会被判 blocked）**：`receipt.json` 必须是**合法 JSON**，不得写成中文 markdown。
+回执通过证据用以下任一写法均可（三项都已被 `receipt_contract` 识别）：
+`自检 PASS` / `PYTEST_EXIT_CODE=0` / `<N> passed`。
+正文里叙述历史失败（例如「attempt1 断在 42%」「28 项既有债」）**不影响判定**，只需同时声明 `READY_FOR_DEEPSEEK_AUDIT`。
+
+### 4. 报告 + tag
+
+- 报告 `docs/reports/wo-ultimaagent-20261108-0027-t2.md`：**如实记录全部失败尝试与重跑历史**（import-error、attempt1 42% 中断、之后如何修好），不以最终绿覆盖历史
+- tag `ultimaagent-audit-stage-gate-20261108`，打在**只含本单提交的 commit** 上（本分支有其他线并发提交，打 tag 前 `git log` 核对，必要时对明确 SHA 建 tag）
+
+## 三、硬约束
+
+1. **禁止改**：`src/brain/guardrails/reviewer.py`、`src/brain/guardrails/receipt.py`、`docs/tracker/北极星上线任务清单.html`（看板回写权归主脑）、0026 的既有写域文件、以及 0027 已冻结的 T0/T1 证据。
+2. **不做什么**：不做自动调度器、不碰模块4 多 Agent 编排、不引入新依赖。
+3. **本单自身受门约束**：T2 完成后必须先产出独立复核结论并过 `stage_gate`，才能宣布收口；自跳过门视为未完成。
+4. **git 精确暂存**：工作区存在其他线未提交改动。`git add` 必须精确到本单写域文件，**严禁 `git add -A` / `-u` / `.` / 通配**。中文文件名在 PowerShell 下 `git add` 可能静默失效，必要时用 `git -C <repo> add -- <path>` 由 Python subprocess 调用。
+5. **禁止对含未提交改动的文件用 `git checkout --` 回滚**（会抹掉未提交行），要撤暂存用 `git restore --staged`。
+6. **推送口径**（本环境有一条指向 1083 的死代理配置）：
+   ```
+   git -c "http.https://github.com.proxy=http://127.0.0.1:7897" -c http.proxy=http://127.0.0.1:7897 -c https.proxy=http://127.0.0.1:7897 push origin HEAD:refs/heads/codex/voice-fsmn-new-path
+   ```
+   失败重试 ≤3 次，仍失败则记录 evidence 并如实声明，不回滚提交、不阻塞收尾。
+
+## 四、已知环境事实（省得你重踩）
+
+- 全量门耗时较长，attempt1 断在 42% 疑似超时或进程被杀——**这次请把输出重定向到文件并留足超时**，不要靠终端缓冲。
+- `test_jarvis_ask_real_inference` 是已知环境抖动（`jarvis.exe ask` 在全套件上下文偶发 returncode=1，单独复跑稳定 345/exit 0）。遇到时先做 3 次独立探针 + 定点复跑对照，判为环境既有并在报告如实记录，**不得直接豁免**。
+- 18766 UltimaManager HTTP 当前离线，登记以全局主表为准，不阻塞执行。
+
+## 五、收尾输出
+
+一段总结：T2 四项结论、全量门计数（tests/failures/errors/skipped）、失败历史、越界声明、tag 与 push 结果、遗留问题。

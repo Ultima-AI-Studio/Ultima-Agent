@@ -1,0 +1,19 @@
+先读项目引导索引 docs/INDEX.md，按其权威源地图读取 H:/UltimaAI/_shared/paradigms/Codex-外部执行端调用范式.md，再执行工单。Act as the Ultima coding executor.
+
+唯一工单 tasks/queue/wo-orb-w1.md，按 T1 orb-w1-init → T2 orb-w1-ball-window → T3 orb-w1-webview2 → T4 orb-w1-tray-single 串行执行，四张任务卡必须先读。按现有规格实现，推理 high。一单一进程，不派其他工单或子Agent。
+
+本工单为 Ultima Agent 毒液悬浮球（ORB）串行链首单：实现原生壳骨架——WPF 解决方案（src/orb/ 分层）、96×96 透明置顶非激活球窗、WebView2 空画布、托盘+单实例。方案依据 docs/references/ultima-agent-venom-orb-plan-20261024.md（§3.1 架构 + §4.1 窗口层 + §五 ORB-W1），必须先读该方案相关章节再动工。ORB 独立于阶段一版本链，不依赖 v0.1-v1.0 冻结门，无版本门前置。
+
+本工单只做壳，不实现渲染内容（W2 工单）、不实现状态机（W3）、不实现交互（W4）、不实现动效（W5）、不实现语音（二期）。
+
+写入域：src/orb/（代码、测试、README）、src/orb/web/（空画布 HTML）、logs/（构建与自检日志）、tasks/cards/orb-w1-init/、tasks/cards/orb-w1-ball-window/、tasks/cards/orb-w1-webview2/、tasks/cards/orb-w1-tray-single/（各自卡与证据）。不要改动任何其他已有文件。tasks/queue_engine/、tasks/tests/、scripts/、src/host-shell/、src/brain/、docs/、共享主表、sync、tag、冻结回执、备份模型/runtime 均只读。不要提交git、不要push、不要创建tag或Owner签字。工单要求docs更新/版本冻结由监督端 W-ORB1 核验后处理，本次回执须列为后续门，不越界改docs。
+
+T1：创建 WPF 解决方案骨架，分层结构（壳/渲染/状态/交互分目录）符合方案 §4.1；项目依赖引用正确；dotnet build 零错误零警告。
+T2：球窗 96×96px 无边框、透明背景、始终置顶、非激活不抢焦点（WS_EX_NOACTIVATE + WS_EX_TOOLWINDOW + SetWindowPos(SWP_NOACTIVATE)）；多 DPI 下逻辑尺寸正确。Win32 P/Invoke 全部收敛 NativeMethods.cs（方案 §4.1 工程约束），仅 WindowBehaviorService/IconService 可调用。
+T3：WebView2 嵌入球窗，载入空画布（src/orb/web/ 占位 HTML），透明背景（AllowTransparency + 无底色，无黑块）。
+T4：托盘图标（找回悬浮球/设置/退出）+ 单实例（Named Mutex + NamedPipe 通知既有实例）。
+T2-T4 各自先写有意义的失败测试、运行看到预期失败、再实现、运行通过；保存每任务测试输出与三件套回执。禁止 UI 线程 WaitForExit / 阻塞式进程调用。任何子进程零窗口（CREATE_NO_WINDOW/Hidden）。构建与自检用 explicit dotnet CLI。
+
+验证：构建全绿、球窗属性截图、非激活焦点测试、多 DPI 无偏移、WebView2 空画布渲染+透明、托盘/单实例行为测试。保存可复跑命令。Windows 执行优先 cmd.exe login=false，尽量不用 pwsh（曾有尾部挂起）。失败可自修≤2次，实质未解就回报 BLOCKED，不伪报通过。
+
+收尾：四张卡仅记录开发自检，独立 W-ORB1 未执行。执行报告有 version='ORB/v0.1'。最终纯JSON，不markdown，字段 work_order='wo-orb-w1',status='READY_FOR_REVIEW'或'BLOCKED',completion,landed_files=[绝对文件路径],evidence=[实际已存在证据文件绝对路径],remaining_gates=['独立W-ORB1验收','Owner批准ORB v0.1'],scope_violation=false。正常CLI退出是门禁。禁止使用update_plan工具（尤其收尾），最终JSON后不再调用工具。完成本工单即退出，不自行派后续工单。

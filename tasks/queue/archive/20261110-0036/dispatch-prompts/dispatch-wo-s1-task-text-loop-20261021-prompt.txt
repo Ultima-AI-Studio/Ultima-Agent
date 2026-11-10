@@ -1,0 +1,17 @@
+先读项目引导索引 docs/INDEX.md，按其权威源地图读取 H:/UltimaAI/_shared/paradigms/Codex-外部执行端调用范式.md，再执行工单。Act as the Ultima coding executor.
+
+唯一工单 tasks/queue/wo-s1-task-text-loop.md，按 T1 s1-task-intent-parse → T2 s1-task-queue-source → T3 s1-task-aggregate-report 串行执行，三张原任务卡必须先读。按现有规格实现，推理 high。一单一进程，不派其他工单或子Agent。
+
+Owner最新指令：仅使用已有音频离线验证，继续文本闭环。本工单只做文本，不播放声音，不录音，不调用麦克风，不实现语音。本工单只依赖真实v0.1冻结，不等待v0.2（工单“不做语音v0.2已完”是旧说明，不是前置）。v0.1-frozen=43ce13021f16f191bb36615ebb6c68465bf201fa；tasks/queue/gates/v0.1-frozen.json 已Owner批准，请调用现有check_version_gates核验再动工。
+
+读 docs/specs/codex-task-queue-spec.md §4/10/11，及需要的任务场景产品文档。实现自己的src/brain/ Python文本模块与CLI，用现有tasks.queue_engine的真实只读存储接口，禁止复制Top业务实现。先写有意义的失败测试、运行看到预期失败，再实现、运行通过；保存每任务测试输出与三件套回执。
+
+写入域：src/brain/（代码、测试、README、适当隔离测试证据）、logs/（测试日志及执行报告）、tasks/cards/s1-task-intent-parse/、tasks/cards/s1-task-queue-source/、tasks/cards/s1-task-aggregate-report/（各自卡与证据）。不要改动任何其他已有文件。tasks/queue_engine/、tasks/tests/、scripts/selfcheck-host-shell.py、src/host-shell/、tasks/tasks.json、旧runs/events、原工单、docs/INDEX.md、共享主表、sync、tag、冻结回执、备份模型/runtime均只读。不要提交git、不要push、不要创建tag或Owner签字。工单要求docs更新/版本冻结由监督端W4核验后处理，本次回执须列为后续门，不越界改docs。
+
+T1：查任务状态类意图≥90%，覆盖礼貌问法、中文标点、显式请求；非请求/否定/引用命令/空闲默认不插话。测试包含正负例。无LLM外部请求，无新依赖，离线确定性实现；给出边界而非声称通用自然语言。
+T2：真实读取本产品tasks/tasks.json，用冻结队列引擎读取接口，不读共享Markdown开发工单当产品数据；八态完整当前值映射、总数、异常及task_id/title_zh/state/priority/耗时/terminal_reason字段。异常含当前FAILED/BLOCKED，取消不算失败；历史失败已恢复不得残留当前异常。文件缺失/损坏/非法字段必须显式报状态读取失败，不伪装空队列或零异常。生产当前库为空须如实呈现，绝不写入示范任务。
+T3：文字“查任务状态”端到端；20任务1失败场景用本项目真实TaskLibrary在隔离临时库生成并合法迁移，通过真实读取汇报，禁止硬编码counts/mock伪装实测。19正常项聚合，先说有1异常，再说失败详情，不逐条列出正常任务。明确请求可下钻异常详情；未知ID、路径式ID拒绝，不能读取任意路径。未命中意图不读取队列、不输出打扰。汇报中文符合§10。
+
+验证：正负例意图、真实8态统计、历史与当前分离、20/1场景、空生产库、损坏/缺失存储失败闭合、下钻正常和异常ID、路径保护、无主动打断。保存可复跑命令。用explicit Python H:/UltimaAI/UltimaAgent/tools/python31313/python.exe -X utf8，嵌入式Python隔离要在入口显式加入项目root；不修改全局Python/PATH。Windows执行优先cmd.exe login=false，尽量不用pwsh（曾有尾部挂起）。任何子进程零窗口。首次完成后核对v0.1 source-manifest全部36项哈希、生产tasks.json哈希不变，保存摘要；不得为通过测试改冻结引擎。失败可自修≤2次，实质未解就回报BLOCKED，不伪报通过。
+
+收尾：三张卡仅记录开发自检，独立W4未执行。执行报告有version='S1/v0.3'。最终纯JSON，不markdown，字段work_order='wo-s1-task-text-loop',status='READY_FOR_REVIEW'或'BLOCKED',completion,landed_files=[绝对文件路径],evidence=[实际已存在证据文件绝对路径],remaining_gates=['独立W4验收','Owner批准v0.3冻结'],scope_violation=false。正常CLI退出是门禁。禁止使用update_plan工具（尤其收尾），最终JSON后不再调用工具。完成本工单即退出，不自行派后续工单。

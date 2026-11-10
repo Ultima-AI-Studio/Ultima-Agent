@@ -1,0 +1,28 @@
+先读项目引导索引 INDEX.md（H:\UltimaAI\UltimaAgent\docs\INDEX.md），按其权威源地图定位规范与写域，再执行本工单。
+
+Act as the Ultima coding executor.
+
+请执行工单 tasks/queue/wo-ultimaagent-20261103-0022--middleware-v1.md（工单 ID：wo-ultimaagent-20261103-0022，中间层 v1 内脑编排）。
+
+背景：UltimaAgent 三层架构（主脑 qwen3-8b + 中间层编排服务 + 外脑 CodeX/DeepSeek）。用户 2026-11-03 确认核心执行原则：**边界内自主执行（规则+白名单+路由门 0016 三态=8B 可做范围，8B 自主决策不请示）+ 边界外契约转派（能力缺口四级执行路径：①组合现有工具→②通用兜底工具常驻→③受控沙箱自建脚本→④转派外脑/工单并跟踪→⑤仅需用户拍板时如实说明；转派路径即规则契约=工单三段式+G-TASKFLOW-001）**。用户明确指示：任务规划已落盘，由你（Codex）自行分析技术方案并执行。任务规划：docs/plans/middleware-v1-delivery-plan-20261103.md（本单权威口径，随工单落盘）；设计蓝本：docs/research/dsh-superagent-open-source-replacement-conclusion-20261103.md 与调研副本 research/dsh-superagent-prototype（MIT，借鉴重写五项概念：Ticket 状态机/效果队列/Outbox 回执/授权 gate/派发报告恢复）。
+
+按工单 T0→T6 逐条执行（T 阶段划分由你在 T0 分析细化并随证据落盘；Gate PASS 再进下一条）：
+- T0 基线与环境盘点：读规划文档与工单卡确认不可变口径；盘点 src/brain 现有路由/工具/会话调用链（_normalize_utterance / 0016 路由门 / 0017 约束栈 / SessionStore / queue_engine 状态机）确认接入点；确认 venv-openjarvis 测试基线；产出技术方案细化（组件落位/接口/状态机迁移图/开源替代对照）落盘 data/evidence/middleware-v1/T0/
+- T1 骨架：Ticket 状态机 + 工具注册表/白名单（只读，8B 无创建能力）+ 超时重试 + Outbox 回执；单测
+- T2 Router 路径编排：意图→路径决策（直答/工具组合/通用兜底/沙箱脚本/转派工单/如实说明），短问答直连旁路；主脑不兼 Router；8B 只做路由决策不做路由创建
+- T3 Worker 动作级裁决：工具执行 + ALLOW/DENY/ABSTAIN 三态贯彻到动作级；受控沙箱临时脚本（可审计）
+- T4 任务窗人话提炼：中间层结构化快照（任务 id/阶段/状态/阻塞类型/剩余动作/验收口径）→ 本地主脑无状态翻译（≤N 字人话、不背任务上下文）→ 任务窗"人话+展开原文"双入口；工单契约不动；触发=状态变更/例行汇报；降级=模板话术
+- T5 回归与收口：venv-openjarvis 专用解释器 pytest src 全绿 + 专项用例（边界内自主执行端到端 / 边界外四级路径触发 / 8B 无路由创建被拦截 / 人话提炼链路）；注入用例（"查新闻热点"走通用兜底路径而非专用工具；复杂多跳 ABSTAIN 预留接线点）；git add 仅本单写域文件（禁止 -A/-u）；commit 标注「工单 0022 中间层 v1 内脑编排」；tag ultimaagent-middleware-v1-20261103 + git rev-parse + 免代理推送（git -c http.proxy= -c https.proxy= -c http.https://github.com.proxy= push）；阶段报告 docs/reports/stage-middleware-v1-20261103.md 完整
+- T6 八字段回执
+
+硬约束：
+- 工作目录 H:\UltimaAI\UltimaAgent；工程验收 pytest 必须用 tools\venv-openjarvis\Scripts\python.exe（Python 3.13.16），禁止默认 Python312。
+- 禁止修改：ollama / qwen3-8b 模型与推理参数（0010 已切换，14B 回滚保留）；KWS / 唤醒词 / 现有语音进程；jarvis.md 人设正文；daemon 采集/ASR/TTS 主链；W6 UI；0016/0017 冻结资产（只读引用不复制）。
+- 8B 无路由创建能力：路由/工具为冻结资产，构建走登记→方案→工单→验收冻结→注册白名单；本单不创建新专用工具（如新闻热点工具），常驻通用能力（web 搜索/页面读取/脚本执行/文件读写）即可。
+- 外脑调配（DeepSeek/CodeX 执行链）不在本单范围，仅预留接线点；不引入云端意图 API（隐私红线）；不换推理栈。
+- 骨架用确定性代码（状态机/注册表/超时重试/Outbox），编排靠代码不靠模型自觉。
+- 关键修改/更新完成即打 git tag 并推送（本单 tag=ultimaagent-middleware-v1-20261103）。
+
+每 T 记录 Gate 证据到 docs/reports/stage-middleware-v1-20261103.md + data/evidence/middleware-v1/，临时文件执行完自行清理。
+
+最终回执八字段：链路号/执行端/完成状态/根因结论/产出路径/验收证据/越界声明/环境声明。

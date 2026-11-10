@@ -1,0 +1,28 @@
+你是 UltimaAgent 工单 wo-ultimaagent-20261108-0026 的执行端（Codex）。本载荷要求你按 T0→T1→T2 分阶段补齐模块3审计能力，全程遵守工单卡口径，每完成一个 T 即回写北极星看板并单独提交。
+
+# 任务背景
+北极星 auto-flow 看板（docs/tracker/北极星上线任务清单.html）当前焦点=模块3｜单 Agent 主干加固。确定性审计框架（reviewer/audit_log/receipt）已存在且不得推翻，但缺三块：① 标准化 LLM 审计提示词 ② 统一审计报告格式与生成器 ③ 端到端闭环测试与失败 case 归档。本单补齐这三块，不重复造已有能力。
+
+# 必读材料（先读后动，勿凭注释假设）
+1. 工单卡：tasks/queue/wo-ultimaagent-20261108-0026--audit-hardening.md（goal/acceptance/fileDomain/写什么与禁止 = 不可变口径）
+2. 现有确定性审计框架：src/brain/guardrails/reviewer.py、audit_log.py、receipt.py、__init__.py；src/brain/orchestration/audit.py
+3. 提示词加载与回答栈：src/brain/agent_server.py（头部提示词加载、STRUCTURED_REPLY_SYSTEM_PROMPT）、src/brain/prompt_boundary.py、src/brain/reply/schema.py、src/brain/routing/reply_verifier.py
+4. 现有测试范式：src/brain/tests/test_integration_m5.py（unittest 分层风格与运行方式）
+5. 北极星看板：docs/tracker/北极星上线任务清单.html（模块3的 level3 文本与 auto-flow 计算逻辑）
+
+# 阶段门（每阶段 RED/GREEN + 证据 + 回写看板 + 单独 commit）
+- T0 标准化审计提示词：在 src/brain/guardrails/prompts/ 新增独立审计角色提示词（与 dev 分离、证据纪律、固定输出 JSON：findings[severity/item/detail]，severity 仅限 blocker/major/minor，附 gate 结论）；配套加载函数与单测（缺失/空文件 fail-closed、dev 角色被拒）；明确 LLM 审计是确定性 reviewer 的补充，输出可被 ReviewResult/gate 消费，不另建冲突分级。
+- T1 统一审计报告：新增 docs/specs/audit-report-spec.md（报告头元信息/范围与方法/分级汇总/逐项发现/交付门结论/证据索引/复测记录）；新增 src/brain/guardrails/audit_report.py 把 ReviewResult/审计数据渲染为统一 Markdown；用生成器产出一份真实示例报告落 docs/reports，断言固定小节齐全、无证据不得出"通过"。
+- T2 闭环测试 + 失败归档：新增 src/brain/tests/test_closed_loop_audit.py（unittest，临时目录隔离、不依赖外网/真实模型），覆盖正常闭环（审计留痕 count + 回执四字段）、注入拦截闭环、grounded=false 兜底闭环、error/hold 回滚闭环；建立 data/evidence/failed-cases/ + README 归档约定并至少归档 1 个真实失败样例与复测入口。
+- 收口：用专用解释器 tools/venv-openjarvis/Scripts/python.exe（Python 3.13.16）跑完整工程门全绿（0 failed，按实际计数）；阶段报告落 docs/reports；最终打 tag ultimaagent-audit-hardening-20261108；免代理 push。
+
+# 硬约束
+- 每个 T 完成后：把看板中对应 level3 文本改为含"100% ✅"（仅改模块3对应行，不动看板结构/样式），再精确 git add 本单写域文件并 commit（信息标注"工单 0026 审计加固 T0/T1/T2"），保证 auto-flow 视图逐步刷新。
+- 工作区存在其他线在途改动（.superpowers/、data/evidence/jarvis-work-*、0021、tasks/tasks.json 等）：git add 必须精确到本单写域文件，严禁 git add -A/-u/. 或通配；禁止提交、回滚、stash、覆盖这些在途改动。
+- 不重启任何语音/daemon 进程；不改主脑模型与推理参数；不改 KWS/唤醒词基线（kws-wakeup-params-baseline.md）；不改生产默认行为与 0016/0017 已冻结语义。
+- 开源优先（G-OPEN-001）：模板渲染、JSON 校验优先用标准库与现有依赖；确需新增依赖先出开源替代排查表，禁止无排查自研。
+- 禁止删除/弱化测试、伪造完成或跳过验收；每阶段如实汇报真实退出码与证据路径，不编造。
+- push 用免代理：git -c http.proxy= -c https.proxy= -c http.https://github.com.proxy= push；网络失败则在 evidence 登记，不回滚提交，由调度侧补推。18766 接口离线，登记以全局主表为准，不阻塞。
+
+# 输出要求
+最终回复按工单卡 receipt 与八字段回执结构给出：链路号 / 执行端 / 完成状态（含 T0/T1/T2 各自结论）/ 产出路径 / 验收证据（含全量工程门计数与闭环测试结果）/ 越界声明 / 环境声明 / 待办与 push 状态。

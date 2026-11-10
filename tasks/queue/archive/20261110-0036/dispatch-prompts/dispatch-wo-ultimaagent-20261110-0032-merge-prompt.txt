@@ -1,0 +1,74 @@
+# 工单 wo-ultimaagent-20261110-0032 派发载荷
+
+你是本工单的执行端。严格按 `H:\UltimaAI\UltimaAgent\tasks\queue\wo-ultimaagent-20261110-0032--branch-merge-gate.md` 执行，不得自行扩大范围。
+
+## 一、必读后再动手
+
+1. 工单卡：`tasks/queue/wo-ultimaagent-20261110-0032--branch-merge-gate.md`（本单契约）
+2. 核对报告：`docs/reports/work-order-reconciliation-20261110.md`（第八节记录了 0031/0029 的「主干不可见」认定过程）
+3. 0031 工单卡：`tasks/queue/wo-ultimaagent-20261108-0031--m2-workorder-contract.md`
+4. 0029 工单卡：`tasks/queue/wo-ultimaagent-20261108-0029--e02-offline-minimal-repair.md`
+
+## 二、主脑已做完的只读预演（你需复验，不要重做）
+
+`git merge-tree --write-tree HEAD <branch>` 结果（只读、未落地）：
+
+| 分支 | 规模 | 冲突 |
+|---|---|---|
+| `codex/m2-workorder-contract-20261108`（0031） | 12 文件 / +2380 −2 | **1 处** content 冲突：`scripts/dispatch-work-order.py` |
+| `codex/jarvis-e02-source-grounding-r1`（0029） | 210 文件 / +24978 −7 | **2 处** add/add：`docs/reports/jarvis-work-t2-current8b-interface-resume-20261102.md`、`src/brain/agent_tools_ultima.py` |
+
+复验命令：`git merge-tree --write-tree HEAD <branch>`，把完整输出落 `data/evidence/wo-ultimaagent-20261110-0032/pre-merge-conflicts.txt`。**若实际冲突数与上表不符，先停下来说明，不要带着未知冲突往下做。**
+
+## 三、任务（P1 → P2，严格串行）
+
+### P1 — 合 0031
+
+1. `git merge codex/m2-workorder-contract-20261108`（预期 1 处冲突）
+2. 裁决 `scripts/dispatch-work-order.py`：**必须同时保留两侧意图**——分支侧的工单契约校验（schema / DoR / freeze 入口）+ 主干侧 G-ORCH 的派发路径与守卫改动。裁决依据写进报告（哪一段语义来自哪边、为什么，丢弃了什么）
+3. 合完立刻验三项产物在主干可见且字节数一致：
+   ```
+   git cat-file -s "HEAD:docs/specs/work-order.schema.json"     # 期望 5749
+   git cat-file -s "HEAD:scripts/validate_work_order.py"        # 期望 16738
+   git cat-file -s "HEAD:scripts/freeze_work_order.py"          # 期望 6558
+   ```
+4. 跑 0031 的三个测试：`tools\venv-openjarvis\Scripts\python.exe -m pytest -o addopts= -q tests/test_validate_work_order.py tests/test_freeze_work_order.py tests/test_dor_gate.py`
+5. 提交 + 打 tag `ultimaagent-0031-merged-20261110`（打 tag 前 `git log` 核对，本分支有他线并发提交，必须对只含本单提交的 SHA 建 tag）
+
+**P1 不绿不许进 P2。**
+
+### P2 — 合 0029
+
+1. `git merge codex/jarvis-e02-source-grounding-r1`（预期 2 处 add/add 冲突）
+2. 逐个裁决两处冲突并记录：两侧内容差异摘要、保留策略、丢弃内容、验证方式。**禁止 `--ours/--theirs` 不看清就了事**
+3. 合完验 `git cat-file -s "HEAD:src/brain/work_navigation.py"` → 期望 38,517B
+4. **补建 T5 报告** `docs/reports/jarvis-work-e02-offline-minimal-repair-20261108.md`（该报告在分支与主干上均不存在）。须含：技术门实测结果、未验证项清单（真人 / 真实采集 / 远场）、与工单 T5 要求逐条对应
+5. 跑全量门：`tools\venv-openjarvis\Scripts\python.exe -X utf8 -m pytest src -q --disable-warnings --junitxml=data/evidence/wo-ultimaagent-20261110-0032/full-gate.xml`，日志落同目录 `full-gate.log`，JUnit 回读 tests/failures/errors/skipped + SHA-256
+6. **中止判据**：若全量门出现 **超过 20 个新增失败**，立即 `git merge --abort`，转按子系统分批合并，并在报告说明。不许带着大面积红合进去
+7. 提交 + 打 tag `ultimaagent-0029-merged-20261110`
+
+### 收尾
+
+`docs/reports/wo-ultimaagent-20261110-0032-merge-report.md`：两次合并的冲突裁决表、产物字节数核验、测试计数、失败历史、越界声明、tag 与 push 结果、遗留问题（尤其是"合并门"落地后两张台账需要回填的条目）。
+
+## 四、硬约束
+
+1. **不改任何已冻结产物的功能语义**：合并只解决可见性，不顺手重构、不升级依赖、不删测试、不弱化断言。
+2. **禁止改**：`docs/tracker/北极星上线任务清单.html`（看板回写权归主脑）、`src/brain/guardrails/reviewer.py`、`receipt.py`、0026/0027/0007/ORB 的既有证据。
+3. **git 精确暂存**：`git add` 严禁 `-A` / `-u` / `.` / 通配。合并产生的文件走 `git merge` 自带机制入索引，不额外 add。中文文件名在 PowerShell 下 `git add` 可能静默失效，必要时用 Python `subprocess` 调 `git -C <repo> add -- <path>`。
+4. **禁止对含未提交改动的文件用 `git checkout --` 回滚**（会抹掉未提交行）；撤暂存用 `git restore --staged`。合并回滚用 `git merge --abort` 或 `git reset --hard <明确 SHA>`（回滚前必须确认该 SHA）。
+5. **推送口径**（本环境有指向 1083 的死代理）：
+   ```
+   git -c "http.https://github.com.proxy=http://127.0.0.1:7897" -c http.proxy=http://127.0.0.1:7897 -c https.proxy=http://127.0.0.1:7897 push origin HEAD:refs/heads/codex/voice-fsmn-new-path
+   ```
+   失败重试 ≤3 次，仍失败则记录 evidence 并如实声明，不回滚、不阻塞收尾。
+6. 18766 管理接口离线，登记以全局主表为准。
+
+## 五、已知环境事实
+
+- 全量门耗时较长，务必把 stdout 重定向到文件并留足超时，不要靠终端缓冲（0027 曾出现 attempt1 断在 42% 的情况）。
+- `test_jarvis_ask_real_inference` 是已知环境抖动，按既有口径判定并如实记录，**不得豁免、不得删测试**。
+
+## 六、收尾输出
+
+一段总结：P1/P2 各四项结论（冲突裁决、产物可见性、测试计数、tag）、中止判据是否触发、越界声明、push 结果、遗留问题。

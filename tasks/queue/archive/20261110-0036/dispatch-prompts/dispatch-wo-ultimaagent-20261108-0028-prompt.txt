@@ -1,0 +1,53 @@
+# 派发 · wo-ultimaagent-20261108-0028（E02 写入资格与证据范围提案 · 独立评审）
+
+你是 Codex 执行端。本单是**只读评审**，不是实施，不是修复，不是验收。
+
+## 0 准入确认
+
+- 工单卡：`tasks/queue/wo-ultimaagent-20261108-0028--e02-evidence-scope-plan-review.md`（必读，按 T0→T3 执行）
+- 项目队列已登记：`tasks/queue/index.md` 中该工单状态为 executing
+- 全局主表已登记：`H:\UltimaAI\_shared\queue\global-queue-index.md` 中该工单号可检索命中
+  · 全局主表是**只读**的，你不要写它，也不要为了登记它而越界
+- 工作目录：`H:\UltimaAI\UltimaAgent`；当前分支 `codex/voice-fsmn-new-path`
+- WIP：本项目当前无其他 Codex 执行中任务（0013 已收口、0027 判中断），本单独占
+
+## 1 本单要回答的问题
+
+业主原始诉求是「E02 P1 外部独立签署」，但事实已变：待签对象 `review/result-review-c794f6fd-20261106.json` 已不在盘上、`review/` 目录不存在；工程实际推进到 source37，最新一轮受控实际运行独立复核为 **FAIL_CONFIRMED**（9 条陈述仅第 7–9 条被所选锚点直接支持，原题要求的三项内容未答全），E02 仍 0/3，实际用例与结果复核配额均为 0。
+
+现在业主选择的方向是：**评审 `docs/plans/jarvis-work-e02-write-eligibility-and-evidence-scope-proposal-20261108.md` 这份提案**，判断它是否足以支撑下一轮离线最小修复，还是需要先补澄清。
+
+所以本单产出的是**判断**，不是代码。
+
+## 2 已知事实（不必重新证明，但要用到）
+
+- 根因指向：还剩一次读取机会时，严格 schema 同时给出「读取 S4」与「写入」两条分支，模型选了写入；三来源最低兼容门满足 ≠ 完整回答任务。
+- 提案提出的边界：优先只改 `work_navigation.py` 的共享契约与 `agent_server.py` 的对应适配，同步生成与重放。
+- 不变预算：context 16384；messages+schema 32768 字节；entity 49152 字节；输出上限 2048；service260 / client300 / rootwork275 / cleanup310 / seal315 秒；CLI1 / search1 / GET4 / inspect6 / write1 / ACK1 / nativePOST8。
+- 禁止路径（提案与工单均已明确）：不得硬编码本题 S4/URL/行号/预制答案；不得把「全部来源曾下载」当作覆盖；不得靠增加读取/POST 次数解决；不得由 controller 代选页或改写失败产物；不得用关键词命中代替语义核验。
+
+## 3 边界（硬约束）
+
+1. 全程**零模型调用、零实际用例、零结果复核配额消耗**
+2. 源码一律只读：`work_navigation.py`、`agent_server.py`、`profile.py`、`test_profile.py` 不得修改
+3. 不得改 run `d0109d12-520f-4f92-88a3-938e69905ba2` 任何产物、不得改 `review/` 下任何文件
+4. 不得改 `data/evidence/jarvis-work-capability/T2/current-run.json` 与 terminal
+5. 不得跑 pytest 全量或 e02 相关用例（只读分析足够；确需计算可用只读脚本，但不得写入仓库）
+6. 不得签发 grant，不得改 E02/T2/Owner 任何验收字段
+7. 不得用「机械写入成功」「旧 E01/E03 信用」折算成 E02 通过
+8. 不得写全局主表 `_shared/queue/global-queue-index.md`
+
+## 4 产出
+
+唯一新增文件：`docs/reports/jarvis-work-e02-evidence-scope-plan-review-20261108.md`
+
+五节固定结构：一句话结论（三选一）/ 五条逐条结论 / 边界与预算 / 必须澄清项 / 建议下一步授权范围。
+
+## 5 回执（八字段，写在 last-message）
+
+链路号、工单号、通道、执行端、完成状态、产出路径、验收证据、越界声明。
+越界声明必须写「无」或逐条列出实际越界动作；不得省略。
+
+## 6 完成后
+
+不要自行打 tag，不要自行改看板，不要自行提交。台账由主脑统一写。

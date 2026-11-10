@@ -1,0 +1,64 @@
+本次只做 wo-ultimaagent-20261110-0033 的 T0–T4，Gate 全绿即停并回执，不得进入其它工单。
+
+【权威上下文】
+先读 AGENTS.md 与 `docs/INDEX.md`，再动手。
+本次唯一任务书：`tasks/queue/wo-ultimaagent-20261110-0033--card-form-unify.md`，逐 T 执行，不得自行扩范围。
+
+【背景：必须先理解，否则会做错方向】
+现有工具链只认 `tasks/cards/<id>/task.md` 卡式工单，导致 `tasks/queue/*.md` 队列式工单（如 0030）无法进入审计与冻结：
+1. `audit-work-order.py` 的 `_card_id()` 强制要求 `tasks/cards/<id>/task.md`，否则抛 `its id cannot be read`；
+2. `audit-work-order.py` 的 `gates()` 只调 `acc_rows()`（只认 ACC 门表），0030 卡没有 ACC 表 → 空集 → `blocked: card lists no ACC gates`；
+3. 审计对卡注入阈值为 4000 字符，0030 卡 9409 字符 → 判 truncated → `visible=False` → 必然 `audit_passed=False`；
+4. `freeze-work-order.py` 在 `if not order_cards: refuse("the order references no card")`，零卡工单被直接拒。
+
+本次统一方向是「工具链向下兼容」：audit / freeze 两个入口全部接受队列式卡，门抽取在 ACC 缺失时回落「验收（Gate Tn）」段落，放宽注入阈值。
+**不要**改成「把卡迁进 tasks/cards」——那是另一条方案，已被否决。
+
+【写域限制】
+仅允许改动/新增：
+- `scripts/gorch_contract.py`
+- `scripts/audit-work-order.py`
+- `scripts/freeze-work-order.py`
+- `scripts/tests/`（新增或修改测试）
+- `docs/reports/`（本次报告）
+
+严格禁止：
+- `scripts/dispatch-work-order.py`（本轮已修，不要再动）
+- `scripts/order_naming.py`（命名契约不变）
+- 0030 的 `dc651d6f` 提交与 T0–T2 冻结产物
+- `tasks/cards/` 下任何既有卡
+- 全局登记表 `_shared/queue/global-queue-index.md`
+
+【T3 必须真跑，不许只写代码不验证】
+解释器固定：`H:\UltimaAI\UltimaAgent\tools\venv-openjarvis\Scripts\python.exe`（Python 3.13.16），不要用默认 Python312。
+
+命令（在 `H:\UltimaAI\UltimaAgent` 下执行）：
+```
+tools\venv-openjarvis\Scripts\python.exe scripts/audit-work-order.py ^
+  --work-order wo-ultimaagent-20261108-0030 ^
+  --card tasks/queue/wo-ultimaagent-20261108-0030--m4-orchestration-ledger.md ^
+  --run-dir tasks/queue/runs/wo-ultimaagent-20261108-0030-20261110T101704476104Z ^
+  --evidence C:\Users\Administrator\.codex\worktrees\ultimaagent-m4-ledger-20261108\docs\reports\wo-ultimaagent-20261108-0030-t3-result.md
+```
+
+说明：
+- 该命令会真调 DeepSeek（`config/.env` 内有 `DEEPSEEK_API_KEY` / `DEEPSEEK_API_BASE`），会消耗 API 额度，属预期行为；
+- `blocked` 回执 = T3 失败；`audit_passed: true` 或 `false` 都算 T3 通过（判词由 DeepSeek 给，不许为让它过而放宽判定）；
+- 产物固定写在 `--run-dir` 下的 `audit.json`。
+
+【收口要求】
+- T0–T4 全绿后写回执并停，不得进入 0030 的 T4–T7，不得顺手改别的工单或状态。
+- 回执 JSON 必须包含：
+
+```json
+{
+  "work_order": "wo-ultimaagent-20261110-0033",
+  "status": "READY_FOR_REVIEW",
+  "gates": {"T0": "PASS|FAIL", "T1": "...", "T2": "...", "T3": "...", "T4": "..."},
+  "audit_json_path": "<T3 产出的 audit.json 绝对路径>",
+  "audit_passed": true,
+  "changed_files": ["..."],
+  "boundary_declaration": "未改动 dispatch-work-order.py、order_naming.py、0030 的 dc651d6f 与 T0–T2 产物",
+  "regression": {"pytest_failed": 0, "baseline_failed": 6}
+}
+```

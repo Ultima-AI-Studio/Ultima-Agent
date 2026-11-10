@@ -1,0 +1,33 @@
+先读项目引导索引 INDEX.md（H:\UltimaAI\UltimaAgent\docs\INDEX.md），按其权威源地图定位规范与写域，再执行本工单。
+
+Act as the Ultima coding executor.
+
+请执行工单 tasks/queue/wo-ultimaagent-20261031-0011--hud-8anchor-layout.md（工单 ID：wo-ultimaagent-20261031-0011，HUD 四角壳 8 锚点布局改造）。
+
+按工单 T0→T3 逐条执行，Gate PASS 再进下一条：
+- T0 现状盘点与方案对齐：完整读方案 docs/previews/hud-layout-zone-plan-20261031.md（v0.2 定稿）与范式 docs/paradigms/ui-kit-standard.md §8；完整读现状 docs/previews/hud-live-four-corner/hud-live-four-corner.html（4 widget 结构/8 点吸附 map/SSE 事件映射 EVENT_CORNERS/透明度三档/?native=1）；shot.py 截图基线存 docs/reports/evidence/hud-8anchor/t0-before-<ts>.png；SSE 8756 事件类型盘点映射 8 锚点 + Manager 18766 任务状态 API 可用性确认
+- T1 8 锚点布局改造：4 widget 容器 → 8 锚点分区（顶部=时间/天气、左上=系统状态、右上=环境/位置、左下=队列简况、右下=即时消息、左中=Agent 反馈区、右中=主动唤出功能区、底部=交流转写区），每区独立容器 + 语义类名 + 默认显隐；按需显隐状态机（无内容即隐/任务完成自动清空/唤出收起回调）；SSE 事件重映射到 8 锚点（保留 sticky+last_event_id 断线续传）；AR 安全基线（中央 0 内容、常驻区信息点 ≤3、透明度三档 0.14/0.55/0.85、无审批/签名元素）；截图中间态存 docs/reports/evidence/hud-8anchor/t1-after-<ts>.png
+- T2 数据接线与回归：左中/左下接 Manager 18766 当前执行任务（身份校验通过后只读，无任务即空）；左上系统状态接 agent_server tick（硬件/连接/上行下行，缺字段仅新增 tick 字段）；顶部时间=系统时钟、天气接 weather.query；右上预留位不接真实导航；venv-openjarvis 全量 pytest 绿；原生壳加载 hud-live-four-corner.html?sse=8756&native=1 端到端验收（透明不遮挡/穿透/三档/空态清爽/有任务可唤出/极速收起/无审批签名）；git commit + tag ultimaagent-hud-8anchor-20261031 + git push --tags；阶段报告 docs/reports/stage-hud-8anchor-20261031.md 完整
+- T3 八字段回执
+
+硬约束：
+- 工作目录 H:\UltimaAI\UltimaAgent；工程验收 pytest 必须用 tools\venv-openjarvis\Scripts\python.exe（Python 3.13.16），禁止默认 Python312。
+- 禁止修改：UltimaAgent.Hud 原生壳（WPF 层已验收，只改 HTML 与数据接线；壳透传/托盘/透明度三档保持不动）、Manager 内核（只读任务状态，不新增/修改 Manager 侧接口）、agent_server.py 的 HOST/PORT(8756)/TOOLS/AGENT/工具注册/路由/RU-05 结构（仅允许按写域新增 tick 数据字段）、docs/specs/kws-wakeup-params-baseline.md 及任何 KWS/ASR/TTS 参数、voice_profile/daemon 代码、docs/previews/hud-layout-zone-plan-20261031.md（已冻结 tag，只读）。
+- 禁止实现：签名/审批界面（永不进入 HUD 展示层）、鸿蒙端任何形态（已废弃）、消息聚合真实接入（右下仅预留位，真实接入为后续工单）、导航真实接入（右上仅预留接口位）。
+- 禁止联网下载无关依赖/模型（本单不涉及模型）；禁止中文模型名。
+- 关键修改/更新完成即打 git tag 并推送（本单 tag=ultimaagent-hud-8anchor-20261031）。
+
+每 T 记录 Gate 证据到 docs/reports/stage-hud-8anchor-20261031.md + docs/reports/evidence/hud-8anchor/，临时文件执行完自行清理。
+
+最终回执八字段：链路号/执行端/完成状态/根因结论/产出路径/验收证据/越界声明/环境声明。
+
+=== 重派补充（2026-10-31 主脑追加，电脑强制重启后）===
+本次为**中断后重入**：原执行（session 01a19038，PID 39312）已被强制重启终止。重启前状态：T0 截图基线、T1 改造后截图（t1-after/t1-eight-zones）、T2 端到端截图（t2-native-e2e-20261031-134255.png）已产出（均在 docs/reports/evidence/hud-8anchor/）；但 **T2 的 C6 冻结 tag 未打、C7 阶段报告未写，T3 回执未交**。
+
+重入要求：
+1. 先核对 docs/reports/evidence/hud-8anchor/ 现有截图与 git 工作区改动，确认重启前已完成的 T0/T1/T2 改造内容仍在（git status 中 HUD 相关未提交改动属本单中间产物，可保留）。
+2. 从 **T2 剩余项**续做：venv-openjarvis 全量 pytest 绿（若已跑可复核结果）→ 原生壳端到端验收 → **git commit 本单写域改动 → tag ultimaagent-hud-8anchor-20261031 → git push --tags（免代理：git -c http.proxy= -c https.proxy= -c http.https://github.com.proxy= push）** → 阶段报告 docs/reports/stage-hud-8anchor-20261031.md 完整落盘 → T3 八字段回执。
+3. **git commit 只允许 add 本单写域文件**（HUD HTML/接线/src/brain/agent_server.py 中本单 tick 字段等），禁止 git add -A / git add -u 全量提交（仓库有其他工单的未提交改动，不得混入）。
+4. 若发现重启前改动不完整或截图与现状不符，按工单原 T0-T2 要求补齐再走 T3，不降级交付。
+5. 提交信息标注「工单 0011 中断重入」。
+

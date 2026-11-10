@@ -1,0 +1,51 @@
+先读项目引导索引 docs/INDEX.md，按其权威源地图定位规范，再执行工单。禁止跳过。
+
+Act as the Ultima coding executor.
+
+## 任务范围
+
+工单⑧（wo-s1-remote-update，远程更新与发布通道）之 T3 s1-remote-update-publisher（工程端一键发布工具）的四个验收单元 RU-09~RU-12：
+
+| 单元 | 写什么 | 验收 |
+|---|---|---|
+| RU-09 一键发布流程 | 点发布 → 打 tag→构建→manifest→签名→上传→宣告 全链路 | 一次成功；工程端工具可带控制台，但更新链路产物/宣告不得弹窗（N4 口径：工程端 GUI 与用户前台 N7 边界） |
+| RU-10 manifest 生成 | 版本/哈希/强制位齐全 | 字段齐全；结构以 docs/specs/update-manifest-schema.md 为唯一权威（N5 消除双源） |
+| RU-11 签名 | 发布端私钥签名 manifest + 包 | 客户端公钥可验 |
+| RU-12 上传与宣告 | GitHub Release 上传成功 + 可选宣告强制版本 | 上传成功、宣告生效；工程端工具可带控制台，但更新链路产物/宣告不得弹窗（N4 口径） |
+
+## 必读文件
+
+- 工单总卡：tasks/queue/wo-s1-remote-update.md
+- 任务卡：tasks/cards/s1-remote-update-publisher/task.md
+- manifest schema 唯一权威：docs/specs/update-manifest-schema.md
+- 写入域（fileDomain）：`H:\UltimaAI\UltimaAgent\tools\publisher\`（一键发布工具）、`tasks\cards\s1-remote-update-publisher\`（任务卡自身）
+- 严禁写入 _shared、全局主表、docs/INDEX.md 及工单外路径
+
+## 执行顺序与边界声明（重要，逐条遵守）
+
+1. 按 RU-09 → RU-10 → RU-11 → RU-12 顺序执行，每单元 Gate PASS 再进下一条；完成后停下等主脑验收，不越级往下跑。
+2. **上游依赖状态如实声明（不得伪造）**：
+   - T1 通道库（s1-remote-update-channel）与 T2 触发链路（s1-remote-update-trigger）当前未开工（无实现产物）。本任务只做发布端工具；客户端侧通道/触发不在本任务范围。
+   - 工单⑦（s1-engineering-packaging）安装包当前未产出（PK-01~04 未闭环）。RU-12 的"上传资产=安装包"端到端闭环因此无法本次完成；必须如实登记为"待工单⑦ 安装包产出后联合验收"，禁止伪造 PASS。
+   - v0.2/v0.4 冻结未过（版本门未闭合），本任务不声称版本冻结、不自行打版本 tag。
+3. **签名**：RU-11 需要发布端私钥签名 manifest + 包、客户端公钥可验。当前无现成密钥对；可在执行时生成密钥对用于签名/验签逻辑验证（密钥文件存 tools\publisher\keys\，私钥不落盘明文到仓库正文/日志/回执）。真实发布用密钥对登记为待 L8 凭证中心注入，不伪造。
+4. **上传**：RU-12 用 GitHub Releases API 上传到发布仓库 Ultima-AI-Studio/ultima-agent（已确认存在，main 分支 d59c5b2）。凭证：优先用本机 git 凭据管理器（GCM）已有凭证或环境变量注入，禁止把 token 写进源码/工单/回执明文。若凭证不可用或仓库不可写，如实上报（fail-closed），不伪造上传成功。
+5. 推理强度 high；签名安全环节需评审背书（自核并登记）。
+6. 禁止：不实现客户端侧（T1/T2 范围）、不做增量补丁、不绕过签名（发布必签名）、不在更新链路产物/宣告中弹窗、不修改工单⑦范围、不自行宣称 eng.security ultra 通过。
+7. 临时文件不入仓；完成前自核闭环（§8）：未全绿先自修 ≤2 次再交回执；失败回执结构化；证据不明确 fail-closed 判 BLOCKED。
+
+## 证据落盘
+
+- 每单元 Gate 证据写 docs/reports/evidence/wo-s1-remote-update-publisher/ 下（如 ru-09-accept.md、ru-10-manifest-sample.json、ru-11-signature-verify.txt、ru-12-release-record.md 等）。
+- 汇总报告写 docs/reports/stage-s1-publisher-20261028.md（Gate 逐条 + 证据路径 + 越界声明）。
+
+## 回执必报字段（工单完成后输出）
+
+- 工单号：wo-s1-remote-update / T3 / RU-09~RU-12
+- 执行端：codex exec
+- 完成状态：已完成 / 阻塞 / 已终止（如实）
+- 根因结论：一句话
+- 产出路径：改动文件 + 报告 + 证据目录
+- 验收证据：每单元 Gate 结果 + 证据文件摘要
+- 越界声明：无=明确写"无"；含未动范围（未实现客户端侧、未声称版本冻结、未伪造安装包闭环）
+- 环境声明：本地 Windows 实测；真机未验证项写"仅真机预期"

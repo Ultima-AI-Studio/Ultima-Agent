@@ -1,0 +1,33 @@
+这是 0014 的第二次派发（首次回执 BLOCKED，Owner 已授权扩大冻结写域，方案 B 定版）。
+
+Act as the Ultima coding executor.
+
+请基于现有状态继续执行工单 tasks/queue/wo-ultimaagent-20261101-0014--kws-user-entry.md（工单 ID：wo-ultimaagent-20261101-0014，KWS 唤醒词用户入口+持久化「工单 E」）。
+
+**现状（勿重置、勿清理）**：首次执行的未提交实现草稿已保留在工作区——
+- src/brain/interaction.py（含 _try_wakeword_change 草稿，同步调 CLI 等待 reload 日志 → 与 daemon 主线程形成等待环）
+- src/brain/tests/test_kws_user_entry.py（专项测试，离线自然短句"今天星期五"已命中）
+- docs/reports/stage-kws-user-entry-20261101.md、docs/reports/evidence/kws-user-entry/t1-blocker-review.txt（阻塞证据，SHA256=FEF2CB1507371110EFBB563134EED0FE6442C744C7E2EF5EF54B4975AF2A1F51）
+- 运行时：daemon PID 27820 在线（2026-11-01T12:52:55 启动，不得杀/重启）；profile wakeword.custom=星期五；keywords=六个贾维斯变体+星期五+ULTIMA
+
+**阻塞根因（已独立复核确认）**：daemon 主线程同步走 voice-listen-daemon.py:954 _handle_collection_result → voice_loop.py:73 → InteractionLoop._try_wakeword_change → interaction.py:222 同步跑 kws_reconfig.py → kws_reconfig.py:235-269 等 20 秒 fresh same-PID reload 日志；但 daemon 唯一 maybe_reload() 在 voice-listen-daemon.py:287 wait_wakeup() 内，主线程被上述同步链阻塞 → reload 永不发生 → 超时后留下局部修改，真实语音入口不可用。
+
+**本次授权（Owner 拍板，方案 B）**：扩大写域到 daemon 的 reload/完成通知结构，解除等待环——
+1. 在 daemon 侧（voice-listen-daemon.py / voice_loop.py 相关结构）加入异步 reload/completion 回调：主线程保持继续执行 maybe_reload()（mtime 检测既有 HotReloadSpotter 机制不变），reload 成功后通过既有 TTS 链播报"唤醒词已改为XX"确认；意图处理侧不再同步阻塞等待 CLI 的 fresh reload 日志，改为非阻塞提交 + 轮询/事件等待 daemon 侧完成确认（有超时上限与失败路径）。
+2. 补齐失败补偿：CLI 变更、profile save/apply、二次调用任一步失败时，回滚已写状态并播报失败话术，不留局部修改。
+3. 补齐歧义/疑问句拒绝："唤醒词改成什么""星期五可以吗"类歧义输入 → 拒绝执行并引导重说，禁止解析为变更请求。
+4. 收敛稳定性：profile watcher 与 keywords 双源在真实 daemon 交错下的最终一致性要有测试断言（含二次调用后不再被 watcher 重写的场景）。
+
+**写域精确限定（本次授权仅限此范围，其余全部维持冻结）**：
+- 允许修改：daemon 侧 InteractionLoop 的 reload/完成通知结构（异步回调、事件、TTS 确认钩子）；interaction.py 的 _try_wakeword_change 非阻塞化与补偿逻辑；对应测试。
+- **仍禁止**：音频参数/采样率/MME/WASAPI/音量/增益等 daemon 音频栈一切数值与设备操作（冻结零漂移）；kws_reconfig.py 保持只读（方案 A 明确不选，CLI 契约不变）；voice_profile.py 只调 save_user_override/load_profile 公开接口；KWS 模型/ONNX/tokens/冻结参数不碰；W6/HUD UI 不碰；守护进程不得杀/重启（补活已是现状 27820，同 PID 热重载验证）。
+- 工作目录 H:\UltimaAI\UltimaAgent；pytest 必须用 tools\venv-openjarvis\Scripts\python.exe（Python 3.13.16），禁止默认 Python312。
+
+**收口要求（T3/T4）**：
+- 全量回归 venv-openjarvis 解释器 pytest src 全绿 + 0014 专项绿 + voice-profile 专项绿。
+- 真机验证一条：通过真实语音链路或等价注入（调用 InteractionLoop 完整路径）验证"改词 → reload 确认 → 播报 → 持久化"闭环成功；若真机麦克风不可用，必须写明等价注入的覆盖边界并给出真机待验收声明。
+- git add 仅本单写域文件（禁止 -A/-u）；commit 标注「工单 0014 重派 KWS 唤醒词用户入口+持久化（daemon 异步 reload 解环）」；tag ultimaagent-kws-user-entry-20261101 + git rev-parse + 免代理推送（git -c http.proxy= -c https.proxy= -c http.https://github.com.proxy= push）。
+- 更新 docs/reports/stage-kws-user-entry-20261101.md（含解环根因与方案 B 记录）；t1-blocker-review.txt 归档保留。
+- T4 八字段回执（完成状态=已完成/阻塞/已终止三选一，阻塞必须给出新的根因与授权请求）。
+
+每 T 记录 Gate 证据到 docs/reports/evidence/kws-user-entry/，临时文件执行完自行清理。
