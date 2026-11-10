@@ -987,3 +987,11 @@ broken`），整个验收卡在这一步，只能记未完成。
 4. **停手判据（防无限循环）**：同一条 P0 连续两轮落在同一函数或同一句文档上，立刻二选一——收窄声明，或判定该层不可穷尽并显式登记未覆盖项。继续补实现只会延长链条，十轮里有六轮属于这一层，纯空转。
 5. **另一类空转**：把早前的阻塞状态当现行事实。`MERGE_HEAD=43da3f01` 的旧记录让「主仓不能提交」成了默认前提，实际它已在别处收尾（`HEAD` 由 `9ecea595`→`055e1611`、`MERGE_HEAD` 清空），我因此把 14 个提交压在 detached worktree 里空转数轮。**动手前用 `git rev-parse HEAD` 与 `git rev-parse -q --verify MERGE_HEAD` 现场重核，不引用旧快照。**
 6. **收口动作**：r17/r18 成果已挂具名分支 `gorch/r17-closeout`（`e7627b19`）并推送远端，tag `gorch-r17-audit-fix-20261110` 同步推送；第十轮 Codex 只读审计判「一致」，全量 226 passed。
+
+### L101 · 网页 Merge 连点两次不生效；合并后首次全量会偶发一条红
+
+1. **现象**：PR #1 确实建成了（远端 `refs/pull/1/head = c67769aa`），但两次点 Merge 之后 `refs/heads/codex/voice-fsmn-new-path` 仍是 `055e1611`，也没有 `refs/pull/1/merge`。页面观感与实际状态不同。
+2. **判定口径**：只认远端——`git ls-remote origin <base>` 看 sha、`merge-base --is-ancestor <our-sha> FETCH_HEAD` 看是否真进了祖先链。不看"成功提示"，也不看按钮颜色。
+3. **落地改走 git**：`worktree add --detach <base-sha>` 拿干净树 → `merge --no-ff` → `push HEAD:<base>`。这里 `--ff-only` 会失败：基分支在分叉点之后又加了一条 docs 提交（`055e1611`，`close out 0032 merge gate evidence`，纯证据文件 4.7 万行），两边是分叉关系，必须真 merge 而不是 ff。
+4. **合并后首次全量 1 failed**（`test_full_batch_ready_blocked_summary`，73.78s），单跑该用例 PASSED，连跑两轮全量 226 passed（53.3s / 49.1s）——worktree 冷启动的偶发，不是语义冲突。判据：单例单独跑通 + 全量重跑两轮全绿，才判绿；只跑一轮见红就改代码，会把偶发当回归。
+5. **别在主仓脏工作区做 merge**（当时 566 行在制品）。一律 `--detach` 独立 worktree 隔离，合完 remove，主仓工作区一行不动。
