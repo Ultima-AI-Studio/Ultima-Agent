@@ -929,3 +929,21 @@ broken`），整个验收卡在这一步，只能记未完成。
 2. **双采样只是异常检测；reflog 回读也不绑定写者，别自称 CAS**：锁内「前态 sha → 调 wt → 后态 sha」三档（ff / tree / wt_receipt）证明不了「**是本次**动的」——第三方在窗口内合入同一 source 时三档照样全绿。强因果理论上只能靠 `git update-ref <ref> <new> <old>` 的 old-value 原子绑定。r16 之前把「事后回读 reflog 的 `new` 那一跳 old == 锁内基线」记成 `cas`，属于**表述失真**：reflog 不记 invocation，第三方恰从同一基线推到同一候选时回读结果完全相同，且排除不了 ABA、日志截断/GC/`logAllRefUpdates=false`、wt 一次写多 ref、非 ff 无 actor。r16 收紧为 `causal='reflog-consistent'`（另加 selector 相邻性校验：缺失/跳号/中间行不可解析一律 `unknown`），真 CAS 列为「wt 不写 target」的架构变更待办。教训：**能证明"与基线衔接"和能证明"是本次写的"是两件事**，文档措辞必须跟着证据强度走。
 3. **「新增一个锁」不会让旧的不生效，只会让两个同时放行**：锁键从 16-hex 换 32-hex 时，单看「旧锁文件没人持有」没有意义；真正的危险是迁移期新旧进程**各持一把**同时进临界区。迁移必须双锁（先旧后新，第二把失败释放已持锁），旧进程全部退场后才撤旧锁。
 4. **junction 的危害是「可变域外目标」，不是「SHA 不稳定」**：目录指纹必须 `scandir` 先查 `FILE_ATTRIBUTE_REPARSE_POINT`、只记 `R` 不跟随；否则域外目录内容一变，摘要跟着变，取证污染成假变更。文件型符号链接同理：只证明 link 对象 + 指向文本，域外目标内容**明确不在**证明范围，不能宣称「已被覆盖」。
+
+### L97 · 0027 T2：全量门 1008 passed 不是稳定结果——preference 时间戳同毫秒 flake 必须先定性再表态
+
+2026-11-10 派 Codex 收尾 0027 T2 时，全量门 `pytest src` 在**同一份代码**上跑出「绿—红—红—绿」：
+
+- 11:07 首跑 `1008 passed, 122 subtests passed, 0 failed`，`PYTEST_EXIT_CODE=0`，据此提交 `c1a00752`、打 tag。
+- 11:25 提交后复跑 `1 failed, 1007 passed`，`PYTEST_EXIT_CODE=1`，失败项 `src/brain/memory/tests/test_preference_p2.py::TestPreferenceStore::test_upsert_idempotent`。
+- 11:30 第二轮复跑同一项再失败。
+- 11:35 第三轮才绿，tag 指向 `2894638f`。
+
+根因不是 0027 引入的回归，是**既有代码的时间戳精度缺陷**：`store.set()` 在同一毫秒内完成两次 upsert，`created_at` 与 `updated_at` 取到同一个 `2026-11-10T03:20:56.802+00:00`，`assertNotEqual(first.updated_at, second.updated_at)` 直接失败。执行端自己跑了 `preference-upsert-flake-probe.log`（10 次采样：8 过 2 挂，**失败率 20%**），并把「已知 preference flake」与「提交后抖动证据」一并补录进 `2894638f`——这是正确的处置：先定性，不硬挤。
+
+两条可复用的判断：
+
+1. **「全量门绿」只等于「这一轮绿」，不等于「代码正确」，也不等于「稳定」**。同一棵树 4 次运行 2 绿 2 红，就没资格用单次绿给结论背书；必须先用 probe 采样统计失败率，再决定是修、是隔离、还是明确接受。否则「提交后复跑变红」会被误读成新提交破坏了什么，倒过来逼人回滚正确的改动。
+2. **时间戳类断言天然对「同毫秒」免疫不了**。`updated_at` 要么在写入侧保证严格单调（`max(now, last + 1µs)`），要么断言侧放宽成 `>=`。用 `assertNotEqual` 比较两个「可能同秒同毫秒」的时间戳，是把时钟精度当成业务语义，属于结构性 flake。
+
+处置：本次不修（不属 0027 范围，改 `src/brain/memory` 会越界），登记为待立工单的技术债；`0027/T2` 的结论以 11:07 首跑 + 11:35 复跑**两次绿**为准，并保留 11:25/11:30 两次红与 probe 日志作为实测留痕。
