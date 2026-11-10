@@ -13,9 +13,10 @@ Two gates, and neither is trusted as a stored boolean:
 
 On top of that, the target is a clean commit:
 
-* the working tree must carry no modified tracked file, so the commit the tag
-  points at *is* the delivered content — a tag on a commit whose working tree has
-  moved freezes something nobody was reviewing;
+* the work order's declared write scope must be clean, so unrelated long-lived
+  work does not make the freeze gate unreachable;
+* every path changed between the dispatch base and verified commit must be inside
+  that declared scope, so an incomplete whitelist cannot hide an overreach;
 * the tag is created *at* the verified commit, read back, and deleted if it does
   not resolve there;
 * HEAD, tree, status, card and evidence are read once more immediately before the
@@ -26,6 +27,7 @@ On top of that, the target is a clean commit:
 from __future__ import annotations
 
 import argparse
+import fnmatch
 import hashlib
 import json
 import re
@@ -111,6 +113,79 @@ def _status_entries() -> list[dict] | None:
     if completed.returncode != 0:
         return None
     return _parse_status_z(completed.stdout or "")
+
+
+def _normalise_scope(paths: list[str]) -> tuple[list[str], list[str]]:
+    scopes, invalid = [], []
+    for raw in paths:
+        candidate = str(raw or "").strip().replace("\\", "/")
+        if (not candidate or Path(candidate).is_absolute() or candidate == ".."
+                or candidate.startswith("../")):
+            invalid.append(str(raw))
+            continue
+        scope = candidate[2:] if candidate.startswith("./") else candidate
+        scopes.append(scope.rstrip("/"))
+    return list(dict.fromkeys(scopes)), invalid
+
+
+def _path_in_scope(path: str, scopes: list[str]) -> bool:
+    candidate = path.replace("\\", "/").lstrip("./")
+    for scope in scopes:
+        if any(mark in scope for mark in "*?["):
+            if fnmatch.fnmatchcase(candidate, scope):
+                return True
+            continue
+        if candidate == scope or candidate.startswith(scope + "/"):
+            return True
+    return False
+
+
+def _scope_status(scopes: list[str]) -> list[dict] | None:
+    pathspecs = [f":(glob){scope}" if any(mark in scope for mark in "*?[") else scope
+                 for scope in scopes]
+    completed = subprocess.run(
+        [_git_exe(), "status", "--porcelain=v1", "-z", "--untracked-files=all", "--", *pathspecs],
+        cwd=str(ROOT), capture_output=True, text=True, encoding="utf-8", errors="replace",
+    )
+    if completed.returncode != 0:
+        return None
+    return _parse_status_z(completed.stdout or "")
+
+
+def _actual_changed_paths(base_sha: str, head_sha: str) -> list[str] | None:
+    completed = subprocess.run(
+        [_git_exe(), "diff", "--name-only", "-z", "--no-renames", base_sha, head_sha, "--"],
+        cwd=str(ROOT), capture_output=True, text=True, encoding="utf-8", errors="replace",
+    )
+    if completed.returncode != 0:
+        return None
+    return sorted({path.replace("\\", "/") for path in completed.stdout.split("\0") if path})
+
+
+def _declared_write_scope(verifier, work_order: str) -> list[str]:
+    order_path = verifier.resolve_card_path(work_order, ROOT / "tasks" / "queue")
+    manifest = verifier._manifest(order_path)
+    if manifest and not manifest.get("error"):
+        return [str(path) for path in manifest.get("files", [])]
+    return [str(path) for path in verifier._declared_files(order_path)]
+
+
+def _write_scope_gate(base_sha: str, head_sha: str, declared: list[str]) -> dict:
+    scopes, invalid = _normalise_scope(declared)
+    if invalid or not scopes:
+        return {"ok": False, "scopes": scopes, "invalid_scopes": invalid,
+                "dirty": None, "changed": None, "outside": None}
+    dirty = _scope_status(scopes)
+    changed = _actual_changed_paths(base_sha, head_sha)
+    outside = None if changed is None else [path for path in changed if not _path_in_scope(path, scopes)]
+    return {
+        "ok": dirty == [] and changed is not None and outside == [],
+        "scopes": scopes,
+        "invalid_scopes": [],
+        "dirty": dirty,
+        "changed": changed,
+        "outside": outside,
+    }
 
 
 def _load(path: Path) -> dict | None:
@@ -411,23 +486,28 @@ def main(argv: Sequence[str] | None = None) -> int:
         return _refuse("files changed after verification; the checked artifact is gone",
                        drifted=drift["drifted"][:10], vanished=drift["vanished"][:10])
 
-    recorded_entries = verify.get("status_entries")
-    live_entries = _status_entries()
-    if live_entries is None:
-        return _refuse("could not read the working tree status; refusing to freeze on an unknown state")
-    if not isinstance(recorded_entries, list):
-        return _refuse("verify.json recorded no status set; the tested working state is unidentified")
-    if live_entries != recorded_entries:
-        added = [e["path"] for e in live_entries if e not in recorded_entries][:10]
-        return _refuse("the working tree differs from the set verification saw; the frozen state is untested",
-                       newly_differing=added)
-
-    # A tag names a commit. With modified tracked files present, that commit is
-    # not the content under review: the tree being checked is still uncommitted,
-    # so the freeze would certify something the tag does not contain.
-    if live_entries:
-        return _refuse("working tree is not clean; the tag would name a commit that is not the delivered content",
-                       modified=[e["path"] for e in live_entries][:10])
+    base_sha = str(receipt.get("base_sha") or "").strip()
+    if not base_sha:
+        return _refuse("done.json records no dispatch base; actual changed paths cannot be bounded")
+    try:
+        write_scope = _declared_write_scope(verifier, args.work_order)
+    except (OSError, ValueError) as exc:
+        return _refuse(f"could not resolve the work-order write scope: {exc}")
+    scope_gate = _write_scope_gate(base_sha, verified_head, write_scope)
+    if scope_gate["invalid_scopes"] or not scope_gate["scopes"]:
+        return _refuse("the work-order write scope is empty or contains paths outside the repository",
+                       invalid=scope_gate["invalid_scopes"][:10])
+    if scope_gate["dirty"] is None:
+        return _refuse("could not read status inside the work-order write scope")
+    if scope_gate["dirty"]:
+        return _refuse("the work-order write scope is not clean",
+                       modified=[entry["path"] for entry in scope_gate["dirty"][:10]])
+    if scope_gate["changed"] is None:
+        return _refuse("could not enumerate actual paths changed by this work order")
+    if scope_gate["outside"]:
+        return _refuse("actual changed paths exceed the work-order write-scope whitelist",
+                       outside=scope_gate["outside"][:10])
+    scope_entries = scope_gate["dirty"]
 
     # The audit graded specific bytes. If the card or an evidence file changed
     # afterwards, the verdict describes material that is no longer here. Missing
@@ -637,17 +717,17 @@ def main(argv: Sequence[str] | None = None) -> int:
         # content that is no longer present.
         head_again = _git("rev-parse", "HEAD")
         tree_again = _tree_oid()
-        entries_again = _status_entries()
+        scope_entries_again = _scope_status(scope_gate["scopes"])
         card_again = _sha256_file(Path(card_path))
         evidence_again = {str(m.get("path") or "").strip(): _sha256_file(Path(m.get("path") or ""))
                           for m in evidence_meta}
         moved = [p for p, h in evidence_again.items() if h != next(
             (m.get("sha256") for m in evidence_meta if str(m.get("path") or "").strip() == p), None)]
-        if (head_again != verified_head or tree_again != tree_now or entries_again != live_entries
+        if (head_again != verified_head or tree_again != tree_now or scope_entries_again != scope_entries
                 or card_again != card_meta["sha256"] or moved):
             return _refuse("state moved while the checks were running; nothing was frozen",
                            head=(head_again or "")[:12], tree=(tree_again or "")[:12],
-                           entries=len(entries_again or []), card=(card_again or "missing")[:12],
+                           entries=len(scope_entries_again or []), card=(card_again or "missing")[:12],
                            evidence=moved[:5])
 
         # Tag the commit that was verified, not whatever HEAD happens to be.

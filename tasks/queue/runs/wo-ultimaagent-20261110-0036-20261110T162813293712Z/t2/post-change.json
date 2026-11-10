@@ -1,0 +1,49 @@
+{
+  "work_order": "wo-ultimaagent-20261110-0036",
+  "gate": "T2",
+  "档位": "改造后",
+  "freeze_script_sha256": "2bc50a2104bf91ef2da618544aff226949a39485db07000d0a6fe8bf3560f1d3",
+  "write_scope_rule": "git status --porcelain=v1 -z --untracked-files=all -- <declared write-scope pathspecs>",
+  "reverse_scope_rule": "git diff --name-only -z --no-renames <base_sha> <verified_head>; every path must match the declared write scope",
+  "probes": {
+    "dirty_inside_scope": {
+      "passed": true,
+      "gate_ok": false,
+      "reported_paths": [
+        "scripts/freeze-work-order.py"
+      ]
+    },
+    "clean_scope_with_outside_dirty_tree": {
+      "passed": true,
+      "gate_ok": true,
+      "outside_porcelain_entries_during_probe": 566
+    },
+    "reverse_scope_overreach": {
+      "passed": true,
+      "gate_ok": false,
+      "outside_count": 10,
+      "sample": [
+        "scripts/render-queue-views.py",
+        "scripts/tests/test_engineering_dispatch.py",
+        "scripts/verify-order.py"
+      ]
+    },
+    "audit_passed_not_true": {
+      "passed": true,
+      "exit_code": 2,
+      "reason": "audit_passed is not true; refusing to freeze"
+    },
+    "truncated_material": {
+      "passed": true,
+      "exit_code": 2,
+      "reason": "the audit ran on truncated material; its verdict does not cover the whole artifact"
+    }
+  },
+  "t3_cutover_commit": null,
+  "regression": {
+    "command": "tools/venv-openjarvis/Scripts/python.exe -m pytest scripts/tests -o addopts= -p no:cacheprovider -q",
+    "failed": 6,
+    "passed": 45,
+    "difference_from_baseline": {}
+  }
+}
