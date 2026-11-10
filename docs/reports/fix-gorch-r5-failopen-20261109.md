@@ -969,3 +969,85 @@ Codex 复核（17,177B / 103 行）结论：**「足以作为规范口径」**�
   broken`）；在主仓直接跑会向已推送分支写入探针提交。下一步改用 `git worktree add` 作载体
   （共享 objects，秒级建立，且分支独立）。
 - 七条口径的**实现**尚未开始，按 §3 顺序（⑤ → ⑦ → ③ → ② → ⑥ → ④ → ①）排下一轮。
+
+## 21. r15 第二轮：E2 七条口径全部落代码（⑤⑦③②⑥④①）
+
+> 起点 `6e434119`（E1 四项 + 裁决书已推）。本节收口 §20.5 的「实现尚未开始」。
+> 口径依据：`docs/decisions/pd-20261109-gorch-e2-七条口径裁决.md` §2 与 Codex 复核原文
+> （`Temp\codex-r15-ruling-last.md`，17,177B / 103 行）。**全程未回抛用户拍板**。
+
+### 21.1 逐项落地形态
+
+| 项 | 实现 | 关键取舍 |
+|---|---|---|
+| ⑤ 第三方并发 | 新增 `_ref_update_from(ref, new_sha)`：读 target reflog，取「把 ref 推到 `new_sha` 那一跳」所绑定的旧值，与锁内基线 `target_sha` 比对；相等记 `causal='cas'`，不等即 `proof_failure`；reflog 不可读 → `causal='observational'` | 双采样降级为**异常检测**；**不加** clean-tree 门（Codex ⑤ 明确否决）；不写 temp ref（避免进程崩溃残留） |
+| ⑦ fallback invocation | `find_done_tasks` 删非显式 glob 分支 −108 行；`run_dirs is None` / 缺 `expect_invocation` 双守卫 fail-closed；`merge` 同拒 | 旧签名单测一次性迁移（19 红 → 全绿），非逻辑 bug |
+| ③ 锁键 | `_MergeLock` 重写：`sha256(norm_target)[:32]` 为主键、`[:16]` 保留旧键；迁移期双锁（先旧后新） | 单把未持有的旧锁无约束力；真正危险是**新旧各持一把同时放行** |
+| ② 目录/子仓 | `_dir_digest`：`scandir` 直接条目名 + 长度分隔哈希、不递归；命中 reparse 只记 `R`；`worktree_fingerprint` 识 gitlink `160000` | junction 的危害不是「SHA 随机」而是把**可变域外目标**纳入采样 |
+| ⑥ doctor | 只读 `doctor(batch_dir)` + 子命令，输出四态/三态/登记/run 记录/三条只读复核命令 | 卡片状态必须 `is_file()`——`_path_state` 对文件一律 `wrong_type`（实测红一次后改） |
+| ④ 三 kind / 四桶 | `MERGE_FAILURE_KINDS` / `CLEANUP_UNCLOSED_BUCKETS` 单源常量，`run_all` 四桶由常量构造 | 加 AST 契约：新增第四种 kind 或写错值立刻红 |
+| ① LINK 边界 | 补「指向文本不变、目标内容变」用例，docstring 明写**预期边界** | 域外目标仍属 §16 残余，不许宣称「已覆盖」 |
+
+### 21.2 ⑤ 为什么用 reflog 旧值而不是 temp ref
+
+裁决原文是「temp ref + `git update-ref <target> <candidate> <expected-old-sha>` 原子 CAS」。
+`update-ref` 的 old-value 绑定会在 reflog 留下 `(old → new)` 相邻两跳，所以「`new` 那跳的
+old == 我们锁内观测的基线」与 CAS 成功是**同一件事**：都表示从观测到写入之间没有第三方写过
+该 ref。落地只读 reflog、不写 ref，避免往用户仓库注入瞬时 ref（崩溃即残留，反而变成新的噪声
+与「未知状态」来源）。若将来让 `update-ref` 直接接管合并写入（绕过 wt），再按原文引入 candidate
+事务；届时 `_ref_update_from` 仍是校验侧，可复用。
+
+**负例（本轮新增，三档全绿仍判死）**：`test_merge_flags_third_party_race_as_proof_failure`
+——wt 回执身份正确、target 前进、源在当前历史里（`ff_ok` 成立），只要 reflog 旧值 ≠ 基线，
+即判 `proof_failure` 并保留现场。这正是 Codex 点名的「第三方在窗口内合入同一 source」。
+
+### 21.3 额外实测缺陷：MSYS fork 诊断被当「真错误」
+
+三文件全量连续两次各抖红 1 例，报「ccpm 判定出现错误输出 … （共 N 行真错误）」。
+三种真实 MSYS 行（实测）：
+
+```
+0 [main] bash 7095 dofork: child -1 - forked process 25912 died unexpectedly, retry 0, exit code 0xC000012D, errno 11
+0 [main] tr (12144) child_copy: cygheap read copy failed, 0x0..0x800800C5C0, done 0, windows pid 12144, Win32 error 299
+0 [main] bash 1130 dofork: child -1 - CreateProcessW failed for 'C:\Program Files\Git\bin\..\usr\bin\bash.exe', errno 11
+```
+
+根因：旧 `_CYGWIN_NOISE` 逐条**整行锚定尾部形态**，一旦 `errno` / pid / 路径变化就追不上，
+一次 fork 抖动把整批判红。改为两层规则：
+
+- `_MSYS_DIAG`：`^\s*\d+\s*\[main\]\s+\S+\s+(?:\(\d+\)\s+|\d+\s+)?…(?:fork|dofork|child_copy|…):`
+  —— 命中即视为运行时诊断；
+- `_BIZ_FAIL`：`permission denied|access is denied|no such file|not found|not a git repository|fatal:|cannot open|cannot create|must be run in a work tree`
+  —— 同一行含业务失败语义时**仍判真错误**（fail-closed 不松）。
+
+依据：业务程序（bash/sh/git）自己的报错不走 `[main]` 前缀。6 条用例覆盖：两种长格式放行、
+长格式尾部挂业务文本仍拒、`CreateProcessW failed` 放行、无前缀的 `bash: fork: Permission denied`
+仍拒，另加 `cygheap read copy failed` / `fork: retry` 放行。
+
+方法论见 `lessons-log.md` L96：**噪声识别要「前缀 + 语义闸门」两层，不要穷举整行尾部**。
+
+### 21.4 验证（终态）
+
+| 阶段 | 结果 |
+|---|---|
+| ⑦ 完成 | 两文件 136 / 三文件 189 |
+| ③ 完成 | 三文件 192 / 54.63s |
+| ② 完成 | 单文件 56 / 13.41s |
+| ⑥ 后 | 196 + 1 红（doctor 卡片状态，已修） |
+| ④①⑥ 后 | 200 + 1 红（MSYS 抖动误判） |
+| MSYS 修复后 | `-k cygwin` 6 passed；全量 **203 passed / 43.12s** |
+| ⑤ 落地后 | ⑤ 定向 4 passed；全量 **207 passed / 42.72s** |
+
+`git status --short` 中另有大量与本轮无关的改动（历史报告/脚本/`tasks/*` 等），
+**不入本轮提交**；本轮只 add 下列 5 个文件：
+`scripts/gorch/batch_orchestrator.py`、`scripts/gorch/codex_channel.py`、
+`tests/test_gorch_batch_orchestrator.py`、`tests/test_gorch_codex_channel.py`、
+`tests/test_gorch_merge_timeout.py`。
+
+### 21.5 仍未完成（如实登记）
+
+- **真实批次 `run_all`**（E1-4 后半）仍未跑成，结论同 §20.5：改用 `git worktree add` 作载体，
+  不在主仓直接跑（会向已推送分支写探针提交）。
+- 第十 / 十二 / 十三 / 十四轮审计全文仍只在 `Temp`，未入库成 docs 提交。
+- ⑤ 若改为 `update-ref` 直接接管合并写入（绕过 wt），需再引入 candidate 事务与临时 ref 生命周期。
+
