@@ -203,6 +203,8 @@
 2. 禁止为通过检测而放宽既有卡的 Gate 条件。
 3. 禁止检测项过度泛化到会误伤合法卡的粒度（须以 0036 卡命中 0 为反证）。
 
+**Gate 结果**：PASS；证据：`tasks/queue/runs/wo-ultimaagent-20261110-0036-20261110T162813293712Z/t4/pre-change.json`、`tasks/queue/runs/wo-ultimaagent-20261110-0036-20261110T162813293712Z/t4/post-change.json`。
+
 ### T5 · 脚本群收敛与归档
 
 **文件**：
