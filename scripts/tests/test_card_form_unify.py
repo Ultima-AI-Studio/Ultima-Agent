@@ -183,3 +183,60 @@ def test_freeze_preserves_the_legacy_tasks_cards_binding(tmp_path, monkeypatch):
     assert binding["order_cards"] == ["s1-unit"]
     assert binding["recorded_ids"] == ["s1-unit"]
     assert binding["receipt_cards"] == receipt_cards
+
+
+def test_stage_gates_accepts_a_qualifier_inside_the_gate_parentheses():
+    """A card that writes `（Gate T1，全绿才过）` declares Gate T1 all the same."""
+    contract = _load("gorch_contract_unify_qualifier", "scripts/gorch_contract.py")
+    card = (
+        "**验收（Gate T0）**：\n"
+        "- bare form\n\n"
+        "**验收（Gate T1，全绿才过）**：\n"
+        "- qualified form\n\n"
+        "**禁止**：not a gate\n\n"
+        "**验收（Gate T2, all green）**：\n"
+        "- half-width comma form\n"
+    )
+
+    assert list(contract.stage_gates(card)) == [
+        {"id": "Gate T0", "criterion": "bare form", "how": "作者在阶段报告里逐条自证"},
+        {"id": "Gate T1", "criterion": "qualified form", "how": "作者在阶段报告里逐条自证"},
+        {"id": "Gate T2", "criterion": "half-width comma form", "how": "作者在阶段报告里逐条自证"},
+    ]
+
+
+def test_stage_gates_reads_the_real_0035_card_that_carries_qualifiers():
+    contract = _load("gorch_contract_unify_0035", "scripts/gorch_contract.py")
+    card_path = ROOT / "tasks/queue/wo-ultimaagent-20261110-0035--voice-baseline-split.md"
+    card = card_path.read_text(encoding="utf-8-sig")
+
+    gates = contract.stage_gates(card)
+
+    assert [gate["id"] for gate in gates] == [f"Gate T{index}" for index in range(8)]
+    assert all(gate["criterion"] for gate in gates)
+
+
+def test_round_passed_needs_every_gate_and_forgives_a_missing_closing_line():
+    audit = _load("audit_work_order_unify_round", "scripts/audit-work-order.py")
+    ids = ["Gate T0", "Gate T1"]
+
+    # Round 1's real shape: every gate an explicit PASS, no closing line at all.
+    no_closing = "Gate T0: PASS - seen\nGate T1: PASS - seen\n"
+    assert audit._round_passed(no_closing, ids)[0] is True
+
+    # The same shape with a closing line still passes.
+    assert audit._round_passed(no_closing + "\nOverall: PASS - upheld\n", ids)[0] is True
+
+    # One gate FAIL still fails the round, whatever the closing line claims.
+    one_fail = "Gate T0: PASS - seen\nGate T1: FAIL - nothing there\n\nOverall: PASS - upheld\n"
+    assert audit._round_passed(one_fail, ids)[0] is False
+
+    # No per-gate verdict at all must not pass on the strength of a lone closing line.
+    assert audit._round_passed("Overall: PASS - nothing judged\n", ids)[0] is False
+
+    # A gate the response never judged is not an implicit pass.
+    assert audit._round_passed("Gate T0: PASS - seen\n", ids)[0] is False
+
+    # Contradictory closing lines are not a verdict.
+    both = "Gate T0: PASS - seen\nGate T1: PASS - seen\n\nOverall: PASS - up\nAUDIT: FAIL - no\n"
+    assert audit._round_passed(both, ids)[0] is False

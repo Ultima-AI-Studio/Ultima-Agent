@@ -58,7 +58,14 @@ ROOT = Path(__file__).resolve().parents[1]
 DEEPSEEK_URL = "https://api.deepseek.com/chat/completions"
 DEFAULT_MODEL = "deepseek-chat"
 CARD_INJECTION_LIMIT = 16000
-EVIDENCE_INJECTION_LIMIT = 12000
+# The window must be larger than the artifacts under review, because a truncated
+# artifact is recorded as `incomplete` and `visible = not incomplete` then fails the
+# audit no matter what the reviewer concluded. At 12000 the two scripts this audit
+# exists to check could not fit — `audit-work-order.py` is ~22k and
+# `freeze-work-order.py` ~32k — so auditing them was self-defeating: every round
+# would report incomplete and the verdict was forced to false before any judgement
+# was read. 40000 covers those artifacts whole with room to spare.
+EVIDENCE_INJECTION_LIMIT = 40000
 
 
 class OrchestratorError(RuntimeError):
@@ -289,10 +296,30 @@ def overall(text: str) -> str:
 
 
 def _round_passed(text: str, gate_ids: list[str]) -> tuple[bool, dict[str, str]]:
-    """A round passes only when every gate passed AND the closing line agrees."""
+    """A round passes when every declared gate passed and nothing contradicts it.
+
+    Three separate traps are closed here:
+
+    * ``all([])`` is True, so a response that yielded no per-gate verdict at all
+      used to pass on the strength of a single ``Overall: PASS`` line. Completeness
+      is now required before the per-gate result is read as agreement.
+    * A closing line of ``CONTRADICTORY``/``AMBIGUOUS`` still fails the round: two
+      disagreeing statements are not a verdict.
+    * A missing closing line is a formatting defect, not a substantive one. The
+      gates decide, which is what this review says elsewhere; so an absent overall
+      line no longer vetoes gates that each returned an explicit PASS. Round 1
+      omitted its closing line while every gate passed, and that veto alone held
+      a finished review as failed.
+    """
     gates_result = per_gate(text, gate_ids)
-    all_gates = all(v == "PASS" for v in gates_result.values())
-    return (all_gates and overall(text) == "PASS"), gates_result
+    complete = bool(gate_ids) and all(gid in gates_result for gid in gate_ids)
+    all_gates = complete and all(v == "PASS" for v in gates_result.values())
+    verdict = overall(text)
+    if verdict in {"FAIL", "CONTRADICTORY", "AMBIGUOUS"}:
+        return False, gates_result
+    if all_gates and verdict in {"PASS", "UNKNOWN"}:
+        return True, gates_result
+    return False, gates_result
 
 
 def _parser() -> argparse.ArgumentParser:

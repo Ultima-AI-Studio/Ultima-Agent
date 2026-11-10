@@ -46,7 +46,13 @@ _TASK_CELL = re.compile(r"^T\d+(?![0-9])(.*)$")
 # Acceptance gate ids are matched whole, and only a table cell can open a row.
 _ACC_ID = re.compile(r"^ACC-\d+$")
 _ACC_LOOKS = re.compile(r"^ACC[-_]", re.IGNORECASE)
-_STAGE_GATE = re.compile(r"^\*\*验收（Gate T(\d+)）\*\*：\s*$")
+# A trailing qualifier inside the parentheses is part of the heading, not a second
+# gate: `**验收（Gate T3，全绿才过）**：` declares Gate T3 exactly as
+# `**验收（Gate T3）**：` does. Matching only the bare form made a stricter card
+# unreadable and the audit refused with "has no acceptance bullets".
+_STAGE_GATE = re.compile(r"^\*\*验收（Gate T(\d+)(?:[，,][^）]*)?）\*\*[：:]\s*$")
+# An acceptance item: a dash bullet (`- x`) or a numbered item (`1. x` / `1、x`).
+_STAGE_ITEM = re.compile(r"^(?:- |\d+[.、]\s*)")
 
 
 def _blocks(text: str) -> list[list[str]]:
@@ -182,9 +188,14 @@ def stage_gates(card_text: str) -> list[dict]:
             cursor += 1
         while cursor < len(lines):
             stripped = lines[cursor].strip()
-            if not stripped.startswith("- "):
+            # Both list shapes carry acceptance items: a dash bullet and a numbered
+            # item. Cards written as `1. …` used to yield no criterion at all and the
+            # audit refused the whole card, so an author's choice of list marker
+            # decided whether their gates could be read.
+            marker = _STAGE_ITEM.match(stripped)
+            if not marker:
                 break
-            criterion = stripped[2:].strip()
+            criterion = stripped[marker.end():].strip()
             if criterion:
                 bullets.append(criterion)
             cursor += 1
