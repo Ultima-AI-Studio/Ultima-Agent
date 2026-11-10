@@ -1,0 +1,108 @@
+{
+  "work_order": "wo-ultimaagent-20261108-0027",
+  "status": "READY_FOR_DEEPSEEK_AUDIT",
+  "phase": "T2",
+  "run_id": "wo-ultimaagent-20261108-0027-T2-closeout3-20261110",
+  "input_sha256": "9fe651555744beefc613e830cbbcf778453eeafbc0257699cd94a2576ea8fd5e",
+  "executor": "Codex execution session",
+  "exit_code": 0,
+  "reviewReason": "READY_FOR_DEEPSEEK_AUDIT；0026 T0/T1 正例独立复核三项实做并由 stage_gate 放行，三案反例全部拒绝，全量工程门完整跑到 100% 且 JUnit failures/errors 均为 0；自检 PASS。",
+  "stdoutText": "READY_FOR_DEEPSEEK_AUDIT；自检 PASS；PYTEST_EXIT_CODE=0；1008 passed, 122 subtests passed；JUnit tests=1130, failures=0, errors=0, skipped=0；XML SHA-256=9d2a3c5d78083d629c7fdb83e3a89e823f7f875e6faaf9f292c8fc954d00847d。历史留痕：negative gate attempt1 因 import 失败，full gate attempt1 仅到 42%，JUnit readback attempt1 错把 testcase 节点数当作 tests 属性；三者均保留并已由后续成功证据覆盖。",
+  "evidence": [
+    {
+      "path": "data/evidence/wo-ultimaagent-20261108-0027/T2/audit-test-rerun.log",
+      "kind": "log",
+      "summary": "0026 T0/T1 专用解释器测试复跑原始输出"
+    },
+    {
+      "path": "data/evidence/wo-ultimaagent-20261108-0027/T2/audit-write-domain.log",
+      "kind": "log",
+      "summary": "0026 T0/T1 提交路径与授权写域逐项核对"
+    },
+    {
+      "path": "data/evidence/wo-ultimaagent-20261108-0027/T2/audit-assertion-review.log",
+      "kind": "log",
+      "summary": "0026 T0/T1 测试的逐方法、逐断言抽查记录"
+    },
+    {
+      "path": "data/evidence/wo-ultimaagent-20261108-0027/T2/independent-review.json",
+      "kind": "data",
+      "summary": "本单 T2 正例演练独立复核归档"
+    },
+    {
+      "path": "data/evidence/wo-ultimaagent-20261108-0026/T2/independent-review.json",
+      "kind": "data",
+      "summary": "指定 check_stage(0026, T2) 消费的契约路径复核结论"
+    },
+    {
+      "path": "data/evidence/wo-ultimaagent-20261108-0027/T2/positive-stage-gate.json",
+      "kind": "data",
+      "summary": "指定 0026/T2 正例阶段门 passed=true、reasons=[] 的原始返回"
+    },
+    {
+      "path": "data/evidence/wo-ultimaagent-20261108-0027/T2/negative-gate-output.json",
+      "kind": "data",
+      "summary": "缺文件、blocker 未清零、dev 角色三案全部拒绝"
+    },
+    {
+      "path": "data/evidence/wo-ultimaagent-20261108-0027/T2/negative-gate-attempt1-import-error.log",
+      "kind": "log",
+      "summary": "反例脚本首次 import 失败的保留留痕"
+    },
+    {
+      "path": "data/evidence/wo-ultimaagent-20261108-0027/T2/full-engineering-gate-attempt1.log",
+      "kind": "log",
+      "summary": "全量门首次仅运行到 42% 的不完整留痕"
+    },
+    {
+      "path": "data/evidence/wo-ultimaagent-20261108-0027/T2/full-engineering-gate.log",
+      "kind": "log",
+      "summary": "本次全量工程门完整 100% 输出与退出码"
+    },
+    {
+      "path": "data/evidence/wo-ultimaagent-20261108-0027/T2/full-engineering-gate.xml",
+      "kind": "test",
+      "summary": "全量工程门 JUnit 原始结果"
+    },
+    {
+      "path": "data/evidence/wo-ultimaagent-20261108-0027/T2/full-engineering-gate-readback-attempt1-node-count-mismatch.json",
+      "kind": "data",
+      "summary": "首次 JUnit 回读错误要求 tests 等于 testcase 节点数的失败留痕"
+    },
+    {
+      "path": "data/evidence/wo-ultimaagent-20261108-0027/T2/full-engineering-gate-readback.json",
+      "kind": "data",
+      "summary": "JUnit 四项计数与 XML SHA-256 独立回读"
+    }
+  ],
+  "acceptance": [
+    {
+      "id": "T2-POSITIVE-REVIEW-GATE",
+      "result": "PASS",
+      "evidence": "eng.audit 三项实际动作均有原始日志；0026/T2 stage_gate 返回 passed=true、reasons=[]。"
+    },
+    {
+      "id": "T2-NEGATIVE-CASES",
+      "result": "PASS",
+      "evidence": "case_count=3、all_refused=true；缺文件、blocker、dev 角色的 reason 均命中。"
+    },
+    {
+      "id": "T2-FULL-ENGINEERING-GATE",
+      "result": "PASS",
+      "evidence": "PYTEST_EXIT_CODE=0；1008 passed + 122 subtests；JUnit tests/failures/errors/skipped=1130/0/0/0。"
+    },
+    {
+      "id": "T2-EVIDENCE-HISTORY",
+      "result": "PASS",
+      "evidence": "import-error、42% 中断和首次 JUnit 回读计数模型错误均保留，未用最终绿覆盖历史。"
+    },
+    {
+      "id": "T2-BOUNDARY",
+      "result": "PASS",
+      "evidence": "未修改 reviewer.py、receipt.py、看板、0027 冻结 T0/T1 或 0026 既有文件；未做调度器、模块4 编排或新增依赖。"
+    }
+  ],
+  "scopeDeclaration": "本轮只新增 0027/T2 收尾证据、T2 回执与报告，并为用户点名的 check_stage(0026, T2) 新增一份契约路径复核结论；未修改任何 0026 既有文件。未触碰 src/brain/guardrails/reviewer.py、src/brain/guardrails/receipt.py、docs/tracker/北极星上线任务清单.html 或 0027 冻结 T0/T1 证据与实现。共享工作区其他线改动未暂存、未回滚、未覆盖。",
+  "environmentDeclaration": "使用 H:/UltimaAI/UltimaAgent/tools/venv-openjarvis/Scripts/python.exe（Python 3.13.16）执行复核与全量门。未重启 daemon，未修改模型参数、KWS 基线或产品默认值，未调用麦克风、录音或真实模型；测试阶段未发起外部请求。",
+  "openSourceSelection": "未新增依赖；复用 Python 标准库、pytest、现有 ReceiptValidator、ReviewResult 与 stage_gate。"
+}
