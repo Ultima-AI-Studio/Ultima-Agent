@@ -26,6 +26,7 @@ from tasks.queue_engine.receipt_contract import classify_receipt_path
 # The order's card table is parsed once, in ``gorch_contract``, so the dispatcher and
 # the freeze gate enumerate the same set and refuse the same malformed rows.
 from gorch_contract import order_cards as contract_order_cards
+from scripts import validate_work_order
 
 spec = importlib.util.spec_from_file_location('native_environment', ROOT / 'scripts/inspect-native-environment.py')
 native = importlib.util.module_from_spec(spec)
@@ -288,6 +289,32 @@ def await_sentinel(process):
         process.wait(timeout=5)
 
 
+def resolve_work_order_card(order, explicit_card=None, *, root=ROOT):
+    """Resolve exactly one queue card, preferring the order-prefix match."""
+    queue = Path(root) / 'tasks/queue'
+    matches = sorted(queue.glob(order + '*.md')) if queue.is_dir() else []
+    if len(matches) > 1:
+        raise ValueError(f'工单前缀命中多张卡，拒绝派发：{[path.name for path in matches]}')
+    if matches:
+        return matches[0]
+    if explicit_card is not None:
+        candidate = Path(explicit_card)
+        if candidate.is_file():
+            return candidate
+    raise ValueError('未知开发工单或工单卡不存在')
+
+
+def dor_record(order, status, errors, *, skipped=False):
+    """Build the auditable DoR fragment stored with a dispatch."""
+    if skipped:
+        return {'order': order, 'dor_skipped': True, 'dor_errors': list(errors)}
+    return {'order': order, 'dor_status': status}
+
+
+def write_dor_record(path, record):
+    Path(path).write_text(json.dumps(record, ensure_ascii=False, indent=2), encoding='utf-8')
+
+
 class OwnedJob:
     """Bound only this dispatch's worker tree; closing it cannot kill other jobs."""
     def __init__(self, worker):
@@ -394,6 +421,10 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--order', required=True)
     parser.add_argument('--prompt', required=True, type=Path)
+    parser.add_argument('--card', type=Path)
+    parser.add_argument('--skip-dor', action='store_true')
+    parser.add_argument('--dry-run-dor', action='store_true')
+    parser.add_argument('--dor-record', type=Path, help=argparse.SUPPRESS)
     parser.add_argument('--execute', action='store_true')
     parser.add_argument('--repair', action='store_true')
     parser.add_argument('--max-runtime-seconds', type=int, default=1800)
@@ -404,15 +435,33 @@ def main():
     args = parser.parse_args()
     if not 60 <= args.max_runtime_seconds <= 14400:
         raise ValueError('执行时限必须在60至14400秒之间')
-    order_path = ROOT / 'tasks/queue' / (args.order + '.md')
+    if not re.fullmatch(r'wo-[a-z0-9][a-z0-9-]*', args.order):
+        raise ValueError('未知开发工单')
+    order_path = resolve_work_order_card(args.order, args.card)
+    dor_report = validate_work_order.validate(order_path)
+    if dor_report.status != 'PASS' and not args.skip_dor:
+        print(json.dumps({'dor_status': 'FAIL', 'order': args.order, 'card': str(order_path),
+                          'errors': dor_report.errors}, ensure_ascii=False))
+        return 2
+    record = dor_record(args.order, dor_report.status, dor_report.errors,
+                        skipped=dor_report.status != 'PASS' and args.skip_dor)
+    record['card'] = str(order_path)
+    if args.dry_run_dor:
+        if args.dor_record is not None:
+            write_dor_record(args.dor_record, record)
+        print(json.dumps({'ready': True, 'would_dispatch': True, **record}, ensure_ascii=False))
+        return 0
+    if args.dor_record is not None:
+        raise ValueError('--dor-record 仅供 --dry-run-dor 测试使用')
+    expected_order_path = ROOT / 'tasks/queue' / (args.order + '.md')
     if not re.fullmatch(r'wo-(?:s1|orb)-[a-z0-9-]+', args.order):
         raise ValueError(
             f'工单号不符合命名契约：{args.order}'
             '（须形如 wo-s1-<slug> 或 wo-orb-w<N>-<slug>，小写字母数字与连字符）；'
             '新建工单系列时请先确认前缀'
         )
-    if not order_path.is_file():
-        raise ValueError(f'工单文件不存在：tasks/queue/{args.order}.md')
+    if not expected_order_path.is_file() or order_path.resolve() != expected_order_path.resolve():
+        raise ValueError(f'工单文件不存在或非精确路径：tasks/queue/{args.order}.md')
     text, match, _ = registered(args.order)
     if match.group(1) not in ({'pending', 'blocked', 'audit'} if args.repair else {'pending'}):
         raise ValueError('当前状态不允许派发；修复续行须显式 --repair')
@@ -479,6 +528,7 @@ def main():
         stamp = datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%S%fZ')
         run = ROOT / 'tasks/queue/runs' / (args.order + '-' + stamp)
         run.mkdir(parents=True, exist_ok=False)
+        write_dor_record(run / 'dispatch-record.json', record)
         prompt = prompt + receipt_contract_block(args.order)
         (run / 'prompt.txt').write_text(prompt, encoding='utf-8')
         base = git_snapshot()
