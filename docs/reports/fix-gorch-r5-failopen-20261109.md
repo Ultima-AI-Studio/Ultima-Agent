@@ -985,7 +985,7 @@ Codex 复核（17,177B / 103 行）结论：**「足以作为规范口径」**�
 | ③ 锁键 | `_MergeLock` 重写：`sha256(norm_target)[:32]` 为主键、`[:16]` 保留旧键；迁移期双锁（先旧后新） | 单把未持有的旧锁无约束力；真正危险是**新旧各持一把同时放行** |
 | ② 目录/子仓 | `_dir_digest`：`scandir` 直接条目名 + 长度分隔哈希、不递归；目录内 reparse 只记 `R`；**路径自身是 reparse 时** `_digest` 返 `REPARSE:dir`、不 `scandir`；`worktree_fingerprint` 识 gitlink `160000` | junction 的危害不是「SHA 随机」而是把**可变域外目标**纳入采样；只挡子条目会漏掉"传进来的就是链接" |
 | ⑥ doctor | 只读 `doctor(batch_dir)` + 子命令，输出四态/三态/登记/run 记录/三条只读复核命令 | 卡片状态必须 `is_file()`——`_path_state` 对文件一律 `wrong_type`（实测红一次后改） |
-| ④ 三 kind / 四桶 | `MERGE_FAILURE_KINDS` + `_CLEANUP_KEY_FOR`（bucket→`kept_for_*` **唯一声明源**，r17 起 `CLEANUP_UNCLOSED_BUCKETS` 由它派生）+ `cleanup_schema()` 唯一构造入口，`run_all` 四处构造点全部改调 helper | AST 契约（r17 加强）：每个含 `cleanup` 键的字典必须 `**cleanup_schema(...)`、全文件 `kept_for_*` 只许在映射里、helper ≥4 处调用、未知桶 KeyError——**变量拼 key / 占位调用仍可绕过**，这是静态护栏的能力边界，不得宣称"任何写法都被挡住" |
+| ④ 三 kind / 四桶 | `MERGE_FAILURE_KINDS` + `_CLEANUP_KEY_FOR`（bucket→`kept_for_*` **唯一声明源**，r17 起 `CLEANUP_UNCLOSED_BUCKETS` 由它派生）+ `cleanup_schema()` 唯一构造入口，`run_all` 四处构造点全部改调 helper | AST 契约（r17 加强、r18 改按构造点）：四处 `steps['cleanup']` / `steps.setdefault('cleanup', ...)` 构造点逐点绑定（每处恰一个 `**cleanup_schema(...)`、只允许 `removed`/`skipped` 静态键、调用总数恰 4）、全文件 `kept_for_*` 只许在映射里、未知桶 KeyError——**变量拼 key 与构造后按计算键追加仍可绕过**，这是静态护栏的能力边界，不得宣称"任何写法都被挡住" |
 | ① LINK 边界 | 补「指向文本不变、目标内容变」用例，docstring 明写**预期边界** | 域外目标仍属 §16 残余，不许宣称「已覆盖」 |
 
 ### 21.2 ⑤ 为什么本轮**没有**做原子 CAS（差异清单）
@@ -1092,7 +1092,7 @@ r15b 审计实测七例曾被旧「业务词表反向排除」
 |---|---|---|
 | ② 根 reparse | `_digest` 目录分支先判 `st_file_attributes & FILE_ATTRIBUTE_REPARSE_POINT` → `REPARSE:dir`，绝不 `scandir` | 新增「路径自身是 junction」真用例（域外增删条目摘要恒定） |
 | ③ 异常释放 | `_acquire` 把 `open()` 移入 `try`，`OSError → SystemExit('…无法打开…fail-closed')`；`__enter__` 由只捕 `SystemExit` 改为捕 `BaseException`，先 `_release_all()` 再原样抛出 | 新增 primary `open` 抛 `PermissionError` 后 legacy 可被另一实例立即重取 |
-| ④ 单一构造入口 | `_CLEANUP_KEY_FOR` 为唯一声明源（桶列表派生）+ `cleanup_schema()`；`run_all` 四处手写键全部改 `**cleanup_schema(...)` | AST：每个含 `cleanup` 键的字典必须 `**cleanup_schema(...)`、`kept_for_*` 常量只许在映射里、helper ≥4；未知桶 `KeyError` |
+| ④ 单一构造入口 | `_CLEANUP_KEY_FOR` 为唯一声明源（桶列表派生）+ `cleanup_schema()`；`run_all` 四处手写键全部改 `**cleanup_schema(...)` | AST（r18 按构造点）：四处构造点逐点绑定、每处恰一个 `**cleanup_schema(...)`、调用总数恰 4、`kept_for_*` 常量只许在映射里；未知桶 `KeyError` |
 | ⑤ 因果表述 | `causal` 由 `cas` 改 `reflog-consistent`；`_ref_update_from` 加 selector 相邻性校验；`proof_failure` 文案改「reflog 回读不一致」 | selector 三反例 + 一对正例；改名用例断言永不出 `cas` |
 | MSYS fail-open | `_is_cygwin_noise` 由「业务词表反向排除」改为**纯运行时白名单** `_MSYS_PURE` + `_BIZ_FAIL` 双保险，七例已知反例阻断 | 七例参数化进 `gate_check` 层负例；三种实测运行时形态放行对照；`child_copy` 未知尾段在 r17 才被收紧（r16 仍 fail-open） |
 
@@ -1109,7 +1109,7 @@ r15b 审计实测七例曾被旧「业务词表反向排除」
 | 口径 1（unknown 不得 cleanup） | `merge()` 由「`cas_state != 'ok'` 只降级 causal」改为 **`proof_failure` 阻断**：不进 merged、run_all 不执行 cleanup、现场保留 | `test_run_all_reflog_unknown_blocks_cleanup`（run_all 级：断言 `kept_for_proof` 收到该任务、`cleanup` 未被调用） |
 | 口径 2（进程版本栅栏） | 新增 `LOCK_PROTOCOL = dual(legacy-sha256-16 + sha256-32)`，写进 merge 记录 `lock_protocol`；`doctor` 增 `locks.protocol` / `legacy_present` / `by_hex`，撤 legacy 锁仍需进程退场证明 | `test_doctor_reports_lock_protocol_and_legacy_presence` |
 | 口径 3（MSYS 未知尾部阻断） | `_MSYS_PURE` 的 `child_copy` 分支删掉 `(?:,.*)?`，改为「地址范围 / done N / windows pid N / Win32 error N」四类字段、顺序固定 | `authentication rejected` 例进 `_MSYS_BIZ_SAMPLES`（r18 起该样例为完整原始行，并由 `test_msys_child_copy_unknown_tail_is_real_error` 在 helper 与 gate 两层断言）（`gate_check` 层）；`test_msys_child_copy_unknown_tail_is_real_error` 兜 helper 层 |
-| ④ 单一构造入口 | `CLEANUP_UNCLOSED_BUCKETS = tuple(_CLEANUP_KEY_FOR)`（映射为唯一声明源）；AST 改为逐字典检查 + 全文件 `kept_for_*` 只许在映射里 | `test_run_all_cleanup_constructed_only_by_helper` 加强 |
+| ④ 单一构造入口 | `CLEANUP_UNCLOSED_BUCKETS = tuple(_CLEANUP_KEY_FOR)`（映射为唯一声明源）；AST 改为按四处构造点逐点绑定（每处一 `**` 展开、调用总数恰 4）+ 全文件 `kept_for_*` 只许在映射里 | `test_run_all_cleanup_constructed_only_by_helper` 加强 |
 | ⑤ 强因果措辞 | `_ref_update_from` docstring 删「强因果落点 / 等价于没有第三方写过」，改为观察性衔接 + 三条不成立理由；看板第 23 行本行加删除线并标作废；裁决书与本文收窄 | 改名用例断言 `'cas' not in {causal}` 仍绿 |
 | ② 根 junction 边界 | 用例补「删除 junction 后 `_digest == 'ABSENT'` 且 ≠ `REPARSE:dir'`」 | `test_digest_root_path_itself_reparse_is_not_followed` |
 

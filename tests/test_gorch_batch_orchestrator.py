@@ -2692,25 +2692,51 @@ def test_run_all_cleanup_constructed_only_by_helper(mod):
                    and n.value.startswith('kept_for_')]
     assert handwritten == [], f'run_all 内仍手写 cleanup 键: {handwritten}'
 
+    def _is_steps_cleanup(node):
+        # `steps['cleanup']`
+        if isinstance(node, _ast.Subscript):
+            base = node.value
+            if isinstance(base, _ast.Name) and base.id == 'steps':
+                sl = node.slice
+                return isinstance(sl, _ast.Constant) and sl.value == 'cleanup'
+        return False
+
+    # r18（r17 审计 P0）：r17 的「逐字典」循环找的是**字典字面量自身含 'cleanup' 键**，
+    # 但真实代码是 `steps['cleanup'] = {...}` / `steps.setdefault('cleanup', {...})`
+    # —— 那个循环命中数为 0、一句断言都没执行。改按**赋值目标**定位四个构造点。
+    sites = []
+    for node in _ast.walk(fn):
+        if isinstance(node, _ast.Assign):
+            if len(node.targets) == 1 and _is_steps_cleanup(node.targets[0]):
+                sites.append(node.value)
+        elif isinstance(node, _ast.Call):
+            f = node.func
+            if (isinstance(f, _ast.Attribute) and f.attr == 'setdefault'
+                    and isinstance(f.value, _ast.Name) and f.value.id == 'steps'
+                    and len(node.args) == 2
+                    and isinstance(node.args[0], _ast.Constant)
+                    and node.args[0].value == 'cleanup'):
+                sites.append(node.args[1])
+
+    assert len(sites) == 4, f'run_all 的 cleanup 构造点有 {len(sites)} 处（应恰 4）'
+
+    for rhs in sites:
+        assert isinstance(rhs, _ast.Dict), 'cleanup 构造点 RHS 必须是字典字面量'
+        assert all(isinstance(k, _ast.Constant) or k is None for k in rhs.keys), \
+            'cleanup 字典不许出现计算键'
+        static = {k.value for k in rhs.keys if isinstance(k, _ast.Constant)}
+        assert static <= {'removed', 'skipped'}, f'cleanup 字典有多余静态键 {static}'
+        spreads = [v for k, v in zip(rhs.keys, rhs.values) if k is None]
+        assert len(spreads) == 1, f'每个构造点必须恰展开一次 helper，实为 {len(spreads)}'
+        sp = spreads[0]
+        assert isinstance(sp, _ast.Call) and isinstance(sp.func, _ast.Name) \
+            and sp.func.id == 'cleanup_schema', '展开项必须是 cleanup_schema()'
+
     calls = [n for n in _ast.walk(fn)
              if isinstance(n, _ast.Call) and isinstance(n.func, _ast.Name)
              and n.func.id == 'cleanup_schema']
-    assert len(calls) >= 4, f'cleanup_schema 调用点只有 {len(calls)} 处（应 ≥4）'
-
-    # r17（r16 审计口径 4）：只数调用次数挡不住"留四个占位调用、另建手写字典"或
-    # "变量拼 key"。改为逐字典检查：run_all 里**每个**含 'cleanup' 键的字面量，
-    # 都必须靠 `**cleanup_schema(...)` 展开构造，不许自带 kept_for_* 键。
-    for node in _ast.walk(fn):
-        if not isinstance(node, _ast.Dict):
-            continue
-        if not any(isinstance(k, _ast.Constant) and k.value == 'cleanup'
-                   for k in node.keys):
-            continue
-        spreads = [v for k, v in zip(node.keys, node.values) if k is None]
-        helper = [s for s in spreads
-                  if isinstance(s, _ast.Call) and isinstance(s.func, _ast.Name)
-                  and s.func.id == 'cleanup_schema']
-        assert helper, '含 cleanup 键的字典必须用 **cleanup_schema(...) 构造'
+    assert len(calls) == 4, \
+        f'cleanup_schema 调用应恰为 4 处（等于构造点数），实为 {len(calls)}'
 
     # `_CLEANUP_KEY_FOR` 是 kept_for_* 的唯一声明源：全文件其它位置不许再出现。
     tree = _ast.parse(src)
