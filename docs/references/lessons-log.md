@@ -1423,3 +1423,21 @@ _notify_event 改为按已加载模块取总线：优先 sys.modules 里的
 **根因**：`Stop-Process -Force` 不跑 atexit，锁文件留着；`_holder_alive()` 用 `OpenProcess` 判定，PID 被系统复用时会误判存活。
 **处置**：删锁文件后重启即恢复。
 **纪律**：重启失败先查 health 与端口，不要只信锁文件；也不要为了让启动过去去杀无关的 python 进程。
+
+### L145 · git worktree 当基线快照：未跟踪文件让它直接失效
+**现象**：为算「测试少了几条」建 `git worktree`（`H:\_ua_baseline_check`，HEAD=4b22258d），pytest 直接 collection 失败，一条都跑不起来。
+**根因**：`src/brain/loop/{__init__,params}.py`、`src/brain/guardrails/paradigm/`、`src/brain/loop/tests/` 等在本仓是**未跟踪文件**；worktree 只 checkout 已跟踪内容，缺依赖导致 import 阶段就死。
+**处置**：丢弃该 worktree，改在当前仓**临时还原**被搬走的 4 个文件 → `pytest --collect-only` 得 443 → `finally` 清理（事后核对 4 个临时文件 `exists=False`）。443 与当前 421 相差 22，精确等于 `test_voice_wakeword_reload`(6) + `test_kws_user_entry`(16)，对账闭合。
+**纪律**：用 worktree 做基线前先看 `git status --short` 有没有未跟踪依赖；有就不能用。否则会把「collection 失败」误读成「基线本来就少 N 条」，进而误判判据被削。临时还原法必须带 `finally` 清理并在事后验证文件已删。
+
+### L146 · 只清配置文件清不掉默认词表：validate_profile 会回落
+**现象**：把 `config/voice-profile.json` 的 `wakeword.words` 清成 `[]`、`custom` 置 `null` 后，`get_wake_echo_roots()` 仍返回 `('你好问问','贾维斯','幂幂')`——旧词从别处漏回来。
+**根因**：① `validate_profile` 在 `words` 为空或非法时执行 `wakeword["words"] = copy.deepcopy(DEFAULT_WAKE_WORDS)`，而模块级 `DEFAULT_WAKE_WORDS` 仍是 6 条「贾维斯」token，于是配置清空反被默认值填回；② `get_wake_echo_roots()` 会把 `wakeword.words` 里 `@` 之后的标签**全部**并进 roots，再追加 `custom`，所以 L2 配置天然成为第二份词表。
+**处置**：同时把 `DEFAULT_WAKE_WORDS` 清空为 `[]`，并把 `DEFAULT_WAKE_ECHO_ROOTS` 改为只从 `config/voice-next/live.json` 的 `keyword` 派生（读不到则 `()`，fail-closed）。改完实测 `('你好问问',)` 才成立。
+**纪律**：清「词表/白名单/默认清单」类配置，**必须连代码内默认值一起清**，并跑一次返回值实测；只看配置文件内容就宣称「已清空」属于假完成。
+
+### L147 · 归档共享底座文件，要按「函数所有权」切，不按「文件」切
+**现象**：E1/E2 六个入口文件可以整体 `git mv`，但 `src/brain/voice/voice_profile.py` 搬不动——新入口 `src/voice-next/turn_worker.py` 仍要 `load_profile()` 取 TTS 提示音对（`resolve_prompt_pair`）。
+**根因**：同一文件里混着两类东西：新入口在用的函数（`load_profile` 及 profile 结构），和只为旧入口存在的字段（`DEFAULT_WAKE_WORDS`、`DEFAULT_WAKE_ECHO_ROOTS`、`custom`）。整包搬会同时打断新旧两条链路。
+**处置**：文件留在原地，只把遗留字段就地收口（清空 / 改读唯一源），并在 `archive/voice-legacy-E1E2-20261111/README.md` 写明「未搬走的部分及原因」和「回滚需恢复哪三处」。
+**纪律**：物理剥离前逐个确认「谁在调」，按函数级所有权判定，而不是按目录/文件级一刀切；共享底座只收口字段，不搬文件——搬文件是最容易顺手把新入口一起打断的动作。
