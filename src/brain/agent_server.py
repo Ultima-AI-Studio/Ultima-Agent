@@ -141,6 +141,18 @@ TOOLS = [
     "ultima_task_adjust",
     "ultima_env_snapshot",
 ]
+# /ask 应答侧只给「只读事实 + 本地计算/记忆」这一类工具。
+# 调整队列、管理技能、派子代理都是跨边界的写动作，属主脑职责（/mainbrain 侧）；
+# 应答侧拿到它们会自己派活：实测 8B 面对「把 CV3 音色修好」直接调 ultima_task_adjust，
+# 拿到「task not found」后还把它当成回复内容。
+ANSWER_TOOLS = [
+    "calculator",
+    "think",
+    "ultima_memory",
+    "ultima_web_search",
+    "ultima_task_query",
+    "ultima_env_snapshot",
+]
 DEFAULT_MAX_TOKENS = 1024
 MAX_BODY_BYTES = 1024 * 1024  # 请求体上限 1MB（本地接口防异常大包）
 SSE_PING_SECONDS = 15.0
@@ -542,7 +554,7 @@ def ask_once(query: str, max_tokens: int | None = None) -> dict[str, Any]:
         result = j.ask_full(
             query_with_ctx,
             agent=AGENT,
-            tools=TOOLS,
+            tools=ANSWER_TOOLS,
             context=False,
             max_tokens=max_tokens or DEFAULT_MAX_TOKENS,
         )
@@ -691,8 +703,10 @@ class _Handler(BaseHTTPRequestHandler):
         route = parsed.path.rstrip("/") or "/"
         query = parse_qs(parsed.query)
         if route == "/health":
-            # 返回 8B 实际可调用的工具白名单，而非全部注册工具
-            self._send_json(200, {"ok": True, "model": MODEL, "agent": AGENT, "tools": TOOLS})
+            # 返回 8B 实际可调用的工具白名单（应答侧），而非全部注册工具
+            self._send_json(
+                200, {"ok": True, "model": MODEL, "agent": AGENT, "tools": ANSWER_TOOLS}
+            )
             return
         if route == "/events":
             self._serve_events(query)
@@ -808,7 +822,8 @@ def main() -> int:
     server = ThreadingHTTPServer((HOST, PORT), _Handler, bind_and_activate=False)
     server.socket = _sock
     sys.stderr.write(
-        f"[agent-server] 启动：http://{HOST}:{PORT} model={MODEL} agent={AGENT} tools={TOOLS}\n"
+        f"[agent-server] 启动：http://{HOST}:{PORT} model={MODEL} agent={AGENT} "
+        f"answer_tools={ANSWER_TOOLS} registered={len(TOOLS)}\n"
     )
     threading.Thread(target=_hud_tick_loop, daemon=True).start()
     # RU-05 启动自检：后台静默线程，失败不阻断主链路（N6/N7）
