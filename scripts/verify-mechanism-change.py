@@ -112,8 +112,9 @@ def _regression(timeout: int) -> tuple[bool, str]:
     head = (vo._git("rev-parse", "HEAD").stdout or "").strip()
     if not head:
         return False, "git rev-parse HEAD failed"
-    argv = [sys.executable, "-m", "pytest", "scripts/tests",
-            "-o", "addopts=", "-p", "no:cacheprovider", "-q"]
+    # The gate builds pytest's own options; adding flags here would be read as a
+    # target path and rejected ("-o is not in the delivered tree").
+    argv = [sys.executable, "-m", "pytest", "scripts/tests"]
     proc, why, counts = vo._run_in_clean_worktree(head, argv, timeout)
     if proc is None:
         return False, f"the clean checkout could not run the suite: {why}"
