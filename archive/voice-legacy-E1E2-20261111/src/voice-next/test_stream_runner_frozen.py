@@ -1,14 +1,14 @@
 import importlib.util
-import json
 import sys
 import wave
 from pathlib import Path
 import pytest
 
-# 唤醒词唯一源是 config/voice-next/live.json；测试不再写死具体词。
-KEYWORD = json.loads(
-    (Path(__file__).parents[2] / "config" / "voice-next" / "live.json").read_text(encoding="utf-8")
-)["keyword"]
+# 本文件冻结的是已退役的 WeKws 离线原型（其模型 tokens 只对应旧词发音）。
+# 因此这里固定旧原型词，**不得**读 config/voice-next/live.json ——
+# 现役入口的唤醒词与旧模型 tokens 不兼容（2026-11-11 换词为「幂幂」后实测报
+# "Keyword has missing or incompatible model tokens"）。
+KEYWORD = '你好问问'
 
 spec = importlib.util.spec_from_file_location('voice_next_runner', Path(__file__).with_name('stream_runner.py'))
 runner = importlib.util.module_from_spec(spec)

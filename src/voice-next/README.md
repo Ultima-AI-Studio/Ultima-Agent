@@ -39,10 +39,11 @@ READY只证明运行入口就绪；真人唤醒成功必须有对应真实事件
 ## 离线验证与保留的失败原型
 
 ```powershell
-./tools/venv-voice-next/Scripts/python.exe -m pytest ./src/voice-next/test_kws_backend.py ./src/voice-next/test_live.py ./src/voice-next/test_stream_runner.py ./src/voice-next/test_turn_worker.py -q -p no:cacheprovider
-./tools/venv-voice-next/Scripts/python.exe ./src/voice-next/stream_runner.py --wav <mono-pcm16-16000hz.wav> --output ./data/evidence/voice-next/result.json
+./tools/venv-voice-next/Scripts/python.exe -m pytest ./src/voice-next -q -p no:cacheprovider
 ```
 
+旧 WeKws 原型回放器 `stream_runner.py` 及其测试已于 2026-11-11 归档到 `archive/voice-legacy-E1E2-20261111/`，不再位于本目录（它会读现役 `live.json` 却配旧模型 tokens，必然冲突）。
+
 新模型从官方归档下载到models/voice-next独立副本，以归档和四个运行文件SHA256锁定；依赖锁为requirements-live.lock.txt，实时入口不导入Torch。kws_backend.py只调用官方流生命周期和检测接口，不修改原生解码器；关键词发音遵循官方phone+ppinyin机制，只有三声变调和轻声变体，均显示同一词。未自研KWS/ASR/VAD算法。官方文档：https://k2-fsa.github.io/sherpa/onnx/kws/pretrained_models/index.html。
-bootstrap.ps1与stream_runner.py保留WeKws离线原型及其锁定源码；该原型在真人分块起点测试中漏检，已退出实时入口。stream_runner.py命令仅测试该旧原型。
+bootstrap.ps1保留WeKws离线原型及其锁定源码；该原型在真人分块起点测试中漏检，已退出实时入口。其回放器 `stream_runner.py` 与测试已归档，本目录不再含该原型代码。
 合成样本是冒烟证据，不是远场稳定性证明。无人工gold的召回/FPR/词尾延迟为null。

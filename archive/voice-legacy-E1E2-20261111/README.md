@@ -24,6 +24,8 @@
 | `src/brain/tests/test_kws_user_entry.py` | `src/brain/tests/test_kws_user_entry.py` | 只测 E1 换词 CLI 路径 |
 | `scripts/kws_reconfig.py` | `scripts/kws_reconfig.py` | 旧换词 CLI：写 `models/sherpa/kws/keywords.txt` 并通知 E2 daemon 热重载 |
 | `scripts/test_kws_reconfig.py` | `scripts/test_kws_reconfig.py` | 上述 CLI 的测试 |
+| `src/voice-next/stream_runner.py` | `src/voice-next/stream_runner.py` | **2026-11-11 追加**：WeKws 离线原型回放器（`MODEL_REL=models/voice-next/wekws-wenwen-fsmn-ctc`），已退出实时入口；留在 `src/voice-next/` 会读现役 `live.json` 却配旧模型 tokens，换词后实测报 `Keyword has missing or incompatible model tokens` |
+| `src/voice-next/test_stream_runner.py` | `src/voice-next/test_stream_runner_frozen.py` | 上述回放器的测试（`FakeSpotter`，不加载真模型）；冻结后固定旧原型词，不读 `live.json` |
 
 `src/brain/voice/tests/test_jarvis_p0_voice.py` 中的
 `test_kws_listener_refreshes_only_its_stream_and_fuzzy_matches` 与
@@ -37,6 +39,9 @@
 
 两份冻结测试均已实测可执行（各 1 passed），但不进 CI。
 `test_jarvis_p0_voice.py` 原文件保留其余 5 组用例（asr / session_restart / wake_matching / transcription_backends），仅删除这一条并留注释指向归档。
+
+**追加（2026-11-11）**：`stream_runner.py` 与 `test_stream_runner.py` 也从 `src/voice-next/` 移入本目录。原因是换唤醒词为「幂幂」后实测暴露：它默认读 `config/voice-next/live.json` 的 `keyword`，但它绑定的是旧 WeKws 模型的 tokens（只含旧词发音），必然拒绝启动（`Keyword has missing or incompatible model tokens`）。这属"旧原型工具读新配置"的混用，按本目录既定口径整体冻结。
+归档内已做两处最小自洽修正（**不改原型算法**）：`ROOT` 由 `parents[2]` 改为 `parents[3]`（归档后仍锚定工程根，以找到 `models/` 与 `config/voice-next/wekws`）；`--keyword` 默认值由"读 live.json"改为固定旧原型词 `你好问问`。冻结测试改用固定词后 1 passed，不进 CI。
 
 ## 未搬走的部分（故意留下）
 

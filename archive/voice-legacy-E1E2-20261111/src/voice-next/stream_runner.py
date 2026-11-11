@@ -12,7 +12,7 @@ import sys
 import time
 import wave
 
-ROOT = Path(__file__).resolve().parents[2]
+ROOT = Path(__file__).resolve().parents[3]  # 归档后仍锚定工程根：模型与 config 在工程根下
 WEKWS_COMMIT = '6a45aeb994dd81c0969ff877a5a7c46d60ed0c86'
 WENET_COMMIT = '1a94771df418325fd335b0b53776f83d74a8111d'
 MODEL_REL = 'models/voice-next/wekws-wenwen-fsmn-ctc'
@@ -140,18 +140,13 @@ def build_spotter(model_dir, derived_dir, keyword, threshold):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--wav', type=Path, required=True)
-    parser.add_argument('--keyword', default=None,
-                        help='默认取 config/voice-next/live.json 的 keyword（唯一源）')
+    parser.add_argument('--keyword', default='你好问问',
+                        help='固定旧原型词：WeKws 模型 tokens 只对应旧词发音，不得读 config/voice-next/live.json')
     parser.add_argument('--threshold', type=float, default=0.5,
                         help='Fixed proof operating point; not a calibrated production threshold')
     parser.add_argument('--model-dir', type=Path, default=ROOT / MODEL_REL)
     parser.add_argument('--output', type=Path, required=True)
     args = parser.parse_args()
-    if not args.keyword:
-        import json as _json
-        args.keyword = _json.loads(
-            (ROOT / 'config/voice-next/live.json').read_text(encoding='utf-8')
-        )['keyword']
     spotter, metadata, torch = build_spotter(args.model_dir, ROOT/'config/voice-next/wekws',
                                            args.keyword, args.threshold)
     with torch.inference_mode():
