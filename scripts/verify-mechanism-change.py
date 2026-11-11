@@ -25,6 +25,7 @@ from __future__ import annotations
 import argparse
 import importlib.util
 import json
+import os
 import subprocess
 import sys
 import tempfile
@@ -135,6 +136,9 @@ def _gate(order: str, card: Path | None, expect_exit: int, contains: list[str],
     if card is None:
         return False, "the card is unresolved; the dispatch gate cannot be exercised"
     handle, name = tempfile.mkstemp(prefix="mechanism-gate-", suffix=".txt")
+    # mkstemp hands back an open descriptor; leaving it open makes the unlink below
+    # fail with WinError 32 on this platform and masks the real gate result.
+    os.close(handle)
     prompt = Path(name)
     try:
         prompt.write_text(f"docs/INDEX.md {order}", encoding="utf-8")
@@ -147,10 +151,8 @@ def _gate(order: str, card: Path | None, expect_exit: int, contains: list[str],
     except subprocess.TimeoutExpired:
         return False, f"the dispatch gate timed out after {timeout}s"
     finally:
-        prompt.unlink(missing_ok=True)
         try:
-            import os
-            os.close(handle)
+            prompt.unlink(missing_ok=True)
         except OSError:
             pass
     out = (proc.stdout or "") + (proc.stderr or "")
