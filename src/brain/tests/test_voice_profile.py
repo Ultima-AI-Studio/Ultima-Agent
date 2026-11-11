@@ -48,7 +48,6 @@ def test_save_then_reload_preserves_other_fields(profile_path: Path) -> None:
         profile_path,
         {
             "persona": {"name": "jarvis", "override": None},
-            "wakeword": {"words": ["custom token @保留"], "custom": None},
             "style": {"mode": "efficient-jarvis", "banned_phrases": ["关注"], "max_sentences": 2},
             "input": {"mode": "auto", "device_index": None, "prefer_wasapi48k": True},
         },
@@ -56,7 +55,23 @@ def test_save_then_reload_preserves_other_fields(profile_path: Path) -> None:
     assert voice_profile.save_user_override({"input": {"device_index": 7}})
     loaded = voice_profile.load_profile()
     assert loaded["input"]["device_index"] == 7
-    assert loaded["wakeword"]["words"] == ["custom token @保留"]
+    assert loaded["style"]["banned_phrases"] == ["关注"]
+    assert loaded["style"]["max_sentences"] == 2
+
+
+def test_save_never_persists_wakeword_section(profile_path: Path) -> None:
+    """L2 配置不承载 wakeword：写盘结果里不得出现该段（唯一源是 live.json）。"""
+    _write(
+        profile_path,
+        {
+            "wakeword": {"words": ["custom token @保留"], "custom": "贾维斯"},
+            "style": {"max_sentences": 3},
+        },
+    )
+    assert voice_profile.save_user_override({"input": {"device_index": 9}})
+    saved = json.loads(profile_path.read_text(encoding="utf-8"))
+    assert "wakeword" not in saved
+    assert voice_profile.load_profile()["wakeword"] == voice_profile.DEFAULT_PROFILE["wakeword"]
 
 
 def test_missing_fields_fall_back_individually(profile_path: Path) -> None:

@@ -1460,3 +1460,9 @@ _notify_event 改为按已加载模块取总线：优先 sys.modules 里的
 **根因**：这条例守的是「非 L2 字段不得写进配置」，而改动对 `wakeword` 从"静默忽略"升级成"显式拒绝"，返回值语义变了（True→False），于是断言载体失效。判据本身没有失效，失效的是它附带的那半句。
 **处置**：拆成两条——原用例只传 `persona.name` 继续验「非 L2 字段不写」；新增 `test_save_rejects_wakeword_override` 验「拒绝且文件逐字节不变」。判据数量 1→2，一条没删。
 **纪律**：契约收紧导致测试红，先看是"判据错了"还是"断言载体过期"。后者必须拆/迁，不能顺手删掉那条测试——删掉就等于把"非法输入不许落地"这条判据一起扔了。
+
+### L151 · 配置里的空壳段会被 validate 补回并写盘，删段必须同时改写盘逻辑
+**现象**：把 `config/voice-profile.json` 的 `wakeword` 段删掉后，只要有任何一次 `save_user_override` 调用，该段就会**重新出现在文件里**——因为 `validate_profile` 从 `DEFAULT_PROFILE` 的 deepcopy 起步，缺键会被补成默认值 `{"words": [], "custom": None}`，随后整份 profile 被原样写回。
+**根因**：删配置只是删"当前快照"，没删"重建逻辑"。validate 的职责是"保证结构完整"，它必然会补键；写盘又整份覆盖，于是空壳段每次都被复活。
+**处置**：在 `save_user_override` 写盘前 `profile.pop("wakeword", None)`，并新增 `test_save_never_persists_wakeword_section` 断言写盘结果不含该段。
+**纪律**：删配置里的某个段，要同时问两个问题——「谁会在内存里把它补回来」和「谁会把整份结构写回磁盘」。只删文件不做这两件事，下一次写盘就恢复原状，且过程中没有任何报错。

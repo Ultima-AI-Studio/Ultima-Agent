@@ -254,6 +254,9 @@ def save_user_override(overrides: dict[str, Any]) -> bool:
             if key in incoming:
                 profile[section][key] = copy.deepcopy(incoming[key])
     profile = validate_profile(profile)
+    # 唤醒词唯一源是 config/voice-next/live.json；L2 配置不承载 wakeword 段，
+    # 否则它会被读回、再次成为"看起来能改的第二源"。
+    profile.pop("wakeword", None)
     temporary = PROFILE_PATH.with_suffix(PROFILE_PATH.suffix + ".tmp")
     try:
         PROFILE_PATH.parent.mkdir(parents=True, exist_ok=True)
