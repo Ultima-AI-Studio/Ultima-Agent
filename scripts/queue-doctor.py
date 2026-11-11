@@ -37,6 +37,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -103,6 +104,18 @@ def _card_for(order: str) -> Path | None:
     return path if path and Path(path).exists() else None
 
 
+def _tag_tokens(note: str) -> set[str]:
+    """从 note 里抓可能的 tag 名。
+
+    本仓的冻结 tag 命名并不统一：有的以工单号开头，更多的是
+    `ultimaagent-<功能>-<日期>` 这种语义名。只按工单号前缀匹配会把
+    「tag 真的打了」误报成「frozen 无 tag」，凭空造出一批假缺口。
+    """
+    import re
+
+    return set(re.findall(r"[A-Za-z0-9][A-Za-z0-9._-]{5,}", note))
+
+
 def diagnose() -> dict:
     if not STATUS_FILE.is_file():
         raise SystemExit(f"缺少权威状态文件: {STATUS_FILE}")
@@ -114,8 +127,15 @@ def diagnose() -> dict:
 
     findings: list[dict] = []
     seen_orders: set[str] = set()
+    # legacy 单（s2/s3/ORB 系列、2026-10 及更早）已按 C 口径裁定「历史不追溯」。
+    # 它们的问题依然要看得见，但不该继续占 P0——否则每次体检都被历史噪声淹没，
+    # 真正活跃的问题反而被埋掉。
+    state_flag = {"legacy": False}
 
     def add(level: str, code: str, order: str, detail: str, project: str) -> None:
+        if state_flag["legacy"] and level == "P0":
+            level = "P1"
+            code = "LEGACY_" + code
         findings.append(
             {
                 "level": level,
@@ -134,6 +154,7 @@ def diagnose() -> dict:
         if not order:
             continue
         seen_orders.add(order)
+        state_flag["legacy"] = bool(rec.get("legacy"))
 
         # 只有 UltimaAgent 的卡落在本仓 tasks/queue，别的项目不在这个工作区
         if project != "UltimaAgent":
@@ -147,7 +168,10 @@ def diagnose() -> dict:
             if rel not in tracked:
                 add("P1", "CARD_UNTRACKED", order, f"卡存在但未入库: {rel}", project)
 
-        has_tag = any(t.startswith(order) for t in tags)
+        # tag 认三种证据：以工单号开头、note 里登记过且真实存在、run 目录里有 tag 记录
+        tag_set = set(tags)
+        note_tags = sorted(t for t in _tag_tokens(note) if t in tag_set)
+        has_tag = any(t.startswith(order) for t in tag_set) or bool(note_tags)
         has_run = any(r.startswith(order) for r in runs)
 
         if state == "frozen":
@@ -158,8 +182,12 @@ def diagnose() -> dict:
 
         if state == "audit":
             audit_run = str(rec.get("audit_run") or "").strip()
+            # 独立审计不一定由派发器发起，所以「没填 audit_run」不等于「没审」。
+            # 只有 note 里也拿不出任何审计结论时，才当成链路断了。
+            has_verdict = bool(re.search(r"PASS|通过|审计完成|独立审计", note))
             if not audit_run:
-                add("P0", "AUDIT_WITHOUT_RUN", order, "state=audit 但 audit_run 为空", project)
+                level = "P1" if has_verdict else "P0"
+                add(level, "AUDIT_WITHOUT_RUN", order, "state=audit 但 audit_run 为空" + ("（note 已有审计结论）" if has_verdict else ""), project)
             elif not (RUNS_DIR / Path(audit_run).name).exists() and not any(
                 r.startswith(Path(audit_run).name[:20]) for r in runs
             ):
@@ -171,6 +199,7 @@ def diagnose() -> dict:
                 add("P1", "STALE_BLOCKER", order, "blocked 理由含可能过期的措辞: " + "、".join(hit), project)
 
     # run 目录在磁盘但队列里没有对应单
+    state_flag["legacy"] = False
     for r in runs:
         if not any(r.startswith(o) for o in seen_orders):
             add("P1", "ORPHAN_RUN", "(无记录)", f"runs/ 下有目录但无对应单: {r}", "UltimaAgent")
