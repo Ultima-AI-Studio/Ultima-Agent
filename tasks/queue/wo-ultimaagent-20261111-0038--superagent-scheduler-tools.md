@@ -186,9 +186,9 @@
 
 ## 回执（执行端填写）
 
-- run 目录：（待填）
-- 设计文档：（待填路径）
-- PoC 与测试：（待填）
-- pytest 结果：（待填，含全量回归与反向验证）
-- 落地计划：（待填）
-- 已知限制 / unverifiable：（待填）
+- run 目录：`tasks/queue/runs/wo-ultimaagent-20261111-0038-20261111T041337063347Z`
+- 设计文档：`component-facts.md`（T0 9/9 + 7/7、T1 9/9）与 `tools-contract.md`（T2 六接口/八态映射、T3 循环恢复、T4 证据与计划）
+- PoC 与测试：`tasks/queue_engine/auto_relay_poc.py`；`scripts/tests/test_auto_relay_poc.py`（6 用例，夹具/临时路径，不接正式入口）
+- pytest 结果：定向 `6 passed in 0.10s`，exit 0；全量 `110 passed in 7.34s`，exit 0（基线 104 + 新增 6）；反向禁用自动接力时对应测试 `1 failed in 0.37s`、exit 1，恢复后上述两组重新全绿
+- 落地计划：`tasks/queue/runs/wo-ultimaagent-20261111-0038-20261111T041337063347Z/tools-contract.md` 的 P0 影子选单 → P1 域能力补齐 → P2 单项目显式启用 → P3 常驻推广；每阶段含机检 Gate、回滚与存量隔离
+- 已知限制 / unverifiable：`unverifiable=0`；PoC 不含真实 Codex/共享锁/service/审计调用；正式落地前须在 P1 给 `StateMachine` 增加受控 `block_unrunnable()`；旧链无 run audit 现行为本单未改的后续迁移项；`queue-status.json` 仅有外层派发器对本 run 的 pending→executing 变更，本单提交不含该文件
