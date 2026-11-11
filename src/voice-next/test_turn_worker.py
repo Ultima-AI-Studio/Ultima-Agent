@@ -64,12 +64,13 @@ def test_persistent_protocol_flushes_started_and_preserves_existing_result(tmp_p
         output,
         root=tmp_path,
         loop_factory=load,
+        prewarm=False,
     )
     rows = [json.loads(line) for line in output.getvalue().splitlines()]
     assert status == 0
     assert rows[0] == {
         "type": "ready", "asr_ready": True, "pid": os.getpid(),
-        "tts_backend": "windows-sapi-fallback",
+        "tts_backend": "windows-sapi-fallback", "tts_cv3_pending": True,
     }
     assert rows[1] == {"type": "started", "id": "turn-001"}
     assert rows[2] == {
@@ -103,7 +104,7 @@ def test_invalid_requests_cannot_reach_voice_loop(tmp_path, payload):
             pytest.fail("invalid input reached ASR")
 
     output = io.StringIO()
-    assert worker.serve(json_lines(payload), output, root=tmp_path, loop_factory=lambda root: Loop()) == 0
+    assert worker.serve(json_lines(payload), output, root=tmp_path, loop_factory=lambda root: Loop(), prewarm=False) == 0
     rows = [json.loads(line) for line in output.getvalue().splitlines()]
     assert [row["type"] for row in rows] == ["ready", "result"]
     assert rows[1]["result"]["ok"] is False
@@ -130,7 +131,7 @@ def test_malformed_line_and_handler_error_do_not_stop_next_turn(tmp_path):
         {"id": "first", "wav": str(wav)},
         {"id": "second", "wav": str(wav)},
     ).getvalue())
-    assert worker.serve(source, output, root=tmp_path, loop_factory=lambda root: Loop()) == 0
+    assert worker.serve(source, output, root=tmp_path, loop_factory=lambda root: Loop(), prewarm=False) == 0
     rows = [json.loads(line) for line in output.getvalue().splitlines()]
     assert [row["type"] for row in rows] == ["ready", "result", "started", "result", "started", "result"]
     assert rows[1]["id"] is None
@@ -148,7 +149,7 @@ def test_startup_failure_never_announces_ready(tmp_path):
         raise RuntimeError("SenseVoice cache is missing")
 
     output = io.StringIO()
-    assert worker.serve(io.StringIO(), output, root=tmp_path, loop_factory=fail) == 1
+    assert worker.serve(io.StringIO(), output, root=tmp_path, loop_factory=fail, prewarm=False) == 1
     rows = [json.loads(line) for line in output.getvalue().splitlines()]
     assert rows == [{
         "type": "result", "id": None,

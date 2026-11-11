@@ -61,3 +61,25 @@ CV3 不可用时降级 SAPI 并上报：本轮照常出声，`data/voice-next/st
 人工部分由 Owner 听辨目标音色，确认确为预期 CV3 音色并判断自然度。该项不能纯机检：当前没有人工 gold 数据，也没有经过标定的说话人嵌入相似度阈值；仅凭 wav 存在或未标定相似度不能替代 Owner 验收。
 
 本规格不代表 CV3 已接入 E3，也不代表目标音色已经验收。
+
+## 8. 实现记录（2026-11-11，落地偏离对照）
+
+本节记录实际落地与上文条款的差异。**上文未被实现的部分如实列出，不得视为已满足。**
+
+**形态**：复用项目既有的 `src/brain/voice/daemon.py::VoiceDaemon`——行协议（stdin/stdout JSON lines、一问一答、就绪标记 `{loaded}`、`%TEMP%\ultima-voice-daemon-<name>.pid` 全局单实例锁），宿主为 `src/voice-next/turn_worker.py` 进程，daemon 名 `tts-voice-next`。**未**新建 §2 的命名管道，理由：该组件已存在且被既有 CV3 验收覆盖（906 tests / 0 failures），另造管道属重复实现，违背「能用成熟组件不自造」的项目纪律。
+
+| 条款 | 设计 | 实际落地 | 状态 |
+|---|---|---|---|
+| §2 IPC | 本机命名管道 + `request_id` | `VoiceDaemon` 行协议 | 偏离（理由见上） |
+| §3 签名 | `synthesize(text, path, *, voice_id, sample_rate)` | `synthesize_reply(text, out_wav, timeout=300)`，返回 dict（`engine`/`rate`/`seconds`/`device`） | 偏离 |
+| §4 返回码 | 0 / 10 / 20–25 整数码 | `{"ok": bool, "error": str}` + `fallback_from` / `cv3_error` | 偏离（底层协议即如此） |
+| §5 降级值 | `tts_backend = sapi_fallback` | `tts_backend ∈ {cv3, windows-sapi-fallback}`，切换时上报 `tts_backend_switch` 事件 | 字段名不同 |
+| §6 健康探针 | 每 5s 探针、连续 3 次失联标记不可用 | **未实现** | 缺口 |
+| §6 超时回收 | 30s 上限 + 取消 + 2s 未退则杀进程树 | 请求入参有 `timeout`，但底层 `readline()` 自身无超时；**未实现强杀** | 缺口 |
+| §6 重启限制 | 10 分钟内最多重启 3 次 | 实现为**合成失败累计 3 次即停用 CV3 并回退 SAPI**（`_CV3_MAX_FAILURES`），非进程重启计数 | 近似 |
+
+**风险声明（对应 §6 两个缺口）**：daemon 若「活着但不再应答」，`request()` 的 `readline()` 会阻塞到进程退出为止，该回合表现为超时且 worker 线程挂住。当前无看门狗，仅靠 `live.py` 的 `worker_timeout_seconds=90` 在外部观测。
+
+**实测（2026-11-11 真机）**：`tts_backend=cv3`、`tts_cv3_ready=true`、`tts_warm_seconds=32.8`、`tts_prompts` 四项全 true；`data/voice-next/prompts/*.wav` 全部 **24000Hz / 单声道 / 16bit**（CV3 输出特征，`play()` 经 soxr 重采样到 44100 播放）；`cv3-prewarm.wav` 仅 0.16s——**首次推理截断**，故探针必须消耗掉首推（见 lessons-log L135）。
+
+**§7 人工验收仍未达成**：目标音色是否即 Owner 期望者尚需听辨；零样本参考音频当前挂 `config/voice-profile.json` 的 `yangmi-ref`，**是否为目标音色未确认**。

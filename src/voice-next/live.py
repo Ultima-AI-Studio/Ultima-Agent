@@ -154,6 +154,8 @@ class Resident:
             except queue.Empty:return
             kind=message.get('type')
             if kind in ('error','exited','protocol_error'):raise RuntimeError(f'Voice worker unavailable: {message}')
+            if kind=='tts_ready':
+                self.publish('tts_backend_switch',tts_backend=message.get('tts_backend'),tts_cv3_pending=False,tts_cv3_ready=message.get('cv3_ready'),tts_warm_seconds=message.get('warm_seconds'),tts_prompts=message.get('prompts'),tts_error=message.get('error'));continue
             if kind!='result' or self.phase!='processing' or message.get('id')!=self.turn_id:continue
             result=message.get('result') or {};response=result.get('response') or {}
             self.publish('turn_result',last_transcript=result.get('text'),last_response=response.get('text'),last_turn_ok=result.get('ok'),last_turn_error=result.get('error'))
@@ -186,8 +188,11 @@ class Resident:
         self.reset_audio()
         prompts=DATA/'prompts';prompts.mkdir(exist_ok=True)
         self.wake_prompt=prompts/'wake.wav';self.empty_prompt=prompts/'empty.wav'
-        for name,text in [('wake','在呢，请说。'),('empty','没听到指令，请重新唤醒。'),('ready','新语音入口已就绪，请说，你好问问。'),('error','语音处理暂时出错，请稍后重试。')]:
-            self.synthesize(text,prompts/f'{name}.wav')
+        prompt_texts=self.config.get('prompts')
+        if not isinstance(prompt_texts,dict) or not all(prompt_texts.get(n) for n in ('wake','empty','ready','error')):
+            raise ValueError('config/voice-next/live.json must define prompts.wake/empty/ready/error')
+        for name in ('wake','empty','ready','error'):
+            self.synthesize(prompt_texts[name],prompts/f'{name}.wav')
         self.publish('loading_asr_worker')
         self.worker=VoiceWorker();deadline=time.monotonic()+60
         while True:
@@ -195,7 +200,7 @@ class Resident:
             try:message=self.worker.events.get(timeout=.2)
             except queue.Empty:self.heartbeat();continue
             if message.get('type')=='ready' and message.get('asr_ready'):
-                self.status['worker_pid']=message.get('pid');self.status['worker_ready']=True;self.status['tts_backend']=message.get('tts_backend');break
+                self.status['worker_pid']=message.get('pid');self.status['worker_ready']=True;self.status['tts_backend']=message.get('tts_backend');self.status['tts_cv3_pending']=message.get('tts_cv3_pending');break
             raise RuntimeError(f'ASR worker startup failed: {message}')
         self.muted.set()
         with sd.InputStream(device=self.input_index,samplerate=self.input_rate,channels=1,dtype='float32',blocksize=0,callback=self.callback) as input_stream:

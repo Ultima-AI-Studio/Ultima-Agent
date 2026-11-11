@@ -1271,3 +1271,12 @@ broken`），整个验收卡在这一步，只能记未完成。
 3. **实测量**（`data/voice/apm-smoke/hw_near_echo.wav`）：真实回声 rms 0.0045、峰值 0.0477；AEC 后 **0.00018–0.00019（96%）**，同期离线人工延迟实验为 99.8%——真机因房间混响与设备非线性略低，属正常。
 4. **纪律**：`lead_seconds` 保持 0，**不要硬编码一个「标定出来的」偏移常数**——实测该值每次都不同，硬编码等于给下一轮埋一个错误常量。要再提升就该把 `play()` 的 `started_at` 换成语义更准的时刻（如输出流回调首帧时刻），而不是拧常数。**时间轴测量本身有数百 ms 误差**，这也解释了「播放开始时刻 ≈ `sd.play` 调用时刻」这个假设不成立。
 5. **未验证边界**：本轮只证明「播放的回声能被消」，**没有验证「播放中真人同时说话能否被正确识别」**（需真人配合）；`input_gain` 由 AGC 接管后的**唤醒率仍未回归**。
+
+### L135 · 「CV3 音色没换上」是三个原因叠加：TTS 被整模块替换、daemon 撞锁、提示音独立走 SAPI；且冷启动首次推理会截断
+
+1. **现象**：真机反馈「唤醒没问题、回答内容范围太小、CV3 训练的音色没替换上」。查 `src/voice-next/turn_worker.py` 发现 `voice_loop.tts_synthesize = sapi_synthesize`——上一轮为「冷启动兜底」把**整个 voice_loop 的 TTS 入口**替换成 SAPI（`_TTS_FALLBACK_REASON = "legacy_cv3_cold_start_budget"`）。结果是 CV3 **一次都没被调用过**，用户听到的始终是 Windows 系统音色。这不是音色质量问题，是接线问题。
+2. **第二重原因（撞锁）**：`VoiceDaemon` 用全局单实例锁 `%TEMP%\ultima-voice-daemon-<name>.pid`，`ensure_started()` 一旦发现同名 daemon 已被别的进程持有就**直接返回 False**。若 voice-next 复用 `"tts"` 这个名字，旧链路先拉起就会让新入口永远兜底 SAPI——一个不报错、不看 status 就发现不了的静默失效。**对策**：另起 `tts-voice-next`。
+3. **第三重原因（提示音）**：`live.py` 启动时用 `sapi.ps1` 预合成 4 句提示音（`wake`/`empty`/`ready`/`error`），该路径**不经过 worker**，所以即使回复换成 CV3，「在呢，请说。」仍是系统音色。**改法**：文案收敛进 `config/voice-next/live.json` 的 `prompts` 段（单一权威源，缺失即启动失败 fail-closed），worker 预热成功后用 CV3 重写这 4 个 wav，`os.replace` 原子替换，避免截断正在播放的旧文件。
+4. **首次推理会截断（重要）**：预热探针合成「语音入口正在加载中文音色。」只产出 **0.16 秒**音频；随后 4 句提示音时长全部正常（wake 1.84s、ready 4.76s、error 3.88s，约 0.26–0.27 秒/字）。即 **CV3 冷启动后的第一次推理是残的**，必须用一次探针把它消耗掉再让用户听到第一句。禁止把探针产物当成品播放。
+5. **冷启动实测**：本轮 `tts_warm_seconds=32.8`（此前独立进程实测 256.4s；模型文件系统缓存热后快一个数量级）。预热期间 `tts_backend=windows-sapi-fallback`、`tts_cv3_pending=true`，服务照常能说话——这是设计内的**可见降级**，不是故障，不要按故障排查。
+6. **纪律**：`serve()` 必须带 `prewarm` 开关，**pytest 一律 `prewarm=False`**。否则测试会真的拉起 CV3 子进程加载模型（本轮已实测发生：pid 24216，2 秒内测试「通过」但后台在加载）。

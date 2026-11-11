@@ -16,6 +16,8 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import threading
+import time
 import wave
 from pathlib import Path
 from typing import Callable, TextIO
@@ -26,6 +28,136 @@ _SAFE_ID = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]{0,127}")
 _FIXED_WAKEWORD_REPLY = "当前新语音入口固定使用你好问问，暂不支持修改唤醒词。"
 _TTS_BACKEND = "windows-sapi-fallback"
 _TTS_FALLBACK_REASON = "legacy_cv3_cold_start_budget"
+
+# ── CV3 零样本音色克隆（常驻 daemon，本进程是唯一宿主）──────────────────
+# 与旧链路的 VoiceDaemon("tts") 分开命名，避免互相抢全局单实例锁：旧链路若先
+# 拉起 "tts"，本进程的 ensure_started() 会因 _global_holder_alive() 直接返回
+# False，于是永远走 SAPI 兜底——那正是「CV3 音色没换上」的结构性原因之一。
+# 冷启动（加载 CosyVoice3）实测约 256s，因此后台预热，未就绪期间继续用 SAPI。
+_CV3_DAEMON_NAME = "tts-voice-next"
+_CV3_DAEMON = None
+_CV3_LOCK = threading.Lock()
+_CV3_STATE = {"ready": False, "backend": _TTS_BACKEND, "error": None, "warm_seconds": None}
+_CV3_FAILURES = 0
+_CV3_MAX_FAILURES = 3
+
+
+def _cv3_daemon():
+    """独立命名的 CV3 常驻 daemon（行协议，模型只在内存里加载一次）。"""
+    global _CV3_DAEMON
+    if _CV3_DAEMON is None:
+        sys.path.insert(0, str(ROOT))
+        from src.brain.voice.daemon import VoiceDaemon, _TTS_DAEMON_SCRIPT
+        from src.brain.voice.resources import COSYVOICE_SOURCE, CV3_MODEL_ROOT, CV3_RUNTIME_PYTHON
+        from src.brain.voice.tts import _VENDOR_DIR
+
+        script = _TTS_DAEMON_SCRIPT.replace("{source}", str(COSYVOICE_SOURCE))
+        script = script.replace("{model}", str(CV3_MODEL_ROOT))
+        _CV3_DAEMON = VoiceDaemon(
+            _CV3_DAEMON_NAME, script, CV3_RUNTIME_PYTHON, [],
+            env={"PYTHONPATH": str(_VENDOR_DIR)}, ready_timeout=900.0,
+        )
+    return _CV3_DAEMON
+
+
+def cv3_synthesize(text: str, out_wav: str | Path, timeout: int | float = 300) -> dict:
+    """用 voice-profile 挂的参考音频做零样本克隆；输出 24kHz，play() 会重采样。"""
+    output = Path(out_wav).resolve()
+    result = {"ok": False, "engine": "cv3", "wav": str(output)}
+    try:
+        sys.path.insert(0, str(ROOT))
+        from src.brain.voice.tts import resolve_prompt_pair
+        from src.brain.voice.voice_profile import load_profile
+
+        daemon = _cv3_daemon()
+        if not daemon.ensure_started():
+            raise RuntimeError("CV3 daemon not ready (load failed or another host holds the lock)")
+        prompt_wav, prompt_text = resolve_prompt_pair(load_profile())
+        output.parent.mkdir(parents=True, exist_ok=True)
+        reply = daemon.request(
+            {"op": "synthesize", "text": text, "out": str(output),
+             "prompt_wav": str(prompt_wav), "prompt_text": prompt_text},
+            timeout=min(900.0, max(1.0, float(timeout))),
+        )
+        if not reply.get("ok"):
+            raise RuntimeError(reply.get("error") or "CV3 returned not-ok")
+        result.update(ok=True, rate=reply.get("rate"), seconds=reply.get("seconds"),
+                      device=reply.get("device"), daemon=True)
+    except Exception as exc:
+        result["error"] = str(exc)
+    return result
+
+
+def synthesize_reply(text: str, out_wav: str | Path, timeout: int | float = 300) -> dict:
+    """CV3 优先、SAPI 兜底。返回的 engine 字段必须反映这次真实用的引擎。"""
+    global _CV3_FAILURES
+    with _CV3_LOCK:
+        ready = _CV3_STATE["ready"]
+    if ready:
+        cv3 = cv3_synthesize(text, out_wav, timeout)
+        if cv3.get("ok"):
+            with _CV3_LOCK:
+                _CV3_FAILURES = 0
+            return cv3
+        with _CV3_LOCK:
+            _CV3_FAILURES += 1
+            failures = _CV3_FAILURES
+            if failures >= _CV3_MAX_FAILURES:
+                _CV3_STATE.update(ready=False, backend=_TTS_BACKEND,
+                                  error=f"cv3 disabled after {failures} failures: {cv3.get('error')}")
+        fallback = sapi_synthesize(text, out_wav, timeout=timeout)
+        fallback["fallback_from"] = "cv3"
+        fallback["cv3_error"] = cv3.get("error")
+        return fallback
+    return sapi_synthesize(text, out_wav, timeout=timeout)
+
+
+def rewrite_prompts() -> dict:
+    """预热完成后用克隆音色重写四句提示音；原子替换，正在播的旧文件不被截断。"""
+    cfg = json.loads((ROOT / "config" / "voice-next" / "live.json").read_text(encoding="utf-8-sig"))
+    texts = cfg.get("prompts") or {}
+    out_dir = ROOT / "data" / "voice-next" / "prompts"
+    out_dir.mkdir(parents=True, exist_ok=True)
+    done: dict[str, bool] = {}
+    for name in ("wake", "empty", "ready", "error"):
+        text = texts.get(name)
+        if not text:
+            done[name] = False
+            continue
+        tmp = out_dir / f".{name}.cv3.wav"
+        try:
+            if synthesize_reply(text, tmp, timeout=120).get("ok"):
+                os.replace(tmp, out_dir / f"{name}.wav")
+                done[name] = True
+            else:
+                tmp.unlink(missing_ok=True)
+                done[name] = False
+        except OSError:
+            tmp.unlink(missing_ok=True)
+            done[name] = False
+    return done
+
+
+def prewarm_cv3(emit: Callable[[dict], None] | None = None) -> dict:
+    """后台加载 CV3 并做一次真实合成；成功后把 TTS 切到 CV3。"""
+    started = time.monotonic()
+    probe = ROOT / "data" / "voice-next" / "cv3-prewarm.wav"
+    outcome = cv3_synthesize("语音入口正在加载中文音色。", probe, timeout=900)
+    elapsed = round(time.monotonic() - started, 1)
+    ok = bool(outcome.get("ok"))
+    with _CV3_LOCK:
+        _CV3_STATE.update(
+            ready=ok,
+            backend="cv3" if ok else _TTS_BACKEND,
+            warm_seconds=elapsed,
+            error=None if ok else outcome.get("error"),
+        )
+    prompts = rewrite_prompts() if ok else {}
+    row = {"type": "tts_ready", "tts_backend": _CV3_STATE["backend"], "cv3_ready": ok,
+           "warm_seconds": elapsed, "prompts": prompts, "error": _CV3_STATE["error"]}
+    if emit is not None:
+        emit(row)
+    return row
 
 
 def sapi_synthesize(text: str, out_wav: str | Path, timeout: int | float = 30) -> dict:
@@ -84,9 +216,9 @@ def build_loop(root: Path):
         from src.brain.voice.asr import _load_sherpa_asr
         from src.brain import voice_loop
 
-        # This dedicated process uses a declared cold-start fallback. The old
-        # module/profile on disk and other processes retain their original TTS.
-        voice_loop.tts_synthesize = sapi_synthesize
+        # CV3 优先（预热完成后自动切换），SAPI 只作冷启动/失败兜底。旧模块与
+        # 旧 profile 上的 TTS 不动，本进程内的替换只影响这个专用入口进程。
+        voice_loop.tts_synthesize = synthesize_reply
         loop = voice_loop.VoiceInteractionLoop(
             root / "tasks",
             root / "data" / "host" / "orb_command.json",
@@ -136,9 +268,14 @@ def _input_wav(payload, root: Path) -> tuple[str, Path]:
     return request_id, wav
 
 
+_EMIT_LOCK = threading.Lock()
+
+
 def _emit(output: TextIO, row: dict) -> None:
-    output.write(json.dumps(row, ensure_ascii=True, allow_nan=False) + "\n")
-    output.flush()
+    # 预热线程会在主线程处理回合时汇报 tts_ready，必须串行化 stdout 写入。
+    with _EMIT_LOCK:
+        output.write(json.dumps(row, ensure_ascii=True, allow_nan=False) + "\n")
+        output.flush()
 
 
 def _failure(stage: str, error: Exception | str) -> dict:
@@ -151,8 +288,12 @@ def serve(
     *,
     root: Path | None = None,
     loop_factory: Callable | None = None,
+    prewarm: bool = True,
 ) -> int:
-    """Process one turn at a time; malformed turns do not poison later turns."""
+    """Process one turn at a time; malformed turns do not poison later turns.
+
+    ``prewarm=False`` keeps the protocol testable without loading the CV3 model.
+    """
     root = (root or ROOT).resolve()
     factory = loop_factory or build_loop
     with contextlib.redirect_stdout(sys.stderr):
@@ -163,8 +304,16 @@ def serve(
             return 1
         _emit(output, {
             "type": "ready", "asr_ready": True, "pid": os.getpid(),
-            "tts_backend": _TTS_BACKEND,
+            "tts_backend": _CV3_STATE["backend"],
+            "tts_cv3_pending": not _CV3_STATE["ready"],
         })
+        # 模型加载约 4 分钟，放到后台：就绪前用 SAPI 保证能说话，就绪后自动换回克隆音色。
+        if prewarm:
+            threading.Thread(
+                target=prewarm_cv3,
+                args=(lambda row: _emit(output, row),),
+                name="cv3-prewarm", daemon=True,
+            ).start()
         for line in requests:
             payload = None
             try:
