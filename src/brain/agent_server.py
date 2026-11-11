@@ -392,13 +392,19 @@ def get_jarvis() -> Jarvis:
     return _jars
 
 
+_GROUNDED_TAG = re.compile(r"\bgrounded\s*[:：=]\s*(?:true|false)\b", re.IGNORECASE)
+
+
 def _clean_content(content: str) -> str:
-    """清理 ReAct 响应文本：只保留 Final Answer 之后的内容；无标记则原样返回。"""
+    """清理响应文本：只保留 Final Answer 之后的内容，并剥掉内部标记；无标记则原样返回。"""
     if not content:
         return content
     marker = "Final Answer:"
     if marker in content:
-        return content.split(marker, 1)[1].strip()
+        content = content.split(marker, 1)[1]
+    # 8B 会把内部依据标记当正文念出来（如 "grounded:false  不确定…"），语音场景里这是噪音。
+    # 行为层提示词压不住（lessons L138），只能在出口统一剥离。
+    content = _GROUNDED_TAG.sub("", content)
     return content.strip()
 
 
@@ -622,6 +628,49 @@ _QUERY_HINT = re.compile(
 )
 
 
+# 危险/越界诉求的代码层前置门。8B 面对"帮我X"会一律判成 task 并接单派出去
+# （规则 R10「非查询类就接单」比 R5「违规用兜底话术」更具体，模型实际选了 R10），
+# 行为层提示词压不住（lessons L138）。所以这里命中就绝不进入 task 分支。
+_RISK_PATTERNS = (
+    # 语序双向：既要抓「删掉D盘」，也要抓「D盘全删了」
+    re.compile(r"(删|清空|清掉|格式化|抹掉|销毁|清除|干掉).{0,12}(盘|硬盘|文件|文件夹|目录|数据|数据库|记录|全部|所有|整块)"),
+    re.compile(r"(盘|硬盘|文件|文件夹|目录|数据|数据库|记录|全部|所有).{0,12}(删|清空|清掉|格式化|抹掉|销毁|清除|干掉)"),
+    re.compile(r"(rm\s+-rf|format\s+[a-z]:|del\s+/[sfq])", re.IGNORECASE),
+    re.compile(r"(编|编造|捏造|伪造|杜撰|生成).{0,12}(假|虚假|不实|造谣).{0,12}(新闻|消息|报道|谣言|传言)"),
+    re.compile(r"(造谣|散布谣言|伪造证据|伪造公文|伪造签名)"),
+    re.compile(r"(冒充|假装成|伪装成).{0,8}(官方|客服|公安|警察|银行|领导|他本人)"),
+    re.compile(r"(攻击|入侵|破解|脱壳|提权|绕过).{0,10}(系统|服务器|账号|密码|验证码|认证|限制|防火墙|风控)"),
+)
+_RISK_REFUSAL = "这个我不做，也不会派出去。"
+
+# 能力边界门：这些实时数据当前没有任何工具能取（tools 只有 calculator/think/memory/dispatch），
+# 8B 被问到时会在"不知道"和"编一个"之间摇摆——实测同一句天气问两次，一次说不知道、一次
+# 编出"有雨、1到5度、西北风3到4级"。编出来的实时数据最危险（听起来完全可信），
+# 所以这类必须代码层拦成固定话术，不给模型自由发挥的机会。
+_NO_TOOL_PATTERNS = (
+    re.compile(r"(天气|气温|下雨|降雨|温度|空气质量|PM2\.?5|紫外线|风力|几度)"),
+    re.compile(r"(股价|汇率|金价|油价|大盘|涨停|跌停|市值|行情)"),
+    re.compile(r"(航班|列车|火车票|机票|车次|路况|堵车)"),
+)
+_NO_TOOL_REPLY = "这个我查不了，我这边没有联网的实时数据。"
+
+
+def _no_tool_gate(query: str) -> str | None:
+    """命中"需要实时数据但无工具可用"的查询时返回固定话术；未命中返回 None。"""
+    for pattern in _NO_TOOL_PATTERNS:
+        if pattern.search(query):
+            return _NO_TOOL_REPLY
+    return None
+
+
+def _risk_gate(query: str) -> str | None:
+    """命中危险/越界诉求时返回拒答话术；未命中返回 None。"""
+    for pattern in _RISK_PATTERNS:
+        if pattern.search(query):
+            return f"{_RISK_REFUSAL}刚才那句我理解的是越界操作，不再展开。"
+    return None
+
+
 def _classify_intent(query: str) -> str:
     """返回 'task'（该接单派出去）或 'query'（直接回答）。任何异常都退回 query。"""
     if _QUERY_HINT.search(query):
@@ -701,6 +750,7 @@ _QUERY_SYSTEM = (
     "【本轮回话方式】只用一到三句话直接回答，不要调用任何工具，不要规划步骤，"
     "不要展开方案，不要反问用户是否需要帮忙，不要加服务性结尾，不要联想用户还想问什么。"
     "不知道就说不知道。"
+    "也不要建议用户联系技术支持、联系客服、查阅官方文档或找运维——你没有这些渠道，说这些等于骗人。"
 )
 
 
@@ -771,6 +821,32 @@ def ask_once(query: str, max_tokens: int | None = None) -> dict[str, Any]:
     accepted = _try_accept(query)
     if accepted is not None:
         return accepted
+    # 危险/越界诉求：代码层直接拒，不进分类、不进任务分支、不派单
+    denied = _risk_gate(query)
+    if denied is not None:
+        EVENT_BUS.emit_event("message", {"text": denied, "role": "jarvis"})
+        return {
+            "content": denied,
+            "reply_text": denied,
+            "confidence": 1.0,
+            "grounded": False,
+            "intent": "refused",
+            "tool_results": [],
+            "usage": {},
+        }
+    # 能力边界：需要实时数据但没有对应工具 → 固定话术，不让模型编
+    no_tool = _no_tool_gate(query)
+    if no_tool is not None:
+        EVENT_BUS.emit_event("message", {"text": no_tool, "role": "jarvis"})
+        return {
+            "content": no_tool,
+            "reply_text": no_tool,
+            "confidence": 1.0,
+            "grounded": False,
+            "intent": "no_tool",
+            "tool_results": [],
+            "usage": {},
+        }
     # 分段应答第一段：先判这是「要动手的活」还是「要个回答」。
     # 任务类立刻答应并派单，不进 ReAct——既快，也断掉它自由编「我已经修好了」的路。
     if _classify_intent(query) == "task":
