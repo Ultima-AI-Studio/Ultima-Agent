@@ -1403,3 +1403,10 @@ _notify_event 改为按已加载模块取总线：优先 sys.modules 里的
 - 推送型能力（事件、通知、进度）验收时必须**订阅端真收一遍**，
   只看落盘文件或函数返回值会漏掉「推了没人收」这类静默失效。
 - /ask 对外只说人话（好的我去安排 / 已派给策划部），工单号留在 metadata 供查询，不报给用户。
+
+### L142 · 四角壳任务窗口不用改前端，后端补推 task_advance 就够
+**现象**：要求「任务推进过程显示在四角壳左侧任务窗口」，第一反应是去改 `hud-live-four-corner.html` 加渲染逻辑。
+**排查**：读前端 `EVENT_ANCHORS` 后发现 `task_advance` 早已映射到 `left-bottom`；`summary()` 输出 `task_id → phase`；`isCompleted()` 命中「完成」还会自动 `clearAnchor` 清屏。前端能力齐备，缺的只是没人发这个事件。
+**根因**：后端一直只发 `message`，从没发过 `task_advance`，窗口自然是空的。
+**处置**：新增 `_emit_task_advance()`，在接单 / 派发 / 接手 / 方案已回四个阶段各推一条；任务标题用简称、不带工单号；验收通过时推 `phase="已完成"` 让前端自动清卡。实测左下窗口出现任务卡并逐阶段刷新。
+**纪律**：先读前端 `EVENT_ANCHORS` / `summary` / `isCompleted` 再决定要不要动 UI；该文件 `<style>` 块 sha256 被 `test_agent_server_sse.py` 冻结，能不动就别动。
