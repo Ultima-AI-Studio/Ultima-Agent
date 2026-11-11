@@ -185,9 +185,9 @@
 
 ## 回执（执行端填写）
 
-- run 目录：待填
-- commit：待填
-- pytest：待填
-- 改造前 P0/P1：待填
-- 改造后 P0/P1：待填
-- 仍不可靠的判据：待填
+- run 目录：`tasks/queue/runs/wo-ultimaagent-20261111-0037-20261111T025942414734Z`
+- commit：实现提交 `300ee2ec22d17f52de04fbf2917d00b2b60923e2`；T4 回执提交见该实现提交之后的本卡历史
+- pytest：新增 `scripts/tests/test_queue_doctor.py` 27 passed；全量 `scripts/tests` 104 passed in 7.25s；旧前缀逻辑反向验证 10 failed、exit 1，恢复后全绿
+- 改造前 P0/P1：`0 / 153`（`before.json`，`--strict` exit 0）
+- 改造后 P0/P1：`2 / 221`（`after.json`，`--strict` exit 2；两条 P0 为 0019/0020 缺机器可读审计 run 的新暴露真缺口）
+- 仍不可靠的判据：`CARD_MISSING` 未核卡内身份；note-token tag 兜底仅 `confidence=low`；缺 `dispatch-record.json` 的历史/独立 run 归属只能 `unverifiable`；`STALE_BLOCKER` 除 clean-tree 外多数理由无机器探针；`VIEW_DRIFT` 仍依赖 renderer 自身覆盖面；`LEGACY_` 继承对应基础限制。详见本 run 的 `before-after.md`。
