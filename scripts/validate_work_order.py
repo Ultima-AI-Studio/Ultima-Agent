@@ -29,6 +29,8 @@ E_REVISION_FORMAT = "E_REVISION_FORMAT"
 E_NO_PLAN_REF = "E_NO_PLAN_REF"
 E_SCHEMA = "E_SCHEMA"
 E_GATE_CONTRADICTION = "E_GATE_CONTRADICTION"
+E_VOLATILE_COUNT_WRITTEN = "E_VOLATILE_COUNT_WRITTEN"
+W_VOLATILE_COUNT_WRITTEN = "W_VOLATILE_COUNT_WRITTEN"
 E_STRICT_WARNING = "E_STRICT_WARNING"
 W_LEGACY_PROFILE = "W_LEGACY_PROFILE"
 
@@ -52,6 +54,19 @@ GATE_CONTRADICTION_RULES = (
         "message": "状态差分条数断言与完成提交断言互斥：提交会从 porcelain 差分中移除已提交路径",
     },
 )
+
+# 「写死易变值」检测。0036 元工单连续多轮停在卡面把会变的环境计数当作判据上，
+# 这里只拦可复现的句式，不判断语义。每条规则抓的是一类把「会变的量」写成固定数的写法。
+# 判据行如实写成「以实测为准 / 以 T0 快照为准 / 逐项一致」即可豁免。
+VOLATILE_COUNT_RULES = (
+    ("exact-count", re.compile(r"(?:恰好|正好|精确)\s*[约为]?\s*\d+")),
+    ("eq-count", re.compile(r"=\s*\d+\s*(?:条|个|份|行|字节|张|处)")),
+    ("env-list-count", re.compile(r"\d+\s*个\s*(?:一次性|脚本|提示词|快照)")),
+    ("porcelain-count", re.compile(r"\d+\s*条\s*(?:脏条目|未跟踪|untracked|porcelain|tracked)", re.IGNORECASE)),
+)
+VOLATILE_STATE_WORD = re.compile(r"(?:frozen|blocked|pending|cancelled|closed)\s*[:=]?\s+\d+", re.IGNORECASE)
+VOLATILE_EXEMPT = re.compile(r"以实测为准|以磁盘为准|不写死|以\s*T0|以基线为准|实测与卡面|逐项一致")
+VOLATILE_FILLED_RESULT = re.compile(r"^(?:\s*\d+\.\s*)?(?:T\d+\s+)?.*(?:已完成|全绿|已通过)", re.IGNORECASE)
 
 
 @dataclass(frozen=True)
@@ -277,6 +292,41 @@ def _gate_contradictions(lines: list[str]) -> list[dict[str, Any]]:
     return issues
 
 
+def _written_volatile_counts(lines: list[str]) -> list[dict[str, Any]]:
+    """Flag card text that fixes a value which changes between runs.
+
+    Reported as a warning only: this module states the fact and leaves the
+    dispatch decision to the caller, so a historical frozen card keeps its own
+    verdict while a new card is refused at the dispatch gate. Scope is the whole
+    card body except already-filled result lines: what the executor writes back
+    after running a T is a record of the past, not a criterion for the future.
+    """
+
+    issues: list[dict[str, Any]] = []
+    for index, line in enumerate(lines):
+        if VOLATILE_EXEMPT.search(line) or VOLATILE_FILLED_RESULT.match(line.strip()):
+            continue
+        found: list[str] = []
+        for name, pattern in VOLATILE_COUNT_RULES:
+            for match in pattern.finditer(line):
+                found.append(f"{name}: {match.group(0).strip()}")
+        state_words = VOLATILE_STATE_WORD.findall(line)
+        if len({item.split()[0].lower() for item in state_words}) >= 2:
+            found.append("state-distribution: " + " / ".join(item.strip() for item in state_words))
+        if not found:
+            continue
+        issues.append(
+            _issue(
+                W_VOLATILE_COUNT_WRITTEN,
+                index + 1,
+                "卡面写死了会随运行变化的环境值（"
+                + "；".join(found)
+                + "）；请改为「以实测为准 / 以 T0 快照为准 / 逐项一致」，或把数字移到回填结果里",
+            )
+        )
+    return issues
+
+
 def _schema_errors(document: dict[str, Any], schema: dict[str, Any], fallback_line: int | None) -> list[dict[str, Any]]:
     issues = []
     validator = jsonschema.Draft202012Validator(schema)
@@ -422,6 +472,7 @@ def validate(
         warnings.append(_issue(W_LEGACY_PROFILE, 1, "存量卡使用 legacy-queue 兼容 profile"))
 
     errors.extend(_gate_contradictions(lines))
+    warnings.extend(_written_volatile_counts(lines))
     if strict and warnings:
         errors.extend(_issue(E_STRICT_WARNING, item["line"], f"{item['code']}: {item['message']}") for item in warnings)
     return Report("FAIL" if errors else "PASS", str(card), order, errors, warnings, str(schema_file))

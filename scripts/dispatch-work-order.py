@@ -476,11 +476,18 @@ def main():
             f'--card 与权威解析结果不一致：传入 {args.card}，实际为 {order_path}'
         )
     dor_report = validate_work_order.validate(order_path)
-    if dor_report.status != 'PASS' and not args.skip_dor:
+    # 写死易变值只在校验器里作为 warning 登记，由派发门在此处升级为拒派：
+    # 历史已冻结卡保持它自己的判定，新卡则在真正派出去之前被拦下。
+    volatile = [
+        item for item in dor_report.warnings
+        if item['code'] == validate_work_order.W_VOLATILE_COUNT_WRITTEN
+    ]
+    blocking = list(dor_report.errors) + volatile
+    if (dor_report.status != 'PASS' or volatile) and not args.skip_dor:
         print(json.dumps({'dor_status': 'FAIL', 'order': args.order, 'card': str(order_path),
-                          'errors': dor_report.errors}, ensure_ascii=False))
+                          'errors': blocking}, ensure_ascii=False))
         return 2
-    record = dor_record(args.order, dor_report.status, dor_report.errors,
+    record = dor_record(args.order, dor_report.status, blocking,
                         skipped=dor_report.status != 'PASS' and args.skip_dor)
     record['card'] = str(order_path)
     if args.dry_run_dor:
