@@ -348,6 +348,7 @@ def write_dor_record(path, record):
 class OwnedJob:
     """Bound only this dispatch's worker tree; closing it cannot kill other jobs."""
     def __init__(self, worker):
+        self.worker_pid = int(getattr(worker, 'pid', 0) or 0)
         class Limits(ctypes.Structure):
             _fields_ = [('process_time', ctypes.c_int64), ('job_time', ctypes.c_int64),
                         ('flags', W.DWORD), ('min_ws', ctypes.c_size_t), ('max_ws', ctypes.c_size_t),
@@ -362,6 +363,8 @@ class OwnedJob:
         self.kernel.CreateJobObjectW.restype = W.HANDLE
         self.kernel.SetInformationJobObject.argtypes = [W.HANDLE, ctypes.c_int, ctypes.c_void_p, W.DWORD]
         self.kernel.AssignProcessToJobObject.argtypes = [W.HANDLE, W.HANDLE]
+        self.kernel.TerminateJobObject.argtypes = [W.HANDLE, W.UINT]
+        self.kernel.TerminateJobObject.restype = W.BOOL
         self.kernel.CloseHandle.argtypes = [W.HANDLE]
         self.handle = self.kernel.CreateJobObjectW(None, None)
         if not self.handle:
@@ -376,7 +379,18 @@ class OwnedJob:
             raise ctypes.WinError(error)
 
     def close(self):
+        # 先按当前父子关系显式收整棵树：实测派发进程若已处在外层 Job 中，
+        # Job Object 的隐式继承并不可靠，worker 派生的 child 会存活下去。
+        pid = getattr(self, 'worker_pid', 0)
+        if pid:
+            try:
+                subprocess.run(['taskkill', '/PID', str(pid), '/T', '/F'],
+                               capture_output=True, timeout=10,
+                               creationflags=0x08000000)
+            except Exception:
+                pass
         if self.handle:
+            self.kernel.TerminateJobObject(self.handle, 1)
             self.kernel.CloseHandle(self.handle)
             self.handle = None
 

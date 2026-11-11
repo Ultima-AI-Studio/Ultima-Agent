@@ -61,14 +61,20 @@ class DispatchContracts(unittest.TestCase):
                     time.sleep(.01)
                 self.assertTrue(evidence.exists())
                 child = int(evidence.read_text())
+                child_identity = dispatch.process_identity(child)
+                self.assertIsNotNone(child_identity, 'child 必须在 close 之前存活')
             finally:
                 job.close()
                 worker.wait(timeout=5)
             self.assertIsNotNone(worker.wait(timeout=5))
             deadline = time.monotonic()+5
-            while dispatch.process_identity(child) is not None and time.monotonic()<deadline:
+            # 不能只判「pid 不存在」：短时间大量建进程时 pid 会被复用，
+            # 复用后的新进程仍会给出非 None。这里比对创建身份，
+            # 身份变掉即说明原来的 child 已经不在了。
+            while dispatch.process_identity(child) == child_identity and time.monotonic()<deadline:
                 time.sleep(.01)
-            self.assertIsNone(dispatch.process_identity(child))
+            self.assertNotEqual(dispatch.process_identity(child), child_identity,
+                                'owned job close 必须收掉 worker 派生的 child')
             self.assertIsNone(unrelated.poll(), 'Other processes must remain alive')
             unrelated.kill()
             unrelated.wait(timeout=5)
@@ -107,14 +113,25 @@ class DispatchContracts(unittest.TestCase):
         dispatch.QUEUE_RENDERER.write_text('pass\n')
         order = 'wo-s1-host-shell'
         (root/'tasks/queue').mkdir(parents=True)
+        # 派发器现在会在 runs/ 下建运行目录，夹具必须先把该目录备好，
+        # 否则整个用例会死在 FileNotFoundError 上，测不到真正的契约。
+        (root/'tasks/queue/runs').mkdir(parents=True, exist_ok=True)
         card = root/'tasks/cards/s1-unit'
         card.mkdir(parents=True)
         (card/'task.md').write_text('- **stage** v0.4\n')
-        (root/'tasks/queue'/f'{order}.md').write_text('| T1 s1-unit | test |\n')
+        # 夹具卡必须满足当前卡契约（一级标题 + 至少两行正文），
+        # 保持十年前的写法会让 dor 直接判 E_MISSING_SECTION/E_SCHEMA，
+        # 派发器根本不起活，用例就变成在测校验器而不是在测派发契约。
+        (root/'tasks/queue'/f'{order}.md').write_text(
+            f'# 工单 {order}\n\n## T1 s1-unit\n\n| T1 s1-unit | test |\n')
         expected_run='wo-s1-host-shell-20261024T000000Z'
         reason=('wo-s1-host-shell-20261024T010000Z' if stale else expected_run)+' reservation-123' if recovery_fence else 'continuation'
-        records = ([('Other', 'another', 'audit', 'must retain audit slot')]
+        # 审计名额是 AUDIT_SLOT_LIMIT 个（默认 2，历史上曾为 1）。要验证
+        # 「不抢占他人名额」，必须先把名额填满——只放一个占位时派发本来就该放行。
+        holders = (['another']
+                   + [f'another-{index}' for index in range(2, dispatch.AUDIT_SLOT_LIMIT + 1)]
                    if other_audit else [])
+        records = [('Other', holder, 'audit', 'must retain audit slot') for holder in holders]
         records.append(('UltimaAgent', order, 'blocked', reason))
         dispatch.QUEUE_STATUS.write_text(json.dumps(queue_document(records)), encoding='utf-8')
         prompt = root/'prompt.txt'
