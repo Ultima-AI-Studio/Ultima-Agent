@@ -2,7 +2,7 @@
 
 > **由 `scripts/render-queue-views.py` 从 `tasks/queue/queue-status.json` 生成，勿手改。**
 > 唯一状态权威：`tasks/queue/queue-status.json`。修改 Markdown 不会回写状态。
-> schema_version=1 ｜ records=98 ｜ audit=4, blocked=16, cancelled=12, closed=2, frozen=63, pending=1
+> schema_version=1 ｜ records=99 ｜ audit=4, blocked=17, cancelled=12, closed=2, frozen=63, pending=1
 
 <!-- queue-items:start -->
 | 项目 | 工单 | 状态 | audit_passed | 派发时间 | 审计 run | 冻结 commit | 备注 |
@@ -105,4 +105,5 @@
 | UltimaAgent | wo-ultimaagent-20261111-0039 | closed |  | 2026-11-11T05:00:32+00:00 | wo-ultimaagent-20261111-0039-20261111T050032839000Z |  | DeepSeek 独立审计 0038（maker-checker，不同执行端，非 codex 自审）；两轮一致：8 门中 7 门 PASS（ACC-1/2/3/4/5/7/8，有界循环/fail-closed/幂等/名额兜底/测试有效/隔离均成立），仅 ACC-6 FAIL（P1，落地前必修）：PoC 私有 _transition 直接写 task['state']、_dependency_gate 自实现，绕过 StateMachine.transition() 与 QueuePlanner.dependency_gate()，违反 component-facts T1 第5/6/8 项，且未实现 RelayPump 接口；audit.json 顶层全 FAIL 系分批证据不足被聚合污染，非 8 个真实缺陷；正式落地须委托状态门/依赖门、禁止照抄 PoC 迁移；裁决 docs/reports/audit-0038-independent-deepseek-20261111.md；run wo-ultimaagent-20261111-0039-20261111T050032839000Z；只读不改被审文件 |
 | UltimaAgent | wo-ultimaagent-20261111-0040 | blocked |  | 2026-11-11T05:24:02.048179+00:00 |  |  | 等待审计名额（同身份模型二轮复核）；审计名额时限清点：2 单超 7d 或已标冻结，不再占位（wo-ultimaagent-20261030-0007, wo-ultimasentinel-20261103-0001）；真实执行结束 exit=0；wo-ultimaagent-20261111-0040-20261111T052401598676Z；待二轮复核，不自动批准或续派 |
 | UltimaAgent | wo-ultimaagent-20261111-0041 | frozen | true | 2026-11-11T06:16:53.781790+00:00 | hardgate-20261111T072551Z | c2ac1a2e1bdcb4c9e384b9670b578abc911630fd | DeepSeek 硬门复审（单 batch 全 visible，两轮一致）四门全 PASS：全链路仅 state_machine.py:95 一处受控写、freeze 门受控、副本替换、tasks 71/scripts 116 全绿、反向 10 非法 0 旁路；据此回头判 ACC-6 PASS；run tasks/queue/runs/wo-ultimaagent-20261111-0041/hardgate-20261111T072551Z；落地门未过，禁止正式 auto_relay 接线 |
+| UltimaAgent | wo-ultimaagent-20261111-0042 | blocked |  | 2026-11-11T07:43:59.735816+00:00 |  |  | 审计名额时限清点：2 单超 7d 或已标冻结，不再占位（wo-ultimaagent-20261030-0007, wo-ultimasentinel-20261103-0001）；真实执行结束 exit=0；wo-ultimaagent-20261111-0042-20261111T074359229292Z；待二轮复核，不自动批准或续派 |
 <!-- queue-items:end -->

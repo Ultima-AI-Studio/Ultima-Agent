@@ -1,0 +1,30 @@
+你是本仓的编码执行端（Codex）。先读 `docs/INDEX.md`（本项目引导索引，权威源地图与派发规则），再读下面三份文件，然后严格照单执行。
+
+本单唯一工单：`wo-ultimaagent-20261111-0042`
+工单卡：`tasks/queue/wo-ultimaagent-20261111-0042--auto-relay-landing.md`
+方案依据：`docs/plans/plan-ultimaagent-auto-relay-landing-20261111.md`
+工作目录：`H:\UltimaAI\UltimaAgent`
+
+**续行说明（第二轮派发，必读）**：上一轮已产出 `tasks/queue_engine/relay.py` 与 `tasks/tests/test_relay.py`（T0 13 passed / T1 25 passed / T2 31 passed，四个保护脚本 diff 为空，未真派 Codex），停在 T2——原因是旧 Gate「`git diff --stat HEAD -- queue-status.json` 为空」在派发期间结构性不可满足（派发器自己会写该文件）。**该判据已修订为「以 run 目录 `queue-status-before-executing.json` 派发快照为基线的 sha256 比对，不看 HEAD」**。请复用这两个文件续行：先复核 T0–T2 是否满足新判据，再继续 T3、T4，不要把已完成部分推倒重写。上一轮的阻塞回执未使用结构化格式，本轮结束时必须给出可机检回执（见第 6 条）。
+
+执行要求：
+
+1. 按 T0 → T1 → T2 → T3 → T4 顺序执行，每 T 的 Gate 全绿才进下一条，禁止跳序、禁止合并 T。
+2. 方案 §1 的六条事实是硬前提（尤其：真实派发唯一入口是 `scripts/dispatch-work-order.py --execute`；`queue-status.json` 是唯一状态权威；它没有 dependsOn/priority 字段；queue_engine 的 tasks.json 是另一份权威）。不得凭文档反推替代代码事实。
+3. 核心纪律（违反即整单不合格）：
+   - relay 只读判定 + 委派派发，**自己绝不写任何 task 的 state**；
+   - 不改 `dispatch-work-order.py` / `validate_work_order.py` / `audit-work-order.py` / `render-queue-views.py` 一行；
+   - 不改 `queue-status.json` 任何业务记录、不加字段；
+   - 不新增第二套状态枚举或第二状态权威；
+   - 真派三重与门（policy 开关 + 显式 execute + 单号在白名单）缺一即拒绝，默认空白名单 + 开关 false 时真派分支不可达；
+   - 只在夹具（临时队列根 + 假派发器桩）上做真派 E2E，**真实队列只允许 dry-run，绝不派真实 Codex**。
+4. 测试一律用 `H:\UltimaAI\UltimaAgent\tools\venv-openjarvis\Scripts\python.exe`：
+   `-m pytest tasks/tests -o addopts= -p no:cacheprovider -q`（基线 71 passed）
+   `-m pytest scripts/tests -o addopts= -p no:cacheprovider -q`（基线 116 passed）
+   通过数只许增加，不许减少。
+5. 每个 Gate 的证据必须贴原始命令与原始输出，不接受「预计通过」「应该可以」。
+6. 完成后回填工单卡「回执」段：run 目录、改动文件、三重与门证据（含判定代码行号与对应单测名）、dry-run 证据、夹具 E2E 派发顺序、无窗实测 8 次采样、两套 pytest 原始输出、已知限制。
+7. 提交纪律：显式列路径提交，中文提交信息，禁止 `git add -A`；不联网、不装依赖。
+8. 本单不启用计划任务、不打 tag（tag 由主脑在验收后处理）。
+
+若某 T 的 Gate 无法全绿，按铁律**不得自判通过**，写明阻塞点与实际输出，交回派发器裁决。
