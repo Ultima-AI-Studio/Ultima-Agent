@@ -58,19 +58,25 @@ print(json.dumps({"ready": True, "device": device}), flush=True)
 cosy = AutoModel(model_dir=str(model), load_trt=False, load_vllm=False, fp16=True)
 print(json.dumps({"loaded": True}), flush=True)
 
+# CosyVoice3 协议：被合成文本必须走 instruct2，且指令串必须以 <|endofprompt|> 收尾。
+# 用 inference_zero_shot 会走 CosyVoice3LM 的硬断言（llm.py:479，151646 token），
+# 后台线程 AssertionError 让音频流在第一块（0.16s）就断掉；把指令混进正文再走
+# zero_shot 则会把指令念出来（实测转写 "You are a cap,..."）。
+INSTRUCT = "You are a helpful assistant.<|endofprompt|>"
+
 def synthesize(text: str, out_wav: str, prompt_wav: str, prompt_text: str) -> dict:
-    speech = None
-    for block in cosy.inference_zero_shot(text, prompt_text, str(prompt_wav),
+    chunks = []
+    for block in cosy.inference_instruct2(text, INSTRUCT, str(prompt_wav),
                                           stream=False, speed=1.0):
-        speech = block["tts_speech"]
-        break
-    if speech is None:
+        chunks.append(block["tts_speech"])
+    if not chunks:
         raise RuntimeError("no speech block produced")
+    speech = chunks[0] if len(chunks) == 1 else torch.cat(chunks, dim=-1)
     pcm = np.clip(speech.detach().cpu().numpy().reshape(-1), -1, 1)
     sf.write(out_wav, pcm, cosy.sample_rate, subtype="PCM_16")
     return {"ok": True, "wav": out_wav, "rate": cosy.sample_rate,
             "seconds": len(pcm) / cosy.sample_rate, "device": device,
-            "engine": "cv3"}
+            "engine": "cv3", "blocks": len(chunks)}
 
 for line in sys.stdin:
     line = line.strip()

@@ -117,13 +117,15 @@ else:
 
 cosy = AutoModel(model_dir=str(model), load_trt=False, load_vllm=False, fp16=True)
 prompt_text = {prompt_text}
-
-speech = None
-for block in cosy.inference_zero_shot(text, prompt_text, str(prompt_wav), stream=False, speed=1.0):
-    speech = block["tts_speech"]
-    break
-if speech is None:
+# CosyVoice3 走 instruct2；指令串必须以 <|endofprompt|> 收尾，且必须累加全部 block。
+# 与常驻 daemon（daemon.py 的 _TTS_DAEMON_SCRIPT）保持同一实现，不保留第二套写法。
+instruct = "You are a helpful assistant.<|endofprompt|>"
+chunks = []
+for block in cosy.inference_instruct2(text, instruct, str(prompt_wav), stream=False, speed=1.0):
+    chunks.append(block["tts_speech"])
+if not chunks:
     raise RuntimeError("no speech block produced")
+speech = chunks[0] if len(chunks) == 1 else torch.cat(chunks, dim=-1)
 pcm = np.clip(speech.detach().cpu().numpy().reshape(-1), -1, 1)
 _peak = float(np.abs(pcm).max()) if pcm.size else 0.0
 if _peak > 0.0:
