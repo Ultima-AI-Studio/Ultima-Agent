@@ -192,41 +192,159 @@
 
 ## 回执（执行端填写）
 
-- run 目录：无（T2 Gate 阻塞，未进入 T3/T4；未启动真实 Codex、未创建真实派发 run）。
-- 改动文件：`tasks/queue_engine/relay.py`、`tasks/tests/test_relay.py`、本回执。未创建 `scripts/relay-loop.py`、`relay-policy.json`、`relay-state.json`。
-- 三重与门证据：`tasks/queue_engine/relay.py:170-174`：`policy.real_dispatch_enabled is True` + `execute_requested is True` + `order in policy.eligible_orders`，缺一抛 `RelayContractError("real dispatch disabled")`。对应单测：`test_real_dispatch_requires_policy_execute_and_whitelist_triple_gate`（三种缺门参数化）、`test_precheck_not_ready_never_calls_execute`、`test_same_order_is_not_dispatched_twice_in_one_tick`。
-- dry-run 证据：仅完成 T1 夹具 dry-run 单测 `test_dry_run_starts_no_subprocess_and_writes_no_relay_state`（子进程计数 0，`relay-state.json` 不存在）。按顺序门禁未进入 T3，未运行真实队列 `--once --dry-run`。`queue-status.json` 开工前与阻塞时 SHA256 均为 `850D11CA9B0C7CB7565E70611943359385D8D8E3FDC9BD8D03DD8122B5469050`，本次字节未变。
-- 夹具 E2E：未执行；该项属于 T4，T2 Gate 未全绿后禁止进入。
-- 无窗实测：未执行；该项属于 T3，T2 Gate 未全绿后禁止进入。
-- pytest 结果：开工基线原始输出与逐 T 输出如下；T4 全量回归未执行。
+- run 目录：`tasks/queue/runs/wo-ultimaagent-20261111-0042-20261111T080654133464Z`。本轮复用该二轮派发 run 的 `queue-status-before-executing.json`；未启动真实 Codex 子派发、未创建 relay 真派 run。
+- 改动文件：`tasks/queue_engine/relay.py`、`scripts/relay-loop.py`、`tasks/queue/relay-policy.json`、`tasks/queue/relay-state.json`、`tasks/tests/test_relay.py`、本工单卡回执。四个保护脚本和 `tasks/queue/queue-status.json` 均未由本实现改写。
+- 三重与门证据：`tasks/queue_engine/relay.py:170-174` 依次要求 `policy.real_dispatch_enabled is True`、`execute_requested is True`、`order in policy.eligible_orders`，缺一抛 `RelayContractError("real dispatch disabled")`。对应单测：`test_real_dispatch_requires_policy_execute_and_whitelist_triple_gate`（false 开关 / 未显式 execute / 不在白名单三种缺门参数化）、`test_precheck_not_ready_never_calls_execute`、`test_same_order_is_not_dispatched_twice_in_one_tick`。默认 `relay-policy.json` 为 `eligible_orders: []` 且 `real_dispatch_enabled: false`。
+- dry-run 证据：`test_dry_run_starts_no_subprocess_and_writes_no_relay_state` 断言 `Popen` 调用计数 0、`relay-state.json` 不存在；真实队列两次 `--once --dry-run` 均返回 `WIP_BUSY` / `candidate: null`，因为本单 0042 正在 `executing`。实际相关记录：0041=`frozen`，0037/0038/0040=`blocked`，0042=`executing`。两次真实 dry-run 前后当前文件 SHA256 均为 `043DBD83F7A9AD11F3A4B5C1BBFEEF070D0FA19CC0932C4FA55D818B96A6157C`。
+- 夹具 E2E：`test_fixture_e2e_dispatches_a_then_dependent_b` 在临时队列根 + 假派发器桩上断言 execute 顺序严格为 `["A", "B"]`，B 的 precheck / execute 各 1 次；`test_fixture_e2e_blocks_b_when_a_is_blocked` 断言 B 零派发且 `stop_reason == "DEPENDENCY_NOT_READY"`。夹具桩只修改 `tmp_path` 内夹具队列，生产 relay 不写 task state。
+- 无窗实测：仓内真实 `WindowMonitor` 对 `pythonw.exe scripts/relay-loop.py --start --dry-run --interval-s 0.10` 做 8 次独立采样；每次用 `scripts/relay-loop.py --stop` 收口，8 次 `exit_code=0`、`stop_exit=0`、`visible_window_count=0`，未启用计划任务。
+- 已知限制：依赖信息仍须由 Owner 在策略文件 `dependsOn` 显式声明；默认空白名单不会选择任何自动候选；真实 Codex execute 按工单禁止未实测，真派 E2E 仅用假派发器夹具；计划任务只在 `--help` 给出注册示例，未注册/未启用；未打 tag（按本单要求留给主脑验收后处理）。DeepSeek 独立硬门复审不在本执行单权限内。
 
-  ```text
-  COMMAND: H:\UltimaAI\UltimaAgent\tools\venv-openjarvis\Scripts\python.exe -m pytest tasks/tests -o addopts= -p no:cacheprovider -q
-  ................................................................ [ 90%]
-  .......                                                                  [100%]
-  71 passed, 8 subtests passed in 12.60s
+### 新 Gate：派发快照基线对账
 
-  COMMAND: H:\UltimaAI\UltimaAgent\tools\venv-openjarvis\Scripts\python.exe -m pytest scripts/tests -o addopts= -p no:cacheprovider -q
-  ........................................................................ [ 62%]
-  ............................................                             [100%]
-  116 passed in 6.67s
+旧的相对 HEAD 判据已按二轮派发说明废止。本轮原始输出如下：
 
-  Gate T0: 13 passed in 0.05s
-  Gate T1: 25 passed in 0.21s
-  Gate T2 behavior rerun:
-  ...............................                                          [100%]
-  31 passed in 0.65s
-  ```
+```text
+RUN=H:\UltimaAI\UltimaAgent\tasks\queue\runs\wo-ultimaagent-20261111-0042-20261111T080654133464Z
+4477279A76716F291DF99C6FFC7983DCF3017423026814C9E7927DDA15957F52  H:\UltimaAI\UltimaAgent\tasks\queue\runs\wo-ultimaagent-20261111-0042-20261111T080654133464Z\queue-status-before-executing.json
+043DBD83F7A9AD11F3A4B5C1BBFEEF070D0FA19CC0932C4FA55D818B96A6157C  H:\UltimaAI\UltimaAgent\tasks\queue\queue-status.json
+OTHER_RECORDS_EXACT_JSON_EQUAL=True
+state: BEFORE=<blocked> AFTER=<executing>
+dispatched_at: BEFORE=<11/11/2026 15:43:59> AFTER=<11/11/2026 16:06:54>
+note: BEFORE=<上一轮退出待复核> AFTER=<真实工单派发 wo-ultimaagent-20261111-0042-20261111T080654133464Z，一单一进程；尚未验收>
+has_save= False
+has_write= False
+save_call= AttributeError 'QueueStatusView' object has no attribute 'save'
+```
 
-- 已知限制 / unverifiable：**阻塞于 Gate T2，未自判通过。** 工单要求命令 `git diff --stat HEAD -- tasks/queue/queue-status.json` 输出为空；实际原始输出为：
+两份文件原始 SHA256 预期不同：快照在派发器把本单登记为 executing 前生成；结构化对账确认其余 162 条记录逐字序列化一致，仅本单的 `state/dispatched_at/note` 由本轮既有派发器更新。进入 relay 复核后的当前文件哈希在 T0–T4、两次真实 dry-run 与全量回归前后始终为 `043DBD...6157C`。`git status --porcelain -- tasks/queue/queue-status.json` 当前输出 ` M tasks/queue/queue-status.json`，仅作信息记录，不再用作 Gate，也未暂存/提交该文件。
 
-  ```text
-  COMMAND: git diff --stat HEAD -- tasks/queue/queue-status.json
-   tasks/queue/queue-status.json | 10 ++++++++++
-   1 file changed, 10 insertions(+)
+### 逐 Gate 原始命令与输出
 
-  COMMAND: git diff --numstat HEAD -- tasks/queue/queue-status.json
-  10      0       tasks/queue/queue-status.json
-  ```
+Gate T0：
 
-  该差异在本单开工前已存在，且开工前/阻塞时 SHA256 相同；为保护他人/既有工作，本执行端未还原、暂存、提交或改写它。`dispatch-work-order.py` / `validate_work_order.py` / `audit-work-order.py` / `render-queue-views.py` 的保护路径 diff-stat 输出为空。缺少的裁决：由派发器决定先由原改动所有者收口 `queue-status.json`，或明确修订 Gate 为“相对开工哈希字节未变”后重派。本次未提交不完整实现、未启用计划任务、未打 tag。DeepSeek 硬门复审不在本执行单权限内。
+```text
+COMMAND: H:\UltimaAI\UltimaAgent\tools\venv-openjarvis\Scripts\python.exe -m pytest tasks/tests/test_relay.py -o addopts= -p no:cacheprovider -q
+...............................                                          [100%]
+31 passed in 0.68s
+PYTEST_EXIT=0
+test_to_state_rejects_unknown_status_fail_closed:72-74
+  with pytest.raises(RelayContractError, match="unknown queue-status state: 'weird'")
+test_select_candidate_honors_whitelist_order_not_numeric_order:119
+  larger_first = "wo-ultimaagent-20261111-0099"
+  assert candidate.order == larger_first
+```
+
+Gate T1：
+
+```text
+COMMAND: H:\UltimaAI\UltimaAgent\tools\venv-openjarvis\Scripts\python.exe -m pytest tasks/tests/test_relay.py -o addopts= -p no:cacheprovider -q
+...............................                                          [100%]
+31 passed in 0.68s
+PYTEST_EXIT=0
+test_gate_reports_paused_for_each_dispatch_marker:158
+test_gate_reports_wip_busy_for_executing_and_audit:172
+test_gate_reports_quota_exhausted:186
+test_gate_reports_no_candidate:209
+test_dry_run_starts_no_subprocess_and_writes_no_relay_state:219
+  assert calls == 0
+  assert not (tmp_path / "tasks" / "queue" / "relay-state.json").exists()
+```
+
+Gate T2（补齐无写入口固化断言后的最终结果）：
+
+```text
+COMMAND: H:\UltimaAI\UltimaAgent\tools\venv-openjarvis\Scripts\python.exe -m pytest tasks/tests/test_relay.py -o addopts= -p no:cacheprovider -q
+................................                                         [100%]
+32 passed in 0.72s
+PYTEST_EXIT=0
+test_real_dispatch_requires_policy_execute_and_whitelist_triple_gate:415
+test_precheck_not_ready_never_calls_execute:437
+  assert log.read_text(encoding="utf-8").splitlines() == ["precheck"]
+test_same_order_is_not_dispatched_twice_in_one_tick:523
+  assert log.read_text(encoding="utf-8").splitlines() == ["precheck", "execute"]
+test_queue_status_view_exposes_no_write_entrypoint:251
+  with pytest.raises(AttributeError): view.save(None)
+```
+
+Gate T3：
+
+```text
+COMMAND: H:\UltimaAI\UltimaAgent\tools\venv-openjarvis\Scripts\python.exe scripts/relay-loop.py --status
+{"actions_today": 0, "halted": false, "last_order": null}
+STATUS_EXIT=0
+
+COMMAND: H:\UltimaAI\UltimaAgent\tools\venv-openjarvis\Scripts\python.exe scripts/relay-loop.py --once --dry-run
+{"candidate": null, "reason": "project has executing or audit work", "stop_reason": "WIP_BUSY", "would_dispatch": false}
+ONCE_EXIT=0
+SHA256_BEFORE=043DBD83F7A9AD11F3A4B5C1BBFEEF070D0FA19CC0932C4FA55D818B96A6157C
+SHA256_AFTER =043DBD83F7A9AD11F3A4B5C1BBFEEF070D0FA19CC0932C4FA55D818B96A6157C
+HASH_EQUAL=True
+
+COMMAND: H:\UltimaAI\UltimaAgent\tools\venv-openjarvis\Scripts\python.exe -m pytest tasks/tests/test_relay.py -o addopts= -p no:cacheprovider -q
+..................................                                       [100%]
+34 passed in 0.73s
+PYTEST_EXIT=0
+test_relay_loop_status_is_read_only_json:258
+test_relay_loop_stop_exits_within_one_interval:276
+```
+
+8 次 `WindowMonitor` 原始采样：
+
+```text
+{"exit_code": 0, "monitor_samples": 3, "pid": 26336, "sample": 1, "stop_exit": 0, "visible_window_count": 0}
+{"exit_code": 0, "monitor_samples": 3, "pid": 13296, "sample": 2, "stop_exit": 0, "visible_window_count": 0}
+{"exit_code": 0, "monitor_samples": 3, "pid": 26412, "sample": 3, "stop_exit": 0, "visible_window_count": 0}
+{"exit_code": 0, "monitor_samples": 3, "pid": 22276, "sample": 4, "stop_exit": 0, "visible_window_count": 0}
+{"exit_code": 0, "monitor_samples": 3, "pid": 452, "sample": 5, "stop_exit": 0, "visible_window_count": 0}
+{"exit_code": 0, "monitor_samples": 3, "pid": 24388, "sample": 6, "stop_exit": 0, "visible_window_count": 0}
+{"exit_code": 0, "monitor_samples": 3, "pid": 11620, "sample": 7, "stop_exit": 0, "visible_window_count": 0}
+{"exit_code": 0, "monitor_samples": 3, "pid": 23784, "sample": 8, "stop_exit": 0, "visible_window_count": 0}
+{"result": "PASS", "runs": 8, "visible_windows_total": 0}
+```
+
+Gate T4：
+
+```text
+COMMAND: H:\UltimaAI\UltimaAgent\tools\venv-openjarvis\Scripts\python.exe -m pytest tasks/tests/test_relay.py -o addopts= -p no:cacheprovider -q
+....................................                                     [100%]
+36 passed in 1.04s
+PYTEST_EXIT=0
+test_fixture_e2e_dispatches_a_then_dependent_b
+  assert dispatch_order == ["A", "B"]
+  assert events.count({"order": order_b, "mode": "precheck"}) == 1
+  assert events.count({"order": order_b, "mode": "execute"}) == 1
+test_fixture_e2e_blocks_b_when_a_is_blocked
+  assert result["stop_reason"] == "DEPENDENCY_NOT_READY"
+  assert not log.exists()
+
+COMMAND: H:\UltimaAI\UltimaAgent\tools\venv-openjarvis\Scripts\python.exe scripts/relay-loop.py --once --dry-run
+{"candidate": null, "reason": "project has executing or audit work", "stop_reason": "WIP_BUSY", "would_dispatch": false}
+DRY_RUN_EXIT=0
+SHA256_BEFORE=043DBD83F7A9AD11F3A4B5C1BBFEEF070D0FA19CC0932C4FA55D818B96A6157C
+SHA256_AFTER =043DBD83F7A9AD11F3A4B5C1BBFEEF070D0FA19CC0932C4FA55D818B96A6157C
+HASH_EQUAL=True
+```
+
+### 最终全量回归原始输出
+
+```text
+COMMAND: H:\UltimaAI\UltimaAgent\tools\venv-openjarvis\Scripts\python.exe -m pytest tasks/tests -o addopts= -p no:cacheprovider -q
+..................................................................... [ 64%]
+......................................                              [100%]
+107 passed, 8 subtests passed in 12.33s
+TASKS_EXIT=0
+
+COMMAND: H:\UltimaAI\UltimaAgent\tools\venv-openjarvis\Scripts\python.exe -m pytest scripts/tests -o addopts= -p no:cacheprovider -q
+........................................................................ [ 62%]
+............................................                             [100%]
+116 passed in 5.37s
+SCRIPTS_EXIT=0
+```
+
+保护脚本原始检查：
+
+```text
+COMMAND: git diff --stat HEAD -- scripts/dispatch-work-order.py scripts/validate_work_order.py scripts/audit-work-order.py scripts/render-queue-views.py
+OUTPUT: <empty>
+```
