@@ -1148,3 +1148,13 @@ broken`），整个验收卡在这一步，只能记未完成。
 4. **回归**：这类「后门」只能靠 e2e 用例守——直接对一张已知命中的真实卡带 `--skip-dor` 干跑，断言 `exit 2` 且输出含 `skip_dor_ignored`。纯函数单测看不到开关这条路径。
 
 
+### L120 · 「长期红着」的契约测试，先查契约变更时间线，才知道该修夹具还是修功能
+
+1. **现象**：`test_engineering_dispatch.py::DispatchContracts` 有 6 条恒失败，被当成背景噪声跨多轮、多次汇报（连我自己也一直按「既有 6 条」当既成事实）。
+2. **先看时间线**：`git log --follow` 定出测试写于 2026-10-21（`5e18ad40` 接入真实派发适配器），而 `E_MISSING_SECTION` 校验是 2026-11-08（`ab913e72`）加的、`tasks/queue/runs` 路径逻辑是 2026-11-09（`7f87404e`）改的。
+3. **结论**：这 6 条 10-21 写的时候是通的，后面两次改契约都没同步夹具，于是从绿变红并长期无人修。这是「改契约不跑全量回归」的遗留，不是任务系统设计缺陷——也正是 0036 要治的病。
+4. **夹具本身要跟的三处**：卡内容必须满足现行卡契约（一级标题 + 正文 ≥2 行，否则当场判 `E_MISSING_SECTION`/`E_SCHEMA`，派发器根本不起活）；`tasks/queue/runs` 必须预建；审计名额上限从 1 提到 2（`AUDIT_SLOT_LIMIT`）后，占位记录要按上限填满，只放一个时派发本来就该放行。
+5. **不能只判 pid 存在**：`process_identity` 用的是「创建时间 + 存活」，判 child 是否被收掉要比对创建身份；短时间大量建进程时 pid 会被复用，用 pid 存在性判定会误报失败。
+6. **其中 1 条是真缺陷，不是夹具**：`OwnedJob` 只靠 Job Object 的 `JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE`，实测派发进程若已处在外层 Job 时并不保证收到 worker 派生的 child（加了 `unrelated` 进程后 child 就存活下来）。修法是 `close()` 先 `taskkill /PID <worker> /T /F` 显式收整棵进程树，再 `TerminateJobObject` + `CloseHandle` 兜底。
+7. **验证**：`pytest scripts/tests` 6 failed/61 passed → 0 failed/67 passed；0036 派发门 dry-run 仍 exit 2 并拦 L214/L215。
+8. **教训**：把一组测试长期报成「既有失败」而不动手，等于默许契约漂移。每次汇报「N failed」时，必须同步说明这 N 条是**已查明的遗留**还是**未查明的噪声**。
