@@ -1311,3 +1311,35 @@ broken`），整个验收卡在这一步，只能记未完成。
 纪律：
 - 读队列不得只读 state 一个字，标签不代表事实，tag 实存才代表冻结。
 - 主脑接手队列的第一件事是核对「审计通过但无 tag」的名单，而不是相信状态分布。
+### L138 · 规则写在末尾压不住 8B 的幻觉，能力边界必须前置并声明优先级
+
+现象：
+给 8B 主脑的职责规则 v1.0 里已经写了「不许编造」，问「现在几点了」，它仍编出「14:32（系统时间戳 2023-10-05T14:32:15+08:00，见 /var/log/syslog 行 127）」。v1.1 把这条禁令作为 R13 加到规则块末尾，复测仍编「2023-10-05 14:30:45」，还补了一句「未经外部工具验证」——知道不该编，还是编了。
+
+转折：
+v1.2 把【能力边界】整段提到规则块最前面，并显式声明「这条优先级高于下面所有条款」，复测立刻转为「这个我拿不到，得调工具或者你告诉我」，时间题不再给出任何数值。
+
+规则：
+- 对 8B 级参数模型，否定型约束的生效位次比措辞强度更关键。同一句话写在末尾会被淹没，写在最前并声明优先级才生效。
+- 禁止类要求要同时给出替代动作（「答拿不到」），只写「禁止编造」，模型会在被禁止的路径上找变通（v1.1 的「未经外部工具验证」就是变通）。
+- 教材必须用真实用例回归：写的时候看起来完备，跑一遍才知道哪条没生效。
+
+### L139 · 手工启动常驻服务会继承会话环境，造成引擎发现假失败
+
+现象：
+agent_server 的 /ask 返回 500「No inference engine available. Make sure an engine is running (e.g. ollama serve)」，但同一时刻 11434 的 /api/tags 正常返回 6 个模型，且用 venv 直接构造 Jarvis(engine_key="ollama") 完全成功、health=True、can_serve=True。
+
+排查：
+- openjarvis 的 get_engine 对显式 engine_key 走 _make_engine + _usable(engine.health() and can_serve(model))，任一为假即返回 None 并 warn「Requested engine 'ollama' is unavailable」。
+- OllamaEngine.health() 只是 httpx GET /api/tags，timeout=2.0，host 取 config.toml > OLLAMA_HOST > http://localhost:11434；三处 OLLAMA_HOST 均空，localhost 可达。
+- data/logs/agent-server.log 的 traceback 里 stdlib 路径来自 sandbox_runtime，且该 venv 的 base_prefix 指向 sandbox_runtime/bases/...；本会话 PYTHONPATH 被注入 task-mode-resource/python-packages。
+
+根因：
+会话内手工 Start-Process 拉起常驻进程时继承的是本会话被注入的 Python 环境，与 venv 运行时混用，httpx 一侧行为异常，健康探针假失败。代码与模型都没问题，是启动方式污染。
+
+处置：
+改用项目自带的 scripts/start-agent-server.ps1 重启（-NoProfile -ExecutionPolicy Bypass -File，WorkingDirectory 固定项目根），/ask 立即恢复 200。
+
+纪律：
+- 常驻服务一律走项目自己的启动脚本，不在会话里直接 Start-Process 拉起。这与「会话 PATH 被替换」是同一类陷阱的第二个面（PATH 之外还有 PYTHONPATH）。
+- 排查「服务说引擎不可用」时，先用独立探针验证引擎本身，再看日志 traceback 的 stdlib 路径与 venv 的 base_prefix，一眼分辨是引擎真挂还是运行时被污染。
