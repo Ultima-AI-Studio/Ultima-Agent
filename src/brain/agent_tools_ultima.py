@@ -572,6 +572,16 @@ def _now_iso() -> str:
     return datetime.now().astimezone().isoformat(timespec="seconds")
 
 
+def _notify_event(text: str) -> None:
+    """把派单进展推到事件总线（语音/面板消费）。推送失败不影响派单结果落盘。"""
+    try:
+        from src.brain.events import get_event_bus
+
+        get_event_bus().emit_event("message", {"text": text, "role": "jarvis"})
+    except Exception:  # noqa: BLE001 - 事件总线不可用不是派单失败
+        pass
+
+
 def _deepseek_api_key() -> str:
     """环境变量优先，其次读 config/.env；两处都没有则视为未配置。"""
     key = os.environ.get("DEEPSEEK_API_KEY", "").strip()
@@ -668,6 +678,11 @@ def _run_dispatch_worker(dispatch_id: str, task: str) -> None:
         _write_dispatch(record)
     except OSError:
         pass
+    # 关键环节主动汇报：方案回来或失败都要说，不能让用户干等、也不知道断没断。
+    if record.get("state") == "PLANNED":
+        _notify_event(f"派单 {dispatch_id} 的方案回来了，要我讲给你听吗？")
+    elif record.get("state") == "FAILED":
+        _notify_event(f"派单 {dispatch_id} 外脑调用失败：{record.get('error')}")
 
 
 @ToolRegistry.register("ultima_dispatch")

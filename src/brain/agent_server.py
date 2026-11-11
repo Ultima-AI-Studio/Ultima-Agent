@@ -549,6 +549,95 @@ def _constrain_reply(
     return _fixed_structured_fallback(), True
 
 
+# ---------------------------------------------------------- 分段应答（语音）
+# 语音通道的关键不是把总时延压到最小，而是「不许静默」：用户可以等 30 秒，
+# 但中间必须知道它有没有断。所以任务类诉求走分段应答：
+#   ① 分类完成立刻回「好的，我现在去安排」（约 1s，不等派单）
+#   ② 派单完成立刻回「已派给 DeepSeek，派单号 X」（派单本身 0.03s）
+#   ③ 外脑方案回来再由后台线程推一条（见 agent_tools_ultima._notify_event）
+# 分类只问一件事（要不要动手），输出截到 8 token，不产生长推理。
+# 走这条路的另一个好处：8B 没有机会在自由生成里撒谎说「我已经修好了」。
+
+_ASK_ACK_TEXT = "好的，我现在去安排。"
+
+_ASK_CLASSIFY_SYSTEM = (
+    "判断用户这句话是要你动手改东西（改代码、修功能、开发、制作、设计、接入、优化），"
+    "还是只要一个回答（查时间、问状态、问原因、闲聊）。只输出两个词之一：动手 或 回答。"
+    "拿不准就输出 回答。"
+)
+
+# 明显是「问事」的句式不进模型，直接按查询处理，避免把提问误派成工单
+_QUERY_HINT = re.compile(
+    r"[?？]|几点|几号|多少|什么|怎么样|为什么|是不是|有没有|能不能|谁|哪里|哪个|如何"
+)
+
+
+def _classify_intent(query: str) -> str:
+    """返回 'task'（该接单派出去）或 'query'（直接回答）。任何异常都退回 query。"""
+    if _QUERY_HINT.search(query):
+        return "query"
+    try:
+        payload = {
+            "model": MODEL,
+            "messages": [
+                {"role": "system", "content": _ASK_CLASSIFY_SYSTEM},
+                {"role": "user", "content": query},
+            ],
+            "stream": False,
+            # 必须显式关掉思考：qwen3 的 thinking 会把 num_predict 吃干净。
+            # 实测 np=8/16 时 content 全空（thinking 分别吃掉 10/20 token），分类因此静默失败、
+            # 所有诉求都被判成 query，整条分段应答等于没上线。
+            # think=False 后同一个判定只要 0.05-0.09s，且答案正确。
+            "think": False,
+            "options": {"temperature": 0, "num_predict": 16},
+        }
+        request = Request(
+            OLLAMA_CHAT_URL,
+            data=json.dumps(payload, ensure_ascii=False).encode("utf-8"),
+            headers={"Content-Type": "application/json"},
+        )
+        with urlopen(request, timeout=15) as response:
+            data = json.loads(response.read().decode("utf-8"))
+        verdict = str((data.get("message") or {}).get("content") or "")
+    except Exception:  # 分类失败不影响主流程，按查询走
+        return "query"
+    return "task" if "动手" in verdict else "query"
+
+
+def _ask_task_branch(query: str) -> dict[str, Any]:
+    """任务类分段应答：先答应，再派单，后续由后台线程逐环节汇报。"""
+    EVENT_BUS.emit_event("message", {"text": _ASK_ACK_TEXT, "role": "jarvis"})
+    EVENT_BUS.emit_event("stream_start", {"text": "已接单，正在派给审计外脑…"})
+
+    dispatch_id = ""
+    try:
+        try:
+            from .agent_tools_ultima import UltimaDispatchTool
+        except ImportError:  # pragma: no cover - 脚本入口
+            from agent_tools_ultima import UltimaDispatchTool
+
+        result = UltimaDispatchTool().execute(task=query)
+        dispatch_id = str((result.metadata or {}).get("dispatch_id") or "")
+        if result.success:
+            follow = (
+                f"已派给 DeepSeek（审计外脑），派单号 {dispatch_id}。"
+                "它出完工单和方案我马上告诉你。"
+            )
+        else:
+            follow = str(result.content)
+    except Exception as exc:  # 派单失败也必须说出来，不能装作派了
+        follow = f"派单没成功：{exc}"
+
+    EVENT_BUS.emit_event("message", {"text": follow, "role": "jarvis"})
+    return {
+        "content": _ASK_ACK_TEXT + follow,
+        "reply_text": follow,
+        "intent": "task",
+        "dispatch_id": dispatch_id,
+        "tool_results": [],
+    }
+
+
 def ask_once(query: str, max_tokens: int | None = None) -> dict[str, Any]:
     """执行一轮自主对话：本地 8B 自主决定直接回答或调用工具（并发串行化）。
 
@@ -559,6 +648,10 @@ def ask_once(query: str, max_tokens: int | None = None) -> dict[str, Any]:
     - 完成回复 → message（w-msg 流：AI 气泡）
     """
     EVENT_BUS.emit_event("message_in", {"text": query, "role": "user"})
+    # 分段应答第一段：先判这是「要动手的活」还是「要个回答」。
+    # 任务类立刻答应并派单，不进 ReAct——既快，也断掉它自由编「我已经修好了」的路。
+    if _classify_intent(query) == "task":
+        return _ask_task_branch(query)
     j = get_jarvis()
     with _ask_lock:
         EVENT_BUS.emit_event("stream_start", {"text": "Ultima 正在回复…"})
