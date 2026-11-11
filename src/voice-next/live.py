@@ -181,7 +181,8 @@ class Resident:
         self.status.update(input_device=devices[self.input_index]['name'],input_index=self.input_index,input_rate=self.input_rate,output_device=devices[self.output_index]['name'],output_index=self.output_index)
         self.dsp=self.build_dsp()
         spec=dict(self.config.get('dsp') or {})
-        self.status.update(dsp_engine='pywebrtc-audio',dsp_ns=bool(spec.get('noise_suppression',True)),dsp_agc=bool(spec.get('auto_gain_control',True)),dsp_aec=bool(spec.get('echo_cancellation',False)),dsp_gain_db=0.0,dsp_speech_probability=0.0)
+        agc=bool(spec.get('auto_gain_control',True))
+        self.status.update(dsp_engine='pywebrtc-audio',dsp_ns=bool(spec.get('noise_suppression',True)),dsp_agc=agc,dsp_aec=bool(spec.get('echo_cancellation',False)),dsp_gain_db=0.0,dsp_speech_probability=0.0, gain_mode=('apm-agc' if agc else 'fixed'), input_gain=(None if agc else self.input_gain))
         self.reset_audio()
         prompts=DATA/'prompts';prompts.mkdir(exist_ok=True)
         self.wake_prompt=prompts/'wake.wav';self.empty_prompt=prompts/'empty.wav'
