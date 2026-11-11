@@ -1280,3 +1280,12 @@ broken`），整个验收卡在这一步，只能记未完成。
 4. **首次推理会截断（重要）**：预热探针合成「语音入口正在加载中文音色。」只产出 **0.16 秒**音频；随后 4 句提示音时长全部正常（wake 1.84s、ready 4.76s、error 3.88s，约 0.26–0.27 秒/字）。即 **CV3 冷启动后的第一次推理是残的**，必须用一次探针把它消耗掉再让用户听到第一句。禁止把探针产物当成品播放。
 5. **冷启动实测**：本轮 `tts_warm_seconds=32.8`（此前独立进程实测 256.4s；模型文件系统缓存热后快一个数量级）。预热期间 `tts_backend=windows-sapi-fallback`、`tts_cv3_pending=true`，服务照常能说话——这是设计内的**可见降级**，不是故障，不要按故障排查。
 6. **纪律**：`serve()` 必须带 `prewarm` 开关，**pytest 一律 `prewarm=False`**。否则测试会真的拉起 CV3 子进程加载模型（本轮已实测发生：pid 24216，2 秒内测试「通过」但后台在加载）。
+
+### L136 · 本地优先落地后暴露的两个新事实：引擎闸门只有 health()、语音回复该按「秒」验收而不是按「句」砍
+
+1. **现象**：把 `interaction.py` 改成「本地 agent 优先、云端兜底」后，语音回合仍出现「听到了但没回答」。旧实例 `/ask` 回 500，体为 `No inference engine available`，且 **0.6–1.2s 就返回**（说明是选引擎失败，不是推理慢）；但同机 `ollama list` 正常、11434 通、独立进程 `Jarvis(engine_key="ollama", model="qwen3-8b-uncensored").ask()` 直接成功。
+2. **判定链**：`openjarvis/sdk.py:197 _ensure_engine()` → `engine/_discovery.py::get_engine`（显式 `engine_key` 权威、不静默替换）→ 可用判据为 `engine.health() and can_serve(model)`；`_stubs.py:122` 的 `can_serve` 对本地引擎恒 True，**所以闸门实际只有 `health()` 一项**。`Jarvis` 懒创建、首次 `ask` 才探测，失败不做永久缓存（每次重试），因此这类故障表现为「偶发不答」而不是「彻底不答」。
+3. **实测边界**：同一份代码的前台实例与生产 `launch.py` 实例都能正常回答开放问题——「给我讲一个笑话。」**18.4s / 28.6s**，「今天适合做什么？」**23.0s**。**结论：本地 8B 能答，开放问答延迟量级 18–29s**，与 `worker_timeout_seconds=90` 并存；但 `live.py` 侧回合超时另有阈值（`Voice turn timed out` 需单独核对）。
+4. **冒烟纪律**：端口通 ≠ 引擎可用。开机预加载只探 `/health` 会漏掉「8756 活着但引擎没选中」这种状态，必须用**一次真实 `/ask`** 做探针（`src/voice-next/preload.py` 的 `_probe_agent` 已落地，实测 11.8s 通过）。
+5. **回复长度（调研结论，勿再按「砍句」处理）**：业界主约束是**朗读时长**不是句数——Bluejay：单条 <15 秒、人脑只持有 8–10 秒口语信息、语音应比文本短 60–70%；Google Simple Response：640 字符截断、建议 <300；Smallest AI：默认 1 句、要细节 2 句、3 句过多；Alexa：一到两次呼吸内读完。本地 `_vendor` 源码里只有 LobeChat 的 `resolveSafeMaxTokens` 做了上下文预算（1024 buffer + 预检 fail-fast），**没有可搬的语音短回复控制器**。正确姿势是**双口径（句数 + 估算朗读秒数）＋按意图分级**，不是把 `max_sentences` 砍回 1–2——那会直接复现「回答范围太小」。完整调研见 `docs/reports/stage-reply-brevity-research-20261111.md`。
+6. **登记待办（未修，不得当已解决）**：`turn_worker.py:73` 的 `daemon.ensure_started()` 抛 `OSError: [Errno 22] Invalid argument`；`worker.stderr.log` 仅此一条（270B），CV3 预热 27.1s 后落回 `windows-sapi-fallback`、`tts_error=CV3 daemon not ready`、`tts_prompts={}`。锁文件 `ultima-voice-daemon-tts-voice-next.pid` **不存在**、无 cosyvoice 进程，故**不是撞锁**；疑点在 `_launch()` 的 `Popen` 组合——宿主 `turn_worker` 本身已由 `launch.py` 以 `DETACHED_PROCESS|CREATE_NO_WINDOW` 启动，子进程再带 `CREATE_NO_WINDOW` + 三路 PIPE。未验证不得下结论；下一轮应先手动跑 `daemon_tts-voice-next.py`，区分「模型/路径问题」与「creationflags 冲突」。
