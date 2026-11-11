@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import re
 import sys
 import tempfile
 import unittest
@@ -98,13 +99,96 @@ class StateMachineTests(unittest.TestCase):
         prerequisite = task("base", "FAILED")
         dependent = task("dependent")
         dependent["dependsOn"] = ["base"]
-        changes = self.machine.block_failed_dependents([prerequisite, dependent])
-        self.assertEqual("BLOCKED", dependent["state"])
-        self.assertEqual("依赖 base 未完成", dependent["terminal_reason"])
+        records = [prerequisite, dependent]
+        changes = self.machine.block_failed_dependents(records)
+        self.assertEqual("QUEUED", dependent["state"])
+        self.assertEqual("BLOCKED", records[1]["state"])
+        self.assertEqual("依赖 base 未完成", records[1]["terminal_reason"])
         self.assertEqual("dependent", changes[0][0])
         event_path = self.storage.events_dir / "dependent.jsonl"
         event = json.loads(event_path.read_text(encoding="utf-8").strip())
         self.assertEqual(("QUEUED", "BLOCKED"), (event["from"], event["to"]))
+
+    def test_regular_queued_to_blocked_remains_illegal(self) -> None:
+        with self.assertRaisesRegex(InvalidTransition, "illegal transition: QUEUED -> BLOCKED"):
+            self.machine.transition(
+                task(), QueueState.BLOCKED, actor="queue-engine", reason="no freeze gate"
+            )
+
+    def test_dependency_freeze_requires_queued_source(self) -> None:
+        with self.assertRaisesRegex(InvalidTransition, "requires a QUEUED source"):
+            self.machine.transition(
+                task(state="FAILED"),
+                QueueState.BLOCKED,
+                actor="queue-engine",
+                reason="wrong source",
+                freeze="dependency",
+            )
+
+    def test_dependency_freeze_requires_controlled_actor(self) -> None:
+        with self.assertRaisesRegex(InvalidTransition, "only by queue-engine, brain, or human"):
+            self.machine.transition(
+                task(),
+                QueueState.BLOCKED,
+                actor="developer",
+                reason="wrong actor",
+                freeze="dependency",
+            )
+
+    def test_freeze_gate_only_targets_blocked(self) -> None:
+        with self.assertRaisesRegex(InvalidTransition, "only targets BLOCKED"):
+            self.machine.transition(
+                task(),
+                QueueState.EXECUTING,
+                actor="queue-engine",
+                reason="wrong target",
+                freeze="dependency",
+            )
+
+    def test_unclear_audit_freeze_requires_controlled_actor(self) -> None:
+        with self.assertRaisesRegex(InvalidTransition, "only by auditor or brain"):
+            self.machine.transition(
+                task(),
+                QueueState.BLOCKED,
+                actor="developer",
+                reason="wrong actor",
+                freeze="unclear_audit",
+            )
+
+    def test_unclear_audit_freeze_rejects_terminal_sources(self) -> None:
+        for state in ("COMPLETED", "CANCELLED"):
+            with self.subTest(state=state):
+                with self.assertRaisesRegex(InvalidTransition, "terminal task cannot be frozen"):
+                    self.machine.transition(
+                        task(state=state),
+                        QueueState.BLOCKED,
+                        actor="auditor",
+                        reason="terminal source",
+                        freeze="unclear_audit",
+                    )
+
+    def test_unknown_freeze_gate_is_rejected(self) -> None:
+        with self.assertRaisesRegex(InvalidTransition, "unknown freeze gate"):
+            self.machine.transition(
+                task(),
+                QueueState.BLOCKED,
+                actor="queue-engine",
+                reason="unknown gate",
+                freeze="other",
+            )
+
+    def test_state_changes_have_single_formal_write_path(self) -> None:
+        queue_engine = Path(__file__).resolve().parents[1] / "queue_engine"
+        assignment = re.compile(r"\[\s*(?:\"state\"|'state')\s*\]\s*=(?!=)")
+        expected_counts = {
+            "state_machine.py": 1,
+            "priority_deps.py": 0,
+            "auto_relay_poc.py": 0,
+        }
+        for filename, expected in expected_counts.items():
+            with self.subTest(filename=filename):
+                source = (queue_engine / filename).read_text(encoding="utf-8")
+                self.assertEqual(expected, len(assignment.findall(source)))
 
     def test_blocked_release_requires_human_or_brain(self) -> None:
         blocked = task(state="BLOCKED", retry_count=2)

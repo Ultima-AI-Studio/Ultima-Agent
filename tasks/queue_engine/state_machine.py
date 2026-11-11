@@ -36,6 +36,7 @@ _ALLOWED: dict[QueueState, frozenset[QueueState]] = {
     QueueState.CANCELLED: frozenset(),
 }
 _HUMAN_ACTORS = frozenset({"human", "brain"})
+_DEPENDENCY_FREEZE_ACTORS = frozenset({"queue-engine", "brain", "human"})
 
 
 class StateMachine:
@@ -50,24 +51,45 @@ class StateMachine:
         actor: str,
         reason: str,
         audit_passed: bool = False,
+        freeze: str | None = None,
     ) -> tuple[dict[str, Any], dict[str, str]]:
         """Return an updated copy and append its event only after all guards pass."""
+        if freeze not in {None, "dependency", "unclear_audit"}:
+            raise InvalidTransition(f"unknown freeze gate: {freeze!r}")
+
         source = self._state(task.get("state"))
         destination = self._state(target)
-        if destination not in _ALLOWED[source]:
-            raise InvalidTransition(f"illegal transition: {source.value} -> {destination.value}")
-        if destination is QueueState.COMPLETED and not audit_passed:
-            raise InvalidTransition("AUDIT -> COMPLETED requires an explicit audit PASS")
-        if source is QueueState.BLOCKED and actor not in _HUMAN_ACTORS:
-            raise InvalidTransition("BLOCKED may be released only by human or brain")
+
+        if freeze is not None:
+            if destination is not QueueState.BLOCKED:
+                raise InvalidTransition("freeze gate only targets BLOCKED")
+            if source in {QueueState.COMPLETED, QueueState.CANCELLED}:
+                raise InvalidTransition(f"terminal task cannot be frozen: {source.value}")
+            if freeze == "dependency":
+                if source is not QueueState.QUEUED:
+                    raise InvalidTransition("dependency freeze requires a QUEUED source")
+                if actor not in _DEPENDENCY_FREEZE_ACTORS:
+                    raise InvalidTransition(
+                        "dependency freeze may be requested only by queue-engine, brain, or human"
+                    )
+            if freeze == "unclear_audit" and actor not in {"auditor", "brain"}:
+                raise InvalidTransition("unclear audit may be blocked only by auditor or brain")
+        else:
+            if destination not in _ALLOWED[source]:
+                raise InvalidTransition(f"illegal transition: {source.value} -> {destination.value}")
+            if destination is QueueState.COMPLETED and not audit_passed:
+                raise InvalidTransition("AUDIT -> COMPLETED requires an explicit audit PASS")
+            if source is QueueState.BLOCKED and actor not in _HUMAN_ACTORS:
+                raise InvalidTransition("BLOCKED may be released only by human or brain")
 
         retry_count = self._retry_count(task)
-        if source is QueueState.FAILED and destination is QueueState.QUEUED:
-            if retry_count >= 2:
-                raise InvalidTransition("retry limit reached; FAILED must transition to BLOCKED")
-            retry_count += 1
-        if source is QueueState.FAILED and destination is QueueState.BLOCKED and retry_count < 2:
-            raise InvalidTransition("FAILED may transition to BLOCKED only after retryCount >= 2")
+        if freeze is None:
+            if source is QueueState.FAILED and destination is QueueState.QUEUED:
+                if retry_count >= 2:
+                    raise InvalidTransition("retry limit reached; FAILED must transition to BLOCKED")
+                retry_count += 1
+            if source is QueueState.FAILED and destination is QueueState.BLOCKED and retry_count < 2:
+                raise InvalidTransition("FAILED may transition to BLOCKED only after retryCount >= 2")
 
         updated = dict(task)
         updated["state"] = destination.value
@@ -96,7 +118,7 @@ class StateMachine:
         """Block queued dependents whose prerequisite is currently failed or blocked."""
         states = {task["task_id"]: self._state(task["state"]) for task in tasks}
         changes: list[tuple[str, dict[str, str]]] = []
-        for task in tasks:
+        for index, task in enumerate(tasks):
             if self._state(task["state"]) is not QueueState.QUEUED:
                 continue
             failed_dependencies = [
@@ -107,14 +129,15 @@ class StateMachine:
             if not failed_dependencies:
                 continue
             dependency = failed_dependencies[0]
-            source = QueueState.QUEUED
-            destination = QueueState.BLOCKED
             reason = f"依赖 {dependency} 未完成"
-            task["state"] = destination.value
-            task["updated_at"] = datetime.now(UTC).isoformat()
-            task["terminal_reason"] = reason
-            event = self._event(source, destination, reason, actor)
-            self._append(task["task_id"], event)
+            updated, event = self.transition(
+                task,
+                QueueState.BLOCKED,
+                actor=actor,
+                reason=reason,
+                freeze="dependency",
+            )
+            tasks[index] = updated
             changes.append((task["task_id"], event))
         return changes
 
@@ -122,19 +145,13 @@ class StateMachine:
         self, task: dict[str, Any], *, actor: str, reason: str
     ) -> tuple[dict[str, Any], dict[str, str]]:
         """Fail closed when an audit/watchdog cannot establish completion evidence."""
-        source = self._state(task.get("state"))
-        if source in {QueueState.COMPLETED, QueueState.CANCELLED}:
-            raise InvalidTransition(f"terminal task cannot be audit-blocked: {source.value}")
-        if actor not in {"auditor", "brain"}:
-            raise InvalidTransition("unclear audit may be blocked only by auditor or brain")
-        destination = QueueState.BLOCKED
-        updated = dict(task)
-        updated["state"] = destination.value
-        updated["updated_at"] = datetime.now(UTC).isoformat()
-        updated["terminal_reason"] = reason
-        event = self._event(source, destination, reason, actor)
-        self._append(task["task_id"], event)
-        return updated, event
+        return self.transition(
+            task,
+            QueueState.BLOCKED,
+            actor=actor,
+            reason=reason,
+            freeze="unclear_audit",
+        )
 
     def _append(self, task_id: str, event: dict[str, str]) -> None:
         if self.storage is not None:
