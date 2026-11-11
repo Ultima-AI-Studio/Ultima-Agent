@@ -560,6 +560,55 @@ def _constrain_reply(
 
 _ASK_ACK_TEXT = "好的，我现在去安排。"
 
+# 验收表态：只有用户亲口说这些词，才收回探针、宣布完成；说别的（尤其否定）都不收。
+_ACCEPT_PATTERN = re.compile(
+    r"^(可以|可以了|行|行了|好的|好|ok|OK|Ok|okay|没问题|没毛病|通过|就这样|就这样吧|"
+    r"不错|挺好|满意|成|中)[。！!，,~～\s]*$"
+)
+# 否定/返工信号：命中就当普通诉求走，绝不因为句子里带个「行」就把探针收了。
+_REJECT_HINT = re.compile(r"不行|不好|重做|重来|不对|有问题|不满意|再改|还要改")
+
+
+def _try_accept(query: str) -> dict[str, Any] | None:
+    """用户表态验收时就地收探针：不再派单，宣布这单完成。
+
+    只在「确实有待验收的单子」时生效；没有待验收单时，这句「可以」按普通回答处理。
+    """
+    text = (query or "").strip()
+    if _REJECT_HINT.search(text):
+        return None
+    if not _ACCEPT_PATTERN.match(text):
+        return None
+    try:
+        try:
+            from .agent_tools_ultima import accept_latest
+        except ImportError:  # pragma: no cover - 脚本入口
+            from agent_tools_ultima import accept_latest
+
+        payload = accept_latest()
+    except Exception:
+        return None
+    if not payload:
+        return None
+    done = "好，这单我收了，任务算完成。"
+    EVENT_BUS.emit_event("message", {"text": done, "role": "jarvis"})
+    # phase 里出现「完成」，四角壳左下窗口会自动把这张任务卡清掉
+    EVENT_BUS.emit_event(
+        "task_advance",
+        {
+            "task_id": str(payload.get("task") or "")[:18],
+            "phase": "已完成 · 验收通过",
+            "state": "done",
+        },
+    )
+    return {
+        "content": done,
+        "reply_text": done,
+        "intent": "accept",
+        "dispatch_id": payload.get("dispatch_id", ""),
+        "tool_results": [],
+    }
+
 _ASK_CLASSIFY_SYSTEM = (
     "你只需要做一件事：判断用户这句话，是要你动手改东西（改代码、修功能、开发、制作、设计、接入、优化），"
     "还是只要一个回答（查时间、问状态、问原因、闲聊）。\n"
@@ -609,6 +658,15 @@ def _ask_task_branch(query: str) -> dict[str, Any]:
     """任务类分段应答：先答应，再派单，后续由后台线程逐环节汇报。"""
     EVENT_BUS.emit_event("message", {"text": _ASK_ACK_TEXT, "role": "jarvis"})
     EVENT_BUS.emit_event("stream_start", {"text": "已接单，正在派给审计外脑…"})
+    # 四角壳左下任务窗口：这张卡一出现，就代表探针挂上了，直到用户验收才摘
+    EVENT_BUS.emit_event(
+        "task_advance",
+        {
+            "task_id": " ".join((query or "").split())[:18],
+            "phase": "已接单 · 正在派给策划部",
+            "state": "accepted",
+        },
+    )
 
     dispatch_id = ""
     try:
@@ -647,6 +705,10 @@ def ask_once(query: str, max_tokens: int | None = None) -> dict[str, Any]:
     - 完成回复 → message（w-msg 流：AI 气泡）
     """
     EVENT_BUS.emit_event("message_in", {"text": query, "role": "user"})
+    # 先看这句是不是「验收表态」：是，就收掉待验收的探针并宣布完成，不再派单
+    accepted = _try_accept(query)
+    if accepted is not None:
+        return accepted
     # 分段应答第一段：先判这是「要动手的活」还是「要个回答」。
     # 任务类立刻答应并派单，不进 ReAct——既快，也断掉它自由编「我已经修好了」的路。
     if _classify_intent(query) == "task":

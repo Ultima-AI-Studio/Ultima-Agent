@@ -572,6 +572,26 @@ def _now_iso() -> str:
     return datetime.now().astimezone().isoformat(timespec="seconds")
 
 
+def _event_bus():
+    """取 server 进程正在用的那个总线实例（见 L141：不能按包路径 import）。"""
+    bus = None
+    # 与启动方式对齐：脚本启动时模块名是 events，包导入时是 src.brain.events。
+    for mod_name in ("events", "src.brain.events"):
+        module = sys.modules.get(mod_name)
+        getter = getattr(module, "get_event_bus", None) if module is not None else None
+        if getter is not None:
+            bus = getter()
+            break
+    if bus is None:
+        # 兜底：直接复用 server 进程里那个实例（脚本启动时它在 __main__）
+        for name, module in list(sys.modules.items()):
+            if name in ("agent_server", "__main__") or name.endswith(".agent_server"):
+                if getattr(module, "EVENT_BUS", None) is not None:
+                    bus = module.EVENT_BUS
+                    break
+    return bus
+
+
 def _notify_event(text: str) -> None:
     """把派单进展推到事件总线（语音/面板消费）。推送失败不影响派单结果落盘。
 
@@ -579,31 +599,72 @@ def _notify_event(text: str) -> None:
     agent_server 是以脚本方式启动的（python src/brain/agent_server.py），
     它的导入会 fallback 到模块名 `events`；这里若按 `src.brain.events` 导入，
     拿到的是**另一个**总线实例，事件推了没人收——整条主动汇报会静默失效。
-    所以这里复用 agent_server 已经在用的那个 EVENT_BUS。
     """
     try:
-        bus = None
-        # 与启动方式对齐取同一个总线实例：脚本启动时模块名是 events，
-        # 包导入时是 src.brain.events；两条路都指向同一份 events 模块。
-        for mod_name in ("events", "src.brain.events"):
-            module = sys.modules.get(mod_name)
-            getter = getattr(module, "get_event_bus", None) if module is not None else None
-            if getter is not None:
-                bus = getter()
-                break
-        if bus is None:
-            # 兜底：直接复用 server 进程里那个实例（脚本启动时它在 __main__）
-            for name, module in list(sys.modules.items()):
-                if name in ("agent_server", "__main__") or name.endswith(".agent_server"):
-                    if getattr(module, "EVENT_BUS", None) is not None:
-                        bus = module.EVENT_BUS
-                        break
+        bus = _event_bus()
         if bus is None:
             sys.stderr.write("[dispatch] 事件总线不可用，进度未推送\n")
             return
         bus.emit_event("message", {"text": text, "role": "jarvis"})
     except Exception as exc:  # noqa: BLE001 - 事件总线不可用不是派单失败
         sys.stderr.write(f"[dispatch] 进度推送失败：{type(exc).__name__}: {exc}\n")
+
+
+def _emit_task_advance(title: str, phase: str, state: str = "", dispatch_id: str = "") -> None:
+    """把任务推进过程推给四角壳左下 QUEUE 窗口（task_advance → left-bottom）。
+
+    四角壳约定：data.task_id 是卡片标题（这里放任务简称，不暴露工单号），
+    data.phase 是阶段文字；phase 含「完成」时前端会自动清掉这张卡。
+    """
+    try:
+        bus = _event_bus()
+        if bus is None:
+            return
+        bus.emit_event(
+            "task_advance",
+            {
+                "task_id": title,
+                "phase": phase,
+                "state": state,
+                "dispatch_id": dispatch_id,
+            },
+        )
+    except Exception as exc:  # noqa: BLE001
+        sys.stderr.write(f"[dispatch] 任务推进推送失败：{type(exc).__name__}: {exc}\n")
+
+
+# 探针生命周期：从派出到「用户亲口说可以」之间，单子一直挂在这里，不提前回收。
+_PENDING_ACCEPT: dict[str, dict[str, Any]] = {}
+_PENDING_LOCK = threading.Lock()
+
+
+def _title_of(task: str) -> str:
+    """任务简称：给左下窗口当卡片标题用，太长会挤爆一行。"""
+    text = " ".join(str(task or "").split())
+    return text[:18] + ("…" if len(text) > 18 else "")
+
+
+def _remember_pending(dispatch_id: str, task: str, proposal: str = "") -> None:
+    with _PENDING_LOCK:
+        _PENDING_ACCEPT[dispatch_id] = {"task": task, "proposal": proposal}
+
+
+def pending_tasks() -> list[dict[str, Any]]:
+    with _PENDING_LOCK:
+        return [
+            {"dispatch_id": key, "task": value.get("task", "")}
+            for key, value in _PENDING_ACCEPT.items()
+        ]
+
+
+def accept_latest() -> dict[str, Any] | None:
+    """用户表态验收：收回最近一单探针，返回它的信息（没有待验收单则返回 None）。"""
+    with _PENDING_LOCK:
+        if not _PENDING_ACCEPT:
+            return None
+        dispatch_id = list(_PENDING_ACCEPT.keys())[-1]
+        payload = _PENDING_ACCEPT.pop(dispatch_id)
+    return {"dispatch_id": dispatch_id, **payload}
 
 
 def _deepseek_api_key() -> str:
@@ -679,7 +740,11 @@ def _call_deepseek_planner(task: str) -> str:
 
 
 def _run_dispatch_worker(dispatch_id: str, task: str) -> None:
-    """后台线程：标记 PLANNING → 调外脑 → 落方案或失败原因。"""
+    """后台线程：标记 PLANNING → 调外脑 → 落方案或失败原因。
+
+    探针从这里挂上，一直挂到用户亲口验收（accept_latest）才摘，中途不回收。
+    """
+    title = _title_of(task)
     record = _read_dispatch(dispatch_id) or {"dispatch_id": dispatch_id, "task": task}
     record["state"] = "PLANNING"
     record["updated_at"] = _now_iso()
@@ -689,6 +754,7 @@ def _run_dispatch_worker(dispatch_id: str, task: str) -> None:
         pass
     # 跟踪探针第一拍：确认真派出去了、对面已接手，别让用户以为石沉大海
     _notify_event("策划部已接手，正在拆工单。")
+    _emit_task_advance(title, "策划部接手 · 拆工单中", "planning", dispatch_id)
     try:
         proposal = _call_deepseek_planner(task)
         record = _read_dispatch(dispatch_id) or record
@@ -707,8 +773,12 @@ def _run_dispatch_worker(dispatch_id: str, task: str) -> None:
     # 关键环节主动汇报：方案回来或失败都要说，不能让用户干等、也不知道断没断。
     if record.get("state") == "PLANNED":
         _notify_event("策划部那边有反馈了：方案已经回来，要我讲给你听吗？")
+        # 探针不摘：挂在待验收上，等用户说「可以/行/OK」才收
+        _remember_pending(dispatch_id, task, proposal)
+        _emit_task_advance(title, "方案已回 · 待你验收", "awaiting_accept", dispatch_id)
     elif record.get("state") == "FAILED":
         _notify_event(f"策划部那边出错了：{record.get('error')}")
+        _emit_task_advance(title, "策划部出错 · 要重试吗", "failed", dispatch_id)
 
 
 @ToolRegistry.register("ultima_dispatch")
@@ -775,6 +845,8 @@ class UltimaDispatchTool(BaseTool):
             name=f"dispatch-{dispatch_id}",
             daemon=True,
         ).start()
+        # 左下任务窗口立刻挂出这张卡，探针从这里开始陪跑
+        _emit_task_advance(_title_of(task), "已派给策划部 · 待接手", "dispatched", dispatch_id)
         return ToolResult(
             tool_name=self.tool_id,
             content=(
@@ -876,4 +948,6 @@ __all__ = [
     "UltimaEnvSnapshotTool",
     "UltimaDispatchTool",
     "UltimaDispatchStatusTool",
+    "accept_latest",
+    "pending_tasks",
 ]
