@@ -620,10 +620,8 @@ def _ask_task_branch(query: str) -> dict[str, Any]:
         result = UltimaDispatchTool().execute(task=query)
         dispatch_id = str((result.metadata or {}).get("dispatch_id") or "")
         if result.success:
-            follow = (
-                f"已派给 DeepSeek（审计外脑），派单号 {dispatch_id}。"
-                "它出完工单和方案我马上告诉你。"
-            )
+            # 对用户只说人话，不报工单号；单号留在 metadata 供进度查询用。
+            follow = "已派给策划部，正在出方案。那边一有反馈我马上告诉你。"
         else:
             follow = str(result.content)
     except Exception as exc:  # 派单失败也必须说出来，不能装作派了

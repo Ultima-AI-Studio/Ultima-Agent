@@ -573,13 +573,37 @@ def _now_iso() -> str:
 
 
 def _notify_event(text: str) -> None:
-    """把派单进展推到事件总线（语音/面板消费）。推送失败不影响派单结果落盘。"""
-    try:
-        from src.brain.events import get_event_bus
+    """把派单进展推到事件总线（语音/面板消费）。推送失败不影响派单结果落盘。
 
-        get_event_bus().emit_event("message", {"text": text, "role": "jarvis"})
-    except Exception:  # noqa: BLE001 - 事件总线不可用不是派单失败
-        pass
+    坑：不能直接 `from src.brain.events import get_event_bus`。
+    agent_server 是以脚本方式启动的（python src/brain/agent_server.py），
+    它的导入会 fallback 到模块名 `events`；这里若按 `src.brain.events` 导入，
+    拿到的是**另一个**总线实例，事件推了没人收——整条主动汇报会静默失效。
+    所以这里复用 agent_server 已经在用的那个 EVENT_BUS。
+    """
+    try:
+        bus = None
+        # 与启动方式对齐取同一个总线实例：脚本启动时模块名是 events，
+        # 包导入时是 src.brain.events；两条路都指向同一份 events 模块。
+        for mod_name in ("events", "src.brain.events"):
+            module = sys.modules.get(mod_name)
+            getter = getattr(module, "get_event_bus", None) if module is not None else None
+            if getter is not None:
+                bus = getter()
+                break
+        if bus is None:
+            # 兜底：直接复用 server 进程里那个实例（脚本启动时它在 __main__）
+            for name, module in list(sys.modules.items()):
+                if name in ("agent_server", "__main__") or name.endswith(".agent_server"):
+                    if getattr(module, "EVENT_BUS", None) is not None:
+                        bus = module.EVENT_BUS
+                        break
+        if bus is None:
+            sys.stderr.write("[dispatch] 事件总线不可用，进度未推送\n")
+            return
+        bus.emit_event("message", {"text": text, "role": "jarvis"})
+    except Exception as exc:  # noqa: BLE001 - 事件总线不可用不是派单失败
+        sys.stderr.write(f"[dispatch] 进度推送失败：{type(exc).__name__}: {exc}\n")
 
 
 def _deepseek_api_key() -> str:
@@ -663,6 +687,8 @@ def _run_dispatch_worker(dispatch_id: str, task: str) -> None:
         _write_dispatch(record)
     except OSError:
         pass
+    # 跟踪探针第一拍：确认真派出去了、对面已接手，别让用户以为石沉大海
+    _notify_event("策划部已接手，正在拆工单。")
     try:
         proposal = _call_deepseek_planner(task)
         record = _read_dispatch(dispatch_id) or record
@@ -680,9 +706,9 @@ def _run_dispatch_worker(dispatch_id: str, task: str) -> None:
         pass
     # 关键环节主动汇报：方案回来或失败都要说，不能让用户干等、也不知道断没断。
     if record.get("state") == "PLANNED":
-        _notify_event(f"派单 {dispatch_id} 的方案回来了，要我讲给你听吗？")
+        _notify_event("策划部那边有反馈了：方案已经回来，要我讲给你听吗？")
     elif record.get("state") == "FAILED":
-        _notify_event(f"派单 {dispatch_id} 外脑调用失败：{record.get('error')}")
+        _notify_event(f"策划部那边出错了：{record.get('error')}")
 
 
 @ToolRegistry.register("ultima_dispatch")

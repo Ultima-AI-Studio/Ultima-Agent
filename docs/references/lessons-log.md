@@ -1364,3 +1364,42 @@ native_react 的系统提示词通篇在催「调工具、走循环」，8B 的�
 纪律：
 - 8B 这一档模型的工具面控制，不能靠「少给工具」和「写规则」，只能靠「不给它循环」或「代码前置拦截」。清单与措辞都是软约束。
 - 判断规则是否真的生效，必须看它有没有调出清单外的工具；调得出，说明约束在行为层根本没落地，不能凭「规则已写入」判定通过。
+
+### L141 · 脚本启动的常驻服务里，跨模块 import 事件总线会拿到另一个实例
+
+现象：
+派单后要「逐环节主动汇报」，在 agent_tools_ultima._notify_event 里用
+`from src.brain.events import get_event_bus` 推 message 事件。
+实测 /ask 只收到前两段（好的我现在去安排 / 已派给策划部），
+worker 里的「已接手」「方案回来了」一条都没到前端，但 dispatch 落盘文件
+state=PLANNED、proposal 3004 字齐全——说明 worker 跑了、只是事件没人收。
+
+排查：
+- 同进程测试脚本里 `from src.brain.events import get_event_bus` 与
+  agent_server.EVENT_BUS 是同一实例（is=True），所以单测看不出问题。
+- 看启动脚本 scripts/start-agent-server.ps1：`@("-X","utf8",$server)` ——
+  是**脚本方式**启动，`__name__ == "__main__"`、`__package__` 为空，
+  agent_server 的 `from .events import get_event_bus` 失败后走 fallback
+  `from events import get_event_bus`，总线模块名是 `events`。
+- worker 按 `src.brain.events` 导入 → 模块名不同 → 各自一份单例，
+  emit 进的是没人订阅的那一份，事件静默丢失。
+
+根因：
+事件总线是「进程内单例」，而单例的身份由模块导入路径决定。
+同一个文件用两种路径导入，在 Python 里就是两个模块对象、两份单例。
+脚本启动 vs 包导入切换时，这个前提会悄悄变。
+
+处置：
+_notify_event 改为按已加载模块取总线：优先 sys.modules 里的
+`events` / `src.brain.events` 的 get_event_bus()，兜底扫 `agent_server`/`__main__`
+上的 EVENT_BUS；取不到时向 stderr 报一行，不再静默。
+复测四段全到：
+3.3s 好的我现在去安排 / 3.3s 已派给策划部 / 3.3s 策划部已接手 /
+14.9s 方案已经回来。
+
+纪律：
+- 进程内单例（事件总线、注册表、连接池）跨模块使用时，必须对齐「启动方式决定的模块名」，
+  不能想当然按包路径 import。
+- 推送型能力（事件、通知、进度）验收时必须**订阅端真收一遍**，
+  只看落盘文件或函数返回值会漏掉「推了没人收」这类静默失效。
+- /ask 对外只说人话（好的我去安排 / 已派给策划部），工单号留在 metadata 供查询，不报给用户。
