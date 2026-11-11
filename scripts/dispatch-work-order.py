@@ -478,14 +478,14 @@ def main():
     dor_report = validate_work_order.validate(order_path)
     # 写死易变值只在校验器里作为 warning 登记，由派发门在此处升级为拒派：
     # 历史已冻结卡保持它自己的判定，新卡则在真正派出去之前被拦下。
-    volatile = [
-        item for item in dor_report.warnings
-        if item['code'] == validate_work_order.W_VOLATILE_COUNT_WRITTEN
-    ]
-    blocking = list(dor_report.errors) + volatile
-    if (dor_report.status != 'PASS' or volatile) and not args.skip_dor:
-        print(json.dumps({'dor_status': 'FAIL', 'order': args.order, 'card': str(order_path),
-                          'errors': blocking}, ensure_ascii=False))
+    blocking, refuse = dor_blocking(dor_report, args.skip_dor)
+    if refuse:
+        payload = {'dor_status': 'FAIL', 'order': args.order, 'card': str(order_path),
+                   'errors': blocking}
+        if any(item['code'] == validate_work_order.W_VOLATILE_COUNT_WRITTEN
+               for item in blocking):
+            payload['skip_dor_ignored'] = bool(args.skip_dor)
+        print(json.dumps(payload, ensure_ascii=False))
         return 2
     record = dor_record(args.order, dor_report.status, blocking,
                         skipped=dor_report.status != 'PASS' and args.skip_dor)
@@ -735,6 +735,23 @@ def main():
                 job.close()
             if sentinel_process is not None:
                 await_sentinel(sentinel_process)
+
+
+def dor_blocking(report, skip_dor=False):
+    """返回 (blocking, refuse)。
+
+    写死易变值命中时无条件拒派，不受 --skip-dor 豁免（那是判据质量问题，
+    没有正当跳过理由）；普通 DoR 失败才允许在 skip_dor 下放行并留痕。
+    """
+    volatile = [
+        item for item in report.warnings
+        if item['code'] == validate_work_order.W_VOLATILE_COUNT_WRITTEN
+    ]
+    if volatile:
+        return list(report.errors) + volatile, True
+    if report.status != 'PASS' and not skip_dor:
+        return list(report.errors), True
+    return list(report.errors), False
 
 
 if __name__ == '__main__':

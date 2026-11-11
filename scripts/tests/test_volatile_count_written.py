@@ -63,3 +63,35 @@ def test_volatile_warning_stays_a_warning():
     codes = {item["code"] for item in issues}
     assert codes == {vw.W_VOLATILE_COUNT_WRITTEN}
     assert vw.W_VOLATILE_COUNT_WRITTEN != vw.E_GATE_CONTRADICTION
+
+
+def test_skip_dor_cannot_bypass_volatile(tmp_path):
+    """派发器的 --skip-dor 不得绕过写死易变值的拦截。
+
+    用 0036 卡做真实载荷：它的 L214/L215 是历史病根原文，机检必然命中。
+    若这两句哪天被清掉，本用例会失败，提醒同步更新测试样本——那是预期行为。
+    """
+
+    import subprocess
+
+    repo = Path(__file__).resolve().parents[2]
+    card = repo / 'tasks' / 'queue' / 'wo-ultimaagent-20261110-0036--task-system-rework.md'
+    if not card.exists():
+        pytest.skip('缺少 0036 卡，跳过派发门回归')
+
+    prompt = tmp_path / 'prompt.txt'
+    prompt.write_text('docs/INDEX.md wo-ultimaagent-20261110-0036', encoding='utf-8')
+
+    proc = subprocess.run(
+        [sys.executable, str(repo / 'scripts' / 'dispatch-work-order.py'),
+         '--order', 'wo-ultimaagent-20261110-0036',
+         '--prompt', str(prompt),
+         '--card', str(card),
+         '--dry-run-dor', '--skip-dor'],
+        capture_output=True, text=True, encoding='utf-8', cwd=str(repo),
+    )
+
+    assert proc.returncode == 2, proc.stdout + proc.stderr
+    assert 'W_VOLATILE_COUNT_WRITTEN' in proc.stdout
+    assert 'skip_dor_ignored' in proc.stdout
+
