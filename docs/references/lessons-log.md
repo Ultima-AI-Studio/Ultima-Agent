@@ -1183,3 +1183,12 @@ broken`），整个验收卡在这一步，只能记未完成。
 6. **反例警戒**：首次加 legacy 用了过宽规则（「无 8 位日期」也算），把 124 条（含其他项目）误标；收紧为「仅 UltimaAgent + 前缀系列/202610/无日期」后为 69 条。批量打标必须先打印命中数量与清单，再写回。
 7. **改权威文件的隐性坑**：`queue-status.json` 原文是 LF，我用 Python `write_text` 重写时一次写成 CRLF，diff 从 200 行膨胀到 3300 行全文件重写，无法审计；修正方向时又转错一次。改这类文件必须先用 `git show HEAD:<path>` 检测原换行风格，按原风格写回。
 8. **结果**：P0 92 → 0（活跃窗口 12 → 0），P1 152（其中 76 条带 `LEGACY_` 前缀）。`queue-doctor --strict` exit 0，`render-queue-views --check` 无差异。
+
+### L123 · 判据「诚实化」会让数字变大——升的不是故障率，是原来被猜过的东西
+
+1. **现象**：0037 把 `queue-doctor.py` 从「按命名前缀 / note 文本猜」改成「按 `dispatch-record.json` 内容身份 + `git tag --list` 精确匹配」，P0 0→2（`--strict` exit 0→2）、P1 153→221。
+2. **数字变大不是变坏**：`ORPHAN_RUN` 11→63 新增的 52 条，全部是「run 目录没有 `dispatch-record.json`，归属不可证」。它们本来就不该被判成「有主」，是旧判据用目录前缀替它们做了假验证。**判据放松时数字好看，是因为把不可验证伪装成了通过。**
+3. **规则**：每条 finding 必须带三件套 `evidence` / `classification`（`issue` 或 `unverifiable`）/ `confidence`。把「证明不了」写成「缺失」是另一种造假；写成 `unverifiable` 才是诚实。
+4. **规则：note 判词不能当 run 证据**。「note 写审计完成」≠「存在审计 run」。补上这条后 0019/0020 立刻从 P1 升 P0——正是上一轮靠 note 降级压住的假阴性。降级判据必须校验结论归属，不能只看关键词。
+5. **派发 `blocked` ≠ 执行失败**。第一轮 exit 1 + `runtime-limit.json` 标 BLOCKED（1800s 上限截断，但 T0–T4 已全部落地并两次提交）；第二轮 exit 0 + `receipt_valid: true`，仍落 blocked，原因是 `audit-slot.json` 显示审计名额被 0019/0020/0036 占满。**定性必须读 `runtime-limit.json` 与 `audit-slot.json`，不能只看 state。**
+6. **新暴露的死结**：0019/0020 一边被体检判「缺机器可读审计 run」，一边作为 audit 状态单占着审计名额，0037 因此进不了 audit。名额模型与证据要求互相咬住——名额该按「证据是否齐备」算，不能按「状态停留时长」算。
