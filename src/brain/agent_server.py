@@ -695,6 +695,68 @@ def _ask_task_branch(query: str) -> dict[str, Any]:
     }
 
 
+# 查询类直连：不进 ReAct 工具循环。8B 一旦看到工具清单就会反复试，
+# 实测一次问答能被拖到 30 秒；单次直连带规则 + 当前时间，3-5 秒出话。
+_QUERY_SYSTEM = (
+    "【本轮回话方式】只用一到三句话直接回答，不要调用任何工具，不要规划步骤，"
+    "不要展开方案，不要反问用户是否需要帮忙，不要加服务性结尾，不要联想用户还想问什么。"
+    "不知道就说不知道。"
+)
+
+
+def _ask_query_branch(query: str, max_tokens: int | None = None) -> dict[str, Any]:
+    """查询类：一次直连出答案，不跑 ReAct、不调工具。"""
+    import datetime as _dt
+
+    now = _dt.datetime.now()
+    weekdays = "一二三四五六日"
+    # 注入当前时间作为 grounded 事实：8B 无时间工具，不注入则"现在几点/今天几号"只能兜底
+    time_ctx = "[当前时间：{0:%Y-%m-%d} {0:%H:%M} 星期{1}（北京时间）]".format(
+        now, weekdays[now.weekday()]
+    )
+    # 保留 bounded data 结构：语音原文整段包进带 nonce 的边界，防止被当成指令执行
+    user_content = build_user_data(speech=query, trusted_context=time_ctx).render()
+    payload = {
+        "model": MODEL,
+        "messages": [
+            {"role": "system", "content": f"{MAINBRAIN_SYSTEM_PROMPT}\n{_QUERY_SYSTEM}"},
+            {"role": "user", "content": user_content},
+        ],
+        "stream": False,
+        "options": {
+            "temperature": 0.2,
+            "num_predict": int(max_tokens or DEFAULT_MAX_TOKENS),
+        },
+    }
+    usage: dict[str, Any] = {}
+    content = ""
+    try:
+        request = Request(
+            OLLAMA_CHAT_URL,
+            data=json.dumps(payload, ensure_ascii=False).encode("utf-8"),
+            headers={"Content-Type": "application/json"},
+        )
+        with urlopen(request, timeout=60) as response:
+            data = json.loads(response.read().decode("utf-8"))
+        content = _clean_content(str((data.get("message") or {}).get("content") or ""))
+        usage = data.get("usage") or {}
+    except Exception as exc:  # 直连失败也要如实说，不能装作答完了
+        sys.stderr.write(f"[ask] 查询直连失败：{type(exc).__name__}: {exc}\n")
+    if not content:
+        content = STRUCTURED_FALLBACK_REPLY
+    EVENT_BUS.emit_event("message", {"text": content, "role": "jarvis"})
+    ok = content != STRUCTURED_FALLBACK_REPLY
+    return {
+        "content": content,
+        "reply_text": content,
+        "confidence": 1.0 if ok else 0.0,
+        "grounded": ok,
+        "intent": "query",
+        "tool_results": [],
+        "usage": usage,
+    }
+
+
 def ask_once(query: str, max_tokens: int | None = None) -> dict[str, Any]:
     """执行一轮自主对话：本地 8B 自主决定直接回答或调用工具（并发串行化）。
 
@@ -713,57 +775,10 @@ def ask_once(query: str, max_tokens: int | None = None) -> dict[str, Any]:
     # 任务类立刻答应并派单，不进 ReAct——既快，也断掉它自由编「我已经修好了」的路。
     if _classify_intent(query) == "task":
         return _ask_task_branch(query)
-    j = get_jarvis()
     with _ask_lock:
         EVENT_BUS.emit_event("stream_start", {"text": "Ultima 正在回复…"})
-        # 注入当前时间作为 grounded 事实：8B 无时间工具，不注入则"现在几点/今天几号"只能兜底
-        import datetime as _dt
-
-        _now = _dt.datetime.now()
-        _weekdays = "一二三四五六日"
-        _time_ctx = "[当前时间：{0:%Y-%m-%d} {0:%H:%M} 星期{1}（北京时间）]".format(
-            _now, _weekdays[_now.weekday()]
-        )
-        query_with_ctx = build_user_data(
-            speech=query,
-            trusted_context=_time_ctx,
-        ).render()
-        result = j.ask_full(
-            query_with_ctx,
-            agent=AGENT,
-            tools=ANSWER_TOOLS,
-            context=False,
-            max_tokens=max_tokens or DEFAULT_MAX_TOKENS,
-        )
-    draft = _clean_content(result.get("content", ""))
-    tool_results = result.get("tool_results", [])
-    structured_reply, degraded = _constrain_reply(query_with_ctx, draft, tool_results)
-    content = structured_reply.reply_text
-    for tr in tool_results:
-        EVENT_BUS.emit_event(
-            "tool_executing",
-            {"tool": tr.get("tool_name", "tool"), "name": tr.get("tool_name", "tool")},
-        )
-        EVENT_BUS.emit_event(
-            "tool_call",
-            {
-                "tool": tr.get("tool_name", "tool"),
-                "name": tr.get("tool_name", "tool"),
-                "text": (tr.get("content") or "")[:200],
-                "ok": bool(tr.get("success")),
-            },
-        )
-    EVENT_BUS.emit_event("message", {"text": content, "role": "jarvis"})
-    return {
-        "content": content,
-        "reply_text": structured_reply.reply_text,
-        "confidence": structured_reply.confidence,
-        "grounded": structured_reply.grounded,
-        "structured_reply": structured_reply.to_dict(),
-        "structured_degraded": degraded,
-        "tool_results": tool_results,
-        "usage": result.get("usage", {}),
-    }
+        # 查询类不再进 ReAct：一次直连出答案（ReAct 两轮实测 30 秒，太慢）
+        return _ask_query_branch(query, max_tokens)
 
 
 class _Handler(BaseHTTPRequestHandler):
