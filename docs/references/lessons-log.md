@@ -1246,3 +1246,11 @@ broken`），整个验收卡在这一步，只能记未完成。
 3. **规则**：评估语音链路要不要继续投入，先按三层拆开看——① 前端 DSP（AGC / NS / VAD / 麦阵列）② ASR / TTS 后端（本地还是云端、是否流式）③ 编排（采集等待、回合结束判定）。**哪一层是短板就换那一层，不要用调参数去补结构缺口**；当三层同时缺两到三层时，正确处置是整体判退换方案，而不是继续打补丁。
 4. **修法**：判退后按收益排序换——① TTS 换 CosyVoice2 / GPT-SoVITS（本地，3060 够）或云端 TTS；② 前端加 AGC + RNNoise 降噪（纯软件，`sounddevice` 已具备）；③ ASR 改流式，把 6.2s 压到 1–2s。三块全用现成开源/API、不自研；PC 算力远强于 ESP32，换完应显著优于玩具级产品。
 5. **纪律**：判退必须落成队列动作（`state→cancelled` + note 写清判退依据 + 释放审计名额），并同步看板与教训；**不要一边判退一边让旧服务继续跑**——先 `launch.py --stop` 并确认 `state=stopped`、单实例锁释放，再改队列。
+
+### L132 · 给语音链路补前端 DSP 时暴露的两个坑：venv 无 pip、AEC 强制要 far；且 NS 换不来转录收益
+
+1. **现象**：给 `tools/venv-voice-next` 装 `pywebrtc-audio` 时连撞两个坑——① 该 venv 是 stripped/uv 方式建的，`Scripts\pip.exe` 不存在，`python -m pip` 直接报 `No module named pip`；② 包内 `AudioProcessor` 一旦 `echo_cancellation=True`，`process(near, far=None)` 立刻抛 `ValueError: far is required when echo_cancellation is enabled`。
+2. **规则**：给项目 venv 装包前先探 pip 是否存在，缺失用 `python -m ensurepip --upgrade` 补齐（本例补到 pip 26.1.2，未动系统环境）；AEC 是**双端算法**，必须有播放回灌的 far 参考信号，离线/纯降噪场景必须显式关掉 AEC，否则拿不到任何输出。
+3. **实测**（`data/voice/mic-regress/jarvis-three-words.wav`，44.1k→16k）：AGC 真实生效——RMS 3336.7 → 11073.3（**+10.5dB**），`gain_db` 均值 10.47、峰值 15.0；`speech_probability` 区间 0.10–0.94 可读；APM 前后 SenseVoice 均正确识别「贾维斯」。
+4. **反直觉结论（重要）**：受控加噪（白噪 10/5/0/−5 dB）后，**未降噪的原始噪声段 SenseVoice 仍全部识别正确**——噪声不是这次转录退化的主因。前端 DSP 这一层买到的是 **AGC（电平）与 AEC（回声）**，买不到转录准确率；不要再把「加降噪」当成「修转录」的手段，L131 中「加 AGC + RNNoise 降噪」对转录的预期要相应下调。
+5. **固化**：`pywebrtc-audio==0.2.0` 写入 `src/voice-next/requirements.lock.txt` 与 `requirements-live.lock.txt`（前者 CRLF、后者 LF，均无 BOM，按原行尾插入）；未改任何运行代码。
