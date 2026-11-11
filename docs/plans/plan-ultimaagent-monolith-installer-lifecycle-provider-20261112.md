@@ -6,6 +6,15 @@
 - 日期：2026-11-12
 - 状态：**待 Owner 评审**（评审通过后转工单，按 G-PLAN-001 方案随工单落盘）
 
+## Owner 已拍板决策（覆盖原方案）
+
+| # | 决策 | 落点 |
+|---|---|---|
+| 1 | 主脑不随安装包，用户自选（ollama / LM Studio / vLLM / 外脑 API） | §4 全章 |
+| 2 | 主脑选择走 **A 方案：安装向导里选**，后期可改 | §4.3 |
+| 3 | `AppId` 固定为 `FFA6A681-C07D-4E5F-A96F-32BB42F2FAB6` | §4.1 / §5.1 |
+| 4 | **卸载只卸载程序，用户数据（配置/日志/记忆/会话）一律不删** | §5.5（结构性分离：程序在 `%LOCALAPPDATA%`，数据在 `%APPDATA%`） |
+
 ## 审校修正记录（DeepSeek 无仓库访问权导致的偏差，已逐条修正）
 
 | # | 级别 | DeepSeek 原文 | 事实 | 处置 |
@@ -14,7 +23,7 @@
 | 2 | 严重 | 卸载调 `python -m voicedaemon stop` | 工程内无此模块 | 改为 `src/voice-next/launch.py --stop` |
 | 3 | 中 | 测试路径 `tests/brain/test_providers.py` | 实际目录是 `src/brain/tests/` | 已改 |
 | 4 | 中 | installer 路径 `dist/installer/...` 与 `installer/...` 两处不一致 | 仓库本无 installer 目录，需新建 | 统一为 `installer/` |
-| 5 | 中 | `AppId={{8F3C1A2E-ULTIMA-AGENT-0001}}` | 非法 GUID 格式，Inno 不接受 | 改为合法占位并标注 |
+| 5 | 中 | `AppId={{8F3C1A2E-ULTIMA-AGENT-0001}}` | 非法 GUID 格式，Inno 不接受 | **已改为固定 GUID `FFA6A681-C07D-4E5F-A96F-32BB42F2FAB6`（Owner 已拍板）** |
 | 6 | 中 | 「首个可交互帧 ≤1.5s，当前约 4.2s」 | 该 4.2s 无实测依据，属推演 | 保留 1.5s 作目标，基线须 Phase 3 实测后再定 |
 | 7 | 轻 | §3.5 称 Preload「删除」、Phase 1 又称「临时保留」 | 前后矛盾 | 统一为：**用户安装包内不存在；开发机保留** |
 | 8 | 轻 | §4.2 提到「不是 `app\UltimaAgent.exe`」 | 该文件不存在，属虚构对照 | 表述作废，以 HostShell.exe 为准 |
@@ -210,7 +219,7 @@ Inno Setup 自定义页 `TInputQueryWizardPage` **不做**——太窄。用 `TW
 2. 填 `base_url`（默认预填：ollama `http://127.0.0.1:11434` / 其他空）+ `model` + `api_key`（ollama/llama.cpp 无此项，选"Ollama"时禁用）。
 3. "试连通"按钮 → 调用 `UltimaAgent.Installer.Probe.exe`（小 .NET 控制台，随 Inno 打入 `{tmp}`，**不违规**：它是安装期进程）→ 回调显示 `ok / 错误原文`。
 4. 全部通过才允许 `Next`；失败可"稍后配置"（写 `installer.state.json: configured=false`）。
-5. 完成后写 `%LOCALAPPDATA%\UltimaAgent\Config\installer.state.json`；`api_key` 走 `keyring`（.NET 侧 `ProtectedData.Protect` 写 DPAPI 密文入 `secrets.dat`），**明文不落盘**。
+5. 完成后写 `%APPDATA%\UltimaAgent\Config\installer.state.json`；`api_key` 走 `keyring`（.NET 侧 `ProtectedData.Protect` 写 DPAPI 密文入 `secrets.dat`），**明文不落盘**。
 
 **实现落点**：`installer/ultimaagent.iss` + `installer/Probe/Probe.csproj`（target `net8.0`，framework-dependent，约 30KB）。
 
@@ -245,7 +254,7 @@ Inno Setup 自定义页 `TInputQueryWizardPage` **不做**——太窄。用 `TW
 
 ### 4.7 配置格式
 
-`%LOCALAPPDATA%\UltimaAgent\Config\brain.json`（明文，`kb` 级，可进备份）：
+`%APPDATA%\UltimaAgent\Config\brain.json`（明文，`kb` 级，可进备份）：
 
 ```json
 {
@@ -284,7 +293,7 @@ Inno Setup 自定义页 `TInputQueryWizardPage` **不做**——太窄。用 `TW
 **理由**：CV3 daemon 的锁文件走 `%TEMP%`、模型目录需要读（无需写但 venv 需写 `__pycache__`）、`data/voice-next/status.json` 需写。`Program Files` 下 UAC 提权损坏了"用户级应用"语义，且**首次运行 venv 编译 `.pyc` 会失败**。代价：多用户机器每用户一份 5.7GB——**接受**，因为这是桌面消费级产品而非企业分发。
 
 ```
-%LOCALAPPDATA%\UltimaAgent\
+%LOCALAPPDATA%\UltimaAgent\      ← 程序（卸载时删除）
   App\HostShell\UltimaAgent.HostShell.exe + OrbNative\
   Runtime\python313\  + venv-openjarvis\ + venv-asr\
   Runtime\python310\  (CV3 torch，从 cv3\TtsProbe\runtime310 原样复制)
@@ -293,9 +302,11 @@ Inno Setup 自定义页 `TInputQueryWizardPage` **不做**——太窄。用 `TW
   Asr\models\qwen3-asr-0.6B-int8\ fire-red-asr2-ctc\ sense-voice\
   Kws\models\zipformer-wenetspeech\
   Brain\ (py + venv 复用 python313)
-  Config\ (installer.state.json, brain.json)
-  Data\ (logs, voice-next\status.json, pids)
   unins000.exe
+
+%APPDATA%\UltimaAgent\          ← 用户数据（卸载永久保留，见 §5.5）
+  Config\  brain.json  installer.state.json
+  Data\    logs\  memory\  sessions\  voice-next\status.json  pids\  secrets.dat
 ```
 
 **注意**：`Runtime\python310` 与 `Runtime\python313` 并存，PATH 不互相污染——launch.py 与 agent_server 各自 `sys.executable` 隔离（现状已如此）。**唯一**重定向：daemon.py 里 `subprocess.Popen` 必须显式 `env["PYTHONPATH"]` 清空、`env["VIRTUAL_ENV"]` 清空，防止从 HostShell 继承的 `PYTHONHOME` 污染 3.10 解释器。这是本方案必须新加的 `daemon.py` 改动（约 6 行）。
@@ -315,18 +326,63 @@ Inno Setup 自定义页 `TInputQueryWizardPage` **不做**——太窄。用 `TW
 
 - 复用现有 75/75 哈希：新增 `tools/verify-models.py`（读 `dist/artifact-inventory.json` 中的 `sha256` 清单，逐文件比对）。
 - **两次调用**：① `ultimaagent.iss` 的 `[Run]` 中 `installer.Probe.exe verify-models`（打包时内嵌一份 inventory）；② `MainWindow.xaml.cs` 在 L0 阶段后台 `python313 -m tools.verify_models --fast`（仅校验 4 个 CV3 权重，~30s），失败则 Banner 报"模型损坏，重装"。
-- **判据**：`%LOCALAPPDATA%\UltimaAgent\Data\logs\models-verify.log` 每次启动必产，含 `"checked": N, "failed": M`。
+- **判据**：`%APPDATA%\UltimaAgent\Data\logs\models-verify.log` 每次启动必产，含 `"checked": N, "failed": M`。
 
-### 5.5 卸载清洁
+### 5.5 卸载清洁（只卸载程序，用户数据永久保留）
 
-`ultimaagent.iss` 的 `[UninstallRun]`：
-1. `taskkill /F /IM UltimaAgent.HostShell.exe`（若系统托盘残留）；
-2. `taskkill /F /IM python.exe /FI "WINDOWTITLE eq *ultima*"`——风险：会误杀别的 python？**改用**：从 `%LOCALAPPDATA%\UltimaAgent\Data\pids\*.pid` 逐个 `taskkill /PID /F`，Path 精确。**这是本方案的卸载安全约束**；
-3. Job Object 保证正常退出时无残留；卸载的 taskkill 是兜底。
-4. `[UninstallDelete]` 删 `%LOCALAPPDATA%\UltimaAgent` 全目录（含 Data/Config）；**不删** `%TEMP%\ultima-voicedaemon-*.pid`（不能扫用户 TEMP），靠 daemon 侧 `_stale_holder_pid` 自愈。
-5. **验收判据**：卸载后 `%LOCALAPPDATA%\UltimaAgent` 不存在、`Get-Process *python*` 无 UltimaAgent 系进程、`schtasks /query *UltimaAgent*` 无条目。
+**Owner 拍板原则（最高优先级）**：卸载 = 移除程序本体。**用户的数据一律不删**——配置、日志、记忆、会话历史、语音状态全部保留，重装后原样接续。
 
----
+#### 5.5.1 目录职责分离（这是"不删数据"的结构性保证）
+
+| 目录 | 内容 | 卸载行为 |
+|---|---|---|
+| `%LOCALAPPDATA%\UltimaAgent\` | 程序本体：`App\ / Runtime\ / Voice\source\ / Voice\models\ / Asr\ / Kws\ / Brain\` | **删除** |
+| `%APPDATA%\UltimaAgent\` | 用户数据：`Config\`（brain.json / installer.state.json）、`Data\`（logs / memory / 会话历史 / voice-next\status.json / pids / secrets.dat） | **永久保留，卸载器不触碰** |
+
+把用户数据放在 **Roaming APPDATA 而非程序目录**，是让"不删数据"成为物理事实，而不是依赖卸载清单写对。卸载器只按 `{app}` 删，用户数据目录根本不在它的路径范围内。
+
+#### 5.5.2 Inno 脚本约束
+
+```ini
+[UninstallRun]
+Filename: "{sys}\taskkill.exe"; Parameters: "/F /IM UltimaAgent.HostShell.exe"; Flags: runhidden; RunOnceId: "KillHostShell"
+Filename: "{app}\Runtime\venv-voice-next\Scripts\python.exe"; \
+  Parameters: "{app}\Voice\src\voice-next\launch.py --stop"; \
+  Flags: runhidden waituntilterminated; RunOnceId: "StopVoiceDaemon"
+Filename: "{app}\Runtime\python313\python.exe"; \
+  Parameters: "{app}\Brain\stop_agent_server.py"; \
+  Flags: runhidden waituntilterminated; RunOnceId: "StopAgentServer"
+
+[UninstallDelete]
+; 只清程序目录树，逐项显式列出（不用一条 {app} 全删，避免未来有人往 {app} 里塞用户数据）
+Type: filesandordirs; Name: "{app}\App"
+Type: filesandordirs; Name: "{app}\Runtime"
+Type: filesandordirs; Name: "{app}\Voice"
+Type: filesandordirs; Name: "{app}\Asr"
+Type: filesandordirs; Name: "{app}\Kws"
+Type: filesandordirs; Name: "{app}\Brain"
+```
+
+**硬约束**：`[UninstallDelete]` 里**禁止**出现 `{userappdata}`、`{appdata}`、`{localappdata}\UltimaAgent\*` 的通配、或任何指向 `%APPDATA%\UltimaAgent` 的条目。这条要写进脚本头注释，并在打包检查里做静态断言。
+
+#### 5.5.3 残留进程清理（不能误杀）
+
+1. `taskkill /F /IM UltimaAgent.HostShell.exe`——精确进程名，安全。
+2. 语音与主脑按 **pid 文件精确杀**：从 `%APPDATA%\UltimaAgent\Data\pids\*.pid` 逐个 `taskkill /PID <pid> /F`。**禁止**用 `taskkill /IM python.exe` 通配——会误杀用户自己的其它 Python 进程。
+3. Job Object 兜底：正常退出时子进程已被内核回收，卸载阶段的 taskkill 只是异常残留的保险。
+4. `%TEMP%\ultima-voice-daemon-*.pid` 不主动扫（不能遍历用户 TEMP），靠 daemon 侧 `_stale_holder_pid` 自愈。
+
+#### 5.5.4 想清数据的用户怎么办
+
+卸载**不提供**"同时删除我的数据"选项——按 Owner 要求，卸载只做卸载。清数据走**应用内设置页**的「重置并清除本机数据」入口（二次确认 + 明确列出将删除的目录），不混进安装/卸载流程。
+
+#### 5.5.5 验收判据（三条，缺一不可）
+
+| # | 判据 | 复现命令 |
+|---|---|---|
+| 1 | 程序目录已清空 | `Test-Path "%LOCALAPPDATA%\UltimaAgent"` 返回 `False` |
+| 2 | **用户数据原样保留** | `%APPDATA%\UltimaAgent\Config\brain.json` 与 `Data\` 下文件逐个比对卸载前快照 sha256，**必须完全一致** |
+| 3 | 无进程与任务残留 | `Get-Process *python*` 无 UltimaAgent 系；`schtasks /query *UltimaAgent*` 无条目 |
 
 ## 6. 分阶段实施
 
@@ -373,7 +429,7 @@ Inno Setup 自定义页 `TInputQueryWizardPage` **不做**——太窄。用 `TW
 - 关键 `[Setup]` 段：
 
 ```ini
-AppId={{8F3C1A2E-0000-4000-8000-ULTIMAAGENT01}}  ; 审校修正：Inno 要求标准 GUID 格式，此处为占位，正式值待 Owner 指定
+AppId={{FFA6A681-C07D-4E5F-A96F-32BB42F2FAB6}
 AppName=UltimaAgent
 AppVersion={#AppVersion}
 DefaultDirName={localappdata}\UltimaAgent
@@ -391,7 +447,7 @@ CloseApplications=yes
 RestartApplications=no
 ```
 
-`{localappdata}\UltimaAgent` 安装即落在用户侧，**不需要管理员权限**，与第 5 节卸载判据（`%LOCALAPPDATA%\UltimaAgent` 被清空）自洽。
+`{localappdata}\UltimaAgent` 装程序本体，**不需要管理员权限**；用户数据写 `{userappdata}\UltimaAgent`（`%APPDATA%`）。与 §5.5 卸载判据自洽：卸载后**程序目录不存在，用户数据目录原样保留**。
 
 #### 4.2 目录布局实现
 - `[Files]` 段按第 5 节目录树逐项落盘，关键映射（源 → `{app}` 相对路径）：
@@ -403,10 +459,10 @@ RestartApplications=no
 | ~~`dist\stage\runtime\ollama\*`~~ | ~~`runtime\ollama`~~ | **审校删除：主脑不随包，ollama 由用户自装，不进安装包** |
 | `dist\stage\models\*.bin` | `models` | `recursesubdirs`（大文件独立分卷，见 4.3） |
 | `dist\stage\tts\*` | `tts` | `recursesubdirs` |
-| `dist\stage\config\*` | `config` | `onlyifdoesntexist`（不覆盖用户 `brain.json`） |
+| `dist\stage\config\*` | `{userappdata}\UltimaAgent\Config` | `onlyifdoesntexist`（**写用户数据区，不写 `{app}`**；不覆盖用户 `brain.json`） |
 
 - `[Icons]` 段：桌面快捷方式指向 `{app}\UltimaAgent.HostShell.exe`（**不是** `app\UltimaAgent.exe`，保证 UI 起来之前 HostShell 先就位）。同时 `[Run]` 段落一个 `Filename: "{app}\UltimaAgent.HostShell.exe"; Flags: nowait postinstall skipifsilent`。
-- `[UninstallDelete]` 段：`Type: filesandordirs; Name: "{app}"` + `Type: filesandordirs; Name: "{localappdata}\UltimaAgent\logs"`（日志目录在运行时自建，卸载不自动清，必须显式声明）。
+- `[UninstallDelete]` 段：**逐项列出程序子目录**（`{app}\App` / `Runtime` / `Voice` / `Asr` / `Kws` / `Brain`），**禁止**用单条指向安装根的整树删除指令，也**禁止**任何指向 `{userappdata}\UltimaAgent` 的条目——用户数据（配置、日志、记忆、会话）必须原样保留。完整约束见 §5.5.2。
 - 实现脚本 `installer/build-installer.ps1`：先跑 `build-runtime.ps1` 再 `ISCC.exe /DAppVersion=$env:APP_VERSION UltimaAgent.iss`，产物 `dist\out\UltimaAgent-<ver>-setup-*.bin` + `…-setup.exe`。
 
 #### 4.3 分卷
@@ -418,14 +474,15 @@ RestartApplications=no
 - 主 `setup.exe` 自身在下载页附 SHA256；分卷 `SHA256SUMS.txt` 由安装器 `ExtractTemporaryFile` 取出后校验分卷——主件校验靠下载页，分卷校验靠安装器，两层不重叠。
 - 校验失败文案明确指示"请重新下载第 N 个分卷"，并把缺失/损坏分卷名写入 `%TEMP%\UltimaAgent-setup-verify.log` 供支持排查。
 
-#### 4.5 卸载
-- `[UninstallRun]` 按序执行，`RunOnceId` 防重入：
-  1. `taskkill /f /im UltimaAgent.HostShell.exe`（`RunOnceId: "KillHostShell"`）
-  2. `{app}\Runtime\venv-voice-next\Scripts\python.exe {app}\Voice\src\voice-next\launch.py --stop`（`RunOnceId: "StopVoiceDaemon"`，`WaitUntilTerminated` + 10s 超时）。**审校修正：工程内无 `voicedaemon` 模块，语音停止入口是 `src/voice-next/launch.py --stop`**
-  3. `sc stop` 之类不涉及——**本方案不注册服务**，见第 5 节。
-- `[UninstallDelete]` 在 `[UninstallRun]` 之后生效，删除 `{app}` 整树。
-- 卸载判据（对应第 5 节）：`{app}` 不存在；`Get-Process *python*` 无 UltimaAgent 系；`schtasks /query *UltimaAgent*` 无条目；注册表 `HKCU\Software\Microsoft\Windows\CurrentVersion\Uninstall` 下 `AppId` 键被 Inno 自动清。
-- 回滚：安装包本身可回滚即重装旧版本 setup；`{app}` 目录先由卸载器的 `[UninstallDelete]` 清干净再装，不存在版本错拼。
+#### 4.5 卸载（只删程序，不碰用户数据）
+
+- `[UninstallRun]` 按序执行，`RunOnceId` 防重入（详见 §5.5.2）：
+  1. `taskkill /F /IM UltimaAgent.HostShell.exe`
+  2. `{app}\Runtime\venv-voice-next\Scripts\python.exe {app}\Voice\src\voice-next\launch.py --stop`（`waituntilterminated` + 10s 超时）。**审校修正：工程内无 `voicedaemon` 模块，语音停止入口是 `launch.py --stop`**
+  3. `{app}\Runtime\python313\python.exe {app}\Brain\stop_agent_server.py`
+- `[UninstallDelete]` 只删 §5.5.2 列出的六个程序子目录，**不删 `{app}` 整树、不碰 `%APPDATA%\UltimaAgent`**。
+- 卸载判据：程序目录不存在；**用户数据 sha256 与卸载前快照完全一致**；无 python 残留；`schtasks` 无条目；`HKCU\...\Uninstall` 下 AppId 键由 Inno 自动清。
+- 回滚：重装旧版本；程序目录已由卸载器清干净，不存在版本错拼。用户数据从未被删，重装后原样接续。
 
 ### Phase 5 — 端到端验收（2 天）
 
@@ -445,8 +502,8 @@ RestartApplications=no
 | 8 | 任务管理器强杀 `HostShell` | 3 s 内 `Get-Process python*` 无 UltimaAgent 系 PID | 3 s |
 | 9 | 重开 UI，验证 `status.json` | `state="stopped"` → 重启后 `"warm"`/`up` | 20 s |
 | 10 | 控制面板卸载 | 完成无报错 | 2 min |
-| 11 | 卸载后复查 | 第 5 节四项判据全过 | — |
-| 12 | 重装 | 装完 `config\brain.json` 为全新模板（未被上次脏配置污染，因 `onlyifdoesntexist` + 上次卸载已清空 `{app}`） | 5 min |
+| 11 | 卸载后复查 | §5.5.5 三条判据全过，**重点：用户数据 sha256 与卸载前快照一致** | — |
+| 12 | 重装 | 装完**沿用上次的 `%APPDATA%\UltimaAgent\Config\brain.json`**（用户数据保留的直接验证）；主脑配置不丢 | 5 min |
 
 **跨机器复现**：把上表做成 `tools/e2e-clean-machine.ps1` + VM 快照，Phase 5 结束前至少跑通 2 台 VM（Win11 + Win10 各 1），每台出 JSON 结果 `dist\e2e-report-<machine>.json` 供 Gate 校验。
 
@@ -461,10 +518,10 @@ RestartApplications=no
 | R1 | Job Object 强杀不生效 | HostShell 崩溃时未做 `CloseHandle` 或子进程未 assign 进 Job | 在 `ChildProcessSupervisor.Spawn` 内 spawn 后立即 `AssignProcessToJobObject`，`App.OnExit` 兜底 close；Phase 2 判据 2/4 即验此点 | `UseProcessHost=false` 开关 |
 | R2 | `SIGBREAK` 在 Windows Python 上不投递 | 子进程未能捕获 Ctrl-Break 语义 | `signal.signal(signal.SIGBREAK, …)` + Job `JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE` 双保险，不依赖 SIGBREAK 单条路径 | 同 R1 |
 | R3 | Provider 探活误判（ollama 起来但模型未拉）| `/health` 只 ping `/api/tags` 即报 ok | `probe()` 必须同时校验目标模型名在 `tags` 列表内；`/health` 的 `model` 字段直接来自 `probe` 结果 | `BRAIN_PROVIDER_LEGACY=1` |
-| R4 | 卸载时 `voicedaemon` 未退出致 `{app}` 删不净 | `voicedaemon stop` 超时，Python 进程仍占用 DLL | `[UninstallRun]` 的 `WaitUntilTerminated` + 10s 超时后，`UninstallDelete` 前同脚本再 `taskkill /f /pid` 扫 pid 文件 | 重跑卸载器（幂等） |
+| R4 | 卸载时语音进程未退出致 `{app}` 删不净 | `launch.py --stop` 超时，Python 进程仍占用 DLL | `[UninstallRun]` 的 `WaitUntilTerminated` + 10s 超时后，`UninstallDelete` 前同脚本再 `taskkill /f /pid` 扫 pid 文件 | 重跑卸载器（幂等） |
 | R5 | 分卷下载不全 / 传输中损坏 | 用户断点续传错位 | 分卷 SHA256 逐件校验（4.4）；下载页给出逐件大小，用户可自查 | 重下对应分卷 |
 | R6 | `{localappdata}\UltimaAgent` 未按预期无管理员 | 用户机器有组策略强制 `HKCU` 落点重定向 | 安装器 `PrivilegesRequired=lowest` + `DefaultDirName` 用 `{localappdata}` 而非硬编码；`InitializeSetup` 里对 `ExpandConstant('{localappdata}')` 做存在性检查 | 卸载器改用显式 `Name` 清理 |
-| R7 | `brain.json` 用户旧配置在升级时被覆盖 | `[Files]` 的 `onlyifdoesntexist` 仅在全新安装生效，**升级场景**未加保护 | 升级时区分 `GetPreviousData`，命中则跳过 `config` 段覆盖，写入 `config\brain.json.bak` | 用户手动恢复 `.bak` |
+| R7 | `brain.json` 用户旧配置在升级时被覆盖 | **本方案已结构性消除**：`brain.json` 在 `%APPDATA%\UltimaAgent\Config`，安装器只在其不存在时才写模板（`onlyifdoesntexist`），升级与重装都不覆盖；程序目录删不删都与它无关 | 用户若手动改坏，删掉该文件重启即恢复默认 |
 | R8 | 首启 1.5 s 帧预算在低配机被模型首次解压拖垮 | 模型从压缩包落盘需解压 | 安装器阶段不解压模型，首次的 warm 在后台线程进行，UI 只依赖 `status.json` 轮询；进度环降级为不确定态 | 无代码回滚，仅观察；低配机阈值放宽到 2.5 s（需 Owner 拍板，见第 9 节） |
 | R9 | 任务管理器强杀 HostShell 时 Windows 未按 Job 语义回收 | 极少数杀进程路径不触发 Job `KILL_ON_JOB_CLOSE` | Job 句柄需在 `App.OnExit` 和 `SIGINT` 双路径 close；若仍失败，`ReadinessProbe` 每 2s 探一次子进程存活，孤儿则 `taskkill` 自清 | 同 R1 |
 | R10 | Inno 分卷打包后 `SHA256SUMS.txt` 与实际 `.bin` 不同步 | 打包脚本跑两次，旧 `.bin` 残留 | `build-installer.ps1` 开头 `Remove-Item dist\out\*` 强制清场；SHA 从最终 `.bin` 现算 | 重跑打包 |
@@ -501,6 +558,6 @@ RestartApplications=no
 2. **模型分卷上传通道**：`SHA256SUMS.txt` 与分卷是否走同一 CDN？若走不同源，4.4 校验需改成"下载页 + 安装器双源"，影响 R5 缓解。
 3. **`brain.json` 升级策略**：R7 的 `.bak` + 跳过覆盖，是否可接受"用户手动恢复"这一交互成本？若要全自动迁移，需 Owner 给出迁移 schema。
 4. **`UseProcessHost` 开关去留**：Phase 2 结束后是否删除开关（方案倾向删，但 Owner 若需灰度回滚通道则保留至 Phase 5 之后）。
-5. **卸载是否保留日志**：当前 `[UninstallDelete]` 会删 `logs`，是否改为"保留最近一份日志供支持排查"？
-6. **`AppId` GUID 终值**：`{8F3C1A2E-ULTIMA-AGENT-0001}` 为占位，需 Owner 确认或指定正式 GUID（决定后续版本升级的识别基础，改一次即破坏已有安装的升级路径）。
+5. ~~**卸载是否保留日志**~~ —— **已拍板**：卸载**只删程序，用户数据（含全部日志）永久保留**，见 §5.5。
+6. ~~**`AppId` GUID 终值**~~ —— **已拍板**：`FFA6A681-C07D-4E5F-A96F-32BB42F2FAB6`（Inno 写法 `{{FFA6A681-C07D-4E5F-A96F-32BB42F2FAB6}`）。
 </output>
