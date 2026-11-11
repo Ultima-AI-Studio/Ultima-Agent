@@ -561,9 +561,10 @@ def _constrain_reply(
 _ASK_ACK_TEXT = "好的，我现在去安排。"
 
 _ASK_CLASSIFY_SYSTEM = (
-    "判断用户这句话是要你动手改东西（改代码、修功能、开发、制作、设计、接入、优化），"
-    "还是只要一个回答（查时间、问状态、问原因、闲聊）。只输出两个词之一：动手 或 回答。"
-    "拿不准就输出 回答。"
+    "你只需要做一件事：判断用户这句话，是要你动手改东西（改代码、修功能、开发、制作、设计、接入、优化），"
+    "还是只要一个回答（查时间、问状态、问原因、闲聊）。\n"
+    "边界：只想「是哪一类」。不要展开方案，不要猜文件路径，不要规划步骤，不要补充其他判断，不要联想用户还想要什么。\n"
+    "想清楚就直接输出两个词之一：动手 或 回答。拿不准就输出 回答。"
 )
 
 # 明显是「问事」的句式不进模型，直接按查询处理，避免把提问误派成工单
@@ -584,12 +585,12 @@ def _classify_intent(query: str) -> str:
                 {"role": "user", "content": query},
             ],
             "stream": False,
-            # 必须显式关掉思考：qwen3 的 thinking 会把 num_predict 吃干净。
-            # 实测 np=8/16 时 content 全空（thinking 分别吃掉 10/20 token），分类因此静默失败、
-            # 所有诉求都被判成 query，整条分段应答等于没上线。
-            # think=False 后同一个判定只要 0.05-0.09s，且答案正确。
-            "think": False,
-            "options": {"temperature": 0, "num_predict": 16},
+            # 保留模型的思考，只是把思考框在「只判类别」这一个边界里（见上面的 system）。
+            # 不能关思考：关了就等于把主脑的脑子摘掉，它以后只能靠外脑。
+            # 但也不能让 num_predict 太紧：qwen3 的 thinking 会先吃掉 token，
+            # 实测 np=8/16 时 content 恒为空（thinking 吃掉 10/20 token）→ 分类静默失败。
+            # 给足预算让它想完并吐出结论，靠 system 里的小边界控时长，而不是靠截断。
+            "options": {"temperature": 0, "num_predict": 256},
         }
         request = Request(
             OLLAMA_CHAT_URL,
