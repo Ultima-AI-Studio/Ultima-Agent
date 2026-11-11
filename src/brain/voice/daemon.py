@@ -188,18 +188,52 @@ class VoiceDaemon:
 
     def _global_holder_alive(self) -> bool:
         """锁文件 pid 存活即视为已有同名 daemon 驻留（不重复拉起）。"""
-        import ctypes
+        return self._stale_holder_pid() is not None
 
+    @staticmethod
+    def _pid_alive(pid: int) -> bool:
+        import ctypes
         try:
-            old = int(self._lock_path().read_text().strip())
             kernel32 = ctypes.windll.kernel32
-            h = kernel32.OpenProcess(0x1000, False, old)
+            h = kernel32.OpenProcess(0x1000, False, pid)
             if h:
                 kernel32.CloseHandle(h)
                 return True
         except Exception:
             pass
         return False
+
+    def _stale_holder_pid(self) -> int | None:
+        """锁文件登记且仍存活的 pid；无锁或已退出返回 None。"""
+        try:
+            pid = int(self._lock_path().read_text().strip())
+        except Exception:
+            return None
+        return pid if self._pid_alive(pid) else None
+
+    def _take_over(self) -> None:
+        """接管被残留守护占住的锁：杀掉持有者并删除锁文件。
+
+        失败路径下 _stop_locked() 的 kill 可能对"正在加载 torch"的进程不生效，
+        残留 daemon 会继续加载完并持锁存活；此后每次预热都在
+        _global_holder_alive() 处直接返回 False，表现为"永远 SAPI 兜底"。
+        本进程是这些 daemon 的唯一宿主，因此允许接管。
+        """
+        pid = self._stale_holder_pid()
+        if pid is not None:
+            try:
+                subprocess.run(
+                    ["taskkill", "/PID", str(pid), "/T", "/F"],
+                    capture_output=True,
+                    creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
+                )
+            except Exception:
+                pass
+            time.sleep(0.5)  # 让残留进程释放模型内存，避免紧接着加载时 bad allocation
+        try:
+            self._lock_path().unlink(missing_ok=True)
+        except Exception:
+            pass
 
     def _claim_global(self, pid: int) -> None:
         """拉起成功后登记 pid 到锁文件（供其他宿主识别）。"""
@@ -234,7 +268,7 @@ class VoiceDaemon:
         self._claim_global(proc.pid)
         return proc
 
-    def ensure_started(self) -> bool:
+    def ensure_started(self, takeover: bool = True) -> bool:
         """确保进程存活且模型就绪（就绪 = 收到 {loaded} 标记，即模型已加载完成）。
 
         关键：不能只等 {ready}（启动标记）——脚本在模型加载完成前不会进入
@@ -246,7 +280,10 @@ class VoiceDaemon:
             if self.alive:
                 return True
             if self._global_holder_alive():
-                return False
+                if not takeover:
+                    return False
+                # 本进程是唯一宿主：残留守护占锁时直接接管，避免"永远 SAPI 兜底"
+                self._take_over()
             proc = self._launch()
             deadline = time.time() + self.ready_timeout
             while time.time() < deadline:

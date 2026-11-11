@@ -1494,3 +1494,10 @@ _notify_event 改为按已加载模块取总线：优先 sys.modules 里的
 **又踩了一脚**：把指令拼进正文再走 `inference_zero_shot`（`"You are a helpful assistant.<|endofprompt|>正文"`）确实能出 4.52 秒，但 ASR 回读是 `"You are a cap,一针在夹在中文音色"`——**指令被念出来了**，正文还读错。能用≠对。
 **正解**：CosyVoice3 要走出它自己的入口 `inference_instruct2(tts_text, "You are a helpful assistant.<|endofprompt|>", prompt_wav)`。指令作为独立参数传入才不会进音频。实测 2.56 秒，ASR 回读 `"语音入口正在加载中文音色"` 完全一致。
 **纪律**：①`ok=True` 只代表"没抛到调用方"，不代表产物对——**必须量产物时长并对产物做一次回读（ASR/转写/重算）**；②后台线程里的断言不会冒泡，遇到"数据莫名变短"先怀疑线程内异常，去看**独立进程的 stderr**，别在调用方猜；③换 TTS 引擎版本时先查它的 `inference_*` 入口签名，老入口不一定还适用。
+
+### L156 · "放弃了但没杀干净"会把自己永久锁在降级状态
+**现象**：CV3 预热在 27s 判定失败（远小于冷加载所需的 256s），走 `_stop_locked()` 尝试终止；但守护进程正在加载 torch，`terminate` 没生效。它继续加载完、进入待命、持着 `%TEMP%\ultima-voice-daemon-tts-voice-next.pid` 活着。此后**每一次**预热调 `ensure_started()`，都在 `_global_holder_alive()` 处看到"持有者存活"，立刻 `return False`，永远走 SAPI 兜底。
+**根因**：单实例锁只解决"不要重复拉起"（避免 n 份大模型把内存吃满，实测两份就 `bad allocation`），但它**没有识别僵尸的能力**——锁里只记 pid，而 `pid 存活 ≠ 服务可用`。失败路径又只"调用了一下 terminate"，没有验证进程真的退出，于是自己给自己上了锁。
+**修法**：`ensure_started(takeover=True)`——残留持锁时用 `taskkill /PID <pid> /T /F` 强制接管、删锁，并 `sleep 0.5` 让残留进程释放模型内存（否则紧接着加载会 `bad allocation`）。本进程被声明为这些 daemon 的唯一宿主，因此允许接管；保留 `takeover=False` 给需要保守的场景。
+**验证**：做隔离演练（换一个独立 daemon 名字，起替身进程占锁 → 调 `_take_over()`）——替身 `exit_code=1`（已被杀）、锁文件消失、`holder_alive` 由 True 变 False。不是"看着代码对"，是真杀了一个进程。
+**纪律**：凡是"失败后清理"的路径，清理动作必须有**可观测的成功判据**（这里是：进程退出码非 None + 锁文件不存在），不能"调用了一下就假定死了"。失败路径的处理质量，决定系统会不会在降级态里永久自锁。
