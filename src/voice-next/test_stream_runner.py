@@ -1,8 +1,14 @@
 import importlib.util
+import json
 import sys
 import wave
 from pathlib import Path
 import pytest
+
+# 唤醒词唯一源是 config/voice-next/live.json；测试不再写死具体词。
+KEYWORD = json.loads(
+    (Path(__file__).parents[2] / "config" / "voice-next" / "live.json").read_text(encoding="utf-8")
+)["keyword"]
 
 spec = importlib.util.spec_from_file_location('voice_next_runner', Path(__file__).with_name('stream_runner.py'))
 runner = importlib.util.module_from_spec(spec)
@@ -17,7 +23,7 @@ class FakeSpotter:
         self.resets += 1
     def forward(self, pcm):
         self.received.append(pcm)
-        return {'state': int(len(self.received) == 1), 'keyword': '你好问问'}
+        return {'state': int(len(self.received) == 1), 'keyword': KEYWORD}
 
 def make_wav(path, rate=16000, channels=1, samples=16000):
     with wave.open(str(path), 'wb') as f:
@@ -31,7 +37,7 @@ def test_each_frame_consumed_once_and_event_before_file_end(tmp_path):
     rows = list(runner.replay_wav(spotter, path, chunk_samples=4800))
     assert sum(len(x) for x in spotter.received) == 32000
     assert [len(x) for x in spotter.received] == [9600, 9600, 9600, 3200]
-    assert rows[0]['event']['keyword'] == '你好问问'
+    assert rows[0]['event']['keyword'] == KEYWORD
     assert rows[0]['samples_consumed'] < 16000
     assert rows[0]['before_file_end'] is True
     assert rows[-1]['samples_consumed'] == 16000

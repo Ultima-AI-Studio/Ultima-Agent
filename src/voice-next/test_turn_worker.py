@@ -18,6 +18,11 @@ import pytest
 WORKER_FILE = Path(__file__).with_name("turn_worker.py")
 SAPI_FILE = Path(__file__).with_name("sapi.ps1")
 
+# 唤醒词唯一源是 config/voice-next/live.json；测试不再写死具体词。
+KEYWORD = json.loads(
+    (Path(__file__).parents[2] / "config" / "voice-next" / "live.json").read_text(encoding="utf-8")
+)["keyword"]
+
 
 def load_worker():
     assert WORKER_FILE.is_file(), "persistent voice worker is not implemented"
@@ -183,7 +188,7 @@ def test_real_loop_uses_new_reply_directory_and_cannot_change_old_wakeword(tmp_p
     response = loop.bridge.handle("把唤醒词改成星期五。")
     assert response.handled is True
     assert response.ok is True
-    assert "你好问问" in response.text
+    assert KEYWORD in response.text
     assert "固定" in response.text
     assert not (tmp_path / "data" / "host" / "orb_command.json").exists()
 
@@ -285,7 +290,7 @@ def test_sapi_generates_only_pcm16_mono_16k_wav_from_json(tmp_path):
     assert SAPI_FILE.is_file(), "file-only SAPI renderer is not implemented"
     output = tmp_path / "答复 with spaces.wav"
     request = tmp_path / "request.json"
-    request.write_text(json.dumps({"text": "你好问问。$(throw 'text must not execute')", "output": str(output)}, ensure_ascii=False), encoding="utf-8")
+    request.write_text(json.dumps({"text": KEYWORD + "。$(throw 'text must not execute')", "output": str(output)}, ensure_ascii=False), encoding="utf-8")
     child = subprocess.run(
         [shutil.which("pwsh"), "-NoProfile", "-NonInteractive", "-File", str(SAPI_FILE), "-Request", str(request)],
         capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=30,

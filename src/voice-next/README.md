@@ -1,6 +1,6 @@
 # 新中文语音入口
 
-当前KWS直接使用Sherpa-ONNX官方Zipformer原生持续流接口（3M/2025-12-20，chunk16 fp32）。**唤醒词唯一源是 `config/voice-next/live.json` 的 `keyword`（当前值「你好问问」）**，词表唯一源是 `config/voice-next/keywords.txt`；代码内不得再写死词字面。旧 profile 的「幂幂」与旧词表「贾维斯」已随 E1/E2 冻结在 `archive/voice-legacy-E1E2-20261111/`，不控制新入口。**人设唯一源是 `voice_profile.load_persona()`**（读 `libs/base/openjarvis/configs/openjarvis/prompts/personas/jarvis.md`，缺失时回落内置模板），本地 8B 与云端外脑两条回答分支共用这一份，禁止再内联第二份人设。旧的在线写词通道（`voice_profile.apply_to_daemon()` 与 `save_user_override` 的 `wakeword` 段）已 **fail-closed**：调用只返回失败，不写词表、不改配置；`config/voice-profile.json` 也不再含 `wakeword` 段。`live.json` 的 `keyword` 与 `keywords.txt` 的每行标签不一致时，`kws_backend` 在启动期直接 `raise ValueError` 拒绝启动，无需人工盯一致性。
+当前KWS直接使用Sherpa-ONNX官方Zipformer原生持续流接口（3M/2025-12-20，chunk16 fp32）。**唤醒词唯一源是 `config/voice-next/live.json` 的 `keyword`（当前值「幂幂」）**，词表唯一源是 `config/voice-next/keywords.txt`；代码内不得再写死词字面。旧 profile 的「幂幂」与旧词表「贾维斯」已随 E1/E2 冻结在 `archive/voice-legacy-E1E2-20261111/`，不控制新入口。**人设唯一源是 `voice_profile.load_persona()`**（读 `libs/base/openjarvis/configs/openjarvis/prompts/personas/jarvis.md`，缺失时回落内置模板），本地 8B 与云端外脑两条回答分支共用这一份，禁止再内联第二份人设。旧的在线写词通道（`voice_profile.apply_to_daemon()` 与 `save_user_override` 的 `wakeword` 段）已 **fail-closed**：调用只返回失败，不写词表、不改配置；`config/voice-profile.json` 也不再含 `wakeword` 段。`live.json` 的 `keyword` 与 `keywords.txt` 的每行标签不一致时，`kws_backend` 在启动期直接 `raise ValueError` 拒绝启动，无需人工盯一致性。
 ASR继续复用现有本地SenseVoice；语义交互和悬浮球推送复用现有管线。
 新入口临时使用Windows本地SAPI语音：原CV3冷启动联调等待数分钟，因此本轮不启动CV3，原音色配置和源码保留。
 
@@ -20,7 +20,7 @@ ASR继续复用现有本地SenseVoice；语义交互和悬浮球推送复用现�
 依赖只安装新venv；ASR常驻worker使用原venv-asr，避免合并两套模型依赖。
 必要时仅补启动已确认8756未占用的项目主脑；不重复启动、不加载额外LLM模型进行预热。
 
-听到“新语音入口已就绪”后，说 `live.json` 里配置的 keyword（当前「你好问问」）；听到“在呢，请说”后再说指令，例如“现在几点”。
+听到“新语音入口已就绪”后，说 `live.json` 里配置的 keyword（当前「幂幂」）；听到“在呢，请说”后再说指令，例如“现在几点”。
 配置：config/voice-next/live.json。当前选定USBAudio2.0物理麦克风/WASAPI与LOFREE输出，以名字和API解析，不依赖旧设备索引。
 状态：data/voice-next/status.json，包含PID/run_id、唯一生效词、真实设备、采集回调/模型包计数、心跳、最近唤醒和转写。
 启动器只有在真实采集回调与模型包计数均递增、worker已预热且锁/心跳有效时才报告ready。
