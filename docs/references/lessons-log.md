@@ -1200,3 +1200,15 @@ broken`），整个验收卡在这一步，只能记未完成。
 3. **根因与修法方向**：聚合器不区分 FAIL 性质（证据缺失 vs 实测不通过），无差别取最差。要么调大批阈值（`ULTIMA_AUDIT_BATCH_BYTES`）让相关对象进同一批，要么给「证据不足」单独状态、不与「实测 FAIL」合并。
 4. **独立审计的正向价值（maker-checker 有效）**：DeepSeek 在能读到代码的批 2，两轮一致点出 ACC-6 真实缺陷——PoC 私有 `_transition` 直接写 `task['state']`、绕过 `StateMachine.transition()`，违反 0038 自己定的可证伪条件。这是主脑与 Codex 都没点出的问题，证明「不同执行端 + 独立 ACC 门 + 必须给行号」能在落地前拦住隐患。
 5. **规则：PoC 即使测试全绿也不能当接线模板**。夹具为简化可能走正式件明令禁止的捷径；正式落地前必须核对 PoC 路径是否满足正式组件的门禁，而不是只看它自己的测试通过。
+
+### L125 · 委托后必须沿调用链穿透到被委托方，并核对状态机是否真允许该迁移——只查入口会漏
+
+1. **现象**：0040 只 grep PoC 自身「直接写 state 为 0」就判通过；DeepSeek 沿委托链穿透到正式组件，发现 `QueuePlanner.dependency_gate()` 下游调用的 `block_failed_dependents`/`block_for_unclear_audit` 直接 `task["state"]=...`，且 `_ALLOWED[QUEUED]` 根本不含 BLOCKED——QUEUED→BLOCKED 走正式 transition 本就非法，靠直接写才走通。
+2. **规则**：动作委托给下游后，核查必须沿调用链一路穿透到真正写状态的那一层，不能停在入口；同时核对 `_ALLOWED`/守卫是否真的允许该迁移。「能跑通」可能正是旁路写在兜底，而不是合法路径。
+3. **修法**：所有状态变更收敛到唯一受控 `transition()`（freeze 门），写在 `dict(task)` 副本上、原对象不被原地改写；用硬门正则机器统计直接写点数量（期望仅 transition 内 1 处），并跑反向验证确认非法路径全部拒绝、0 旁路。
+
+### L126 · 无窗子进程在 Windows 的坑：venv launcher re-exec 丢无窗标志、计划任务不继承注入 PATH
+
+1. **现象**：`run_worker` 已带 `CREATE_NO_WINDOW|DETACHED_PROCESS`，但经 venv 的 253KB `python.exe`（stdlib `venvlauncher.exe` 模板）仍 re-exec 基础解释器并产生可见顶层窗口，被 WindowMonitor 判失败；用项目真实 WindowMonitor（WinEvent hook，非 EnumWindows 轮询）才稳定复现，基线 worktree 证明这批 E2E 属宿主窗口 flaky、非代码回归。
+2. **规则**：venvlauncher 在 DETACHED 下 re-exec 会丢无窗标志。根治是把 venv 的 `python.exe`/`pythonw.exe` 换成直接运行解释器（否决 `sys._base_executable` 绕过），并把运行时 DLL 复制到 exe 同级做自包含——计划任务由 svchost 用持久 PATH 启动，不继承交互式会话注入的 PATH，否则报 `0xC0000135=STATUS_DLL_NOT_FOUND`。
+3. **固化**：`scripts/fix-venv-launcher.ps1` 幂等入库（备份、替换、复制 DLL、干净 PATH 验证）；用仅含 `System32;Windows` 的干净 PATH 验证启动，避免在交互会话里「假通过」。
