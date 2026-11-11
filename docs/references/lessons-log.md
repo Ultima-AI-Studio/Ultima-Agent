@@ -1289,3 +1289,25 @@ broken`），整个验收卡在这一步，只能记未完成。
 4. **冒烟纪律**：端口通 ≠ 引擎可用。开机预加载只探 `/health` 会漏掉「8756 活着但引擎没选中」这种状态，必须用**一次真实 `/ask`** 做探针（`src/voice-next/preload.py` 的 `_probe_agent` 已落地，实测 11.8s 通过）。
 5. **回复长度（调研结论，勿再按「砍句」处理）**：业界主约束是**朗读时长**不是句数——Bluejay：单条 <15 秒、人脑只持有 8–10 秒口语信息、语音应比文本短 60–70%；Google Simple Response：640 字符截断、建议 <300；Smallest AI：默认 1 句、要细节 2 句、3 句过多；Alexa：一到两次呼吸内读完。本地 `_vendor` 源码里只有 LobeChat 的 `resolveSafeMaxTokens` 做了上下文预算（1024 buffer + 预检 fail-fast），**没有可搬的语音短回复控制器**。正确姿势是**双口径（句数 + 估算朗读秒数）＋按意图分级**，不是把 `max_sentences` 砍回 1–2——那会直接复现「回答范围太小」。完整调研见 `docs/reports/stage-reply-brevity-research-20261111.md`。
 6. **登记待办（未修，不得当已解决）**：`turn_worker.py:73` 的 `daemon.ensure_started()` 抛 `OSError: [Errno 22] Invalid argument`；`worker.stderr.log` 仅此一条（270B），CV3 预热 27.1s 后落回 `windows-sapi-fallback`、`tts_error=CV3 daemon not ready`、`tts_prompts={}`。锁文件 `ultima-voice-daemon-tts-voice-next.pid` **不存在**、无 cosyvoice 进程，故**不是撞锁**；疑点在 `_launch()` 的 `Popen` 组合——宿主 `turn_worker` 本身已由 `launch.py` 以 `DETACHED_PROCESS|CREATE_NO_WINDOW` 启动，子进程再带 `CREATE_NO_WINDOW` + 三路 PIPE。未验证不得下结论；下一轮应先手动跑 `daemon_tts-voice-next.py`，区分「模型/路径问题」与「creationflags 冲突」。
+### L137 · 审计通过却被标成 blocked：状态标签把「未冻结」和「执行失败」混成一个值
+
+现象：0033、0035 两张工单 Codex 执行完成、产物已提交（044cfc2a 恰 3 文件 +102/-7；fc0e1708 恰 6 文件 +163/-3）、独立审计 audit_passed=true 两轮全绿，但队列 state 一直停在 blocked。主脑从视图上看不出真实卡点，用户反问「不都已经执行完的了吗」，因为 blocked 这个字读起来就是失败。同期 0034 也是 blocked，但它确实是真未完成（T1 核查表 1.1-1.6 全未闭合，7 个契约产物全仓 Count=0）——同一个值，两种事实。
+
+根因：
+1. blocked 一个状态承担了三种语义：执行真失败 / 审计名额排队（0037、0038、0040，exit=0 待二轮复核）/ 审计已过但冻结未签（0033、0035）。状态机不单义，主脑就没法从标签判断该做什么。
+2. 工单卡 Gate 写「git status 字面为空」（含未跟踪），而派发器实现是 `git status --porcelain=v1 --untracked-files=no`（只看已跟踪）。两套口径分裂：工作区常驻 536 个未跟踪文件，执行端按卡面一入场就自我判 FAIL，派发器按自己口径却认为干净。0034 的 note 里当时就写了「gate 口径缺陷，非实质失败」，但没人回头改卡。
+3. 队列规范（tasks/queue/EXECUTION.md）明确「不会自动重试、解除阻塞、签署独立审计或打冻结 tag」，冻结是主脑职责；但没有任何机制提醒主脑「某单审计已过、该签冻结了」，于是审计通过的单就此静默躺在 blocked 里。
+
+规则：
+- 状态值必须单义。audit_passed=true 且无 freeze_commit 的记录不得落 blocked，应标 audit 或新增 pending-freeze；blocked 只留给「真的过不去」。
+- 工单卡里的 Gate 文案必须与派发器实现同源，凡涉及工作区干净度一律写 `git status --porcelain=v1 --untracked-files=no`，不得写「字面为空」。
+- 判断一张单是否冻结，四件必须对齐：state + audit_passed + freeze_commit + tag 实存。缺任一项都不能算冻结。
+
+修法：
+- 0033/0035 直接在各自产物 commit 上打 lightweight tag（044cfc2a / fc0e1708），state -> frozen，freeze_commit 回填短 SHA，note 追加签署轨迹；clean-tree 按派发器口径复核已满足，536 个未跟踪文件不参与该门。
+- 冻结后复核：render-queue-views --check 得 {"differences":[]}；queue-doctor 对两单 FROZEN_TAG 均判 verified（confidence=low，因为 run 目录无 dispatch-record.json 无法映射回执）。
+- 遗留未收：0034 保持 blocked 属真未完成，需按 T1 核查表逐项补；0037/0038/0040 属审计名额排队，不是失败。
+
+纪律：
+- 读队列不得只读 state 一个字，标签不代表事实，tag 实存才代表冻结。
+- 主脑接手队列的第一件事是核对「审计通过但无 tag」的名单，而不是相信状态分布。
