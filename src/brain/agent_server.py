@@ -51,6 +51,11 @@ MAINBRAIN_RULES_PATH = PROJECT_ROOT / "docs" / "specs" / "mainbrain-rules-baseli
 
 from src.brain.prompt_boundary import PROMPT_SECURITY_RULES, build_user_data  # noqa: E402
 
+try:  # 主脑职责提议入口（/mainbrain 专用，不参与 /ask 语音链路）
+    from .mainbrain_proposal import propose as propose_mainbrain  # noqa: E402
+except ImportError:  # pragma: no cover - 脚本入口
+    from mainbrain_proposal import propose as propose_mainbrain  # noqa: E402
+
 
 def _read_required_prompt(path: Path, label: str) -> str:
     try:
@@ -698,7 +703,8 @@ class _Handler(BaseHTTPRequestHandler):
         self._send_json(404, {"ok": False, "error": "未找到该路径。"})
 
     def do_POST(self) -> None:  # noqa: N802
-        if self.path.rstrip("/") != "/ask":
+        route = self.path.split("?")[0].rstrip("/") or "/"
+        if route not in ("/ask", "/mainbrain"):
             self._send_json(404, {"ok": False, "error": "未找到该路径。"})
             return
         length = int(self.headers.get("Content-Length") or 0)
@@ -714,6 +720,15 @@ class _Handler(BaseHTTPRequestHandler):
             return
         if not query:
             self._send_json(400, {"ok": False, "error": "query 不能为空。"})
+            return
+        if route == "/mainbrain":
+            # 主脑职责入口：阶段 1 只提议，不派发、不写队列、不签冻结
+            try:
+                result = propose_mainbrain(query)
+                result["ok"] = True
+                self._send_json(200, result)
+            except Exception as exc:  # 提议异常返回可读错误
+                self._send_json(500, {"ok": False, "error": f"主脑提议失败：{exc}"})
             return
         try:
             max_tokens = payload.get("max_tokens")
