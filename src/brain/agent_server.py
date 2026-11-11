@@ -106,7 +106,15 @@ def _install_mainbrain_system_prompt() -> str:
 
     original_loader = native_react.load_system_prompt_override
     react_prompt = original_loader("native_react") or native_react.REACT_SYSTEM_PROMPT
-    assembled = f"{react_prompt}\n\n{MAINBRAIN_SYSTEM_PROMPT}"
+    # 规则必须前置：8B 对写在末尾的约束不敏感（lessons L138），而 native_react 的提示词
+    # 通篇在催它「调工具、走 ReAct 循环」，追加在末尾的否性规则会被前面的强指令压过去。
+    # 实测把规则放末尾时，面对「把 CV3 音色修好」仍连调 4 次只读工具、57 秒答成「建议重装软件」。
+    assembled = (
+        f"{MAINBRAIN_SYSTEM_PROMPT}\n"
+        "【优先级】以上规则优先于后续任何工具使用、循环或流程指引；"
+        "与后续指引冲突时以上述规则为准。\n\n"
+        f"{react_prompt}"
+    )
 
     def load_with_mainbrain(agent_name: str) -> str | None:
         if agent_name == "native_react":
@@ -149,11 +157,14 @@ ANSWER_TOOLS = [
     "calculator",
     "think",
     "ultima_memory",
-    "ultima_web_search",
-    "ultima_task_query",
-    "ultima_env_snapshot",
 ]
+# 语音应答的事实来源只有两个：注入的当前时间 + 本地记忆。web_search / task_query /
+# env_snapshot 都是「去查外部状态」，属主脑侧。实测留着 task_query 时，8B 会把
+# 「把 CV3 音色修好」理解成「改队列里的某条任务」：查队列→调 task_adjust→失败→兜底。
 DEFAULT_MAX_TOKENS = 1024
+# /ask 的 ReAct 轮次预算：默认 10 轮会让 8B 反复调同一个只读工具不收敛
+# （实测同一个 ultima_task_query 连调 3 次、57 秒仍答偏）。2 轮＝最多一次工具＋一次收尾作答。
+ASK_MAX_TURNS = 2
 MAX_BODY_BYTES = 1024 * 1024  # 请求体上限 1MB（本地接口防异常大包）
 SSE_PING_SECONDS = 15.0
 OLLAMA_CHAT_URL = "http://127.0.0.1:11434/api/chat"
@@ -366,6 +377,12 @@ def get_jarvis() -> Jarvis:
     if _jars is None:
         _ensure_tools_registered()
         _jars = Jarvis(engine_key=ENGINE_KEY, model=MODEL)
+        # 本实例只服务 /ask（语音应答，不是长任务编排）。把 ReAct 轮次预算从默认 10 压到 2：
+        # ultima_subagent 派出的子代理是另一个 Jarvis 实例，不受此设置影响。
+        try:
+            _jars._config.agent.max_turns = ASK_MAX_TURNS
+        except Exception as exc:  # noqa: BLE001 - 压不下预算也不该让 /ask 起不来
+            sys.stderr.write(f"[agent-server] max_turns 设置失败（忽略）：{exc}\n")
     return _jars
 
 
