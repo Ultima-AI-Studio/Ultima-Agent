@@ -30,3 +30,23 @@ data/evidence/
 data/gorch/
 
 tasks/queue/_done/
+
+
+# --- 训练数据、模型权重、构建产物、素材（体积大，不入库）---
+# data/voice 含 GPT-SoVITS/CV3 训练 checkpoint，单文件最高 1.76GB，总量约 41.6GB
+data/voice/
+data/voice-next/
+data/test-tmp/
+libs/
+dist/
+TTS/
+
+# ASR/KWS 模型本体不入库；关键词表 models/sherpa/kws/*.txt 仍保持跟踪，故只忽略其余
+models/voice-next/
+models/sherpa/*
+!models/sherpa/kws/
+
+# KWS 目录内只保留关键词表，模型包与 onnx 不入库
+models/sherpa/kws/*.tar.bz2
+models/sherpa/kws/*.onnx
+models/sherpa/kws/**/*.onnx
