@@ -48,7 +48,7 @@ class Resident:
         if not math.isfinite(gain) or not 1<=gain<=32:raise ValueError('input_gain must be a fixed finite value from1to32')
         self.input_gain=gain
         self.config=config;self.run_id=os.environ.get("ULTIMA_VOICE_NEXT_RUN_ID") or uuid.uuid4().hex;self.worker=None
-        self.queue=queue.Queue(maxsize=100);self.muted=threading.Event()
+        self.queue=queue.Queue(maxsize=100);self.muted=threading.Event();self.playing=threading.Event()
         self.counters={'callbacks':0,'input_frames':0,'overflows':0,'live_model_packets':0,'peak':0.0,'rms':0.0}
         self.generation=0;self.seen_generation=0
         self.status={'pid':os.getpid(),'run_id':self.run_id,'keyword':config['keyword'],'state':'warming','ready':False,'model':'sherpa-onnx Zipformer native streaming','threshold':config['threshold'],'input_gain':self.input_gain}
@@ -77,11 +77,23 @@ class Resident:
             except queue.Empty:pass
             try:self.queue.put_nowait(block)
             except queue.Full:pass
+    def build_dsp(self):
+        import apm_dsp
+        spec=dict(self.config.get('dsp') or {})
+        return apm_dsp.ApmChain(
+            rate=16000,
+            noise_suppression=bool(spec.get('noise_suppression',True)),
+            auto_gain_control=bool(spec.get('auto_gain_control',True)),
+            echo_cancellation=bool(spec.get('echo_cancellation',False)),
+            stream_delay_ms=int(spec.get('stream_delay_ms',0)),
+        )
     def reset_audio(self):
         import soxr
         self.resampler=soxr.ResampleStream(self.input_rate,16000,1,dtype='float32',quality='HQ')
         self.kws_frames=PCMFramer(4800);self.vad_frames=PCMFramer(320)
         self.spotter.reset_all();self.seen_generation=self.generation
+        dsp=getattr(self,'dsp',None)
+        if dsp is not None:dsp.reset()
     def drain(self):
         while True:
             try:self.queue.get_nowait()
@@ -91,21 +103,33 @@ class Resident:
         subprocess.run([shutil.which('pwsh.exe') or 'pwsh.exe','-NoProfile','-NonInteractive','-File',str(Path(__file__).with_name('sapi.ps1')),'-Request',str(request)],check=True,capture_output=True,timeout=20,creationflags=FLAGS)
         return path
     def play(self,path):
+        import numpy as np
         import soundfile as sf
         import soxr
-        self.muted.set()
+        dsp=getattr(self,'dsp',None)
+        duplex=bool(dsp is not None and dsp.echo_cancellation)
+        if duplex:self.drain()
+        else:self.muted.set()
         samples,rate=sf.read(str(path),dtype='float32',always_2d=False)
         if samples.ndim>1:samples=samples.mean(axis=1)
         if rate!=self.output_rate:samples=soxr.resample(samples,rate,self.output_rate)
-        self.sd.play(samples,self.output_rate,device=self.output_index,blocking=False)
-        deadline=time.monotonic()+len(samples)/self.output_rate+5
-        while self.sd.get_stream().active:
-            self.heartbeat()
-            if time.monotonic()>deadline:
-                self.sd.stop()
-                raise TimeoutError('Playback did not finish')
-            time.sleep(.03)
-        self.sd.wait()
+        if dsp is not None:
+            far=samples if self.output_rate==16000 else soxr.resample(samples,self.output_rate,16000)
+            dsp.reference.start((np.clip(far,-1,1)*32767).astype(np.int16),time.monotonic())
+        self.playing.set()
+        try:
+            self.sd.play(samples,self.output_rate,device=self.output_index,blocking=False)
+            deadline=time.monotonic()+len(samples)/self.output_rate+5
+            while self.sd.get_stream().active:
+                self.heartbeat()
+                if time.monotonic()>deadline:
+                    self.sd.stop()
+                    raise TimeoutError('Playback did not finish')
+                time.sleep(.03)
+            self.sd.wait()
+        finally:
+            self.playing.clear()
+            if dsp is not None:dsp.reference.stop()
         time.sleep(.15)
     def listen(self):
         self.muted.set();self.drain();self.reset_audio();self.collector=None;self.phase='ready'
@@ -155,6 +179,9 @@ class Resident:
         sd.check_input_settings(device=self.input_index,channels=1,samplerate=self.input_rate,dtype='float32')
         sd.check_output_settings(device=self.output_index,channels=1,samplerate=self.output_rate,dtype='float32')
         self.status.update(input_device=devices[self.input_index]['name'],input_index=self.input_index,input_rate=self.input_rate,output_device=devices[self.output_index]['name'],output_index=self.output_index)
+        self.dsp=self.build_dsp()
+        spec=dict(self.config.get('dsp') or {})
+        self.status.update(dsp_engine='pywebrtc-audio',dsp_ns=bool(spec.get('noise_suppression',True)),dsp_agc=bool(spec.get('auto_gain_control',True)),dsp_aec=bool(spec.get('echo_cancellation',False)),dsp_gain_db=0.0,dsp_speech_probability=0.0)
         self.reset_audio()
         prompts=DATA/'prompts';prompts.mkdir(exist_ok=True)
         self.wake_prompt=prompts/'wake.wav';self.empty_prompt=prompts/'empty.wav'
@@ -195,7 +222,13 @@ class Resident:
                 self.counters['peak']=float(np.max(np.abs(audio)))
                 self.counters['rms']=float(np.sqrt(np.mean(audio*audio)))
                 samples=self.resampler.resample_chunk(audio,last=False)
-                pcm=(np.clip(samples*self.input_gain,-1,1)*32767).astype('<i2').tobytes()
+                samples=self.dsp.process(samples,captured_at)
+                self.status.update(dsp_gain_db=self.dsp.gain_db,dsp_speech_probability=self.dsp.speech_probability)
+                if self.playing.is_set():continue
+                if self.dsp.auto_gain:
+                    pcm=(np.clip(samples,-1,1)*32767).astype('<i2').tobytes()
+                else:
+                    pcm=(np.clip(samples*self.input_gain,-1,1)*32767).astype('<i2').tobytes()
                 if self.phase=='ready':
                     for frame in self.kws_frames.feed(pcm):
                         event=self.spotter.forward(frame)

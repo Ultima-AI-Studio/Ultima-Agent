@@ -1254,3 +1254,12 @@ broken`），整个验收卡在这一步，只能记未完成。
 3. **实测**（`data/voice/mic-regress/jarvis-three-words.wav`，44.1k→16k）：AGC 真实生效——RMS 3336.7 → 11073.3（**+10.5dB**），`gain_db` 均值 10.47、峰值 15.0；`speech_probability` 区间 0.10–0.94 可读；APM 前后 SenseVoice 均正确识别「贾维斯」。
 4. **反直觉结论（重要）**：受控加噪（白噪 10/5/0/−5 dB）后，**未降噪的原始噪声段 SenseVoice 仍全部识别正确**——噪声不是这次转录退化的主因。前端 DSP 这一层买到的是 **AGC（电平）与 AEC（回声）**，买不到转录准确率；不要再把「加降噪」当成「修转录」的手段，L131 中「加 AGC + RNNoise 降噪」对转录的预期要相应下调。
 5. **固化**：`pywebrtc-audio==0.2.0` 写入 `src/voice-next/requirements.lock.txt` 与 `requirements-live.lock.txt`（前者 CRLF、后者 LF，均无 BOM，按原行尾插入）；未改任何运行代码。
+
+### L133 · AEC 接进半双工链路的三个硬前提：播放期必须继续采音、far 要按墙钟回灌、AGC 不能与固定软件增益叠加
+
+1. **现象**：`live.py` 原本是半双工——`play()` 里 `self.muted.set()`，`callback` 收到 `muted` 就 `return` 丢弃整块。这解释了「为什么现在不自激」，但也意味着 **AEC 没有 near 可消**：播放时麦克风数据根本不进链路。同时 `play()` 用 `sd.play()` 全局播放，链路里**没有任何「此刻在播哪一段」的通路**，AEC 拿不到 far。
+2. **规则（AEC 三前提）**：① AEC 是双端算法，**near 与 far 必须同时存在且等长**（`far` 长度≠`near` 长度直接 `ValueError: near and far must have the same length`；`far=None` 报 `far is required`）；② far 必须能回答「采集到这一刻的声音时喇叭正在放什么」——用单调时钟对齐，不是把整段播放音频一次性丢进去；③ 播放期若继续采音，必须把这段数据**只过 DSP、不进 KWS/VAD**，否则自己的提示音会误唤醒。
+3. **修法（已落地）**：`apm_dsp.PlaybackReference` 记录「播放起始单调时刻 + 16k PCM」，`frame_at(t)` 按 `(t - started_at - lead_seconds) * rate` 取该时刻的 10ms far 帧，越界补静音；`ApmChain` 按 10ms 累积 near、余数留到下轮（不丢音频、延迟 <1 帧）；`play()` 在 `sd.play` 前 `reference.start()`、播完 `stop()`。AEC 开启时不再 `muted`，改用 `self.playing` 事件做消费门控。**另有一个 L132 漏记的坑**：功能关闭时读 `gain_db` 抛的是 `RuntimeError: gain_db requires auto_gain_control=True`，不是 `AttributeError`——`_read_levels()` 必须把 `RuntimeError` 一起吞掉，否则 AGC 一关整条链路就崩。
+4. **参数冲突（基线级）**：产品基线 (g) 写死 `input_gain=10、无自适应`，而 AGC 上限 15dB（≈5.6 倍）与 10 倍软件增益**叠加必削波**。处置：AGC 开启时不叠加软件增益（按配置忽略 `input_gain`），AGC 关闭时回退 10 倍旧行为；已同步 `docs/specs/voice-next-product-baseline.md` 的（g）改判与变更记录。
+5. **实测（`data/voice/apm-smoke`，受控回声）**：纯净回声 RMS 0.0612 → 0.00012（**消除 99.8%**）；回声+白噪 0.0619 → 0.0067（**89.2%**，噪声保留）。**共存测试**（播放「贾维斯」与真人「任务出来…」同时进麦）：混合音频 SenseVoice 只识别出「贾维斯」，AEC 后播放声消失、ASR 转出用户原话「他询任务中来查询任务中来」——**far 对齐有效且不误伤真人声**。AEC 内部固定延迟实测 **8ms（128 样本 @16k）**。
+6. **未验证边界（不得外推）**：以上全部是离接受控实验。**真机上 LOFREE 音箱的声学路径延迟、sounddevice 缓冲、`stream_delay_ms` / `lead_seconds` 实值均未标定**，当前两者取默认（0 / 0.0）；`input_gain` 从 10 改为「AGC 接管」后**唤醒率未做真机回归**，不得宣称改动已验收。

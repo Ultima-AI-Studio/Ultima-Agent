@@ -16,7 +16,7 @@
 | （d） | `num_trailing_blanks` | `1` | E3 当前新链路取值；与 E1/E2 历史实现基线互不约束。 |
 | （e） | 模型 | `models\voice-next` 独立副本 / chunk-16 | `src/voice-next/README.md:3,44` 记录 chunk16 与独立副本。 |
 | （f） | 输入端点 | WASAPI 名字解析（`麦克风 (USBAudio2.0)`） | `src/voice-next/README.md:24` 原文说明按名字和 API 解析，不依赖旧设备索引。 |
-| （g） | KWS 增益 | 固定 `input_gain=10`，无自适应 | `src/voice-next/README.md:32` 记录固定软件增益 10 倍且无旧自动增益。 |
+| （g） | KWS 增益 | `dsp.auto_gain_control=true` 时由 APM AGC 承担电平，**不叠加**软件增益；AGC 关闭时回退 `input_gain=10` | `src/voice-next/README.md:32`；2026-11-11 改判，见变更记录 |
 | （h） | 指令采集 | 上限 15s / 结束静音 0.8s / 等开口 5s | `src/voice-next/README.md:33` 的回合参数。 |
 | （i） | 有效语音门控 | WebRTC VAD ≥5×20ms，无 peak/rms 门 | `src/voice-next/README.md:32-33`：无二次电平门控，VAD 以 20ms 判帧。 |
 | （j） | 提示音静置 | 无 `BEEP_SETTLE_SEC`，仅播放后 0.15s sleep | E3 当前实现行为；不得外推为 E1/E2 取值。 |
@@ -46,3 +46,4 @@
 | 日期 | 变更 |
 |---|---|
 | 2026-11-10 | 据 0035 v2.0 改判建立。 |
+| 2026-11-11 | **（g）改判 + 新增输入侧 DSP**：接入 `pywebrtc-audio` 0.2.0（WebRTC APM），采集链路前接 10ms 帧化 NS+AGC+AEC，配置落在 `config/voice-next/live.json` 的 `dsp` 段。**AGC 开启时不再叠加 `input_gain=10`**（AGC 上限 15dB 与原 10 倍放大叠加必削波），`input_gain=10` 降为「AGC 关闭」的回退值；AEC 开启时播放期不再暂停采集，`play()` 回灌 16k far 参考，播放期数据只过 DSP 不进 KWS/VAD。新增 `src/voice-next/apm_dsp.py`（`PlaybackReference` + `ApmChain`）与 `test_apm_dsp.py`（10 项）。离线受控验证：纯净回声消除 99.8%、回声+噪声 89.2%；播放声与真人声共存时 AEC 后播放声消失且用户原话可识别。**真机唤醒率与 `stream_delay_ms` 标定仍未验证。** |
