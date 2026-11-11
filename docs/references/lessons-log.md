@@ -1410,3 +1410,16 @@ _notify_event 改为按已加载模块取总线：优先 sys.modules 里的
 **根因**：后端一直只发 `message`，从没发过 `task_advance`，窗口自然是空的。
 **处置**：新增 `_emit_task_advance()`，在接单 / 派发 / 接手 / 方案已回四个阶段各推一条；任务标题用简称、不带工单号；验收通过时推 `phase="已完成"` 让前端自动清卡。实测左下窗口出现任务卡并逐阶段刷新。
 **纪律**：先读前端 `EVENT_ANCHORS` / `summary` / `isCompleted` 再决定要不要动 UI；该文件 `<style>` 块 sha256 被 `test_agent_server_sse.py` 冻结，能不动就别动。
+
+### L143 · 查询类从 ReAct 改直连：测试断言对象要换，判据一条不能删
+**现象**：查询类走 ReAct 两轮加结尾再调一次，实测 26~30 秒；改成一次直连降到 1.1~1.5 秒。但 `test_prompt_boundary_p0` 立刻红——它断言 `jarvis.ask_full` 被调用。
+**根因**：那条测试真正守的是「语音原文整段包进 nonce 边界、安全规则在场、回复内容正确」，`ask_full` 只是当时那条管道的载体。
+**处置**：把 bounded data 搬进 `_ask_query_branch`（原文仍整段包裹），测试改为捕获直连请求体后断言同一组判据——判据一条没删，只换了断言对象。
+**纪律**：管道变更导致测试红，先分清它守的是「行为契约」还是「实现载体」；前者不能动，后者必须跟着改，不许用 skip 或放宽绕过去。
+
+### L144 · pid 锁被强杀留成僵尸锁，表现为「没监听却不让启动」
+**现象**：`start-agent-server.ps1 -Restart` 报「服务器启动失败」，日志只有一句「已有实例在运行（pid 锁存活）」，而 8756 根本没在监听。
+**排查**：锁文件在 `%TEMP%\ultima-agent-server.pid`，内容 PID=26708；`Get-Process 26708` 已不存在 → 僵尸锁。
+**根因**：`Stop-Process -Force` 不跑 atexit，锁文件留着；`_holder_alive()` 用 `OpenProcess` 判定，PID 被系统复用时会误判存活。
+**处置**：删锁文件后重启即恢复。
+**纪律**：重启失败先查 health 与端口，不要只信锁文件；也不要为了让启动过去去杀无关的 python 进程。
