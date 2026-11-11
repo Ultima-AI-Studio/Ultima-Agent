@@ -200,6 +200,9 @@ EVENT_BUS = get_event_bus()
 
 _jars: Jarvis | None = None
 _ask_lock = threading.Lock()  # Jarvis 单例非线程安全，串行化并发推理
+# 排队上限（秒）：语音侧 worker_timeout_seconds=90，这里必须明显小于它，
+# 否则语音轮次会在队列里被饿到超时（见 L158）。
+ASK_LOCK_TIMEOUT = 40.0
 _manager_token: str | None = None
 
 
@@ -851,10 +854,27 @@ def ask_once(query: str, max_tokens: int | None = None) -> dict[str, Any]:
     # 任务类立刻答应并派单，不进 ReAct——既快，也断掉它自由编「我已经修好了」的路。
     if _classify_intent(query) == "task":
         return _ask_task_branch(query)
-    with _ask_lock:
+    # 排队上限：语音侧的 worker_timeout_seconds=90，若无限等锁，一次批量/长请求
+    # 就能把语音轮次饿到超时（本轮真实事故）。拿不到锁就明确回"正忙"，让语音
+    # 在预算内有一句话可说，而不是等到超时。
+    if not _ask_lock.acquire(timeout=ASK_LOCK_TIMEOUT):
+        busy = "我这边正忙，稍等一下再说。"
+        EVENT_BUS.emit_event("message", {"text": busy, "role": "jarvis"})
+        return {
+            "content": busy,
+            "reply_text": busy,
+            "confidence": 0.0,
+            "grounded": False,
+            "intent": "busy",
+            "tool_results": [],
+            "usage": {},
+        }
+    try:
         EVENT_BUS.emit_event("stream_start", {"text": "Ultima 正在回复…"})
         # 查询类不再进 ReAct：一次直连出答案（ReAct 两轮实测 30 秒，太慢）
         return _ask_query_branch(query, max_tokens)
+    finally:
+        _ask_lock.release()
 
 
 class _Handler(BaseHTTPRequestHandler):

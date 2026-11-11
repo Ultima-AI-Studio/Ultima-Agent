@@ -220,7 +220,16 @@ class Resident:
                         if json.loads(stop.read_text(encoding='utf-8'))['run_id']==self.run_id:break
                     except (ValueError,KeyError,OSError):pass
                 if self.phase=='processing':
-                    if time.monotonic()>self.turn_deadline:raise TimeoutError('Voice turn timed out')
+                    if time.monotonic()>self.turn_deadline:
+                        # 单轮超时绝不能拖垮整个监听：历史实现这里 raise 出循环，
+                        # 进程以 state=error 退出 → 用户"唤起不了"、必须手动重启（本轮真实事故）。
+                        # 现在改为作废本轮：清 turn_id、播报错误提示、回到待唤醒；
+                        # 迟到的 worker 结果由 check_worker 的 phase/turn_id 双判据自动丢弃。
+                        self.publish('turn_timeout',last_turn_error='Voice turn timed out',state='ready',ready=True)
+                        self.turn_id=''
+                        try:self.play(self.error_prompt)
+                        except Exception:pass
+                        self.listen();continue
                     time.sleep(.02);continue
                 try:captured_at,audio=self.queue.get(timeout=.2)
                 except queue.Empty:continue

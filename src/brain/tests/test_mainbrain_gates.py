@@ -47,6 +47,22 @@ class TestNoToolGate(unittest.TestCase):
         self.assertIsNone(agent_server._no_tool_gate("你是谁"))
 
 
+class TestBusyGate(unittest.TestCase):
+    def test_returns_busy_instead_of_blocking_forever(self):
+        """锁被占用时不得无限等待：语音侧 worker_timeout_seconds=90，
+        排队超过它就会把语音轮次饿到超时（本轮真实事故）。"""
+        old_timeout = agent_server.ASK_LOCK_TIMEOUT
+        agent_server.ASK_LOCK_TIMEOUT = 0.2
+        agent_server._ask_lock.acquire()
+        try:
+            result = agent_server.ask_once("三加五乘以二等于多少")
+        finally:
+            agent_server._ask_lock.release()
+            agent_server.ASK_LOCK_TIMEOUT = old_timeout
+        self.assertEqual(result["intent"], "busy")
+        self.assertTrue(result["content"].strip())
+
+
 class TestCleanContent(unittest.TestCase):
     def test_strips_grounded_tag(self):
         self.assertEqual(
