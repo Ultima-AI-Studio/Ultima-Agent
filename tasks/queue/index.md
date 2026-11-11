@@ -2,7 +2,7 @@
 
 > **由 `scripts/render-queue-views.py` 从 `tasks/queue/queue-status.json` 生成，勿手改。**
 > 唯一状态权威：`tasks/queue/queue-status.json`。修改 Markdown 不会回写状态。
-> schema_version=1 ｜ records=95 ｜ audit=4, blocked=14, cancelled=12, closed=1, frozen=62, pending=2
+> schema_version=1 ｜ records=95 ｜ audit=4, blocked=15, cancelled=12, closed=1, frozen=62, pending=1
 
 <!-- queue-items:start -->
 | 项目 | 工单 | 状态 | audit_passed | 派发时间 | 审计 run | 冻结 commit | 备注 |
@@ -101,5 +101,5 @@
 | UltimaAgent | wo-ultimaagent-20261110-0035 | blocked | true |  |  |  | 语音入口改判（E3 主线 + CV3 音色）：Codex T0→T7 全绿并提交 fc0e1708（恰 6 文件 / 163 insertions / 3 deletions），**审计已通过**：audit_passed=true，两轮 Gate T0–T7 各 8/8 PASS（run wo-ultimaagent-20261110-0035-20261110T143301355804Z，第 3 轮）。前两轮仅 T7 FAIL，根因是卡 T7 第 1 条「恰 6 条 =>」与第 5 条「完成提交」互斥——提交后 6 路径即从 status 消失；第 3 轮在 detached worktree（父提交 fe23b9e2）精确重建「提交前那一刻」，Compare-Object 得 **6 条 => / 0 条 <=**，与卡面原样一致，另补 docs/decisions 在 T0 与 T7 的行数对照（2 = 2）。**原 state=blocked 的审计名额理由已消除**；冻结未做：同一 clean-tree 门受仓库既有 562 条未提交改动所阻 |
 | UltimaAgent | wo-ultimaagent-20261110-0036 | audit | true | 2026-11-10T17:42:10.100515+00:00 | tasks/queue/runs/wo-ultimaagent-20261110-0036-20261110T165817586641Z |  | T0-T7 全 PASS；T7 实现 a33e3813 / 回填 81364b58；两轮审计 T0-T7 全 PASS、audit_passed=true（audit.json 27,255 B 在该 run）；双版 verify-order 对同一 run 均 exit 2、六项失败差异 0（旧版为反向对照）；全量 pytest 6 failed/45 passed 与 T0 基线一致；写域 porcelain 为空；待回填残留 0、DoR strict PASS；元工单缺独立验收路径已登记 lessons-log L116/L117 |
 | UltimaAgent | wo-ultimaagent-20261111-0037 | blocked | false | 2026-11-11T03:31:39.456035+00:00 |  |  | 等待审计名额（同身份模型二轮复核）；审计名额时限清点：2 单超 7d 或已标冻结，不再占位（wo-ultimaagent-20261030-0007, wo-ultimasentinel-20261103-0001）；真实执行结束 exit=0；wo-ultimaagent-20261111-0037-20261111T033139053768Z；待二轮复核，不自动批准或续派 |
-| UltimaAgent | wo-ultimaagent-20261111-0038 | pending |  |  |  |  | 独立任务通道：把 SuperAgent 调度器整合为可接入现有任务系统的本地自动化 tools（设计+PoC+落地计划）；方案 docs/plans/plan-ultimaagent-superagent-scheduler-tools-20261111.md；DoR 已通过，待派发 |
+| UltimaAgent | wo-ultimaagent-20261111-0038 | blocked |  | 2026-11-11T04:13:37.613718+00:00 |  |  | 等待审计名额（同身份模型二轮复核）；审计名额时限清点：2 单超 7d 或已标冻结，不再占位（wo-ultimaagent-20261030-0007, wo-ultimasentinel-20261103-0001）；真实执行结束 exit=0；wo-ultimaagent-20261111-0038-20261111T041337063347Z；待二轮复核，不自动批准或续派 |
 <!-- queue-items:end -->
