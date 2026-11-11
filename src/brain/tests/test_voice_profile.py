@@ -81,9 +81,16 @@ def test_invalid_values_fall_back_to_defaults(profile_path: Path) -> None:
 
 
 def test_save_ignores_non_l2_fields(profile_path: Path) -> None:
-    assert voice_profile.save_user_override(
-        {"persona": {"name": "other"}, "wakeword": {"words": ["changed"]}}
-    )
+    assert voice_profile.save_user_override({"persona": {"name": "other"}})
     loaded = voice_profile.load_profile()
     assert loaded["persona"]["name"] == "jarvis"
     assert loaded["wakeword"]["words"] == voice_profile.DEFAULT_PROFILE["wakeword"]["words"]
+
+
+def test_save_rejects_wakeword_override(profile_path: Path) -> None:
+    """wakeword 唯一源是 config/voice-next/live.json；写盘通道必须拒绝，比"忽略"更强。"""
+    _write(profile_path, {"wakeword": {"words": ["custom token @保留"], "custom": None}})
+    before = profile_path.read_text(encoding="utf-8")
+    assert voice_profile.save_user_override({"wakeword": {"custom": "贾维斯"}}) is False
+    assert profile_path.read_text(encoding="utf-8") == before
+    assert voice_profile.load_profile()["wakeword"]["custom"] is None

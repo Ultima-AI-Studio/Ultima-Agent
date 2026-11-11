@@ -11,7 +11,6 @@ import copy
 import json
 import logging
 import re
-import subprocess
 import wave
 from pathlib import Path
 from typing import Any
@@ -20,7 +19,8 @@ LOGGER = logging.getLogger(__name__)
 
 ROOT = Path(__file__).resolve().parents[3]
 PROFILE_PATH = ROOT / "config" / "voice-profile.json"
-KEYWORDS_PATH = ROOT / "models" / "sherpa" / "kws" / "keywords.txt"
+# 词表唯一源（E3）；旧 models/sherpa/kws/keywords.txt 已随 E1/E2 冻结归档。
+KEYWORDS_PATH = ROOT / "config" / "voice-next" / "keywords.txt"
 JARVIS_PERSONA_PATH = (
     ROOT
     / "libs"
@@ -52,7 +52,6 @@ DEFAULT_WAKE_WORDS: list[str] = []
 # 旧词表随 E1/E2 冻结在 archive/voice-legacy-E1E2-20261111/。
 _LIVE_WAKE_KEYWORD = _live_wake_keyword()
 DEFAULT_WAKE_ECHO_ROOTS: tuple[str, ...] = (_LIVE_WAKE_KEYWORD,) if _LIVE_WAKE_KEYWORD else ()
-_ULTIMA_KEYWORD = "AH1 L T IH0 M AH0 @ULTIMA"
 _BUILTIN_JARVIS_PROMPT = """You are Jarvis, a loyal, efficient, dry-witted local AI assistant with the calm refinement of a British butler.
 Only answer facts present in the provided data or the user's actual question. Never invent.
 Never include marketing, promotion, or engagement content.
@@ -78,9 +77,10 @@ DEFAULT_PROFILE: dict[str, Any] = {
     },
 }
 
+# 唤醒词唯一源是 config/voice-next/live.json；W1 写盘通道不再承载 wakeword，
+# 否则 config/voice-profile.json 会重新变成第二份唤醒词来源。
 _L2_FIELDS = {
     "persona": {"override"},
-    "wakeword": {"custom"},
     "style": {"mode", "banned_phrases", "max_sentences"},
     "voice": {"engine", "ref_audio", "prompt_text"},
     "input": {"mode", "device_index", "prefer_wasapi48k"},
@@ -235,6 +235,15 @@ def save_user_override(overrides: dict[str, Any]) -> bool:
     """Persist declared L2 fields atomically, preserving all other profile data."""
     if not isinstance(overrides, dict):
         return False
+    wakeword = overrides.get("wakeword")
+    if isinstance(wakeword, dict) and any(
+        value not in (None, "", [], {}) for value in wakeword.values()
+    ):
+        LOGGER.error(
+            "拒绝写入 wakeword：唤醒词唯一源是 config/voice-next/live.json；"
+            "改词请改该文件并重写 config/voice-next/keywords.txt 后重启入口"
+        )
+        return False
     raw = _read_l2()
     profile = validate_profile(raw if raw is not None else DEFAULT_PROFILE)
     for section, allowed in _L2_FIELDS.items():
@@ -260,102 +269,17 @@ def save_user_override(overrides: dict[str, Any]) -> bool:
         except OSError:
             pass
         return False
-    if isinstance(overrides.get("wakeword"), dict) and "custom" in overrides["wakeword"]:
-        return apply_to_daemon(profile)
     return True
 
 
-def _custom_keyword_line(custom: str) -> str | None:
-    custom = custom.strip()
-    if not custom:
-        return None
-    if "@" in custom:
-        tokens, label = custom.rsplit("@", 1)
-        if tokens.strip() and label.strip():
-            return f"{tokens.strip()} @{label.strip()}"
-        return None
-    if re.fullmatch(r"[\u4e00-\u9fff]+", custom):
-        try:
-            from pypinyin import Style, pinyin  # KWS/ASR environment dependency
-
-            initials = pinyin(custom, style=Style.INITIALS, strict=False)
-            finals = pinyin(custom, style=Style.FINALS_TONE, strict=False)
-            pairs = [[initial[0], final[0]] for initial, final in zip(initials, finals)]
-        except ImportError:
-            pairs = _phonemize_with_asr_runtime(custom)
-        except ValueError as exc:
-            LOGGER.warning("cannot phonemize custom wakeword %r: %s", custom, exc)
-            return None
-        if pairs is None:
-            return None
-        tokens: list[str] = []
-        for initial, final in pairs:
-            if initial:
-                tokens.append(initial)
-            if final:
-                tokens.append(final)
-        if tokens:
-            return f"{' '.join(tokens)} @{custom}"
-        return None
-    LOGGER.warning("custom wakeword must be Chinese text or a token line ending in @label")
-    return None
-
-
-def _phonemize_with_asr_runtime(text: str) -> list[list[str]] | None:
-    """Use the pinned ASR interpreter when the Agent environment lacks pypinyin."""
-    interpreter = ROOT / "tools" / "venv-asr" / "Scripts" / "python.exe"
-    script = (
-        "import json,sys; from pypinyin import Style,pinyin; t=sys.argv[1]; "
-        "a=pinyin(t,style=Style.INITIALS,strict=False); "
-        "b=pinyin(t,style=Style.FINALS_TONE,strict=False); "
-        "print(json.dumps([[x[0],y[0]] for x,y in zip(a,b)],ensure_ascii=False))"
-    )
-    try:
-        completed = subprocess.run(
-            [str(interpreter), "-X", "utf8", "-c", script, text],
-            capture_output=True,
-            text=True,
-            encoding="utf-8",
-            timeout=15,
-            check=False,
-            creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
-        )
-        if completed.returncode != 0:
-            raise RuntimeError(completed.stderr.strip() or f"exit {completed.returncode}")
-        value = json.loads(completed.stdout)
-        if not isinstance(value, list) or not all(
-            isinstance(pair, list)
-            and len(pair) == 2
-            and all(isinstance(item, str) for item in pair)
-            for pair in value
-        ):
-            raise ValueError("invalid pinyin payload")
-        return value
-    except (OSError, subprocess.SubprocessError, json.JSONDecodeError, RuntimeError, ValueError) as exc:
-        LOGGER.warning("ASR runtime cannot phonemize custom wakeword %r: %s", text, exc)
-        return None
-
-
 def _keyword_lines(profile: dict[str, Any]) -> list[str] | None:
-    lines = list(profile["wakeword"]["words"])
-    custom = profile["wakeword"].get("custom")
-    if custom:
-        custom_line = _custom_keyword_line(custom)
-        if custom_line is None:
-            return None
-        if custom_line not in lines:
-            lines.append(custom_line)
-    ultima_line = _ULTIMA_KEYWORD
-    try:
-        for line in KEYWORDS_PATH.read_text(encoding="utf-8").splitlines():
-            if line.strip().endswith("@ULTIMA"):
-                ultima_line = line.strip()
-                break
-    except OSError:
-        pass
-    if ultima_line not in lines:
-        lines.append(ultima_line)
-    return lines
+    """E1 在线换词通道已冻结：本函数不再生成任何词表。
+
+    词表唯一源是 ``config/voice-next/keywords.txt``（按 live.json 的 keyword
+    由人工重写），新入口直接读取该文件。这里返回 None 表示"不具备生成能力"，
+    ``apply_to_daemon`` 据此 fail-closed，不再往磁盘写第二份词表。
+    """
+    return None
 
 
 def apply_to_daemon(
@@ -363,37 +287,19 @@ def apply_to_daemon(
     *,
     listener: object | None = None,
 ) -> bool:
-    """Sync keywords atomically and optionally request an in-process reload.
+    """冻结：唯一语音入口不支持在线修改唤醒词。
 
-    The resident daemon watches ``keywords.txt`` mtime, so replacing this file
-    is the cross-process reload signal; no process restart is involved.
+    E1/E2 的在线换词通道已归档到 ``archive/voice-legacy-E1E2-20261111/``。
+    唤醒词唯一源是 ``config/voice-next/live.json``，词表唯一源是
+    ``config/voice-next/keywords.txt``；改词必须改这两处并重启入口。
+    这里恒返回 False 并写明原因，避免调用方误以为改词已生效。
     """
-    validated = validate_profile(profile if profile is not None else load_profile())
-    lines = _keyword_lines(validated)
-    if lines is None:
-        return False
-    temporary = KEYWORDS_PATH.with_suffix(KEYWORDS_PATH.suffix + ".tmp")
-    try:
-        KEYWORDS_PATH.parent.mkdir(parents=True, exist_ok=True)
-        temporary.write_text("\n".join(lines) + "\n", encoding="utf-8")
-        temporary.replace(KEYWORDS_PATH)
-    except OSError as exc:
-        LOGGER.warning("failed to sync wakeword keywords: %s", exc)
-        try:
-            temporary.unlink(missing_ok=True)
-        except OSError:
-            pass
-        return False
-    if listener is not None:
-        reload_keywords = getattr(listener, "reload_keywords", None)
-        if not callable(reload_keywords):
-            return False
-        try:
-            return bool(reload_keywords())
-        except Exception as exc:  # caller's live listener must remain usable
-            LOGGER.warning("live keyword reload failed: %s", exc)
-            return False
-    return True
+    LOGGER.error(
+        "apply_to_daemon 已冻结：唯一语音入口不支持在线修改唤醒词；"
+        "请改 config/voice-next/live.json 的 keyword 与 "
+        "config/voice-next/keywords.txt 后重启入口"
+    )
+    return False
 
 
 def get_wake_echo_roots(profile: dict[str, Any] | None = None) -> tuple[str, ...]:

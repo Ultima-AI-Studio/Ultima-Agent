@@ -1,6 +1,6 @@
 # 新中文语音入口
 
-当前KWS直接使用Sherpa-ONNX官方Zipformer原生持续流接口（3M/2025-12-20，chunk16 fp32）。**唤醒词唯一源是 `config/voice-next/live.json` 的 `keyword`（当前值「你好问问」）**，词表唯一源是 `config/voice-next/keywords.txt`；代码内不得再写死词字面。旧 profile 的「幂幂」与旧词表「贾维斯」已随 E1/E2 冻结在 `archive/voice-legacy-E1E2-20261111/`，不控制新入口。
+当前KWS直接使用Sherpa-ONNX官方Zipformer原生持续流接口（3M/2025-12-20，chunk16 fp32）。**唤醒词唯一源是 `config/voice-next/live.json` 的 `keyword`（当前值「你好问问」）**，词表唯一源是 `config/voice-next/keywords.txt`；代码内不得再写死词字面。旧 profile 的「幂幂」与旧词表「贾维斯」已随 E1/E2 冻结在 `archive/voice-legacy-E1E2-20261111/`，不控制新入口。**人设唯一源是 `voice_profile.load_persona()`**（读 `libs/base/openjarvis/configs/openjarvis/prompts/personas/jarvis.md`，缺失时回落内置模板），本地 8B 与云端外脑两条回答分支共用这一份，禁止再内联第二份人设。旧的在线写词通道（`voice_profile.apply_to_daemon()` 与 `save_user_override` 的 `wakeword` 段）已 **fail-closed**：调用只返回失败，不写词表、不改配置。
 ASR继续复用现有本地SenseVoice；语义交互和悬浮球推送复用现有管线。
 新入口临时使用Windows本地SAPI语音：原CV3冷启动联调等待数分钟，因此本轮不启动CV3，原音色配置和源码保留。
 
@@ -34,7 +34,7 @@ READY只证明运行入口就绪；真人唤醒成功必须有对应真实事件
 真机声学闭环（`hw_near_echo.wav`，LOFREE 音箱→USBAudio2.0 麦）：回声 rms 0.0045 → 0.00018，**消除 96%**。实测 `stream_delay_ms` 对 AEC3 结果无影响（内部延迟估计自适应），且最佳 far 偏移两次测得相差 400ms 而效果相同——**`lead_seconds` 保持 0**，不要硬编码标定常数（见 lessons-log L134）。
 唤醒后本地即时提示；WebRTC VAD 20ms判帧、保留前沿、5秒等待开口/15秒总上限/0.8秒静音收尾。
 只将唤醒后的指令WAV保存到data/voice-next/commands；不上传录音、不保存连续背景音。
-改唤醒词：编辑 `config/voice-next/live.json` 的 `keyword`，同步重写 `config/voice-next/keywords.txt`（按新词发音变体），重启入口；提示音文案里的 `{keyword}` 占位会自动跟随。旧换词协调器 `scripts/kws_reconfig.py` 已归档，不再支持在线改词。
+改唤醒词：编辑 `config/voice-next/live.json` 的 `keyword`，同步重写 `config/voice-next/keywords.txt`（按新词发音变体），重启入口；提示音文案里的 `{keyword}` 占位会自动跟随。旧换词协调器 `scripts/kws_reconfig.py` 已归档，`voice_profile.apply_to_daemon()` 与 `save_user_override` 的 `wakeword` 段也已 fail-closed —— **不支持任何在线改词**，只能按上面三步改文件后重启。
 
 ## 离线验证与保留的失败原型
 
