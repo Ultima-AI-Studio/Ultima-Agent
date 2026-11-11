@@ -15,8 +15,12 @@
 from __future__ import annotations
 
 import json
+import os
 import re
 import sys
+import threading
+import urllib.request
+from datetime import datetime
 from pathlib import Path
 from typing import Any, Callable
 
@@ -535,6 +539,286 @@ class UltimaEnvSnapshotTool(BaseTool):
         )
 
 
+# --------------------------------------------------------------- 派单编排
+# 主脑的职责是「接单 → 派给外脑 → 逐环节回报」，不是把活推回用户。
+# 本组工具给主脑一条真正能派出去的通道：派单立即返回，外脑（DeepSeek）
+# 出方案在后台线程异步完成，主脑靠 dispatch_status 逐环节汇报。
+# 只有本工具返回成功，主脑才算真派了；规则第 11 条据此禁止空口声称已派。
+
+_DISPATCH_DIR = PROJECT_ROOT / "data" / "mainbrain" / "dispatches"
+_DEEPSEEK_CHAT_URL = "https://api.deepseek.com/chat/completions"
+_DEEPSEEK_MODEL = "deepseek-chat"
+_DEEPSEEK_TIMEOUT = 120.0
+
+DISPATCH_PLANNER_PROMPT = """你是 Ultima 的外脑（方案编制端）。主脑已经接下用户的动手类诉求，把任务派给了你。
+请针对该诉求给出一份可直接执行的技术方案，包含：
+1) 目标与验收标准；2) 涉及的文件或模块；3) 执行步骤；4) 风险点与回退方式。
+只出方案，不执行。不要声称任何改动已经完成，也不要编造不存在的文件路径。"""
+
+_DISPATCH_STATE_CN = {
+    "DISPATCHED": "已派出",
+    "PLANNING": "外脑出方案中",
+    "PLANNED": "方案已回",
+    "FAILED": "外脑调用失败",
+}
+
+
+def _now_iso() -> str:
+    return datetime.now().astimezone().isoformat(timespec="seconds")
+
+
+def _deepseek_api_key() -> str:
+    """环境变量优先，其次读 config/.env；两处都没有则视为未配置。"""
+    key = os.environ.get("DEEPSEEK_API_KEY", "").strip()
+    if key:
+        return key
+    env_file = PROJECT_ROOT / "config" / ".env"
+    if env_file.exists():
+        for line in env_file.read_text(encoding="utf-8", errors="ignore").splitlines():
+            stripped = line.strip()
+            if stripped.startswith("DEEPSEEK_API_KEY"):
+                return stripped.split("=", 1)[1].strip().strip('"').strip("'")
+    return ""
+
+
+def _dispatch_path(dispatch_id: str) -> Path:
+    return _DISPATCH_DIR / f"{dispatch_id}.json"
+
+
+def _write_dispatch(record: dict[str, Any]) -> None:
+    """原子写：先落临时文件再 replace，避免半截 JSON 被读到。"""
+    _DISPATCH_DIR.mkdir(parents=True, exist_ok=True)
+    target = _dispatch_path(str(record["dispatch_id"]))
+    tmp = target.with_suffix(".json.tmp")
+    tmp.write_text(
+        json.dumps(record, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+    )
+    tmp.replace(target)
+
+
+def _read_dispatch(dispatch_id: str) -> dict[str, Any] | None:
+    path = _dispatch_path(dispatch_id)
+    if not path.exists():
+        return None
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeError, json.JSONDecodeError):
+        return None
+    return data if isinstance(data, dict) else None
+
+
+def _call_deepseek_planner(task: str) -> str:
+    """纯标准库直调 DeepSeek，不引第三方依赖、不经过 Jarvis 引擎。"""
+    key = _deepseek_api_key()
+    if not key:
+        raise RuntimeError("DEEPSEEK_API_KEY 未配置，无法派给外脑")
+    payload = {
+        "model": _DEEPSEEK_MODEL,
+        "messages": [
+            {"role": "system", "content": DISPATCH_PLANNER_PROMPT},
+            {"role": "user", "content": task},
+        ],
+        "temperature": 0.2,
+        "max_tokens": 2048,
+        "stream": False,
+    }
+    body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
+    request = urllib.request.Request(
+        _DEEPSEEK_CHAT_URL,
+        data=body,
+        headers={
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {key}",
+        },
+    )
+    with urllib.request.urlopen(request, timeout=_DEEPSEEK_TIMEOUT) as response:
+        data = json.loads(response.read().decode("utf-8"))
+    choices = data.get("choices") or []
+    if not choices:
+        raise RuntimeError("外脑返回空结果")
+    return str((choices[0].get("message") or {}).get("content") or "").strip()
+
+
+def _run_dispatch_worker(dispatch_id: str, task: str) -> None:
+    """后台线程：标记 PLANNING → 调外脑 → 落方案或失败原因。"""
+    record = _read_dispatch(dispatch_id) or {"dispatch_id": dispatch_id, "task": task}
+    record["state"] = "PLANNING"
+    record["updated_at"] = _now_iso()
+    try:
+        _write_dispatch(record)
+    except OSError:
+        pass
+    try:
+        proposal = _call_deepseek_planner(task)
+        record = _read_dispatch(dispatch_id) or record
+        record["state"] = "PLANNED"
+        record["proposal"] = proposal
+        record.pop("error", None)
+    except Exception as exc:  # 外脑侧任何失败都要如实落盘，不能吞
+        record = _read_dispatch(dispatch_id) or record
+        record["state"] = "FAILED"
+        record["error"] = f"{type(exc).__name__}: {exc}"
+    record["updated_at"] = _now_iso()
+    try:
+        _write_dispatch(record)
+    except OSError:
+        pass
+
+
+@ToolRegistry.register("ultima_dispatch")
+class UltimaDispatchTool(BaseTool):
+    """主脑接单后的派单通道：把动手类任务交给外脑出方案。"""
+
+    tool_id = "ultima_dispatch"
+    is_local = False
+
+    @property
+    def spec(self) -> ToolSpec:
+        return ToolSpec(
+            name="ultima_dispatch",
+            description=(
+                "把用户要求「动手」的任务派给外脑（DeepSeek）出方案，立即返回派单号和状态，"
+                "方案由外脑异步生成。用户说帮我修/改/做/解决/处理/接入某个功能时，"
+                "先用一句话接单，再调用本工具派出去。"
+                "只有本工具返回成功才算真的派出去了；没调用它就不许声称已派单。"
+            ),
+            parameters={
+                "type": "object",
+                "properties": {
+                    "task": {
+                        "type": "string",
+                        "description": "用户要求做什么，用用户原话，不要改写或补全。",
+                    },
+                },
+                "required": ["task"],
+            },
+            category="dispatch",
+            # 只做落盘 + 起线程，正常远小于 1s；给 30s 足够容错
+            timeout_seconds=30.0,
+        )
+
+    def execute(self, **params: Any) -> ToolResult:
+        task = str(params.get("task") or "").strip()
+        if not task:
+            return ToolResult(
+                tool_name=self.tool_id,
+                content="没有收到要派的任务内容，无法派单。",
+                success=False,
+            )
+        dispatch_id = "D" + datetime.now().strftime("%Y%m%d-%H%M%S")
+        record: dict[str, Any] = {
+            "dispatch_id": dispatch_id,
+            "task": task,
+            "state": "DISPATCHED",
+            "proposal": None,
+            "error": None,
+            "created_at": _now_iso(),
+            "updated_at": _now_iso(),
+        }
+        try:
+            _write_dispatch(record)
+        except OSError as exc:
+            return ToolResult(
+                tool_name=self.tool_id,
+                content=f"派单记录落盘失败，本轮没有派出：{exc}",
+                success=False,
+            )
+        threading.Thread(
+            target=_run_dispatch_worker,
+            args=(dispatch_id, task),
+            name=f"dispatch-{dispatch_id}",
+            daemon=True,
+        ).start()
+        return ToolResult(
+            tool_name=self.tool_id,
+            content=(
+                f"已派给外脑 DeepSeek，派单号 {dispatch_id}。"
+                "方案生成中，回来我汇报给你。"
+            ),
+            success=True,
+            metadata={"dispatch_id": dispatch_id, "state": "DISPATCHED"},
+        )
+
+
+@ToolRegistry.register("ultima_dispatch_status")
+class UltimaDispatchStatusTool(BaseTool):
+    """查派单进度，供主脑逐环节回报。"""
+
+    tool_id = "ultima_dispatch_status"
+
+    @property
+    def spec(self) -> ToolSpec:
+        return ToolSpec(
+            name=self.tool_id,
+            description=(
+                "查派单进度与外脑方案。用户问「那个修好了没」「方案出来了吗」「进展如何」时调用。"
+                "省略 dispatch_id 时返回最近几单的概览。"
+            ),
+            parameters={
+                "type": "object",
+                "properties": {
+                    "dispatch_id": {
+                        "type": "string",
+                        "description": "可选，派单号；省略则列出最近派单。",
+                    },
+                },
+            },
+            category="dispatch",
+        )
+
+    def execute(self, **params: Any) -> ToolResult:
+        dispatch_id = str(params.get("dispatch_id") or "").strip()
+        if dispatch_id:
+            record = _read_dispatch(dispatch_id)
+            if not record:
+                return ToolResult(
+                    tool_name=self.tool_id,
+                    content=f"没找到派单 {dispatch_id}。",
+                    success=False,
+                )
+            state = str(record.get("state") or "")
+            parts = [f"派单 {dispatch_id}：{_DISPATCH_STATE_CN.get(state, state)}。"]
+            proposal = str(record.get("proposal") or "").strip()
+            if proposal:
+                parts.append("外脑方案：" + proposal[:800])
+            error = str(record.get("error") or "").strip()
+            if error:
+                parts.append("失败原因：" + error)
+            return ToolResult(
+                tool_name=self.tool_id,
+                content="".join(parts),
+                success=True,
+                metadata={"dispatch_id": dispatch_id, "state": state},
+            )
+
+        if not _DISPATCH_DIR.exists():
+            return ToolResult(
+                tool_name=self.tool_id,
+                content="还没有任何派单记录。",
+                success=True,
+            )
+        files = sorted(_DISPATCH_DIR.glob("D*.json"), reverse=True)[:5]
+        if not files:
+            return ToolResult(
+                tool_name=self.tool_id,
+                content="还没有任何派单记录。",
+                success=True,
+            )
+        lines = []
+        for path in files:
+            record = _read_dispatch(path.stem)
+            if not record:
+                continue
+            state = str(record.get("state") or "")
+            task = str(record.get("task") or "")[:40]
+            lines.append(f"{path.stem}：{_DISPATCH_STATE_CN.get(state, state)}｜{task}")
+        return ToolResult(
+            tool_name=self.tool_id,
+            content="最近派单：" + "；".join(lines) + "。",
+            success=True,
+        )
+
+
 __all__ = [
     "UltimaSubagentTool",
     "UltimaSkillManageTool",
@@ -543,4 +827,6 @@ __all__ = [
     "UltimaTaskQueryTool",
     "UltimaTaskAdjustTool",
     "UltimaEnvSnapshotTool",
+    "UltimaDispatchTool",
+    "UltimaDispatchStatusTool",
 ]

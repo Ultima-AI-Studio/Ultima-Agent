@@ -148,15 +148,21 @@ TOOLS = [
     "ultima_task_query",
     "ultima_task_adjust",
     "ultima_env_snapshot",
+    "ultima_dispatch",
+    "ultima_dispatch_status",
 ]
-# /ask 应答侧只给「只读事实 + 本地计算/记忆」这一类工具。
-# 调整队列、管理技能、派子代理都是跨边界的写动作，属主脑职责（/mainbrain 侧）；
-# 应答侧拿到它们会自己派活：实测 8B 面对「把 CV3 音色修好」直接调 ultima_task_adjust，
-# 拿到「task not found」后还把它当成回复内容。
+# /ask 应答侧工具面 = 「本地事实 + 接单派单」两类。
+# 主脑的职责是接单与编排（规则第 10/11 条）：必须给它真正能派出去的 dispatch 工具，
+# 否则它只会嘴上说「我马上安排」——那是 L140 记过的空口假称。
+# 但不给 task_adjust / skill_manage / subagent / env_snapshot 这类「自己动手改系统」或
+# 「去查外部状态凑答案」的动作：实测 8B 拿到 task_adjust 会去改队列、拿到只读查询工具
+# 会把「修 CV3」理解成「查队列里某条任务」，两者都跑偏。
 ANSWER_TOOLS = [
     "calculator",
     "think",
     "ultima_memory",
+    "ultima_dispatch",
+    "ultima_dispatch_status",
 ]
 # 语音应答的事实来源只有两个：注入的当前时间 + 本地记忆。web_search / task_query /
 # env_snapshot 都是「去查外部状态」，属主脑侧。实测留着 task_query 时，8B 会把
