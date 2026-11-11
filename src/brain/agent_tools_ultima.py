@@ -1,4 +1,4 @@
-"""Ultima Agent 自定义工具集（注册进 OpenJarvis ToolRegistry，供本地 14B 自主调用）。
+"""Ultima Agent 自定义工具集（注册进 OpenJarvis ToolRegistry，供本地 8B 自主调用）。
 
 对齐 product-plan v2.3 冻结口径：
 - ultima_task_query   ：L2 任务域查询，聚合汇报（结论先行/聚合/异常优先，对齐 L5 汇报三规则）
@@ -8,7 +8,7 @@
 设计约束：
 - 仅标准库 + UltimaAgent 自有模块（tasks/queue_engine / src.brain），不引入第三方依赖；
 - 写通道只走 QueuePlanner 官方入口（adjust_priority / requeue_before），不绕过冻结引擎；
-- 工具返回中文规范文本，供 14B 直接引用进最终回答；
+- 工具返回中文规范文本，供 8B 直接引用进最终回答；
 - 本模块运行在 venv-openjarvis 进程（agent_server）内，sys.path 须含 PROJECT_ROOT。
 """
 
@@ -75,7 +75,7 @@ class _Utf8SigQueueStorage(QueueStorage):
 
 
 def _renamed_result(name: str, result: ToolResult) -> ToolResult:
-    """保留底座执行结果，仅把工具名映射为 14B 实际调用的 Ultima 名称。"""
+    """保留底座执行结果，仅把工具名映射为 8B 实际调用的 Ultima 名称。"""
     return ToolResult(
         tool_name=name,
         content=result.content,

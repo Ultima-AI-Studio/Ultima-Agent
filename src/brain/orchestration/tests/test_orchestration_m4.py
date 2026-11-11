@@ -66,13 +66,13 @@ class TestLangGraphStateMachine(unittest.TestCase):
     def test_is_router_policy(self) -> None:
         self.assertIsInstance(self.engine, RouterPolicy)
 
-    def test_select_model_routes_by_complexity(self) -> None:
+    def test_select_model_always_local_8b(self) -> None:
+        """2026-11-11 起本地只有 8B 一档，14B 已停用：任何复杂度都必须落到 8B。"""
         low = RoutingContext(query="hi", complexity_score=0.1)
         mid = RoutingContext(query="x", complexity_score=0.5)
         high = RoutingContext(query="x", complexity_score=0.9)
-        self.assertEqual(self.engine.select_model(low), "qwen2.5:7b")
-        self.assertEqual(self.engine.select_model(mid), "qwen2.5:14b")
-        self.assertEqual(self.engine.select_model(high), "qwen3-8b-uncensored")
+        for ctx in (low, mid, high):
+            self.assertEqual(self.engine.select_model(ctx), "qwen3-8b-uncensored")
 
     # ------------------------------------------------------------------
     def test_approval_gate_blocks_unapproved(self) -> None:

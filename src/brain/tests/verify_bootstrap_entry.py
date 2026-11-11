@@ -50,7 +50,7 @@ def main() -> int:
 
     policy = RouterPolicyRegistry.create(
         "ultima_langgraph",
-        available_models=["qwen3-8b-uncensored", "qwen2.5:14b", "qwen2.5:7b"],
+        available_models=["qwen3-8b-uncensored"],
     )
     assert policy is not None, "router policy 取件失败"
     assert hasattr(policy, "select_model")

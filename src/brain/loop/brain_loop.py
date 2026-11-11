@@ -14,7 +14,7 @@
   MemoryLayers（s3-memory-base）、BehaviorMapper（s3-behavior-layer）。
 
 设计约束：
-- 14B 主脑是编排者：下发参数 + 审计返回；深度执行外发（本批次用确定性外部
+- 8B 主脑是编排者：下发参数 + 审计返回；深度执行外发（本批次用确定性外部
   执行桩 ExternalExecutorStub，真实外部大模型路由预留接线点）；
 - 不修改冻结参数基线；不绕过闸门/审计；
 - 写域：本目录位于 H:\\UltimaAI\\UltimaAgent\\ 写域内。

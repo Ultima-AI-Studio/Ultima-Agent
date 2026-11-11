@@ -107,13 +107,13 @@ class InteractionLoop:
             return self._respond(False, True, "", "空输入", self.phase)
 
         # 0a. 无实质内容（纯标点/符号，如 ASR 空输出"."）：用户唤醒后未接指令/声音过轻
-        #     → 直接引导，不进入 14B 兜底（否则干等 30~50s 后播一句废话，体验=喊了没反应）。
+        #     → 直接引导，不进入 8B 兜底（否则干等 30~50s 后播一句废话，体验=喊了没反应）。
         if not re.search(r"[\u4e00-\u9fffA-Za-z0-9]", normalized):
             return self._respond(True, True, "在呢，请说。", "唤醒确认", self.phase)
 
         # 0. 纯唤醒词回声引导：ASR 只识别出 profile 中的唤醒称呼及其尾音时，
         #    说明用户喊完唤醒词后未接指令，直接给引导语，
-        #    不进入 14B 兜底（否则干等 30s+ 后静默，体验=喊了没反应）。
+        #    不进入 8B 兜底（否则干等 30s+ 后静默，体验=喊了没反应）。
         if _WAKE_ECHO_ONLY.match(normalized):
             return self._respond(True, True, "在呢，请说。", "唤醒确认", self.phase)
 
@@ -176,7 +176,7 @@ class InteractionLoop:
         if _ADJUST_INTENT.search(normalized):
             return self._on_adjust_request(normalized)
         # 2b. 纯征询/确认短句在非待确认态：静默（恢复旧契约"无已交付结果时征询不误吞"，
-        #     并防止漏到 14B 兜底自由发挥——真机抱怨"回答不精准/答非所问"的路径之一）。
+        #     并防止漏到 8B 兜底自由发挥——真机抱怨"回答不精准/答非所问"的路径之一）。
         #     含查询动作/主题词的句子（"可以查一下任务状态"）不受影响，继续走查询。
         if (
             self.phase != _PENDING_CONFIRM
@@ -215,17 +215,17 @@ class InteractionLoop:
 
         # 5.5 天气直达已前移至 1.4（先于征询/确认判断，防止"天气怎么样"被"怎么样"误吞）
 
-        # 5.8 云端外脑优先（2026-11-01 用户拍板：接云端大模型对照验证 KWS/ASR/TTS 链路；
-        #     云不可达/异常时静默降级走本地 agent，不破坏既有链路）。
-        cloud_reply = self._try_cloud_fallback(normalized)
-        if cloud_reply is not None:
-            return cloud_reply
-
-        # 6. 规则表全部未命中 → 转本地 Agent 循环（agent_server，14B 自主回答/调工具）。
-        #    服务不可达或返回空时降级静默（不语音搭话，保持 L7 验收现状）。
+        # 6. 本地优先（2026-11-11 Owner 拍板：本地模型优先，云端仅在本地不可用时兜底）。
+        #    规则表未命中 → 本地 Agent 循环（agent_server 8756，
+        #    qwen3-8b-uncensored 自主回答/调工具）。服务不可达或返回空时再试云端。
         agent_reply = self._try_agent_fallback(normalized, route_input=False)
         if agent_reply is not None:
             return agent_reply
+
+        # 6.1 云端外脑兜底（仅在本地 agent 不可用/返回空时触发；原为优先，2026-11-11 降为兜底）。
+        cloud_reply = self._try_cloud_fallback(normalized)
+        if cloud_reply is not None:
+            return cloud_reply
 
         # 未命中意图：静默（不语音搭话）。识别成功但语义未命中通常为背景音/无效内容，
         # 频繁语音回应会让用户感到被打扰（真机反馈：总是问我需要做什么）。
@@ -297,7 +297,7 @@ class InteractionLoop:
         *,
         route_input: bool = True,
     ) -> InteractionResponse | None:
-        """规则表未命中的输入交给本地 14B 自主对话循环；服务异常返回 None 保持静默。"""
+        """规则表未命中的输入交给本地 8B 自主对话循环；服务异常返回 None 保持静默。"""
         if route_input:
             routed = self._route_before_agent(text)
             if routed is not None:
@@ -441,15 +441,15 @@ class InteractionLoop:
 
     # ── 天气直达（2026-10-29 新增）─────────────────────────────
     # 识别"查天气"意图 → 直查天气服务 → 一句话秒答。
-    # 背景：此前天气指令落 14B 自由发挥 → 绕圈 119s 或甩一长串天气网链接（真机反馈：
+    # 背景：此前天气指令落 8B 自由发挥 → 绕圈 119s 或甩一长串天气网链接（真机反馈：
     # "让他查天气，查出一大长串让我上天气网看，没直接回答"）。这里窄边界识别
-    # 天气意图，直达天气源，绕过 14B；查询失败/无城市信息时返回 None 走原 14B 兜底。
+    # 天气意图，直达天气源，绕过 8B；查询失败/无城市信息时返回 None 走原 8B 兜底。
     _WEATHER_INTENT = re.compile(
         r"(?:天气|气温|温度|多少度|几度|下雨|下雪|阴天|晴不晴|冷不冷|热不热|天气预报|天怎么样|天气如何)"
     )
 
     # 天气查询失败降级话术（2026-10-29 21:1x 加固）：意图命中但查询失败时
-    # 快速给一句话反馈，不再静默降级 14B 干等 40s（真机反馈"查天气没回复"）。
+    # 快速给一句话反馈，不再静默降级 8B 干等 40s（真机反馈"查天气没回复"）。
     _WEATHER_DEGRADE = "天气服务暂时不可用，请稍后再试。"
 
     # ── 配置表直达（2026-11-06 新增）─────────────────────────────
@@ -486,12 +486,12 @@ class InteractionLoop:
         return self._respond(True, True, reply, "配置直达", self.phase)
 
     def _try_weather_fallback(self, text: str) -> InteractionResponse | None:
-        """天气意图直达：返回一句话天气回答；非天气/查询失败返回 None 走 14B 兜底。"""
+        """天气意图直达：返回一句话天气回答；非天气/查询失败返回 None 走 8B 兜底。"""
         if not self._WEATHER_INTENT.search(text):
             return None
         try:
             from .weather import query_weather  # 天气直达模块（标准库 urllib）
-        except Exception:  # 模块缺失等：降级走 14B
+        except Exception:  # 模块缺失等：降级走 8B
             return None
         try:
             answer = query_weather(text)

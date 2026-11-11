@@ -117,7 +117,8 @@ class LangGraphStateMachine(RouterPolicy):
         self._graph: Optional[CompiledStateGraph] = None
         self._node_handlers: Dict[str, Callable[[WorkflowState], Any]] = {}
         self._approval_required: set[str] = set()
-        self._model_keys = ("qwen3-8b-uncensored", "qwen2.5:14b", "qwen2.5:7b")
+        # 本地主脑统一 8B（2026-11-11 Owner 拍板：14B 已停用，不再参与任何调用）。
+        self._model_keys = ("qwen3-8b-uncensored",)
 
         # 幂等注册：同 key 已注册时跳过（同进程多次实例化合法）
         if not OrchestrationRegistry.is_registered(self._key):
@@ -132,13 +133,12 @@ class LangGraphStateMachine(RouterPolicy):
     # RouterPolicy ABC：模型路由
     # ------------------------------------------------------------------
     def select_model(self, context: RoutingContext) -> str:
-        """按复杂度路由本地模型（复杂度越高用越大模型）。"""
-        c = context.complexity_score
-        if c >= 0.66:
-            return self._model_keys[0]
-        if c >= 0.33:
-            return self._model_keys[1]
-        return self._model_keys[2]
+        """返回本地主脑模型名。
+
+        2026-11-11 起本地只有 8B 一档（14B 已停用），复杂度档位保留为未来扩展位；
+        所有复杂度均返回唯一可用模型，避免回落到已停用的大模型。
+        """
+        return self._model_keys[0]
 
     # ------------------------------------------------------------------
     # 图构建

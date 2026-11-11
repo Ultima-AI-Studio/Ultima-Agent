@@ -202,7 +202,7 @@ class TestG3RouterWiring(unittest.TestCase):
 
         policy = RouterPolicyRegistry.create(
             "ultima_langgraph",
-            available_models=["qwen3-8b-uncensored", "qwen2.5:14b", "qwen2.5:7b"],
+            available_models=["qwen3-8b-uncensored"],
         )
         self.assertIsNotNone(policy)
         self.assertTrue(hasattr(policy, "select_model"))
@@ -214,7 +214,7 @@ class TestG3RouterWiring(unittest.TestCase):
 
         policy = RouterPolicyRegistry.create(
             "ultima_langgraph",
-            available_models=["qwen3-8b-uncensored", "qwen2.5:14b", "qwen2.5:7b"],
+            available_models=["qwen3-8b-uncensored"],
         )
         ctx = build_routing_context(
             "Analyze the task queue status and worker health, then explain "

@@ -2,7 +2,7 @@ r"""M6 适配调校 · 整体连通性测试（正式可复跑版）。
 
 逐环节真实运行（非模拟）：
   C1 环境/依赖一致性（venv 包版本、ollama 模型清单）
-  C2 底座入口通路（jarvis ask 本地 14B 对话 + 工具调用原语）
+  C2 底座入口通路（jarvis ask 本地 8B 对话 + 工具调用原语）
   C3 L8 安全护栏（scan 正常/注入/变体 + redact + check + 驻留 + 白名单）
   C4 L9 记忆（store/retrieve/delete + 驻留）
   C5 L10 范式引擎（正常链/注入链/审批 hold + 审计 + 驻留）

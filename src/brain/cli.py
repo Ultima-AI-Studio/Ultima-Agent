@@ -32,7 +32,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--agent",
         action="store_true",
-        help="文字试点：走本地 Agent 循环（agent_server，14B 自主回答/调工具）",
+        help="文字试点：走本地 Agent 循环（agent_server，8B 自主回答/调工具）",
     )
     arguments = parser.parse_args(argv)
 
