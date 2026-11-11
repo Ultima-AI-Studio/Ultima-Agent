@@ -1212,3 +1212,17 @@ broken`），整个验收卡在这一步，只能记未完成。
 1. **现象**：`run_worker` 已带 `CREATE_NO_WINDOW|DETACHED_PROCESS`，但经 venv 的 253KB `python.exe`（stdlib `venvlauncher.exe` 模板）仍 re-exec 基础解释器并产生可见顶层窗口，被 WindowMonitor 判失败；用项目真实 WindowMonitor（WinEvent hook，非 EnumWindows 轮询）才稳定复现，基线 worktree 证明这批 E2E 属宿主窗口 flaky、非代码回归。
 2. **规则**：venvlauncher 在 DETACHED 下 re-exec 会丢无窗标志。根治是把 venv 的 `python.exe`/`pythonw.exe` 换成直接运行解释器（否决 `sys._base_executable` 绕过），并把运行时 DLL 复制到 exe 同级做自包含——计划任务由 svchost 用持久 PATH 启动，不继承交互式会话注入的 PATH，否则报 `0xC0000135=STATUS_DLL_NOT_FOUND`。
 3. **固化**：`scripts/fix-venv-launcher.ps1` 幂等入库（备份、替换、复制 DLL、干净 PATH 验证）；用仅含 `System32;Windows` 的干净 PATH 验证启动，避免在交互会话里「假通过」。
+
+### L127 · 派发期验收门不得拿「派发器自己会写的文件」的 HEAD diff 为空当判据——结构性不可满足
+
+1. **现象**：0042 首轮 T2 Gate 写的是 `git diff --stat HEAD -- tasks/queue/queue-status.json` 输出必须为空。但 `queue-status.json` 正是派发器在执行期维护的唯一状态权威：起跑时它把本单写进 executing、收尾时写 blocked，主脑在派发前也刚写入本单登记。Codex 一开工实测就是 `10 insertions(+)`，该判据在**整个派发期内永不可能满足**。Codex 没擅自放宽判据、没提交半成品，按铁律停住并在回执写「受阻于 T2 Gate」，浪费了一整轮（约 25 分钟 + 一次派发名额）。
+2. **规则**：零写入 / 干净交付类判据，**判据的主语不能是被审动作自身的写者之一**。凡「派发器 / 渲染器 / 主脑在本轮会写的文件」，都不允许以「相对 HEAD 为空」作判据；必须改成**以派发快照为基线比对**——本仓即 run 目录的 `queue-status-before-executing.json`，逐条结构化对账 + sha256 比对，并显式声明「除本单自身 state 字段外业务记录一致」。
+3. **修法**：改判据前先确认它「在派发期内可满足」——用一句话自检：*这条命令在派发开始后的第 1 秒和第 30 分钟都成立吗？* 不成立就是判据错，不是执行端错。改完判据要用 `validate_work_order.py` 复跑确认 PASS，再把已产出物（本轮 `relay.py` 474 行 / `test_relay.py` 358 行 / T0–T2 三档 passed 数）写进 prompt 的「续行说明」段，让第二轮复用而不是重做——第二轮 21 分钟跑完 T0–T4 全部并提交。
+4. **副教训**：文本回执的分类器只认结构化标记或 `当前状态/完成状态 … BLOCKED` 正则。Codex 首轮写「状态：受阻…」不匹配，于是 `receipt_valid=false`，看起来像执行失败。要让它给可机检回执，prompt 里必须明确「回执首行必须是结构化 JSON 或指定标记」。
+
+### L128 · 硬门审计的证据包必须含**被审源码原文**；只给自研摘要会把「实现正确」误判成 FAIL
+
+1. **现象**：0042 首次硬门复审 `audit_passed=false`，ACC-1 FAIL / 其余三门 PASS，两轮一致。读 `audit.json` 判词原文，FAIL 的唯一理由是「The artifacts contain no `relay.py` lines 168–206 (execute body), no argument table, and no policy file contents」——它明确写「settle by supplying the execute body, the argparse table, and the policy file contents」。我给的证据是自研的 `write-audit.md`（我的分类结论）+ `reverse-check.txt`（我的实跑输出），**没有给被审代码本身**。审计方无法从我的摘要里区分「三条件真的写在 execute 体内」和「恰好被某个旁路放行」，因此按 fail-closed 判 FAIL。这是**证据缺料**，不是实现不合门。
+2. **规则**：硬门证据包分两层——① 被审对象**原文**（核心函数体、入口 argparse 表、策略/配置出厂值、关键测试文件），② 复核方自己的实跑输出（可用来交叉验证，但不能替代原文）。只给 ② 等于让审计去相信我的结论，违反 maker-checker 的独立性。
+3. **修法**：补齐原文 + 第二方法复核（纯文本 grep 与 AST 枚举两条独立路径，不复用同一份结论）+ 环境变量作用域澄清（本例 `GORCH_SHARED_QUEUE` 只喂暂停标记路径、不碰真派开关）后重跑，ROUND1+ROUND2 四门全 PASS，**判据一字未改、未削弱**。同时把 `ULTIMA_AUDIT_BATCH_BYTES` 调到足够大，让全部证据进同一批（`injected_bytes == attested_bytes`），避开 L124 的分批污染。
+4. **判读纪律**：硬门 FAIL 先分性质——「证据缺失」补料重跑，「实现缺陷」才回派修复单。把前者当后者会让执行端去改本来正确的代码；把后者当前者会放走真缺陷。判断依据只有判词原文里那句「Settle by supplying … / needs evidence about …」还是「the code does X which violates Y」。

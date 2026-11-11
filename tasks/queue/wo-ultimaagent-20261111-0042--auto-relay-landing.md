@@ -348,3 +348,41 @@ SCRIPTS_EXIT=0
 COMMAND: git diff --stat HEAD -- scripts/dispatch-work-order.py scripts/validate_work_order.py scripts/audit-work-order.py scripts/render-queue-views.py
 OUTPUT: <empty>
 ```
+
+---
+
+## 4. 主脑独立验收与 DeepSeek 硬门复审（收口）
+
+- 实现提交：`3407b2bc`（6 文件 1656 insertions；`scripts/relay-loop.py`、`tasks/queue_engine/relay.py`、`tasks/tests/test_relay.py`、`tasks/queue/relay-policy.json`、`tasks/queue/relay-state.json`、本卡回执段）
+
+### 4.1 主脑独立验收（不采信实现方回执，全部实跑复核）
+
+| 项 | 原始结果 |
+|---|---|
+| 保护文件 diff | `git diff --stat bc914eb0 3407b2bc -- <7 个保护文件>` → 空 |
+| 全链路直接写 state | 硬门正则全 `tasks/queue_engine/*.py` + `scripts/relay-loop.py`：命中 1 处，`state_machine.py:95`（副本写入）；新增 `relay.py`/`relay-loop.py`/`test_relay.py` 均 0 |
+| relay 写 queue-status | `relay.py` 11 处 `queue-status` 全为 docstring/注释/路径常量/异常文案；`relay-loop.py` 0 处；类体 `QueueStatusView` 只有读取方法 |
+| 三重与门反向 | 三缺一（开关关 / 未显式 execute / 不在白名单）全部 `RelayContractError("real dispatch disabled")`；三条件全真才到达桩脚本 `ready=True code=0` |
+| 真实队列零写入零派发 | `--once --dry-run` 与 `--once --execute` 均 `stop_reason=WIP_BUSY`、`would_dispatch=false`；`sha256(queue-status)` 前 `CB177ADD…` 后 `CB177ADD…` `IDENTICAL=True` |
+| 无窗 | `pythonw --start --dry-run`，进程树 8 次独立采样全部 `visible_window_count=0`（monitor samples=107，observed_pids=[23992]）；`--stop` 后 13.92s（< interval 30s）退出 `rc=0` |
+| 幂等 | 同内容连续两次 `RelayStateStore.save()` sha256 均为 `FF4A5A23…`；目录仅 `relay-state.json`、零临时残留；回读字段正确；`same_order_is_not_dispatched_twice_in_one_tick` + 退避/停机定向用例 `2 passed` |
+| 全量回归 | `tasks/tests`：`107 passed, 8 subtests passed`（基线 71，只增不减）；`scripts/tests`：`116 passed`（与基线一致） |
+
+证据目录：`tasks/queue/runs/wo-ultimaagent-20261111-0042/hardgate-20261111T083322Z/`（write-audit.md、reverse-check.txt、pytest-tasks.txt、pytest-scripts.txt）、`.../hardgate2-20261111T083624Z/`（grep-recheck.txt、acc1-env-clarification.md、audit.json）。
+
+### 4.2 DeepSeek 硬门复审
+
+- 首轮 `hardgate-20261111T083322Z`：`audit_passed=false`，ROUND1/ROUND2 判 `ACC-1 FAIL / ACC-2 PASS / ACC-3 PASS / ACC-4 PASS`。读原始判词确认：**FAIL 的唯一成因是证据缺料**——证据包未含 `execute()` 函数体、`relay-loop.py` argparse 表、`relay-policy.json` 出厂值，判词原文要求「supplying the execute body, the argparse table, and the policy file contents」。不是代码缺陷，判据未改、未削弱。
+- 补齐证据后重跑 `hardgate2-20261111T083624Z`：`audit_passed=true`，ROUND1 与 ROUND2 **四门全 PASS**，实际模型 `deepseek-flash`，`integrity_errors=[]`，11 个证据对象逐一 `injected_bytes == attested_bytes`（单批全 visible、无截断）。
+- ROUND2 判词要点（原文摘）：ACC-1 三条件在 `execute()` 体内 L168–174、抛错早于 `log_dir.mkdir`(L177) 与 `Popen`(L189)，policy 出厂 `false`/`[]`，无绕过关键词，唯一 `os.environ` 读 `GORCH_SHARED_QUEUE` 只喂暂停标记路径；ACC-2 全目录 1 处直接写 state、`QueueStatusView` 只有读取、`test_queue_status_view_exposes_no_write_entrypoint` 断言 `AttributeError`；ACC-3 `save()` 走同目录临时文件 + `fsync` + `os.replace`、`pump_once` 有 `attempted` 集返回 `SAME_ORDER_THIS_TICK`、失败达上限置 `halted=true`；ACC-4 8 次采样全 0 且一个间隔内退出。
+
+### 4.3 队列收口
+
+- `queue-status.json`：0042 `blocked` → `frozen`，`audit_passed=true`，`audit_run=hardgate2-20261111T083624Z`，`freeze_commit=3407b2bc`；写前校验无 BOM/纯 LF/163 条/唯一本单记录，写后复核一致，`git diff --numstat` 仅 6 增 6 删（只本单块）。
+- 视图重渲染：`records: 163, distribution{frozen:113, blocked:23, cancelled:16, closed:2, audit:5, pending:4}`；`--check` → `{"differences": []}`。
+
+### 4.4 已知限制（登记，不在本单修）
+
+1. `DispatcherClient.execute()` 内部 `process.wait()` 同步等待派发器结束（上限 `max_runtime_seconds=1800`），因此**真派进行中常驻循环的一拍会被阻塞到该派发结束**，`--interval-s` 在派发期间不生效。本单接受该行为（隔离验证阶段真派默认关闭且未启用计划任务）；若要并发或多单连推，需另开单改成非阻塞等待或独立 worker。
+2. `tasks/queue/relay-state.json` 作为运行态被纳入版本控制：真实运行后内容会变化，产生工作区脏文件。本单保留初始值入库以便审计可复现；是否改为 gitignore 由 Owner 决定。
+3. 计划任务 `UltimaAgent-RelayLoop` **未启用**、`eligible_orders` 仍空、`real_dispatch_enabled=false`：真派链路虽已接通但默认全闭，首批白名单与启用时机待 Owner 决策。
