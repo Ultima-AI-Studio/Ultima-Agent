@@ -1,6 +1,6 @@
 ﻿# ============================================================================
 # Ultima Agent 一键启动器（本地常驻运行装配 v1）
-# 作用：拉起 ollama LLM → agent_server(8756) → voice-listen-daemon(KWS/ASR/TTS)
+# 作用：拉起 ollama LLM → agent_server(8756) → voice-next/live.py(KWS/ASR/TTS，唯一入口)
 #       → 打开四角壳界面（真数据模式，SSE=8756）
 # 用法：powershell -ExecutionPolicy Bypass -File scripts\start-ultima-agent.ps1
 # ============================================================================
@@ -55,26 +55,31 @@ if (Test-Port 8756) {
     }
 }
 
-# ── 3. voice-listen-daemon（KWS 唤醒 + ASR + TTS 回放）────────────────────
-$voiceRunning = Get-CimInstance Win32_Process | Where-Object { $_.CommandLine -match 'voice-listen-daemon' }
+# ── 3. voice-next 语音入口（KWS 唤醒 + ASR + TTS 回放，唯一入口）──────────
+# 旧入口 voice-listen-daemon.py（E2）/ kws_listener.py（E1）已冻结归档到
+# archive/voice-legacy-E1E2-20261111/，此处不再拉起，避免两套源并存。
+$voiceRunning = Get-CimInstance Win32_Process | Where-Object { $_.CommandLine -match 'voice-next\\live\.py' }
 if ($voiceRunning) {
-    Write-Host "[3/4] voice-listen-daemon 已在运行 (PID $($voiceRunning.ProcessId -join ','))" -ForegroundColor Green
+    Write-Host "[3/4] voice-next 入口已在运行 (PID $($voiceRunning.ProcessId -join ','))" -ForegroundColor Green
 } else {
-    Write-Host "[3/4] 启动 voice-listen-daemon..." -ForegroundColor Yellow
-    $pyAsr = Join-Path $root "tools\venv-asr\Scripts\pythonw.exe"
-    if (-not (Test-Path -LiteralPath $pyAsr)) { $pyAsr = Join-Path $root "tools\venv-asr\Scripts\python.exe" }
-    $daemon = Join-Path $root "data\logs\voice-listen-daemon.py"
-    $outLog = Join-Path $logDir "voice-listen-daemon-out.log"
-    $errLog = Join-Path $logDir "voice-listen-daemon-err.log"
-    Start-Process -FilePath $pyAsr -ArgumentList @("-X","utf8",$daemon) `
-        -WorkingDirectory $root -WindowStyle Hidden `
-        -RedirectStandardOutput $outLog -RedirectStandardError $errLog
-    Start-Sleep -Seconds 5
-    $voiceNow = Get-CimInstance Win32_Process | Where-Object { $_.CommandLine -match 'voice-listen-daemon' }
-    if ($voiceNow) {
-        Write-Host "      voice-listen-daemon 已拉起 (PID $($voiceNow.ProcessId -join ','))，KWS 模型加载约 30s 后进入监听" -ForegroundColor Green
+    Write-Host "[3/4] 启动 voice-next 入口 (live.py)..." -ForegroundColor Yellow
+    $pyVn = Join-Path $root "tools\venv-voice-next\Scripts\python.exe"
+    if (-not (Test-Path -LiteralPath $pyVn)) {
+        Write-Host "      缺少 $pyVn，语音入口无法启动" -ForegroundColor Red
     } else {
-        Write-Host "      voice-listen-daemon 启动失败，详见 $errLog" -ForegroundColor Red
+        $live = Join-Path $root "src\voice-next\live.py"
+        $errLog = Join-Path $logDir "voice-next-err.log"
+        $outLog = Join-Path $logDir "voice-next-out.log"
+        Start-Process -FilePath $pyVn -ArgumentList @("-X","utf8",$live) `
+            -WorkingDirectory $root -WindowStyle Hidden `
+            -RedirectStandardOutput $outLog -RedirectStandardError $errLog
+        Start-Sleep -Seconds 5
+        $voiceNow = Get-CimInstance Win32_Process | Where-Object { $_.CommandLine -match 'voice-next\\live\.py' }
+        if ($voiceNow) {
+            Write-Host "      voice-next 已拉起 (PID $($voiceNow.ProcessId -join ','))，KWS 载入后进入监听" -ForegroundColor Green
+        } else {
+            Write-Host "      voice-next 启动失败，详见 $errLog" -ForegroundColor Red
+        }
     }
 }
 
@@ -93,6 +98,17 @@ if (-not $NoHud) {
 }
 
 Write-Host ""
-Write-Host "启动完成。唤醒词：贾维斯（KWS 就绪后即可语音对话）" -ForegroundColor Green
+# 唤醒词只从唯一配置源 config\voice-next\live.json 读取，禁止在脚本里写死，
+# 否则会出现"脚本说一个词、实际入口跑另一个词"的双源。
+$kw = "（未知，检查 config\voice-next\live.json）"
+$liveCfg = Join-Path $root "config\voice-next\live.json"
+if (Test-Path -LiteralPath $liveCfg) {
+    try {
+        $kw = (Get-Content -LiteralPath $liveCfg -Raw -Encoding UTF8 | ConvertFrom-Json).keyword
+    } catch {
+        Write-Host "      读取 live.json 失败: $_" -ForegroundColor DarkYellow
+    }
+}
+Write-Host "启动完成。唤醒词：$kw（KWS 就绪后即可语音对话）" -ForegroundColor Green
 Write-Host "服务日志：$logDir" -ForegroundColor DarkGray
 Write-Host "控制台关闭后服务仍在后台运行；如需停止全部服务，请使用任务栏托盘菜单「退出全部服务」。" -ForegroundColor DarkGray

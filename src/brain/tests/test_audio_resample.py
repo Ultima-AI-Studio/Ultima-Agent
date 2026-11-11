@@ -84,51 +84,7 @@ def test_resample_has_no_zero_division_warning() -> None:
     assert len(actual) == 160
 
 
-def test_audio_capture_opens_wasapi_stereo_and_reads_mono() -> None:
-    daemon_path = Path(__file__).resolve().parents[3] / "data" / "logs" / "voice-listen-daemon.py"
-    spec = importlib.util.spec_from_file_location("voice_listen_daemon_for_test", daemon_path)
-    assert spec is not None and spec.loader is not None
-    daemon = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(daemon)
-
-    class FakeStream:
-        def __init__(self, **kwargs) -> None:
-            self.kwargs = kwargs
-
-        def __enter__(self):
-            return self
-
-        def __exit__(self, *args) -> None:
-            return None
-
-        def read(self, frames: int):
-            assert frames == 2
-            return np.array([[1000, 3000], [-1000, 1000]], dtype=np.int16), False
-
-    class FakeSoundDevice:
-        def __init__(self) -> None:
-            self.stream = None
-
-        def query_devices(self, index: int) -> dict:
-            assert index == 42
-            return {"max_input_channels": 2, "default_samplerate": 48000.0}
-
-        def InputStream(self, **kwargs):
-            self.stream = FakeStream(**kwargs)
-            return self.stream
-
-    fake_sd = FakeSoundDevice()
-    with daemon.AudioCapture(fake_sd).open(42, "Windows WASAPI", 48000) as capture:
-        mono, overflowed = capture.read(2)
-
-    assert fake_sd.stream.kwargs == {
-        "device": 42,
-        "samplerate": 48000,
-        "channels": 2,
-        "dtype": "int16",
-    }
-    assert capture.hostapi == "Windows WASAPI"
-    assert capture.samplerate == 48000
-    assert capture.channels == 2
-    assert overflowed is False
-    np.testing.assert_array_equal(mono, np.array([[2000], [0]], dtype=np.int16))
+# `test_audio_capture_opens_wasapi_stereo_and_reads_mono` 随 E2 daemon 一并冻结：
+# 它用 spec_from_file_location 直接加载 data/logs/voice-listen-daemon.py 的 AudioCapture，
+# 属旧入口专属行为，已移入 archive/voice-legacy-E1E2-20261111/src/brain/tests/。
+# 本文件只保留新入口同样依赖的 _resample 纯函数契约。

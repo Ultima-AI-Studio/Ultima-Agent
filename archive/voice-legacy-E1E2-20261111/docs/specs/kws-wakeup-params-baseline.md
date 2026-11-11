@@ -1,9 +1,14 @@
-# UltimaAgent KWS 唤醒参数基线（权威单一来源）
+# UltimaAgent KWS 唤醒参数基线（E1/E2 历史实现 · 已停用）
 
-- **文档定位**：UltimaAgent 语音入口（关键词唤醒 KWS）的历史实现基线（E1/E2）。任何 KWS 相关调整必须先读本文件，禁止凭记忆或只改代码注释。
+> **⚠ 本文不是当前生效参数。禁止据本文调参，也禁止据本文回答"当前唤醒词是什么/阈值是多少"。**
+> 现行入口是 `src/voice-next/`（E3）：唤醒词 `你好问问`、`keywords_threshold 0.25`、`keywords_score 1`、`num_trailing_blanks 1`，权威文档 **`docs/specs/voice-next-product-baseline.md`**。
+> E1/E2 于 2026-11-11 核对时无进程在跑：`src/brain/voice/kws_listener.py`、`data/logs/voice-listen-daemon.py` 均已停用；本文词表 `models/sherpa/kws/keywords.txt`（贾维斯/幂幂/ULTIMA）是死文件，喊了不会有反应。
+> **新旧互不引用、互不约束**：E3 任何参数改动只改新基线，不得回填本文；本文只作历史证据与回滚参考。
+
+- **文档定位**：历史实现基线（E1/E2），**仅供取证与回滚参考**，不参与现行运行。
 - **创建**：2026-10-29（固化 10-26/10-27 多轮真机调参结论 + 10-29 修复记录）
-- **适用入口**：`src/brain/voice/kws_listener.py`（产品主入口）；历史 daemon `data/logs/voice-listen-daemon.py` 为同参数的第二实现，以本文件为准。
-**本文所辖入口已降为历史实现**：产品主线见 `docs/specs/voice-next-product-baseline.md`。本文取值不约束该主线，该主线取值亦不约束本文。
+- **停用**：2026-11-11（自研语音路线整体放弃；E3 独立成线，两套参数正式解耦）
+- **适用入口**：`src/brain/voice/kws_listener.py`（E1，已停用）；`data/logs/voice-listen-daemon.py`（E2，已停用）。本文取值不约束 `src/voice-next/`，该主线取值亦不约束本文。
 
 ## 一、麦克风设备（关键，勿再漂移）
 

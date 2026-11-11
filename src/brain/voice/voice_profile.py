@@ -33,15 +33,25 @@ JARVIS_PERSONA_PATH = (
     / "jarvis.md"
 )
 
-DEFAULT_WAKE_WORDS = [
-    "j iǎ w éi s ī @贾维斯",
-    "j ià w éi s ī @贾维斯",
-    "j iā w éi s ī @贾维斯",
-    "j iǎ w ei s ī @贾维斯",
-    "j iǎ w éi s i @贾维斯",
-    "j iǎ w éi s @贾维斯",
-]
-DEFAULT_WAKE_ECHO_ROOTS = ("贾维斯", "乔维斯")
+def _live_wake_keyword() -> str:
+    """唤醒词唯一源 = config/voice-next/live.json；读不到返回空串（fail-closed）。"""
+    path = ROOT / "config" / "voice-next" / "live.json"
+    try:
+        keyword = json.loads(path.read_text(encoding="utf-8")).get("keyword")
+    except (OSError, json.JSONDecodeError, AttributeError):
+        return ""
+    return keyword.strip() if isinstance(keyword, str) else ""
+
+
+# E1 遗留字段：新入口（src/voice-next）不读 wakeword.words，
+# 现行词表唯一源是 config/voice-next/keywords.txt，唤醒词唯一源是 live.json 的 keyword。
+# 此处保持空列表，避免仓库内出现第二份"贾维斯"词表；回滚 E1 时按
+# archive/voice-legacy-E1E2-20261111/README.md 恢复。
+DEFAULT_WAKE_WORDS: list[str] = []
+# 回声识别根只认当前唯一唤醒词（live.json），不再内置旧词"贾维斯/乔维斯"。
+# 旧词表随 E1/E2 冻结在 archive/voice-legacy-E1E2-20261111/。
+_LIVE_WAKE_KEYWORD = _live_wake_keyword()
+DEFAULT_WAKE_ECHO_ROOTS: tuple[str, ...] = (_LIVE_WAKE_KEYWORD,) if _LIVE_WAKE_KEYWORD else ()
 _ULTIMA_KEYWORD = "AH1 L T IH0 M AH0 @ULTIMA"
 _BUILTIN_JARVIS_PROMPT = """You are Jarvis, a loyal, efficient, dry-witted local AI assistant with the calm refinement of a British butler.
 Only answer facts present in the provided data or the user's actual question. Never invent.

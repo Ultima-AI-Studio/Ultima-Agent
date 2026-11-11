@@ -104,48 +104,14 @@ class WakewordChangeCoordinator:
         return custom.rsplit("@", 1)[-1].strip() or None
 
     def _run_cli(self, custom: str | None) -> tuple[bool, str]:
-        project_root = Path(__file__).resolve().parents[2]
-        words = ["贾维斯"]
-        label = self._custom_label(custom)
-        if label and label != "贾维斯":
-            words.append(label)
-        command = [
-            sys.executable,
-            "-X",
-            "utf8",
-            str(project_root / "scripts" / "kws_reconfig.py"),
-            "--replace",
-            *words,
-        ]
-        try:
-            completed = _run_process(
-                command,
-                cwd=project_root,
-                capture_output=True,
-                text=True,
-                encoding="utf-8",
-                errors="replace",
-                timeout=self.cli_timeout,
-                check=False,
-                creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
-            )
-            result = json.loads(completed.stdout)
-            reload_result = result.get("hot_reload")
-            success = (
-                completed.returncode == 0
-                and isinstance(reload_result, dict)
-                and reload_result.get("success") is True
-                and reload_result.get("same_pid") is True
-            )
-            error = "" if success else str(
-                (reload_result or {}).get("error")
-                or result.get("error")
-                or completed.stderr
-                or f"CLI exit {completed.returncode}"
-            )
-            return success, error
-        except (OSError, subprocess.SubprocessError, json.JSONDecodeError) as exc:
-            return False, str(exc)
+        """唯一语音入口（src/voice-next）不支持在线改唤醒词。
+
+        旧实现调用 scripts/kws_reconfig.py 改写 models/sherpa/kws/keywords.txt 并触发热重载；
+        该 CLI 与 E1 词表已随旧入口冻结归档到 archive/voice-legacy-E1E2-20261111/。
+        此处 fail-closed，避免新代码继续引用已归档的旧实现。改词请改
+        config/voice-next/live.json 的 keyword（唯一源）后重启入口。
+        """
+        return False, "唯一语音入口不支持在线修改唤醒词；请改 config/voice-next/live.json 后重启入口"
 
     def _rollback(self, old_custom: str | None) -> bool:
         self._reset_profile_wait(old_custom)

@@ -62,7 +62,12 @@ def build_kws(config):
         raise ValueError('Live model must use the isolated new directory')
     verify_files(model,lock['files'])
     keyword=config['keyword']
-    if keyword!='你好问问':raise ValueError('This validated profile supports only 你好问问')
+    # 唤醒词唯一来源 = config/voice-next/live.json；此处不再写死具体词。
+    # 真正的约束交给下方词表一致性校验（label 必须与 keyword 相同、音素必须在模型词表内）。
+    if not isinstance(keyword,str) or not keyword.strip():
+        raise ValueError('config/voice-next/live.json 必须给出非空的 keyword')
+    score=config.get('keywords_score',1)
+    trailing=config.get('num_trailing_blanks',1)
     keywords=ROOT/'config/voice-next/keywords.txt'
     tokens={line.rsplit(maxsplit=1)[0] for line in (model/'tokens.txt').read_text(encoding='utf-8').splitlines()}
     lines=keywords.read_text(encoding='utf-8').splitlines()
@@ -75,13 +80,13 @@ def build_kws(config):
     official=sherpa_onnx.KeywordSpotter(
         tokens=str(model/'tokens.txt'),encoder=str(model/roles['encoder']),
         decoder=str(model/roles['decoder']),joiner=str(model/roles['joiner']),
-        keywords_file=str(keywords),num_threads=2,keywords_score=1,
-        keywords_threshold=threshold,num_trailing_blanks=1,
+        keywords_file=str(keywords),num_threads=2,keywords_score=score,
+        keywords_threshold=threshold,num_trailing_blanks=trailing,
         max_active_paths=8,provider='cpu')
     metadata={'engine':'sherpa-onnx Zipformer native streaming','model':lock['name'],
               'model_sha256':lock['files'][roles['encoder']],'model_files_sha256':lock['files'],
               'sherpa_onnx_version':sherpa_onnx.__version__,'keyword':keyword,
               'keyword_sha256':sha256(keywords),'threshold':threshold,
-              'keywords_score':1,'num_trailing_blanks':1,'max_active_paths':8,
+              'keywords_score':score,'num_trailing_blanks':trailing,'max_active_paths':8,
               'backend_sha256':sha256(__file__)}
     return NativeKws(official,keyword),metadata

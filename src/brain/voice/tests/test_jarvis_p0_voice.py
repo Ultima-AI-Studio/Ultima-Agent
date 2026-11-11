@@ -112,57 +112,5 @@ def test_asr_public_signature_and_call_site_stay_stable(tmp_path: Path, monkeypa
     assert asr.asr_transcribe(wav)["text"] == "router-result"
 
 
-def test_kws_listener_refreshes_only_its_stream_and_fuzzy_matches(
-    tmp_path: Path,
-    monkeypatch,
-) -> None:
-    import numpy as np
-
-    fake_sounddevice = types.ModuleType("sounddevice")
-    fake_sherpa = types.ModuleType("sherpa_onnx")
-
-    class FakeStream:
-        def accept_waveform(self, _sample_rate, _samples) -> None:
-            return None
-
-    class FakeSpotter:
-        def __init__(self, **kwargs) -> None:
-            self.created = 0
-            self.kwargs = kwargs
-
-        def create_stream(self):
-            self.created += 1
-            return FakeStream()
-
-        def is_ready(self, _stream) -> bool:
-            return False
-
-    fake_sherpa.KeywordSpotter = FakeSpotter
-    monkeypatch.setitem(sys.modules, "sounddevice", fake_sounddevice)
-    monkeypatch.setitem(sys.modules, "sherpa_onnx", fake_sherpa)
-    sys.modules.pop("src.brain.voice.kws_listener", None)
-    import src.brain.voice as voice_package
-
-    monkeypatch.delattr(voice_package, "kws_listener", raising=False)
-    kws_listener = importlib.import_module("src.brain.voice.kws_listener")
-
-    keywords = tmp_path / "keywords.txt"
-    keywords.write_text("j iǎ w éi s ī @贾维斯\n", encoding="utf-8")
-    monkeypatch.setitem(kws_listener._KWS_ARGS, "keywords_file", str(keywords))
-    listener = kws_listener.KwsListener()
-    assert listener.kws.kwargs["keywords_threshold"] == pytest.approx(0.08)
-    assert listener.kws.kwargs["keywords_score"] == pytest.approx(2.0)
-    assert listener.kws.kwargs["num_trailing_blanks"] == 8
-    original_stream = listener._stream
-
-    class RestartNow:
-        @staticmethod
-        def should_restart(*, active_audio: bool) -> bool:
-            assert not active_audio
-            return True
-
-    listener._restart_guard = RestartNow()
-    monkeypatch.setattr(listener, "_detect", lambda _block: "贾维丝")
-    assert listener.feed(np.zeros(3200, dtype=np.float32)) == "贾维丝"
-    assert listener._stream is not original_stream
-    assert listener.session_restart_count == 1
+# 旧唤醒入口（src/brain/voice/kws_listener.py）已冻结归档到
+# archive/voice-legacy-E1E2-20261111/，其专属用例随文件一并移出，不在此处保留。

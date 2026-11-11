@@ -192,7 +192,9 @@ class Resident:
         if not isinstance(prompt_texts,dict) or not all(prompt_texts.get(n) for n in ('wake','empty','ready','error')):
             raise ValueError('config/voice-next/live.json must define prompts.wake/empty/ready/error')
         for name in ('wake','empty','ready','error'):
-            self.synthesize(prompt_texts[name],prompts/f'{name}.wav')
+            # 提示音文案里的 {keyword} 一律以 live.json 的 keyword 展开，
+            # 避免"配置换词、提示音还念旧词"的第二处词源。
+            self.synthesize(prompt_texts[name].replace('{keyword}',self.config['keyword']),prompts/f'{name}.wav')
         self.publish('loading_asr_worker')
         self.worker=VoiceWorker();deadline=time.monotonic()+60
         while True:

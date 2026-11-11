@@ -386,7 +386,7 @@ class InteractionLoop:
         now = _dt.datetime.now()
         weekdays = "一二三四五六日"
         sys_prompt = (
-            "你是'幂幂'，UltimaAgent 的语音助手（贾维斯风格）。用中文口语一句话简短回答，"
+            "你是'问问'，UltimaAgent 的语音助手（贾维斯风格）。用中文口语一句话简短回答，"
             "不超过30字；不得编造事实，不确定就明确说不确定；"
             "不要用'X点Y分'句式报时间（用'X时Y分'）。"
             f"当前时间：{now:%Y-%m-%d %H:%M} 星期{weekdays[now.weekday()]}。"

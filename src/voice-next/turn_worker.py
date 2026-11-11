@@ -25,7 +25,20 @@ from typing import Callable, TextIO
 
 ROOT = Path(__file__).resolve().parents[2]
 _SAFE_ID = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]{0,127}")
-_FIXED_WAKEWORD_REPLY = "当前新语音入口固定使用你好问问，暂不支持修改唤醒词。"
+def _live_keyword() -> str:
+    """唤醒词唯一来源 = config/voice-next/live.json；此处不写死具体词。"""
+    try:
+        cfg = json.loads((ROOT / 'config/voice-next/live.json').read_text(encoding='utf-8'))
+        keyword = cfg.get('keyword')
+        return keyword if isinstance(keyword, str) and keyword.strip() else ''
+    except Exception:
+        return ''
+
+
+def _fixed_wakeword_reply() -> str:
+    keyword = _live_keyword()
+    head = f"当前新语音入口固定使用{keyword}" if keyword else "当前新语音入口的唤醒词由配置固定"
+    return f"{head}，暂不支持在线修改唤醒词。"
 _TTS_BACKEND = "windows-sapi-fallback"
 _TTS_FALLBACK_REASON = "legacy_cv3_cold_start_budget"
 
@@ -232,7 +245,7 @@ def build_loop(root: Path):
         def fixed_wakeword_change(text: str):
             if _extract_wakeword_change(text) is not None or _is_ambiguous_wakeword_change(text):
                 return interaction._respond(
-                    True, True, _FIXED_WAKEWORD_REPLY, "新入口固定唤醒词", interaction.phase
+                    True, True, _fixed_wakeword_reply(), "新入口固定唤醒词", interaction.phase
                 )
             return None
 

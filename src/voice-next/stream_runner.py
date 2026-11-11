@@ -140,12 +140,18 @@ def build_spotter(model_dir, derived_dir, keyword, threshold):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--wav', type=Path, required=True)
-    parser.add_argument('--keyword', default='你好问问')
+    parser.add_argument('--keyword', default=None,
+                        help='默认取 config/voice-next/live.json 的 keyword（唯一源）')
     parser.add_argument('--threshold', type=float, default=0.5,
                         help='Fixed proof operating point; not a calibrated production threshold')
     parser.add_argument('--model-dir', type=Path, default=ROOT / MODEL_REL)
     parser.add_argument('--output', type=Path, required=True)
     args = parser.parse_args()
+    if not args.keyword:
+        import json as _json
+        args.keyword = _json.loads(
+            (ROOT / 'config/voice-next/live.json').read_text(encoding='utf-8')
+        )['keyword']
     spotter, metadata, torch = build_spotter(args.model_dir, ROOT/'config/voice-next/wekws',
                                            args.keyword, args.threshold)
     with torch.inference_mode():
