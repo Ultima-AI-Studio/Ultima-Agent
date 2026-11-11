@@ -1121,12 +1121,14 @@ broken`），整个验收卡在这一步，只能记未完成。
 4. **规则**：验收器不得同时充当「普通交付单」与「改造单 / 元工单」的唯一判据。元工单需要独立验收路径（以「本轮改造项是否落地 + 反证样本 + 回归对照」为判据）。改造类工单的 Gate 只能要求「实跑并如实记录 + 用锁定 revision 的旧版脚本做反向对照证明未退化」，不能要求「输出 PASS」。
 5. **反向对照的正确做法**：用锁定 revision 的旧版同一脚本对同一 run 目录再跑一次，输出同样的失败集合 → 证明「失败是器固有、非本单造成」，而不是靠解释或放宽 Gate 蒙混。
 6. **禁止**：不得为让元工单过 Gate 去改 `verify-order.py` 的判据使其对元工单放行（那会把普通单的验收强度一起削掉）；不得伪造 `done.json`。
+7. **回填（2026-11-11，见 L121）**：该缺口已按本条规则实做——`verify-order.py` 新增 `--profile mechanism`，对机制类卡直接 `exit 3` + 单条 `profile_applicable`（与 `exit 2`「验了没过」区分开来），`auto` 行为一字未改；元工单改由新建的 `scripts/verify-mechanism-change.py` 验收，0036 已由它产出 `verified: true`（6/6，干净检出 77 passed）。
 
 ### L117 · 元工单总验收要把兼容性对照与独立验收路径分开留证
 
 1. **兼容性对照**：0036 用当前版与锁定 revision `90a4a9d5` 的旧版 `verify-order.py` 检查同一个真实 run，二者均 exit 2，且 `blocking_failures` 都是同序的六项：`receipt_valid` / `terminal_state_legal` / `tree_unchanged` / `order_manifest` / `declared_files_landed` / `declared_command_plan`。这只能证明本轮没有让普通交付单 verifier 退化，不能冒充元工单验收通过。
 2. **独立路径**：元工单以逐 T 落地证据、反证样本、改造前后对照、全量回归和存量 frozen tag 只读回放组成验收闭环；真实元工单链路仍须跑到 freeze 的 fail-closed 拒绝点，把结构性缺口原样记录。
 3. **边界**：不得为取得绿色结果改写 verifier 契约，不得复制或手工补写生产 run 的 `done.json`，不得重打或移动存量 frozen tag。隔离夹具只能证明单个内核路径可执行，必须明确标为夹具，不能与生产回执混写。
+4. **回填（2026-11-11，见 L121）**：独立验收路径已从「人工拼证据」落成可执行判据（`scripts/verify-mechanism-change.py`，六项全绿才 `verified: true`）；兼容性对照仍用旧版 `verify-order.py --profile auto` 对同一 run 复跑，证明普通交付单 verifier 未退化。
 
 ### L118 · 「不许写死」的文字规矩补不上机检时，判据必须先在历史事故原文上验证
 
@@ -1157,4 +1159,16 @@ broken`），整个验收卡在这一步，只能记未完成。
 5. **不能只判 pid 存在**：`process_identity` 用的是「创建时间 + 存活」，判 child 是否被收掉要比对创建身份；短时间大量建进程时 pid 会被复用，用 pid 存在性判定会误报失败。
 6. **其中 1 条是真缺陷，不是夹具**：`OwnedJob` 只靠 Job Object 的 `JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE`，实测派发进程若已处在外层 Job 时并不保证收到 worker 派生的 child（加了 `unrelated` 进程后 child 就存活下来）。修法是 `close()` 先 `taskkill /PID <worker> /T /F` 显式收整棵进程树，再 `TerminateJobObject` + `CloseHandle` 兜底。
 7. **验证**：`pytest scripts/tests` 6 failed/61 passed → 0 failed/67 passed；0036 派发门 dry-run 仍 exit 2 并拦 L214/L215。
+
+### L121 · 元工单的验收缺口只有两种正当补法：把「不适用」拆成 exit 3，另建判据更硬的替代器
+
+1. **先否掉一条诱人的路**：想靠卡面内容自动识别「这张是机制类工单」不可行。0036 是元工单，卡头只写 `# Codex 工单 · 0036 …`，没有「**文件**：」清单，`_declared_files()` 对它返回 `[]`——任何基于已声明写域的自动判定都拿不到输入。用 `declared ∩ MECHANISM_WRITE_SCOPE` 判定实测永不触发。
+2. **两种补法，缺一不可**：
+   - **把「不适用」变成可机检的状态**。`exit 2` 是「验了，没过」，`exit 3` 是「这个工具不该验这张卡」。混在一起就是这次的样子：六条失败描述的是契约错配，却被读成工作不合格。`verify-order.py` 加 `--profile {auto,mechanism}`，`auto` 行为一字未改（普通卡仍 exit 2 / `profile: delivery`），`mechanism` 直接 exit 3 + 单条 `profile_applicable` 并指向替代器。
+   - **另建一个真的可满足、且判据更硬的替代器**。`scripts/verify-mechanism-change.py` 六条：卡可解析 / `HEAD == origin/<branch>` / 声明文件已提交 / 干净检出全量回归绿 / 派发门回归真的在拦 / 教训已登记。它验的是「改动真的生效」，不是「跑一次 pytest 就过」。
+3. **「在 HEAD 树里」不等于「这次交付了」**：文件可能是很久以前提交的，本次改动还躺在工作区。`git ls-tree -r HEAD -- <path>` 之外必须再加 `git diff --name-only HEAD -- <path>` 为空，两者都过才算提交。
+4. **自验悖论是设计的一部分**：替代器要求「文件已提交且无未提交改动」，所以每次改这个脚本本身，都必须先提交再跑，否则 `files_committed` 必红。本轮因此连提三次（功能 / mkstemp 句柄 / pytest 选项），这不是流程笨，而是「不认工作区里的成果」这条判据在自我保护。
+5. **干净检出会抓出「只在工作区存在」的依赖**：本地 `pytest scripts/tests` 77 passed 全绿，同一个 commit 的干净检出 1 failed——`test_card_form_unify::test_stage_gates_reads_the_real_0035_card_that_carries_qualifiers` 要读真实的 0035 卡，而该卡从未纳入版本控制（`tasks/queue` 下 51 张已跟踪、38 张未跟踪）。这类失败不是噪声，是**仓库完整性缺口**：任何一次干净部署都跑不过。补法是把被测试引用的那张卡 `git add` 进库，只补这一张，不顺手把另外 37 张一起提交。
+6. **落地结果**：0036 由替代器产出 `verified: true`（6/6，`head_matches_origin` + 干净检出 77 passed + 派发门 exit 2 且含 `W_VOLATILE_COUNT_WRITTEN`）；`verify-order.py --profile mechanism` 对它 exit 3，`auto` 仍 exit 2 且失败集合不变。
+7. **禁止**：不得为了让元工单过 Gate 去放宽 `verify-order.py` 的判据（那会连普通交付单的强度一起削掉）；替代器的判据只能比原来更硬，任何一条都不许比被替代的契约更松。
 8. **教训**：把一组测试长期报成「既有失败」而不动手，等于默许契约漂移。每次汇报「N failed」时，必须同步说明这 N 条是**已查明的遗留**还是**未查明的噪声**。
