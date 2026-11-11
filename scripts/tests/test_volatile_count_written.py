@@ -30,6 +30,7 @@ NEGATIVE = [
     "修改 `scripts/validate_work_order.py` 与 `docs/specs/work-order.schema.json`",
     "按 1.2.3 三条逐项落地",
     "T2 总验收：已完成；0003 原专项 51 passed；fresh 全量 731 passed + 120 subtests / 0 failed",
+    "R23工作包仍是草案；`finalizer`、`verifier`、`runner` 已加入拒绝检查，Python 11个文件及PowerShell 2个脚本语法PASS。",
 ]
 
 

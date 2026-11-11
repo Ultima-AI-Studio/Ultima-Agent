@@ -66,7 +66,7 @@ VOLATILE_COUNT_RULES = (
 )
 VOLATILE_STATE_WORD = re.compile(r"(?:frozen|blocked|pending|cancelled|closed)\s*[:=]?\s+\d+", re.IGNORECASE)
 VOLATILE_EXEMPT = re.compile(r"以实测为准|以磁盘为准|不写死|以\s*T0|以基线为准|实测与卡面|逐项一致")
-VOLATILE_FILLED_RESULT = re.compile(r"^(?:\s*\d+\.\s*)?(?:T\d+\s+)?.*(?:已完成|全绿|已通过)", re.IGNORECASE)
+VOLATILE_FILLED_RESULT = re.compile(r"^(?:\s*\d+\.\s*)?(?:T\d+\s+)?.*(?:已完成|全绿|已通过|已封存|PASS|passed)", re.IGNORECASE)
 
 
 @dataclass(frozen=True)

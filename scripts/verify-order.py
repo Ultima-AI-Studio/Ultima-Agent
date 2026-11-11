@@ -52,6 +52,15 @@ from typing import Sequence
 
 ROOT = Path(__file__).resolve().parents[1]
 QUEUE_STATUS = ROOT / "tasks" / "queue" / "queue-status.json"
+# Cards that declare any of these rewrite the dispatch/verification chain itself.
+# They have no delivery run whose receipt could honestly describe the change, so
+# they are answered by scripts/verify-mechanism-change.py instead (L116/L117).
+MECHANISM_WRITE_SCOPE = (
+    "scripts/dispatch-work-order.py",
+    "scripts/validate_work_order.py",
+    "scripts/verify-order.py",
+    "scripts/verify-mechanism-change.py",
+)
 sys.path.insert(0, str(ROOT / "scripts"))
 from order_naming import resolve_card_path  # noqa: E402
 
@@ -635,11 +644,25 @@ def _changed_since(base_sha: str, path: str) -> bool | None:
     return bool((proc.stdout or "").strip())
 
 
-def verify(work_order: str, run_dir: Path) -> dict:
+def verify(work_order: str, run_dir: Path, profile: str = "auto") -> dict:
     checks: list[dict] = []
 
     def add(name: str, ok: bool | None, detail: str, command: str = "") -> None:
         checks.append({"check": name, "passed": ok, "detail": detail, "command": command})
+
+    # A card that rewrites the dispatch/verification chain has no delivery run whose
+    # receipt could describe that change, so the receipt contract cannot answer for
+    # it. Saying that in one line beats emitting six failures about the mismatch.
+    if profile == "mechanism":
+        add("profile_applicable", False,
+            "the caller declared this card a mechanism change; acceptance belongs to "
+            "scripts/verify-mechanism-change.py, which checks the change took effect "
+            "instead of reading a delivery receipt",
+            "scripts/verify-mechanism-change.py")
+        return {"work_order": work_order, "verified": False,
+                "profile": "mechanism-change",
+                "blocking_failures": ["profile_applicable"], "checks": checks,
+                "verified_at": datetime.now(timezone.utc).isoformat()}
 
     registered_ok, registered_detail = _queue_registration(work_order)
     add("queue_registration", registered_ok, registered_detail,
@@ -757,6 +780,22 @@ def verify(work_order: str, run_dir: Path) -> dict:
 
     declared = (order_manifest.get("files") if order_manifest and not order_manifest.get("error")
                 else _declared_files(order_path))
+    # A card that rewrites the dispatch/verification chain itself has no run whose
+    # done.json is an honest receipt for "I changed the dispatcher": the receipt
+    # contract says how a delivery run is accepted, not how the machinery it
+    # validates was changed. Reporting that as six ordinary failures describes the
+    # mismatch rather than the work, so this profile is declared unsupported and
+    # handed to scripts/verify-mechanism-change.py (L116/L117).
+    mechanism_scope = [p for p in declared
+                       if p.replace("\\", "/") in MECHANISM_WRITE_SCOPE]
+    add("profile_applicable", not mechanism_scope,
+        ("this card rewrites the dispatch/verification chain itself ("
+         + ", ".join(mechanism_scope[:4])
+         + "); its acceptance belongs to scripts/verify-mechanism-change.py, "
+         "which checks the change took effect instead of reading a delivery receipt")
+        if mechanism_scope else
+        "the card delivers ordinary artifacts; the delivery receipt contract applies",
+        "scripts/verify-mechanism-change.py")
     if not declared:
         add("declared_files_landed", False,
             "work order declares no file list; the delivered output cannot be located", str(order_path))
@@ -943,6 +982,7 @@ def verify(work_order: str, run_dir: Path) -> dict:
         verified = False
 
     return {"work_order": work_order, "verified": verified,
+            "profile": "mechanism-change" if mechanism_scope else "delivery",
             "blocking_failures": blocking_failures, "checks": checks,
             "head": head, "tree_oid": current_tree, "done_sha256": done_sha,
             "changed_files": manifest if isinstance(manifest, list) else None,
@@ -955,21 +995,31 @@ def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--work-order", required=True)
     parser.add_argument("--run-dir", required=True, type=Path)
+    parser.add_argument("--profile", choices=("auto", "mechanism"), default="auto",
+                        help="mechanism: 该卡改的是派发/校验链自身，回执契约不适用，改用 "
+                             "scripts/verify-mechanism-change.py（输出 exit 3）")
     return parser
 
 
 def main(argv: Sequence[str] | None = None) -> int:
     args = _parser().parse_args(argv)
     try:
-        payload = verify(args.work_order, Path(args.run_dir))
+        payload = verify(args.work_order, Path(args.run_dir), profile=args.profile)
     except RuntimeError as exc:
         print(json.dumps({"blocked": True, "reason": str(exc)}, ensure_ascii=False), file=sys.stderr)
         return 2
     out = Path(args.run_dir) / "verify.json"
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-    print(json.dumps({"verified": payload["verified"], "blocking_failures": payload["blocking_failures"],
+    profile = payload.get("profile") or "delivery"
+    print(json.dumps({"verified": payload["verified"], "profile": profile,
+                      "blocking_failures": payload["blocking_failures"],
                       "out": str(out)}, ensure_ascii=False))
+    if profile == "mechanism-change":
+        # 3 means "this verifier does not apply to this card", which is a different
+        # answer from 2 "verification ran and failed". Collapsing the two is what
+        # made a mismatched Gate look like a broken delivery.
+        return 3
     return 0 if payload["verified"] else 2
 
 
