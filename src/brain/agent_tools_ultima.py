@@ -550,10 +550,15 @@ _DEEPSEEK_CHAT_URL = "https://api.deepseek.com/chat/completions"
 _DEEPSEEK_MODEL = "deepseek-chat"
 _DEEPSEEK_TIMEOUT = 120.0
 
-DISPATCH_PLANNER_PROMPT = """你是 Ultima 的外脑（方案编制端）。主脑已经接下用户的动手类诉求，把任务派给了你。
-请针对该诉求给出一份可直接执行的技术方案，包含：
-1) 目标与验收标准；2) 涉及的文件或模块；3) 执行步骤；4) 风险点与回退方式。
-只出方案，不执行。不要声称任何改动已经完成，也不要编造不存在的文件路径。"""
+DISPATCH_PLANNER_PROMPT = """你是 Ultima 的审计外脑（DeepSeek）。主脑 8B 已接单，把用户诉求派给你。
+三方分工：主脑只做查询与编排；你是审计外脑，负责拆工单/出方案/定验收/审计监管并向下派 Codex；
+Codex 是代码外脑，是唯一执行代码的一方。你不写代码、不改文件、不声称已改动。
+本轮请给出：
+1) 工单拆解（每条含范围、涉及文件、验收门、禁止项）；
+2) 技术方案要点、关键风险与回退方式；
+3) 可机检的验收标准；
+4) 是否需要向 Codex 派单，以及首张工单草案。
+不要编造不存在的文件路径。"""
 
 _DISPATCH_STATE_CN = {
     "DISPATCHED": "已派出",
@@ -677,9 +682,9 @@ class UltimaDispatchTool(BaseTool):
         return ToolSpec(
             name="ultima_dispatch",
             description=(
-                "把用户要求「动手」的任务派给外脑（DeepSeek）出方案，立即返回派单号和状态，"
-                "方案由外脑异步生成。用户说帮我修/改/做/解决/处理/接入某个功能时，"
-                "先用一句话接单，再调用本工具派出去。"
+                "把非查询类诉求派给 DeepSeek（审计外脑），立即返回派单号和状态，工单与方案由它异步产出。"
+                "凡是修改、开发、制作、设计、修复、接入这类诉求，先用一句话接单，再调用本工具派出去。"
+                "DeepSeek 负责拆工单/出方案/定验收/审计，代码执行只由 Codex 承担。"
                 "只有本工具返回成功才算真的派出去了；没调用它就不许声称已派单。"
             ),
             parameters={
@@ -751,7 +756,8 @@ class UltimaDispatchStatusTool(BaseTool):
         return ToolSpec(
             name=self.tool_id,
             description=(
-                "查派单进度与外脑方案。用户问「那个修好了没」「方案出来了吗」「进展如何」时调用。"
+                "查派单进度与 DeepSeek（审计外脑）的工单/方案产出。"
+                "用户问「那个修好了没」「方案出来了吗」「进展如何」时调用。"
                 "省略 dispatch_id 时返回最近几单的概览。"
             ),
             parameters={
