@@ -16,6 +16,7 @@ r"""M6 适配调校 · 整体连通性测试（正式可复跑版）。
 
 from __future__ import annotations
 
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -47,6 +48,11 @@ class TestC1Environment(unittest.TestCase):
         import mem0  # 发布包名 mem0ai，import 名 mem0
 
     def test_ollama_has_brains(self) -> None:
+        # 环境门：ollama 是本机外部服务而非项目依赖，未安装的机器上这条不是
+        # 代码缺陷。此前它无条件失败，使全量口径永远带一个红点，也让工单的
+        # declared_command_pass 在任何环境都到不了 0 失败。
+        if shutil.which("ollama") is None:
+            self.skipTest("ollama 服务未安装，跳过本机模型清单校验")
         r = subprocess.run(["ollama", "list"], capture_output=True, text=True,
                            encoding="utf-8", errors="replace", timeout=30)
         models = [ln.split()[0] for ln in r.stdout.splitlines()[1:] if ln.strip()]
