@@ -501,6 +501,62 @@ def _junit_counts(path: Path) -> dict | None:
     return declared
 
 
+_MOUNTED_ASSETS = ("libs",)
+
+
+def _mount_repo_assets(worktree: Path) -> str:
+    """Give the clean checkout the repo-only assets it cannot contain.
+
+    ``libs/`` is gitignored: 1.7 GB of vendored third-party code that is also the
+    import root for ``openjarvis`` and the source of the persona prompt read at
+    startup. Without it a checkout of the delivered commit cannot even collect
+    its tests, so the gate reported "environment broken" for every order and
+    looked like an execution failure.
+
+    A directory junction points the checkout at the same bytes without copying
+    them and without adding anything to git, so the tested tree stays exactly
+    what was committed: the commit is what defines project content; the mount
+    only restores the third-party substrate the commit never owned.
+    """
+    for name in _MOUNTED_ASSETS:
+        target = ROOT / name
+        link = worktree / name
+        if not target.is_dir() or os.path.lexists(link):
+            continue
+        if os.name == "nt":
+            proc = subprocess.run(
+                [os.environ.get("ComSpec") or "cmd.exe", "/c", "mklink", "/J", str(link), str(target)],
+                capture_output=True, text=True, encoding="utf-8", errors="replace",
+            )
+            if proc.returncode != 0:
+                return f"不能挂载 {name}/ 到干净检出：{((proc.stderr or proc.stdout or '')[:140]).strip()}"
+        else:
+            try:
+                os.symlink(str(target), str(link), target_is_directory=True)
+            except OSError as exc:
+                return f"不能挂载 {name}/ 到干净检出：{exc}"
+        if not link.is_dir():
+            return f"{name}/ 挂载后仍不可读"
+    return ""
+
+
+def _unmount_repo_assets(worktree: Path) -> None:
+    """Remove the mounts before git and rmtree touch the directory.
+
+    ``shutil.rmtree`` follows a junction on Windows and would delete the real
+    target's contents, so the link has to be unlinked first. ``os.rmdir`` removes
+    only the link itself.
+    """
+    for name in _MOUNTED_ASSETS:
+        link = worktree / name
+        if not os.path.lexists(link):
+            continue
+        try:
+            os.rmdir(link)
+        except OSError:
+            pass
+
+
 def _run_in_clean_worktree(sha: str, argv: list[str], timeout: int) -> tuple[object, str, dict | None]:
     """Run the declared command against exactly the committed tree.
 
@@ -516,6 +572,9 @@ def _run_in_clean_worktree(sha: str, argv: list[str], timeout: int) -> tuple[obj
         add = _git("worktree", "add", "--detach", str(worktree), sha)
         if add.returncode != 0:
             return None, f"could not create a clean checkout of {sha[:12]}: {(add.stderr or '')[:140]}", None
+        mounted = _mount_repo_assets(worktree)
+        if mounted:
+            return None, mounted, None
         missing = _missing_target(worktree, argv)
         if missing:
             return None, missing, None
@@ -534,6 +593,7 @@ def _run_in_clean_worktree(sha: str, argv: list[str], timeout: int) -> tuple[obj
                               timeout=timeout, env=_clean_env())
         return proc, "", _junit_counts(report)
     finally:
+        _unmount_repo_assets(worktree)
         _git("worktree", "remove", "--force", str(worktree))
         shutil.rmtree(base, ignore_errors=True)
 
