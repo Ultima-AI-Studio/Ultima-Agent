@@ -74,13 +74,22 @@ registry.py / manifest.py / storage.py / events.py / errors.py / static_registry
 
 | | 自建 Registry | 插件总线 BusKernel |
 |---|---|---|
-| 驻留判定 | 各 Registry 内 `_resident` set | `RESIDENT_DOMAINS = {"L8", "L10"}`（**硬编码、漏 L9**） |
+| 驻留判定 | 各 Registry 内 `_resident` set | `RESIDENT_DOMAINS = {"L8", "L10"}`（硬编码，与 spec §5.4 一致） |
 | 拒绝卸载 | 抛 `ResidencyViolationError` | 抛 `PermissionDenied` |
 | 谁在用 | 生产：`scanner`/`backend`/`engine`/`bootstrap` | 生产：自己的 CLI；`src/` 内**仅测试** |
 
 **两点必须记录**：
 1. `BusKernel.unload()` **不调用** `src/brain/*/registry.py` 的 `unload()`
-2. `BusKernel.RESIDENT_DOMAINS` **漏了 L9**（记忆），而 `memory/registry.py` 头部写"与 L8 同规"
+2. `BusKernel.RESIDENT_DOMAINS` 只有 L8/L10 —— **这不是 bug**：`plugin-bus-spec §5.4` 原文也只列了 `ultima.guard.*`（L8）和 `ultima.paradigm.*`（L10），理由是"安全底线"与"不得跳过范式直达能力"。但 `memory/registry.py` 头部写"L9 与 L8 同规"、且默认 `resident=True`，**所以 L9 在两套体系里的判定相反** —— 这才是需要对齐的点。
+
+### 1.5 总线不是纸面上的：它跑过、也拒绝过
+
+`logs/plugin-bus.jsonl`（12737 行 / 2.2 MB，2026-10-27 08:46 → 2026-11-10 12:12，`session_id="plugin-bus"`）实测：
+
+- `audit.resident.unload.denied` **189 次**，对象是 `ultima.guard.policy` 与 `ultima.credential.center`（均为 L8）
+- `boot.fail-closed` 10 次、`audit.permission.denied` 189 次、`audit.plugin.direct-import.denied` 82 次、`bus.call` 724 次
+
+**所以"插件总线只有规格没有实现"是错的，"实现了但没跑过"也是错的 —— 它跑过，只是没进 HEAD，也没被 `src/` 的生产代码调用。**
 
 **这才是"拼接"留下的真正代价：两个并行系统各自实现了同一件事，且彼此 unaware。**
 
@@ -242,7 +251,7 @@ _jars 1 ｜ _ensure_tools_registered 1 ｜ Jarvis 1 ｜ get_jarvis 1
 
 2. **回答一个 Owner 决策问题**：**驻留真源是谁？**
    - 当前两套并行（`brain Registry` 的 `_resident` / `BusKernel` 的 `RESIDENT_DOMAINS`），彼此 unaware
-   - 若选 `BusKernel` 为真源，必须补 L9（当前 `RESIDENT_DOMAINS = {"L8","L10"}` 漏了记忆层）
+   - 若选 `BusKernel` 为真源，需先决定 **L9 是否升级为强制驻留**（spec §5.4 只列 L8/L10，但 `memory/registry.py` 默认驻留，两者判定相反）
    - 若选自建 Registry 为真源，则 `BusKernel` 要改为向它查询
    - **这是架构决策，不是技术细节，但也不需要 Owner 现在拍——先由本批把选项和代价写清**
 
@@ -327,7 +336,7 @@ _jars 1 ｜ _ensure_tools_registered 1 ｜ Jarvis 1 ｜ get_jarvis 1
 
 **第 0.5 批（代码部分，若 Owner 选择统一驻留真源）**
 - 驻留真源唯一：卸载权限判定只有一个权威点
-- 若选 `BusKernel` 为真源 → `RESIDENT_DOMAINS` 必须补 L9
+- 若选 `BusKernel` 为真源 → 先裁 L9 是否驻留，再对齐 `memory/registry.py`
 - 适配/回滚测试通过
 
 **第 3 批**
@@ -374,10 +383,21 @@ _jars 1 ｜ _ensure_tools_registered 1 ｜ Jarvis 1 ｜ get_jarvis 1
 3. **第 0 批成为所有代码改动的第一门**——且验收应比对失败身份，不写死 passed 数
 4. **第 4 批保持可选**——标题称"15 个入度 2–3"但自己的 E 表含 11/12/15 等值，分类前提错误
 
-**需要 Owner 决策的一件事（但不必现在拍）**：**驻留真源选谁。**
-选项 A：`BusKernel.RESIDENT_DOMAINS`（有 CLI + 审计日志，但当前漏 L9）
-选项 B：`src/brain/*/registry.py`（生产在跑，但无 CLI 入口）
-**第 0.5 批的任务就是把这两个选项的代价写清，供 Owner 选。**
+**驻留真源不是一个"二选一"，而是两级判定**（基于实测修正）：
+
+| 层级 | 判什么 | 应是真源 | 现状 |
+|---|---|---|---|
+| **域级（粗）** | 哪些**能力域**禁止热卸载 | `plugin-bus-spec §5.4` → 实现为 `BusKernel.RESIDENT_DOMAINS` | L8/L10，与规格一致；**有 189 次实际拒绝记录** |
+| **实例级（细）** | 哪个**具体模块实例**是驻留的 | 各自 `*ResidencyRegistry._resident` | 生产在跑（`scanner`/`backend`/`engine`/`bootstrap`）；默认 `resident=True` |
+
+**两者不是竞争，是粗细两层** —— 域级决定"这个域能不能整体卸"，实例级决定"这个实例能不能卸"。
+
+**真正需要对齐的只有两处**：
+
+1. **L9 的判定相反**：域级判"可卸"（spec §5.4 未列 L9），实例级判"驻留"（`memory/registry.py` 默认 `resident=True` 且头部写"与 L8 同规"）。**这是 Owner 要裁的**：记忆层算不算不可热卸载的安全底线。
+2. **总线未进版本历史**：`execution/server/ultima_bus/` 12 个文件全部未跟踪。**任何"真源"必须先能进 HEAD**，否则它只是工作区里的一个临时实例。
+
+**第 0.5 批的任务就是把这两处写成正式 ADR，供 Owner 裁。**
 
 ---
 

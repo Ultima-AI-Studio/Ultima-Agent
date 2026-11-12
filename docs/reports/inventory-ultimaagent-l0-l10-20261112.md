@@ -30,6 +30,28 @@ ultima_bus/      ← 根包门面（__main__.py / __init__.py）
 
 `docs/specs/registry.md:55` 已登记：`ultima-plugin-bus` = **「s3-bus-kernel 已实现，待独立评审」**。
 
+#### ⚠️ 更正（v2.1）：这套总线**真的跑过，且拒绝过 189 次**
+
+`logs/plugin-bus.jsonl` 实测 **12737 行 / 2225746 B**，时间跨度 **2026-10-27 08:46:12 → 2026-11-10 12:12:53**，`session_id = "plugin-bus"`：
+
+| 事件类型 | 次数 |
+|---|---:|
+| `manifest.registered` | 5766 |
+| `boot.ready` | 5736 |
+| `bus.call` | 724 |
+| `audit.permission.denied` | 189 |
+| **`audit.resident.unload.denied`** | **189** |
+| `audit.plugin.direct-import.denied` | 82 |
+| `manifest.rejected` | 23 |
+| `lifecycle.transition` | 18 |
+| `boot.fail-closed` | 10 |
+
+**189 次拒绝的对象是 `ultima.guard.policy` 与 `ultima.credential.center`（都是 L8）——没有一次落在 L9。**
+
+所以准确的说法不是"门把手没装"，是：**门把手装了、也被拉了 189 次，但这扇门只装了 L8 和 L10 两把锁，没见过 L9。**
+
+**同时必须分清**：这 189 次是**总线自己的运行实例**记录，**不是** `src/brain/*/registry.py` 的 `unload()` 被调用 —— 两者仍是两条独立链路。
+
 ### 更正二：生产代码**有** `unload()` 调用，不是零
 
 ⚠️ v1 说"生产零 unload、8 处全在测试"。**错。**
