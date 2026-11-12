@@ -124,6 +124,30 @@ def test_clean_content_strips_three_servile_tail_variants():
         assert cleaned in {"先生，1加1等于2。", "答案是2。"}
 
 
+def test_clean_content_strips_question_mark_servile_variants():
+    """冒号后无「吗/么」、纯问号收尾的服务性变体也要剥掉。"""
+    cases = {
+        "您问的是贾维斯，Ultima Agent主脑。有什么可以帮您？": "您问的是贾维斯，Ultima Agent主脑。",
+        "市盈率是股价除以每股收益。有什么需要我做的吗？": "市盈率是股价除以每股收益。",
+        "1+1等于2。还需要什么帮助？": "1+1等于2。",
+    }
+
+    for content, expected in cases.items():
+        assert agent_server._clean_content(content) == expected
+
+
+def test_clean_content_keeps_non_servile_statements():
+    """对照组：陈述句不得被服务性反问规则误伤。"""
+    cases = (
+        "这个需要我确认一下。",
+        "删除文件前要先备份。",
+        "先看服务端日志里那条完整堆栈。",
+    )
+
+    for content in cases:
+        assert agent_server._clean_content(content) == content
+
+
 def test_clean_content_still_strips_grounded_marker():
     assert agent_server._clean_content("grounded:false   不确定。") == "不确定。"
 
