@@ -1781,12 +1781,22 @@
     {
       "project": "UltimaAgent",
       "work_order": "wo-ultimaagent-20261112-0043",
-      "state": "done",
+      "state": "frozen",
       "audit_passed": true,
       "dispatched_at": "2026-11-11T17:53:30.090752+00:00",
       "audit_run": null,
       "freeze_commit": "d116f728",
       "note": "验收通过并冻结：commit d116f728 / tag ultimaagent-mainbrain-provider-layer-20261112 已推远端。T1 复核 brain 415 passed + orchestration 32 passed；T2 AST 越权命中 0；T3 /health 新增 provider 三字段；T4 关闭端口探测 463.8ms < 500ms；T5 回归 454 passed / 1 failed（test_ollama_has_brains 环境噪声）。/health 与 /ask 主脑实测作答成功。已知未收口：routing/config.py embedding 直连、ultima-config.toml 底座注入默认模型。"
+    },
+    {
+      "project": "UltimaAgent",
+      "work_order": "wo-ultimaagent-20261112-0044",
+      "state": "audit",
+      "audit_passed": true,
+      "dispatched_at": "2026-11-12T03:40:33.014414+00:00",
+      "audit_run": null,
+      "freeze_commit": null,
+      "note": "主脑裁决4条阻塞项后复验通过：①补第11条探针D2（判task派单）；②A1/A2基线更正为两句拼接（agent_server.py:738）；③授权扩_SERVILE_TAIL_PATTERN窄变体（含'您还有其他问题'）；④queue-status判据改为结构可达口径。主脑独立复跑11条探针全PASS（P1/P2/P3/P4已修，P2/P3降至0.0s）、反向验证7条全PASS、全量回归470 passed/1 failed（基线454，无新增失败）。待提交冻结。"
     }
   ]
 }

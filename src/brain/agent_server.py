@@ -424,6 +424,47 @@ def get_jarvis() -> Jarvis:
 
 _GROUNDED_TAG = re.compile(r"\bgrounded\s*[:：=]\s*(?:true|false)\b", re.IGNORECASE)
 
+_CLAIM_ACTIONS = (
+    r"整理|重命名|删除|删掉|创建|新建|保存|修改|改好|修复|安装|卸载|"
+    r"下载|上传|打开|移动|复制"
+)
+_CLAIM_PATTERNS = (
+    re.compile(
+        rf"(?:我|我们|本人|这边)?[^。！？!?]{{0,12}}(?:已|已经|刚刚|刚才)"
+        rf"[^。！？!?]{{0,12}}(?:{_CLAIM_ACTIONS})(?:了|好|完|完毕)?"
+        r"[^。！？!?\s]{1,24}"
+    ),
+    re.compile(
+        rf"(?:我|我们|本人|这边|帮你|给你|替你|为您)[^。！？!?]{{0,12}}"
+        rf"(?:{_CLAIM_ACTIONS})[^。！？!?\s]{{1,24}}(?:了|好|完|完毕)"
+    ),
+)
+_DELEGATED_ACTION_PATTERN = re.compile(rf"(?:{_CLAIM_ACTIONS})")
+_SERVILE_TAIL_PATTERN = re.compile(
+    r"[，。！\s]*(?:需要我|要不要我|要我|我可以帮你|还需不需要|还需要我|"
+    r"您还有其他问题|你还有其他问题|还有其他问题|还有别的问题|有其他问题)"
+    r".{0,12}(?:吗|么)[？?]?\s*$"
+)
+
+
+def _claim_clean(content: str) -> str:
+    """把虚假的第一人称完成态操作句替换为能力边界话术。"""
+    if not content:
+        return content
+
+    def replace_sentence(match: re.Match[str]) -> str:
+        sentence = match.group(0)
+        stripped = sentence.strip()
+        if re.search(r"(?:吗|么|是否|是不是|有没有)[？?]?\s*$|[？?]\s*$", stripped):
+            return sentence
+        if not any(pattern.search(stripped) for pattern in _CLAIM_PATTERNS):
+            return sentence
+        leading = sentence[: len(sentence) - len(sentence.lstrip())]
+        trailing = sentence[len(sentence.rstrip()) :]
+        return f"{leading}这个我做不到，需要真的去执行。{trailing}"
+
+    return re.sub(r"[^。！？!?]+[。！？!?]?", replace_sentence, content)
+
 
 def _clean_content(content: str) -> str:
     """清理响应文本：只保留 Final Answer 之后的内容，并剥掉内部标记；无标记则原样返回。"""
@@ -435,6 +476,11 @@ def _clean_content(content: str) -> str:
     # 8B 会把内部依据标记当正文念出来（如 "grounded:false  不确定…"），语音场景里这是噪音。
     # 行为层提示词压不住（lessons L138），只能在出口统一剥离。
     content = _GROUNDED_TAG.sub("", content)
+    servile_tail = _SERVILE_TAIL_PATTERN.search(content)
+    if servile_tail is not None:
+        matched = servile_tail.group(0)
+        punctuation = "！" if "！" in matched else "。" if "。" in matched else ""
+        content = f"{content[:servile_tail.start()]}{punctuation}"
     return content.strip()
 
 
@@ -644,6 +690,11 @@ _ASK_CLASSIFY_SYSTEM = (
 _QUERY_HINT = re.compile(
     r"[?？]|几点|几号|多少|什么|怎么样|为什么|是不是|有没有|能不能|谁|哪里|哪个|如何"
 )
+_METHOD_ASK = re.compile(r"怎么|怎样|如何|为什么|是什么|什么是|啥是|能不能|可不可以|会不会")
+_DELEGATE_HINT = re.compile(r"帮我|给我|替我|帮我做|你去|你帮我|麻烦你")
+_DIAGNOSE_PATTERNS = re.compile(
+    r"怎么办|怎么解决|怎么修|报错|蓝屏|打不开|闪退|卡死|异常|失败|不工作|报\d{3}"
+)
 
 
 # 危险/越界诉求的代码层前置门。8B 面对"帮我X"会一律判成 task 并接单派出去
@@ -692,6 +743,8 @@ def _risk_gate(query: str) -> str | None:
 def _classify_intent(query: str) -> str:
     """返回 'task'（该接单派出去）或 'query'（直接回答）。任何异常都退回 query。"""
     if _QUERY_HINT.search(query):
+        return "query"
+    if _METHOD_ASK.search(query) and not _DELEGATE_HINT.search(query):
         return "query"
     try:
         # 保留模型的思考，只是把思考框在「只判类别」这一个边界里（见上面的 system）。
@@ -754,12 +807,127 @@ def _ask_task_branch(query: str) -> dict[str, Any]:
 
 # 查询类直连：不进 ReAct 工具循环。8B 一旦看到工具清单就会反复试，
 # 实测一次问答能被拖到 30 秒；单次直连带规则 + 当前时间，3-5 秒出话。
+_DIAGNOSE_SYSTEM = (
+    "【本轮诊断方式】说明可能原因，并给出一到三条用户可以自行尝试的排查方向。"
+    "禁止说‘你再说一遍’，禁止反问，禁止声称查看过任何日志、文件、后台或系统状态。"
+    "你没有文件系统、屏幕或系统状态访问能力；不知道的事实必须明确说不知道。"
+)
+# 诊断回答只要求一到三条排查方向，给足 160 token 即可；
+# 不设上限会让 qwen3 边思考边铺陈，实测单轮被拖到 12.8~18.5 秒。
+_DIAGNOSE_MAX_TOKENS = 160
+# 常见故障的确定性排查方向。8B 在诊断场景会被自己的派单话术带偏
+# （实测关闭思考后直接吐"我马上安排。已派给 DeepSeek。"），
+# 开思考又要 12~18 秒；因此常见故障走规则表 0 秒直答，罕见故障才回模型。
+_DIAGNOSE_DIRECTIONS = (
+    (
+        re.compile(r"蓝屏|0x[0-9A-Fa-f]{4,}"),
+        "可以先记下蓝屏错误代码并重启电脑；如果再次出现，再检查最近安装的驱动或系统更新。",
+    ),
+    (
+        re.compile(r"报\s*500|500\s*错误|[45]xx"),
+        "可以先看服务端日志里那条完整堆栈，再确认数据库连接和最近上线的改动。",
+    ),
+    (
+        re.compile(r"闪退|崩溃|crash"),
+        "可以先记下崩溃的时间点和操作步骤，再检查最近的版本更新或插件变化。",
+    ),
+    (
+        re.compile(r"打不开|启动不了|起不来"),
+        "可以先确认进程是否还在、端口有没有被占用，再看最近的配置改动。",
+    ),
+    (
+        re.compile(r"卡死|卡住|无响应"),
+        "可以先强制结束进程并记下当时的资源占用，再排查是否有死循环或磁盘写满。",
+    ),
+    (
+        re.compile(r"报错|异常|失败|不工作"),
+        "可以先记录完整报错原文并稳定重现一次，再对照最近的配置或依赖变更。",
+    ),
+)
 _QUERY_SYSTEM = (
     "【本轮回话方式】只用一到三句话直接回答，不要调用任何工具，不要规划步骤，"
     "不要展开方案，不要反问用户是否需要帮忙，不要加服务性结尾，不要联想用户还想问什么。"
     "不知道就说不知道。"
     "也不要建议用户联系技术支持、联系客服、查阅官方文档或找运维——你没有这些渠道，说这些等于骗人。"
 )
+_QUERY_CAPABILITY_SYSTEM = (
+    "【本轮能力边界】你没有手、没有文件系统访问、没有屏幕、没有网络。"
+    "你不能打开、整理、重命名、删除、创建、保存任何文件或程序。"
+    "用户要求你做这类事时，只能说明‘我做不到，这需要真的去执行’，并指出这属于执行类任务；"
+    "绝不能描述成已经做完。"
+)
+
+
+def _diagnose_clean(query: str, content: str) -> str:
+    """移除诊断反问；模型未给排查动作时补一条确定性方向。"""
+    statements: list[str] = []
+    for sentence in re.findall(r"[^。！？!?]+[。！？!?]?", content):
+        stripped = sentence.strip()
+        if "你再说一遍" in stripped or stripped.endswith(("？", "?")):
+            continue
+        statements.append(stripped)
+    cleaned = "".join(statements)
+    if re.search(r"先|检查|重启|确认|尝试|排查|记录", cleaned):
+        return cleaned
+    if re.search(r"蓝屏", query):
+        direction = "可以先记录蓝屏错误代码并重启电脑；如果再次出现，再检查近期驱动或系统更新。"
+    else:
+        direction = "可以先记录完整报错并重现一次，再检查最近的配置或依赖变更。"
+    return f"{cleaned}{direction}"
+
+
+def _ask_diagnose_branch(query: str, max_tokens: int | None = None) -> dict[str, Any]:
+    """诊断类：一次直连给排查方向，不调工具、不假装查看过现场。"""
+    import datetime as _dt
+
+    # 常见故障走确定性规则表：0 秒出话，也不会被派单话术带偏。
+    for pattern, direction in _DIAGNOSE_DIRECTIONS:
+        if pattern.search(query):
+            EVENT_BUS.emit_event("message", {"text": direction, "role": "jarvis"})
+            return {
+                "content": direction,
+                "reply_text": direction,
+                "confidence": 1.0,
+                "grounded": True,
+                "intent": "query",
+                "tool_results": [],
+                "usage": {},
+            }
+
+    now = _dt.datetime.now()
+    weekdays = "一二三四五六日"
+    time_ctx = "[当前时间：{0:%Y-%m-%d} {0:%H:%M} 星期{1}（北京时间）]".format(
+        now, weekdays[now.weekday()]
+    )
+    user_content = build_user_data(speech=query, trusted_context=time_ctx).render()
+    usage: dict[str, Any] = {}
+    content = ""
+    try:
+        result = provider_for(_MAIN).chat(
+            system_prompt=f"{MAINBRAIN_SYSTEM_PROMPT}\n{_DIAGNOSE_SYSTEM}",
+            messages=[{"role": "user", "content": user_content}],
+            temperature=0.2,
+            max_tokens=min(int(max_tokens or _DIAGNOSE_MAX_TOKENS), _DIAGNOSE_MAX_TOKENS),
+            disable_thinking=False,
+            timeout=60,
+        )
+        content = _claim_clean(_diagnose_clean(query, _clean_content(result.content)))
+        usage = result.usage
+    except Exception as exc:  # 诊断直连失败也要如实说，不能装作查过现场
+        sys.stderr.write(f"[ask] 诊断直连失败：{type(exc).__name__}: {exc}\n")
+    if not content:
+        content = STRUCTURED_FALLBACK_REPLY
+    EVENT_BUS.emit_event("message", {"text": content, "role": "jarvis"})
+    ok = content != STRUCTURED_FALLBACK_REPLY
+    return {
+        "content": content,
+        "reply_text": content,
+        "confidence": 1.0 if ok else 0.0,
+        "grounded": ok,
+        "intent": "query",
+        "tool_results": [],
+        "usage": usage,
+    }
 
 
 def _ask_query_branch(query: str, max_tokens: int | None = None) -> dict[str, Any]:
@@ -778,14 +946,18 @@ def _ask_query_branch(query: str, max_tokens: int | None = None) -> dict[str, An
     content = ""
     try:
         result = provider_for(_MAIN).chat(
-            system_prompt=f"{MAINBRAIN_SYSTEM_PROMPT}\n{_QUERY_SYSTEM}",
+            system_prompt=(
+                f"{MAINBRAIN_SYSTEM_PROMPT}\n{_QUERY_SYSTEM}\n{_QUERY_CAPABILITY_SYSTEM}"
+            ),
             messages=[{"role": "user", "content": user_content}],
             temperature=0.2,
             max_tokens=int(max_tokens or DEFAULT_MAX_TOKENS),
             disable_thinking=False,
             timeout=60,
         )
-        content = _clean_content(result.content)
+        content = _claim_clean(_clean_content(result.content))
+        if _DELEGATE_HINT.search(query) and _DELEGATED_ACTION_PATTERN.search(query):
+            content = "这个我做不到，这需要真的去执行，属于执行类任务。"
         usage = result.usage
     except Exception as exc:  # 直连失败也要如实说，不能装作答完了
         sys.stderr.write(f"[ask] 查询直连失败：{type(exc).__name__}: {exc}\n")
@@ -848,6 +1020,8 @@ def ask_once(query: str, max_tokens: int | None = None) -> dict[str, Any]:
     # 任务类立刻答应并派单，不进 ReAct——既快，也断掉它自由编「我已经修好了」的路。
     if _classify_intent(query) == "task":
         return _ask_task_branch(query)
+    if _DIAGNOSE_PATTERNS.search(query) and not _DELEGATE_HINT.search(query):
+        return _ask_diagnose_branch(query, max_tokens)
     # 排队上限：语音侧的 worker_timeout_seconds=90，若无限等锁，一次批量/长请求
     # 就能把语音轮次饿到超时（本轮真实事故）。拿不到锁就明确回"正忙"，让语音
     # 在预算内有一句话可说，而不是等到超时。
