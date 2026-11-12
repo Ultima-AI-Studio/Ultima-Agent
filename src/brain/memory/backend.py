@@ -20,6 +20,7 @@ from typing import Any, Dict, List, Optional
 
 from openjarvis.tools.storage._stubs import MemoryBackend, RetrievalResult
 
+from ..slot_adapter import main_settings
 from .registry import MemoryRegistry
 
 # mem0 后端默认向量库路径（相对 UltimaAgent 数据目录）
@@ -40,7 +41,7 @@ class Mem0Backend(MemoryBackend):
     embedding_model:
         ollama 嵌入模型名（默认 nomic-embed-text，274MB 已拉取）。
     ollama_base_url:
-        ollama 服务地址（默认本机 11434）。
+        ollama 服务地址（默认取 S-MAIN 生效 endpoint）。
     memory_type:
         记忆粒度："user"（用户级）| "session"（会话级）| "agent"（Agent 级）。
     auto_registry:
@@ -54,8 +55,8 @@ class Mem0Backend(MemoryBackend):
         data_dir: Optional[str] = None,
         *,
         embedding_model: str = "nomic-embed-text",
-        memory_llm_model: str = "qwen3-8b-uncensored",
-        ollama_base_url: str = "http://localhost:11434",
+        memory_llm_model: Optional[str] = None,
+        ollama_base_url: Optional[str] = None,
         memory_type: str = "user",
         auto_registry: bool = True,
     ) -> None:
@@ -64,8 +65,21 @@ class Mem0Backend(MemoryBackend):
         self._memory_type = memory_type
         self._data_dir = data_dir or _DEFAULT_INDEX_DIR
         self._embedding_model = embedding_model
-        self._memory_llm_model = memory_llm_model
-        self._ollama_base_url = ollama_base_url
+        effective_main = (
+            main_settings()
+            if memory_llm_model is None or ollama_base_url is None
+            else None
+        )
+        self._memory_llm_model = (
+            memory_llm_model
+            if memory_llm_model is not None
+            else str(effective_main["model"])
+        )
+        self._ollama_base_url = (
+            ollama_base_url
+            if ollama_base_url is not None
+            else str(effective_main["endpoint"])
+        )
 
         os.makedirs(self._data_dir, exist_ok=True)
 
@@ -107,7 +121,7 @@ class Mem0Backend(MemoryBackend):
             },
         )
 
-        # 记忆提取用本地 LLM（qwen3-8b-uncensored），无需外部 API key
+        # 记忆提取复用 S-MAIN 的本地 LLM，无需外部 API key。
         llm_config = LlmConfig(
             provider="ollama",
             config={

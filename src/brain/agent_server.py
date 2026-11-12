@@ -10,7 +10,7 @@
 设计约束：
 - 仅标准库 + openjarvis + UltimaAgent 自有模块；
 - 工具注册：import agent_tools_ultima 触发 ToolRegistry 装饰器注册；
-- 模型：ollama + qwen3-8b-uncensored（本地主脑）；agent：simple（ReAct 工具循环）。
+- 模型：由 S-MAIN 插槽选择；agent：simple（ReAct 工具循环）。
 """
 
 from __future__ import annotations
@@ -50,6 +50,9 @@ JARVIS_PERSONA_PATH = (
 MAINBRAIN_RULES_PATH = PROJECT_ROOT / "docs" / "specs" / "mainbrain-rules-baseline.md"
 
 from src.brain.prompt_boundary import PROMPT_SECURITY_RULES, build_user_data  # noqa: E402
+from src.brain.providers.base import ProviderConfigError  # noqa: E402
+from src.brain.providers.resolve import provider_for  # noqa: E402
+from src.brain.slot_adapter import main_settings  # noqa: E402
 
 try:  # 主脑职责提议入口（/mainbrain 专用，不参与 /ask 语音链路）
     from .mainbrain_proposal import propose as propose_mainbrain  # noqa: E402
@@ -135,8 +138,23 @@ except ImportError:  # pragma: no cover - 脚本入口
 HOST = "127.0.0.1"
 PORT = 8756
 
-ENGINE_KEY = "ollama"
-MODEL = "qwen3-8b-uncensored"
+
+def _load_main_settings() -> dict[str, Any]:
+    try:
+        return main_settings()
+    except Exception as exc:  # 配置坏了也要让服务可报告空状态，且必须明确记录原因
+        sys.stderr.write(f"[agent-server] S-MAIN 配置加载失败：{type(exc).__name__}: {exc}\n")
+        return {
+            "slot": "S-MAIN",
+            "impl": "",
+            "endpoint": "",
+            "model": "",
+            "enabled": False,
+            "error": str(exc),
+        }
+
+
+_MAIN = _load_main_settings()
 AGENT = "native_react"
 TOOLS = [
     "calculator",
@@ -173,7 +191,6 @@ DEFAULT_MAX_TOKENS = 1024
 ASK_MAX_TURNS = 2
 MAX_BODY_BYTES = 1024 * 1024  # 请求体上限 1MB（本地接口防异常大包）
 SSE_PING_SECONDS = 15.0
-OLLAMA_CHAT_URL = "http://127.0.0.1:11434/api/chat"
 STRUCTURED_REPLY_TIMEOUT_SECONDS = 180
 STRUCTURED_FALLBACK_REPLY = "这个问题我暂时无法可靠回答。"
 STRUCTURED_REPLY_SYSTEM_PROMPT = """\
@@ -385,7 +402,17 @@ def get_jarvis() -> Jarvis:
     global _jars
     if _jars is None:
         _ensure_tools_registered()
-        _jars = Jarvis(engine_key=ENGINE_KEY, model=MODEL)
+        # OpenJarvis engine keys are not provider impl names. Its current local
+        # engine supports both the canonical Ollama impl and the frozen
+        # ``ollama-8b`` S-MAIN default; other providers have no safe mapping.
+        engine_key = {"ollama": "ollama", "ollama-8b": "ollama"}.get(
+            str(_MAIN.get("impl") or "").lower()
+        )
+        if engine_key is None:
+            raise ProviderConfigError(
+                f"S-MAIN impl 无法映射到 OpenJarvis engine: {_MAIN.get('impl') or '<empty>'}"
+            )
+        _jars = Jarvis(engine_key=engine_key, model=str(_MAIN.get("model") or ""))
         # 本实例只服务 /ask（语音应答，不是长任务编排）。把 ReAct 轮次预算从默认 10 压到 2：
         # ultima_subagent 派出的子代理是另一个 Jarvis 实例，不受此设置影响。
         try:
@@ -441,31 +468,19 @@ def _request_structured_reply(
         },
         ensure_ascii=False,
     )
-    payload = {
-        "model": MODEL,
-        "messages": [
-            {"role": "system", "content": STRUCTURED_REPLY_SYSTEM_PROMPT},
-            {"role": "user", "content": user_payload},
-        ],
-        "stream": False,
-        "think": False,
-        "format": REPLY_JSON_SCHEMA,
-    }
-    request = Request(
-        OLLAMA_CHAT_URL,
-        data=json.dumps(payload, ensure_ascii=False).encode("utf-8"),
-        headers={"Content-Type": "application/json; charset=utf-8"},
-        method="POST",
-    )
     try:
-        with urlopen(request, timeout=STRUCTURED_REPLY_TIMEOUT_SECONDS) as response:
-            body = json.loads(response.read().decode("utf-8"))
-        content = body.get("message", {}).get("content", "")
-        if not isinstance(content, str):
-            raise StructuredReplyError("Ollama message content must be a string")
-        return parse_structured_reply(content)
-    except (HTTPError, URLError, TimeoutError, OSError, UnicodeError, json.JSONDecodeError) as exc:
-        raise StructuredReplyError(f"structured Ollama request failed: {type(exc).__name__}") from exc
+        result = provider_for(_MAIN).chat(
+            system_prompt=STRUCTURED_REPLY_SYSTEM_PROMPT,
+            messages=[{"role": "user", "content": user_payload}],
+            temperature=None,
+            max_tokens=None,
+            json_schema=REPLY_JSON_SCHEMA,
+            disable_thinking=True,
+            timeout=STRUCTURED_REPLY_TIMEOUT_SECONDS,
+        )
+    except (HTTPError, URLError, TimeoutError, OSError, UnicodeError, ValueError, TypeError) as exc:
+        raise StructuredReplyError(f"structured provider request failed: {type(exc).__name__}") from exc
+    return parse_structured_reply(result.content)
 
 
 def _fallback_verifier():
@@ -679,28 +694,18 @@ def _classify_intent(query: str) -> str:
     if _QUERY_HINT.search(query):
         return "query"
     try:
-        payload = {
-            "model": MODEL,
-            "messages": [
-                {"role": "system", "content": _ASK_CLASSIFY_SYSTEM},
-                {"role": "user", "content": query},
-            ],
-            "stream": False,
-            # 保留模型的思考，只是把思考框在「只判类别」这一个边界里（见上面的 system）。
-            # 不能关思考：关了就等于把主脑的脑子摘掉，它以后只能靠外脑。
-            # 但也不能让 num_predict 太紧：qwen3 的 thinking 会先吃掉 token，
-            # 实测 np=8/16 时 content 恒为空（thinking 吃掉 10/20 token）→ 分类静默失败。
-            # 给足预算让它想完并吐出结论，靠 system 里的小边界控时长，而不是靠截断。
-            "options": {"temperature": 0, "num_predict": 256},
-        }
-        request = Request(
-            OLLAMA_CHAT_URL,
-            data=json.dumps(payload, ensure_ascii=False).encode("utf-8"),
-            headers={"Content-Type": "application/json"},
+        # 保留模型的思考，只是把思考框在「只判类别」这一个边界里（见上面的 system）。
+        # 不能关思考：关了就等于把主脑的脑子摘掉，它以后只能靠外脑。
+        # 但也不能让 num_predict 太紧：thinking 会先吃掉 token，短预算会返回空内容。
+        result = provider_for(_MAIN).chat(
+            system_prompt=_ASK_CLASSIFY_SYSTEM,
+            messages=[{"role": "user", "content": query}],
+            temperature=0,
+            max_tokens=256,
+            disable_thinking=False,
+            timeout=15,
         )
-        with urlopen(request, timeout=15) as response:
-            data = json.loads(response.read().decode("utf-8"))
-        verdict = str((data.get("message") or {}).get("content") or "")
+        verdict = result.content
     except Exception:  # 分类失败不影响主流程，按查询走
         return "query"
     return "task" if "动手" in verdict else "query"
@@ -769,30 +774,19 @@ def _ask_query_branch(query: str, max_tokens: int | None = None) -> dict[str, An
     )
     # 保留 bounded data 结构：语音原文整段包进带 nonce 的边界，防止被当成指令执行
     user_content = build_user_data(speech=query, trusted_context=time_ctx).render()
-    payload = {
-        "model": MODEL,
-        "messages": [
-            {"role": "system", "content": f"{MAINBRAIN_SYSTEM_PROMPT}\n{_QUERY_SYSTEM}"},
-            {"role": "user", "content": user_content},
-        ],
-        "stream": False,
-        "options": {
-            "temperature": 0.2,
-            "num_predict": int(max_tokens or DEFAULT_MAX_TOKENS),
-        },
-    }
     usage: dict[str, Any] = {}
     content = ""
     try:
-        request = Request(
-            OLLAMA_CHAT_URL,
-            data=json.dumps(payload, ensure_ascii=False).encode("utf-8"),
-            headers={"Content-Type": "application/json"},
+        result = provider_for(_MAIN).chat(
+            system_prompt=f"{MAINBRAIN_SYSTEM_PROMPT}\n{_QUERY_SYSTEM}",
+            messages=[{"role": "user", "content": user_content}],
+            temperature=0.2,
+            max_tokens=int(max_tokens or DEFAULT_MAX_TOKENS),
+            disable_thinking=False,
+            timeout=60,
         )
-        with urlopen(request, timeout=60) as response:
-            data = json.loads(response.read().decode("utf-8"))
-        content = _clean_content(str((data.get("message") or {}).get("content") or ""))
-        usage = data.get("usage") or {}
+        content = _clean_content(result.content)
+        usage = result.usage
     except Exception as exc:  # 直连失败也要如实说，不能装作答完了
         sys.stderr.write(f"[ask] 查询直连失败：{type(exc).__name__}: {exc}\n")
     if not content:
@@ -875,6 +869,23 @@ def ask_once(query: str, max_tokens: int | None = None) -> dict[str, Any]:
         return _ask_query_branch(query, max_tokens)
     finally:
         _ask_lock.release()
+
+
+def _health_payload() -> dict[str, Any]:
+    model = str(_MAIN.get("model") or "")
+    configured = bool(_MAIN.get("enabled") and str(_MAIN.get("endpoint") or "").strip())
+    payload: dict[str, Any] = {
+        "ok": True,
+        "model": model,
+        "agent": AGENT,
+        "tools": ANSWER_TOOLS,
+        "provider": str(_MAIN.get("impl") or ""),
+        "provider_model": model,
+        "provider_configured": configured,
+    }
+    if not configured:
+        payload["provider_note"] = "主脑未配置，/ask 将无法作答"
+    return payload
 
 
 class _Handler(BaseHTTPRequestHandler):
@@ -992,9 +1003,7 @@ class _Handler(BaseHTTPRequestHandler):
         query = parse_qs(parsed.query)
         if route == "/health":
             # 返回 8B 实际可调用的工具白名单（应答侧），而非全部注册工具
-            self._send_json(
-                200, {"ok": True, "model": MODEL, "agent": AGENT, "tools": ANSWER_TOOLS}
-            )
+            self._send_json(200, _health_payload())
             return
         if route == "/events":
             self._serve_events(query)
@@ -1110,7 +1119,7 @@ def main() -> int:
     server = ThreadingHTTPServer((HOST, PORT), _Handler, bind_and_activate=False)
     server.socket = _sock
     sys.stderr.write(
-        f"[agent-server] 启动：http://{HOST}:{PORT} model={MODEL} agent={AGENT} "
+        f"[agent-server] 启动：http://{HOST}:{PORT} model={_MAIN.get('model') or ''} agent={AGENT} "
         f"answer_tools={ANSWER_TOOLS} registered={len(TOOLS)}\n"
     )
     threading.Thread(target=_hud_tick_loop, daemon=True).start()

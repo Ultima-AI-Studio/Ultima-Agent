@@ -39,6 +39,8 @@ from openjarvis.tools.web_search import WebSearchTool  # noqa: E402
 from tasks.queue_engine import QueuePlanner, QueueStorage  # noqa: E402
 from tasks.queue_engine.priority_deps import QueuePlanningError  # noqa: E402
 from tasks.queue_engine.storage import StorageError  # noqa: E402
+from src.brain.providers.base import ProviderConfigError  # noqa: E402
+from src.brain.slot_adapter import main_settings  # noqa: E402
 
 # 中文任务别名（与 src/brain/interaction.py 的 _TASK_ALIASES 保持同步）
 _TASK_ALIASES = {
@@ -104,7 +106,17 @@ class UltimaSubagentTool(BaseTool):
     def _create_child() -> Any:
         from openjarvis import Jarvis
 
-        return Jarvis(engine_key="ollama", model="qwen3-8b-uncensored")
+        settings = main_settings()
+        # OpenJarvis currently has a native Ollama engine; S-MAIN's frozen
+        # ``ollama-8b`` impl is the same protocol identity for this factory.
+        engine_key = {"ollama": "ollama", "ollama-8b": "ollama"}.get(
+            str(settings.get("impl") or "").lower()
+        )
+        if engine_key is None:
+            raise ProviderConfigError(
+                f"S-MAIN impl 无法映射到子代理 engine: {settings.get('impl') or '<empty>'}"
+            )
+        return Jarvis(engine_key=engine_key, model=str(settings.get("model") or ""))
 
     @property
     def spec(self) -> ToolSpec:

@@ -27,6 +27,7 @@ from typing_extensions import TypedDict
 from openjarvis.learning._stubs import RouterPolicy
 from openjarvis.core.types import RoutingContext
 
+from src.brain.slot_adapter import main_settings
 from .audit import AuditTrail
 from .registry import OrchestrationRegistry
 
@@ -91,7 +92,7 @@ class LangGraphStateMachine(RouterPolicy):
     """基于 LangGraph 的范式引擎。
 
     双重角色：
-    - 模型路由（RouterPolicy ABC）：按复杂度路由 qwen3-8b-uncensored 等本地模型
+    - 模型路由（RouterPolicy ABC）：按复杂度路由 S-MAIN 生效的本地模型
     - 任务编排：StateGraph 建图 + 审批门 + 审计留痕
 
     Parameters
@@ -118,7 +119,9 @@ class LangGraphStateMachine(RouterPolicy):
         self._node_handlers: Dict[str, Callable[[WorkflowState], Any]] = {}
         self._approval_required: set[str] = set()
         # 本地主脑统一 8B（2026-11-11 Owner 拍板：14B 已停用，不再参与任何调用）。
-        self._model_keys = ("qwen3-8b-uncensored",)
+        # 路由键沿用历史无 tag 形态，配置可继续写 ``model:tag``。
+        model_key = str(main_settings()["model"]).split(":", 1)[0]
+        self._model_keys = (model_key,)
 
         # 幂等注册：同 key 已注册时跳过（同进程多次实例化合法）
         if not OrchestrationRegistry.is_registered(self._key):

@@ -4,8 +4,7 @@
 - 只读主脑职责规则基线（docs/specs/mainbrain-duty-rules-baseline.md），
   与 /ask 使用的应答规则（mainbrain-rules-baseline.md）严格分家；
 - 阶段 1 只提议：输出"建议派给谁 + 理由 + 预计产物"，不真派发、不写队列；
-- 直接调本机 ollama，复用 agent_server 的模型与地址常量语义，但不 import
-  agent_server，避免循环导入。
+- 经 S-MAIN 的协议 provider 调用，不 import agent_server，避免循环导入。
 """
 
 from __future__ import annotations
@@ -13,14 +12,14 @@ from __future__ import annotations
 import json
 import re
 import time
-import urllib.request
 from pathlib import Path
 from typing import Any
 
+from src.brain.providers.resolve import provider_for
+from src.brain.slot_adapter import main_settings
+
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 DUTY_RULES_PATH = PROJECT_ROOT / "docs" / "specs" / "mainbrain-duty-rules-baseline.md"
-OLLAMA_CHAT_URL = "http://127.0.0.1:11434/api/chat"
-MODEL = "qwen3-8b-uncensored"
 PROPOSE_TIMEOUT_SECONDS = 120.0
 PROPOSE_NUM_PREDICT = 500
 PROPOSE_TEMPERATURE = 0.2
@@ -46,28 +45,18 @@ def propose(query: str, *, timeout: float = PROPOSE_TIMEOUT_SECONDS) -> dict[str
         raise ValueError("query 不能为空")
 
     block, version = _load_rule_block()
-    body = {
-        "model": MODEL,
-        "messages": [
-            {"role": "system", "content": block},
-            {"role": "user", "content": query},
-        ],
-        "stream": False,
-        "options": {
-            "temperature": PROPOSE_TEMPERATURE,
-            "num_predict": PROPOSE_NUM_PREDICT,
-        },
-    }
-    request = urllib.request.Request(
-        OLLAMA_CHAT_URL,
-        data=json.dumps(body, ensure_ascii=False).encode("utf-8"),
-        headers={"Content-Type": "application/json"},
-    )
+    settings = main_settings()
     started = time.time()
-    with urllib.request.urlopen(request, timeout=timeout) as response:
-        payload = json.loads(response.read().decode("utf-8"))
+    result = provider_for(settings).chat(
+        system_prompt=block,
+        messages=[{"role": "user", "content": query}],
+        temperature=PROPOSE_TEMPERATURE,
+        max_tokens=PROPOSE_NUM_PREDICT,
+        disable_thinking=False,
+        timeout=timeout,
+    )
     elapsed = round(time.time() - started, 2)
-    proposal = ((payload.get("message") or {}).get("content") or "").strip()
+    proposal = result.content.strip()
     if not proposal:
         raise RuntimeError("8B 返回空提议")
 
@@ -75,7 +64,7 @@ def propose(query: str, *, timeout: float = PROPOSE_TIMEOUT_SECONDS) -> dict[str
         "mode": "propose",
         "stage": 1,
         "rule_version": version,
-        "model": MODEL,
+        "model": settings["model"],
         "query": query,
         "proposal": proposal,
         "elapsed_seconds": elapsed,

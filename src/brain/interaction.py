@@ -217,7 +217,7 @@ class InteractionLoop:
 
         # 6. 本地优先（2026-11-11 Owner 拍板：本地模型优先，云端仅在本地不可用时兜底）。
         #    规则表未命中 → 本地 Agent 循环（agent_server 8756，
-        #    qwen3-8b-uncensored 自主回答/调工具）。服务不可达或返回空时再试云端。
+        #    S-MAIN 生效模型自主回答/调工具）。服务不可达或返回空时再试云端。
         agent_reply = self._try_agent_fallback(normalized, route_input=False)
         if agent_reply is not None:
             return agent_reply

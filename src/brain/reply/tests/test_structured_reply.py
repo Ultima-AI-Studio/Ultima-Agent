@@ -7,6 +7,7 @@ from unittest.mock import Mock, patch
 import pytest
 
 from src.brain import agent_server
+from src.brain.providers import ollama_native
 from src.brain.reply.schema import StructuredReplyError, parse_structured_reply
 from src.brain.routing.reply_verifier import ReplyVerifier, split_sentences
 
@@ -81,7 +82,7 @@ def test_ollama_request_uses_native_schema_and_parses_reply() -> None:
             }
         }
     )
-    with patch.object(agent_server, "urlopen", return_value=response) as mocked:
+    with patch.object(ollama_native, "urlopen", return_value=response) as mocked:
         reply = agent_server._request_structured_reply(
             "工单状态？", "工单已完成。", [{"tool_name": "task", "success": True, "content": "completed"}]
         )
