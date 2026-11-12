@@ -202,23 +202,8 @@ class BusTestCase(unittest.TestCase):
         self.assertEqual(1, envelope["delivered"])
         self.assertEqual("KP-004", business[0]["msgNo"])
 
-    @unittest.expectedFailure
     def test_accept_4_direct_connection_and_undeclared_scope_are_audited(self) -> None:
-        """KNOWN GAP（2026-11-12 实测）：第三段失败，实现不满足 spec §8.1。
-
-        `kernel._audit_imports` 用「已注册模块 ID」（如 ultima.intent.test）比对标
-        的 import 名，但插件真实的 Python 包名是 `plugin_<模块ID>_<版本>`（见
-        manifest.entry）。三组对照实验结果：
-
-            import plugin_ultima_intent_test_0_1_0  -> 未被拦（真实绕过路径漏检）
-            import ultima.intent.test              -> 被拦（只在写法与模块 ID 同形时才抓）
-            import os                              -> 未被拦（正常）
-
-        即"插件直接 import 另一个插件"这一最需要防的行为，用真实包名即可绕过。
-        修复方向：以 manifest.entry 的顶层包名为比对键（entry.split(".")[0]），
-        建立「包名 -> 模块 ID」映射后再判违规。修好后本 case 会自动转为
-        unexpected success，届时去掉本装饰器即为验收信号。
-        """
+        """直连检测双键比对（模块 ID + manifest.entry 顶层包名），2026-11-13 由 wo-ultimaagent-20261113-0053 修复，三组对照实验证据见 git 历史 a4a69e30 提交说明。"""
         path = self.create_plugin()
         self.kernel.register_manifest(path)
         self.kernel.load("ultima.intent.test")

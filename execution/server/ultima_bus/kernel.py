@@ -605,11 +605,18 @@ class BusKernel:
         self._save()
 
     def _audit_imports(self, manifest: Manifest) -> None:
-        registered_ids = {
-            record["module_id"]
-            for record in self.registry.records.values()
-        }
+        registered_ids: set[str] = set()
+        package_map: dict[str, str] = {}
+        for record in self.registry.records.values():
+            registered_ids.add(record["module_id"])
+            for version in record["installed_versions"]:
+                entry = record["versions"][version]["manifest"]["entry"]
+                package_map[entry.split(".")[0]] = record["module_id"]
         own_id = manifest.module_id
+        own_packages = {
+            package for package, module_id in package_map.items() if module_id == own_id
+        }
+        own_packages.add(manifest.entry.split(".")[0])
         for source in manifest.import_root.rglob("*.py"):
             tree = ast.parse(source.read_text(encoding="utf-8"), filename=str(source))
             imported: set[str] = set()
@@ -635,9 +642,19 @@ class BusKernel:
                         )
             # 按完整 module_id 前缀判定跨模块直连：命中已注册插件自身或其子包即违规
             forbidden: set[str] = set()
+            forbidden_packages: set[str] = set()
             for target in imported:
-                if target == own_id or target.startswith(own_id + "."):
+                top = target.split(".")[0]
+                if (
+                    target == own_id
+                    or target.startswith(own_id + ".")
+                    or top in own_packages
+                ):
                     continue  # 插件自引用（内部子包）放行
+                package_module_id = package_map.get(top)
+                if package_module_id and package_module_id != own_id:
+                    forbidden.add(package_module_id)
+                    forbidden_packages.add(top)
                 for rid in sorted(registered_ids):
                     if rid == own_id:
                         continue
@@ -647,7 +664,11 @@ class BusKernel:
                 self._audit(
                     "plugin.direct-import.denied",
                     manifest.module_id,
-                    {"imports": sorted(forbidden), "source": str(source)},
+                    {
+                        "imports": sorted(forbidden),
+                        "source": str(source),
+                        "package": sorted(forbidden_packages)[0] if forbidden_packages else None,
+                    },
                 )
                 raise PermissionDenied(f"direct plugin import forbidden: {', '.join(sorted(forbidden))}")
 

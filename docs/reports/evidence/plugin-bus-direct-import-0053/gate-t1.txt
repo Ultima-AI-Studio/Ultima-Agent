@@ -1,0 +1,14 @@
+$ tools\venv-openjarvis\Scripts\python.exe -X utf8 -m pytest execution/server/tests/test_ultima_bus.py -q
+...F.....                                                                [100%]
+================================== FAILURES ===================================
+_ BusTestCase.test_accept_4_direct_connection_and_undeclared_scope_are_audited _
+Unexpected success
+=========================== short test summary info ===========================
+FAILED execution/server/tests/test_ultima_bus.py::BusTestCase::test_accept_4_direct_connection_and_undeclared_scope_are_audited
+1 failed, 8 passed in 25.45s
+
+$ tools\venv-openjarvis\Scripts\python.exe -X utf8 -c "import ast;ast.parse(open('execution/server/ultima_bus/kernel.py',encoding='utf-8').read())"
+AST_EXIT=0
+
+$ git diff -U0 -- execution/server/ultima_bus/kernel.py | Select-String -Pattern RESIDENT_DOMAINS
+0 matches
