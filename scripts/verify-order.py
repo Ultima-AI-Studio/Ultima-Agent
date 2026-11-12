@@ -453,25 +453,24 @@ def _gate_argv(argv: list[str]) -> list[str]:
             *_targets(argv)]
 
 
-_SUBTESTS_RE = re.compile(r"(\d+) subtests? (?:passed|failed|skipped)")
+_COLLECTED_RE = re.compile(r"collected (\d+) items?")
 
 
-def _declared_subtests(stdout: str) -> int:
-    """How many subtests the run's own terminal summary reports.
+def _collected_count(stdout: str) -> int | None:
+    """How many test items the run says it collected, or None when it did not say.
 
-    pytest-subtests counts each subtest into the junit ``tests`` attribute but
-    writes no node for it anywhere in the XML, so the aggregate and the testcase
-    nodes can never be reconciled from the report alone. Taking the number from
-    stdout keeps the reconciliation strict instead of loosening it: a report that
-    lost testcases still fails, because nothing in the summary accounts for the
-    gap.
+    This is the only count in the run that subtests do not inflate: `unittest`'s
+    `subTest` (and pytest-subtests) adds each subtest to the junit `tests`
+    attribute but writes no node for it anywhere in the XML, so the aggregate can
+    legitimately exceed both the node count and the collected count. Collection
+    happens before any test body runs, so a report whose node count matches what
+    was collected is complete; a report that lost nodes is not.
     """
-    total = 0
     for line in stdout.splitlines():
-        match = _SUBTESTS_RE.search(line)
+        match = _COLLECTED_RE.search(line)
         if match:
-            total += int(match.group(1))
-    return total
+            return int(match.group(1))
+    return None
 
 
 def _junit_counts(path: Path, stdout: str = "") -> dict | None:
@@ -483,10 +482,11 @@ def _junit_counts(path: Path, stdout: str = "") -> dict | None:
     clean run. This parses the XML, requires every count attribute, and refuses the
     report unless the per-testcase statuses add up to it.
 
-    Subtests are the one legitimate gap: they are counted in ``tests`` and appear
-    as no node, so the shortfall is accepted only when the run's own summary
-    reports exactly that many subtests. Without a stdout figure the comparison
-    stays exact.
+    Subtests are the one legitimate gap between the `tests` attribute and the
+    testcase nodes: a subtest is counted in `tests` and written as no node at all.
+    The collected count from the run's own output is what closes it — every
+    collected item must have a node — and a report that lost testcases still fails.
+    Without that output the comparison stays exact.
 
     Skip policy, stated rather than implied: skips are allowed — a platform guard or
     a parametrised case may legitimately not run — but they never count as executed
@@ -522,7 +522,13 @@ def _junit_counts(path: Path, stdout: str = "") -> dict | None:
                 observed["errors"] += 1
             elif case.find("skipped") is not None:
                 observed["skipped"] += 1
-    if observed["tests"] + _declared_subtests(stdout) != declared["tests"]:
+    collected = _collected_count(stdout)
+    if collected is not None:
+        if observed["tests"] != collected:
+            return None
+        if declared["tests"] < observed["tests"]:
+            return None
+    elif observed["tests"] != declared["tests"]:
         return None
     for key in ("failures", "errors", "skipped"):
         if observed[key] != declared[key]:
