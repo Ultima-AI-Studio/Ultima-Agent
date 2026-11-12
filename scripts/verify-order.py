@@ -763,9 +763,20 @@ def _declared_files(order_path: Path) -> list[str]:
     return paths
 
 
-def _changed_since(base_sha: str, path: str) -> bool | None:
-    """Did this path change between the dispatch commit and the working tree?"""
-    proc = _git("diff", "--name-only", base_sha, "--", path)
+def _changed_since(base_sha: str, path: str, end_sha: str = "") -> bool | None:
+    """Did this path change as part of what this order delivered?
+
+    Preferred form is the commit range `base..end`: a delivery that was committed
+    is the thing being frozen, and comparing base against the *working tree*
+    instead let any unrelated edit sitting in the tree — another order's work,
+    a leftover experiment — count as this order's delivery. Only when the receipt
+    names no distinct end commit does the working tree remain the evidence,
+    because then there is no commit to look in.
+    """
+    if end_sha and end_sha != base_sha:
+        proc = _git("diff", "--name-only", base_sha, end_sha, "--", path)
+    else:
+        proc = _git("diff", "--name-only", base_sha, "--", path)
     if proc.returncode != 0:
         return None
     return bool((proc.stdout or "").strip())
@@ -946,12 +957,13 @@ def verify(work_order: str, run_dir: Path, profile: str = "auto") -> dict:
             add("declared_files_landed", False, f"{len(declared)} declared, missing={missing}",
                 "; ".join(f"test -e {p}" for p in missing))
         else:
-            # Compared against the dispatch commit, not the end commit: once the
-            # agent commits its work, `git diff end_sha -- path` is empty by
-            # construction and every declared file would read as "never touched".
+            # The commit range base..end, falling back to base vs the working tree
+            # only when the receipt names no distinct end commit. Comparing base
+            # against the working tree unconditionally meant an unrelated edit
+            # already sitting there read as this order's delivery.
             base = str(done.get("base_sha") or "").strip()
             if base:
-                states = {p: _changed_since(base, p) for p in declared}
+                states = {p: _changed_since(base, p, end_sha) for p in declared}
                 # `None` means the diff could not be computed, which proves nothing:
                 # it must not read as "changed", or an unreadable repository state
                 # becomes a pass.
