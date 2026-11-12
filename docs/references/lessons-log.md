@@ -2014,3 +2014,46 @@ E   ModuleNotFoundError: No module named 'src.brain.orchestration.registry' src/
 4. **「无害」不等于「合规」**。ollama skip 在证明「主仓也 skip、同口径成立」之后风险消失，但「在测试代码里新增一个结果判定分支」这件事本身仍未被合规化。
 
 **复发标记**：N=1。与 L179/L181 是同一条线的第三个环节：L179 观察对结论错 → L181 更正并修完 → L182 外部审计再更正我一处归因。
+
+---
+
+### L183 · 本地环境适配收成一份契约，而不是散在三处的补丁
+**现象**：0051 修了六个入库缺口，其中 `libs/` 的 junction 挂在 `verify-order.py` 的 `_MOUNTED_ASSETS`、`ollama` 的 skip 挂在 `test_connectivity_m6.py`、解释器路径挂在 `_pin_runner()`。**三处三套规则，没有任何一处能回答「这个检出是不是就绪的」。** 所以新 clone 依然跑不起来，每个失败都要从头再诊断一次——那 10 个缺陷里至少 4 个是同一件事在不同位置复发。
+
+**做法**：`scripts/env_contract.py` 作为唯一清单，按「缺席后怎么处置」分三类，因为补救方式不同：
+
+| kind | 含义 | 本例 |
+|---|---|---|
+| `mount` | 不在 git，必须链进检出 | `libs/` |
+| `reference` | 不在 git，按绝对路径从主仓引用，**无需挂载** | 验收解释器 `tools/venv-openjarvis/` |
+| `external` | 根本不属于仓库 | `secrets`(`config/.env`)、`ollama` |
+
+每项声明 `required` / `probe` / `reason` / `absent_effect`。`absent_effect` 是硬要求——**必需件必须写明缺席的代价**（有测试守着），否则下一个人只知道「缺了」，不知道「缺了会怎样」。
+
+**判据不能是「目录存在」**。`_libs_usable()` 查的是 `libs/base/openjarvis/configs/openjarvis/prompts/personas/jarvis.md` 可读且非空（1171 字节）——一个空 `libs/` 目录只证明有人建了个目录，而 `agent_server.py` 真正读的是那个 prompt 文件。
+
+**一处认知更正**（此前记录说「`shutil.rmtree` 在 Windows 会跟随 junction 删真目标」）：Python 3.13 的 `shutil.rmtree` 已**拒绝**在 symlink/junction 上调用（`OSError: Cannot call rmtree on a symbolic link`），不再跟随。但 `release()` 仍用 `os.rmdir`：语义更明确，双保险。
+
+**验证形态**（反向样本比正向样本更能证明东西）：
+
+| 样本 | 结果 |
+|---|---|
+| 空目录模拟刚 clone | `[STOP] libs` + `[STOP] runner`，**2 项阻断，exit 2** |
+| `--apply` | `libs mounted`，exit 0 |
+| apply 后复查 | `libs` 转 ready，`runner` 仍阻断（正确：runner 是主仓引用） |
+| `--release` | `unlinked`，exit 0，**主仓 libs 17502 文件完好** |
+| 真实干净检出 `dd277b6f` | `reason=''`，`counts={tests:627, failures:0, errors:0, skipped:1}`，580 passed / 1 skipped，与修复前口径一致 |
+
+**三个自己踩的坑**：
+1. **测试自身的假阳性**。`after` 快照写在 `with tempfile.TemporaryDirectory()` **块外**，块退出时临时目录已销毁，`rglob` 返回空列表 → 断言「release 删了真目标」必炸。**这个测试无论 release 干了什么都报警**，与代码无关。快照必须全在块内取。
+2. **probe 的 argv 形态错**。把 `["-m","pytest","-o","addopts=",...]` 直接喂 `_run_in_clean_worktree`，`_missing_target` 把 `-o` 当路径去查，报 `pytest is not in the delivered tree`。正确形态是 `[解释器, 目标路径...]`，由 `_gate_argv` 补选项。**L181 已记过这条，我又犯了一次**——说明「记下了」不等于「下次会用」。
+3. **文件计数口径不一致**。`Get-ChildItem -Recurse -File` 不加 `-Force` 会跳过隐藏文件（17214），`pathlib.rglob` 不会（17502）。拿前者当「无损基线」是错的，两边数字对不上时会误判「文件丢了」。
+
+**规避**：
+1. 环境依赖**只能有一处声明**。新加一项加在契约里，不要在调用方再抄一遍——`CallerTest` 守着 `verify-order.py` 不得残留 `_MOUNTED_ASSETS = ("libs",)`。
+2. 判据要指向**被真正读取的那个文件**，不是它所在目录。
+3. 每项必需依赖必须写明**缺席后到底损失什么**，并让测试强制这一点。
+4. 快照类断言，**所有快照必须在同一生命周期内取**；`with` 块边界就是生命周期边界。
+5. 复用已记录的坑之前，先想一遍**它是不是正在发生**——L181 那条 argv 教训没被用上，白记一次。
+
+**复发标记**：N=1。归类为「同一类事实在多处重复维护，收成单一源」，与 L179/L181/L182 同一条线的收口动作。
