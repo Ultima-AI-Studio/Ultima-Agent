@@ -100,11 +100,11 @@
 
 **写什么**：
 1. 重跑三组对照实验（可重写等价脚本，放 `data/` 下临时目录，遵守路径域校验），记录结论。
-2. 确认工作区干净。
+2. 工作区基线校准（2026-11-13 派发第一轮实测）：开工前工作区已有 **17 项在途变更**（6 项 `.superpowers/sdd/*` progress、`config/interface-routing.json`、`docs/reports/audit-module12-20261108.md`、`tasks/queue/index.md` 等已跟踪修改 + `Temp/`、`artifacts/`、`docs/plans/` 等未跟踪项），**全部保留，不得清理**。判定用**差集口径**：以派发 run 目录 `before.json` 的 `status_entries` 为基线快照，`git status --short` 相对基线的**新增/变更差异集**只允许出现本单文件。
 
 **验收（Gate T3 / 总验收）**：
 1. 三组实验结论：真实包名 → **被拦**（与 2026-11-12 相反）；模块 ID 形态 → 仍被拦；`import os` → 仍放行
-2. `git status --short` 仅 `execution/server/ultima_bus/kernel.py` 与 `execution/server/tests/test_ultima_bus.py` 两文件
+2. 差集判定：`git status --short` 与派发时 `before.json` 基线对比后，差异部分**仅** `execution/server/ultima_bus/kernel.py` 与 `execution/server/tests/test_ultima_bus.py`（证据/报告文件除外，属本单允许产物）
 3. 反向断言：`git diff` 中 `RESIDENT_DOMAINS` / `plugin-bus-spec.md` / `src/brain/memory/registry.py` 零改动
 4. 回执自述：越界声明（无/列明）、每 T 证据（命令输出粘贴）、改动文件清单
 
@@ -121,6 +121,12 @@
 ```
 T1 _audit_imports 包名映射：已完成，Gate 全绿（附 unexpected success 输出 + AST 过）
 T2 测试转绿：已完成，Gate 全绿（附 9 passed / 0 xfailed 输出）
-T3 对照实验复核：已完成，三组结论反转正确（附实验输出 + git status）
-总验收：pytest 9 passed / 0 xfailed；git status 仅 2 文件；反向断言 3/3
+T3 对照实验复核：已完成，三组结论反转正确（附实验输出 + 基线差集对比）
+总验收：pytest 9 passed / 0 xfailed；基线差集仅 2 文件；反向断言 3/3
 ```
+
+---
+
+## 6. 修订记录
+
+- **v1.1（2026-11-13）**：Gate T3 / 总验收 #2 由「`git status` 仅两文件」改为「对照 before.json 基线差集」。第一轮派发实测发现开工前工作区已有 17 项在途变更（.superpowers 进度、interface-routing.json 等），原判据在此基线上永不可满足；执行器诚实拒绝弱化验收门并停止（零改动）。差集口径与派发机制的 git 快照设计（dispatch-work-order.py git_snapshot）一致。

@@ -2192,3 +2192,27 @@ ERROR: Reconnecting... 5/5 → exit code 1
 4. **"永久 fail-closed"这类静默死锁，症状是"所有正常操作都被拒"**。遇到"明明装了闸门却谁都过不去"，先查闸门的解锁路径是否真的存在，而不是反复怀疑被拦的那一方。
 
 **复发标记**：N=1。但第 1 条缺陷与 L218 的根因同族（**只看了"有没有写"、没看"跑起来会怎样"**），累计第 6 次触发同一根因。
+
+## L220 · 三连踩坑：CODEX_HOME 凭据死档的根因、codex exec 的 stdin 挂起、验收门写死全树口径（2026-11-13）
+
+**场景**：0052 派发 401 后状态卡死（见 L219 前情），0053 建卡后重开派发通道，一晚上连踩三个坑。
+
+### 坑 1 · `.codex-cli` 凭据死档的根因是 refresh token 单次有效，不是"登录丢了"
+
+- **事实**：桌面应用用 `~\.codex`，派发规范（INDEX §5）强制 `CODEX_HOME=.codex-cli`。`.codex-cli\auth.json` 停在 2026-10-28，报 `token_expired, refresh token already used`；`.codex\auth.json` 是 2026-11-07 的活档。
+- **根因**：auth.json 里的 refresh token 是**单次有效**的。桌面应用（或任何用 `.codex` 的进程）刷新过一次 token，`.codex-cli` 里那份的 refresh token 就永久作废——两份凭据不是"复制一次就一劳永逸"，而是**会互相踩死**的双源。
+- **修法**：备份死档后把 `.codex\auth.json` 复制到 `.codex-cli`，用最小 `codex exec`（"Reply with exactly: OK"）验证通道（实测 exit 0、7,826 tokens 走通）。
+- **判据**：以后凡是 `.codex-cli` 报 `refresh token already used`，第一反应就是"活档被刷新过了"，重拷一次活档即可，不用排查别的。
+
+### 坑 2 · `codex exec` 派发测试挂死：不重定向 stdin 它就永远等你
+
+- **事实**：用 `Start-Process` 起 `codex exec`（重定向了 stdout/stderr 但没管 stdin），进程挂住不返回；stderr 只有一行 `Reading additional input from stdin...`。死档凭据时更早一步，挂在等交互式登录。
+- **根因**：`codex exec` 支持从 stdin 传 prompt，检测到 stdin 是管道且未关闭时会等输入；凭据无效时则进入设备码登录等待。两者都不会自己退出。
+- **判据**：程序化拉起 codex CLI 必须**同时重定向 stdin**（指向空文件）；测试超时要设硬上限（`WaitForExit(120s)` + 超时 `Stop-Process`），不能裸等。
+
+### 坑 3 · 验收门写死「git status 全树口径」，在脏工作区上永远过不了
+
+- **事实**：0053 的 Gate T3 写成"`git status --short` 仅含两个源码文件"。实际工作区有 17 项在途变更（6 项 `.superpowers/sdd/*` 进度、`config/interface-routing.json`、未跟踪 `Temp/`、`artifacts/` 等，全是别的工作的成果）。Codex 执行到 T3 时诚实停止：**不弱化验收门、零改动报告阻塞**，回执里把矛盾摆全。
+- **根因**：写验收门时用了"全树干净"的直觉口径，没对照真实基线。而派发机制本身（`dispatch-work-order.py` 的 `git_snapshot`）在 run 目录 `before.json` 里记了精确基线（17 项全带哈希）——工具早就给了差集判定的原料，工单没用。
+- **修法**：Gate T3 改为**基线差集口径**（v1.1）：当前 `git status` 相对 `before.json.status_entries` 的差异集只含本单文件；在途变更全部保留，不得清理。
+- **判据**：验收门涉及工作区状态时，永远写"相对派发基线的差集"，不写"全树干净"；在途工作不清理、不 stash，那是别人的成果。

@@ -258,7 +258,7 @@
 2. `powershell -NoProfile -File tools/test-jobkill.ps1` 退出码 0，判据 1–5 全过（核心：判据 2 强杀后 3 秒内无残留）
 3. 三个 Python 文件 AST 解析全过（`src/brain/voice/daemon.py`、`src/voice-next/live.py`、`src/brain/agent_server.py`）
 4. 反向断言：`src/brain/voice/daemon.py` 的 `taskkill` 行内 `/T` = 0；`App.xaml.cs` 的 `OnStartup`/`OnExit` = 0；`src/brain/agent_server.py` 的 `MODEL\s*=` = 0；`src/voice-next/launch.py` 哈希不变
-5. `git status --short` 除本工单列表内文件外无改动
+5. 基线差集判定：`git status --short` 相对派发 run 目录 `before.json` `status_entries` 的**差异集**不含本工单文件清单与证据目录之外的任何文件；开工前已有的在途变更（约 17+ 项 `.superpowers/sdd/*`、`config/interface-routing.json` 等）全部保留，不得清理、stash 或回退（2026-11-13 v1.1 修订，口径与 0053 一致）
 6. 未触碰：`src/brain/providers/`、`dist/release-assets.json`、`installer/`、watchdog pid 26052、任何语音参数字段值
 7. 回执自述：越界声明（无 / 列明）、每 T 证据、改动文件清单
 
