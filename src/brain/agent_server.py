@@ -440,6 +440,49 @@ _CLAIM_PATTERNS = (
     ),
 )
 _DELEGATED_ACTION_PATTERN = re.compile(rf"(?:{_CLAIM_ACTIONS})")
+_NOISE_PATTERN = re.compile(
+    r"^(?:(?:嗯+|呃+|啊+|那个|喂|在吗)[，。！？!?、…\s]*)+$"
+    r"|^[\s，。！？!?、…]*[0-9A-Za-z\u4e00-\u9fff]{0,2}[\s，。！？!?、…]*$"
+)
+_REFERENT_PATTERN = re.compile(
+    r"^(?:帮我|请|麻烦(?:你)?|你)?\s*(?:把|将)?\s*"
+    r"(?:那个东西|这个东西|那些|这些|那个|这个|它|东西)\s*"
+    r"(?:弄|处理|改|修|整理|打开|关闭|移动|复制|删除)?\s*(?:一下|下)?\s*"
+    r"(?:(?:还是|又|仍然|依然|也)?(?:不行|坏了|有问题|没好|打不开))?[。！？!?]?$"
+)
+_GENERIC_OBJECT_PATTERN = re.compile(
+    r"^(?:帮我|请|麻烦(?:你)?|你)?\s*(?:把|将)?\s*"
+    r"(?:(?:那个|那些|这些)?(?:文件|文档|内容|东西)\s*)?"
+    r"(?:打开|关闭|处理|整理|重命名|删除|删掉|创建|新建|保存|修改|改|修复|安装|"
+    r"卸载|下载|上传|移动|复制|弄|发(?:送)?(?:给\S+)?)\s*(?:一下|下)?[。！？!?]?$"
+    r"|^(?:帮我|请|麻烦(?:你)?|你)?\s*"
+    r"(?:打开|关闭|处理|整理|重命名|删除|删掉|创建|新建|保存|修改|改|修复|安装|"
+    r"卸载|下载|上传|移动|复制)\s*(?:那个|那些|这些)?(?:文件|文档|内容|东西)"
+    r"\s*(?:一下|下)?[。！？!?]?$"
+    r"|(?:把|将)\s*(?:那个|那些|这些)?(?:文件|文档|内容|东西)\s*"
+    r"(?:发(?:送)?给|移动到|复制到|上传到|下载到|重命名(?:成|为)?|删除|处理|整理)"
+)
+_SPECIFIC_OBJECT_PATTERN = re.compile(
+    r"[A-Za-z]:[\\/]|[\\/]"
+    r"|[0-9A-Za-z_\-\u4e00-\u9fff]+\.(?:log|txt|py|json|ya?ml|toml|md|csv|xlsx?|"
+    r"docx?|pdf|png|jpe?g|gif|mp3|wav|mp4|zip|7z|exe|bat|cmd|ps1)\b"
+    r"|(?:桌面|下载|文档|当前|刚才|指定|上面|下面)(?:上|里|中|的)?(?:那个|这个)?"
+    r"(?:日志|报告|文件|文档|配置|代码|图片|视频|应用|程序|目录|文件夹)"
+    r"|(?:整理|处理|清理|查看|打开)(?:一下)?(?:桌面|下载目录|文档目录)"
+)
+_CLARIFY_TEMPLATES = {
+    "object": "你要我处理哪个？给我个具体名字，比如文件名或路径。",
+    "referent": "你说的「那个」是指哪一个？说一下名字我就能动。",
+    "noise": "没听清，再说一遍要做什么。",
+}
+_PUSHBACK_PATTERN = re.compile(
+    r"^(?:如果)?(?:你|您)?(?:没听清[，,])?(?:你|您)?再说一遍(?:要做什么)?[？?。！!]?$"
+    r"|^没听清(?:[，,]再说一遍要做什么)?[？?。！!]?$"
+)
+_PUSHBACK_REPLY = _CLARIFY_TEMPLATES["noise"]
+_CLARIFY_TTL = 30.0
+_CLARIFY_MAX_ASK = 2
+_PENDING_CLARIFY: dict[str, Any] | None = None
 _SERVILE_TAIL_PATTERN = re.compile(
     r"[，。！\s]*(?:"
     # 分支一：带「吗/么」的服务性反问（原有覆盖）
@@ -453,6 +496,95 @@ _SERVILE_TAIL_PATTERN = re.compile(
     r"[^。！？!?]{0,12}[？?]"
     r")\s*$"
 )
+
+
+def _slot_gate(query: str) -> str | None:
+    """确定性识别缺失槽位；只返回窄判据命中的类别。"""
+    text = (query or "").strip()
+    if not text:
+        return "noise"
+    if _SPECIFIC_OBJECT_PATTERN.search(text):
+        return None
+    has_action = bool(
+        _DELEGATED_ACTION_PATTERN.search(text) or _GENERIC_OBJECT_PATTERN.search(text)
+    )
+    if _NOISE_PATTERN.fullmatch(text) and not has_action:
+        return "noise"
+    if _REFERENT_PATTERN.search(text):
+        return "referent"
+    if _GENERIC_OBJECT_PATTERN.search(text):
+        return "object"
+    return None
+
+
+def _clarify_reply(slot: str) -> str:
+    """返回固定的最小槽位索要话术；未知类别按噪音处理。"""
+    return _CLARIFY_TEMPLATES.get(slot, _CLARIFY_TEMPLATES["noise"])
+
+
+def _supplement_fills(slot: str, query: str) -> bool:
+    """判断补充是否真正提供了原槽位，避免包装文本掩盖仍然含糊的输入。"""
+    text = re.sub(r"^(?:就是|是|指的是|我说的是)\s*", "", (query or "").strip())
+    if not text:
+        return False
+    if slot == "object" and (
+        text in {"应用", "设备", "程序"} or re.fullmatch(r"[A-Za-z]\s*盘", text)
+    ):
+        return True
+    has_action = bool(
+        _DELEGATED_ACTION_PATTERN.search(text) or _GENERIC_OBJECT_PATTERN.search(text)
+    )
+    if _NOISE_PATTERN.fullmatch(text) and not has_action:
+        return False
+    if _REFERENT_PATTERN.fullmatch(text):
+        return False
+    if re.fullmatch(r"(?:那个|那些|这些)?(?:文件|文档|内容|东西)", text):
+        return False
+    return len(re.sub(r"[^0-9A-Za-z\u4e00-\u9fff]", "", text)) >= 2
+
+
+def _pending_fill(query: str) -> str | None:
+    """把 TTL 内的一次补充拼回原请求；成功后立即清掉挂起态。"""
+    global _PENDING_CLARIFY
+    pending = _PENDING_CLARIFY
+    if pending is None:
+        return None
+    if (
+        time.time() - float(pending["at"]) <= _CLARIFY_TTL
+        and int(pending["asked"]) < _CLARIFY_MAX_ASK
+    ):
+        _PENDING_CLARIFY = None
+        return f"{pending['query']}（补充：{query}）"
+    return None
+
+
+def _pending_expire_reply() -> str | None:
+    """过期或问满时清掉挂起态，并给出固定的停止话术。"""
+    global _PENDING_CLARIFY
+    pending = _PENDING_CLARIFY
+    if pending is None:
+        return None
+    if (
+        time.time() - float(pending["at"]) > _CLARIFY_TTL
+        or int(pending["asked"]) >= _CLARIFY_MAX_ASK
+    ):
+        _PENDING_CLARIFY = None
+        return "先不弄了，需要的时候再叫我。"
+    return None
+
+
+def _pending_set(query: str, slot: str) -> None:
+    """记录一次澄清；同一原请求连续挂起时累计已问次数。"""
+    global _PENDING_CLARIFY
+    asked = 1
+    if _PENDING_CLARIFY is not None and _PENDING_CLARIFY.get("query") == query:
+        asked = int(_PENDING_CLARIFY.get("asked", 0)) + 1
+    _PENDING_CLARIFY = {
+        "query": query,
+        "slot": slot,
+        "asked": asked,
+        "at": time.time(),
+    }
 
 
 def _claim_clean(content: str) -> str:
@@ -493,6 +625,14 @@ def _clean_content(content: str) -> str:
     # 8B 会把内部依据标记当正文念出来（如 "grounded:false  不确定…"），语音场景里这是噪音。
     # 行为层提示词压不住（lessons L138），只能在出口统一剥离。
     content = _GROUNDED_TAG.sub("", content)
+    sentences = re.findall(r"[^。！？!?]+[。！？!?]?", content)
+    if any(_PUSHBACK_PATTERN.fullmatch(sentence.strip()) for sentence in sentences):
+        content = "".join(
+            _PUSHBACK_REPLY
+            if _PUSHBACK_PATTERN.fullmatch(sentence.strip())
+            else sentence
+            for sentence in sentences
+        )
     servile_tail = _SERVILE_TAIL_PATTERN.search(content)
     if servile_tail is not None:
         matched = servile_tail.group(0)
@@ -1052,9 +1192,84 @@ def ask_once(query: str, max_tokens: int | None = None) -> dict[str, Any]:
             "tool_results": [],
             "usage": {},
         }
+    pending_before = dict(_PENDING_CLARIFY) if _PENDING_CLARIFY is not None else None
+    combined_query = _pending_fill(query)
+    if combined_query is not None:
+        pending_slot = str((pending_before or {}).get("slot") or "noise")
+        if not _supplement_fills(pending_slot, query):
+            original = str((pending_before or {}).get("query") or query)
+            _pending_set(original, pending_slot)
+            if _PENDING_CLARIFY is not None:
+                _PENDING_CLARIFY["asked"] = int(
+                    (pending_before or {}).get("asked", 0)
+                ) + 1
+            clarify = _clarify_reply(pending_slot)
+            EVENT_BUS.emit_event("message", {"text": clarify, "role": "jarvis"})
+            return {
+                "content": clarify,
+                "reply_text": clarify,
+                "confidence": 1.0,
+                "grounded": True,
+                "intent": "clarify",
+                "tool_results": [],
+                "usage": {},
+            }
+        query = combined_query
+    expired = _pending_expire_reply()
+    if expired is not None:
+        EVENT_BUS.emit_event("message", {"text": expired, "role": "jarvis"})
+        return {
+            "content": expired,
+            "reply_text": expired,
+            "confidence": 1.0,
+            "grounded": True,
+            "intent": "clarify",
+            "tool_results": [],
+            "usage": {},
+        }
+    if combined_query is not None:
+        denied = _risk_gate(query)
+        if denied is not None:
+            EVENT_BUS.emit_event("message", {"text": denied, "role": "jarvis"})
+            return {
+                "content": denied,
+                "reply_text": denied,
+                "confidence": 1.0,
+                "grounded": False,
+                "intent": "refused",
+                "tool_results": [],
+                "usage": {},
+            }
+        no_tool = _no_tool_gate(query)
+        if no_tool is not None:
+            EVENT_BUS.emit_event("message", {"text": no_tool, "role": "jarvis"})
+            return {
+                "content": no_tool,
+                "reply_text": no_tool,
+                "confidence": 1.0,
+                "grounded": False,
+                "intent": "no_tool",
+                "tool_results": [],
+                "usage": {},
+            }
     # 分段应答第一段：先判这是「要动手的活」还是「要个回答」。
     # 任务类立刻答应并派单，不进 ReAct——既快，也断掉它自由编「我已经修好了」的路。
-    if _classify_intent(query) == "task":
+    intent = _classify_intent(query)
+    slot = None if combined_query is not None else _slot_gate(query)
+    if slot is not None:
+        _pending_set(query, slot)
+        clarify = _clarify_reply(slot)
+        EVENT_BUS.emit_event("message", {"text": clarify, "role": "jarvis"})
+        return {
+            "content": clarify,
+            "reply_text": clarify,
+            "confidence": 1.0,
+            "grounded": True,
+            "intent": "clarify",
+            "tool_results": [],
+            "usage": {},
+        }
+    if intent == "task":
         return _ask_task_branch(query)
     if _DIAGNOSE_PATTERNS.search(query) and not _DELEGATE_HINT.search(query):
         return _ask_diagnose_branch(query, max_tokens)
