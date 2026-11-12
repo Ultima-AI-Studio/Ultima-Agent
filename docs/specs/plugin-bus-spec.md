@@ -417,6 +417,11 @@ registered ──加载成功──▶ loading ──清单/依赖/冒烟前置�
 | ② | **试点插件 3 个**（落点 `execution/packages/<domain>/<module_id>/`）：`ultima.intent.rule`（L1）、`ultima.domain.skill`（L2，迁移现有注册表）、`ultima.memory.lite`（L9 最小件，新增） |
 | ③ | 试点验证 §14 验收项 1-15 全绿 → 冻结 ADR-011 → 铺开 L3/L6/L7/L8/L10 插件工单 |
 
+> **注（2026-11-12，待纳入变更登记）**：
+> 1. ②的实际落点已扩到 **6 个插件**：在原有 3 个之外新增 `ultima.guard.policy`（L8）、`ultima.paradigm.flow`（L10）、`ultima.credential.center`（L8）。这是为了满足 §5.4 的 fail-closed——总线要先有 L8/L10 驻留插件才能对外服务。本表仍写"3 个"，与磁盘实际不符。
+> 2. `ultima.memory.lite` 已从"L9 最小件"升级为四层记忆基座（s3-memory-base，依赖 `src.brain.memory`；读写契约为 `write({content,layer})` / `read(query)` 返回含 `layer` 字段的条目），不再是精简试点件。
+> 3. §5.4 只列 L8/L10 为强制驻留，**L9 不在其中**；而 `src/brain/memory/registry.py` 默认 `resident=True` 并自称"与 L8 同规"，两级判定相反。是否把 L9 升级为强制驻留待 Owner 裁决，见 `docs/decisions/pd-20261112-l9驻留域两级判定裁决.md`。裁决前按本 spec 执行（L9 按域级判可卸）。
+
 **试点迁移纪律（P2-4）**：`ultima.intent.rule` 迁移自 v0.3 已冻结的 `src/brain/intent.py`（基线 731710a，registry 组件 `task-status-text-loop`）——属"已冻结组件迁移"，必须：①保持对外行为不变（回归原 16 项文本测试 + 49 项独立检查）②迁移完成经独立审计后，原组件标记"已迁插件"保留基线，不删除原文件；验收不通过则回退，冻结基线不受影响。
 
 ---
