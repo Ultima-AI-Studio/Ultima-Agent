@@ -1,0 +1,1 @@
+"""Rule intent pilot plugin."""

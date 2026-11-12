@@ -1,0 +1,1 @@
+"""Domain skill pilot plugin."""

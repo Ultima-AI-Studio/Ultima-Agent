@@ -1853,10 +1853,10 @@
       "work_order": "wo-ultimaagent-20261112-0052",
       "state": "blocked",
       "audit_passed": null,
-      "dispatched_at": null,
+      "dispatched_at": "2026-11-12T21:42:04.371362+08:00",
       "audit_run": null,
       "freeze_commit": null,
-      "note": "安装包主线 Phase 2（Job Object + HostShell 拉起）。工单已建、机检 FAIL0/WARN0 PASS、已补 DoR 第6项开源替代排查。派发 Codex 失败：codex exec 启动后认证 401（token_expired，refresh token already used），非工单问题，需 Owner 重新登录 Codex 后重派。DeepSeek(deepseek-flash,4765tokens) 初稿经主脑审校修正 7 处：①Phase0/1 已完成不重做 ②HostShell 实为 WinUI 3 非 WPF ③无 OnStartup/OnExit 只有 OnLaunched ④warm_progress 落盘方是 live.py L62 非 launch.py ⑤daemon.py 实路径 src/brain/voice/daemon.py，taskkill /T /F 在 L226 ⑥T3 就绪判据补自方案 §3.1 ⑦T8 判据4 改环境变量触发不改源码。另补方案未覆盖的双起冲突处置（先探后起 adopted=existing）。"
+      "note": "安装包主线 Phase 2（Job Object + HostShell 拉起）。工单已建、机检 FAIL0/WARN0 PASS、已补 DoR 第6项开源替代排查。派发 Codex 失败：codex exec 启动后认证 401（token_expired，refresh token already used），非工单问题，需 Owner 重新登录 Codex 后重派。DeepSeek(deepseek-flash,4765tokens) 初稿经主脑审校修正 7 处：①Phase0/1 已完成不重做 ②HostShell 实为 WinUI 3 非 WPF ③无 OnStartup/OnExit 只有 OnLaunched ④warm_progress 落盘方是 live.py L62 非 launch.py ⑤daemon.py 实路径 src/brain/voice/daemon.py，taskkill /T /F 在 L226 ⑥T3 就绪判据补自方案 §3.1 ⑦T8 判据4 改环境变量触发不改源码。另补方案未覆盖的双起冲突处置（先探后起 adopted=existing）。 【2026-11-12 状态回收】经复核：8 个 T 全部零产出（T1-T3 ProcessHost 三文件缺失、T5 daemon.py L226 仍含 /T、T7 agent_server.py 无 SIGBREAK、T8 测试脚本缺失、21:42 后目标文件无任何改动），executing 为僵尸状态，现退回 blocked。根因：dispatch-work-order.py L742-752 只在 worker 完全未启动时退回 blocked；worker 已启动但立即 401 时走 L753「保持 EXECUTING」，故状态永久卡住。重派前需先修 CODEX_HOME（.codex-cli 凭据 2026-10-28 已死，.codex 为活档）。"
     }
   ]
 }
