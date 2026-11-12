@@ -45,7 +45,7 @@ sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(ROOT / 'scripts'))
 from tasks.queue_engine.dispatcher import DispatchLock, process_identity
 from tasks.queue_engine.card_contract import check_version_gates
-from tasks.queue_engine.receipt_contract import classify_receipt_path
+from tasks.queue_engine.receipt_contract import ReceiptDecision, classify_receipt_path
 # The order's card table is parsed once, in ``gorch_contract``, so the dispatcher and
 # the freeze gate enumerate the same set and refuse the same malformed rows.
 from gorch_contract import order_cards as contract_order_cards
@@ -312,6 +312,14 @@ def receipt_contract_block(order: str) -> str:
         '三项缺任意一项，回执会被判无效、工单落阻塞，交付内容再好也不计入。\n'
         '确实无法完成时不要写第 2、3 项，改为在消息里写明受阻原因与缺什么。\n'
     )
+
+
+def classify_dispatch_receipt(path: Path, *, work_order: str, exit_code: int) -> ReceiptDecision:
+    """Fail closed if a malformed receipt trips the shared classifier."""
+    try:
+        return classify_receipt_path(path, work_order=work_order, exit_code=exit_code)
+    except Exception:
+        return ReceiptDecision(state='blocked', valid=False, format='unknown')
 
 
 def start_sentinel(order, run_dir, pid, expected_identity):
@@ -661,7 +669,7 @@ def main():
             sentinel_process = None
             (run / 'execution-exit.json').write_text(json.dumps({'exit_code': code,
                 'finished_at': datetime.now(timezone.utc).isoformat(), 'worker_identity': None}), encoding='utf-8')
-            receipt_decision = classify_receipt_path(
+            receipt_decision = classify_dispatch_receipt(
                 final, work_order=args.order, exit_code=code)
             valid = receipt_decision.valid
             target = receipt_decision.state

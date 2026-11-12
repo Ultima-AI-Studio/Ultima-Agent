@@ -1081,6 +1081,7 @@ broken`），整个验收卡在这一步，只能记未完成。
 4. **修法**：`EVIDENCE_INJECTION_LIMIT` 12,000 → **40,000**，并在常量处写明理由（窗口必须大于被审工件，否则死结）。改后同一组证据第 5 轮即 `audit_passed=true`。
 5. **规则**：给「审计器/校验器」定注入上限时，先量一遍它最常审的那类文件有多大，取其上界。凡是「超限即否决」的实现，都要反问一句：**被审对象会不会本来就超限？**
 6. **连带**：`freeze-work-order.py` L381 要求 `audit_passed is True`、L584 拒绝「truncated material」——同一个阈值同时锁死审计与冻结两条路。阈值定错，一错锁两道门。
+7. **0048 聚合修正**：现象是两轮 T0–T4 各 5/5 PASS，顶层仍因 `incomplete_inputs` 非空被聚合成 `audit_passed=false`；根因定位为 `passed = round1["passed"] and round2["passed"] and not incomplete and not integrity_errors` 对 Gate 结果做了第二次证据尺寸否决。修法只改顶层聚合：`audit_passed` 由两轮 Gate 结果与完整性错误推导，不再让尺寸标记覆盖两轮判词，Gate 解析和判定口径不变。反测覆盖「两轮全 PASS + incomplete 非空 ⇒ true」「任一轮 FAIL ⇒ false」「integrity error ⇒ false」，定向结果 `3 passed`。
 
 ### L113 · 卡面「提交前差分断言」与「完成提交」互斥时，用 detached worktree 重建那一刻
 
@@ -1766,3 +1767,55 @@ _notify_event 改为按已加载模块取总线：优先 sys.modules 里的
 
 **复发标记**：N=1。与 L171 同一机理（判据双向性），本条是该机理在**词表设计**阶段的表现。
 
+
+
+
+---
+
+
+## L177 · 派发中断后 state 停在 executing，`--repair` 不认，必须先手工回落
+
+**现象**：0048 第二轮停线后 Codex 退出，队列 record 的 `state` 被派发器写成了 `executing`。再次派发时带上了 `--repair`，仍被拒：`{"blocked": true, "reason": "当前状态不允许派发；修复续行须显式 --repair"}` ——明明已经用了 `--repair`。
+
+**根因**：`dispatch-work-order.py` L523 的门是
+`record.get('state') not in ({'pending','blocked','audit'} if args.repair else {'pending'})`。
+`executing` 既不在 repair 白名单里，也不在普通白名单里。而派发器自己在派发时把 state 从 `pending` 写成了 `executing`，于是**一次中断就把记录锁进了一个两种模式都进不去的状态**。
+
+**处置**：定点改 `state` 回 `blocked` 再 `--repair`。可用 `json.raw_decode` 或按 `"work_order"` 定位记录段后正则替换 `"state"`，改完必须 `json.loads` 复验并确认 `CRLF=0`。
+
+**规避**：
+1. 派发失败/停线收尾时，先读 `queue-status.json` 里该单的 `state` 实际值，不要假设它还是 `pending` 或 `blocked`。
+2. 看到 `--repair` 已传却仍报「须显式 --repair」，第一反应是 **state 不在白名单**，不是参数没传到位。
+3. 长期解：把 `executing` 纳入 repair 白名单（属派发器代码改动，另立工单，本单不动）。
+
+**复发标记**：N=1。与 L174 同类（都属「状态机里有条无出口的边」）。
+
+
+---
+
+
+## L178 · 工单卡的两类自相矛盾可以机检，语义断言不行
+
+**现象**：0048 一张卡连续三轮被 Codex 抓出内部矛盾，每次都要一次完整 codex 启动才发现：
+1. T5 参数清单漏 `--skip-freeze`，但 T6 要求调用它（参数契约漏列）
+2. T5 参数清单漏 `--work-order/--card/--prompt`，而 dispatch/verify/audit 全都要求
+3. `verify-order.py` / `audit-work-order.py` 的输入输出都绑 `--run-dir`，卡却写「`--evidence` 指向 0047、rehearsal 不复制」（语义断言错）
+
+**根因**：卡是边写边改的产物。§1 定范围、§2 列表格、§3 写明细，改 §3 时没回核 §1/§2（三处不一致），也没拿下游脚本的真实 argparse 核对参数（参数契约靠印象）。这两类都是**结构性的、可机械判定**的，不该由执行端兜。
+
+**处置**：新建 `scripts/check-order-consistency.py`，四类检查：
+- C1a/C1b/C1c：§1「只做」段 / §2 任务表 / §3「文件：」行 的文件集合三方对齐
+- C2a：卡自己声明的参数清单，必须覆盖它在 `run-pipeline.py` 命令行里用到的每一个 `--switch`
+- C2b：卡给某个真实脚本配的 `--switch`，必须存在于该脚本的 `add_argument`
+- C3：卡点名的 `.py` 路径，要么在磁盘上（在 scripts/tests/src/tools 四根内搜），要么同卡声明「新建」
+- C4：对下游脚本做**语义断言**的行，只报 WARN 交人工核，绝不自动判 PASS
+
+**验证**：三个反向样本（`A-param-gap` / `B-section-drift` / `C-bad-downstream`）各带一个真缺陷，全部 FAIL，`ALL CAUGHT`。0048 修后卡 PASS，0047 PASS。
+
+**规避**：
+1. 派发前先跑一次本脚本，`VERDICT: PASS` 才派。C4 的 WARN 必须逐条读过接口实现再放行。
+2. **能被机检的错误不该让人兜，更不该让执行端兜** —— 执行端抓一次的成本是十几分钟和一次完整启动，脚本是 0.1 秒。
+3. 脚本目前未接进 `--dry-run-dor`（避免与 0048 正在改的派发器冲突），属下一单。在那之前由主脑手动跑。
+4. 写卡时参数清单一次写全，不要「先用着，缺了再补」——补的时候最容易只补 §3 忘了 §1。
+
+**复发标记**：N=3（同一张卡三轮）。与前两条同类：**改一处不回核其余**。

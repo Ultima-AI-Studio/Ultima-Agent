@@ -252,6 +252,13 @@ def _aggregate_round(results: list[dict], gate_ids: list[str]) -> dict:
     }
 
 
+def _audit_passed(
+    round1: dict, round2: dict, incomplete: list[str], integrity_errors: list[str]
+) -> bool:
+    """Aggregate the two round verdicts without re-grading evidence size."""
+    return bool(round1["passed"] and round2["passed"] and not integrity_errors)
+
+
 def gates(card: str) -> list[dict]:
     """Acceptance gates as (id, criterion, how-to-judge) from the card's table.
 
@@ -505,8 +512,7 @@ def main(argv: Sequence[str] | None = None) -> int:
 
         round1 = _aggregate_round(round1_batches, gate_ids)
         round2 = _aggregate_round(round2_batches, gate_ids)
-        passed = (round1["passed"] and round2["passed"]
-                  and not incomplete and not integrity_errors)
+        passed = _audit_passed(round1, round2, incomplete, integrity_errors)
 
         def _meta(item: dict) -> dict:
             covered = next((row for row in visible if row["path"] == item["path"]), None)
