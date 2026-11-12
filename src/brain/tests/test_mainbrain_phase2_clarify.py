@@ -365,8 +365,10 @@ def test_ask_once_does_not_block_specific_tasks(query):
     ):
         result = agent_server.ask_once(query)
 
-    assert result["intent"] == "task"
-    branch.assert_called_once_with(query)
+    assert agent_server._slot_gate(query) is None
+    # Phase 3 前置层只迁移最终处置；Phase 2 的槽位精度断言保持不变。
+    assert result["intent"] == "query"
+    branch.assert_not_called()
 
 
 def test_ask_once_preserves_phase1_deictic_file_task_probe():
@@ -385,8 +387,9 @@ def test_ask_once_preserves_phase1_deictic_file_task_probe():
         result = agent_server.ask_once(query)
 
     assert agent_server._slot_gate(query) is None
-    assert result["intent"] == "task"
-    branch.assert_called_once_with(query)
+    # 方案 §7 已裁决 D2 统一走 Phase 3 本机状态变更兜底。
+    assert result["intent"] == "query"
+    branch.assert_not_called()
 
 
 def test_ask_once_preserves_phase1_specific_interface_diagnosis_probe():

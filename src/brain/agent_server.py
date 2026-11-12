@@ -440,6 +440,9 @@ _CLAIM_PATTERNS = (
     ),
 )
 _DELEGATED_ACTION_PATTERN = re.compile(rf"(?:{_CLAIM_ACTIONS})")
+_PRE_DELIVERABLE_PATTERN = re.compile(
+    r"写|起草|翻译|分析|总结|方案|报告|代码|文档|表格|计划"
+)
 _NOISE_PATTERN = re.compile(
     r"^(?:(?:嗯+|呃+|啊+|那个|喂|在吗)[，。！？!?、…\s]*)+$"
     r"|^[\s，。！？!?、…]*[0-9A-Za-z\u4e00-\u9fff]{0,2}[\s，。！？!?、…]*$"
@@ -475,6 +478,12 @@ _CLARIFY_TEMPLATES = {
     "referent": "你说的「那个」是指哪一个？说一下名字我就能动。",
     "noise": "没听清，再说一遍要做什么。",
 }
+_FUTURE_PROMISE_PATTERN = re.compile(
+    r"我(?:马上|这就|立刻|现在就)?(?:去)?安排"
+    r"|我(?:将|会|要)?(?:把|将)?(?:这|那)?(?:件)?事(?:派|交给)"
+    r"|(?:派|交)(?:给)?(?:外脑|策划部|执行端)"
+    r"|我(?:们)?(?:这边)?(?:马上|立刻|这就)(?:处理|跟进|着手)"
+)
 _PUSHBACK_PATTERN = re.compile(
     r"^(?:如果)?(?:你|您)?(?:没听清[，,])?(?:你|您)?再说一遍(?:要做什么)?[？?。！!]?$"
     r"|^没听清(?:[，,]再说一遍要做什么)?[？?。！!]?$"
@@ -548,6 +557,14 @@ def _pending_fill(query: str) -> str | None:
     global _PENDING_CLARIFY
     pending = _PENDING_CLARIFY
     if pending is None:
+        return None
+    text = (query or "").strip()
+    if (
+        len(text) >= 12
+        and re.search(r"帮我|请你|麻烦|把|将", text)
+        and _DELEGATED_ACTION_PATTERN.search(text)
+    ):
+        _PENDING_CLARIFY = None
         return None
     if (
         time.time() - float(pending["at"]) <= _CLARIFY_TTL
@@ -626,11 +643,19 @@ def _clean_content(content: str) -> str:
     # 行为层提示词压不住（lessons L138），只能在出口统一剥离。
     content = _GROUNDED_TAG.sub("", content)
     sentences = re.findall(r"[^。！？!?]+[。！？!?]?", content)
-    if any(_PUSHBACK_PATTERN.fullmatch(sentence.strip()) for sentence in sentences):
+    if any(
+        _FUTURE_PROMISE_PATTERN.search(sentence.strip())
+        or _PUSHBACK_PATTERN.fullmatch(sentence.strip())
+        for sentence in sentences
+    ):
         content = "".join(
-            _PUSHBACK_REPLY
-            if _PUSHBACK_PATTERN.fullmatch(sentence.strip())
-            else sentence
+            ""
+            if _FUTURE_PROMISE_PATTERN.search(sentence.strip())
+            else (
+                _PUSHBACK_REPLY
+                if _PUSHBACK_PATTERN.fullmatch(sentence.strip())
+                else sentence
+            )
             for sentence in sentences
         )
     servile_tail = _SERVILE_TAIL_PATTERN.search(content)
@@ -883,6 +908,38 @@ _NO_TOOL_PATTERNS = (
     re.compile(r"(航班|列车|火车票|机票|车次|路况|堵车)"),
 )
 _NO_TOOL_REPLY = "这个我查不了，我这边没有联网的实时数据。"
+
+
+def _preclassify_local(query: str) -> str | None:
+    """在模型分类前识别本机状态变更；产出物任务保守放行。"""
+    text = (query or "").strip()
+    if (
+        not text
+        or "（补充：" in text
+        or _PRE_DELIVERABLE_PATTERN.search(text)
+    ):
+        return None
+
+    # 「清理」与既有动作词「整理」同义；只在读取既有词表时规范化，
+    # 不扩写 Phase 1 冻结的 _CLAIM_ACTIONS。
+    normalized = text.replace("清理", "整理")
+    action = _DELEGATED_ACTION_PATTERN.search(normalized)
+    if action is None:
+        return None
+    if _DELEGATE_HINT.search(text):
+        return "local_delegated"
+
+    # 完整祈使句也属于隐含求代劳，但只限「打开/关闭」这类无主语的 GUI 与进程操作。
+    # 「修复一下这个bug」「整理一下数据」是可交付的工程任务，不能仅凭句首动作词拦截
+    # ——实测 _classify_intent 对「修复一下这个bug」判 task，放宽会误拦真派单。
+    if action.start() == 0 and action.group() in ("打开", "关闭"):
+        remainder = normalized[action.end() :]
+        remainder = re.sub(r"^(?:一下|下)", "", remainder)
+        remainder = re.sub(r"(?:一下|下|可以吗|好吗)[。！？!?]*$", "", remainder)
+        substantive = re.sub(r"[^0-9A-Za-z\u4e00-\u9fff]", "", remainder)
+        if len(substantive) >= 2:
+            return "local_delegated"
+    return None
 
 
 def _no_tool_gate(query: str) -> str | None:
@@ -1252,6 +1309,19 @@ def ask_once(query: str, max_tokens: int | None = None) -> dict[str, Any]:
                 "tool_results": [],
                 "usage": {},
             }
+    local_intent = _preclassify_local(query)
+    if local_intent is not None:
+        content = "这个我做不到，这需要真的去执行，属于执行类任务。"
+        EVENT_BUS.emit_event("message", {"text": content, "role": "jarvis"})
+        return {
+            "content": content,
+            "reply_text": content,
+            "confidence": 1.0,
+            "grounded": True,
+            "intent": "query",
+            "tool_results": [],
+            "usage": {},
+        }
     # 分段应答第一段：先判这是「要动手的活」还是「要个回答」。
     # 任务类立刻答应并派单，不进 ReAct——既快，也断掉它自由编「我已经修好了」的路。
     intent = _classify_intent(query)

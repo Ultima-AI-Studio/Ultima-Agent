@@ -2,7 +2,7 @@
 
 > **由 `scripts/render-queue-views.py` 从 `tasks/queue/queue-status.json` 生成，勿手改。**
 > 唯一状态权威：`tasks/queue/queue-status.json`。修改 Markdown 不会回写状态。
-> schema_version=1 ｜ records=99 ｜ audit=2, blocked=14, cancelled=14, closed=2, frozen=66, pending=1
+> schema_version=1 ｜ records=103 ｜ audit=5, blocked=14, cancelled=14, closed=2, frozen=67, pending=1
 
 <!-- queue-items:start -->
 | 项目 | 工单 | 状态 | audit_passed | 派发时间 | 审计 run | 冻结 commit | 备注 |
@@ -106,4 +106,8 @@
 | UltimaAgent | wo-ultimaagent-20261111-0040 | blocked |  | 2026-11-11T05:24:02.048179+00:00 |  |  | 等待审计名额（同身份模型二轮复核）；审计名额时限清点：2 单超 7d 或已标冻结，不再占位（wo-ultimaagent-20261030-0007, wo-ultimasentinel-20261103-0001）；真实执行结束 exit=0；wo-ultimaagent-20261111-0040-20261111T052401598676Z；待二轮复核，不自动批准或续派 |
 | UltimaAgent | wo-ultimaagent-20261111-0041 | frozen | true | 2026-11-11T06:16:53.781790+00:00 | hardgate-20261111T072551Z | c2ac1a2e1bdcb4c9e384b9670b578abc911630fd | DeepSeek 硬门复审（单 batch 全 visible，两轮一致）四门全 PASS：全链路仅 state_machine.py:95 一处受控写、freeze 门受控、副本替换、tasks 71/scripts 116 全绿、反向 10 非法 0 旁路；据此回头判 ACC-6 PASS；run tasks/queue/runs/wo-ultimaagent-20261111-0041/hardgate-20261111T072551Z；落地门未过，禁止正式 auto_relay 接线 |
 | UltimaAgent | wo-ultimaagent-20261111-0042 | frozen | true | 2026-11-11T08:06:54.551053+00:00 | hardgate2-20261111T083624Z | 3407b2bc | 冻结 tag=auto-relay-landing-20261111；硬门四门 PASS（默认不可能真派 / 无新增写状态点 / 幂等 / 无窗，audit_passed=true，两轮 ROUND1+ROUND2 一致）；实现提交 3407b2bc；真实队列 dry-run 与 --execute 均 stop_reason=WIP_BUSY、queue-status sha256 前后一致；WindowMonitor 8 次采样 visible_window_count=0 且 --stop 一个间隔内退出；relay-policy 默认 real_dispatch_enabled=false 且白名单空；计划任务未启用、首批白名单待 Owner 决策 |
+| UltimaAgent | wo-ultimaagent-20261112-0043 | frozen | true | 2026-11-11T17:53:30.090752+00:00 |  | d116f728 | 验收通过并冻结：commit d116f728 / tag ultimaagent-mainbrain-provider-layer-20261112 已推远端。T1 复核 brain 415 passed + orchestration 32 passed；T2 AST 越权命中 0；T3 /health 新增 provider 三字段；T4 关闭端口探测 463.8ms < 500ms；T5 回归 454 passed / 1 failed（test_ollama_has_brains 环境噪声）。/health 与 /ask 主脑实测作答成功。已知未收口：routing/config.py embedding 直连、ultima-config.toml 底座注入默认模型。 |
+| UltimaAgent | wo-ultimaagent-20261112-0044 | audit | true | 2026-11-12T03:40:33.014414+00:00 |  | 938d451b | 主脑裁决4条阻塞项后复验通过：①补第11条探针D2（判task派单）；②A1/A2基线更正为两句拼接（agent_server.py:738）；③授权扩_SERVILE_TAIL_PATTERN窄变体（含'您还有其他问题'）；④queue-status判据改为结构可达口径。主脑独立复跑11条探针全PASS（P1/P2/P3/P4已修，P2/P3降至0.0s）、反向验证7条全PASS、全量回归470 passed/1 failed（基线454，无新增失败）。待提交冻结。 |
+| UltimaAgent | wo-ultimaagent-20261112-0045 | audit | true | 2026-11-12T04:59:37.103489+00:00 |  | b838fc7c | 主脑独立验收通过。①7条F正向全绿：F1『帮我把那个弄一下』→clarify「你说的那个是指哪一个」（10.67s）、F5『把文件发给他』→clarify（1.73s）、F2『打开』→clarify（1.26s）、F3/F6→noise话术（2.04s/2.34s）、F7→referent给了方向（0.98s）、F4→no_tool（防回退基线）；②3条接续：G1第2轮判task、G2第2轮query、G3超时回『先不弄了』；③4条反向全绿：R1/R2仍task、R3/R4仍query；④Phase1原始11条探针零回退（A1/A2 refused、B1/B2 no_tool、C1/C2 0s给方向、D1 query『执行类』15.04s→1.53s、D2 task 10.7s→1.15s、E1-E3同intent）；⑤全量524 passed/1 failed（唯一失败为ollama-not-in-PATH环境噪声，与Phase1基线同）；⑥Phase2新测试49 passed、Phase1教学+gates 33 passed；⑦Codex独立审查报Not Ready后做了有界修复：跨轮合并请求重跑_risk_gate/_no_tool_gate、问次真实累计、无效补槽不派单、D2『这个文件』与C2『这个接口』误判窄修。commit b838fc7c，4文件(+1046/-1)，未碰queue-status、未越界。 |
+| UltimaAgent | wo-ultimaagent-20261112-0046 | audit | true | 2026-11-12T06:17:22.841025+00:00 |  |  | Phase3确定性前置层；Codex两轮T0-T3 Gate闭合；主脑验收收窄扩写分支修「修复bug」误拦；全量561/1 |
 <!-- queue-items:end -->

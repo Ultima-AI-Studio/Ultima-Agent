@@ -1807,6 +1807,16 @@
       "audit_run": null,
       "freeze_commit": "b838fc7c",
       "note": "主脑独立验收通过。①7条F正向全绿：F1『帮我把那个弄一下』→clarify「你说的那个是指哪一个」（10.67s）、F5『把文件发给他』→clarify（1.73s）、F2『打开』→clarify（1.26s）、F3/F6→noise话术（2.04s/2.34s）、F7→referent给了方向（0.98s）、F4→no_tool（防回退基线）；②3条接续：G1第2轮判task、G2第2轮query、G3超时回『先不弄了』；③4条反向全绿：R1/R2仍task、R3/R4仍query；④Phase1原始11条探针零回退（A1/A2 refused、B1/B2 no_tool、C1/C2 0s给方向、D1 query『执行类』15.04s→1.53s、D2 task 10.7s→1.15s、E1-E3同intent）；⑤全量524 passed/1 failed（唯一失败为ollama-not-in-PATH环境噪声，与Phase1基线同）；⑥Phase2新测试49 passed、Phase1教学+gates 33 passed；⑦Codex独立审查报Not Ready后做了有界修复：跨轮合并请求重跑_risk_gate/_no_tool_gate、问次真实累计、无效补槽不派单、D2『这个文件』与C2『这个接口』误判窄修。commit b838fc7c，4文件(+1046/-1)，未碰queue-status、未越界。"
+    },
+    {
+      "project": "UltimaAgent",
+      "work_order": "wo-ultimaagent-20261112-0046",
+      "state": "audit",
+      "audit_passed": true,
+      "dispatched_at": "2026-11-12T06:17:22.841025+00:00",
+      "audit_run": null,
+      "freeze_commit": null,
+      "note": "Phase3确定性前置层；Codex两轮T0-T3 Gate闭合；主脑验收收窄扩写分支修「修复bug」误拦；全量561/1"
     }
   ]
 }
