@@ -1937,3 +1937,80 @@ _notify_event 改为按已加载模块取总线：优先 sys.modules 里的
 
 **复发标记**：N=1。与 L179 是**同一条线的更正关系**，不是新坑：L179 记录的观察是真的，结论是错的。
 
+
+## L182 · 0051/0050 修复的独立审计结论：一轮 CONDITIONAL → 二轮翻转三条，且反过来更正了我一个错误归因
+
+**性质**：这不是一个新坑，是对 L181 那批修复的**外部审计结论**。审计方为 DeepSeek（`deepseek-flash`，两轮，6980 + 6279 tokens），
+我方提供原始代码与实测数据，不给结论；审计方在材料不足时被要求写「材料不足」而非放宽标准。
+
+**触发**：L181 落盘后，主脑向 Owner 提出四项待表态事项。Owner 的答复是「我表什么态？你让 DeepSeek 审计一下」。
+这句话本身就是一次纠正：**这四项里没有一项该由 Owner 拍板**，其中三项是技术判据问题、一项是流程合规问题，都应有外部判据。
+
+**第一轮裁决（材料有四个缺口）**：问题1 CONDITIONAL / 问题2 CONDITIONAL / 问题3 (a) CONDITIONAL (b) FAIL (c) 缺口必须查清 / 问题4 FAIL。
+
+第一轮抓出的缺口，四项全部是真缺口，不是吹毛求疵：
+1. `manifest_drift` 的采集实现没给 —— 无法判定 `files_same` 是否被挂载资产污染；
+2. 主仓是否有 `ollama` 没给 —— 而这是「同口径」前提成立与否的关键；
+3. `bb459f31` 上 3 个失败的具体测试名没给 —— 归因到「环境」缺少机制证据；
+4. `audit_passed` 当时的取法没给。
+
+**并且第一轮有一条推论是被我方材料缺陷误导的**：它写「`order=None` 意味着没有工单关联，即没有交付任何提交」。
+真相是 done.json 里根本没有 `order` 这个键，真实键是 `work_order='wo-ultimaagent-20261112-0049'` —— **是我取错了键名**。
+复审时已明确告知审计方这一点，不允许它把错误前提当成自己的发现。
+
+**补齐材料后，第二轮翻转三条**：
+| 项 | 第一轮 | 第二轮 | 翻转理由 |
+|---|---|---|---|
+| 1 libs/ 挂载 | CONDITIONAL | **PASS + 强制文档义务** | `manifest_drift` 只遍历 manifest 声明清单，不遍历文件系统 → libs/ 是**代码路径上不可达**，比「实测未触发」强 |
+| 3a 3 个失败的归因 | 缺口 | **PASS** | 三个失败全是 `ModuleNotFoundError`，根因确认 |
+| 3b 0049 该条 FAIL 的性质 | FAIL | **判据缺陷**（不是数据缺陷，也不是历史不可追溯） | 判据问错了对象 |
+| 2 ollama skip | CONDITIONAL | CONDITIONAL（**理由重构**） | 风险消除，但「无害 ≠ 合规」 |
+| 4 工单流程 | FAIL | FAIL（**补救形态细化**） | 单纯补卡不够，需独立证据锚点 |
+
+**本轮最重要的一次自我更正（第 3a 项）**：
+L181 里我写「`declared_command_pass` 在 `bb459f31` 上跑是 3 failed —— 它交付时该文件真有 3 个失败，判据没错」。
+**字面成立，归因错了。** 实测三个失败是：
+```
+FAILED test_memory_backend_defaults_use_effective_main_settings
+FAILED test_memory_backend_explicit_settings_override_main_settings
+FAILED test_orchestration_model_key_is_derived_from_effective_main_settings
+E   ModuleNotFoundError: No module named 'src.brain.memory.registry'        src/brain/memory/backend.py:24
+E   ModuleNotFoundError: No module named 'src.brain.orchestration.registry' src/brain/orchestration/engine.py:32
+```
+**不是断言失败，是 `registry.py` 在 bb459f31 上从未被 git 跟踪，干净检出里 import 直接失败。**
+这正是本轮 `86866bdd`（98 个 `src/brain/*.py` 入库）要修的东西。
+所以 0049 那 3 个失败不是它的交付质量缺陷，是**入库缺口在它那个提交上暴露出来的**。
+上一轮我差点据此认为「0049 交付质量确实有问题」——方向反了。
+
+**三个关键提交的真实关系（实测，澄清一条易错认知）**：
+- `bb459f31` = done.json 的 `end_sha`，提交信息「0049 载荷加续行契约（第三轮只做 T4 只读复测）」
+- `9caec8de` = 队列的 `freeze_commit`，提交信息「北极星清单补 0049 结论」
+- `443ed3f4` = 「回填 freeze_commit 9caec8de」
+三者 `merge-base --is-ancestor` 依次 rc=0；`git diff bb459f31 9caec8de -- test_provider_layer.py` 为**空**，
+`--stat` 显示 4 files / +90 / -5，全是 queue-status 与文档，**无任何 src 改动**。
+`verify-order.py` 的 `declared_command_pass` 用的是 `verified_sha = end_sha`（不是 freeze_commit）——
+这一点决定了它跑的是 bb459f31 而不是交付提交，**是判据与回执字段语义错位的一处实例**。
+
+**审计认定为「强制项、非可选」的两条（尚未执行）**：
+1. `tree_unchanged` 的 detail 必须显式声明比较边界：「本门比较范围 = 主仓 git 跟踪状态；不含 worktree 内通过 junction/symlink 挂载的外部资产（如 libs/）」。
+   不写的后果是下一个审计员会重走第一轮的路——它第一轮正是因为不知道边界而判 CONDITIONAL。
+2. 判据说明必须区分「未来工单可达」与「历史工单必 FAIL」这一适用范围，这是判据完整性的一部分。
+
+**审计明确声明「材料不足、不放宽标准」的一项**：0049 其余四条 verify FAIL
+（`terminal_state_legal` / `no_slot_block` / `tree_unchanged` / `declared_files_landed`）的性质。
+只补齐了 `declared_command_pass` 一条，不能因一条是判据缺陷就推定其余四条也是。
+
+**审计认定的五项必须 Owner 亲自决定、审计无法替代**：
+1. 「改判据」定义的**权威来源**——事后由被审计方给出的定义不可接受（它只能追认，无法约束），但审计方也不能替契约方定义；
+2. 证据锚点的**信任根**——用 git tag annotated message、队列 append-only 字段还是外部 attestation，这是信任模型决策；
+3. 0049 的**最终处置**——手工冻结的历史工单在队列里以什么 state 长期存在；
+4. 12 个已推送 commit 的 mechanism 验收缺口**如何记入长期记录**；
+5. 0049 其余四条是否**不必逐条查清**、整体按结构性不可达接受——这是风险接受决策。
+
+**规避**：
+1. 向审计方提交材料时，**字段名必须从真实 JSON 的键列表里取，不能凭记忆写**。这次 `order` vs `work_order` 的错误直接污染了第一轮结论。
+2. **不能只提单条结论的数据，要提机制证据**。第一轮「3 个失败」只给了数字，审计无法判定是断言失败还是导入失败；补上具体测试名与异常类型后才翻转。
+3. 审计给出 CONDITIONAL 时，缺口往往指向「你以为是实测问题、其实是代码路径问题」——补齐后应主动说明「这是代码路径不可达还是实测未触发」，两者证据强度不同。
+4. **「无害」不等于「合规」**。ollama skip 在证明「主仓也 skip、同口径成立」之后风险消失，但「在测试代码里新增一个结果判定分支」这件事本身仍未被合规化。
+
+**复发标记**：N=1。与 L179/L181 是同一条线的第三个环节：L179 观察对结论错 → L181 更正并修完 → L182 外部审计再更正我一处归因。
