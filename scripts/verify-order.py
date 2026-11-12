@@ -51,6 +51,13 @@ from pathlib import Path
 from typing import Sequence
 
 ROOT = Path(__file__).resolve().parents[1]
+# The list of things a checkout cannot get from git lives in one module. This gate
+# used to hardcode `("libs",)` and `_pin_runner()` used its own rule for the
+# interpreter; two places, two rules, and no way to ask "is this checkout ready".
+# scripts/ is already the import root for `gorch_contract` in sibling scripts.
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from env_contract import mount_names, release, apply as mount_assets   # noqa: E402
+
 QUEUE_STATUS = ROOT / "tasks" / "queue" / "queue-status.json"
 # Cards that declare any of these rewrite the dispatch/verification chain itself.
 # They have no delivery run whose receipt could honestly describe the change, so
@@ -566,60 +573,31 @@ def _junit_counts(path: Path, stdout: str = "") -> dict | None:
     return declared
 
 
-_MOUNTED_ASSETS = ("libs",)
+_MOUNTED_ASSETS = mount_names()
 
 
 def _mount_repo_assets(worktree: Path) -> str:
     """Give the clean checkout the repo-only assets it cannot contain.
 
-    ``libs/`` is gitignored: 1.7 GB of vendored third-party code that is also the
-    import root for ``openjarvis`` and the source of the persona prompt read at
-    startup. Without it a checkout of the delivered commit cannot even collect
-    its tests, so the gate reported "environment broken" for every order and
-    looked like an execution failure.
-
-    A directory junction points the checkout at the same bytes without copying
-    them and without adding anything to git, so the tested tree stays exactly
-    what was committed: the commit is what defines project content; the mount
-    only restores the third-party substrate the commit never owned.
+    The assets and their reasons live in `env_contract`; this function only decides
+    when to apply them (after `worktree add`, before the declared command runs). It
+    used to own its own list, which meant a second dependency would be added here and
+    nowhere else. Returns "" on success, a reason otherwise.
     """
-    for name in _MOUNTED_ASSETS:
-        target = ROOT / name
-        link = worktree / name
-        if not target.is_dir() or os.path.lexists(link):
-            continue
-        if os.name == "nt":
-            proc = subprocess.run(
-                [os.environ.get("ComSpec") or "cmd.exe", "/c", "mklink", "/J", str(link), str(target)],
-                capture_output=True, text=True, encoding="utf-8", errors="replace",
-            )
-            if proc.returncode != 0:
-                return f"不能挂载 {name}/ 到干净检出：{((proc.stderr or proc.stdout or '')[:140]).strip()}"
-        else:
-            try:
-                os.symlink(str(target), str(link), target_is_directory=True)
-            except OSError as exc:
-                return f"不能挂载 {name}/ 到干净检出：{exc}"
-        if not link.is_dir():
-            return f"{name}/ 挂载后仍不可读"
+    rows = mount_assets(worktree, ROOT)
+    for row in rows:
+        if not row["ok"]:
+            return f"不能挂载 {row['id']}/ 到干净检出：{row['detail']}"
     return ""
 
 
 def _unmount_repo_assets(worktree: Path) -> None:
     """Remove the mounts before git and rmtree touch the directory.
 
-    ``shutil.rmtree`` follows a junction on Windows and would delete the real
-    target's contents, so the link has to be unlinked first. ``os.rmdir`` removes
-    only the link itself.
+    `shutil.rmtree` follows a junction on Windows and would delete the real target's
+    contents, so the link has to be unlinked first — `os.rmdir` removes only the link.
     """
-    for name in _MOUNTED_ASSETS:
-        link = worktree / name
-        if not os.path.lexists(link):
-            continue
-        try:
-            os.rmdir(link)
-        except OSError:
-            pass
+    release(worktree)
 
 
 def _run_in_clean_worktree(sha: str, argv: list[str], timeout: int) -> tuple[object, str, dict | None]:
