@@ -955,6 +955,21 @@ def _ask_query_branch(query: str, max_tokens: int | None = None) -> dict[str, An
     """查询类：一次直连出答案，不跑 ReAct、不调工具。"""
     import datetime as _dt
 
+    # 求代劳但分类器摇摆到 query：答案在代码层已确定（说做不到），不必再花 20~30 秒调模型。
+    # 判据与调完模型后那条硬兜底完全相同，只是把短路提到调用之前。
+    if _DELEGATE_HINT.search(query) and _DELEGATED_ACTION_PATTERN.search(query):
+        content = "这个我做不到，这需要真的去执行，属于执行类任务。"
+        EVENT_BUS.emit_event("message", {"text": content, "role": "jarvis"})
+        return {
+            "content": content,
+            "reply_text": content,
+            "confidence": 1.0,
+            "grounded": True,
+            "intent": "query",
+            "tool_results": [],
+            "usage": {},
+        }
+
     now = _dt.datetime.now()
     weekdays = "一二三四五六日"
     # 注入当前时间作为 grounded 事实：8B 无时间工具，不注入则"现在几点/今天几号"只能兜底

@@ -172,13 +172,26 @@ def test_clean_content_still_strips_grounded_marker():
 
 
 def test_query_branch_appends_capability_and_claim_cleaning():
+    # 样本句不能带「帮我」等求代劳前缀：那类句子已在 _ask_query_branch 入口被代码层短路
+    # （答案确定、不调模型），测不到 system 拼接与 claim 清洗。改用不会短路的提问，判据不变。
+    provider = _CapturingQueryProvider("好的，已按时间顺序整理桌面日志。")
+
+    with patch.object(agent_server, "provider_for", return_value=provider):
+        result = agent_server._ask_query_branch("桌面日志整理得怎么样了")
+
+    assert "没有手" in provider.system_prompt or "不能打开" in provider.system_prompt
+    assert "已按时间顺序整理" not in result["content"]
+
+
+def test_query_branch_short_circuits_delegated_action_without_calling_model():
+    """求代劳句在入口短路：不调模型、零延迟给边界答复（曾实测 29 秒才兜底）。"""
     provider = _CapturingQueryProvider("好的，已按时间顺序整理桌面日志。")
 
     with patch.object(agent_server, "provider_for", return_value=provider):
         result = agent_server._ask_query_branch("帮我把桌面的日志整理一下")
 
-    assert "没有手" in provider.system_prompt or "不能打开" in provider.system_prompt
-    assert "已按时间顺序整理" not in result["content"]
+    assert provider.system_prompt == ""
+    assert "执行类" in result["content"]
 
 
 def test_query_branch_reports_boundary_for_delegated_file_action():
