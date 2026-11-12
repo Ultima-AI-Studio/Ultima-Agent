@@ -2216,3 +2216,10 @@ ERROR: Reconnecting... 5/5 → exit code 1
 - **根因**：写验收门时用了"全树干净"的直觉口径，没对照真实基线。而派发机制本身（`dispatch-work-order.py` 的 `git_snapshot`）在 run 目录 `before.json` 里记了精确基线（17 项全带哈希）——工具早就给了差集判定的原料，工单没用。
 - **修法**：Gate T3 改为**基线差集口径**（v1.1）：当前 `git status` 相对 `before.json.status_entries` 的差异集只含本单文件；在途变更全部保留，不得清理。
 - **判据**：验收门涉及工作区状态时，永远写"相对派发基线的差集"，不写"全树干净"；在途工作不清理、不 stash，那是别人的成果。
+## L221 · 0052 三轮预检阻塞复盘：工单的"现状校准"自己就是过期货（2026-11-13）
+
+- **现象**：0052（安装包 Phase2）连派三轮全在 T1 前预检诚实阻塞：R1 行数对不上（33 vs 38）+ watchdog pid 26052 不存在；R2 就绪字段不存在（backend/asr_ready/kws_pid 实为 tts_backend/worker_ready/worker_pid，状态值 loading 实为 warming）；R3 发现 launch.py L29-45 内置 ensure_agent() 会自行拉起 agent_server，与卡上 P1/P2 独立并行冲突。
+- **根因**：卡的 §0"现状校准"表是**建卡时一次性实测**的快照，但它没有两个保护：①口径声明（非空行数 vs 含空行行号混用）；②对"运行时才存在的事实"（PID、状态机取值、其他文件的内部行为）按快照写死。跨 24 小时后现场漂移，卡就成了过期货。
+- **修法**：①行数类事实**必须声明口径**（v1.2 统一为含空行）；②**PID 永远不写死进卡**，改按命令行特征识别（watchdog = 命令行含 scripts\watchdog-loopguard.py）；③**字段名/状态机取值引用真实生产者源码**（live.py L54/L136-280 + 现存 status.json 双向核对）；④涉及"谁拉起谁"的时序冲突，优先裁决**适配冻结锚**（launch.py 是哈希校验对象→改工单不动锚，P2 唯一直接拉起 + P1 adopt-only）。
+- **附带坑（验收期）**：PowerShell Select-String **默认不区分大小写**——MODEL\s*= 报 5 处命中实为 _MAIN.get("model")，反向断言判"常量回归"时必须加 -CaseSensitive；主脑环境 PATH 无 dotnet/powershell，独立复跑要用全路径（C:\Program Files\dotnet\dotnet.exe、C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe）。
+- **判据**：写卡时凡引用"现场事实"，问自己三个问题——口径写了吗？这条事实会自己变吗（PID/状态）？生产它的源码我读过吗？三个都答不上就会再吃一次预检阻塞。

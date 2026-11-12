@@ -1,6 +1,7 @@
 # Codex 工单 · 安装包主线 Phase 2（Job Object + HostShell 拉起）
 
-> 版本：v1.0 ｜ 状态：可开工 ｜ 适用工具：Codex
+> 版本：v1.4 ｜ 状态：可开工 ｜ 适用工具：Codex
+> **行数口径**：本卡所有"行数/行号"统一按**含空行**计（raw）；如给非空行数会括注。
 > 用法：按 T1→T8 顺序逐条执行，Gate PASS 后冻结再进下一条。
 > 范围依据：`docs/plans/plan-ultimaagent-monolith-installer-lifecycle-provider-20261112.md` §3.1 / §3.2 / §6 Phase 2
 > 前置：Phase 0、Phase 1 **已完成**（见 §0 实测），本工单**不得重做**。
@@ -16,12 +17,13 @@
 | 1 | Phase 0 待做 | `agent_server.py` 已无 `MODEL`/`OLLAMA_CHAT_URL`；L157 `_MAIN = _load_main_settings()`，L718/1006/1159/1216 走 `provider_for(_MAIN).chat()` | **已完成，不重做** |
 | 2 | Phase 1 待做 | `src/brain/providers/` 已存在 `__init__/base/ollama_native/openai_compat/probe/resolve` 六文件 | **已完成，不重做** |
 | 3 | HostShell 为 **WPF** | 实为 **WinUI 3**：`using Microsoft.UI.Xaml;`、`public partial class App : Application` | 按 WinUI 3 实现 |
-| 4 | 挂载点 `OnStartup` / `OnExit` | `App.xaml.cs` 共 **33 行**，**无** `OnStartup`/`OnExit`，只有 `protected override void OnLaunched(LaunchActivatedEventArgs args)` | 改挂 `OnLaunched` 尾部 + `UnhandledException` + 窗口关闭 |
+| 4 | 挂载点 `OnStartup` / `OnExit` | `App.xaml.cs` 共 **38 行（含空行；非空 33）**，**无** `OnStartup`/`OnExit`，只有 `protected override void OnLaunched(LaunchActivatedEventArgs args)` | 改挂 `OnLaunched` 尾部 + `UnhandledException` + 窗口关闭 |
 | 5 | 改 `launch.py` 写 `warm_progress` | 落盘方为 `live.py` L62（`tmp.write_text(...)` + `os.replace(tmp, DATA/'status.json')`）；`launch.py` L17 命中 `read_text` | 改 `live.py`；`launch.py` 的 SHA256 须等于基线 `46941A1BD043C268707AF2536C2F4E5B755729E8476E1D3BD0D4E80E9D7ADD01` |
-| 6 | `daemon.py`（未给路径） | 实为 **`src/brain/voice/daemon.py`**，430 行；`_take_over()` 在 **L214**；`["taskkill","/PID",str(pid),"/T","/F"]` 在 **L226**；调用点 **L286** | 按精确行号改 |
+| 6 | `daemon.py`（未给路径） | 实为 **`src/brain/voice/daemon.py`**，489 行（含空行；非空 430）；`_take_over()` 在 **L214**；`["taskkill","/PID",str(pid),"/T","/F"]` 在 **L226**；调用点 **L286**（v1.2 复核：三个行号均未漂移，仍准确） | 按精确行号改 |
 | 7 | 项目 target 未声明 | `net8.0-windows10.0.19041.0` | 构建按此 target |
+| 8 | T3 就绪判据字段 `backend`/`pending`/`asr_ready`/`kws_pid`、状态值 `loading`（v1.2 前沿用方案原文） | **实测不存在**（2026-11-13 读 live.py L54/L136–280 + data/voice-next/status.json）：真实字段为 `tts_backend`/`tts_cv3_pending`/`worker_ready`/`worker_pid`，真实状态机为 warming→ready→capturing→processing→speaking/acknowledging（+error/stopped） | T3 判据按真实字段执行（v1.3 已改） |
 
-**双起冲突（方案未覆盖）**：当前 agent_server（pid 29580）与 voice-next 由**外部机制**拉起，Phase 3 才清理。`ChildProcessSupervisor` 必须**先探后起**：拉起前探测，若目标已在运行则**只记账不新起**，日志写 `adopted=existing`。这样 Phase 2 与 Phase 3 可并存，不需改默认开关。
+**双起冲突（v1.4 裁决）**：`launch.py` L29–45 内置 `ensure_agent()`——健康检查失败时自行 `subprocess.Popen` 拉起 `agent_server.py`，L66 先调它再启动 live.py。即 **P2（launch.py）是唯一需要 supervisor 拉起的入口，它自带 P1（agent_server）的先探后起**（已运行则健康检查通过不重起）。裁决：①supervisor 只直接 spawn P2；②P1 按 adopt-only 处理——supervisor 探测 `/health`，若 P2 的 `ensure_agent` 已带起则记账 `adopted=existing`；若 P2 启动 20s 后 `/health` 仍不可达，supervisor 才自行兜底拉起 agent_server 并 assign 入 Job；③当前外部已拉起的实例（agent_server pid 13760 等）同理 adopted。**不修改 launch.py 任何字节**（哈希锚不变）。P1/P2 的用户侧并行性由 `ensure_agent` 的非阻塞 Popen 天然保住（agent 起后立即继续起 live.py，不等 agent 就绪）。Phase 3 清理外部双起机制后此逻辑不变。
 
 ---
 
@@ -41,7 +43,8 @@
 
 ### 本工单不做（硬边界）
 
-- 不清计划任务、不移 watchdog；不终止正在运行的 `watchdog-loopguard`（pid 26052），不改它的启动方式（Phase 3）
+- 不清计划任务、不移 watchdog；不终止正在运行的 `watchdog-loopguard`（**按命令行含 `scripts\watchdog-loopguard.py` 识别，当前 pid 11356**，pythonw 无窗进程；旧 pid 26052 已退出，**不得按写死 PID 识别或杀进程**），不改它的启动方式（Phase 3）
+- 不触碰 `H:\TuppoAvatarLab` 的任何进程（当前 MCP 进程 pid 17988/21436，与本工程无关）
 - 不建 `installer/`、不写 `.iss`（Phase 4）
 - 不改 `src/brain/providers/`（Phase 1 已完成）
 - 不改任何语音参数字段值（关键词/阈值/增益/设备索引），只允许新增 `warm_progress` 遥测字段
@@ -96,13 +99,13 @@
 2. **先探后起**：拉起前调 `ReadinessProbe`，若目标已在运行则不新起，记 `adopted=existing` 并写日志。
 3. 记录子进程 PID，供 T8 校验与优雅停使用。
 4. 提供 `StopAll(TimeSpan grace)`：先投 `SIGBREAK` 优雅停，超时后强制 kill。
-5. 子进程清单（按方案 §3.1）：
+5. 子进程清单（v1.4 按 launch.py 真实行为修订）：
 
-| 序 | 子进程 | 启动时机 |
+| 序 | 子进程 | 启动方式 |
 |---|---|---|
-| P1 | `agent_server.py` | 立即（并行） |
-| P2 | `voice-next/launch.py` | 立即（并行，必须与 P1 并行，否则用户白等 4 分钟） |
-| P4 | ASR/KWS | P2 上报 `loading` 后起（与 TTS 共享麦克风，必须串行） |
+| P2 | `voice-next/launch.py` | supervisor 直接 `Process.Start` + assign（唯一直接拉起入口；用户侧 P1/P2 并行由其内部非阻塞 Popen 保证） |
+| P1 | `agent_server.py` | adopt-only：探 `/health`，由 P2 的 `ensure_agent()` 带起则记 `adopted=existing`；P2 起后 20s 仍不可达才兜底自起 + assign |
+| P4 | ASR/KWS | P2 上报 `state=="warming"` 后起（与 TTS 共享麦克风，必须串行） |
 | P5 | 外脑 probe | P1 ready 后 |
 
 **验收（Gate T2）**：
@@ -111,7 +114,7 @@
 - 命中 `adopted` 或等价复用标记 ≥1
 - `CreateProcess` 命中 0
 
-**禁止**：不得用 CreateProcess 标志绕过 assign；不得在 assign 前拉起可能 fork 孙进程的程序；不得把 P1/P2 改成串行。
+**禁止**：不得用 CreateProcess 标志绕过 assign；不得在 assign 前拉起可能 fork 孙进程的程序；不得改 `launch.py` 任何字节；不得对 agent_server 先自起后探测（必须 adopt-only 顺序）。
 
 ---
 
@@ -125,18 +128,18 @@
 |---|---|---|
 | P0 | HostShell 自身：`Window.Activated` 事件已触发（WinUI 3，**不是** WPF 的 `Loaded`） | — |
 | P1 | `agent_server`：`GET http://127.0.0.1:<PORT>/health` 返回 200 且 body 含 `provider` 与 `model` 字段（不校验具体值） | 20s |
-| P2 | `voice-live`：读 `data/voice-next/status.json`，`state == "ready"` 为就绪；`state == "loading"` 视为已托管 | 托管 30s / 就绪 300s |
-| P3 | CV3 daemon：`_pid_alive` 探活通过，且 `status.json` 中 `backend == "cv3"` 且 `pending == false` | 300s |
-| P4 | ASR/KWS：`status.json.asr_ready == true` 且 `kws_pid` 进程存活 | 120s |
+| P2 | `voice-live`：读 `data/voice-next/status.json`，`state == "ready"` 为就绪；`state == "warming"` 视为已托管（v1.3：真实状态机取值为 warming/ready/capturing/processing/speaking/announcing/acknowledging/acknowledging/error/stopped，无 "loading"；除 error/stopped 外均可视为已托管） | 托管 30s / 就绪 300s |
+| P3 | CV3 TTS：`status.json` 中 `tts_backend == "cv3"` 且 `tts_cv3_pending == false`（v1.3：真实字段名为 `tts_backend`/`tts_cv3_pending`，非 backend/pending） | 300s |
+| P4 | ASR/KWS worker：`status.json` 中 `worker_ready == true` 且 `worker_pid` 进程存活（v1.3：真实字段名为 `worker_ready`/`worker_pid`，非 asr_ready/kws_pid；live.py L205 将 worker 上报的 asr_ready 映射为 worker_ready） | 120s |
 | P5 | 外脑：调 provider `probe()` 一次，结果写 `Data\logs\provider-probe.log` | 10s |
 
 **验收（Gate T3）**：
 - 编译退出码 0
-- 六条判据各有对应方法或常量，命中 `/health`、`status.json`、`asr_ready`、`kws_pid`、`provider-probe` 各 ≥1
+- 六条判据各有对应方法或常量，命中 `/health`、`status.json`、`worker_ready`、`worker_pid`、`tts_backend`、`tts_cv3_pending`、`provider-probe` 各 ≥1
 - 超时值 20/30/300/120/10 秒在代码中出现
 - 无 `TODO`、无 `throw new NotImplementedException`
 
-**禁止**：不得编造材料外的就绪信号；不得把 P2 的 `loading` 当作已就绪上报给 UI。
+**禁止**：不得编造材料外的就绪信号；不得把 P2 的 `warming` 当作已就绪上报给 UI。
 
 ---
 
@@ -160,7 +163,7 @@
 - `Process.Start` 在本文件命中 0（拉起逻辑只在 T2）
 - `ULTIMA_HOST_AUTO_EXIT_MS` 仍命中 ≥1
 - `ULTIMA_HOST_CRASH_SELF` 命中 ≥1
-- 文件行数 > 33
+- 文件行数（含空行）> 38
 
 **禁止**：不得改 `OnLaunched` 现有自动退出逻辑；不得引入 WPF 生命周期 API（`Startup`/`Exit` 事件亦不用）。
 
@@ -179,7 +182,7 @@
 - `Select-String -Pattern "taskkill"` 命中的行内 `/T` 命中 0
 - `_take_over` 仍命中 ≥1
 - `python -c "import ast;ast.parse(open('src/brain/voice/daemon.py',encoding='utf-8').read())"` 退出码 0
-- 文件行数与改动前 430 行差异 ≤ 3
+- 文件行数（含空行）与改动前 489 行差异 ≤ 3
 
 **禁止**：不得改 `_take_over()` 以外逻辑；不得改 daemon 侧 Job 继承（孙进程自动入 Job）；不得改任何语音参数。
 
@@ -243,10 +246,10 @@
 - `powershell -NoProfile -File tools/test-jobkill.ps1` 退出码 0
 - 判据 1–5 对应断言各 ≥1
 - 判据 2/3/4 的三秒超时以显式断言体现（`-TimeoutSec 3` 或等价）
-- 脚本不含针对 pid 26052 的 `Stop-Process`
+- 脚本不含针对 watchdog-loopguard 的 `Stop-Process`（按命令行含 `scripts\watchdog-loopguard.py` 识别，不按固定 PID）
 - 失败时输出失败判据编号
 
-**禁止**：不得终止 `watchdog-loopguard`（pid 26052）；不得改 `dist/release-assets.json`；不得改任何语音参数；不得用 `Debug.Assert` 注入源码。
+**禁止**：不得终止 `watchdog-loopguard`（按命令行含 `scripts\watchdog-loopguard.py` 识别，当前 pid 11356）；不得改 `dist/release-assets.json`；不得改任何语音参数；不得用 `Debug.Assert` 注入源码；不得触碰 TuppoAvatarLab 的进程（pid 17988/21436）。
 
 ---
 
@@ -259,7 +262,7 @@
 3. 三个 Python 文件 AST 解析全过（`src/brain/voice/daemon.py`、`src/voice-next/live.py`、`src/brain/agent_server.py`）
 4. 反向断言：`src/brain/voice/daemon.py` 的 `taskkill` 行内 `/T` = 0；`App.xaml.cs` 的 `OnStartup`/`OnExit` = 0；`src/brain/agent_server.py` 的 `MODEL\s*=` = 0；`src/voice-next/launch.py` 哈希不变
 5. 基线差集判定：`git status --short` 相对派发 run 目录 `before.json` `status_entries` 的**差异集**不含本工单文件清单与证据目录之外的任何文件；开工前已有的在途变更（约 17+ 项 `.superpowers/sdd/*`、`config/interface-routing.json` 等）全部保留，不得清理、stash 或回退（2026-11-13 v1.1 修订，口径与 0053 一致）
-6. 未触碰：`src/brain/providers/`、`dist/release-assets.json`、`installer/`、watchdog pid 26052、任何语音参数字段值
+6. 未触碰：`src/brain/providers/`、`dist/release-assets.json`、`installer/`、watchdog（按名识别，当前 pid 11356）、任何语音参数字段值、TuppoAvatarLab 进程
 7. 回执自述：越界声明（无 / 列明）、每 T 证据、改动文件清单
 
 ---
@@ -303,5 +306,17 @@ T5 daemon.py：已完成，Gate 全绿（附 taskkill 无 /T、行数差异）
 T6 live.py：已完成，Gate 全绿（附 warm_progress 命中 + launch.py 哈希一致）
 T7 agent_server.py：已完成，Gate 全绿（附 SIGBREAK 命中 + 4 处 provider 调用仍在）
 T8 test-jobkill.ps1：已完成，Gate 全绿（附脚本退出码 0 + 五判据输出）
-总验收：build 0 / test-jobkill 0 / AST 3/3 / 反向断言 4/4 / git status 干净
+总验收：build 0 / test-jobkill 0 / AST 3/3 / 反向断言 4/4 / 基线差集干净
 ```
+
+---
+
+## 6. 修订记录
+
+| 版本 | 日期 | 变更 |
+|---|---|---|
+| v1.0 | 2026-11-12 | DeepSeek 初稿 + 主脑审校 7 处（§0） |
+| v1.1 | 2026-11-13 | 总验收 #5 改 before.json 基线差集口径（吸取 0053 教训，在途变更保留） |
+| v1.2 | 2026-11-13 | 第一轮派发预检诚实阻塞后校准：①行数口径统一为含空行（App.xaml.cs 33→38，daemon.py 430→489；旧值系非空行口径，关键行号 L214/L226/L286 未漂移）；②watchdog pid 26052 已退出，现 pid 11356，改为**按命令行含 `scripts\watchdog-loopguard.py` 识别**，不写死 PID；③agent_server 现 pid 13760；④新增边界：不触碰 TuppoAvatarLab 进程（pid 17988/21436） |
+| v1.3 | 2026-11-13 | 第二轮派发 T3 预检诚实阻塞后校准（§0 第 8 行）：T3 就绪判据字段名全部对齐实测——`backend/pending` → `tts_backend/tts_cv3_pending`；`asr_ready/kws_pid` → `worker_ready/worker_pid`（live.py L205 映射关系已核实）；状态值 `loading` → `warming`；Gate T3 命中清单同步更新 |
+| v1.4 | 2026-11-13 | 第三轮派发预检诚实阻塞后裁决（§0 双起冲突段重写）：`launch.py` L29–45 内置 `ensure_agent()` 会自行拉起 agent_server，与 T2 的 P1/P2 独立并行启动冲突。裁决为 **P2 是 supervisor 唯一直接拉起入口、P1 adopt-only + 20s 兜底**，launch.py 保持零改动（哈希锚不变），并行性由 `ensure_agent` 非阻塞 Popen 天然保证。T2 子进程清单与禁止清单同步修订 |

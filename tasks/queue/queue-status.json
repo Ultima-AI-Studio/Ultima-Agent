@@ -1851,12 +1851,12 @@
     {
       "project": "UltimaAgent",
       "work_order": "wo-ultimaagent-20261112-0052",
-      "state": "blocked",
-      "audit_passed": null,
-      "dispatched_at": "2026-11-12T21:42:04.371362+08:00",
-      "audit_run": null,
-      "freeze_commit": null,
-      "note": "安装包主线 Phase 2（Job Object + HostShell 拉起）。工单已建、机检 FAIL0/WARN0 PASS、已补 DoR 第6项开源替代排查。派发 Codex 失败：codex exec 启动后认证 401（token_expired，refresh token already used），非工单问题，需 Owner 重新登录 Codex 后重派。DeepSeek(deepseek-flash,4765tokens) 初稿经主脑审校修正 7 处：①Phase0/1 已完成不重做 ②HostShell 实为 WinUI 3 非 WPF ③无 OnStartup/OnExit 只有 OnLaunched ④warm_progress 落盘方是 live.py L62 非 launch.py ⑤daemon.py 实路径 src/brain/voice/daemon.py，taskkill /T /F 在 L226 ⑥T3 就绪判据补自方案 §3.1 ⑦T8 判据4 改环境变量触发不改源码。另补方案未覆盖的双起冲突处置（先探后起 adopted=existing）。 【2026-11-12 状态回收】经复核：8 个 T 全部零产出（T1-T3 ProcessHost 三文件缺失、T5 daemon.py L226 仍含 /T、T7 agent_server.py 无 SIGBREAK、T8 测试脚本缺失、21:42 后目标文件无任何改动），executing 为僵尸状态，现退回 blocked。根因：dispatch-work-order.py L742-752 只在 worker 完全未启动时退回 blocked；worker 已启动但立即 401 时走 L753「保持 EXECUTING」，故状态永久卡住。重派前需先修 CODEX_HOME（.codex-cli 凭据 2026-10-28 已死，.codex 为活档）。"
+      "state": "frozen",
+      "audit_passed": true,
+      "dispatched_at": "2026-11-12T18:31:27.544588+00:00",
+      "audit_run": "wo-ultimaagent-20261112-0052-20261112T183127066665Z",
+      "freeze_commit": "9febf442149d0fffb00a1c0bd87fa453a8b1e462",
+      "note": "安装包主线 Phase 2（Job Object + HostShell 拉起），8T：JobObjectManager/ChildProcessSupervisor/ReadinessProbe 三 C# 新文件 + App.xaml.cs WinUI3 OnLaunched 挂载 + daemon.py 精确 PID kill（去/T）+ live.py warm_progress 遥测 + agent_server.py SIGBREAK + tools/test-jobkill.ps1 五判据。【派发史】共 4 轮：R1 预检阻塞（§0 行数口径混用+watchdog pid 26052 过期）→卡 v1.2；R2 预检阻塞（T3 就绪字段名 backend/asr_ready/kws_pid 与实测 tts_backend/worker_ready/worker_pid 不符）→卡 v1.3；R3 预检阻塞（launch.py 内置 ensure_agent 与 T2 P1/P2 独立并行冲突）→卡 v1.4 裁决 P2 唯一直接拉起+P1 adopt-only；R4 执行 PASS，提交 9febf442（27 文件：8 代码 + 19 证据/报告，恰含 tools/test-jobkill.ps1 按 .gitignore 规则 -f 强加）。【主脑独立验收 PASS】build 独立复跑 0警告0错误；test-jobkill 独立复跑退出码 0 五判据全绿（判据2/3 强杀后 Job 内 PID 3秒清零、判据4 崩溃注入走真实 UnhandledException、判据5 WM_CLOSE 正常关 state=stopped）；AST 3/3；反向断言四件真过（Model 大小写误报排除：Select-String 默认不区分大小写，5 处命中实为 _MAIN.get(\"model\")）；launch.py 哈希保持 46941A…D7ADD01；未触碰 providers/release-assets/watchdog/TuppoAvatarLab 全部为零。warm_progress 为真实里程碑（模型25/DSP50/worker75/就绪100），语音参数零变化。冻结 tag wo-ultimaagent-20261112-0052-frozen-20261113。"
     },
     {
       "project": "UltimaAgent",
