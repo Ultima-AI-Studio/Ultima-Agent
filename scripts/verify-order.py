@@ -453,7 +453,28 @@ def _gate_argv(argv: list[str]) -> list[str]:
             *_targets(argv)]
 
 
-def _junit_counts(path: Path) -> dict | None:
+_SUBTESTS_RE = re.compile(r"(\d+) subtests? (?:passed|failed|skipped)")
+
+
+def _declared_subtests(stdout: str) -> int:
+    """How many subtests the run's own terminal summary reports.
+
+    pytest-subtests counts each subtest into the junit ``tests`` attribute but
+    writes no node for it anywhere in the XML, so the aggregate and the testcase
+    nodes can never be reconciled from the report alone. Taking the number from
+    stdout keeps the reconciliation strict instead of loosening it: a report that
+    lost testcases still fails, because nothing in the summary accounts for the
+    gap.
+    """
+    total = 0
+    for line in stdout.splitlines():
+        match = _SUBTESTS_RE.search(line)
+        if match:
+            total += int(match.group(1))
+    return total
+
+
+def _junit_counts(path: Path, stdout: str = "") -> dict | None:
     """Totals from the run's own report, or None when the report is absent or inconsistent.
 
     A regex over the first `<testsuite>` accepted a file with attributes missing
@@ -461,6 +482,11 @@ def _junit_counts(path: Path) -> dict | None:
     individual testcases, so a truncated or hand-written report still counted as a
     clean run. This parses the XML, requires every count attribute, and refuses the
     report unless the per-testcase statuses add up to it.
+
+    Subtests are the one legitimate gap: they are counted in ``tests`` and appear
+    as no node, so the shortfall is accepted only when the run's own summary
+    reports exactly that many subtests. Without a stdout figure the comparison
+    stays exact.
 
     Skip policy, stated rather than implied: skips are allowed — a platform guard or
     a parametrised case may legitimately not run — but they never count as executed
@@ -482,18 +508,12 @@ def _junit_counts(path: Path) -> dict | None:
         return None
     declared = {"tests": 0, "failures": 0, "errors": 0, "skipped": 0}
     observed = {"tests": 0, "failures": 0, "errors": 0, "skipped": 0}
-    subtests = 0
     for suite in suites:
         for key in declared:
             raw = suite.get(key)
             if raw is None or not raw.isdigit():
                 return None
             declared[key] += int(raw)
-        raw_sub = suite.get("subtests")
-        if raw_sub is not None:
-            if not raw_sub.isdigit():
-                return None
-            subtests += int(raw_sub)
         for case in suite.iter("testcase"):
             observed["tests"] += 1
             if case.find("failure") is not None:
@@ -502,11 +522,7 @@ def _junit_counts(path: Path) -> dict | None:
                 observed["errors"] += 1
             elif case.find("skipped") is not None:
                 observed["skipped"] += 1
-    # pytest-subtests 让 `tests` 属性把每个 subtest 也算进去，却不生成独立的
-    # <testcase> 节点，于是 627 != 581 这种差额只是 46 个 subtest。此前这条加总
-    # 校验把差额判成"报告不可信"，使任何跑 subtests 的套件永远拿不到 counts，
-    # declared_command_pass 恒为 FAIL。差额必须与报告的 subtests 属性对上才算数。
-    if observed["tests"] + subtests != declared["tests"]:
+    if observed["tests"] + _declared_subtests(stdout) != declared["tests"]:
         return None
     for key in ("failures", "errors", "skipped"):
         if observed[key] != declared[key]:
@@ -604,7 +620,7 @@ def _run_in_clean_worktree(sha: str, argv: list[str], timeout: int) -> tuple[obj
         proc = subprocess.run(_pin_runner(_gate_argv(argv)), cwd=str(worktree), capture_output=True,
                               text=True, encoding="utf-8", errors="replace",
                               timeout=timeout, env=_clean_env())
-        return proc, "", _junit_counts(report)
+        return proc, "", _junit_counts(report, proc.stdout or "")
     finally:
         _unmount_repo_assets(worktree)
         _git("worktree", "remove", "--force", str(worktree))
