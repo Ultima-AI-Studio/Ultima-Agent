@@ -1,0 +1,59 @@
+FINAL BUILD
+COMMAND: dotnet build src/host-shell/UltimaAgent.HostShell/UltimaAgent.HostShell.csproj -c Release
+  正在确定要还原的项目…
+  所有项目均是最新的，无法还原。
+  UltimaAgent.HostShell -> H:\UltimaAI\UltimaAgent\src\host-shell\UltimaAgent.HostShell\bin\Release\net8.0-windows10.0.19041.0\win-x64\UltimaAgent.HostShell.dll
+
+已成功生成。
+    0 个警告
+    0 个错误
+
+已用时间 00:00:06.65
+FINAL_BUILD_EXIT=0
+
+FINAL TEST-JOBKILL
+COMMAND: powershell -NoProfile -File tools/test-jobkill.ps1
+CRITERION 1 PASS: Release HostShell executable exists
+CRITERION 1 PASS: UltimaAgent Python process count is 6 (>=3)
+CRITERION 1 PASS: Job run owns voice PIDs: 21076,23624,25588,12772,27412
+CRITERION 2 PASS: HostShell force-kill reclaimed all new Host/Job PIDs within 3 seconds: 21076,23624,25588,12772,27412,25100
+CRITERION 3 PASS: second run reached 6 UltimaAgent Python processes
+CRITERION 3 PASS: HostShell force-kill reclaimed all new Host/Job PIDs within 3 seconds: 27356,27076,24452,24192,10224,21748
+CRITERION 4 PASS: ULTIMA_HOST_CRASH_SELF started Job children before the real unhandled path
+CRITERION 4 PASS: runtime evidence proves the UI_UNHANDLED handler executed
+CRITERION 4 PASS: UnhandledException reclaimed crash-run PIDs within 3 seconds: 19420,3396,26724,9912,27364,27244
+CRITERION 5 PASS: WM_CLOSE posted to the real HostShell window
+CRITERION 5 PASS: HostShell exited through the window Closed path
+CRITERION 5 PASS: normal-close Host/Job PIDs are gone
+CRITERION 5 PASS: all ProcessHost pid files were cleaned
+CRITERION 5 PASS: status.json state is stopped
+TEST_JOBKILL_RESULT=PASS criteria=1,2,3,4,5
+EXIT_CODE=0
+
+AST AND REVERSE ASSERTIONS
+AST_PASS src/brain/voice/daemon.py
+AST_PASS src/voice-next/live.py
+AST_PASS src/brain/agent_server.py
+AST_RESULT=3/3 PASS
+REVERSE_TASKKILL_TREE=0
+REVERSE_ONSTARTUP=0
+REVERSE_ONEXIT=0
+REVERSE_MODEL_ASSIGNMENT=0
+LAUNCH_SHA256=46941A1BD043C268707AF2536C2F4E5B755729E8476E1D3BD0D4E80E9D7ADD01
+LAUNCH_HASH_UNCHANGED=True
+
+BASELINE DIFFERENTIAL
+BEFORE_TRACKED_STATUS_COUNT=19
+CURRENT_TRACKED_STATUS_COUNT=23
+TRACKED_STATUS_DIFFERENTIAL:
+ M src/brain/agent_server.py allowed=True
+ M src/brain/voice/daemon.py allowed=True
+ M src/host-shell/UltimaAgent.HostShell/App.xaml.cs allowed=True
+ M src/voice-next/live.py allowed=True
+TRACKED_DIFFERENTIAL_COUNT=4
+UNEXPECTED_TRACKED_DIFFERENTIAL_COUNT=0
+PROTECTED_GIT_DIFF_COUNT=0
+VOICE_CONFIG_SHA256=2CACDE1D0DED2F700CAEF95BDB3C78B8154FE85C25EE68EE3B1FBB9519059ED3
+VOICE_CONFIG_HASH_UNCHANGED=True
+WATCHDOG_MATCH_COUNT=1 PID=11356
+TUPPO_PROCESS_COUNT=3 PIDS=20216,17988,21436

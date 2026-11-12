@@ -1,0 +1,30 @@
+COMMAND: powershell -NoProfile -File tools/test-jobkill.ps1
+CRITERION 1 PASS: Release HostShell executable exists
+CRITERION 1 PASS: UltimaAgent Python process count is 6 (>=3)
+CRITERION 1 PASS: Job run owns voice PIDs: 21076,23624,25588,12772,27412
+CRITERION 2 PASS: HostShell force-kill reclaimed all new Host/Job PIDs within 3 seconds: 21076,23624,25588,12772,27412,25100
+CRITERION 3 PASS: second run reached 6 UltimaAgent Python processes
+CRITERION 3 PASS: HostShell force-kill reclaimed all new Host/Job PIDs within 3 seconds: 27356,27076,24452,24192,10224,21748
+CRITERION 4 PASS: ULTIMA_HOST_CRASH_SELF started Job children before the real unhandled path
+CRITERION 4 PASS: runtime evidence proves the UI_UNHANDLED handler executed
+CRITERION 4 PASS: UnhandledException reclaimed crash-run PIDs within 3 seconds: 19420,3396,26724,9912,27364,27244
+CRITERION 5 PASS: WM_CLOSE posted to the real HostShell window
+CRITERION 5 PASS: HostShell exited through the window Closed path
+CRITERION 5 PASS: normal-close Host/Job PIDs are gone
+CRITERION 5 PASS: all ProcessHost pid files were cleaned
+CRITERION 5 PASS: status.json state is stopped
+TEST_JOBKILL_RESULT=PASS criteria=1,2,3,4,5
+EXIT_CODE=0
+
+STATIC ASSERTIONS:
+ASSERTIONS_CRITERION_1=4
+ASSERTIONS_CRITERION_2=1
+ASSERTIONS_CRITERION_3=3
+ASSERTIONS_CRITERION_4=3
+ASSERTIONS_CRITERION_5=6
+TIMEOUT_3_CALLS=3
+WATCHDOG_STOP_CALLS=0
+FAILURE_CRITERION_NUMBER=4
+DEBUG_ASSERT=0
+TUPPO_REFERENCES=0
+UI_UNHANDLED_ASSERTIONS=1

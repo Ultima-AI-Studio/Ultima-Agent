@@ -223,7 +223,8 @@ class VoiceDaemon:
         if pid is not None:
             try:
                 subprocess.run(
-                    ["taskkill", "/PID", str(pid), "/T", "/F"],
+                    # Job 内使用 /T 会连带杀死同一 Job 中的其它进程，只终止精确 PID。
+                    ["taskkill", "/PID", str(pid), "/F"],
                     capture_output=True,
                     creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
                 )

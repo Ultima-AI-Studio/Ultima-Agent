@@ -21,6 +21,7 @@ import importlib.util
 import os
 import queue
 import re
+import signal
 import subprocess
 import sys
 import threading
@@ -1670,6 +1671,19 @@ def main() -> int:
     _sock.listen(128)
     server = ThreadingHTTPServer((HOST, PORT), _Handler, bind_and_activate=False)
     server.socket = _sock
+    shutdown_requested = threading.Event()
+
+    def _request_shutdown(_signum: int, _frame: Any) -> None:
+        shutdown_requested.set()
+
+    if hasattr(signal, "SIGBREAK"):
+        signal.signal(signal.SIGBREAK, _request_shutdown)
+
+    def _shutdown_when_requested() -> None:
+        shutdown_requested.wait()
+        server.shutdown()
+
+    threading.Thread(target=_shutdown_when_requested, daemon=True).start()
     sys.stderr.write(
         f"[agent-server] 启动：http://{HOST}:{PORT} model={_MAIN.get('model') or ''} agent={AGENT} "
         f"answer_tools={ANSWER_TOOLS} registered={len(TOOLS)}\n"

@@ -51,7 +51,7 @@ class Resident:
         self.queue=queue.Queue(maxsize=100);self.muted=threading.Event();self.playing=threading.Event()
         self.counters={'callbacks':0,'input_frames':0,'overflows':0,'live_model_packets':0,'peak':0.0,'rms':0.0}
         self.generation=0;self.seen_generation=0
-        self.status={'pid':os.getpid(),'run_id':self.run_id,'keyword':config['keyword'],'state':'warming','ready':False,'model':'sherpa-onnx Zipformer native streaming','threshold':config['threshold'],'input_gain':self.input_gain}
+        self.status={'pid':os.getpid(),'run_id':self.run_id,'keyword':config['keyword'],'state':'warming','ready':False,'warm_progress':0,'model':'sherpa-onnx Zipformer native streaming','threshold':config['threshold'],'input_gain':self.input_gain}
         self.phase='warming';self.collector=None;self.last_heartbeat=0;self.turn_id=None;self.last_audio_at=0
         DATA.mkdir(parents=True,exist_ok=True)
         self.log=(DATA/'events.jsonl').open('a',encoding='utf-8',buffering=1)
@@ -174,6 +174,7 @@ class Resident:
         self.status['model_sha256']=meta['model_sha256'];self.status['kws_runtime']=meta
         self.spotter.forward(bytes(9600));self.spotter.forward(bytes(9600))
         self.spotter.reset_all()
+        self.status['warm_progress']=25
         devices=sd.query_devices();apis=sd.query_hostapis()
         self.input_index=resolve_endpoint(devices,apis,self.config['input'],'input')
         self.output_index=resolve_endpoint(devices,apis,self.config['output'],'output')
@@ -186,6 +187,7 @@ class Resident:
         agc=bool(spec.get('auto_gain_control',True))
         self.status.update(dsp_engine='pywebrtc-audio',dsp_ns=bool(spec.get('noise_suppression',True)),dsp_agc=agc,dsp_aec=bool(spec.get('echo_cancellation',False)),dsp_gain_db=0.0,dsp_speech_probability=0.0, gain_mode=('apm-agc' if agc else 'fixed'), input_gain=(None if agc else self.input_gain))
         self.reset_audio()
+        self.status['warm_progress']=50
         prompts=DATA/'prompts';prompts.mkdir(exist_ok=True)
         self.wake_prompt=prompts/'wake.wav';self.empty_prompt=prompts/'empty.wav'
         prompt_texts=self.config.get('prompts')
@@ -195,14 +197,14 @@ class Resident:
             # 提示音文案里的 {keyword} 一律以 live.json 的 keyword 展开，
             # 避免"配置换词、提示音还念旧词"的第二处词源。
             self.synthesize(prompt_texts[name].replace('{keyword}',self.config['keyword']),prompts/f'{name}.wav')
-        self.publish('loading_asr_worker')
+        self.publish('loading_asr_worker',warm_progress=75)
         self.worker=VoiceWorker();deadline=time.monotonic()+60
         while True:
             if time.monotonic()>deadline:raise TimeoutError('ASR worker warmup timed out')
             try:message=self.worker.events.get(timeout=.2)
             except queue.Empty:self.heartbeat();continue
             if message.get('type')=='ready' and message.get('asr_ready'):
-                self.status['worker_pid']=message.get('pid');self.status['worker_ready']=True;self.status['tts_backend']=message.get('tts_backend');self.status['tts_cv3_pending']=message.get('tts_cv3_pending');break
+                self.status['worker_pid']=message.get('pid');self.status['worker_ready']=True;self.status['tts_backend']=message.get('tts_backend');self.status['tts_cv3_pending']=message.get('tts_cv3_pending');self.status['warm_progress']=100;break
             raise RuntimeError(f'ASR worker startup failed: {message}')
         self.muted.set()
         with sd.InputStream(device=self.input_index,samplerate=self.input_rate,channels=1,dtype='float32',blocksize=0,callback=self.callback) as input_stream:

@@ -1,0 +1,10 @@
+MATCH SIGBREAK=2
+  1679:if hasattr(signal, "SIGBREAK"):
+  1680:signal.signal(signal.SIGBREAK, _request_shutdown)
+MATCH signal\.signal=1
+  1680:signal.signal(signal.SIGBREAK, _request_shutdown)
+REVERSE_CASE_SENSITIVE_MODEL=0
+AST_PARSE=PASS
+AST_EXIT=0
+provider_for(_MAIN).chat=4
+CALL_LINES=719,1007,1160,1217
