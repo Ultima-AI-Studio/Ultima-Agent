@@ -443,6 +443,16 @@ _DELEGATED_ACTION_PATTERN = re.compile(rf"(?:{_CLAIM_ACTIONS})")
 _PRE_DELIVERABLE_PATTERN = re.compile(
     r"写|起草|翻译|分析|总结|方案|报告|代码|文档|表格|计划"
 )
+# 创造类动作词：产出物创作的最小动词集。
+_PRE_CREATE_VERB = re.compile(r"写|起草|拟|翻译|总结|输出|产出|生成|做|制作|分析|汇总|整理成|编")
+# 求意见类动词：只看、检查或评估时不判为产出物创作。
+_PRE_REVIEW_VERB = re.compile(r"看|检查|审查|评估|判断|评价|挑错|找问题")
+# 求取舍类对象：排除「做个决定」等非产出物请求。
+_PRE_JUDGMENT_OBJECT = re.compile(r"决定|取舍|抉择|判断|推荐|主意")
+# 工程对象词：不含裸「日志」，避免放行桌面日志操作。
+_ENGINEERING_OBJECT_PATTERN = re.compile(
+    r"bug|缺陷|报错|异常|代码|函数|接口|模块|服务|部署|性能|测试|脚本|配置|功能|重构|构建|日志分析"
+)
 _NOISE_PATTERN = re.compile(
     r"^(?:(?:嗯+|呃+|啊+|那个|喂|在吗)[，。！？!?、…\s]*)+$"
     r"|^[\s，。！？!?、…]*[0-9A-Za-z\u4e00-\u9fff]{0,2}[\s，。！？!?、…]*$"
@@ -559,6 +569,10 @@ def _pending_fill(query: str) -> str | None:
     if pending is None:
         return None
     text = (query or "").strip()
+    # 含动作词且很短的是新命令，不是补槽。
+    if len(text) <= 6 and _DELEGATED_ACTION_PATTERN.match(text):
+        _PENDING_CLARIFY = None
+        return None
     if (
         len(text) >= 12
         and re.search(r"帮我|请你|麻烦|把|将", text)
@@ -910,6 +924,24 @@ _NO_TOOL_PATTERNS = (
 _NO_TOOL_REPLY = "这个我查不了，我这边没有联网的实时数据。"
 
 
+def _preclassify_deliverable(query: str) -> str | None:
+    """识别求代劳的产出物创作请求，确定性判 task。"""
+    text = (query or "").strip()
+    if not text or "（补充：" in text:
+        return None
+    if not _DELEGATE_HINT.search(text):
+        return None
+    if _METHOD_ASK.search(text):
+        return None
+    if _PRE_REVIEW_VERB.search(text):
+        return None
+    if _PRE_JUDGMENT_OBJECT.search(text):
+        return None
+    if _PRE_CREATE_VERB.search(text):
+        return "task"
+    return None
+
+
 def _preclassify_local(query: str) -> str | None:
     """在模型分类前识别本机状态变更；产出物任务保守放行。"""
     text = (query or "").strip()
@@ -918,6 +950,9 @@ def _preclassify_local(query: str) -> str | None:
         or "（补充：" in text
         or _PRE_DELIVERABLE_PATTERN.search(text)
     ):
+        return None
+
+    if _ENGINEERING_OBJECT_PATTERN.search(text):
         return None
 
     # 「清理」与既有动作词「整理」同义；只在读取既有词表时规范化，
@@ -1322,6 +1357,9 @@ def ask_once(query: str, max_tokens: int | None = None) -> dict[str, Any]:
             "tool_results": [],
             "usage": {},
         }
+    deliverable_intent = _preclassify_deliverable(query)
+    if deliverable_intent == "task":
+        return _ask_task_branch(query)
     # 分段应答第一段：先判这是「要动手的活」还是「要个回答」。
     # 任务类立刻答应并派单，不进 ReAct——既快，也断掉它自由编「我已经修好了」的路。
     intent = _classify_intent(query)

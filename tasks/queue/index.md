@@ -2,7 +2,7 @@
 
 > **由 `scripts/render-queue-views.py` 从 `tasks/queue/queue-status.json` 生成，勿手改。**
 > 唯一状态权威：`tasks/queue/queue-status.json`。修改 Markdown 不会回写状态。
-> schema_version=1 ｜ records=103 ｜ audit=5, blocked=14, cancelled=14, closed=2, frozen=67, pending=1
+> schema_version=1 ｜ records=104 ｜ audit=6, blocked=14, cancelled=14, closed=2, frozen=67, pending=1
 
 <!-- queue-items:start -->
 | 项目 | 工单 | 状态 | audit_passed | 派发时间 | 审计 run | 冻结 commit | 备注 |
@@ -110,4 +110,5 @@
 | UltimaAgent | wo-ultimaagent-20261112-0044 | audit | true | 2026-11-12T03:40:33.014414+00:00 |  | 938d451b | 主脑裁决4条阻塞项后复验通过：①补第11条探针D2（判task派单）；②A1/A2基线更正为两句拼接（agent_server.py:738）；③授权扩_SERVILE_TAIL_PATTERN窄变体（含'您还有其他问题'）；④queue-status判据改为结构可达口径。主脑独立复跑11条探针全PASS（P1/P2/P3/P4已修，P2/P3降至0.0s）、反向验证7条全PASS、全量回归470 passed/1 failed（基线454，无新增失败）。待提交冻结。 |
 | UltimaAgent | wo-ultimaagent-20261112-0045 | audit | true | 2026-11-12T04:59:37.103489+00:00 |  | b838fc7c | 主脑独立验收通过。①7条F正向全绿：F1『帮我把那个弄一下』→clarify「你说的那个是指哪一个」（10.67s）、F5『把文件发给他』→clarify（1.73s）、F2『打开』→clarify（1.26s）、F3/F6→noise话术（2.04s/2.34s）、F7→referent给了方向（0.98s）、F4→no_tool（防回退基线）；②3条接续：G1第2轮判task、G2第2轮query、G3超时回『先不弄了』；③4条反向全绿：R1/R2仍task、R3/R4仍query；④Phase1原始11条探针零回退（A1/A2 refused、B1/B2 no_tool、C1/C2 0s给方向、D1 query『执行类』15.04s→1.53s、D2 task 10.7s→1.15s、E1-E3同intent）；⑤全量524 passed/1 failed（唯一失败为ollama-not-in-PATH环境噪声，与Phase1基线同）；⑥Phase2新测试49 passed、Phase1教学+gates 33 passed；⑦Codex独立审查报Not Ready后做了有界修复：跨轮合并请求重跑_risk_gate/_no_tool_gate、问次真实累计、无效补槽不派单、D2『这个文件』与C2『这个接口』误判窄修。commit b838fc7c，4文件(+1046/-1)，未碰queue-status、未越界。 |
 | UltimaAgent | wo-ultimaagent-20261112-0046 | audit | true | 2026-11-12T06:17:22.841025+00:00 |  | 9bc8e4a5 | Phase3确定性前置层；Codex两轮T0-T3 Gate闭合；主脑验收收窄扩写分支修「修复bug」误拦；全量561/1 |
+| UltimaAgent | wo-ultimaagent-20261112-0047 | audit | true | 2026-11-12T07:30:47.337899+00:00 |  |  | Phase3.5产出物确定性判task；codex四轮三次真冲突停线均如实上报；主脑裁决3项（新增_PRE_JUDGMENT_OBJECT / 范围三处一致 / 577非578）；Y18/18 N6/6 E1放行E2零回退S4全对；Phase1十一探针+Phase2七条单跑零回退；三符号与_ASK_CLASSIFY_SYSTEM与ask_once签名零差分；全量577/1 |
 <!-- queue-items:end -->

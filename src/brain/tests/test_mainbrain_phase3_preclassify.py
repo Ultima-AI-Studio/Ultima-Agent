@@ -14,10 +14,17 @@ _LOCAL_DELEGATED = (
     "打开浏览器",
 )
 
-_DELIVERABLE_TASKS = (
+_DELIVERABLE_TASKS_PRECLASSIFIED = (
     "帮我写一份周报",
     "帮我起草一份技术方案",
+)
+
+_DELIVERABLE_TASKS_VIA_CLASSIFIER = (
     "帮我把这段代码优化一下",
+)
+
+_DELIVERABLE_TASKS = (
+    _DELIVERABLE_TASKS_PRECLASSIFIED + _DELIVERABLE_TASKS_VIA_CLASSIFIER
 )
 
 _LOCAL_QUERY_FALLBACKS = tuple(
@@ -75,7 +82,28 @@ def test_ask_once_keeps_risk_gate_ahead_of_local_preclassification():
     classify.assert_not_called()
 
 
-@pytest.mark.parametrize("query", _DELIVERABLE_TASKS)
+@pytest.mark.parametrize("query", _DELIVERABLE_TASKS_PRECLASSIFIED)
+def test_ask_once_preclassifies_deliverables_without_classifier(query):
+    task_result = {
+        "content": "正常派单",
+        "reply_text": "正常派单",
+        "intent": "task",
+        "tool_results": [],
+    }
+
+    with (
+        patch.object(agent_server, "_classify_intent", return_value="task") as classify,
+        patch.object(agent_server, "_ask_task_branch", return_value=task_result) as branch,
+        patch.object(agent_server.EVENT_BUS, "emit_event"),
+    ):
+        result = agent_server.ask_once(query)
+
+    assert result == task_result
+    classify.assert_not_called()
+    branch.assert_called_once_with(query)
+
+
+@pytest.mark.parametrize("query", _DELIVERABLE_TASKS_VIA_CLASSIFIER)
 def test_ask_once_preserves_classifier_and_task_branch_for_deliverables(query):
     task_result = {
         "content": "正常派单",
