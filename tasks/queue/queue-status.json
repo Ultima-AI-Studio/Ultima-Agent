@@ -877,12 +877,12 @@
     {
       "project": "UltimaAgent",
       "work_order": "wo-ultimaagent-20261030-0007",
-      "state": "audit",
+      "state": "blocked",
       "audit_passed": null,
       "dispatched_at": null,
       "audit_run": null,
       "freeze_commit": null,
-      "note": "双线程伪流式（采集∥识别，边说边出字：采集线程入队 + 识别线程消费，VAD 段提交触发终跑；1s 重跑节流 + 说完终跑 + 异常/超时回退原路径）；T0-T4；2026-10-30 登记；源任务卡 voice-136-pseudo-streaming（tasks.json QUEUED/priority 60）；依据 docs/reports/voice-chain-direction-audit-20261030.md 第四步\"结构改造，独立工单\"；写域 data/logs/voice-listen-daemon.py + 基线 docs/specs/kws-wakeup-params-baseline.md 变更记录追加 #136（只追加不改值）；冻结参数零漂移红线（threshold 0.08/score 2.0/trailing 8/VAD 0.5s/sinc/门控 0.4s/0.005）；工单卡 tasks/queue/wo-ultimaagent-20261030-0007--pseudo-streaming.md；**2026-10-31 回填：阶段报告 stage-pseudo-streaming-20261030.md = 验收 PASS 待 Owner 打冻结 tag（T4 3+3 首字延迟 +4s、L26 日志零损坏），executing→audit 释放 WIP**",
+      "note": "双线程伪流式（采集∥识别，边说边出字：采集线程入队 + 识别线程消费，VAD 段提交触发终跑；1s 重跑节流 + 说完终跑 + 异常/超时回退原路径）；T0-T4；2026-10-30 登记；源任务卡 voice-136-pseudo-streaming（tasks.json QUEUED/priority 60）；依据 docs/reports/voice-chain-direction-audit-20261030.md 第四步\"结构改造，独立工单\"；写域 data/logs/voice-listen-daemon.py + 基线 docs/specs/kws-wakeup-params-baseline.md 变更记录追加 #136（只追加不改值）；冻结参数零漂移红线（threshold 0.08/score 2.0/trailing 8/VAD 0.5s/sinc/门控 0.4s/0.005）；工单卡 tasks/queue/wo-ultimaagent-20261030-0007--pseudo-streaming.md；**2026-10-31 回填：阶段报告 stage-pseudo-streaming-20261030.md = 验收 PASS 待 Owner 打冻结 tag（T4 3+3 首字延迟 +4s、L26 日志零损坏），executing→audit 释放 WIP** || 清账：dispatched_at=None，从未派发过，登记成 audit 是状态错记，应回 pending→blocked。该单为 2026-10-30 voice-136 伪流式，需重新确认是否还要做。",
       "legacy": true,
       "legacy_reason": "s2/s3/ORB 系列或 2026-10 及更早：卡与产物不在本仓，按 C 口径标 legacy、历史不追溯（2026-11-11）"
     },
@@ -1145,12 +1145,12 @@
     {
       "project": "UltimaSentinel",
       "work_order": "wo-ultimasentinel-20261103-0001",
-      "state": "audit",
+      "state": "frozen",
       "audit_passed": null,
       "dispatched_at": null,
       "audit_run": null,
       "freeze_commit": null,
-      "note": "【范围外冻结 2026-11-08】**阶段 1（USDT0）+ 复验（SparkLend）全部完成，G0-G4 + rv-G0~4 全绿，待用户验收（2026-11-03）**：赏金审计辩证尝试（Immunefi 目标 USDT0 全链路 + SparkLend 复验）；方案 docs/plans/ultimasentinel-immunefi-trial-2026-11-03.md v0.1；用户 2026-11-03 授权 + 复验拍板（换自研逻辑占比高目标）；阶段 1=slither 171 findings→候选 0→verdict TRUE=0/FP=11→不可提交（标准库薄包装 520 字符自研）；复验=SparkLend SPUSDC PAU（2026-09-18 部署，自研 diamond-pau，9 入口全非标准 EIP-1967 代理=自研钻石壳）slither 0.11.6×solc 0.8.34 150 findings→自研命中 16→候选 1+备查 4→verdict TRUE=0/FP=5→不可提交（「自研占比↔引擎命中」正相关成立，但 PAU 自研质量高无真阳性）；TVL $6.6B 来源=DefiLlama 实测；执行端=主脑 Doubao 驱动（Codex 首次派发被 OpenAI 安全护栏拦截已登记切换，M2G 先例）；不真实提交/不污染冻结基线/开源优先零自研；阶段报告 + 复验报告 + evidence 各四份落盘；冻结门=tag immunefi-trial-20261103（待用户验收后打）"
+      "note": "【范围外冻结 2026-11-08】**阶段 1（USDT0）+ 复验（SparkLend）全部完成，G0-G4 + rv-G0~4 全绿，待用户验收（2026-11-03）**：赏金审计辩证尝试（Immunefi 目标 USDT0 全链路 + SparkLend 复验）；方案 docs/plans/ultimasentinel-immunefi-trial-2026-11-03.md v0.1；用户 2026-11-03 授权 + 复验拍板（换自研逻辑占比高目标）；阶段 1=slither 171 findings→候选 0→verdict TRUE=0/FP=11→不可提交（标准库薄包装 520 字符自研）；复验=SparkLend SPUSDC PAU（2026-09-18 部署，自研 diamond-pau，9 入口全非标准 EIP-1967 代理=自研钻石壳）slither 0.11.6×solc 0.8.34 150 findings→自研命中 16→候选 1+备查 4→verdict TRUE=0/FP=5→不可提交（「自研占比↔引擎命中」正相关成立，但 PAU 自研质量高无真阳性）；TVL $6.6B 来源=DefiLlama 实测；执行端=主脑 Doubao 驱动（Codex 首次派发被 OpenAI 安全护栏拦截已登记切换，M2G 先例）；不真实提交/不污染冻结基线/开源优先零自研；阶段报告 + 复验报告 + evidence 各四份落盘；冻结门=tag immunefi-trial-20261103（待用户验收后打） || 清账：note 自述『范围外冻结 2026-11-08』，阶段1(USDT0)+复验(SparkLend) G0-G4/rv-G0~4 全绿，工作已完成并冻结；『待用户验收』属验收归属，不阻塞状态转 frozen。注意：本项目为 UltimaSentinel，出现在 UltimaAgent 队列属历史遗留。"
     },
     {
       "project": "UltimaManager",
@@ -1711,12 +1711,12 @@
     {
       "project": "UltimaAgent",
       "work_order": "wo-ultimaagent-20261110-0036",
-      "state": "audit",
+      "state": "frozen",
       "audit_passed": true,
       "dispatched_at": "2026-11-10T17:42:10.100515+00:00",
       "audit_run": "tasks/queue/runs/wo-ultimaagent-20261110-0036-20261110T165817586641Z",
-      "freeze_commit": null,
-      "note": "T0-T7 全 PASS；T7 实现 a33e3813 / 回填 81364b58；两轮审计 T0-T7 全 PASS、audit_passed=true（audit.json 27,255 B 在该 run）；双版 verify-order 对同一 run 均 exit 2、六项失败差异 0（旧版为反向对照）；全量 pytest 6 failed/45 passed 与 T0 基线一致；写域 porcelain 为空；待回填残留 0、DoR strict PASS；元工单缺独立验收路径已登记 lessons-log L116/L117"
+      "freeze_commit": "a33e3813",
+      "note": "T0-T7 全 PASS；T7 实现 a33e3813 / 回填 81364b58；两轮审计 T0-T7 全 PASS、audit_passed=true（audit.json 27,255 B 在该 run）；双版 verify-order 对同一 run 均 exit 2、六项失败差异 0（旧版为反向对照）；全量 pytest 6 failed/45 passed 与 T0 基线一致；写域 porcelain 为空；待回填残留 0、DoR strict PASS；元工单缺独立验收路径已登记 lessons-log L116/L117 || 清账：audit_passed=True；实现 commit a33e3813 / 回填 81364b58 均经 git merge-base 核验在 HEAD 历史中，已推送（未推送计数 0）。补填 freeze_commit=a33e3813。"
     },
     {
       "project": "UltimaAgent",
@@ -1791,62 +1791,72 @@
     {
       "project": "UltimaAgent",
       "work_order": "wo-ultimaagent-20261112-0044",
-      "state": "audit",
+      "state": "frozen",
       "audit_passed": true,
       "dispatched_at": "2026-11-12T03:40:33.014414+00:00",
       "audit_run": null,
       "freeze_commit": "938d451b",
-      "note": "主脑裁决4条阻塞项后复验通过：①补第11条探针D2（判task派单）；②A1/A2基线更正为两句拼接（agent_server.py:738）；③授权扩_SERVILE_TAIL_PATTERN窄变体（含'您还有其他问题'）；④queue-status判据改为结构可达口径。主脑独立复跑11条探针全PASS（P1/P2/P3/P4已修，P2/P3降至0.0s）、反向验证7条全PASS、全量回归470 passed/1 failed（基线454，无新增失败）。待提交冻结。"
+      "note": "主脑裁决4条阻塞项后复验通过：①补第11条探针D2（判task派单）；②A1/A2基线更正为两句拼接（agent_server.py:738）；③授权扩_SERVILE_TAIL_PATTERN窄变体（含'您还有其他问题'）；④queue-status判据改为结构可达口径。主脑独立复跑11条探针全PASS（P1/P2/P3/P4已修，P2/P3降至0.0s）、反向验证7条全PASS、全量回归470 passed/1 failed（基线454，无新增失败）。待提交冻结。 || 清账：audit_passed=True；freeze_commit 938d451b『feat(brain): 主脑教学 Phase 1 四类病代码层收口（0044）』经核验在 HEAD 历史中、已推送。原状态停在 audit『待提交冻结』，实际早已提交，属状态滞后。"
     },
     {
       "project": "UltimaAgent",
       "work_order": "wo-ultimaagent-20261112-0045",
-      "state": "audit",
+      "state": "frozen",
       "audit_passed": true,
       "dispatched_at": "2026-11-12T04:59:37.103489+00:00",
       "audit_run": null,
       "freeze_commit": "b838fc7c",
-      "note": "主脑独立验收通过。①7条F正向全绿：F1『帮我把那个弄一下』→clarify「你说的那个是指哪一个」（10.67s）、F5『把文件发给他』→clarify（1.73s）、F2『打开』→clarify（1.26s）、F3/F6→noise话术（2.04s/2.34s）、F7→referent给了方向（0.98s）、F4→no_tool（防回退基线）；②3条接续：G1第2轮判task、G2第2轮query、G3超时回『先不弄了』；③4条反向全绿：R1/R2仍task、R3/R4仍query；④Phase1原始11条探针零回退（A1/A2 refused、B1/B2 no_tool、C1/C2 0s给方向、D1 query『执行类』15.04s→1.53s、D2 task 10.7s→1.15s、E1-E3同intent）；⑤全量524 passed/1 failed（唯一失败为ollama-not-in-PATH环境噪声，与Phase1基线同）；⑥Phase2新测试49 passed、Phase1教学+gates 33 passed；⑦Codex独立审查报Not Ready后做了有界修复：跨轮合并请求重跑_risk_gate/_no_tool_gate、问次真实累计、无效补槽不派单、D2『这个文件』与C2『这个接口』误判窄修。commit b838fc7c，4文件(+1046/-1)，未碰queue-status、未越界。"
+      "note": "主脑独立验收通过。①7条F正向全绿：F1『帮我把那个弄一下』→clarify「你说的那个是指哪一个」（10.67s）、F5『把文件发给他』→clarify（1.73s）、F2『打开』→clarify（1.26s）、F3/F6→noise话术（2.04s/2.34s）、F7→referent给了方向（0.98s）、F4→no_tool（防回退基线）；②3条接续：G1第2轮判task、G2第2轮query、G3超时回『先不弄了』；③4条反向全绿：R1/R2仍task、R3/R4仍query；④Phase1原始11条探针零回退（A1/A2 refused、B1/B2 no_tool、C1/C2 0s给方向、D1 query『执行类』15.04s→1.53s、D2 task 10.7s→1.15s、E1-E3同intent）；⑤全量524 passed/1 failed（唯一失败为ollama-not-in-PATH环境噪声，与Phase1基线同）；⑥Phase2新测试49 passed、Phase1教学+gates 33 passed；⑦Codex独立审查报Not Ready后做了有界修复：跨轮合并请求重跑_risk_gate/_no_tool_gate、问次真实累计、无效补槽不派单、D2『这个文件』与C2『这个接口』误判窄修。commit b838fc7c，4文件(+1046/-1)，未碰queue-status、未越界。 || 清账：audit_passed=True；freeze_commit b838fc7c『feat(brain): add phase2 clarification gate』经核验在 HEAD 历史中、已推送。主脑独立验收通过（正向7条+接续3条+反向4条+原11条零回退+全量524/1）。"
     },
     {
       "project": "UltimaAgent",
       "work_order": "wo-ultimaagent-20261112-0046",
-      "state": "audit",
+      "state": "frozen",
       "audit_passed": true,
       "dispatched_at": "2026-11-12T06:17:22.841025+00:00",
       "audit_run": null,
       "freeze_commit": "9bc8e4a5",
-      "note": "Phase3确定性前置层；Codex两轮T0-T3 Gate闭合；主脑验收收窄扩写分支修「修复bug」误拦；全量561/1"
+      "note": "Phase3确定性前置层；Codex两轮T0-T3 Gate闭合；主脑验收收窄扩写分支修「修复bug」误拦；全量561/1 || 清账：audit_passed=True；freeze_commit 9bc8e4a5『feat(brain): Phase 3 deterministic pre-classify layer (0046)』经核验在 HEAD 历史中、已推送。Codex 两轮 T0-T3 Gate 闭合，全量 561/1。"
     },
     {
       "project": "UltimaAgent",
       "work_order": "wo-ultimaagent-20261112-0047",
-      "state": "audit",
+      "state": "frozen",
       "audit_passed": true,
       "dispatched_at": "2026-11-12T07:30:47.337899+00:00",
       "audit_run": null,
-      "freeze_commit": null,
-      "note": "Phase3.5产出物确定性判task；codex四轮三次真冲突停线均如实上报；主脑裁决3项（新增_PRE_JUDGMENT_OBJECT / 范围三处一致 / 577非578）；Y18/18 N6/6 E1放行E2零回退S4全对；Phase1十一探针+Phase2七条单跑零回退；三符号与_ASK_CLASSIFY_SYSTEM与ask_once签名零差分；全量577/1"
+      "freeze_commit": "5746398a",
+      "note": "Phase3.5产出物确定性判task；codex四轮三次真冲突停线均如实上报；主脑裁决3项（新增_PRE_JUDGMENT_OBJECT / 范围三处一致 / 577非578）；Y18/18 N6/6 E1放行E2零回退S4全对；Phase1十一探针+Phase2七条单跑零回退；三符号与_ASK_CLASSIFY_SYSTEM与ask_once签名零差分；全量577/1 || 清账：audit_passed=True 但原 freeze_commit 为空，本次核实补填。实现 commit 5746398a『feat(brain): Phase 3.5 deliverable pre-classify layer (0047)』在 HEAD 历史中；验收记录 c886307d 亦已落地；关键符号 _PRE_JUDGMENT_OBJECT 实测在 agent_server.py L451、_ASK_CLASSIFY_SYSTEM 在 L882，代码确实在。"
     },
     {
       "project": "UltimaAgent",
       "work_order": "wo-ultimaagent-20261112-0048",
-      "state": "audit",
+      "state": "frozen",
       "audit_passed": null,
       "dispatched_at": "2026-11-12T09:02:10.999153+00:00",
       "audit_run": null,
       "freeze_commit": "62d2c7ba",
-      "note": "T1-T5全绿(18 passed)/T6负路径通过(verify如实拒绝6项,源零改动)/audit正路径因tree_unchanged结构不可达移交0049/机检脚本check-order-consistency.py已建3反样本全命中"
+      "note": "T1-T5全绿(18 passed)/T6负路径通过(verify如实拒绝6项,源零改动)/audit正路径因tree_unchanged结构不可达移交0049/机检脚本check-order-consistency.py已建3反样本全命中 || 清账：T1-T5 全绿(18 passed)、T6 负路径通过；audit 正路径的 tree_unchanged 结构性不可达已按 L179 移交 0049，而 0049 已审计通过并冻结 → 移交项闭合，可转 frozen。tag ultimaagent-gorch-0048-20261112 存在。"
     },
     {
       "project": "UltimaAgent",
       "work_order": "wo-ultimaagent-20261112-0049",
-      "state": "audit",
+      "state": "frozen",
       "audit_passed": true,
       "dispatched_at": "2026-11-12T10:38:51.828923+00:00",
       "audit_run": "wo-ultimaagent-20261112-0049-20261112T103851462650Z",
       "freeze_commit": "9caec8de",
-      "note": "T1-T4 全部实测 PASS（源码级四态/线上 /health answerable=true/PID29580未重启/专项23passed/全量580passed1failed基线577-1/ask探针一致）；DeepSeek 审计双轮 T1-T4 全 PASS，audit_passed=true；verify 结构性不可达（terminal_state_legal/no_slot_block/tree_unchanged/declared_files_landed/declared_command_pass 五条均非交付质量问题，见 lessons L179），freeze 因 verify 未通过被拒，本轮手工冻结，契约修复移交 0050/0051"
+      "note": "T1-T4 全部实测 PASS（源码级四态/线上 /health answerable=true/PID29580未重启/专项23passed/全量580passed1failed基线577-1/ask探针一致）；DeepSeek 审计双轮 T1-T4 全 PASS，audit_passed=true；verify 结构性不可达（terminal_state_legal/no_slot_block/tree_unchanged/declared_files_landed/declared_command_pass 五条均非交付质量问题，见 lessons L179），freeze 因 verify 未通过被拒，本轮手工冻结，契约修复移交 0050/0051 || 清账：audit_passed=True；DeepSeek 双轮 T1-T4 全 PASS；freeze_commit 9caec8de 在 HEAD 历史中、已推送；tag ultimaagent-health-0049-20261112 存在。原状态 audit 为『本轮手工冻结』后未回写终态，属状态滞后。verify 五条不可达已按 L179 定性为契约缺陷而非交付质量缺陷，移交 0050/0051。"
+    },
+    {
+      "project": "UltimaAgent",
+      "work_order": "wo-ultimaagent-20261112-0052",
+      "state": "blocked",
+      "audit_passed": null,
+      "dispatched_at": null,
+      "audit_run": null,
+      "freeze_commit": null,
+      "note": "安装包主线 Phase 2（Job Object + HostShell 拉起）。工单已建、机检 FAIL0/WARN0 PASS、已补 DoR 第6项开源替代排查。派发 Codex 失败：codex exec 启动后认证 401（token_expired，refresh token already used），非工单问题，需 Owner 重新登录 Codex 后重派。DeepSeek(deepseek-flash,4765tokens) 初稿经主脑审校修正 7 处：①Phase0/1 已完成不重做 ②HostShell 实为 WinUI 3 非 WPF ③无 OnStartup/OnExit 只有 OnLaunched ④warm_progress 落盘方是 live.py L62 非 launch.py ⑤daemon.py 实路径 src/brain/voice/daemon.py，taskkill /T /F 在 L226 ⑥T3 就绪判据补自方案 §3.1 ⑦T8 判据4 改环境变量触发不改源码。另补方案未覆盖的双起冲突处置（先探后起 adopted=existing）。"
     }
   ]
 }

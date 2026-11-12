@@ -2057,3 +2057,33 @@ E   ModuleNotFoundError: No module named 'src.brain.orchestration.registry' src/
 5. 复用已记录的坑之前，先想一遍**它是不是正在发生**——L181 那条 argv 教训没被用上，白记一次。
 
 **复发标记**：N=1。归类为「同一类事实在多处重复维护，收成单一源」，与 L179/L181/L182 同一条线的收口动作。
+
+---
+
+## L184 · Codex 派发失败的第一症状是 401，不是"模型不可用"（2026-11-12）
+
+**现场**：派发 `wo-ultimaagent-20261112-0052`（安装包 Phase 2）给 Codex，`codex exec -m gpt-5.6-sol` 启动后进程不退，但整段输出全是：
+
+```
+ERROR codex_login::auth::manager: Failed to refresh token status=401 Unauthorized
+ERROR ... Your access token could not be refreshed because your refresh token was already used.
+ERROR codex_models_manager::manager: failed to refresh available models: 401 token_expired
+ERROR rmcp::transport::worker: worker quit with fatal: ... HTTP 401
+warning: Falling back from WebSockets to HTTPS transport. workspace routing discovery unauthorized (401)
+ERROR: Reconnecting... 5/5 → exit code 1
+```
+
+**判读要点**：这一串里同时出现了 `failed to refresh available models` 与 `workspace routing discovery unauthorized`，很容易被读成"模型名不被支持"或"沙箱/网络问题"，从而去查 §1 模型清单或 §8 的 `CodexSandboxOffline 1332`——**方向全错**。
+
+**真因**：`~/.codex-cli/auth.json` 的 refresh token 已被别处消费过（"already used"），无法再换新 access token。本机 `auth.json` 最后修改时间 `2026-10-28 10:40`，距派发已 14 天。Codex 登录态是**派发链路的单点外部依赖**，与工单质量、模型选型、沙箱配置都无关。
+
+**处置**：`codex login` 重新走一遍账号授权，再重派；不需要换模型、不需要改 CODEX_HOME、不需要 bypass 参数。
+
+**规避**：
+1. 派发前先花 5 秒看 `auth.json` 的 mtime。超过一周就先假定可能过期，别等 exec 跑完 60 秒才从两百行 ERROR 里倒推。
+2. **看 `auth.json` 的 mtime 只能降低概率，不能证明 token 有效**——本次 mtime 是 14 天前是巧合，反过来"mtime 很新但 token 已被别处消费"同样会 401。真正的判据是 exec 之后能不能进到模型调用。
+3. 认证失败**不得回滚工单内容**：本次工单、机检、登记全部保留，只把队列状态从 `executing` 退回 `blocked` 并在 note 写明「非工单问题，需重登录」。把失败记成工单缺陷会导致下一轮误改一张本来合格的卡。
+4. 这条与 L179 的「结构性与执行端不力要分清」同源：**外部依赖失效不能被记成自己的缺陷**。
+
+**复发标记**：N=1。
+
