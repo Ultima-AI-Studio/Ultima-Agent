@@ -117,6 +117,29 @@ def tree_oid() -> str | None:
     return (proc.stdout or "").strip() if proc.returncode == 0 else None
 
 
+# The queue maintains these itself: every dispatch rewrites `tasks.json`,
+# `index.md` and `queue-status.json`, and every run writes receipts under `runs/`.
+# They are process bookkeeping, not delivered content, so they are excluded from
+# the tested-tree fingerprint on both sides — see `current_status_entries`.
+_QUEUE_STATE_EXACT = frozenset({
+    "tasks/tasks.json",
+    "tasks/queue/index.md",
+    "tasks/queue/queue-status.json",
+})
+_QUEUE_STATE_PREFIXES = (
+    "tasks/queue/runs/",
+    "tasks/queue/stages/",
+    "tasks/runs/",
+    "tasks/events/",
+)
+
+
+def _is_queue_state(path: str) -> bool:
+    """Whether this path is queue bookkeeping rather than content an order delivers."""
+    normalised = (path or "").replace("\\", "/")
+    return normalised in _QUEUE_STATE_EXACT or normalised.startswith(_QUEUE_STATE_PREFIXES)
+
+
 def _parse_status_z(raw: str) -> list[dict]:
     """Parse ``git status --porcelain=v1 -z`` into entries.
 
@@ -151,13 +174,20 @@ def current_status_entries() -> list[dict] | None:
     test artifacts; enumerating them would cost a minute per call. Untracked
     creations are therefore outside this comparison, which is stated rather than
     implied — declared files are checked separately by path.
+
+    Queue bookkeeping is removed on both sides of the comparison, here and in the
+    receipt. The dispatcher rewrites `tasks.json`, `index.md` and `queue-status.json`
+    and writes run receipts on every dispatch; those are how the queue records
+    itself, not what the order delivers. Leaving them in made the status set differ
+    for every order that had actually been dispatched, which is exactly the shape of
+    "the tested tree is not the tree being frozen" that this check exists to catch.
     """
     completed = subprocess.run([_git_exe(), "status", "--porcelain=v1", "-z", "--untracked-files=no"],
                                cwd=str(ROOT), capture_output=True, text=True,
                                encoding="utf-8", errors="replace")
     if completed.returncode != 0:
         return None
-    return _parse_status_z(completed.stdout or "")
+    return [e for e in _parse_status_z(completed.stdout or "") if not _is_queue_state(e.get("path", ""))]
 
 
 def _acceptance_lines(order_path: Path) -> list[tuple[str, str]]:
@@ -643,6 +673,8 @@ def manifest_drift(manifest: list[dict]) -> dict:
     drifted, vanished = [], []
     for entry in manifest:
         path = entry.get("path") or ""
+        if _is_queue_state(path):
+            continue                     # queue bookkeeping, not delivered content
         recorded = entry.get("sha256")
         target = ROOT / path
         if not target.is_file():
@@ -832,12 +864,26 @@ def verify(work_order: str, run_dir: Path, profile: str = "auto") -> dict:
             "git could not read HEAD^{tree}; refusing rather than guessing", "git rev-parse HEAD^{tree}")
     else:
         drift = manifest_drift(manifest)
-        tree_same = recorded_tree == current_tree
+        # Compared against the delivered commit's tree, not the dispatch baseline.
+        # `recorded_tree` is the tree the order started from; the agent then commits
+        # its work, so HEAD^{tree} necessarily differs and every order that delivered
+        # anything would fail this check by construction. What this gate should ask
+        # is whether the tree being frozen is still the tree that was tested — i.e.
+        # whether HEAD still resolves to what `end_sha` delivered.
+        delivered_tree = None
+        if end_sha and resolvable:
+            probe_tree = _git("rev-parse", f"{end_sha}^{{tree}}")
+            delivered_tree = (probe_tree.stdout or "").strip() if probe_tree.returncode == 0 else None
+        tree_same = delivered_tree == current_tree if delivered_tree else False
         # Comparing the entry *set* is what catches an edit on a clean baseline:
         # nothing was recorded, so nothing could be rehashed, but the set is no
         # longer empty and that difference is visible here.
         live_entries = current_status_entries()
-        entries_same = live_entries == recorded_entries
+        # Filtered on the recorded side too: receipts written before this exclusion
+        # existed still carry the queue's own bookkeeping, and comparing a filtered
+        # live set against an unfiltered recorded one would fail for that alone.
+        recorded_set = [e for e in recorded_entries if not _is_queue_state(e.get("path", ""))]
+        entries_same = live_entries == recorded_set
         files_same = not drift["drifted"] and not drift["vanished"]
         detail = (f"{len(manifest)} recorded entries rehashed; tree "
                   f"{'unchanged' if tree_same else 'differs'}, status set "
@@ -846,7 +892,7 @@ def verify(work_order: str, run_dir: Path, profile: str = "auto") -> dict:
             detail += f"; drifted={drift['drifted'][:5]} vanished={drift['vanished'][:5]}"
         if not entries_same and live_entries is not None:
             added = [e['path'] for e in live_entries
-                     if e not in (recorded_entries or [])][:5]
+                     if e not in recorded_set][:5]
             detail += f"; newly differing={added}"
         add("tree_unchanged", tree_same and entries_same and files_same, detail,
             "git rev-parse HEAD^{tree}; git status --porcelain -uno; sha256 of each recorded file")
