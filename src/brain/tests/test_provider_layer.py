@@ -437,11 +437,12 @@ def test_agent_server_health_payload_preserves_keys_and_exposes_provider(
     assert payload["provider"] == "ollama-8b"
     assert payload["provider_model"] == "configured-model"
     assert payload["provider_configured"] is True
+    assert payload["provider_answerable"] is True
     assert "provider_note" not in payload
     print("health_configured=" + json.dumps(payload, ensure_ascii=False, sort_keys=True))
 
 
-def test_agent_server_health_payload_marks_unconfigured_provider(
+def test_agent_server_health_payload_marks_unusable_when_endpoint_missing(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     from src.brain import agent_server
@@ -454,8 +455,56 @@ def test_agent_server_health_payload_marks_unconfigured_provider(
 
     assert payload["ok"] is True
     assert payload["provider_configured"] is False
-    assert payload["provider_note"] == "主脑未配置，/ask 将无法作答"
-    print("health_unconfigured=" + json.dumps(payload, ensure_ascii=False, sort_keys=True))
+    assert payload["provider_answerable"] is False
+    assert payload["provider_note"] == "主脑配置缺失（endpoint），/ask 将无法作答"
+    assert "无法作答" in payload["provider_note"]
+    assert "endpoint" in payload["provider_note"]
+    print("health_unusable=" + json.dumps(payload, ensure_ascii=False, sort_keys=True))
+
+
+def test_agent_server_health_payload_reports_builtin_default_when_not_enabled(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from src.brain import agent_server
+
+    settings = {
+        "impl": "ollama-8b",
+        "endpoint": "http://127.0.0.1:11434",
+        "model": "qwen3-8b-uncensored:latest",
+        "enabled": False,
+    }
+    monkeypatch.setattr(agent_server, "_MAIN", settings, raising=False)
+
+    payload = agent_server._health_payload()
+
+    assert payload["provider_answerable"] is True
+    assert payload["provider_configured"] is False
+    assert "provider_note" in payload
+    assert "未显式配置" in payload["provider_note"]
+    assert "内置默认" in payload["provider_note"]
+    assert "ollama-8b" in payload["provider_note"]
+    assert "qwen3-8b-uncensored:latest" in payload["provider_note"]
+    assert "无法作答" not in payload["provider_note"]
+
+
+@pytest.mark.parametrize("missing_key", ["impl", "model"])
+def test_agent_server_health_payload_names_other_missing_provider_fields(
+    monkeypatch: pytest.MonkeyPatch,
+    missing_key: str,
+) -> None:
+    from src.brain import agent_server
+
+    settings = _main_settings("ollama-8b")
+    settings[missing_key] = ""
+    monkeypatch.setattr(agent_server, "_MAIN", settings, raising=False)
+
+    payload = agent_server._health_payload()
+
+    assert payload["provider_configured"] is True
+    assert payload["provider_answerable"] is False
+    assert payload["provider_note"] == f"主脑配置缺失（{missing_key}），/ask 将无法作答"
+    assert "无法作答" in payload["provider_note"]
+    assert missing_key in payload["provider_note"]
 
 
 def _probe_api():

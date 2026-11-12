@@ -1406,6 +1406,10 @@ def ask_once(query: str, max_tokens: int | None = None) -> dict[str, Any]:
 
 def _health_payload() -> dict[str, Any]:
     model = str(_MAIN.get("model") or "")
+    has_impl = bool(str(_MAIN.get("impl") or "").strip())
+    has_endpoint = bool(str(_MAIN.get("endpoint") or "").strip())
+    has_model = bool(str(_MAIN.get("model") or "").strip())
+    usable = has_impl and has_endpoint and has_model
     configured = bool(_MAIN.get("enabled") and str(_MAIN.get("endpoint") or "").strip())
     payload: dict[str, Any] = {
         "ok": True,
@@ -1415,9 +1419,24 @@ def _health_payload() -> dict[str, Any]:
         "provider": str(_MAIN.get("impl") or ""),
         "provider_model": model,
         "provider_configured": configured,
+        "provider_answerable": usable,
     }
-    if not configured:
-        payload["provider_note"] = "主脑未配置，/ask 将无法作答"
+    if not usable:
+        missing = [
+            name
+            for name, present in (
+                ("impl", has_impl),
+                ("endpoint", has_endpoint),
+                ("model", has_model),
+            )
+            if not present
+        ]
+        payload["provider_note"] = f"主脑配置缺失（{', '.join(missing)}），/ask 将无法作答"
+    elif not _MAIN.get("enabled"):
+        payload["provider_note"] = (
+            "主脑未显式配置，当前使用内置默认："
+            f"impl={str(_MAIN.get('impl') or '').strip()}，model={model.strip()}"
+        )
     return payload
 
 
