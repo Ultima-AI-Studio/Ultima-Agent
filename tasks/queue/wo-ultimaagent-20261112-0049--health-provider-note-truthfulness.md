@@ -5,6 +5,24 @@
 > 范围依据：`tasks/queue/requirements/req-health-provider-note-20261112.md`（REQ-20261112-0049）+ DeepSeek 三阶段（`tasks/queue/runs/req-health-provider-note-20261112/stages/`）
 > 前置：0048 冻结 `62d2c7ba`；本单为 0049，用于首次真实全自动跑通 `run-pipeline.py`（含 audit 正路径）。
 
+<!-- gorch-manifest
+{
+  "files": [
+    "src/brain/agent_server.py",
+    "src/brain/tests/test_provider_layer.py"
+  ],
+  "acc": [
+    {"id": "ACC-1", "check": "exists_nonempty", "path": "src/brain/agent_server.py"},
+    {"id": "ACC-2", "check": "exists_nonempty", "path": "src/brain/tests/test_provider_layer.py"}
+  ],
+  "commands": [
+    "tools/venv-openjarvis/Scripts/python.exe -m pytest src/brain/tests/test_provider_layer.py"
+  ]
+}
+-->
+
+**机检**：`tools/venv-openjarvis/Scripts/python.exe -m pytest src/brain/tests/test_provider_layer.py`
+
 ---
 
 ## 1. 范围冻结
