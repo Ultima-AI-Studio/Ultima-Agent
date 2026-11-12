@@ -1885,3 +1885,55 @@ _notify_event 改为按已加载模块取总线：优先 sys.modules 里的
 3. `--repair` 重派前，必须读一次 `out.jsonl` 里上一轮的停线原因，确认重派能提供上一轮缺的东西。
 
 **复发标记**：N=1。与 L174 同类（事后追加裁决要同步三处），但更严重：**这次是派发结构本身需要拆，不是改一句话能补的。**
+
+## L181 · L179 的「结构性不可达」被证伪：那是 10 个独立缺陷，不是一个共同根因
+
+**这是对 L179 的更正，L179 保留原文不删，其结论按本条作废。**
+
+**现象**：按 L179 的"三条结构性共同根因"逐个下手修，干净 worktree 的全量口径从 **11 failed / 12 passed** 一路收敛到 **0 failed / 580 passed / 1 skipped**，与主仓同口径完全一致。修完再跑 0049 的真实 verify，blocking 从 9 条降到 5 条，且**剩下 5 条逐条都能归因到 0049 自身的历史数据，没有一条是判据不可达**。
+
+**L179 到底哪里错了**：它把"我在干净 worktree 里跑不起来"这一个观察，解释成了"verify 的判据假设了一个本仓库不成立的仓库形态"。实际上那条链条上有 **10 个互不相干的缺陷**，每个都有自己的修法：
+
+| # | 真实缺陷 | 修法 | 证据 |
+|---|---|---|---|
+| 1 | `tasks/tasks.json` 767 行全是 CRLF，git diff 报 1534 行 | python 读 `newline=""` 后 `.replace("\r\n","\n")` 写回 | diff 1534 → 10 行 |
+| 2 | `tasks/cards` 39 张被 `card_path` 引用的卡从未入库 | `git add` 107 个 `.md`，运行产物不入库 | `read_queue_status` 不再报"任务卡读取失败" |
+| 3 | `.gitignore` 排除 `libs/`（17502 文件 / 1768.9 MB），干净检出没有 import 根和 prompt | `mklink /J` 目录联接，在 `worktree add` 后挂、`remove` 前 `os.rmdir` 卸 | 单文件 23 passed |
+| 4 | 测试夹具 21 文件未入库（`data/voice/` 被 ignore） | `git add -f` 精确添加 1.4 MB 引用音频 + 16 个 AB 样本 | `test_kws_channel_ab` / `test_voice_voice` 转绿 |
+| 5 | `tasks.json` 4 条 `card_path` 写成绝对路径，干净检出里越界 | 精确字符串替换改相对（不用 `json.dump` 整文件重写） | 越界报错消失 |
+| 6 | `test_ollama_has_brains` 无条件跑 `ollama list` | `shutil.which` 环境门 + `skipTest` | 580 passed / 1 skipped |
+| 7 | `_junit_counts` 要求 `tests` 与 testcase 节点数严格相等 | 用 `collected N items` 做交叉校验 | `counts` 从 None 变成真值 |
+| 8 | `tree_unchanged` 把队列运行态算进指纹 | 精确清单 + 目录前缀，live 与 recorded 两侧同时剔除 | `status set unchanged` |
+| 9 | `tree_unchanged` 的 tree 比对用派发基线 | 改比 `end_sha^{tree}` vs 当前 `HEAD^{tree}` | 语义变成"要冻结的 tree 还是被测的那个" |
+| 10 | `declared_files_landed` 无条件比 `base vs 工作区` | 优先 `git diff base end_sha -- path` | 无关改动不再冒充本单交付 |
+
+**最值得记的一条：第 7 条我连续错了两次。**
+- 第一次假设差额记在 `testsuite` 的 `subtests` 属性上 —— 实测该属性根本不存在，`testcase` 也没有，元素名只有 `testsuite`/`testcase`/`skipped`。
+- 第二次假设能从 stdout 读 `N subtests passed` —— 实测 `-q` 模式下**根本不打印**，得 0。
+- 真正的来源是 `unittest.TestCase.subTest`：junit 把每个 subtest 的执行次数累加进 `tests` 属性，却**不为它写任何节点**，所以差额在报告内部无法自证。唯一干净的计数是 `collected N items`，因为它发生在任何测试体之前。
+
+**L179 的"三条共同根因"逐条被推翻**：
+1. "派发器会改写被 verify 监控的文件" —— 真的，但修法不是"承认矛盾"，是**把队列记账从指纹里剔除**（精确清单，不是整个 `tasks/queue/`，否则真交付的卡也被放过）。
+2. "先提交再派发会让 `base_sha == end_sha`" —— 真的，但**判据本身问错了对象**：要问的是"HEAD 是否仍等于交付提交"，不是"HEAD 是否等于开工时的基线"。改比 `end_sha^{tree}` 之后语义才正确。
+3. "测试依赖未入 git" —— 真的，但那是**三条具体的入库缺口**（`libs/` 用 junction、21 个夹具、98 个 `src/brain/*.py`），不是"依赖全都不在 git"这种笼统结论。
+
+**0049 剩下 5 条 FAIL 的真实性质（全部不是判据缺陷）**：
+
+| check | 0049 的实际数据 | 性质 |
+|---|---|---|
+| `terminal_state_legal` | `state=blocked` | 它派发时真被审计名额阻塞过 |
+| `no_slot_block` | `audit_slot_busy=True` | 同上 |
+| `tree_unchanged` | `end_sha=bb459f31`，当前 HEAD 早已前进 10 个 commit | 冻结的确实不是当时测的那个 |
+| `declared_files_landed` | `base_sha == end_sha == bb459f31`，而该提交上文件已改过、diff 为空 | **它的 `base_sha` 记在了交付之后** |
+| `declared_command_pass` | 在 `bb459f31` 上跑 `test_provider_layer.py` = **3 failed / 20 passed** | **它交付时该文件真有 3 个失败** |
+
+最后一条最硬：我一开始以为是自己的改动跑坏了测试，回主仓跑同一文件是 23 passed，回 `bb459f31` 跑是 3 failed。**判据没错，是我差点冤枉了判据。**
+
+**规避**：
+1. 判据 FAIL 时，先按"这是判据的问题"和"这是数据的问题"两路各查一遍，**不要预设判据是错的**。L179 就是预设判据错了、然后把 10 个缺陷合并成一个"结构性"结论，导致后面三个工单都卡在同一个错误框里。
+2. `counts is None` 这类"解析失败"信号，要区分**报告没生成**、**报告不完整**、**报告口径与解析器不一致**三种。第三种要去找真正的口径差（本例是 `unittest.subTest`），不要靠放宽校验绕过。
+3. 改 verify 判据前，先造一个**同口径对照**（主仓 580 passed vs 干净 worktree 580 passed），口径一致才说明环境修好了，再动判据。
+4. 用 junction 挂 `libs/` 属于"被测树含提交之外的第三方底座"。这在 `tree_unchanged` 语义上是否合规，还没定论 —— 见 OPEN 项。
+
+**复发标记**：N=1。与 L179 是**同一条线的更正关系**，不是新坑：L179 记录的观察是真的，结论是错的。
+
