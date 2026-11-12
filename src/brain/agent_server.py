@@ -474,6 +474,15 @@ def _claim_clean(content: str) -> str:
     return re.sub(r"[^。！？!?]+[。！？!?]?", replace_sentence, content)
 
 
+def _is_too_short(content: str, *, minimum: int = 2) -> bool:
+    """实质字符（去掉标点空格与英文标记）少于 minimum 视为单字级残句，走兜底话术。
+
+    阈值只取 2，专拦「您」「哦」这类退化到只剩一个字的输出。更长的正常短答
+    （如「1+1等于2。」）一律放行；剥离导致的缩水由 _clean_content 内部的最短长度保护处理。
+    """
+    return len(re.sub(r"[^0-9A-Za-z\u4e00-\u9fff]", "", content or "")) < minimum
+
+
 def _clean_content(content: str) -> str:
     """清理响应文本：只保留 Final Answer 之后的内容，并剥掉内部标记；无标记则原样返回。"""
     if not content:
@@ -488,7 +497,11 @@ def _clean_content(content: str) -> str:
     if servile_tail is not None:
         matched = servile_tail.group(0)
         punctuation = "！" if "！" in matched else "。" if "。" in matched else ""
-        content = f"{content[:servile_tail.start()]}{punctuation}"
+        candidate = f"{content[:servile_tail.start()]}{punctuation}"
+        # 最短长度保护：模型偶尔会退化生成「您有什么可以帮您？」这类只有反问、没有主体的句子，
+        # 强剥只剩「您」反而比原文更差。实质字符不足 4 时保留原文，交给上层兜底。
+        if len(re.sub(r"[^0-9A-Za-z\u4e00-\u9fff]", "", candidate)) >= 4:
+            content = candidate
     return content.strip()
 
 
@@ -923,7 +936,7 @@ def _ask_diagnose_branch(query: str, max_tokens: int | None = None) -> dict[str,
         usage = result.usage
     except Exception as exc:  # 诊断直连失败也要如实说，不能装作查过现场
         sys.stderr.write(f"[ask] 诊断直连失败：{type(exc).__name__}: {exc}\n")
-    if not content:
+    if not content or _is_too_short(content):
         content = STRUCTURED_FALLBACK_REPLY
     EVENT_BUS.emit_event("message", {"text": content, "role": "jarvis"})
     ok = content != STRUCTURED_FALLBACK_REPLY
@@ -969,7 +982,7 @@ def _ask_query_branch(query: str, max_tokens: int | None = None) -> dict[str, An
         usage = result.usage
     except Exception as exc:  # 直连失败也要如实说，不能装作答完了
         sys.stderr.write(f"[ask] 查询直连失败：{type(exc).__name__}: {exc}\n")
-    if not content:
+    if not content or _is_too_short(content):
         content = STRUCTURED_FALLBACK_REPLY
     EVENT_BUS.emit_event("message", {"text": content, "role": "jarvis"})
     ok = content != STRUCTURED_FALLBACK_REPLY

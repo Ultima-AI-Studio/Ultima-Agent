@@ -148,6 +148,25 @@ def test_clean_content_keeps_non_servile_statements():
         assert agent_server._clean_content(content) == content
 
 
+def test_servile_strip_keeps_body_when_result_too_short():
+    """退化生成「您有什么可以帮您？」时，强剥只剩「您」，必须保留原文。"""
+    degenerate = "您有什么可以帮您？"
+    first_sentence = "您问的是贾维斯，Ultima Agent主脑。有什么可以帮您？"
+
+    # 只剩反问句的退化输出：不剥，避免产出单字残句
+    assert agent_server._clean_content(degenerate) == degenerate
+    # 正常带主体的：照常剥掉反问，保留主体
+    assert agent_server._clean_content(first_sentence) == "您问的是贾维斯，Ultima Agent主脑。"
+
+
+def test_is_too_short_guards_against_fragment_output():
+    """实质字符不足 2 视为单字残句，交由分支出口走兜底话术。"""
+    assert agent_server._is_too_short("您")
+    assert not agent_server._is_too_short("ab")
+    assert not agent_server._is_too_short("1+1等于2。")
+    assert not agent_server._is_too_short("市盈率是股价除以每股收益。")
+
+
 def test_clean_content_still_strips_grounded_marker():
     assert agent_server._clean_content("grounded:false   不确定。") == "不确定。"
 
