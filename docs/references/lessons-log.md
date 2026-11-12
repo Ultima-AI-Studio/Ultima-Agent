@@ -1819,3 +1819,69 @@ _notify_event 改为按已加载模块取总线：优先 sys.modules 里的
 4. 写卡时参数清单一次写全，不要「先用着，缺了再补」——补的时候最容易只补 §3 忘了 §1。
 
 **复发标记**：N=3（同一张卡三轮）。与前两条同类：**改一处不回核其余**。
+
+---
+
+
+## L179 · verify 的 4 个硬门在本仓库形态下结构性不可达（不是执行端不力）
+
+**现象**：0049 在 T1-T4 全部实测 PASS 之后跑 `verify-order.py`，仍报 6 个 blocking failure（修卡后降到 5，再降到 4）。逐条读判据实现，**没有一条是交付质量问题**：
+
+| check | 判据要求 | 实际 | 性质 |
+|---|---|---|---|
+| `terminal_state_legal` | 队列 `state` 必须是 `audit`/`frozen` | 派发器写的是 `blocked` | 流程态，可推进 |
+| `no_slot_block` | 审计名额空闲 | 有别的单占着审计名额 | 外部状态 |
+| `tree_unchanged` | 工作树 == `done.json` 的 `tree_oid` | 派发器**自己**在派发时改了 `queue-status.json` 和 `index.md` | **结构性** |
+| `declared_files_landed` | `git diff <base_sha> -- <文件>` 非空 | `base_sha == end_sha`（先提交再派发），diff 必然空 | **结构性** |
+| `declared_command_pass` | 在干净 worktree 的 `end_sha` 上跑机检命令全绿 | **11 failed / 12 passed** | **结构性（最重要）** |
+
+**最关键的是 `declared_command_pass`**：verify 会把声明的命令拿到一个只有已提交内容的干净 worktree 里跑。而本仓库的运行必需依赖大量未纳入 git：
+
+- `libs/base/openjarvis/configs/openjarvis/prompts/personas/jarvis.md`
+- `src/brain/guardrails/receipt.py`
+- `src/brain/loop/params.py`
+
+于是 `src/brain` 的测试在干净 checkout 里**收集就报 12 errors**，勉强跑起来也是 11 failed。**这不是 0049 的错，是仓库没有把这些运行必需文件纳入版本控制。**
+
+**三条结构性的共同根因**：
+1. **派发器会改写被 verify 监控的文件**（`queue-status.json` / `index.md`）——它既是执行者又是被验对象，`tree_unchanged` 天然矛盾。
+2. **先提交再派发会让 `base_sha == end_sha`**——`declared_files_landed` 天然空 diff。
+3. **测试依赖未入 git**——干净 worktree 天然跑不起来。
+
+这三条与 0048 发现的「历史 run 回执 `tree_oid` 必然不符」是同一类问题的四个面：**verify 的判据假设了一个「工作树干净、依赖全在 git、派发器不改监控文件」的仓库，而这个仓库三条都不成立。**
+
+**处置（本轮）**：
+- 不削判据。0049 的验收结论由主脑实测 + Codex 独立复测双份证据支撑（T1-T4 全部 PASS），verify 的 FAIL 如实记录为结构性。
+- `terminal_state_legal` / `no_slot_block` 两条按流程推进（改 state、等名额），不是缺陷。
+- 其余三条转 0050（verify 契约与派发器自改文件的冲突）与 0051（运行必需依赖纳入 git）。
+
+**规避**：
+1. 跑 verify 前先看 `done.json` 的 `base_sha` 是否等于 `end_sha`；相等则 `declared_files_landed` 必然 FAIL，不要据此判交付失败。
+2. 跑 verify 前先确认 `git status` 里没有派发器刚写过的 `queue-status.json` / `index.md`；有则 `tree_unchanged` 必然 FAIL。
+3. **不要把「verify 绿」等同于「交付合格」**。verify 是机械门，它证明的是一组结构条件成立；结构条件本身不可达时，等于这个门对这类工单没有判据效力。此时必须回到实测证据。
+4. 建单时把「测试依赖是否全部在 git」列为前置检查项——这一条不成立，`declared_command_pass` 对所有工单都会 FAIL，等于该门永久失效。
+
+**复发标记**：N=1。与 L177/L178 同类：**状态机/判据里有一条无出口的边，而出口不在判据方**。
+
+
+## L180 · 写操作与只读验证混在一次派发，重派必然无法建立基线
+
+**现象**：0049 首次派发完成 T1（改源码）/ T2（改测试）/ T3（改队列）后在 T4 停线。重派时 Codex 在**基线核对阶段**就停线：
+
+> 工作区在本进程写入前已存在本单的生产代码、测试和队列登记改动，无法建立可信的改前基线与改动归属。
+
+它同时命中停线条件 1（卡与代码事实冲突：T1/T2 已同时存在）与条件 3（T1→T2→T3 串行 Gate 无法判定：T3 要追加 pending，但记录已存在且是 `executing`）。
+
+**根因**：卡把**写操作**（T1-T3）与**只读验证**（T4）放在同一次派发里。首派做完写操作后停线，重派时这些产物已在工作区，新进程必然无法「从头执行串行 Gate」。**这是卡的结构问题，不是执行端不配合。**
+
+**处置**：
+1. 卡内补「续行契约」段，明确声明哪些 T 已完成、本次只做哪些、不得重做/回退/认领。
+2. **更根本**：把写操作先提交成一个 commit，使工作区干净，再派只读验证。这样 `base_sha` 与 `end_sha` 至少不再纠缠于「文件没变」。
+3. 但注意：先提交会引入 L179 的 `base_sha == end_sha` 问题。**两个修法互相冲突，说明「一个派发里既改又验」这件事本身在现有 verify 契约下没有正解** —— 要么拆成两张单（改一单、验一单），要么改 verify 的 `base_sha` 语义。
+
+**规避**：
+1. 写卡时判：本次派发里有没有「改文件」与「只读断言」两种动作？有则拆单，不要靠续行契约硬撑。
+2. 派发前先查目标文件是否已是本单的未提交改动状态；是则先处理（提交或回退），不要直接派。
+3. `--repair` 重派前，必须读一次 `out.jsonl` 里上一轮的停线原因，确认重派能提供上一轮缺的东西。
+
+**复发标记**：N=1。与 L174 同类（事后追加裁决要同步三处），但更严重：**这次是派发结构本身需要拆，不是改一句话能补的。**
