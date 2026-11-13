@@ -133,10 +133,10 @@
 
 ## 三、插件分档（R-35）
 
-| 档位 | 判据 | 插件 | 数量 | 停用后是否可降级 |
-|---|---|---|---|---|
-| **必装** | 服务基础能力或交付本身 | `plugin.kws.sherpa`、`plugin.asr.<name>`、`plugin.tts.cv3`、`plugin.tts.sapi`、`plugin.dsp.apm`、`plugin.render.a2ui`、`plugin.render.webview`、`plugin.store.file`、`plugin.store.sqlite`、`plugin.updatesource.http`、`plugin.installer.inno` | 11 | 语音降级 SAPI / 存储降级文件；渲染与安装不可缺 |
-| **选装** | 只服务外部能力接线，或按条件启用 / 含风险能力 | `plugin.mcp.client`、`plugin.executor.codex`、`plugin.executor.deepseek`、`plugin.executor.local8b`、`plugin.provider.openai`、`plugin.provider.deepseek`、`plugin.provider.ollama`、`plugin.store.vector`（按记忆量阈值启用，v1.0 不装）、`plugin.host.windows_mcp`（含风险，默认关闭） | 9 | 全部可停：无外脑时只走本地 8B；无向量库时用 SQLite 全文；无 Windows MCP 时不能用电脑控制类能力 |
+| 档位 | 判据 | 插件 | 数量 | lifecycle（“任一可停”仅适用于 `disableable`） | 停用后是否可降级 |
+|---|---|---|---|---|---|
+| **必装** | 服务基础能力或交付本身 | `plugin.kws.sherpa`、`plugin.asr.<name>`、`plugin.tts.cv3`、`plugin.tts.sapi`、`plugin.dsp.apm`、`plugin.render.a2ui`、`plugin.render.webview`、`plugin.store.file`、`plugin.store.sqlite`、`plugin.updatesource.http`、`plugin.installer.inno` | 11 | `runtime_required`：`plugin.kws.sherpa`、`plugin.asr.<name>`、`plugin.tts.sapi`、`plugin.dsp.apm`、`plugin.render.a2ui`、`plugin.render.webview`、`plugin.store.sqlite`；`disableable`：`plugin.tts.cv3`、`plugin.store.file`、`plugin.updatesource.http`；`install_time_only`：`plugin.installer.inno` | `runtime_required` 停用后对应语音/渲染/存储主链不可用且健康门必须失败；`plugin.tts.cv3` 可降级 SAPI，`plugin.store.file` 停用仍走 SQLite，更新源停用后只失去在线更新；安装器仅安装/升级/卸载时需要 |
+| **选装** | 只服务外部能力接线，或按条件启用 / 含风险能力 | `plugin.mcp.client`、`plugin.executor.codex`、`plugin.executor.deepseek`、`plugin.executor.local8b`、`plugin.provider.openai`、`plugin.provider.deepseek`、`plugin.provider.ollama`、`plugin.store.vector`（按记忆量阈值启用，v1.0 不装）、`plugin.host.windows_mcp`（含风险，默认关闭） | 9 | `disableable`：本行全部插件 | 全部可停：无外脑时只走本地 8B；无向量库时用 SQLite 全文；无 Windows MCP 时不能用电脑控制类能力 |
 
 ---
 

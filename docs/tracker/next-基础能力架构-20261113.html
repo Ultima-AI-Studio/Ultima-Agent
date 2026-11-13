@@ -144,7 +144,7 @@ footer{margin-top:40px;padding-top:16px;border-top:1px solid var(--line);color:v
           <li><b>六块运行时</b>：Core / Senses.Voice / Shell / Surface / Memory / Middleware</li>
           <li><b>＋ Console</b>：引擎中心管理调度器（Manager 同进程子模块）</li>
           <li><b>＋ 治理与约束 ⑤</b>：横切，不占运行时模块</li>
-          <li>进程全部在客户端域，引擎域零 Windows-only 依赖</li>
+          <li>壳与呈现在客户端域，Console/queue_engine 在 Python 引擎域同 pid</li>
         </ul>
       </div>
 
@@ -235,7 +235,7 @@ footer{margin-top:40px;padding-top:16px;border-top:1px solid var(--line);color:v
         <div class="item"><b>输出呈现</b>把状态递给 Surface</div>
         <div class="item"><b>多端调度</b>投递给用户设备 / 显示端</div>
       </div>
-      <p class="no"><b>边界（可机检）</b>：代码只要会碰进程 / 网络 / 磁盘 / 像素，就不属于 Console。Console 若自己 <code>CreateProcess</code> 起看门狗，就成了第二个父进程 → 孤儿进程复发。进程留在客户端域是刻意选择。<b>八态只读写、不定义</b>（定义在 <code>queue_engine.state_machine</code>）；看门狗只看「起 / 停 / 查」意图，进程由 Shell 起。</p>
+      <p class="no"><b>边界（可机检）</b>：代码只要会碰进程 / 网络 / 磁盘 / 像素，就不属于 Console。Console 若自己 <code>CreateProcess</code> 起看门狗，就成了第二个父进程 → 孤儿进程复发。进程留在客户端域是刻意的——但仅指壳与呈现。<b>八态只读写、不定义</b>（定义在 <code>queue_engine.state_machine</code>）；看门狗只看「起 / 停 / 查」意图，进程由 Shell 起。</p>
     </div>
 
     <div class="cut">
