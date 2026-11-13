@@ -1902,11 +1902,11 @@
       "project": "UltimaAgent",
       "work_order": "wo-ultimaagent-20261113-0057",
       "state": "audit",
-      "audit_passed": true,
+      "audit_passed": false,
       "dispatched_at": "2026-11-13T15:24:02.698255+00:00",
-      "audit_run": "wo-ultimaagent-20261113-0057-20261113T152402246487Z",
+      "audit_run": "wo-ultimaagent-20261113-0067-20261113T165659868809Z",
       "freeze_commit": null,
-      "note": "真实执行结束 exit=0；wo-ultimaagent-20261113-0057-20261113T152402246487Z；待二轮复核，不自动批准或续派"
+      "note": "0067 独立审计结论＝有条件通过（修复后再冻结）：11 条覆盖＝已堵 8／半堵 3（G-03 composer 缺请求返回表、G-05 幂等账本保留期仍 TBD-G05-RETENTION、C-17 补偿缺 compensator 签名与 receipt 字段表）；Gate＝可机检 21／半机检 3／不可机检 0；0057 自评 T6_GATE=PASS 不自洽：T3.4（架构树 desc 未同步 §25.5）、T6.1／T6.2／T6.3（架构树 desc 节点数 0、附录 A 新增行 0）确定性 FAIL；执行期队列确有 pending→executing 写入。未冻结。"
     },
     {
       "project": "UltimaAgent",
@@ -1997,6 +1997,16 @@
       "audit_run": "wo-ultimaagent-20261113-0066-20261113T163817823112Z",
       "freeze_commit": null,
       "note": "骨架评审完成（00:38→00:53，约 15min）：结论＝不通过，T5_GATE=PASS（评审自身合格）。新增问题 3 条＝BLOCKER S-002 队列写口双主（基线 L510「只由状态机写」vs §19.3 L1127「Console 只读写八态」）、BLOCKER S-003 补偿失败落 BLOCKED 在 §15.2.1 迁移表无来源态、HIGH S-001 架构树 L201「Core 执行顺序控制」与 L195／§19.2 打架；三处高危边界＝起进程有越界（沿用 0056-C-04）、八态定义闭合但持久写权双主、记忆写权闭合；§25 逐节归属 11/11 可归属、§25.3 与 §25.11 接口形态缺；§26／§27 位置对齐。三条经 Owner 回读原文核实成立。"
+    },
+    {
+      "project": "UltimaAgent",
+      "work_order": "wo-ultimaagent-20261113-0067",
+      "state": "audit",
+      "audit_passed": true,
+      "dispatched_at": "2026-11-14T00:56:59+08:00",
+      "audit_run": "wo-ultimaagent-20261113-0067-20261113T165659868809Z",
+      "freeze_commit": null,
+      "note": "0057 独立审计（00:57→01:15，18min）：结论＝有条件通过／修复后再冻结，T6_GATE=PASS（审计自身合格）。8 已堵／3 半堵／0 未堵；Gate 21 可机检／3 半机检／0 不可机检；定位 0057 自评 T6_GATE=PASS 与四个实测 FAIL 冲突；S-003 落在 §25.11 L1763。"
     }
   ]
 }
