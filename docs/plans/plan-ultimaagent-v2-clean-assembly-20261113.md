@@ -104,9 +104,9 @@ H:\UltimaAI\UltimaAgentNext\
 | 工单 | 内容 | Gate |
 |---|---|---|
 | P2V-00 立项 | 新仓初始化、docs 文档体系、队列引擎搬运、venv 规范名 | 队列渲染器自检过 |
-| P2V-01 搬 Core+Memory+Middleware | import 吸收（openjarvis→Core） | AST 3/3 + 单测绿 |
-| P2V-02 搬 Senses.Voice | KWS/CV3 冻结基线复测 | 唤醒/对话链路实测一致 |
-| P2V-03 搬 Shell+Surface | 0054 产物 + 四角壳对接（orb 渲染线不搬） | build 0/0 + Guardian 事件 + 零计划任务 + 零弹窗 + 四角壳锚位渲染自检 |
+| P2V-01 搬 Core+Memory+Middleware | import 吸收（openjarvis→Core） | AST 3/3 + 单测绿 + Windows-only 依赖扫描 0 处 |
+| P2V-02 搬 Senses.Voice | KWS/CV3 冻结基线复测 | 唤醒/对话链路实测一致 + Windows-only 依赖扫描 0 处 |
+| P2V-03 搬 Shell+Surface | 0054 产物 + 四角壳对接（orb 渲染线不搬）+ 宿主契约接口落文档 | build 0/0 + Guardian 事件 + 零计划任务 + 零弹窗 + 四角壳锚位渲染自检 |
 | P2V-04 搬 Update+Lifecycle | 安装包链重建 | Setup 全流程验收（复用 0052/0054 判据） |
 | P2V-05 总验收 | 全链路贯通 + 北极星清单更新 + 冻结 tag | 端到端冒烟 + 独立审计 |
 
@@ -142,6 +142,18 @@ v2 的配置治理四条铁律：
 ### 6.3 搬运时的路径重写
 
 host-tasks.json 中 `tools/venv-openjarvis/...`、`src/voice-next/launch.py` 等路径在 v2 搬运时随白名单一次性重写为新仓规范路径（venv 规范名 + `src/Senses/Voice/launch.py`），并跑 Guardian 探活复验——配置文件不改就搬运等于把旧命名走私进新仓。
+
+## 七、终端演进策略（Owner 方向拍板 2026-11-13：Windows → Linux → 自研 AR 眼镜系统）
+
+**产品最终形态 = AR 眼镜上使用的智能代理**。v2 干净拼装不只是清理旧仓，更是为多终端演进铺路：当前 Windows 是第一站，下一版适配 Linux，未来做自研 AR 眼镜系统。据此立三条架构铁律：
+
+1. **模块分层按"终端无关/终端相关"切分**（本方案八模块架构天然满足，搬运时以依赖检查守住）：
+   - **终端无关层（跨终端常量）**：Core、Senses.Voice、Memory、Middleware、Update——五模块搬运与后续演进**禁止引入 Windows-only 依赖**（无 win32api/pywin32/WMI 依赖进这些层；开发验收工具例外，归 devtools）。KWS/CV3 语音链路本身终端无关，是 AR 眼镜"耳+嘴"的直接复用层。
+   - **终端相关层（每终端一套适配）**：Shell（常驻托管/自愈/自启）与 Surface（显示形态）——Windows 版 = HostShell(WinUI3)+四角壳锚位；Linux 版另立 Shell 适配（systemd/dbus 方向，后续专项方案）；AR 眼镜版 = 自研系统内嵌。Shell 与 Surface 之间约定**宿主契约接口**（托管生命周期/事件/渲染挂点），跨终端只换实现不换契约。
+2. **显示形态跨终端唯一常量 = 四角壳 8 锚点范式**：hud-layout-zone-plan v0.2 的 AR HUD 显示哲学（边缘常驻×按需显隐×中央零遮挡、锚位职责锁定、宽度锁定、无边框气泡、置顶才显边框）本就为 AR 前瞻设计——Windows 上是屏幕四角，AR 上贴视野边缘，范式不变只换投射载体。AR 安全基线（透明度三档 0.14/0.55/0.85、中央永远透传）沿用既有定稿。
+3. **演进次序与不可逆纪律**：Windows v2（P2V-00~05）→ Linux 适配版（独立方案+工单，不与拼装混做）→ AR 眼镜系统（远期，自研内核前先在 Windows/Linux 上把四角壳+语音链路打磨成熟）。每一步迁移都走「冻结仓+白名单搬运」范式，不复用被冻结的旧实现直接混写。
+
+**对 v2 拼装的直接影响**：P2V-01/02 搬运时增加一项 Gate——终端无关五模块 import 依赖扫描（win32/pywin32/WMI/Windows 路径硬编码 = 0 处）；Shell 与 Surface 间宿主契约接口在 P2V-03 落文档。AR 适配本身不在本方案范围（非目标），本节只锁方向与分层纪律。
 
 ## 八、风险与代价（如实）
 
