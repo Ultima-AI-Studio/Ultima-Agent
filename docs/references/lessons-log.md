@@ -2229,7 +2229,6 @@ ERROR: Reconnecting... 5/5 → exit code 1
 - **根因**：0054 记录是建卡时用临时脚本手工写入的，只写了 6 个键，缺 `audit_run`/`freeze_commit`（回退 pending 时又误删了 `dispatched_at`，该字段允许 null 但键必须存在）。渲染器 `_validate` 要求 8 个键齐全，而派发器自身只读写不补键，缺陷被带到派发时才爆。
 - **修法**：补齐 8 键（缺的三个给 null），状态回 pending 后重派；重派一次成功。
 - **判据**：任何脚本写 queue-status.json，必须按渲染器 `_validate` 的 8 个必填键（project/work_order/state/audit_passed/dispatched_at/audit_run/freeze_commit/note）整键写入，写完立即跑一次 `render-queue-views.py` 自检；派发失败后先查 run 目录有无 out.jsonl/worker 进程，确认状态与现场一致再重派。
-
 ## L223 · PowerShell here-string 里的反引号会吃掉 Markdown 代码标记（2026-11-13）
 
 - **现象**：用 `@"..."@` 向盘点清单追加 §八 时，正文中的 `` `kb` `` / `` `exp` `` 与 `` `next-基础能力缺口复核-...md` `` 被写坏——落盘后变成 `kb/p 分库`、`详见 \next-...`（换行被吃进路径）。文件行数、结构校验全绿，**只有读内容才能发现**。
