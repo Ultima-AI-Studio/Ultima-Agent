@@ -1,0 +1,61 @@
+{
+  "schema_version": 1,
+  "work_order": "wo-ultimaagent-20261113-0055",
+  "scope": {
+    "metrics": 10,
+    "files": 7,
+    "cells_expected": 70,
+    "cells_filled": 70,
+    "encoding": "utf-8"
+  },
+  "files": {
+    "F1": "docs/specs/next-感知交互参数基线-20261113.md",
+    "F2": "docs/plans/next-基础能力盘点与缺口清单-20261113.md",
+    "F3": "docs/plans/next-基础能力缺口复核-20261113.md",
+    "F4": "docs/plans/next-owner-requirements-log-20261113.md",
+    "F5": "docs/specs/next-双域分离与开工设置规范.md",
+    "F6": "docs/tracker/北极星架构树.html",
+    "F7": "docs/tracker/next-基础能力架构-20261113.html"
+  },
+  "matrix": {
+    "M1": {"F1":"幂幂|应","F2":"幂幂|应","F3":"未出现|可缺","F4":"未出现|可缺","F5":"幂幂|应","F6":"幂幂|应","F7":"幂幂|应"},
+    "M2": {"F1":"0.30|应","F2":"0.30|应","F3":"未出现|可缺","F4":"0.30初值|应","F5":"Next 0.30; v1 0.25|应","F6":"0.25|应但冲突","F7":"Next 0.30; v1 0.25|应"},
+    "M3": {"F1":"2.0s|应","F2":"2.0s|应","F3":"未出现|可缺","F4":"未出现|可缺","F5":"冷却未出现; 1.5s为pre-roll|可缺","F6":"未出现|可缺","F7":"未出现|可缺"},
+    "M4": {"F1":"300ms+150/60/40ms+rollback<=50ms|应","F2":"300ms+回滚闸|摘要可不完整","F3":"未出现|可缺","F4":"300ms+回滚闸|摘要可不完整","F5":"300ms+150/60/40ms+回滚闸|摘要可不完整","F6":"未出现|可缺","F7":"未出现|可缺"},
+    "M5": {"F1":"800/2500ms+2000ms+重问1次|应","F2":"全值|应","F3":"未出现|可缺","F4":"全值|应","F5":"全值|应","F6":"未出现|可缺","F7":"未出现|可缺"},
+    "M6": {"F1":"60s+5min+15s|应","F2":"60s+5min+15s|应","F3":"未出现|可缺","F4":"60s+5min+15s|应","F5":"60s+5min+15s|应","F6":"未出现|可缺","F7":"60s; 其余未出现|摘要可不完整"},
+    "M7": {"F1":"127.0.0.1:11435+llama-server|应","F2":"未出现|可缺","F3":"未出现|可缺","F4":"llama-server; 不用Ollama; 端口未出现|摘要可不完整","F5":"127.0.0.1:11435+llama-server; 禁Ollama/11434|应","F6":"127.0.0.1:11435+llama-server|应","F7":"127.0.0.1:11435+llama-server|应"},
+    "M8": {"F1":"完整五项|应","F2":"可替换+下拉+绿黄标|应","F3":"未出现|可缺","F4":"完整五项|应","F5":"未出现|可缺","F6":"完整五项|应","F7":"不可换型与可替换同页并存|应但冲突"},
+    "M9": {"F1":"500MB+2GB+冷无上限且路径可指定|应","F2":"全值|应","F3":"未出现|可缺","F4":"全值且旧值有覆盖链|应","F5":"未出现|可缺","F6":"500MB+2GB+冷路径可指定|应","F7":"全值|应"},
+    "M10": {"F1":"Python引擎域同pid+8756只读+四项0|应","F2":"Console+8756; 其余缺失|应但不完整","F3":"未出现|可缺","F4":"完整口径|应","F5":"未出现|可缺","F6":"完整口径|应","F7":"同pid+8756只读+等价边界|应"}
+  },
+  "judgments": {
+    "M1": {"status":"一致","inconsistencies":0,"severity":"NONE"},
+    "M2": {"status":"不一致","inconsistencies":1,"severity":"MED","evidence":["F6:L218"]},
+    "M3": {"status":"一致","inconsistencies":0,"severity":"NONE"},
+    "M4": {"status":"一致","inconsistencies":0,"severity":"NONE"},
+    "M5": {"status":"一致","inconsistencies":0,"severity":"NONE"},
+    "M6": {"status":"一致","inconsistencies":0,"severity":"NONE"},
+    "M7": {"status":"一致","inconsistencies":0,"severity":"NONE"},
+    "M8": {"status":"不一致","inconsistencies":1,"severity":"MED","evidence":["F7:L292","F7:L361-L373"]},
+    "M9": {"status":"一致","inconsistencies":0,"severity":"NONE"},
+    "M10": {"status":"不一致","inconsistencies":1,"severity":"MED","evidence":["F2:L66"]}
+  },
+  "reverse_checks": {
+    "0.25": {"occurrences":10,"true_conflicts":1,"conflict_evidence":["F6:L218"],"class_counts":{"v1_boundary":3,"external_default":3,"history":2,"other_parameter":1,"true_conflict":1}},
+    "1.5s": {"occurrences":8,"true_conflicts":0,"class_counts":{"other_parameter":5,"history":3}},
+    "11434": {"occurrences":1,"true_conflicts":0,"class_counts":{"explicitly_forbidden_example":1}},
+    "250 MB including 250MB": {"occurrences":9,"true_conflicts":0,"class_counts":{"history_or_superseded_comparison":9}}
+  },
+  "supplemental_non_matrix_check": {
+    "file": "docs/plans/next-注册分类-tools-skills-plugins-20261113.md",
+    "finding": "未复述M8整组参数；该文件职责为注册分类，未扩为第8矩阵列或不一致格"
+  },
+  "summary": {
+    "inconsistent_cells": 3,
+    "inconsistent_metrics": ["M2","M8","M10"],
+    "highest_severity": "MED",
+    "unresolved_authoritative_conflicts": 0,
+    "evidence_gate_pass": true
+  }
+}

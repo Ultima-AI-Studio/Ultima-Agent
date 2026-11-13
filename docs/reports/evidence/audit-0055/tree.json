@@ -1,0 +1,2380 @@
+{
+  "source": "docs/tracker/北极星架构树.html",
+  "sha256": "bdc51e4881cef3de70a09a6fba3cf356789f17ef143fece1016e9662336048bc",
+  "node_count": 113,
+  "raw_li_node_count": 113,
+  "tag_counts": {
+    "ul": {
+      "open": 29,
+      "close": 29,
+      "difference": 0
+    },
+    "li": {
+      "open": 113,
+      "close": 113,
+      "difference": 0
+    },
+    "div": {
+      "open": 144,
+      "close": 144,
+      "difference": 0
+    }
+  },
+  "parser_errors": [],
+  "nodes": [
+    {
+      "id": 0,
+      "parent_id": null,
+      "classes": [
+        "node",
+        "open",
+        "root"
+      ],
+      "name": "UltimaAgent 本体",
+      "description": "唯一方向判据：一切模块、能力、界面以让 UltimaAgent 自身成为理想智能代理为准；对外统一只称 UltimaAgent。架构组织=能力分类模块化（基础能力/外部能力/交付）；Skill 与插件属外部能力容器；八模块口径=Core/Voice/Shell/Surface/Memory/Middleware 归基础能力，Update/Lifecycle 归交付；显示形态=四角壳 8 锚点唯一范式；最终形态=AR 眼镜智能代理；交付形态=安装包（零开发文档）",
+      "chain": [
+        "UltimaAgent 本体"
+      ],
+      "chain_string": "UltimaAgent 本体",
+      "depth": 1
+    },
+    {
+      "id": 1,
+      "parent_id": 0,
+      "classes": [
+        "node",
+        "open"
+      ],
+      "name": "UltimaAgent 引擎",
+      "description": "本体。判定、状态机、注册表、记忆、范式、权威源都在这一层；不含任何界面概念（锚位/皮肤/排版/勿扰时段）；终端无关，Windows→Linux→AR 复用同一套契约",
+      "chain": [
+        "UltimaAgent 本体",
+        "UltimaAgent 引擎"
+      ],
+      "chain_string": "UltimaAgent 本体 → UltimaAgent 引擎",
+      "depth": 2
+    },
+    {
+      "id": 2,
+      "parent_id": 1,
+      "classes": [
+        "node",
+        "open"
+      ],
+      "name": "基础能力（本体承载）",
+      "description": "L0 终端四 IO → L1 意图理解 → L2 领域知识与技能注册 → L3 执行与外部接入 → L4 编排与组合窗口 → L5 表达与总结 → L6 输出呈现 → L7 交互循环 → L8 行为约束与受控执行 → L9 记忆与自学习 → L10 范式引擎（G-TASKFLOW-001）；权威源 capability-list.md + registry.md；本体承载 = 六个能力模块 ＋ Console（引擎中心管理调度器） ＋ 治理与约束 ⑤（横切）",
+      "chain": [
+        "UltimaAgent 本体",
+        "UltimaAgent 引擎",
+        "基础能力（本体承载）"
+      ],
+      "chain_string": "UltimaAgent 本体 → UltimaAgent 引擎 → 基础能力（本体承载）",
+      "depth": 3
+    },
+    {
+      "id": 3,
+      "parent_id": 2,
+      "classes": [
+        "node",
+        "open"
+      ],
+      "name": "1. Core（编排与裁决）",
+      "description": "意图理解、把意图拆成步骤、复述确认、记忆写入裁决；拆解在此，派发顺序与优先级归 Console",
+      "chain": [
+        "UltimaAgent 本体",
+        "UltimaAgent 引擎",
+        "基础能力（本体承载）",
+        "1. Core（编排与裁决）"
+      ],
+      "chain_string": "UltimaAgent 本体 → UltimaAgent 引擎 → 基础能力（本体承载） → 1. Core（编排与裁决）",
+      "depth": 4
+    },
+    {
+      "id": 4,
+      "parent_id": 3,
+      "classes": [
+        "node",
+        "open"
+      ],
+      "name": "能力",
+      "description": "用户可感知功能",
+      "chain": [
+        "UltimaAgent 本体",
+        "UltimaAgent 引擎",
+        "基础能力（本体承载）",
+        "1. Core（编排与裁决）",
+        "能力"
+      ],
+      "chain_string": "UltimaAgent 本体 → UltimaAgent 引擎 → 基础能力（本体承载） → 1. Core（编排与裁决） → 能力",
+      "depth": 5
+    },
+    {
+      "id": 5,
+      "parent_id": 4,
+      "classes": [
+        "leaf",
+        "node"
+      ],
+      "name": "意图理解",
+      "description": "自然语言→结构化意图，L0>L1>L2>L3 分级路由（interface-routing.json schema v2）",
+      "chain": [
+        "UltimaAgent 本体",
+        "UltimaAgent 引擎",
+        "基础能力（本体承载）",
+        "1. Core（编排与裁决）",
+        "能力",
+        "意图理解"
+      ],
+      "chain_string": "UltimaAgent 本体 → UltimaAgent 引擎 → 基础能力（本体承载） → 1. Core（编排与裁决） → 能力 → 意图理解",
+      "depth": 6
+    },
+    {
+      "id": 6,
+      "parent_id": 4,
+      "classes": [
+        "leaf",
+        "node"
+      ],
+      "name": "任务编排",
+      "description": "多步任务规划与执行顺序控制",
+      "chain": [
+        "UltimaAgent 本体",
+        "UltimaAgent 引擎",
+        "基础能力（本体承载）",
+        "1. Core（编排与裁决）",
+        "能力",
+        "任务编排"
+      ],
+      "chain_string": "UltimaAgent 本体 → UltimaAgent 引擎 → 基础能力（本体承载） → 1. Core（编排与裁决） → 能力 → 任务编排",
+      "depth": 6
+    },
+    {
+      "id": 7,
+      "parent_id": 4,
+      "classes": [
+        "leaf",
+        "node"
+      ],
+      "name": "复述确认",
+      "description": "关键动作前的确认协议（语音+面板双通道）",
+      "chain": [
+        "UltimaAgent 本体",
+        "UltimaAgent 引擎",
+        "基础能力（本体承载）",
+        "1. Core（编排与裁决）",
+        "能力",
+        "复述确认"
+      ],
+      "chain_string": "UltimaAgent 本体 → UltimaAgent 引擎 → 基础能力（本体承载） → 1. Core（编排与裁决） → 能力 → 复述确认",
+      "depth": 6
+    },
+    {
+      "id": 8,
+      "parent_id": 4,
+      "classes": [
+        "leaf",
+        "node"
+      ],
+      "name": "记忆写入裁决",
+      "description": "写入边界控制（memory_write_boundary）",
+      "chain": [
+        "UltimaAgent 本体",
+        "UltimaAgent 引擎",
+        "基础能力（本体承载）",
+        "1. Core（编排与裁决）",
+        "能力",
+        "记忆写入裁决"
+      ],
+      "chain_string": "UltimaAgent 本体 → UltimaAgent 引擎 → 基础能力（本体承载） → 1. Core（编排与裁决） → 能力 → 记忆写入裁决",
+      "depth": 6
+    },
+    {
+      "id": 9,
+      "parent_id": 4,
+      "classes": [
+        "leaf",
+        "node"
+      ],
+      "name": "上下文压缩",
+      "description": "10 轮 / 4000 token / 70% 触发阈值 / 保留最近 3 轮 / 摘要 ≤30%；代码未落（trim_history 零命中，归 N-01）",
+      "chain": [
+        "UltimaAgent 本体",
+        "UltimaAgent 引擎",
+        "基础能力（本体承载）",
+        "1. Core（编排与裁决）",
+        "能力",
+        "上下文压缩"
+      ],
+      "chain_string": "UltimaAgent 本体 → UltimaAgent 引擎 → 基础能力（本体承载） → 1. Core（编排与裁决） → 能力 → 上下文压缩",
+      "depth": 6
+    },
+    {
+      "id": 10,
+      "parent_id": 3,
+      "classes": [
+        "leaf",
+        "node"
+      ],
+      "name": "主脑（可替换推理后端）",
+      "description": "引擎自己的脑子，归 Core、不归外部能力抽屉。两类后端：本地 llama-server（127.0.0.1:11435，§16.2）／外部·云端 provider（OpenAI 兼容）；在配置面下拉切换、与「skill 配模型」同一套交互，下拉必须分「本地／外部」两组带标签（R-76）；参数随模型走、失败回滚换型前条目、每次换型进审计（§二十三）；切外部即启三道隐私闸（R-77：切换确认／记忆默认禁发／外部黄灯＋角标常驻）",
+      "chain": [
+        "UltimaAgent 本体",
+        "UltimaAgent 引擎",
+        "基础能力（本体承载）",
+        "1. Core（编排与裁决）",
+        "主脑（可替换推理后端）"
+      ],
+      "chain_string": "UltimaAgent 本体 → UltimaAgent 引擎 → 基础能力（本体承载） → 1. Core（编排与裁决） → 主脑（可替换推理后端）",
+      "depth": 5
+    },
+    {
+      "id": 11,
+      "parent_id": 3,
+      "classes": [
+        "leaf",
+        "node"
+      ],
+      "name": "orchestrator · intent · interface_route · queue_source · capability registry",
+      "description": "Core 编排与裁决的内部工具集，统一 UltimaAgentNext.Core.* 命名空间",
+      "chain": [
+        "UltimaAgent 本体",
+        "UltimaAgent 引擎",
+        "基础能力（本体承载）",
+        "1. Core（编排与裁决）",
+        "orchestrator · intent · interface_route · queue_source · capability registry"
+      ],
+      "chain_string": "UltimaAgent 本体 → UltimaAgent 引擎 → 基础能力（本体承载） → 1. Core（编排与裁决） → orchestrator · intent · interface_route · queue_source · capability registry",
+      "depth": 5
+    },
+    {
+      "id": 12,
+      "parent_id": 3,
+      "classes": [
+        "leaf",
+        "node"
+      ],
+      "name": "任务规划 · 主动追问 · 结果汇报",
+      "description": "可组合任务能力",
+      "chain": [
+        "UltimaAgent 本体",
+        "UltimaAgent 引擎",
+        "基础能力（本体承载）",
+        "1. Core（编排与裁决）",
+        "任务规划 · 主动追问 · 结果汇报"
+      ],
+      "chain_string": "UltimaAgent 本体 → UltimaAgent 引擎 → 基础能力（本体承载） → 1. Core（编排与裁决） → 任务规划 · 主动追问 · 结果汇报",
+      "depth": 5
+    },
+    {
+      "id": 13,
+      "parent_id": 2,
+      "classes": [
+        "node",
+        "open"
+      ],
+      "name": "2. Senses.Voice（语音进出）",
+      "description": "唤醒、听写、对话、TTS 播报（KWS/CV3 参数冻结基线，逐项复测禁顺手优化）",
+      "chain": [
+        "UltimaAgent 本体",
+        "UltimaAgent 引擎",
+        "基础能力（本体承载）",
+        "2. Senses.Voice（语音进出）"
+      ],
+      "chain_string": "UltimaAgent 本体 → UltimaAgent 引擎 → 基础能力（本体承载） → 2. Senses.Voice（语音进出）",
+      "depth": 4
+    },
+    {
+      "id": 14,
+      "parent_id": 13,
+      "classes": [
+        "node",
+        "open"
+      ],
+      "name": "能力",
+      "description": "用户可感知功能",
+      "chain": [
+        "UltimaAgent 本体",
+        "UltimaAgent 引擎",
+        "基础能力（本体承载）",
+        "2. Senses.Voice（语音进出）",
+        "能力"
+      ],
+      "chain_string": "UltimaAgent 本体 → UltimaAgent 引擎 → 基础能力（本体承载） → 2. Senses.Voice（语音进出） → 能力",
+      "depth": 5
+    },
+    {
+      "id": 15,
+      "parent_id": 14,
+      "classes": [
+        "leaf",
+        "node"
+      ],
+      "name": "唤醒",
+      "description": "唤醒词「幂幂」threshold 0.25；状态机 warming→ready→capturing→processing→speaking/acknowledging/stopped/error",
+      "chain": [
+        "UltimaAgent 本体",
+        "UltimaAgent 引擎",
+        "基础能力（本体承载）",
+        "2. Senses.Voice（语音进出）",
+        "能力",
+        "唤醒"
+      ],
+      "chain_string": "UltimaAgent 本体 → UltimaAgent 引擎 → 基础能力（本体承载） → 2. Senses.Voice（语音进出） → 能力 → 唤醒",
+      "depth": 6
+    },
+    {
+      "id": 16,
+      "parent_id": 14,
+      "classes": [
+        "leaf",
+        "node"
+      ],
+      "name": "听写与对话",
+      "description": "warm_progress 0/25/50/75/100 语音会话循环",
+      "chain": [
+        "UltimaAgent 本体",
+        "UltimaAgent 引擎",
+        "基础能力（本体承载）",
+        "2. Senses.Voice（语音进出）",
+        "能力",
+        "听写与对话"
+      ],
+      "chain_string": "UltimaAgent 本体 → UltimaAgent 引擎 → 基础能力（本体承载） → 2. Senses.Voice（语音进出） → 能力 → 听写与对话",
+      "depth": 6
+    },
+    {
+      "id": 17,
+      "parent_id": 14,
+      "classes": [
+        "leaf",
+        "node"
+      ],
+      "name": "TTS 播报",
+      "description": "CV3 音色（冻结参数）",
+      "chain": [
+        "UltimaAgent 本体",
+        "UltimaAgent 引擎",
+        "基础能力（本体承载）",
+        "2. Senses.Voice（语音进出）",
+        "能力",
+        "TTS 播报"
+      ],
+      "chain_string": "UltimaAgent 本体 → UltimaAgent 引擎 → 基础能力（本体承载） → 2. Senses.Voice（语音进出） → 能力 → TTS 播报",
+      "depth": 6
+    },
+    {
+      "id": 18,
+      "parent_id": 13,
+      "classes": [
+        "leaf",
+        "node"
+      ],
+      "name": "kws_backend · turn_worker · live_core · apm_dsp · CV3 推理",
+      "description": "语音进出链路内部工具集（src/Senses/Voice/ 统一组织）",
+      "chain": [
+        "UltimaAgent 本体",
+        "UltimaAgent 引擎",
+        "基础能力（本体承载）",
+        "2. Senses.Voice（语音进出）",
+        "kws_backend · turn_worker · live_core · apm_dsp · CV3 推理"
+      ],
+      "chain_string": "UltimaAgent 本体 → UltimaAgent 引擎 → 基础能力（本体承载） → 2. Senses.Voice（语音进出） → kws_backend · turn_worker · live_core · apm_dsp · CV3 推理",
+      "depth": 5
+    },
+    {
+      "id": 19,
+      "parent_id": 13,
+      "classes": [
+        "leaf",
+        "node"
+      ],
+      "name": "语音会话 · 尾音处理 · 音色切换",
+      "description": "可组合任务能力",
+      "chain": [
+        "UltimaAgent 本体",
+        "UltimaAgent 引擎",
+        "基础能力（本体承载）",
+        "2. Senses.Voice（语音进出）",
+        "语音会话 · 尾音处理 · 音色切换"
+      ],
+      "chain_string": "UltimaAgent 本体 → UltimaAgent 引擎 → 基础能力（本体承载） → 2. Senses.Voice（语音进出） → 语音会话 · 尾音处理 · 音色切换",
+      "depth": 5
+    },
+    {
+      "id": 20,
+      "parent_id": 2,
+      "classes": [
+        "node",
+        "open"
+      ],
+      "name": "3. Shell（进程治理）",
+      "description": "进程的起停与回收在此层；「常驻托管」的启停意图由 Console 下达，本层只执行 · 进程保活、守护自愈、开机自启、子进程零弹窗",
+      "chain": [
+        "UltimaAgent 本体",
+        "UltimaAgent 引擎",
+        "基础能力（本体承载）",
+        "3. Shell（进程治理）"
+      ],
+      "chain_string": "UltimaAgent 本体 → UltimaAgent 引擎 → 基础能力（本体承载） → 3. Shell（进程治理）",
+      "depth": 4
+    },
+    {
+      "id": 21,
+      "parent_id": 20,
+      "classes": [
+        "node",
+        "open"
+      ],
+      "name": "能力",
+      "description": "用户可感知功能",
+      "chain": [
+        "UltimaAgent 本体",
+        "UltimaAgent 引擎",
+        "基础能力（本体承载）",
+        "3. Shell（进程治理）",
+        "能力"
+      ],
+      "chain_string": "UltimaAgent 本体 → UltimaAgent 引擎 → 基础能力（本体承载） → 3. Shell（进程治理） → 能力",
+      "depth": 5
+    },
+    {
+      "id": 22,
+      "parent_id": 21,
+      "classes": [
+        "leaf",
+        "node"
+      ],
+      "name": "进程树托管",
+      "description": "HostShell(WinUI3) 常驻，Job Object 子进程树托管；启停意图来自 Console",
+      "chain": [
+        "UltimaAgent 本体",
+        "UltimaAgent 引擎",
+        "基础能力（本体承载）",
+        "3. Shell（进程治理）",
+        "能力",
+        "进程树托管"
+      ],
+      "chain_string": "UltimaAgent 本体 → UltimaAgent 引擎 → 基础能力（本体承载） → 3. Shell（进程治理） → 能力 → 进程树托管",
+      "depth": 6
+    },
+    {
+      "id": 23,
+      "parent_id": 21,
+      "classes": [
+        "leaf",
+        "node"
+      ],
+      "name": "守护自愈",
+      "description": "GuardianService 20s 探活 8756 / 3 次失败 / 冷却 300s；agent-server 自动重启",
+      "chain": [
+        "UltimaAgent 本体",
+        "UltimaAgent 引擎",
+        "基础能力（本体承载）",
+        "3. Shell（进程治理）",
+        "能力",
+        "守护自愈"
+      ],
+      "chain_string": "UltimaAgent 本体 → UltimaAgent 引擎 → 基础能力（本体承载） → 3. Shell（进程治理） → 能力 → 守护自愈",
+      "depth": 6
+    },
+    {
+      "id": 24,
+      "parent_id": 21,
+      "classes": [
+        "leaf",
+        "node"
+      ],
+      "name": "开机自启",
+      "description": "启动文件夹 .lnk（进程内晚绑定 COM 创建，零计划任务、零弹窗）",
+      "chain": [
+        "UltimaAgent 本体",
+        "UltimaAgent 引擎",
+        "基础能力（本体承载）",
+        "3. Shell（进程治理）",
+        "能力",
+        "开机自启"
+      ],
+      "chain_string": "UltimaAgent 本体 → UltimaAgent 引擎 → 基础能力（本体承载） → 3. Shell（进程治理） → 能力 → 开机自启",
+      "depth": 6
+    },
+    {
+      "id": 25,
+      "parent_id": 21,
+      "classes": [
+        "leaf",
+        "node"
+      ],
+      "name": "子进程零窗",
+      "description": "pythonw + UseShellExecute=false + CreateNoWindow + 标准流重定向排空",
+      "chain": [
+        "UltimaAgent 本体",
+        "UltimaAgent 引擎",
+        "基础能力（本体承载）",
+        "3. Shell（进程治理）",
+        "能力",
+        "子进程零窗"
+      ],
+      "chain_string": "UltimaAgent 本体 → UltimaAgent 引擎 → 基础能力（本体承载） → 3. Shell（进程治理） → 能力 → 子进程零窗",
+      "depth": 6
+    },
+    {
+      "id": 26,
+      "parent_id": 21,
+      "classes": [
+        "leaf",
+        "node"
+      ],
+      "name": "终端宿主 PTY",
+      "description": "pty_host：ConPTY 无窗、入 Job、标准流全重定向，句柄交 Middleware（R-68）；只做托管不做渲染；golutra 仅借结构不搬码（BSL 1.1）",
+      "chain": [
+        "UltimaAgent 本体",
+        "UltimaAgent 引擎",
+        "基础能力（本体承载）",
+        "3. Shell（进程治理）",
+        "能力",
+        "终端宿主 PTY"
+      ],
+      "chain_string": "UltimaAgent 本体 → UltimaAgent 引擎 → 基础能力（本体承载） → 3. Shell（进程治理） → 能力 → 终端宿主 PTY",
+      "depth": 6
+    },
+    {
+      "id": 27,
+      "parent_id": 20,
+      "classes": [
+        "leaf",
+        "node"
+      ],
+      "name": "GuardianService · HostTaskRegistry · JobObjectManager · ChildProcessSupervisor · ReadinessProbe · AutostartEntry",
+      "description": "进程治理链内部工具集（探活/注册/Job 归属/子进程监管/就绪探测/自启入口）",
+      "chain": [
+        "UltimaAgent 本体",
+        "UltimaAgent 引擎",
+        "基础能力（本体承载）",
+        "3. Shell（进程治理）",
+        "GuardianService · HostTaskRegistry · JobObjectManager · ChildProcessSupervisor · ReadinessProbe · AutostartEntry"
+      ],
+      "chain_string": "UltimaAgent 本体 → UltimaAgent 引擎 → 基础能力（本体承载） → 3. Shell（进程治理） → GuardianService · HostTaskRegistry · JobObjectManager · ChildProcessSupervisor · ReadinessProbe · AutostartEntry",
+      "depth": 5
+    },
+    {
+      "id": 28,
+      "parent_id": 20,
+      "classes": [
+        "leaf",
+        "node"
+      ],
+      "name": "任务托管 · 崩溃回收",
+      "description": "Job 归属判据：宿主强杀子进程树 3 秒内同步消失",
+      "chain": [
+        "UltimaAgent 本体",
+        "UltimaAgent 引擎",
+        "基础能力（本体承载）",
+        "3. Shell（进程治理）",
+        "任务托管 · 崩溃回收"
+      ],
+      "chain_string": "UltimaAgent 本体 → UltimaAgent 引擎 → 基础能力（本体承载） → 3. Shell（进程治理） → 任务托管 · 崩溃回收",
+      "depth": 5
+    },
+    {
+      "id": 29,
+      "parent_id": 2,
+      "classes": [
+        "node",
+        "open"
+      ],
+      "name": "4. Surface（界面与呈现）",
+      "description": "只画像素：呈现内容与时机由 Console 决定，本层不自定义卡内容来源 · 四角壳 HUD（唯一显示形态，悬浮球方案退场）、应用内任务管理器面板",
+      "chain": [
+        "UltimaAgent 本体",
+        "UltimaAgent 引擎",
+        "基础能力（本体承载）",
+        "4. Surface（界面与呈现）"
+      ],
+      "chain_string": "UltimaAgent 本体 → UltimaAgent 引擎 → 基础能力（本体承载） → 4. Surface（界面与呈现）",
+      "depth": 4
+    },
+    {
+      "id": 30,
+      "parent_id": 29,
+      "classes": [
+        "node",
+        "open"
+      ],
+      "name": "能力",
+      "description": "用户可感知功能",
+      "chain": [
+        "UltimaAgent 本体",
+        "UltimaAgent 引擎",
+        "基础能力（本体承载）",
+        "4. Surface（界面与呈现）",
+        "能力"
+      ],
+      "chain_string": "UltimaAgent 本体 → UltimaAgent 引擎 → 基础能力（本体承载） → 4. Surface（界面与呈现） → 能力",
+      "depth": 5
+    },
+    {
+      "id": 31,
+      "parent_id": 30,
+      "classes": [
+        "leaf",
+        "node"
+      ],
+      "name": "四角壳 HUD · 8 锚点",
+      "description": "顶部时钟/右上单功能互斥/左上系统状态/左下任务队列/右下即时消息/左中 Agent 反馈/右中主动唤出/底部交流转写；锚位职责与宽度锁定（hud-layout-zone-plan v0.2）、无边框气泡形态、中央零遮挡",
+      "chain": [
+        "UltimaAgent 本体",
+        "UltimaAgent 引擎",
+        "基础能力（本体承载）",
+        "4. Surface（界面与呈现）",
+        "能力",
+        "四角壳 HUD · 8 锚点"
+      ],
+      "chain_string": "UltimaAgent 本体 → UltimaAgent 引擎 → 基础能力（本体承载） → 4. Surface（界面与呈现） → 能力 → 四角壳 HUD · 8 锚点",
+      "depth": 6
+    },
+    {
+      "id": 32,
+      "parent_id": 30,
+      "classes": [
+        "leaf",
+        "node"
+      ],
+      "name": "应用内任务管理器",
+      "description": "状态/重启次数/手动重启停用，WebView2 双向消息",
+      "chain": [
+        "UltimaAgent 本体",
+        "UltimaAgent 引擎",
+        "基础能力（本体承载）",
+        "4. Surface（界面与呈现）",
+        "能力",
+        "应用内任务管理器"
+      ],
+      "chain_string": "UltimaAgent 本体 → UltimaAgent 引擎 → 基础能力（本体承载） → 4. Surface（界面与呈现） → 能力 → 应用内任务管理器",
+      "depth": 6
+    },
+    {
+      "id": 33,
+      "parent_id": 30,
+      "classes": [
+        "leaf",
+        "node"
+      ],
+      "name": "看板与干预",
+      "description": "列式看板 / 时间线 / 叫停·取消·恢复三键；只读呈现，写入仍走 Console；当前代码无 kanban（归 N-06）",
+      "chain": [
+        "UltimaAgent 本体",
+        "UltimaAgent 引擎",
+        "基础能力（本体承载）",
+        "4. Surface（界面与呈现）",
+        "能力",
+        "看板与干预"
+      ],
+      "chain_string": "UltimaAgent 本体 → UltimaAgent 引擎 → 基础能力（本体承载） → 4. Surface（界面与呈现） → 能力 → 看板与干预",
+      "depth": 6
+    },
+    {
+      "id": 34,
+      "parent_id": 29,
+      "classes": [
+        "leaf",
+        "node"
+      ],
+      "name": "UltimaAgent.Hud 原生壳 · hud-live-four-corner 设计基线 · TaskManagerRenderer · taskmanager.html",
+      "description": "悬浮球整线退场：全部 orb 渲染器不进产品形态，仅存 devtools 测试夹具",
+      "chain": [
+        "UltimaAgent 本体",
+        "UltimaAgent 引擎",
+        "基础能力（本体承载）",
+        "4. Surface（界面与呈现）",
+        "UltimaAgent.Hud 原生壳 · hud-live-four-corner 设计基线 · TaskManagerRenderer · taskmanager.html"
+      ],
+      "chain_string": "UltimaAgent 本体 → UltimaAgent 引擎 → 基础能力（本体承载） → 4. Surface（界面与呈现） → UltimaAgent.Hud 原生壳 · hud-live-four-corner 设计基线 · TaskManagerRenderer · taskmanager.html",
+      "depth": 5
+    },
+    {
+      "id": 35,
+      "parent_id": 29,
+      "classes": [
+        "leaf",
+        "node"
+      ],
+      "name": "状态反馈 · 任务可视",
+      "description": "可组合任务能力",
+      "chain": [
+        "UltimaAgent 本体",
+        "UltimaAgent 引擎",
+        "基础能力（本体承载）",
+        "4. Surface（界面与呈现）",
+        "状态反馈 · 任务可视"
+      ],
+      "chain_string": "UltimaAgent 本体 → UltimaAgent 引擎 → 基础能力（本体承载） → 4. Surface（界面与呈现） → 状态反馈 · 任务可视",
+      "depth": 5
+    },
+    {
+      "id": 36,
+      "parent_id": 2,
+      "classes": [
+        "node",
+        "open"
+      ],
+      "name": "5. Memory（记忆与自学习）",
+      "description": "三库一索引（模块数仍六块）：mem 用户记忆 / kb 知识库（书架＝领域·书＝来源·页＝最小单元，初始为空）/ exp 经验库（draft→人工 confirmed 才可作决策依据）＋ index 检索横切（分块+10–15% 重叠、必带位置、FTS5+向量 RRF、top_k=5、低于阈值返回「没找到」禁硬凑）；写入由 Core 裁决；存储分库分层分片＋存储卷可扩，无全局硬门",
+      "chain": [
+        "UltimaAgent 本体",
+        "UltimaAgent 引擎",
+        "基础能力（本体承载）",
+        "5. Memory（记忆与自学习）"
+      ],
+      "chain_string": "UltimaAgent 本体 → UltimaAgent 引擎 → 基础能力（本体承载） → 5. Memory（记忆与自学习）",
+      "depth": 4
+    },
+    {
+      "id": 37,
+      "parent_id": 36,
+      "classes": [
+        "leaf",
+        "node"
+      ],
+      "name": "mem · 用户记忆",
+      "description": "偏好、习惯、事实；越权写入直接拒绝（memory_boundary）",
+      "chain": [
+        "UltimaAgent 本体",
+        "UltimaAgent 引擎",
+        "基础能力（本体承载）",
+        "5. Memory（记忆与自学习）",
+        "mem · 用户记忆"
+      ],
+      "chain_string": "UltimaAgent 本体 → UltimaAgent 引擎 → 基础能力（本体承载） → 5. Memory（记忆与自学习） → mem · 用户记忆",
+      "depth": 5
+    },
+    {
+      "id": 38,
+      "parent_id": 36,
+      "classes": [
+        "leaf",
+        "node"
+      ],
+      "name": "kb · 知识库",
+      "description": "书架比喻；可由指令驱动采集（采集能力见外部能力→能力库）；一个书架＝一个子库",
+      "chain": [
+        "UltimaAgent 本体",
+        "UltimaAgent 引擎",
+        "基础能力（本体承载）",
+        "5. Memory（记忆与自学习）",
+        "kb · 知识库"
+      ],
+      "chain_string": "UltimaAgent 本体 → UltimaAgent 引擎 → 基础能力（本体承载） → 5. Memory（记忆与自学习） → kb · 知识库",
+      "depth": 5
+    },
+    {
+      "id": 39,
+      "parent_id": 36,
+      "classes": [
+        "leaf",
+        "node"
+      ],
+      "name": "exp · 经验库",
+      "description": "踩坑记录：自动起草 draft → 人工 confirmed；带证据指针；先查后动",
+      "chain": [
+        "UltimaAgent 本体",
+        "UltimaAgent 引擎",
+        "基础能力（本体承载）",
+        "5. Memory（记忆与自学习）",
+        "exp · 经验库"
+      ],
+      "chain_string": "UltimaAgent 本体 → UltimaAgent 引擎 → 基础能力（本体承载） → 5. Memory（记忆与自学习） → exp · 经验库",
+      "depth": 5
+    },
+    {
+      "id": 40,
+      "parent_id": 36,
+      "classes": [
+        "leaf",
+        "node"
+      ],
+      "name": "index · 索引与检索",
+      "description": "三个检索入口分开、不做混检；索引只存指针 (volume, file, offset, len)，正文只搬一次",
+      "chain": [
+        "UltimaAgent 本体",
+        "UltimaAgent 引擎",
+        "基础能力（本体承载）",
+        "5. Memory（记忆与自学习）",
+        "index · 索引与检索"
+      ],
+      "chain_string": "UltimaAgent 本体 → UltimaAgent 引擎 → 基础能力（本体承载） → 5. Memory（记忆与自学习） → index · 索引与检索",
+      "depth": 5
+    },
+    {
+      "id": 41,
+      "parent_id": 36,
+      "classes": [
+        "leaf",
+        "node"
+      ],
+      "name": "writer · poison_guard · store_backend · temperature_tier · volumes",
+      "description": "写入、防投毒、存储后端、三层温度（热 500MB／温 2GB 定值，R-80）、存储卷登记（volumes.json 可热加卷，可接私有 NAS）；冷层存档路径可指定，禁公有云盘／对象存储",
+      "chain": [
+        "UltimaAgent 本体",
+        "UltimaAgent 引擎",
+        "基础能力（本体承载）",
+        "5. Memory（记忆与自学习）",
+        "writer · poison_guard · store_backend · temperature_tier · volumes"
+      ],
+      "chain_string": "UltimaAgent 本体 → UltimaAgent 引擎 → 基础能力（本体承载） → 5. Memory（记忆与自学习） → writer · poison_guard · store_backend · temperature_tier · volumes",
+      "depth": 5
+    },
+    {
+      "id": 42,
+      "parent_id": 36,
+      "classes": [
+        "leaf",
+        "node"
+      ],
+      "name": "上下文注入 · 记忆检索 · 知识采集编排",
+      "description": "先查后动；三库分别检索、不做混检；采集由能力库执行，本层只管入库与索引",
+      "chain": [
+        "UltimaAgent 本体",
+        "UltimaAgent 引擎",
+        "基础能力（本体承载）",
+        "5. Memory（记忆与自学习）",
+        "上下文注入 · 记忆检索 · 知识采集编排"
+      ],
+      "chain_string": "UltimaAgent 本体 → UltimaAgent 引擎 → 基础能力（本体承载） → 5. Memory（记忆与自学习） → 上下文注入 · 记忆检索 · 知识采集编排",
+      "depth": 5
+    },
+    {
+      "id": 43,
+      "parent_id": 2,
+      "classes": [
+        "node",
+        "open"
+      ],
+      "name": "6. Middleware（执行端与票据）",
+      "description": "执行端可替换、一次一主、票据可追；八态定义权在此（queue_engine.state_machine：QUEUED→EXECUTING→SELF_CHECK→AUDIT→COMPLETED，异常 FAILED/BLOCKED/CANCELLED，COMPLETED 须 audit_passed）；编排决策不在此层（归 Console），本层只按指令起执行端、留票据",
+      "chain": [
+        "UltimaAgent 本体",
+        "UltimaAgent 引擎",
+        "基础能力（本体承载）",
+        "6. Middleware（执行端与票据）"
+      ],
+      "chain_string": "UltimaAgent 本体 → UltimaAgent 引擎 → 基础能力（本体承载） → 6. Middleware（执行端与票据）",
+      "depth": 4
+    },
+    {
+      "id": 44,
+      "parent_id": 43,
+      "classes": [
+        "leaf",
+        "node"
+      ],
+      "name": "queue_engine（tasks/queue_engine，Python 引擎域）· state_machine（八态唯一枚举源）· router · delegation · task_window · ticket · sandbox（双层：Job ＋ 写域白名单，R-79）· worktree 隔离 · 并发配额 · reworkCount",
+      "description": "八态与迁移的唯一实现位置、执行端路由、任务委派、任务窗口、票据、沙箱隔离",
+      "chain": [
+        "UltimaAgent 本体",
+        "UltimaAgent 引擎",
+        "基础能力（本体承载）",
+        "6. Middleware（执行端与票据）",
+        "queue_engine（tasks/queue_engine，Python 引擎域）· state_machine（八态唯一枚举源）· router · delegation · task_window · ticket · sandbox（双层：Job ＋ 写域白名单，R-79）· worktree 隔离 · 并发配额 · reworkCount"
+      ],
+      "chain_string": "UltimaAgent 本体 → UltimaAgent 引擎 → 基础能力（本体承载） → 6. Middleware（执行端与票据） → queue_engine（tasks/queue_engine，Python 引擎域）· state_machine（八态唯一枚举源）· router · delegation · task_window · ticket · sandbox（双层：Job ＋ 写域白名单，R-79）· worktree 隔离 · 并发配额 · reworkCount",
+      "depth": 5
+    },
+    {
+      "id": 45,
+      "parent_id": 43,
+      "classes": [
+        "leaf",
+        "node"
+      ],
+      "name": "执行端路由 · 任务窗口管理",
+      "description": "可组合任务能力",
+      "chain": [
+        "UltimaAgent 本体",
+        "UltimaAgent 引擎",
+        "基础能力（本体承载）",
+        "6. Middleware（执行端与票据）",
+        "执行端路由 · 任务窗口管理"
+      ],
+      "chain_string": "UltimaAgent 本体 → UltimaAgent 引擎 → 基础能力（本体承载） → 6. Middleware（执行端与票据） → 执行端路由 · 任务窗口管理",
+      "depth": 5
+    },
+    {
+      "id": 46,
+      "parent_id": 2,
+      "classes": [
+        "node",
+        "open"
+      ],
+      "name": "＋ Console（引擎中心管理调度器）",
+      "description": "「终端」一词此后只指它；四职能全属「管」不属「做」；可机检边界＝代码只要会碰进程/网络/磁盘/像素就不属于 Console（自己 CreateProcess 起看门狗＝第二个父进程，§十五 闸1 破防、孤儿复发）；**随 Python 引擎域常驻**（与 `queue_engine` 同进程，Manager 为同进程子模块；R-78/§24.1）；壳经引擎域既有本地通道（8756）读**只读视图**；迁域不授权碰进程——CreateProcess／客户端 socket／写盘／像素调用仍须 0，Shell 仍是唯一父进程；只碰队列、状态机读写、档位与账本，不定义枚举、不改档位",
+      "chain": [
+        "UltimaAgent 本体",
+        "UltimaAgent 引擎",
+        "基础能力（本体承载）",
+        "＋ Console（引擎中心管理调度器）"
+      ],
+      "chain_string": "UltimaAgent 本体 → UltimaAgent 引擎 → 基础能力（本体承载） → ＋ Console（引擎中心管理调度器）",
+      "depth": 4
+    },
+    {
+      "id": 47,
+      "parent_id": 46,
+      "classes": [
+        "leaf",
+        "node"
+      ],
+      "name": "任务编排",
+      "description": "派发 / 优先级 / 依赖；九点位 4–9 是八态投影",
+      "chain": [
+        "UltimaAgent 本体",
+        "UltimaAgent 引擎",
+        "基础能力（本体承载）",
+        "＋ Console（引擎中心管理调度器）",
+        "任务编排"
+      ],
+      "chain_string": "UltimaAgent 本体 → UltimaAgent 引擎 → 基础能力（本体承载） → ＋ Console（引擎中心管理调度器） → 任务编排",
+      "depth": 5
+    },
+    {
+      "id": 48,
+      "parent_id": 46,
+      "classes": [
+        "leaf",
+        "node"
+      ],
+      "name": "常驻托管",
+      "description": "看谁在跑、跑多久；进程本身由 Shell 管",
+      "chain": [
+        "UltimaAgent 本体",
+        "UltimaAgent 引擎",
+        "基础能力（本体承载）",
+        "＋ Console（引擎中心管理调度器）",
+        "常驻托管"
+      ],
+      "chain_string": "UltimaAgent 本体 → UltimaAgent 引擎 → 基础能力（本体承载） → ＋ Console（引擎中心管理调度器） → 常驻托管",
+      "depth": 5
+    },
+    {
+      "id": 49,
+      "parent_id": 46,
+      "classes": [
+        "leaf",
+        "node"
+      ],
+      "name": "输出呈现",
+      "description": "把状态递给 Surface 画，自己不出像素",
+      "chain": [
+        "UltimaAgent 本体",
+        "UltimaAgent 引擎",
+        "基础能力（本体承载）",
+        "＋ Console（引擎中心管理调度器）",
+        "输出呈现"
+      ],
+      "chain_string": "UltimaAgent 本体 → UltimaAgent 引擎 → 基础能力（本体承载） → ＋ Console（引擎中心管理调度器） → 输出呈现",
+      "depth": 5
+    },
+    {
+      "id": 50,
+      "parent_id": 46,
+      "classes": [
+        "leaf",
+        "node"
+      ],
+      "name": "多端调度",
+      "description": "向多用户设备 / 显示端投递，不是多执行端编排",
+      "chain": [
+        "UltimaAgent 本体",
+        "UltimaAgent 引擎",
+        "基础能力（本体承载）",
+        "＋ Console（引擎中心管理调度器）",
+        "多端调度"
+      ],
+      "chain_string": "UltimaAgent 本体 → UltimaAgent 引擎 → 基础能力（本体承载） → ＋ Console（引擎中心管理调度器） → 多端调度",
+      "depth": 5
+    },
+    {
+      "id": 51,
+      "parent_id": 46,
+      "classes": [
+        "leaf",
+        "node"
+      ],
+      "name": "任务库（项目→工单卡→任务→运行实例）",
+      "description": "R-74：任务卡／依赖／状态账，与 usage_ledger 同级；物理沿用 tasks/queue_engine（tasks.json 唯一索引，禁第二套）；状态只走八态；冻结后热留 1 年→冷层（复用 §17.2 温度轴）；检索走 task.query，不与记忆混检",
+      "chain": [
+        "UltimaAgent 本体",
+        "UltimaAgent 引擎",
+        "基础能力（本体承载）",
+        "＋ Console（引擎中心管理调度器）",
+        "任务库（项目→工单卡→任务→运行实例）"
+      ],
+      "chain_string": "UltimaAgent 本体 → UltimaAgent 引擎 → 基础能力（本体承载） → ＋ Console（引擎中心管理调度器） → 任务库（项目→工单卡→任务→运行实例）",
+      "depth": 5
+    },
+    {
+      "id": 52,
+      "parent_id": 46,
+      "classes": [
+        "leaf",
+        "node"
+      ],
+      "name": "dispatcher · priority_deps · 重启预算账 · 档位只读视图 · usage_ledger（用量账，R-70）",
+      "description": "派发器、优先级与依赖、重启预算记账、系统档位只读；八态只读写不定义（定义在 queue_engine）；看门狗只下「起/停/查」意图，进程由 Shell 起（§19.2 · 19.3）",
+      "chain": [
+        "UltimaAgent 本体",
+        "UltimaAgent 引擎",
+        "基础能力（本体承载）",
+        "＋ Console（引擎中心管理调度器）",
+        "dispatcher · priority_deps · 重启预算账 · 档位只读视图 · usage_ledger（用量账，R-70）"
+      ],
+      "chain_string": "UltimaAgent 本体 → UltimaAgent 引擎 → 基础能力（本体承载） → ＋ Console（引擎中心管理调度器） → dispatcher · priority_deps · 重启预算账 · 档位只读视图 · usage_ledger（用量账，R-70）",
+      "depth": 5
+    },
+    {
+      "id": 53,
+      "parent_id": 2,
+      "classes": [
+        "node",
+        "open"
+      ],
+      "name": "＋ 治理与约束（⑤）",
+      "description": "不占运行时模块、不执行业务动作；对六块施加约束。规则库归这里，不归记忆：记忆是被检索的软参考，规则是被执行器强制的硬门。五条行为学原则也在此层（行为层软约束），不再平行挂在引擎下；本层已有交付卡 N-14（四类各有落点、互不顶替）",
+      "chain": [
+        "UltimaAgent 本体",
+        "UltimaAgent 引擎",
+        "基础能力（本体承载）",
+        "＋ 治理与约束（⑤）"
+      ],
+      "chain_string": "UltimaAgent 本体 → UltimaAgent 引擎 → 基础能力（本体承载） → ＋ 治理与约束（⑤）",
+      "depth": 4
+    },
+    {
+      "id": 54,
+      "parent_id": 53,
+      "classes": [
+        "leaf",
+        "node"
+      ],
+      "name": "代码断言（不入库）",
+      "description": "未登记模型拒载 · 审计 provider≠开发 · 禁 PID 白名单 · 记忆禁外发",
+      "chain": [
+        "UltimaAgent 本体",
+        "UltimaAgent 引擎",
+        "基础能力（本体承载）",
+        "＋ 治理与约束（⑤）",
+        "代码断言（不入库）"
+      ],
+      "chain_string": "UltimaAgent 本体 → UltimaAgent 引擎 → 基础能力（本体承载） → ＋ 治理与约束（⑤） → 代码断言（不入库）",
+      "depth": 5
+    },
+    {
+      "id": 55,
+      "parent_id": 53,
+      "classes": [
+        "leaf",
+        "node"
+      ],
+      "name": "可配策略（带版本与生效范围）",
+      "description": "口播≤2 句 · top_k=5 · provider 六态码 · 六码处置动作 · 勿扰开关（默认值归客户端）",
+      "chain": [
+        "UltimaAgent 本体",
+        "UltimaAgent 引擎",
+        "基础能力（本体承载）",
+        "＋ 治理与约束（⑤）",
+        "可配策略（带版本与生效范围）"
+      ],
+      "chain_string": "UltimaAgent 本体 → UltimaAgent 引擎 → 基础能力（本体承载） → ＋ 治理与约束（⑤） → 可配策略（带版本与生效范围）",
+      "depth": 5
+    },
+    {
+      "id": 56,
+      "parent_id": 53,
+      "classes": [
+        "leaf",
+        "node"
+      ],
+      "name": "防投毒 · 审计独立 · 外发红线",
+      "description": "谁开发谁不自审；本地个人检索不外出；公有云盘/对象存储禁作冷层",
+      "chain": [
+        "UltimaAgent 本体",
+        "UltimaAgent 引擎",
+        "基础能力（本体承载）",
+        "＋ 治理与约束（⑤）",
+        "防投毒 · 审计独立 · 外发红线"
+      ],
+      "chain_string": "UltimaAgent 本体 → UltimaAgent 引擎 → 基础能力（本体承载） → ＋ 治理与约束（⑤） → 防投毒 · 审计独立 · 外发红线",
+      "depth": 5
+    },
+    {
+      "id": 57,
+      "parent_id": 53,
+      "classes": [
+        "leaf",
+        "node"
+      ],
+      "name": "日志库（审计与留痕）",
+      "description": "R-75：四类＝运行（默认 14 天滚动）／执行（按任务 30 天）／审计（append-only ≥1 年＋哈希链）／交互转写（归 Memory 冷层、此处只存指针）；脱敏按红线；检索走 log.query；不进 Memory 检索面",
+      "chain": [
+        "UltimaAgent 本体",
+        "UltimaAgent 引擎",
+        "基础能力（本体承载）",
+        "＋ 治理与约束（⑤）",
+        "日志库（审计与留痕）"
+      ],
+      "chain_string": "UltimaAgent 本体 → UltimaAgent 引擎 → 基础能力（本体承载） → ＋ 治理与约束（⑤） → 日志库（审计与留痕）",
+      "depth": 5
+    },
+    {
+      "id": 58,
+      "parent_id": 53,
+      "classes": [
+        "node",
+        "open"
+      ],
+      "name": "行为学原则（五条 · 按人类生物特质）",
+      "description": "软约束：不设硬门，但每个模块「怎么表现」受它约束；本身不是架构轴，归属本横切层，不单列成引擎下的并列分支",
+      "chain": [
+        "UltimaAgent 本体",
+        "UltimaAgent 引擎",
+        "基础能力（本体承载）",
+        "＋ 治理与约束（⑤）",
+        "行为学原则（五条 · 按人类生物特质）"
+      ],
+      "chain_string": "UltimaAgent 本体 → UltimaAgent 引擎 → 基础能力（本体承载） → ＋ 治理与约束（⑤） → 行为学原则（五条 · 按人类生物特质）",
+      "depth": 5
+    },
+    {
+      "id": 59,
+      "parent_id": 58,
+      "classes": [
+        "leaf",
+        "node"
+      ],
+      "name": "感官分工（通道分工）",
+      "description": "语音通道与显示通道各司其职、不混通道 → 落点：Senses.Voice 与 Surface 分模块",
+      "chain": [
+        "UltimaAgent 本体",
+        "UltimaAgent 引擎",
+        "基础能力（本体承载）",
+        "＋ 治理与约束（⑤）",
+        "行为学原则（五条 · 按人类生物特质）",
+        "感官分工（通道分工）"
+      ],
+      "chain_string": "UltimaAgent 本体 → UltimaAgent 引擎 → 基础能力（本体承载） → ＋ 治理与约束（⑤） → 行为学原则（五条 · 按人类生物特质） → 感官分工（通道分工）",
+      "depth": 6
+    },
+    {
+      "id": 60,
+      "parent_id": 58,
+      "classes": [
+        "leaf",
+        "node"
+      ],
+      "name": "理解先于行动",
+      "description": "先理解意图再执行，不条件反射 → 落点：Core 的意图→路由→编排固定顺序",
+      "chain": [
+        "UltimaAgent 本体",
+        "UltimaAgent 引擎",
+        "基础能力（本体承载）",
+        "＋ 治理与约束（⑤）",
+        "行为学原则（五条 · 按人类生物特质）",
+        "理解先于行动"
+      ],
+      "chain_string": "UltimaAgent 本体 → UltimaAgent 引擎 → 基础能力（本体承载） → ＋ 治理与约束（⑤） → 行为学原则（五条 · 按人类生物特质） → 理解先于行动",
+      "depth": 6
+    },
+    {
+      "id": 61,
+      "parent_id": 58,
+      "classes": [
+        "leaf",
+        "node"
+      ],
+      "name": "复述确认",
+      "description": "关键动作执行前向用户复述确认 → 落点：Core 的 confirm 协议（语音+面板双通道）",
+      "chain": [
+        "UltimaAgent 本体",
+        "UltimaAgent 引擎",
+        "基础能力（本体承载）",
+        "＋ 治理与约束（⑤）",
+        "行为学原则（五条 · 按人类生物特质）",
+        "复述确认"
+      ],
+      "chain_string": "UltimaAgent 本体 → UltimaAgent 引擎 → 基础能力（本体承载） → ＋ 治理与约束（⑤） → 行为学原则（五条 · 按人类生物特质） → 复述确认",
+      "depth": 6
+    },
+    {
+      "id": 62,
+      "parent_id": 58,
+      "classes": [
+        "leaf",
+        "node"
+      ],
+      "name": "记忆分层",
+      "description": "工作记忆／长期记忆／温度分层 → 落点：Memory 三层结构",
+      "chain": [
+        "UltimaAgent 本体",
+        "UltimaAgent 引擎",
+        "基础能力（本体承载）",
+        "＋ 治理与约束（⑤）",
+        "行为学原则（五条 · 按人类生物特质）",
+        "记忆分层"
+      ],
+      "chain_string": "UltimaAgent 本体 → UltimaAgent 引擎 → 基础能力（本体承载） → ＋ 治理与约束（⑤） → 行为学原则（五条 · 按人类生物特质） → 记忆分层",
+      "depth": 6
+    },
+    {
+      "id": 63,
+      "parent_id": 58,
+      "classes": [
+        "leaf",
+        "node"
+      ],
+      "name": "不打扰与反馈闭环",
+      "description": "平时隐身，有事说话，说完即静 → 落点：Shell 进程树托管 + 四角壳锚位按需显隐（常驻仅顶/左上/右上）",
+      "chain": [
+        "UltimaAgent 本体",
+        "UltimaAgent 引擎",
+        "基础能力（本体承载）",
+        "＋ 治理与约束（⑤）",
+        "行为学原则（五条 · 按人类生物特质）",
+        "不打扰与反馈闭环"
+      ],
+      "chain_string": "UltimaAgent 本体 → UltimaAgent 引擎 → 基础能力（本体承载） → ＋ 治理与约束（⑤） → 行为学原则（五条 · 按人类生物特质） → 不打扰与反馈闭环",
+      "depth": 6
+    },
+    {
+      "id": 64,
+      "parent_id": 1,
+      "classes": [
+        "node",
+        "open"
+      ],
+      "name": "外部能力（容器 · 三抽屉）",
+      "description": "不是模块，是容器：能力库 Skill / 插件 Plugin / 模型库 Provider；能力可添加、可指派，一能力一模型（无主备）；换绑＝在模型库里手动下拉、即时生效、在途任务等本轮结束；主脑不进模型库、不可指派——主脑本身可替换（R-76，见 Core → 主脑），但不作为「被指派的能力模型」出现",
+      "chain": [
+        "UltimaAgent 本体",
+        "UltimaAgent 引擎",
+        "外部能力（容器 · 三抽屉）"
+      ],
+      "chain_string": "UltimaAgent 本体 → UltimaAgent 引擎 → 外部能力（容器 · 三抽屉）",
+      "depth": 3
+    },
+    {
+      "id": 65,
+      "parent_id": 64,
+      "classes": [
+        "node",
+        "open"
+      ],
+      "name": "能力库 Skill",
+      "description": "产品策划 / 代码开发 / 方案撰写 / 代码审计 / 知识采集 / 顾问咨询；界面上是卡片：是否添加成功 ＋ 指派下拉 ＋ 状态灯",
+      "chain": [
+        "UltimaAgent 本体",
+        "UltimaAgent 引擎",
+        "外部能力（容器 · 三抽屉）",
+        "能力库 Skill"
+      ],
+      "chain_string": "UltimaAgent 本体 → UltimaAgent 引擎 → 外部能力（容器 · 三抽屉） → 能力库 Skill",
+      "depth": 4
+    },
+    {
+      "id": 66,
+      "parent_id": 65,
+      "classes": [
+        "leaf",
+        "node"
+      ],
+      "name": "预置（随安装包自带）",
+      "description": "出场即激活，可停用不可卸载；纳入体积预算、离线安装依赖冻结、许可与 SBOM 台账",
+      "chain": [
+        "UltimaAgent 本体",
+        "UltimaAgent 引擎",
+        "外部能力（容器 · 三抽屉）",
+        "能力库 Skill",
+        "预置（随安装包自带）"
+      ],
+      "chain_string": "UltimaAgent 本体 → UltimaAgent 引擎 → 外部能力（容器 · 三抽屉） → 能力库 Skill → 预置（随安装包自带）",
+      "depth": 5
+    },
+    {
+      "id": 67,
+      "parent_id": 65,
+      "classes": [
+        "leaf",
+        "node"
+      ],
+      "name": "扩展（用户添加）",
+      "description": "可删除；添加后进入指派下拉",
+      "chain": [
+        "UltimaAgent 本体",
+        "UltimaAgent 引擎",
+        "外部能力（容器 · 三抽屉）",
+        "能力库 Skill",
+        "扩展（用户添加）"
+      ],
+      "chain_string": "UltimaAgent 本体 → UltimaAgent 引擎 → 外部能力（容器 · 三抽屉） → 能力库 Skill → 扩展（用户添加）",
+      "depth": 5
+    },
+    {
+      "id": 68,
+      "parent_id": 65,
+      "classes": [
+        "leaf",
+        "node"
+      ],
+      "name": "知识采集 kb.collect.http / kb.collect.browser",
+      "description": "http 档默认、无子进程；browser 档 CDP 连本机 Edge/Chrome，不打包 chromium，浏览器进程须入 Job 并留 ActiveProcesses==0 收净证据",
+      "chain": [
+        "UltimaAgent 本体",
+        "UltimaAgent 引擎",
+        "外部能力（容器 · 三抽屉）",
+        "能力库 Skill",
+        "知识采集 kb.collect.http / kb.collect.browser"
+      ],
+      "chain_string": "UltimaAgent 本体 → UltimaAgent 引擎 → 外部能力（容器 · 三抽屉） → 能力库 Skill → 知识采集 kb.collect.http / kb.collect.browser",
+      "depth": 5
+    },
+    {
+      "id": 69,
+      "parent_id": 65,
+      "classes": [
+        "leaf",
+        "node"
+      ],
+      "name": "一能力只绑一个模型",
+      "description": "无主备、无自动切换；换绑只由用户手动下拉触发",
+      "chain": [
+        "UltimaAgent 本体",
+        "UltimaAgent 引擎",
+        "外部能力（容器 · 三抽屉）",
+        "能力库 Skill",
+        "一能力只绑一个模型"
+      ],
+      "chain_string": "UltimaAgent 本体 → UltimaAgent 引擎 → 外部能力（容器 · 三抽屉） → 能力库 Skill → 一能力只绑一个模型",
+      "depth": 5
+    },
+    {
+      "id": 70,
+      "parent_id": 64,
+      "classes": [
+        "node",
+        "open"
+      ],
+      "name": "插件 Plugin",
+      "description": "接线层：能把外部东西连进来的都在这（开源拼装，附替代排查结论）",
+      "chain": [
+        "UltimaAgent 本体",
+        "UltimaAgent 引擎",
+        "外部能力（容器 · 三抽屉）",
+        "插件 Plugin"
+      ],
+      "chain_string": "UltimaAgent 本体 → UltimaAgent 引擎 → 外部能力（容器 · 三抽屉） → 插件 Plugin",
+      "depth": 4
+    },
+    {
+      "id": 71,
+      "parent_id": 70,
+      "classes": [
+        "leaf",
+        "node"
+      ],
+      "name": "plugin.provider.<name>",
+      "description": "各家大模型 API 接入适配（OpenAI / DeepSeek 等）",
+      "chain": [
+        "UltimaAgent 本体",
+        "UltimaAgent 引擎",
+        "外部能力（容器 · 三抽屉）",
+        "插件 Plugin",
+        "plugin.provider.<name>"
+      ],
+      "chain_string": "UltimaAgent 本体 → UltimaAgent 引擎 → 外部能力（容器 · 三抽屉） → 插件 Plugin → plugin.provider.<name>",
+      "depth": 5
+    },
+    {
+      "id": 72,
+      "parent_id": 70,
+      "classes": [
+        "leaf",
+        "node"
+      ],
+      "name": "plugin.executor.<name>",
+      "description": "执行端适配；harness（工具调用循环/多步/重试/超时/schema）就落在这一层，不新造模块",
+      "chain": [
+        "UltimaAgent 本体",
+        "UltimaAgent 引擎",
+        "外部能力（容器 · 三抽屉）",
+        "插件 Plugin",
+        "plugin.executor.<name>"
+      ],
+      "chain_string": "UltimaAgent 本体 → UltimaAgent 引擎 → 外部能力（容器 · 三抽屉） → 插件 Plugin → plugin.executor.<name>",
+      "depth": 5
+    },
+    {
+      "id": 73,
+      "parent_id": 70,
+      "classes": [
+        "leaf",
+        "node"
+      ],
+      "name": "plugin.mcp.<name> · plugin.kb.browser · plugin.store.*",
+      "description": "MCP 客户端、采集浏览器档、存储后端（sqlite / 文件 / 向量）",
+      "chain": [
+        "UltimaAgent 本体",
+        "UltimaAgent 引擎",
+        "外部能力（容器 · 三抽屉）",
+        "插件 Plugin",
+        "plugin.mcp.<name> · plugin.kb.browser · plugin.store.*"
+      ],
+      "chain_string": "UltimaAgent 本体 → UltimaAgent 引擎 → 外部能力（容器 · 三抽屉） → 插件 Plugin → plugin.mcp.<name> · plugin.kb.browser · plugin.store.*",
+      "depth": 5
+    },
+    {
+      "id": 74,
+      "parent_id": 70,
+      "classes": [
+        "leaf",
+        "node"
+      ],
+      "name": "组件注册表 · 开源替代排查",
+      "description": "M1 铁律：未登记不得使用；能开源绝不自研；关掉插件产品仍可用",
+      "chain": [
+        "UltimaAgent 本体",
+        "UltimaAgent 引擎",
+        "外部能力（容器 · 三抽屉）",
+        "插件 Plugin",
+        "组件注册表 · 开源替代排查"
+      ],
+      "chain_string": "UltimaAgent 本体 → UltimaAgent 引擎 → 外部能力（容器 · 三抽屉） → 插件 Plugin → 组件注册表 · 开源替代排查",
+      "depth": 5
+    },
+    {
+      "id": 75,
+      "parent_id": 64,
+      "classes": [
+        "node",
+        "open"
+      ],
+      "name": "模型库 Provider",
+      "description": "已配置好的云端大模型 API 列表 ＋ 可选本地第二模型；能力从这里挑绑定目标。主脑不在此列表（R-76：主脑可在配置面下拉引用本库 provider，但不被登记进来）",
+      "chain": [
+        "UltimaAgent 本体",
+        "UltimaAgent 引擎",
+        "外部能力（容器 · 三抽屉）",
+        "模型库 Provider"
+      ],
+      "chain_string": "UltimaAgent 本体 → UltimaAgent 引擎 → 外部能力（容器 · 三抽屉） → 模型库 Provider",
+      "depth": 4
+    },
+    {
+      "id": 76,
+      "parent_id": 75,
+      "classes": [
+        "leaf",
+        "node"
+      ],
+      "name": "六态可检测",
+      "description": "ok / no_token / auth_failed / unreachable / rate_limited / disabled；额度只靠 402/429/insufficient_quota 失败判定，不做付费探测",
+      "chain": [
+        "UltimaAgent 本体",
+        "UltimaAgent 引擎",
+        "外部能力（容器 · 三抽屉）",
+        "模型库 Provider",
+        "六态可检测"
+      ],
+      "chain_string": "UltimaAgent 本体 → UltimaAgent 引擎 → 外部能力（容器 · 三抽屉） → 模型库 Provider → 六态可检测",
+      "depth": 5
+    },
+    {
+      "id": 77,
+      "parent_id": 75,
+      "classes": [
+        "leaf",
+        "node"
+      ],
+      "name": "换绑与降级",
+      "description": "手动下拉即时生效；云端坏→LOCAL_FALLBACK（不自动换绑，unreachable 退避 3 次、rate_limited 不重试等窗口）；Console 只读档位不改档位",
+      "chain": [
+        "UltimaAgent 本体",
+        "UltimaAgent 引擎",
+        "外部能力（容器 · 三抽屉）",
+        "模型库 Provider",
+        "换绑与降级"
+      ],
+      "chain_string": "UltimaAgent 本体 → UltimaAgent 引擎 → 外部能力（容器 · 三抽屉） → 模型库 Provider → 换绑与降级",
+      "depth": 5
+    },
+    {
+      "id": 78,
+      "parent_id": 75,
+      "classes": [
+        "leaf",
+        "node"
+      ],
+      "name": "主脑不进模型库、不可指派",
+      "description": "模型库列表里主脑条目 0，能力指派下拉里也不出现主脑；主脑可引用本库 provider，但不被登记进来。主脑本体与换型见 Core → 主脑（可替换推理后端）（R-76 / §二十三）",
+      "chain": [
+        "UltimaAgent 本体",
+        "UltimaAgent 引擎",
+        "外部能力（容器 · 三抽屉）",
+        "模型库 Provider",
+        "主脑不进模型库、不可指派"
+      ],
+      "chain_string": "UltimaAgent 本体 → UltimaAgent 引擎 → 外部能力（容器 · 三抽屉） → 模型库 Provider → 主脑不进模型库、不可指派",
+      "depth": 5
+    },
+    {
+      "id": 79,
+      "parent_id": 1,
+      "classes": [
+        "node",
+        "open"
+      ],
+      "name": "交付（远程更新与安装交付）",
+      "description": "产品交付链 = Update（远程更新）+ Lifecycle（安装与交付）两个原子模块；八模块口径不变",
+      "chain": [
+        "UltimaAgent 本体",
+        "UltimaAgent 引擎",
+        "交付（远程更新与安装交付）"
+      ],
+      "chain_string": "UltimaAgent 本体 → UltimaAgent 引擎 → 交付（远程更新与安装交付）",
+      "depth": 3
+    },
+    {
+      "id": 80,
+      "parent_id": 79,
+      "classes": [
+        "node",
+        "open"
+      ],
+      "name": "7. Update（远程更新）",
+      "description": "远程更新通道、签名校验、热更新",
+      "chain": [
+        "UltimaAgent 本体",
+        "UltimaAgent 引擎",
+        "交付（远程更新与安装交付）",
+        "7. Update（远程更新）"
+      ],
+      "chain_string": "UltimaAgent 本体 → UltimaAgent 引擎 → 交付（远程更新与安装交付） → 7. Update（远程更新）",
+      "depth": 4
+    },
+    {
+      "id": 81,
+      "parent_id": 80,
+      "classes": [
+        "leaf",
+        "node"
+      ],
+      "name": "manifest · publisher",
+      "description": "更新清单与发布通道（签名 scope 注明 temporary-test-only 直至真签名密钥启用）",
+      "chain": [
+        "UltimaAgent 本体",
+        "UltimaAgent 引擎",
+        "交付（远程更新与安装交付）",
+        "7. Update（远程更新）",
+        "manifest · publisher"
+      ],
+      "chain_string": "UltimaAgent 本体 → UltimaAgent 引擎 → 交付（远程更新与安装交付） → 7. Update（远程更新） → manifest · publisher",
+      "depth": 5
+    },
+    {
+      "id": 82,
+      "parent_id": 80,
+      "classes": [
+        "leaf",
+        "node"
+      ],
+      "name": "远程更新 · 签名校验",
+      "description": "可组合任务能力",
+      "chain": [
+        "UltimaAgent 本体",
+        "UltimaAgent 引擎",
+        "交付（远程更新与安装交付）",
+        "7. Update（远程更新）",
+        "远程更新 · 签名校验"
+      ],
+      "chain_string": "UltimaAgent 本体 → UltimaAgent 引擎 → 交付（远程更新与安装交付） → 7. Update（远程更新） → 远程更新 · 签名校验",
+      "depth": 5
+    },
+    {
+      "id": 83,
+      "parent_id": 79,
+      "classes": [
+        "node",
+        "open"
+      ],
+      "name": "8. Lifecycle（安装与交付）",
+      "description": "Setup、shipped-tasks 声明、安装/升级/卸载链（零计划任务裁决）",
+      "chain": [
+        "UltimaAgent 本体",
+        "UltimaAgent 引擎",
+        "交付（远程更新与安装交付）",
+        "8. Lifecycle（安装与交付）"
+      ],
+      "chain_string": "UltimaAgent 本体 → UltimaAgent 引擎 → 交付（远程更新与安装交付） → 8. Lifecycle（安装与交付）",
+      "depth": 4
+    },
+    {
+      "id": 84,
+      "parent_id": 83,
+      "classes": [
+        "leaf",
+        "node"
+      ],
+      "name": "零计划任务",
+      "description": "shipped-tasks.json（shipped_tasks=[]）唯一权威声明，.iss 只读不写；卸载零残留（因从未创建）",
+      "chain": [
+        "UltimaAgent 本体",
+        "UltimaAgent 引擎",
+        "交付（远程更新与安装交付）",
+        "8. Lifecycle（安装与交付）",
+        "零计划任务"
+      ],
+      "chain_string": "UltimaAgent 本体 → UltimaAgent 引擎 → 交付（远程更新与安装交付） → 8. Lifecycle（安装与交付） → 零计划任务",
+      "depth": 5
+    },
+    {
+      "id": 85,
+      "parent_id": 83,
+      "classes": [
+        "leaf",
+        "node"
+      ],
+      "name": "安装/升级链",
+      "description": "UltimaAgent-Setup-* 命名沿用；release-assets.json 模板继承",
+      "chain": [
+        "UltimaAgent 本体",
+        "UltimaAgent 引擎",
+        "交付（远程更新与安装交付）",
+        "8. Lifecycle（安装与交付）",
+        "安装/升级链"
+      ],
+      "chain_string": "UltimaAgent 本体 → UltimaAgent 引擎 → 交付（远程更新与安装交付） → 8. Lifecycle（安装与交付） → 安装/升级链",
+      "depth": 5
+    },
+    {
+      "id": 86,
+      "parent_id": 83,
+      "classes": [
+        "leaf",
+        "node"
+      ],
+      "name": "Setup 链 · check-shipped-tasks · watchdog 开发机兜底",
+      "description": "安装链、计划任务权威声明校验、开发机兜底脚本",
+      "chain": [
+        "UltimaAgent 本体",
+        "UltimaAgent 引擎",
+        "交付（远程更新与安装交付）",
+        "8. Lifecycle（安装与交付）",
+        "Setup 链 · check-shipped-tasks · watchdog 开发机兜底"
+      ],
+      "chain_string": "UltimaAgent 本体 → UltimaAgent 引擎 → 交付（远程更新与安装交付） → 8. Lifecycle（安装与交付） → Setup 链 · check-shipped-tasks · watchdog 开发机兜底",
+      "depth": 5
+    },
+    {
+      "id": 87,
+      "parent_id": 1,
+      "classes": [
+        "node",
+        "open"
+      ],
+      "name": "配置内化与工程底座",
+      "description": "config/ 唯一配置面；环境变量降为测试注入",
+      "chain": [
+        "UltimaAgent 本体",
+        "UltimaAgent 引擎",
+        "配置内化与工程底座"
+      ],
+      "chain_string": "UltimaAgent 本体 → UltimaAgent 引擎 → 配置内化与工程底座",
+      "depth": 3
+    },
+    {
+      "id": 88,
+      "parent_id": 87,
+      "classes": [
+        "leaf",
+        "node"
+      ],
+      "name": "六件配置归位",
+      "description": "host-tasks.json→Shell 权威 · interface-routing.json→Core 权威 · voice-profile/asr-normalize→Voice 权威 · interface-seeds/.env 逐项裁定",
+      "chain": [
+        "UltimaAgent 本体",
+        "UltimaAgent 引擎",
+        "配置内化与工程底座",
+        "六件配置归位"
+      ],
+      "chain_string": "UltimaAgent 本体 → UltimaAgent 引擎 → 配置内化与工程底座 → 六件配置归位",
+      "depth": 4
+    },
+    {
+      "id": 89,
+      "parent_id": 87,
+      "classes": [
+        "leaf",
+        "node"
+      ],
+      "name": "环境变量降级",
+      "description": "12 个 ULTIMA_* 只作验收脚本测试注入通道，不驱动产品形态；测试开关集中登记 devtools/README",
+      "chain": [
+        "UltimaAgent 本体",
+        "UltimaAgent 引擎",
+        "配置内化与工程底座",
+        "环境变量降级"
+      ],
+      "chain_string": "UltimaAgent 本体 → UltimaAgent 引擎 → 配置内化与工程底座 → 环境变量降级",
+      "depth": 4
+    },
+    {
+      "id": 90,
+      "parent_id": 87,
+      "classes": [
+        "leaf",
+        "node"
+      ],
+      "name": "tools/devtools/queue",
+      "description": "venv=tools/venv-ultimaagent · 队列引擎 · orb 渲染线降级归档（悬浮球退场，仅存测试夹具）",
+      "chain": [
+        "UltimaAgent 本体",
+        "UltimaAgent 引擎",
+        "配置内化与工程底座",
+        "tools/devtools/queue"
+      ],
+      "chain_string": "UltimaAgent 本体 → UltimaAgent 引擎 → 配置内化与工程底座 → tools/devtools/queue",
+      "depth": 4
+    },
+    {
+      "id": 91,
+      "parent_id": 1,
+      "classes": [
+        "node",
+        "open"
+      ],
+      "name": "P2V 拆单（0054 收口验收后启动）",
+      "description": "P2V-00 立项 → 01 Core+Memory+Middleware → 02 Voice → 03 Shell+Surface → 04 Update+Lifecycle → 05 总验收；老仓 P2V-05 后打 ultimaagent-v1-final-frozen tag 转只读",
+      "chain": [
+        "UltimaAgent 本体",
+        "UltimaAgent 引擎",
+        "P2V 拆单（0054 收口验收后启动）"
+      ],
+      "chain_string": "UltimaAgent 本体 → UltimaAgent 引擎 → P2V 拆单（0054 收口验收后启动）",
+      "depth": 3
+    },
+    {
+      "id": 92,
+      "parent_id": 91,
+      "classes": [
+        "leaf",
+        "node"
+      ],
+      "name": "P2V-00",
+      "description": "新仓初始化 · 队列引擎搬运 · venv 规范名 · 零开发文档（仅留安装/运行必需最小文档面，最终形态=安装包）｜ Gate：队列渲染器自检过",
+      "chain": [
+        "UltimaAgent 本体",
+        "UltimaAgent 引擎",
+        "P2V 拆单（0054 收口验收后启动）",
+        "P2V-00"
+      ],
+      "chain_string": "UltimaAgent 本体 → UltimaAgent 引擎 → P2V 拆单（0054 收口验收后启动） → P2V-00",
+      "depth": 4
+    },
+    {
+      "id": 93,
+      "parent_id": 91,
+      "classes": [
+        "leaf",
+        "node"
+      ],
+      "name": "P2V-01",
+      "description": "搬 Core+Memory+Middleware，openjarvis→Core import 吸收 ｜ Gate：AST 3/3 + 单测绿 + Windows-only 依赖扫描 0 处",
+      "chain": [
+        "UltimaAgent 本体",
+        "UltimaAgent 引擎",
+        "P2V 拆单（0054 收口验收后启动）",
+        "P2V-01"
+      ],
+      "chain_string": "UltimaAgent 本体 → UltimaAgent 引擎 → P2V 拆单（0054 收口验收后启动） → P2V-01",
+      "depth": 4
+    },
+    {
+      "id": 94,
+      "parent_id": 91,
+      "classes": [
+        "leaf",
+        "node"
+      ],
+      "name": "P2V-02",
+      "description": "搬 Senses.Voice，KWS/CV3 冻结基线复测 ｜ Gate：唤醒/对话链路实测一致 + 依赖扫描 0 处",
+      "chain": [
+        "UltimaAgent 本体",
+        "UltimaAgent 引擎",
+        "P2V 拆单（0054 收口验收后启动）",
+        "P2V-02"
+      ],
+      "chain_string": "UltimaAgent 本体 → UltimaAgent 引擎 → P2V 拆单（0054 收口验收后启动） → P2V-02",
+      "depth": 4
+    },
+    {
+      "id": 95,
+      "parent_id": 91,
+      "classes": [
+        "leaf",
+        "node"
+      ],
+      "name": "P2V-03",
+      "description": "搬 Shell+Surface，四角壳为唯一显示形态（Hud 原生壳 + 8 锚点基线；orb 渲染线不搬）+ 宿主契约接口落文档 ｜ Gate：build 0/0 + Guardian 事件 + 零计划任务 + 零弹窗 + 四角壳锚位渲染自检",
+      "chain": [
+        "UltimaAgent 本体",
+        "UltimaAgent 引擎",
+        "P2V 拆单（0054 收口验收后启动）",
+        "P2V-03"
+      ],
+      "chain_string": "UltimaAgent 本体 → UltimaAgent 引擎 → P2V 拆单（0054 收口验收后启动） → P2V-03",
+      "depth": 4
+    },
+    {
+      "id": 96,
+      "parent_id": 91,
+      "classes": [
+        "leaf",
+        "node"
+      ],
+      "name": "P2V-04",
+      "description": "搬 Update+Lifecycle，安装包链重建 ｜ Gate：Setup 全流程（复用 0052/0054 判据）",
+      "chain": [
+        "UltimaAgent 本体",
+        "UltimaAgent 引擎",
+        "P2V 拆单（0054 收口验收后启动）",
+        "P2V-04"
+      ],
+      "chain_string": "UltimaAgent 本体 → UltimaAgent 引擎 → P2V 拆单（0054 收口验收后启动） → P2V-04",
+      "depth": 4
+    },
+    {
+      "id": 97,
+      "parent_id": 91,
+      "classes": [
+        "leaf",
+        "node"
+      ],
+      "name": "P2V-05",
+      "description": "总验收 ｜ Gate：端到端冒烟 + 独立审计 + final-frozen tag + 老仓转只读",
+      "chain": [
+        "UltimaAgent 本体",
+        "UltimaAgent 引擎",
+        "P2V 拆单（0054 收口验收后启动）",
+        "P2V-05"
+      ],
+      "chain_string": "UltimaAgent 本体 → UltimaAgent 引擎 → P2V 拆单（0054 收口验收后启动） → P2V-05",
+      "depth": 4
+    },
+    {
+      "id": 98,
+      "parent_id": 0,
+      "classes": [
+        "node",
+        "open"
+      ],
+      "name": "UltimaAgent 客户端",
+      "description": "用户看得见摸得着的壳：只调引擎 API、只订阅引擎事件；交互策略（勿扰时段/音量语速/热键/主题）归此层。各端样式可不同，引擎契约必须同一套",
+      "chain": [
+        "UltimaAgent 本体",
+        "UltimaAgent 客户端"
+      ],
+      "chain_string": "UltimaAgent 本体 → UltimaAgent 客户端",
+      "depth": 2
+    },
+    {
+      "id": 99,
+      "parent_id": 98,
+      "classes": [
+        "leaf",
+        "node"
+      ],
+      "name": "Windows（已落地）",
+      "description": "UltimaAgent.exe + HostShell(WinUI3) + WebView2；显示契约=四角壳 8 锚点；零计划任务、自启走启动文件夹",
+      "chain": [
+        "UltimaAgent 本体",
+        "UltimaAgent 客户端",
+        "Windows（已落地）"
+      ],
+      "chain_string": "UltimaAgent 本体 → UltimaAgent 客户端 → Windows（已落地）",
+      "depth": 3
+    },
+    {
+      "id": 100,
+      "parent_id": 98,
+      "classes": [
+        "leaf",
+        "node"
+      ],
+      "name": "macOS（待定）",
+      "description": "壳形态待定；锚位语义沿用四角壳，位置/尺寸/安全区按 macOS 重算，不照搬 Windows 像素值",
+      "chain": [
+        "UltimaAgent 本体",
+        "UltimaAgent 客户端",
+        "macOS（待定）"
+      ],
+      "chain_string": "UltimaAgent 本体 → UltimaAgent 客户端 → macOS（待定）",
+      "depth": 3
+    },
+    {
+      "id": 101,
+      "parent_id": 98,
+      "classes": [
+        "leaf",
+        "node"
+      ],
+      "name": "移动端（待定）",
+      "description": "语音为主入口、卡片为辅；屏小，8 锚点是否适用未定，需另立显示契约",
+      "chain": [
+        "UltimaAgent 本体",
+        "UltimaAgent 客户端",
+        "移动端（待定）"
+      ],
+      "chain_string": "UltimaAgent 本体 → UltimaAgent 客户端 → 移动端（待定）",
+      "depth": 3
+    },
+    {
+      "id": 102,
+      "parent_id": 98,
+      "classes": [
+        "leaf",
+        "node"
+      ],
+      "name": "AR 眼镜端（最终形态）",
+      "description": "视觉+语音双通道；引擎不变，只换客户端壳",
+      "chain": [
+        "UltimaAgent 本体",
+        "UltimaAgent 客户端",
+        "AR 眼镜端（最终形态）"
+      ],
+      "chain_string": "UltimaAgent 本体 → UltimaAgent 客户端 → AR 眼镜端（最终形态）",
+      "depth": 3
+    },
+    {
+      "id": 103,
+      "parent_id": 98,
+      "classes": [
+        "node",
+        "open"
+      ],
+      "name": "多终端路线（Windows → Linux → 自研 AR 眼镜系统）",
+      "description": "产品最终形态 = AR 眼镜智能代理；Windows 是第一站，四角壳 8 锚点范式为跨终端唯一显示常量（屏幕四角 ⇄ AR 视野边缘，中央零遮挡沿用）",
+      "chain": [
+        "UltimaAgent 本体",
+        "UltimaAgent 客户端",
+        "多终端路线（Windows → Linux → 自研 AR 眼镜系统）"
+      ],
+      "chain_string": "UltimaAgent 本体 → UltimaAgent 客户端 → 多终端路线（Windows → Linux → 自研 AR 眼镜系统）",
+      "depth": 3
+    },
+    {
+      "id": 104,
+      "parent_id": 103,
+      "classes": [
+        "leaf",
+        "node"
+      ],
+      "name": "终端无关层",
+      "description": "Core / Senses.Voice / Memory / Middleware / Update 禁止引入 Windows-only 依赖（Gate 含依赖扫描 0 处）——语音链路是 AR 眼镜语音通道的直接复用层",
+      "chain": [
+        "UltimaAgent 本体",
+        "UltimaAgent 客户端",
+        "多终端路线（Windows → Linux → 自研 AR 眼镜系统）",
+        "终端无关层"
+      ],
+      "chain_string": "UltimaAgent 本体 → UltimaAgent 客户端 → 多终端路线（Windows → Linux → 自研 AR 眼镜系统） → 终端无关层",
+      "depth": 4
+    },
+    {
+      "id": 105,
+      "parent_id": 103,
+      "classes": [
+        "leaf",
+        "node"
+      ],
+      "name": "终端相关层",
+      "description": "Shell + Surface 每终端一套适配，宿主契约接口跨终端只换实现不换契约；Linux 版 = systemd/dbus 方向（独立方案）；AR 版 = 自研系统内嵌",
+      "chain": [
+        "UltimaAgent 本体",
+        "UltimaAgent 客户端",
+        "多终端路线（Windows → Linux → 自研 AR 眼镜系统）",
+        "终端相关层"
+      ],
+      "chain_string": "UltimaAgent 本体 → UltimaAgent 客户端 → 多终端路线（Windows → Linux → 自研 AR 眼镜系统） → 终端相关层",
+      "depth": 4
+    },
+    {
+      "id": 106,
+      "parent_id": 103,
+      "classes": [
+        "leaf",
+        "node"
+      ],
+      "name": "迁移纪律",
+      "description": "每次终端迁移走「冻结仓+白名单搬运」，不复用被冻结旧实现混写；AR 透明度三档 0.14/0.55/0.85 + 中央永远透传沿用既有 AR 安全基线",
+      "chain": [
+        "UltimaAgent 本体",
+        "UltimaAgent 客户端",
+        "多终端路线（Windows → Linux → 自研 AR 眼镜系统）",
+        "迁移纪律"
+      ],
+      "chain_string": "UltimaAgent 本体 → UltimaAgent 客户端 → 多终端路线（Windows → Linux → 自研 AR 眼镜系统） → 迁移纪律",
+      "depth": 4
+    },
+    {
+      "id": 107,
+      "parent_id": 0,
+      "classes": [
+        "node",
+        "open"
+      ],
+      "name": "UltimaAgent 运营",
+      "description": "针对本产品的经营管理：可读引擎状态；受控写只经引擎准入校验后生效（规则面只读）。Console = 能力在引擎（Manager/探针）+ 运营 UI 在此层",
+      "chain": [
+        "UltimaAgent 本体",
+        "UltimaAgent 运营"
+      ],
+      "chain_string": "UltimaAgent 本体 → UltimaAgent 运营",
+      "depth": 2
+    },
+    {
+      "id": 108,
+      "parent_id": 107,
+      "classes": [
+        "leaf",
+        "node"
+      ],
+      "name": "产品运营后台",
+      "description": "任务队列与回执、探针时间线、插件装卸启停、日志查看（脱敏）、自检报告、审计与冻结记录 当前唯一有实体",
+      "chain": [
+        "UltimaAgent 本体",
+        "UltimaAgent 运营",
+        "产品运营后台"
+      ],
+      "chain_string": "UltimaAgent 本体 → UltimaAgent 运营 → 产品运营后台",
+      "depth": 3
+    },
+    {
+      "id": 109,
+      "parent_id": 107,
+      "classes": [
+        "leaf",
+        "node"
+      ],
+      "name": "用户与订阅",
+      "description": "注册/登录、订阅与续费、授权与用量、账号状态（v1.0 不做）",
+      "chain": [
+        "UltimaAgent 本体",
+        "UltimaAgent 运营",
+        "用户与订阅"
+      ],
+      "chain_string": "UltimaAgent 本体 → UltimaAgent 运营 → 用户与订阅",
+      "depth": 3
+    },
+    {
+      "id": 110,
+      "parent_id": 107,
+      "classes": [
+        "leaf",
+        "node"
+      ],
+      "name": "市场与增长",
+      "description": "内容与投放、渠道与活动、转化与留存看板（v1.0 不做）",
+      "chain": [
+        "UltimaAgent 本体",
+        "UltimaAgent 运营",
+        "市场与增长"
+      ],
+      "chain_string": "UltimaAgent 本体 → UltimaAgent 运营 → 市场与增长",
+      "depth": 3
+    },
+    {
+      "id": 111,
+      "parent_id": 107,
+      "classes": [
+        "leaf",
+        "node"
+      ],
+      "name": "计费与订单",
+      "description": "价格档位、订单与退款、发票（v1.0 不做）",
+      "chain": [
+        "UltimaAgent 本体",
+        "UltimaAgent 运营",
+        "计费与订单"
+      ],
+      "chain_string": "UltimaAgent 本体 → UltimaAgent 运营 → 计费与订单",
+      "depth": 3
+    },
+    {
+      "id": 112,
+      "parent_id": 107,
+      "classes": [
+        "leaf",
+        "node"
+      ],
+      "name": "客服与反馈",
+      "description": "反馈收集与分派、工单与回访（v1.0 不做）",
+      "chain": [
+        "UltimaAgent 本体",
+        "UltimaAgent 运营",
+        "客服与反馈"
+      ],
+      "chain_string": "UltimaAgent 本体 → UltimaAgent 运营 → 客服与反馈",
+      "depth": 3
+    }
+  ],
+  "P1": {
+    "node": "主脑（可替换推理后端）",
+    "chain": [
+      "UltimaAgent 本体",
+      "UltimaAgent 引擎",
+      "基础能力（本体承载）",
+      "1. Core（编排与裁决）",
+      "主脑（可替换推理后端）"
+    ],
+    "chain_string": "UltimaAgent 本体 → UltimaAgent 引擎 → 基础能力（本体承载） → 1. Core（编排与裁决） → 主脑（可替换推理后端）",
+    "depth": 5,
+    "not_under_capability_group": true,
+    "pass": true
+  },
+  "P2": {
+    "governance_chain": "UltimaAgent 本体 → UltimaAgent 引擎 → 基础能力（本体承载） → ＋ 治理与约束（⑤）",
+    "behavior_chain": "UltimaAgent 本体 → UltimaAgent 引擎 → 基础能力（本体承载） → ＋ 治理与约束（⑤） → 行为学原则（五条 · 按人类生物特质）",
+    "principles": [
+      {
+        "node": "感官分工（通道分工）",
+        "chain": [
+          "UltimaAgent 本体",
+          "UltimaAgent 引擎",
+          "基础能力（本体承载）",
+          "＋ 治理与约束（⑤）",
+          "行为学原则（五条 · 按人类生物特质）",
+          "感官分工（通道分工）"
+        ],
+        "chain_string": "UltimaAgent 本体 → UltimaAgent 引擎 → 基础能力（本体承载） → ＋ 治理与约束（⑤） → 行为学原则（五条 · 按人类生物特质） → 感官分工（通道分工）",
+        "depth": 6,
+        "pass": true
+      },
+      {
+        "node": "理解先于行动",
+        "chain": [
+          "UltimaAgent 本体",
+          "UltimaAgent 引擎",
+          "基础能力（本体承载）",
+          "＋ 治理与约束（⑤）",
+          "行为学原则（五条 · 按人类生物特质）",
+          "理解先于行动"
+        ],
+        "chain_string": "UltimaAgent 本体 → UltimaAgent 引擎 → 基础能力（本体承载） → ＋ 治理与约束（⑤） → 行为学原则（五条 · 按人类生物特质） → 理解先于行动",
+        "depth": 6,
+        "pass": true
+      },
+      {
+        "node": "复述确认",
+        "chain": [
+          "UltimaAgent 本体",
+          "UltimaAgent 引擎",
+          "基础能力（本体承载）",
+          "＋ 治理与约束（⑤）",
+          "行为学原则（五条 · 按人类生物特质）",
+          "复述确认"
+        ],
+        "chain_string": "UltimaAgent 本体 → UltimaAgent 引擎 → 基础能力（本体承载） → ＋ 治理与约束（⑤） → 行为学原则（五条 · 按人类生物特质） → 复述确认",
+        "depth": 6,
+        "pass": true
+      },
+      {
+        "node": "记忆分层",
+        "chain": [
+          "UltimaAgent 本体",
+          "UltimaAgent 引擎",
+          "基础能力（本体承载）",
+          "＋ 治理与约束（⑤）",
+          "行为学原则（五条 · 按人类生物特质）",
+          "记忆分层"
+        ],
+        "chain_string": "UltimaAgent 本体 → UltimaAgent 引擎 → 基础能力（本体承载） → ＋ 治理与约束（⑤） → 行为学原则（五条 · 按人类生物特质） → 记忆分层",
+        "depth": 6,
+        "pass": true
+      },
+      {
+        "node": "不打扰与反馈闭环",
+        "chain": [
+          "UltimaAgent 本体",
+          "UltimaAgent 引擎",
+          "基础能力（本体承载）",
+          "＋ 治理与约束（⑤）",
+          "行为学原则（五条 · 按人类生物特质）",
+          "不打扰与反馈闭环"
+        ],
+        "chain_string": "UltimaAgent 本体 → UltimaAgent 引擎 → 基础能力（本体承载） → ＋ 治理与约束（⑤） → 行为学原则（五条 · 按人类生物特质） → 不打扰与反馈闭环",
+        "depth": 6,
+        "pass": true
+      }
+    ],
+    "pass": true
+  },
+  "P3": {
+    "container_chain": "UltimaAgent 本体 → UltimaAgent 引擎 → 外部能力（容器 · 三抽屉）",
+    "direct_children": [
+      "能力库 Skill",
+      "插件 Plugin",
+      "模型库 Provider"
+    ],
+    "expected_drawers": [
+      "能力库 Skill",
+      "插件 Plugin",
+      "模型库 Provider"
+    ],
+    "provider_descendants": [
+      "六态可检测",
+      "换绑与降级",
+      "主脑不进模型库、不可指派"
+    ],
+    "positive_mainbrain_entries": [],
+    "mainbrain_policy_nodes": [
+      "主脑不进模型库、不可指派"
+    ],
+    "pass": true
+  },
+  "P4": {
+    "task_library_chain": "UltimaAgent 本体 → UltimaAgent 引擎 → 基础能力（本体承载） → ＋ Console（引擎中心管理调度器） → 任务库（项目→工单卡→任务→运行实例）",
+    "task_library_parent": "＋ Console（引擎中心管理调度器）",
+    "log_library_chain": "UltimaAgent 本体 → UltimaAgent 引擎 → 基础能力（本体承载） → ＋ 治理与约束（⑤） → 日志库（审计与留痕）",
+    "log_library_parent": "＋ 治理与约束（⑤）",
+    "pass": true
+  },
+  "P5": {
+    "node": "writer · poison_guard · store_backend · temperature_tier · volumes",
+    "chain": "UltimaAgent 本体 → UltimaAgent 引擎 → 基础能力（本体承载） → 5. Memory（记忆与自学习） → writer · poison_guard · store_backend · temperature_tier · volumes",
+    "description": "写入、防投毒、存储后端、三层温度（热 500MB／温 2GB 定值，R-80）、存储卷登记（volumes.json 可热加卷，可接私有 NAS）；冷层存档路径可指定，禁公有云盘／对象存储",
+    "checks": {
+      "hot_500mb": true,
+      "warm_2gb": true,
+      "fixed_value": true,
+      "cold_path_configurable": true
+    },
+    "pass": true
+  },
+  "taxonomies": {
+    "A_presentation_three_categories": {
+      "definition_count": 1,
+      "definition": {
+        "file": "docs/plans/next-基础能力盘点与缺口清单-20261113.md",
+        "line": 36
+      },
+      "baseline_reference": {
+        "line": 967,
+        "text": "基础能力 / 外部能力 / 交付"
+      },
+      "tree_rendered_categories": [
+        "基础能力（本体承载）",
+        "外部能力（容器 · 三抽屉）",
+        "交付（远程更新与安装交付）"
+      ],
+      "tree_other_engine_children": [
+        "配置内化与工程底座",
+        "P2V 拆单（0054 收口验收后启动）"
+      ],
+      "conflicts": [],
+      "pass": true
+    },
+    "B_engineering_eight_blocks": {
+      "definition_count": 1,
+      "definition": {
+        "file": "docs/specs/next-双域分离与开工设置规范.md",
+        "line": 124
+      },
+      "inventory_reference_line": 16,
+      "tree_basic_blocks": [
+        "1. Core（编排与裁决）",
+        "2. Senses.Voice（语音进出）",
+        "3. Shell（进程治理）",
+        "4. Surface（界面与呈现）",
+        "5. Memory（记忆与自学习）",
+        "6. Middleware（执行端与票据）"
+      ],
+      "tree_delivery_blocks": [
+        "7. Update（远程更新）",
+        "8. Lifecycle（安装与交付）"
+      ],
+      "expected_basic_blocks": [
+        "1. Core（编排与裁决）",
+        "2. Senses.Voice（语音进出）",
+        "3. Shell（进程治理）",
+        "4. Surface（界面与呈现）",
+        "5. Memory（记忆与自学习）",
+        "6. Middleware（执行端与票据）"
+      ],
+      "expected_delivery_blocks": [
+        "7. Update（远程更新）",
+        "8. Lifecycle（安装与交付）"
+      ],
+      "conflicts": [],
+      "pass": true
+    },
+    "C_functional_seven_buckets": {
+      "definition_count": 1,
+      "definition": {
+        "file": "docs/plans/next-基础能力盘点与缺口清单-20261113.md",
+        "line": 11,
+        "bucket_lines": [
+          21,
+          22,
+          23,
+          24,
+          25,
+          26,
+          27
+        ]
+      },
+      "registration_rendering": [
+        {
+          "line": 24,
+          "heading": "① 感知与交互（终端 4IO / 输出呈现 / 交互循环 / 表达与总结）"
+        },
+        {
+          "line": 36,
+          "heading": "② 语音（KWS / ASR / TTS / CV3 音色训练）"
+        },
+        {
+          "line": 51,
+          "heading": "③ 理解与决策（意图理解 / 领域知识与技能注册）"
+        },
+        {
+          "line": 60,
+          "heading": "④ 宿主、执行与编排（执行与外部接入 / 编排与组合窗口 / Console 任务中枢 / 进程治理）"
+        },
+        {
+          "line": 83,
+          "heading": "⑤ 治理与约束（行为约束 / 范式引擎 / 权威源）"
+        },
+        {
+          "line": 95,
+          "heading": "⑥ 记忆与自学习（记忆与自学习）"
+        },
+        {
+          "line": 121,
+          "heading": "⑧ 交付（Update / Lifecycle）"
+        }
+      ],
+      "conflicts": [],
+      "pass": true
+    }
+  },
+  "taxonomy_conflict_count": 0,
+  "gates": {
+    "node_count_113": true,
+    "tag_balance": true,
+    "parser_stack": true,
+    "p1": true,
+    "p2": true,
+    "p3": true,
+    "p4": true,
+    "p5": true,
+    "taxonomy_definitions": true,
+    "taxonomy_consistency": true
+  },
+  "gate_pass": true
+}
