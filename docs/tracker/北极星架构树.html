@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>UltimaAgent 北极星架构树 · 四角壳样式版（横向卡片树）</title>
+<title>UltimaAgent 北极星架构树 · 四角壳样式版（纵向折叠菜单）</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Rajdhani:wght@500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
 <style>
@@ -20,9 +20,9 @@
 *{margin:0;padding:0;box-sizing:border-box;}
 html,body{background:radial-gradient(1400px 900px at 78% -12%,#0a1526 0%,#04070d 55%,#020409 100%);color:var(--hd-muted);font-family:var(--hd-ui);min-height:100vh;}
 
-/* ============ 锚位通用：无边框气泡形态（置顶/钉住才显边框） ============ */
+/* ============ 锚位通用：无边框气泡形态（钉住才显边框） ============ */
 .anchor{
-  position:fixed; width:var(--hud-panel); min-height:0; z-index:50;
+  position:fixed; width:var(--hud-panel); z-index:50;
   background:rgba(6,14,26,var(--edge-alpha));
   backdrop-filter:blur(var(--edge-blur)); -webkit-backdrop-filter:blur(var(--edge-blur));
   border:1px solid transparent; border-radius:14px;
@@ -52,71 +52,59 @@ html,body{background:radial-gradient(1400px 900px at 78% -12%,#0a1526 0%,#04070d
 .pos-bottom .ticker{font-family:var(--hd-mono); font-size:10.5px; color:var(--hd-dim); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
 .pos-bottom .ticker b{color:var(--hd-green); font-weight:400;}
 
-/* ============ 主体：横向卡片结构树（左→右逐层展开） ============ */
-main{max-width:none; margin:110px 26px 140px; position:relative; z-index:10;}
-.page-head{margin-bottom:12px; max-width:980px;}
-.page-head h1{font-family:var(--hd-display); font-size:21px; color:var(--hd-cyan); letter-spacing:2px;}
-.page-head .sub{font-size:13px; color:var(--hd-dim); line-height:1.75; margin-top:6px;}
+/* ============ 主体：纵向折叠菜单树 ============ */
+main{max-width:min(1180px,calc(100vw - 2*var(--hud-gap) - 2*var(--hud-panel) - 40px)); margin:108px auto 150px; padding:22px 26px 26px;
+  background:rgba(6,14,26,.34); border:1px solid rgba(100,116,139,.2); border-radius:16px; backdrop-filter:blur(4px);}
+@media (max-width:1500px){ main{max-width:calc(100vw - 32px);} }
+.page-head h1{font-family:var(--hd-display); font-size:20px; color:var(--hd-cyan); letter-spacing:2px;}
+.page-head .sub{font-size:12.5px; color:var(--hd-dim); line-height:1.75; margin-top:6px;}
 .page-head .sub b{color:var(--hd-muted); font-weight:600;}
-.controls{margin:12px 0 14px;}
-.controls button{background:rgba(6,14,26,.55); backdrop-filter:blur(8px); color:var(--hd-muted); border:1px solid rgba(100,116,139,.35); border-radius:8px; padding:5px 14px; margin:0 8px 6px 0; cursor:pointer; font-family:var(--hd-ui); font-size:12.5px; letter-spacing:1px;}
+.controls{margin:12px 0 6px;}
+.controls button{background:rgba(6,14,26,.55); color:var(--hd-muted); border:1px solid rgba(100,116,139,.35); border-radius:8px; padding:4px 13px; margin:0 8px 6px 0; cursor:pointer; font-family:var(--hd-ui); font-size:12.5px; letter-spacing:1px;}
 .controls button:hover{border-color:var(--hd-cyan); color:var(--hd-cyan);}
 
-/* 卡片树：branch = 卡片 + 右侧子层竖排 */
-.board{overflow-x:auto; padding:6px 2px 18px;}
-.branch{display:flex; align-items:center; gap:0; flex:none;}
-.kids{display:none; flex-direction:column; gap:14px; padding-left:22px; border-left:1px dashed rgba(100,116,139,.4); margin-left:10px;}
-.open>.kids{display:flex;}
-.leaf>.kids{display:none!important;}
+ul.tree,ul.children{list-style:none;}
+ul.tree{padding-left:0;}
+ul.children{margin-left:13px; padding-left:15px; border-left:1px dashed rgba(100,116,139,.35); display:none;}
+li.node.open > ul.children,li.node.leaf > ul.children{display:none;}
+li.node.open > ul.children{display:block;}
+li.node.leaf > ul.children{display:none!important;}
 
-/* 卡片本体：无边框气泡（四角壳形态基线），宽度锁定、高度内容驱动 */
-.kcard{
-  width:300px; flex:none; cursor:pointer; user-select:none;
-  background:rgba(6,14,26,.5); backdrop-filter:blur(6px);
-  border:1px solid transparent; border-radius:12px; padding:11px 14px 13px;
-  transition:border-color .15s, transform .15s;
-}
-.kcard:hover{border-color:rgba(14,165,233,.45);}
-.branch.open>.kcard{border-color:rgba(100,116,139,.35);}
-.leaf>.kcard{cursor:default;}
-.khead{display:flex; align-items:center; gap:8px; flex-wrap:wrap;}
-.caret{color:var(--hd-dim); font-size:10px; font-family:var(--hd-mono); flex:none; transition:transform .15s;}
-.open>.kcard .caret{transform:rotate(90deg); color:var(--hd-cyan);}
-.leaf>.kcard .caret{visibility:hidden;}
-.badge{flex:none; font-family:var(--hd-mono); font-size:10px; letter-spacing:1px; padding:1px 8px; border-radius:8px; border:1px solid;}
+.node > .row{display:flex; align-items:baseline; gap:10px; padding:6px 10px; border-radius:7px; cursor:pointer; transition:background .12s;}
+.node > .row:hover{background:rgba(14,165,233,.07);}
+.node.leaf > .row{cursor:default;}
+.node.leaf > .row:hover{background:transparent;}
+.caret{font-family:var(--hd-mono); font-size:10px; color:var(--hd-dim); flex:none; width:10px; transition:transform .15s; display:inline-block;}
+.node.open > .row .caret{transform:rotate(90deg); color:var(--hd-cyan);}
+.node.leaf > .row .caret{visibility:hidden;}
+.badge{flex:none; font-family:var(--hd-mono); font-size:10px; letter-spacing:1px; padding:1px 8px; border-radius:8px; border:1px solid; line-height:1.7;}
 .b-star{color:var(--hd-warn); border-color:rgba(251,191,36,.5);}
 .b-mod{color:var(--hd-cyan); border-color:rgba(14,165,233,.5);}
 .b-cap{color:var(--hd-green); border-color:rgba(52,211,153,.45);}
 .b-tool{color:var(--hd-purple); border-color:rgba(167,139,250,.45);}
 .b-skill{color:var(--hd-coral); border-color:rgba(251,113,133,.45);}
 .b-src{color:var(--hd-dim); border-color:rgba(100,116,139,.5);}
-.kname{font-weight:700; font-size:14.5px; color:var(--hd-muted); letter-spacing:.5px;}
-.kdesc{color:var(--hd-dim); font-size:11.5px; line-height:1.65; margin-top:5px;}
-.kdesc b{color:var(--hd-cyan); font-weight:600;}
+.name{font-weight:700; font-size:14px; color:var(--hd-muted); letter-spacing:.4px; flex:none;}
+.desc{color:var(--hd-dim); font-size:12px; line-height:1.65; flex:1; min-width:0;}
+.desc b{color:var(--hd-cyan); font-weight:600;}
+.node.root > .row{padding:10px 12px; background:rgba(251,191,36,.04); border:1px solid rgba(251,191,36,.22); border-radius:10px;}
+.node.root > .row .name{font-family:var(--hd-display); font-size:17px; color:var(--hd-warn); letter-spacing:1.2px;}
 
-/* 根卡：UltimaAgent 完整卡片（最左侧，信息最全） */
-.kcard.root{
-  width:340px;
-  background:rgba(6,14,26,.62); border-color:rgba(251,191,36,.35);
-  box-shadow:0 0 26px rgba(251,191,36,.06);
-  padding:15px 17px 16px;
-}
-.kcard.root .kname{font-family:var(--hd-display); font-size:19px; color:var(--hd-warn); letter-spacing:1.5px;}
-.kcard.root .kmeta{margin-top:9px; font-family:var(--hd-mono); font-size:10.5px; line-height:2; color:var(--hd-dim);}
-.kcard.root .kmeta b{color:var(--hd-muted); font-weight:400;}
-.kcard.root .kmeta .ok{color:var(--hd-green);}
-
-footer.legend{max-width:980px; margin:20px 26px 0; padding-bottom:40px; font-size:11px; color:var(--hd-dim); line-height:2;}
+footer.legend{max-width:min(1180px,calc(100vw - 2*var(--hud-gap) - 2*var(--hud-panel) - 40px)); margin:16px auto 0; padding:0 26px 40px; font-size:11px; color:var(--hd-dim); line-height:2;}
 footer.legend .badge{margin:0 4px 0 10px;}
 footer.legend b{color:var(--hd-muted); font-weight:600;}
 
-/* 窄屏：锚位脱离角落改顶部堆叠（乐高逻辑）；树区仍横向滚动 */
+/* 窄屏：锚位脱离角落改顶部堆叠（乐高逻辑） */
 @media (max-width:1500px){
   .anchor{position:static; width:var(--hud-panel); margin:12px auto;}
   .pos-top{margin:12px auto 0; transform:none; width:var(--hud-panel); border-radius:14px;}
   .pos-bottom{margin:0 auto 12px; transform:none; border-radius:14px;}
   .anchors-wrap{display:flex; flex-wrap:wrap; gap:14px; justify-content:center; padding:18px 16px 4px;}
   main{margin-top:18px;}
+  footer.legend{max-width:calc(100vw - 32px); padding:0 16px 40px;}
+  .node > .row{flex-wrap:wrap; gap:6px 10px;}
+  .name{flex:1 1 100%;}
+  .desc{flex:1 1 100%; padding-left:20px;}
 }
 </style>
 </head>
@@ -132,7 +120,7 @@ footer.legend b{color:var(--hd-muted); font-weight:600;}
 <div class="row"><span>计划任务</span><b class="ok">0 条（已清零）</b></div>
 <div class="row"><span>Guardian</span><b class="ok">live · 20s/3次/300s</b></div>
 <div class="row"><span>分支</span><b>codex/voice-fsmn-new-path</b></div>
-<div class="row"><span>HEAD</span><b>3a1994e9</b></div>
+<div class="row"><span>HEAD</span><b>5a9d5693</b></div>
 </div>
 
 <div class="anchor pos-tr" id="a-tr">
@@ -157,9 +145,9 @@ footer.legend b{color:var(--hd-muted); font-weight:600;}
 <button class="pin" title="钉住（置顶态显边框）" onclick="pin(this)">📌</button>
 <h3><span class="pos">右下</span> · 即时消息（按需）</h3>
 <div class="row"><b>v2 拼装方案六项拍板冻结</b></div>
+<div class="row"><b>五大能力模块分组定稿</b></div>
 <div class="row"><b>四角壳唯一显示形态</b></div>
 <div class="row"><b>零开发文档（交付工程）</b></div>
-<div class="row"><b>0054 零计划任务达成</b></div>
 </div>
 
 <div class="anchor pos-top" id="a-top">
@@ -170,312 +158,245 @@ footer.legend b{color:var(--hd-muted); font-weight:600;}
 
 <div class="anchor pos-bottom" id="a-bottom">
 <h3><span class="pos">底部</span> · 交流转写（按需）</h3>
-<div class="ticker"><b>0054</b> worker 推进 T6（v1 工单在途产物；v2 已拍板悬浮球退场，Surface=四角壳唯一形态）｜ T5 基线全绿：window 541ms / first frame 1530ms / voice-ready 15.6s / 残留 0</div>
+<div class="ticker">架构树呈现=纵向折叠菜单；第一层=五大能力模块（基础能力/外部能力/Skill/插件/交付），八模块工程口径不变｜终端演进 Windows→Linux→AR 眼镜系统</div>
 </div>
 </div>
 
-<!-- ======== 横向卡片结构树：最左 = UltimaAgent 完整卡片，向右逐层展开 ======== -->
+<!-- ======== 纵向折叠菜单树 ======== -->
 <main>
 <div class="page-head">
-<h1>北极星架构树 · 横向卡片树</h1>
-<div class="sub">北极星 = <b>UltimaAgent 本体</b>（最左完整卡）→ 向右逐层展开。第一层 = <b>五大能力模块</b>（基础能力 / 外部能力 / Skill / 插件 / 交付），Owner 重组裁决 2026-11-13：基础能力与交付内含原子模块，<b>八模块口径不变</b>（Core/Voice/Shell/Surface/Memory/Middleware 归基础能力；Update/Lifecycle 归交付模块）；行为原则/底座/路线/终端演进为非模块分支。显示形态 = 四角壳 8 锚点唯一范式。来源方案：docs/plans/plan-ultimaagent-v2-clean-assembly-20261113.md（六项拍板冻结）。卡片宽度锁定 300px（根卡 340px）、高度内容驱动（乐高逻辑）、无边框气泡形态。样式 token 取自 hud-live-four-corner。</div>
+<h1>UltimaAgent 北极星架构树</h1>
+<div class="sub">北极星 = <b>UltimaAgent 本体</b>。第一层 = <b>五大能力模块</b>（基础能力 / 外部能力 / Skill / 插件 / 交付）+ 行为原则 / 配置底座 / P2V 路线 / 终端演进；基础能力内含六原子模块、交付内含 Update+Lifecycle 两原子模块，<b>八模块口径不变</b>；显示形态 = 四角壳 8 锚点唯一范式。来源方案：docs/plans/plan-ultimaagent-v2-clean-assembly-20261113.md（六项拍板冻结）。点击行开合。</div>
 <div class="controls">
 <button onclick="setAll(true)">全部展开</button>
 <button onclick="setAll(false)">全部收起</button>
-<button onclick="setLevel(1)">只看本体卡</button>
-<button onclick="setLevel(2)">展开到层</button>
-<button onclick="setLevel(3)">展开到分组</button>
-<button onclick="setLevel(4)">全明细</button>
+<button onclick="setLevel(1)">只看北极星</button>
+<button onclick="setLevel(2)">展开到模块</button>
+<button onclick="setLevel(3)">展开到能力层</button>
+<button onclick="setLevel(9)">全明细</button>
 </div>
 </div>
 
-<div class="board"><div id="root">
+<ul class="tree" id="root">
 
-<!-- ========== 第0列：UltimaAgent 完整卡 ========== -->
-<div class="branch open leaf-root" id="ua">
-<div class="kcard root" onclick="toggleCard(this)">
-  <div class="khead"><span class="caret">&gt;</span><span class="badge b-star">北极星</span><span class="kname">UltimaAgent 本体</span></div>
-  <div class="kdesc">唯一方向判据：一切模块、能力、界面以让 UltimaAgent 自身成为理想智能代理为准；对外统一只称 UltimaAgent。</div>
-  <div class="kmeta">
-    <div><b>架构组织</b>　能力分类模块化：基础能力 / 外部能力 / Skill / 插件 / 交付</div>
-    <div><b>本体承载</b>　八模块口径不变：六模块归基础能力，Update+Lifecycle 归交付</div>
-    <div><b>显示形态</b>　四角壳 HUD · 8 锚点唯一范式</div>
-    <div><b>最终形态</b>　AR 眼镜智能代理（Windows→Linux→AR）</div>
-    <div><b>交付形态</b>　安装包（新仓零开发文档）</div>
-    <div><b>新仓</b>　H:\UltimaAI\UltimaAgentNext（六项拍板冻结）</div>
-    <div><b>行为原则</b>　感官分工 / 理解先于行动 / 复述确认 / 记忆分层 / 不打扰闭环</div>
-  </div>
-</div>
-<div class="kids">
+<li class="node open root">
+<div class="row"><span class="caret">&gt;</span><span class="badge b-star">北极星</span><span class="name">UltimaAgent 本体</span><span class="desc">唯一方向判据：一切模块、能力、界面以让 UltimaAgent 自身成为理想智能代理为准；对外统一只称 UltimaAgent。<b>架构组织</b>=能力分类模块化（基础能力/外部能力/Skill/插件/交付）；<b>八模块口径</b>=Core/Voice/Shell/Surface/Memory/Middleware 归基础能力，Update/Lifecycle 归交付；<b>显示形态</b>=四角壳 8 锚点唯一范式；<b>最终形态</b>=AR 眼镜智能代理；<b>交付形态</b>=安装包（零开发文档）</span></div>
+<ul class="children">
 
-<!-- ===== 能力模块列（Owner 重组裁决 2026-11-13：第一层=五大能力模块） ===== -->
-<div class="branch open">
-<div class="kcard" onclick="toggleCard(this)">
-  <div class="khead"><span class="caret">&gt;</span><span class="badge b-mod">模块</span><span class="kname">基础能力（本体承载）</span></div>
-  <div class="kdesc">L0 终端四 IO → L1 意图理解 → L2 领域知识与技能注册 → L3 执行与外部接入 → L4 编排与组合窗口 → L5 表达与总结 → L6 输出呈现 → L7 交互循环 → L8 行为约束与受控执行 → L9 记忆与自学习 → L10 范式引擎（G-TASKFLOW-001）的能力本体；权威源 capability-list.md + registry.md；本体承载 = 六个能力模块（Core / Voice / Shell / Surface / Memory / Middleware）。</div>
-</div>
-<div class="kids">
+<!-- ========== 五大能力模块 ========== -->
+<li class="node open">
+<div class="row"><span class="caret">&gt;</span><span class="badge b-mod">模块</span><span class="name">基础能力（本体承载）</span><span class="desc">L0 终端四 IO → L1 意图理解 → L2 领域知识与技能注册 → L3 执行与外部接入 → L4 编排与组合窗口 → L5 表达与总结 → L6 输出呈现 → L7 交互循环 → L8 行为约束与受控执行 → L9 记忆与自学习 → L10 范式引擎（G-TASKFLOW-001）；权威源 capability-list.md + registry.md；本体承载 = 六个能力模块</span></div>
+<ul class="children">
 
-<!-- ===== 八模块卡 ===== -->
-<div class="branch open">
-<div class="kcard" onclick="toggleCard(this)">
-  <div class="khead"><span class="caret">&gt;</span><span class="badge b-mod">模块</span><span class="kname">1. Core（编排与裁决）</span></div>
-  <div class="kdesc">意图理解、任务编排、复述确认、记忆写入裁决。</div>
-</div>
-<div class="kids">
-<div class="branch open">
-<div class="kcard" onclick="toggleCard(this)"><div class="khead"><span class="caret">&gt;</span><span class="badge b-cap">能力</span><span class="kname">能力</span></div><div class="kdesc">用户可感知功能</div></div>
-<div class="kids">
-<div class="branch leaf"><div class="kcard"><div class="khead"><span class="caret">&gt;</span><span class="badge b-cap">能</span><span class="kname">意图理解</span></div><div class="kdesc">自然语言→结构化意图，L0&gt;L1&gt;L2&gt;L3 分级路由（interface-routing.json schema v2）</div></div></div>
-<div class="branch leaf"><div class="kcard"><div class="khead"><span class="caret">&gt;</span><span class="badge b-cap">能</span><span class="kname">任务编排</span></div><div class="kdesc">多步任务规划与执行顺序控制</div></div></div>
-<div class="branch leaf"><div class="kcard"><div class="khead"><span class="caret">&gt;</span><span class="badge b-cap">能</span><span class="kname">复述确认</span></div><div class="kdesc">关键动作前的确认协议（语音+面板双通道）</div></div></div>
-<div class="branch leaf"><div class="kcard"><div class="khead"><span class="caret">&gt;</span><span class="badge b-cap">能</span><span class="kname">记忆写入裁决</span></div><div class="kdesc">写入边界控制（memory_write_boundary）</div></div></div>
-</div>
-</div>
-<div class="branch leaf"><div class="kcard"><div class="khead"><span class="caret">&gt;</span><span class="badge b-tool">工具</span><span class="kname">orchestrator · intent · interface_route · queue_source · capability registry</span></div><div class="kdesc">Core 编排与裁决的内部工具集，吸收后以 UltimaAgentNext.Core.* 统一命名空间组织</div></div></div>
-<div class="branch leaf"><div class="kcard"><div class="khead"><span class="caret">&gt;</span><span class="badge b-skill">技能</span><span class="kname">任务规划 · 主动追问 · 结果汇报</span></div><div class="kdesc">可组合任务能力</div></div></div>
-</div>
-</div>
+<li class="node open">
+<div class="row"><span class="caret">&gt;</span><span class="badge b-mod">子模块</span><span class="name">1. Core（编排与裁决）</span><span class="desc">意图理解、任务编排、复述确认、记忆写入裁决</span></div>
+<ul class="children">
+<li class="node open">
+<div class="row"><span class="caret">&gt;</span><span class="badge b-cap">能力</span><span class="name">能力</span><span class="desc">用户可感知功能</span></div>
+<ul class="children">
+<li class="node leaf"><div class="row"><span class="caret">&gt;</span><span class="badge b-cap">能</span><span class="name">意图理解</span><span class="desc">自然语言→结构化意图，L0&gt;L1&gt;L2&gt;L3 分级路由（interface-routing.json schema v2）</span></div></li>
+<li class="node leaf"><div class="row"><span class="caret">&gt;</span><span class="badge b-cap">能</span><span class="name">任务编排</span><span class="desc">多步任务规划与执行顺序控制</span></div></li>
+<li class="node leaf"><div class="row"><span class="caret">&gt;</span><span class="badge b-cap">能</span><span class="name">复述确认</span><span class="desc">关键动作前的确认协议（语音+面板双通道）</span></div></li>
+<li class="node leaf"><div class="row"><span class="caret">&gt;</span><span class="badge b-cap">能</span><span class="name">记忆写入裁决</span><span class="desc">写入边界控制（memory_write_boundary）</span></div></li>
+</ul></li>
+<li class="node leaf"><div class="row"><span class="caret">&gt;</span><span class="badge b-tool">工具</span><span class="name">orchestrator · intent · interface_route · queue_source · capability registry</span><span class="desc">Core 编排与裁决的内部工具集，统一 UltimaAgentNext.Core.* 命名空间</span></div></li>
+<li class="node leaf"><div class="row"><span class="caret">&gt;</span><span class="badge b-skill">技能</span><span class="name">任务规划 · 主动追问 · 结果汇报</span><span class="desc">可组合任务能力</span></div></li>
+</ul>
+</li>
 
-<div class="branch open">
-<div class="kcard" onclick="toggleCard(this)">
-  <div class="khead"><span class="caret">&gt;</span><span class="badge b-mod">模块</span><span class="kname">2. Senses.Voice（语音进出）</span></div>
-  <div class="kdesc">唤醒、听写、对话、TTS 播报（KWS/CV3 参数冻结基线，搬运后逐项复测禁顺手优化）。</div>
-</div>
-<div class="kids">
-<div class="branch open">
-<div class="kcard" onclick="toggleCard(this)"><div class="khead"><span class="caret">&gt;</span><span class="badge b-cap">能力</span><span class="kname">能力</span></div><div class="kdesc">用户可感知功能</div></div>
-<div class="kids">
-<div class="branch leaf"><div class="kcard"><div class="khead"><span class="caret">&gt;</span><span class="badge b-cap">能</span><span class="kname">唤醒</span></div><div class="kdesc">唤醒词「幂幂」threshold 0.25；状态机 warming→ready→capturing→processing→speaking/acknowledging/stopped/error</div></div></div>
-<div class="branch leaf"><div class="kcard"><div class="khead"><span class="caret">&gt;</span><span class="badge b-cap">能</span><span class="kname">听写与对话</span></div><div class="kdesc">warm_progress 0/25/50/75/100 语音会话循环</div></div></div>
-<div class="branch leaf"><div class="kcard"><div class="khead"><span class="caret">&gt;</span><span class="badge b-cap">能</span><span class="kname">TTS 播报</span></div><div class="kdesc">CV3 音色（冻结参数）</div></div></div>
-</div>
-</div>
-<div class="branch leaf"><div class="kcard"><div class="khead"><span class="caret">&gt;</span><span class="badge b-tool">工具</span><span class="kname">kws_backend · turn_worker · live_core · apm_dsp · CV3 推理</span></div><div class="kdesc">语音进出链路内部工具集（新仓 src/Senses/Voice/ 统一组织）</div></div></div>
-<div class="branch leaf"><div class="kcard"><div class="khead"><span class="caret">&gt;</span><span class="badge b-skill">技能</span><span class="kname">语音会话 · 尾音处理 · 音色切换</span></div><div class="kdesc">可组合任务能力</div></div></div>
-</div>
-</div>
+<li class="node open">
+<div class="row"><span class="caret">&gt;</span><span class="badge b-mod">子模块</span><span class="name">2. Senses.Voice（语音进出）</span><span class="desc">唤醒、听写、对话、TTS 播报（KWS/CV3 参数冻结基线，逐项复测禁顺手优化）</span></div>
+<ul class="children">
+<li class="node open">
+<div class="row"><span class="caret">&gt;</span><span class="badge b-cap">能力</span><span class="name">能力</span><span class="desc">用户可感知功能</span></div>
+<ul class="children">
+<li class="node leaf"><div class="row"><span class="caret">&gt;</span><span class="badge b-cap">能</span><span class="name">唤醒</span><span class="desc">唤醒词「幂幂」threshold 0.25；状态机 warming→ready→capturing→processing→speaking/acknowledging/stopped/error</span></div></li>
+<li class="node leaf"><div class="row"><span class="caret">&gt;</span><span class="badge b-cap">能</span><span class="name">听写与对话</span><span class="desc">warm_progress 0/25/50/75/100 语音会话循环</span></div></li>
+<li class="node leaf"><div class="row"><span class="caret">&gt;</span><span class="badge b-cap">能</span><span class="name">TTS 播报</span><span class="desc">CV3 音色（冻结参数）</span></div></li>
+</ul></li>
+<li class="node leaf"><div class="row"><span class="caret">&gt;</span><span class="badge b-tool">工具</span><span class="name">kws_backend · turn_worker · live_core · apm_dsp · CV3 推理</span><span class="desc">语音进出链路内部工具集（src/Senses/Voice/ 统一组织）</span></div></li>
+<li class="node leaf"><div class="row"><span class="caret">&gt;</span><span class="badge b-skill">技能</span><span class="name">语音会话 · 尾音处理 · 音色切换</span><span class="desc">可组合任务能力</span></div></li>
+</ul>
+</li>
 
-<div class="branch open">
-<div class="kcard" onclick="toggleCard(this)">
-  <div class="khead"><span class="caret">&gt;</span><span class="badge b-mod">模块</span><span class="kname">3. Shell（常驻托管）</span></div>
-  <div class="kdesc">常驻托管、守护自愈、开机自启、子进程零弹窗。</div>
-</div>
-<div class="kids">
-<div class="branch open">
-<div class="kcard" onclick="toggleCard(this)"><div class="khead"><span class="caret">&gt;</span><span class="badge b-cap">能力</span><span class="kname">能力</span></div><div class="kdesc">用户可感知功能</div></div>
-<div class="kids">
-<div class="branch leaf"><div class="kcard"><div class="khead"><span class="caret">&gt;</span><span class="badge b-cap">能</span><span class="kname">常驻托管</span></div><div class="kdesc">HostShell(WinUI3) 常驻，Job Object 子进程树托管</div></div></div>
-<div class="branch leaf"><div class="kcard"><div class="khead"><span class="caret">&gt;</span><span class="badge b-cap">能</span><span class="kname">守护自愈</span></div><div class="kdesc">GuardianService 20s 探活 8756 / 3 次失败 / 冷却 300s；agent-server 自动重启（应用崩溃不自愈已由 Owner 接受）</div></div></div>
-<div class="branch leaf"><div class="kcard"><div class="khead"><span class="caret">&gt;</span><span class="badge b-cap">能</span><span class="kname">开机自启</span></div><div class="kdesc">启动文件夹 .lnk（进程内晚绑定 COM 创建，零 schtasks、零弹窗）</div></div></div>
-<div class="branch leaf"><div class="kcard"><div class="khead"><span class="caret">&gt;</span><span class="badge b-cap">能</span><span class="kname">子进程零窗</span></div><div class="kdesc">pythonw + UseShellExecute=false + CreateNoWindow + 标准流重定向排空</div></div></div>
-</div>
-</div>
-<div class="branch leaf"><div class="kcard"><div class="khead"><span class="caret">&gt;</span><span class="badge b-tool">工具</span><span class="kname">GuardianService · HostTaskRegistry · JobObjectManager · ChildProcessSupervisor · ReadinessProbe · AutostartEntry</span></div><div class="kdesc">常驻托管链内部工具集（探活/注册/Job 归属/子进程监管/就绪探测/自启入口）</div></div></div>
-<div class="branch leaf"><div class="kcard"><div class="khead"><span class="caret">&gt;</span><span class="badge b-skill">技能</span><span class="kname">任务托管 · 崩溃回收</span></div><div class="kdesc">Job 归属判据：宿主强杀子进程树 3 秒内同步消失</div></div></div>
-</div>
-</div>
+<li class="node open">
+<div class="row"><span class="caret">&gt;</span><span class="badge b-mod">子模块</span><span class="name">3. Shell（常驻托管）</span><span class="desc">常驻托管、守护自愈、开机自启、子进程零弹窗</span></div>
+<ul class="children">
+<li class="node open">
+<div class="row"><span class="caret">&gt;</span><span class="badge b-cap">能力</span><span class="name">能力</span><span class="desc">用户可感知功能</span></div>
+<ul class="children">
+<li class="node leaf"><div class="row"><span class="caret">&gt;</span><span class="badge b-cap">能</span><span class="name">常驻托管</span><span class="desc">HostShell(WinUI3) 常驻，Job Object 子进程树托管</span></div></li>
+<li class="node leaf"><div class="row"><span class="caret">&gt;</span><span class="badge b-cap">能</span><span class="name">守护自愈</span><span class="desc">GuardianService 20s 探活 8756 / 3 次失败 / 冷却 300s；agent-server 自动重启</span></div></li>
+<li class="node leaf"><div class="row"><span class="caret">&gt;</span><span class="badge b-cap">能</span><span class="name">开机自启</span><span class="desc">启动文件夹 .lnk（进程内晚绑定 COM 创建，零计划任务、零弹窗）</span></div></li>
+<li class="node leaf"><div class="row"><span class="caret">&gt;</span><span class="badge b-cap">能</span><span class="name">子进程零窗</span><span class="desc">pythonw + UseShellExecute=false + CreateNoWindow + 标准流重定向排空</span></div></li>
+</ul></li>
+<li class="node leaf"><div class="row"><span class="caret">&gt;</span><span class="badge b-tool">工具</span><span class="name">GuardianService · HostTaskRegistry · JobObjectManager · ChildProcessSupervisor · ReadinessProbe · AutostartEntry</span><span class="desc">常驻托管链内部工具集（探活/注册/Job 归属/子进程监管/就绪探测/自启入口）</span></div></li>
+<li class="node leaf"><div class="row"><span class="caret">&gt;</span><span class="badge b-skill">技能</span><span class="name">任务托管 · 崩溃回收</span><span class="desc">Job 归属判据：宿主强杀子进程树 3 秒内同步消失</span></div></li>
+</ul>
+</li>
 
-<div class="branch open">
-<div class="kcard" onclick="toggleCard(this)">
-  <div class="khead"><span class="caret">&gt;</span><span class="badge b-mod">模块</span><span class="kname">4. Surface（输出呈现）</span></div>
-  <div class="kdesc">四角壳 HUD（唯一显示形态，Owner 拍板：悬浮球方案退场）、应用内任务管理器面板。</div>
-</div>
-<div class="kids">
-<div class="branch open">
-<div class="kcard" onclick="toggleCard(this)"><div class="khead"><span class="caret">&gt;</span><span class="badge b-cap">能力</span><span class="kname">能力</span></div><div class="kdesc">用户可感知功能</div></div>
-<div class="kids">
-<div class="branch leaf"><div class="kcard"><div class="khead"><span class="caret">&gt;</span><span class="badge b-cap">能</span><span class="kname">四角壳 HUD · 8 锚点</span></div><div class="kdesc">顶部时钟/右上单功能互斥/左上系统状态/左下任务队列/右下即时消息/左中 Agent 反馈/右中主动唤出/底部交流转写；锚位职责与宽度锁定（hud-layout-zone-plan v0.2）、无边框气泡形态、中央零遮挡</div></div></div>
-<div class="branch leaf"><div class="kcard"><div class="khead"><span class="caret">&gt;</span><span class="badge b-cap">能</span><span class="kname">应用内任务管理器</span></div><div class="kdesc">状态/重启次数/手动重启停用，WebView2 双向消息</div></div></div>
-</div>
-</div>
-<div class="branch leaf"><div class="kcard"><div class="khead"><span class="caret">&gt;</span><span class="badge b-tool">工具</span><span class="kname">UltimaAgent.Hud 原生壳 · hud-live-four-corner 设计基线 · TaskManagerRenderer · taskmanager.html</span></div><div class="kdesc">悬浮球整线退场：全部 orb 渲染器不进产品形态，仅存 devtools 测试夹具</div></div></div>
-<div class="branch leaf"><div class="kcard"><div class="khead"><span class="caret">&gt;</span><span class="badge b-skill">技能</span><span class="kname">状态反馈 · 任务可视</span></div><div class="kdesc">可组合任务能力</div></div></div>
-</div>
-</div>
+<li class="node open">
+<div class="row"><span class="caret">&gt;</span><span class="badge b-mod">子模块</span><span class="name">4. Surface（输出呈现）</span><span class="desc">四角壳 HUD（唯一显示形态，悬浮球方案退场）、应用内任务管理器面板</span></div>
+<ul class="children">
+<li class="node open">
+<div class="row"><span class="caret">&gt;</span><span class="badge b-cap">能力</span><span class="name">能力</span><span class="desc">用户可感知功能</span></div>
+<ul class="children">
+<li class="node leaf"><div class="row"><span class="caret">&gt;</span><span class="badge b-cap">能</span><span class="name">四角壳 HUD · 8 锚点</span><span class="desc">顶部时钟/右上单功能互斥/左上系统状态/左下任务队列/右下即时消息/左中 Agent 反馈/右中主动唤出/底部交流转写；锚位职责与宽度锁定（hud-layout-zone-plan v0.2）、无边框气泡形态、中央零遮挡</span></div></li>
+<li class="node leaf"><div class="row"><span class="caret">&gt;</span><span class="badge b-cap">能</span><span class="name">应用内任务管理器</span><span class="desc">状态/重启次数/手动重启停用，WebView2 双向消息</span></div></li>
+</ul></li>
+<li class="node leaf"><div class="row"><span class="caret">&gt;</span><span class="badge b-tool">工具</span><span class="name">UltimaAgent.Hud 原生壳 · hud-live-four-corner 设计基线 · TaskManagerRenderer · taskmanager.html</span><span class="desc">悬浮球整线退场：全部 orb 渲染器不进产品形态，仅存 devtools 测试夹具</span></div></li>
+<li class="node leaf"><div class="row"><span class="caret">&gt;</span><span class="badge b-skill">技能</span><span class="name">状态反馈 · 任务可视</span><span class="desc">可组合任务能力</span></div></li>
+</ul>
+</li>
 
-<div class="branch open">
-<div class="kcard" onclick="toggleCard(this)">
-  <div class="khead"><span class="caret">&gt;</span><span class="badge b-mod">模块</span><span class="kname">5. Memory（记忆与自学习）</span></div>
-  <div class="kdesc">工作记忆 / 长期记忆 / 温度分层。</div>
-</div>
-<div class="kids">
-<div class="branch leaf"><div class="kcard"><div class="khead"><span class="caret">&gt;</span><span class="badge b-tool">工具</span><span class="kname">writer · poison_guard · backend 适配</span></div><div class="kdesc">记忆写入、防投毒守卫与存储后端适配</div></div></div>
-<div class="branch leaf"><div class="kcard"><div class="khead"><span class="caret">&gt;</span><span class="badge b-skill">技能</span><span class="kname">上下文注入 · 记忆检索</span></div><div class="kdesc">可组合任务能力</div></div></div>
-</div>
-</div>
+<li class="node open">
+<div class="row"><span class="caret">&gt;</span><span class="badge b-mod">子模块</span><span class="name">5. Memory（记忆与自学习）</span><span class="desc">工作记忆 / 长期记忆 / 温度分层</span></div>
+<ul class="children">
+<li class="node leaf"><div class="row"><span class="caret">&gt;</span><span class="badge b-tool">工具</span><span class="name">writer · poison_guard · backend 适配</span><span class="desc">记忆写入、防投毒守卫与存储后端适配</span></div></li>
+<li class="node leaf"><div class="row"><span class="caret">&gt;</span><span class="badge b-skill">技能</span><span class="name">上下文注入 · 记忆检索</span><span class="desc">可组合任务能力</span></div></li>
+</ul>
+</li>
 
-<div class="branch open">
-<div class="kcard" onclick="toggleCard(this)">
-  <div class="khead"><span class="caret">&gt;</span><span class="badge b-mod">模块</span><span class="kname">6. Middleware（多端调度）</span></div>
-  <div class="kdesc">多执行端路由、任务窗口、沙箱隔离。</div>
-</div>
-<div class="kids">
-<div class="branch leaf"><div class="kcard"><div class="khead"><span class="caret">&gt;</span><span class="badge b-tool">工具</span><span class="kname">router · delegation · sandbox · task_window · ticket</span></div><div class="kdesc">多端路由、任务委派、沙箱隔离、任务窗口与票据</div></div></div>
-<div class="branch leaf"><div class="kcard"><div class="khead"><span class="caret">&gt;</span><span class="badge b-skill">技能</span><span class="kname">多端路由 · 任务窗口管理</span></div><div class="kdesc">可组合任务能力</div></div></div>
-</div>
-</div>
-</div><!-- /基础能力模块 -->
+<li class="node open">
+<div class="row"><span class="caret">&gt;</span><span class="badge b-mod">子模块</span><span class="name">6. Middleware（多端调度）</span><span class="desc">多执行端路由、任务窗口、沙箱隔离</span></div>
+<ul class="children">
+<li class="node leaf"><div class="row"><span class="caret">&gt;</span><span class="badge b-tool">工具</span><span class="name">router · delegation · sandbox · task_window · ticket</span><span class="desc">多端路由、任务委派、沙箱隔离、任务窗口与票据</span></div></li>
+<li class="node leaf"><div class="row"><span class="caret">&gt;</span><span class="badge b-skill">技能</span><span class="name">多端路由 · 任务窗口管理</span><span class="desc">可组合任务能力</span></div></li>
+</ul>
+</li>
 
-<!-- ===== 外部能力模块 ===== -->
-<div class="branch open">
-<div class="kcard" onclick="toggleCard(this)">
-  <div class="khead"><span class="caret">&gt;</span><span class="badge b-mod">模块</span><span class="kname">外部能力（外脑与顾问）</span></div>
-  <div class="kdesc">本体之外的扩展能力来源：外脑（执行端体系）+ 顾问（裁决与咨询）；执行端可替换、工作流不变，随 v2 后演进逐层建设（不在本拼装工单内搬运）。</div>
-</div>
-<div class="kids">
-<div class="branch leaf"><div class="kcard"><div class="khead"><span class="caret">&gt;</span><span class="badge b-cap">能</span><span class="kname">外脑（执行端体系）</span></div><div class="kdesc">DeepSeek 八环节（拆解/审计，每环节独立会话）· Codex 本地执行端 · 本地主脑 8B（slot_adapter + providers 协议适配，换 ollama/LM Studio/vLLM/外脑 API 不改代码）</div></div></div>
-<div class="branch leaf"><div class="kcard"><div class="khead"><span class="caret">&gt;</span><span class="badge b-cap">能</span><span class="kname">顾问（裁决与咨询）</span></div><div class="kdesc">豆包 V1 后转型顾问能力（验收/咨询/方向建议，主脑职责移交中间层+外脑）；Codex 复审输出=顾问意见，不构成验收结论（裁决权归属铁律）</div></div></div>
-</div>
-</div>
+</ul>
+</li>
 
-<!-- ===== Skill 技能模块 ===== -->
-<div class="branch open">
-<div class="kcard" onclick="toggleCard(this)">
-  <div class="khead"><span class="caret">&gt;</span><span class="badge b-mod">模块</span><span class="kname">Skill（技能体系）</span></div>
-  <div class="kdesc">技能注册与消费体系（L2 领域知识与技能注册层），随演进建设。</div>
-</div>
-<div class="kids">
-<div class="branch leaf"><div class="kcard"><div class="khead"><span class="caret">&gt;</span><span class="badge b-cap">能</span><span class="kname">技能注册表</span></div><div class="kdesc">skill-dispatch 注册体系（L2）· 技能给编码智能体消费（shadcn/ui）</div></div></div>
-<div class="branch leaf"><div class="kcard"><div class="khead"><span class="caret">&gt;</span><span class="badge b-cap">能</span><span class="kname">防重复开发</span></div><div class="kdesc">能力/组件注册表 M1 铁律：未登记不得使用</div></div></div>
-</div>
-</div>
+<li class="node open">
+<div class="row"><span class="caret">&gt;</span><span class="badge b-mod">模块</span><span class="name">外部能力（外脑与顾问）</span><span class="desc">本体之外的扩展能力来源；执行端可替换、工作流不变，随演进逐层建设</span></div>
+<ul class="children">
+<li class="node leaf"><div class="row"><span class="caret">&gt;</span><span class="badge b-cap">能</span><span class="name">外脑（执行端体系）</span><span class="desc">DeepSeek 八环节（拆解/审计，每环节独立会话）· Codex 本地执行端 · 本地主脑 8B（slot_adapter + providers 协议适配，换 ollama/LM Studio/vLLM/外脑 API 不改代码）</span></div></li>
+<li class="node leaf"><div class="row"><span class="caret">&gt;</span><span class="badge b-cap">能</span><span class="name">顾问（裁决与咨询）</span><span class="desc">豆包 V1 后转型顾问能力（验收/咨询/方向建议，主脑职责移交中间层+外脑）；Codex 复审输出=顾问意见，不构成验收结论（裁决权归属铁律）</span></div></li>
+</ul>
+</li>
 
-<!-- ===== 插件能力模块 ===== -->
-<div class="branch open">
-<div class="kcard" onclick="toggleCard(this)">
-  <div class="khead"><span class="caret">&gt;</span><span class="badge b-mod">模块</span><span class="kname">插件（开源拼装）</span></div>
-  <div class="kdesc">开源组件接线；组件注册表登记，能用开源绝不自研（附替代排查结论）。</div>
-</div>
-<div class="kids">
-<div class="branch leaf"><div class="kcard"><div class="khead"><span class="caret">&gt;</span><span class="badge b-cap">能</span><span class="kname">调度组件</span></div><div class="kdesc">LobeHub / SuperAgent 等调度类开源方案接线</div></div></div>
-<div class="branch leaf"><div class="kcard"><div class="khead"><span class="caret">&gt;</span><span class="badge b-cap">能</span><span class="kname">组件树基底</span></div><div class="kdesc">A2UI 组件树基底</div></div></div>
-<div class="branch leaf"><div class="kcard"><div class="khead"><span class="caret">&gt;</span><span class="badge b-cap">能</span><span class="kname">语音管线</span></div><div class="kdesc">Pipecat / LiveKit 等语音管线开源组件接线</div></div></div>
-</div>
-</div>
+<li class="node open">
+<div class="row"><span class="caret">&gt;</span><span class="badge b-mod">模块</span><span class="name">Skill（技能体系）</span><span class="desc">技能注册与消费体系（L2 领域知识与技能注册层）</span></div>
+<ul class="children">
+<li class="node leaf"><div class="row"><span class="caret">&gt;</span><span class="badge b-cap">能</span><span class="name">技能注册表</span><span class="desc">skill-dispatch 注册体系（L2）· 技能给编码智能体消费（shadcn/ui）</span></div></li>
+<li class="node leaf"><div class="row"><span class="caret">&gt;</span><span class="badge b-cap">能</span><span class="name">防重复开发</span><span class="desc">能力/组件注册表 M1 铁律：未登记不得使用</span></div></li>
+</ul>
+</li>
 
-<!-- ===== 交付模块：远程更新 + 安装交付（Owner 重组裁决：Update/Lifecycle 归交付模块） ===== -->
-<div class="branch open">
-<div class="kcard" onclick="toggleCard(this)">
-  <div class="khead"><span class="caret">&gt;</span><span class="badge b-mod">模块</span><span class="kname">交付（远程更新与安装交付）</span></div>
-  <div class="kdesc">产品交付链 = Update（远程更新）+ Lifecycle（安装与交付）两个原子模块；八模块口径不变（Shell/Surface 分离、Update/Lifecycle 分开的拍板 ④ 仍成立）。</div>
-</div>
-<div class="kids">
+<li class="node open">
+<div class="row"><span class="caret">&gt;</span><span class="badge b-mod">模块</span><span class="name">插件（开源拼装）</span><span class="desc">开源组件接线；组件注册表登记，能用开源绝不自研（附替代排查结论）</span></div>
+<ul class="children">
+<li class="node leaf"><div class="row"><span class="caret">&gt;</span><span class="badge b-cap">能</span><span class="name">调度组件</span><span class="desc">LobeHub / SuperAgent 等调度类开源方案接线</span></div></li>
+<li class="node leaf"><div class="row"><span class="caret">&gt;</span><span class="badge b-cap">能</span><span class="name">组件树基底</span><span class="desc">A2UI 组件树基底</span></div></li>
+<li class="node leaf"><div class="row"><span class="caret">&gt;</span><span class="badge b-cap">能</span><span class="name">语音管线</span><span class="desc">Pipecat / LiveKit 等语音管线开源组件接线</span></div></li>
+</ul>
+</li>
 
-<div class="branch open">
-<div class="kcard" onclick="toggleCard(this)">
-  <div class="khead"><span class="caret">&gt;</span><span class="badge b-mod">模块</span><span class="kname">7. Update（远程更新）</span></div>
-  <div class="kdesc">远程更新通道、签名校验、热更新。</div>
-</div>
-<div class="kids">
-<div class="branch leaf"><div class="kcard"><div class="khead"><span class="caret">&gt;</span><span class="badge b-tool">工具</span><span class="kname">manifest · publisher</span></div><div class="kdesc">更新清单与发布通道（签名 scope 注明 temporary-test-only 直至真签名密钥启用）</div></div></div>
-<div class="branch leaf"><div class="kcard"><div class="khead"><span class="caret">&gt;</span><span class="badge b-skill">技能</span><span class="kname">远程更新 · 签名校验</span></div><div class="kdesc">可组合任务能力</div></div></div>
-</div>
-</div>
+<li class="node open">
+<div class="row"><span class="caret">&gt;</span><span class="badge b-mod">模块</span><span class="name">交付（远程更新与安装交付）</span><span class="desc">产品交付链 = Update（远程更新）+ Lifecycle（安装与交付）两个原子模块；八模块口径不变</span></div>
+<ul class="children">
 
-<div class="branch open">
-<div class="kcard" onclick="toggleCard(this)">
-  <div class="khead"><span class="caret">&gt;</span><span class="badge b-mod">模块</span><span class="kname">8. Lifecycle（安装与交付）</span></div>
-  <div class="kdesc">Setup、shipped-tasks 声明、安装/升级/卸载链（零计划任务裁决）。</div>
-</div>
-<div class="kids">
-<div class="branch leaf"><div class="kcard"><div class="khead"><span class="caret">&gt;</span><span class="badge b-cap">能</span><span class="kname">零计划任务</span></div><div class="kdesc">shipped-tasks.json（shipped_tasks=[]）唯一权威声明，.iss 只读不写；卸载零残留（因从未创建）</div></div></div>
-<div class="branch leaf"><div class="kcard"><div class="khead"><span class="caret">&gt;</span><span class="badge b-cap">能</span><span class="kname">安装/升级链</span></div><div class="kdesc">UltimaAgent-Setup-* 命名沿用；release-assets.json 模板继承</div></div></div>
-<div class="branch leaf"><div class="kcard"><div class="khead"><span class="caret">&gt;</span><span class="badge b-tool">工具</span><span class="kname">Setup 链 · check-shipped-tasks · watchdog 开发机兜底</span></div><div class="kdesc">安装链、计划任务权威声明校验、开发机兜底脚本</div></div></div>
-</div>
-</div>
-</div><!-- /交付模块 -->
+<li class="node open">
+<div class="row"><span class="caret">&gt;</span><span class="badge b-mod">子模块</span><span class="name">7. Update（远程更新）</span><span class="desc">远程更新通道、签名校验、热更新</span></div>
+<ul class="children">
+<li class="node leaf"><div class="row"><span class="caret">&gt;</span><span class="badge b-tool">工具</span><span class="name">manifest · publisher</span><span class="desc">更新清单与发布通道（签名 scope 注明 temporary-test-only 直至真签名密钥启用）</span></div></li>
+<li class="node leaf"><div class="row"><span class="caret">&gt;</span><span class="badge b-skill">技能</span><span class="name">远程更新 · 签名校验</span><span class="desc">可组合任务能力</span></div></li>
+</ul>
+</li>
 
-<!-- ===== 行为原则（非模块分支：行为学表述，不构成架构轴） ===== -->
-<div class="branch open">
-<div class="kcard" onclick="toggleCard(this)">
-  <div class="khead"><span class="caret">&gt;</span><span class="badge b-cap">行为原则</span><span class="kname">五条行为学原则</span></div>
-  <div class="kdesc">行为学表述，不构成架构轴；与能力模块并行保留。</div>
-</div>
-<div class="kids">
-<div class="branch leaf"><div class="kcard"><div class="khead"><span class="caret">&gt;</span><span class="badge b-cap">原则</span><span class="kname">感官分工（通道分工）</span></div><div class="kdesc">语音通道与显示通道各司其职，不混通道 → 落点：Senses.Voice 与 Surface 分模块</div></div></div>
-<div class="branch leaf"><div class="kcard"><div class="khead"><span class="caret">&gt;</span><span class="badge b-cap">原则</span><span class="kname">理解先于行动</span></div><div class="kdesc">意图→路由→编排固定顺序，不条件反射 → 落点：Core</div></div></div>
-<div class="branch leaf"><div class="kcard"><div class="khead"><span class="caret">&gt;</span><span class="badge b-cap">原则</span><span class="kname">复述确认</span></div><div class="kdesc">关键动作执行前复述确认，语音+面板双通道协议 → 落点：Core</div></div></div>
-<div class="branch leaf"><div class="kcard"><div class="khead"><span class="caret">&gt;</span><span class="badge b-cap">原则</span><span class="kname">记忆分层</span></div><div class="kdesc">工作记忆/长期记忆/温度分层 → 落点：Memory</div></div></div>
-<div class="branch leaf"><div class="kcard"><div class="khead"><span class="caret">&gt;</span><span class="badge b-cap">原则</span><span class="kname">不打扰与反馈闭环</span></div><div class="kdesc">平时隐身，有事说话，说完即静 → 落点：Shell 常驻（托盘）+ 四角壳锚位按需显隐（常驻仅顶/左上/右上）</div></div></div>
-</div>
-</div>
+<li class="node open">
+<div class="row"><span class="caret">&gt;</span><span class="badge b-mod">子模块</span><span class="name">8. Lifecycle（安装与交付）</span><span class="desc">Setup、shipped-tasks 声明、安装/升级/卸载链（零计划任务裁决）</span></div>
+<ul class="children">
+<li class="node leaf"><div class="row"><span class="caret">&gt;</span><span class="badge b-cap">能</span><span class="name">零计划任务</span><span class="desc">shipped-tasks.json（shipped_tasks=[]）唯一权威声明，.iss 只读不写；卸载零残留（因从未创建）</span></div></li>
+<li class="node leaf"><div class="row"><span class="caret">&gt;</span><span class="badge b-cap">能</span><span class="name">安装/升级链</span><span class="desc">UltimaAgent-Setup-* 命名沿用；release-assets.json 模板继承</span></div></li>
+<li class="node leaf"><div class="row"><span class="caret">&gt;</span><span class="badge b-tool">工具</span><span class="name">Setup 链 · check-shipped-tasks · watchdog 开发机兜底</span><span class="desc">安装链、计划任务权威声明校验、开发机兜底脚本</span></div></li>
+</ul>
+</li>
 
-<!-- ===== 底座 / 路线 / 终端演进 ===== -->
-<div class="branch open">
-<div class="kcard" onclick="toggleCard(this)">
-  <div class="khead"><span class="caret">&gt;</span><span class="badge b-src">底座</span><span class="kname">配置内化与工程底座</span></div>
-  <div class="kdesc">config/ 唯一配置面；环境变量降为测试注入。</div>
-</div>
-<div class="kids">
-<div class="branch leaf"><div class="kcard"><div class="khead"><span class="caret">&gt;</span><span class="badge b-src">配置</span><span class="kname">六件配置归位</span></div><div class="kdesc">host-tasks.json→Shell 权威 · interface-routing.json→Core 权威 · voice-profile/asr-normalize→Voice 权威 · interface-seeds/.env 逐项裁定</div></div></div>
-<div class="branch leaf"><div class="kcard"><div class="khead"><span class="caret">&gt;</span><span class="badge b-src">铁律</span><span class="kname">环境变量降级</span></div><div class="kdesc">12 个 ULTIMA_* 只作验收脚本测试注入通道，不驱动产品形态；测试开关集中登记 devtools/README</div></div></div>
-<div class="branch leaf"><div class="kcard"><div class="khead"><span class="caret">&gt;</span><span class="badge b-src">底座</span><span class="kname">tools/devtools/queue</span></div><div class="kdesc">venv=tools/venv-ultimaagent · 队列引擎 · orb 渲染线降级归档（悬浮球退场，仅存测试夹具）</div></div></div>
-</div>
-</div>
+</ul>
+</li>
 
-<div class="branch open">
-<div class="kcard" onclick="toggleCard(this)">
-  <div class="khead"><span class="caret">&gt;</span><span class="badge b-star">路线</span><span class="kname">P2V 拆单（0054 收口验收后启动）</span></div>
-  <div class="kdesc">P2V-00 立项 → 01 Core+Memory+Middleware → 02 Voice → 03 Shell+Surface → 04 Update+Lifecycle → 05 总验收；老仓 P2V-05 后打 ultimaagent-v1-final-frozen tag 转只读。</div>
-</div>
-<div class="kids">
-<div class="branch leaf"><div class="kcard"><div class="khead"><span class="caret">&gt;</span><span class="badge b-star">G</span><span class="kname">P2V-00</span></div><div class="kdesc">新仓初始化 · 队列引擎搬运 · venv 规范名 · 零开发文档（仅留安装/运行必需最小文档面，最终形态=安装包）｜ Gate：队列渲染器自检过</div></div></div>
-<div class="branch leaf"><div class="kcard"><div class="khead"><span class="caret">&gt;</span><span class="badge b-star">G</span><span class="kname">P2V-01</span></div><div class="kdesc">搬 Core+Memory+Middleware，openjarvis→Core import 吸收 ｜ Gate：AST 3/3 + 单测绿 + Windows-only 依赖扫描 0 处</div></div></div>
-<div class="branch leaf"><div class="kcard"><div class="khead"><span class="caret">&gt;</span><span class="badge b-star">G</span><span class="kname">P2V-02</span></div><div class="kdesc">搬 Senses.Voice，KWS/CV3 冻结基线复测 ｜ Gate：唤醒/对话链路实测一致 + 依赖扫描 0 处</div></div></div>
-<div class="branch leaf"><div class="kcard"><div class="khead"><span class="caret">&gt;</span><span class="badge b-star">G</span><span class="kname">P2V-03</span></div><div class="kdesc">搬 Shell+Surface，四角壳为唯一显示形态（Hud 原生壳 + 8 锚点基线；orb 渲染线不搬）+ 宿主契约接口落文档 ｜ Gate：build 0/0 + Guardian 事件 + 零计划任务 + 零弹窗 + 四角壳锚位渲染自检</div></div></div>
-<div class="branch leaf"><div class="kcard"><div class="khead"><span class="caret">&gt;</span><span class="badge b-star">G</span><span class="kname">P2V-04</span></div><div class="kdesc">搬 Update+Lifecycle，安装包链重建 ｜ Gate：Setup 全流程（复用 0052/0054 判据）</div></div></div>
-<div class="branch leaf"><div class="kcard"><div class="khead"><span class="caret">&gt;</span><span class="badge b-star">G</span><span class="kname">P2V-05</span></div><div class="kdesc">总验收 ｜ Gate：端到端冒烟 + 独立审计 + final-frozen tag + 老仓转只读</div></div></div>
-</div>
-</div>
+<!-- ========== 非模块并行分支 ========== -->
+<li class="node open">
+<div class="row"><span class="caret">&gt;</span><span class="badge b-cap">行为原则</span><span class="name">五条行为学原则</span><span class="desc">行为学表述，不构成架构轴</span></div>
+<ul class="children">
+<li class="node leaf"><div class="row"><span class="caret">&gt;</span><span class="badge b-cap">原则</span><span class="name">感官分工（通道分工）</span><span class="desc">语音通道与显示通道各司其职，不混通道 → 落点：Senses.Voice 与 Surface 分模块</span></div></li>
+<li class="node leaf"><div class="row"><span class="caret">&gt;</span><span class="badge b-cap">原则</span><span class="name">理解先于行动</span><span class="desc">意图→路由→编排固定顺序，不条件反射 → 落点：Core</span></div></li>
+<li class="node leaf"><div class="row"><span class="caret">&gt;</span><span class="badge b-cap">原则</span><span class="name">复述确认</span><span class="desc">关键动作执行前复述确认，语音+面板双通道协议 → 落点：Core</span></div></li>
+<li class="node leaf"><div class="row"><span class="caret">&gt;</span><span class="badge b-cap">原则</span><span class="name">记忆分层</span><span class="desc">工作记忆/长期记忆/温度分层 → 落点：Memory</span></div></li>
+<li class="node leaf"><div class="row"><span class="caret">&gt;</span><span class="badge b-cap">原则</span><span class="name">不打扰与反馈闭环</span><span class="desc">平时隐身，有事说话，说完即静 → 落点：Shell 常驻（托盘）+ 四角壳锚位按需显隐（常驻仅顶/左上/右上）</span></div></li>
+</ul>
+</li>
 
-<div class="branch open">
-<div class="kcard" onclick="toggleCard(this)">
-  <div class="khead"><span class="caret">&gt;</span><span class="badge b-star">终端演进</span><span class="kname">多终端路线（Windows → Linux → 自研 AR 眼镜系统）</span></div>
-  <div class="kdesc">产品最终形态 = AR 眼镜智能代理；Windows 是第一站，四角壳 8 锚点范式为跨终端唯一显示常量。</div>
-</div>
-<div class="kids">
-<div class="branch leaf"><div class="kcard"><div class="khead"><span class="caret">&gt;</span><span class="badge b-cap">铁律</span><span class="kname">终端无关层</span></div><div class="kdesc">Core / Senses.Voice / Memory / Middleware / Update 禁止引入 Windows-only 依赖（P2V-01/02 Gate 含依赖扫描 0 处）——语音链路是 AR 眼镜语音通道的直接复用层</div></div></div>
-<div class="branch leaf"><div class="kcard"><div class="khead"><span class="caret">&gt;</span><span class="badge b-cap">铁律</span><span class="kname">终端相关层</span></div><div class="kdesc">Shell + Surface 每终端一套适配，宿主契约接口跨终端只换实现不换契约；Linux 版 = systemd/dbus 方向（独立方案）；AR 版 = 自研系统内嵌</div></div></div>
-<div class="branch leaf"><div class="kcard"><div class="khead"><span class="caret">&gt;</span><span class="badge b-cap">铁律</span><span class="kname">迁移纪律</span></div><div class="kdesc">每次终端迁移走「冻结仓+白名单搬运」，不复用被冻结旧实现混写；AR 透明度三档 0.14/0.55/0.85 + 中央永远透传沿用既有 AR 安全基线</div></div></div>
-</div>
-</div>
+<li class="node open">
+<div class="row"><span class="caret">&gt;</span><span class="badge b-src">底座</span><span class="name">配置内化与工程底座</span><span class="desc">config/ 唯一配置面；环境变量降为测试注入</span></div>
+<ul class="children">
+<li class="node leaf"><div class="row"><span class="caret">&gt;</span><span class="badge b-src">配置</span><span class="name">六件配置归位</span><span class="desc">host-tasks.json→Shell 权威 · interface-routing.json→Core 权威 · voice-profile/asr-normalize→Voice 权威 · interface-seeds/.env 逐项裁定</span></div></li>
+<li class="node leaf"><div class="row"><span class="caret">&gt;</span><span class="badge b-src">铁律</span><span class="name">环境变量降级</span><span class="desc">12 个 ULTIMA_* 只作验收脚本测试注入通道，不驱动产品形态；测试开关集中登记 devtools/README</span></div></li>
+<li class="node leaf"><div class="row"><span class="caret">&gt;</span><span class="badge b-src">底座</span><span class="name">tools/devtools/queue</span><span class="desc">venv=tools/venv-ultimaagent · 队列引擎 · orb 渲染线降级归档（悬浮球退场，仅存测试夹具）</span></div></li>
+</ul>
+</li>
 
-</div><!-- /kids of root -->
-</div><!-- /root branch -->
+<li class="node open">
+<div class="row"><span class="caret">&gt;</span><span class="badge b-star">路线</span><span class="name">P2V 拆单（0054 收口验收后启动）</span><span class="desc">P2V-00 立项 → 01 Core+Memory+Middleware → 02 Voice → 03 Shell+Surface → 04 Update+Lifecycle → 05 总验收；老仓 P2V-05 后打 ultimaagent-v1-final-frozen tag 转只读</span></div>
+<ul class="children">
+<li class="node leaf"><div class="row"><span class="caret">&gt;</span><span class="badge b-star">G</span><span class="name">P2V-00</span><span class="desc">新仓初始化 · 队列引擎搬运 · venv 规范名 · 零开发文档（仅留安装/运行必需最小文档面，最终形态=安装包）｜ Gate：队列渲染器自检过</span></div></li>
+<li class="node leaf"><div class="row"><span class="caret">&gt;</span><span class="badge b-star">G</span><span class="name">P2V-01</span><span class="desc">搬 Core+Memory+Middleware，openjarvis→Core import 吸收 ｜ Gate：AST 3/3 + 单测绿 + Windows-only 依赖扫描 0 处</span></div></li>
+<li class="node leaf"><div class="row"><span class="caret">&gt;</span><span class="badge b-star">G</span><span class="name">P2V-02</span><span class="desc">搬 Senses.Voice，KWS/CV3 冻结基线复测 ｜ Gate：唤醒/对话链路实测一致 + 依赖扫描 0 处</span></div></li>
+<li class="node leaf"><div class="row"><span class="caret">&gt;</span><span class="badge b-star">G</span><span class="name">P2V-03</span><span class="desc">搬 Shell+Surface，四角壳为唯一显示形态（Hud 原生壳 + 8 锚点基线；orb 渲染线不搬）+ 宿主契约接口落文档 ｜ Gate：build 0/0 + Guardian 事件 + 零计划任务 + 零弹窗 + 四角壳锚位渲染自检</span></div></li>
+<li class="node leaf"><div class="row"><span class="caret">&gt;</span><span class="badge b-star">G</span><span class="name">P2V-04</span><span class="desc">搬 Update+Lifecycle，安装包链重建 ｜ Gate：Setup 全流程（复用 0052/0054 判据）</span></div></li>
+<li class="node leaf"><div class="row"><span class="caret">&gt;</span><span class="badge b-star">G</span><span class="name">P2V-05</span><span class="desc">总验收 ｜ Gate：端到端冒烟 + 独立审计 + final-frozen tag + 老仓转只读</span></div></li>
+</ul>
+</li>
 
-</div></div>
+<li class="node open">
+<div class="row"><span class="caret">&gt;</span><span class="badge b-star">终端演进</span><span class="name">多终端路线（Windows → Linux → 自研 AR 眼镜系统）</span><span class="desc">产品最终形态 = AR 眼镜智能代理；Windows 是第一站，四角壳 8 锚点范式为跨终端唯一显示常量（屏幕四角 ⇄ AR 视野边缘，中央零遮挡沿用）</span></div>
+<ul class="children">
+<li class="node leaf"><div class="row"><span class="caret">&gt;</span><span class="badge b-cap">铁律</span><span class="name">终端无关层</span><span class="desc">Core / Senses.Voice / Memory / Middleware / Update 禁止引入 Windows-only 依赖（Gate 含依赖扫描 0 处）——语音链路是 AR 眼镜语音通道的直接复用层</span></div></li>
+<li class="node leaf"><div class="row"><span class="caret">&gt;</span><span class="badge b-cap">铁律</span><span class="name">终端相关层</span><span class="desc">Shell + Surface 每终端一套适配，宿主契约接口跨终端只换实现不换契约；Linux 版 = systemd/dbus 方向（独立方案）；AR 版 = 自研系统内嵌</span></div></li>
+<li class="node leaf"><div class="row"><span class="caret">&gt;</span><span class="badge b-cap">铁律</span><span class="name">迁移纪律</span><span class="desc">每次终端迁移走「冻结仓+白名单搬运」，不复用被冻结旧实现混写；AR 透明度三档 0.14/0.55/0.85 + 中央永远透传沿用既有 AR 安全基线</span></div></li>
+</ul>
+</li>
+
+</ul>
+</li>
+
+</ul>
 </main>
 
 <footer class="legend">
-<b>阅读方式</b>：最左 = <b>UltimaAgent 完整卡</b>（北极星本体），向右逐层展开——第 1 列 = <b>五大能力模块</b>（基础能力 / 外部能力 / Skill / 插件 / 交付）+ 行为原则 / 底座 / P2V 路线 / 终端演进；基础能力内含六原子模块、交付内含 Update+Lifecycle 两原子模块（八模块口径不变），再向右是各模块的能力·工具·技能分组与明细；点卡片开合。卡片宽度锁定（普通 300px / 根卡 340px）、高度内容驱动（乐高逻辑）、无边框气泡形态（四角壳基线）。
-四角壳锚位说明：锚位职责按 hud-layout-zone-plan v0.2 定稿锁定，锚位宽度锁定 clamp(280px,24vw,352px)；形态=无边框气泡（点 📌 钉住后显边框=置顶态反馈）。窄屏时锚位自动改顶部顺序堆叠。
+<b>阅读方式</b>：纵向折叠菜单——点击行开合。第一层 = 五大能力模块（基础能力 / 外部能力 / Skill / 插件 / 交付）+ 行为原则 / 配置底座 / P2V 路线 / 终端演进；基础能力内含六原子模块、交付内含 Update+Lifecycle 两原子模块（<b>八模块口径不变</b>），再下一层是各模块的能力·工具·技能与明细。
+四角壳锚位说明：锚位职责按 hud-layout-zone-plan v0.2 定稿锁定，宽度锁定 clamp(280px,24vw,352px)；形态=无边框气泡（点 📌 钉住后显边框=置顶态反馈）。窄屏时锚位自动改顶部顺序堆叠。
 图例：<span class="badge b-star">北极星/路线</span><span class="badge b-mod">模块</span><span class="badge b-cap">能力</span><span class="badge b-tool">工具</span><span class="badge b-skill">技能</span><span class="badge b-src">配置/底座</span>
 </footer>
 
 <script>
-function toggleCard(card){
-  var b = card.parentElement;
-  if(b.classList.contains('leaf')) return;
-  b.classList.toggle('open');
-}
-function setAll(open){
-  document.querySelectorAll('.board .branch').forEach(function(b){
-    if(!b.classList.contains('leaf')) b.classList.toggle('open', open);
+document.querySelectorAll('.tree .row').forEach(function(r){
+  r.addEventListener('click', function(e){
+    if(e.target.closest('button')) return;
+    var li = r.parentElement;
+    if(li.classList.contains('leaf')) return;
+    li.classList.toggle('open');
   });
-  var root = document.getElementById('ua');
-  if(root) root.classList.toggle('open', true);
+});
+function setAll(open){
+  document.querySelectorAll('#root .node').forEach(function(n){
+    if(!n.classList.contains('leaf')) n.classList.toggle('open', open);
+  });
+  document.querySelector('#root > .node').classList.add('open');
 }
-function depthOf(b){
-  var d=0,p=b.parentElement;
-  while(p && p.id!=='root'){ if(p.classList && p.classList.contains('kids')) d++; p=p.parentElement; }
+function depthOf(li){
+  var d=0,p=li.parentElement;
+  while(p && p.id!=='root'){ if(p.tagName==='UL' && p.classList.contains('children')) d++; p=p.parentElement; }
   return d;
 }
-function setLevel(maxDepth){
-  document.querySelectorAll('.board .branch').forEach(function(b){
-    if(b.classList.contains('leaf')) return;
-    b.classList.toggle('open', depthOf(b) < maxDepth);
+function setLevel(n){
+  document.querySelectorAll('#root .node').forEach(function(li){
+    if(li.classList.contains('leaf')) return;
+    li.classList.toggle('open', depthOf(li) < n);
   });
+  document.querySelector('#root > .node').classList.add('open');
 }
 function pin(btn){ btn.parentElement.classList.toggle('pinned'); }
 function tick(){
