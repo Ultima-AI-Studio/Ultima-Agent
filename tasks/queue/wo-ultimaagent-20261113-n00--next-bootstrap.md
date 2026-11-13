@@ -2,7 +2,24 @@
 
 > 版本：v1.0 ｜ 状态：pending（前置：0054 收口冻结 tag）｜ 适用工具：Codex（本地执行端）
 > 用法：按 T0→T8 顺序逐条执行，Gate PASS 后冻结再进下一条。
-> 范围依据：`docs/plans/plan-ultimaagent-next-rebuild-20261113.md` §三/§四/§五（N-00 行）
+> 范围依据：`docs/plans/plan-ultimaagent-next-rebuild-20261113.md` §三/§四/§五（N-00 行）+ **先行规则** `docs/specs/next-双域分离与开工设置规范.md`（开工前必读）
+
+---
+
+## 0.1 设置与功能要求（十项，缺一不派）
+
+| # | 字段 | 本卡取值 |
+|---|---|---|
+| 1 | 模块与职责边界 | 只做「建仓 + 双域骨架 + 构建/门禁骨架 + 契约骨架」，不做任何业务实现 |
+| 2 | 写入域 | `H:\UltimaAI\UltimaAgentNext\` 全量（唯一可写域）；旧仓只读 |
+| 3 | 对外契约 | 八模块契约骨架（Core/Voice/Shell/Surface/Memory/Middleware/Update/Lifecycle），只定签名与事件名 |
+| 4 | 依赖与来源 | Python 运行时（官方发行版）+ .NET/WinUI 项目模板（微软官方）；不引入第三方运行时依赖 |
+| 5 | 配置项 | `config\app.json`（版本/日志级别/端口）、各模块配置模板，全部落 `config\` |
+| 6 | 端口·路径·阈值 | 工程域 `H:\UltimaAI\UltimaAgentNext`；客户端域默认 `%LOCALAPPDATA%\UltimaAgent`（安装期可改）；探活端口 8756（N-05 使用，本卡只登记） |
+| 7 | 失败行为 | T0 前置不满足 → 立即停止并回执，不建目录；构建失败 → 不产出 dist；打包白名单缺失项 → 失败 |
+| 8 | 日志与观测点 | `tools\precheck.ps1` 输出分段标记：`BUILD` / `TEST` / `DEPSCAN` / `DOMAINSCAN` / `ASSETSCAN` |
+| 9 | 验收判据 | 见 T0~T8 的 Gate；总验收跑 `precheck.ps1` + `check-zero-docs.ps1` |
+| 10 | 客户端域影响 | 本卡建立客户端域目录契约与 `release-assets.json` 骨架；不产生任何实际运行时资产 |
 
 ---
 
@@ -54,14 +71,16 @@
 **验收（Gate T0）**：目录状态断言输出 + 冻结 tag 输出 + HEAD SHA，三者齐全。
 **禁止**：在旧仓做任何写操作；不得以「先建后迁」为由把旧目录内容复制过来。
 
-### T1 · 目录骨架与命名口径
-**文件**：`src\Core\`、`src\Senses\Voice\`、`src\Shell\`、`src\Surface\`、`src\Memory\`、`src\Middleware\`、`src\Update\`、`src\Lifecycle\`、`tools\`、`config\`、`devtools\`、`installer\`、`LICENSE`、`README.md`
+### T1 · 双域骨架与命名口径
+**文件**：工程域 `src\Core\` `src\Senses\Voice\` `src\Shell\` `src\Surface\` `src\Memory\` `src\Middleware\` `src\Update\` `src\Lifecycle\` `tools\` `config\` `devtools\` `installer\` `dist\`；客户端域契约 `dist\client\`（预览树）+ `installer\release-assets.json`
 **写什么**：
-1. 按上列路径建目录，每目录一个 `__init__.py`（Python 模块）或项目骨架文件；
-2. 每个目录内 `CONTRACT.md` 一页，只写对外契约（接口签名/事件名/职责边界），不写实现；
-3. 目录命名逐一对照方案 §三，确认无 `brain` / `voice-next` / `host-shell` / `ui` / `window` 等旧名。
-**验收（Gate T1）**：目录清单输出与方案 §三逐项一致；旧名匹配数 = 0。
-**禁止**：建 `docs\` 下的 00-19 体系；建 `tasks\queue`（队列不在交付工程内）。
+1. 工程域按先行规则 §四建目录，每模块一页 `CONTRACT.md`（只写契约，不写实现）；
+2. 客户端域按先行规则 §三建**预览树** `dist\client\`：`runtime\ config\ data\ models\ logs\ plugins\` + 占位说明，用于边界扫描与打包演练（不含任何真实资产）；
+3. `installer\release-assets.json` 建骨架，首批只登记 `config\*.json` 模板与 `version.json`，其余留空待后续卡片登记；
+4. 目录命名逐一对照，确认无 `brain` / `voice-next` / `host-shell` / `ui` / `window` 等旧名；
+5. `tools\domain-boundary.ps1`：断言工程域内无客户端绝对路径硬编码、客户端预览树内无 `.py/.cs/.xaml/.ps1/docs/.git`。
+**验收（Gate T1）**：目录清单与先行规则 §三/§四逐项一致；旧名匹配数 = 0；`domain-boundary.ps1` 输出 `DOMAIN_RESULT=PASS`；`release-assets.json` 通过 JSON 校验。
+**禁止**：客户端预览树内放任何源码/测试/构建脚本；建 `docs\` 00-19 体系；建 `tasks\queue`（队列不进交付工程）。
 
 ### T2 · 构建骨架
 **文件**：`pyproject.toml`（或 `requirements.txt` + `setup.cfg`）、`src\Shell\HostShell\*.csproj`（原生壳项目骨架）
@@ -72,13 +91,18 @@
 **验收（Gate T2）**：`dotnet build` 0 警告 0 错误；`pytest` 收集到 ≥1 用例且通过；两脚本退出码 0。
 **禁止**：引用旧仓任何项目引用/包名；引入第三方依赖未写来源与版本。
 
-### T3 · precheck 一条命令
+### T3 · precheck 一条命令（五段门禁）
 **文件**：`tools\precheck.ps1`
 **写什么**：
-1. 串起：构建（python + dotnet）→ 单测 → Windows-only 依赖扫描 → 输出 `PRECHECK_RESULT=PASS`；
-2. 任一环节失败输出 `PRECHECK_RESULT=FAIL` 并给失败环节名，退出码 1。
-**验收（Gate T3）**：成功路径 PASS；人为注入一个失败（临时改错一个断言）后 FAIL 且定位到环节；恢复后再次 PASS。
-**禁止**：把扫描跳过开关写死在脚本里。
+1. 五段依次串起并各自打印段标记：
+   - `BUILD`：Python 打包 + 原生壳 `dotnet build -c Release`（0 警告 0 错误）
+   - `TEST`：`pytest` 全绿
+   - `DEPSCAN`：终端无关层 Windows-only 依赖扫描（0 处）
+   - `DOMAINSCAN`：双域边界扫描（调 `domain-boundary.ps1`）
+   - `ASSETSCAN`：`dist\client\` 每个文件都能在 `release-assets.json` 找到登记项（未登记 = FAIL）
+2. 全绿输出 `PRECHECK_RESULT=PASS`；任一失败输出 `PRECHECK_RESULT=FAIL` + 失败段名，退出码 1。
+**验收（Gate T3）**：成功路径 PASS；逐段注入失败（构建错一处 / 单测断言错 / 依赖加一个 windows-only / 预览树塞一个未登记文件）各得 FAIL 且定位到对应段；恢复后 PASS。
+**禁止**：把任一段写成可跳过的开关；`ASSETSCAN` 白名单不得硬编码在脚本里（必须读 `release-assets.json`）。
 
 ### T4 · config 唯一配置面
 **文件**：`config\*.json`（模块各自配置文件名按职责命名）、`src\Core\config_loader.py`
@@ -122,10 +146,11 @@
 ### T8 · 总验收
 **写什么**：
 1. 全量 T 逐条复核；
-2. `tools\precheck.ps1` 与 `tools\check-zero-docs.ps1` 双跑；
-3. 阶段报告 + 证据目录（Next 仓内 `devtools\evidence\next-00\`，仅证据不写方案）；
-4. 打 tag `next-00-frozen`。
-**验收（Gate T8）**：双脚本 PASS；T0~T7 全绿；越界声明「无」；回执 8 键齐全。
+2. `tools\precheck.ps1`（五段）与 `tools\check-zero-docs.ps1` 双跑；
+3. 双域清单核对：工程域目录 vs 客户端域预览树逐项列出，证明无混用；
+4. 阶段报告 + 证据目录（`devtools\evidence\next-00\`，仅证据不写方案）；
+5. 打 tag `next-00-frozen`。
+**验收（Gate T8）**：`PRECHECK_RESULT=PASS`（五段全绿）；`ZERO_DOCS_RESULT=PASS`；T0~T7 全绿；越界声明「无」；回执 8 键齐全。
 **禁止**：带着任一 T 的残留缺陷宣告冻结。
 
 ---

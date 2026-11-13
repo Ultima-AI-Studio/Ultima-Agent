@@ -1,7 +1,7 @@
 # UltimaAgent Next 从零重做总纲方案（N 系列）
 
 > 版本：v1.0 ｜ 状态：方案定稿（待 0054 收口冻结后开 N-00）｜ Owner 拍板日期：2026-11-13
-> 权威源：本文件（Next 重做唯一事实源）｜ 关联：`docs/plans/plan-ultimaagent-v2-clean-assembly-20261113.md`（被本方案取代的旧拼装路线，留档）、`docs/tracker/北极星架构树.html`（架构呈现）、`docs/decisions/pd-20261113-0054-watchdog内化与零计划任务裁决.md`
+> 权威源：本文件（Next 重做唯一事实源）｜ **先行规则**：`docs/specs/next-双域分离与开工设置规范.md`（工程域/客户端域分离 + 每步设置表，开工前必读，优先级高于本文件细节）｜ 关联：`docs/plans/plan-ultimaagent-v2-clean-assembly-20261113.md`（被本方案取代的旧拼装路线，留档）、`docs/tracker/北极星架构树.html`（架构呈现）、`docs/decisions/pd-20261113-0054-watchdog内化与零计划任务裁决.md`
 > 适用方法论：`ultima-工程方法论`（工单三段式 / DoD 分层 / 冻结门 / M1-M8 / 审批矩阵）+ G-PLAN-001（方案随工单落盘）+ G-TASKFLOW-001（登记→计划评审→执行→独立审计→有界修复→验收→冻结）
 
 ---
@@ -145,7 +145,7 @@ UltimaAgent 本体
 
 | # | 工单 | 依赖 | 交付物 | Gate（全绿才过） |
 |---|---|---|---|---|
-| N-00 | 建仓与骨架 | — | `H:\UltimaAI\UltimaAgentNext` 目录树、构建脚本、precheck（构建+单测+扫描一条命令）、config 面、日志、LICENSE+README 一页级 | 空壳构建 0/0；precheck 一条命令全绿；零开发文档自检（无 00-19 体系） |
+| N-00 | 建仓与骨架（工程域 + 客户端域双根，双域严格分离） | — | `H:\UltimaAI\UltimaAgentNext` 工程域目录树、客户端域目录契约（`dist/client` 预览树 + `installer/release-assets.json`）、构建脚本、precheck（构建+单测+依赖扫描+双域边界扫描+资产登记校验）、config 面、日志、LICENSE+README 一页级 | 空壳构建 0/0；precheck 一条命令全绿；双域边界扫描 0 违规；资产登记校验通过；零开发文档自检（无 00-19 体系） |
 | N-01 | Core 最小闭环 | N-00 | intent_router / planner / confirm_gate / memory_boundary + 单测 | 意图黄金集准确率达标；越界写入被拒；单测绿 |
 | N-02 | Middleware 调度 | N-01 | router / delegation / task_window / ticket / sandbox | 执行端可替换（两套桩跑通）；票据可追 |
 | N-03 | Memory 三层 | N-01 | writer / poison_guard / store_backend / temperature_tier | 越权写入拒绝；双后端同契约跑通 |
@@ -161,7 +161,9 @@ UltimaAgent 本体
 
 **v1.0 出包边界**：N-00～N-07 + N-11 + N-12 构成 v1.0（八原子模块全量、能唤醒能对话能编排能呈现能安装）；N-08～N-10 为 v1.1 批次，但在 v1.0 必须留好契约（不实现不算欠账，契约缺失算欠账）。
 
-**派发纪律**：每张卡开工前登记全局主表 `H:\UltimaAI\_shared\queue\global-queue-index.md` 并走 UltimaManager 18766 登记；同一时刻 EXECUTING ≤2，AUDIT ≤1；上一张冻结才进下一张。
+**派发纪律**：每张卡开工前①必须填满「设置与功能要求表」十项（见先行规则 §六，缺一不派）；②登记全局主表 `H:\UltimaAI\_shared\queue\global-queue-index.md` 并走 UltimaManager 18766 登记；同一时刻 EXECUTING ≤2，AUDIT ≤1；上一张冻结才进下一张。
+
+**双域纪律**（先行规则 §二/§三/§五）：工程域 `UltimaAgentNext` 与客户端域（安装目录）物理隔离，单向流动；客户端域内的每一项资产都必须在 `installer/release-assets.json` 登记，未登记即打包失败。任何「往客户端文件夹加东西」的诉求先登记、后落地。
 
 ---
 
