@@ -45,7 +45,7 @@
 
 ### 3.1 机制条文（写进后续工单，不改基线）
 
-1. **单一写入口**：`tasks/queue/queue-status.json` 仍是唯一可写队列；任何外部组件（含 Autoloop、未来的调度中间层）**只能写 `tasks/queue/inbox/`**，不得直写队列、不得直写 `docs/reports/fix-*`。
+1. **单一写入口**：`tasks/queue/queue-status.json` 仍是唯一可写队列，且**只允许 `scripts/queue-writer.py` 一个进程写**（`dispatch-work-order.py` 改为调 writer，不再直写）；任何外部组件（含 Autoloop、未来的调度中间层）**只能写 `tasks/queue/inbox/`**，不得直写队列、不得直写 `docs/reports/fix-*`。机检：`grep -r "queue-status.json" scripts/` 只允许命中 `queue-writer.py` 与 `reconcile-inbox.py`。
 2. **回执即文件**：一条回执 = `tasks/queue/inbox/<claim_id>.json`，字段最小集 `claim_id / work_order / outcome / summary / session / usage / events / written_at`。
 3. **幂等消费**：队列侧消费者按 `claim_id` 去重；同一 `claim_id` 重复投递只处理第一次，其后记 `duplicate` 并丢弃。
 4. **一次事务并入**：并入队列状态、写队列 `note`、登记报告指针，三件事在一个事务内完成（JSON 队列用「临时文件 + 原子替换 + 处理标记」实现，不引入数据库）。
@@ -160,8 +160,43 @@ DeepSeek 首轮主张首批只做 M3/M4/M7，我方主张 M1 会话字段要进�
 
 ---
 
+## 10. DeepSeek 自出方案的对照裁定（三稿）
+
+原文：`docs/reports/plan-autoloop-deepseek-独立方案-20261113.md`。它这次交的是方案不是评审，**有三条真东西，也有三个硬错**。逐条裁定如下。
+
+### 10.1 采纳（并入本方案）
+
+| 它给的 | 为什么收 | 落到哪 |
+|---|---|---|
+| **E-01 三段闭合判据**：Gate 通过只证明「取消失败有记录」，不证明「取消可达」；闭合＝①`not_running` 在真实运行中被观测到 ≥1 次 ∧ ②`running` 态下取消请求在 ack 窗口内被受理 ∧ ③`unknown` 连续 3 轮告警可触发 | 这是三轮里唯一把「什么叫修好了」说清的判据，且可机检 | §27.4 Gate 升级为三段式；本轮 Next 代码未开工，①②标 `TBD-RUNTIME`，禁止用 ③ 冒充闭合 |
+| **单向写入口收敛到单文件** `scripts/queue-writer.py`，并用 `grep -r "queue-status.json" scripts/` 只命中 writer 与 reconcile 做机检 | 把「单一写入口」从口号变成一条可执行的搜索断言 | §3.1 第 1 条；P0 Gate 增列 |
+| **砍运行时形态**：不搬 SQLite／SSE／cron／多通道，只借「事实日志＋幂等收件箱＋单向写入口」 | 与我方「借机制不借实现」一致，且明确写了砍的理由 | §7 已覆盖，补一句「运行时形态不搬」 |
+
+### 10.2 驳回（并写清理由）
+
+| 它的写法 | 错在哪 | 处置 |
+|---|---|---|
+| 「§25.10 已冻结在 0057 自检 PASS 的文本里，所以不能动，改新增 §27.1」 | **前提错误**：0057 只到「自检 PASS＋READY_FOR_OWNER_REVIEW」，**未独立审计、未提交、未打 tag**，根本没冻结。基于错误前提做的「推翻第二轮」不成立 | 维持 A′：`cancel_observe` 仍切进 §25.10（判据与观测值同节，避免跨节双源）；若 0057 已冻结则改 §27，但那要等真冻结 |
+| §27.1 判定规则：`not_running`＝窗口结束且 `ActiveProcesses==0`；`running`＝窗口结束且 `ActiveProcesses>0`；`unknown`＝窗口结束且 `==0` 不成立 | **逻辑倒置**：进程还在（`>0`）说明取消没生效，它却判 `running` 并随后落 `CANCELLED`。真正该判的是「ack 是否收到、强杀后是否证明 `==0`」，不是「进程数大于零」 | 沿用 A′ 的四条硬条件，不采用它的三值判据 |
+| §27.2 又把 `unknown` 定义成「接单程序 5 分钟未回执」 | **同一文件里 `unknown` 两义**（§27.1 是观测失败、§27.2 是接单超时），自己制造了它上一轮批判的那种双源 | 本轮只保留一个 `unknown`（观测失败）；「接单 5 分钟未回执」改名 `claim_timeout`，进二期 M6 |
+| 单 C 从 0059 的 16 条里「挑 6 条写 §二十六，其余 10 条占位」 | **擅改 0059 范围**：0059 的 16 条是 0060 审卡通过的封闭清单，挑 6 条等于就地缩范围，违反「验收封闭、清单外走变更」 | 0059 维持 16 条不动；跨域单不重拆 |
+| 「一周可机检」第 1 条 `grep -c "§25" ≥ 11`、`queue-writer --selftest` 等计数型 Gate | 正撞 `W_VOLATILE_COUNT_WRITTEN`（它自己刚被告知这条禁令，仍写死计数）；且①②依赖真实运行，Next 代码未开工，一周内不可能观测到 | Gate 改为「存在性/差值为空/断言条数」三类，不写死计数；运行类判据一律标 `TBD-RUNTIME` |
+
+### 10.3 三方对照（一句话）
+
+| 稿 | 它的价值 | 它的缺陷 |
+|---|---|---|
+| DeepSeek 评审一 | 拆穿「不共享库≠无双源」，给出三处双源与堵法 | 把「M1 进首批」判成可后置，低估 E-01 |
+| DeepSeek 评审二 | 指出 `unknown` 缺判定主体/时点/Gate，是改名不是补洞 | 建议切 §25.10 时误以为它已冻结（这是它第三稿推翻自己的根因） |
+| **DeepSeek 自出方案** | **E-01 三段闭合判据**＋**writer 单点 grep 机检**（这两条已采纳） | 判定规则倒置、`unknown` 双义、擅改 0059、计数 Gate、依赖未开工的运行态 |
+| 本方案 v0.3 | 冻结面前提先核实、判据与观测值同节、Gate 全部可机检或显式 `TBD` | 仍缺真实运行观测（同 DeepSeek，无解，只能标 TBD） |
+
+---
+
 ## 附：来源
 
 - 机制与协议事实：`https://raw.githubusercontent.com/KKKKhazix/agent-autoloop/main/docs/protocol.md`
-- 独立评审原文：`docs/reports/review-autoloop-机制借鉴研究-deepseek-20261113.md`
+- 评审一：`docs/reports/review-autoloop-机制借鉴研究-deepseek-20261113.md`
+- 评审二：`docs/reports/review-autoloop-融合方案A案-deepseek-20261113.md`
+- DeepSeek 自出方案：`docs/reports/plan-autoloop-deepseek-独立方案-20261113.md`
 - 研究稿 v0.2：`docs/plans/next-autoloop-机制借鉴研究-20261113.md`
