@@ -1867,6 +1867,13 @@
       "audit_run": "wo-ultimaagent-20261113-0053-20261112T171715167387Z",
       "freeze_commit": "41d8359f463f55a0a40bb7df4813ca891464809b",
       "note": "真实执行结束 exit=0；wo-ultimaagent-20261113-0053-20261112T171715167387Z；待二轮复核，不自动批准或续派【2026-11-13 第二轮执行 PASS】v1.1 基线差集口径重派后完成：pytest 9 passed / 0 xfailed / 0 unexpected success（主脑独立复跑 25.00s 一致），真实包名与模块 ID 双形态均被拦、import os 放行；提交 41d8359f 恰含 9 个获准文件（2 代码 + 7 证据/报告）；反向断言 3/3（RESIDENT_DOMAINS 行零 diff、spec/registry.py 零 diff、expectedFailure 残留 0）；测试断言零改动，仅移装饰器+更新 docstring。主脑独立审计 PASS，冻结 tag wo-ultimaagent-20261113-0053-frozen-20261113。"
+    },
+    {
+      "project": "UltimaAgent",
+      "work_order": "wo-ultimaagent-20261113-0054",
+      "state": "pending",
+      "audit_passed": false,
+      "note": "安装包主线 Phase 3（清计划任务 + 首启样式），v1.0 实测校准版卡：9T（T0 shipped-tasks 声明载体+守卫脚本 / T1 清 10 条 queue-observer 一次性遗留并补根因自清扫 / T2 watchdog 迁 devtools 并同步自注册（同名单条、pythonw 无窗）/ T3 删 Preload 任务（实证其解释器坏路径 WinError2 从未真拉起 voice 栈）/ T4 TrackerLive 归 devtools / T5 App.xaml.cs 启动计时埋点 / T6 ReadyState→orb 环进度（新建 EnableWarmRing+ULTIMA_HOST_WARM_RING 旁路）/ T7 3 次冷启动首帧中位数≤1500ms 硬判 / T8 总验收含 Phase2 test-jobkill 回归）。【方案失真校准 5 处】①计划任务实测 12 条（方案写无条目）并逐条归因；②shipped_tasks 字段不存在→偏差裁决用 installer/shipped-tasks.json（不污染带签名的 release-assets，Phase4 .iss 直接消费）；③state=\"warm\" 不存在→改 ready/warm_progress==100；④EnableWarmRing 不存在→本卡新建；⑤冷启动 4.2s 无计时证据→T5 先埋点测基线再判。【触发前提】Phase2 已冻结（9febf442 / tag wo-ultimaagent-20261112-0052-frozen-20261113）。待 Owner 拍板是否开工；未派发。"
     }
   ]
 }
