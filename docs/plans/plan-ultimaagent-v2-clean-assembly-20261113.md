@@ -19,7 +19,7 @@ UltimaAgent 的五条行为学原则（源自原贾维斯调研结论，2026-11-
 | 大脑理解先于行动 | 先理解意图再执行，不条件反射 | Core 的意图→路由→编排固定顺序 |
 | 复述确认 | 关键动作执行前向用户复述确认 | Core 的 confirm 协议（语音+面板双通道） |
 | 记忆分层 | 工作记忆/长期记忆/温度分层 | Memory 模块三层结构 |
-| 不打扰与反馈闭环 | 平时隐身，有事说话，说完即静 | Shell 常驻（orb/托盘），事件驱动唤醒 |
+| 不打扰与反馈闭环 | 平时隐身，有事说话，说完即静 | Shell 常驻（托盘）+ 四角壳锚位按需显隐（常驻仅顶/左上/右上） |
 
 语音状态机（冻结基线，v2 原样继承）：`warming→ready→capturing→processing→speaking/acknowledging/stopped/error`；唤醒词「幂幂」、threshold 0.25、warm_progress 0/25/50/75/100。参数唯一权威源 `docs/specs/kws-wakeup-params-baseline.md`，v2 搬运不改。
 
@@ -33,7 +33,7 @@ H:\UltimaAI\UltimaAgentNext\
 │   ├── Core\            大脑：意图理解、编排、记忆写入边界、复述确认协议
 │   ├── Senses\Voice\    耳+嘴：KWS 唤醒、VAD、TTS(CV3)、语音会话循环
 │   ├── Shell\           身：HostShell(WinUI3)、ProcessHost/GuardianService、Job 托管、自启
-│   ├── Surface\         脸：orb live 渲染、任务管理器面板、四角壳锚位（预留）
+│   ├── Surface\         脸：四角壳 HUD（8 锚点，唯一显示形态）、任务管理器面板
 │   ├── Memory\          记忆：工作/长期/温度分层
 │   ├── Middleware\      调度：路由、委派、沙箱、任务窗口、票据
 │   ├── Update\          更新：发布通道、manifest 签名
@@ -69,10 +69,10 @@ H:\UltimaAI\UltimaAgentNext\
 - **搬运源**：0054 冻结产物（这是本方案的直接输入）+ 0052 ProcessHost 三件套
 
 ### 4. Surface（脸）
-- **能力**：悬浮球 live 展示、应用内任务管理器面板、（预留）四角壳
-- **工具**：OrbLiveRenderer、TaskManagerRenderer、taskmanager.html、WebView2 双向消息
+- **能力**：四角壳 HUD 展示（8 锚点）、应用内任务管理器面板
+- **工具**：UltimaAgent.Hud 原生壳（2026-10-29 验收通过）、hud-live-four-corner 设计基线（--hd-* token、锚位宽度锁定 clamp(280px,24vw,352px)、无边框气泡形态、置顶才显边框）、TaskManagerRenderer、taskmanager.html、WebView2 双向消息
 - **技能**：状态反馈、任务可视
-- **收敛裁决**：**只搬这一套**。OrbBallRenderer/orb.html 旧样式降级 devtools 测试夹具；OrbHost/OrbNative 死工程不搬（留冻结仓归档）；python 侧 `src/window/*.py` 不搬（活链路未用）
+- **形态裁决（Owner 拍板 2026-11-13）**：**四角壳为唯一显示形态，悬浮球方案退场**。全部 orb 渲染器（OrbLiveRenderer/OrbBallRenderer/ComboWindowRenderer 及 ULTIMA_HOST_ORB_TEST/LIVE/COMBO 测试链）**均不进入新仓产品形态**，只降级 devtools 测试夹具归档；OrbHost/OrbNative 死工程不搬（留冻结仓归档）；python 侧 `src/window/*.py` 不搬（活链路未用）。0054 在途 T6 的 orb 视觉增量属 v1 收口证据链，照常完成工单验收，但不改变 v2 Surface 裁决。
 
 ### 5. Memory（记忆）
 - **能力**：工作记忆、长期记忆、温度分层
@@ -95,9 +95,9 @@ H:\UltimaAI\UltimaAgentNext\
 ## 四、搬运白名单总则
 
 1. **只搬冻结产物**：每项搬运必须能指出冻结来源（tag 或冻结 commit），逐项登记映射表（源→目的），搬运后新仓第一件事是全量复验。
-2. **明确不带走的**：jarvis-work 90 份过程文档（冻结仓留档）；OrbHost/OrbNative 死工程；`src/window/*.py` python 渲染线；gorch 系脚本；`_readme_local_backup.md`；config/_backup 全部。
+2. **明确不带走的**：jarvis-work 90 份过程文档（冻结仓留档）；**全部 orb 渲染线（悬浮球退场裁决）**；OrbHost/OrbNative 死工程；`src/window/*.py` python 渲染线；gorch 系脚本；`_readme_local_backup.md`；config/_backup 全部。
 3. **改名一步到位**：`UltimaAgentNext.*` 命名空间、无 voice-next、无 openjarvis import、无迭代代号分支（新仓从 `main` 起步）。
-4. **非目标**：不重建四角壳框架（未来独立工单）；不动 KWS/CV3 冻结参数；不改 8756 端口与 20/3/300 守护语义；不建 UltimaManager 依赖。
+4. **非目标**：四角壳 8 锚点框架不在 v2 拼装工单内新建实现（Hud 原生壳与布局定稿为既有冻结基线，随 P2V-03 搬运对接，新锚位功能走后续独立工单）；不动 KWS/CV3 冻结参数；不改 8756 端口与 20/3/300 守护语义；不建 UltimaManager 依赖。
 
 ## 五、执行阶段（拆单草案）
 
@@ -106,7 +106,7 @@ H:\UltimaAI\UltimaAgentNext\
 | P2V-00 立项 | 新仓初始化、docs 文档体系、队列引擎搬运、venv 规范名 | 队列渲染器自检过 |
 | P2V-01 搬 Core+Memory+Middleware | import 吸收（openjarvis→Core） | AST 3/3 + 单测绿 |
 | P2V-02 搬 Senses.Voice | KWS/CV3 冻结基线复测 | 唤醒/对话链路实测一致 |
-| P2V-03 搬 Shell+Surface | 0054 产物 + OrbLive 收敛 | build 0/0 + Guardian 事件 + 零计划任务 + 零弹窗 |
+| P2V-03 搬 Shell+Surface | 0054 产物 + 四角壳对接（orb 渲染线不搬） | build 0/0 + Guardian 事件 + 零计划任务 + 零弹窗 + 四角壳锚位渲染自检 |
 | P2V-04 搬 Update+Lifecycle | 安装包链重建 | Setup 全流程验收（复用 0052/0054 判据） |
 | P2V-05 总验收 | 全链路贯通 + 北极星清单更新 + 冻结 tag | 端到端冒烟 + 独立审计 |
 
@@ -152,4 +152,4 @@ host-tasks.json 中 `tools/venv-openjarvis/...`、`src/voice-next/launch.py` 等
 
 ---
 
-> Owner 拍板记录（2026-11-13，本节为最终裁决）：① 新仓目录 = `H:\UltimaAI\UltimaAgentNext`（无版本后缀，新旧靠 final-frozen tag 区分）；② venv 规范名 = `tools/venv-ultimaagent`（搬运时全量引用清扫 + 渲染器自检作 Gate）；③ 老仓冻结时点 = P2V-05 总验收后打 `ultimaagent-v1-final-frozen-*` tag 转只读；④ 模块架构 = 八模块原方案（Shell/Surface 分离、Update/Lifecycle 分开）。四项已定，方案视为冻结，可拆 P2V-00 工单。
+> Owner 拍板记录（2026-11-13，本节为最终裁决）：① 新仓目录 = `H:\UltimaAI\UltimaAgentNext`（无版本后缀，新旧靠 final-frozen tag 区分）；② venv 规范名 = `tools/venv-ultimaagent`（搬运时全量引用清扫 + 渲染器自检作 Gate）；③ 老仓冻结时点 = P2V-05 总验收后打 `ultimaagent-v1-final-frozen-*` tag 转只读；④ 模块架构 = 八模块原方案（Shell/Surface 分离、Update/Lifecycle 分开）；⑤ Surface 显示形态 = 四角壳 HUD 为唯一形态，悬浮球方案退场（全部 orb 渲染线不进新仓产品形态，0054 在途 T6 照常完成 v1 收口）。五项已定，方案视为冻结，可拆 P2V-00 工单。
