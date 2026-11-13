@@ -263,7 +263,7 @@ footer.legend b{color:var(--hd-muted); font-weight:600;}
 <li class="node leaf"><div class="row"><span class="caret">&gt;</span><span class="badge b-cap">库</span><span class="name">kb · 知识库</span><span class="desc">书架比喻；可由指令驱动采集（采集能力见外部能力→能力库）；一个书架＝一个子库</span></div></li>
 <li class="node leaf"><div class="row"><span class="caret">&gt;</span><span class="badge b-cap">库</span><span class="name">exp · 经验库</span><span class="desc">踩坑记录：自动起草 draft → 人工 confirmed；带证据指针；先查后动</span></div></li>
 <li class="node leaf"><div class="row"><span class="caret">&gt;</span><span class="badge b-cap">横切</span><span class="name">index · 索引与检索</span><span class="desc">三个检索入口分开、不做混检；索引只存指针 (volume, file, offset, len)，正文只搬一次</span></div></li>
-<li class="node leaf"><div class="row"><span class="caret">&gt;</span><span class="badge b-tool">工具</span><span class="name">writer · poison_guard · store_backend · temperature_tier · volumes</span><span class="desc">写入、防投毒、存储后端、三层温度、存储卷登记（volumes.json 可热加卷，可接私有 NAS）</span></div></li>
+<li class="node leaf"><div class="row"><span class="caret">&gt;</span><span class="badge b-tool">工具</span><span class="name">writer · poison_guard · store_backend · temperature_tier · volumes</span><span class="desc">写入、防投毒、存储后端、三层温度（<b>热 500MB／温 2GB 定值</b>，R-80）、存储卷登记（volumes.json 可热加卷，可接私有 NAS）；<b>冷层存档路径可指定</b>，禁公有云盘／对象存储</span></div></li>
 <li class="node leaf"><div class="row"><span class="caret">&gt;</span><span class="badge b-skill">技能</span><span class="name">上下文注入 · 记忆检索 · 知识采集编排</span><span class="desc">先查后动；三库分别检索、不做混检；采集由能力库执行，本层只管入库与索引</span></div></li>
 </ul>
 </li>
@@ -271,14 +271,14 @@ footer.legend b{color:var(--hd-muted); font-weight:600;}
 <li class="node open">
 <div class="row"><span class="caret">&gt;</span><span class="badge b-mod">子模块</span><span class="name">6. Middleware（执行端与票据）</span><span class="desc">执行端可替换、一次一主、票据可追；<b>八态定义权在此</b>（queue_engine.state_machine：QUEUED→EXECUTING→SELF_CHECK→AUDIT→COMPLETED，异常 FAILED/BLOCKED/CANCELLED，COMPLETED 须 audit_passed）；编排决策不在此层（归 Console），本层只按指令起执行端、留票据</span></div>
 <ul class="children">
-<li class="node leaf"><div class="row"><span class="caret">&gt;</span><span class="badge b-tool">工具</span><span class="name">queue_engine（tasks/queue_engine，Python 引擎域）· state_machine（八态唯一枚举源）· router · delegation · task_window · ticket · sandbox · worktree 隔离 · 并发配额 · reworkCount</span><span class="desc">八态与迁移的唯一实现位置、执行端路由、任务委派、任务窗口、票据、沙箱隔离</span></div></li>
+<li class="node leaf"><div class="row"><span class="caret">&gt;</span><span class="badge b-tool">工具</span><span class="name">queue_engine（tasks/queue_engine，Python 引擎域）· state_machine（八态唯一枚举源）· router · delegation · task_window · ticket · sandbox（双层：Job ＋ 写域白名单，R-79）· worktree 隔离 · 并发配额 · reworkCount</span><span class="desc">八态与迁移的唯一实现位置、执行端路由、任务委派、任务窗口、票据、沙箱隔离</span></div></li>
 <li class="node leaf"><div class="row"><span class="caret">&gt;</span><span class="badge b-skill">技能</span><span class="name">执行端路由 · 任务窗口管理</span><span class="desc">可组合任务能力</span></div></li>
 </ul>
 </li>
 
 <!-- Console：引擎中心管理调度器 -->
 <li class="node open">
-<div class="row"><span class="caret">&gt;</span><span class="badge b-mod">子模块</span><span class="name">＋ Console（引擎中心管理调度器）</span><span class="desc"><b>「终端」一词此后只指它</b>；四职能全属「管」不属「做」；<b>可机检边界</b>＝代码只要会碰进程/网络/磁盘/像素就不属于 Console（自己 CreateProcess 起看门狗＝第二个父进程，§十五 闸1 破防、孤儿复发）；客户端进程树内常驻，Manager 为同进程子模块；<b>只碰队列、状态机读写、档位与账本</b>，不定义枚举、不改档位</span></div>
+<div class="row"><span class="caret">&gt;</span><span class="badge b-mod">子模块</span><span class="name">＋ Console（引擎中心管理调度器）</span><span class="desc"><b>「终端」一词此后只指它</b>；四职能全属「管」不属「做」；<b>可机检边界</b>＝代码只要会碰进程/网络/磁盘/像素就不属于 Console（自己 CreateProcess 起看门狗＝第二个父进程，§十五 闸1 破防、孤儿复发）；**随 Python 引擎域常驻**（与 `queue_engine` 同进程，Manager 为同进程子模块；R-78/§24.1）；壳经引擎域既有本地通道（8756）读**只读视图**；<b>迁域不授权碰进程</b>——CreateProcess／客户端 socket／写盘／像素调用仍须 <b>0</b>，Shell 仍是唯一父进程；<b>只碰队列、状态机读写、档位与账本</b>，不定义枚举、不改档位</span></div>
 <ul class="children">
 <li class="node leaf"><div class="row"><span class="caret">&gt;</span><span class="badge b-cap">管</span><span class="name">任务编排</span><span class="desc">派发 / 优先级 / 依赖；九点位 4–9 是八态投影</span></div></li>
 <li class="node leaf"><div class="row"><span class="caret">&gt;</span><span class="badge b-cap">管</span><span class="name">常驻托管</span><span class="desc">看谁在跑、跑多久；进程本身由 Shell 管</span></div></li>

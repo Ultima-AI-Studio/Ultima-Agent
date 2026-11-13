@@ -373,6 +373,20 @@ footer{margin-top:40px;padding-top:16px;border-top:1px solid var(--line);color:v
     <p><b>失败不换家：</b>换型失败回滚到<b>本次换型前</b>的条目，不自动挑第三方；外部主脑坏 → <code>LOCAL_FALLBACK</code> ＝ 回本地（收窄外发，不需二次确认）。</p>
   </section>
 
+  <!-- 十、三处定案 -->
+  <section class="sec">
+    <h2>10 · 域归属 / 沙箱 / 温度轴 三处定案（R-78 / R-79 / R-80）</h2>
+    <table>
+      <thead><tr><th>项</th><th>定案</th><th>关键点</th></tr></thead>
+      <tbody>
+        <tr><td><b>Console 迁域</b><br>R-78</td><td><b>物理迁入 Python 引擎域</b>，与 <code>queue_engine</code> 同进程；实现栈改 Python，C# 只剩壳与呈现</td><td>闸1 不破：迁域只改「代码住哪」，<b>不授权碰进程</b>；壳经既有 8756 通道读只读视图，不新增端口、不新增父进程</td></tr>
+        <tr><td><b>沙箱双层</b><br>R-79</td><td><b>进程级（Job Object）＋ 目录级（写域白名单 <code>fileDomain</code>）</code></b></td><td>两层独立、<b>缺一不算沙箱</b>；Job 参数沿用 T10（64 进程 / 1GB 每进程 / 2GB 每作业）；只做 Job 不做写域，Gate 不绿</td></tr>
+        <tr><td><b>温度轴定值</b><br>R-80</td><td>热 <b>500 MB</b>／温 <b>2 GB</b>（原 250 MB / 1.2 GB 由建议值升为定值）；冷层不设上限、<b>存档路径可指定</b></td><td>冷路径默认客户端域 <code>store\cold\</code>，可改到其他本地盘或私有 NAS；<b>禁公有云盘/对象存储</b>；换路径不搬旧片</td></tr>
+      </tbody>
+    </table>
+    <p><b>为什么 Console 迁进引擎域是对的：</b>Console 管的是八态、档位、账本——这些本来就在引擎域。<b>同域直读</b>省掉一层跨进程状态协议，也不会平白多出第二个父进程（§十五 闸1 的破防点是「谁起进程」，不是「代码住哪」）。</p>
+  </section>
+
   <footer>
     权威源：<b>next-基础能力盘点与缺口清单 §1.1.1 / §八</b>（呈现层级三类）｜ <b>next-感知交互参数基线 §15.2.1 / §十六 / §十七 / §十八 / §十九</b>｜ next-双域分离与开工设置规范 §七（模块设置）｜ plan-ultimaagent-next-rebuild（N-01～N-14 交付物）｜ <b>基线 §二十 / §二十一</b>（治理⑤ 隶属 · 缺口补口定案）<br>
     口径版本：2026-11-13 ｜ 变更编号 R-59 ～ R-75 ｜ 本页只做呈现，不改任何决策；冲突以基线为准。
