@@ -63,6 +63,8 @@
 | R-57 | 主脑推理后端 = **llama.cpp 直跑 GGUF**（不走 Ollama）。理由：进程树干净（不引入 `ollama serve` + `ollama runner` 隐藏子进程，与七道闸一致）、参数全可控（ctx/thread/batch 进基线）、卸载零残留、天然离线。**Ollama 降为可选外脑 provider，不再作主脑默认** | 主脑后端选型、`config/host-tasks.json` 主脑条目、卸载清单 | **已拍板**（形态由 R-58 收口） |
 | R-58 | 授权"运行模块项由主脑定最优"（2026-11-13）：形态=**llama-server 独立子进程**；权重目录 `%LOCALAPPDATA%\UltimaAgent\models\`、**卸载默认保留**；主档 **Q5_K_M** + 低配备选 Q4_K_M（装配期二选一，禁运行时突变）；`n_batch=512`、**`n_threads=min(物理核-1,8)` 本机 7**、`--parallel=1`、`--ngl` 有 CUDA→99 否则 0、KV f16、flash-attn auto、mmap 开 mlock 关；采样双 profile（`decision` 0.05/0.95/20/seed 42/grammar 开；`dialog` 0.4/0.9/40/随机），**调用方自带采样参数即拒**。依据：本机探测 i9-11900K 8C/16T、31.9GB、RTX 3080 Ti 12GB | 主脑形态、权重资产、推理参数、采样 profile 表 | **已定（落基线 §十六）** |
 | R-59 | **任务状态口径统一**：以 `queue_engine` 八态为唯一基准，Console / Manager / Shell / Surface **只做映射不立枚举**，禁第三套状态枚举；新增态须新开裁决 | 任务生命周期、Console 判态、Manager 字段、Surface 标签 | 已写入基线 §15.2.1 |
+| R-60 | **记忆层下放三个库**：`mem`（用户）/`kb`（世界，书架、初始空、指令驱动采集）/`exp`（系统踩坑，`draft→confirmed`，未确认不得作依据），三库共用本地栈与单一 embedding，各建索引、检索入口分开；**索引与检索契约**（语义边界分块＋重叠 10–15%、元数据必带位置、FTS5＋向量混合 `top_k=5`、低于阈值返回「没找到」、条数 ±0）为记忆层横切标准 | 记忆模块结构、检索契约、容量门 | 已写入基线 §十七（容量门口径待裁决） |
+| R-61 | **外部能力＝能力库（Skill）＋插件＋模型库**；能力可添加、可指派给已配置模型，**一对一绑定、无主备无自动切换、手动下拉换绑、在途任务等轮结束**；provider 需有可检测的六态（含 `no_token`/`unreachable`）；**主脑不进模型库**；Skill 与插件下沉到外部能力之下（A 表五类→三类）；预置 skill 随安装包自带（可停用不可卸载）；规则库归 ⑤ 治理与约束不归记忆；**harness＝执行端适配器插件、super agent＝编排模式（Console 决 + Middleware 做）**；引擎域继续 Python | 分层归属、绑定表、N-08/N-09/N-10 | 已写入基线 §十八 |
 
 ## 记忆容量初始阈值（R-38，初始值待 N-03 实测校准）
 
