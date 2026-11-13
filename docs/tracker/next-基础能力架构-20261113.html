@@ -342,9 +342,23 @@ footer{margin-top:40px;padding-top:16px;border-top:1px solid var(--line);color:v
     <p><b>11 项有口径无实现的落点：</b>D1 压缩／D3 trace／D4 策略表／A4 快照 → N-01；D9 配额／A2 worktree／A5 返工 → N-02；D5 三库／D6 索引／D7 沉淀 → N-03；D11 热词 → N-04；D10 看板 → N-06；D2 harness／CLI 适配 → N-08；D8 Skill 载体 → N-09。</p>
   </section>
 
+  <!-- 八、两个库 -->
+  <section class="sec">
+    <h2>08 · 两个「库」不是两个「模块」（R-74 / R-75）</h2>
+    <p>任务库与日志库都按<b>库</b>的形态挂在既有归属下，<b>六块模块数不变</b>；两者<b>物理共用 Memory 的 <code>store/</code></b>，逻辑与检索入口分开。</p>
+    <table>
+      <thead><tr><th>库</th><th>归谁</th><th>为什么不是模块</th><th>关键定案</th></tr></thead>
+      <tbody>
+        <tr><td><b>任务库</b><br>R-74</td><td>Console</td><td>任务卡／依赖／状态账本来就是 Console 的账，与 <code>usage_ledger</code> 同级；单独成模块会与 Console「管队列」抢同一件事</td><td>四级分类 <code>项目→工单卡→任务→运行实例</code>；<code>tasks.json</code> 唯一索引（禁第二套任务系统）；状态只走八态；<b>冻结后热留 1 年→冷层</b>；只许标 <code>archived</code>，物理删除路径 0</td></tr>
+        <tr><td><b>日志库</b><br>R-75</td><td>治理⑤<br>（审计与留痕）</td><td>保留期、防篡改、审计独立都是治理口径；<b>不能并进 Memory</b>——记忆禁外发，而日志必须能导出排查</td><td>四类：运行（默认 14 天滚动）／执行（按任务 30 天）／<b>审计（append-only ≥1 年＋哈希链）</b>／交互转写（归 Memory 冷层、此处只存指针）</td></tr>
+      </tbody>
+    </table>
+    <p><b>共用物理的三条约定：</b>①统一落 <code>store/</code>（hot/warm/cold ＋ <code>volumes.json</code> 卷），不各建磁盘布局、不新增第三套扩容；②三套 schema <code>memory</code>/<code>task</code>/<code>log</code> 前缀分开，<b>跨库 JOIN 禁止</b>；③五个检索入口 <code>mem/kb/exp/task/log</code> 分开，<b>混检计数 = 0</b>。</p>
+  </section>
+
   <footer>
     权威源：<b>next-基础能力盘点与缺口清单 §1.1.1 / §八</b>（呈现层级三类）｜ <b>next-感知交互参数基线 §15.2.1 / §十六 / §十七 / §十八 / §十九</b>｜ next-双域分离与开工设置规范 §七（模块设置）｜ plan-ultimaagent-next-rebuild（N-01～N-14 交付物）｜ <b>基线 §二十 / §二十一</b>（治理⑤ 隶属 · 缺口补口定案）<br>
-    口径版本：2026-11-13 ｜ 变更编号 R-59 ～ R-73 ｜ 本页只做呈现，不改任何决策；冲突以基线为准。
+    口径版本：2026-11-13 ｜ 变更编号 R-59 ～ R-75 ｜ 本页只做呈现，不改任何决策；冲突以基线为准。
   </footer>
 </div>
 </body>

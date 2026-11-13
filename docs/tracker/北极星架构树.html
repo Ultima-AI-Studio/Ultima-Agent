@@ -283,6 +283,7 @@ footer.legend b{color:var(--hd-muted); font-weight:600;}
 <li class="node leaf"><div class="row"><span class="caret">&gt;</span><span class="badge b-cap">管</span><span class="name">常驻托管</span><span class="desc">看谁在跑、跑多久；进程本身由 Shell 管</span></div></li>
 <li class="node leaf"><div class="row"><span class="caret">&gt;</span><span class="badge b-cap">管</span><span class="name">输出呈现</span><span class="desc">把状态递给 Surface 画，自己不出像素</span></div></li>
 <li class="node leaf"><div class="row"><span class="caret">&gt;</span><span class="badge b-cap">管</span><span class="name">多端调度</span><span class="desc">向多用户设备 / 显示端投递，<b>不是</b>多执行端编排</span></div></li>
+<li class="node leaf"><div class="row"><span class="caret">&gt;</span><span class="badge b-cap">库</span><span class="name">任务库（项目→工单卡→任务→运行实例）</span><span class="desc">R-74：任务卡／依赖／状态账，与 <code>usage_ledger</code> 同级；物理沿用 <code>tasks/queue_engine</code>（<code>tasks.json</code> 唯一索引，禁第二套）；状态只走八态；<b>冻结后热留 1 年→冷层</b>（复用 §17.2 温度轴）；检索走 <code>task.query</code>，不与记忆混检</span></div></li>
 <li class="node leaf"><div class="row"><span class="caret">&gt;</span><span class="badge b-tool">工具</span><span class="name">dispatcher · priority_deps · 重启预算账 · 档位只读视图 · usage_ledger（用量账，R-70）</span><span class="desc">派发器、优先级与依赖、重启预算记账、系统档位只读；八态<b>只读写不定义</b>（定义在 queue_engine）；<b>看门狗只下「起/停/查」意图，进程由 Shell 起</b>（§19.2 · 19.3）</span></div></li>
 </ul>
 </li>
@@ -294,6 +295,7 @@ footer.legend b{color:var(--hd-muted); font-weight:600;}
 <li class="node leaf"><div class="row"><span class="caret">&gt;</span><span class="badge b-src">不变式</span><span class="name">代码断言（不入库）</span><span class="desc">未登记模型拒载 · 审计 provider≠开发 · 禁 PID 白名单 · 记忆禁外发</span></div></li>
 <li class="node leaf"><div class="row"><span class="caret">&gt;</span><span class="badge b-src">规则库</span><span class="name">可配策略（带版本与生效范围）</span><span class="desc">口播≤2 句 · top_k=5 · provider 六态码 · 六码处置动作 · 勿扰开关（默认值归客户端）</span></div></li>
 <li class="node leaf"><div class="row"><span class="caret">&gt;</span><span class="badge b-src">横切</span><span class="name">防投毒 · 审计独立 · 外发红线</span><span class="desc">谁开发谁不自审；本地个人检索不外出；公有云盘/对象存储禁作冷层</span></div></li>
+<li class="node leaf"><div class="row"><span class="caret">&gt;</span><span class="badge b-src">库</span><span class="name">日志库（审计与留痕）</span><span class="desc">R-75：四类＝运行（默认 14 天滚动）／执行（按任务 30 天）／<b>审计（append-only ≥1 年＋哈希链）</b>／交互转写（归 Memory 冷层、此处只存指针）；脱敏按红线；检索走 <code>log.query</code>；<b>不进 Memory 检索面</b></span></div></li>
 <li class="node open">
   <div class="row"><span class="caret">&gt;</span><span class="badge b-src">行为层</span><span class="name">行为学原则（五条 · 按人类生物特质）</span><span class="desc">软约束：不设硬门，但每个模块「怎么表现」受它约束；<b>本身不是架构轴</b>，归属本横切层，不单列成引擎下的并列分支</span></div>
   <ul class="children">
