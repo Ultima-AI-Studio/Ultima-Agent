@@ -166,7 +166,7 @@ footer.legend b{color:var(--hd-muted); font-weight:600;}
 <main>
 <div class="page-head">
 <h1>UltimaAgent 北极星架构树</h1>
-<div class="sub">北极星 = <b>UltimaAgent 本体</b>。<b>先分三端</b>：①引擎（本体，本树下方五大能力模块全部属此）②客户端（Windows / macOS / 移动端 / AR 眼镜端，各有各样式）③运营管理端（用户注册订阅 / 营销推广 / 运营后台）。第一层能力分类 = <b>五大能力模块</b>（基础能力 / 外部能力 / Skill / 插件 / 交付）+ 行为原则 / 配置底座 / P2V 路线 / 终端演进；基础能力内含六原子模块、交付内含 Update+Lifecycle 两原子模块，<b>八模块口径不变</b>；显示形态 = 四角壳 8 锚点唯一范式。来源方案：docs/plans/plan-ultimaagent-next-rebuild-20261113.md + next-双域分离与开工设置规范.md §十一。点击行开合。</div>
+<div class="sub">北极星 = <b>UltimaAgent 本体</b>，第一层 = <b>三个并列 T0</b>：<b>UltimaAgent 引擎</b>（本体，判定/状态机/记忆/范式全在此层，跨端复用）/ <b>UltimaAgent 客户端</b>（Windows · macOS · 移动端 · AR 眼镜端，各端样式可不同、引擎契约同一套）/ <b>UltimaAgent 运营</b>（运营后台 · 用户与订阅 · 市场与增长 · 计费 · 客服）。引擎内含五大能力模块（基础能力/外部能力/Skill/插件/交付）+ 行为原则/配置底座/P2V 路线，<b>八模块口径不变</b>；显示形态 = 四角壳 8 锚点唯一范式。来源：plan-ultimaagent-next-rebuild-20261113.md + next-双域分离与开工设置规范.md §十一。点击行开合。</div>
 <div class="controls">
 <button onclick="setAll(true)">全部展开</button>
 <button onclick="setAll(false)">全部收起</button>
@@ -183,38 +183,9 @@ footer.legend b{color:var(--hd-muted); font-weight:600;}
 <div class="row"><span class="caret">&gt;</span><span class="badge b-star">北极星</span><span class="name">UltimaAgent 本体</span><span class="desc">唯一方向判据：一切模块、能力、界面以让 UltimaAgent 自身成为理想智能代理为准；对外统一只称 UltimaAgent。<b>架构组织</b>=能力分类模块化（基础能力/外部能力/Skill/插件/交付）；<b>八模块口径</b>=Core/Voice/Shell/Surface/Memory/Middleware 归基础能力，Update/Lifecycle 归交付；<b>显示形态</b>=四角壳 8 锚点唯一范式；<b>最终形态</b>=AR 眼镜智能代理；<b>交付形态</b>=安装包（零开发文档）</span></div>
 <ul class="children">
 
-<!-- ========== 三端划分（R-49） ========== -->
 <li class="node open">
-<div class="row"><span class="caret">&gt;</span><span class="badge b-mod">三端</span><span class="name">三端划分（引擎 / 客户端 / 运营管理）</span><span class="desc">双域回答「文件放哪」，三端回答「能力归谁、谁调谁」。<b>UltimaAgent 本体 = 引擎</b>，不含任何 UI 概念；依赖单向：客户端→引擎 API、运营端→引擎 API、引擎→事件回调；客户端与运营端<b>不得直读引擎数据文件</b>（记忆/习惯/范式/权威源）。规范：next-双域分离与开工设置规范.md §十一</span></div>
+<div class="row"><span class="caret">&gt;</span><span class="badge b-mod">T0</span><span class="name">UltimaAgent 引擎</span><span class="desc">本体。判定、状态机、注册表、记忆、范式、权威源都在这一层；<b>不含任何界面概念</b>（锚位/皮肤/排版/勿扰时段）；终端无关，Windows→Linux→AR 复用同一套契约</span></div>
 <ul class="children">
-
-<li class="node open">
-<div class="row"><span class="caret">&gt;</span><span class="badge b-mod">引擎</span><span class="name">① 引擎端（Engine · 本体）</span><span class="desc">判定、状态机、注册表、记忆、范式、权威源全在此层；<b>本树下方「五大能力模块」整段都属引擎</b>（基础能力/外部能力/Skill/插件/交付）。终端无关，可跨 Windows→Linux→AR 复用；禁止出现锚位、皮肤、排版、时段策略这类界面概念</span></div>
-</li>
-
-<li class="node open">
-<div class="row"><span class="caret">&gt;</span><span class="badge b-mod">客户端</span><span class="name">② 客户端端（Client · 多终端）</span><span class="desc">用户看得见摸得着的壳；只调引擎 API、只订阅引擎事件。交互策略（勿扰时段/音量语速/热键/主题）归此层，不进引擎</span></div>
-<ul class="children">
-<li class="node leaf"><div class="row"><span class="caret">&gt;</span><span class="badge b-cap">端</span><span class="name">Windows</span><span class="desc">当前唯一已落地形态：UltimaAgent.exe + HostShell(WinUI3) + WebView2；显示契约 = 四角壳 8 锚点；零计划任务、自启走启动文件夹</span></div></li>
-<li class="node leaf"><div class="row"><span class="caret">&gt;</span><span class="badge b-cap">端</span><span class="name">macOS</span><span class="desc">形态待定（原生壳 or Web 壳）；锚位语义沿用四角壳，但具体位置/尺寸/安全区需按 macOS 习惯重算，不得照搬 Windows 像素值</span></div></li>
-<li class="node leaf"><div class="row"><span class="caret">&gt;</span><span class="badge b-cap">端</span><span class="name">移动端</span><span class="desc">形态待定；以语音为主入口、卡片为辅；四角壳 8 锚点是否适用未定（屏小），需另立显示契约</span></div></li>
-<li class="node leaf"><div class="row"><span class="caret">&gt;</span><span class="badge b-cap">端</span><span class="name">AR 眼镜端</span><span class="desc">最终形态；视觉+语音双通道，见下方「终端演进」。引擎不变，只换客户端壳</span></div></li>
-<li class="node leaf"><div class="row"><span class="caret">&gt;</span><span class="badge b-tool">约束</span><span class="name">各端样式可不同，引擎契约必须同一套</span><span class="desc">事件名、状态机、参数语义跨端不得改名；差异只允许出现在呈现层（布局/尺寸/交互习惯）</span></div></li>
-</ul></li>
-
-<li class="node open">
-<div class="row"><span class="caret">&gt;</span><span class="badge b-mod">运营端</span><span class="name">③ 运营管理端（Admin · 运营）</span><span class="desc">针对本产品的经营管理：可读引擎状态，受控写只经引擎准入校验后生效（R-26 规则面只读）。<b>与「Console」的关系</b>：能力在引擎（Manager/探针），运营 UI 在此端</span></div>
-<ul class="children">
-<li class="node leaf"><div class="row"><span class="caret">&gt;</span><span class="badge b-cap">能</span><span class="name">用户与订阅</span><span class="desc">注册/登录、订阅与续费、授权与用量、账号状态（规划中，v1.0 不做）</span></div></li>
-<li class="node leaf"><div class="row"><span class="caret">&gt;</span><span class="badge b-cap">能</span><span class="name">产品运营后台</span><span class="desc">任务队列与回执、探针时间线、插件装卸启停、日志查看（脱敏）、自检报告、审计与冻结记录</span></div></li>
-<li class="node leaf"><div class="row"><span class="caret">&gt;</span><span class="badge b-cap">能</span><span class="name">市场与增长</span><span class="desc">内容与投放、渠道与活动、转化与留存看板（规划中，v1.0 不做）</span></div></li>
-<li class="node leaf"><div class="row"><span class="caret">&gt;</span><span class="badge b-cap">能</span><span class="name">计费与订单</span><span class="desc">价格档位、订单与退款、发票（规划中，v1.0 不做）</span></div></li>
-<li class="node leaf"><div class="row"><span class="caret">&gt;</span><span class="badge b-cap">能</span><span class="name">客服与反馈</span><span class="desc">反馈收集与分派、工单与回访（规划中，v1.0 不做）</span></div></li>
-</ul></li>
-
-</ul>
-</li>
-
 <!-- ========== 五大能力模块 ========== -->
 <li class="node open">
 <div class="row"><span class="caret">&gt;</span><span class="badge b-mod">模块</span><span class="name">基础能力（本体承载）</span><span class="desc">L0 终端四 IO → L1 意图理解 → L2 领域知识与技能注册 → L3 执行与外部接入 → L4 编排与组合窗口 → L5 表达与总结 → L6 输出呈现 → L7 交互循环 → L8 行为约束与受控执行 → L9 记忆与自学习 → L10 范式引擎（G-TASKFLOW-001）；权威源 capability-list.md + registry.md；本体承载 = 六个能力模块</span></div>
@@ -381,6 +352,16 @@ footer.legend b{color:var(--hd-muted); font-weight:600;}
 <li class="node leaf"><div class="row"><span class="caret">&gt;</span><span class="badge b-star">G</span><span class="name">P2V-05</span><span class="desc">总验收 ｜ Gate：端到端冒烟 + 独立审计 + final-frozen tag + 老仓转只读</span></div></li>
 </ul>
 </li>
+</ul>
+</li>
+
+<li class="node open">
+<div class="row"><span class="caret">&gt;</span><span class="badge b-mod">T0</span><span class="name">UltimaAgent 客户端</span><span class="desc">用户看得见摸得着的壳：只调引擎 API、只订阅引擎事件；交互策略（勿扰时段/音量语速/热键/主题）归此层。<b>各端样式可不同，引擎契约必须同一套</b></span></div>
+<ul class="children">
+<li class="node leaf"><div class="row"><span class="caret">&gt;</span><span class="badge b-cap">端</span><span class="name">Windows（已落地）</span><span class="desc">UltimaAgent.exe + HostShell(WinUI3) + WebView2；显示契约=四角壳 8 锚点；零计划任务、自启走启动文件夹</span></div></li>
+<li class="node leaf"><div class="row"><span class="caret">&gt;</span><span class="badge b-cap">端</span><span class="name">macOS（待定）</span><span class="desc">壳形态待定；锚位语义沿用四角壳，位置/尺寸/安全区按 macOS 重算，不照搬 Windows 像素值</span></div></li>
+<li class="node leaf"><div class="row"><span class="caret">&gt;</span><span class="badge b-cap">端</span><span class="name">移动端（待定）</span><span class="desc">语音为主入口、卡片为辅；屏小，8 锚点是否适用未定，需另立显示契约</span></div></li>
+<li class="node leaf"><div class="row"><span class="caret">&gt;</span><span class="badge b-cap">端</span><span class="name">AR 眼镜端（最终形态）</span><span class="desc">视觉+语音双通道；引擎不变，只换客户端壳</span></div></li>
 
 <li class="node open">
 <div class="row"><span class="caret">&gt;</span><span class="badge b-star">终端演进</span><span class="name">多终端路线（Windows → Linux → 自研 AR 眼镜系统）</span><span class="desc">产品最终形态 = AR 眼镜智能代理；Windows 是第一站，四角壳 8 锚点范式为跨终端唯一显示常量（屏幕四角 ⇄ AR 视野边缘，中央零遮挡沿用）</span></div>
@@ -394,11 +375,25 @@ footer.legend b{color:var(--hd-muted); font-weight:600;}
 </ul>
 </li>
 
+<li class="node open">
+<div class="row"><span class="caret">&gt;</span><span class="badge b-mod">T0</span><span class="name">UltimaAgent 运营</span><span class="desc">针对本产品的经营管理：可读引擎状态；受控写只经引擎准入校验后生效（规则面只读）。<b>Console</b> = 能力在引擎（Manager/探针）+ 运营 UI 在此层</span></div>
+<ul class="children">
+<li class="node leaf"><div class="row"><span class="caret">&gt;</span><span class="badge b-cap">能</span><span class="name">产品运营后台</span><span class="desc">任务队列与回执、探针时间线、插件装卸启停、日志查看（脱敏）、自检报告、审计与冻结记录　<b>当前唯一有实体</b></span></div></li>
+<li class="node leaf"><div class="row"><span class="caret">&gt;</span><span class="badge b-cap">能</span><span class="name">用户与订阅</span><span class="desc">注册/登录、订阅与续费、授权与用量、账号状态（v1.0 不做）</span></div></li>
+<li class="node leaf"><div class="row"><span class="caret">&gt;</span><span class="badge b-cap">能</span><span class="name">市场与增长</span><span class="desc">内容与投放、渠道与活动、转化与留存看板（v1.0 不做）</span></div></li>
+<li class="node leaf"><div class="row"><span class="caret">&gt;</span><span class="badge b-cap">能</span><span class="name">计费与订单</span><span class="desc">价格档位、订单与退款、发票（v1.0 不做）</span></div></li>
+<li class="node leaf"><div class="row"><span class="caret">&gt;</span><span class="badge b-cap">能</span><span class="name">客服与反馈</span><span class="desc">反馈收集与分派、工单与回访（v1.0 不做）</span></div></li>
+</ul>
+</li>
+
+</ul>
+</li>
+
 </ul>
 </main>
 
 <footer class="legend">
-<b>阅读方式</b>：纵向折叠菜单——点击行开合。第一层 = 五大能力模块（基础能力 / 外部能力 / Skill / 插件 / 交付）+ 行为原则 / 配置底座 / P2V 路线 / 终端演进；基础能力内含六原子模块、交付内含 Update+Lifecycle 两原子模块（<b>八模块口径不变</b>），再下一层是各模块的能力·工具·技能与明细。
+<b>阅读方式</b>：纵向折叠菜单——点击行开合。<b>第一层 = 三个并列 T0</b>：UltimaAgent 引擎 / UltimaAgent 客户端 / UltimaAgent 运营。引擎内 = 五大能力模块（基础能力 / 外部能力 / Skill / 插件 / 交付）+ 行为原则 / 配置底座 / P2V 路线；客户端内 = Windows / macOS / 移动端 / AR + 终端演进；运营内 = 运营后台 / 用户与订阅 / 市场与增长 / 计费 / 客服。基础能力内含六原子模块、交付内含 Update+Lifecycle 两原子模块（<b>八模块口径不变</b>），再下一层是各模块的能力·工具·技能与明细。
 四角壳锚位说明：锚位职责按 hud-layout-zone-plan v0.2 定稿锁定，宽度锁定 clamp(280px,24vw,352px)；形态=无边框气泡（点 📌 钉住后显边框=置顶态反馈）。窄屏时锚位自动改顶部顺序堆叠。
 图例：<span class="badge b-star">北极星/路线</span><span class="badge b-mod">模块</span><span class="badge b-cap">能力</span><span class="badge b-tool">工具</span><span class="badge b-skill">技能</span><span class="badge b-src">配置/底座</span>
 </footer>
