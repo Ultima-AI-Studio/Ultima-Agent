@@ -109,7 +109,7 @@
 | 子内容 | 归类 | ID / 说明 |
 |---|---|---|
 | 顾问咨询（给建议、判方向） | Skill | `skill.advise.consult` |
-| 外脑通道（LLM 供应商接入） | 插件 | `plugin.provider.<name>`（OpenAI / DeepSeek / Ollama 本地） |
+| 外脑通道（LLM 供应商接入） | 插件 | `plugin.provider.<name>`（OpenAI / DeepSeek / Ollama 本地）｜**注**：主脑不走 provider 插件，主脑是**内置 llama.cpp 适配**（R-57），Ollama 仅作**可选外脑/provider** |
 | 主脑 ↔ 外脑指派 | 不注册 | 由 `tool.route.decide` 决定，指派本身不是能力 |
 
 ### ⑧ 交付（Update / Lifecycle）
