@@ -1,6 +1,6 @@
 # Codex 工单 · wo-ultimaagent-20261113-0057（修复 A：主链闭合）
 
-> 版本：v1.1（按 0060 审计打回修订）｜ 状态：待重审 ｜ 执行端：Codex ｜ 推理强度：high
+> 版本：v1.2（按 0060 第 2 轮打回修订）｜ 状态：待重审 ｜ 执行端：Codex ｜ 推理强度：high
 > 覆盖：C-01、G-03、G-04、H-01、C-02、C-03、C-05、G-05、E-01、C-17、C-18（11 条）
 > **执行序**：本单在 0058 之后执行（0058 先定 §16.4 预算公式），不得与 0058/0059 并发。
 
@@ -66,7 +66,7 @@
 1. 信封字段表恰好 8 行，字段名与本清单逐字一致（脚本比对字段集合）。
 2. speak 请求与回执字段名互为子集，无孤立字段。
 3. 三契约各含「入参／出参／错误码／超时来源／幂等」五列，缺列即失败。
-4. `trace_id` 处出现"引既有契约"字样，且全文不出现 trace_id 的新字段定义。
+4. `trace_id` 只出现在 §25.1 字段表 1 行、且该行含"引既有契约"字样；本单新增段落内**不得出现 `trace_id` 的类型/覆盖面定义行**（脚本按行正则 `trace_id\s*[:：]\s*` 计数＝0）。
 
 **禁止**：重定义 trace 字段；写死播报字数/超时秒数。
 
@@ -98,7 +98,7 @@
 4. **取消**：本 T 只写"计划级取消见 §25.10"，不定义传播逻辑。
 
 **验收（Gate T3）**：
-1. plan 字段集合 7 个（含 `steps[]` 6 子字段）逐字一致（脚本比对）。
+1. plan **顶层字段 5 个**（`plan_id/goal/steps[]/budget_ref/owner_turn`）＋ `steps[]` **子字段 6 个**（`step_id/tool/args/depends_on/acceptance/compensator`），逐字一致（脚本比对）。
 2. 步骤 5 态每态都有一行八态映射；映射值只能取自基线 §15.2.1 的八个 code（脚本比对枚举）。
 3. `submit_plan` 三段（请求/回执/拒绝码 3 个）齐全。
 4. 架构树该节点 `desc` 含 `§25.5`。
@@ -110,7 +110,7 @@
 **文件**：基线 §25.7、§25.8
 **写什么**：
 1. **冻结时序** `prepare → policy.check → start → stream* → finalize`，并写明"任何副作用必须发生在 `policy.check` 之后"；`policy.check` 的 API 本体归 0059 §26.7，本单只锁时序与调用点。
-2. 三段报文：`dispatch.request`（`plan_id/step_id/tool_id/args/idempotency_key/deadline/sandbox_profile`）→ `dispatch.run`（`run_id/pid/stdout_ref/stderr_ref`）→ `dispatch.receipt`（`exit/artifacts[]/side_effects[]/usage`）。
+2. 三段报文：`dispatch.request`（`plan_id/step_id/tool_id/args/idempotency_key/deadline/sandbox_profile`）→ `dispatch.run`（`run_id/pid/stdout_ref/stderr_ref`）→ `dispatch.receipt`（`exit`、`artifacts[]`、`side_effects[]`、`usage`、`idempotency_key` 五字段，其中 `idempotency_key` 回带以便对账）。
 3. SPI 五动词 `prepare/start/stream/cancel/finalize`，每动词给签名与幂等要求。
 4. `tool_id` 命名规则与 `requires_policy` 标记；schema 来源引注册分类 §②。
 
@@ -143,7 +143,7 @@
 **文件**：自证（报告内）
 **验收（Gate T6）**：
 1. 附**固定 allowlist 表**：11 个编号 → 章节号 ＋（如涉及）HTML 节点 `name` 字段值，一一对应，行数＝11。
-2. 脚本核对：基线新增行全部落在 §二十五；`§15.2.1` 变更行数 ∈ {0,1} 且与 D-01 一致；附录 A 恰好新增 1 行。
+2. 脚本核对：基线新增行全部落在 §二十五，**唯一例外＝D-01 选 A 时 §15.2.1 的 1 行迁移**（该行不在 §25，故 diff 门放行条件为：新增行 ⊆ §二十五 ∪ {该 1 行}）；`§15.2.1` 变更行数 ∈ {0,1} 且与 D-01 一致；附录 A 恰好新增 1 行。
 3. 详解页改动行数 ≤ 6（§03/§04 各 ≤3）；架构树 `desc` 改动节点数＝2。
 4. 全文编号无跳号：§25.1–§25.11 连续。
 
@@ -176,3 +176,4 @@ T6｜11/11 allowlist齐；diff合规；§25连续
 |---|---|---|
 | v1.0 | 2026-11-13 | 首建 |
 | v1.1 | 2026-11-13 | 按 0060 打回：composer/dispatch/取消各定唯一主文；删`视情况`；阈值改 D-03 占位；取消 A/B 交 D-01；扩写域仅条件允许 §15.2.1 一行；补 T6 allowlist 与机检锚点 |
+| v1.2 | 2026-11-13 | 按 0060-r2 打回：T3 改"顶层 5＋子字段 6"；T4 receipt 补 `idempotency_key` 与 Gate 对齐；T6 全称 diff 门加 §15.2.1 条件例外；T1 `trace_id` 补段落/次数/正则 |
