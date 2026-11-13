@@ -2,7 +2,7 @@
 
 > **由 `scripts/render-queue-views.py` 从 `tasks/queue/queue-status.json` 生成，勿手改。**
 > 唯一状态权威：`tasks/queue/queue-status.json`。修改 Markdown 不会回写状态。
-> schema_version=1 ｜ records=122 ｜ audit=6, blocked=16, cancelled=14, closed=3, frozen=78, pending=5
+> schema_version=1 ｜ records=124 ｜ audit=6, blocked=16, cancelled=14, closed=3, frozen=79, pending=6
 
 <!-- queue-items:start -->
 | 项目 | 工单 | 状态 | audit_passed | 派发时间 | 审计 run | 冻结 commit | 备注 |
@@ -129,4 +129,6 @@
 | UltimaAgent | wo-ultimaagent-20261113-0065 | audit | true | 2026-11-14T00:17:37+08:00 | wo-ultimaagent-20261113-0065-20261113T161737350053Z |  | 独立评审完成（16:17→00:38 UTC 派发记录，全程约 21min）：结论＝有条件通过，T5_GATE=PASS。六行裁定＝维持 4（P0/M3/M4/session_id）＋改判 2（M7→Console.task_store 主体、cancel_observe→queue_engine run 取消投影主体）；三卡写域＝0061 一致、0062 需调整、0063 一致；未决 U-01～U-04 已由 Owner 于 2026-11-14 全部闭合（方案版本头统一 v0.3、§11 两行按改判回写、0062 v1.1 改指针式）。 |
 | UltimaAgent | wo-ultimaagent-20261113-0066 | audit | true | 2026-11-14T00:38:17+08:00 | wo-ultimaagent-20261113-0066-20261113T163817823112Z |  | 骨架评审完成（00:38→00:53，约 15min）：结论＝不通过，T5_GATE=PASS（评审自身合格）。新增问题 3 条＝BLOCKER S-002 队列写口双主（基线 L510「只由状态机写」vs §19.3 L1127「Console 只读写八态」）、BLOCKER S-003 补偿失败落 BLOCKED 在 §15.2.1 迁移表无来源态、HIGH S-001 架构树 L201「Core 执行顺序控制」与 L195／§19.2 打架；三处高危边界＝起进程有越界（沿用 0056-C-04）、八态定义闭合但持久写权双主、记忆写权闭合；§25 逐节归属 11/11 可归属、§25.3 与 §25.11 接口形态缺；§26／§27 位置对齐。三条经 Owner 回读原文核实成立。 |
 | UltimaAgent | wo-ultimaagent-20261113-0067 | audit | true | 2026-11-14T00:56:59+08:00 | wo-ultimaagent-20261113-0067-20261113T165659868809Z |  | 0057 独立审计（00:57→01:15，18min）：结论＝有条件通过／修复后再冻结，T6_GATE=PASS（审计自身合格）。8 已堵／3 半堵／0 未堵；Gate 21 可机检／3 半机检／0 不可机检；定位 0057 自评 T6_GATE=PASS 与四个实测 FAIL 冲突；S-003 落在 §25.11 L1763。 |
+| UltimaAgent | wo-ultimaagent-20261113-0068 | frozen | true | 2026-11-14T01:17:45+08:00 | wo-ultimaagent-20261113-0068-20261113T171745774919Z | 83ca9a62 | 7 项全绿并冻结（助手独立复核，非执行方自证）：F-1 写口唯一化（L510「只由状态机写」归零，queue-writer 唯一落盘，§19.3 Console 明写不写 queue-status.json）；F-2 采乙案（§25.11 先落 FAILED 记 compensate_failed，达 retryCount≥2 再落 BLOCKED，迁移表未放宽，fail-closed 保持）；F-3 §25.3 请求/返回字段表（三类失败码：CONTEXT_OVER_BUDGET/NO_AVAILABLE_MEMORY/隐私拒写）；F-4 §25.11 compensator 签名与 compensation_receipt 字段表；F-5 TBD-G05-RETENTION 归零，保留期只认 §22.2 不复述年限；F-6 架构树 L201/L283 两节点 desc 改写且 §25.5 引用 2 处、『执行顺序控制』归零；F-7 附录 A L1845 补 0057 变更行。基线 1792→1850 行；diff 仅 5 个 hunk，全在声明域内。 |
+| UltimaAgent | wo-ultimaagent-20261113-0069 | pending | false |  |  |  | 由 Codex 自出「骨架整合方案」（方案设计者角色，非评审）：职责与边界总表、一个事实一个写者清单（带机检语句）、主文地图（§25.1–25.11＋§26/§27）、八类跨块交互契约（请求/返回/失败码/超时重试/幂等）、开工顺序与依赖图（拓扑无环）、最小可开工切片、七卡对照、不做清单与待拍≤3。前置＝0068 T6_GATE=PASS。 |
 <!-- queue-items:end -->

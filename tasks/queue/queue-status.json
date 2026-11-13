@@ -2007,6 +2007,26 @@
       "audit_run": "wo-ultimaagent-20261113-0067-20261113T165659868809Z",
       "freeze_commit": null,
       "note": "0057 独立审计（00:57→01:15，18min）：结论＝有条件通过／修复后再冻结，T6_GATE=PASS（审计自身合格）。8 已堵／3 半堵／0 未堵；Gate 21 可机检／3 半机检／0 不可机检；定位 0057 自评 T6_GATE=PASS 与四个实测 FAIL 冲突；S-003 落在 §25.11 L1763。"
+    },
+    {
+      "project": "UltimaAgent",
+      "work_order": "wo-ultimaagent-20261113-0068",
+      "state": "frozen",
+      "audit_passed": true,
+      "dispatched_at": "2026-11-14T01:17:45+08:00",
+      "audit_run": "wo-ultimaagent-20261113-0068-20261113T171745774919Z",
+      "freeze_commit": "83ca9a62",
+      "note": "7 项全绿并冻结（助手独立复核，非执行方自证）：F-1 写口唯一化（L510「只由状态机写」归零，queue-writer 唯一落盘，§19.3 Console 明写不写 queue-status.json）；F-2 采乙案（§25.11 先落 FAILED 记 compensate_failed，达 retryCount≥2 再落 BLOCKED，迁移表未放宽，fail-closed 保持）；F-3 §25.3 请求/返回字段表（三类失败码：CONTEXT_OVER_BUDGET/NO_AVAILABLE_MEMORY/隐私拒写）；F-4 §25.11 compensator 签名与 compensation_receipt 字段表；F-5 TBD-G05-RETENTION 归零，保留期只认 §22.2 不复述年限；F-6 架构树 L201/L283 两节点 desc 改写且 §25.5 引用 2 处、『执行顺序控制』归零；F-7 附录 A L1845 补 0057 变更行。基线 1792→1850 行；diff 仅 5 个 hunk，全在声明域内。"
+    },
+    {
+      "project": "UltimaAgent",
+      "work_order": "wo-ultimaagent-20261113-0069",
+      "state": "pending",
+      "audit_passed": false,
+      "dispatched_at": null,
+      "audit_run": null,
+      "freeze_commit": null,
+      "note": "由 Codex 自出「骨架整合方案」（方案设计者角色，非评审）：职责与边界总表、一个事实一个写者清单（带机检语句）、主文地图（§25.1–25.11＋§26/§27）、八类跨块交互契约（请求/返回/失败码/超时重试/幂等）、开工顺序与依赖图（拓扑无环）、最小可开工切片、七卡对照、不做清单与待拍≤3。前置＝0068 T6_GATE=PASS。"
     }
   ]
 }
