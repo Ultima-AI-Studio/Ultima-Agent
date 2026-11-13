@@ -128,7 +128,7 @@ H:\UltimaAI\UltimaAgentNext\
 | 模块 | 已定设置 | 待定项（决策时点） |
 |---|---|---|
 | Core | 意图分级 L0>L1>L2>L3；路由配置 `config/interface-routing.json`（schema v2）；复述确认双通道 | 意图分类黄金集规模与准确率阈值（N-01 定案） |
-| Senses.Voice | 唤醒词「幂幂」threshold 0.25；七态状态机；warm_progress 0/25/50/75/100；CV3 音色冻结参数；采样率按 DISPLAY/AUDIO 既有基线 | ASR 供应商与超时（N-04 定案） |
+| Senses.Voice | **权威源=`next-感知交互参数基线-20261113.md`**：唤醒词「幂幂」threshold **0.30**（v1 仍 0.25 冻结不动）+ 连续 2–3 帧确认 + 唤醒后 0–5s +10%/5–10s +20% + pre-roll 1.5s；打断最小持续 **300ms**、检测→停播 ≤150ms、TTS flush ≤60ms、LLM cancel ≤40ms、淡出 15ms、混合 VAD；会话静默超时 **10s**（可配 5–15）、单次监听 15s；七态状态机；warm_progress 0/25/50/75/100；CV3 音色冻结参数；采样率按 DISPLAY/AUDIO 既有基线 | ASR 供应商与超时（N-04 定案）；唤醒阈值实测定值；VAD/AEC 具体实现（N-04 定案） |
 | Shell | Guardian 20s 探活 / 3 次失败 / 300s 冷却；探活端口 8756；Job 归属判据「强杀 3s 内消失」；自启=启动文件夹 .lnk；零计划任务 | 主壳与托管壳的进程边界（N-05 定案） |
 | Surface | 四角壳 8 锚点职责锁定；锚位宽度 `clamp(280px,24vw,352px)`；常驻仅顶/左上/右上；中央零遮挡；任务管理器面板 960×640 | 150% DPI 紧凑网格阈值（N-06 定案） |
 | Memory | 三层：工作/长期/温度；写入由 Core 裁决 | 存储后端选型与检索 top_k（N-03 定案） |
