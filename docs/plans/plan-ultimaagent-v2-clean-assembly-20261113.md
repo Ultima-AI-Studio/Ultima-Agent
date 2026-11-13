@@ -112,11 +112,43 @@ H:\UltimaAI\UltimaAgentV2\
 
 老仓处置：P2V-05 验收后打 `ultimaagent-v1-final-frozen-*` tag，老仓转只读归档区（M7），此后现行区唯一 = 新仓（M6）。
 
-## 六、风险与代价（如实）
+## 六、配置内化与安装包设置（v2 最新思路固化）
+
+### 6.1 配置内化原则：config/ 是唯一配置面，环境变量降为测试注入
+
+v2 的配置治理四条铁律：
+
+1. **单一配置面**：`config/` 是运行时唯一权威配置目录，全部 schema 版本化（`ultimaagent-*/v1` 风格），应用启动时集中加载，禁止散落硬编码。现行六件配置原样继承并归位：
+   - `host-tasks.json`（应用内任务注册表：agent-server guardian 20/3/300 + voice-launcher manual）→ Shell 模块权威
+   - `interface-routing.json`（L0>L1>L2>L3 分级路由，schema v2）→ Core 权威
+   - `voice-profile.json`、`asr-normalize.json` → Senses.Voice 权威
+   - `interface-seeds.json`、`.env` → 迁移时逐项裁定归属，`.env` 只留开发机本地项
+2. **环境变量降级为测试注入**：现行 `ULTIMA_*` 12 个变量（`ULTIMA_HOST_LIVE/ORB_TEST/COMBO/WARM_RING/COMBO_COMMAND_FILE/AUTOSTART_KIND/HOST_EXE/HOST_TASK_STATE_FILE/HOST_STATUS_FILE/USE_PROCESS_HOST/PROJECT_ROOT/HOST_AUTO_EXIT_MS/HOST_CRASH_SELF`）在 v2 里**只作验收脚本与测试夹具的注入通道，不是产品配置**——产品行为一律走 config/；测试开关集中登记在 devtools/README 一张表，杜绝"环境变量驱动产品形态"造成的混版（0054 期间 orb 旧样式被频繁唤起的根因）。
+3. **运行态与配置分离**：`data/host/host-tasks-state.json`、`data/logs/guardian-events.jsonl` 等运行态只落在 data/（gitignored），配置永远可重放、运行态永远可丢弃。
+4. **config/_backup 历史堆不迁移**：现行目录下 15+ 个 `_backup` 快照属过程产物，v2 用 git 历史承担回溯，不再生成文件级备份堆积（M6 违例源头之一）。
+
+### 6.2 安装包设置（继承 0054 裁决，全部冻结进 v2）
+
+| 项 | v2 设置 | 依据 |
+|---|---|---|
+| 计划任务 | **零**：`installer/shipped-tasks.json`（shipped_tasks=[]）是唯一权威声明，Phase 4 的 .iss 只读不写 | pd-20261113-0054 裁决 |
+| 开机自启 | 启动文件夹 `.lnk`（进程内晚绑定 COM 创建，零外部进程、零弹窗），`ULTIMA_AUTOSTART_KIND` 仅测试旁路 | 0054 T8 |
+| 守护自愈 | GuardianService 内化（20s/3 次/300s，agent-server 自动重启；应用崩溃不自愈已由 Owner 接受） | 0054 T2 |
+| 子进程零窗 | pythonw + UseShellExecute=false + CreateNoWindow + 标准流重定向排空（0054 实证修复） | 0054 深层修复 |
+| 升级/卸载 | Update 模块 manifest 签名链；卸载清理 = 零计划任务残留（天然满足，因从未创建） | 0052 生命周期线 |
+| 开发机兜底 | devtools/watchdog.py 手动脚本 + devtools/README | 0054 |
+| 安装包命名 | `UltimaAgent-Setup-*` 沿用，release-assets.json 模板继承（签名 scope 注明 temporary-test-only 直至真签名密钥启用） | dist 现行 |
+
+### 6.3 搬运时的路径重写
+
+host-tasks.json 中 `tools/venv-openjarvis/...`、`src/voice-next/launch.py` 等路径在 v2 搬运时随白名单一次性重写为新仓规范路径（venv 规范名 + `src/Senses/Voice/launch.py`），并跑 Guardian 探活复验——配置文件不改就搬运等于把旧命名走私进新仓。
+
+## 八、风险与代价（如实）
 
 - 安装包生命周期线要在新壳重走一遍验收（判据全冻结可复用，主要是执行时间）
 - venv 改名涉及用户侧路径偏好与多份冻结文档引用，需同步公告一次
 - 老仓在途的其他工单（若有）需先收口或明确弃单，冻结时点要对齐
+- 环境变量降级为测试注入后，依赖 ULTIMA_* 的历史验收脚本需同步改写为 config/ 或 devtools 夹具通道（P2V-03/04 Gate 内含此项）
 
 ---
 
