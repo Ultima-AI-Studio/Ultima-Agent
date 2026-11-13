@@ -232,7 +232,7 @@ footer.legend b{color:var(--hd-muted); font-weight:600;}
 <div class="branch leaf"><div class="kcard"><div class="khead"><span class="caret">&gt;</span><span class="badge b-cap">能</span><span class="kname">记忆写入裁决</span></div><div class="kdesc">写入边界控制（memory_write_boundary）</div></div></div>
 </div>
 </div>
-<div class="branch leaf"><div class="kcard"><div class="khead"><span class="caret">&gt;</span><span class="badge b-tool">工具</span><span class="kname">orchestrator · intent · interface_route · queue_source · capability registry</span></div><div class="kdesc">搬运源：src/brain/*（openjarvis.* import 全部吸收为 UltimaAgentNext.Core.*）</div></div></div>
+<div class="branch leaf"><div class="kcard"><div class="khead"><span class="caret">&gt;</span><span class="badge b-tool">工具</span><span class="kname">orchestrator · intent · interface_route · queue_source · capability registry</span></div><div class="kdesc">Core 编排与裁决的内部工具集，吸收后以 UltimaAgentNext.Core.* 统一命名空间组织</div></div></div>
 <div class="branch leaf"><div class="kcard"><div class="khead"><span class="caret">&gt;</span><span class="badge b-skill">技能</span><span class="kname">任务规划 · 主动追问 · 结果汇报</span></div><div class="kdesc">可组合任务能力</div></div></div>
 </div>
 </div>
@@ -251,7 +251,7 @@ footer.legend b{color:var(--hd-muted); font-weight:600;}
 <div class="branch leaf"><div class="kcard"><div class="khead"><span class="caret">&gt;</span><span class="badge b-cap">能</span><span class="kname">TTS 播报</span></div><div class="kdesc">CV3 音色（冻结参数）</div></div></div>
 </div>
 </div>
-<div class="branch leaf"><div class="kcard"><div class="khead"><span class="caret">&gt;</span><span class="badge b-tool">工具</span><span class="kname">kws_backend · turn_worker · live_core · apm_dsp · CV3 推理</span></div><div class="kdesc">搬运源：src/voice-next/* → 新仓 src/Senses/Voice/</div></div></div>
+<div class="branch leaf"><div class="kcard"><div class="khead"><span class="caret">&gt;</span><span class="badge b-tool">工具</span><span class="kname">kws_backend · turn_worker · live_core · apm_dsp · CV3 推理</span></div><div class="kdesc">语音进出链路内部工具集（新仓 src/Senses/Voice/ 统一组织）</div></div></div>
 <div class="branch leaf"><div class="kcard"><div class="khead"><span class="caret">&gt;</span><span class="badge b-skill">技能</span><span class="kname">语音会话 · 尾音处理 · 音色切换</span></div><div class="kdesc">可组合任务能力</div></div></div>
 </div>
 </div>
@@ -259,7 +259,7 @@ footer.legend b{color:var(--hd-muted); font-weight:600;}
 <div class="branch open">
 <div class="kcard" onclick="toggleCard(this)">
   <div class="khead"><span class="caret">&gt;</span><span class="badge b-mod">模块</span><span class="kname">3. Shell（常驻托管）</span></div>
-  <div class="kdesc">常驻托管、守护自愈、开机自启、子进程零弹窗（0054 冻结产物直接输入）。</div>
+  <div class="kdesc">常驻托管、守护自愈、开机自启、子进程零弹窗。</div>
 </div>
 <div class="kids">
 <div class="branch open">
@@ -268,10 +268,10 @@ footer.legend b{color:var(--hd-muted); font-weight:600;}
 <div class="branch leaf"><div class="kcard"><div class="khead"><span class="caret">&gt;</span><span class="badge b-cap">能</span><span class="kname">常驻托管</span></div><div class="kdesc">HostShell(WinUI3) 常驻，Job Object 子进程树托管</div></div></div>
 <div class="branch leaf"><div class="kcard"><div class="khead"><span class="caret">&gt;</span><span class="badge b-cap">能</span><span class="kname">守护自愈</span></div><div class="kdesc">GuardianService 20s 探活 8756 / 3 次失败 / 冷却 300s；agent-server 自动重启（应用崩溃不自愈已由 Owner 接受）</div></div></div>
 <div class="branch leaf"><div class="kcard"><div class="khead"><span class="caret">&gt;</span><span class="badge b-cap">能</span><span class="kname">开机自启</span></div><div class="kdesc">启动文件夹 .lnk（进程内晚绑定 COM 创建，零 schtasks、零弹窗）</div></div></div>
-<div class="branch leaf"><div class="kcard"><div class="khead"><span class="caret">&gt;</span><span class="badge b-cap">能</span><span class="kname">子进程零窗</span></div><div class="kdesc">pythonw + UseShellExecute=false + CreateNoWindow + 标准流重定向排空（0054 实证修复）</div></div></div>
+<div class="branch leaf"><div class="kcard"><div class="khead"><span class="caret">&gt;</span><span class="badge b-cap">能</span><span class="kname">子进程零窗</span></div><div class="kdesc">pythonw + UseShellExecute=false + CreateNoWindow + 标准流重定向排空</div></div></div>
 </div>
 </div>
-<div class="branch leaf"><div class="kcard"><div class="khead"><span class="caret">&gt;</span><span class="badge b-tool">工具</span><span class="kname">GuardianService · HostTaskRegistry · JobObjectManager · ChildProcessSupervisor · ReadinessProbe · AutostartEntry</span></div><div class="kdesc">搬运源：0054 冻结产物 + 0052 ProcessHost 三件套</div></div></div>
+<div class="branch leaf"><div class="kcard"><div class="khead"><span class="caret">&gt;</span><span class="badge b-tool">工具</span><span class="kname">GuardianService · HostTaskRegistry · JobObjectManager · ChildProcessSupervisor · ReadinessProbe · AutostartEntry</span></div><div class="kdesc">常驻托管链内部工具集（探活/注册/Job 归属/子进程监管/就绪探测/自启入口）</div></div></div>
 <div class="branch leaf"><div class="kcard"><div class="khead"><span class="caret">&gt;</span><span class="badge b-skill">技能</span><span class="kname">任务托管 · 崩溃回收</span></div><div class="kdesc">Job 归属判据：宿主强杀子进程树 3 秒内同步消失</div></div></div>
 </div>
 </div>
@@ -289,7 +289,7 @@ footer.legend b{color:var(--hd-muted); font-weight:600;}
 <div class="branch leaf"><div class="kcard"><div class="khead"><span class="caret">&gt;</span><span class="badge b-cap">能</span><span class="kname">应用内任务管理器</span></div><div class="kdesc">状态/重启次数/手动重启停用，WebView2 双向消息</div></div></div>
 </div>
 </div>
-<div class="branch leaf"><div class="kcard"><div class="khead"><span class="caret">&gt;</span><span class="badge b-tool">工具</span><span class="kname">UltimaAgent.Hud 原生壳 · hud-live-four-corner 设计基线 · TaskManagerRenderer · taskmanager.html</span></div><div class="kdesc">悬浮球整线退场：全部 orb 渲染器不进新仓产品形态；0054 在途 T6 属 v1 收口证据链，不改变 v2 Surface 裁决</div></div></div>
+<div class="branch leaf"><div class="kcard"><div class="khead"><span class="caret">&gt;</span><span class="badge b-tool">工具</span><span class="kname">UltimaAgent.Hud 原生壳 · hud-live-four-corner 设计基线 · TaskManagerRenderer · taskmanager.html</span></div><div class="kdesc">悬浮球整线退场：全部 orb 渲染器不进产品形态，仅存 devtools 测试夹具</div></div></div>
 <div class="branch leaf"><div class="kcard"><div class="khead"><span class="caret">&gt;</span><span class="badge b-skill">技能</span><span class="kname">状态反馈 · 任务可视</span></div><div class="kdesc">可组合任务能力</div></div></div>
 </div>
 </div>
@@ -300,7 +300,7 @@ footer.legend b{color:var(--hd-muted); font-weight:600;}
   <div class="kdesc">工作记忆 / 长期记忆 / 温度分层。</div>
 </div>
 <div class="kids">
-<div class="branch leaf"><div class="kcard"><div class="khead"><span class="caret">&gt;</span><span class="badge b-tool">工具</span><span class="kname">writer · poison_guard · backend 适配</span></div><div class="kdesc">搬运源：src/memory/*</div></div></div>
+<div class="branch leaf"><div class="kcard"><div class="khead"><span class="caret">&gt;</span><span class="badge b-tool">工具</span><span class="kname">writer · poison_guard · backend 适配</span></div><div class="kdesc">记忆写入、防投毒守卫与存储后端适配</div></div></div>
 <div class="branch leaf"><div class="kcard"><div class="khead"><span class="caret">&gt;</span><span class="badge b-skill">技能</span><span class="kname">上下文注入 · 记忆检索</span></div><div class="kdesc">可组合任务能力</div></div></div>
 </div>
 </div>
@@ -311,7 +311,7 @@ footer.legend b{color:var(--hd-muted); font-weight:600;}
   <div class="kdesc">多执行端路由、任务窗口、沙箱隔离。</div>
 </div>
 <div class="kids">
-<div class="branch leaf"><div class="kcard"><div class="khead"><span class="caret">&gt;</span><span class="badge b-tool">工具</span><span class="kname">router · delegation · sandbox · task_window · ticket</span></div><div class="kdesc">搬运源：src/middleware/*</div></div></div>
+<div class="branch leaf"><div class="kcard"><div class="khead"><span class="caret">&gt;</span><span class="badge b-tool">工具</span><span class="kname">router · delegation · sandbox · task_window · ticket</span></div><div class="kdesc">多端路由、任务委派、沙箱隔离、任务窗口与票据</div></div></div>
 <div class="branch leaf"><div class="kcard"><div class="khead"><span class="caret">&gt;</span><span class="badge b-skill">技能</span><span class="kname">多端路由 · 任务窗口管理</span></div><div class="kdesc">可组合任务能力</div></div></div>
 </div>
 </div>
@@ -368,7 +368,7 @@ footer.legend b{color:var(--hd-muted); font-weight:600;}
   <div class="kdesc">远程更新通道、签名校验、热更新。</div>
 </div>
 <div class="kids">
-<div class="branch leaf"><div class="kcard"><div class="khead"><span class="caret">&gt;</span><span class="badge b-tool">工具</span><span class="kname">manifest · publisher</span></div><div class="kdesc">搬运源：src/update/*；签名 scope 注明 temporary-test-only 直至真签名密钥启用</div></div></div>
+<div class="branch leaf"><div class="kcard"><div class="khead"><span class="caret">&gt;</span><span class="badge b-tool">工具</span><span class="kname">manifest · publisher</span></div><div class="kdesc">更新清单与发布通道（签名 scope 注明 temporary-test-only 直至真签名密钥启用）</div></div></div>
 <div class="branch leaf"><div class="kcard"><div class="khead"><span class="caret">&gt;</span><span class="badge b-skill">技能</span><span class="kname">远程更新 · 签名校验</span></div><div class="kdesc">可组合任务能力</div></div></div>
 </div>
 </div>
@@ -376,12 +376,12 @@ footer.legend b{color:var(--hd-muted); font-weight:600;}
 <div class="branch open">
 <div class="kcard" onclick="toggleCard(this)">
   <div class="khead"><span class="caret">&gt;</span><span class="badge b-mod">模块</span><span class="kname">8. Lifecycle（安装与交付）</span></div>
-  <div class="kdesc">Setup、shipped-tasks 声明、安装/升级/卸载链（七项设置冻结表继承 0054 裁决）。</div>
+  <div class="kdesc">Setup、shipped-tasks 声明、安装/升级/卸载链（零计划任务裁决）。</div>
 </div>
 <div class="kids">
 <div class="branch leaf"><div class="kcard"><div class="khead"><span class="caret">&gt;</span><span class="badge b-cap">能</span><span class="kname">零计划任务</span></div><div class="kdesc">shipped-tasks.json（shipped_tasks=[]）唯一权威声明，.iss 只读不写；卸载零残留（因从未创建）</div></div></div>
 <div class="branch leaf"><div class="kcard"><div class="khead"><span class="caret">&gt;</span><span class="badge b-cap">能</span><span class="kname">安装/升级链</span></div><div class="kdesc">UltimaAgent-Setup-* 命名沿用；release-assets.json 模板继承</div></div></div>
-<div class="branch leaf"><div class="kcard"><div class="khead"><span class="caret">&gt;</span><span class="badge b-tool">工具</span><span class="kname">Setup 链 · check-shipped-tasks · devtools/watchdog.py 开发机兜底</span></div><div class="kdesc">搬运源：installer/*、tools/*</div></div></div>
+<div class="branch leaf"><div class="kcard"><div class="khead"><span class="caret">&gt;</span><span class="badge b-tool">工具</span><span class="kname">Setup 链 · check-shipped-tasks · watchdog 开发机兜底</span></div><div class="kdesc">安装链、计划任务权威声明校验、开发机兜底脚本</div></div></div>
 </div>
 </div>
 </div><!-- /交付模块 -->
@@ -410,7 +410,7 @@ footer.legend b{color:var(--hd-muted); font-weight:600;}
 <div class="kids">
 <div class="branch leaf"><div class="kcard"><div class="khead"><span class="caret">&gt;</span><span class="badge b-src">配置</span><span class="kname">六件配置归位</span></div><div class="kdesc">host-tasks.json→Shell 权威 · interface-routing.json→Core 权威 · voice-profile/asr-normalize→Voice 权威 · interface-seeds/.env 逐项裁定</div></div></div>
 <div class="branch leaf"><div class="kcard"><div class="khead"><span class="caret">&gt;</span><span class="badge b-src">铁律</span><span class="kname">环境变量降级</span></div><div class="kdesc">12 个 ULTIMA_* 只作验收脚本测试注入通道，不驱动产品形态；测试开关集中登记 devtools/README</div></div></div>
-<div class="branch leaf"><div class="kcard"><div class="khead"><span class="caret">&gt;</span><span class="badge b-src">底座</span><span class="kname">tools/devtools/queue</span></div><div class="kdesc">venv=tools/venv-ultimaagent · 队列引擎原样搬运 · orb 渲染线整体降级归档（悬浮球退场，仅存测试夹具）</div></div></div>
+<div class="branch leaf"><div class="kcard"><div class="khead"><span class="caret">&gt;</span><span class="badge b-src">底座</span><span class="kname">tools/devtools/queue</span></div><div class="kdesc">venv=tools/venv-ultimaagent · 队列引擎 · orb 渲染线降级归档（悬浮球退场，仅存测试夹具）</div></div></div>
 </div>
 </div>
 
