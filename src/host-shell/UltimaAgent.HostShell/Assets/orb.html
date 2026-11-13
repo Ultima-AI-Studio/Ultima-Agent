@@ -1,0 +1,870 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Ultima Agent Venom Orb</title>
+<!--
+  Ultima Agent 悬浮球渲染页（WebGL2 首期 / WebGPU 二期预留）
+  ------------------------------------------------------------------
+  渲染核心抽取自 @crazygl/hero-liquid-metal-orb v0.1.1（Apache-2.0，
+  ybouane / CrazyGL），GLSL raymarching 单全屏三角形 + 程序化 HDRI。
+  保留上游 Apache-2.0 LICENSE（见 libs/orb-render/_extract-crazygl/package/LICENSE）。
+
+  ★ 毒液形态 v4·调研对齐版（2026-10-25，UA-ORB-RESEARCH-VENOM-20261025）
+  调研结论：全网无真毒液开源实现（GLSL/Web/桌面三方向证实）；电影版胸前为
+  静脉状白色纹路（非蜘蛛，导演 Fleischer 亲述，动机=全黑角色防消失，与透明
+  悬浮球完全同构）；质感=反射驱动照明+表面永远在动+结构特征三者叠加。
+  对齐项（§七.1 patch 表 + §七.2 新增结构）：
+    1) fbm 4 octave / gain 0.5 / lacunarity 2.02 非整数倍频 + 每倍频旋转≈37°
+    2) 双层 fbm 形变：低频呼吸（周期数秒）+ 高频微起伏（亚秒），idle 也动
+    3) 时间漂移三轴不等速 (0.2,0.1,0.15)，第三轴=表面蠕动
+    4) albedo 漆黑偏蓝紫 vec3(0.003,0.001,0.0095) 量级，禁纯黑
+    5) metalness 0.85–0.9（留 10–15% 漫反射油润，防"圣诞树"）
+    6) Fresnel 指数 3.0（原 5.0）
+    7) 紧致高光点 pow128（原双瓣 220/28）
+    8) 冷蓝阴影注入暗部 vec3(0.1,0.15,0.2)
+    9) 游离液滴 smin k≈0.2 光滑融合（非硬 min）
+    10) Squash 空间拉伸（打破体积守恒）：沿运动方向拉长、横向不收缩
+    11) 色调映射 1-exp(-c*exposure)（HDR 友好）
+    12) 眼睛→两块奶白亮斑：球面局部 + 边缘蠕动（周期 2–4s）+ 缓慢漂移
+    13) 胸前白纹→静脉状细线：fbm 差分阈值化线状结构，缓慢演化游走
+    14) 触手→液尖：1–3 根短液尖随 u_alert 生长缩回（96px 不画常驻触手）
+  状态机（§八）：idle 凝胶蠕行 / thinking 白纹爬行加速微偏紫 /
+  talking 音频鼓包（bass→size、mid→drift、high→rough 路由语义）/
+  processing 冒泡活跃（液尖随机冒出）/ failed 焦黑泄力（~3s 回落）
+  桥接：WebView2 postMessage（HS-005 orb.render 契约，页面→宿主
+        'orb-ready'/'drag-start'，错误上报 'orb-error'）。
+-->
+<style>
+  * { box-sizing: border-box; user-select: none; }
+  html, body { width: 100%; height: 100%; margin: 0; overflow: hidden;
+               background: transparent; cursor: grab; }
+  body:active { cursor: grabbing; }
+  canvas { display: block; width: 100%; height: 100%; }
+  #badge { position: fixed; left: 4px; bottom: 2px; font: 9px/1 "HarmonyOS Sans SC",
+           sans-serif; color: rgba(230,234,242,.55); background: rgba(0,0,0,.25);
+           border-radius: 3px; padding: 1px 4px; display: none; pointer-events: none; }
+  #warm-ring { position: fixed; inset: 0; display: grid; place-items: center;
+               opacity: 0; pointer-events: none; transition: opacity .45s ease-out; }
+  #warm-ring.is-visible { opacity: 1; }
+  #warm-ring.is-complete { opacity: 0; transition-delay: .25s; }
+  #warm-ring svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+  #warm-ring circle { fill: none; stroke-width: 2.4; }
+  #warm-ring-track { stroke: rgba(127,156,255,.18); }
+  #warm-ring-progress { stroke: #7F9CFF; stroke-linecap: round;
+                        stroke-dasharray: 100; stroke-dashoffset: 100;
+                        transition: stroke-dashoffset .25s ease-out; }
+  @media (prefers-reduced-motion: reduce) {
+    #warm-ring, #warm-ring-progress { transition: none; }
+  }
+</style>
+</head>
+<body>
+  <canvas id="orb"></canvas>
+  <div id="badge"></div>
+  <div id="warm-ring" aria-hidden="true">
+    <svg viewBox="0 0 100 100" focusable="false">
+      <circle id="warm-ring-track" cx="50" cy="50" r="47" pathLength="100"></circle>
+      <circle id="warm-ring-progress" cx="50" cy="50" r="47" pathLength="100"></circle>
+    </svg>
+  </div>
+<script>
+(function () {
+  'use strict';
+  const canvas = document.getElementById('orb');
+  const badge = document.getElementById('badge');
+  const warmRing = document.getElementById('warm-ring');
+  const warmRingProgress = document.getElementById('warm-ring-progress');
+  if (window.ULTIMA_ORB_SHOW_BADGE === '1') { badge.style.display = 'block'; }
+
+  /* 页面错误上报（供宿主定位） */
+  function reportError(tag, error) {
+    try {
+      const msg = { kind: 'orb-error', tag: tag, message: String(error && error.message || error) };
+      if (window.chrome && window.chrome.webview) {
+        window.chrome.webview.postMessage(JSON.stringify(msg));
+      }
+    } catch (_) { /* 上报失败不影响主流程 */ }
+  }
+  window.addEventListener('error', function (event) {
+    reportError('window-error', event.error || event.message);
+  });
+  window.addEventListener('unhandledrejection', function (event) {
+    reportError('unhandledrejection', event.reason);
+  });
+
+  /* ────────────────────────────────────────────────────────────────
+     GLSL（Apache-2.0，crazygl/hero-liquid-metal-orb v0.1.1，剥离 React）
+     v4 毒液调研对齐版：双层 fbm / 漆黑蓝紫 albedo / 静脉白纹+蠕动亮斑+液尖
+     ──────────────────────────────────────────────────────────────── */
+  const VERT = `#version 300 es
+in vec2 a_position;
+void main() { gl_Position = vec4(a_position, 0.0, 1.0); }`;
+
+  const FRAG = `#version 300 es
+precision highp float;
+out vec4 outColor;
+
+uniform vec2  u_resolution;
+uniform float u_time;
+uniform vec2  u_input;
+uniform float u_inputActive;
+uniform sampler2D u_envMap;
+uniform sampler2D u_bgMap;
+uniform vec2  u_bgSize;
+uniform vec3  u_body;      // 毒液本体（漆黑偏蓝紫，禁纯黑）
+uniform vec3  u_mark;      // 白色识别纹（静脉纹/亮斑，状态色作用于此处）
+uniform vec3  u_sun;
+uniform vec3  u_rim;
+uniform float u_size;
+uniform float u_deform;
+uniform float u_boil;
+uniform float u_fresnel;
+uniform float u_metallic;
+uniform vec2  u_orbCenter;
+uniform float u_envRotation;
+uniform float u_transparent;
+uniform vec2  u_dir;       // 巡游运动方向（世界单位）
+uniform float u_lead;      // 前导拉伸强度 0..1
+uniform float u_tail;      // 后尾拖胶丝强度 0..1
+uniform float u_stretch;   // 基础拉伸量
+uniform float u_audio;     // 音频能量 0..1（talking 鼓包）
+uniform float u_alert;     // 活跃度 0..1（processing 冒泡 / failed 液尖）
+
+const float PI = 3.14159265359;
+const float TAU = 6.28318530718;
+
+vec3 hash33(vec3 p) {
+  p = vec3(dot(p, vec3(127.1, 311.7, 74.7)),
+           dot(p, vec3(269.5, 183.3, 246.1)),
+           dot(p, vec3(113.5, 271.9, 124.6)));
+  return -1.0 + 2.0 * fract(sin(p) * 43758.5453123);
+}
+float noise3(vec3 p) {
+  vec3 i = floor(p), f = fract(p);
+  vec3 u = f * f * (3.0 - 2.0 * f);
+  return mix(
+    mix(mix(dot(hash33(i + vec3(0,0,0)), f - vec3(0,0,0)),
+            dot(hash33(i + vec3(1,0,0)), f - vec3(1,0,0)), u.x),
+        mix(dot(hash33(i + vec3(0,1,0)), f - vec3(0,1,0)),
+            dot(hash33(i + vec3(1,1,0)), f - vec3(1,1,0)), u.x),
+        u.y),
+    mix(mix(dot(hash33(i + vec3(0,0,1)), f - vec3(0,0,1)),
+            dot(hash33(i + vec3(1,0,1)), f - vec3(1,0,1)), u.x),
+        mix(dot(hash33(i + vec3(0,1,1)), f - vec3(0,1,1)),
+            dot(hash33(i + vec3(1,1,1)), f - vec3(1,1,1)), u.x),
+        u.y),
+    u.z);
+}
+
+/* fbm：4 octave / gain 0.5 / lacunarity 2.02 非整数倍频 + 每倍频旋转≈37°
+   （setchi/Life 已查证配方：打破"数学分形感"，提升生物感） */
+float fbm(vec3 p) {
+  float v = 0.0;
+  float a = 0.5;
+  mat2 m2 = mat2(0.8, -0.6, 0.6, 0.8);   // ≈36.9° 旋转
+  for (int i = 0; i < 4; i++) {
+    v += a * noise3(p);
+    p.xy = m2 * p.xy;      /* 每倍频噪声域旋转 ≈37°（xy 分量） */
+    p *= 2.02;
+    a *= 0.5;
+  }
+  return v;
+}
+
+/* 双层 fbm 形变：低频轮廓呼吸（周期数秒）+ 高频法线/高光微起伏（亚秒）
+   ——毒液"表面永远有东西在动"的核心；时间漂移三轴不等速 (0.2,0.1,0.15) */
+float surfaceNoise(vec3 p, vec3 tLow, vec3 tHigh) {
+  return fbm(p * 1.5 + tLow) * 0.35
+       + fbm(p * 3.5 + tHigh) * 0.10;
+}
+
+/* smin 光滑融合（IQ 多项式，k≈0.2）：主球与液滴/液尖必须融合，否则硬接缝 */
+float smin(float a, float b, float k) {
+  float h = clamp(0.5 + 0.5 * (b - a) / k, 0.0, 1.0);
+  return mix(b, a, h) - k * h * (1.0 - h);
+}
+
+/* 白色识别掩码（毒液标志性三件套的 96px 转译）：
+   ① 胸前静脉纹（电影版导演设定：静脉状细线，非蜘蛛）——fbm 差分线状结构
+   ② 两块奶白亮斑（眼睛转译）——边缘持续蠕动（周期 2–4s）+ 缓慢漂移
+   ③ 细碎白点 */
+float veinMark(vec3 p) {
+  vec3 dir = p / max(length(p), 1e-4);
+  float tBase = u_time * 0.22 * u_boil;
+  vec3 tV = vec3(tBase * 0.30, tBase * 0.20, tBase * 0.15);
+
+  /* ① 静脉纹：fbm 差分（两偏移差值=线状结构），随时间缓慢演化游走 */
+  float vA = fbm(dir * 4.5 + tV);
+  float vB = fbm(dir * 4.5 + tV + 0.02);
+  float vein = 1.0 - smoothstep(0.012, 0.09, abs(vA - vB));
+  float vGate = smoothstep(-0.20, 0.35, vA);
+  float front = mix(0.25, 1.0, smoothstep(0.0, 0.75, dir.z));
+  float veins = vein * vGate * front;
+
+  /* ② 亮斑（眼睛转译）：球面局部两块奶白斑，边缘低振幅噪声蠕动，缓慢漂移 */
+  vec3 eyeA = normalize(vec3(0.42 + 0.05 * sin(u_time * 0.31),
+                             0.36 + 0.04 * cos(u_time * 0.27), 1.0));
+  vec3 eyeB = normalize(vec3(-0.42 - 0.05 * cos(u_time * 0.29),
+                             0.36 + 0.04 * sin(u_time * 0.33), 1.0));
+  float wobA = 0.018 * noise3(dir * 7.0 + vec3(u_time * 0.35, u_time * 0.40, 0.0));
+  float wobB = 0.018 * noise3(dir * 7.0 + vec3(u_time * 0.45, u_time * 0.30, 1.7));
+  float eye1 = smoothstep(0.80 - wobA, 0.93, dot(dir, eyeA));
+  float eye2 = smoothstep(0.80 - wobB, 0.93, dot(dir, eyeB));
+  float eyes = max(eye1, eye2) * front;
+
+  /* ③ 细碎白点 */
+  float dots = smoothstep(0.62, 0.78, fbm(dir * 12.0 + tV * 2.2)) * 0.08;
+
+  return clamp(veins * 0.65 + eyes * 0.75 + dots, 0.0, 1.0);
+}
+
+/* 游离液滴：2 个小液滴贴附球面，随时间漂移（smin 融合，k≈0.2） */
+float dropletSDF(vec3 q, float radius, float angleSeed) {
+  vec3 dir = normalize(vec3(
+    sin(u_time * 0.35 + angleSeed) * 1.3,
+    cos(u_time * 0.28 + angleSeed * 1.7),
+    sin(u_time * 0.22 + angleSeed * 0.6)));
+  vec3 center = dir * (radius * 0.965);
+  float dropR = radius * (0.055 + 0.018 * sin(u_time * 0.9 + angleSeed));
+  return length(q - center) - dropR;
+}
+
+/* 液尖/触手语义：1–3 根短液尖随 u_alert 生长缩回（96px 不画常驻触手） */
+float spikeSDF(vec3 q, float r, float alert) {
+  /* 早退值不能用 1e9：fragment shader 默认 mediump（上限 65504），会溢出为 inf 并
+     经 smin 污染整条光线步进（SwiftShader 必现黑屏）。50 已远大于 smin k=0.06
+     的判定阈值（h 收敛到 1，smin 退化为返回 base），且不会溢出。 */
+  if (alert < 0.03) return 50.0;
+  float grow = 0.5 + 0.5 * sin(u_time * 2.2) * sin(u_time * 0.8 + 1.3);
+  float g = clamp(alert * (0.55 + 0.45 * grow), 0.0, 0.85);
+  vec3 d1 = normalize(vec3(0.50, 0.62, 0.60));
+  vec3 d2 = normalize(vec3(-0.55, 0.50, 0.66));
+  vec3 d3 = normalize(vec3(0.25, -0.70, 0.66));
+  vec3 tip1 = d1 * (r * 0.95 + g * 0.22);
+  vec3 tip2 = d2 * (r * 0.95 + g * 0.18 * (0.6 + 0.4 * sin(u_time * 3.1)));
+  vec3 tip3 = d3 * (r * 0.95 + g * 0.15 * (0.6 + 0.4 * sin(u_time * 2.7 + 0.5)));
+  float rad = 0.030 + 0.010 * alert;
+  return min(length(q - tip1), min(length(q - tip2), length(q - tip3))) - rad;
+}
+
+float mapOrb(vec3 p, vec3 stretchDir) {
+  vec3 q = p - vec3(u_orbCenter, 0.0);
+
+  /* Squash 空间拉伸（毒液打破体积守恒）：沿运动方向拉长、横向不收缩 */
+  float sAmt = clamp(u_stretch * 0.5 + u_lead * 0.45 + u_tail * 0.35, 0.0, 0.9);
+  vec3 sd = stretchDir;
+  float h = dot(q, sd);
+  vec3 perp = q - sd * h;
+  vec3 sq = sd * (h * (1.0 + sAmt * 0.85)) + perp * (1.0 + sAmt * 0.10);
+
+  float base = length(sq) - u_size;
+
+  /* 双层 fbm 形变（三轴不等速时间漂移） */
+  vec3 tLow  = vec3(u_time * 0.20 * u_boil, u_time * 0.10 * u_boil, u_time * 0.15 * u_boil);
+  vec3 tHigh = vec3(u_time * 0.10 * u_boil, u_time * 0.05 * u_boil, u_time * 0.08 * u_boil);
+  float n = surfaceNoise(sq * 0.85, tLow, tHigh);
+  base += u_deform * (n - 0.16);
+
+  /* 游离液滴 smin 融合 */
+  float d1 = dropletSDF(sq, u_size, 1.2);
+  float d2 = dropletSDF(sq, u_size, 4.7);
+  base = smin(base, d1, 0.20);
+  base = smin(base, d2, 0.20);
+
+  /* 液尖（u_alert 驱动：processing 随机冒出 / failed 蓄势） */
+  float sp = spikeSDF(sq, u_size, u_alert);
+  base = smin(base, sp, 0.06);
+
+  return base;
+}
+
+vec3 calcNormal(vec3 p, vec3 stretchDir) {
+  const float e = 0.002;
+  vec2 k = vec2(1.0, -1.0);
+  return normalize(
+    k.xyy * mapOrb(p + k.xyy * e, stretchDir) +
+    k.yyx * mapOrb(p + k.yyx * e, stretchDir) +
+    k.yxy * mapOrb(p + k.yxy * e, stretchDir) +
+    k.xxx * mapOrb(p + k.xxx * e, stretchDir));
+}
+
+vec3 sampleEnv(vec3 dir) {
+  float lon = atan(dir.z, dir.x) + u_envRotation;
+  float lat = asin(clamp(dir.y, -1.0, 1.0));
+  vec2 uv = vec2(lon / TAU + 0.5, 1.0 - (lat / PI + 0.5));
+  return texture(u_envMap, uv).rgb;
+}
+
+vec2 coverUV(vec2 uv) {
+  float bgAspect = u_bgSize.x / max(u_bgSize.y, 1.0);
+  float canvasAspect = u_resolution.x / max(u_resolution.y, 1.0);
+  vec2 scale = vec2(1.0);
+  if (bgAspect > canvasAspect) scale.x = canvasAspect / bgAspect;
+  else                          scale.y = bgAspect / canvasAspect;
+  return (uv - 0.5) * scale + 0.5;
+}
+vec3 sampleBG(vec2 texUV) {
+  vec2 c = coverUV(texUV);
+  return texture(u_bgMap, vec2(c.x, 1.0 - c.y)).rgb;
+}
+
+void main() {
+  vec2 res = u_resolution;
+  vec2 fragUV = (gl_FragCoord.xy - 0.5 * res) / min(res.x, res.y);
+  vec2 texUV = gl_FragCoord.xy / res;
+
+  vec3 col = (u_transparent > 0.5) ? vec3(0.0) : sampleBG(texUV);
+
+  vec3 ro = vec3(0.0, 0.0, 3.0);
+  vec3 rd = normalize(vec3(fragUV, -1.6));
+
+  /* 拉伸方向 = 巡游运动方向（前导） */
+  vec3 stretchDir = normalize(vec3(u_dir * (u_lead + 0.02), 0.5));
+
+  float t = 0.0;
+  float dist = 50.0;  /* 兜底值取 safe 量级（mediump 上限 65504，1e9 会溢出 inf） */
+  bool hit = false;
+  float boundR = u_size * 2.0 + u_deform * 0.5 + u_alert * 0.22 + 0.05;
+  vec3 orbCenter3 = vec3(u_orbCenter, 0.0);
+  vec3 L = ro - orbCenter3;
+  float b = dot(rd, -L);
+  float c = dot(L, L) - boundR * boundR;
+  float disc = b * b - c;
+  if (disc > 0.0) {
+    float tNear = b - sqrt(disc);
+    t = max(0.0, tNear - 0.05);
+    for (int i = 0; i < 56; i++) {
+      vec3 p = ro + rd * t;
+      dist = mapOrb(p, stretchDir);
+      if (dist < 0.0025) { hit = true; break; }
+      if (t > 8.0) break;
+      t += dist * 0.95;
+    }
+  }
+
+  if (hit) {
+    vec3 p = ro + rd * t;
+    vec3 n = calcNormal(p, stretchDir);
+
+    vec3 view = -rd;
+    float ndv = max(0.0, dot(n, view));
+    float fres = pow(1.0 - ndv, 3.0);   /* Fresnel 指数 3.0（调研） */
+
+    /* 白色识别掩码（静脉纹+亮斑+细点） */
+    float vm = veinMark(p);
+
+    vec3 reflDir = reflect(rd, n);
+    vec3 envRefl = sampleEnv(reflDir);
+
+    vec3 envR = sampleEnv(reflect(rd, normalize(n + vec3(0.010, 0.0, 0.0))));
+    vec3 envB = sampleEnv(reflect(rd, normalize(n - vec3(0.010, 0.0, 0.0))));
+    envRefl = mix(envRefl, vec3(envR.r, envRefl.g, envB.b), fres * 0.4);
+
+    /* 本体=漆黑偏蓝紫 albedo（调研量级），白纹=识别亮色；对比拉满 */
+    vec3 albedo = mix(u_body, u_mark, vm);
+    vec3 mat = albedo * (0.10 + 0.40 * ndv);
+
+    /* 反射驱动照明：metal 0.85–0.9，留油润漫反射（防"圣诞树"） */
+    mat += envRefl * (0.10 + 1.10 * vm) * u_metallic * (1.0 - 0.10 * vm);
+
+    /* 冷蓝阴影注入暗部（调研 vec3(0.1,0.15,0.2)） */
+    mat += vec3(0.10, 0.15, 0.20) * (1.0 - vm) * (1.0 - ndv) * 0.35;
+
+    /* 高光：紧致锐利点 pow128 + 宽瓣 pow28 */
+    vec3 sunDir = normalize(vec3(0.42, 0.68, 0.55));
+    vec3 H = normalize(view + sunDir);
+    float specSharp = pow(max(0.0, dot(n, H)), 128.0);
+    float specBroad = pow(max(0.0, dot(n, H)), 28.0);
+    mat += u_sun * specSharp * (2.0 + 2.4 * vm);
+    mat += u_sun * specBroad * (0.20 + 0.32 * vm);
+
+    /* 白纹 emissive 微光（毒液白纹发光感） */
+    mat += u_mark * vm * 0.20;
+
+    /* rim 冷蓝紫边缘光：防黑球在深色桌面消失（与导演补白纹同构） */
+    mat += u_rim * fres * 0.85 * u_fresnel;
+
+    /* 音频鼓包响应：u_audio 微弱抬升白纹亮度与表面明度 */
+    mat += u_mark * vm * u_audio * 0.10;
+    mat += vec3(0.03, 0.04, 0.05) * u_audio;
+
+    /* 色调映射 1-exp(-c*exposure)（HDR 友好） */
+    col = vec3(1.0) - exp(-mat * 1.0);
+  } else {
+    vec2 orbScreen = vec2(u_orbCenter.x / 1.6, -u_size * 0.78 + u_orbCenter.y / 1.6);
+    float ground = exp(-pow(length((fragUV - orbScreen) * vec2(0.9, 1.6)), 2.0) * 8.0);
+    col += u_rim * 0.10 * ground;
+
+    float r = length(fragUV);
+    col *= 1.0 - smoothstep(0.55, 1.4, r) * 0.35;
+  }
+
+  uvec2 gh = uvec2(gl_FragCoord.xy) ^ uvec2(uint(u_time * 71.41));
+  gh = gh * 1664525u + 1013904223u;
+  gh.x += gh.y * 1664525u; gh.y += gh.x * 1664525u; gh ^= (gh >> 16u);
+  col += (float(gh.x & 0xFFu) / 255.0 - 0.5) * 0.014;
+
+  float alpha = 1.0;
+  if (u_transparent > 0.5) {
+    if (hit) {
+      alpha = 1.0;
+    } else {
+      vec2 orbScreen = vec2(u_orbCenter.x / 1.6, -u_size * 0.78 + u_orbCenter.y / 1.6);
+      float ground = exp(-pow(length((fragUV - orbScreen) * vec2(0.9, 1.6)), 2.0) * 14.0);
+      alpha = clamp(ground * 0.12, 0.0, 1.0);
+    }
+  }
+
+  outColor = vec4(clamp(col, 0.0, 1.0), alpha);
+}`;
+
+  /* ────────────────────────────────────────────────────────────────
+     工具（parseHex / withAlpha / mixHex / 程序化 HDRI / 程序化 BG）
+     ──────────────────────────────────────────────────────────────── */
+  function parseHex(hex) {
+    const h = hex.replace('#', '');
+    const full = h.length === 3 ? h.split('').map((c) => c + c).join('') : h;
+    const n = parseInt(full, 16);
+    return [((n >> 16) & 255) / 255, ((n >> 8) & 255) / 255, (n & 255) / 255];
+  }
+  function withAlpha(hex, a) {
+    const h = hex.replace('#', '');
+    const full = h.length === 3 ? h.split('').map((c) => c + c).join('') : h;
+    const n = parseInt(full, 16);
+    const r = (n >> 16) & 255, g = (n >> 8) & 255, b = n & 255;
+    return `rgba(${r},${g},${b},${Math.max(0, Math.min(1, a))})`;
+  }
+  function mixHex(a, b, t) {
+    const pa = a.replace('#', '');
+    const pb = b.replace('#', '');
+    const fa = pa.length === 3 ? pa.split('').map((c) => c + c).join('') : pa;
+    const fb = pb.length === 3 ? pb.split('').map((c) => c + c).join('') : pb;
+    const na = parseInt(fa, 16), nb = parseInt(fb, 16);
+    const ar = (na >> 16) & 255, ag = (na >> 8) & 255, ab = na & 255;
+    const br = (nb >> 16) & 255, bg = (nb >> 8) & 255, bb = nb & 255;
+    const mr = Math.round(ar + (br - ar) * t);
+    const mg = Math.round(ag + (bg - ag) * t);
+    const mb = Math.round(ab + (bb - ab) * t);
+    return `#${[mr, mg, mb].map((v) => v.toString(16).padStart(2, '0')).join('')}`;
+  }
+
+  function makeProceduralEnv(rim, sun, top, bot) {
+    const W = 2048, H = 1024;
+    const cv = document.createElement('canvas');
+    cv.width = W; cv.height = H;
+    const ctx = cv.getContext('2d');
+    /* 黑底（毒液本体漆黑油亮，靠反射带出质感；整体偏暗+窄亮带=调研环境配方） */
+    const sky = ctx.createLinearGradient(0, 0, 0, H);
+    sky.addColorStop(0, top);
+    sky.addColorStop(0.5, mixHex(top, bot, 0.72));
+    sky.addColorStop(1, bot);
+    ctx.fillStyle = sky;
+    ctx.fillRect(0, 0, W, H);
+    /* 一条窄亮窗反射带（studio band，紧高光来源） */
+    const band = ctx.createLinearGradient(W * 0.62, 0, W * 0.86, 0);
+    band.addColorStop(0, 'rgba(255,255,255,0)');
+    band.addColorStop(0.5, 'rgba(255,255,255,0.9)');
+    band.addColorStop(1, 'rgba(255,255,255,0)');
+    ctx.fillStyle = band;
+    ctx.fillRect(W * 0.62, 0, W * 0.24, H * 0.46);
+    /* 少量弱 softbox（亮度压暗，避免照白本体） */
+    const lights = [
+      { x: W * 0.22, y: H * 0.28, r: 260, color: sun, alpha: 0.5 },
+      { x: W * 0.10, y: H * 0.55, r: 240, color: rim, alpha: 0.22 },
+      { x: W * 0.80, y: H * 0.50, r: 260, color: rim, alpha: 0.20 },
+      { x: W * 0.55, y: H * 0.88, r: 200, color: '#ffffff', alpha: 0.10 },
+    ];
+    for (const l of lights) {
+      const g = ctx.createRadialGradient(l.x, l.y, 0, l.x, l.y, l.r);
+      g.addColorStop(0, withAlpha(l.color, l.alpha));
+      g.addColorStop(0.5, withAlpha(l.color, l.alpha * 0.35));
+      g.addColorStop(1, withAlpha(l.color, 0));
+      ctx.fillStyle = g;
+      ctx.fillRect(0, 0, W, H);
+    }
+    /* 太阳小亮核 */
+    const sunX = W * 0.22, sunY = H * 0.28;
+    const core = ctx.createRadialGradient(sunX, sunY, 0, sunX, sunY, 64);
+    core.addColorStop(0, '#ffffff');
+    core.addColorStop(0.6, sun);
+    core.addColorStop(1, withAlpha(sun, 0));
+    ctx.fillStyle = core;
+    ctx.beginPath();
+    ctx.arc(sunX, sunY, 64, 0, Math.PI * 2);
+    ctx.fill();
+    return cv;
+  }
+
+  function makeProceduralBG(c1, c2, c3) {
+    const W = 1024, H = 640;
+    const cv = document.createElement('canvas');
+    cv.width = W; cv.height = H;
+    const ctx = cv.getContext('2d');
+    const grad = ctx.createLinearGradient(0, 0, W, H);
+    grad.addColorStop(0, c1);
+    grad.addColorStop(0.5, c2);
+    grad.addColorStop(1, c3);
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, W, H);
+    const blobs = [
+      [W * 0.18, H * 0.72, 360, c1],
+      [W * 0.82, H * 0.18, 320, c3],
+      [W * 0.5, H * 0.5, 280, c2],
+    ];
+    for (const [x, y, r, color] of blobs) {
+      const g = ctx.createRadialGradient(x, y, 0, x, y, r);
+      g.addColorStop(0, color);
+      g.addColorStop(1, color + '00');
+      ctx.fillStyle = g;
+      ctx.fillRect(0, 0, W, H);
+    }
+    const vg = ctx.createRadialGradient(W / 2, H / 2, H * 0.3, W / 2, H / 2, H * 0.95);
+    vg.addColorStop(0, 'rgba(0,0,0,0)');
+    vg.addColorStop(1, 'rgba(0,0,0,0.55)');
+    ctx.fillStyle = vg;
+    ctx.fillRect(0, 0, W, H);
+    return cv;
+  }
+
+  /* ────────────────────────────────────────────────────────────────
+     状态→渲染参数映射（v4 调研对齐：本体恒漆黑蓝紫，状态色作用于白纹/亮斑）
+     audio=音频鼓包目标电平；alert=液尖/冒泡活跃度
+     ──────────────────────────────────────────────────────────────── */
+  const PARAMS = {
+    idle:      { deform: 0.16, boil: 0.60, body: '#05060C', mark: '#E8EDF5', rim: '#7F9CFF', sun: '#FFF1D6', size: 0.95, lead: 0.06, tail: 0.02, speed: 0.55, audio: 0.12, alert: 0.0 },
+    listening: { deform: 0.20, boil: 0.90, body: '#05060C', mark: '#F2F5FA', rim: '#7FA3FF', sun: '#FFF1D6', size: 0.95, lead: 0.10, tail: 0.04, speed: 0.75, audio: 0.20, alert: 0.0 },
+    thinking:  { deform: 0.28, boil: 1.50, body: '#070A12', mark: '#AAB8FF', rim: '#8FB0FF', sun: '#FFF1D6', size: 0.95, lead: 0.18, tail: 0.08, speed: 1.10, audio: 0.15, alert: 0.12 },
+    talking:   { deform: 0.32, boil: 2.40, body: '#06080E', mark: '#EAF1FF', rim: '#9DB8FF', sun: '#FFFFFF', size: 0.95, lead: 0.26, tail: 0.12, speed: 1.40, audio: 0.85, alert: 0.08 },
+    processing:{ deform: 0.24, boil: 1.20, body: '#06080E', mark: '#FFA94D', rim: '#FFC078', sun: '#FFF1D6', size: 0.95, lead: 0.12, tail: 0.05, speed: 0.85, audio: 0.20, alert: 0.45 },
+    failed:    { deform: 0.30, boil: 1.00, body: '#04050A', mark: '#FF5A5A', rim: '#FF8787', sun: '#FFE8D6', size: 0.95, lead: 0.06, tail: 0.02, speed: 0.40, audio: 0.10, alert: 0.65 },
+  };
+  const LABELS = {
+    idle: '待机', listening: '倾听', thinking: '思考', talking: '说话',
+    processing: '处理中', failed: '失败',
+  };
+
+  /* 状态过渡 easing 状态变量（try 块外声明，供 applyCommand 与渲染循环共用） */
+  let current = { ...PARAMS.idle };
+  let target = { ...PARAMS.idle };
+
+  /* 巡游目标点（世界单位，窗口内 4 目标点循环） */
+  const CRUISE_TARGETS = [
+    { x: -0.42, y: -0.24 },
+    { x:  0.42, y: -0.22 },
+    { x:  0.38, y:  0.24 },
+    { x: -0.40, y:  0.22 },
+  ];
+  const MOVE_T = 1.5;   /* 移动 1.5s */
+  const HOLD_T = 2.4;   /* 停顿 2.4s */
+
+  let state = 'idle';
+  let envRotation = 0;
+  /* 巡游状态机：4 目标点循环 + 到达收束 */
+  let cruise = {
+    phase: 'move',
+    t: 0,
+    from: { x: 0, y: 0 },
+    to: { x: CRUISE_TARGETS[0].x, y: CRUISE_TARGETS[0].y },
+    idx: 0,
+  };
+  let orbCenter = { x: 0, y: 0 };
+  let moveDir = { x: 1, y: 0 };
+  let lead = 0.06, tail = 0.02;
+
+  function easeInOut(k) { return k < 0.5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2; }
+
+  function updateCruise(dt, speed) {
+    cruise.t += dt;
+    if (cruise.phase === 'move') {
+      const k = Math.min(1, cruise.t / MOVE_T);
+      const e = easeInOut(k);
+      orbCenter.x = cruise.from.x + (cruise.to.x - cruise.from.x) * e;
+      orbCenter.y = cruise.from.y + (cruise.to.y - cruise.from.y) * e;
+      moveDir.x = cruise.to.x - cruise.from.x;
+      moveDir.y = cruise.to.y - cruise.from.y;
+      const len = Math.max(1e-4, Math.hypot(moveDir.x, moveDir.y));
+      moveDir.x /= len; moveDir.y /= len;
+      /* 前导先冲：移动中段冲劲最大，到达收束 */
+      lead = 0.10 + 0.28 * Math.sin(k * Math.PI) * speed;
+      tail = 0.03 + 0.12 * Math.sin(k * Math.PI) * speed;
+      if (k >= 1) { cruise.phase = 'hold'; cruise.t = 0; }
+    } else {
+      orbCenter.x = cruise.to.x;
+      orbCenter.y = cruise.to.y;
+      lead *= Math.exp(-dt * 5);   /* 到达收束 */
+      tail *= Math.exp(-dt * 5);
+      if (cruise.t >= HOLD_T) {
+        cruise.idx = (cruise.idx + 1) % CRUISE_TARGETS.length;
+        cruise.from = { x: cruise.to.x, y: cruise.to.y };
+        cruise.to = { x: CRUISE_TARGETS[cruise.idx].x, y: CRUISE_TARGETS[cruise.idx].y };
+        cruise.phase = 'move';
+        cruise.t = 0;
+      }
+    }
+  }
+
+  /* ────────────────────────────────────────────────────────────────
+     WebGL2 初始化（整段 try/catch，失败上报 orb-error）
+     ──────────────────────────────────────────────────────────────── */
+  try {
+  const gl = canvas.getContext('webgl2', {
+    antialias: false, alpha: true, premultipliedAlpha: false,
+  });
+  if (!gl) {
+    badge.textContent = 'WEBGL2 不可用';
+    badge.style.display = 'block';
+    throw new Error('WebGL2 not supported');
+  }
+
+  function compile(type, src) {
+    const s = gl.createShader(type);
+    gl.shaderSource(s, src);
+    gl.compileShader(s);
+    if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) {
+      throw new Error(gl.getShaderInfoLog(s) || 'compile failed');
+    }
+    return s;
+  }
+  const program = gl.createProgram();
+  gl.attachShader(program, compile(gl.VERTEX_SHADER, VERT));
+  gl.attachShader(program, compile(gl.FRAGMENT_SHADER, FRAG));
+  gl.linkProgram(program);
+  if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+    throw new Error(gl.getProgramInfoLog(program) || 'link failed');
+  }
+  const buf = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
+  const loc = gl.getAttribLocation(program, 'a_position');
+  gl.enableVertexAttribArray(loc);
+  gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
+  const u = {};
+  for (const name of [
+    'u_resolution', 'u_time', 'u_input', 'u_inputActive',
+    'u_envMap', 'u_bgMap', 'u_bgSize',
+    'u_body', 'u_mark', 'u_sun', 'u_rim',
+    'u_size', 'u_deform', 'u_boil', 'u_fresnel',
+    'u_metallic', 'u_orbCenter', 'u_envRotation', 'u_transparent',
+    'u_dir', 'u_lead', 'u_tail', 'u_stretch',
+    'u_audio', 'u_alert',
+  ]) {
+    u[name] = gl.getUniformLocation(program, name);
+  }
+  gl.useProgram(program);
+  gl.uniform1i(u.u_envMap, 0);
+  gl.uniform1i(u.u_bgMap, 1);
+
+  const envTex = gl.createTexture();
+  gl.activeTexture(gl.TEXTURE0);
+  gl.bindTexture(gl.TEXTURE_2D, envTex);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+  const bgTex = gl.createTexture();
+  gl.activeTexture(gl.TEXTURE1);
+  gl.bindTexture(gl.TEXTURE_2D, bgTex);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+
+  const envCv = makeProceduralEnv('#4A5AFF', '#FFF4D8', '#1E2438', '#05060C');
+  gl.bindTexture(gl.TEXTURE_2D, envTex);
+  gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, envCv);
+  const bgCv = makeProceduralBG('#0F1420', '#173A6B', '#06081A');
+  gl.bindTexture(gl.TEXTURE_2D, bgTex);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, bgCv);
+  let bgSize = { w: bgCv.width, h: bgCv.height };
+
+  /* v4 调研材质基线：metal 0.88（留油润漫反射）/ fresnel 1.7 / transparent */
+  let metallic = 0.88, fresnel = 1.7, transparent = 1, stretchBase = 0.18;
+
+  /* ────────────────────────────────────────────────────────────────
+     渲染循环（renderScale 0.6，60fps 上限；状态过渡 easing 非瞬切）
+     ──────────────────────────────────────────────────────────────── */
+  const renderScale = 0.6;
+  function resize() {
+    const dpr = Math.min(window.devicePixelRatio || 1, 1.5) * renderScale;
+    const w = Math.max(1, Math.floor(canvas.clientWidth * dpr));
+    const h = Math.max(1, Math.floor(canvas.clientHeight * dpr));
+    if (canvas.width !== w) canvas.width = w;
+    if (canvas.height !== h) canvas.height = h;
+    gl.viewport(0, 0, w, h);
+  }
+  window.addEventListener('resize', resize);
+  resize();
+
+  /* 状态过渡 easing：当前参数向目标参数指数趋近（非瞬切） */
+  let lastFrame = 0;
+  let lastTs = 0;
+  function frame(ts) {
+    const dt = lastTs ? Math.min(0.1, (ts - lastTs) / 1000) : 0.016;
+    lastTs = ts;
+    const elapsed = ts / 1000;
+
+    /* 巡游更新 */
+    updateCruise(dt, current.speed);
+
+    /* 状态参数 easing */
+    const l = 1 - Math.exp(-dt * 4);
+    for (const k of ['deform', 'boil', 'size', 'lead', 'tail', 'speed', 'audio', 'alert']) {
+      current[k] += (target[k] - current[k]) * l;
+    }
+    if (current.body !== target.body) current.body = target.body;
+    if (current.mark !== target.mark) current.mark = target.mark;
+    if (current.rim !== target.rim) current.rim = target.rim;
+    if (current.sun !== target.sun) current.sun = target.sun;
+
+    /* 音频微闪（talking 逐帧起伏；低音频态几乎无影响） */
+    const audioSim = current.audio * (0.65 + 0.35 * Math.sin(elapsed * 9.3) * Math.sin(elapsed * 4.7));
+
+    const [bR, bG, bB] = parseHex(current.body);
+    const [mR, mG, mB] = parseHex(current.mark);
+    const [snR, snG, snB] = parseHex(current.sun);
+    const [rR, rG, rB] = parseHex(current.rim);
+    gl.useProgram(program);
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, envTex);
+    gl.activeTexture(gl.TEXTURE1);
+    gl.bindTexture(gl.TEXTURE_2D, bgTex);
+    gl.uniform2f(u.u_resolution, canvas.width, canvas.height);
+    gl.uniform2f(u.u_bgSize, bgSize.w, bgSize.h);
+    gl.uniform1f(u.u_time, elapsed);
+    gl.uniform2f(u.u_input, 0.5, 0.5);
+    gl.uniform1f(u.u_inputActive, 0);
+    gl.uniform3f(u.u_body, bR, bG, bB);
+    gl.uniform3f(u.u_mark, mR, mG, mB);
+    gl.uniform3f(u.u_sun, snR, snG, snB);
+    gl.uniform3f(u.u_rim, rR, rG, rB);
+    gl.uniform1f(u.u_size, current.size);
+    gl.uniform1f(u.u_deform, current.deform);
+    gl.uniform1f(u.u_boil, current.boil);
+    gl.uniform1f(u.u_fresnel, fresnel);
+    gl.uniform1f(u.u_metallic, metallic);
+    gl.uniform2f(u.u_orbCenter, orbCenter.x, orbCenter.y);
+    gl.uniform1f(u.u_envRotation, envRotation);
+    gl.uniform1f(u.u_transparent, transparent);
+    gl.uniform2f(u.u_dir, moveDir.x, moveDir.y);
+    gl.uniform1f(u.u_lead, lead);
+    gl.uniform1f(u.u_tail, tail);
+    gl.uniform1f(u.u_stretch, stretchBase);
+    gl.uniform1f(u.u_audio, audioSim);
+    gl.uniform1f(u.u_alert, current.alert);
+    gl.drawArrays(gl.TRIANGLES, 0, 3);
+  }
+  function loop(ts) {
+    if (ts - lastFrame >= 16) {
+      frame(ts);
+      lastFrame = ts;
+    }
+    requestAnimationFrame(loop);
+  }
+  requestAnimationFrame(loop);
+  } catch (error) {
+    reportError('orb-init', error);
+    throw error;
+  }
+
+  /* ────────────────────────────────────────────────────────────────
+     宿主通信（WebView2 postMessage）
+     ──────────────────────────────────────────────────────────────── */
+  function applyWarmState(cmd) {
+    if (!cmd || cmd.kind !== 'orb-warm') return;
+    const progress = Math.max(0, Math.min(100, Number(cmd.progress) || 0));
+    warmRing.classList.remove('is-complete');
+    warmRingProgress.style.strokeDashoffset = String(100 - progress);
+    warmRing.classList.add('is-visible');
+    if (progress >= 100 || cmd.state === 'ready') {
+      requestAnimationFrame(function () {
+        requestAnimationFrame(function () { warmRing.classList.add('is-complete'); });
+      });
+    }
+  }
+
+  function applyCommand(cmd) {
+    if (!cmd || cmd.kind !== 'orb.render') return;
+    const s = cmd.state;
+    if (PARAMS[s]) {
+      state = s;
+      target = { ...PARAMS[s] };
+    }
+    if (cmd.visual) {
+      if (cmd.visual.color && PARAMS[s]) {
+        /* 状态色作用于白纹/亮斑（mark），本体恒漆黑蓝紫 */
+        target.mark = cmd.visual.color;
+      }
+      if (typeof cmd.visual.fluid_strength === 'number' && PARAMS[s]) {
+        target.boil = Math.max(0.1, cmd.visual.fluid_strength * 2.6);
+      }
+    }
+    if (cmd.prompt) {
+      /* L7 征询载体：有征询/提示文本时强制显示（badge 默认隐藏仅验收显示） */
+      badge.style.display = 'block';
+    }
+    if (badge.style.display !== 'none') {
+      badge.textContent = (LABELS[s] || s) + ' · ' + (cmd.emotionId || '')
+        + (cmd.prompt ? ' · ' + cmd.prompt : '');
+    }
+  }
+
+  /* 宿主消息监听（WebView2 就绪后注入；轮询等待，避免可选链静默失败） */
+  function bindHostBridge() {
+    try {
+      if (window.chrome && window.chrome.webview && window.chrome.webview.addEventListener) {
+        window.chrome.webview.addEventListener('message', function (event) {
+          let cmd;
+          try { cmd = JSON.parse(event.data); } catch (_) { return; }
+          applyWarmState(cmd);
+          applyCommand(cmd);
+        });
+        return true;
+      }
+    } catch (_) { }
+    return false;
+  }
+  if (!bindHostBridge()) {
+    setTimeout(function ensureBridge() {
+      if (!bindHostBridge()) { setTimeout(ensureBridge, 100); }
+    }, 100);
+  }
+
+  /* 拖拽（非激活窗拖动协议） */
+  canvas.addEventListener('pointerdown', function (event) {
+    if (event.button === 0) {
+      event.preventDefault();
+      if (window.chrome && window.chrome.webview) {
+        window.chrome.webview.postMessage('drag-start');
+      }
+    }
+  });
+
+  /* 就绪上报（WebView2 注入 chrome.webview 需等待；失败则延时重试） */
+  function notifyHost(kind) {
+    try {
+      if (window.chrome && window.chrome.webview) {
+        window.chrome.webview.postMessage(kind);
+        return true;
+      }
+    } catch (_) { }
+    return false;
+  }
+  function announceReady() {
+    if (notifyHost('orb-ready')) { return; }
+    setTimeout(announceReady, 100);
+  }
+  announceReady();
+
+  /* 初始状态渲染指令（供截图验收） */
+  applyCommand({
+    kind: 'orb.render', state: 'idle', emotionId: 'calm', label: '待机',
+    visual: { color: '#E8EDF5', glass_opacity: 0.38, fluid_strength: 0.25,
+              animation: 'breathe-slow', active_band: 0 },
+  });
+})();
+</script>
+</body>
+</html>
