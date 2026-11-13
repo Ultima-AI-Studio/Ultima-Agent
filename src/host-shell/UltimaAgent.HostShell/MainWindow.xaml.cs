@@ -2,6 +2,7 @@ using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
+using UltimaAgent.HostShell.ProcessHost;
 using Windows.UI;
 using Windows.Graphics;
 using WinRT.Interop;
@@ -12,6 +13,8 @@ public sealed partial class MainWindow : Window
 {
     private readonly WebView2 _webView = new();
     private readonly AppWindow _appWindow;
+    private readonly TaskCompletionSource<HostTaskRegistry> _taskRegistryReady =
+        new(TaskCreationOptions.RunContinuationsAsynchronously);
 
     public MainWindow()
     {
@@ -22,6 +25,7 @@ public sealed partial class MainWindow : Window
         bool orbTest = Environment.GetEnvironmentVariable("ULTIMA_HOST_ORB_TEST") == "1";
         bool orbLive = Environment.GetEnvironmentVariable("ULTIMA_HOST_LIVE") == "1";
         bool combo = Environment.GetEnvironmentVariable("ULTIMA_HOST_COMBO") == "1";
+        bool taskManager = Environment.GetEnvironmentVariable("ULTIMA_HOST_TASK_MANAGER") == "1";
         bool floatingBall = Environment.GetEnvironmentVariable("ULTIMA_HOST_FLOATINGBALL_TEST") == "1"
             || dpiAcceptance;
         Grid shell = CreateShell();
@@ -36,7 +40,14 @@ public sealed partial class MainWindow : Window
         {
             try
             {
-                if (combo)
+                if (taskManager)
+                {
+                    // 未来挂载点 = 四角壳左下锚位，数据契约即本渲染器的快照 JSON。
+                    HostTaskRegistry registry = await _taskRegistryReady.Task.WaitAsync(TimeSpan.FromSeconds(30));
+                    await TaskManagerRenderer.RunAsync(
+                        _webView, registry, AppContext.BaseDirectory, ResolveWriteRoot());
+                }
+                else if (combo)
                 {
                     await ComboWindowRenderer.RunAsync(
                         _webView, _appWindow, handle, AppContext.BaseDirectory,
@@ -47,9 +58,11 @@ public sealed partial class MainWindow : Window
                     // 复现 10:41 成功配方：ACCENT + SetWindowPos 240 + 无 Region + 无特殊属性
                     OrbWindowConfig.ApplyAccent(handle);
                     OrbWindowConfig.ResizeAndLocate(_appWindow, handle);
+                    string writeRoot = ResolveWriteRoot();
+                    OrbLiveRendererOptions readyState = OrbLiveRendererOptions.FromEnvironment(writeRoot);
                     await OrbLiveRenderer.RunAsync(
                         _webView, _appWindow, handle, AppContext.BaseDirectory,
-                        ResolveWriteRoot());
+                        writeRoot, readyState);
                 }
                 else if (orbTest)
                 {
@@ -118,6 +131,7 @@ public sealed partial class MainWindow : Window
     {
         bool useWebView = Environment.GetEnvironmentVariable("ULTIMA_HOST_LIVE") == "1"
             || Environment.GetEnvironmentVariable("ULTIMA_HOST_COMBO") == "1"
+            || Environment.GetEnvironmentVariable("ULTIMA_HOST_TASK_MANAGER") == "1"
             || Environment.GetEnvironmentVariable("ULTIMA_HOST_WEBVIEW_TEST") == "1"
             || Environment.GetEnvironmentVariable("ULTIMA_HOST_FLOATINGBALL_TEST") == "1"
             || Environment.GetEnvironmentVariable("ULTIMA_HOST_DPI_ACCEPTANCE") == "1"
@@ -166,5 +180,10 @@ public sealed partial class MainWindow : Window
         _webView.VerticalAlignment = VerticalAlignment.Stretch;
         root.Children.Add(_webView);
         return root;
+    }
+
+    internal void AttachTaskManager(HostTaskRegistry registry)
+    {
+        _taskRegistryReady.TrySetResult(registry);
     }
 }

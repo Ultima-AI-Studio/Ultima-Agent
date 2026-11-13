@@ -1,0 +1,72 @@
+Gate T6 — ReadyState -> first-start warm ring
+Recorded: 2026-11-13 Asia/Shanghai
+
+RED (before implementation)
+---------------------------
+renderer_message=False
+renderer_status_override=False
+renderer_disable_switch=False
+window_ready_chain=False
+html_ring=False
+html_handler=False
+html_reduced_motion=False
+Exception: T6 warm-ring contract is incomplete.
+
+GREEN contract
+--------------
+renderer_message=True
+renderer_status_override=True
+renderer_disable_switch=True
+window_ready_chain=True
+html_ring=True
+html_handler=True
+html_reduced_motion=True
+T6_CONTRACT_PASS
+
+Release build
+-------------
+UltimaAgent.HostShell -> H:\UltimaAI\UltimaAgent\src\host-shell\UltimaAgent.HostShell\bin\Release\net8.0-windows10.0.19041.0\win-x64\UltimaAgent.HostShell.dll
+已成功生成。
+    0 个警告
+    0 个错误
+
+Final real HostShell injection run
+----------------------------------
+ON_HOST_PID=11860
+WARM_SCREENSHOT progress=25 sha256=690B1A659D56B577C8653A49A14D6E5D515F9E7064314AA2BB1201145937D42B
+WARM_SCREENSHOT progress=50 sha256=B95EF7B90FDAE28F71BF46EDE8E62BEBF0B31B6153C8BC67E1C70DE99845971D
+WARM_SCREENSHOT progress=75 sha256=45196434D38ED6388B596E1F2B98C49D2EF36723F895B11E198C17447178DA34
+WARM_SCREENSHOT progress=100 state=ready sha256=91E272CABA07D58A15E5A3ECEE24562E6680FCB54D82B5E986BC9A70BD748956
+ON_HOST_EXIT=0
+OFF_HOST_PID=25828
+OFF_SCREENSHOT sha256=9805E4BD885168CF3BA7B6616C629FC70BF6AF58E1614643A49B2ECD0407BFBF
+OFF_HOST_EXIT=0
+EVENT=2026-11-13T03:37:06.9412494+00:00 WARM_PUSH state=warming progress=25
+EVENT=2026-11-13T03:37:07.9455189+00:00 WARM_PUSH state=warming progress=50
+EVENT=2026-11-13T03:37:08.4658098+00:00 WARM_PUSH state=warming progress=75
+EVENT=2026-11-13T03:37:08.9822109+00:00 WARM_PUSH state=ready progress=100
+OFF_WARM_PUSH_COUNT=0
+NEW_CONSOLE_PIDS=
+HOST_DESCENDANT_CONSOLE_PIDS=
+T6_RUNTIME_PASS
+
+Visual inspection
+-----------------
+warm-ring-25.png: quarter arc visible.
+warm-ring-50.png: half arc visible.
+warm-ring-75.png: three-quarter arc visible.
+warm-ring-100.png: ready/full state has faded out.
+warm-ring-off a2-live-final.png: no ring; same incumbent orb presentation.
+
+Append-only HTML check
+----------------------
+870  0  src/host-shell/UltimaAgent.HostShell/Assets/orb.html
+deleted_lines=0
+
+Rejected diagnostic runs retained
+---------------------------------
+- t6-runtime-on/off: feature behavior passed, but the first harness treated all machine-wide transient console PIDs as HostShell children and rejected the run.
+- t6-runtime-pass-on/off: ancestry check proved no HostShell console descendant; switch-off final capture raced the 4500 ms auto-exit and was rejected.
+- t6-runtime-final-on/off: final accepted run shown above.
+
+GATE T6: PASS

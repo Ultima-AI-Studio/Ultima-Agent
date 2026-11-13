@@ -24,12 +24,15 @@ internal sealed class ChildProcessSupervisor
 {
     private const uint CTRL_BREAK_EVENT = 1;
     private readonly object _sync = new();
+    private readonly object _logSync = new();
     private readonly JobObjectManager _job;
     private readonly IReadinessProbe _probe;
     private readonly string _projectRoot;
     private readonly string _logPath;
     private readonly string _pidPath;
     private readonly List<Process> _children = [];
+    private Process? _agentServer;
+    private Process? _voiceLauncher;
 
     public ChildProcessSupervisor(JobObjectManager job, IReadinessProbe probe, string projectRoot)
     {
@@ -67,9 +70,7 @@ internal sealed class ChildProcessSupervisor
         }
         else
         {
-            StartAssigned(
-                Path.Combine(_projectRoot, "tools", "venv-openjarvis", "Scripts", "python.exe"),
-                "-X", "utf8", Path.Combine(_projectRoot, "src", "voice-next", "launch.py"));
+            _voiceLauncher = StartVoiceLauncher();
         }
 
         if (!agentReady)
@@ -82,9 +83,7 @@ internal sealed class ChildProcessSupervisor
             }
             else
             {
-                StartAssigned(
-                    Path.Combine(_projectRoot, "tools", "venv-openjarvis", "Scripts", "python.exe"),
-                    "-X", "utf8", Path.Combine(_projectRoot, "src", "brain", "agent_server.py"));
+                _agentServer = StartAgentServer();
                 agentReady = await _probe.WaitForAgentReadyAsync(TimeSpan.FromSeconds(20), cancellationToken)
                     .ConfigureAwait(false);
             }
@@ -148,12 +147,78 @@ internal sealed class ChildProcessSupervisor
         }
     }
 
+    public int? GetTrackedProcessId(string taskId)
+    {
+        lock (_sync)
+        {
+            Process? process = taskId switch
+            {
+                "agent-server" => _agentServer,
+                "voice-launcher" => _voiceLauncher,
+                _ => null,
+            };
+            return process is not null && !process.HasExited ? process.Id : null;
+        }
+    }
+
+    public int RestartAgentServer()
+    {
+        Process? previous;
+        lock (_sync)
+        {
+            previous = _agentServer;
+            _agentServer = null;
+        }
+        StopTracked(previous);
+        _agentServer = StartAgentServer();
+        return _agentServer.Id;
+    }
+
+    public int RestartVoiceLauncher()
+    {
+        Process? previous;
+        lock (_sync)
+        {
+            previous = _voiceLauncher;
+            _voiceLauncher = null;
+        }
+        StopTracked(previous);
+        _voiceLauncher = StartVoiceLauncher();
+        return _voiceLauncher.Id;
+    }
+
+    private Process StartAgentServer()
+    {
+        return StartAssigned(
+            Path.Combine(_projectRoot, "tools", "venv-openjarvis", "Scripts", "pythonw.exe"),
+            "-X", "utf8", Path.Combine(_projectRoot, "src", "brain", "agent_server.py"));
+    }
+
+    private Process StartVoiceLauncher()
+    {
+        return StartAssigned(
+            Path.Combine(_projectRoot, "tools", "venv-openjarvis", "Scripts", "pythonw.exe"),
+            "-X", "utf8", Path.Combine(_projectRoot, "src", "voice-next", "launch.py"));
+    }
+
+    private static void StopTracked(Process? process)
+    {
+        if (process is null || process.HasExited)
+        {
+            return;
+        }
+        process.Kill(entireProcessTree: false);
+        process.WaitForExit(3000);
+    }
+
     private Process StartAssigned(string fileName, params string[] arguments)
     {
         var startInfo = new ProcessStartInfo(fileName)
         {
             UseShellExecute = false,
             CreateNoWindow = true,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
             WorkingDirectory = _projectRoot,
         };
         foreach (string argument in arguments)
@@ -163,6 +228,8 @@ internal sealed class ChildProcessSupervisor
 
         Process process = Process.Start(startInfo)
             ?? throw new InvalidOperationException($"Unable to start {fileName}.");
+        process.OutputDataReceived += (_, args) => LogChildOutput(fileName, "stdout", args.Data);
+        process.ErrorDataReceived += (_, args) => LogChildOutput(fileName, "stderr", args.Data);
         if (_job.IsActive && !_job.Assign(process.Handle)) // AssignProcessToJobObject immediately follows Process.Start.
         {
             int error = Marshal.GetLastWin32Error();
@@ -170,6 +237,8 @@ internal sealed class ChildProcessSupervisor
             process.Dispose();
             throw new Win32Exception(error, $"Unable to assign {fileName} to the process Job Object.");
         }
+        process.BeginOutputReadLine();
+        process.BeginErrorReadLine();
 
         lock (_sync)
         {
@@ -234,7 +303,18 @@ internal sealed class ChildProcessSupervisor
 
     private void Log(string message)
     {
-        File.AppendAllText(_logPath, $"{DateTimeOffset.Now:O} {message}{Environment.NewLine}");
+        lock (_logSync)
+        {
+            File.AppendAllText(_logPath, $"{DateTimeOffset.Now:O} {message}{Environment.NewLine}");
+        }
+    }
+
+    private void LogChildOutput(string fileName, string stream, string? line)
+    {
+        if (line is not null)
+        {
+            Log($"child={Path.GetFileName(fileName)} stream={stream} {line}");
+        }
     }
 
     [DllImport("kernel32.dll", SetLastError = true)]

@@ -1,0 +1,165 @@
+Gate T10 — installer Phase 3 total acceptance
+Recorded: 2026-11-13 Asia/Shanghai
+
+T0 — shipped-task declaration and guard
+----------------------------------------
+COMMAND=C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -NoProfile -ExecutionPolicy Bypass -File tools\check-shipped-tasks.ps1
+SHIPPED_TASKS_RESULT=PASS
+CHECK_SHIPPED_EXIT=0
+ULTIMA_TASK_COUNT=0
+T0_GATE=PASS
+Evidence: t0-gate.txt (initial 12-task RED and resume 3-task RED), installer/shipped-tasks.json (shipped_tasks=[])
+
+T1 — named legacy cleanup and self-delete
+------------------------------------------
+LEGACY_ABSENT name=UltimaAgent-QueueObserver-01a15b32 absent=True exit=1
+LEGACY_ABSENT name=UltimaAgent-T1-Recovery-098dfa1b86cb absent=True exit=1
+LEGACY_ABSENT name=UltimaAgent-T1-Workflow-5b9d4dd9e4d9 absent=True exit=1
+LEGACY_ABSENT name=UltimaAgent-T1-Workflow-67c6611b29c8 absent=True exit=1
+LEGACY_ABSENT name=UltimaAgent-T1-Workflow-7bc43f362639 absent=True exit=1
+LEGACY_ABSENT name=UltimaAgent-T1-Workflow-85c518be3bbb absent=True exit=1
+LEGACY_ABSENT name=UltimaAgent-T1-Workflow-9d30e0b48afd absent=True exit=1
+LEGACY_ABSENT name=UltimaAgent-T1-Workflow-b721e3a95d29 absent=True exit=1
+LEGACY_ABSENT name=UltimaAgent-T2-Core-84169f240563 absent=True exit=1
+RECOVERY_UNITTESTS=Ran 12 tests in 0.009s; OK
+T1_SELFDELETE_PROBE=PASS calls=Create,Run,Delete exact_name=UltimaAgent-T1-Recovery-aaaaaaaaaaaa
+T1_GATE=PASS
+Evidence: t1-gate.txt, t1-tasks-before.json, t1-tasks-after.json
+
+T2 — Guardian cutover
+---------------------
+BUILD_RESULT=PASS warnings=0 errors=0
+GUARDIAN_CONSTANTS=probe_interval_seconds=20 failure_limit=3 cooldown_seconds=300 endpoint=http://127.0.0.1:8756/health
+CUTOVER_ORDER=guardian_proven,external_watchdog_uninstalled,external_pythonw_stopped,script_moved
+FORCED_KILL_RECOVERY_SECONDS=21.8
+GUARDIAN_EVENT=kind=restart detail=pid=17420 reason=guardian health failure
+GUARDIAN_EVENT=kind=probe_ok detail=pid=17420 status=200
+STABLE_CONSOLE_DESCENDANT_COUNT=0
+VISIBLE_CONSOLE_WINDOW_COUNT=0
+T2_GATE=PASS
+Evidence: t2-gate.txt, t2-guardian-restart-no-console-pass.png
+
+T3 — preload task removal
+-------------------------
+ULTIMA_PRELOAD_TASK_ABSENT=True
+PRELOAD_EXECUTION_CODE_CHANGED_LINES=0
+LAUNCH_SHA256=46941A1BD043C268707AF2536C2F4E5B755729E8476E1D3BD0D4E80E9D7ADD01
+T3_GATE=PASS
+Evidence: t3-gate.txt, t3-tasks-before.json, t3-tasks-after.json
+
+T4 — tracker development-tool move
+----------------------------------
+ULTIMA_TRACKER_TASK_ABSENT=True
+TRACKER_AST=PASS
+ACTIVE_OLD_PATH_REFERENCE_COUNT=0
+T4_GATE=PASS
+Evidence: t4-gate.txt, t4-tasks-before.json, t4-tasks-after.json
+
+T5 — startup timing
+-------------------
+TIMING_FIELDS=t0_process_start,t_window_visible,t_first_frame,t_voice_ready
+COLD_BASELINE_FIRST_FRAME_MS=1530,444,488
+COLD_BASELINE_MEDIAN_MS=488
+STALE_PID_REJECTION=PASS
+TEST_JOBKILL_RESULT=PASS criteria=1,2,3,4,5
+T5_GATE=PASS
+Evidence: t5-gate.txt, t5-baseline.json
+
+T6 — warm-progress ring
+-----------------------
+WARM_PROGRESS_SCREENSHOTS=25,50,75,100
+RING_DISABLED_BYPASS=PASS
+READY_FADE=PASS
+VISIBLE_CONSOLE_WINDOW_COUNT=0
+T6_GATE=PASS
+Evidence: t6-gate.txt, t6-runtime-final-on/, t6-runtime-final-off/
+
+T7 — first-frame budget
+-----------------------
+RUN_1_FIRST_FRAME_MS=458
+RUN_2_FIRST_FRAME_MS=471
+RUN_3_FIRST_FRAME_MS=479
+FIRST_FRAME_MEDIAN_MS=471
+FIRST_FRAME_LIMIT_MS=1500
+READY_RUNS=3/3
+RESIDUAL_PID_COUNT=0
+VISIBLE_CONSOLE_WINDOW_COUNT=0
+T7_GATE=PASS
+Evidence: t7-gate.txt, t7-firstframe-runs.json, t7-warm-ring-visible.png
+
+T8 — Startup-folder autostart
+-----------------------------
+COMMAND=C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -NoProfile -ExecutionPolicy Bypass -File tools\test-phase3-autostart.ps1
+TASKS_BEFORE_COUNT=0
+SHORTCUT_TARGET=H:\UltimaAI\UltimaAgent\src\host-shell\UltimaAgent.HostShell\bin\Release\net8.0-windows10.0.19041.0\win-x64\UltimaAgent.HostShell.exe
+SHORTCUT_WORKING_DIRECTORY=H:\UltimaAI\UltimaAgent
+SHORTCUT_WINDOW_STYLE=1
+IDEMPOTENT_SHORTCUT_COUNT=1
+PROCESS_HOST_EVENT=2026-11-13T12:35:41.8414011+08:00 started pid=27616 command=pythonw.exe -X utf8 H:\UltimaAI\UltimaAgent\src\voice-next\launch.py
+STABLE_CONSOLE_DESCENDANT_COUNT=0
+VISIBLE_CONSOLE_WINDOW_COUNT=0
+SCREENSHOT=docs/reports/evidence/installer-phase3/t8-shortcut-launch-no-console.png SHA256=39862DD78D6CD3184BCC6D2B8C94EA01CEBB40838DD6EA8146EE4632B4F53BA2
+EXPLORER_WM_CLOSE=True RESIDUAL_PID_COUNT=0
+SHORTCUTS_AFTER_REMOVE=0
+TASKS_AFTER_COUNT=0
+AUTOSTART_RESULT=PASS
+AUTOSTART_EXIT=0
+T8_GATE=PASS
+
+T9 — in-app task manager
+------------------------
+STATE_SCREENSHOT status=running sha256=D7DB59D9BE8D260AFE152C2CE900C5A6A68E5AB9AA28E7A769786D556B5211C9
+STATE_SCREENSHOT status=cooldown sha256=C5545F627531D17732E504BC2C8803AB5217485312671FE568295BEF19C238CB
+STATE_SCREENSHOT status=error sha256=3B664C0BF54FEFA5BC455E2D15EC8271C2C01401AB043B29B4D257D3EF4F4E9A
+RESTART_EVENT kind=restart detail=pid=22476 reason=taskmanager manual restart restart_count=13
+DISABLED_KILL pid=11936 disabled_event=enabled=false guardian_event=disabled_skip relaunched=0
+REENABLED event=enabled=true guardian_restart=pid=19280 reason=guardian health failure recovered_pid=19280
+STABLE_CONSOLE_DESCENDANT_COUNT=0
+VISIBLE_CONSOLE_WINDOW_COUNT=0
+ACTION_CLOSE_RESIDUAL=0
+NETWORK_REFERENCE_COUNT=0
+EXTERNAL_RESOURCE_COUNT=0
+T9_RUNTIME_PASS
+T9_GATE=PASS
+Evidence: t9-gate.txt, t9-render-states-accepted/, t9-actions-coherent-final/
+
+T10 — final commands
+--------------------
+COMMAND=C:\Program Files\dotnet\dotnet.exe build src\host-shell\UltimaAgent.HostShell\UltimaAgent.HostShell.csproj -c Release --nologo
+UltimaAgent.HostShell -> H:\UltimaAI\UltimaAgent\src\host-shell\UltimaAgent.HostShell\bin\Release\net8.0-windows10.0.19041.0\win-x64\UltimaAgent.HostShell.dll
+已成功生成。
+    0 个警告
+    0 个错误
+BUILD_EXIT=0
+
+COMMAND=C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -NoProfile -ExecutionPolicy Bypass -File tools\test-jobkill.ps1
+CRITERION 1 PASS: Release HostShell executable exists
+CRITERION 1 PASS: UltimaAgent Python process count is 6 (>=3)
+CRITERION 2 PASS: HostShell force-kill reclaimed all new Host/Job PIDs within 3 seconds: 21336,4188,13832,11748,14016,21908,9156
+CRITERION 3 PASS: second run reached 6 UltimaAgent Python processes
+CRITERION 3 PASS: HostShell force-kill reclaimed all new Host/Job PIDs within 3 seconds: 4796,26692,16976,26240,20920,27480,17320
+CRITERION 4 PASS: runtime evidence proves the UI_UNHANDLED handler executed
+CRITERION 4 PASS: UnhandledException reclaimed crash-run PIDs within 3 seconds: 21292,7208,4108,3772,26448,21928,13040
+CRITERION 5 PASS: WM_CLOSE posted to the real HostShell window
+CRITERION 5 PASS: normal-close Host/Job PIDs are gone
+CRITERION 5 PASS: all ProcessHost pid files were cleaned
+CRITERION 5 PASS: status.json state is stopped
+TEST_JOBKILL_RESULT=PASS criteria=1,2,3,4,5
+TEST_JOBKILL_EXIT=0
+
+COMMAND=tools\venv-openjarvis\Scripts\python.exe -c <AST parse 3 files>
+AST_RESULT=PASS count=3 files=devtools/watchdog.py,devtools/tracker-live.py,src/voice-next/preload.py
+AST_DEDICATED_EXIT=0
+
+LAUNCH_SHA256=46941A1BD043C268707AF2536C2F4E5B755729E8476E1D3BD0D4E80E9D7ADD01
+LAUNCH_HASH_MATCH=True
+ULTIMA_TASK_COUNT=0
+STARTUP_SHORTCUT_EXISTS=False
+UNTOUCHED_SURFACE_STATUS_COUNT=0
+
+BASELINE_UNRELATED_CHECKED=18
+BASELINE_UNRELATED_CONTENT_MISMATCH_COUNT=2
+BASELINE_NOTE=tasks/queue/index.md and tasks/queue/queue-status.json were changed by concurrent dispatcher/repository commits during this run and are clean at the current HEAD; they were neither edited nor staged by this work order. The other 16 pre-existing dirty paths remain byte-identical to before.json. The two authorized overlap paths are App.xaml.cs and ChildProcessSupervisor.cs.
+
+DEPENDENCY_AUDIT=PASS new_nuget=0 new_pip=0 new_frontend_or_cdn=0
+T10_GATE=PASS

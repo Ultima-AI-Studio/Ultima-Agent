@@ -1,0 +1,52 @@
+BEFORE_SNAPSHOT=docs/reports/evidence/installer-phase3/t1-tasks-before.json
+BEFORE_SHA256=9620AFA2890980E94F71BED84AC0DDE8F48ADD1A634AEFB619423F5CA447B0C3
+EXACT_NAMED_COUNT=9
+RULING=The work order says 10, but its exact list contains 9 names; 9 deleted plus 3 protected equals the authoritative total 12.
+DELETE name=UltimaAgent-QueueObserver-01a15b32 exit=0 output=SUCCESS: The scheduled task "UltimaAgent-QueueObserver-01a15b32" was successfully deleted.
+DELETE name=UltimaAgent-T1-Recovery-098dfa1b86cb exit=0 output=SUCCESS: The scheduled task "UltimaAgent-T1-Recovery-098dfa1b86cb" was successfully deleted.
+DELETE name=UltimaAgent-T1-Workflow-5b9d4dd9e4d9 exit=0 output=SUCCESS: The scheduled task "UltimaAgent-T1-Workflow-5b9d4dd9e4d9" was successfully deleted.
+DELETE name=UltimaAgent-T1-Workflow-67c6611b29c8 exit=0 output=SUCCESS: The scheduled task "UltimaAgent-T1-Workflow-67c6611b29c8" was successfully deleted.
+DELETE name=UltimaAgent-T1-Workflow-7bc43f362639 exit=0 output=SUCCESS: The scheduled task "UltimaAgent-T1-Workflow-7bc43f362639" was successfully deleted.
+DELETE name=UltimaAgent-T1-Workflow-85c518be3bbb exit=0 output=SUCCESS: The scheduled task "UltimaAgent-T1-Workflow-85c518be3bbb" was successfully deleted.
+DELETE name=UltimaAgent-T1-Workflow-9d30e0b48afd exit=0 output=SUCCESS: The scheduled task "UltimaAgent-T1-Workflow-9d30e0b48afd" was successfully deleted.
+DELETE name=UltimaAgent-T1-Workflow-b721e3a95d29 exit=0 output=SUCCESS: The scheduled task "UltimaAgent-T1-Workflow-b721e3a95d29" was successfully deleted.
+DELETE name=UltimaAgent-T2-Core-84169f240563 exit=0 output=SUCCESS: The scheduled task "UltimaAgent-T2-Core-84169f240563" was successfully deleted.
+TARGET_REMAINING_COUNT=0
+PROTECTED name=UltimaAgent-Watchdog exists=True exit=0
+PROTECTED name=UltimaAgent-Preload exists=True exit=0
+PROTECTED name=UltimaAgentTrackerLive exists=True exit=0
+ULTIMA_TASK_COUNT_AFTER_T1=3
+T1_DELETE_RESULT=PASS exact_deleted=9 protected_remaining=3
+T1_SELFDELETE_PROBE=PASS calls=Create,Run,Delete exact_name=UltimaAgent-T1-Recovery-aaaaaaaaaaaa
+RECOVERY_UNITTESTS=Ran 12 tests in 0.009s; OK
+UNITTEST_EXIT_CODE=0
+ULTIMA_TASK_COUNT_AFTER_SELFTEST=3
+T1_RUNNER_SELFTEST_RESULT=PASS new_task_count=0
+AFTER_SNAPSHOT=docs/reports/evidence/installer-phase3/t1-tasks-after.json
+AFTER_SHA256=7942258981B4EBDCCFEF0ED28D4C95DB25A4B6D251DCD5F284BC844D2E0DE6B5
+
+=== RESUME REVERIFY 2026-11-13T10:47:22.9421328+08:00 ===
+LEGACY_ABSENT name=UltimaAgent-QueueObserver-01a15b32 absent=True exit=1
+LEGACY_ABSENT name=UltimaAgent-T1-Recovery-098dfa1b86cb absent=True exit=1
+LEGACY_ABSENT name=UltimaAgent-T1-Workflow-5b9d4dd9e4d9 absent=True exit=1
+LEGACY_ABSENT name=UltimaAgent-T1-Workflow-67c6611b29c8 absent=True exit=1
+LEGACY_ABSENT name=UltimaAgent-T1-Workflow-7bc43f362639 absent=True exit=1
+LEGACY_ABSENT name=UltimaAgent-T1-Workflow-85c518be3bbb absent=True exit=1
+LEGACY_ABSENT name=UltimaAgent-T1-Workflow-9d30e0b48afd absent=True exit=1
+LEGACY_ABSENT name=UltimaAgent-T1-Workflow-b721e3a95d29 absent=True exit=1
+LEGACY_ABSENT name=UltimaAgent-T2-Core-84169f240563 absent=True exit=1
+PROTECTED_PRESENT name=UltimaAgent-Watchdog present=True exit=0
+PROTECTED_PRESENT name=UltimaAgent-Preload present=True exit=0
+PROTECTED_PRESENT name=UltimaAgentTrackerLive present=True exit=0
+RECOVERY_UNITTESTS=Ran 12 tests in 0.009s; OK
+RECOVERY_UNITTEST_EXIT=0
+T1_SELFDELETE_PROBE=PASS calls=Create,Run,Delete exact_name=UltimaAgent-T1-Recovery-aaaaaaaaaaaa
+SELFDELETE_PROBE_EXIT=0
+NOTE=The first no-header CSV property count printed 0 and is rejected as invalid evidence; corrected by matching raw CSV rows below.
+COUNT_CORRECTION_TS=2026-11-13T10:47:44.8073818+08:00
+ULTIMA_TASK_COUNT_CORRECTED=3
+TASK_ROW="\UltimaAgent-Preload","N/A","Ready"
+TASK_ROW="\UltimaAgent-Watchdog","N/A","Running"
+TASK_ROW="\UltimaAgentTrackerLive","N/A","Disabled"
+EXPECTED_PROTECTED_SET_ONLY=True
+NEW_TASK_COUNT=0

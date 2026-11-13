@@ -72,7 +72,7 @@ powershell.exe  $p=Get-Process -Id 34552   ← 窗口 3
   Enable-ScheduledTask -TaskName UltimaAgentTrackerLive
   ```
 
-- 也可随时手动生成一次最新快照：`tools\venv-openjarvis\Scripts\python.exe -B scripts\tracker-live.py`
+- 也可随时手动生成一次最新快照：`tools\venv-openjarvis\Scripts\python.exe -B devtools\tracker-live.py`（Phase 3 已迁移）
 - 关闭后看板的"当前焦点任务"会停留在占位文案（页面已注明"live-data.js 未加载不等于任务在跑"），属预期。
 
 ## 遗留

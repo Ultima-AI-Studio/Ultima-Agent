@@ -1,0 +1,26 @@
+{
+  "schema": "ultimaagent-host-tasks/v1",
+  "tasks": [
+    {
+      "id": "agent-server",
+      "name": "Agent Server",
+      "executable": "tools/venv-openjarvis/Scripts/pythonw.exe",
+      "arguments": ["-X", "utf8", "src/brain/agent_server.py"],
+      "restart": {
+        "policy": "guardian",
+        "check_interval_seconds": 20,
+        "fail_limit": 3,
+        "cooldown_seconds": 300
+      }
+    },
+    {
+      "id": "voice-launcher",
+      "name": "Voice Launcher",
+      "executable": "tools/venv-openjarvis/Scripts/pythonw.exe",
+      "arguments": ["-X", "utf8", "src/voice-next/launch.py"],
+      "restart": {
+        "policy": "manual"
+      }
+    }
+  ]
+}

@@ -1,0 +1,36 @@
+T5_RED_RESULT=EXPECTED_FAIL missing startup timing artifacts
+T5_STALE_RED_VOICE_PROCESS_COUNT=0
+T5_STALE_RED_PID=18712 VOICE_READY_MS=515 FIRST_FRAME_MS=575
+T5_STALE_RED_RESULT=EXPECTED_FAIL stale status accepted
+T5_STALE_GREEN_PID=16764 VOICE_READY_IS_NULL=True FIRST_FRAME_MS=388
+JSONL_LINES_BEFORE=1 AFTER=1
+T5_STALE_GREEN_RESULT=PASS
+
+T5_BASELINE_RUN_1_PASS pid=22296 window=541 first=1530 voice=15651 residual=0
+T5_BASELINE_RUN_2_PASS pid=19400 window=364 first=444 voice=14034 residual=0
+T5_BASELINE_RUN_3_PASS pid=3760 window=402 first=488 voice=14537 residual=0
+T5_BASELINE_JSONL_LINES_ADDED=3
+T5_BASELINE_MEDIAN_FIRST_FRAME_MS=488
+BASELINE=docs/reports/evidence/installer-phase3/t5-baseline.json
+
+STARTUP_FIELDS=t0_iso,window_visible_ms,first_frame_ms,voice_ready_ms,pid,build
+STARTUP_JSON_EXISTS=True
+STARTUP_JSONL_EXISTS=True
+FIELDS_COMPLETE=True
+FIRST_FRAME_POSITIVE=True
+JSONL_ROWS_FINAL=8
+BASELINE_RUNS=3
+BASELINE_FIRST_FRAMES=1530,444,488
+BASELINE_RESIDUALS=0,0,0
+
+CRITERION_1=PASS Release HostShell executable exists; Python process count >=3; owned voice PIDs observed
+CRITERION_2=PASS HostShell force-kill reclaimed all new Host/Job PIDs within 3 seconds
+CRITERION_3=PASS second run reached voice stack and Job reclaimed all new PIDs
+CRITERION_4=PASS UI_UNHANDLED evidence written and all crash-run PIDs reclaimed
+CRITERION_5=PASS WM_CLOSE; HostShell exited; Job PIDs gone; pid file cleaned; status stopped
+TEST_JOBKILL_RESULT=PASS criteria=1,2,3,4,5
+TEST_JOBKILL_EXIT=0
+
+T5_FINAL_BUILD_RESULT=PASS warnings=0 errors=0 exit=0
+APP_DIFF_CHECK_EXIT=0
+T5_GATE_RESULT=PASS

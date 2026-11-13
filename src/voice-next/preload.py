@@ -1,13 +1,11 @@
-"""开机预加载：等 Ollama 与音频端点就绪后，拉起 agent_server 与语音监听（含 CV3 语音预热）。
+"""已弃用的开机预加载参考实现。
 
-由计划任务 `UltimaAgent-Preload` 在用户登录后触发，用 pythonw 无窗运行。
-- Ollama：等 11434 端口可连（模型服务通常晚于登录就绪）
-- 音频端点：等 WASAPI 的输入/输出端点被枚举（开机初期驱动可能尚未加载）
-- 拉起：调 launch.py，由它 ensure agent_server(8756) 并启动 live.py；live.py 的 worker 会
-  在 serve(prewarm=True) 下预热 CV3，并把 4 句提示音重写成克隆音色
-- live.py 自身 DETACHED 常驻，本脚本执行完即退出
+Phase 3 起，语音栈的唯一入口是 HostShell ``ProcessHost``；本脚本不再承担开机拉起职责。
+文件仅为历史与排障参考而保留，禁止再次注册为 Windows 计划任务。
 
-结果写入 `data/voice-next/preload.json` 与 `data/voice-next/preload.log`。
+2026-11-12 实证：``UltimaAgent-Preload`` 使用了指向 Doubao sandbox_runtime 的错误解释器，
+调用 ``launch.py`` 时以 ``FileNotFoundError: [WinError 2]`` 失败；同次回执中的 agent 探活
+成功来自外部 watchdog，而非本脚本完成了语音栈拉起。
 """
 from __future__ import annotations
 

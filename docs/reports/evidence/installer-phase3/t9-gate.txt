@@ -1,0 +1,80 @@
+Gate T9 — in-app HostShell task manager
+Recorded: 2026-11-13 Asia/Shanghai
+
+RED
+---
+RED_TASKMANAGER_RENDERER_EXISTS=False
+RED_TASKMANAGER_HTML_EXISTS=False
+Write-Error: T9 task manager surface is missing
+
+First compile RED (fixed before runtime)
+----------------------------------------
+TaskManagerRenderer.cs(97,25): error CS0029: cannot implicitly convert type int to CoreWebView2
+Root cause: an event sender named '_' shadowed a discard for the restart PID.
+Fix: name the sender and await RestartAsync without assignment.
+
+Release build after fixes
+-------------------------
+UltimaAgent.HostShell -> H:\UltimaAI\UltimaAgent\src\host-shell\UltimaAgent.HostShell\bin\Release\net8.0-windows10.0.19041.0\win-x64\UltimaAgent.HostShell.dll
+已成功生成。
+    0 个警告
+    0 个错误
+
+Accepted injected-state rendering
+---------------------------------
+STATE_SCREENSHOT status=running sha256=D7DB59D9BE8D260AFE152C2CE900C5A6A68E5AB9AA28E7A769786D556B5211C9
+STATE_SCREENSHOT status=cooldown sha256=C5545F627531D17732E504BC2C8803AB5217485312671FE568295BEF19C238CB
+STATE_SCREENSHOT status=error sha256=3B664C0BF54FEFA5BC455E2D15EC8271C2C01401AB043B29B4D257D3EF4F4E9A
+Paths: docs/reports/evidence/installer-phase3/t9-render-states-accepted/
+Visual inspection: all seven required columns remain visible at the machine's 150% DPI; injected names, states, PIDs, restart counts, probe times, toggles, and actions match the fixture.
+
+Accepted coherent live action run
+---------------------------------
+PARSE_ERROR_COUNT=0
+ACTION_HOST_PID=7232
+RESTART_EVENT kind=restart detail=pid=22476 reason=taskmanager manual restart restart_count=13
+RESTART_SCREENSHOT_SHA256=C2E045F3DB4E96C0F0308AEB6ACDFA0379A39A307A47BEA275C097349CE8D551
+DISABLED_KILL pid=11936 disabled_event=enabled=false guardian_event=disabled_skip relaunched=0
+DISABLE_SCREENSHOT_SHA256=C90DDB2C225A9CE6F4771D0B9CF3A91BC476BB24965004D8B89DC6D15D786A8A
+REENABLED event=enabled=true guardian_restart=pid=19280 reason=guardian health failure recovered_pid=19280
+REENABLE_SCREENSHOT_SHA256=1DBB0B87A675F998EA8BA9FDEE8E29325C1863ACA5B8E9DD7A41612A34A6641F
+TRANSIENT_CONSOLE_PROCESS_COUNT=13
+STABLE_CONSOLE_DESCENDANT_COUNT=0
+VISIBLE_CONSOLE_WINDOW_COUNT=0
+ACTION_CLOSE_RESIDUAL=0
+T9_RUNTIME_PASS
+Paths: docs/reports/evidence/installer-phase3/t9-actions-coherent-final/
+
+Guardian/action event lines
+---------------------------
+2026-11-13T12:21:13.7095607+08:00 TEST_CLICK seq=1 kind=restart task_id=agent-server
+2026-11-13T12:21:13.7311948+08:00 kind=restart detail=pid=22476 reason=taskmanager manual restart
+2026-11-13T12:21:14.3271320+08:00 TEST_CLICK seq=2 kind=set-enabled task_id=agent-server enabled=False
+2026-11-13T12:21:14.3433621+08:00 kind=set_enabled detail=enabled=false
+2026-11-13T12:21:32.8013173+08:00 kind=disabled_skip detail=guardian restart disabled
+2026-11-13T12:21:32.9459405+08:00 TEST_CLICK seq=3 kind=set-enabled task_id=agent-server enabled=True
+2026-11-13T12:21:32.9544340+08:00 kind=set_enabled detail=enabled=true
+2026-11-13T12:21:54.9037534+08:00 kind=restart detail=pid=19280 reason=guardian health failure
+
+Static and differential checks
+------------------------------
+218  0  src/host-shell/UltimaAgent.HostShell/Assets/taskmanager.html
+289  0  src/host-shell/UltimaAgent.HostShell/TaskManagerRenderer.cs
+21   2  src/host-shell/UltimaAgent.HostShell/MainWindow.xaml.cs
+1    0  src/host-shell/UltimaAgent.HostShell/UltimaAgent.HostShell.csproj
+NETWORK_REFERENCE_COUNT=0
+EXTERNAL_RESOURCE_COUNT=0
+EMPTY_STATE=True ERROR_STATE=True
+ARIA_SWITCH=True KEYBOARD_FOCUS=True REDUCED_MOTION=True
+FUTURE_MOUNT_COMMENT=True
+HOST_TO_WEB_JSON=True WEB_TO_HOST=True
+No third-party package/CDN/frontend dependency was introduced.
+orb.html and combo.html were not changed by T9.
+
+Rejected diagnostics retained
+-----------------------------
+- t9-actions-final: test fixture serialized disabled=false as null; production rejected the invalid message.
+- t9-actions-accepted: renderer digest included generated_at, causing evidence over-capture; fixed by hashing tasks only.
+- t9-actions-accepted-final: behavior passed, but its first disabled_skip belonged to startup persisted state; the coherent final run above requires a post-disable event.
+
+GATE T9: PASS

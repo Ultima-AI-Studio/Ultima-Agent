@@ -1,0 +1,76 @@
+T2_RESUME_BUILD_TS=2026-11-13T10:48:27.9438418+08:00
+COMMAND=C:\Program Files\dotnet\dotnet.exe build src\host-shell\UltimaAgent.HostShell\UltimaAgent.HostShell.csproj -c Release
+BUILD_RESULT=PASS warnings=0 errors=0 exit=0
+EXTERNAL_WATCHDOG_BEFORE=pid=11356 command="tools\venv-openjarvis\Scripts\pythonw.exe scripts\watchdog-loopguard.py"
+
+CUTOVER_STEP1_HOST_PID=18184
+CUTOVER_STEP1_START=2026-11-13T10:49:50.7821606+08:00
+EVENT={"ts":"2026-11-13T10:49:57.9368407+08:00","task_id":"agent-server","kind":"guardian_started","detail":"health=http://127.0.0.1:8756/health interval=20 fail_limit=3 cooldown=300"}
+EVENT={"ts":"2026-11-13T10:49:57.9600180+08:00","task_id":"agent-server","kind":"probe_ok","detail":"health endpoint ready"}
+CUTOVER_STEP1_RESULT=PASS host_exited=False
+
+CUTOVER_STEP2_TS=2026-11-13T10:50:19.7294779+08:00
+COMMAND=tools\venv-openjarvis\Scripts\python.exe -X utf8 scripts\watchdog-loopguard.py --uninstall
+UNINSTALL_EXIT_CODE=0
+WATCHDOG_PROCESS_MATCH_COUNT=1
+STOP_WATCHDOG_PID=11356 COMMAND="tools\venv-openjarvis\Scripts\pythonw.exe scripts\watchdog-loopguard.py"
+WATCHDOG_PROCESS_REMAINING=0
+WATCHDOG_TASK_QUERY_EXIT=1
+ULTIMA_TASKS_AFTER_STEP2=UltimaAgent-Preload,UltimaAgentTrackerLive
+
+CUTOVER_STEP3_TS=2026-11-13T10:51:05.6386921+08:00
+COMMAND=git add -f scripts/watchdog-loopguard.py && git mv scripts/watchdog-loopguard.py devtools/watchdog.py
+WATCHDOG_SHA256_BEFORE=CF2AE47EB540C24D1621CAC617D53EFE3509210BEEC2E20DC2359AE99202356A
+WATCHDOG_SHA256_AFTER=CF2AE47EB540C24D1621CAC617D53EFE3509210BEEC2E20DC2359AE99202356A
+BYTE_IDENTICAL=True
+OLD_PATH_EXISTS=False
+NEW_PATH_EXISTS=True
+WATCHDOG_AST=PASS
+WATCHDOG_ROLE_PROCESS_COUNT=0
+
+PRE_FIX_INTEGRATION_KILL_AT=2026-11-13T10:52:19.9751275+08:00
+PRE_FIX_EVENT_CHAIN=probe_failed,restart,probe_failed,restart_failed,probe_ok
+PRE_FIX_RECOVERY_ELAPSED_MS=29041
+PRE_FIX_NEW_AGENT_PID=19068
+PRE_FIX_NEW_CONHOST_PID=2800
+PRE_FIX_RESULT=FAIL reason=new-conhost-process
+PRE_FIX_SCREENSHOT=docs/reports/evidence/installer-phase3/t2-guardian-restart-no-console.png
+ROOT_CAUSE_RED=ProcessStartInfo python.exe CreateNoWindow produced child conhost count=1 in two minimal probes
+HYPOTHESIS_GREEN=ProcessStartInfo pythonw.exe CreateNoWindow produced child conhost count=0
+PYTHONW_STREAM_PROBE=redirected stdout/stderr valid; exit=0; OUT/ERR captured
+FIX=pythonw.exe plus redirected/asynchronously-drained stdout and stderr; UseShellExecute=false and CreateNoWindow=true retained
+
+FINAL_T2_KILL_AT=2026-11-13T11:06:00.4701042+08:00
+AGENT_OLD_PID=18156
+EVENT={"ts":"2026-11-13T11:06:18.6353491+08:00","task_id":"agent-server","kind":"probe_failed","detail":"health endpoint unavailable"}
+EVENT={"ts":"2026-11-13T11:06:18.6993393+08:00","task_id":"agent-server","kind":"restart","detail":"pid=17420 reason=guardian health failure"}
+EVENT={"ts":"2026-11-13T11:06:21.7420818+08:00","task_id":"agent-server","kind":"probe_ok","detail":"health restored pid=17420"}
+FINAL_NEW_PID=17420
+FINAL_NEW_PROCESS=pythonw.exe
+FINAL_NEW_PARENT_HOST_PID=1688
+FINAL_RECOVERY_ELAPSED_MS=21819
+FINAL_NEW_AGENT_CONHOST_COUNT=0
+FINAL_NEW_ACTIVE_CONSOLE_OR_SHELL_PROCESS_COUNT=0
+FINAL_NEW_PID_IN_PROCESS_HOST_PID_FILE=True
+FIXED_JOB_PROOF_HOST=1688 AGENT=17420 REMAINING= RESULT=PASS
+FINAL_SCREENSHOT=docs/reports/evidence/installer-phase3/t2-guardian-restart-no-console-pass.png
+FINAL_SCREENSHOT_SHA256=E751912D113B763CDCD041C28C3C8537EDA7AA00B9B045B305468B927A281420
+T2_FINAL_INTEGRATION_RESULT=PASS
+
+FINAL_LIVE_GUARDIAN_HOST_PID=1552
+FINAL_LIVE_EVENT={"ts":"2026-11-13T11:07:12.4900083+08:00","task_id":"agent-server","kind":"guardian_started","detail":"health=http://127.0.0.1:8756/health interval=20 fail_limit=3 cooldown=300"}
+FINAL_LIVE_EVENT={"ts":"2026-11-13T11:07:12.5126882+08:00","task_id":"agent-server","kind":"probe_ok","detail":"health endpoint ready"}
+
+T2_FINAL_GATE_TS=2026-11-13T11:07:40.5360083+08:00
+BUILD_RESULT=PASS warnings=0 errors=0 exit=0
+ULTIMA_TASK_COUNT=2 tasks=UltimaAgent-Preload,UltimaAgentTrackerLive
+WATCHDOG_TASK_ABSENT=True
+WATCHDOG_ROLE_PROCESS_COUNT=0
+WATCHDOG_AST=PASS
+MANIFEST_SCHEMA=ultimaagent-host-tasks/v1
+AGENT_EXECUTABLE=tools/venv-openjarvis/Scripts/pythonw.exe
+AGENT_POLICY=guardian CHECK=20 FAIL=3 COOLDOWN=300
+VOICE_POLICY=manual
+MANIFEST_T2_RESULT=PASS
+DIFF_CHECK_EXIT=0
+T2_GATE_RESULT=PASS

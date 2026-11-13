@@ -5,7 +5,7 @@
 - pid 不存活 且 有 final-message         -> 已结束（待复审/已交付）
 - pid 不存活 且 无 final-message         -> 中断（异常终止）
 
-用法：python -B scripts/tracker-live.py
+用法：python -B devtools/tracker-live.py
 """
 
 from __future__ import annotations
