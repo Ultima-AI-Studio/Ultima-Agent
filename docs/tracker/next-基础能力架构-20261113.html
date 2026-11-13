@@ -356,6 +356,23 @@ footer{margin-top:40px;padding-top:16px;border-top:1px solid var(--line);color:v
     <p><b>共用物理的三条约定：</b>①统一落 <code>store/</code>（hot/warm/cold ＋ <code>volumes.json</code> 卷），不各建磁盘布局、不新增第三套扩容；②三套 schema <code>memory</code>/<code>task</code>/<code>log</code> 前缀分开，<b>跨库 JOIN 禁止</b>；③五个检索入口 <code>mem/kb/exp/task/log</code> 分开，<b>混检计数 = 0</b>。</p>
   </section>
 
+  <!-- 九、主脑可替换 -->
+  <section class="sec">
+    <h2>09 · 主脑可替换，与「skill 配模型」同一套下拉（R-76 / R-77）</h2>
+    <p>主脑不是写死的。它在<b>配置面</b>用下拉切换，交互与「给某个 skill 配哪个模型」完全一致；差别只在候选来源与生效方式。</p>
+    <table>
+      <thead><tr><th></th><th>外部能力 · 模型库</th><th>主脑设定</th></tr></thead>
+      <tbody>
+        <tr><td>放哪</td><td>外部能力抽屉里</td><td><b>配置面（设置页）</b></td></tr>
+        <tr><td>候选来源</td><td>云端 provider</td><td><b>主脑登记表 ∪ 模型库已配 provider</b>，下拉<b>分「本地／外部」两组带标签</b></td></tr>
+        <tr><td>换的是什么</td><td>某个 skill 调谁</td><td>引擎自己的脑子</td></tr>
+        <tr><td>生效</td><td>手动下拉，在途任务等本轮结束</td><td>手动下拉，<b>重启 llama-server</b> ＋ 回读对账，在途等本轮结束</td></tr>
+      </tbody>
+    </table>
+    <p><b>三道隐私闸（切外部时）：</b>①切换显式确认（数据离开本机 ＋ 可回退）②记忆外发默认关（<code>mem</code> 命中片段需会话级一次授权、<code>mem</code> 全库/<code>kb</code>/<code>exp</code> 禁止、审计日志与凭据绝对禁止）③外部状态常驻可见（<b>本地绿／外部黄／降级红</b> ＋ 四角壳「云端主脑」角标 ＋ 首次不可跳过确认）。外部选择<b>持久化</b>，但配一条不可关的状态条。</p>
+    <p><b>失败不换家：</b>换型失败回滚到<b>本次换型前</b>的条目，不自动挑第三方；外部主脑坏 → <code>LOCAL_FALLBACK</code> ＝ 回本地（收窄外发，不需二次确认）。</p>
+  </section>
+
   <footer>
     权威源：<b>next-基础能力盘点与缺口清单 §1.1.1 / §八</b>（呈现层级三类）｜ <b>next-感知交互参数基线 §15.2.1 / §十六 / §十七 / §十八 / §十九</b>｜ next-双域分离与开工设置规范 §七（模块设置）｜ plan-ultimaagent-next-rebuild（N-01～N-14 交付物）｜ <b>基线 §二十 / §二十一</b>（治理⑤ 隶属 · 缺口补口定案）<br>
     口径版本：2026-11-13 ｜ 变更编号 R-59 ～ R-75 ｜ 本页只做呈现，不改任何决策；冲突以基线为准。

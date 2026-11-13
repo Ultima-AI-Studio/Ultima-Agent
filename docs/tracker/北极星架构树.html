@@ -203,6 +203,7 @@ footer.legend b{color:var(--hd-muted); font-weight:600;}
 <li class="node leaf"><div class="row"><span class="caret">&gt;</span><span class="badge b-cap">能</span><span class="name">记忆写入裁决</span><span class="desc">写入边界控制（memory_write_boundary）</span></div></li>
 <li class="node leaf"><div class="row"><span class="caret">&gt;</span><span class="badge b-cap">能</span><span class="name">上下文压缩</span><span class="desc">10 轮 / 4000 token / 70% 触发阈值 / 保留最近 3 轮 / 摘要 ≤30%；<b>代码未落</b>（trim_history 零命中，归 N-01）</span></div></li>
 </ul></li>
+<li class="node leaf"><div class="row"><span class="caret">&gt;</span><span class="badge b-src">组件</span><span class="name">主脑（可替换推理后端）</span><span class="desc">引擎自己的脑子，<b>归 Core、不归外部能力抽屉</b>。两类后端：<b>本地</b> llama-server（127.0.0.1:11435，§16.2）／<b>外部·云端</b> provider（OpenAI 兼容）；在<b>配置面</b>下拉切换、与「skill 配模型」同一套交互，<b>下拉必须分「本地／外部」两组带标签</b>（R-76）；参数随模型走、失败回滚换型前条目、每次换型进审计（§二十三）；切外部即启<b>三道隐私闸</b>（R-77：切换确认／记忆默认禁发／外部黄灯＋角标常驻）</span></div></li>
 <li class="node leaf"><div class="row"><span class="caret">&gt;</span><span class="badge b-tool">工具</span><span class="name">orchestrator · intent · interface_route · queue_source · capability registry</span><span class="desc">Core 编排与裁决的内部工具集，统一 UltimaAgentNext.Core.* 命名空间</span></div></li>
 <li class="node leaf"><div class="row"><span class="caret">&gt;</span><span class="badge b-skill">技能</span><span class="name">任务规划 · 主动追问 · 结果汇报</span><span class="desc">可组合任务能力</span></div></li>
 </ul>
@@ -313,7 +314,7 @@ footer.legend b{color:var(--hd-muted); font-weight:600;}
 </li>
 
 <li class="node open">
-<div class="row"><span class="caret">&gt;</span><span class="badge b-mod">容器</span><span class="name">外部能力（容器 · 三抽屉）</span><span class="desc">不是模块，是容器：<b>能力库 Skill / 插件 Plugin / 模型库 Provider</b>；能力可添加、可指派，<b>一能力一模型</b>（无主备）；换绑＝在模型库里手动下拉、即时生效、在途任务等本轮结束；<b>主脑不进模型库</b>（内置 local.llama，不可指派不可换型）</span></div>
+<div class="row"><span class="caret">&gt;</span><span class="badge b-mod">容器</span><span class="name">外部能力（容器 · 三抽屉）</span><span class="desc">不是模块，是容器：<b>能力库 Skill / 插件 Plugin / 模型库 Provider</b>；能力可添加、可指派，<b>一能力一模型</b>（无主备）；换绑＝在模型库里手动下拉、即时生效、在途任务等本轮结束；<b>主脑不进模型库、不可指派</b>——主脑本身可替换（R-76，见 Core → 主脑），但不作为「被指派的能力模型」出现</span></div>
 <ul class="children">
 <li class="node open">
 <div class="row"><span class="caret">&gt;</span><span class="badge b-skill">抽屉</span><span class="name">能力库 Skill</span><span class="desc">产品策划 / 代码开发 / 方案撰写 / 代码审计 / 知识采集 / 顾问咨询；界面上是卡片：是否添加成功 ＋ 指派下拉 ＋ 状态灯</span></div>
@@ -336,11 +337,11 @@ footer.legend b{color:var(--hd-muted); font-weight:600;}
 </li>
 
 <li class="node open">
-<div class="row"><span class="caret">&gt;</span><span class="badge b-src">抽屉</span><span class="name">模型库 Provider</span><span class="desc">已配置好的云端大模型 API 列表 ＋ 可选本地第二模型；能力从这里挑绑定目标</span></div>
+<div class="row"><span class="caret">&gt;</span><span class="badge b-src">抽屉</span><span class="name">模型库 Provider</span><span class="desc">已配置好的云端大模型 API 列表 ＋ 可选本地第二模型；能力从这里挑绑定目标。<b>主脑不在此列表</b>（R-76：主脑可在配置面下拉引用本库 provider，但不被登记进来）</span></div>
 <ul class="children">
 <li class="node leaf"><div class="row"><span class="caret">&gt;</span><span class="badge b-cap">态</span><span class="name">六态可检测</span><span class="desc">ok / no_token / auth_failed / unreachable / rate_limited / disabled；额度只靠 402/429/insufficient_quota 失败判定，不做付费探测</span></div></li>
 <li class="node leaf"><div class="row"><span class="caret">&gt;</span><span class="badge b-cap">态</span><span class="name">换绑与降级</span><span class="desc">手动下拉即时生效；云端坏→LOCAL_FALLBACK（不自动换绑，unreachable 退避 3 次、rate_limited 不重试等窗口）；Console 只读档位不改档位</span></div></li>
-<li class="node leaf"><div class="row"><span class="caret">&gt;</span><span class="badge b-star">红线</span><span class="name">主脑不进模型库</span><span class="desc">内置 local.llama（127.0.0.1:11435），受基线 §十六 管；不出现在模型库列表、不可指派、不可换型</span></div></li>
+<li class="node leaf"><div class="row"><span class="caret">&gt;</span><span class="badge b-star">红线</span><span class="name">主脑不进模型库、不可指派</span><span class="desc">模型库列表里主脑条目 <b>0</b>，能力指派下拉里也不出现主脑；主脑可引用本库 provider，但<b>不被登记进来</b>。主脑本体与换型见 <b>Core → 主脑（可替换推理后端）</b>（R-76 / §二十三）</span></div></li>
 </ul>
 </li>
 </ul>
