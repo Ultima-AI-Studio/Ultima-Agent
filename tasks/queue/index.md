@@ -2,7 +2,7 @@
 
 > **由 `scripts/render-queue-views.py` 从 `tasks/queue/queue-status.json` 生成，勿手改。**
 > 唯一状态权威：`tasks/queue/queue-status.json`。修改 Markdown 不会回写状态。
-> schema_version=1 ｜ records=121 ｜ audit=4, blocked=16, cancelled=14, closed=3, executing=1, frozen=78, pending=5
+> schema_version=1 ｜ records=121 ｜ audit=5, blocked=16, cancelled=14, closed=3, frozen=78, pending=5
 
 <!-- queue-items:start -->
 | 项目 | 工单 | 状态 | audit_passed | 派发时间 | 审计 run | 冻结 commit | 备注 |
@@ -127,5 +127,5 @@
 | UltimaAgent | wo-ultimaagent-20261113-0062 | pending | false |  |  |  | P1 §27 三机制（M3 指令数据分离／M4 跳数8＋同轮扇出3／M7 ask.key 幂等／§27.4 仅 session_id）。前置＝0057 与 0059 均冻结；cancel_observe 明确不在本卡。v1.1（2026-11-14，据 0065 §1.2）：§27.3 补三职责归属（Console.task_store 持卡账、Core.clarify 产问题与 key、Surface 只读）；§27.4 改指针式（只引用 §25.1，不重复定义必填/创建/切换）。卡状态=待审卡。 |
 | UltimaAgent | wo-ultimaagent-20261113-0063 | pending | false |  |  |  | §25.10 补 cancel_observe（三值 running/not_running/unknown＋CANCELLED_PENDING 投影＋解除与3轮告警＋G-25.10-A..D）。前置＝0057 冻结凭据；只称「E-01 显式挂起」，①②标 TBD-RUNTIME。卡状态=待审卡。 |
 | UltimaAgent | wo-ultimaagent-20261113-0065 | audit | true | 2026-11-14T00:17:37+08:00 | wo-ultimaagent-20261113-0065-20261113T161737350053Z |  | 独立评审完成（16:17→00:38 UTC 派发记录，全程约 21min）：结论＝有条件通过，T5_GATE=PASS。六行裁定＝维持 4（P0/M3/M4/session_id）＋改判 2（M7→Console.task_store 主体、cancel_observe→queue_engine run 取消投影主体）；三卡写域＝0061 一致、0062 需调整、0063 一致；未决 U-01～U-04 已由 Owner 于 2026-11-14 全部闭合（方案版本头统一 v0.3、§11 两行按改判回写、0062 v1.1 改指针式）。 |
-| UltimaAgent | wo-ultimaagent-20261113-0066 | executing | false | 2026-11-13T16:38:18.269048+00:00 |  |  | 真实工单派发 wo-ultimaagent-20261113-0066-20261113T163817823112Z，一单一进程；尚未验收 |
+| UltimaAgent | wo-ultimaagent-20261113-0066 | audit | true | 2026-11-14T00:38:17+08:00 | wo-ultimaagent-20261113-0066-20261113T163817823112Z |  | 骨架评审完成（00:38→00:53，约 15min）：结论＝不通过，T5_GATE=PASS（评审自身合格）。新增问题 3 条＝BLOCKER S-002 队列写口双主（基线 L510「只由状态机写」vs §19.3 L1127「Console 只读写八态」）、BLOCKER S-003 补偿失败落 BLOCKED 在 §15.2.1 迁移表无来源态、HIGH S-001 架构树 L201「Core 执行顺序控制」与 L195／§19.2 打架；三处高危边界＝起进程有越界（沿用 0056-C-04）、八态定义闭合但持久写权双主、记忆写权闭合；§25 逐节归属 11/11 可归属、§25.3 与 §25.11 接口形态缺；§26／§27 位置对齐。三条经 Owner 回读原文核实成立。 |
 <!-- queue-items:end -->
