@@ -2,7 +2,7 @@
 
 > **由 `scripts/render-queue-views.py` 从 `tasks/queue/queue-status.json` 生成，勿手改。**
 > 唯一状态权威：`tasks/queue/queue-status.json`。修改 Markdown 不会回写状态。
-> schema_version=1 ｜ records=110 ｜ blocked=15, cancelled=14, closed=2, frozen=78, pending=1
+> schema_version=1 ｜ records=111 ｜ blocked=15, cancelled=14, closed=2, executing=1, frozen=78, pending=1
 
 <!-- queue-items:start -->
 | 项目 | 工单 | 状态 | audit_passed | 派发时间 | 审计 run | 冻结 commit | 备注 |
@@ -117,4 +117,5 @@
 | UltimaAgent | wo-ultimaagent-20261113-0053 | frozen | true | 2026-11-12T17:17:15.645354+00:00 | wo-ultimaagent-20261113-0053-20261112T171715167387Z | 41d8359f463f55a0a40bb7df4813ca891464809b | 真实执行结束 exit=0；wo-ultimaagent-20261113-0053-20261112T171715167387Z；待二轮复核，不自动批准或续派【2026-11-13 第二轮执行 PASS】v1.1 基线差集口径重派后完成：pytest 9 passed / 0 xfailed / 0 unexpected success（主脑独立复跑 25.00s 一致），真实包名与模块 ID 双形态均被拦、import os 放行；提交 41d8359f 恰含 9 个获准文件（2 代码 + 7 证据/报告）；反向断言 3/3（RESIDENT_DOMAINS 行零 diff、spec/registry.py 零 diff、expectedFailure 残留 0）；测试断言零改动，仅移装饰器+更新 docstring。主脑独立审计 PASS，冻结 tag wo-ultimaagent-20261113-0053-frozen-20261113。 |
 | UltimaAgent | wo-ultimaagent-20261113-0054 | frozen | true | 2026-11-13T02:38:42.882780+00:00 | wo-ultimaagent-20261113-0054-20261113T023840201172Z | 22560d41c6814f5c45f8cc945f8a0ec53c32884f | 真实执行结束 exit=0；wo-ultimaagent-20261113-0054-20261113T023840201172Z；待二轮复核，不自动批准或续派【2026-11-13 主脑独立验收 PASS】T10 七条判据全部独立复跑：Release 构建 0/0；test-jobkill PASS criteria=1,2,3,4,5（判据4 真实 UnhandledException、判据5 WM_CLOSE 正常关 state=stopped）；check-shipped-tasks PASS；test-phase3-autostart PASS（TASKS 0→0、快捷方式幂等、无控制台）；schtasks 全表 378 行 UltimaAgent 前缀 0 条；Python AST 3/3；launch.py SHA256 保持 46941A…D7ADD01；未触碰面 providers/release-assets/launch.py/start-agent-server 零 diff；证据 44 项 + total-gate 165 行齐备。提交 22560d41（322 文件）已在远端，归因为后续主脑 docs 提交连带推送，非 worker 自行 push，不判违规；卡 T10 语音对照基准 kws-wakeup-params-baseline.md 已归档，口径更正为 voice-next-product-baseline.md + config/voice-next/live.json（实测语音参数零变化）。验收记录 docs/reports/audit-wo-ultimaagent-20261113-0054.md；冻结 tag wo-ultimaagent-20261113-0054-frozen-20261113。 |
 | UltimaAgent | wo-ultimaagent-20261113-0055 | frozen | true | 2026-11-13T11:24:26.606047+00:00 | wo-ultimaagent-20261113-0055-20261113T112426606047Z | e18f6f486380cd788d372b3afc7ae1983fdaeaf5 | Codex 独立审计第 3 轮结束 exit=0（run …-20261113T112426606047Z）：结论**有条件 PASS**，HIGH 0／MED 4／LOW 1。T1 24 章·110 节·附录 A@L1500·无解释待定 0（1524 行 LF）；T3 113 节点·ul29/29·li113/113·div144/144·P1–P5 父链全过·三口径冲突 0；T2 70 格矩阵 3 处不一致（M2 阈值／M8 主脑口径／M10 Console 门）；T4 9 条＝可机检 2／半 6／不可 1。主脑独立复核三处 MED 全部属实并就地修复：架构树 0.25→0.30；详解页「不可换型」→不在模型库列表·不可被 skill 指派·本身可替换；盘点 Console 行补同 pid／8756 只读视图／四项调用=0。遗留 F-005：7 条半机检验收待补夹具/范围/oracle，另单跟进。前两轮：R1 因卡面写死 1525 行按停线条款停于 T1（F-001，卡 v1.1 已删硬值）；R2 撞 3600s 时限截断，T2 未落盘丢失，R3 改为每 T 即时落盘兜底。 |
+| UltimaAgent | wo-ultimaagent-20261113-0056 | executing |  | 2026-11-13T12:07:41.000266+00:00 |  |  | 真实工单派发 wo-ultimaagent-20261113-0056-20261113T120740542772Z，一单一进程；尚未验收 |
 <!-- queue-items:end -->
