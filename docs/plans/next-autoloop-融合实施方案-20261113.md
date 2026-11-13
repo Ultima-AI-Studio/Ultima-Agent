@@ -193,6 +193,29 @@ DeepSeek 首轮主张首批只做 M3/M4/M7，我方主张 M1 会话字段要进�
 
 ---
 
+## 11. 模块归属（基础能力六块里挂哪儿）
+
+依据：`docs/tracker/next-基础能力架构-20261113.html` §02（六块：Core／Senses.Voice／Shell／Surface／Memory／Middleware，模块数**仍是六块**）＋ 基线 §二十一 归属定案（R-68~R-73）。
+
+**一句话：主体挂 Middleware，但整份方案不归任何单独一块——必须按四条切开放，否则会出现「一个方案两个主文」的老毛病。**
+
+| 方案部分 | 归属模块 | 依据 | 落点 |
+|---|---|---|---|
+| P0 三件套（`inbox/`、`queue-writer.py` 唯一写者、`reconcile-inbox.py`、`claim_id`） | **Middleware · queue_engine**（票据与八态唯一写权） | 六块里「执行端与票据、八态定义权在此层（不是 Console）」 | 0061；inbox／reconcile 是 queue_engine 的**子件**，不新增模块 |
+| P1 M3 指令数据分离（字段白名单、`summary/detail` 不进提示词、`access/cwd` 拒收） | **Middleware · delegation**（派发 ABI 入口）主体；**治理⑤ · 防投毒**只出约束声明 | 外部事件进引擎的边界就是 delegation；防投毒属横切治理层，不承载实现 | 0062 §27.1 |
+| P1 M4 跳数 8 ＋ 同轮扇出 3 | **Console · 任务编排** | 「还能不能再派活」是编排策略，不是执行器职责 | 0062 §27.2 |
+| P1 M7 `ask.key` 卡片幂等 | **Core · 澄清出口**主文 ＋ **Surface · task_manager_panel** 呈现细则 | 「同一事项只问一次」是 Core 决策出口契约；卡片长什么样才归 Surface | 0062 §27.3 |
+| P1 `session_id` 一等字段 | **Core ↔ Senses.Voice** 对话信封（主文已在 §25.1） | 会话边界属对话域，§27.4 只登记字段不重定义 | 0062 §27.4 |
+| P2 `cancel_observe`／`CANCELLED_PENDING` | **Middleware · state_machine**（八态定义权）＋ **Shell**（终止凭据来源） | 取消＝状态迁移＋进程终止证据；§25.10 主文不动 | 0063 |
+
+**两条硬约束（写方案不是为了加模块）**
+1. **不新增第七块**：`inbox`／`reconcile`／`writer` 都是 queue_engine 的子件；登记进能力注册表即可，基础能力模块数维持六块（页面口径不许改）。
+2. **写口在 Middleware、读视图在 Console**：R-74 已定「任务库是 Console 的账」，但队列**写入口**必须在 `queue_engine`。两者不是双源——Console 只读消费、不得写 `queue-status.json`。这条正是本方案 §3.1 在模块层的对应表述，也是审卡时要机检的一条。
+
+**§二十七 标题建议**（给 0062 用）：`§二十七 事件入口、编排熔断与票据幂等（Middleware.delegation / Console.orchestration / Core.clarify）` —— 标题里带模块，审计才能一眼对到六块。
+
+---
+
 ## 附：来源
 
 - 机制与协议事实：`https://raw.githubusercontent.com/KKKKhazix/agent-autoloop/main/docs/protocol.md`
