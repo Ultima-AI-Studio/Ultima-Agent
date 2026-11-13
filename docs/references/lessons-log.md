@@ -2223,3 +2223,9 @@ ERROR: Reconnecting... 5/5 → exit code 1
 - **修法**：①行数类事实**必须声明口径**（v1.2 统一为含空行）；②**PID 永远不写死进卡**，改按命令行特征识别（watchdog = 命令行含 scripts\watchdog-loopguard.py）；③**字段名/状态机取值引用真实生产者源码**（live.py L54/L136-280 + 现存 status.json 双向核对）；④涉及"谁拉起谁"的时序冲突，优先裁决**适配冻结锚**（launch.py 是哈希校验对象→改工单不动锚，P2 唯一直接拉起 + P1 adopt-only）。
 - **附带坑（验收期）**：PowerShell Select-String **默认不区分大小写**——MODEL\s*= 报 5 处命中实为 _MAIN.get("model")，反向断言判"常量回归"时必须加 -CaseSensitive；主脑环境 PATH 无 dotnet/powershell，独立复跑要用全路径（C:\Program Files\dotnet\dotnet.exe、C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe）。
 - **判据**：写卡时凡引用"现场事实"，问自己三个问题——口径写了吗？这条事实会自己变吗（PID/状态）？生产它的源码我读过吗？三个都答不上就会再吃一次预检阻塞。
+## L222 · 手工登记队列记录缺字段，派发在渲染门静默失败（2026-11-13）
+
+- **现象**：0054 首次派发，`state()` 已把工单翻成 executing、run 目录已建，但随后调用的 `render-queue-views.py` 退出码 1（`record 172 lacks required fields`），异常向上抛，worker 从未启动，队列却停在 executing。
+- **根因**：0054 记录是建卡时用临时脚本手工写入的，只写了 6 个键，缺 `audit_run`/`freeze_commit`（回退 pending 时又误删了 `dispatched_at`，该字段允许 null 但键必须存在）。渲染器 `_validate` 要求 8 个键齐全，而派发器自身只读写不补键，缺陷被带到派发时才爆。
+- **修法**：补齐 8 键（缺的三个给 null），状态回 pending 后重派；重派一次成功。
+- **判据**：任何脚本写 queue-status.json，必须按渲染器 `_validate` 的 8 个必填键（project/work_order/state/audit_passed/dispatched_at/audit_run/freeze_commit/note）整键写入，写完立即跑一次 `render-queue-views.py` 自检；派发失败后先查 run 目录有无 out.jsonl/worker 进程，确认状态与现场一致再重派。
