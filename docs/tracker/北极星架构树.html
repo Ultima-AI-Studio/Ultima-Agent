@@ -192,7 +192,7 @@ footer.legend b{color:var(--hd-muted); font-weight:600;}
 <ul class="children">
 
 <li class="node open">
-<div class="row"><span class="caret">&gt;</span><span class="badge b-mod">子模块</span><span class="name">1. Core（编排与裁决）</span><span class="desc">意图理解、任务编排、复述确认、记忆写入裁决</span></div>
+<div class="row"><span class="caret">&gt;</span><span class="badge b-mod">子模块</span><span class="name">1. Core（编排与裁决）</span><span class="desc">意图理解、把意图拆成步骤、复述确认、记忆写入裁决；<b>拆解在此，派发顺序与优先级归 Console</b></span></div>
 <ul class="children">
 <li class="node open">
 <div class="row"><span class="caret">&gt;</span><span class="badge b-cap">能力</span><span class="name">能力</span><span class="desc">用户可感知功能</span></div>
@@ -223,23 +223,23 @@ footer.legend b{color:var(--hd-muted); font-weight:600;}
 </li>
 
 <li class="node open">
-<div class="row"><span class="caret">&gt;</span><span class="badge b-mod">子模块</span><span class="name">3. Shell（常驻托管）</span><span class="desc">常驻托管、守护自愈、开机自启、子进程零弹窗</span></div>
+<div class="row"><span class="caret">&gt;</span><span class="badge b-mod">子模块</span><span class="name">3. Shell（进程治理）</span><span class="desc">进程的起停与回收在此层；「常驻托管」的启停<b>意图</b>由 Console 下达，本层只执行 · 进程保活、守护自愈、开机自启、子进程零弹窗</span></div>
 <ul class="children">
 <li class="node open">
 <div class="row"><span class="caret">&gt;</span><span class="badge b-cap">能力</span><span class="name">能力</span><span class="desc">用户可感知功能</span></div>
 <ul class="children">
-<li class="node leaf"><div class="row"><span class="caret">&gt;</span><span class="badge b-cap">能</span><span class="name">常驻托管</span><span class="desc">HostShell(WinUI3) 常驻，Job Object 子进程树托管</span></div></li>
+<li class="node leaf"><div class="row"><span class="caret">&gt;</span><span class="badge b-cap">能</span><span class="name">进程树托管</span><span class="desc">HostShell(WinUI3) 常驻，Job Object 子进程树托管；启停意图来自 Console</span></div></li>
 <li class="node leaf"><div class="row"><span class="caret">&gt;</span><span class="badge b-cap">能</span><span class="name">守护自愈</span><span class="desc">GuardianService 20s 探活 8756 / 3 次失败 / 冷却 300s；agent-server 自动重启</span></div></li>
 <li class="node leaf"><div class="row"><span class="caret">&gt;</span><span class="badge b-cap">能</span><span class="name">开机自启</span><span class="desc">启动文件夹 .lnk（进程内晚绑定 COM 创建，零计划任务、零弹窗）</span></div></li>
 <li class="node leaf"><div class="row"><span class="caret">&gt;</span><span class="badge b-cap">能</span><span class="name">子进程零窗</span><span class="desc">pythonw + UseShellExecute=false + CreateNoWindow + 标准流重定向排空</span></div></li>
 </ul></li>
-<li class="node leaf"><div class="row"><span class="caret">&gt;</span><span class="badge b-tool">工具</span><span class="name">GuardianService · HostTaskRegistry · JobObjectManager · ChildProcessSupervisor · ReadinessProbe · AutostartEntry</span><span class="desc">常驻托管链内部工具集（探活/注册/Job 归属/子进程监管/就绪探测/自启入口）</span></div></li>
+<li class="node leaf"><div class="row"><span class="caret">&gt;</span><span class="badge b-tool">工具</span><span class="name">GuardianService · HostTaskRegistry · JobObjectManager · ChildProcessSupervisor · ReadinessProbe · AutostartEntry</span><span class="desc">进程治理链内部工具集（探活/注册/Job 归属/子进程监管/就绪探测/自启入口）</span></div></li>
 <li class="node leaf"><div class="row"><span class="caret">&gt;</span><span class="badge b-skill">技能</span><span class="name">任务托管 · 崩溃回收</span><span class="desc">Job 归属判据：宿主强杀子进程树 3 秒内同步消失</span></div></li>
 </ul>
 </li>
 
 <li class="node open">
-<div class="row"><span class="caret">&gt;</span><span class="badge b-mod">子模块</span><span class="name">4. Surface（输出呈现）</span><span class="desc">四角壳 HUD（唯一显示形态，悬浮球方案退场）、应用内任务管理器面板</span></div>
+<div class="row"><span class="caret">&gt;</span><span class="badge b-mod">子模块</span><span class="name">4. Surface（界面与呈现）</span><span class="desc">只画像素：呈现<b>内容与时机</b>由 Console 决定，本层不自定义卡内容来源 · 四角壳 HUD（唯一显示形态，悬浮球方案退场）、应用内任务管理器面板</span></div>
 <ul class="children">
 <li class="node open">
 <div class="row"><span class="caret">&gt;</span><span class="badge b-cap">能力</span><span class="name">能力</span><span class="desc">用户可感知功能</span></div>
