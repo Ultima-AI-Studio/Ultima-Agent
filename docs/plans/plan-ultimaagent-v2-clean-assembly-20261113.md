@@ -15,8 +15,8 @@ UltimaAgent 的五条行为学原则（源自原贾维斯调研结论，2026-11-
 
 | 原则 | 含义 | v2 落点 |
 |---|---|---|
-| 感官分工 | 耳（听）/眼（看）/嘴（说）各司其职，不混通道 | Senses.Voice（耳+嘴）、Surface（眼）分模块 |
-| 大脑理解先于行动 | 先理解意图再执行，不条件反射 | Core 的意图→路由→编排固定顺序 |
+| 感官分工（通道分工） | 语音通道与显示通道各司其职，不混通道 | Senses.Voice（语音进出）、Surface（输出呈现）分模块 |
+| 理解先于行动 | 先理解意图再执行，不条件反射 | Core 的意图→路由→编排固定顺序 |
 | 复述确认 | 关键动作执行前向用户复述确认 | Core 的 confirm 协议（语音+面板双通道） |
 | 记忆分层 | 工作记忆/长期记忆/温度分层 | Memory 模块三层结构 |
 | 不打扰与反馈闭环 | 平时隐身，有事说话，说完即静 | Shell 常驻（托盘）+ 四角壳锚位按需显隐（常驻仅顶/左上/右上） |
@@ -25,15 +25,17 @@ UltimaAgent 的五条行为学原则（源自原贾维斯调研结论，2026-11-
 
 ## 二、v2 模块架构（职责命名，一步到位）
 
+> **架构组织逻辑声明（Owner 纠偏 2026-11-13）**：本产品架构按**能力分层**组织与拓展——基础能力（L0-L10 能力清单，权威源 `docs/plans/capability-list.md` + `docs/specs/registry.md` 注册表）→ 外脑（DeepSeek/Codex/本地 8B 主脑，执行端可替换）→ 顾问（豆包 V1 后转型验收/咨询/方向建议）→ Skill（技能注册表，给智能体消费）→ 插件（开源拼装接线），**不是**按"脑/耳/身/脸"身体器官构建。下方八模块只是**基础能力的本体承载**（v2 冻结裁决），模块名一律用职责命名；"感官分工"等词仅作行为原则表述，不构成架构轴。外脑/顾问/Skill/插件均为本体之上的能力扩展层，随 v2 后演进逐层建设，不在本拼装工单内搬运。
+
 新仓目录（拟定名，全部去迭代代号/上游名）：
 
 ```
 H:\UltimaAI\UltimaAgentNext\
 ├── src\
-│   ├── Core\            大脑：意图理解、编排、记忆写入边界、复述确认协议
-│   ├── Senses\Voice\    耳+嘴：KWS 唤醒、VAD、TTS(CV3)、语音会话循环
-│   ├── Shell\           身：HostShell(WinUI3)、ProcessHost/GuardianService、Job 托管、自启
-│   ├── Surface\         脸：四角壳 HUD（8 锚点，唯一显示形态）、任务管理器面板
+│   ├── Core\            编排与裁决：意图理解、编排、记忆写入边界、复述确认协议
+│   ├── Senses\Voice\    语音进出：KWS 唤醒、VAD、TTS(CV3)、语音会话循环
+│   ├── Shell\           常驻托管：HostShell(WinUI3)、ProcessHost/GuardianService、Job 托管、自启
+│   ├── Surface\         输出呈现：四角壳 HUD（8 锚点，唯一显示形态）、任务管理器面板
 │   ├── Memory\          记忆：工作/长期/温度分层
 │   ├── Middleware\      调度：路由、委派、沙箱、任务窗口、票据
 │   ├── Update\          更新：发布通道、manifest 签名
@@ -50,41 +52,41 @@ H:\UltimaAI\UltimaAgentNext\
 
 每模块三层定义（能力=用户可感知功能；工具=模块内可调用进程/脚本/API；技能=可组合任务能力）：
 
-### 1. Core（大脑）
+### 1. Core（编排与裁决）
 - **能力**：意图理解、任务编排、复述确认、记忆写入裁决
 - **工具**：orchestrator、intent、interface_route、queue_source、capability registry
 - **技能**：任务规划、主动追问、结果汇报
 - **搬运源**：`src/brain/*`（剔除 weather.py 等杂物归 devtools；`openjarvis.*` import 全部吸收为 `UltimaAgentNext.Core.*` 或适配层）
 
-### 2. Senses.Voice（耳+嘴）
+### 2. Senses.Voice（语音进出）
 - **能力**：唤醒、听写、对话、TTS 播报
 - **工具**：kws_backend、turn_worker、live_core、apm_dsp、CV3 推理
 - **技能**：语音会话、尾音处理、音色切换
 - **搬运源**：`src/voice-next/*`（KWS/CV3 参数冻结基线，搬运后逐项复测，禁顺手优化）
 
-### 3. Shell（身）
+### 3. Shell（常驻托管）
 - **能力**：常驻托管、守护自愈（agent-server）、开机自启、子进程零弹窗
 - **工具**：GuardianService（20s/3次/300s）、HostTaskRegistry、JobObjectManager、ChildProcessSupervisor、ReadinessProbe、AutostartEntry（启动文件夹 .lnk）
 - **技能**：任务托管、崩溃回收（Job 归属）
 - **搬运源**：0054 冻结产物（这是本方案的直接输入）+ 0052 ProcessHost 三件套
 
-### 4. Surface（脸）
+### 4. Surface（输出呈现）
 - **能力**：四角壳 HUD 展示（8 锚点）、应用内任务管理器面板
 - **工具**：UltimaAgent.Hud 原生壳（2026-10-29 验收通过）、hud-live-four-corner 设计基线（--hd-* token、锚位宽度锁定 clamp(280px,24vw,352px)、无边框气泡形态、置顶才显边框）、TaskManagerRenderer、taskmanager.html、WebView2 双向消息
 - **技能**：状态反馈、任务可视
 - **形态裁决（Owner 拍板 2026-11-13）**：**四角壳为唯一显示形态，悬浮球方案退场**。全部 orb 渲染器（OrbLiveRenderer/OrbBallRenderer/ComboWindowRenderer 及 ULTIMA_HOST_ORB_TEST/LIVE/COMBO 测试链）**均不进入新仓产品形态**，只降级 devtools 测试夹具归档；OrbHost/OrbNative 死工程不搬（留冻结仓归档）；python 侧 `src/window/*.py` 不搬（活链路未用）。0054 在途 T6 的 orb 视觉增量属 v1 收口证据链，照常完成工单验收，但不改变 v2 Surface 裁决。
 
-### 5. Memory（记忆）
+### 5. Memory（记忆与自学习）
 - **能力**：工作记忆、长期记忆、温度分层
 - **工具**：writer、poison_guard、backend 适配
 - **技能**：上下文注入、记忆检索
 
-### 6. Middleware（调度）
+### 6. Middleware（多端调度）
 - **能力**：多执行端路由、任务窗口、沙箱隔离
 - **工具**：router、delegation、sandbox、task_window、ticket
 - **搬运源**：`src/middleware/*`
 
-### 7. Update / Lifecycle（发布与安装）
+### 7. Update / Lifecycle（更新与交付）
 - **能力**：远程更新、签名校验、安装/升级/卸载
 - **工具**：manifest、publisher、Setup 链、check-shipped-tasks
 - **搬运源**：`src/update/*`、`installer/*`、`dist/release-assets.json` 模板
@@ -148,7 +150,7 @@ host-tasks.json 中 `tools/venv-openjarvis/...`、`src/voice-next/launch.py` 等
 **产品最终形态 = AR 眼镜上使用的智能代理**。v2 干净拼装不只是清理旧仓，更是为多终端演进铺路：当前 Windows 是第一站，下一版适配 Linux，未来做自研 AR 眼镜系统。据此立三条架构铁律：
 
 1. **模块分层按"终端无关/终端相关"切分**（本方案八模块架构天然满足，搬运时以依赖检查守住）：
-   - **终端无关层（跨终端常量）**：Core、Senses.Voice、Memory、Middleware、Update——五模块搬运与后续演进**禁止引入 Windows-only 依赖**（无 win32api/pywin32/WMI 依赖进这些层；开发验收工具例外，归 devtools）。KWS/CV3 语音链路本身终端无关，是 AR 眼镜"耳+嘴"的直接复用层。
+   - **终端无关层（跨终端常量）**：Core、Senses.Voice、Memory、Middleware、Update——五模块搬运与后续演进**禁止引入 Windows-only 依赖**（无 win32api/pywin32/WMI 依赖进这些层；开发验收工具例外，归 devtools）。KWS/CV3 语音链路本身终端无关，是 AR 眼镜语音通道的直接复用层。
    - **终端相关层（每终端一套适配）**：Shell（常驻托管/自愈/自启）与 Surface（显示形态）——Windows 版 = HostShell(WinUI3)+四角壳锚位；Linux 版另立 Shell 适配（systemd/dbus 方向，后续专项方案）；AR 眼镜版 = 自研系统内嵌。Shell 与 Surface 之间约定**宿主契约接口**（托管生命周期/事件/渲染挂点），跨终端只换实现不换契约。
 2. **显示形态跨终端唯一常量 = 四角壳 8 锚点范式**：hud-layout-zone-plan v0.2 的 AR HUD 显示哲学（边缘常驻×按需显隐×中央零遮挡、锚位职责锁定、宽度锁定、无边框气泡、置顶才显边框）本就为 AR 前瞻设计——Windows 上是屏幕四角，AR 上贴视野边缘，范式不变只换投射载体。AR 安全基线（透明度三档 0.14/0.55/0.85、中央永远透传）沿用既有定稿。
 3. **演进次序与不可逆纪律**：Windows v2（P2V-00~05）→ Linux 适配版（独立方案+工单，不与拼装混做）→ AR 眼镜系统（远期，自研内核前先在 Windows/Linux 上把四角壳+语音链路打磨成熟）。每一步迁移都走「冻结仓+白名单搬运」范式，不复用被冻结的旧实现直接混写。
