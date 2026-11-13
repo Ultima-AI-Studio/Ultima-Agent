@@ -1,0 +1,123 @@
+# UltimaAgent v2 干净拼装方案（Clean Assembly Plan）
+
+> 版本：v0.1 草案 ｜ 起草：2026-11-13（0054 执行期间并行起草，只读未动在途 run）
+> 性质：A 级变更方案，待 Owner 拍板后拆工单
+> 前置输入：0052/0053 已冻结；0054（watchdog 内化+零计划任务+应用内面板）验收冻结后本方案生效
+> 决策依据：docs/decisions/pd-20261113-0054-watchdog内化与零计划任务裁决.md、docs/research/naming-audit-20261113.md（含 orb 六套重复盘点）
+
+---
+
+## 一、北极星重述（唯一方向判据）
+
+**产品北极星 = 贾维斯（Jarvis）。** 一切模块、能力、界面以"向贾维斯靠拢"为唯一方向；开源项目（白龙马/大飞鱼/LobeHub 等）只作接线方式参考，不改北极星。
+
+贾维斯的五条行为学原则（已定，全部沿用进 v2）：
+
+| 原则 | 含义 | v2 落点 |
+|---|---|---|
+| 感官分工 | 耳（听）/眼（看）/嘴（说）各司其职，不混通道 | Senses.Voice（耳+嘴）、Surface（眼）分模块 |
+| 大脑理解先于行动 | 先理解意图再执行，不条件反射 | Core 的意图→路由→编排固定顺序 |
+| 复述确认 | 关键动作执行前向用户复述确认 | Core 的 confirm 协议（语音+面板双通道） |
+| 记忆分层 | 工作记忆/长期记忆/温度分层 | Memory 模块三层结构 |
+| 不打扰与反馈闭环 | 平时隐身，有事说话，说完即静 | Shell 常驻（orb/托盘），事件驱动唤醒 |
+
+语音状态机（冻结基线，v2 原样继承）：`warming→ready→capturing→processing→speaking/acknowledging/stopped/error`；唤醒词「幂幂」、threshold 0.25、warm_progress 0/25/50/75/100。参数唯一权威源 `docs/specs/kws-wakeup-params-baseline.md`，v2 搬运不改。
+
+## 二、v2 模块架构（职责命名，一步到位）
+
+新仓目录（拟定名，全部去迭代代号/上游名）：
+
+```
+H:\UltimaAI\UltimaAgentV2\
+├── src\
+│   ├── Core\            大脑：意图理解、编排、记忆写入边界、复述确认协议
+│   ├── Senses\Voice\    耳+嘴：KWS 唤醒、VAD、TTS(CV3)、语音会话循环
+│   ├── Shell\           身：HostShell(WinUI3)、ProcessHost/GuardianService、Job 托管、自启
+│   ├── Surface\         脸：orb live 渲染、任务管理器面板、四角壳锚位（预留）
+│   ├── Memory\          记忆：工作/长期/温度分层
+│   ├── Middleware\      调度：路由、委派、沙箱、任务窗口、票据
+│   ├── Update\          更新：发布通道、manifest 签名
+│   └── Lifecycle\       安装包：Setup、shipped-tasks、升级链
+├── tools\               venv（规范名）、验收脚本、测试夹具
+├── devtools\            开发兜底：watchdog 手动脚本、旧 orb 测试样式（降级归档）
+├── config\               host-tasks.json 等
+├── installer\
+├── docs\                00-19 文档体系（按工程方法论 §2 重建，INDEX 为权威源）
+└── tasks\queue\         队列引擎（从冻结仓原样搬运）
+```
+
+## 三、模块 × 能力/工具/技能三层表
+
+每模块三层定义（能力=用户可感知功能；工具=模块内可调用进程/脚本/API；技能=可组合任务能力）：
+
+### 1. Core（大脑）
+- **能力**：意图理解、任务编排、复述确认、记忆写入裁决
+- **工具**：orchestrator、intent、interface_route、queue_source、capability registry
+- **技能**：任务规划、主动追问、结果汇报
+- **搬运源**：`src/brain/*`（剔除 weather.py 等杂物归 devtools；`openjarvis.*` import 全部吸收为 `UltimaAgentV2.Core.*` 或适配层）
+
+### 2. Senses.Voice（耳+嘴）
+- **能力**：唤醒、听写、对话、TTS 播报
+- **工具**：kws_backend、turn_worker、live_core、apm_dsp、CV3 推理
+- **技能**：语音会话、尾音处理、音色切换
+- **搬运源**：`src/voice-next/*`（KWS/CV3 参数冻结基线，搬运后逐项复测，禁顺手优化）
+
+### 3. Shell（身）
+- **能力**：常驻托管、守护自愈（agent-server）、开机自启、子进程零弹窗
+- **工具**：GuardianService（20s/3次/300s）、HostTaskRegistry、JobObjectManager、ChildProcessSupervisor、ReadinessProbe、AutostartEntry（启动文件夹 .lnk）
+- **技能**：任务托管、崩溃回收（Job 归属）
+- **搬运源**：0054 冻结产物（这是本方案的直接输入）+ 0052 ProcessHost 三件套
+
+### 4. Surface（脸）
+- **能力**：悬浮球 live 展示、应用内任务管理器面板、（预留）四角壳
+- **工具**：OrbLiveRenderer、TaskManagerRenderer、taskmanager.html、WebView2 双向消息
+- **技能**：状态反馈、任务可视
+- **收敛裁决**：**只搬这一套**。OrbBallRenderer/orb.html 旧样式降级 devtools 测试夹具；OrbHost/OrbNative 死工程不搬（留冻结仓归档）；python 侧 `src/window/*.py` 不搬（活链路未用）
+
+### 5. Memory（记忆）
+- **能力**：工作记忆、长期记忆、温度分层
+- **工具**：writer、poison_guard、backend 适配
+- **技能**：上下文注入、记忆检索
+
+### 6. Middleware（调度）
+- **能力**：多执行端路由、任务窗口、沙箱隔离
+- **工具**：router、delegation、sandbox、task_window、ticket
+- **搬运源**：`src/middleware/*`
+
+### 7. Update / Lifecycle（发布与安装）
+- **能力**：远程更新、签名校验、安装/升级/卸载
+- **工具**：manifest、publisher、Setup 链、check-shipped-tasks
+- **搬运源**：`src/update/*`、`installer/*`、`dist/release-assets.json` 模板
+
+### 8. Tools / Devtools（工程底座）
+- venv 规范重命名（如 `tools/venv-ultimaagent`，指向解释器不变）；验收脚本（test-jobkill、check-shipped-tasks、test-phase3-*）；队列引擎 `tasks/queue_engine/*` + 渲染器
+
+## 四、搬运白名单总则
+
+1. **只搬冻结产物**：每项搬运必须能指出冻结来源（tag 或冻结 commit），逐项登记映射表（源→目的），搬运后新仓第一件事是全量复验。
+2. **明确不带走的**：jarvis-work 90 份过程文档（冻结仓留档）；OrbHost/OrbNative 死工程；`src/window/*.py` python 渲染线；gorch 系脚本；`_readme_local_backup.md`；config/_backup 全部。
+3. **改名一步到位**：`UltimaAgentV2.*` 命名空间、无 voice-next、无 openjarvis import、无迭代代号分支（新仓从 `main` 起步）。
+4. **非目标**：不重建四角壳框架（未来独立工单）；不动 KWS/CV3 冻结参数；不改 8756 端口与 20/3/300 守护语义；不建 UltimaManager 依赖。
+
+## 五、执行阶段（拆单草案）
+
+| 工单 | 内容 | Gate |
+|---|---|---|
+| P2V-00 立项 | 新仓初始化、docs 文档体系、队列引擎搬运、venv 规范名 | 队列渲染器自检过 |
+| P2V-01 搬 Core+Memory+Middleware | import 吸收（openjarvis→Core） | AST 3/3 + 单测绿 |
+| P2V-02 搬 Senses.Voice | KWS/CV3 冻结基线复测 | 唤醒/对话链路实测一致 |
+| P2V-03 搬 Shell+Surface | 0054 产物 + OrbLive 收敛 | build 0/0 + Guardian 事件 + 零计划任务 + 零弹窗 |
+| P2V-04 搬 Update+Lifecycle | 安装包链重建 | Setup 全流程验收（复用 0052/0054 判据） |
+| P2V-05 总验收 | 全链路贯通 + 北极星清单更新 + 冻结 tag | 端到端冒烟 + 独立审计 |
+
+老仓处置：P2V-05 验收后打 `ultimaagent-v1-final-frozen-*` tag，老仓转只读归档区（M7），此后现行区唯一 = 新仓（M6）。
+
+## 六、风险与代价（如实）
+
+- 安装包生命周期线要在新壳重走一遍验收（判据全冻结可复用，主要是执行时间）
+- venv 改名涉及用户侧路径偏好与多份冻结文档引用，需同步公告一次
+- 老仓在途的其他工单（若有）需先收口或明确弃单，冻结时点要对齐
+
+---
+
+> 待 Owner 拍板项：① 新仓名（默认 `UltimaAgentV2`）；② venv 规范名；③ 老仓冻结时点（默认 P2V-05 验收后）；④ 模块命名微调。
