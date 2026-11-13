@@ -1,0 +1,61 @@
+work_order=wo-ultimaagent-20261113-0068
+captured_on=2026-11-14 Asia/Shanghai
+baseline_path=docs/specs/next-感知交互参数基线-20261113.md
+baseline_sha256=3FE9B80F25E0B75E42191C8C6343AF98EA4B51BA529457F97A48C9770A894C52
+baseline_lines=1792
+baseline_bytes=141820
+tree_path=docs/tracker/北极星架构树.html
+tree_sha256=DC32D2B15405A8690CD34AC61A825506B381F3402D3773F67F9F66071ECDACA3
+tree_lines=476
+tree_bytes=53787
+
+[A1 §14.3 queue writer wording]
+L510: 4. **队列唯一状态源不变**：`tasks/queue/queue-status.json` 仍只由状态机写（现有"直接写 state 仅 `state_machine.py` 一处"铁律继续有效）；其他组件问任务态只问 Console，不直连 Manager。
+
+[A2 §19.3 Console boundary]
+L1127: | Python 引擎（`queue_engine`） | 只读写八态与迁移结果 | 引擎不决定优先级、不改系统档位 |
+
+[A3 §15.2.1 fail-closed transition table]
+L571: **迁移表（fail-closed，未列出的迁移一律拒）**
+L573: | 源态 | 允许去向 | 附加门禁 |
+L574: |---|---|---|
+L575: | `QUEUED` | `EXECUTING` / `CANCELLED` | 派发前 DoR 五项全绿 |
+L576: | `EXECUTING` | `SELF_CHECK` / `FAILED` | — |
+L577: | `EXECUTING` | `CANCELLED` | D-01=A：取消级联已确认，或强杀回收已取得终止凭据 |
+L578: | `SELF_CHECK` | `AUDIT` / `FAILED` | — |
+L579: | `AUDIT` | `COMPLETED` / `FAILED` | `COMPLETED` 必须 `audit_passed` |
+L580: | `COMPLETED` | —（终态） | — |
+L581: | `FAILED` | `QUEUED` / `BLOCKED` | 回队受重试上限；`BLOCKED` 须 `retryCount ≥ 2` |
+L582: | `BLOCKED` | `QUEUED` / `CANCELLED` | 释放仅 human/brain |
+L583: | `CANCELLED` | —（终态） | — |
+L585: **冻结门（freeze gate）**：只能落 `BLOCKED`，且源态须为 `QUEUED`（依赖冻结只作用于排队中的后继单）。
+
+[A4 §25.3 context.compose]
+L1580: ### 25.3 上下文装配唯一入口（G-03）
+L1582: **`context.compose` 是唯一装配入口**。任何调用方只能提交分区素材，不得自行拼接主脑 payload。输入总预算只取 0058 已定稿的 §16.4 公式 `input_budget(profile)`；§16.4 没有分区份额表，本章不虚构份额或预算数字，各分区只能在该次请求的动态总预算内参与截断。
+L1584-L1592: 七区表：`system` / `policy` / `memory.hot` / `habit` / `session.recent` / `tool.schema` / `user.turn`。
+L1594: 截断严格按第 1→4 位执行；保留位仍不能装入动态总预算时，拒绝发送 payload 并必留事件 `context_over_budget`，事件至少含 profile、实际 token、预算与被裁分区，不把超预算静默改写成成功。
+L1596: **habit 唯一调用关系**：本入口每轮调用一次 `habit.read`，API 本体只引用 0059 的 §26.11；其他模块不得成为 caller。
+L1598: **外发前隐私裁剪**：目标为外部主脑时，按 §23.6 三闸先检查分区素材；标记为不可外发的治理规则内容与热记忆切片不得进入 payload。该裁剪发生在 tokenizer 计量之前，裁掉的内容不以摘要、编码或工具参数形式旁路外发。
+
+[A5 §25.9 idempotency retention]
+L1731: ### 25.9 幂等键与 receipt 账本（G-05）
+L1733: 唯一公式：`operation_id = sha256(turn_id|step_id|tool_id|args_hash)`，其中 `args_hash = sha256(canonical_json(args))`；canonical JSON 必须使用 UTF-8、键名排序、无非语义空白，散列输出为小写十六进制。四个输入均不得省略、换序或二次拼接分隔符。
+L1737: 账本以 operation 标识为唯一键：首次调用写入请求摘要、run 与最终 receipt；再次命中且请求摘要一致时直接返回既有 receipt，不重放副作用；摘要不一致时报幂等冲突并拒绝覆盖。§21.6 只规定 retry/rework 上限，没有时间制保留期，因此本章不伪造时长；账本在关联 retry/rework 尚未终结时不得清理，具体静态保留期记 `TBD-G05-RETENTION`。
+
+[A6 §25.11 compensation]
+L1753: ### 25.11 副作用补偿（C-17）
+L1755: receipt 的 `side_effects[]` 每项必须且只能取以下一类；缺类别、类别外取值或可逆项缺补偿器均使 finalize 失败。
+L1757-L1761: 三类副作用表：`reversible` / `irreversible` / `external_billing`。
+L1763: 补偿自身使用原 operation 标识派生的唯一补偿键，重复请求返回原补偿 receipt。任一必需补偿失败时，队列落 `BLOCKED`，记录唯一事件 `compensate_failed`，事件带原 run、失败补偿器、已完成补偿清单和人工释放要求；不得把部分补偿表述为原操作已撤销。
+
+[A7 Appendix A tail]
+L1767: ## 附录 A · 变更记录（全量）
+L1769: | 日期 | 变更 |
+L1770: |---|---|
+L1789: | 2026-11-13 | **wo-ultimaagent-20261113-0058 · T1**：D-04 选 A 动态上下文预算，`n_ctx` 保持 4096；B 案内存增量与首 token 延迟因本单无同硬件复现实测条件记 `TBD-D04`，不得当作已测值。 |
+L1792: | 2026-11-13 | **设定收口审计（结构与双源修复）**：① §18.5–18.8 误置于 §19.7 之后 → 归位到 §18.4 之后；② 无编号「变更记录」夹在 §七/§八 之间 → 移文末为**附录 A**；③ **§一 触发冷却 1.5s 与 R-56 裁决 2.0s 双源冲突 → 统一 2.0s**；④ 盘点 §1.1.1「主脑不可换型」旧口径改为可替换（§二十三）；⑤ 盘点语音行阈值 0.25 / 记忆行旧容量值同步修正。**参数值本身未变**，只消除文档间矛盾 |
+
+[Tree task orchestration nodes]
+L201: <li class="node leaf"><div class="row"><span class="caret">&gt;</span><span class="badge b-cap">能</span><span class="name">任务编排</span><span class="desc">多步任务规划与执行顺序控制</span></div></li>
+L283: <li class="node leaf"><div class="row"><span class="caret">&gt;</span><span class="badge b-cap">管</span><span class="name">任务编排</span><span class="desc">派发 / 优先级 / 依赖；九点位 4–9 是八态投影</span></div></li>

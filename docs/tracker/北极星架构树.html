@@ -198,7 +198,7 @@ footer.legend b{color:var(--hd-muted); font-weight:600;}
 <div class="row"><span class="caret">&gt;</span><span class="badge b-cap">能力</span><span class="name">能力</span><span class="desc">用户可感知功能</span></div>
 <ul class="children">
 <li class="node leaf"><div class="row"><span class="caret">&gt;</span><span class="badge b-cap">能</span><span class="name">意图理解</span><span class="desc">自然语言→结构化意图，L0&gt;L1&gt;L2&gt;L3 分级路由（interface-routing.json schema v2）</span></div></li>
-<li class="node leaf"><div class="row"><span class="caret">&gt;</span><span class="badge b-cap">能</span><span class="name">任务编排</span><span class="desc">多步任务规划与执行顺序控制</span></div></li>
+<li class="node leaf"><div class="row"><span class="caret">&gt;</span><span class="badge b-cap">能</span><span class="name">任务编排</span><span class="desc">多步任务规划（只产出步骤与依赖声明，派发顺序与优先级归 Console）；plan schema 见 §25.5</span></div></li>
 <li class="node leaf"><div class="row"><span class="caret">&gt;</span><span class="badge b-cap">能</span><span class="name">复述确认</span><span class="desc">关键动作前的确认协议（语音+面板双通道）</span></div></li>
 <li class="node leaf"><div class="row"><span class="caret">&gt;</span><span class="badge b-cap">能</span><span class="name">记忆写入裁决</span><span class="desc">写入边界控制（memory_write_boundary）</span></div></li>
 <li class="node leaf"><div class="row"><span class="caret">&gt;</span><span class="badge b-cap">能</span><span class="name">上下文压缩</span><span class="desc">10 轮 / 4000 token / 70% 触发阈值 / 保留最近 3 轮 / 摘要 ≤30%；<b>代码未落</b>（trim_history 零命中，归 N-01）</span></div></li>
@@ -280,7 +280,7 @@ footer.legend b{color:var(--hd-muted); font-weight:600;}
 <li class="node open">
 <div class="row"><span class="caret">&gt;</span><span class="badge b-mod">子模块</span><span class="name">＋ Console（引擎中心管理调度器）</span><span class="desc"><b>「终端」一词此后只指它</b>；四职能全属「管」不属「做」；<b>可机检边界</b>＝代码只要会碰进程/网络/磁盘/像素就不属于 Console（自己 CreateProcess 起看门狗＝第二个父进程，§十五 闸1 破防、孤儿复发）；**随 Python 引擎域常驻**（与 `queue_engine` 同进程，Manager 为同进程子模块；R-78/§24.1）；壳经引擎域既有本地通道（8756）读**只读视图**；<b>迁域不授权碰进程</b>——CreateProcess／客户端 socket／写盘／像素调用仍须 <b>0</b>，Shell 仍是唯一父进程；<b>只碰队列、状态机读写、档位与账本</b>，不定义枚举、不改档位</span></div>
 <ul class="children">
-<li class="node leaf"><div class="row"><span class="caret">&gt;</span><span class="badge b-cap">管</span><span class="name">任务编排</span><span class="desc">派发 / 优先级 / 依赖；九点位 4–9 是八态投影</span></div></li>
+<li class="node leaf"><div class="row"><span class="caret">&gt;</span><span class="badge b-cap">管</span><span class="name">任务编排</span><span class="desc">消费 §25.5 的步骤与依赖声明；派发顺序与优先级归 Console；九点位 4–9 是八态投影</span></div></li>
 <li class="node leaf"><div class="row"><span class="caret">&gt;</span><span class="badge b-cap">管</span><span class="name">常驻托管</span><span class="desc">看谁在跑、跑多久；进程本身由 Shell 管</span></div></li>
 <li class="node leaf"><div class="row"><span class="caret">&gt;</span><span class="badge b-cap">管</span><span class="name">输出呈现</span><span class="desc">把状态递给 Surface 画，自己不出像素</span></div></li>
 <li class="node leaf"><div class="row"><span class="caret">&gt;</span><span class="badge b-cap">管</span><span class="name">多端调度</span><span class="desc">D-08｜A 案 status=selected：单用户·单显示端（多端为 v1.x），<b>不是</b>多执行端编排；B 案 status=rejected：移除该节点并记入附录 A（未采用）</span></div></li>
