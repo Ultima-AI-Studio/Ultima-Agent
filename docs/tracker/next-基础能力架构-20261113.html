@@ -324,9 +324,27 @@ footer{margin-top:40px;padding-top:16px;border-top:1px solid var(--line);color:v
     </div>
   </section>
 
+  <!-- 七、缺口补口 -->
+  <section class="sec">
+    <h2>07 · 缺口补口定案（R-68～R-73，2026-11-13）</h2>
+    <p>缺口复核列出 <b>11 项「有口径无实现」＋ 5 项「口径本身缺」</b>；本轮把 5 项口径缺全部定案，并补两处<b>结构性缺口</b>：Console 与治理⑤ 在工单序列里一张卡都没有。<b>至此 16 项全部有归属、有卡、有验收门。</b></p>
+    <table>
+      <thead><tr><th>项</th><th>定案（一句话）</th><th>卡</th></tr></thead>
+      <tbody>
+        <tr><td><b>R-68</b> PTY</td><td>归 <code>Shell.pty_host</code>：ConPTY 无窗、入 Job、标准流重定向，句柄交 Middleware；终端渲染归 Surface，CLI 协议归外部能力；<code>CreatePseudoConsole</code> 全仓只许一处</td><td>N-05（v1.1）</td></tr>
+        <tr><td><b>R-69</b> 目录隔离</td><td>每工单一个 <code>worktrees/&lt;task_id&gt;/</code>，派发前建、审计通过后 7 天回收；禁止多执行端写同一目录</td><td>N-02（v1.1）</td></tr>
+        <tr><td><b>R-70</b> 用量计量</td><td>记账在 <code>Console.usage_ledger</code>（provider/能力/任务三元，只读消费）；阈值与动作在治理⑤规则库；<b>超限只拦新派发，不杀在途</b></td><td>N-13（v1.0）</td></tr>
+        <tr><td><b>R-71</b> 会话快照</td><td>v1.0 单线：每轮落检查点、可回退上一检查点；<b>不撤销已发生的外部副作用</b>；分支树留 v1.1</td><td>N-01（v1.0）</td></tr>
+        <tr><td><b>R-72</b> 返工上限</td><td><code>reworkCount</code>（审核）与 <code>retryCount</code>（执行）分列；连续 2 次审核不通过后再不通过即 <code>BLOCKED</code>，交 human/brain</td><td>N-02（v1.0）</td></tr>
+        <tr><td><b>R-73</b> 缺卡</td><td>Console 与治理⑤ 各补一张卡；<b>N-12 已被总验收占用，新卡从 N-13 起</b>，编号不代表执行顺序</td><td>N-13 / N-14</td></tr>
+      </tbody>
+    </table>
+    <p><b>11 项有口径无实现的落点：</b>D1 压缩／D3 trace／D4 策略表／A4 快照 → N-01；D9 配额／A2 worktree／A5 返工 → N-02；D5 三库／D6 索引／D7 沉淀 → N-03；D11 热词 → N-04；D10 看板 → N-06；D2 harness／CLI 适配 → N-08；D8 Skill 载体 → N-09。</p>
+  </section>
+
   <footer>
-    权威源：<b>next-基础能力盘点与缺口清单 §1.1.1</b>（呈现层级三类）｜ <b>next-感知交互参数基线 §15.2.1 / §十六 / §十七 / §十八 / §十九</b>｜ next-双域分离与开工设置规范 §七（模块设置）｜ plan-ultimaagent-next-rebuild（N-01～N-11 交付物）<br>
-    口径版本：2026-11-13 ｜ 变更编号 R-59 ～ R-66 ｜ 本页只做呈现，不改任何决策；冲突以基线为准。
+    权威源：<b>next-基础能力盘点与缺口清单 §1.1.1 / §八</b>（呈现层级三类）｜ <b>next-感知交互参数基线 §15.2.1 / §十六 / §十七 / §十八 / §十九</b>｜ next-双域分离与开工设置规范 §七（模块设置）｜ plan-ultimaagent-next-rebuild（N-01～N-14 交付物）｜ <b>基线 §二十 / §二十一</b>（治理⑤ 隶属 · 缺口补口定案）<br>
+    口径版本：2026-11-13 ｜ 变更编号 R-59 ～ R-73 ｜ 本页只做呈现，不改任何决策；冲突以基线为准。
   </footer>
 </div>
 </body>

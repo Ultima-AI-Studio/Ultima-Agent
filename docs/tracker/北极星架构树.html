@@ -201,6 +201,7 @@ footer.legend b{color:var(--hd-muted); font-weight:600;}
 <li class="node leaf"><div class="row"><span class="caret">&gt;</span><span class="badge b-cap">能</span><span class="name">任务编排</span><span class="desc">多步任务规划与执行顺序控制</span></div></li>
 <li class="node leaf"><div class="row"><span class="caret">&gt;</span><span class="badge b-cap">能</span><span class="name">复述确认</span><span class="desc">关键动作前的确认协议（语音+面板双通道）</span></div></li>
 <li class="node leaf"><div class="row"><span class="caret">&gt;</span><span class="badge b-cap">能</span><span class="name">记忆写入裁决</span><span class="desc">写入边界控制（memory_write_boundary）</span></div></li>
+<li class="node leaf"><div class="row"><span class="caret">&gt;</span><span class="badge b-cap">能</span><span class="name">上下文压缩</span><span class="desc">10 轮 / 4000 token / 70% 触发阈值 / 保留最近 3 轮 / 摘要 ≤30%；<b>代码未落</b>（trim_history 零命中，归 N-01）</span></div></li>
 </ul></li>
 <li class="node leaf"><div class="row"><span class="caret">&gt;</span><span class="badge b-tool">工具</span><span class="name">orchestrator · intent · interface_route · queue_source · capability registry</span><span class="desc">Core 编排与裁决的内部工具集，统一 UltimaAgentNext.Core.* 命名空间</span></div></li>
 <li class="node leaf"><div class="row"><span class="caret">&gt;</span><span class="badge b-skill">技能</span><span class="name">任务规划 · 主动追问 · 结果汇报</span><span class="desc">可组合任务能力</span></div></li>
@@ -232,6 +233,7 @@ footer.legend b{color:var(--hd-muted); font-weight:600;}
 <li class="node leaf"><div class="row"><span class="caret">&gt;</span><span class="badge b-cap">能</span><span class="name">守护自愈</span><span class="desc">GuardianService 20s 探活 8756 / 3 次失败 / 冷却 300s；agent-server 自动重启</span></div></li>
 <li class="node leaf"><div class="row"><span class="caret">&gt;</span><span class="badge b-cap">能</span><span class="name">开机自启</span><span class="desc">启动文件夹 .lnk（进程内晚绑定 COM 创建，零计划任务、零弹窗）</span></div></li>
 <li class="node leaf"><div class="row"><span class="caret">&gt;</span><span class="badge b-cap">能</span><span class="name">子进程零窗</span><span class="desc">pythonw + UseShellExecute=false + CreateNoWindow + 标准流重定向排空</span></div></li>
+<li class="node leaf"><div class="row"><span class="caret">&gt;</span><span class="badge b-cap">能</span><span class="name">终端宿主 PTY</span><span class="desc">pty_host：ConPTY 无窗、入 Job、标准流全重定向，句柄交 Middleware（R-68）；只做托管不做渲染；golutra 仅借结构不搬码（BSL 1.1）</span></div></li>
 </ul></li>
 <li class="node leaf"><div class="row"><span class="caret">&gt;</span><span class="badge b-tool">工具</span><span class="name">GuardianService · HostTaskRegistry · JobObjectManager · ChildProcessSupervisor · ReadinessProbe · AutostartEntry</span><span class="desc">进程治理链内部工具集（探活/注册/Job 归属/子进程监管/就绪探测/自启入口）</span></div></li>
 <li class="node leaf"><div class="row"><span class="caret">&gt;</span><span class="badge b-skill">技能</span><span class="name">任务托管 · 崩溃回收</span><span class="desc">Job 归属判据：宿主强杀子进程树 3 秒内同步消失</span></div></li>
@@ -246,6 +248,7 @@ footer.legend b{color:var(--hd-muted); font-weight:600;}
 <ul class="children">
 <li class="node leaf"><div class="row"><span class="caret">&gt;</span><span class="badge b-cap">能</span><span class="name">四角壳 HUD · 8 锚点</span><span class="desc">顶部时钟/右上单功能互斥/左上系统状态/左下任务队列/右下即时消息/左中 Agent 反馈/右中主动唤出/底部交流转写；锚位职责与宽度锁定（hud-layout-zone-plan v0.2）、无边框气泡形态、中央零遮挡</span></div></li>
 <li class="node leaf"><div class="row"><span class="caret">&gt;</span><span class="badge b-cap">能</span><span class="name">应用内任务管理器</span><span class="desc">状态/重启次数/手动重启停用，WebView2 双向消息</span></div></li>
+<li class="node leaf"><div class="row"><span class="caret">&gt;</span><span class="badge b-cap">能</span><span class="name">看板与干预</span><span class="desc">列式看板 / 时间线 / 叫停·取消·恢复三键；<b>只读呈现</b>，写入仍走 Console；当前代码无 kanban（归 N-06）</span></div></li>
 </ul></li>
 <li class="node leaf"><div class="row"><span class="caret">&gt;</span><span class="badge b-tool">工具</span><span class="name">UltimaAgent.Hud 原生壳 · hud-live-four-corner 设计基线 · TaskManagerRenderer · taskmanager.html</span><span class="desc">悬浮球整线退场：全部 orb 渲染器不进产品形态，仅存 devtools 测试夹具</span></div></li>
 <li class="node leaf"><div class="row"><span class="caret">&gt;</span><span class="badge b-skill">技能</span><span class="name">状态反馈 · 任务可视</span><span class="desc">可组合任务能力</span></div></li>
@@ -267,7 +270,7 @@ footer.legend b{color:var(--hd-muted); font-weight:600;}
 <li class="node open">
 <div class="row"><span class="caret">&gt;</span><span class="badge b-mod">子模块</span><span class="name">6. Middleware（执行端与票据）</span><span class="desc">执行端可替换、一次一主、票据可追；<b>八态定义权在此</b>（queue_engine.state_machine：QUEUED→EXECUTING→SELF_CHECK→AUDIT→COMPLETED，异常 FAILED/BLOCKED/CANCELLED，COMPLETED 须 audit_passed）；编排决策不在此层（归 Console），本层只按指令起执行端、留票据</span></div>
 <ul class="children">
-<li class="node leaf"><div class="row"><span class="caret">&gt;</span><span class="badge b-tool">工具</span><span class="name">queue_engine（tasks/queue_engine，Python 引擎域）· state_machine（八态唯一枚举源）· router · delegation · task_window · ticket · sandbox</span><span class="desc">八态与迁移的唯一实现位置、执行端路由、任务委派、任务窗口、票据、沙箱隔离</span></div></li>
+<li class="node leaf"><div class="row"><span class="caret">&gt;</span><span class="badge b-tool">工具</span><span class="name">queue_engine（tasks/queue_engine，Python 引擎域）· state_machine（八态唯一枚举源）· router · delegation · task_window · ticket · sandbox · worktree 隔离 · 并发配额 · reworkCount</span><span class="desc">八态与迁移的唯一实现位置、执行端路由、任务委派、任务窗口、票据、沙箱隔离</span></div></li>
 <li class="node leaf"><div class="row"><span class="caret">&gt;</span><span class="badge b-skill">技能</span><span class="name">执行端路由 · 任务窗口管理</span><span class="desc">可组合任务能力</span></div></li>
 </ul>
 </li>
@@ -280,13 +283,13 @@ footer.legend b{color:var(--hd-muted); font-weight:600;}
 <li class="node leaf"><div class="row"><span class="caret">&gt;</span><span class="badge b-cap">管</span><span class="name">常驻托管</span><span class="desc">看谁在跑、跑多久；进程本身由 Shell 管</span></div></li>
 <li class="node leaf"><div class="row"><span class="caret">&gt;</span><span class="badge b-cap">管</span><span class="name">输出呈现</span><span class="desc">把状态递给 Surface 画，自己不出像素</span></div></li>
 <li class="node leaf"><div class="row"><span class="caret">&gt;</span><span class="badge b-cap">管</span><span class="name">多端调度</span><span class="desc">向多用户设备 / 显示端投递，<b>不是</b>多执行端编排</span></div></li>
-<li class="node leaf"><div class="row"><span class="caret">&gt;</span><span class="badge b-tool">工具</span><span class="name">dispatcher · priority_deps · 重启预算账 · 档位只读视图</span><span class="desc">派发器、优先级与依赖、重启预算记账、系统档位只读；八态<b>只读写不定义</b>（定义在 queue_engine）；<b>看门狗只下「起/停/查」意图，进程由 Shell 起</b>（§19.2 · 19.3）</span></div></li>
+<li class="node leaf"><div class="row"><span class="caret">&gt;</span><span class="badge b-tool">工具</span><span class="name">dispatcher · priority_deps · 重启预算账 · 档位只读视图 · usage_ledger（用量账，R-70）</span><span class="desc">派发器、优先级与依赖、重启预算记账、系统档位只读；八态<b>只读写不定义</b>（定义在 queue_engine）；<b>看门狗只下「起/停/查」意图，进程由 Shell 起</b>（§19.2 · 19.3）</span></div></li>
 </ul>
 </li>
 
 <!-- 治理与约束：横切，不占模块 -->
 <li class="node open">
-<div class="row"><span class="caret">&gt;</span><span class="badge b-src">横切</span><span class="name">＋ 治理与约束（⑤）</span><span class="desc">不占运行时模块、不执行业务动作；对六块施加约束。<b>规则库归这里，不归记忆</b>：记忆是被检索的软参考，规则是被执行器强制的硬门。<b>五条行为学原则也在此层（行为层软约束），不再平行挂在引擎下</b></span></div>
+<div class="row"><span class="caret">&gt;</span><span class="badge b-src">横切</span><span class="name">＋ 治理与约束（⑤）</span><span class="desc">不占运行时模块、不执行业务动作；对六块施加约束。<b>规则库归这里，不归记忆</b>：记忆是被检索的软参考，规则是被执行器强制的硬门。<b>五条行为学原则也在此层（行为层软约束），不再平行挂在引擎下</b>；<b>本层已有交付卡 N-14</b>（四类各有落点、互不顶替）</span></div>
 <ul class="children">
 <li class="node leaf"><div class="row"><span class="caret">&gt;</span><span class="badge b-src">不变式</span><span class="name">代码断言（不入库）</span><span class="desc">未登记模型拒载 · 审计 provider≠开发 · 禁 PID 白名单 · 记忆禁外发</span></div></li>
 <li class="node leaf"><div class="row"><span class="caret">&gt;</span><span class="badge b-src">规则库</span><span class="name">可配策略（带版本与生效范围）</span><span class="desc">口播≤2 句 · top_k=5 · provider 六态码 · 六码处置动作 · 勿扰开关（默认值归客户端）</span></div></li>
