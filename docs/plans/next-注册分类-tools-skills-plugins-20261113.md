@@ -112,7 +112,7 @@
 |---|---|---|
 | **能力库 Skill** | 产品策划 / 代码开发 / 方案撰写 / 代码审计 / 知识采集 / 顾问咨询 | Skill：`skill.plan.*`、`skill.code.*`、`skill.write.*`、`skill.audit.*`、`skill.kb.collect.*`、`skill.advise.consult` |
 | **插件 Plugin** | 外脑通道适配、执行端适配器、MCP 客户端、采集浏览器档、存储后端 | 插件：`plugin.provider.<name>`、`plugin.executor.<name>`、`plugin.mcp.<name>`、`plugin.kb.browser`、`plugin.store.*` |
-| **模型库 Provider** | 已配置好的大模型 API 列表（云端）＋ 可选本地第二模型 | 登记项（非能力）：`provider.<name>`；**主脑不在模型库**（内置 `local.llama`，受基线 §十六 管，不可指派） |
+| **模型库 Provider** | 已配置好的大模型 API 列表（云端）＋ 可选本地第二模型 | 登记项（非能力）：`provider.<name>`；**主脑不在模型库列表**（受基线 §十六 管、**不可被 skill 指派**；**主脑可下拉替换**见 §二十三） |
 
 - **能力 × 模型是绑定关系，不是能力本身**：一对一、手动下拉换绑、无主备无自动切换；在途任务等本轮结束才切换（基线 §十八）。
 - **预置 vs 扩展**：预置能力随安装包自带（**可停用、不可卸载**）；扩展能力由用户添加（可删）。
