@@ -28,7 +28,7 @@
 新仓目录（拟定名，全部去迭代代号/上游名）：
 
 ```
-H:\UltimaAI\UltimaAgentV2\
+H:\UltimaAI\UltimaAgentNext\
 ├── src\
 │   ├── Core\            大脑：意图理解、编排、记忆写入边界、复述确认协议
 │   ├── Senses\Voice\    耳+嘴：KWS 唤醒、VAD、TTS(CV3)、语音会话循环
@@ -54,7 +54,7 @@ H:\UltimaAI\UltimaAgentV2\
 - **能力**：意图理解、任务编排、复述确认、记忆写入裁决
 - **工具**：orchestrator、intent、interface_route、queue_source、capability registry
 - **技能**：任务规划、主动追问、结果汇报
-- **搬运源**：`src/brain/*`（剔除 weather.py 等杂物归 devtools；`openjarvis.*` import 全部吸收为 `UltimaAgentV2.Core.*` 或适配层）
+- **搬运源**：`src/brain/*`（剔除 weather.py 等杂物归 devtools；`openjarvis.*` import 全部吸收为 `UltimaAgentNext.Core.*` 或适配层）
 
 ### 2. Senses.Voice（耳+嘴）
 - **能力**：唤醒、听写、对话、TTS 播报
@@ -96,7 +96,7 @@ H:\UltimaAI\UltimaAgentV2\
 
 1. **只搬冻结产物**：每项搬运必须能指出冻结来源（tag 或冻结 commit），逐项登记映射表（源→目的），搬运后新仓第一件事是全量复验。
 2. **明确不带走的**：jarvis-work 90 份过程文档（冻结仓留档）；OrbHost/OrbNative 死工程；`src/window/*.py` python 渲染线；gorch 系脚本；`_readme_local_backup.md`；config/_backup 全部。
-3. **改名一步到位**：`UltimaAgentV2.*` 命名空间、无 voice-next、无 openjarvis import、无迭代代号分支（新仓从 `main` 起步）。
+3. **改名一步到位**：`UltimaAgentNext.*` 命名空间、无 voice-next、无 openjarvis import、无迭代代号分支（新仓从 `main` 起步）。
 4. **非目标**：不重建四角壳框架（未来独立工单）；不动 KWS/CV3 冻结参数；不改 8756 端口与 20/3/300 守护语义；不建 UltimaManager 依赖。
 
 ## 五、执行阶段（拆单草案）
@@ -152,4 +152,4 @@ host-tasks.json 中 `tools/venv-openjarvis/...`、`src/voice-next/launch.py` 等
 
 ---
 
-> 待 Owner 拍板项：① 新仓名（默认 `UltimaAgentV2`）；② venv 规范名；③ 老仓冻结时点（默认 P2V-05 验收后）；④ 模块命名微调。
+> Owner 拍板记录（2026-11-13，本节为最终裁决）：① 新仓目录 = `H:\UltimaAI\UltimaAgentNext`（无版本后缀，新旧靠 final-frozen tag 区分）；② venv 规范名 = `tools/venv-ultimaagent`（搬运时全量引用清扫 + 渲染器自检作 Gate）；③ 老仓冻结时点 = P2V-05 总验收后打 `ultimaagent-v1-final-frozen-*` tag 转只读；④ 模块架构 = 八模块原方案（Shell/Surface 分离、Update/Lifecycle 分开）。四项已定，方案视为冻结，可拆 P2V-00 工单。
