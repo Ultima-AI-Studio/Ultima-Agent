@@ -217,9 +217,9 @@ footer{margin-top:40px;padding-top:16px;border-top:1px solid var(--line);color:v
       </div>
 
       <div class="mod">
-        <h4>Middleware · 调度与执行</h4>
-        <p class="role">执行端可替换、一次一主、票据可追；八态唯一枚举源</p>
-        <div class="code">router / delegation / task_window / ticket / sandbox</div>
+        <h4>Middleware · 执行端与票据</h4>
+        <p class="role">执行端可替换、一次一主、票据可追；八态定义权在此层（不是 Console）</p>
+        <div class="code">queue_engine / state_machine / router / delegation / task_window / ticket / sandbox</div>
         <div class="key"><b>已定</b>：八态 QUEUED→EXECUTING→SELF_CHECK→AUDIT→COMPLETED（＋FAILED/BLOCKED/CANCELLED）｜ <code>COMPLETED</code> 必须 <code>audit_passed</code></div>
       </div>
     </div>
@@ -235,7 +235,7 @@ footer{margin-top:40px;padding-top:16px;border-top:1px solid var(--line);color:v
         <div class="item"><b>输出呈现</b>把状态递给 Surface</div>
         <div class="item"><b>多端调度</b>投递给用户设备 / 显示端</div>
       </div>
-      <p class="no"><b>边界（可机检）</b>：代码只要会碰进程 / 网络 / 磁盘 / 像素，就不属于 Console。Console 若自己 <code>CreateProcess</code> 起看门狗，就成了第二个父进程 → 孤儿进程复发。进程留在客户端域是刻意选择。</p>
+      <p class="no"><b>边界（可机检）</b>：代码只要会碰进程 / 网络 / 磁盘 / 像素，就不属于 Console。Console 若自己 <code>CreateProcess</code> 起看门狗，就成了第二个父进程 → 孤儿进程复发。进程留在客户端域是刻意选择。<b>八态只读写、不定义</b>（定义在 <code>queue_engine.state_machine</code>）；看门狗只看「起 / 停 / 查」意图，进程由 Shell 起。</p>
     </div>
 
     <div class="cut">

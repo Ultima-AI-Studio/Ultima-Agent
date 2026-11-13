@@ -260,26 +260,27 @@ footer.legend b{color:var(--hd-muted); font-weight:600;}
 <li class="node leaf"><div class="row"><span class="caret">&gt;</span><span class="badge b-cap">库</span><span class="name">exp · 经验库</span><span class="desc">踩坑记录：自动起草 draft → 人工 confirmed；带证据指针；先查后动</span></div></li>
 <li class="node leaf"><div class="row"><span class="caret">&gt;</span><span class="badge b-cap">横切</span><span class="name">index · 索引与检索</span><span class="desc">三个检索入口分开、不做混检；索引只存指针 (volume, file, offset, len)，正文只搬一次</span></div></li>
 <li class="node leaf"><div class="row"><span class="caret">&gt;</span><span class="badge b-tool">工具</span><span class="name">writer · poison_guard · store_backend · temperature_tier · volumes</span><span class="desc">写入、防投毒、存储后端、三层温度、存储卷登记（volumes.json 可热加卷，可接私有 NAS）</span></div></li>
+<li class="node leaf"><div class="row"><span class="caret">&gt;</span><span class="badge b-skill">技能</span><span class="name">上下文注入 · 记忆检索 · 知识采集编排</span><span class="desc">先查后动；三库分别检索、不做混检；采集由能力库执行，本层只管入库与索引</span></div></li>
 </ul>
 </li>
 
 <li class="node open">
-<div class="row"><span class="caret">&gt;</span><span class="badge b-mod">子模块</span><span class="name">6. Middleware（调度与执行）</span><span class="desc">执行端可替换、一次一主、票据可追；<b>八态唯一枚举源</b>（QUEUED→EXECUTING→SELF_CHECK→AUDIT→COMPLETED，异常 FAILED/BLOCKED/CANCELLED，COMPLETED 须 audit_passed）；「多端调度」不在此层——它归 Console</span></div>
+<div class="row"><span class="caret">&gt;</span><span class="badge b-mod">子模块</span><span class="name">6. Middleware（执行端与票据）</span><span class="desc">执行端可替换、一次一主、票据可追；<b>八态定义权在此</b>（queue_engine.state_machine：QUEUED→EXECUTING→SELF_CHECK→AUDIT→COMPLETED，异常 FAILED/BLOCKED/CANCELLED，COMPLETED 须 audit_passed）；编排决策不在此层（归 Console），本层只按指令起执行端、留票据</span></div>
 <ul class="children">
-<li class="node leaf"><div class="row"><span class="caret">&gt;</span><span class="badge b-tool">工具</span><span class="name">router · delegation · sandbox · task_window · ticket</span><span class="desc">执行端路由、任务委派、沙箱隔离、任务窗口与票据（state_machine 八态）</span></div></li>
-<li class="node leaf"><div class="row"><span class="caret">&gt;</span><span class="badge b-skill">技能</span><span class="name">多端路由 · 任务窗口管理</span><span class="desc">可组合任务能力</span></div></li>
+<li class="node leaf"><div class="row"><span class="caret">&gt;</span><span class="badge b-tool">工具</span><span class="name">queue_engine（tasks/queue_engine，Python 引擎域）· state_machine（八态唯一枚举源）· router · delegation · task_window · ticket · sandbox</span><span class="desc">八态与迁移的唯一实现位置、执行端路由、任务委派、任务窗口、票据、沙箱隔离</span></div></li>
+<li class="node leaf"><div class="row"><span class="caret">&gt;</span><span class="badge b-skill">技能</span><span class="name">执行端路由 · 任务窗口管理</span><span class="desc">可组合任务能力</span></div></li>
 </ul>
 </li>
 
 <!-- Console：引擎中心管理调度器 -->
 <li class="node open">
-<div class="row"><span class="caret">&gt;</span><span class="badge b-mod">子模块</span><span class="name">＋ Console（引擎中心管理调度器）</span><span class="desc"><b>「终端」一词此后只指它</b>；四职能全属「管」不属「做」；<b>可机检边界</b>＝代码只要会碰进程/网络/磁盘/像素就不属于 Console（自己 CreateProcess 起看门狗＝第二个父进程，§十五 闸1 破防、孤儿复发）；客户端进程树内常驻，Manager 为同进程子模块</span></div>
+<div class="row"><span class="caret">&gt;</span><span class="badge b-mod">子模块</span><span class="name">＋ Console（引擎中心管理调度器）</span><span class="desc"><b>「终端」一词此后只指它</b>；四职能全属「管」不属「做」；<b>可机检边界</b>＝代码只要会碰进程/网络/磁盘/像素就不属于 Console（自己 CreateProcess 起看门狗＝第二个父进程，§十五 闸1 破防、孤儿复发）；客户端进程树内常驻，Manager 为同进程子模块；<b>只碰队列、状态机读写、档位与账本</b>，不定义枚举、不改档位</span></div>
 <ul class="children">
 <li class="node leaf"><div class="row"><span class="caret">&gt;</span><span class="badge b-cap">管</span><span class="name">任务编排</span><span class="desc">派发 / 优先级 / 依赖；九点位 4–9 是八态投影</span></div></li>
 <li class="node leaf"><div class="row"><span class="caret">&gt;</span><span class="badge b-cap">管</span><span class="name">常驻托管</span><span class="desc">看谁在跑、跑多久；进程本身由 Shell 管</span></div></li>
 <li class="node leaf"><div class="row"><span class="caret">&gt;</span><span class="badge b-cap">管</span><span class="name">输出呈现</span><span class="desc">把状态递给 Surface 画，自己不出像素</span></div></li>
 <li class="node leaf"><div class="row"><span class="caret">&gt;</span><span class="badge b-cap">管</span><span class="name">多端调度</span><span class="desc">向多用户设备 / 显示端投递，<b>不是</b>多执行端编排</span></div></li>
-<li class="node leaf"><div class="row"><span class="caret">&gt;</span><span class="badge b-tool">工具</span><span class="name">queue_engine · state_machine · dispatcher · priority_deps · watchdog-loopguard</span><span class="desc">队列引擎与八态、派发器、优先级依赖、看门狗脚本</span></div></li>
+<li class="node leaf"><div class="row"><span class="caret">&gt;</span><span class="badge b-tool">工具</span><span class="name">dispatcher · priority_deps · 重启预算账 · 档位只读视图</span><span class="desc">派发器、优先级与依赖、重启预算记账、系统档位只读；八态<b>只读写不定义</b>（定义在 queue_engine）；<b>看门狗只下「起/停/查」意图，进程由 Shell 起</b>（§19.2 · 19.3）</span></div></li>
 </ul>
 </li>
 
@@ -297,14 +298,14 @@ footer.legend b{color:var(--hd-muted); font-weight:600;}
 </li>
 
 <li class="node open">
-<div class="row"><span class="caret">&gt;</span><span class="badge b-mod">模块</span><span class="name">外部能力（容器 · 三抽屉）</span><span class="desc">不是模块，是容器：<b>能力库 Skill / 插件 Plugin / 模型库 Provider</b>；能力可添加、可指派，<b>一能力一模型</b>（无主备）；换绑＝在模型库里手动下拉、即时生效、在途任务等本轮结束；<b>主脑不进模型库</b>（内置 local.llama，不可指派不可换型）</span></div>
+<div class="row"><span class="caret">&gt;</span><span class="badge b-mod">容器</span><span class="name">外部能力（容器 · 三抽屉）</span><span class="desc">不是模块，是容器：<b>能力库 Skill / 插件 Plugin / 模型库 Provider</b>；能力可添加、可指派，<b>一能力一模型</b>（无主备）；换绑＝在模型库里手动下拉、即时生效、在途任务等本轮结束；<b>主脑不进模型库</b>（内置 local.llama，不可指派不可换型）</span></div>
 <ul class="children">
 <li class="node open">
 <div class="row"><span class="caret">&gt;</span><span class="badge b-skill">抽屉</span><span class="name">能力库 Skill</span><span class="desc">产品策划 / 代码开发 / 方案撰写 / 代码审计 / 知识采集 / 顾问咨询；界面上是卡片：是否添加成功 ＋ 指派下拉 ＋ 状态灯</span></div>
 <ul class="children">
 <li class="node leaf"><div class="row"><span class="caret">&gt;</span><span class="badge b-cap">分档</span><span class="name">预置（随安装包自带）</span><span class="desc">出场即激活，<b>可停用不可卸载</b>；纳入体积预算、离线安装依赖冻结、许可与 SBOM 台账</span></div></li>
 <li class="node leaf"><div class="row"><span class="caret">&gt;</span><span class="badge b-cap">分档</span><span class="name">扩展（用户添加）</span><span class="desc">可删除；添加后进入指派下拉</span></div></li>
-<li class="node leaf"><div class="row"><span class="caret">&gt;</span><span class="badge b-cap">示例</span><span class="name">知识采集 skill.kb.collect</span><span class="desc">http 档（默认、无子进程）／browser 档（CDP 连本机 Edge/Chrome，不打包 chromium，浏览器进程须入 Job 并留 ActiveProcesses==0 证据）</span></div></li>
+<li class="node leaf"><div class="row"><span class="caret">&gt;</span><span class="badge b-cap">示例</span><span class="name">知识采集 kb.collect.http / kb.collect.browser</span><span class="desc">http 档默认、无子进程；browser 档 CDP 连本机 Edge/Chrome，不打包 chromium，浏览器进程须入 Job 并留 ActiveProcesses==0 收净证据</span></div></li>
 <li class="node leaf"><div class="row"><span class="caret">&gt;</span><span class="badge b-cap">铁律</span><span class="name">一能力只绑一个模型</span><span class="desc">无主备、无自动切换；换绑只由用户手动下拉触发</span></div></li>
 </ul>
 </li>
