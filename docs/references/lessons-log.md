@@ -2229,3 +2229,24 @@ ERROR: Reconnecting... 5/5 → exit code 1
 - **根因**：0054 记录是建卡时用临时脚本手工写入的，只写了 6 个键，缺 `audit_run`/`freeze_commit`（回退 pending 时又误删了 `dispatched_at`，该字段允许 null 但键必须存在）。渲染器 `_validate` 要求 8 个键齐全，而派发器自身只读写不补键，缺陷被带到派发时才爆。
 - **修法**：补齐 8 键（缺的三个给 null），状态回 pending 后重派；重派一次成功。
 - **判据**：任何脚本写 queue-status.json，必须按渲染器 `_validate` 的 8 个必填键（project/work_order/state/audit_passed/dispatched_at/audit_run/freeze_commit/note）整键写入，写完立即跑一次 `render-queue-views.py` 自检；派发失败后先查 run 目录有无 out.jsonl/worker 进程，确认状态与现场一致再重派。
+
+## L223 · PowerShell here-string 里的反引号会吃掉 Markdown 代码标记（2026-11-13）
+
+- **现象**：用 `@"..."@` 向盘点清单追加 §八 时，正文中的 `` `kb` `` / `` `exp` `` 与 `` `next-基础能力缺口复核-...md` `` 被写坏——落盘后变成 `kb/p 分库`、`详见 \next-...`（换行被吃进路径）。文件行数、结构校验全绿，**只有读内容才能发现**。
+- **根因**：PowerShell 的转义字符是**反引号**，不是反斜杠。`` `n ``＝换行、`` `k ``＝字面 k；here-string 里的 `` ` `` 被当成转义，Markdown 行内代码标记随之丢失或变成控制字符。
+- **修法**：①凡要写入**含反引号、反斜杠或 Markdown 标记**的长文本，**一律用 Python 脚本 + io.open(utf-8) 写**，不用 PowerShell here-string（同一轮后面 5 个文件全走 Python，零损坏）；②PowerShell 只做「文件搬运/计数/git」，不做内容拼装。
+- **判据**：写完必须**回读正文片段**做字符串断言（如 `"`kb` / `exp`" in text`），不能只核行数与 div 计数——结构校验过不了内容。
+
+## L224 · HTML 父链校验器写成「收集所有前序节点」＝假通过（2026-11-13）
+
+- **现象**：架构树补 3 个节点后写了个父链校验脚本，输出「OK 深度 9／25／32」，但真值是 6；三个新节点的父链里混进了同级的兄弟节点名。
+- **根因**：脚本把 `self.nodes[:-1]`（**文档顺序上所有先前节点**）当父链，而不是维护 `li.node` 的**嵌套栈**。HTMLParser 不替调用方维护层级，必须自己在 `handle_starttag('li', node)` 入栈、`handle_endtag('li')` 出栈。
+- **修法**：改成 li 栈版本后结果正确——上下文压缩→`本体/引擎/基础能力/Core/能力`、终端宿主 PTY→`…/Shell/能力`、看板与干预→`…/Surface/能力`，深度均 6。
+- **判据**：父链校验器必须先做**已知答案自测**（拿一个现有节点跑，父链必须等于人工读出来的那条），再信它的输出；「三个都 OK」不等于校验器对。
+
+## L225 · git push --tags 出现 schannel TLS 握手失败（2026-11-13）
+
+- **现象**：同一轮 `push origin HEAD` 成功，紧接着 `push origin --tags` 报 `schannel: failed to receive handshake, SSL/TLS connection failed`，退出码 128。
+- **根因**：连续两次 HTTPS 推送之间连接复用/TLS 握手抖动，非权限问题（分支刚推成功可证）。
+- **修法**：等 4 秒重试一次即成功；事后用 `git ls-remote --tags origin` 确认远端确有该 tag，**不以 push 输出当唯一结论**。
+- **判据**：tag/分支推送失败先判「是权限还是瞬时」——分支同一秒能推＝瞬时；重试 ≤2 次，之后必须 `ls-remote` 复核远端状态再决定是否改走 SSH。
