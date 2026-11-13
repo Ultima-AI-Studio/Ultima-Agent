@@ -106,11 +106,17 @@
 
 ### ⑦ 外部能力（外脑 / 顾问）
 
-| 子内容 | 归类 | ID / 说明 |
+**口径（R-61）：外部能力不是一个模块，是一个容器，下辖三个抽屉。** Skill 与插件都不再单独成层。
+
+| 抽屉 | 子内容 | 归类 / ID |
 |---|---|---|
-| 顾问咨询（给建议、判方向） | Skill | `skill.advise.consult` |
-| 外脑通道（LLM 供应商接入） | 插件 | `plugin.provider.<name>`（OpenAI / DeepSeek / Ollama 本地）｜**注**：主脑不走 provider 插件，主脑是**内置 llama.cpp 适配**（R-57），Ollama 仅作**可选外脑/provider** |
-| 主脑 ↔ 外脑指派 | 不注册 | 由 `tool.route.decide` 决定，指派本身不是能力 |
+| **能力库 Skill** | 产品策划 / 代码开发 / 方案撰写 / 代码审计 / 知识采集 / 顾问咨询 | Skill：`skill.plan.*`、`skill.code.*`、`skill.write.*`、`skill.audit.*`、`skill.kb.collect.*`、`skill.advise.consult` |
+| **插件 Plugin** | 外脑通道适配、执行端适配器、MCP 客户端、采集浏览器档、存储后端 | 插件：`plugin.provider.<name>`、`plugin.executor.<name>`、`plugin.mcp.<name>`、`plugin.kb.browser`、`plugin.store.*` |
+| **模型库 Provider** | 已配置好的大模型 API 列表（云端）＋ 可选本地第二模型 | 登记项（非能力）：`provider.<name>`；**主脑不在模型库**（内置 `local.llama`，受基线 §十六 管，不可指派） |
+
+- **能力 × 模型是绑定关系，不是能力本身**：一对一、手动下拉换绑、无主备无自动切换；在途任务等本轮结束才切换（基线 §十八）。
+- **预置 vs 扩展**：预置能力随安装包自带（**可停用、不可卸载**）；扩展能力由用户添加（可删）。
+- **分配不注册**：主脑 ↔ 外脑指派由 `tool.route.decide` 依据能力的 `data_scope` 决定，指派动作本身不是能力。
 
 ### ⑧ 交付（Update / Lifecycle）
 
