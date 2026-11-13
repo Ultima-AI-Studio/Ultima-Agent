@@ -44,7 +44,7 @@ H:\UltimaAI\UltimaAgentNext\
 ├── devtools\            开发兜底：watchdog 手动脚本、旧 orb 测试样式（降级归档）
 ├── config\               host-tasks.json 等
 ├── installer\
-├── docs\                00-19 文档体系（按工程方法论 §2 重建，INDEX 为权威源）
+├── 最小文档面：仅安装包/运行必需（LICENSE、README 一页级）——零开发文档
 └── tasks\queue\         队列引擎（从冻结仓原样搬运）
 ```
 
@@ -99,13 +99,14 @@ H:\UltimaAI\UltimaAgentNext\
 1. **只搬冻结产物**：每项搬运必须能指出冻结来源（tag 或冻结 commit），逐项登记映射表（源→目的），搬运后新仓第一件事是全量复验。
 2. **明确不带走的**：jarvis-work 90 份过程文档（冻结仓留档）；**全部 orb 渲染线（悬浮球退场裁决）**；OrbHost/OrbNative 死工程；`src/window/*.py` python 渲染线；gorch 系脚本；`_readme_local_backup.md`；config/_backup 全部。
 3. **改名一步到位**：`UltimaAgentNext.*` 命名空间、无 voice-next、无 openjarvis import、无迭代代号分支（新仓从 `main` 起步）。
-4. **非目标**：四角壳 8 锚点框架不在 v2 拼装工单内新建实现（Hud 原生壳与布局定稿为既有冻结基线，随 P2V-03 搬运对接，新锚位功能走后续独立工单）；不动 KWS/CV3 冻结参数；不改 8756 端口与 20/3/300 守护语义；不建 UltimaManager 依赖。
+4. **零开发文档（Owner 拍板 2026-11-13）**：新仓是未来干净的**交付工程**，最终形态=打包封装成安装包，**不融入任何开发内容**——00-19 工程文档体系、方案文档、过程文档、标准文档一律不进新仓（全部留老仓冻结归档，引用靠 git tag 锚定）；新仓文档面仅保留安装包/运行必需的最小集（LICENSE、README 一页级）。冻结文档（v2 方案、能力清单、KWS 基线、四角壳设计基线）作为**搬运工单的输入依据**在老仓被引用，不作为产物复制进新仓。
+5. **非目标**：四角壳 8 锚点框架不在 v2 拼装工单内新建实现（Hud 原生壳与布局定稿为既有冻结基线，随 P2V-03 搬运对接，新锚位功能走后续独立工单）；不动 KWS/CV3 冻结参数；不改 8756 端口与 20/3/300 守护语义；不建 UltimaManager 依赖。
 
 ## 五、执行阶段（拆单草案）
 
 | 工单 | 内容 | Gate |
 |---|---|---|
-| P2V-00 立项 | 新仓初始化、docs 文档体系、队列引擎搬运、venv 规范名 | 队列渲染器自检过 |
+| P2V-00 立项 | 新仓初始化、队列引擎搬运、venv 规范名（零开发文档：工程只留安装/运行必需最小文档面） | 队列渲染器自检过 |
 | P2V-01 搬 Core+Memory+Middleware | import 吸收（openjarvis→Core） | AST 3/3 + 单测绿 + Windows-only 依赖扫描 0 处 |
 | P2V-02 搬 Senses.Voice | KWS/CV3 冻结基线复测 | 唤醒/对话链路实测一致 + Windows-only 依赖扫描 0 处 |
 | P2V-03 搬 Shell+Surface | 0054 产物 + 四角壳对接（orb 渲染线不搬）+ 宿主契约接口落文档 | build 0/0 + Guardian 事件 + 零计划任务 + 零弹窗 + 四角壳锚位渲染自检 |
@@ -166,4 +167,4 @@ host-tasks.json 中 `tools/venv-openjarvis/...`、`src/voice-next/launch.py` 等
 
 ---
 
-> Owner 拍板记录（2026-11-13，本节为最终裁决）：① 新仓目录 = `H:\UltimaAI\UltimaAgentNext`（无版本后缀，新旧靠 final-frozen tag 区分）；② venv 规范名 = `tools/venv-ultimaagent`（搬运时全量引用清扫 + 渲染器自检作 Gate）；③ 老仓冻结时点 = P2V-05 总验收后打 `ultimaagent-v1-final-frozen-*` tag 转只读；④ 模块架构 = 八模块原方案（Shell/Surface 分离、Update/Lifecycle 分开）；⑤ Surface 显示形态 = 四角壳 HUD 为唯一形态，悬浮球方案退场（全部 orb 渲染线不进新仓产品形态，0054 在途 T6 照常完成 v1 收口）。五项已定，方案视为冻结，可拆 P2V-00 工单。
+> Owner 拍板记录（2026-11-13，本节为最终裁决）：① 新仓目录 = `H:\UltimaAI\UltimaAgentNext`（无版本后缀，新旧靠 final-frozen tag 区分）；② venv 规范名 = `tools/venv-ultimaagent`（搬运时全量引用清扫 + 渲染器自检作 Gate）；③ 老仓冻结时点 = P2V-05 总验收后打 `ultimaagent-v1-final-frozen-*` tag 转只读；④ 模块架构 = 八模块原方案（Shell/Surface 分离、Update/Lifecycle 分开）；⑤ Surface 显示形态 = 四角壳 HUD 为唯一形态，悬浮球方案退场（全部 orb 渲染线不进新仓产品形态，0054 在途 T6 照常完成 v1 收口）；⑥ 新仓定位 = 干净交付工程，零开发文档（00-19 文档体系/方案/过程/标准文档一律留老仓冻结归档，新仓仅留安装/运行必需最小文档面，最终形态=打包封装成安装包）。六项已定，方案视为冻结，可拆 P2V-00 工单。
