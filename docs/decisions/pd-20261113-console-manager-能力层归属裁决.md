@@ -76,10 +76,72 @@
 | `next-基础能力盘点与缺口清单-20261113.md` | §七 T13 行 | 缺口描述由"Console/Manager 与 HostShell 边界未定"改为"壳与能力层职责未成文（现已裁决）" |
 | `北极星上线任务清单.html` | 本轮块 | 补记本条裁决 |
 
-## 六、遗留（不在本条范围内）
+## 六、任务点位（Manager 反馈的主视图，2026-11-13 追加）
+
+**问题**：只报"状态"（QUEUED / EXECUTING / AUDIT …）回答不了"这个任务现在卡在哪一步"。Owner 要的是**点位**：在做方案？在派工单？在写数据？在审计？还是已交付。
+
+### 7.1 九个点位（封闭枚举，不得自造）
+
+| # | 点位 code | 中文 | 判据（怎么证明它就在这一点） | 权威源 |
+|---|---|---|---|---|
+| 1 | `intake` | 需求受理 | 需求已登记（需求文档或明确 Owner 指令） | requirements / 对话确认 |
+| 2 | `planning` | 做方案 | 方案文档已落盘、**工单卡尚未生成**（G-PLAN-001） | `docs/plans/*` |
+| 3 | `workorder` | 派工单 | 工单卡存在且 DoR 五项全绿、**尚未派发** | `tasks/queue/wo-*.md` |
+| 4 | `queued` | 已排队 | 队列 `state=QUEUED` | `queue-status.json` |
+| 5 | `executing` | 执行中 | 队列 `state=EXECUTING`；`activity` 细分见 7.2 | `queue-status.json` + 运行记录 |
+| 6 | `selfcheck` | 自检 | 队列 `state=SELF-CHECK` | `queue-status.json` |
+| 7 | `auditing` | 审计 | 队列 `state=AUDIT`；修复轮见 `fix_round` | `queue-status.json` |
+| 8 | `fixing` | 有界修复 | `state=AUDIT` 且 `fix_round ≥ 1`（审计打回后的修复轮） | `queue-status.json` |
+| 9 | `delivered` | 已交付 | `state=COMPLETED` **且** 冻结 tag 已打 **且** 已推送/合并 | git + 冻结记录 |
+
+**异常位（与点位并列，不占点位序号）**：`blocked`（带 `blocker` 必填）/ `failed` / `cancelled`。
+
+映射要点：**点位 4–9 是对既有队列状态的投影**（不新造状态机）；**点位 1–3 在队列外**，由"方案文档 / 工单卡是否存在"判定。所以点位**不是第二套状态源**。
+
+### 7.2 执行中的细分（回答"是不是在写数据"）
+
+`executing` 带 `activity` 子值（建议值，待 Owner 确认）：`plan_write`（写方案/文档）/ `code_write`（写代码）/ `data_write`（写数据/落盘产物）/ `tool_call`（调工具/外部接口）/ `awaiting_executor`（已派给执行端、尚未回第一包产物）。
+
+### 7.3 停滞标记（"停在这一步多久"）
+
+点位不变但超过阈值 → 打 `stalled=true`（**不是新状态**，只是标记）：
+
+| 点位 | 停滞阈值（建议值） |
+|---|---|
+| planning / workorder | 24h |
+| executing | 2h 无新事件 |
+| auditing / fixing | 2h |
+| queued | 24h（排队久说明 WIP 上限或执行端不可用） |
+
+### 7.4 展示视图（一行一问全答完）
+
+列：**任务 / 现在在哪一点（含 activity）/ 谁在做（executor）/ 停在这一步多久 / 堵在哪（blocker）**。
+
+### 7.5 五条硬规则
+
+1. **只投影不造状态**：Manager 不得写 `queue-status.json`，不得自造 state；点位由状态投影 + 产物存在性判定得出。
+2. **每次点位变更必带证据**：`stage_entered_at` + 证据指针（文件路径 / 事件 / commit），无证据不得推进点位。
+3. **禁止推断**：探针只能取证据，不能"看日志猜"；取不到就报 `unknown`，不许猜一个点位填上。
+4. **点位单调**：只允许 `auditing ↔ fixing` 循环，其余不得回退；异常位之外不得跳点。
+5. **一个任务只有一个当前点位**：多执行端并行时按"最早未完成的点位"报，不并列报多点。
+
+### 7.6 验收（可机检）
+
+| 门 | 判据 |
+|---|---|
+| 四问全答 | 任取一个在跑任务，视图能答"在哪一点/谁在做/停多久/堵在哪" 4/4 |
+| 五态判定 | 造 5 个停在 planning / workorder / executing / auditing / delivered 的任务，点位判定 5/5 正确 |
+| 停滞识别 | 某任务 3h 无事件 → `stalled=true` 且阈值未误报其他任务 |
+| 零反写 | Manager 全程 0 次写 `queue-status.json`（diff 断言为空） |
+| 不猜 | 证据缺失时点位 = `unknown`（不是猜一个值） |
+
+> 点位表是**封闭枚举**：新增点位必须走变更（改本节 + 同步视图与断言），不得在执行端自行扩一个。
+
+## 七、遗留（不在本条范围内）
 
 1. ~~Console 与 Manager 的具体进程形态未定~~ → **已结**：Manager 为 Console 内子模块（同进程），不单独起进程（见"三之补"）。
 2. Manager 的 18766 登记接口现况：既有记录为"代码在、服务未部署"，且拍板门里列有"18766 已废"待确认 —— 本条**不裁决端口**，只裁决归属。
-3. 探针的**具体清单与频率**未定（属 Manager 设计范畴，另单）。
+3. 探针的**具体清单与频率**未定（属 Manager 设计范畴，另单）—— 点位口径已在 §七 定，探针清单待办。
+4. 生命周期视图字段已定（§七 7.1/7.2），**`activity` 子值与停滞阈值属建议值**，待 Owner 确认。
 
 > 变更纪律：本条为 A 级（架构/分层）裁决，后续要改必须新开裁决并显式 `supersedes` 本条。
