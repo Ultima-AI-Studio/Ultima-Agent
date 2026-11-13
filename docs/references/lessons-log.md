@@ -2256,3 +2256,15 @@ ERROR: Reconnecting... 5/5 → exit code 1
 - **根因**：接"发给 Codex 做审计"时，把"审计"默认解成**文档质量审计**（章节连续、跨文件参数一致、HTML 配平、验收门可机检），没有先问"这份审计要用什么判据回答谁的问题"。文书自洽只能证明"互相不打架"，不能证明"能开工"。
 - **修法**：任何"审计"类派单，先写一条不可替代的判据再写任务——能力审计的判据是"缺了它这条链路跑不通"，文档审计的判据才是"两处引用不一致"。判据不同→任务清单必须不同，不得复用模板。
 - **判据**：报告若通篇都是章节数/矩阵格/标签配平，却没有"哪一步接不上"的断点描述，即为跑偏信号。
+
+## L227 · venv 解释器"Stdlib 消失"是基础 Python 被裁剪，不是 venv 本身坏
+
+- **现象**：`tools\venv-openjarvis\Scripts\python.exe` 报 `Fatal Python error: Failed to import encodings module`；清空 `PYTHONPATH` 后错误仍在，换成 `Could not find platform independent libraries <prefix>`。同目录 `venv-asr`\/``venv-voice-next` 一并不可用。
+- **根因**：`pyvenv.cfg` 的 `home` 指向 `sandbox_runtime\bases\7729…\python`，该目录只剩 `DLLs`，`Lib` 被清理。venv 的 python.exe 没坏，坏的是它依赖的基础 prefix。
+- **修法**：别修 venv；改用默认 `python`（3.13.18）并补依赖 `python -m pip install jsonschema`；派发前 `$env:PYTHONPATH=''`。
+- **判据**：`Test-Path <home>` 为真但 `<home>\Lib` 不存在 → 基础解释器被裁剪，直接换默认 python，别再试第二个 venv。
+
+## L228 · 审计单必须产出可执行的修卡清单，而不只是结论
+
+- **背景**：0060 审三张修复单判不通过，附 18 行"一句话修法"；按该清单把三单改到 v1.1（定唯一主文、拆大 T、阈值改占位）后才具备重审条件。
+- **要点**：审计每行打回必须给"改哪、改成什么形态"，且落到章节/字段级；只有分数与结论时主脑无法直接修卡。
