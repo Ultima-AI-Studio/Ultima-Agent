@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>UltimaAgent Next · 基础能力架构（三类）</title>
+<style>
+:root{
+  --bg:#f6f7f9; --card:#ffffff; --line:#e3e6ea; --line-strong:#cfd4da;
+  --ink:#1b2229; --ink-2:#4a5762; --ink-3:#78848f;
+  --base:#0f766e; --base-soft:#e6f4f2;
+  --ext:#b45309; --ext-soft:#fdf3e3;
+  --ship:#334e68; --ship-soft:#eef2f6;
+  --warn:#b42318; --warn-soft:#fdeceb;
+  --radius:14px;
+}
+*{box-sizing:border-box}
+body{
+  margin:0; background:var(--bg); color:var(--ink);
+  font:15px/1.65 -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:1180px;margin:0 auto;padding:32px 24px 64px}
+h1{font-size:26px;line-height:1.35;margin:0 0 6px;letter-spacing:.2px}
+h2{font-size:17px;margin:0 0 4px}
+h3{font-size:14px;margin:0}
+.sub{color:var(--ink-3);font-size:13px;margin:0 0 26px}
+.sec{margin:34px 0 0}
+.sec-head{display:flex;align-items:baseline;gap:10px;margin-bottom:14px}
+.sec-no{font-size:12px;color:var(--ink-3);letter-spacing:1px}
+.sec-note{color:var(--ink-3);font-size:12.5px}
+
+/* 三类总图 */
+.tier-grid{display:grid;grid-template-columns:1fr 42px 1fr;gap:0;align-items:stretch}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:16px 18px}
+.panel.base{border-top:2px solid var(--base)}
+.panel.ext{border-top:2px solid var(--ext)}
+.panel.ship{border-top:2px solid var(--ship);margin-top:16px}
+.tag{display:inline-block;font-size:11.5px;padding:2px 8px;border-radius:999px;letter-spacing:.3px}
+.tag.base{background:var(--base-soft);color:var(--base)}
+.tag.ext{background:var(--ext-soft);color:var(--ext)}
+.tag.ship{background:var(--ship-soft);color:var(--ship)}
+.panel ul{margin:8px 0 0;padding-left:18px}
+.panel li{margin:3px 0;color:var(--ink-2);font-size:13.5px}
+.panel li b{color:var(--ink)}
+.link-col{display:flex;flex-direction:column;justify-content:center;align-items:center;gap:8px;color:var(--ink-3);font-size:11.5px}
+.link-col .arrow{font-size:20px;line-height:1;color:var(--line-strong)}
+.vlab{writing-mode:vertical-rl;letter-spacing:1px}
+
+/* 六块 */
+.mods{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:16px}
+.mod{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 15px;position:relative;overflow:hidden}
+.mod::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--base);opacity:.55}
+.mod h4{margin:0 0 4px;font-size:15px}
+.mod .role{color:var(--ink-2);font-size:13px;margin:0 0 8px}
+.mod .code{font-family:ui-monospace,"Cascadia Mono",Consolas,monospace;font-size:11.5px;color:var(--ink-3);word-break:break-all;line-height:1.6}
+.mod .key{margin-top:8px;padding-top:8px;border-top:1px dashed var(--line);font-size:12px;color:var(--ink-2)}
+.mod .key b{color:var(--base)}
+
+/* Console 条 */
+.band{background:var(--card);border:1px solid var(--line);border-left:3px solid var(--base);border-radius:12px;padding:14px 18px;margin-top:12px}
+.band-title{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.band .four{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:12px 0 10px}
+.four .item{background:var(--base-soft);border-radius:10px;padding:9px 11px;font-size:12.5px;color:#0b5b55}
+.four .item b{display:block;font-size:13px;color:var(--base);margin-bottom:2px}
+.band .no{font-size:12px;color:var(--ink-2)}
+.band .no b{color:var(--warn)}
+
+/* 治理横切 */
+.cut{background:linear-gradient(90deg,#fdf3e3,#fbe9e7 55%,#eef2f6);border:1px dashed #d9b48a;border-radius:12px;padding:13px 16px;margin-top:12px}
+.cut h4{margin:0 0 6px;font-size:14.5px}
+.cut p{margin:0;font-size:12.5px;color:var(--ink-2)}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:9px}
+.chip{background:#fff;border:1px solid #e5c9a8;color:#7a4a10;font-size:12px;padding:2px 9px;border-radius:999px}
+
+/* 记忆层 */
+.mem{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:16px 18px;margin-top:12px}
+.mem-row{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:10px}
+.mem-cell{border:1px solid var(--line);border-radius:10px;padding:11px 12px;background:#fbfcfd}
+.mem-cell .n{font-family:ui-monospace,monospace;font-size:13px;color:var(--base);font-weight:600}
+.mem-cell .d{font-size:12.5px;color:var(--ink-2);margin-top:3px}
+.mem-cell.idx{border-style:dashed;background:#fff;grid-column:span 1}
+
+/* 外部能力三抽屉 */
+.drawers{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:14px}
+.dr{background:var(--card);border:1px solid var(--line);border-top:2px solid var(--ext);border-radius:12px;padding:14px 15px}
+.dr h4{margin:0 0 6px;font-size:15px;color:var(--ext)}
+.dr p{margin:0;font-size:12.5px;color:var(--ink-2)}
+.dr .mono{font-family:ui-monospace,monospace;font-size:11.5px;color:var(--ink-3);margin-top:7px;word-break:break-all}
+.note{margin-top:12px;font-size:12.5px;color:var(--ink-2);background:var(--ext-soft);border-radius:10px;padding:10px 13px}
+.note b{color:var(--ext)}
+
+/* 关系表 */
+table{width:100%;border-collapse:collapse;background:var(--card);border:1px solid var(--line);border-radius:12px;overflow:hidden;font-size:13px}
+th,td{padding:9px 12px;text-align:left;vertical-align:top;border-bottom:1px solid var(--line)}
+th{background:#f0f2f5;font-weight:600;font-size:12.5px;color:var(--ink-2);white-space:nowrap}
+td .path{font-family:ui-monospace,monospace;font-size:12px;color:var(--ink)}
+tr:last-child td{border-bottom:none}
+
+/* 红线 */
+.no{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-top:12px}
+.noi{background:var(--card);border:1px solid #f0cfcc;border-left:3px solid var(--warn);border-radius:10px;padding:11px 13px;font-size:12.5px;color:var(--ink-2)}
+.noi b{color:var(--warn)}
+.noi .why{display:block;margin-top:4px;color:var(--ink-3);font-size:12px}
+
+footer{margin-top:40px;padding-top:16px;border-top:1px solid var(--line);color:var(--ink-3);font-size:12px;line-height:1.9}
+.legend{display:flex;gap:16px;flex-wrap:wrap;font-size:12px;color:var(--ink-3);margin-bottom:12px}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.dot{width:9px;height:9px;border-radius:3px;display:inline-block}
+.dot.b{background:var(--base)}.dot.e{background:var(--ext)}.dot.s{background:var(--ship)}
+@media (max-width:900px){
+  .tier-grid{grid-template-columns:1fr}
+  .link-col{flex-direction:row;padding:6px 0}
+  .vlab{writing-mode:horizontal-tb}
+  .mods,.drawers,.mem-row,.no{grid-template-columns:1fr 1fr}
+  .band .four{grid-template-columns:1fr 1fr}
+}
+@media (max-width:620px){
+  .mods,.drawers,.mem-row,.no,.band .four{grid-template-columns:1fr}
+  .wrap{padding:22px 14px 48px}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>UltimaAgent Next · 基础能力架构</h1>
+  <p class="sub">2026-11-13 口径 ｜ 呈现层级＝三类（基础能力 / 外部能力 / 交付）｜ 工程模块＝八块 ｜ 记忆＝三库一索引 ｜ 模块数仍是六块</p>
+
+  <div class="legend">
+    <span><i class="dot b"></i>基础能力（本体承载）</span>
+    <span><i class="dot e"></i>外部能力（容器·三抽屉）</span>
+    <span><i class="dot s"></i>交付（Update / Lifecycle）</span>
+  </div>
+
+  <!-- 一、三类总图 -->
+  <section class="sec">
+    <div class="sec-head"><span class="sec-no">01</span><h2>三类总图</h2><span class="sec-note">Skill 与插件不再是第一层节点</span></div>
+
+    <div class="tier-grid">
+      <div class="panel base">
+        <span class="tag base">① 基础能力 · 本体</span>
+        <ul>
+          <li><b>六块运行时</b>：Core / Senses.Voice / Shell / Surface / Memory / Middleware</li>
+          <li><b>＋ Console</b>：引擎中心管理调度器（Manager 同进程子模块）</li>
+          <li><b>＋ 治理与约束 ⑤</b>：横切，不占运行时模块</li>
+          <li>进程全部在客户端域，引擎域零 Windows-only 依赖</li>
+        </ul>
+      </div>
+
+      <div class="link-col">
+        <span class="arrow">⇄</span>
+        <span class="vlab">指派 · 调用</span>
+        <span class="arrow">↑</span>
+        <span class="vlab">打包 · 更新</span>
+      </div>
+
+      <div>
+        <div class="panel ext">
+          <span class="tag ext">② 外部能力 · 容器</span>
+          <ul>
+            <li>能力库 Skill（预置随包 ／ 扩展可加）</li>
+            <li>插件 Plugin（MCP · 执行端适配器 · 采集）</li>
+            <li>模型库 Provider（云端 API ＋ 可选本地第二模型）</li>
+            <li><b>主脑不在模型库</b>：内置 <code>local.llama</code></li>
+          </ul>
+        </div>
+        <div class="panel ship">
+          <span class="tag ship">③ 交付</span>
+          <ul>
+            <li>Update：发布通道 / manifest 签名 / 回滚</li>
+            <li>Lifecycle：Setup / shipped-tasks / 升级链</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 二、六块 -->
+  <section class="sec">
+    <div class="sec-head"><span class="sec-no">02</span><h2>基础能力内部 · 六块</h2><span class="sec-note">参数取自已冻结规格；待定项须在对应工单派发前定案</span></div>
+
+    <div class="mods">
+      <div class="mod">
+        <h4>Core · 编排与裁决</h4>
+        <p class="role">听懂 → 决策 → 路由 → 复述确认；记忆写入的唯一裁决者</p>
+        <div class="code">intent_router / planner / confirm_gate / memory_boundary</div>
+        <div class="key"><b>已定</b>：意图分级 L0&gt;L1&gt;L2&gt;L3 ｜ 路由 <code>config/interface-routing.json</code>（schema v2）｜ 复述确认双通道 ｜ 主脑不可用五级降级</div>
+      </div>
+
+      <div class="mod">
+        <h4>Senses.Voice · 语音进出</h4>
+        <p class="role">唤醒 → 收声 → 识别 → 合成；会话不因一轮结束而中断</p>
+        <div class="code">kws_backend / vad_tail / asr_pipeline / tts_cv3 / session_loop</div>
+        <div class="key"><b>已定</b>：唤醒词「幂幂」threshold <b>0.30</b>（v1 仍 0.25 冻结）｜ 七态状态机 ｜ 会话保持：轮结束停 <code>capturing</code>，60 秒无反馈才退监听</div>
+      </div>
+
+      <div class="mod">
+        <h4>Shell · 常驻托管</h4>
+        <p class="role">唯一允许「起进程、管进程、收进程」的地方</p>
+        <div class="code">host_shell / guardian / job_manager / child_supervisor / autostart_entry</div>
+        <div class="key"><b>已定</b>：Guardian 20s 探活 / 3 次失败 / 300s 冷却 ｜ 探活端口 8756 ｜ 必遍历 <code>config/host-tasks.json</code></div>
+      </div>
+
+      <div class="mod">
+        <h4>Surface · 输出呈现</h4>
+        <p class="role">只画、不管；四角壳 8 锚点是唯一显示形态</p>
+        <div class="code">hud_shell / anchor_renderer / task_manager_panel / webview_bridge</div>
+        <div class="key"><b>已定</b>：锚位宽度 <code>clamp(280px,24vw,352px)</code> ｜ 常驻仅顶／左上／右上 ｜ 中央零遮挡 ｜ 任务管理器面板 960×640</div>
+      </div>
+
+      <div class="mod">
+        <h4>Memory · 记忆与自学习</h4>
+        <p class="role">三库一索引；写入由 Core 裁决，检索按库分开</p>
+        <div class="code">writer / poison_guard / store_backend / temperature_tier</div>
+        <div class="key"><b>已定</b>：<code>mem</code> / <code>kb</code> / <code>exp</code> ＋ <code>index</code> 横切 ｜ <code>top_k=5</code> ｜ 热/温/冷三层 ＋ 存储卷可扩 ｜ 模块数仍六块</div>
+      </div>
+
+      <div class="mod">
+        <h4>Middleware · 调度与执行</h4>
+        <p class="role">执行端可替换、一次一主、票据可追；八态唯一枚举源</p>
+        <div class="code">router / delegation / task_window / ticket / sandbox</div>
+        <div class="key"><b>已定</b>：八态 QUEUED→EXECUTING→SELF_CHECK→AUDIT→COMPLETED（＋FAILED/BLOCKED/CANCELLED）｜ <code>COMPLETED</code> 必须 <code>audit_passed</code></div>
+      </div>
+    </div>
+
+    <div class="band">
+      <div class="band-title">
+        <span class="tag base">④ 宿主与编排中的 Console</span>
+        <h3>Console ＝ 引擎中心管理调度器（Engine Central Scheduler）</h3>
+      </div>
+      <div class="four">
+        <div class="item"><b>任务编排</b>派发 / 优先级 / 依赖</div>
+        <div class="item"><b>常驻托管</b>看谁在跑、跑多久</div>
+        <div class="item"><b>输出呈现</b>把状态递给 Surface</div>
+        <div class="item"><b>多端调度</b>投递给用户设备 / 显示端</div>
+      </div>
+      <p class="no"><b>边界（可机检）</b>：代码只要会碰进程 / 网络 / 磁盘 / 像素，就不属于 Console。Console 若自己 <code>CreateProcess</code> 起看门狗，就成了第二个父进程 → 孤儿进程复发。进程留在客户端域是刻意选择。</p>
+    </div>
+
+    <div class="cut">
+      <h4>⑤ 治理与约束 · 横切（不占运行时模块）</h4>
+      <p>不属于六块中的任何一块，也不单独成块；对所有模块施加约束，自身不执行业务动作。</p>
+      <div class="chips">
+        <span class="chip">行为层约束</span><span class="chip">输出层约束</span><span class="chip">规则库（带版本与生效范围）</span><span class="chip">防投毒</span><span class="chip">审计独立（谁开发谁不自审）</span><span class="chip">外发红线</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- 三、记忆层 -->
+  <section class="sec">
+    <div class="sec-head"><span class="sec-no">03</span><h2>Memory 内部 · 三库一索引</h2><span class="sec-note">三个检索入口分开，不做混检</span></div>
+
+    <div class="mem">
+      <div class="mem-row">
+        <div class="mem-cell"><div class="n">mem</div><div class="d">用户记忆：偏好、习惯、事实；写入由 Core 裁决</div></div>
+        <div class="mem-cell"><div class="n">kb</div><div class="d">知识库：书架＝领域 / 书＝来源单元（带来源＋许可） / 页＝最小检索单元；<b>初始为空</b>，指令驱动采集</div></div>
+        <div class="mem-cell"><div class="n">exp</div><div class="d">经验库：踩坑记录；<code>draft</code> → 人工 <code>confirmed</code> 才可作决策依据，未确认不得引用</div></div>
+        <div class="mem-cell idx"><div class="n">index</div><div class="d">索引横切：语义分块＋10–15% 重叠、必带位置、FTS5＋向量 RRF、<code>top_k=5</code>、增量优先</div></div>
+      </div>
+      <div class="note" style="background:var(--base-soft);color:#0b5b55;margin-top:12px">
+        <b>存储形态</b>：<code>store/</code> 分库分层分片（每库 <code>hot.db</code> / <code>warm.db</code> / <code>cold/*.dbx</code>，<code>kb</code> 一个书架一个子库）；正文只搬一次，索引只存指针 <code>(volume, file, offset, len)</code>；容量按<b>存储卷</b>扩——盘满挂新盘、可接私有 NAS，<b>无全局硬门</b>。
+      </div>
+    </div>
+  </section>
+
+  <!-- 四、外部能力 -->
+  <section class="sec">
+    <div class="sec-head"><span class="sec-no">04</span><h2>外部能力 · 三抽屉</h2><span class="sec-note">能力可加、可指派；能力×模型一对一</span></div>
+
+    <div class="drawers">
+      <div class="dr">
+        <h4>能力库 Skill</h4>
+        <p>产品策划、代码开发、方案撰写、代码审计、知识采集、顾问咨询。界面上是卡片：是否添加成功 ＋ 指派下拉 ＋ 状态灯。</p>
+        <p class="mono">skill.plan.* ／ skill.code.* ／ skill.kb.collect.*</p>
+      </div>
+      <div class="dr">
+        <h4>插件 Plugin</h4>
+        <p>接线层：provider 适配、执行端适配（<code>plugin.executor.&lt;name&gt;</code>）、MCP 客户端、采集浏览器档、存储后端。</p>
+        <p class="mono">plugin.provider.&lt;name&gt; ／ plugin.mcp.&lt;name&gt;</p>
+      </div>
+      <div class="dr">
+        <h4>模型库 Provider</h4>
+        <p>已配置好的云端大模型 API 列表 ＋ 可选本地第二模型；换绑＝在列表里手动下拉，即时生效，在途任务等本轮结束。</p>
+        <p class="mono">六态：ok ／ no_token ／ auth_failed ／ unreachable ／ rate_limited ／ disabled</p>
+      </div>
+    </div>
+
+    <div class="note">
+      <b>预置 vs 扩展</b>：预置能力随安装包自带（出场即激活、<b>可停用不可卸载</b>）；扩展能力由用户添加（<b>可删</b>）。<br>
+      <b>主脑不在模型库</b>：内置 <code>local.llama</code>，127.0.0.1:11435，受基线 §十六 管，<b>不可指派、不可换型</b>。
+    </div>
+  </section>
+
+  <!-- 五、关系 -->
+  <section class="sec">
+    <div class="sec-head"><span class="sec-no">05</span><h2>谁对谁做什么</h2><span class="sec-note">箭头方向＝依赖方向</span></div>
+    <table>
+      <thead><tr><th>关系</th><th>类型</th><th>说明</th></tr></thead>
+      <tbody>
+        <tr><td class="path">Core → Memory</td><td>写入裁决</td><td>记忆写入的<b>唯一入口</b>；越权写入直接拒绝（<code>memory_boundary</code>）</td></tr>
+        <tr><td class="path">Memory → Core</td><td>检索供给</td><td>查回 <code>kb</code> / <code>exp</code> 作「软参考」；低于阈值返回「没找到」，禁硬凑</td></tr>
+        <tr><td class="path">Console → Middleware</td><td>派发</td><td>Console 决定「做什么、先做谁」，Middleware 负责「跑起来、留票据」</td></tr>
+        <tr><td class="path">Middleware → 外部能力</td><td>调用</td><td>按<b>能力×模型绑定</b>选 provider；一对一，无主备、不自动切换</td></tr>
+        <tr><td class="path">Shell → 全部进程</td><td>托管</td><td>Job 托管、子进程回收、Guardian 探活；只有 Shell 能起进程</td></tr>
+        <tr><td class="path">Console → Surface</td><td>呈现</td><td>只递状态给 Surface 画；Surface 不回写状态</td></tr>
+        <tr><td class="path">⑤ 治理 → 全部</td><td>横切约束</td><td>不变式是<b>代码断言</b>（不入库），可配策略进<b>规则库</b>（带版本与生效范围）；规则库<b>不归记忆</b></td></tr>
+        <tr><td class="path">交付 → 全部</td><td>打包/更新</td><td>Update 管通道与签名，Lifecycle 管安装/升级/卸载；<code>shipped_tasks=[]</code> 唯一权威声明</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- 六、红线 -->
+  <section class="sec">
+    <div class="sec-head"><span class="sec-no">06</span><h2>六条最容易画错的关系</h2><span class="sec-note">每条都对应一处已发生过或已预判的破防</span></div>
+    <div class="no">
+      <div class="noi"><b>Console 不碰进程</b><span class="why">自己起进程＝第二个父进程，孤儿看门狗复发，生命周期闸1 破防</span></div>
+      <div class="noi"><b>主脑不进模型库</b><span class="why">进库就能被指派 / 换型，§十六 那套运行契约就形同虚设</span></div>
+      <div class="noi"><b>Provider 不自动换绑</b><span class="why">降级只改档位与退避，不替用户改配置</span></div>
+      <div class="noi"><b>规则库不归记忆</b><span class="why">记忆是被检索的软参考，规则是被执行器强制的硬门，混放会「提示词化」</span></div>
+      <div class="noi"><b>Skill / 插件不是第一层</b><span class="why">它们属外部能力容器；再并列一次就回到五类</span></div>
+      <div class="noi"><b>Console 不等于「终端」以外的意思</b><span class="why">「终端」此后只指 Console，不指执行端 / 用户设备 / 显示端</span></div>
+    </div>
+  </section>
+
+  <footer>
+    权威源：<b>next-基础能力盘点与缺口清单 §1.1.1</b>（呈现层级三类）｜ <b>next-感知交互参数基线 §15.2.1 / §十六 / §十七 / §十八 / §十九</b>｜ next-双域分离与开工设置规范 §七（模块设置）｜ plan-ultimaagent-next-rebuild（N-01～N-11 交付物）<br>
+    口径版本：2026-11-13 ｜ 变更编号 R-59 ～ R-66 ｜ 本页只做呈现，不改任何决策；冲突以基线为准。
+  </footer>
+</div>
+</body>
+</html>
