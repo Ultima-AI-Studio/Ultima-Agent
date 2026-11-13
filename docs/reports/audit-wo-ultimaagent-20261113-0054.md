@@ -77,4 +77,16 @@
 
 ---
 
+## 7. 冻结后补充观察（验收动作本身的副作用与脚本软肋）
+
+| 项 | 实测 | 判定 |
+|---|---|---|
+| 验收结束时 agent server 态 | `data\voice-next\status.json` → `state=stopped`、`worker_ready=false`；`http://127.0.0.1:8756/health` 拒绝连接 | 属 `test-jobkill.ps1` 判据 5（WM_CLOSE 正常关 → state=stopped）的**预期终态**，非故障；主脑未自动拉起（拉起会弹窗，交由 Owner/开机自启接管） |
+| 两个僵尸 HostShell 常驻 | PID `22572`（02:57:54 启动）、`24988`（03:00:33 启动），均早于本工单运行 | 0054 **之前**遗留，不是本次引入 |
+| 测试脚本软肋 | `tools\test-phase3-autostart.ps1` 用 `$knownZombiePids = @(24988, 22572)` **硬编码 PID 白名单**容忍上述僵尸 | 换机/重启后 PID 必变，白名单失效会误判；建议后续改为「运行前基线快照 + 仅比对新增 PID」，与 0052/0053 的 `-notcontains $baseline` 写法对齐 |
+
+> 本节为冻结后追加，不改变第 1 节结论；tag `wo-ultimaagent-20261113-0054-frozen-20261113` 指向冻结时提交。
+
+---
+
 **冻结决定：PASS，打 tag `wo-ultimaagent-20261113-0054-frozen-20261113`，队列状态回写 frozen / audit_passed=true。**
