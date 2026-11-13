@@ -1873,7 +1873,7 @@
       "work_order": "wo-ultimaagent-20261113-0054",
       "state": "pending",
       "audit_passed": false,
-      "note": "安装包主线 Phase 3（清计划任务 + 首启样式），v1.0 实测校准版卡：9T（T0 shipped-tasks 声明载体+守卫脚本 / T1 清 10 条 queue-observer 一次性遗留并补根因自清扫 / T2 watchdog 迁 devtools 并同步自注册（同名单条、pythonw 无窗）/ T3 删 Preload 任务（实证其解释器坏路径 WinError2 从未真拉起 voice 栈）/ T4 TrackerLive 归 devtools / T5 App.xaml.cs 启动计时埋点 / T6 ReadyState→orb 环进度（新建 EnableWarmRing+ULTIMA_HOST_WARM_RING 旁路）/ T7 3 次冷启动首帧中位数≤1500ms 硬判 / T8 总验收含 Phase2 test-jobkill 回归）。【方案失真校准 5 处】①计划任务实测 12 条（方案写无条目）并逐条归因；②shipped_tasks 字段不存在→偏差裁决用 installer/shipped-tasks.json（不污染带签名的 release-assets，Phase4 .iss 直接消费）；③state=\"warm\" 不存在→改 ready/warm_progress==100；④EnableWarmRing 不存在→本卡新建；⑤冷启动 4.2s 无计时证据→T5 先埋点测基线再判。【触发前提】Phase2 已冻结（9febf442 / tag wo-ultimaagent-20261112-0052-frozen-20261113）。待 Owner 拍板是否开工；未派发。"
+      "note": "v2.0（A 级架构变更，裁决 docs/decisions/pd-20261113-0054-watchdog内化与零计划任务裁决.md）：watchdog 守护内化——新增 GuardianService（1:1 对齐 20s 探活/3 次失败/300s 冷却，拉起从 start-agent-server.ps1 改 C# CreateNoWindow 直启）、HostTaskRegistry + config/host-tasks.json；外部 UltimaAgent-Watchdog 任务删除不重建，脚本 git mv 到 devtools 作开发机手动兜底。新增 T8 启动文件夹 .lnk 自启（零 schtasks、零控制台，COM 晚绑定在进程内创建）、T9 应用内任务管理器面板（WebView2 双向消息，未来挂四角壳左下锚位）；总验收 T10。11T 四键 11/11；阶段末判据由仅剩1条改为零条，T0 守卫白名单清空。非目标：应用崩溃不自愈（Owner 接受）、v1 仅 agent-server 自动重启、不建四角壳框架。未派发。"
     }
   ]
 }
