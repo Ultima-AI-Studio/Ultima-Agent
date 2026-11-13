@@ -2,7 +2,7 @@
 
 > **由 `scripts/render-queue-views.py` 从 `tasks/queue/queue-status.json` 生成，勿手改。**
 > 唯一状态权威：`tasks/queue/queue-status.json`。修改 Markdown 不会回写状态。
-> schema_version=1 ｜ records=121 ｜ audit=3, blocked=16, cancelled=14, closed=3, frozen=78, pending=7
+> schema_version=1 ｜ records=121 ｜ audit=4, blocked=16, cancelled=14, closed=3, executing=1, frozen=78, pending=5
 
 <!-- queue-items:start -->
 | 项目 | 工单 | 状态 | audit_passed | 派发时间 | 审计 run | 冻结 commit | 备注 |
@@ -124,8 +124,8 @@
 | UltimaAgent | wo-ultimaagent-20261113-0060 | closed | true | 2026-11-13T13:59:12.839144+00:00 | wo-ultimaagent-20261113-0060-20261113T135912386442Z |  | 审卡单收尾：四轮审 0057/0058/0059。r1 不通过（覆盖36/36但契约分裂4处/Gate1可机检/T过大6个）；r2 17/18闭、分裂清零；r3 8/10闭、Gate31/31有锚点但6条自相抵消；r4 通过（6/6闭、新矛盾0、31/31未抵消、D-01~08 仍为真占位）。报告 docs/reports/audit-...-0060-r4.md。 |
 | UltimaAgent | wo-ultimaagent-20261113-0064 | audit | true | 2026-11-13T23:48:41+08:00 | wo-ultimaagent-20261113-0064-20261113T154841075109Z |  | 拆解完成（23:48→00:09，21min）：产出 0061/0062/0063 三张卡＋拆解报告＋执行报告；三卡 validate_work_order.py 全 PASS、无 W_VOLATILE_COUNT_WRITTEN；0062 仅以「不在本卡」提及 cancel_observe；0063 已把 running 判定改为「ack 或强杀后零活动进程凭据」，点名禁止以 ActiveProcesses>0 判成功。待审卡（0060 式）。 |
 | UltimaAgent | wo-ultimaagent-20261113-0061 | pending | false |  |  |  | P0 唯一写入口三件套（inbox＋queue-writer.py 唯一写者＋reconcile-inbox.py 只读对账＋claim_id）。不改基线，可独立开工；卡状态=待审卡，须过 0060 式审卡。 |
-| UltimaAgent | wo-ultimaagent-20261113-0062 | pending | false |  |  |  | P1 §27 三机制（M3 指令数据分离／M4 跳数8＋同轮扇出3／M7 ask.key 幂等／§27.4 仅 session_id）。前置＝0057 与 0059 均冻结；cancel_observe 明确不在本卡。卡状态=待审卡。 |
+| UltimaAgent | wo-ultimaagent-20261113-0062 | pending | false |  |  |  | P1 §27 三机制（M3 指令数据分离／M4 跳数8＋同轮扇出3／M7 ask.key 幂等／§27.4 仅 session_id）。前置＝0057 与 0059 均冻结；cancel_observe 明确不在本卡。v1.1（2026-11-14，据 0065 §1.2）：§27.3 补三职责归属（Console.task_store 持卡账、Core.clarify 产问题与 key、Surface 只读）；§27.4 改指针式（只引用 §25.1，不重复定义必填/创建/切换）。卡状态=待审卡。 |
 | UltimaAgent | wo-ultimaagent-20261113-0063 | pending | false |  |  |  | §25.10 补 cancel_observe（三值 running/not_running/unknown＋CANCELLED_PENDING 投影＋解除与3轮告警＋G-25.10-A..D）。前置＝0057 冻结凭据；只称「E-01 显式挂起」，①②标 TBD-RUNTIME。卡状态=待审卡。 |
-| UltimaAgent | wo-ultimaagent-20261113-0065 | pending | false |  |  |  | 独立评审：Autoloop 融合方案应挂基础能力哪一块。逐行裁定方案 §11 六行归属（维持/改判/反对）、审写口-Middleware 与读视图-Console 是否双源、核对 0061/0062/0063 写域与归属一致性。只写报告，不改任何既有文件。 |
-| UltimaAgent | wo-ultimaagent-20261113-0066 | pending | false |  |  |  | 独立评审：Next 基础能力骨架设计。判据＝拿去开工会不会模块打架。八项三列判定（越界/缺口/重叠）、跨块交互三态（唯一主文/无主文/两处主文）、§25.1–§25.11 逐节归属标注、新增问题清单（沿用 0056 项须带编号）。只写报告。 |
+| UltimaAgent | wo-ultimaagent-20261113-0065 | audit | true | 2026-11-14T00:17:37+08:00 | wo-ultimaagent-20261113-0065-20261113T161737350053Z |  | 独立评审完成（16:17→00:38 UTC 派发记录，全程约 21min）：结论＝有条件通过，T5_GATE=PASS。六行裁定＝维持 4（P0/M3/M4/session_id）＋改判 2（M7→Console.task_store 主体、cancel_observe→queue_engine run 取消投影主体）；三卡写域＝0061 一致、0062 需调整、0063 一致；未决 U-01～U-04 已由 Owner 于 2026-11-14 全部闭合（方案版本头统一 v0.3、§11 两行按改判回写、0062 v1.1 改指针式）。 |
+| UltimaAgent | wo-ultimaagent-20261113-0066 | executing | false | 2026-11-13T16:38:18.269048+00:00 |  |  | 真实工单派发 wo-ultimaagent-20261113-0066-20261113T163817823112Z，一单一进程；尚未验收 |
 <!-- queue-items:end -->

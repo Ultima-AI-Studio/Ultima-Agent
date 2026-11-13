@@ -1,6 +1,6 @@
-# Next 引擎 · Autoloop 融合实施方案（v0.1）
+# Next 引擎 · Autoloop 融合实施方案（v0.3）
 
-> 版本：v0.1（待评审，未派发）｜日期：2026-11-13｜依据：`docs/plans/next-autoloop-机制借鉴研究-20261113.md` v0.2 ＋ `docs/reports/review-autoloop-机制借鉴研究-deepseek-20261113.md`
+> 版本：v0.3（含 §10 三方对照、§11 模块归属；2026-11-14 按 0065 评审改判 §11 两行）｜日期：2026-11-13（v0.3 修订 2026-11-14）｜依据：`docs/plans/next-autoloop-机制借鉴研究-20261113.md` v0.2 ＋ `docs/reports/review-autoloop-机制借鉴研究-deepseek-20261113.md`
 > 状态：**方案稿**。评审通过后按 G-PLAN-001 随工单落盘，再拆 0061／0062 派 Codex。
 > 定位：本文只回答「按什么顺序、落到哪、怎么验收」，不重复研究稿里的事实核实。
 
@@ -204,9 +204,11 @@ DeepSeek 首轮主张首批只做 M3/M4/M7，我方主张 M1 会话字段要进�
 | P0 三件套（`inbox/`、`queue-writer.py` 唯一写者、`reconcile-inbox.py`、`claim_id`） | **Middleware · queue_engine**（票据与八态唯一写权） | 六块里「执行端与票据、八态定义权在此层（不是 Console）」 | 0061；inbox／reconcile 是 queue_engine 的**子件**，不新增模块 |
 | P1 M3 指令数据分离（字段白名单、`summary/detail` 不进提示词、`access/cwd` 拒收） | **Middleware · delegation**（派发 ABI 入口）主体；**治理⑤ · 防投毒**只出约束声明 | 外部事件进引擎的边界就是 delegation；防投毒属横切治理层，不承载实现 | 0062 §27.1 |
 | P1 M4 跳数 8 ＋ 同轮扇出 3 | **Console · 任务编排** | 「还能不能再派活」是编排策略，不是执行器职责 | 0062 §27.2 |
-| P1 M7 `ask.key` 卡片幂等 | **Core · 澄清出口**主文 ＋ **Surface · task_manager_panel** 呈现细则 | 「同一事项只问一次」是 Core 决策出口契约；卡片长什么样才归 Surface | 0062 §27.3 |
+| P1 M7 `ask.key` 卡片幂等 | **Console · task_store**（持久幂等主体）＋ **Core · clarify**（问题与事项键的生产者）＋ **Surface · task_manager_panel**（只读呈现） | 0065 §3.4 改判：未关闭查重与关闭账是有持久状态的卡片账，归 Core 会造第二套卡账、归 Surface 违反「只画、不管」 | 0062 §27.3 |
 | P1 `session_id` 一等字段 | **Core ↔ Senses.Voice** 对话信封（主文已在 §25.1） | 会话边界属对话域，§27.4 只登记字段不重定义 | 0062 §27.4 |
-| P2 `cancel_observe`／`CANCELLED_PENDING` | **Middleware · state_machine**（八态定义权）＋ **Shell**（终止凭据来源） | 取消＝状态迁移＋进程终止证据；§25.10 主文不动 | 0063 |
+| P2 `cancel_observe`／`CANCELLED_PENDING` | **Middleware · queue_engine** 的 run 取消投影／票据子件（观测主体）＋ **Shell**（终止凭据来源）＋ **Middleware · state_machine**（只守八态门） | 0065 §3.6 改判：三值本身是 run 层观测结果、不是第九种状态，挂 state_machine 会把观测值写成状态；§25.10 主文不动 | 0063 |
+
+**改判采纳记录（2026-11-14，据 0065 独立评审）**：上表 M7 与 `cancel_observe` 两行由「Core＋Surface」「state_machine＋Shell」改判为上文所写，依据见 `docs/reports/review-autoloop-module-placement-0065.md` §3.4／§3.6；其余四行经评审维持。0065 结论等级＝有条件通过，未决项 U-01～U-04 已全部在本轮闭合。
 
 **两条硬约束（写方案不是为了加模块）**
 1. **不新增第七块**：`inbox`／`reconcile`／`writer` 都是 queue_engine 的子件；登记进能力注册表即可，基础能力模块数维持六块（页面口径不许改）。
