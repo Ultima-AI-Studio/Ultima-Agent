@@ -1901,12 +1901,12 @@
     {
       "project": "UltimaAgent",
       "work_order": "wo-ultimaagent-20261113-0057",
-      "state": "pending",
+      "state": "audit",
       "audit_passed": true,
-      "dispatched_at": null,
-      "audit_run": "wo-ultimaagent-20261113-0060-20261113T135912386442Z",
+      "dispatched_at": "2026-11-13T15:24:02.698255+00:00",
+      "audit_run": "wo-ultimaagent-20261113-0057-20261113T152402246487Z",
       "freeze_commit": null,
-      "note": "修复A·主链闭合：C-01/G-03/G-04/H-01/C-02/C-03/C-05/G-05/E-01/C-17/C-18 共 11 条，新增基线 §二十五（对话/装配/计划/派发/执行/取消/补偿）。待 Codex 审卡后执行。；**审卡通过（0060 r4：6/6闭、Gate 全部有锚点）**，未执行，待 Owner 批准按序执行（0058→0057→0059）。"
+      "note": "真实执行结束 exit=0；wo-ultimaagent-20261113-0057-20261113T152402246487Z；待二轮复核，不自动批准或续派"
     },
     {
       "project": "UltimaAgent",
@@ -1937,6 +1937,46 @@
       "audit_run": "wo-ultimaagent-20261113-0060-20261113T135912386442Z",
       "freeze_commit": null,
       "note": "审卡单收尾：四轮审 0057/0058/0059。r1 不通过（覆盖36/36但契约分裂4处/Gate1可机检/T过大6个）；r2 17/18闭、分裂清零；r3 8/10闭、Gate31/31有锚点但6条自相抵消；r4 通过（6/6闭、新矛盾0、31/31未抵消、D-01~08 仍为真占位）。报告 docs/reports/audit-...-0060-r4.md。"
+    },
+    {
+      "project": "UltimaAgent",
+      "work_order": "wo-ultimaagent-20261113-0064",
+      "state": "audit",
+      "audit_passed": true,
+      "dispatched_at": "2026-11-13T23:48:41+08:00",
+      "audit_run": "wo-ultimaagent-20261113-0064-20261113T154841075109Z",
+      "freeze_commit": null,
+      "note": "拆解完成（23:48→00:09，21min）：产出 0061/0062/0063 三张卡＋拆解报告＋执行报告；三卡 validate_work_order.py 全 PASS、无 W_VOLATILE_COUNT_WRITTEN；0062 仅以「不在本卡」提及 cancel_observe；0063 已把 running 判定改为「ack 或强杀后零活动进程凭据」，点名禁止以 ActiveProcesses>0 判成功。待审卡（0060 式）。"
+    },
+    {
+      "project": "UltimaAgent",
+      "work_order": "wo-ultimaagent-20261113-0061",
+      "state": "pending",
+      "audit_passed": false,
+      "dispatched_at": null,
+      "audit_run": null,
+      "freeze_commit": null,
+      "note": "P0 唯一写入口三件套（inbox＋queue-writer.py 唯一写者＋reconcile-inbox.py 只读对账＋claim_id）。不改基线，可独立开工；卡状态=待审卡，须过 0060 式审卡。"
+    },
+    {
+      "project": "UltimaAgent",
+      "work_order": "wo-ultimaagent-20261113-0062",
+      "state": "pending",
+      "audit_passed": false,
+      "dispatched_at": null,
+      "audit_run": null,
+      "freeze_commit": null,
+      "note": "P1 §27 三机制（M3 指令数据分离／M4 跳数8＋同轮扇出3／M7 ask.key 幂等／§27.4 仅 session_id）。前置＝0057 与 0059 均冻结；cancel_observe 明确不在本卡。卡状态=待审卡。"
+    },
+    {
+      "project": "UltimaAgent",
+      "work_order": "wo-ultimaagent-20261113-0063",
+      "state": "pending",
+      "audit_passed": false,
+      "dispatched_at": null,
+      "audit_run": null,
+      "freeze_commit": null,
+      "note": "§25.10 补 cancel_observe（三值 running/not_running/unknown＋CANCELLED_PENDING 投影＋解除与3轮告警＋G-25.10-A..D）。前置＝0057 冻结凭据；只称「E-01 显式挂起」，①②标 TBD-RUNTIME。卡状态=待审卡。"
     }
   ]
 }
