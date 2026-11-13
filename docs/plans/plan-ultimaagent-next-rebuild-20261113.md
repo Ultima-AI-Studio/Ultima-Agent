@@ -1,0 +1,206 @@
+# UltimaAgent Next 从零重做总纲方案（N 系列）
+
+> 版本：v1.0 ｜ 状态：方案定稿（待 0054 收口冻结后开 N-00）｜ Owner 拍板日期：2026-11-13
+> 权威源：本文件（Next 重做唯一事实源）｜ 关联：`docs/plans/plan-ultimaagent-v2-clean-assembly-20261113.md`（被本方案取代的旧拼装路线，留档）、`docs/tracker/北极星架构树.html`（架构呈现）、`docs/decisions/pd-20261113-0054-watchdog内化与零计划任务裁决.md`
+> 适用方法论：`ultima-工程方法论`（工单三段式 / DoD 分层 / 冻结门 / M1-M8 / 审批矩阵）+ G-PLAN-001（方案随工单落盘）+ G-TASKFLOW-001（登记→计划评审→执行→独立审计→有界修复→验收→冻结）
+
+---
+
+## 一、裁决与背景
+
+**Owner 判定（2026-11-13）**：v1、v2 两版的结果都是「乱七八糟、七零八落」，不再在旧仓上做增量修补；开启 **Next 版**——把每一个模块重新整理、逐块填内容、所有工单按顺序排队，一路推进到能打出最终形态（安装包）。
+
+**量化依据（旧仓实测，2026-11-13 12:20）**：
+
+| 维度 | 实测 | 问题 |
+|---|---|---|
+| 工作区未提交改动 | 478 条（未跟踪 docs 264 / tasks 101 / scripts 20 / src 15 / data 13） | 代码与文档从未一次性收敛 |
+| `src` 目录 | 9 个：`brain` / `host` / `host-shell` / `memory` / `middleware` / `ui` / `update` / `voice-next` / `window` | 命名口径不一，`host` 与 `host-shell` 重叠、`ui` 与 `window` 并存、`voice-next` 带迭代代号 |
+| `docs` 文件数 | 23 792 | 文档沉积，权威源被稀释 |
+| tracked 文件数 | 36 461 | 交付面被历史面淹没 |
+| 队列卡 | 大量历史卡命名含过程词（kws/cv3/audit/hud…） | 无法一眼看出「产品还剩什么」 |
+
+**两条并行裁决**：
+
+1. **Next 取径 = 全部从零重写**。旧仓代码零搬运、零复制、零 import；旧仓此后只作为「规格与实测结论的来源文档」存在。
+2. **0054 先跑完收口**（run `wo-ultimaagent-20261113-0054-20261113T023840201172Z`，现处 T9 最后收口），出总验收后打 v1 冻结 tag，老仓转只读；Next 在其后启动。**0054 不在本方案内改范围**。
+
+---
+
+## 二、「从零重写」的边界（唯一允许带入的是规格，不是代码）
+
+从零重写 ≠ 从零发明。以下内容是**已验证的规格值与结论**，允许写入 Next 的规格文档并据以实现；它们不是代码资产。
+
+| 允许带入（规格/结论） | 来源 | 用途 |
+|---|---|---|
+| 唤醒词「幂幂」、threshold 0.25、七态状态机（warming→ready→capturing→processing→speaking/acknowledging/stopped/error）、warm_progress 0/25/50/75/100 | `docs/specs/kws-wakeup-params-baseline.md`（KWS 唯一权威基线） | Voice 实现时的参数表 |
+| CV3 音色冻结参数 | 同上 + voice-profile 规格 | TTS 播报 |
+| Guardian 20s 探活 / 3 次失败 / 300s 冷却 | 0054 ADR | Shell 守护自愈 |
+| 子进程零窗四要素：pythonw + UseShellExecute=false + CreateNoWindow + 标准流重定向排空 | 0054 ADR（T2 实证） | Shell 子进程托管 |
+| 时序基线：window 541ms / first frame 1530ms / voice-ready 15 651ms / 残留 0 | 0054 T5 基线 | 验收判据阈值 |
+| 四角壳 8 锚点职责与宽度 lock `clamp(280px,24vw,352px)` | `docs/specs/hud-layout-zone-plan-20261031.md` v0.2 | Surface 唯一显示形态 |
+| 零计划任务：`shipped_tasks=[]` 唯一权威声明、`.iss` 只读不写 | 0054 ADR | Lifecycle |
+| Job 归属判据：宿主强杀子进程树 3 秒内同步消失 | 0052/0054 | Shell 验收 |
+
+**硬禁止（越界即打回）**：
+
+- 禁止把旧仓任何 `.py/.cs/.xaml/.ps1` 文件复制进 Next；
+- 禁止 `import openjarvis.*` / 旧包名 / 旧模块名沿用；
+- 禁止「参考旧实现顺手粘贴」——每个文件必须是按规格重写的新实现；
+- 禁止旧仓 `data/`、`models/` 产物原样搬入（模型文件按规格重新获取）。
+
+---
+
+## 三、架构定稿
+
+**组织逻辑**：能力分类模块化。第一层五大模块，其中两个包含原子模块，合计八原子模块（工程口径不变）。
+
+```
+UltimaAgent 本体
+├─ 基础能力（本体承载）──────── Core · Senses.Voice · Shell · Surface · Memory · Middleware
+├─ 外部能力（外脑与顾问）────── 外脑执行端体系 · 顾问（裁决与咨询）
+├─ Skill（技能体系）────────── 技能注册表 · 防重复开发（M1）
+├─ 插件（开源拼装）────────── 调度组件 · 组件树基底 · 语音管线
+└─ 交付（更新与安装）────────── Update（远程更新）· Lifecycle（安装与交付）
+```
+
+**分层铁律（终端演进）**：
+
+- 终端无关层 = Core / Senses.Voice / Memory / Middleware / Update → 禁 Windows-only 依赖（每轮 Gate 含依赖扫描 0 处）；
+- 终端相关层 = Shell / Surface → 宿主契约接口「只换实现不换契约」，Linux 版（systemd/dbus）与 AR 版各自实现；
+- 显示常量 = 四角壳 8 锚点范式（跨终端唯一）；悬浮球形态已退场，不进 Next。
+
+---
+
+## 四、模块内容填充表（逐模块定「填什么」）
+
+> 每个模块四件套：**职责**（一句话边界）/ **对外契约**（别的模块只能通过这些接口用它）/ **内部组成**（Tools，新代码一律模块化封装为 Tools，不平铺）/ **验收判据**（Gate 可机检）。
+
+### 4.1 Core（编排与裁决）
+- **职责**：把自然语言变成结构化意图，编排多步任务，关键动作复述确认，裁决记忆是否写入。
+- **对外契约**：`Intent`（结构化意图对象）、`Plan`（多步任务计划）、`confirm(prompt)→bool`、`memory_write_request→裁决结果`；对内不暴露 LLM 供应商细节。
+- **内部组成**：`intent_router`（L0>L1>L2>L3 分级路由）、`planner`、`confirm_gate`、`memory_boundary`、`capability_registry`
+- **规格约束**：意图→路由→编排顺序固定，不条件反射；复述确认双通道（语音 + 面板）；写入边界由 Core 裁决，Memory 只执行
+- **验收判据**：意图分类黄金集 ≥50 例准确率达标；计划可重入（同输入同计划）；越界写入被拒并留痕；单测绿
+
+### 4.2 Senses.Voice（语音进出）
+- **职责**：唤醒、听写、对话、TTS 播报四件事，且只有这四件。
+- **对外契约**：`WakeEvent`、`Transcript(text, confidence)`、`Speak(text, voice_id)`、`VoiceState`（七态）；上层只订阅事件，不直接碰音频设备
+- **内部组成**：`kws_backend`、`vad_tail`、`asr_pipeline`、`tts_cv3`、`session_loop`、`apm_dsp`
+- **规格约束**：KWS 参数严格按 `docs/specs/kws-wakeup-params-baseline.md`；参数冻结，不得顺手优化；尾音处理按 VAD 规格
+- **验收判据**：唤醒率/误唤醒在基线区间；warm_progress 五档可视化；TTS 音色一致性抽检；语音链路零 Windows-only 依赖
+
+### 4.3 Shell（常驻托管）
+- **职责**：进程活着的责任人——常驻、守护、自启、子进程托管、零弹窗。
+- **对外契约**：`HostTask`（可托管任务声明）、`Restart(task_id)`、`Status`（含重启次数/冷却剩余）；Surface 通过此契约读状态
+- **内部组成**：`host_shell`（WinUI3 原生壳）、`guardian`（20s/3次/300s）、`job_manager`、`child_supervisor`（零窗四要素）、`readiness_probe`、`autostart_entry`
+- **规格约束**：**零计划任务**（不自建任何 schtasks）；自启只走启动文件夹 `.lnk`；全部子进程无窗
+- **验收判据**：强杀子进程树 3s 内消失；Guardian 故障恢复 ≤ 冷却窗口；计划任务查询 0 条；启动截图无控制台窗
+
+### 4.4 Surface（输出呈现）
+- **职责**：把状态与结果呈现给人，且只在四角壳里呈现。
+- **对外契约**：`AnchorUpdate(anchor_id, payload)`、`TranscriptStream`、`TaskPanel(state)`；只读 Core/Shell 状态，不反向驱动
+- **内部组成**：`hud_shell`（四角壳原生壳）、`anchor_renderer`（8 锚点）、`task_manager_panel`、`webview_bridge`
+- **规格约束**：8 锚点职责锁定（顶=时钟 / 左上=系统状态 / 右上=单功能 / 左下=任务队列 / 右下=即时消息 / 左中=Agent 反馈 / 右中=主动唤出 / 底=交流转写）；常驻仅顶/左上/右上；宽度 lock 同四角壳基线；中央零遮挡
+- **验收判据**：8 锚点渲染自检逐项过；窄屏堆叠规则生效；150% DPI 无字段被挤出；任务管理器面板状态/重启/停用三键可用
+
+### 4.5 Memory（记忆与自学习）
+- **职责**：只负责存与取，写不写由 Core 裁决。
+- **对外契约**：`Recall(query, scope)`、`Write(entry)`（仅接受 Core 已裁决的请求）、`Forget(entry_id)`
+- **内部组成**：`writer`、`poison_guard`、`store_backend`（适配层，换存储不改调用方）、`temperature_tier`（工作/长期/温度三层）
+- **规格约束**：三层记忆职责不混；检索结果带来源与置信度
+- **验收判据**：越权写入一律拒绝；检索命中率基线；存储后端可替换（同一套契约两套后端跑通）
+
+### 4.6 Middleware（多端调度）
+- **职责**：任务往哪跑、跑在哪个窗口、出问题怎么隔离。
+- **对外契约**：`Route(task)→executor`、`TaskWindow`、`Sandbox`、`Ticket`
+- **内部组成**：`router`、`delegation`、`sandbox`、`task_window`、`ticket`
+- **规格约束**：执行端可替换（换实现不改调用方）；一次一主；票据可追溯
+- **验收判据**：断掉某执行端后降级路径生效；票据全链路可追；沙箱越界拦截
+
+### 4.7 Update（远程更新）
+- **职责**：新版本怎么安全到用户机器上。
+- **对外契约**：`CheckUpdate()`、`ApplyUpdate(manifest)`、签名校验结果
+- **内部组成**：`manifest`、`publisher`、`signature_verify`
+- **规格约束**：签名密钥启用前 scope 标 `temporary-test-only`；回滚路径必须存在
+- **验收判据**：篡改包被拒；回滚成功；更新后自检过
+
+### 4.8 Lifecycle（安装与交付）
+- **职责**：装得上、升得动、卸得干净。
+- **对外契约**：安装/升级/卸载三链 + `shipped_tasks=[]` 声明
+- **内部组成**：`setup_chain`、`check_shipped_tasks`、`release_assets`
+- **规格约束**：零计划任务；`.iss` 只读不写；卸载零残留
+- **验收判据**：Setup 全流程绿；计划任务 0 条；卸载后无遗留目录/注册项
+
+### 4.9 外部能力 / Skill / 插件（v1.1 批次，v1.0 只留接口）
+- **外部能力**：外脑执行端（Codex / DeepSeek / 本地 8B）+ 顾问；v1.0 只落 `executor_provider` 契约与一个可用的本地执行端适配，其余 v1.1 接入
+- **Skill**：技能注册表 + M1 查重；v1.0 只有注册表与两条内置技能
+- **插件**：开源接线（LobeHub/SuperAgent 调度、A2UI 组件树、Pipecat/LiveKit 语音管线）；v1.0 不接，v1.1 按「能用开源绝不自研 + 附替代排查结论」逐项接
+
+---
+
+## 五、工单序列（N-00 → N-12，按依赖顺序推进，不跳单）
+
+> 节奏纪律：**先贯通后深修**。N-00～N-07 先把一条最小闭环跑通（语音唤醒 → Core 编排 → 执行 → 四角壳呈现），再在 N-08 起加深。
+
+| # | 工单 | 依赖 | 交付物 | Gate（全绿才过） |
+|---|---|---|---|---|
+| N-00 | 建仓与骨架 | — | `H:\UltimaAI\UltimaAgentNext` 目录树、构建脚本、precheck（构建+单测+扫描一条命令）、config 面、日志、LICENSE+README 一页级 | 空壳构建 0/0；precheck 一条命令全绿；零开发文档自检（无 00-19 体系） |
+| N-01 | Core 最小闭环 | N-00 | intent_router / planner / confirm_gate / memory_boundary + 单测 | 意图黄金集准确率达标；越界写入被拒；单测绿 |
+| N-02 | Middleware 调度 | N-01 | router / delegation / task_window / ticket / sandbox | 执行端可替换（两套桩跑通）；票据可追 |
+| N-03 | Memory 三层 | N-01 | writer / poison_guard / store_backend / temperature_tier | 越权写入拒绝；双后端同契约跑通 |
+| N-04 | Senses.Voice | N-01 | kws_backend / vad_tail / asr_pipeline / tts_cv3 / session_loop | KWS 参数逐项对齐基线；七态状态机事件序正确；零 Windows-only 依赖 |
+| N-05 | Shell 常驻托管 | N-02 | host_shell / guardian / job_manager / child_supervisor / autostart_entry | 强杀子进程树 3s 内消失；计划任务 0 条；启动零控制台窗 |
+| N-06 | Surface 四角壳 | N-03,N-05 | hud_shell / anchor_renderer / task_manager_panel / webview_bridge | 8 锚点渲染自检；150% DPI 无挤出；面板三键可用；中央零遮挡 |
+| N-07 | 端到端最小闭环 | N-04,N-06 | 唤醒→理解→编排→执行→四角壳反馈 全链路 | 冷启动 window ≤541ms 基线区间；first frame ≤1530ms 区间；语音就绪 ≤15.6s 区间；残留 0 |
+| N-08 | 外部能力接线 | N-07 | executor_provider 契约 + 本地执行端适配 + 顾问接口预留 | 断执行端降级可恢复；换一个提供商不改调用方 |
+| N-09 | Skill 体系 | N-08 | 技能注册表 + 内置技能两条 + M1 查重门 | 未登记技能不可用；重复登记被拒 |
+| N-10 | 插件接线（v1.1） | N-09 | 调度 / 组件树 / 语音管线 各一开源接线 | 每个插件附开源替代排查结论；关掉插件产品仍可用 |
+| N-11 | 交付链 | N-07 | Update 通道（temporary-test-only 签名）+ Lifecycle Setup 安装包 | 篡改包被拒；回滚成功；安装/升级/卸载三链绿；零计划任务 |
+| N-12 | 总验收 | 全部 | `UltimaAgent-Setup-*.exe` + 阶段报告 + 冻结 tag | 端到端冒烟 + 独立审计 PASS + 安装包在干净机可用 + DoD 四段齐全 |
+
+**v1.0 出包边界**：N-00～N-07 + N-11 + N-12 构成 v1.0（八原子模块全量、能唤醒能对话能编排能呈现能安装）；N-08～N-10 为 v1.1 批次，但在 v1.0 必须留好契约（不实现不算欠账，契约缺失算欠账）。
+
+**派发纪律**：每张卡开工前登记全局主表 `H:\UltimaAI\_shared\queue\global-queue-index.md` 并走 UltimaManager 18766 登记；同一时刻 EXECUTING ≤2，AUDIT ≤1；上一张冻结才进下一张。
+
+---
+
+## 六、与 0054 / 旧仓的衔接
+
+1. 0054 跑完 T9+T10 → 独立验收 → 打 `ultimaagent-v1-final-frozen-20261113` → 旧仓转只读；`docs` 全量留档，引用一律靠 tag 锚定。
+2. Next 建仓后旧仓只读，`H:\UltimaAI\UltimaAgentNext` 为唯一活跃开发面。
+3. 旧仓残留的 478 条未提交改动：冻结前由 0054 与其后的收口提交一次性收敛；确实无法收敛的，随冻结一起归档进 tag，不再逐条追。
+
+---
+
+## 七、纪律（写入每张卡的「禁止」段）
+
+1. **零开发文档**：Next 只留 LICENSE + README 一页级；规格/方案/过程文档全部留旧仓，靠 tag 引用。
+2. **零计划任务**：任何模块不得创建 schtasks；自启只走启动文件夹。
+3. **无窗铁律**：所有子进程必须无窗；禁止前台引导、禁止弹窗。
+4. **参数冻结**：KWS/CV3 参数只可按基线文档取值；改动必须同步基线文档并记录。
+5. **终端无关层**：Core/Voice/Memory/Middleware/Update 禁 Windows-only 依赖（每轮 Gate 扫 0 处）。
+6. **能开源不自研**：新增组件开工前附开源替代排查结论；结果写进卡片。
+7. **代码 Tools 化**：新代码一律模块化封装为 Tools，禁止在业务层平铺逻辑。
+8. **审计分离**：开发与审计不同实例；自证不能当验收结论。
+9. **回执 8 键**：链路号/工单号/通道/执行端/完成状态/产出路径/验收证据/越界声明，缺一不算完成。
+
+---
+
+## 八、风险登记
+
+| 风险 | 影响 | 处置 |
+|---|---|---|
+| 从零重写语音链路导致参数漂移 | 唤醒/音色回退 | N-04 Gate 强制逐项对齐基线文档；不达标不放行 |
+| 8 个模块并行开发导致接口打架 | 返工 | 契约先落（N-00 定契约骨架），后续每单只实现不新增契约 |
+| 老仓冻结时未收敛的 478 条改动成为悬空资产 | 追溯困难 | 冻结 tag + 归档说明，明确「不再追」 |
+| v1.0 交付面被 v1.1 需求侵蚀 | 出不了包 | 出包边界写死在 N-12 卡；新增走变更流程 |
+| 旧习惯性「参考旧实现」 | 隐性复制旧代码 | 每单 diff 审查：新文件路径 + 无旧包名 import |
+
+---
+
+## 九、下一步
+
+1. 0054 跑完 → 独立验收 → v1 冻结 tag → 旧仓只读（不阻塞等待，进行中）。
+2. 0054 冻结后立即派 **N-00**（卡已建：`tasks/queue/wo-ultimaagent-20261113-n00--next-bootstrap.md`，状态 pending）。
+3. N-00 Gate 全绿后按序派 N-01。
