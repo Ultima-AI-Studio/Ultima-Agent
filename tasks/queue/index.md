@@ -2,7 +2,7 @@
 
 > **由 `scripts/render-queue-views.py` 从 `tasks/queue/queue-status.json` 生成，勿手改。**
 > 唯一状态权威：`tasks/queue/queue-status.json`。修改 Markdown 不会回写状态。
-> schema_version=1 ｜ records=119 ｜ audit=3, blocked=16, cancelled=14, closed=3, frozen=78, pending=5
+> schema_version=1 ｜ records=121 ｜ audit=3, blocked=16, cancelled=14, closed=3, frozen=78, pending=7
 
 <!-- queue-items:start -->
 | 项目 | 工单 | 状态 | audit_passed | 派发时间 | 审计 run | 冻结 commit | 备注 |
@@ -126,4 +126,6 @@
 | UltimaAgent | wo-ultimaagent-20261113-0061 | pending | false |  |  |  | P0 唯一写入口三件套（inbox＋queue-writer.py 唯一写者＋reconcile-inbox.py 只读对账＋claim_id）。不改基线，可独立开工；卡状态=待审卡，须过 0060 式审卡。 |
 | UltimaAgent | wo-ultimaagent-20261113-0062 | pending | false |  |  |  | P1 §27 三机制（M3 指令数据分离／M4 跳数8＋同轮扇出3／M7 ask.key 幂等／§27.4 仅 session_id）。前置＝0057 与 0059 均冻结；cancel_observe 明确不在本卡。卡状态=待审卡。 |
 | UltimaAgent | wo-ultimaagent-20261113-0063 | pending | false |  |  |  | §25.10 补 cancel_observe（三值 running/not_running/unknown＋CANCELLED_PENDING 投影＋解除与3轮告警＋G-25.10-A..D）。前置＝0057 冻结凭据；只称「E-01 显式挂起」，①②标 TBD-RUNTIME。卡状态=待审卡。 |
+| UltimaAgent | wo-ultimaagent-20261113-0065 | pending | false |  |  |  | 独立评审：Autoloop 融合方案应挂基础能力哪一块。逐行裁定方案 §11 六行归属（维持/改判/反对）、审写口-Middleware 与读视图-Console 是否双源、核对 0061/0062/0063 写域与归属一致性。只写报告，不改任何既有文件。 |
+| UltimaAgent | wo-ultimaagent-20261113-0066 | pending | false |  |  |  | 独立评审：Next 基础能力骨架设计。判据＝拿去开工会不会模块打架。八项三列判定（越界/缺口/重叠）、跨块交互三态（唯一主文/无主文/两处主文）、§25.1–§25.11 逐节归属标注、新增问题清单（沿用 0056 项须带编号）。只写报告。 |
 <!-- queue-items:end -->
