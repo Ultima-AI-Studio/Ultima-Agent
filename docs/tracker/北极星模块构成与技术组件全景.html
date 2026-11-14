@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UltimaAgent 北极星 · 模块构成与技术组件全景</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Rajdhani:wght@500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+:root{
+  --hd-cyan:#0ea5e9; --hd-green:#34d399; --hd-warn:#fbbf24; --hd-coral:#fb7185;
+  --hd-purple:#a78bfa; --hd-muted:#cbd5e1; --hd-dim:#64748b;
+  --hd-mono:'Share Tech Mono',ui-monospace,monospace;
+  --hd-display:'Orbitron','Rajdhani',system-ui,sans-serif;
+  --hd-ui:'Rajdhani','Microsoft YaHei',system-ui,sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+body{background:radial-gradient(1400px 900px at 78% -12%,#0a1526 0%,#04070d 55%,#020409 100%);color:var(--hd-muted);font-family:var(--hd-ui);min-height:100vh;line-height:1.6;}
+.wrap{max-width:1200px;margin:0 auto;padding:34px 26px 80px;}
+.head h1{font-family:var(--hd-display);font-size:24px;color:var(--hd-cyan);letter-spacing:2px;}
+.head .sub{font-size:13px;color:var(--hd-dim);margin-top:8px;max-width:960px;}
+.head .sub b{color:var(--hd-muted);font-weight:600;}
+.stats{display:flex;flex-wrap:wrap;gap:10px;margin:18px 0 4px;}
+.stat{flex:1 1 140px;min-width:120px;border:1px solid rgba(100,116,139,.3);background:rgba(6,14,26,.5);border-radius:10px;padding:10px 14px;}
+.stat .n{font-family:var(--hd-display);font-size:20px;color:var(--hd-green);}
+.stat .l{font-size:11.5px;color:var(--hd-dim);margin-top:2px;}
+
+.nav{position:sticky;top:0;z-index:40;display:flex;flex-wrap:wrap;gap:7px;padding:12px 0;margin:18px 0 22px;background:rgba(4,7,13,.85);backdrop-filter:blur(8px);border-bottom:1px solid rgba(100,116,139,.22);}
+.nav a{font-family:var(--hd-mono);font-size:11.5px;color:var(--hd-muted);text-decoration:none;border:1px solid rgba(100,116,139,.4);border-radius:8px;padding:4px 11px;white-space:nowrap;}
+.nav a:hover{border-color:var(--hd-cyan);color:var(--hd-cyan);}
+
+.block-title{font-family:var(--hd-display);font-size:16px;color:var(--hd-cyan);letter-spacing:1.5px;margin:26px 0 12px;padding-bottom:7px;border-bottom:1px solid rgba(100,116,139,.25);}
+
+/* 总览图 */
+.chain{border:1px solid rgba(100,116,139,.26);background:rgba(6,14,26,.45);border-radius:12px;padding:18px;font-family:var(--hd-mono);font-size:13px;color:var(--hd-muted);line-height:2.2;overflow-x:auto;white-space:nowrap;}
+.chain .ar{color:var(--hd-green);}
+.chain .note{font-size:11.5px;color:var(--hd-dim);white-space:normal;}
+
+table{width:100%;border-collapse:collapse;margin:8px 0;}
+th,td{border:1px solid rgba(100,116,139,.28);padding:7px 10px;font-size:12.5px;text-align:left;vertical-align:top;}
+th{background:rgba(14,165,233,.1);color:var(--hd-cyan);font-family:var(--hd-mono);font-weight:400;letter-spacing:.5px;}
+td b{color:var(--hd-muted);font-weight:600;}
+td .dim{color:var(--hd-dim);}
+
+/* 模块卡 */
+.module{border:1px solid rgba(100,116,139,.26);background:rgba(6,14,26,.4);border-left:3px solid var(--ac);border-radius:14px;padding:17px 19px 18px;margin-bottom:18px;}
+.m-head{display:flex;flex-wrap:wrap;align-items:baseline;gap:10px;}
+.m-head .idx{font-family:var(--hd-mono);font-size:12px;color:var(--ac);}
+.m-head h2{font-family:var(--hd-display);font-size:17px;color:var(--hd-muted);letter-spacing:1px;}
+.m-head .role{font-size:12.5px;color:var(--hd-dim);flex-basis:100%;}
+.m-head .role b{color:var(--ac);font-weight:600;}
+.sub-h{font-family:var(--hd-mono);font-size:11px;color:var(--hd-dim);letter-spacing:1px;margin:12px 0 6px;text-transform:uppercase;}
+.objs{display:flex;flex-wrap:wrap;gap:6px;}
+.chip{font-family:var(--hd-mono);font-size:11px;border-radius:7px;padding:2px 9px;border:1px solid;}
+.c-exist{color:var(--hd-green);border-color:rgba(52,211,153,.5);background:rgba(52,211,153,.08);}
+.c-build{color:var(--hd-coral);border-color:rgba(251,113,133,.5);background:rgba(251,113,133,.08);}
+.c-contract{color:var(--hd-cyan);border-color:rgba(14,165,233,.45);background:rgba(14,165,233,.08);}
+.c-mech{color:var(--hd-purple);border-color:rgba(167,139,256,.5);background:rgba(167,139,256,.08);}
+.c-ext{color:var(--hd-warn);border-color:rgba(251,191,36,.5);background:rgba(251,191,36,.08);}
+.c-tbd{color:var(--hd-warn);border-color:rgba(251,191,36,.5);}
+.callout{margin-top:12px;border:1px dashed rgba(251,191,36,.5);background:rgba(251,191,36,.06);border-radius:10px;padding:10px 14px;font-size:12.5px;color:var(--hd-dim);}
+.callout b{color:var(--hd-warn);font-weight:600;}
+.legend{display:flex;flex-wrap:wrap;gap:9px;margin-top:10px;}
+.foot{font-size:11.5px;color:var(--hd-dim);margin-top:26px;border-top:1px solid rgba(100,116,139,.22);padding-top:16px;}
+.foot b{color:var(--hd-muted);}
+@media (max-width:760px){ .m-head{gap:6px;} }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="head">
+    <h1>模块构成与技术组件全景</h1>
+    <p class="sub">一张页看全 <b>8 个模块的构成</b>＋每个模块的<b>技术支撑组件</b>（目标组件、封闭契约、外部依赖），并如实标注状态：<b>已有</b>（磁盘上存在）／<b>待建</b>（W 表命名、尚未落地）／<b>机制</b>（GitHub 只借规则）／<b>TBD</b>（实现期实测）。本页是导航视图，不替代第三层技术方案。</p>
+    <div class="stats">
+      <div class="stat"><div class="n">8</div><div class="l">模块（exp 不新建）</div></div>
+      <div class="stat"><div class="n">11</div><div class="l">单写者组件 W-01~11</div></div>
+      <div class="stat"><div class="n">129</div><div class="l">文档门全过</div></div>
+      <div class="stat"><div class="n">0</div><div class="l">产品代码（V3 本体）</div></div>
+    </div>
+  </div>
+
+  <nav class="nav">
+    <a href="#overview">构成总览</a>
+    <a href="#m1">Middleware</a>
+    <a href="#m2">Core</a>
+    <a href="#m3">Voice</a>
+    <a href="#m4">Shell</a>
+    <a href="#m5">Surface</a>
+    <a href="#m6">Memory</a>
+    <a href="#m7">Console</a>
+    <a href="#m8">治理⑤</a>
+    <a href="#ext">外部组件</a>
+    <a href="#reuse">可复用资产</a>
+    <a href="#gh">GitHub 机制</a>
+  </nav>
+
+  <!-- 构成总览 -->
+  <div class="block-title" id="overview">一、模块构成总览</div>
+  <div class="chain">
+    Senses.Voice <span class="ar">─E-01→</span> Core <span class="ar">─E-03→</span> Console <span class="ar">─E-04→</span> Middleware <span class="ar">─E-05→</span> Shell<br>
+    Core <span class="ar">─E-02→</span> Memory ｜ Console <span class="ar">─E-07→</span> Surface ｜ 治理⑤ <span class="ar">─E-08 约束→</span> 各块<br>
+    <span class="note">6 个运行块：Core / Senses.Voice / Shell / Surface / Memory / Middleware；Console 是与 queue_engine 同进程的编排实体（迁入 Python 引擎域）；治理⑤无独立进程。后两者都不是第七运行块。exp 是 Memory 下 EXP 命名空间，不是模块。</span>
+  </div>
+
+  <!-- ① Middleware -->
+  <div class="block-title">二、逐模块技术支撑组件</div>
+  <section class="module" id="m1" style="--ac:#0ea5e9">
+    <div class="m-head"><span class="idx">MODULE 01</span><h2>Middleware 中间件</h2><span class="role">职责：<b>守八态与派发事务、run/票据、幂等、取消、补偿</b>；OS 动作委托 Shell。</span></div>
+    <div class="sub-h">技术组件（写者）</div>
+    <div class="objs">
+      <span class="chip c-exist">scripts/queue-writer.py · W-01 落盘</span>
+      <span class="chip c-exist">queue_engine/receipt_contract.py · W-02/W-08</span>
+      <span class="chip c-exist">queue_engine/state_machine.py · 只判语义</span>
+      <span class="chip c-exist">scripts/reconcile-inbox.py · 对账</span>
+      <span class="chip c-build">worktree/配额组件 · 待建</span>
+    </div>
+    <div class="sub-h">封闭契约对象</div>
+    <div class="objs">
+      <span class="chip c-contract">InboxEvent / Receipt</span><span class="chip c-contract">ClaimRequest/Ack</span><span class="chip c-contract">Reconcile 六值</span>
+      <span class="chip c-contract">CancelObserve 三件套</span><span class="chip c-contract">WorktreeLease / Quota</span><span class="chip c-contract">Rework</span>
+    </div>
+    <div class="sub-h">外部依赖</div>
+    <div class="objs"><span class="chip c-ext">原子文件替换 os.replace</span><span class="chip c-tbd">TBD-RUNTIME fail-closed</span></div>
+  </section>
+
+  <!-- ② Core -->
+  <section class="module" id="m2" style="--ac:#34d399">
+    <div class="m-head"><span class="idx">MODULE 02</span><h2>Core 核心</h2><span class="role">职责：<b>把回合事实裁成意图、三态决定、上下文、不可变计划、Memory 写入授权</b>；只裁决不写物理。</span></div>
+    <div class="sub-h">技术组件（写者）</div>
+    <div class="objs">
+      <span class="chip c-build">core/session_manager.py · W-03 待建</span>
+      <span class="chip c-build">core/planner.py · W-04 待建</span>
+      <span class="chip c-build">core/context_composer.py · W-05 待建</span>
+    </div>
+    <div class="sub-h">封闭契约对象（21 字段表）</div>
+    <div class="objs">
+      <span class="chip c-contract">IntentRoute Req/Result</span><span class="chip c-contract">Confirm Req/Signal/Receipt</span>
+      <span class="chip c-contract">ContextCompression + Truncation</span><span class="chip c-contract">Checkpoint Record/回退</span>
+    </div>
+    <div class="sub-h">外部依赖</div>
+    <div class="objs"><span class="chip c-ext">确定性路由谓词</span><span class="chip c-ext">70%/80% 压缩触发</span></div>
+  </section>
+
+  <!-- ③ Voice -->
+  <section class="module" id="m3" style="--ac:#fb7185">
+    <div class="m-head"><span class="idx">MODULE 03</span><h2>Senses.Voice 语音感知</h2><span class="role">职责：<b>唤醒、单路采集、KWS/ASR、TTS、会话 loop 与语音侧事实</b>。</span></div>
+    <div class="sub-h">技术组件（目标）</div>
+    <div class="objs">
+      <span class="chip c-build">KWS/ASR 引擎接线 · 待建</span>
+      <span class="chip c-build">TTS 播报组件 · 待建</span>
+      <span class="chip c-build">turn loop / 故障路由 · 待建</span>
+    </div>
+    <div class="sub-h">封闭契约对象（25 字段表）</div>
+    <div class="objs">
+      <span class="chip c-contract">AudioSpanRef</span><span class="chip c-contract">Kws Decision / Asr Final</span>
+      <span class="chip c-contract">Tts Synthesis/Playback</span><span class="chip c-contract">VoiceLoop Snapshot/Decision</span>
+      <span class="chip c-contract">Health/Route Switch</span><span class="chip c-contract">Playback/Audio Policy</span>
+    </div>
+    <div class="sub-h">外部依赖</div>
+    <div class="objs"><span class="chip c-ext">麦克风/扬声器</span><span class="chip c-ext">KWS/ASR/TTS 模型</span><span class="chip c-tbd">GGUF SHA TBD</span></div>
+  </section>
+
+  <!-- ④ Shell -->
+  <section class="module" id="m4" style="--ac:#a78bfa">
+    <div class="m-head"><span class="idx">MODULE 04</span><h2>Shell 宿主壳</h2><span class="role">职责：<b>唯一起停查 OS 进程与 PTY/Job 托管，返回可验证进程事实</b>（W-09 进程树）。</span></div>
+    <div class="sub-h">技术组件（写者）</div>
+    <div class="objs">
+      <span class="chip c-build">shell/child_supervisor.py · W-09 待建</span>
+      <span class="chip c-build">pty_host（ConPTY 五动词）· 待建</span>
+      <span class="chip c-build">guardian/零窗/就绪 · 待建</span>
+    </div>
+    <div class="sub-h">封闭契约对象</div>
+    <div class="objs">
+      <span class="chip c-contract">JobProfile / 托管 SPI</span><span class="chip c-contract">Autostart / Pty Fact</span>
+      <span class="chip c-contract">host.control / host.fact</span><span class="chip c-contract">Readiness DAG/Receipt</span>
+    </div>
+    <div class="sub-h">外部依赖</div>
+    <div class="objs"><span class="chip c-ext">ConPTY</span><span class="chip c-ext">pythonw/Job 对象</span><span class="chip c-ext">唯一 Startup 快捷方式</span></div>
+  </section>
+
+  <!-- ⑤ Surface -->
+  <section class="module" id="m5" style="--ac:#0ea5e9">
+    <div class="m-head"><span class="idx">MODULE 05</span><h2>Surface 呈现面</h2><span class="role">职责：<b>把 Console 给定 view model 确定性画像素，回渲染/干预意图</b>；无第二写者。</span></div>
+    <div class="sub-h">技术组件（目标）</div>
+    <div class="objs">
+      <span class="chip c-build">8 锚点渲染器 · 待建</span>
+      <span class="chip c-build">8756 只读客户端 · 待建</span>
+      <span class="chip c-build">看板/干预 · 待建</span>
+    </div>
+    <div class="sub-h">封闭契约对象</div>
+    <div class="objs">
+      <span class="chip c-contract">LayoutViewport / 8 锚点</span><span class="chip c-contract">auth/sequence/snapshot/delta</span>
+      <span class="chip c-contract">看板八态 / 三键 ACK</span>
+    </div>
+    <div class="sub-h">外部依赖</div>
+    <div class="objs"><span class="chip c-ext">WebView2 960×640</span><span class="chip c-ext">loopback SSE</span><span class="chip c-tbd">reconnect TBD</span></div>
+  </section>
+
+  <!-- ⑥ Memory -->
+  <section class="module" id="m6" style="--ac:#34d399">
+    <div class="m-head"><span class="idx">MODULE 06</span><h2>Memory 记忆层</h2><span class="role">职责：<b>Core 授权后写 memory schema，mem/kb/exp 分入口，索引只存指针</b>（W-06）。</span></div>
+    <div class="sub-h">技术组件（写者）</div>
+    <div class="objs">
+      <span class="chip c-build">memory/writer.py · W-06 待建（根目录）</span>
+      <span class="chip c-build">Store SPI / 跨卷迁移 · 待建</span>
+      <span class="chip c-exist">src/memory/writer.py · 旧件候选</span>
+    </div>
+    <div class="sub-h">封闭契约对象（53 字段表）</div>
+    <div class="objs">
+      <span class="chip c-contract">KbShelf/Book/Page</span><span class="chip c-contract">IndexEntry/Search</span>
+      <span class="chip c-contract">Ingest/Atomicity</span><span class="chip c-contract">Forget/COW 压实</span>
+      <span class="chip c-contract">Volume Migration</span><span class="chip c-contract">Store SPI / Habit</span>
+    </div>
+    <div class="sub-h">外部依赖</div>
+    <div class="objs"><span class="chip c-ext">hot/warm/cold 卷</span><span class="chip c-ext">FTS5 + 向量 RRF</span></div>
+    <div class="callout"><b>exp（0070）：</b>EXP 命名空间，五态 candidate/provisional/active/superseded/revoked，五道门＋两步晋升；未 active 不进决策，Store SPI 不构成第二写者。</div>
+  </section>
+
+  <!-- ⑦ Console -->
+  <section class="module" id="m7" style="--ac:#fbbf24">
+    <div class="m-head"><span class="idx">MODULE 07</span><h2>Console 编排层</h2><span class="role">职责：<b>Core 计划内定运行期次序/优先级，管卡账、用量账与呈现时机</b>；碰进程/磁盘/网络/像素即不属 Console。</span></div>
+    <div class="sub-h">技术组件（写者）</div>
+    <div class="objs">
+      <span class="chip c-build">console/task_store.py · W-07 待建</span>
+      <span class="chip c-build">console/usage_ledger.py · W-10 待建</span>
+      <span class="chip c-build">Skill 管理 / policy hook · 待建</span>
+    </div>
+    <div class="sub-h">封闭契约对象</div>
+    <div class="objs">
+      <span class="chip c-contract">ResidentView / FactBundle</span><span class="chip c-contract">四级 Task Store</span>
+      <span class="chip c-contract">usage receipt 入账</span><span class="chip c-contract">lifecycle / 双回滚</span>
+      <span class="chip c-contract">policy 四值 permit</span>
+    </div>
+    <div class="sub-h">外部依赖</div>
+    <div class="objs"><span class="chip c-ext">与 queue_engine 同进程</span><span class="chip c-ext">8756 只读快照</span></div>
+  </section>
+
+  <!-- ⑧ 治理 -->
+  <section class="module" id="m8" style="--ac:#fb7185">
+    <div class="m-head"><span class="idx">MODULE 08</span><h2>治理与约束 ⑤（横切）</h2><span class="role">职责：<b>发布版本化规则/红线，fail-closed 检查与 append-only 审计</b>；无独立进程。</span></div>
+    <div class="sub-h">技术组件（写者）</div>
+    <div class="objs">
+      <span class="chip c-build">policy_gate.py · W-11 待建</span>
+      <span class="chip c-build">规则库/灰度/安装编排 · 待建</span>
+    </div>
+    <div class="sub-h">封闭契约对象（32 字段表）</div>
+    <div class="objs">
+      <span class="chip c-contract">policy.check / habit 主文</span><span class="chip c-contract">日志哈希链</span>
+      <span class="chip c-contract">健康门 5→25→50→100</span><span class="chip c-contract">规则库 CAS/版本</span>
+      <span class="chip c-contract">八条不变式 / freeze.tag</span>
+    </div>
+    <div class="sub-h">外部依赖</div>
+    <div class="objs"><span class="chip c-tbd">D-07 可配置 TBD</span></div>
+  </section>
+
+  <!-- 外部组件 -->
+  <div class="block-title" id="ext">三、跨域外部 / 运行时组件</div>
+  <table>
+    <tr><th>组件</th><th>用途</th><th>归属/状态</th></tr>
+    <tr><td><b>Python 引擎运行时</b></td><td>Console 与 queue_engine 同进程事件循环</td><td class="dim">待第三层定版本/入口</td></tr>
+    <tr><td><b>WebView2</b></td><td>Surface 960×640 面板、双向消息</td><td>host-shell 已随附，可复用</td></tr>
+    <tr><td><b>ConPTY</b></td><td>伪终端五动词</td><td class="dim">OS 能力，待接线</td></tr>
+    <tr><td><b>loopback HTTP/1.1 + SSE（8756）</b></td><td>引擎↔壳只读数据，只开 GET</td><td class="dim">待建，reconnect TBD</td></tr>
+    <tr><td><b>存储卷 hot/warm/cold</b></td><td>三库分层分片，索引只存指针</td><td class="dim">FTS5＋向量，待建</td></tr>
+    <tr><td><b>模型（GGUF/语音）</b></td><td>主脑与 KWS/ASR/TTS</td><td class="dim">SHA/参数 TBD，未实测 fail-closed</td></tr>
+  </table>
+
+  <!-- 可复用资产 -->
+  <div class="block-title" id="reuse">四、已有可复用资产（待第三层逐项核验，不直接等同 V3 组件）</div>
+  <table>
+    <tr><th>位置</th><th>现有组件</th><th>处置口径</th></tr>
+    <tr><td><b>scripts/</b></td><td>queue-writer、reconcile-inbox、dispatch-work-order、render-queue-views、queue-doctor</td><td class="dim">W-01 主体候选，未提交，需核验</td></tr>
+    <tr><td><b>tasks/queue_engine/</b></td><td>state_machine、receipt_contract、dispatcher、priority_deps、guardian、storage、run_worker、audit、card_contract</td><td class="dim">票据/语义/派发候选，需对齐新口径</td></tr>
+    <tr><td><b>src/（legacy）</b></td><td>brain、host、memory、middleware、update、voice-next、window、host-shell(C#)</td><td class="dim">旧脑架构，逐项判定复用/废弃，不整体搬</td></tr>
+  </table>
+
+  <!-- GitHub 机制 -->
+  <div class="block-title" id="gh">五、GitHub 调研：只组装机制，不搬存储/守护</div>
+  <table>
+    <tr><th>来源</th><th>借用机制</th><th>硬边界</th></tr>
+    <tr><td><b>KRouter</b></td><td>五道门、两步晋升、supersede 取代链、correction-first、弱匹配拒答、3 次转 skill</td><td class="dim">不搬存储/检索实现，不装独立守护</td></tr>
+    <tr><td><b>Autoloop</b></td><td>事实日志、幂等收件箱、单向写入口</td><td class="dim">砍 SQLite/SSE/cron，不引独立运行时</td></tr>
+  </table>
+
+  <div class="legend">
+    <span class="chip c-exist">已有</span>
+    <span class="chip c-build">待建</span>
+    <span class="chip c-contract">封闭契约</span>
+    <span class="chip c-mech">机制借用</span>
+    <span class="chip c-ext">外部依赖</span>
+    <span class="chip c-tbd">TBD 实测</span>
+  </div>
+
+  <p class="foot">口径：本页只组织现有权威件（0069 W 表＋第②层方案＋0070）已命名的组件，<b>不新增技术决策</b>。「待建/复用/废弃」的最终裁决与具体实现路径属<b>第三层（#79 pending，Codex 写、豆包验收）</b>；TBD 项未实测前 fail-closed。HEAD 054758b1，队列 200。</p>
+
+</div>
+</body>
+</html>
