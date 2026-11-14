@@ -134,6 +134,10 @@ footer.legend b{color:var(--hd-muted); font-weight:600;}
 .skel-l2{border-color:rgba(52,211,153,.34); background:rgba(52,211,153,.05);}
 .skel-l2 .skel-head h2{color:var(--hd-green);}
 .skel-l2 .skel-box th{color:var(--hd-green);}
+.skel-l3{border-color:rgba(167,139,250,.36); background:rgba(167,139,250,.06);}
+.skel-l3 .skel-head h2{color:var(--hd-purple);}
+.skel-l3 .skel-box th{color:var(--hd-purple);}
+.skel-l3 .skel-box td.id{color:var(--hd-purple);}
 .plan-pills{display:flex; flex-wrap:wrap; gap:6px; margin:8px 0 4px;}
 .plan-pill{flex:1 1 150px; min-width:140px; border:1px solid rgba(52,211,153,.38); background:rgba(6,14,26,.5); border-radius:8px; padding:7px 10px; font-size:11.5px;}
 .plan-pill .pn{font-family:var(--hd-display); font-size:12.5px; color:var(--hd-green); letter-spacing:.5px;}
@@ -320,7 +324,56 @@ footer.legend b{color:var(--hd-muted); font-weight:600;}
 </div>
 </div>
 
-<p class="skel-note">第二层<b>无主悬空引用为 0</b>：盘点 73 叶子能力的缺口全部落入对应模块封闭方案；0070–0079 队列 blocked 仅因审计名额（非质量），TBD-RUNTIME 待实现期实测、fail-closed。下一步＝第三层技术实现路径（#79，待授权）。</p>
+<p class="skel-note">第二层<b>无主悬空引用为 0</b>：盘点 73 叶子能力的缺口全部落入对应模块封闭方案；0070–0079 队列 blocked 仅因审计名额（非质量），TBD-RUNTIME 待实现期实测、fail-closed。第三层技术实现路径已收口（见下方紫色区块）。</p>
+</section>
+
+<section class="skel skel-l3">
+<div class="skel-head">
+<h2>第三层收口 · 技术实现路径与组件/能力映射</h2>
+<span class="tagline">8 模块各含四维（技术需求/技术组件/搬运/GitHub 组装）；W-01～W-11 单写者回读；仍无产品代码</span>
+<span class="src">权威主文档：H:/UltimaAI/UltimaAgentNext/docs/第三层技术实现路径.md（0080，607 行，独立核验 67/67）</span>
+</div>
+
+<div class="plan-pills">
+<div class="plan-pill"><div class="pn">Middleware</div><div class="pd">W-01/02/08 ｜ inbox/claim ｜ 取消观察</div></div>
+<div class="plan-pill"><div class="pn">Core</div><div class="pd">W-03/04/05 ｜ 意图/确认/压缩/检查点</div></div>
+<div class="plan-pill"><div class="pn">Senses.Voice</div><div class="pd">KWS/ASR/TTS ｜ 故障路由 ｜ duck/DND</div></div>
+<div class="plan-pill"><div class="pn">Shell</div><div class="pd">W-09 ｜ 进程树/PTY ｜ host.control</div></div>
+<div class="plan-pill"><div class="pn">Surface</div><div class="pd">8 锚点 ｜ 8756 只读 ｜ 三键干预</div></div>
+<div class="plan-pill"><div class="pn">Memory</div><div class="pd">W-06 ｜ Store SPI ｜ 遗忘/迁移 ｜ exp</div></div>
+<div class="plan-pill"><div class="pn">Console</div><div class="pd">W-07/10 ｜ task_store/usage ｜ policy hook</div></div>
+<div class="plan-pill"><div class="pn">治理⑤</div><div class="pd">W-11 ｜ 灰度/日志 ｜ 规则库版本化</div></div>
+</div>
+
+<div class="skel-grid">
+<div class="skel-box">
+<h4>四维落地口径（每模块统一）</h4>
+<table>
+<thead><tr><th>维度</th><th>封闭内容</th></tr></thead>
+<tbody>
+<tr><td class="id">技术需求</td><td class="fact">实现路径＋依赖顺序（无环）＋后续验收命令，本单未运行</td></tr>
+<tr><td class="id">技术组件</td><td class="fact">目标路径＋W-编号＋写者＋状态（已有/待建），能力→组件可追溯</td></tr>
+<tr><td class="id">搬运</td><td class="fact">逐项真实路径，给复用/改造/废弃判定，不整体照搬 src 旧脑</td></tr>
+<tr><td class="id">GitHub</td><td class="fact">KRouter/Autoloop 只借机制带硬边界，不搬存储/守护，License 审查</td></tr>
+</tbody>
+</table>
+</div>
+
+<div class="skel-box">
+<h4>单写者与诚实边界</h4>
+<table>
+<thead><tr><th>项</th><th>口径</th></tr></thead>
+<tbody>
+<tr><td class="id">W-01～W-11</td><td class="fact">一个事实一个写者；现盘仅 apply_update 命中，apply_transition/finalize 待建</td></tr>
+<tr><td class="id">TBD</td><td class="fact">TBD-RUNTIME/GGUF/重连/阈值保留原名，fail-closed，不编造</td></tr>
+<tr><td class="id">八态</td><td class="fact">QueueState 精确八态；局部枚举不混入第九态</td></tr>
+<tr><td class="id">越界</td><td class="fact">未改 UltimaAgent 仓（base==end 51ab2d61）、无产品代码、无第二写者</td></tr>
+</tbody>
+</table>
+</div>
+</div>
+
+<p class="skel-note">第三层独立核验 <b>67/67 全绿</b>：8 模块四维齐、W-01～W-11 单写者、八态一致、TBD fail-closed、本地链接断链 0、无产品代码。队列 blocked 仅审计名额（非质量）。下一步＝第四层：按模块拆工单逐层下。</p>
 </section>
 
 <ul class="tree" id="root">
