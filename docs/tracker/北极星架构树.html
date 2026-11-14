@@ -106,6 +106,30 @@ footer.legend b{color:var(--hd-muted); font-weight:600;}
   .name{flex:1 1 100%;}
   .desc{flex:1 1 100%; padding-left:20px;}
 }
+/* ============ 第一层：单向骨架区块（0069 定稿） ============ */
+.skel{border:1px solid rgba(14,165,233,.32); background:rgba(14,165,233,.05); border-radius:12px; padding:14px 16px 16px; margin:14px 0 18px;}
+.skel-head{display:flex; align-items:baseline; gap:10px; flex-wrap:wrap; margin-bottom:10px;}
+.skel-head h2{font-family:var(--hd-display); font-size:15px; color:var(--hd-cyan); letter-spacing:1.4px;}
+.skel-head .tagline{font-size:11.5px; color:var(--hd-dim);}
+.skel-head .src{font-family:var(--hd-mono); font-size:10.5px; color:var(--hd-purple);}
+.flow{display:flex; align-items:stretch; gap:6px; flex-wrap:wrap; margin-bottom:6px;}
+.flow-node{flex:1 1 120px; min-width:110px; border:1px solid rgba(14,165,233,.4); background:rgba(6,14,26,.55); border-radius:9px; padding:8px 10px; text-align:center;}
+.flow-node .fn{font-family:var(--hd-display); font-size:13px; color:var(--hd-cyan); letter-spacing:.6px;}
+.flow-node .fd{font-size:11px; color:var(--hd-dim); margin-top:2px; line-height:1.4;}
+.flow-arrow{display:flex; align-items:center; color:var(--hd-warn); font-size:16px; font-family:var(--hd-mono);}
+.flow-side{font-size:11.5px; color:var(--hd-dim); margin:8px 0 4px; padding:7px 10px; border-left:2px solid var(--hd-warn); background:rgba(251,191,36,.06); border-radius:0 8px 8px 0;}
+.flow-side b{color:var(--hd-warn);}
+.skel-grid{display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:10px;}
+.skel-box h4{font-family:var(--hd-mono); font-size:10.5px; letter-spacing:1.2px; color:var(--hd-dim); text-transform:uppercase; margin-bottom:6px;}
+.skel-box table{width:100%; border-collapse:collapse; font-size:11.5px;}
+.skel-box th,.skel-box td{padding:4px 7px; text-align:left; vertical-align:top; border-bottom:1px solid rgba(100,116,139,.18); color:var(--hd-dim);}
+.skel-box th{color:var(--hd-cyan); font-family:var(--hd-mono); font-weight:400; white-space:nowrap;}
+.skel-box td.id{color:var(--hd-green); font-family:var(--hd-mono); white-space:nowrap;}
+.skel-box td.fact{color:var(--hd-muted);}
+.skel-box tr:last-child td{border-bottom:none;}
+.skel-note{font-size:11px; color:var(--hd-dim); margin-top:10px; line-height:1.6;}
+.skel-note b{color:var(--hd-coral);}
+@media (max-width:900px){ .skel-grid{grid-template-columns:1fr;} }
 </style>
 </head>
 <body>
@@ -115,12 +139,12 @@ footer.legend b{color:var(--hd-muted); font-weight:600;}
 <div class="anchor pos-tl" id="a-tl">
 <button class="pin" title="钉住（置顶态显边框）" onclick="pin(this)">📌</button>
 <h3><span class="pos">左上</span> · 系统状态（常驻）</h3>
-<div class="row"><span>0054 执行</span><b>T6+ 推进中</b></div>
+<div class="row"><span>当前阶段</span><b>第一层骨架收口</b></div>
 <div class="row"><span>构建</span><b class="ok">0 警告 / 0 错误</b></div>
 <div class="row"><span>计划任务</span><b class="ok">0 条（已清零）</b></div>
 <div class="row"><span>Guardian</span><b class="ok">live · 20s/3次/300s</b></div>
 <div class="row"><span>分支</span><b>codex/voice-fsmn-new-path</b></div>
-<div class="row"><span>HEAD</span><b>5a9d5693</b></div>
+<div class="row"><span>HEAD</span><b>a6f3d167</b></div>
 </div>
 
 <div class="anchor pos-tr" id="a-tr">
@@ -135,10 +159,10 @@ footer.legend b{color:var(--hd-muted); font-weight:600;}
 <div class="anchor pos-bl" id="a-bl">
 <button class="pin" title="钉住（置顶态显边框）" onclick="pin(this)">📌</button>
 <h3><span class="pos">左下</span> · 任务队列简况（按需）</h3>
-<div class="row"><span>队列总数</span><b>173</b></div>
-<div class="row"><span>frozen</span><b>126</b></div>
-<div class="row"><span>executing</span><b class="warn">0054（1 条）</b></div>
-<div class="row"><span>待启</span><b>P2V-00～05</b></div>
+<div class="row"><span>队列总数</span><b>188</b></div>
+<div class="row"><span>frozen</span><b>130</b></div>
+<div class="row"><span>blocked</span><b class="warn">24（含 0061）</b></div>
+<div class="row"><span>节奏</span><b>分层 ①→④</b></div>
 </div>
 
 <div class="anchor pos-br" id="a-br">
@@ -176,6 +200,68 @@ footer.legend b{color:var(--hd-muted); font-weight:600;}
 <button onclick="setLevel(9)">全明细</button>
 </div>
 </div>
+
+<section class="skel">
+<div class="skel-head">
+<h2>单向骨架 · 第一层定稿</h2>
+<span class="tagline">单向依赖、单一写者、边契约闭合；不新增模块／第九态／第二写者</span>
+<span class="src">权威明细：docs/plans/next-基础能力骨架整合方案-20261114.md（0069，独立审计通过）</span>
+</div>
+
+<div class="flow">
+<div class="flow-node"><div class="fn">Senses.Voice</div><div class="fd">管语音事实<br>原样透传 session</div></div>
+<div class="flow-arrow">→</div>
+<div class="flow-node"><div class="fn">Core</div><div class="fd">定意图与不可变计划<br>记忆写入授权</div></div>
+<div class="flow-arrow">→</div>
+<div class="flow-node"><div class="fn">Console</div><div class="fd">定运行期次序/优先级<br>卡账与用量账</div></div>
+<div class="flow-arrow">→</div>
+<div class="flow-node"><div class="fn">Middleware</div><div class="fd">写队列与票据<br>守八态与补偿</div></div>
+<div class="flow-arrow">→</div>
+<div class="flow-node"><div class="fn">Shell</div><div class="fd">独占进程起停查<br>返回 host.fact</div></div>
+</div>
+<div class="flow-side">横切角色：<b>Surface</b> 只画像素（内容/时机由 Console 定）｜ <b>Memory</b> 只在 Core 授权后写 memory schema ｜ <b>治理⑤</b> 只下版本化约束、fail-closed，不执行业务动作。所有 OS 动作委托 Shell，Middleware 不直接起进程。</div>
+
+<div class="skel-grid">
+<div class="skel-box">
+<h4>11 事实单写者（W-01～W-11）</h4>
+<table>
+<thead><tr><th>ID</th><th>事实</th><th>唯一写者</th></tr></thead>
+<tbody>
+<tr><td class="id">W-01</td><td class="fact">队列 state</td><td>queue-writer</td></tr>
+<tr><td class="id">W-02</td><td class="fact">run 票据</td><td>receipt_contract</td></tr>
+<tr><td class="id">W-03</td><td class="fact">session_id</td><td>Core.session_manager</td></tr>
+<tr><td class="id">W-04</td><td class="fact">plan.schema</td><td>Core.planner</td></tr>
+<tr><td class="id">W-05</td><td class="fact">上下文装配</td><td>Core.context_composer</td></tr>
+<tr><td class="id">W-06</td><td class="fact">记忆记录</td><td>Memory.writer</td></tr>
+<tr><td class="id">W-07</td><td class="fact">任务卡账</td><td>Console.task_store</td></tr>
+<tr><td class="id">W-08</td><td class="fact">补偿 receipt</td><td>receipt_contract</td></tr>
+<tr><td class="id">W-09</td><td class="fact">进程树</td><td>Shell.child_supervisor</td></tr>
+<tr><td class="id">W-10</td><td class="fact">用量账本</td><td>Console.usage_ledger</td></tr>
+<tr><td class="id">W-11</td><td class="fact">灰度规则</td><td>policy_gate</td></tr>
+</tbody>
+</table>
+</div>
+
+<div class="skel-box">
+<h4>8 交互边（E-01～E-08，五要素闭合）</h4>
+<table>
+<thead><tr><th>ID</th><th>边</th><th>五要素：请求·回执·失败·超时·幂等</th></tr></thead>
+<tbody>
+<tr><td class="id">E-01</td><td class="fact">Voice→Core</td><td>信封 / decision / 拒收不建计划 / 0 重试 / 键=session|turn</td></tr>
+<tr><td class="id">E-02</td><td class="fact">Core→Memory</td><td>读写 ack / 版本回执 / 冲突保持未提交 / §21.6 重试 / 键=turn|memory</td></tr>
+<tr><td class="id">E-03</td><td class="fact">Core→Console</td><td>提交 / 受理回执 / 不猜 QUEUED / 可重放 / 键=plan|owner</td></tr>
+<tr><td class="id">E-04</td><td class="fact">Console→Middleware</td><td>派发 / run+receipt / 策略拒保持 QUEUED / §21.6 重试 / 键=operation</td></tr>
+<tr><td class="id">E-05</td><td class="fact">Middleware→Shell</td><td>host.control / host.fact / 失败回事实 / 0 重试 / 键=operation|verb</td></tr>
+<tr><td class="id">E-06</td><td class="fact">Middleware→Console</td><td>投影 / accepted / 直写 Surface 禁 / 0 重试 / 键=run|sequence</td></tr>
+<tr><td class="id">E-07</td><td class="fact">Console→Surface</td><td>渲染请求 / receipt / 拒绝保持上帧 / 一次重放 / 键=view|sequence</td></tr>
+<tr><td class="id">E-08</td><td class="fact">治理→各块</td><td>policy.check / allow-deny / 失败即 deny / 0 重试 / 键=version|action</td></tr>
+</tbody>
+</table>
+</div>
+</div>
+
+<p class="skel-note">每边五要素齐全（请求字段／回执／失败落点／超时重试归属／幂等键）；<b>NXI_&lt;EDGE&gt;_&lt;CAUSE&gt;</b> 仅登记主文尚无的胶合失败码，不构成队列状态或第九态；补偿失败先落 FAILED、retryCount≥2 才按现有合法迁移落 BLOCKED。下游 0057 冻结属第二层前置，不影响本骨架结构自洽。</p>
+</section>
 
 <ul class="tree" id="root">
 
