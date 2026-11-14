@@ -31,6 +31,7 @@
 | T3 | `scripts/reconcile-inbox.py`、reconcile 测试 | 只读对账、JSON 输出与退出码契约可机检 |
 | T4 | 队列 schema、`scripts/dispatch-work-order.py`、相关测试 | 新单 `claim_id` 生效，派发器只经 writer 写入且参数表不变 |
 | T5 | 本单全部写域与测试 | 唯一写者搜索、行为用例、回归与写域差值均通过 |
+| T6 | renderer migrate 收口、两个存量测试接口对齐 | 写 authority 仅 queue-writer；12 项存量失败转通过，断言不减少 |
 
 ## 3. 任务明细
 
@@ -132,6 +133,25 @@
 
 **禁止**：不得以进程启动、脚本存在或部分测试通过宣称完成；不得修改测试来掩盖真实失败；不得自行冻结或更新队列状态。
 
+### T6 · 单写者收口与存量测试对齐（2026-11-14 补充授权）
+
+**文件**：`scripts/render-queue-views.py`（仅 `migrate()` 写路径）、`tests/test_dor_gate.py`、`tests/test_audit_slot_age.py`（仅接口对齐）及其直接测试
+
+**写什么**
+
+1. renderer：删除/改写 `migrate()` 内对 AUTHORITY 的 `_atomic_json` 写——authority 不存在时改为 fail-closed，返回非零并指向 queue-writer，不自行创建 queue-status.json；正常渲染仍只写 index.md。
+2. `test_audit_slot_age.py`：把 `_row/_registry` 生成 Markdown 行改为生成现行 JSON-dict（含 `records` 列表），各测试断言意图与数量保持不变。
+3. `test_dor_gate.py`：移除对已删 `resolve_work_order_card` 的引用，工单号命名对齐现行契约，DoR 断言意图保持不变。
+4. 不放宽任何 fail-closed 门禁，不改断言的业务含义。
+
+**验收（Gate T6）**
+
+1. 隔离复现 `--migrate`：authority 不存在时返回非零且不创建文件；写入口扫描显示写 authority 的仅 `queue-writer.py`。
+2. 两个更新后的测试文件全绿；断言数量与意图不减少（对照修复前清单）。
+3. 扩展回归中此前 12 项失败转通过，无新增失败。
+
+**禁止**：改测试掩盖真实失败、删断言、改 CLI 参数、触碰写域外文件。
+
 ## 4. DoR 自检
 
 | DoR 项 | 待审卡结论 | 依据 |
@@ -155,6 +175,7 @@
 - 与 writer/reconcile/新单 `claim_id` 直接对应的测试文件与 schema 文件
 - `scripts/dispatch-work-order.py` 中“调用 writer 替代直写”的最小改动
 - 执行报告 `docs/reports/exec-wo-ultimaagent-20261113-0061.md`
+- T6 补充授权：`scripts/render-queue-views.py`（仅 `migrate()` 写路径收口）、`tests/test_dor_gate.py`、`tests/test_audit_slot_age.py`（仅接口对齐，禁删断言）
 
 任何新增测试文件须在执行前 T0 记录中声明精确路径；未声明路径拒写。`tasks/queue/queue-status.json` 只可通过 writer 在隔离/验收流程中写入，卡面不得授权人工直改。
 

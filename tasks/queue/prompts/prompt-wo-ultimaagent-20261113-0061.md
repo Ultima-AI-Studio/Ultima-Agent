@@ -19,5 +19,11 @@
 - 不改 dispatch-work-order.py 现有 CLI 参数，不实现 Autoloop 外挂，不新增产品承诺。
 - 不得 `git add/commit/tag/push`，不得更新队列状态，不得调 18766，不得访问 `H:\UltimaAI\UltimaAgentNext`。
 
+## 修复轮（T6，2026-11-14 补充授权）
+首轮 T5 诚实 FAIL，两个阻塞项已获写域补充授权：
+- 收口 `scripts/render-queue-views.py` 的 `migrate()` 写路径：authority 不存在时 fail-closed 指向 queue-writer，不自行创建；正常渲染仍只写 index.md。
+- 对齐 `tests/test_audit_slot_age.py`（Markdown 行→JSON-dict records）与 `tests/test_dor_gate.py`（删 resolve_work_order_card 引用、命名对齐），断言意图与数量不减少。
+- 完成后重跑写入口扫描与扩展回归，确认写 authority 仅 queue-writer、此前 12 失败转通过、无新增失败。
+
 ## 结束条件
-T1–T5 Gate 全绿；写入口扫描显示写者仅 queue-writer.py；writer `--selftest` 退出码 0；reconcile 正常/重复/孤儿夹具 diff 分别为 0/非0/非0；写域差值与卡 §5 一致。报告最后两行依次为 `T6_GATE=PASS|FAIL` 与 `READY_FOR_INDEPENDENT_AUDIT`。结束后在对话里给出：各 T 一条结论、唯一写者扫描结果、selftest 与 reconcile 退出码、写域越界声明。
+T1–T6 Gate 全绿；写入口扫描显示写者仅 queue-writer.py；writer `--selftest` 退出码 0；reconcile 正常/重复/孤儿夹具 diff 分别为 0/非0/非0；写域差值与卡 §5 一致。报告最后两行依次为 `T6_GATE=PASS|FAIL` 与 `READY_FOR_INDEPENDENT_AUDIT`。结束后在对话里给出：各 T 一条结论、唯一写者扫描结果、selftest 与 reconcile 退出码、写域越界声明。
