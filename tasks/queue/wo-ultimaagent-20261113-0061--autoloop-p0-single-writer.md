@@ -94,7 +94,7 @@
 
 ### T4 · 新单 claim_id 与派发器收敛
 
-**文件**：`tasks/queue/queue-status.json` 对应 schema、`scripts/dispatch-work-order.py`、相关单元测试
+**文件**：`scripts/queue-writer.py` 内的记录校验（现行无独立 queue-status JSON schema，记录结构由 `schema_version` 门与内联校验保证，claim_id 校验加在此处）、`scripts/dispatch-work-order.py`、相关单元测试
 
 **写什么**
 
@@ -124,7 +124,7 @@
 
 **验收（Gate T5）**
 
-1. `grep -r "queue-status.json" scripts/` 的允许命中文件集合仅为 `queue-writer.py` 与 `reconcile-inbox.py`；若环境使用 `rg`，须执行语义等价命令并保存原始输出。
+1. 对 `scripts/` 做**写入口扫描**（匹配指向 `queue-status.json` 的 `open(...,w)`、`os.replace`、临时文件原子替换等写动作）：写者仅允许 `queue-writer.py`；`reconcile-inbox.py`、`queue-doctor.py`、`render-queue-views.py`、`verify-order.py`、`dispatch-work-order.py` 等只读引用不在此列，保存原始输出。若环境使用 `rg`，须执行语义等价命令。
 2. `reconcile-inbox.py` 只读性断言通过；正常／重复 `claim_id`／孤儿 `claim_id` 的 `diff` 结果分别为 `0`／非 `0`／非 `0`。
 3. writer 对同一 `claim_id` 的重复投递只产生首次有效落盘，`--selftest` 退出码为 `0`。
 4. 相关回归全部通过；失败即本单不通过，不得以局部 Gate 代替总验收。
