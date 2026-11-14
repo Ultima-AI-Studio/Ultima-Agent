@@ -114,7 +114,7 @@
 
 ### T5 · 总验收
 
-**文件**：本单允许写入的全部实现、测试与收件箱说明文件
+**文件**：本单允许写入的全部实现、测试与收件箱说明文件，以及执行报告 `docs/reports/exec-wo-ultimaagent-20261113-0061.md`
 
 **写什么**
 
@@ -154,6 +154,7 @@
 - `scripts/reconcile-inbox.py`
 - 与 writer/reconcile/新单 `claim_id` 直接对应的测试文件与 schema 文件
 - `scripts/dispatch-work-order.py` 中“调用 writer 替代直写”的最小改动
+- 执行报告 `docs/reports/exec-wo-ultimaagent-20261113-0061.md`
 
 任何新增测试文件须在执行前 T0 记录中声明精确路径；未声明路径拒写。`tasks/queue/queue-status.json` 只可通过 writer 在隔离/验收流程中写入，卡面不得授权人工直改。
 
