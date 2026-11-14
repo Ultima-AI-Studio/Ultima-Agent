@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UltimaAgent 北极星 · 模块技术清单</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Rajdhani:wght@500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+:root{
+  --hd-cyan:#0ea5e9; --hd-green:#34d399; --hd-warn:#fbbf24; --hd-coral:#fb7185;
+  --hd-purple:#a78bfa; --hd-muted:#cbd5e1; --hd-dim:#64748b;
+  --hd-mono:'Share Tech Mono',ui-monospace,monospace;
+  --hd-display:'Orbitron','Rajdhani',system-ui,sans-serif;
+  --hd-ui:'Rajdhani','Microsoft YaHei',system-ui,sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+body{background:radial-gradient(1400px 900px at 78% -12%,#0a1526 0%,#04070d 55%,#020409 100%);color:var(--hd-muted);font-family:var(--hd-ui);min-height:100vh;line-height:1.6;}
+.wrap{max-width:1180px;margin:0 auto;padding:34px 26px 80px;}
+
+/* ===== 页头 ===== */
+.head h1{font-family:var(--hd-display);font-size:24px;color:var(--hd-cyan);letter-spacing:2px;}
+.head .sub{font-size:13px;color:var(--hd-dim);margin-top:8px;max-width:920px;}
+.head .sub b{color:var(--hd-muted);font-weight:600;}
+.stats{display:flex;flex-wrap:wrap;gap:10px;margin:18px 0 4px;}
+.stat{flex:1 1 150px;min-width:130px;border:1px solid rgba(100,116,139,.3);background:rgba(6,14,26,.5);border-radius:10px;padding:10px 14px;}
+.stat .n{font-family:var(--hd-display);font-size:20px;color:var(--hd-green);}
+.stat .l{font-size:11.5px;color:var(--hd-dim);margin-top:2px;}
+
+/* ===== 模块导航 ===== */
+.nav{position:sticky;top:0;z-index:40;display:flex;flex-wrap:wrap;gap:7px;padding:12px 0;margin:18px 0 22px;background:rgba(4,7,13,.85);backdrop-filter:blur(8px);border-bottom:1px solid rgba(100,116,139,.22);}
+.nav a{font-family:var(--hd-mono);font-size:11.5px;color:var(--hd-muted);text-decoration:none;border:1px solid rgba(100,116,139,.4);border-radius:8px;padding:4px 11px;white-space:nowrap;}
+.nav a:hover{border-color:var(--ac);color:var(--ac);}
+
+/* ===== 模块卡 ===== */
+.module{border:1px solid rgba(100,116,139,.26);background:rgba(6,14,26,.4);border-left:3px solid var(--ac);border-radius:14px;padding:18px 20px 20px;margin-bottom:22px;}
+.m-head{display:flex;flex-wrap:wrap;align-items:baseline;gap:10px;}
+.m-head .idx{font-family:var(--hd-mono);font-size:12px;color:var(--ac);}
+.m-head h2{font-family:var(--hd-display);font-size:18px;color:var(--hd-muted);letter-spacing:1px;}
+.m-head .meta{margin-left:auto;font-family:var(--hd-mono);font-size:11px;color:var(--hd-dim);text-align:right;}
+.m-head .meta b{color:var(--hd-green);font-weight:400;}
+.m-role{font-size:12.5px;color:var(--hd-dim);margin:8px 0 4px;}
+.m-role b{color:var(--ac);font-weight:600;}
+
+/* ===== 技术项 ===== */
+.tech{border:1px solid rgba(100,116,139,.2);background:rgba(3,8,16,.45);border-radius:10px;padding:12px 14px;margin-top:11px;}
+.tech h3{font-size:14.5px;color:var(--ac);letter-spacing:.4px;display:flex;align-items:center;gap:8px;}
+.tech h3 .tno{font-family:var(--hd-mono);font-size:10.5px;color:var(--hd-dim);border:1px solid rgba(100,116,139,.4);border-radius:6px;padding:1px 7px;}
+.tech p{font-size:12.5px;color:var(--hd-dim);margin:7px 0 8px;}
+.tech p b{color:var(--hd-muted);font-weight:600;}
+.objs{display:flex;flex-wrap:wrap;gap:6px;}
+.obj{font-family:var(--hd-mono);font-size:11px;color:var(--hd-muted);background:rgba(14,165,233,.08);border:1px solid rgba(14,165,233,.3);border-radius:7px;padding:2px 9px;}
+.tbd{font-family:var(--hd-mono);font-size:11px;color:var(--hd-warn);border:1px solid rgba(251,191,36,.45);border-radius:7px;padding:2px 9px;}
+.exp-call{margin-top:12px;border:1px dashed rgba(251,191,36,.5);background:rgba(251,191,36,.06);border-radius:10px;padding:11px 14px;font-size:12.5px;color:var(--hd-dim);}
+.exp-call b{color:var(--hd-warn);font-weight:600;}
+.foot{font-size:11.5px;color:var(--hd-dim);margin-top:26px;border-top:1px solid rgba(100,116,139,.22);padding-top:16px;}
+.foot b{color:var(--hd-muted);}
+@media (max-width:760px){ .m-head .meta{margin-left:0;text-align:left;} }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="head">
+    <h1>北极星模块技术清单</h1>
+    <p class="sub">按 <b>0069 单向骨架</b> 拆出的 <b>8 个模块</b>（6 运行块＋Console＋治理⑤），逐模块列出第二层已封闭、需在实现期完成的技术项与契约对象。所有方案均为文档契约，<b>当前无产品代码</b>；权威明细见 <b>docs/plans/next-*能力细节方案-20261114.md</b>。</p>
+    <div class="stats">
+      <div class="stat"><div class="n">8</div><div class="l">模块（exp 不新建模块）</div></div>
+      <div class="stat"><div class="n">129</div><div class="l">文档机检门全过</div></div>
+      <div class="stat"><div class="n">200</div><div class="l">队列总数（HEAD 054758b1）</div></div>
+      <div class="stat"><div class="n">0</div><div class="l">无主悬空引用</div></div>
+    </div>
+  </div>
+
+  <nav class="nav">
+    <a href="#m1" style="--ac:#0ea5e9">① Middleware</a>
+    <a href="#m2" style="--ac:#34d399">② Core</a>
+    <a href="#m3" style="--ac:#fb7185">③ Voice</a>
+    <a href="#m4" style="--ac:#a78bfa">④ Shell</a>
+    <a href="#m5" style="--ac:#0ea5e9">⑤ Surface</a>
+    <a href="#m6" style="--ac:#34d399">⑥ Memory</a>
+    <a href="#m7" style="--ac:#fbbf24">⑦ Console</a>
+    <a href="#m8" style="--ac:#fb7185">⑧ 治理⑤</a>
+  </nav>
+
+  <!-- ① Middleware -->
+  <section class="module" id="m1" style="--ac:#0ea5e9">
+    <div class="m-head"><span class="idx">MODULE 01</span><h2>Middleware 中间件</h2><span class="meta">工单 0071 ｜ <b>13/13 门</b> ｜ 722 行</span></div>
+    <p class="m-role">职责：<b>执行端与票据</b>——写队列票据（W-01）、收件箱与幂等、取消投影、worktree 与配额。</p>
+
+    <div class="tech">
+      <h3><span class="tno">T-A</span>§27 收件箱 / claim / 对账</h3>
+      <p>一轮一事务一事件、重放同确认；claim 幂等；失败退避 5 分钟起翻倍、最长 1 小时，第 3 次告知、第 10 次转 cancelled；对账六值投影。</p>
+      <div class="objs"><span class="obj">InboxEvent</span><span class="obj">InboxReceipt / outcome</span><span class="obj">ClaimRequest</span><span class="obj">ClaimAck / ReceiptAck</span><span class="obj">ReconcileSnapshot</span></div>
+    </div>
+
+    <div class="tech">
+      <h3><span class="tno">T-B</span>cancel_observe 取消投影</h3>
+      <p>运行取消的观察票据主体，三态确定性谓词；与 Shell、state_machine、W-01/W-02 划清边界；运行时取值未实测，fail-closed。</p>
+      <div class="objs"><span class="obj">CancelObserveRequest</span><span class="obj">CancelObserveFacts</span><span class="obj">CancelObserveReceipt</span><span class="tbd">TBD-RUNTIME fail-closed</span></div>
+    </div>
+
+    <div class="tech">
+      <h3><span class="tno">T-C</span>worktree / 并发配额 / rework</h3>
+      <p>worktree 租约隔离、审计后 7 天回收；配额占用/释放原子化；rework 与 retry 分列、连续 2 次不过落 BLOCKED；fileDomain 隔离不变式。</p>
+      <div class="objs"><span class="obj">WorktreeLeaseRequest</span><span class="obj">QuotaSnapshot</span><span class="obj">ReworkRequest / Decision</span></div>
+    </div>
+  </section>
+
+  <!-- ② Core -->
+  <section class="module" id="m2" style="--ac:#34d399">
+    <div class="m-head"><span class="idx">MODULE 02</span><h2>Core 核心</h2><span class="meta">工单 0072 ｜ <b>12/12 门</b> ｜ 782 行</span></div>
+    <p class="m-role">职责：<b>理解与裁决</b>——定意图、复述确认、上下文压缩、检查点回退（只裁决不写物理）。</p>
+
+    <div class="tech">
+      <h3><span class="tno">T-A</span>意图路由契约</h3>
+      <p>确定性路由谓词与优先级，意图 fail-closed；请求/返回字段封闭，失败码枚举封闭。</p>
+      <div class="objs"><span class="obj">IntentRouteRequest</span><span class="obj">IntentRouteResult</span><span class="obj">失败码枚举</span></div>
+    </div>
+
+    <div class="tech">
+      <h3><span class="tno">T-B</span>复述确认契约</h3>
+      <p>双通道信号、无默认肯定；唯一处置表与并发裁决；确认回执封闭。</p>
+      <div class="objs"><span class="obj">ConfirmRequest</span><span class="obj">ConfirmSignal</span><span class="obj">ConfirmReceipt</span></div>
+    </div>
+
+    <div class="tech">
+      <h3><span class="tno">T-C</span>上下文压缩契约</h3>
+      <p>70% 触发优化、80% 触发压缩；确定性压缩步骤，保留轮次原文；W-05 唯一消费边界。</p>
+      <div class="objs"><span class="obj">ContextCompressionRequest</span><span class="obj">ContextCompressionResult</span><span class="obj">TruncationReceipt</span></div>
+    </div>
+
+    <div class="tech">
+      <h3><span class="tno">T-D</span>会话检查点契约</h3>
+      <p>三类快照子对象；写检查点确定性谓词；回退请求与合法性裁决，单线回退唯一执行语义。</p>
+      <div class="objs"><span class="obj">CheckpointWriteRequest</span><span class="obj">CheckpointRecord</span><span class="obj">回退请求/决定</span></div>
+    </div>
+  </section>
+
+  <!-- ③ Voice -->
+  <section class="module" id="m3" style="--ac:#fb7185">
+    <div class="m-head"><span class="idx">MODULE 03</span><h2>Senses.Voice 语音感知</h2><span class="meta">工单 0073 ｜ <b>12/12 门</b> ｜ 996 行</span></div>
+    <p class="m-role">职责：<b>管语音事实</b>——唤醒/识别、合成/播报、会话 loop、故障路由、duck/DND。</p>
+
+    <div class="tech">
+      <h3><span class="tno">T-A</span>KWS / ASR 契约</h3>
+      <p>唤醒阈值 0.30、gold 集判误唤醒/漏唤醒；仅合法 FINAL 结果进 Core；端点快照与流事件封闭。</p>
+      <div class="objs"><span class="obj">AudioSpanRef</span><span class="obj">KwsEvaluateRequest / Decision</span><span class="obj">AsrTranscribeRequest</span><span class="obj">AsrStreamEvent / FinalResult</span></div>
+    </div>
+
+    <div class="tech">
+      <h3><span class="tno">T-B</span>TTS / 会话 loop</h3>
+      <p>合成成功≠已播报；60 秒静默退监听、静默退出；中断回滚安全恢复；防重播。</p>
+      <div class="objs"><span class="obj">TtsSynthesisRequest / Result</span><span class="obj">TtsPlaybackRequest / Receipt</span><span class="obj">VoiceLoopSnapshot / Event / Decision</span></div>
+    </div>
+
+    <div class="tech">
+      <h3><span class="tno">T-C</span>语音组件故障路由</h3>
+      <p>3 次失败切出、3 次成功且驻留 30 秒回切；有界预算、全不可用 fail-closed 唯一告知。</p>
+      <div class="objs"><span class="obj">VoiceHealthProbe / Report</span><span class="obj">VoiceRouteSnapshot</span><span class="obj">RouteSwitchRequest / Receipt</span></div>
+    </div>
+
+    <div class="tech">
+      <h3><span class="tno">T-D</span>duck / DND</h3>
+      <p>单一 duck lease、20%/500ms 恢复；DND 默认关闭；客户端唯一策略写权。</p>
+      <div class="objs"><span class="obj">PlaybackPolicyEvent / Ack</span><span class="obj">AudioPolicySnapshot / ApplyAck</span></div>
+    </div>
+  </section>
+
+  <!-- ④ Shell -->
+  <section class="module" id="m4" style="--ac:#a78bfa">
+    <div class="m-head"><span class="idx">MODULE 04</span><h2>Shell 宿主壳</h2><span class="meta">工单 0074 ｜ <b>18/18 门</b> ｜ 964 行</span></div>
+    <p class="m-role">职责：<b>独占进程</b>——进程托管/守护、零窗、自启、PTY、host.control、就绪事务（W-09 单写进程树）。</p>
+
+    <div class="tech">
+      <h3><span class="tno">T-A</span>托管 / 守护 / 零窗</h3>
+      <p>Job 冻结镜像、spawn/query/terminate/join SPI；guardian 20s/3 次/300s 只恢复子进程、禁根重启；pythonw＋CreateNoWindow＋流排空。</p>
+      <div class="objs"><span class="obj">JobProfile</span><span class="obj">托管 SPI / 失败码</span><span class="obj">guardian profile</span><span class="obj">零窗 profile</span></div>
+    </div>
+
+    <div class="tech">
+      <h3><span class="tno">T-B</span>自启 / PTY</h3>
+      <p>唯一 Startup 文件夹快捷方式（晚绑定 COM），无服务/计划任务/Run key；ConPTY 五动词、入 Job、背压。</p>
+      <div class="objs"><span class="obj">AutostartRequest / Query / Fact</span><span class="obj">pty_host ABI</span><span class="obj">PtyOpenRequest / Fact</span></div>
+    </div>
+
+    <div class="tech">
+      <h3><span class="tno">T-C</span>host.control 控制 / 反馈</h3>
+      <p>start/stop/restart 三动词、host.fact 回传；禁 ROOT 级控制；幂等与非法控制失败码。</p>
+      <div class="objs"><span class="obj">host.control</span><span class="obj">host.fact</span><span class="obj">pty.open 控制</span></div>
+    </div>
+
+    <div class="tech">
+      <h3><span class="tno">T-D</span>启动就绪事务</h3>
+      <p>依赖 DAG、逐依赖放行、幂等 receipt；探针采样与组件事实；逆序回收、有界闭合。</p>
+      <div class="objs"><span class="obj">ReadinessRequest / DAG</span><span class="obj">ReadinessProbeSpec / Sample</span><span class="obj">ReadinessReceipt</span></div>
+    </div>
+  </section>
+
+  <!-- ⑤ Surface -->
+  <section class="module" id="m5" style="--ac:#0ea5e9">
+    <div class="m-head"><span class="idx">MODULE 05</span><h2>Surface 呈现面</h2><span class="meta">工单 0075 ｜ <b>20/20 门</b> ｜ 766 行</span></div>
+    <p class="m-role">职责：<b>只画像素</b>——8 锚点面板渲染、8756 只读数据、看板与干预，无第二写者。</p>
+
+    <div class="tech">
+      <h3><span class="tno">T-A</span>8 锚点与面板渲染</h3>
+      <p>8 锚点映射、中央永久净空、宽度 clamp；960×640 WebView2 双向消息封闭；渲染幂等回执。</p>
+      <div class="objs"><span class="obj">LayoutViewport</span><span class="obj">8 锚点渲染输入</span><span class="obj">WebView2 面板契约</span><span class="obj">渲染回执</span></div>
+    </div>
+
+    <div class="tech">
+      <h3><span class="tno">T-B</span>8756 引擎↔壳只读数据</h3>
+      <p>loopback HTTP/1.1 SSE、只开三个 GET 入口；auth fail-closed、sequence/snapshot/delta/heartbeat 封闭、只读。</p>
+      <div class="objs"><span class="obj">auth / schema</span><span class="obj">sequence 帧</span><span class="obj">snapshot / delta</span><span class="tbd">reconnect TBD-RUNTIME</span></div>
+    </div>
+
+    <div class="tech">
+      <h3><span class="tno">T-C</span>看板与干预</h3>
+      <p>八态直接投影、任务卡五类信息、证据时间线；stop/cancel/resume 三键及合法迁移，ACK 不代表状态已变。</p>
+      <div class="objs"><span class="obj">列式看板字段</span><span class="obj">时间线字段</span><span class="obj">三键谓词 / ACK</span></div>
+    </div>
+  </section>
+
+  <!-- ⑥ Memory -->
+  <section class="module" id="m6" style="--ac:#34d399">
+    <div class="m-head"><span class="idx">MODULE 06</span><h2>Memory 记忆层</h2><span class="meta">工单 0076 ｜ <b>16/16 门</b> ｜ 1348 行</span></div>
+    <p class="m-role">职责：<b>只写 memory schema</b>——三库一索引、采集入库、遗忘、跨卷迁移、Store SPI 与 habit（W-06 物理写口）。</p>
+
+    <div class="tech">
+      <h3><span class="tno">T-A</span>kb / index / writer</h3>
+      <p>书架/书/页 schema、来源与许可；语义分块＋FTS5/向量 RRF、top_k=5；writer 与 poison_guard 防污染。</p>
+      <div class="objs"><span class="obj">KbShelf / KbBook / KbPage</span><span class="obj">Source / License</span><span class="obj">IndexEntry / Search</span><span class="obj">MemoryWriteEnvelope / PoisonGuard</span></div>
+    </div>
+
+    <div class="tech">
+      <h3><span class="tno">T-B</span>kb 采集入库</h3>
+      <p>批次预检、许可拒绝、精确复用；source/index 同事务、全有或全无、零孤儿指针。</p>
+      <div class="objs"><span class="obj">IngestBatchRequest</span><span class="obj">PreflightDecision</span><span class="obj">IngestBatchReceipt / AtomicityProof</span></div>
+    </div>
+
+    <div class="tech">
+      <h3><span class="tno">T-C</span>在线遗忘级联</h3>
+      <p>墓碑、索引快照级联、copy-on-write 压实、物理退役；幂等重放、五类零残留。</p>
+      <div class="objs"><span class="obj">ForgetRequest</span><span class="obj">Tombstone / CascadePlan</span><span class="obj">Compaction / VerificationProof</span></div>
+    </div>
+
+    <div class="tech">
+      <h3><span class="tno">T-D</span>跨卷迁移</h3>
+      <p>≤50MB 分批、copy/verify/swap/retire；journal 恢复、单一 active 指针、volumes 原子替换。</p>
+      <div class="objs"><span class="obj">VolumeMigrationRequest</span><span class="obj">MigrationManifest / Journal</span><span class="obj">Swap / Retire Receipt</span></div>
+    </div>
+
+    <div class="tech">
+      <h3><span class="tno">T-E</span>Store SPI / habit</h3>
+      <p>Store SPI 六动词、禁裸 SQL、非法 caller 零写、对账只读；habit 独立存储、三回合证据、确定性读取。</p>
+      <div class="objs"><span class="obj">StoreRead / Txn / Mutation</span><span class="obj">StoreReconcile</span><span class="obj">HabitEntry / ReadReceipt</span></div>
+    </div>
+
+    <div class="exp-call"><b>exp 经验库（0070，不新建模块）：</b>作为 Memory 下 <b>EXP 命名空间</b>，五态 candidate/provisional/active/superseded/revoked；五道门＋两步晋升，未 active 不进决策；schema/晋升/淘汰由 0070 方案管理，Store SPI 不构成第二写者。</div>
+  </section>
+
+  <!-- ⑦ Console -->
+  <section class="module" id="m7" style="--ac:#fbbf24">
+    <div class="m-head"><span class="idx">MODULE 07</span><h2>Console 编排层</h2><span class="meta">工单 0077 ｜ <b>18/18 门</b> ｜ 1054 行</span></div>
+    <p class="m-role">职责：<b>定运行期次序</b>——常驻托管、task_store/usage、Skill 管理、policy hook；碰进程/网络/磁盘/像素即不属 Console。</p>
+
+    <div class="tech">
+      <h3><span class="tno">T-A</span>常驻托管 / 输出呈现</h3>
+      <p>同 pid 身份、五值局部投影、不查 OS；HostControl 意图与 ACK；8756 只读快照、无第二写者。</p>
+      <div class="objs"><span class="obj">ResidentViewRequest / EngineIdentity</span><span class="obj">ResidentFactBundle / TaskView</span><span class="obj">HostControlIntent / Ack</span></div>
+    </div>
+
+    <div class="tech">
+      <h3><span class="tno">T-B</span>task_store / usage_ledger</h3>
+      <p>项目→工单→任务→run 四级、唯一 tasks.json；usage 只从 W-02 receipt 入账；冻结后热留一年转冷、无物理删除。</p>
+      <div class="objs"><span class="obj">四级 Task Store schema</span><span class="obj">usage_ledger schema</span><span class="obj">转冷唯一算法</span></div>
+    </div>
+
+    <div class="tech">
+      <h3><span class="tno">T-C</span>Skill / Plugin 管理</h3>
+      <p>lifecycle 三值、三层安装、双回滚点；exp→skill 须 3 次不同任务验证票据。</p>
+      <div class="objs"><span class="obj">Skill 登记 / 管理请求</span><span class="obj">lifecycle 状态迁移</span><span class="obj">Lifecycle 交接 / 回滚</span></div>
+    </div>
+
+    <div class="tech">
+      <h3><span class="tno">T-D</span>policy 强制 hook</h3>
+      <p>四值决定、缺失/失败/超时/无版本全 fail-closed；完整 permit、同 dispatch 重试 0 次、不绕过。</p>
+      <div class="objs"><span class="obj">hook 请求 / prepared facts</span><span class="obj">治理决定 / receipt</span><span class="obj">start permit</span></div>
+    </div>
+  </section>
+
+  <!-- ⑧ 治理 -->
+  <section class="module" id="m8" style="--ac:#fb7185">
+    <div class="m-head"><span class="idx">MODULE 08</span><h2>治理与约束 ⑤（横切）</h2><span class="meta">工单 0078 ｜ <b>20/20 门</b> ｜ 926 行</span></div>
+    <p class="m-role">职责：<b>只下约束</b>——policy/habit 唯一主文、日志、灰度止损、安装编排、规则库与冻结；不对应运行时进程。</p>
+
+    <div class="tech">
+      <h3><span class="tno">T-A</span>policy.check / habit 唯一主文</h3>
+      <p>§26.7 policy.check 与 §26.11 habit 唯一 API 主文；四值/失败码/幂等、全路径 fail-closed；前向引用清零。</p>
+      <div class="objs"><span class="obj">policy.check API</span><span class="obj">habit API</span></div>
+    </div>
+
+    <div class="tech">
+      <h3><span class="tno">T-B</span>日志 append</h3>
+      <p>四类日志、唯一 log.append、脱敏；append-only 审计哈希链、无 update/delete、背压。</p>
+      <div class="objs"><span class="obj">四类枚举</span><span class="obj">脱敏契约</span><span class="obj">哈希链 / 幂等</span></div>
+    </div>
+
+    <div class="tech">
+      <h3><span class="tno">T-C</span>灰度健康门 / 止损</h3>
+      <p>W-11 唯一写权；5→25→50→100 放量、每档健康评估；止损与 freeze 谓词，D-07 保守默认。</p>
+      <div class="objs"><span class="obj">健康评估报文</span><span class="obj">健康门 / 止损谓词</span><span class="tbd">D-07 可配置 TBD</span></div>
+    </div>
+
+    <div class="tech">
+      <h3><span class="tno">T-D</span>安装编排 / 规则库版本化</h3>
+      <p>Console 意图/Lifecycle 事务/Shell 命令三层边界、staged/activated 双回滚；规则库不可变版本、唯一 current 指针、CAS。</p>
+      <div class="objs"><span class="obj">安装编排报文</span><span class="obj">规则库版本流转</span><span class="obj">CAS / current pointer</span></div>
+    </div>
+
+    <div class="tech">
+      <h3><span class="tno">T-E</span>不变式注册表 / freeze→tag</h3>
+      <p>八条必备不变式与可机检命令；freeze.apply 唯一签名、tag 命名与原子顺序、幂等。</p>
+      <div class="objs"><span class="obj">不变式 schema / 注册表</span><span class="obj">freeze.apply</span><span class="obj">tag 原子顺序</span></div>
+    </div>
+  </section>
+
+  <p class="foot">口径：本页为第二层封闭契约的<b>导航视图</b>，不新增技术方案；实现期具体技术路径属<b>第三层（#79 pending，待授权）</b>。标 TBD 的项在实现期实测、未实测前 fail-closed，不编造默认值。HEAD 054758b1，队列 200 条。</p>
+
+</div>
+</body>
+</html>
