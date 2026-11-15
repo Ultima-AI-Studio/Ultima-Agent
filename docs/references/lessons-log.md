@@ -2460,7 +2460,8 @@ ERROR: Reconnecting... 5/5 → exit code 1
 - **修法**：不降低校验、不修复范围外 venv、不全局安装包；在本任务 Agent 工作区以 `pip --target` 隔离安装 PyYAML，仅为校验进程设置 `PYTHONPATH`，重跑官方脚本得到 `Skill is valid!`。
 - **判据**：工具链失败后须区分环境故障与产物缺陷；通过隔离依赖恢复原校验路径，禁止改用自制检查冒充官方校验。既有 venv 的 stdlib 异常留作环境债，不在本单扩修。
 - **复发**：0086/0087 主仓 closeout 预检再次发现 `tools/venv-openjarvis` 无法导入 `encodings`；实查其 `pyvenv.cfg` 指向的 sandbox Python 基座目录及 `python.exe` 均已不存在。本次只用可用默认 Python 做 JSON/文本闭合检查，未将其冒充专用解释器验收测试，也未在本单扩修 venv。
-- **复发标记**：N=2。Skill 校验及专用验收解释器运行环境缺陷。
+- **0088 再复发**：独立评审实测 `venv-openjarvis --version` 虽返回 Python 3.13.16，但 `-m pytest --version` 仍因缺 `encodings` 失败；默认 Python 可导入 `encodings` 但缺 `pytest`。已要求方案 repair-1 增加 `sys/encodings/pytest` 强制 preflight，并只在同一运行单绑定新鲜通过的 `<verified-python>`；本单未修环境、未安装依赖、未宣称真实测试通过。
+- **复发标记**：N=3。Skill 校验及专用验收解释器运行环境缺陷。
 
 ## L253 · 隔离依赖路径也必须按当前进程重新验证（2026-11-15）
 
@@ -2476,3 +2477,107 @@ ERROR: Reconnecting... 5/5 → exit code 1
 - **修法**：repair-1 增加同 phase+传递依赖判断、原始路径规范化比较、跨包/重复身份拒绝、完成包排除、安全 flag fail-closed，并新增 6 个回归测试；staging 与 live 均 14/14 PASS。
 - **判据**：关系校验验收必须同时包含非法命中与合法不误报；不能只追求 reason code 数量而漏掉依赖传递、跨阶段、重复身份和生命周期边界。
 - **复发标记**：N=1。校验器测试设计缺陷。
+
+## L255 · Codex 升级后派发参数必须先读当前 CLI help，不能复用旧标志组合（2026-11-15）
+
+- **现象**：0088 首次后台派发沿用旧 `--full-auto`，Codex 0.165.0 返回 `unexpected argument`；改用 `--sandbox workspace-write --approve-for-me` 后又因两个参数互斥退出，两次均未真正启动规划会话。0089 首次实施派发又误用 `-c sandbox="workspace-write"`，CLI 明确报告该 session-flag 被忽略并降为 read-only，主仓读取被执行策略拒绝。
+- **根因**：把历史可用命令或同名配置键当成当前 CLI 契约，未先读取本机 `codex exec --help` 核对参数存在性、互斥关系和实际生效 header；0089 的参数错误发生在会话启动后、实施写入前，不是代码或测试失败。
+- **修法**：保留错误日志，按当前 help 改为仅 `--sandbox workspace-write`，不使用跳过权限/绕过沙箱参数；启动后核对进程存活、真实执行日志和 `sandbox: workspace-write` header，不能把进程启动等同于方案或实施完成。
+- **判据**：每次 Codex 版本变化或派发参数复用前，先以 `--version` 与 `exec --help` 核验；配置覆盖键不得替代已存在的专用 CLI 参数；参数错误必须修正命令本身，不得改用工单范围或降低验收标准来绕过。
+- **复发标记**：N=2。Codex CLI 版本与派发参数契约缺口。
+
+## L256 · 计划中的精确文件路径必须实测存在，SHA 匹配不能替代路径核验（2026-11-15）
+
+- **现象**：0089 计划把 live 第五个测试文件写成不存在的 `tests/fixtures/multi-agent-profile/test_validate.py`，T0 因而 BLOCKED；实际路径为 `tests/test_validate_multi_agent_profile.py`，其 SHA 与计划预期完全一致。
+- **根因**：从既有方案摘要复制路径时未在当前 live 安装上重新做 `exists + SHA` 全量核验，计划评审也只能审文本，不能替代本机存在性检查。
+- **修法**：bounded plan repair-2 只修正路径，保留 SHA 和其余范围；DeepSeek 对 v3 复审 T0～T5 PASS 后恢复原 Codex 会话。
+- **判据**：凡计划钉住精确路径，派发前必须逐条实测存在性和 SHA；路径不存在即修正计划输入，不允许执行端静默替换候选路径。
+- **复发标记**：N=1。精确基线路径未实测。
+
+## L257 · 故障测试必须让故障真实发生，不能用 scenario 分支代替语义（2026-11-15）
+
+- **现象**：0089 repair-1 多个测试只回读 `scenario.reasonCode` 或把 receipt 与自身比较；repair-2 虽改为真实 CAS、进程、预算和 fan-in 推导，receipt-return-loss 仍只是同 attempt 写后读回，cleanup readback failure 仍由标志直接跳过读取，24/24 PASS 也不能证明对应故障闭环。
+- **根因**：把“测试能触发预期分支/计数”误当成“规定故障已真实发生并恢复”，测试断言与故障语义之间存在缺口。
+- **修法**：主脑按实际执行路径逐项审查，不用测试总数代替语义验收；本单 repair 上限已用尽，结论保持 BLOCKED，不以 repair-3 或改口径强行通过。
+- **判据**：丢失类故障必须真的丢弃第一次返回并进入独立恢复；读取失败必须让实际 readback 抛出/返回失败；重试/REVISE 必须保留并比较前后事实字节；任何 scenario 只能注入故障，不能直接提供结论。
+- **复发标记**：N=2。测试语义假阳性（首版多类，repair-2 剩两类）。
+
+## L258 · 间歇性既有回归不得称稳定失败，也不得借偶尔通过放行（2026-11-15）
+
+- **现象**：0089 强制 T4 多次出现既有 dispatcher 子进程退出 1；Codex 一轮为 30 PASS/2 FAIL，主脑一轮为 31 PASS/1 FAIL，此前不同探针也曾通过。
+- **根因**：真实子进程失败的触发条件未确定；不同命令路径、时序和环境可能影响复现，当前证据不足以归因到本单或认定为稳定回归。
+- **修法**：保留每次完整 argv/cwd/exit/stdout/stderr，生产 `dispatcher.py` 保持排除且 SHA 不变；整单按强制命令非零 BLOCKED，根因诊断另单审批。
+- **判据**：只要规定验收命令仍非零就不得 PASS；报告只能写“间歇性、根因未定”，不能写“稳定回归”或用其他探针通过抵消失败。
+- **复发标记**：N=1。既有 dispatcher 间歇性测试失败。
+
+## L259 · fresh 模型评审也可能复用旧 finding，主脑必须对照最终文件纠偏（2026-11-15）
+
+- **现象**：0089 DeepSeek result r2 正确指出 receipt-loss/readback/T4 缺口，但同时声称 receipt 缺 fixtures、只有一条测试、REVISE 未新 attempt、fan-in 未计算；最终 receipt 实际有 11 个 fixtures 和 5 条测试，代码也存在新 attempt 与真实 fan-in 比较。
+- **根因**：长上下文结果评审可能把 r1 finding 或旧版本印象带入 r2，模型名中的 fresh 不保证每条 finding 都与当前文件一致。
+- **修法**：主脑终审逐项回读最终源码和 receipt，采纳可复现 finding，明确剔除与文件不符的误报；最终结论由真实 Gate 决定，不由评审票数决定。
+- **判据**：独立评审是证据输入而非事实替代品；凡引用 blocker 必须能定位到当前文件、当前行/行为和当前命令结果。
+- **复发标记**：N=1。模型评审陈旧 finding 漂移。
+
+## L260 · queue-writer 只迁移既有身份，新工单必须先原子登记权威记录（2026-11-15）
+
+- **现象**：0090 初次登记连续返回 `queue identity is not registered exactly once`；补项目索引和改传纯工单号仍失败，失败调用均未写入。
+- **根因**：把 `claim` 当成“创建并认领”，但当前 `queue-writer.py` 要求 `(project, work_order)` 已在 `queue-status.json` 恰好存在一次；项目 Markdown 索引不是 JSON 权威记录。
+- **修法**：先核验无同项目 executing、无同身份记录，再用同一 `DispatchLock`、schema 校验和原子替换追加 pending；随后才由正式 writer 绑定 claim 并迁移 executing。
+- **判据**：claim 前必须直接读取 JSON `records` 证明身份唯一；新记录登记与状态迁移分开留证，失败 claim 不得被当成已登记。
+- **复发标记**：N=1。权威队列登记前置条件误判。
+
+## L261 · Codex 进程存活不等于命令执行通道可用（2026-11-15）
+
+- **现象**：0090 Codex 会话已产生 thread/turn 日志，但 `workspace-write` 下多个 `codex-windows-sandbox-setup.exe` 持续无返回；最小 echo、PowerShell 版本、Git Bash pwd 与 UI 探测均失败，T0 前只能 BLOCKED。
+- **根因**：执行端沙箱/工具基础设施不可用；尚未定位到仓库或 dispatcher，不能把进程存活和模型自述当作可执行证据。
+- **修法**：保留完整 JSONL、零 command/apply_patch 计数和主脑边界核验；turn 完成后只清理本会话遗留沙箱进程，队列原子收口 BLOCKED，不用主脑直接编码或伪造 T0 绕过。
+- **判据**：派发后必须观察到真实命令完成事件和最小 SHA/测试回读；若一次 exec 合同已消耗，后续修复通道后须取得新的派发授权，不静默重开。
+- **复发标记**：N=1。Codex 命令沙箱初始化失败。
+
+## L262 · 执行端异常恢复须使用精简 CODEX_HOME，并走 DeepSeek 异常退场链（2026-11-15）
+
+- **现象**：0090 首次会话使用桌面默认配置与 `workspace-write` 后命令通道不可用；改用现行范式指定的 `CODEX_HOME=C:\Users\Administrator\.codex-cli` 和完全访问通道后，最小 Python/SHA preflight 立即真实完成。
+- **根因**：旧派发没有遵守 Codex 调用范式 v1.7 的精简环境要求，桌面配置会加载额外 MCP/desktop 组件；进程存活不能证明该通道可用。
+- **修法**：保存 preflight JSONL、零 stderr、版本和 SHA；fresh DeepSeek 异常处置确认这是 T0 前异常退场而非业务 REVISE，授权同单 blocked→pending→executing，repair=0，原计划/工单和 Gate 不变。
+- **判据**：执行端异常恢复必须先有最小真实命令证据，再由 DeepSeek 处置重派；不得另起业务工单逃避历史，也不得把恢复审计当成实施或最终验收。
+- **复发标记**：N=1。派发环境偏离现行 Codex 范式。
+
+## L263 · Manager legacy 刷新器须先兼容权威队列现有状态枚举（2026-11-15）
+
+- **现象**：0090 恢复登记后执行 `RuntimeAuthority.refresh` 失败：`unsupported legacy registry state: closed`；权威 renderer 自身 `--check` 为 `differences: []`。
+- **根因**：Manager `legacy.py` 的状态解析集合落后于权威队列已经使用的 `closed` 状态；不是 0090 JSON 或 renderer 不一致。
+- **修法**：保留刷新异常原文，不修改权威状态来迎合旧解析器，也不在本单扩域修 Manager；0090 实施与测试继续，HUD/Manager 镜像同步标记为独立未闭环缺口。
+- **判据**：登记同步失败必须显式留证；不能用刷新失败反推工单未登记，也不能为了刷新成功篡改其他工单状态。
+- **复发标记**：N=1。Manager legacy 状态枚举漂移。
+
+## L264 · Windows 后代窗口审计必须同时约束 creation flags、PID 复用与 venv launcher（2026-11-15）
+
+- **现象**：0090 两个既有 dispatcher 节点 20 次诊断出现 17 次真实 exit 1；done/out/err/progress/session 表明业务子进程并未失败，而是 `VISIBLE_DESCENDANT_WINDOW`。首轮移除 `DETACHED_PROCESS` 后仍出现 19/20，后续完整回归又暴露 venv redirector launcher 未被窗口树根覆盖。
+- **根因**：`CREATE_NO_WINDOW | DETACHED_PROCESS` 与仅 `DETACHED_PROCESS` 都会产生可见后代窗口；纯数值 parent PID 边会把旧 PID 复用后的无关进程误算为后代；`WindowMonitor(os.getpid())` 又不能覆盖 venv launcher 的父进程链。
+- **修法**：仅保留 `CREATE_NO_WINDOW`；进程边增加“父创建时间 ≤ 子创建时间”约束，窗口检测继续 fail-closed；监控根改为 `os.getppid()`。修复后 Codex 连续三轮每节点 60/60，主脑工作树每节点 20/20，再在干净提交 worktree 复验。
+- **判据**：Windows 进程树判定不得只靠 PID 数值；creation flags 矩阵必须证明真实子进程自身 exit 0；诊断、repair-1、repair-2 与独立复跑证据分别保存，不得以单次偶然通过收口。
+- **复发标记**：N=1。dispatcher 间歇性可见后代窗口与 PID 复用误报。
+
+## L265 · 并行 stub 测试必须建立真实重叠窗口，T5 非零轮次不得拼入连续全绿（2026-11-16）
+
+- **现象**：0090 T5 round-1 的综合命令出现 `observedMaxStubProcesses=1`，W2 又出现 `result.pid` 不在 `observed_pids`；该轮两个 dispatcher 节点虽各 20/20，整轮仍失败并消耗 repair-2。
+- **根因**：两个 worktree 的 stub 建立与释放缺少同步屏障，未保证两个 stub 同时存活；venv launcher 的 PID 根覆盖也不完整。局部绿色不能抵消五条强制命令中的任何非零。
+- **修法**：在既有 stub 内增加释放屏障，确保两个 worktree 均建立后两个 stub 同时存活；保留失败的 round-1 原始证据，repair-2 后仅承认 round-2/3/4 三个连续完整轮次，T2 次数不计入 T5。
+- **判据**：并发/串行语义要由真实进程生命周期证明；每轮必须五条强制命令全零且两个 dispatcher 节点各 20/20，失败轮次只能作为 repair 证据，不得与后续轮次拼接计数。
+- **复发标记**：N=1。stub 进程重叠与完整回归计数失真。
+
+## L266 · 工作树全绿不等于冻结机检完成，外脑 finding 必须由原始证据裁决（2026-11-16）
+
+- **现象**：0090 主脑独立工作树复跑全绿后，实现仍有 tracked 修改和 untracked 授权资产；fresh 首轮结果评审同时提出五项 FAIL finding，其中多项来自证据包未包含完整 round-2、实现 diff 或独立复跑。
+- **根因**：把当前工作树验收误当成“被验 commit 的干净 worktree”证据；模型评审只能看到随包对象，缺对象时可能把证据缺口误报为实现缺口。
+- **修法**：先只提交 0090 授权实现、测试和 fixtures，再从该提交建立干净 worktree 重跑五条强制命令与两个原节点各 20 次；fresh 第二轮补齐原始证据后逐项裁决，首轮五项 finding 均 resolved/disproved。主脑结论同时引用工作树证据与干净提交证据，不相互替代。
+- **判据**：冻结报告必须写明被验 commit、worktree 清洁状态、运行前后源码 SHA 和实际退出码；外脑 PASS/FAIL 都是证据输入，最终结论由当前文件、真实故障、真实恢复和确定性机检决定。
+- **复发标记**：N=2。证据层混用与模型评审证据包不全。
+
+## L267 · 干净 worktree 验收也要控制 TEMP 长度并保留 harness 失败层（2026-11-16）
+
+- **现象**：0090 最终候选提交在干净 worktree 中首轮出现 14 个 adapter 用例全部 `GIT_OPERATION_FAILED`，而两个 dispatcher 节点仍 40/40；直接复现同一 Git 调用得到 `fatal: '$GIT_DIR' too big`，目标路径长度为 233。
+- **根因**：主脑干净验收 harness 把 pytest TEMP 放在多层证据目录下，Git worktree 元数据路径进一步增长后超过 Windows 限制；失败发生在 adapter 业务语义执行前，不是 receipt、cleanup、REVISE 或预算实现回退。
+- **修法**：保留首轮完整结果和直接 Git 探针，只把 harness TEMP 改为系统临时目录下的唯一短路径；实现文件与 implementation repairCount=2 均不变。重跑五条强制命令全零、两个 dispatcher 节点各 20/20，worktree 前后 clean 且源码 SHA 稳定。
+- **判据**：长路径失败必须用原始 Git stderr 证实，不得猜测；测试 harness 修复与 implementation repair 分层记账，不能用缩短路径掩盖真实业务失败，也不能把环境失败误报为产品缺陷。
+- **复发标记**：N=1。干净提交验收 TEMP 路径过长。

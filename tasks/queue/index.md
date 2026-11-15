@@ -2,7 +2,7 @@
 
 > **由 `scripts/render-queue-views.py` 从 `tasks/queue/queue-status.json` 生成，勿手改。**
 > 唯一状态权威：`tasks/queue/queue-status.json`。修改 Markdown 不会回写状态。
-> schema_version=1 ｜ records=138 ｜ blocked=29, cancelled=15, closed=5, frozen=85, pending=4
+> schema_version=1 ｜ records=143 ｜ blocked=28, cancelled=17, closed=8, frozen=86, pending=4
 
 <!-- queue-items:start -->
 | 项目 | 工单 | 状态 | audit_passed | 派发时间 | 审计 run | 冻结 commit | 备注 |
@@ -141,8 +141,13 @@
 | UltimaAgent | wo-ultimaagent-20261114-0077 | blocked | false | 2026-11-14T08:24:31.302856+00:00 |  |  | 等待审计名额（同身份模型二轮复核）；真实执行结束 exit=0；wo-ultimaagent-20261114-0077-20261114T082430657030Z；待二轮复核，不自动批准或续派 |
 | UltimaAgent | wo-ultimaagent-20261114-0078 | blocked | false | 2026-11-14T08:50:08.030719+00:00 |  |  | 等待审计名额（同身份模型二轮复核）；真实执行结束 exit=0；wo-ultimaagent-20261114-0078-20261114T085007430165Z；待二轮复核，不自动批准或续派 |
 | UltimaAgent | wo-ultimaagent-20261114-0079 | blocked | false | 2026-11-14T11:12:37.018030+00:00 |  |  | 等待审计名额（同身份模型二轮复核）；真实执行结束 exit=0；wo-ultimaagent-20261114-0079-20261114T111236369926Z；待二轮复核，不自动批准或续派 |
-| UltimaAgent | wo-ultimaagent-20261114-0080 | blocked | false | 2026-11-14T14:42:14.932034+00:00 |  |  | 等待审计名额（同身份模型二轮复核）；真实执行结束 exit=0；wo-ultimaagent-20261114-0080-20261114T144214026399Z；待二轮复核，不自动批准或续派 |
-| UltimaAgent | wo-ultimaagent-20261114-0081 | blocked | false | 2026-11-14T15:25:08.947460+00:00 |  |  | 等待审计名额（同身份模型二轮复核）；真实执行结束 exit=0；wo-ultimaagent-20261114-0081-20261114T152508261290Z；待二轮复核，不自动批准或续派 |
+| UltimaAgent | wo-ultimaagent-20261114-0080 | cancelled | false | 2026-11-14T14:42:14.932034+00:00 |  |  | Owner 决定取消：规划产物已独立验收并纳入 Next 基线，无需二轮复核；取消并移出活跃队列 |
+| UltimaAgent | wo-ultimaagent-20261114-0081 | cancelled | false | 2026-11-14T15:25:08.947460+00:00 |  |  | Owner 决定取消：规划产物已独立验收并纳入 Next 基线，无需二轮复核；取消并移出活跃队列 |
+| UltimaAgent | wo-ultimaagent-20261115-0082 | frozen | true | 2026-11-15T15:26:17+08:00 | H:/UltimaAI/_audit/0082-final-logs | dd87b3995ff41e7a02fa2c9db1dc752070f2c006 | 0082独立验收PASS：45b5ff5干净检出专项16x2、全量426；复审findings none；dd87b39及tag next-external-vertical-slice-20261115已推送；仅本机OpenAI兼容实测，容器其余能力/云端/发布未关闭；Manager离线待刷新 |
+| UltimaAgent | wo-ultimaagent-20261115-0084 | closed | true | 2026-11-15T09:43:12.304648+00:00 | main-review-0084-20261115T100320Z | 1438f6d96f0fac1eca799b1b795dd2ef84e6ffec | 0084审计交付PASS/方案REVISE：Codex 7 findings，主脑7/7采纳、8项机检全绿；audit_run=main-review-0084-20261115T100320Z；CAX-004仅阻断C，A/B/D/E须受控revision重审；Next 1438f6d96f0fac1eca799b1b795dd2ef84e6ffec及tag next-agent-architecture-codex-audit-20261115已推送；0083历史PASS保留，src/tests/config/stable API零修改；Manager 18766离线，HUD未确认同步 |
+| UltimaAgent | wo-ultimaagent-20261115-0085 | closed | true | 2026-11-15T10:33:35.722564+00:00 | main-0085-independent-readback | fb1330270186ef93b54558583264c1adbf995a6c | 0085 closed：dev-conductor三层playbook整合PASS；quick_validate+12项机检全绿；audit_run=main-0085-independent-readback；Next commit=fb1330270186ef93b54558583264c1adbf995a6c；tag=next-dev-conductor-layered-playbook-20261115；多Agent未启用未实测；技能目录非Git以报告哈希锚定 |
 | UltimaAgent | wo-ultimaagent-20261115-0086 | closed | false | 2026-11-15T10:53:46.318190+00:00 | main-review-0086-plan-20261115 | 10b439e4c47de4e28dfe963f381a638d9ea911de | 0086 planning PASS：Codex方案+主评审；CAX七项通用Gate、serial默认、multi_agent Schema+关系校验器；Next commit=10b439e4c47de4e28dfe963f381a638d9ea911de；tag=next-dev-conductor-multi-agent-plan-20261115；0087另单实施，全局WIP/真实并发未改 |
 | UltimaAgent | wo-ultimaagent-20261115-0087 | closed | false | 2026-11-15T11:05:47.636336+00:00 | main-audit-0087-live-20261115 | f7c3280a0d8a6bf351226aedf5a26b1cf37953ee | 0087 static PASS：七Gate+Schema+关系校验器已live；14 unittest/3正例/20负例/quick_validate/CAS/回退演练全绿；Next commit=f7c3280a0d8a6bf351226aedf5a26b1cf37953ee；tag=next-dev-conductor-multi-agent-profile-20261115；真实多Agent NOT_TESTED |
+| UltimaAgent | wo-ultimaagent-20261115-0088 | closed | true | 2026-11-15T13:17:28.485316+00:00 | main-review-0088-p0-p2-plan-20261115 | e05c5cc0d24ae8d0ec7aa91ef6ef28eaaa372d4e | 0088 planning PASS：Codex P0→P1→P2方案+bounded repair-1；主脑独立评审26/26 PASS；方案SHA=957A58EE431033BF23AEF5382514F25F3D1822F32A05FED173835B3D37FE9001；audit_run=main-review-0088-p0-p2-plan-20261115；Next commit=e05c5cc0d24ae8d0ec7aa91ef6ef28eaaa372d4e；tag=next-dev-conductor-p0-p2-optimization-plan-20261115已推送；serial默认/WIP未改，真实多Agent NOT_TESTED；后续P0-A另单审批；Manager 18766离线，HUD未确认同步 |
+| UltimaAgent | wo-ultimaagent-20261115-0089 | blocked | false | 2026-11-15T13:57:17.206401+00:00 |  |  | 0089 BLOCKED: repair-2 new tests 24/24 PASS; final main audit T2/T3/T4/T5 FAIL; mandatory T4 intermittent existing dispatcher child exit 1; no real agents/shadow/fanout; no commit/tag/push; see review-main-0089-p0-a-final-20261115.md |
 <!-- queue-items:end -->

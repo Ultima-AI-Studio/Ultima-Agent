@@ -2043,7 +2043,7 @@
       "dispatched_at": "2026-11-14T12:29:22+08:00",
       "audit_run": null,
       "freeze_commit": "20ffc3a",
-      "note": "已冻结·Next清场（2026-11-15）：Next 全新启动，本单已通过自身流程审计（audit_passed=True），归档冻结、不再占用审计名额；相关后续由 Next 第四层工单承接。原备注：安全基线内部审计完成并主脑验收（12 findings: High2/Med6/Low4；两条 High 已代码复核为真）；待 Owner 门确认冻结",
+      "note": "已冻结（audit-security-baseline-20261114-frozen @20ffc3a）：Owner 批准；12 findings High2/Med6/Low4；内部工具辅助审计非第三方",
       "claim_id": "clearout-20261115-frz-05"
     },
     {
@@ -2060,12 +2060,12 @@
     {
       "project": "UltimaWallet",
       "work_order": "wo-ultimawallet-20261114-0009",
-      "state": "pending",
-      "audit_passed": null,
-      "dispatched_at": null,
+      "state": "frozen",
+      "audit_passed": true,
+      "dispatched_at": "2026-11-15T10:41:49+08:00",
       "audit_run": null,
-      "freeze_commit": null,
-      "note": "密钥硬化（SEC-001 空口令拒绝+SEC-003 助记词零化）；方案 docs/plans/fix-plan-0009-keystore-hardening.md；已登记待派发，Codex 通道被其他 Agent 占用，Owner 指示暂不推进"
+      "freeze_commit": "13caa5f",
+      "note": "已冻结（keystore-hardening-20261115-frozen @13caa5f）：Owner 批准；51 passed/4 ignored；契约/版本/错误枚举未变"
     },
     {
       "project": "UltimaAgent",
@@ -2189,6 +2189,76 @@
       "claim_id": "51a4328c81ee46769d258a71ef224345"
     },
     {
+      "project": "UltimaWallet",
+      "work_order": "wo-ultimawallet-20261115-0010",
+      "state": "frozen",
+      "audit_passed": true,
+      "dispatched_at": "2026-11-15T11:07:49+08:00",
+      "audit_run": null,
+      "freeze_commit": "d8b619c",
+      "note": "SEC-002 迁移方案已冻结（Owner 批准方案 C；tag btc-derivation-plan-20261115-frozen @d8b619c）；契约加法 0.3.0 与 0011 范围待派单时确认"
+    },
+    {
+      "project": "UltimaWallet",
+      "work_order": "wo-ultimawallet-20261115-0011",
+      "state": "frozen",
+      "audit_passed": true,
+      "dispatched_at": "2026-11-15T11:23:45+08:00",
+      "audit_run": null,
+      "freeze_commit": "a65b25a",
+      "note": "SEC-002 窄版修复完成并主脑独立验收（tag btc-derivation-bip84-20261115 @a65b25a；61 passed/4 ignored 独立复现；契约 0.3.0 纯加法；BTC sign=false 只读；Kotlin/Swift 未编译、真实 provider 未在线验证）｜2026-11-15 Owner 一并批准冻结（btc-derivation-bip84-20261115-frozen）"
+    },
+    {
+      "project": "UltimaWallet",
+      "work_order": "wo-ultimawallet-20261115-0012",
+      "state": "frozen",
+      "audit_passed": true,
+      "dispatched_at": "2026-11-15T12:07:24+08:00",
+      "audit_run": null,
+      "freeze_commit": "2dcf3db",
+      "note": "EVM+BTC 发送方案已定稿（tag send-capability-plan-20261115 @2dcf3db，含作者精确化修订）；契约 v0.4.0 已获 Owner 批准；上游 BitcoinSigner/Segwit 分支经主脑抽查属实；provider 未配置故广播/费率未验证｜2026-11-15 Owner 一并批准冻结（send-capability-plan-20261115-frozen）"
+    },
+    {
+      "project": "UltimaWallet",
+      "work_order": "wo-ultimawallet-20261115-0013",
+      "state": "frozen",
+      "audit_passed": true,
+      "dispatched_at": "2026-11-15T12:25:34+08:00",
+      "audit_run": "cargo test --workspace --locked EXIT=0 / 68 passed / 4 ignored / 0 failed（主脑独立重跑）",
+      "freeze_commit": "04cdad0",
+      "note": "两链签名已就位且回归全绿；契约 v0.4.0；capability 按设计仍 sign=false/broadcast=false/read_only=true（未实现广播未联网，产品仍不能发送）；遗留 BIP143 final 向量/Kotlin-Swift 编译/provider 闭环移交 0014｜2026-11-15 Owner 一并批准冻结（evm-btc-send-offline-20261115-frozen）"
+    },
+    {
+      "project": "UltimaWallet",
+      "work_order": "wo-ultimawallet-20261115-0014",
+      "state": "frozen",
+      "audit_passed": true,
+      "dispatched_at": "2026-11-15T13:34:44+08:00",
+      "audit_run": "设计单评审完成（主脑复核：C/B/A 加权 84/74/56 成立；两处主脑判断被 Codex 修正且修正正确；写域仅 2 路径，代码零改动）",
+      "freeze_commit": "0186f21",
+      "note": "0014 在线验证方案完成（tag online-verification-plan-20261115）；推荐 C 做 0014 实施、B 做 0015；关键修正：已签 raw tx 是可转交授权载体（不广播≠零风险，需防泄露）；C 亦需极小可花费不花的余额才能闭环；provider 与广播全部未实测；capability 仍全 false | 2026-11-15 owner 批准统一冻结，tag online-verification-plan-20261115-frozen；冻结≠可发布（0018A O7 仍为发布阻塞，0018B L3a 未做）"
+    },
+    {
+      "project": "UltimaWallet",
+      "work_order": "wo-ultimawallet-20261115-0015",
+      "state": "frozen",
+      "audit_passed": true,
+      "dispatched_at": "2026-11-15T13:55:34+08:00",
+      "audit_run": "审计：代码与证据合格（83 passed/4 ignored/0 failed 独立重跑一致，+15），但 E-S4/B-S4 因上游 NoTransactionDecoder 阻塞、E-S2/E-S3/B-S3 缺 L2；capability 保持 false 合规",
+      "freeze_commit": "cf0f0d8",
+      "note": "0015 代码与证据合格（83 passed）；E-S4/B-S4 与 L2 缺口已在 0016 闭合，见 stage-0016.md | 2026-11-15 owner 批准统一冻结，tag online-verification-mock-vectors-20261115-frozen；冻结≠可发布（0018A O7 仍为发布阻塞，0018B L3a 未做）"
+    },
+    {
+      "project": "UltimaWallet",
+      "work_order": "wo-ultimawallet-20261115-0016",
+      "state": "frozen",
+      "audit_passed": true,
+      "dispatched_at": "2026-11-15T14:35:14+08:00",
+      "audit_run": "主脑独立验收：85 passed/0 failed/4 ignored；raw_decode 2 passed；L2 在线双源 2 passed（EVM+BTC）",
+      "freeze_commit": "cafb51e",
+      "note": "0016 通过（tag 0016-online-verified-20261115，未冻结）。主脑补 E-S4 keccak256 对拍断言；修正 BTC 费率 reconcile（预测值取高值+500 硬顶，UTXO 严格一致）；L2 接受设计的 fail-closed。EVM/BTC sign=true，broadcast=false，未用真钱未广播。 | 2026-11-15 owner 批准统一冻结，tag 0016-online-verified-20261115-frozen；冻结≠可发布（0018A O7 仍为发布阻塞，0018B L3a 未做）"
+    },
+    {
       "project": "UltimaAgent",
       "work_order": "wo-ultimaagent-20261115-0082",
       "state": "frozen",
@@ -2197,6 +2267,56 @@
       "audit_run": "H:/UltimaAI/_audit/0082-final-logs",
       "freeze_commit": "dd87b3995ff41e7a02fa2c9db1dc752070f2c006",
       "note": "0082独立验收PASS：45b5ff5干净检出专项16x2、全量426；复审findings none；dd87b39及tag next-external-vertical-slice-20261115已推送；仅本机OpenAI兼容实测，容器其余能力/云端/发布未关闭；Manager离线待刷新"
+    },
+    {
+      "project": "UltimaWallet",
+      "work_order": "wo-ultimawallet-20261115-0017",
+      "state": "frozen",
+      "audit_passed": true,
+      "dispatched_at": "2026-11-15T15:28:49+08:00",
+      "audit_run": "主脑验收方案通过：421 行 13 章，现状清单/路线对比/影响面/迁移回滚/测试矩阵/风险/分阶段/未决问题齐备；未改任何代码，无 git 写操作",
+      "freeze_commit": "b16ed63",
+      "note": "0017 方案已落盘 docs/plans/network-parameterization-plan-0017.md（tag 0017-network-plan-20261115，未冻结未实施）。推荐：EVM Sepolia、BTC signet 首发；契约 0.5.0 纯加法；广播默认 Disabled。待批准进入 0017A 实施；0014-0016 后续统一冻结。 | 2026-11-15 owner 批准统一冻结，tag 0017-network-plan-20261115-frozen；冻结≠可发布（0018A O7 仍为发布阻塞，0018B L3a 未做）"
+    },
+    {
+      "project": "UltimaWallet",
+      "work_order": "wo-ultimawallet-20261115-0017a",
+      "state": "frozen",
+      "audit_passed": true,
+      "dispatched_at": "2026-11-15T15:53:47+08:00",
+      "audit_run": "主脑独立重跑 93 passed/0 failed/4 ignored（净增 8）；third_party 零改动；无广播路径；ensure_network_supported 覆盖 derive/discovery/import/balance/preview/sign/broadcast/verify_address",
+      "freeze_commit": "a8775fe",
+      "note": "0017A 通过（tag 0017a-network-shell-20261115，未冻结）。网络模型+兼容壳完成，v0.5 纯加法；主网 golden 不变；测试网未接线、fail-closed，仍不可用。下一步 0017B EVM Sepolia 接线。 | 2026-11-15 owner 批准统一冻结，tag 0017a-network-shell-20261115-frozen；冻结≠可发布（0018A O7 仍为发布阻塞，0018B L3a 未做）"
+    },
+    {
+      "project": "UltimaWallet",
+      "work_order": "wo-ultimawallet-20261115-0017b",
+      "state": "frozen",
+      "audit_passed": true,
+      "dispatched_at": "2026-11-15T16:32:18+08:00",
+      "audit_run": "主脑独立重跑 103 passed/0 failed/5 ignored；主网 BTC+EVM L2 通过；Sepolia L2 通过 estimate=25200；third_party 零改动；无广播",
+      "freeze_commit": "989c747",
+      "note": "0017B+FIX 通过（tag 0017b-evm-sepolia-20261115，未冻结）。主脑独立发现 gas 无下限缺陷并派 0017B-FIX 修复（双源一致返回 12000 证明双源一致≠正确）；Sepolia sign 保持 false，留待 0018 与广播一并开放 | 2026-11-15 owner 批准统一冻结，tag 0017b-evm-sepolia-20261115-frozen；冻结≠可发布（0018A O7 仍为发布阻塞，0018B L3a 未做）"
+    },
+    {
+      "project": "UltimaWallet",
+      "work_order": "wo-ultimawallet-20261115-0017b-fix",
+      "state": "frozen",
+      "audit_passed": true,
+      "dispatched_at": null,
+      "audit_run": "TDD RED 14400 → GREEN 25200；主网 21000→25200 不变；workspace 103 passed",
+      "freeze_commit": "989c747",
+      "note": "主脑独立验收发现的 gas 下限缺陷修复，随 0017B 一并验收 | 2026-11-15 owner 批准统一冻结，tag 0017b-evm-sepolia-20261115-frozen；冻结≠可发布（0018A O7 仍为发布阻塞，0018B L3a 未做）"
+    },
+    {
+      "project": "UltimaWallet",
+      "work_order": "wo-ultimawallet-20261115-0017c",
+      "state": "frozen",
+      "audit_passed": true,
+      "dispatched_at": "2026-11-15T17:35:53+08:00",
+      "audit_run": "主脑独立重跑 113 passed/0 failed/7 ignored；BTC mainnet/testnet3/signet L2 通过（genesis 实测一致）；EVM mainnet+Sepolia L2 通过；third_party 零改动；无广播",
+      "freeze_commit": "f8ab77c",
+      "note": "0017C 通过（tag 0017c-btc-testnets-20261115，未冻结）。testnet3 fee=265 验证取高值 reconcile；BTC 测试网 sign=false 留待 0018。新发现移交 0018：Sepolia 双源 gas 估算频繁不一致，gas 属取高安全参数，建议改取高值+上下限，余额/nonce/UTXO/chain id 保持严格门 | 2026-11-15 owner 批准统一冻结，tag 0017c-btc-testnets-20261115-frozen；冻结≠可发布（0018A O7 仍为发布阻塞，0018B L3a 未做）"
     },
     {
       "project": "UltimaAgent",
@@ -2210,6 +2330,16 @@
       "claim_id": "codex-0084-independent-audit-20261115"
     },
     {
+      "project": "UltimaWallet",
+      "work_order": "wo-ultimawallet-20261115-0017d",
+      "state": "frozen",
+      "audit_passed": true,
+      "dispatched_at": "2026-11-15T18:23:48+08:00",
+      "audit_run": "主脑独立重跑 116 passed/0 failed/7 ignored；四类 gas 场景符合方案；Sepolia 稳定 25200；主网不变",
+      "freeze_commit": "239ed10",
+      "note": "0017D 通过（tag 0017d-evm-gas-take-higher-20261115，未冻结）。gas 取高值+21000 下限+1M 上限超顶拒绝；严格门字段未动；0018 前置已就绪 | 2026-11-15 owner 批准统一冻结，tag 0017d-evm-gas-take-higher-20261115-frozen；冻结≠可发布（0018A O7 仍为发布阻塞，0018B L3a 未做）"
+    },
+    {
       "project": "UltimaAgent",
       "work_order": "wo-ultimaagent-20261115-0085",
       "state": "closed",
@@ -2219,6 +2349,16 @@
       "freeze_commit": "fb1330270186ef93b54558583264c1adbf995a6c",
       "note": "0085 closed：dev-conductor三层playbook整合PASS；quick_validate+12项机检全绿；audit_run=main-0085-independent-readback；Next commit=fb1330270186ef93b54558583264c1adbf995a6c；tag=next-dev-conductor-layered-playbook-20261115；多Agent未启用未实测；技能目录非Git以报告哈希锚定",
       "claim_id": "main-0085-skill-playbook-20261115"
+    },
+    {
+      "project": "UltimaWallet",
+      "work_order": "wo-ultimawallet-20261115-0018",
+      "state": "frozen",
+      "audit_passed": true,
+      "dispatched_at": "2026-11-15T18:40:06+08:00",
+      "audit_run": "主脑核对方案 476 行 14 章；代码零改动；五条件广播门、单写多读、hash 对账、0.6.0 纯加法",
+      "freeze_commit": "404e75f",
+      "note": "0018 方案已验收（tag 0018-testnet-broadcast-plan-20261115，未冻结未实施）。待 owner 批准 O1-O7 后实施 0018A（广播能力+mock，不做真实广播） | 2026-11-15 owner 批准统一冻结，tag 0018-testnet-broadcast-plan-20261115-frozen；冻结≠可发布（0018A O7 仍为发布阻塞，0018B L3a 未做）"
     },
     {
       "project": "UltimaAgent",
@@ -2232,6 +2372,16 @@
       "claim_id": "codex-0086-dev-skill-multi-agent-plan"
     },
     {
+      "project": "UltimaWallet",
+      "work_order": "wo-ultimawallet-20261115-0018a",
+      "state": "frozen",
+      "audit_passed": true,
+      "dispatched_at": "2026-11-15T19:01:26+08:00",
+      "audit_run": "主脑独立重跑 132 passed / 0 failed / 7 ignored；契约 0.5→0.6 纯加法、capability 矩阵、third_party 未改、零请求断言方式审查",
+      "freeze_commit": "b48bfe1",
+      "note": "0018A 已验收（tag 0018a-testnet-broadcast-20261115，未冻结）：Sepolia/signet 广播能力+mock/L1，全程无真实链上写；O7 持久化审批仍是发布阻塞项；0018B 待 owner 手工 faucet 后跑 L3a | 2026-11-15 owner 批准统一冻结，tag 0018a-testnet-broadcast-20261115-frozen；冻结≠可发布（0018A O7 仍为发布阻塞，0018B L3a 未做）"
+    },
+    {
       "project": "UltimaAgent",
       "work_order": "wo-ultimaagent-20261115-0087",
       "state": "closed",
@@ -2241,6 +2391,79 @@
       "freeze_commit": "f7c3280a0d8a6bf351226aedf5a26b1cf37953ee",
       "note": "0087 static PASS：七Gate+Schema+关系校验器已live；14 unittest/3正例/20负例/quick_validate/CAS/回退演练全绿；Next commit=f7c3280a0d8a6bf351226aedf5a26b1cf37953ee；tag=next-dev-conductor-multi-agent-profile-20261115；真实多Agent NOT_TESTED",
       "claim_id": "codex-0087-dev-conductor-staging"
+    },
+    {
+      "project": "UltimaAgent",
+      "work_order": "wo-ultimaagent-20261115-0088",
+      "state": "closed",
+      "audit_passed": true,
+      "dispatched_at": "2026-11-15T13:17:28.485316+00:00",
+      "audit_run": "main-review-0088-p0-p2-plan-20261115",
+      "freeze_commit": "e05c5cc0d24ae8d0ec7aa91ef6ef28eaaa372d4e",
+      "note": "0088 planning PASS：Codex P0→P1→P2方案+bounded repair-1；主脑独立评审26/26 PASS；方案SHA=957A58EE431033BF23AEF5382514F25F3D1822F32A05FED173835B3D37FE9001；audit_run=main-review-0088-p0-p2-plan-20261115；Next commit=e05c5cc0d24ae8d0ec7aa91ef6ef28eaaa372d4e；tag=next-dev-conductor-p0-p2-optimization-plan-20261115已推送；serial默认/WIP未改，真实多Agent NOT_TESTED；后续P0-A另单审批；Manager 18766离线，HUD未确认同步",
+      "claim_id": "codex-0088-dev-conductor-p0-p2-plan"
+    },
+    {
+      "project": "UltimaWallet",
+      "work_order": "wo-ultimawallet-20261115-0018b-prep",
+      "state": "audit",
+      "audit_passed": true,
+      "dispatched_at": "2026-11-15T21:13:10+08:00",
+      "audit_run": "主脑独立重跑 146 passed / 0 failed / 7 ignored；双网 dry-run 零余额正确中止；独立地址统计 funded_txo_count=0/tx_count=0；密钥目录未被 git 跟踪、证据无敏感信息",
+      "freeze_commit": "6c08e62",
+      "note": "0018B-PREP 已验收（未冻结）：一次性地址与 L3a 执行器就绪。owner 已领水（Sepolia 1.0475 ETH、signet 10000 sats 未确认）。Sepolia 首次真实广播因 0018C 强制 21000 out-of-gas 失败，待 0018D 修复后重试；signet 真实执行未开始。0018B 端到端尚未完成"
+    },
+    {
+      "project": "UltimaAgent",
+      "work_order": "wo-ultimaagent-20261115-0089",
+      "state": "blocked",
+      "audit_passed": false,
+      "dispatched_at": "2026-11-15T13:57:17.206401+00:00",
+      "audit_run": null,
+      "freeze_commit": null,
+      "claim_id": "codex-0089-dev-conductor-p0-a-stub",
+      "note": "0089 BLOCKED: repair-2 new tests 24/24 PASS; final main audit T2/T3/T4/T5 FAIL; mandatory T4 intermittent existing dispatcher child exit 1; no real agents/shadow/fanout; no commit/tag/push; see review-main-0089-p0-a-final-20261115.md"
+    },
+    {
+      "project": "UltimaAgentNext",
+      "work_order": "wo-ultimaagent-20261115-0090",
+      "state": "closed",
+      "audit_passed": true,
+      "dispatched_at": "2026-11-15T15:52:49.432392+00:00",
+      "audit_run": "docs/reports/evidence/dev-conductor-0090-dispatcher-p0-a-repair/main-audit/clean-commit-summary.json",
+      "freeze_commit": null,
+      "note": "0090 technical closeout PASS: clean commit 3cc0b521 gatePassed=true; fresh DeepSeek result review r2 PASS; P0A_STUB_PASS; DISPATCHER_ROOT_CAUSE_PROVEN; real serial shadow/fanout NOT_TESTED; Owner freeze/release pending.",
+      "claim_id": "codex-0090-dispatcher-p0-a-recovery-r2"
+    },
+    {
+      "project": "UltimaWallet",
+      "work_order": "wo-ultimawallet-20261115-0018c",
+      "state": "audit",
+      "audit_passed": false,
+      "dispatched_at": "2026-11-15T23:54:25+08:00",
+      "audit_run": "主脑复跑 147 passed/0 failed/7 ignored，dry-run 通过；但真实 Sepolia 广播 txid 0x536b38da...10d9f3 status=0x0 out-of-gas，recipient 未到账，证明强制 21000 方向错误",
+      "freeze_commit": "6e7da1a",
+      "note": "0018C 已提交 6e7da1a 但【未冻结、修复方向被真实链上推翻】。根因为 Glamsterdam EIP-8037 state gas（新账户+183600），非节点估算缺陷。由 0018D 纠正，本单不得作为修复验收或冻结依据"
+    },
+    {
+      "project": "UltimaWallet",
+      "work_order": "wo-ultimawallet-20261115-0018d",
+      "state": "audit",
+      "audit_passed": true,
+      "dispatched_at": "2026-11-15T23:54:25+08:00",
+      "note": "0018D 已验收（未冻结）：EVM gas 改为信任节点估算x1.2，Sepolia 真实转账成功。signet 真实执行未决：blockstream.info/signet target-1 费率持续~3900 sat/vB 触发 500 硬顶 fail-closed，另开工单调整 fee target 策略（方案C：用更低 target）。0018B 端到端 signet 部分尚未完成",
+      "audit_run": "主脑独立验收：Sepolia 真实链上端到端成功 txid 0x5a648f13...b0f1 status=0x1 gasUsed=204600（精确=Glamsterdam 21000+183600），recipient 到账 1e12 wei；--resume 返回 confirmed 完成对账闭环；复跑 147 passed/0 failed/7 ignored。主脑额外修复两个独立 bug：broadcast.rs 的 status_once/accounting_once 调 eth_getTransactionReceipt 未补 0x 前缀（广播成功但确认查询失败）；l3a validate_evm_accounting 的 hash 比较未去 0x（对账误报 mismatch）",
+      "freeze_commit": null
+    },
+    {
+      "project": "UltimaWallet",
+      "work_order": "wo-ultimawallet-20261116-0018e",
+      "state": "executing",
+      "audit_passed": false,
+      "dispatched_at": "2026-11-16T00:45:46+08:00",
+      "audit_run": "（Codex 执行中，主脑尚未独立验收）",
+      "freeze_commit": null,
+      "note": "0018E signet preview fee target 方案C：preview 用更低 target（如 target6）匹配 1conf/90min 门，解除 blockstream target-1 ~3900 sat/vB 触发的 500 硬顶 fail-closed。保留保守对账与硬顶，不削弱安全设计。0018D Sepolia 已验收（cd9df8d）"
     }
   ]
 }
