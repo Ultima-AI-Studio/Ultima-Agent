@@ -12,6 +12,7 @@ import shutil
 import subprocess
 import sys
 import time
+import uuid
 import ctypes
 from ctypes import wintypes as W
 from contextlib import contextmanager
@@ -40,6 +41,7 @@ def _resolve_shared_queue(root: Path) -> Path:
 
 SHARED = _resolve_shared_queue(ROOT)
 QUEUE_STATUS = ROOT / 'tasks/queue/queue-status.json'
+QUEUE_WRITER = ROOT / 'scripts/queue-writer.py'
 QUEUE_RENDERER = ROOT / 'scripts/render-queue-views.py'
 sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(ROOT / 'scripts'))
@@ -431,7 +433,7 @@ def check_recovery_fence(record,expected_state,expected_run,reservation):
         raise RuntimeError('恢复预约已过期或登记被其他裁决改变，拒绝启动')
 
 
-def state(order, target, reason, run, *, expected=None, expected_run=None):
+def state(order, target, reason, run, *, expected=None, expected_run=None, claim_id=None):
     path = QUEUE_STATUS
     original = path.read_bytes()
     document = _load_queue_status(path)
@@ -441,35 +443,35 @@ def state(order, target, reason, run, *, expected=None, expected_run=None):
     if expected_run is not None and expected_run not in str(record.get('note') or ''):
         raise RuntimeError('运行轮次已变化，拒绝旧执行回写')
     (run / ('queue-status-before-' + target + '.json')).write_bytes(original)
-    record['state'] = target
-    record['note'] = reason
-    if target == 'executing':
-        record['dispatched_at'] = datetime.now(timezone.utc).isoformat()
+    action = 'claim' if target == 'executing' else 'transition'
+    writer_claim = uuid.uuid4().hex if action == 'claim' else claim_id
+    command = [
+        sys.executable, str(QUEUE_WRITER), '--queue', str(path), '--action', action,
+        '--project', 'UltimaAgent', '--work-order', order,
+        '--claim-id', str(writer_claim or ''), '--target', target, '--note', reason,
+        '--expected-sha256', hashlib.sha256(original).hexdigest(),
+    ]
+    if expected is not None:
+        command += ['--expected-state', expected]
+    if expected_run is not None:
+        command += ['--expected-run', expected_run]
     if target == 'audit':
-        record['audit_run'] = run.name
-    updated = (json.dumps(document, ensure_ascii=False, indent=2) + '\n').encode('utf-8')
-    if path.read_bytes() != original:
-        raise RuntimeError('全局登记已并发变化，拒绝覆盖')
-    temporary = path.with_name('queue-status.' + run.name + '.tmp')
-    temporary.write_bytes(updated)
+        command += ['--audit-run', run.name]
+    completed = subprocess.run(
+        command, capture_output=True, text=True, encoding='utf-8', errors='replace',
+        timeout=20, creationflags=0x08000000,
+    )
+    if completed.returncode != 0:
+        detail = (completed.stderr or completed.stdout or '').strip()
+        raise RuntimeError(f'queue writer failed: {detail or "no diagnostic"}')
     try:
-        temporary.replace(path)
-    except PermissionError:
-        # Some Windows readers allow WRITE but deny DELETE sharing. Stay under
-        # the dispatch lock, recheck exact bytes, and retain the durable backup.
-        with path.open('r+b') as stream:
-            if stream.read() != original:
-                raise RuntimeError('全局登记已并发变化，拒绝覆盖')
-            stream.seek(0)
-            stream.write(updated)
-            stream.truncate()
-            stream.flush()
-            os.fsync(stream.fileno())
-        temporary.unlink()
-    if path.read_bytes() != updated:
-        raise RuntimeError('全局登记写入后核对失败')
+        result = json.loads(completed.stdout)
+        accepted_claim = result['result']['claim_id']
+    except (ValueError, KeyError, TypeError) as exc:
+        raise RuntimeError('queue writer returned an invalid receipt') from exc
     subprocess.run([sys.executable, str(QUEUE_RENDERER)], check=True,
                    capture_output=True, timeout=20, creationflags=0x08000000)
+    return accepted_claim
 
 
 def main():
@@ -606,7 +608,23 @@ def main():
                    '--skip-git-repo-check', '--json', '--color', 'never',
                    '--output-last-message', str(final), '-']
         reservation_note=('；reservation='+args.expected_reservation) if args.expected_reservation else ''
-        state(args.order, 'executing', f'真实工单派发 {run.name}，一单一进程；尚未验收'+reservation_note, run, expected=record.get('state'))
+        try:
+            claim_id = state(
+                args.order, 'executing',
+                f'真实工单派发 {run.name}，一单一进程；尚未验收'+reservation_note,
+                run, expected=record.get('state'))
+        except Exception as exc:
+            (run / 'dispatch-error.json').write_text(json.dumps({
+                'error': type(exc).__name__, 'phase': 'queue-writer',
+            }), encoding='utf-8')
+            (run / 'done.json').write_text(json.dumps({
+                'work_order': args.order, 'run_id': run.name,
+                'exit_code': None, 'launched': False, 'state': 'blocked',
+                'base_sha': base.get('base_sha'), 'error': type(exc).__name__,
+                'finished_at': datetime.now(timezone.utc).isoformat(),
+            }, ensure_ascii=False), encoding='utf-8')
+            print(json.dumps({'blocked': True, 'reason': str(exc)}, ensure_ascii=False))
+            return 2
         worker = None
         guardian = None
         sentinel_process = None
@@ -721,7 +739,8 @@ def main():
                         reason += (f'审计名额时限清点：{len(disregarded)} 单超 {AUDIT_SLOT_MAX_AGE_DAYS:g}d '
                                    f'或已标冻结，不再占位（{", ".join(d["order"] for d in disregarded)}）；')
                     state(args.order, target, reason+f'真实执行结束 exit={code}；{run.name}；待二轮复核，不自动批准或续派'+reservation_note, run,
-                          expected='executing', expected_run=run.name)
+                          expected='executing', expected_run=run.name,
+                          claim_id=claim_id)
             guardian.wait(timeout=5)
             print(json.dumps({'order': args.order, 'state': target, 'run': str(run)}, ensure_ascii=False))
             return 0 if target == 'audit' else 2
@@ -749,7 +768,9 @@ def main():
                     'error': type(exc).__name__}), encoding='utf-8')
                 if guardian:
                     guardian.wait(timeout=5)
-                state(args.order, 'blocked', f'执行器未启动，派发失败：{run.name}', run, expected='executing', expected_run=run.name)
+                state(args.order, 'blocked', f'执行器未启动，派发失败：{run.name}', run,
+                      expected='executing', expected_run=run.name,
+                      claim_id=claim_id)
             # Keep EXECUTING if a launched process might still be alive.
             raise
         finally:
