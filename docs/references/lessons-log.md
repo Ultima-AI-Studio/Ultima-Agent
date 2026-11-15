@@ -2388,3 +2388,11 @@ ERROR: Reconnecting... 5/5 → exit code 1
 - **修法**：保留专用工具失败结果，用 `web_fetch` 读取用户给出的原短链，核到原作品标题及完整页面正文后再总结；检索结果仅作交叉参考，不作为原作品正文。方案明确标注“原链接页面正文，未获得独立 ASR”。
 - **判据**：原 URL、标题和正文三者可回读才可形成作品总结；无法确认 ID 或正文一致时不得混入同名视频内容，也不得伪称完成语音转写。
 - **复发标记**：N=1。视频证据身份与提取通道边界。
+
+## L244 · CRLF 文件的 `git diff --check` 应显式允许 `cr-at-eol`（2026-11-15）
+
+- **现象**：主仓提交 L243 前执行 `git diff --check`，新增段每一行都被报为 `trailing whitespace`，但可见内容末尾没有空格；Next 文档同项检查通过。
+- **根因**：主仓该 Markdown 使用 CRLF，当前 Git whitespace 规则把行尾 CR 当作 trailing whitespace；这是行尾格式与检查配置不匹配，不是正文多了空格。
+- **修法**：先核对 diff 仅有预期新增段，再以 `git -c core.whitespace=cr-at-eol diff --check -- <精确文件>` 复验，通过后只暂存目标文件；不为通过检查而全量改写历史行尾。
+- **判据**：CRLF 文件的 whitespace Gate 必须显式采用 `cr-at-eol`，同时继续用 `diff --cached --name-only` 限制提交范围，不能以关闭全部检查代替精确规则。
+- **复发标记**：N=1。Git 行尾与验收命令口径差异。
