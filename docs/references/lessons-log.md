@@ -2348,3 +2348,27 @@ ERROR: Reconnecting... 5/5 → exit code 1
 - **修法**：twine 只显式检查分发包：`python -m twine check dist/*.whl dist/*.tar.gz`；许可/SBOM 由各自独立 Gate 检查。修正后 wheel/sdist 均 `PASSED`，门级复验 13/13。
 - **判据**：构建证据与分发包同目录时，任何包校验命令都必须按扩展名限定输入；wheel 单项 PASSED 不得抵消同命令对其他 JSON 的 ERROR。
 - **复发标记**：N=1。工具链/工单命令缺陷，非产品缺陷。
+
+## L239 · `venv-openjarvis` 解释器 `base_prefix` 错指导致 `encodings` 启动即失败（2026-11-15）
+
+- **现象**：主仓 `tools/venv-openjarvis/Scripts/python.exe` 读取 `scripts/orchestrate-order.py --help` 时连续两次 fatal `ModuleNotFoundError: No module named 'encodings'`；其 `base_prefix` 错指 `H:\UltimaAI\UltimaConsole`，清空 `PYTHONHOME/PYTHONPATH` 后仍失败。
+- **根因**：虚拟环境创建/迁移后的 Python 主路径元数据失效，尚未完成解释器重建与受信工具链核验；这不是工单参数或业务代码失败。
+- **修法**：0082 不依赖该编排器，按 G-DISPATCH-001 项目自主登记并用 `Start-Process` 直启 Codex；Next 测试固定使用实测可用的 `UltimaAgentNext/tools/venv-hardening/Scripts/python.exe`。主仓 venv 的重建另立环境修复项，未修复前不得宣称八环节编排器可运行。
+- **判据**：解释器连 `--help` 都不能启动即环境门 FAIL；不得用清空环境变量后的同类失败反复重试，也不得把失败伪报为派发完成。
+- **复发标记**：N=1。工具链/虚拟环境缺陷，非 Next 产品缺陷。
+
+## L240 · 新运行依赖必须同步打包契约，不能删依赖或越权改既有测试（2026-11-15）
+
+- **现象**：0082 T1 声明 `openai/httpx` 后，Provider 专项 6/6 通过，但全量回归中 `test_pep621_metadata_has_one_version_source` 与 `test_wheel_install_metadata_and_members` 仍分别断言 PEP 621 和 wheel `Requires-Dist` 为空，形成 414 passed、2 failed。
+- **根因**：v1.0.0 的“纯后端库零运行依赖”被固化成打包测试；新垂直切片引入真实外部适配器后，打包契约未随依赖方案同步。该冲突不能靠不写依赖元数据掩盖，也不能由执行端越权修改冻结写域外测试。
+- **修法**：执行端停线并保留未提交 T1 变更；工单有界修订，仅授权把两条零依赖断言改为精确 `httpx/openai` 集合断言，其余 packaging 断言不变，专项复审后续跑。
+- **判据**：新增运行依赖必须同时核对 PEP 621、wheel METADATA、离线安装测试与许可闭包；契约冲突走有界修订，不得以删依赖、放宽测试或越权改文件制造绿灯。
+- **复发标记**：N=1。打包契约与新依赖同步缺口。
+
+## L241 · 干净审计检出必须显式声明未跟踪验收夹具与跨仓链接（2026-11-15）
+
+- **现象**：0082 实现提交在干净 worktree 的专项两轮均 16 passed，但首次全量为 422 passed、4 failed；三项失败缺少 `dist/licenses-runtime.json`、`licenses-tooling.json`、`ultima-agent-next.cdx.json`，另一项是审计目录下既有跨仓相对文档链接失效。
+- **根因**：既有 hardening 测试依赖未跟踪 dist 证据和原目录布局；干净 Git 检出不会自动携带这些验收夹具。失败属于审计环境缺项，不是新实现断言失败，但也不能直接忽略或改测试放行。
+- **修法**：保留首轮失败日志，逐项核对文件与链接目标后，显式复制三项既有 dist 夹具并建立审计区跨仓链接，再复跑全量 426 passed；最终修复提交采用同一套已声明夹具复验。旧 dist 文件只满足无关既有测试，不作为新增依赖的发布许可/SBOM 证据。
+- **判据**：干净审计的每个环境性失败必须逐项定位并留痕；补夹具不得冒充产品修复，发布许可闭包与 SBOM 仍须按新依赖单独重建。
+- **复发标记**：N=1。审计环境可复现性缺口。
