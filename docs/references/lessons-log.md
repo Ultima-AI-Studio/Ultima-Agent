@@ -2396,3 +2396,59 @@ ERROR: Reconnecting... 5/5 → exit code 1
 - **修法**：先核对 diff 仅有预期新增段，再以 `git -c core.whitespace=cr-at-eol diff --check -- <精确文件>` 复验，通过后只暂存目标文件；不为通过检查而全量改写历史行尾。
 - **判据**：CRLF 文件的 whitespace Gate 必须显式采用 `cr-at-eol`，同时继续用 `diff --cached --name-only` 限制提交范围，不能以关闭全部检查代替精确规则。
 - **复发标记**：N=1。Git 行尾与验收命令口径差异。
+
+## L245 · 大根目录递归 Glob 超时不能替代正式编号核重（2026-11-15）
+
+- **现象**：0084 派发准备时，对 `H:\UltimaAI` 全根递归检索 `**/*0084*` 超时；随后在主仓按 `**/render-queue-views.py` 做宽递归文件名检索也超时。两个项目目录的窄范围检索虽无同号文件，但不能据此声称全局无同号任务。
+- **根因**：UltimaAI 根目录包含多工程、大体积供应商/工具与历史文件，宽递归遍历成本不可控；文件是否存在与队列是否登记也不是同一事实。
+- **修法**：编号核重改读唯一权威 `tasks/queue/queue-status.json`，精确检查 work_order 尾号并按项目计算已登记最大序号；工具/脚本定位优先读权威索引或使用窄目录搜索。本轮据此确认 UltimaAgent 已登记最大序号 0082、全局无 0084 后才正式核发。
+- **判据**：递归搜索超时必须记录为“未完成”，不得转成“无结果”；正式编号只能由权威队列核重与登记确认。
+- **复发标记**：N=1。工具链/编号治理边界。
+
+## L246 · PowerShell 的 `foreach` 语句不能直接作为管道输入（2026-11-15）
+
+- **现象**：现算三份冻结文档 SHA-256 时，将 `foreach (...) { ... } | ConvertTo-Json` 直接写入命令，PowerShell 报 `An empty pipe element is not allowed`，首次哈希计算未产生结果。
+- **根因**：把 PowerShell 语句式 `foreach` 误当作可直接管道的表达式；该语法需要先用 `@(...)` 收集输出，或通过 `ForEach-Object` 管道处理。
+- **修法**：改为 `$rows = @(foreach (...) { ... }); $rows | ConvertTo-Json -Depth 3` 后重跑，取得三项真实哈希再写入工单。
+- **判据**：哈希未实际输出前不得写入冻结证据；PowerShell 批量对象输出先显式收集再序列化，不能以修正前的失败命令充当证据。
+- **复发标记**：N=1。PowerShell/证据采集命令缺陷。
+
+## L247 · Codex `workspace-write` 沙箱拒绝审计所需只读命令时，应恢复同一会话而非换案或报方案结论（2026-11-15）
+
+- **现象**：0084 首次 Codex 会话在 `workspace-write` 下读取根 INDEX、执行工作区内 `git rev-parse HEAD` 均被 `blocked by policy` 拒绝，指定报告也无法写入；执行端按 Gate 诚实回执 BLOCKED、finding=0，未形成任何方案审计结论。
+- **根因**：当前 Codex 沙箱策略不仅限制工作区外读取，也拒绝了审计所需的本地只读进程命令；该环境失败与被审方案质量无关。
+- **修法**：保留首轮 JSONL 证据，不新建另一独立审计身份；按 Codex 调用范式故障预案，在 Owner 已授权完全访问的本机环境中以 `--dangerously-bypass-approvals-and-sandbox` 恢复同一 thread，并再次明确只允许两个报告产物、其余只读。恢复后从头执行全部 Gate，不能把首轮 BLOCKED 当最终结论。
+- **判据**：环境阻断与方案 finding 必须分列；同工单环境恢复沿用同一 Codex session，禁止通过换会话掩盖首轮失败或重复派发新任务。
+- **复发标记**：N=1。Codex 执行环境/审计证据边界。
+
+## L248 · Manager 离线时本地 `RuntimeAuthority.refresh` 仍可能失败，不能声称 HUD 已同步（2026-11-15）
+
+- **现象**：0084 全局队列登记与 `render-queue-views --check` 已成功，但 18766 TCP 不可达；按范式调用本地 `RuntimeAuthority.refresh(store)` 返回 `REFRESH_FAIL AuthorityBlocked runtime authority refresh failed: ValueError`。
+- **根因**：全局队列登记成功不等于 Manager 权威镜像刷新成功；当前 Manager 运行时/权威状态另有阻断，具体 ValueError 尚未在本专项中展开诊断。
+- **修法**：保留全局队列与派生视图的有效登记，报告和项目队列明确写 Manager 18766 离线、刷新失败、HUD 未确认同步；不为完成审计去改 Manager 配置或绕过其权威门，后续另立环境排查。
+- **判据**：只有刷新成功且 18766 回读目标工单最新状态，才可声明 HUD 同步；其余情况只能声明全局登记完成。
+- **复发标记**：N=1。Manager 镜像同步边界，非被审方案缺陷。
+
+## L249 · PowerShell 内嵌 Python `exec` 与转义引号组合会破坏命令解析（2026-11-15）
+
+- **现象**：首次按范式拼接 `python -c "... exec('try:\\n ... \\'REFRESH_FAIL\\' ...)"` 时，PowerShell 在脚本创建阶段报 `Unexpected token ')'`，Manager 刷新命令未真正执行。
+- **根因**：PowerShell 双引号、Python 字符串和转义单引号三层混写，命令在进入 Python 前已被破坏；这与随后真实执行 refresh 得到的 AuthorityBlocked 是两类不同失败。
+- **修法**：改用 PowerShell 单引号 here-string 通过 stdin 传给 `python -B -X utf8 -`，不在命令行内嵌多层转义；随后才取得真实的 `REFRESH_FAIL AuthorityBlocked` 回执。
+- **判据**：工具包装失败不能冒充目标程序结果；Python 多行逻辑用 stdin/文件传递，执行后区分“命令未运行”和“目标程序运行但拒绝”。
+- **复发标记**：N=1。PowerShell/Python 交接命令缺陷。
+
+## L250 · 主脑机检不得假设回执 schema 或依赖裸 `git` PATH（2026-11-15）
+
+- **现象**：0084 主脑机器验收首次按想象中的 `verdict/findings[]` 读取 Codex receipt，实际字段是工单规定的 `status/evidence[]`，触发 `KeyError: findings`；改为从正式报告提取 findings 后，Python `subprocess` 与 PowerShell 的裸 `git` 又均因当前 PATH 无 Git 而失败。
+- **根因**：验收脚本先写预期结构、后读真实产物，把“字段应当存在”误当事实；同时假设交互环境一定把 Git 加入 PATH。两次失败都发生在主脑验收命令，不影响 Codex 已落盘报告，也不能据此改判方案 findings。
+- **修法**：先回读工单 T3 和真实 `receipt.json`，按实际 `status` 与 `evidence` 校验，并从正式报告的七条 `ID/severity` 记录复核分布；Git 统一使用已核实的 `C:\Program Files\Git\cmd\git.exe` 绝对路径。修正后 8 项机检全部通过。
+- **判据**：回执机检必须先有真实 schema 证据；外部可执行文件找不到时先定位绝对路径，不把工具未启动误报为被检产物失败，也不靠删除检查项制造 PASS。
+- **复发标记**：N=1。主脑验收脚本/运行环境缺陷。
+
+## L251 · 队列 closeout 脚本要按真实函数签名与 CAS 语义调用（2026-11-15）
+
+- **现象**：0084 写入 `audit_passed/freeze_commit` 时，先以 `import queue_writer` 读取带连字符的 `queue-writer.py`，报模块不存在；改用 `importlib` 后漏传 `_atomic_replace(..., replace_func)`，再报缺参；随后公开 CLI 的 `--expected-run` 又拦截，因为该参数实际检查的是 **note 是否包含 run 字符串**，不是 `audit_run` 字段等值。
+- **根因**：把文件名当合法 Python 模块名、凭函数名猜参数，并凭参数名猜 CAS 语义；这些失败均发生在主脑 closeout 命令。前两次在原子写入前失败，第三次在状态迁移前失败，没有重复写入或破坏其他队列记录。
+- **修法**：用 `importlib.util.spec_from_file_location` 加载真实脚本，显式传 `os.replace`；状态迁移使用公开 CLI，并把 `audit_run=...` 写进 note 后完成 `audit→closed`。每次失败后先回读目标状态，再只重试未完成的步骤。
+- **判据**：调用内部 helper 前必须读签名；`expected_*` 必须先读实现再传值；只有目标记录仍处预期状态时才继续，禁止把报错后的整组命令盲目重放。
+- **复发标记**：N=1。主脑队列收尾脚本/接口语义缺陷。
