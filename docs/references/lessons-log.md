@@ -2281,3 +2281,52 @@ ERROR: Reconnecting... 5/5 → exit code 1
 - **修法**：① 单写者门按「写动作指向 authority 的具体代码路径」判定，migrate/bootstrap 分支一并计入；② 对休眠写路径做隔离执行复现（指向临时 authority），不能只看命名；③ 已无存在必要的历史 migrate 写路径应删除或改经唯一 writer，fail-closed 提示，不留第二写者。
 - **附带**：上一接口时代遗留的失效测试（如 Markdown 队列行传给 JSON-dict 接口、引用已删符号）属存量测试债，须单列有界修复、对齐现行契约，禁止执行方「改测试掩盖失败」，也不得用「与本单 diff 无关」长期挂红。
 - **判据**：任一可执行路径能写 authority 且不经过唯一 writer，即单写者 FAIL；存量测试与现行接口不符即登记修复，不豁免不掩盖。
+
+## L231 · 不带 -C 的 codex 无法归属项目，会按忙阻塞跨项目派发
+
+- **现象**：UltimaWallet 用 `cmd /c` 包装的旧式派发（`codex exec -m gpt-5.6-sol --dangerously-bypass-approvals-and-sandbox - < prompt`）未传 `-C`，`codex_processes()` 读出该进程 `role=exec、project=null`；UltimaAgent 派发器 WIP 门把「无项目归属的 exec」按忙处理，0070 派发被拒（全局或项目实际执行 WIP 闸门未通过）。
+- **根因**：跨项目派发器不统一，cmd 包装路径不传工作目录；WIP 门的 null-project 是 fail-closed 设计——无法证明该 exec 属于别的项目，就当本机忙，宁可拒派不误并发。
+- **修法**：① 各项目统一用带 `-C <工程根>` 的派发器，保证每个 exec 可归属；② 遇到 null-project 阻塞时不杀他单进程、不绕门，等该 exec 结束、WIP 清空后再派；③ 若要识别「父进程可证明属于其他项目」的 exec，须先补归属证据再改门，不得放松 fail-closed。
+- **判据**：`codex_processes()` 出现 `role=exec` 且 `project` 为空即阻塞；该运行时门在派发锁内无条件执行，`--skip-dor` 只豁免卡片内容校验、不豁免 WIP 门。
+
+
+## L232 · 门内写死哈希转抄错字、派生视图被误当哈希锁定文件（独立实跑才暴露）
+
+- **现象**：0071 Middleware 方案自称 13/13 机检门“新鲜复跑 PASS”，独立方按文档内命令逐门实跑却发现：G-10 门把基线 SHA-256 写死成 `07C262EEE47D492F…`，而该文件现算值为 `07C262EEE47D8EFC…`，门实抛 “baseline changed” 必 FAIL；另 G-12 把明确标注“派生视图、勿手改”的 `tasks/queue/index.md` 纳入“受保护文件哈希不变”，队列状态迁移触发 render 重渲染后其哈希漂移，门亦不可稳定通过。
+- **根因**：① 执行方转抄长哈希时引入错字，且未真正逐门新鲜复跑，沿用“应 PASS”的自判（L229 同类，自证 Gate 与可执行事实脱节）；② 混淆两类文件——不可变源/契约文件可哈希锁定，而 render 派生视图随 queue-status 重渲染、本就易变，不应做固定哈希。
+- **修法**：① 建卡与验收时，所有机检门由独立方按文档原命令逐门实跑，哈希类断言一律以 `Get-FileHash` 现算值为准、禁止转抄；② 派生视图一致性改用 `render-queue-views --check` 返回 `differences: []` 校验，不做固定哈希锁定，仅对真实源/契约文件做哈希锁。
+- **判据**：门内写死哈希与现算值不一致即 FAIL；派生视图出现在哈希锁定清单即判门设计缺陷。
+
+
+## L233 · 驱动脚本解析 rg 门的正则缺陷：引号字符类、无括号单权威、正/负向权威
+
+- **现象**：长任务驱动 `run_layer4.py` 独立复跑门时连续误判：① 首版正则 `WRITE_AUTHORITY[^']*'([^']+)'` 不适配 rg 行里的 `["'']` 引号字符类，返回 None 被当边界扫描，工单 01 实际 2 处权威命中（queue.state、run.receipt）被误判；② 改成只认括号分组后，单权威工单（如 `compensation\.receipt` 无括号）又返回 None；③ 工单 06 的 `WRITE_AUTHORITY memory.record` 是“断言 Core 无该权威（应 0 命中）”的负向扫描，被一律按“应存在（1）”误判 FAIL。
+- **根因**：用单一正则猜测 rg 语义，忽略了 rg 引号字符类、单/多权威写法差异，以及正/负向断言只能从 gate 正文“期望”文字区分。
+- **修法**：① 权威计数改为在 WRITE_AUTHORITY 后先找括号分组按 `|` 计数、无括号单值返回 1；② 解析 gate 段全文，出现“无 W-xx / 无…authority”时该权威扫描期望 0，否则按权威值个数期望存在；③ 门判定规则必须用全部 22 单回归验证后再跑。
+- **判据**：正/负向权威期望以 gate 正文“期望”为准，正则只负责数权威值；负向断言期望 0、正向每个权威值恰好 1。
+
+
+## L234 · 复杂工单 codex 单会话超时被中断，留下半成品（门能客观识别）
+
+- **现象**：工单 13（Memory 存储写者/索引）codex 在 TICKET_TIMEOUT=1500s 被驱动 kill，pytest 7 项失败：`commit() got an unexpected keyword argument 'poison_request'`、事务回滚、快照/层错误码（STORE_SNAPSHOT_UNAVAILABLE vs NOT_FOUND）、index 写者 manifest 绑定与 canonical 指针、schema location 校验；权威/边界 rg 本身正确。
+- **根因**：大工单在单 codex 会话内做不完，固定超时把“仍在工作”的进程中断，部分文件与测试期望的接口不一致；与 L 早期“活干完才超时”不同，这次是真没干完。
+- **修法**：① 复杂工单给更长超时（如 2400–3000s）或允许 codex 续跑同一工单（多会话接力），不把半成品当完成；② 修补时针对具体接口缺口逐项补齐，再独立复跑该单门；③ 后续工单若普遍超时，应在工单层先拆小再派。
+- **判据**：codex_rc=TIMEOUT 且对应 pytest 有失败即真缺陷，必须二遍修补；仅当超时但门全绿才可判“活已干完”。
+
+
+## L235 · 全局命名独占门用通用词（payload）被后续无关模块触发；同名测试文件收集冲突
+
+- **现象**：工单 05 的门（rg 与测试 `test_context_composer_is_the_only_production_payload_builder` 同一规则）断言 `build_prompt/compose_context/payload=` 只属于 context_composer；后续工单 12（surface transport）、14（memory ingest）合法使用通用变量 `payload`、`index_payload` 而触发 6 处命中、1 测试失败（其余 16 项功能测试全过）。另全量 pytest 收集报 `test_habit_contract.py` 同名文件（governance 与 memory）import mismatch，默认 prepend 模式直接中断。
+- **根因**：① 命名独占规则用子串匹配通用词 `payload`，未限定到“竞争的 payload builder”，误伤无关模块；② 不同目录测试文件同名且无包结构/无 importlib 配置，pytest 模块名碰撞。
+- **修法**：① 优先让后续模块把通用 `payload` 局部变量改为模块专有名（frame_data、book_record、index_document 等），保留 context_composer 的命名预留与反重复意图；或把门收紧为词边界/锚定的真 builder 检测（需评审）；② 永久加 pytest 配置 `addopts=--import-mode=importlib`（或给测试目录加 `__init__.py`/唯一命名）解决同名收集冲突。
+- **判据**：命名独占门命中无关模块的通用词即判门过宽；默认模式下同名测试文件收集失败即需 importlib 配置。
+
+---
+
+## L236 · 抖音视频正文提取：无浏览器通道全灭，浏览器渲染是唯一可靠通道（2026-11-15）
+
+- **现象**：提取抖音视频 `7679685990508002030`（《7 种高级感 WebGL 动效库》）正文时，四条无浏览器通道全部失败：①视频提取脚本 `social_video_to_minutes.py` 对短链与完整 share 地址均回「不支持解析该网站的视频」；②curl 带浏览器 UA 直抓 share 页仅得 72914 字节的反爬壳，正文为 `byted_acrawler` 读 `__ac_nonce`→`sign` 生成 `__ac_signature` 写回 cookie 后 `location.reload()`，无任何业务内容；③`general_search` 用主题词/视频 ID 均未命中（视频 ID 引号 query 返回空且被标记勿再试）；④`video_search` 两轮只返回同主题邻近视频，未命中目标。
+- **根因**：抖音 share 页默认下发的是反爬验证壳而非内容页，纯 HTTP 客户端不执行签名 JS、拿不到真实内容；通用搜索引擎对该单条视频未建索引，站内搜索的关键词召回也不稳定——无浏览器通道缺少「执行 JS + 持有 cookie 会话 + 渲染」能力。
+- **修法（已验证）**：按 browser-use-automation 用 `computer_use_tool(plane="bu")` + `import aha_browser_use as bu` 直接 `navigate` 落地页 `https://www.douyin.com/video/<id>`，`wait_for_load` 后用 `get_page_text`/`snapshot` 即读到标题、官方「章节要点」与完整文案；登录弹窗仅限制高清观看，不影响文本证据，无需登录即可拿到正文。
+- **判据**：抖音/字节系页面 curl 得到 `byted_acrawler`/`_$jsvmprt` 混淆 JS 壳即判定无浏览器通道不可用，直接转浏览器渲染，不再反复换 UA 或用视频 ID 做搜索；提取正文优先读页面自带「章节要点」，时间戳与条目为一手证据。
+- **复发标记**：N=1。归类为「反爬 JS 壳，需真实浏览器渲染」，与 L235 同属工具链/方法类教训。
