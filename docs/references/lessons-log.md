@@ -2330,3 +2330,21 @@ ERROR: Reconnecting... 5/5 → exit code 1
 - **修法（已验证）**：按 browser-use-automation 用 `computer_use_tool(plane="bu")` + `import aha_browser_use as bu` 直接 `navigate` 落地页 `https://www.douyin.com/video/<id>`，`wait_for_load` 后用 `get_page_text`/`snapshot` 即读到标题、官方「章节要点」与完整文案；登录弹窗仅限制高清观看，不影响文本证据，无需登录即可拿到正文。
 - **判据**：抖音/字节系页面 curl 得到 `byted_acrawler`/`_$jsvmprt` 混淆 JS 壳即判定无浏览器通道不可用，直接转浏览器渲染，不再反复换 UA 或用视频 ID 做搜索；提取正文优先读页面自带「章节要点」，时间戳与条目为一手证据。
 - **复发标记**：N=1。归类为「反爬 JS 壳，需真实浏览器渲染」，与 L235 同属工具链/方法类教训。
+
+---
+
+## L237 · 本机 ripgrep 的 `-L` 是 `--follow`，不是「无匹配文件」（2026-11-15）
+
+- **现象**：UltimaAgentNext H-05 用 `rg -L '<SPDX头>' ...` 查缺失许可证头的文件，命令返回 135 个**已经包含**该头的文件且 exit 0，与工单「0 输出/exit 1」预期相反，独立复跑记录 7/9。
+- **根因**：把其他工具/记忆中的短参语义套到本机 ripgrep；本机 `rg -L` 等价于 `--follow`（跟随符号链接），列「不含匹配的文件」必须使用 `--files-without-match`（无对应短参）。
+- **修法**：缺头扫描统一写 `rg --files-without-match '<精确头正则>' ...`；按 source-provenance 的精确清单排除本地辅助脚本，不用宽泛 glob 掩盖漏头。修正后 H-05 两条扫描均 0 输出/exit 1，门级复验 9/9。
+- **判据**：凡负向文件扫描，先实测输出集合与退出码，再写入工单；不得仅凭短参记忆推断语义。
+- **复发标记**：N=1。工具链/工单命令缺陷，非产品缺陷。
+
+## L238 · `twine check dist/*` 会误检同目录许可/SBOM JSON（2026-11-15）
+
+- **现象**：UltimaAgentNext H-06 的 wheel 本身 `PASSED`，但 `python -m twine check dist/*` 同时把 `licenses-runtime.json` 等证据文件交给 twine，报 `InvalidDistribution: Unknown distribution format`，独立复跑记录 12/13。
+- **根因**：`dist/` 同时存放 wheel/sdist 与许可、SBOM JSON 证据，宽泛通配符把非分发包也纳入检查；这是工单命令选择器过宽，不是 wheel 元数据失败。
+- **修法**：twine 只显式检查分发包：`python -m twine check dist/*.whl dist/*.tar.gz`；许可/SBOM 由各自独立 Gate 检查。修正后 wheel/sdist 均 `PASSED`，门级复验 13/13。
+- **判据**：构建证据与分发包同目录时，任何包校验命令都必须按扩展名限定输入；wheel 单项 PASSED 不得抵消同命令对其他 JSON 的 ERROR。
+- **复发标记**：N=1。工具链/工单命令缺陷，非产品缺陷。
