@@ -2452,3 +2452,11 @@ ERROR: Reconnecting... 5/5 → exit code 1
 - **修法**：用 `importlib.util.spec_from_file_location` 加载真实脚本，显式传 `os.replace`；状态迁移使用公开 CLI，并把 `audit_run=...` 写进 note 后完成 `audit→closed`。每次失败后先回读目标状态，再只重试未完成的步骤。
 - **判据**：调用内部 helper 前必须读签名；`expected_*` 必须先读实现再传值；只有目标记录仍处预期状态时才继续，禁止把报错后的整组命令盲目重放。
 - **复发标记**：N=1。主脑队列收尾脚本/接口语义缺陷。
+
+## L252 · Skill 校验依赖缺失与既有 venv 不可启动时改用隔离依赖（2026-11-15）
+
+- **现象**：0085 运行 `skill-creator-for-work/scripts/quick_validate.py`，默认 Python 缺 `yaml`；改用 Next 验收解释器又因 stdlib 路径异常无法导入 `encodings`，两次均未实际完成 Skill 校验。
+- **根因**：把校验脚本依赖和既有 venv 可用性当作既定事实；第二个失败属于解释器环境，不是被检 Skill 失败。
+- **修法**：不降低校验、不修复范围外 venv、不全局安装包；在本任务 Agent 工作区以 `pip --target` 隔离安装 PyYAML，仅为校验进程设置 `PYTHONPATH`，重跑官方脚本得到 `Skill is valid!`。
+- **判据**：工具链失败后须区分环境故障与产物缺陷；通过隔离依赖恢复原校验路径，禁止改用自制检查冒充官方校验。既有 venv 的 stdlib 异常留作环境债，不在本单扩修。
+- **复发标记**：N=1。Skill 校验运行环境缺陷。
