@@ -15,6 +15,10 @@ def descendants(root):
     kernel.CreateToolhelp32Snapshot.restype = W.HANDLE
     kernel.Process32FirstW.argtypes = [W.HANDLE, ctypes.POINTER(Entry)]
     kernel.Process32NextW.argtypes = kernel.Process32FirstW.argtypes
+    kernel.OpenProcess.argtypes = [W.DWORD, W.BOOL, W.DWORD]
+    kernel.OpenProcess.restype = W.HANDLE
+    kernel.GetProcessTimes.argtypes = [W.HANDLE] + [ctypes.POINTER(W.FILETIME)] * 4
+    kernel.GetProcessTimes.restype = W.BOOL
     kernel.CloseHandle.argtypes = [W.HANDLE]
     handle = kernel.CreateToolhelp32Snapshot(2, 0)
     if handle == W.HANDLE(-1).value:
@@ -29,9 +33,34 @@ def descendants(root):
             present = kernel.Process32NextW(handle, ctypes.byref(entry))
     finally:
         kernel.CloseHandle(handle)
+    created = {}
+
+    def creation_time(pid):
+        if pid in created:
+            return created[pid]
+        process = kernel.OpenProcess(0x1000, False, pid)
+        if not process:
+            created[pid] = None
+            return None
+        try:
+            times = [W.FILETIME() for _ in range(4)]
+            if not kernel.GetProcessTimes(process, *(ctypes.byref(value) for value in times)):
+                created[pid] = None
+            else:
+                created[pid] = (times[0].dwHighDateTime << 32) | times[0].dwLowDateTime
+        finally:
+            kernel.CloseHandle(process)
+        return created[pid]
+
     found = {root}
     while True:
-        new = {pid for pid, parent in parents.items() if parent in found} - found
+        new = {
+            pid for pid, parent in parents.items()
+            if parent in found and pid not in found
+            and creation_time(parent) is not None
+            and creation_time(pid) is not None
+            and creation_time(parent) <= creation_time(pid)
+        }
         if not new:
             return found
         found.update(new)

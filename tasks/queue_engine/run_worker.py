@@ -12,10 +12,10 @@ def main():
     config=json.loads(progress.read_text(encoding='utf-8'))
     done=Path(config['done'])
     outcome={'exit_code':1,'supervisor_error':'not_started'}
-    monitor = WindowMonitor(os.getpid())
+    monitor = WindowMonitor(os.getppid())
     try:
         monitor.start()
-        flags=0x08000000 | 0x00000008 if os.name=='nt' else 0
+        flags=0x08000000 if os.name=='nt' else 0
         process=subprocess.Popen(config['command'],cwd=config['cwd'],stdin=subprocess.DEVNULL,
                                  stdout=sys.stdout.buffer,stderr=sys.stderr.buffer,
                                  shell=False,creationflags=flags,close_fds=True,

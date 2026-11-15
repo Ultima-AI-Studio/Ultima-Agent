@@ -108,7 +108,13 @@ class DispatcherTests(unittest.TestCase):
         self.assertFalse(duplicate.dispatched)
         self.assertIn("幂等保护", duplicate.reason)
         handle = first_dispatcher.take_process(first.pid or 0)
-        self.assertEqual(0, handle.wait(timeout=5))
+        self.assertEqual(
+            0,
+            handle.wait(timeout=5),
+            {name: path.read_text(encoding="utf-8", errors="replace")
+             for name, path in (first.run_paths or {}).items()
+             if name in {"done", "out", "err", "progress", "session"}},
+        )
         run_files = list((self.storage.runs_dir / "candidate").iterdir())
         self.assertEqual(6, len(run_files), "duplicate dispatch must not create another six-pack")
 
@@ -150,7 +156,13 @@ class DispatcherTests(unittest.TestCase):
         while handle.process.poll() is None:
             observed_windows.update(visible_window_handles(handle.process.pid))
             time.sleep(0.01)
-        self.assertEqual(0, handle.wait(timeout=5))
+        self.assertEqual(
+            0,
+            handle.wait(timeout=5),
+            {name: path.read_text(encoding="utf-8", errors="replace")
+             for name, path in (decision.run_paths or {}).items()
+             if name in {"done", "out", "err", "progress", "session"}},
+        )
         self.assertEqual(set(), observed_windows)
         session = json.loads((decision.run_paths or {})["session"].read_text(encoding="utf-8"))
         self.assertEqual(handle.process.pid, session["pid"])

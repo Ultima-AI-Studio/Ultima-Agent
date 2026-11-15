@@ -18,7 +18,7 @@ from .storage import QueueStorage
 
 CREATE_NO_WINDOW = 0x08000000
 DETACHED_PROCESS = 0x00000008
-BACKGROUND_CREATION_FLAGS = CREATE_NO_WINDOW | DETACHED_PROCESS if os.name == "nt" else 0
+BACKGROUND_CREATION_FLAGS = CREATE_NO_WINDOW if os.name == "nt" else 0
 
 
 @dataclass(frozen=True)
