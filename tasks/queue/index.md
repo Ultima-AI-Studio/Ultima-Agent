@@ -2,7 +2,7 @@
 
 > **由 `scripts/render-queue-views.py` 从 `tasks/queue/queue-status.json` 生成，勿手改。**
 > 唯一状态权威：`tasks/queue/queue-status.json`。修改 Markdown 不会回写状态。
-> schema_version=1 ｜ records=136 ｜ blocked=29, cancelled=15, closed=3, frozen=85, pending=4
+> schema_version=1 ｜ records=138 ｜ blocked=29, cancelled=15, closed=5, frozen=85, pending=4
 
 <!-- queue-items:start -->
 | 项目 | 工单 | 状态 | audit_passed | 派发时间 | 审计 run | 冻结 commit | 备注 |
@@ -143,4 +143,6 @@
 | UltimaAgent | wo-ultimaagent-20261114-0079 | blocked | false | 2026-11-14T11:12:37.018030+00:00 |  |  | 等待审计名额（同身份模型二轮复核）；真实执行结束 exit=0；wo-ultimaagent-20261114-0079-20261114T111236369926Z；待二轮复核，不自动批准或续派 |
 | UltimaAgent | wo-ultimaagent-20261114-0080 | blocked | false | 2026-11-14T14:42:14.932034+00:00 |  |  | 等待审计名额（同身份模型二轮复核）；真实执行结束 exit=0；wo-ultimaagent-20261114-0080-20261114T144214026399Z；待二轮复核，不自动批准或续派 |
 | UltimaAgent | wo-ultimaagent-20261114-0081 | blocked | false | 2026-11-14T15:25:08.947460+00:00 |  |  | 等待审计名额（同身份模型二轮复核）；真实执行结束 exit=0；wo-ultimaagent-20261114-0081-20261114T152508261290Z；待二轮复核，不自动批准或续派 |
+| UltimaAgent | wo-ultimaagent-20261115-0086 | closed | false | 2026-11-15T10:53:46.318190+00:00 | main-review-0086-plan-20261115 | 10b439e4c47de4e28dfe963f381a638d9ea911de | 0086 planning PASS：Codex方案+主评审；CAX七项通用Gate、serial默认、multi_agent Schema+关系校验器；Next commit=10b439e4c47de4e28dfe963f381a638d9ea911de；tag=next-dev-conductor-multi-agent-plan-20261115；0087另单实施，全局WIP/真实并发未改 |
+| UltimaAgent | wo-ultimaagent-20261115-0087 | closed | false | 2026-11-15T11:05:47.636336+00:00 | main-audit-0087-live-20261115 | f7c3280a0d8a6bf351226aedf5a26b1cf37953ee | 0087 static PASS：七Gate+Schema+关系校验器已live；14 unittest/3正例/20负例/quick_validate/CAS/回退演练全绿；Next commit=f7c3280a0d8a6bf351226aedf5a26b1cf37953ee；tag=next-dev-conductor-multi-agent-profile-20261115；真实多Agent NOT_TESTED |
 <!-- queue-items:end -->
